@@ -17,7 +17,7 @@
   -block top-form
     %form{'method':'get', 'action': "{% url 'contacts.contact_list' %}", role:"form" }
       .form-group
-        %input.input-medium.search-query{'type':'text', 'placeholder':'{% trans "Search" %}', 'name':"search", 'value':"{{search}}"}
+        %input.form-control.search-query{'type':'text', 'placeholder':'{% trans "Search" %}', 'name':"search", 'value':"{{search}}"}
 
 -block content
   #pjax
