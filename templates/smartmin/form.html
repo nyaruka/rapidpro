@@ -69,6 +69,13 @@
 {% block extra-script %}
 
 {{ block.super }}
+<script>
+  $(document).ready(function() {
+   $('input[type="checkbox"]').removeClass('form-control');
+   $('input[type="radio"]').removeClass('form-control');
+  });
+</script>
+
 {% if javascript_submit %}
 <script>
   // attach a submit handler to the form
