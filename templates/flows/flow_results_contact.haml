@@ -120,10 +120,11 @@
               display:inline-block;
             }
 
-            .messages {
+            .messages, .ivr-actions {
               display:inline-block;
               float:right;
               margin-top:-6px;
+              margin-left: 10px;
             }
 
             .active {
@@ -226,9 +227,9 @@
     .span8
       .run-summaries
         -for run in runs
-          -with run.messages|last as last
+          -with last=run.interactions|last
 
-            -if run.messages|length > 0
+            -if run.interactions|length > 0
               .run-summary{data-run:'{{run.pk}}'}
                 - if org_perms.flows.flow_update
                   .icon-cancel-circle.remove.hide{data-run:'{{run.pk}}'}
@@ -240,40 +241,66 @@
                     to
                     %span.attn
                       {{ last.created_on }}
-                .messages
-                  {{ run.messages|length }}
-                  .glyph.icon-bubbles-2
+                  -elif last.call
+                    for
+                    %span.attn
+                      {{ last.call.duration }} seconds
+
+                -if run.messages_interactions
+                  .messages
+                    {{ run.messages_interactions|length }}
+                    .glyph.icon-bubbles-2
+                -if run.ivr_interactions
+                  .ivr-actions
+                    {{ run.ivr_interactions|length }}
+                    .glyph.icon-phone2
 
                 .active
                   -if run.is_active or run.pk == 12461
                 .most-recent
                   .title
                     Last message sent {{last.created_on}}
-                  {{last}}
+                  -if last.call
+                    IVR call action
+                  -else
+                    {{last}}
 
 
   -for run in runs
-    -with run.messages as messages
+    -with interactions=run.interactions messages=run.messages_interactions call_interactions=run.ivr_interactions
       .run.hide{class:'run_{{run.pk}}'}
         .run-messages
           .ilog.from
             Started {{run.created_on}}
             %br
             {{messages|length}} message{{messages|pluralize:"s"}}
+            %br
+            Call with {{ call_interactions|length }} action{{call_interactions|pluralize:"s"}}
 
-          -for msg in messages
-            -if msg.direction == 'O'
-              .imsg.from= msg.text
-            -if msg.direction == 'I'
-              -if msg.text == ''
+          -for interaction in interactions
+            -if interaction.call
+              .ilog.from
+                IVR call action
+            -elif interaction.direction == 'O'
+              .imsg.from= interaction.text
+            -elif interaction.direction == 'I'
+              -if interaction.text == ''
                 .imsg.to.empty
                   Empty message
               -else
-                .imsg.to= msg.text
-            -with msg.get_flow_step as step
-              -if step and step.rule_category
-                .ilog.from
-                  Categorized as {{step.rule_category}}
+                .imsg.to= interaction.text
+
+            -if interaction.call
+              -with interaction.step as step
+                -if step and step.rule_category
+                  .ilog.from
+                    Categorized as {{step.rule_category}}
+            -else
+              -with interaction.get_flow_step as step
+                -if step and step.rule_category
+                  .ilog.from
+                    Categorized as {{step.rule_category}}
+
           -if not run.is_active
             .ilog.from
               -if run.expired_on
