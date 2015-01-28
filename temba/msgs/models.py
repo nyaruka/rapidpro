@@ -1311,6 +1311,9 @@ class Label(models.Model):
     @classmethod
     def create_unique(cls, base, label_type, org, parent=None):
 
+        # label names should not have comma which is used on the API when filtering by list
+        base = base.replace(', ', ' ').replace(',', ' ')
+
         # truncate if necessary
         if len(base) > 32:
             base = base[:32]
