@@ -818,6 +818,13 @@ class LabelForm(forms.ModelForm):
 
         self.fields['parent'].queryset = qs
 
+    def clean_name(self):
+        name =  self.cleaned_data['name']
+        if ',' in name:
+            raise forms.ValidationError(_("Label name cannot contain commas"))
+        return name
+
+
     class Meta:
         model = Label
 

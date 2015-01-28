@@ -1253,6 +1253,12 @@ class LabelTest(TembaTest):
         dog3 = Label.create_unique("dog", 'M', self.org)
         self.assertEquals("dog 3", dog3.name)
 
+        hey_label = Label.create_unique("Hey, Man?", 'M', self.org)
+        self.assertEquals("Hey Man?", hey_label.name)
+
+        allo_label = Label.create_unique("allo,allo", 'M', self.org)
+        self.assertEquals("allo allo", allo_label.name)
+
     def test_message_count(self):
         label = Label.create_unique("Parent", 'M', self.org)
         child = Label.create_unique("Child", 'M', self.org, parent=label)
@@ -1312,9 +1318,14 @@ class LabelCRUDLTest(TembaTest):
     def test_label_create(self):
         create_url = reverse('msgs.label_create')
 
+        self.login(self.admin)
+        post_data = dict(name="label,name")
+        response = self.client.post(create_url, post_data, follow=True)
+        self.assertTrue(response.context['form'])
+        self.assertEquals(response.context['form'].errors['name'][0], "Label name cannot contain commas")
+
         post_data = dict(name="label_one")
 
-        self.login(self.admin)
         response = self.client.post(create_url, post_data, follow=True)
         self.assertEquals(Label.objects.all().count(), 1)
         self.assertEquals(Label.objects.all()[0].parent, None)
