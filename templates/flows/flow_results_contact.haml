@@ -1,5 +1,6 @@
 -extends "smartmin/read.html"
 -load smartmin sms compress temba contacts
+-load i18n
 
 -block post-header
   -include "flows/simulator.html"
@@ -17,8 +18,10 @@
 
     .span4
       .pull-right
-        %a.btn.btn-success{ href: "{% url 'flows.flow_export_results' %}?ids={{ object.id }}" } Export Flow Results
-        %a.btn{ href: "{% url 'flows.flow_editor' object.pk %}" } View Flow
+        %a.btn.btn-success{ href: "{% url 'flows.flow_export_results' %}?ids={{ object.id }}" }
+          -trans "Export Flow Results"
+        %a.btn{ href: "{% url 'flows.flow_editor' object.pk %}" }
+          -trans "View Flow"
 
 -block buttons
 
@@ -213,7 +216,7 @@
           });
         }}, false);
 
-        modal.setPrimaryButton('Remove');
+        modal.setPrimaryButton('{% trans "Remove" %}');
         modal.show();
       });
     {% endif %}
@@ -234,17 +237,18 @@
                 - if org_perms.flows.flow_update
                   .icon-cancel-circle.remove.hide{data-run:'{{run.pk}}'}
                 .started
-                  Started
+                  -trans "Started"
                   %span.attn
                     {{run.created_on}}
                   -if last.created_on|date:"jS F Y H:i" != run.created_on|date:"jS F Y H:i"
-                    to
+                    -trans "to"
                     %span.attn
                       {{ last.created_on }}
                   -elif last.call
-                    for
+                    -trans "for"
                     %span.attn
-                      {{ last.call.duration }} seconds
+                      -blocktrans
+                        {{ last.call.duration }} seconds
 
                 -if run.messages_interactions
                   .messages
@@ -259,9 +263,10 @@
                   -if run.is_active or run.pk == 12461
                 .most-recent
                   .title
-                    Last message sent {{last.created_on}}
+                    -blocktrans
+                      Last message sent {{last.created_on}}
                   -if last.call
-                    IVR call action
+                    -trans "IVR call action"
                   -else
                     {{last}}
 
@@ -271,22 +276,25 @@
       .run.hide{class:'run_{{run.pk}}'}
         .run-messages
           .ilog.from
-            Started {{run.created_on}}
+            -blocktrans
+              Started {{run.created_on}}
             %br
-            {{messages|length}} message{{messages|pluralize:"s"}}
+            -blocktrans
+              {{messages|length}} message{{messages|pluralize:"s"}}
             %br
-            Call with {{ call_interactions|length }} action{{call_interactions|pluralize:"s"}}
+            -blocktrans
+              Call with {{ call_interactions|length }} action{{call_interactions|pluralize:"s"}}
 
           -for interaction in interactions
             -if interaction.call
               .ilog.from
-                IVR call action
+                -trans "IVR call action"
             -elif interaction.direction == 'O'
               .imsg.from= interaction.text
             -elif interaction.direction == 'I'
               -if interaction.text == ''
                 .imsg.to.empty
-                  Empty message
+                  -trans "Empty message"
               -else
                 .imsg.to= interaction.text
 
@@ -294,28 +302,33 @@
               -with interaction.step as step
                 -if step and step.rule_category
                   .ilog.from
-                    Categorized as {{step.rule_category}}
+                    -blocktrans
+                      Categorized as {{step.rule_category}}
             -else
               -with interaction.get_flow_step as step
                 -if step and step.rule_category
                   .ilog.from
-                    Categorized as {{step.rule_category}}
+                    -blocktrans
+                      Categorized as {{step.rule_category}}
 
           -if not run.is_active
             .ilog.from
               -if run.expired_on
-                This run expired {{ run.expired_on }}
+                -blocktrans
+                  This run expired {{ run.expired_on }}
               -else
-                {{contact|name_or_urn:user_org}} exited from this flow
+                -blocktrans
+                  {{contact|name_or_urn:user_org}} exited from this flow
 
 
 -block post-fields
   - if org_perms.flows.flow_update
     .deletion.hide
       .title
-        Remove Contact Results
+        -trans "Remove Contact Results"
 
       .body
-        %p Are you sure you want to remove the results for this contact?
+        %p
+          -trans "Are you sure you want to remove the results for this contact?"
 
       %a#delete-form.posterize{}
