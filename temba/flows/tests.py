@@ -363,8 +363,8 @@ class RuleTest(TembaTest):
         self.assertEqual(messages.cell(0, 4).value, "Message")
         self.assertEqual(messages.cell(0, 5).value, "Channel")
 
-        self.assertEqual(messages.cell(1, 0).value, "+250788382382")
-        self.assertEqual(messages.cell(1, 1).value, "Eric")
+        self.assertEqual(messages.cell(1, 0).value, "+250788383383")
+        self.assertEqual(messages.cell(1, 1).value, "Nic")
         self.assertEqual(messages.cell(1, 3).value, "OUT")
         self.assertEqual(messages.cell(1, 4).value, "What is your favorite color?")
         self.assertEqual(messages.cell(1, 5).value, "Test Channel")
