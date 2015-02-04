@@ -4,6 +4,7 @@ import json
 import re
 import time
 
+from operator import attrgetter
 from datetime import datetime
 from django.conf import settings
 from django.core.cache import cache
@@ -24,7 +25,7 @@ from smartmin.views import SmartCRUDL, SmartCreateView, SmartReadView, SmartList
 from temba.contacts.fields import OmniboxField
 from temba.contacts.models import Contact, ContactGroup, ContactField, TEL_SCHEME
 from temba.formax import FormaxMixin
-from temba.ivr.models import IVRCall
+from temba.ivr.models import IVRCall, IVRAction
 from temba.orgs.views import OrgPermsMixin, OrgObjPermsMixin, ModalMixin
 from temba.reports.models import Report
 from temba.flows.models import Flow, FlowReferenceException, FlowRun, STARTING, PENDING
@@ -1077,7 +1078,14 @@ class FlowCRUDL(SmartCRUDL):
                         runs = list(contact.runs.filter(flow=self.object).order_by('-created_on'))
                         for run in runs:
                             # step_uuid__in=step_uuids
-                            run.__dict__['messages'] = list(Msg.objects.filter(steps__run=run).order_by('created_on'))
+                            messages_interactions = Msg.objects.filter(steps__run=run).order_by('created_on')
+                            ivr_interactions = IVRAction.objects.filter(step__run=run).order_by('created_on')
+
+                            run.__dict__['messages_interactions'] = list(messages_interactions)
+                            run.__dict__['ivr_interactions'] = list(ivr_interactions)
+                            run.__dict__['interactions'] = sorted(chain(messages_interactions, ivr_interactions),
+                                                                  key=attrgetter('created_on'), reverse=True)
+
                         context['runs'] = runs
                         context['contact'] = contact
 
