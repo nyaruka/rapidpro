@@ -508,8 +508,9 @@ class Contact(TembaModel, SmartModel, OrgAssetMixin):
         # if this is an anonymous org
         if org.is_anon:
             # try to look up the contact by number, if it exists, ignore this line
-            if Contact.from_urn(org, TEL_SCHEME, phone, country):
-                return None
+            contact = Contact.from_urn(org, TEL_SCHEME, phone, country)
+            if contact:
+                return contact
 
         # only allow valid numbers
         (normalized, is_valid) = ContactURN.normalize_number(phone, country)
