@@ -1542,6 +1542,7 @@ class OrgCRUDL(SmartCRUDL):
                 return HttpResponseRedirect(reverse('msgs.msg_inbox'))
 
             user = self.request.user
+            # make sure we have a org set on the user
             if not user.get_org():
                 user.set_org(export_task.org)
 
