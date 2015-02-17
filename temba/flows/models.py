@@ -3045,11 +3045,13 @@ class ActionLog(models.Model):
     text = models.TextField(help_text=_("The log text"))
     created_on = models.DateTimeField(auto_now_add=True,
                                       help_text=_("When this action log was created"))
+    has_link = models.BooleanField(default=False,
+                                   help_text=_("If this has a clickable link"))
 
     @classmethod
-    def create_action_log(cls, run, text):
+    def create_action_log(cls, run, text, has_link=False):
         try:
-            return ActionLog.objects.create(run=run, text=text)
+            return ActionLog.objects.create(run=run, text=text, has_link=has_link)
         except Exception:
             # it's possible our test call can be deleted out from under us
             pass
@@ -3060,7 +3062,11 @@ class ActionLog(models.Model):
 
     def simulator_json(self):
         log_json = self.as_json()
-        log_json['text'] = escape(self.text).replace('\n', "<br/>")
+        text = self.text
+        if not self.has_link:
+            text = escape(self.text)
+
+        log_json['text'] = text.replace('\n', "<br/>")
         return log_json
 
 class FlowStep(models.Model):
