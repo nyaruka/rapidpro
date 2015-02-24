@@ -110,6 +110,7 @@ class FlowStatsCache(Enum):
     visit_count_map = 4
     step_active_set = 5
     cache_check = 6
+    recent_messages_list = 7
 
 
 def edit_distance(s1, s2): # pragma: no cover
@@ -865,6 +866,7 @@ class Flow(TembaModel, SmartModel):
             active[key] = list(value)
 
         visits = {}
+        recent_messages = {}
         visited_actions = FlowStep.objects.values('step_uuid', 'next_uuid').filter(run__flow=self, step_type='A', run__contact__is_test=simulation).annotate(count=Count('run_id'))
         visited_rules = FlowStep.objects.values('rule_uuid', 'next_uuid').filter(run__flow=self, step_type='R', run__contact__is_test=simulation).exclude(rule_uuid=None).annotate(count=Count('run_id'))
 
@@ -872,12 +874,28 @@ class Flow(TembaModel, SmartModel):
         for step in visited_actions:
             if step['next_uuid'] and step['count']:
                 visits['%s:%s' % (step['step_uuid'], step['next_uuid'])] = step['count']
+                steps_messages = Msg.objects.filter(steps__step_uuid=step['step_uuid'],
+                                                    steps__next_uuid=step['next_uuid'],
+                                                    steps__run__flow=self,
+                                                    steps__step_type='A',
+                                                    steps__run__contact__is_test=simulation,
+                                                    direction='O').order_by('-created_on')[:5]
+
+                recent_messages['%s:%s' % (step['step_uuid'], step['next_uuid'])] = [msg.text for msg in steps_messages]
 
         for step in visited_rules:
             if step['next_uuid'] and step['count']:
                 visits['%s:%s' % (step['rule_uuid'], step['next_uuid'])] = step['count']
+                steps_messages = Msg.objects.filter(steps__rule_uuid=step['rule_uuid'],
+                                                    steps__next_uuid=step['next_uuid'],
+                                                    steps__run__flow=self,
+                                                    steps__step_type='R',
+                                                    steps__run__contact__is_test=simulation,
+                                                    direction='I').order_by('-created_on')[:5]
 
-        return (active, visits)
+                recent_messages['%s:%s' % (step['rule_uuid'], step['next_uuid'])] = [msg.text for msg in steps_messages]
+
+        return (active, visits, recent_messages)
 
     def _check_for_cache_update(self):
         """
@@ -913,11 +931,11 @@ class Flow(TembaModel, SmartModel):
         """
 
         if simulation:
-            (active, visits) = self._calculate_activity(simulation=True)
+            (active, visits, recent_messages) = self._calculate_activity(simulation=True)
             # we want counts not actual run ids
             for key, value in active.items():
                 active[key] = len(value)
-            return (active, visits)
+            return (active, visits, recent_messages)
 
         self._check_for_cache_update()
 
@@ -936,7 +954,12 @@ class Flow(TembaModel, SmartModel):
         for k, v in visited.items():
             visited[k] = int(v)
 
-        return (active, visited)
+        recent_messages_keys = r.keys(self.get_stats_cache_key(FlowStatsCache.recent_messages_list, '*'))
+        recent_messages = {}
+        for key in recent_messages_keys:
+            recent_messages[key] = r.lrange(key, -5, -1)
+
+        return (active, visited, recent_messages)
 
     def get_total_runs(self):
         self._check_for_cache_update()
@@ -1765,10 +1788,20 @@ class Flow(TembaModel, SmartModel):
                 # mark our path
                 previous_uuid = previous_step.step_uuid
 
+                step_message=None
+
                 # if we came from a rule, use that instead of our step
                 if rule_uuid:
                     previous_uuid = rule_uuid
+                    step_message = step.messages.filter(direction='I', contact=step.run.contact).order_by('-created_on').first()
+                else:
+                    step_message = step.messages.filter(direction='O', contact=step.run.contact).order_by('-created_on').first()
+
+
                 r.hincrby(self.get_stats_cache_key(FlowStatsCache.visit_count_map), "%s:%s" % (previous_uuid, step.step_uuid), 1)
+
+                if step_message:
+                    r.lpush(self.get_stats_cache_key(FlowStatsCache.recent_messages_list), "%s:%s" % (previous_uuid, step.step_uuid), step_message.text)
 
             # make us active on our new step
             r.sadd(self.get_stats_cache_key(FlowStatsCache.step_active_set, step.step_uuid), step.run.pk)
