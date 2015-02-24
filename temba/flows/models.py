@@ -827,7 +827,7 @@ class Flow(TembaModel, SmartModel):
 
         # activity
         with self.lock_on(FlowLock.activity, lock_ttl=lock_ttl):
-            (active, visits) = self._calculate_activity()
+            (active, visits, recent_messages) = self._calculate_activity()
 
             # remove our old active cache
             keys = r.keys(self.get_stats_cache_key(FlowStatsCache.step_active_set, '*'))

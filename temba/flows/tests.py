@@ -1475,7 +1475,7 @@ class RuleTest(TembaTest):
         response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
         json_dict = json.loads(response.content)
 
-        self.assertEquals(len(json_dict.keys()), 5)
+        self.assertEquals(len(json_dict.keys()), 6)
         self.assertEquals(len(json_dict['messages']), 3)
         self.assertEquals('Test Contact has entered the &quot;Flow&quot; flow', json_dict['messages'][0]['text'])
         self.assertEquals("This flow is more like a broadcast", json_dict['messages'][1]['text'])
@@ -1488,7 +1488,7 @@ class RuleTest(TembaTest):
         self.assertEquals(200, response.status_code)
         json_dict = json.loads(response.content)
 
-        self.assertEquals(len(json_dict.keys()), 5)
+        self.assertEquals(len(json_dict.keys()), 6)
         self.assertTrue('status' in json_dict.keys())
         self.assertTrue('visited' in json_dict.keys())
         self.assertTrue('activity' in json_dict.keys())
@@ -1503,7 +1503,7 @@ class RuleTest(TembaTest):
         self.assertEquals(200, response.status_code)
         json_dict = json.loads(response.content)
 
-        self.assertEquals(len(json_dict.keys()), 5)
+        self.assertEquals(len(json_dict.keys()), 6)
         self.assertTrue('status' in json_dict.keys())
         self.assertTrue('visited' in json_dict.keys())
         self.assertTrue('activity' in json_dict.keys())
@@ -2136,7 +2136,7 @@ class SimulationTest(FlowFileTest):
         response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
         json_dict = json.loads(response.content)
 
-        self.assertEquals(len(json_dict.keys()), 5)
+        self.assertEquals(len(json_dict.keys()), 6)
         self.assertEquals(len(json_dict['messages']), 2)
         self.assertEquals('Ben Haggerty has entered the &quot;pick_a_number&quot; flow', json_dict['messages'][0]['text'])
         self.assertEquals("Pick a number between 1-10.", json_dict['messages'][1]['text'])
@@ -2172,7 +2172,7 @@ class FlowsTest(FlowFileTest):
 
         # we don't know this shade of green, it should route us to the beginning again
         self.send_message(flow, 'chartreuse')
-        (active, visited) = flow.get_activity()
+        (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(1, len(active))
         self.assertEquals(1, active['1a08ec37-2218-48fd-b6b0-846b14407041'])
         self.assertEquals(1, visited[other_rule_to_msg])
@@ -2185,7 +2185,7 @@ class FlowsTest(FlowFileTest):
         # another unknown color, that'll route us right back again
         # the active stats will look the same, but there should be one more journey on the path
         self.send_message(flow, 'mauve')
-        (active, visited) = flow.get_activity()
+        (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(1, len(active))
         self.assertEquals(1, active['1a08ec37-2218-48fd-b6b0-846b14407041'])
         self.assertEquals(2, visited[other_rule_to_msg])
@@ -2194,14 +2194,14 @@ class FlowsTest(FlowFileTest):
         # this time a color we know takes us elsewhere, activity will move
         # to another node, but still just one entry
         self.send_message(flow, 'blue')
-        (active, visited) = flow.get_activity()
+        (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(1, len(active))
         self.assertEquals(1, active['0784d7f8-3534-4432-99ad-7e4ea41cfbdb'])
 
         # a new participant, showing distinct active counts and incremented path
         ryan = self.create_contact('Ryan Lewis', '+12065550725')
         self.send_message(flow, 'burnt sienna', contact=ryan)
-        (active, visited) = flow.get_activity()
+        (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(2, len(active))
         self.assertEquals(1, active['1a08ec37-2218-48fd-b6b0-846b14407041'])
         self.assertEquals(1, active['0784d7f8-3534-4432-99ad-7e4ea41cfbdb'])
@@ -2212,14 +2212,14 @@ class FlowsTest(FlowFileTest):
 
         # now let's have them land in the same place
         self.send_message(flow, 'blue', contact=ryan)
-        (active, visited) = flow.get_activity()
+        (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(1, len(active))
         self.assertEquals(2, active['0784d7f8-3534-4432-99ad-7e4ea41cfbdb'])
 
         # now move our first contact forward to the end, back to two nodes with active
         self.send_message(flow, 'Turbo King')
         self.send_message(flow, 'Ben Haggerty')
-        (active, visited) = flow.get_activity()
+        (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(2, len(active))
 
         # half of our flows are now complete
@@ -2228,7 +2228,7 @@ class FlowsTest(FlowFileTest):
 
         # rebuild our flow stats and make sure they are the same
         flow.do_calculate_flow_stats()
-        (active, visited) = flow.get_activity()
+        (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(2, len(active))
         self.assertEquals(3, visited[other_rule_to_msg])
         self.assertEquals(1, flow.get_completed_runs())
@@ -2240,7 +2240,7 @@ class FlowsTest(FlowFileTest):
 
         # now we should only have one node with active runs, but the paths stay
         # the same since those are historical
-        (active, visited) = flow.get_activity()
+        (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(1, len(active))
         self.assertEquals(3, visited[other_rule_to_msg])
 
@@ -2259,7 +2259,7 @@ class FlowsTest(FlowFileTest):
         # now let's delete our contact, we'll still have one active node, but
         # our visit path counts will go down by two since he went there twice
         self.contact.release()
-        (active, visited) = flow.get_activity()
+        (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(1, len(active))
         self.assertEquals(1, visited[msg_to_color_step])
         self.assertEquals(1, visited[other_rule_to_msg])
@@ -2289,7 +2289,7 @@ class FlowsTest(FlowFileTest):
         self.send_message(flow, 'MC Hammer', contact=hammer)
 
         # our flow stats should be unchanged
-        (active, visited) = flow.get_activity()
+        (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(1, len(active))
         self.assertEquals(1, visited[msg_to_color_step])
         self.assertEquals(1, visited[other_rule_to_msg])
@@ -2299,14 +2299,14 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(100, flow.get_completed_percentage())
 
         # but hammer should have created some simulation activity
-        (active, visited) = flow.get_activity(simulation=True)
+        (active, visited, recent_messages) = flow.get_activity(simulation=True)
         self.assertEquals(1, len(active))
         self.assertEquals(2, visited[msg_to_color_step])
         self.assertEquals(2, visited[other_rule_to_msg])
 
         # delete our last contact to make sure activity is gone without first expiring, zeros abound
         ryan.release()
-        (active, visited) = flow.get_activity()
+        (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(0, len(active))
         self.assertEquals(0, visited[msg_to_color_step])
         self.assertEquals(0, visited[other_rule_to_msg])
@@ -2322,7 +2322,7 @@ class FlowsTest(FlowFileTest):
         # test that expirations remove activity when triggered from the cron in the same way
         tupac = self.create_contact('Tupac Shakur', '+12065550725')
         self.send_message(flow, 'azul', contact=tupac)
-        (active, visited) = flow.get_activity()
+        (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(1, len(active))
         self.assertEquals(1, active['1a08ec37-2218-48fd-b6b0-846b14407041'])
         self.assertEquals(1, visited[other_rule_to_msg])
@@ -2338,7 +2338,7 @@ class FlowsTest(FlowFileTest):
         # now trigger the checking task and make sure it is removed from our activity
         from .tasks import check_flows_task
         check_flows_task()
-        (active, visited) = flow.get_activity()
+        (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(0, len(active))
         self.assertEquals(1, flow.get_total_runs())
         self.assertEquals(1, flow.get_total_contacts())
