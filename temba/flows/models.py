@@ -964,7 +964,7 @@ class Flow(TembaModel, SmartModel):
         recent_messages_keys = r.keys(self.get_stats_cache_key(FlowStatsCache.recent_messages_list, '*'))
         recent_messages = {}
         for key in recent_messages_keys:
-            recent_messages["%s:%s" % tuple(key.split(':')[-2:])] = r.lrange(key, -5, -1)
+            recent_messages["%s:%s" % tuple(key.split(':')[-2:])] = r.lrange(key, 0, 4)
 
         return (active, visited, recent_messages)
 
