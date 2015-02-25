@@ -513,13 +513,20 @@ app.service "Flow", ['$rootScope', '$window', '$http', '$timeout', '$interval', 
     if node._categories
       for category in node._categories
         count = 0
+        recentMsgText = '<ul class="activity-recent-messages">'
         if activity and activity.visited
           for source in category.sources
             key = source + ':' + category.target
             if key of activity.visited
               count += activity.visited[key]
+
+            if key of activity.recentMessages
+              for msgText in activity.recentMessages[key]
+                recentMsgText += '<li>' + msgText + '</li>'
+        recentMsgText += '</ul>'
         # $log.debug(category.name, category.target, count)
         category._visited = count
+        category._recentMessages = recentMsgText
 
     else
       # our visited counts for actions
@@ -527,7 +534,15 @@ app.service "Flow", ['$rootScope', '$window', '$http', '$timeout', '$interval', 
       count = 0
       if activity and activity.visited and key of activity.visited
         count += activity.visited[key]
+
+      recentMsgText = '<ul class="activity-recent-messages">'
+      if key of activity.recentMessages
+        for msgText in activity.recentMessages[key]
+          recentMsgText += '<li>' + msgText + '</li>'
+      recentMsgText += '</ul>'
+
       node._visited = count
+      node._recentMessages = recentMsgText
 
     return
 

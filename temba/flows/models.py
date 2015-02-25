@@ -834,6 +834,9 @@ class Flow(TembaModel, SmartModel):
             if keys:
                 r.delete(*keys)
             r.delete(self.get_stats_cache_key(FlowStatsCache.visit_count_map))
+            recent_messages_keys = r.keys(self.get_stats_cache_key(FlowStatsCache.recent_messages_list, '*'))
+            if recent_messages_keys:
+                r.delete(*recent_messages_keys)
 
             # add current active cache
             for step, runs in active.items():
@@ -842,6 +845,10 @@ class Flow(TembaModel, SmartModel):
 
             if len(visits):
                 r.hmset(self.get_stats_cache_key(FlowStatsCache.visit_count_map), visits)
+
+            for key in recent_messages.keys():
+                for message_text in recent_messages[key]:
+                    r.lpush(self.get_stats_cache_key(FlowStatsCache.recent_messages_list, key), message_text)
 
     def _calculate_activity(self, simulation=False):
 
@@ -957,7 +964,7 @@ class Flow(TembaModel, SmartModel):
         recent_messages_keys = r.keys(self.get_stats_cache_key(FlowStatsCache.recent_messages_list, '*'))
         recent_messages = {}
         for key in recent_messages_keys:
-            recent_messages[key] = r.lrange(key, -5, -1)
+            recent_messages["%s:%s" % tuple(key.split(':')[-2:])] = r.lrange(key, -5, -1)
 
         return (active, visited, recent_messages)
 
