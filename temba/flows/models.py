@@ -1808,7 +1808,7 @@ class Flow(TembaModel, SmartModel):
                 r.hincrby(self.get_stats_cache_key(FlowStatsCache.visit_count_map), "%s:%s" % (previous_uuid, step.step_uuid), 1)
 
                 if step_message:
-                    r.lpush(self.get_stats_cache_key(FlowStatsCache.recent_messages_list), "%s:%s" % (previous_uuid, step.step_uuid), step_message.text)
+                    r.lpush(self.get_stats_cache_key(FlowStatsCache.recent_messages_list, "%s:%s" % (previous_uuid, step.step_uuid)), step_message.text)
 
             # make us active on our new step
             r.sadd(self.get_stats_cache_key(FlowStatsCache.step_active_set, step.step_uuid), step.run.pk)
