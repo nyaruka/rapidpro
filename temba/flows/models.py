@@ -848,7 +848,7 @@ class Flow(TembaModel, SmartModel):
 
             for key in recent_messages.keys():
                 for message_text in recent_messages[key]:
-                    r.lpush(self.get_stats_cache_key(FlowStatsCache.recent_messages_list, key), message_text)
+                    r.rpush(self.get_stats_cache_key(FlowStatsCache.recent_messages_list, key), message_text)
 
     def _calculate_activity(self, simulation=False):
 
@@ -1795,20 +1795,21 @@ class Flow(TembaModel, SmartModel):
                 # mark our path
                 previous_uuid = previous_step.step_uuid
 
-                step_message=None
-
                 # if we came from a rule, use that instead of our step
                 if rule_uuid:
                     previous_uuid = rule_uuid
-                    step_message = step.messages.filter(direction='I', contact=step.run.contact).order_by('-created_on').first()
-                else:
-                    step_message = step.messages.filter(direction='O', contact=step.run.contact).order_by('-created_on').first()
-
 
                 r.hincrby(self.get_stats_cache_key(FlowStatsCache.visit_count_map), "%s:%s" % (previous_uuid, step.step_uuid), 1)
 
-                if step_message:
-                    r.lpush(self.get_stats_cache_key(FlowStatsCache.recent_messages_list, "%s:%s" % (previous_uuid, step.step_uuid)), step_message.text)
+                previous_step_messages = None
+                if previous_step.step_type == ACTION_SET:
+                    previous_step_messages = previous_step.messages.filter(direction='O').order_by('-created_on')
+                elif previous_step.step_type == RULE_SET:
+                    previous_step_messages = previous_step.messages.filter(direction='I').order_by('-created_on')
+
+                if previous_step_messages:
+                    for msg in previous_step_messages:
+                        r.lpush(self.get_stats_cache_key(FlowStatsCache.recent_messages_list, "%s:%s" % (previous_uuid, step.step_uuid)), msg.text)
 
             # make us active on our new step
             r.sadd(self.get_stats_cache_key(FlowStatsCache.step_active_set, step.step_uuid), step.run.pk)
