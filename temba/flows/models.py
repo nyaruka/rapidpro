@@ -847,6 +847,10 @@ class Flow(TembaModel, SmartModel):
 
     def _get_recent_messages_activity(self, simulation=False):
 
+        """
+        Retrieves the recent messages for activity from the database
+        """
+
         recent_messages = {}
         actionsets = self.action_sets.all()
         rulesets = self.rule_sets.all()
@@ -881,6 +885,10 @@ class Flow(TembaModel, SmartModel):
         return recent_messages
 
     def refresh_recent_messages_activity(self):
+
+        """
+        Refresh the recent messages cache when rebuilding the activity cache or when we released a FlowRun
+        """
 
         r = get_redis_connection()
         recent_messages_keys = r.keys(self.get_stats_cache_key(FlowStatsCache.recent_messages_list, '*'))
