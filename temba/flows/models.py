@@ -1803,9 +1803,9 @@ class Flow(TembaModel, SmartModel):
 
                 previous_step_messages = None
                 if previous_step.step_type == ACTION_SET:
-                    previous_step_messages = previous_step.messages.filter(direction='O').order_by('-created_on')
+                    previous_step_messages = previous_step.messages.filter(direction='O').order_by('created_on')
                 elif previous_step.step_type == RULE_SET:
-                    previous_step_messages = previous_step.messages.filter(direction='I').order_by('-created_on')
+                    previous_step_messages = previous_step.messages.filter(direction='I').order_by('created_on')
 
                 if previous_step_messages:
                     for msg in previous_step_messages:

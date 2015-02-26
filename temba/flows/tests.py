@@ -2167,8 +2167,12 @@ class FlowsTest(FlowFileTest):
         # clear our previous redis activity
         self.clear_activity(flow)
 
+        entry_step_to_ruleset = 'ec4c8328-f7b6-4386-90c0-b7e6a3517e9b:1a08ec37-2218-48fd-b6b0-846b14407041'
         other_rule_to_msg = 'e342d6af-7149-485c-b2ac-0e56c6cc1aa9:dcd9541a-0263-474e-b3f1-03a28993f95a'
         msg_to_color_step = 'dcd9541a-0263-474e-b3f1-03a28993f95a:1a08ec37-2218-48fd-b6b0-846b14407041'
+
+        blue_rule_to_beer_msg = 'ad45fa86-0e4e-4d91-a1ff-a96308267216:2469ada5-3c36-4d74-bf73-daab0a56c37c'
+        beer_to_ruleset = '2469ada5-3c36-4d74-bf73-daab0a56c37c:0784d7f8-3534-4432-99ad-7e4ea41cfbdb'
 
         # we don't know this shade of green, it should route us to the beginning again
         self.send_message(flow, 'chartreuse')
@@ -2177,6 +2181,12 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(1, active['1a08ec37-2218-48fd-b6b0-846b14407041'])
         self.assertEquals(1, visited[other_rule_to_msg])
         self.assertEquals(1, visited[msg_to_color_step])
+        self.assertEquals(1, len(recent_messages[entry_step_to_ruleset]))
+        self.assertEquals("What is your favorite color?", recent_messages[entry_step_to_ruleset][0])
+        self.assertEquals(1, len(recent_messages[other_rule_to_msg]))
+        self.assertEquals('chartreuse', recent_messages[other_rule_to_msg][0])
+        self.assertEquals(1, len(recent_messages[msg_to_color_step]))
+        self.assertEquals("I don't know that color. Try again.", recent_messages[msg_to_color_step][0])
         self.assertEquals(1, flow.get_total_runs())
         self.assertEquals(1, flow.get_total_contacts())
         self.assertEquals(0, flow.get_completed_runs())
@@ -2190,6 +2200,14 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(1, active['1a08ec37-2218-48fd-b6b0-846b14407041'])
         self.assertEquals(2, visited[other_rule_to_msg])
         self.assertEquals(2, visited[msg_to_color_step])
+        self.assertEquals(1, len(recent_messages[entry_step_to_ruleset]))
+        self.assertEquals("What is your favorite color?", recent_messages[entry_step_to_ruleset][0])
+        self.assertEquals(2, len(recent_messages[other_rule_to_msg]))
+        self.assertEquals('mauve', recent_messages[other_rule_to_msg][0])
+        self.assertEquals('chartreuse', recent_messages[other_rule_to_msg][1])
+        self.assertEquals(2, len(recent_messages[msg_to_color_step]))
+        self.assertEquals("I don't know that color. Try again.", recent_messages[msg_to_color_step][0])
+        self.assertEquals("I don't know that color. Try again.", recent_messages[msg_to_color_step][1])
 
         # this time a color we know takes us elsewhere, activity will move
         # to another node, but still just one entry
@@ -2197,6 +2215,10 @@ class FlowsTest(FlowFileTest):
         (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(1, len(active))
         self.assertEquals(1, active['0784d7f8-3534-4432-99ad-7e4ea41cfbdb'])
+        self.assertEquals(1, len(recent_messages[blue_rule_to_beer_msg]))
+        self.assertEquals('blue', recent_messages[blue_rule_to_beer_msg][0])
+        self.assertEquals(1, len(recent_messages[beer_to_ruleset]))
+        self.assertEquals('Good choice, I like Blue too! What is your favorite beer?', recent_messages[beer_to_ruleset][0])
 
         # a new participant, showing distinct active counts and incremented path
         ryan = self.create_contact('Ryan Lewis', '+12065550725')
@@ -2207,6 +2229,9 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(1, active['0784d7f8-3534-4432-99ad-7e4ea41cfbdb'])
         self.assertEquals(3, visited[other_rule_to_msg])
         self.assertEquals(3, visited[msg_to_color_step])
+        self.assertEquals(3, len(recent_messages[other_rule_to_msg]))
+        self.assertEquals('burnt sienna', recent_messages[other_rule_to_msg][0])
+        self.assertEquals(3, len(recent_messages[msg_to_color_step]))
         self.assertEquals(2, flow.get_total_runs())
         self.assertEquals(2, flow.get_total_contacts())
 
@@ -2215,6 +2240,9 @@ class FlowsTest(FlowFileTest):
         (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(1, len(active))
         self.assertEquals(2, active['0784d7f8-3534-4432-99ad-7e4ea41cfbdb'])
+        self.assertEquals(2, len(recent_messages[blue_rule_to_beer_msg]))
+        self.assertEquals('blue', recent_messages[blue_rule_to_beer_msg][0])
+        self.assertEquals('blue', recent_messages[blue_rule_to_beer_msg][1])
 
         # now move our first contact forward to the end, back to two nodes with active
         self.send_message(flow, 'Turbo King')
@@ -2231,6 +2259,7 @@ class FlowsTest(FlowFileTest):
         (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(2, len(active))
         self.assertEquals(3, visited[other_rule_to_msg])
+        self.assertEquals(3, len(recent_messages[other_rule_to_msg]))
         self.assertEquals(1, flow.get_completed_runs())
         self.assertEquals(50, flow.get_completed_percentage())
 
@@ -2243,6 +2272,7 @@ class FlowsTest(FlowFileTest):
         (active, visited, recent_messages) = flow.get_activity()
         self.assertEquals(1, len(active))
         self.assertEquals(3, visited[other_rule_to_msg])
+        self.assertEquals(3, len(recent_messages[other_rule_to_msg]))
 
         # our completion stats should remain the same
         self.assertEquals(1, flow.get_completed_runs())
@@ -2263,6 +2293,8 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(1, len(active))
         self.assertEquals(1, visited[msg_to_color_step])
         self.assertEquals(1, visited[other_rule_to_msg])
+        self.assertEquals(1, len(recent_messages[msg_to_color_step]))
+        self.assertEquals(1, len(recent_messages[other_rule_to_msg]))
         self.assertEquals(1, flow.get_total_runs())
         self.assertEquals(1, flow.get_total_contacts())
 
@@ -2293,6 +2325,8 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(1, len(active))
         self.assertEquals(1, visited[msg_to_color_step])
         self.assertEquals(1, visited[other_rule_to_msg])
+        self.assertEquals(1, len(recent_messages[msg_to_color_step]))
+        self.assertEquals(1, len(recent_messages[other_rule_to_msg]))
         self.assertEquals(1, flow.get_total_runs())
         self.assertEquals(1, flow.get_total_contacts())
         self.assertEquals(1, flow.get_completed_runs())
@@ -2310,6 +2344,8 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(0, len(active))
         self.assertEquals(0, visited[msg_to_color_step])
         self.assertEquals(0, visited[other_rule_to_msg])
+        self.assertEquals(0, len(recent_messages[msg_to_color_step]))
+        self.assertEquals(0, len(recent_messages[other_rule_to_msg]))
         self.assertEquals(0, flow.get_total_runs())
         self.assertEquals(0, flow.get_total_contacts())
         self.assertEquals(0, flow.get_completed_runs())
@@ -2327,6 +2363,10 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(1, active['1a08ec37-2218-48fd-b6b0-846b14407041'])
         self.assertEquals(1, visited[other_rule_to_msg])
         self.assertEquals(1, visited[msg_to_color_step])
+        self.assertEquals(1, len(recent_messages[msg_to_color_step]))
+        self.assertEquals("I don't know that color. Try again.", recent_messages[msg_to_color_step][0])
+        self.assertEquals(1, len(recent_messages[other_rule_to_msg]))
+        self.assertEquals('azul', recent_messages[other_rule_to_msg][0])
         self.assertEquals(1, flow.get_total_runs())
         self.assertEquals(1, flow.get_total_contacts())
 
