@@ -32,7 +32,7 @@ from smartmin.models import SmartModel
 from string import maketrans, punctuation
 from temba.contacts.models import Contact, ContactGroup, ContactField, ContactURN, TEL_SCHEME, NEW_CONTACT_VARIABLE
 from temba.locations.models import AdminBoundary
-from temba.msgs.models import Broadcast, Msg, FLOW, INBOX, OUTGOING, STOP_WORDS, QUEUED, INITIALIZING, Label
+from temba.msgs.models import Broadcast, Msg, FLOW, INBOX, INCOMING, OUTGOING, STOP_WORDS, QUEUED, INITIALIZING, VISIBLE, Label
 from temba.orgs.models import Org
 from temba.temba_email import send_temba_email
 from temba.utils import get_datetime_format, str_to_datetime, datetime_to_str, get_preferred_language, analytics
@@ -110,6 +110,7 @@ class FlowStatsCache(Enum):
     visit_count_map = 4
     step_active_set = 5
     cache_check = 6
+    recent_messages_list = 7
 
 
 def edit_distance(s1, s2): # pragma: no cover
@@ -842,6 +843,64 @@ class Flow(TembaModel, SmartModel):
             if len(visits):
                 r.hmset(self.get_stats_cache_key(FlowStatsCache.visit_count_map), visits)
 
+            self.refresh_recent_messages_activity()
+
+    def _get_recent_messages_activity(self, simulation=False):
+
+        """
+        Retrieves the recent messages for activity from the database
+        """
+
+        recent_messages = {}
+        actionsets = self.action_sets.all()
+        rulesets = self.rule_sets.all()
+
+        for actionset in actionsets:
+            if actionset.destination:
+                actionset_messages = Msg.objects.filter(steps__step_uuid=actionset.uuid,
+                                                        steps__next_uuid=actionset.destination.uuid,
+                                                        steps__run__flow=self,
+                                                        steps__step_type=ACTION_SET,
+                                                        steps__run__contact__is_test=simulation,
+                                                        direction=OUTGOING,
+                                                        visibility=VISIBLE).order_by('created_on')[:5]
+
+                recent_messages['%s:%s' % (actionset.uuid, actionset.destination.uuid)] = [msg.text for msg in actionset_messages]
+
+        for ruleset in rulesets:
+            rules = ruleset.get_rules()
+            for rule in rules:
+                if rule.destination:
+                    rule_messages = Msg.objects.filter(steps__step_uuid=ruleset.uuid,
+                                                       steps__rule_uuid=rule.uuid,
+                                                       steps__next_uuid=rule.destination,
+                                                       steps__run__flow=self,
+                                                       steps__step_type=RULE_SET,
+                                                       steps__run__contact__is_test=simulation,
+                                                       direction=INCOMING,
+                                                       visibility=VISIBLE).order_by('created_on')[:5]
+
+                    recent_messages['%s:%s' % (rule.uuid, rule.destination)] = [msg.text for msg in rule_messages]
+
+        return recent_messages
+
+    def refresh_recent_messages_activity(self):
+
+        """
+        Refresh the recent messages cache when rebuilding the activity cache or when we released a FlowRun
+        """
+
+        r = get_redis_connection()
+        recent_messages_keys = r.keys(self.get_stats_cache_key(FlowStatsCache.recent_messages_list, '*'))
+        if recent_messages_keys:
+            r.delete(*recent_messages_keys)
+
+        recent_messages = self._get_recent_messages_activity()
+
+        for key in recent_messages.keys():
+            for message_text in recent_messages[key]:
+                r.rpush(self.get_stats_cache_key(FlowStatsCache.recent_messages_list, key), message_text)
+
     def _calculate_activity(self, simulation=False):
 
         """
@@ -914,10 +973,12 @@ class Flow(TembaModel, SmartModel):
 
         if simulation:
             (active, visits) = self._calculate_activity(simulation=True)
+            recent_messages = self._get_recent_messages_activity(simulation=True)
+
             # we want counts not actual run ids
             for key, value in active.items():
                 active[key] = len(value)
-            return (active, visits)
+            return (active, visits, recent_messages)
 
         self._check_for_cache_update()
 
@@ -936,7 +997,12 @@ class Flow(TembaModel, SmartModel):
         for k, v in visited.items():
             visited[k] = int(v)
 
-        return (active, visited)
+        recent_messages_keys = r.keys(self.get_stats_cache_key(FlowStatsCache.recent_messages_list, '*'))
+        recent_messages = {}
+        for key in recent_messages_keys:
+            recent_messages["%s:%s" % tuple(key.split(':')[-2:])] = r.lrange(key, 0, 4)
+
+        return (active, visited, recent_messages)
 
     def get_total_runs(self):
         self._check_for_cache_update()
@@ -1769,7 +1835,18 @@ class Flow(TembaModel, SmartModel):
                 # if we came from a rule, use that instead of our step
                 if rule_uuid:
                     previous_uuid = rule_uuid
+
                 r.hincrby(self.get_stats_cache_key(FlowStatsCache.visit_count_map), "%s:%s" % (previous_uuid, step.step_uuid), 1)
+
+                previous_step_messages = None
+                if previous_step.step_type == ACTION_SET:
+                    previous_step_messages = previous_step.messages.filter(direction='O').order_by('created_on')
+                elif previous_step.step_type == RULE_SET:
+                    previous_step_messages = previous_step.messages.filter(direction='I').order_by('created_on')
+
+                if previous_step_messages:
+                    for msg in previous_step_messages:
+                        r.lpush(self.get_stats_cache_key(FlowStatsCache.recent_messages_list, "%s:%s" % (previous_uuid, step.step_uuid)), msg.text)
 
             # make us active on our new step
             r.sadd(self.get_stats_cache_key(FlowStatsCache.step_active_set, step.step_uuid), step.run.pk)
@@ -2623,6 +2700,7 @@ class FlowRun(models.Model):
         # remove our run from the activity
         with self.flow.lock_on(FlowLock.activity):
             self.flow.remove_active_for_run_ids([self.pk])
+            self.flow.refresh_recent_messages_activity()
 
         # decrement our total flow count
         r = get_redis_connection()

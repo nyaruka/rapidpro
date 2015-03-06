@@ -226,6 +226,7 @@ app.controller 'FlowController', [ '$scope', '$rootScope', '$timeout', '$modal',
           $rootScope.activity =
             active: data.activity
             visited: data.visited
+            recentMessages: data.recent_messages
 
           if not window.simulation
             $rootScope.visibleActivity = $rootScope.activity

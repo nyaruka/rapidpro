@@ -25,6 +25,7 @@ window.updateSimulator = (data) ->
         scope.visibleActivity =
           active: data.activity
           visited: data.visited
+          recentMessages: data.recent_messages
 
     for node in $('#workspace').children('.node')
       node = $(node).data('object')

@@ -1139,11 +1139,12 @@ class FlowCRUDL(SmartCRUDL):
                         messages_json.append(msg.as_json())
                 messages = messages_json
 
-            (active, visited) = flow.get_activity()
+            (active, visited, recent_messages) = flow.get_activity()
 
             return build_json_response(dict(call=call, messages=messages,
                                             activity=active,
                                             visited=visited,
+                                            recent_messages=recent_messages,
                                             flow=flow_json, pending=pending))
 
     class Simulate(OrgObjPermsMixin, SmartReadView):
@@ -1218,11 +1219,11 @@ class FlowCRUDL(SmartCRUDL):
                 for msg in messages_and_logs:
                     messages_json.append(msg.simulator_json())
 
-            (active, visited) = flow.get_activity(simulation=True)
+            (active, visited, recent_messages) = flow.get_activity(simulation=True)
 
             return build_json_response(dict(status="success", description="Message sent to Flow",
                                             messages=messages_json,
-                                            activity=active, visited=visited))
+                                            activity=active, visited=visited, recent_messages=recent_messages))
 
     class Json(OrgObjPermsMixin, SmartUpdateView):
         success_message = ''
