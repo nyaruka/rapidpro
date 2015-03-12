@@ -1,6 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import json
+import plivo
 import pycountry
 import re
 
@@ -424,7 +425,8 @@ class UserSettingsCRUDL(SmartCRUDL):
 class OrgCRUDL(SmartCRUDL):
     actions = ('signup', 'home', 'webhook', 'edit', 'join', 'grant', 'create_login', 'choose',
                'manage_accounts', 'manage', 'update', 'country', 'languages', 'clear_cache', 'download',
-               'twilio_connect', 'twilio_account', 'nexmo_account', 'nexmo_connect', 'export', 'import')
+               'twilio_connect', 'twilio_account', 'nexmo_account', 'nexmo_connect', 'export', 'import',
+               'plivo_connect', 'plivo_account')
 
     model = Org
 
@@ -673,6 +675,71 @@ class OrgCRUDL(SmartCRUDL):
             org.connect_nexmo(api_key, api_secret)
             org.save()
 
+            response = self.render_to_response(self.get_context_data(form=form,
+                                               success_url=self.get_success_url(),
+                                               success_script=getattr(self, 'success_script', None)))
+
+            response['Temba-Success'] = self.get_success_url()
+            return response
+
+    class PlivoAccount(ModalMixin, InferOrgMixin, OrgPermsMixin, SmartUpdateView):
+        fields = ()
+        submit_button_name = "Disconnect Plivo"
+        success_message = "Plivo Account successfully disconnected."
+
+        def get_success_url(self):
+            return reverse("orgs.org_home")
+
+        def save(self, obj):
+            obj.remove_plivo_account()
+
+        def get_context_data(self, **kwargs):
+            context = super(OrgCRUDL.PlivoAccount, self).get_context_data(**kwargs)
+
+            org = self.get_object()
+            config = org.config_json()
+            context['config'] = config
+
+            return context
+
+
+    class PlivoConnect(ModalMixin, InferOrgMixin, OrgPermsMixin, SmartFormView):
+
+        class PlivoConnectForm(forms.Form):
+            auth_id = forms.CharField(help_text=_("Your Plivo AUTH ID"))
+            auth_token = forms.CharField(help_text=_("Your Plivo AUTH TOKEN"))
+
+            def clean(self):
+                super(OrgCRUDL.PlivoConnect.PlivoConnectForm, self).clean()
+
+                auth_id = self.cleaned_data.get('auth_id', None)
+                auth_token = self.cleaned_data.get('auth_token', None)
+
+                try:
+                    client = plivo.RestAPI(auth_id, auth_token)
+                    validation_response = client.get_account()
+                except:
+                    raise ValidationError(_("Your Plivo AUTH ID and AUTH TOKEN seem invalid. Please check them again and retry."))
+
+                if validation_response[0] != 200:
+                    raise ValidationError(_("Your Plivo AUTH ID and AUTH TOKEN seem invalid. Please check them again and retry."))
+
+                return self.cleaned_data
+
+        form_class = PlivoConnectForm
+        submit_button_name = "Save"
+        success_url = '@channels.channel_claim_plivo'
+        field_config = dict(auth_id=dict(label=""), auth_token=dict(label=""))
+        success_message = "Plivo Account successfully connected."
+
+        def form_valid(self, form):
+
+            auth_id = form.cleaned_data['auth_id']
+            auth_token = form.cleaned_data['auth_token']
+
+            org =self.get_object()
+            org.connect_plivo(auth_id, auth_token)
+            org.save()
             response = self.render_to_response(self.get_context_data(form=form,
                                                success_url=self.get_success_url(),
                                                success_script=getattr(self, 'success_script', None)))

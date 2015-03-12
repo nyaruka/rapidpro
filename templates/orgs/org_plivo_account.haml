@@ -1,0 +1,40 @@
+-extends "smartmin/form.html"
+
+-load compress temba smartmin i18n
+
+-block title-icon
+  .title-icon
+    %span.glyph.icon-plivo
+
+-block title-text
+  .title-text
+    %h1
+      -trans "Disconnect Plivo"
+
+-block pre-form
+  .row
+    .span6.disconnect-help
+      -if config.PLIVO_AUTH_ID and config.PLIVO_AUTH_TOKEN
+        -trans "This account is connected to a Plivo account."
+        .account_details
+          .account_key
+            -trans "AUTH ID:"
+          .account_value
+            {{ config.PLIVO_AUTH_ID }}
+
+          .account_key
+            -trans "AUTH TOKEN:"
+          .account_value
+            {{ config.PLIVO_AUTH_TOKEN }}
+      -else
+        -trans "This account is not connected to a Plivo account."
+
+
+-block form-buttons
+  .form-actions
+    -if config.PLIVO_AUTH_ID and config.PLIVO_AUTH_TOKEN
+      %input.btn.btn-danger{type:"submit", value:"={ submit_button_name }"}
+    -else
+      %a.btn.btn-primary{href:"{% url 'orgs.org_plivo_connect'%}"}
+        -trans "Connect Plivo"
+

@@ -24,7 +24,8 @@ from temba.msgs.models import Msg, Broadcast, Call
 from temba.channels.models import Channel, SyncEvent, Alert, ALERT_DISCONNECTED, ALERT_SMS, TWILIO, ANDROID, TWITTER
 from temba.orgs.models import Org
 from temba.tests import TembaTest, MockResponse
-from temba.orgs.models import FREE_PLAN
+from temba.orgs.models import FREE_PLAN, NEXMO_KEY, NEXMO_SECRET, NEXMO_UUID, PLIVO_APP_ID, PLIVO_AUTH_ID
+from temba.orgs.models import PLIVO_AUTH_TOKEN, PLIVO_UUID
 from temba.utils import dict_to_struct
 from .tasks import check_channels_task
 
@@ -878,29 +879,9 @@ class ChannelTest(TembaTest):
         self.assertContains(response, "Nexmo")
         self.assertContains(response, reverse('orgs.org_nexmo_connect'))
 
-        # connect nexmo
-        connect_url = reverse('orgs.org_nexmo_connect')
-
-        # simulate invalid credentials
-        with patch('requests.get') as nexmo:
-            nexmo.return_value = MockResponse(401, '{"error-code": "401"}')
-            response = self.client.post(connect_url, dict(api_key='key', api_secret='secret'))
-            self.assertContains(response, "Your Nexmo API key and secret seem invalid.")
-            self.assertFalse(self.org.is_connected_to_nexmo())
-
-        # ok, now with a success
-        with patch('requests.get') as nexmo_get:
-            with patch('requests.post') as nexmo_post:
-                # believe it or not nexmo returns 'error-code' 200
-                nexmo_get.return_value = MockResponse(200, '{"error-code": "200"}')
-                nexmo_post.return_value = MockResponse(200, '{"error-code": "200"}')
-                self.client.post(connect_url, dict(api_key='key', api_secret='secret'))
-
-                # nexmo should now be connected
-                self.org = Org.objects.get(pk=self.org.pk)
-                self.assertTrue(self.org.is_connected_to_nexmo())
-                self.assertEquals(self.org.config_json()['NEXMO_KEY'], 'key')
-                self.assertEquals(self.org.config_json()['NEXMO_SECRET'], 'secret')
+        nexmo_config = dict(NEXMO_KEY='nexmo-key', NEXMO_SECRET='nexmo-secret', NEXMO_UUID='nexmo-uuid')
+        self.org.config = json.dumps(nexmo_config)
+        self.org.save()
 
         # hit the claim page, should now have a claim nexmo link
         claim_nexmo = reverse('channels.channel_claim_nexmo')
@@ -923,6 +904,46 @@ class ChannelTest(TembaTest):
 
                 # make sure it is actually connected
                 Channel.objects.get(channel_type='NX', org=self.org)
+
+    def test_claim_plivo(self):
+        self.login(self.admin)
+
+        # remove any existing channels
+        self.org.channels.update(is_active=False, org=None)
+
+        # make sure plivo is on the claim page
+        response = self.client.get(reverse('channels.channel_claim'))
+        self.assertContains(response, "Plivo")
+        self.assertContains(response, reverse('orgs.org_plivo_connect'))
+
+        plivo_config = dict(PLIVO_AUTH_ID='plivo-auth-id', PLIVO_AUTH_TOKEN='plivo-auth-token',
+                            PLIVO_APP_ID='plivo-app-id', PLIVO_UUID='plivo-uuid')
+        self.org.config = json.dumps(plivo_config)
+        self.org.save()
+
+        # hit the claim page, should now have a claim plivo link
+        claim_plivo = reverse('channels.channel_claim_plivo')
+        response = self.client.get(reverse('channels.channel_claim'))
+        self.assertContains(response, claim_plivo)
+
+        # let's add a number already connected to the account
+        with patch('requests.get') as plivo_get:
+            with patch('requests.post') as plivo_post:
+                plivo_get.return_value = MockResponse(200, json.dumps(dict(objects=[dict(number='16062681435')])))
+                plivo_post.return_value = MockResponse(202, json.dumps(dict(status='changed')))
+
+                # make sure our number appears on the claim page
+                response = self.client.get(claim_plivo)
+                self.assertContains(response, "+1 606-268-1435")
+
+                # claim it
+                response = self.client.post(claim_plivo, dict(country='US', phone_number='+1 606-268-1435'))
+                self.assertRedirects(response, reverse('public.public_welcome') + "?success")
+
+                # make sure it is actually connected
+                Channel.objects.get(channel_type='PL', org=self.org)
+
+
 
     def test_claim_twitter(self):
         # add to this user an org

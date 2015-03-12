@@ -30,11 +30,11 @@ from temba.api.serializers import FlowReadSerializer, FlowRunReadSerializer, Flo
 from temba.api.serializers import MsgCreateSerializer, MsgCreateResultSerializer, MsgReadSerializer
 from temba.api.serializers import ChannelClaimSerializer, ChannelReadSerializer, ResultSerializer
 from temba.campaigns.models import Campaign, CampaignEvent
-from temba.channels.models import Channel
+from temba.channels.models import Channel, PLIVO
 from temba.contacts.models import Contact, ContactField, ContactGroup, ContactURN, TEL_SCHEME
 from temba.flows.models import Flow, FlowRun, RuleSet
 from temba.locations.models import AdminBoundary
-from temba.orgs.models import get_stripe_credentials, NEXMO_UUID
+from temba.orgs.models import get_stripe_credentials, NEXMO_UUID, PLIVO_UUID
 from temba.orgs.views import OrgPermsMixin
 from temba.msgs.models import Broadcast, Msg, Call, HANDLE_EVENT_TASK, HANDLER_QUEUE, MSG_EVENT
 from temba.triggers.models import Trigger, MISSED_CALL_TRIGGER
@@ -3375,6 +3375,114 @@ class ClickatellHandler(View):
             Msg.objects.filter(pk=sms.id).update(external_id=request.REQUEST['moMsgId'])
             return HttpResponse("SMS Accepted: %d" % sms.id)
 
+        else:
+            return HttpResponse("Not handled", status=400)
+
+class PlivoHandler(View):
+
+    @disable_middleware
+    def dispatch(self, *args, **kwargs):
+        return super(PlivoHandler, self).dispatch(*args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        return self.post(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        from temba.msgs.models import Msg, SENT, DELIVERED, FAILED, WIRED, PENDING, QUEUED
+
+        action = kwargs['action'].lower()
+        request_uuid = kwargs['uuid']
+
+        if action == 'status':
+            if not all(k in request.REQUEST for k in ['From', 'To', 'Status', 'MessageUUID']):
+                return HttpResponse("Missing one of 'From', 'To', 'Status' or 'MessageUUID' in request parameters.",
+                                    status=200)
+
+            plivo_channel_address = request.REQUEST['From']
+
+            channel_address =plivo_channel_address
+            if channel_address[0] != '+':
+                channel_address = '+' + channel_address
+
+            channel = Channel.objects.filter(is_active=True,
+                                             address=channel_address,
+                                             channel_type=PLIVO).exclude(org=None).first()
+
+            org_uuid = None
+            if channel:
+                org_uuid = channel.org.config_json()[PLIVO_UUID]
+
+            if not channel or org_uuid != request_uuid:
+                return HttpResponse("Channel not found for number: %s" % plivo_channel_address, status=400)
+
+            sms_id = request.REQUEST['MessageUUID']
+
+            if 'ParentMessageUUID' in request.REQUEST:
+                sms_id = request.REQUEST['ParentMessageUUID']
+
+            # look up the message
+            sms = Msg.objects.filter(channel=channel, external_id=sms_id)
+            if not sms:
+                return HttpResponse("Message with external id of '%s' not found" % sms_id, status=400)
+
+            STATUS_CHOICES = {'queued': WIRED,
+                              'sent': SENT,
+                              'delivered': DELIVERED,
+                              'undelivered': SENT,
+                              'rejected': FAILED}
+
+            plivo_status = request.REQUEST['Status']
+            status = STATUS_CHOICES.get(plivo_status, None)
+
+            if not status:
+                return HttpResponse("Unrecognized status: '%s', ignoring message." % plivo_status, status=401)
+
+            # only update to SENT status if still in WIRED state
+            if status == SENT:
+                sms.filter(status__in=[PENDING, QUEUED, WIRED]).update(status=status)
+            elif status == DELIVERED:
+                sms.update(status=status, delivered_on=timezone.now())
+            elif status == FAILED:
+                sms.update(status=status)
+            else:
+                # ignore wired, we are wired by default
+                pass
+
+            # update the broadcast status
+            bcast = sms.first().broadcast
+            if bcast:
+                bcast.update()
+
+            return HttpResponse("Status Updated")
+        elif action == 'receive':
+            if not all(k in request.REQUEST for k in ['From', 'To', 'Text', 'MessageUUID']):
+                return HttpResponse("Missing one of 'From', 'To', 'Text' or 'MessageUUID' in request parameters.",
+                                    status=400)
+
+            plivo_channel_address = request.REQUEST['To']
+
+            channel_address =plivo_channel_address
+            if channel_address[0] != '+':
+                channel_address = '+' + channel_address
+
+            channel = Channel.objects.filter(is_active=True,
+                                             address=channel_address,
+                                             channel_type=PLIVO).exclude(org=None).first()
+
+            org_uuid = None
+            if channel:
+                org_uuid = channel.org.config_json()[PLIVO_UUID]
+
+            if not channel or org_uuid != request_uuid:
+                return HttpResponse("Channel not found for number: %s" % plivo_channel_address, status=400)
+
+            sms = Msg.create_incoming(channel,
+                                      (TEL_SCHEME, request.REQUEST['From']),
+                                      request.REQUEST['Text'])
+
+            Msg.objects.filter(pk=sms.id).update(external_id=request.REQUEST['MessageUUID'])
+
+            return HttpResponse("SMS accepted: %d" % sms.id)
         else:
             return HttpResponse("Not handled", status=400)
 

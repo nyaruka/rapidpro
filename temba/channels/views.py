@@ -122,6 +122,29 @@ NEXMO_SUPPORTED_COUNTRY_CODES  = [61, 43, 32, 1, 56, 506, 420, 45, 372, 358, 33,
                                   60, 52, 31, 47, 92, 48, 1787, 40, 7, 250, 421, 27, 82, 34, 46, 41, 44, 265]
 
 
+PLIVO_SUPPORTED_COUNTRIES = (('AU', _('Australia')),
+                             ('BE', _('Belgium')),
+                             ('CA', _('Canada')),
+                             ('CZ', _('Czech Republic')),
+                             ('EE', _('Estonia')),
+                             ('FI', _('Finland')),
+                             ('DE', _('Germany')),
+                             ('HK', _('Hong Kong')),
+                             ('HU', _('Hungary')),
+                             ('IL', _('Israel')),
+                             ('LT', _('Lithuania')),
+                             ('MX', _('Mexico')),
+                             ('NO', _('Norway')),
+                             ('PK', _('Pakistan')),
+                             ('PL', _('Poland')),
+                             ('SE', _('Sweden')),
+                             ('CH', _('Switzerland')),
+                             ('GB', _('United Kingdom')),
+                             ('US', _('United States')))
+
+PLIVO_SUPPORTED_COUNTRY_CODES = [61, 32, 1, 420, 372, 358, 49, 852, 36, 972, 370, 52, 47, 92, 48, 46, 41, 44]
+
+
 # django_countries now uses a dict of countries, let's turn it in our tuple
 # list of codes and countries sorted by country name
 ALL_COUNTRIES = sorted(((code, name) for code, name in COUNTRIES.items()), key=lambda x: x[1])
@@ -465,7 +488,7 @@ class ChannelCRUDL(SmartCRUDL):
                'claim_android', 'claim_africas_talking', 'claim_zenvia', 'configuration', 'claim_external',
                'search_nexmo', 'claim_nexmo', 'bulk_sender_options', 'create_bulk_sender', 'claim_infobip',
                'claim_hub9', 'claim_vumi', 'create_caller', 'claim_kannel', 'claim_twitter', 'claim_shaqodoon',
-               'claim_verboice', 'claim_clickatell')
+               'claim_verboice', 'claim_clickatell', 'claim_plivo', 'search_plivo')
     permissions = True
 
     class AnonMixin(OrgPermsMixin):
@@ -1743,7 +1766,6 @@ class ChannelCRUDL(SmartCRUDL):
             client = org.get_nexmo_client()
             data = form.cleaned_data
 
-            # if the country is not US or CANADA list using contains instead of area code
             try:
                 available_numbers = client.search_numbers(data['country'], data['area_code'])
                 numbers = []
@@ -1752,6 +1774,106 @@ class ChannelCRUDL(SmartCRUDL):
                     numbers.append(phonenumbers.format_number(phonenumbers.parse(number['msisdn'], data['country']),
                                                               phonenumbers.PhoneNumberFormat.INTERNATIONAL))
 
+                return HttpResponse(json.dumps(numbers))
+            except Exception as e:
+                return HttpResponse(json.dumps(error=str(e)))
+
+
+    class ClaimPlivo(ClaimNumber):
+        class ClaimPlivoForm(forms.Form):
+            phone_number = forms.CharField(help_text=_("The phone number being added"))
+
+            def clean_phone_number(self):
+                phone = self.cleaned_data['phone_number']
+                phone = phonenumbers.parse(phone, None)
+
+                self.cleaned_data['country'] = phonenumbers.region_code_for_number(phone)
+
+                return phonenumbers.format_number(phone, phonenumbers.PhoneNumberFormat.E164)
+
+
+        form_class = ClaimPlivoForm
+
+        template_name = 'channels/channel_claim_plivo.html'
+
+        def pre_process(self, *args, **kwargs):
+            org = Org.objects.get(pk=self.request.user.get_org().pk)
+            try:
+                client = org.get_plivo_client()
+            except:
+                client = None
+
+            if client:
+                return None
+            else:
+                return HttpResponseRedirect(reverse('channels.channel_claim'))
+
+        def is_valid_country(self, country_code):
+            return country_code in PLIVO_SUPPORTED_COUNTRY_CODES
+
+        def get_search_url(self):
+            return reverse('channels.channel_search_plivo')
+
+        def get_claim_url(self):
+            return reverse('channels.channel_claim_plivo')
+
+        def get_supported_countries_tuple(self):
+            return PLIVO_SUPPORTED_COUNTRIES
+
+        def get_search_countries_tuple(self):
+            return PLIVO_SUPPORTED_COUNTRIES
+
+        def get_existing_numbers(self, org):
+            client = org.get_plivo_client()
+            account_numbers = []
+            if client:
+                status, data = client.get_numbers()
+
+                if status == 200:
+                    for number_dict in data['objects']:
+                        parsed = phonenumbers.parse('+' + number_dict['number'], None)
+                        phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.INTERNATIONAL)
+                        account_numbers.append(dict(number=phone_number,
+                                                    country=phonenumbers.region_code_for_number(parsed)))
+
+            return account_numbers
+
+        def claim_number(self, user, phone_number, country):
+            analytics.track(user.username, 'temba.channel_claim_plivo', dict(number=phone_number))
+
+            # add this channel
+            channel = Channel.add_plivo_channel(user.get_org(),
+                                                user,
+                                                country,
+                                                phone_number)
+
+            return channel
+
+    class SearchPlivo(SearchNumbers):
+        class SearchNexmoForm(forms.Form):
+            area_code = forms.CharField(max_length=3, min_length=3, required=False,
+                                        help_text=_("The area code you want to search for a new number in"))
+            country = forms.ChoiceField(choices=PLIVO_SUPPORTED_COUNTRIES)
+
+        form_class = SearchNexmoForm
+
+        def form_valid(self, form, *args, **kwargs):
+            org = self.request.user.get_org()
+            data = form.cleaned_data
+            client = org.get_plivo_client()
+            results_numbers = []
+            try:
+                status, response_data = client.search_phone_numbers(dict(country_iso=data['country'], pattern=data['area_code']))
+
+                if status == 200:
+                    for number_dict in response_data['objects']:
+                        results_numbers.append('+' + number_dict['number'])
+
+                numbers = []
+
+                for number in results_numbers:
+                    numbers.append(phonenumbers.format_number(phonenumbers.parse(number.phone_number, None),
+                                                              phonenumbers.PhoneNumberFormat.INTERNATIONAL))
                 return HttpResponse(json.dumps(numbers))
             except Exception as e:
                 return HttpResponse(json.dumps(error=str(e)))

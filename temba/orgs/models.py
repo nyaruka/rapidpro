@@ -9,6 +9,7 @@ import random
 import re
 import stripe
 import traceback
+import plivo
 
 from dateutil.relativedelta import relativedelta
 from datetime import datetime, timedelta
@@ -82,6 +83,12 @@ ACCOUNT_TOKEN = 'ACCOUNT_TOKEN'
 NEXMO_KEY = 'NEXMO_KEY'
 NEXMO_SECRET = 'NEXMO_SECRET'
 NEXMO_UUID = 'NEXMO_UUID'
+
+PLIVO_AUTH_ID = 'PLIVO_AUTH_ID'
+PLIVO_AUTH_TOKEN = 'PLIVO_AUTH_TOKEN'
+PLIVO_UUID = 'PLIVO_UUID'
+PLIVO_APP_ID = 'PLIVO_APP_ID'
+
 
 ORG_LOW_CREDIT_THRESHOLD = 500
 
@@ -682,6 +689,58 @@ class Org(SmartModel):
         self.save(update_fields=['config'])
         self.clear_channel_caches()
 
+    def connect_plivo(self, auth_id, auth_token):
+        plivo_uuid = str(uuid4())
+        client = plivo.RestAPI(auth_id, auth_token)
+        app_name = "%s/%d" % (settings.TEMBA_HOST.lower(), self.pk)
+
+        message_url = "https://" + settings.TEMBA_HOST + "%s" % reverse('api.plivo_handler', args=['receive', plivo_uuid])
+        answer_url = "https://" + settings.AWS_STORAGE_BUCKET_NAME + "/plivo_voice_unavailable.xml"
+
+        plivo_response_status, plivo_response = client.get_applications()
+        plivo_app_id = None
+        if plivo_response_status == 200:
+            apps = plivo_response['objects']
+            for app_json in apps:
+                if app_json['app_name'] == app_name:
+                    plivo_app_id = app_json['app_id']
+
+                    # update our handler url
+                    client.modify_application(params=dict(app_id=plivo_app_id, message_url=message_url))
+                    break
+
+        if not plivo_app_id:
+            plivo_response_status, plivo_response = client.create_application(params=dict(app_name=app_name,
+                                                                                          answer_url=answer_url,
+                                                                                          message_url=message_url))
+
+            if plivo_response_status == 201:
+                plivo_app_id = plivo_response['app_id']
+
+        plivo_config = {PLIVO_AUTH_ID: auth_id,
+                        PLIVO_AUTH_TOKEN: auth_token,
+                        PLIVO_UUID: plivo_uuid,
+                        PLIVO_APP_ID: plivo_app_id}
+
+        config = self.config_json()
+        config.update(plivo_config)
+        self.config = json.dumps(config)
+
+        # clear all our channel configurations
+        self.save(update_fields=['config'])
+        self.clear_channel_caches()
+
+    def is_connected_to_plivo(self):
+        if self.config:
+            config = self.config_json()
+            auth_id = config.get(PLIVO_AUTH_ID, None)
+            auth_token = config.get(PLIVO_AUTH_TOKEN, None)
+            plivo_app = config.get(PLIVO_APP_ID, None)
+            plivo_uuid = config.get(PLIVO_UUID, None)
+            return auth_id and auth_token and plivo_app
+        else:
+            return False
+
     def is_connected_to_nexmo(self):
         if self.config:
             config = self.config_json()
@@ -702,6 +761,25 @@ class Org(SmartModel):
             if account_sid and account_token and application_sid:
                 return True
         return False
+
+    def remove_plivo_account(self):
+        if self.config:
+            config = self.config_json()
+            config[PLIVO_AUTH_ID] = ''
+            config[PLIVO_AUTH_TOKEN] = ''
+            config[PLIVO_APP_ID] = ''
+            config[PLIVO_UUID] = ''
+            self.config = json.dumps(config)
+            self.save()
+
+            from temba.channels.models import PLIVO
+            channels = self.channels.filter(is_active=True, channel_type=PLIVO)
+            for channel in channels:
+                channel.release()
+
+            # clear all our channel configurations
+            self.clear_channel_caches()
+
 
     def remove_nexmo_account(self):
         if self.config:
@@ -764,6 +842,16 @@ class Org(SmartModel):
             api_secret = config.get(NEXMO_SECRET, None)
             if api_key and api_secret:
                 return NexmoClient(api_key, api_secret)
+
+        return None
+
+    def get_plivo_client(self):
+        config = self.config_json()
+        if config:
+            auth_id = config.get(PLIVO_AUTH_ID, None)
+            auth_token = config.get(PLIVO_AUTH_TOKEN, None)
+            if auth_id and auth_token:
+                return plivo.RestAPI(auth_id, auth_token)
 
         return None
 
