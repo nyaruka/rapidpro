@@ -83,7 +83,7 @@ def mage_handle_new_message(org, msg):
 
     # Mage no longer assigns topups
     if not msg.topup_id:
-        msg.topup_id = org.decrement_credit()
+        msg.topup_id = org.get_active_topup_id()
         msg.save(update_fields=('topup_id',))
 
 

@@ -407,7 +407,7 @@ class OrgTest(TembaTest):
 
     def test_decrement_topups(self):
         # we start with 1000 credits, try decrementing it
-        active = self.org._calculate_active_topup()
+        active = self.org.get_active_topup_id()
 
         topup_id = self.org.decrement_credit()
         self.assertEquals(active.pk, topup_id)
@@ -505,7 +505,7 @@ class OrgTest(TembaTest):
         self.assertEquals(15, TopUp.objects.get(pk=welcome_topup.pk).msgs.count())
         self.assertEquals(15, TopUp.objects.get(pk=welcome_topup.pk).used)
 
-        self.assertFalse(self.org._calculate_active_topup())
+        self.assertFalse(self.org.get_active_topup_id())
 
         with self.assertNumQueries(0):
             self.assertEquals(15, self.org.get_credits_total())
