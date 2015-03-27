@@ -890,7 +890,7 @@ class Msg(models.Model, OrgModelMixin):
         """
         Resends this message by creating a clone and triggering a send of that clone
         """
-        topup_id = self.org.decrement_credit()  # costs 1 credit to resend message
+        topup_id = self.org.get_active_topup_id() # costs 1 credit to resend message
 
         # see if we should use a new channel
         channel = self.org.get_send_channel(contact_urn=self.contact_urn)
@@ -987,7 +987,7 @@ class Msg(models.Model, OrgModelMixin):
         if topup:
             topup_id = topup.pk
         elif not contact.is_test:
-            topup_id = org.calculate_active_topup()
+            topup_id = org.get_active_topup_id()
 
         # we limit text messages to 640 characters
         text = text[:640]
@@ -1133,7 +1133,7 @@ class Msg(models.Model, OrgModelMixin):
 
         # costs 1 credit to send a message
         if not topup_id and not contact.is_test:
-            topup_id = org.decrement_credit()
+            topup_id = org.get_active_topup_id()
 
         if response_to:
             msg_type = response_to.msg_type

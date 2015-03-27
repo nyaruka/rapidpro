@@ -1092,6 +1092,10 @@ class Org(SmartModel):
         active_topups = non_expired_topups.filter(credits__gt=F('used')).order_by('expires_on')
         return active_topups.first()
 
+    def get_active_topup_id(self):
+        active_topup = self.calculate_active_topup()
+        return active_topup.pk if active_topup else None
+
     def apply_topups(self):
         """
         We allow users to receive messages even if they're out of credit. Once they re-add credit, this function

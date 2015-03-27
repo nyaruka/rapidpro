@@ -3046,7 +3046,7 @@ class MageHandlerTest(TembaTest):
 
         # check that a message that has a topup, doesn't decrement twice
         msg = self.create_message_like_mage(text="Hello 2", contact=self.joe)
-        msg.topup_id = self.org.decrement_credit()
+        msg.topup_id = self.org.get_active_topup_id()
         msg.save()
 
         self.client.post(url, dict(message_id=msg.pk, new_contact=False), **headers)
