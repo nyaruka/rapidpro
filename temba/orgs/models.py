@@ -1001,7 +1001,7 @@ class Org(SmartModel):
         get_cacheable_result(ORG_CREDITS_USED_CACHE_KEY % self.pk, ORG_CREDITS_CACHE_TTL,
                              self._calculate_credits_used, force_dirty=True)
 
-        active_topup = self._calculate_active_topup()
+        active_topup = self.calculate_active_topup()
 
         active_topup_key = ORG_ACTIVE_TOPUP_CACHE_KEY % self.pk
         topup_credits_key = ORG_TOPUP_CREDITS_CACHE_KEY % self.pk
@@ -1062,7 +1062,7 @@ class Org(SmartModel):
             # if cached topup key has expired or topup is no longer valid, find another..
             if active_topup_id is None or credits < 0 or expired:
 
-                active_topup = self._calculate_active_topup()
+                active_topup = self.calculate_active_topup()
 
                 if active_topup:
                     active_topup_id = active_topup.pk
@@ -1084,7 +1084,7 @@ class Org(SmartModel):
 
         return int(active_topup_id) if active_topup_id else None
 
-    def _calculate_active_topup(self):
+    def calculate_active_topup(self):
         """
         Calculates the oldest non-expired topup that still has credits
         """
