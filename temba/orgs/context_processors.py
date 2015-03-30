@@ -1,4 +1,6 @@
 from .models import get_stripe_credentials
+from temba.values.models import STATE, DISTRICT
+
 
 class defaultdict(dict):
   def __missing__(self, key):
@@ -71,4 +73,22 @@ def settings_includer(request):
     Includes a few settings that we always want in our context
     """
     context = dict(STRIPE_PUBLIC_KEY=get_stripe_credentials()[0])
+    return context
+
+def org_supports_map(request):
+    context = dict()
+    user = request.user
+
+    if user.is_superuser or user.is_anonymous():
+        return context
+
+    org = user.get_org()
+
+    if org:
+        supports_map = org.country and \
+                       org.contactfields.filter(value_type=STATE).first() and \
+                       org.contactfields.filter(value_type=DISTRICT).first()
+
+        context['org_supports_map'] = supports_map
+
     return context

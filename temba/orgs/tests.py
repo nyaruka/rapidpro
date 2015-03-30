@@ -118,6 +118,34 @@ class OrgTest(TembaTest):
         org = Org.objects.get(pk=self.org.pk)
         self.assertFalse(org.country)
 
+    def test_org_supports_map(self):
+        from temba.locations.models import AdminBoundary
+        from temba.contacts.models import ContactField
+        from temba.values.models import STATE, DISTRICT
+
+        response = self.client.get('/')
+        self.assertFalse('org_supports_map' in response.context)
+
+        self.login(self.admin)
+
+        response = self.client.get('/')
+        self.assertTrue('org_supports_map' in response.context)
+
+        self.org.country = AdminBoundary.objects.get(name='Rwanda')
+        self.org.save()
+
+        response = self.client.get('/')
+        self.assertTrue('org_supports_map' in response.context)
+        self.assertFalse(response.context['org_supports_map'])
+
+        state = ContactField.get_or_create(self.org, 'state', label="State", value_type=STATE)
+        district = ContactField.get_or_create(self.org, 'district', label="District", value_type=DISTRICT)
+
+        response = self.client.get('/')
+        self.assertTrue('org_supports_map' in response.context)
+        self.assertTrue(response.context['org_supports_map'])
+
+
     def test_plans(self):
         self.contact = self.create_contact("Joe", "+250788123123")
 
