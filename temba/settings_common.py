@@ -142,6 +142,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'temba.api.views.webhook_status_processor',
     'temba.flows.views.flow_unread_response_count_processor',
     'temba.orgs.context_processors.settings_includer',
+    'temba.orgs.context_processors.org_supports_map',
 )
 
 if TESTING:
