@@ -147,6 +147,7 @@ class InitTest(TembaTest):
         # any invalid timezones should return ""
         self.assertEqual('', timezone_to_country_code('Nyamirambo'))
 
+
 class CacheTest(TembaTest):
 
     def test_get_cacheable_result(self):
@@ -289,7 +290,6 @@ class QueueTest(TembaTest):
         push_task(self.org, None, 'test', args[1])
         push_task(self.org, None, 'test', args[0], HIGH_PRIORITY)
 
-
         push_task(self.org2, None, 'test', args[4])
         push_task(self.org2, None, 'test', args[3], HIGH_PRIORITY)
         push_task(self.org2, None, 'test', args[5], LOW_PRIORITY)
@@ -327,7 +327,7 @@ class ParserTest(TembaTest):
                                  joined=datetime(2014, 12, 1, 9, 0, 0, 0, timezone.utc),  # date as datetime
                                  started="1/12/14 9:00")  # date as string
         variables['a'] = '!'  # single char var
-        
+
         context = EvaluationContext(variables, dict(tz=timezone.utc, dayfirst=True))
 
         self.assertEquals(("Hello World", []), evaluate_template('Hello World', context))  # no expressions
@@ -338,11 +338,11 @@ class ParserTest(TembaTest):
         self.assertEquals(('Hello "World"', []),
                           evaluate_template('=( "Hello ""World""" )', context))  # string with escaping
         self.assertEquals(("Hello World", []),
-                          evaluate_template('=( "Hello" & " " & "World" )',  context))  # string concatenation
+                          evaluate_template('=( "Hello" & " " & "World" )', context))  # string concatenation
         self.assertEquals(('("', []),
                           evaluate_template('=("(" & """")',  context))  # string literals containing delimiters
         self.assertEquals(('Joe Blow and Joe Blow', []),
-                          evaluate_template('@contact and =(contact)',  context))  # old and new style
+                          evaluate_template('@contact and =(contact)', context))  # old and new style
 
         # test LTR and RTL mixing
         self.assertEquals(("one two three four", []),
@@ -350,9 +350,9 @@ class ParserTest(TembaTest):
         self.assertEquals(("one اثنين ثلاثة four", []),
                           evaluate_template("one =flow.arabic four", context))  # LTR var, RTL value, LTR text
         self.assertEquals(("واحد اثنين ثلاثة أربعة", []),
-                          evaluate_template("واحد =flow.arabic أربعة",  context))  # LTR var, RTL value, RTL text
+                          evaluate_template("واحد =flow.arabic أربعة", context))  # LTR var, RTL value, RTL text
         self.assertEquals(("واحد two three أربعة", []),
-                          evaluate_template("واحد =flow.english أربعة",  context))  # LTR var, LTR value, RTL text
+                          evaluate_template("واحد =flow.english أربعة", context))  # LTR var, LTR value, RTL text
 
         # test decimal arithmetic
         self.assertEquals(("Result: 7", []),
@@ -450,7 +450,6 @@ class ParserTest(TembaTest):
                           evaluate_template("foo@nicpottier.com", context))
         self.assertEquals(("@nicpottier is on twitter", []),
                           evaluate_template("@nicpottier is on twitter", context))
-
 
         # evaluation errors
         self.assertEquals(("Error: =()", ["Syntax error at ')'"]),
@@ -552,7 +551,11 @@ class ParserTest(TembaTest):
         self.assertEqual(date(2013, 2, 1), val_to_date_or_datetime(date(2013, 2, 1)))
         self.assertEqual(date(2013, 2, 1), val_to_date_or_datetime("1-2-13"))
         self.assertEqual(date(2013, 1, 31), val_to_date_or_datetime("1-31-13"))  # overrides dayfirst setting
-        self.assertEqual(datetime(2013, 1, 2, 3, 4, 0, 0, timezone.utc), val_to_date_or_datetime(datetime(2013, 1, 2, 3, 4, 0, 0, timezone.utc)))
+        self.assertEqual(
+            datetime(
+                2013, 1, 2, 3, 4, 0, 0, timezone.utc), val_to_date_or_datetime(
+                datetime(
+                    2013, 1, 2, 3, 4, 0, 0, timezone.utc)))
         self.assertEqual(datetime(2013, 1, 2, 3, 4, 0, 0, timezone.utc), val_to_date_or_datetime("2/1/13 03:04"))
         self.assertRaises(EvaluationError, val_to_date_or_datetime, ["2/1"])
 
@@ -619,8 +622,19 @@ class ParserTest(TembaTest):
         self.assertRaises(ValueError, f_right, 'abcd', -1)  # exception for negative char count
 
         self.assertEqual('bonjour Hello world', f_substitute('hello Hello world', 'hello', 'bonjour'))  # case-sensitive
-        self.assertEqual('bonjour bonjour world', f_substitute('hello hello world', 'hello', 'bonjour'))  # all instances
-        self.assertEqual('hello bonjour world', f_substitute('hello hello world', 'hello', 'bonjour', 2))  # specific instance
+        self.assertEqual(
+            'bonjour bonjour world',
+            f_substitute(
+                'hello hello world',
+                'hello',
+                'bonjour'))  # all instances
+        self.assertEqual(
+            'hello bonjour world',
+            f_substitute(
+                'hello hello world',
+                'hello',
+                'bonjour',
+                2))  # specific instance
         self.assertEqual('إثنان إثنان ثلاثة', f_substitute('واحد إثنان ثلاثة', 'واحد', 'إثنان'))
 
         self.assertEqual('A', f_unichar(65))
@@ -759,6 +773,7 @@ class ParserTest(TembaTest):
 
 
 class PageableQueryTest(TembaTest):
+
     def setUp(self):
         TembaTest.setUp(self)
 

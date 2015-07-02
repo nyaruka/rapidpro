@@ -15,6 +15,7 @@ class AssetException(Exception):
 
 
 class AssetAccessDenied(AssetException):
+
     """
     User does not have permission to access the given asset
     """
@@ -22,6 +23,7 @@ class AssetAccessDenied(AssetException):
 
 
 class AssetEntityNotFound(AssetException):
+
     """
     Database entity associated with the asset could not be found
     """
@@ -29,6 +31,7 @@ class AssetEntityNotFound(AssetException):
 
 
 class AssetFileNotFound(AssetException):
+
     """
     Asset file could not be found
     """
@@ -36,6 +39,7 @@ class AssetFileNotFound(AssetException):
 
 
 class BaseAssetStore(object):
+
     """
     Base class for asset handlers. Assumes that identifier is primary key of a db object with an associated asset.
     """

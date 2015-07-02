@@ -11,6 +11,7 @@ DEFAULT_PRIORITY = 0
 HIGH_PRIORITY = -10000000  # -10M ~ 110 days
 HIGHER_PRIORITY = -20000000  # -20M ~ 220 days
 
+
 def push_task(org, queue, task_name, args, priority=DEFAULT_PRIORITY):
     """
     Adds a task to queue_name with the supplied arguments.
@@ -43,6 +44,7 @@ def push_task(org, queue, task_name, args, priority=DEFAULT_PRIORITY):
             task_function()
         else:
             current_app.send_task(task_name, args=[], kwargs={}, queue=queue)
+
 
 def pop_task(task_name):
     """

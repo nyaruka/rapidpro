@@ -2,9 +2,11 @@ from __future__ import unicode_literals
 
 
 class MessageHandler(object):
+
     """
     Base class for message handlers.
     """
+
     def __init__(self, name):
         self.name = name
 
@@ -21,7 +23,9 @@ class MessageHandler(object):
 
     # incoming phases
     def pre_receive(self, msg): pass
+
     def receive(self, msg): pass
+
     def post_receive(self, msg): pass
 
     # main phase
@@ -29,5 +33,7 @@ class MessageHandler(object):
 
     # outgoing phases:
     def pre_send(self, msg): pass
+
     def send(self, msg): pass
+
     def post_send(self, msg): pass

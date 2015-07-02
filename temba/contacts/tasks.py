@@ -4,6 +4,7 @@ from datetime import timedelta
 from .models import ExportContactsTask
 from djcelery_transactions import task
 
+
 @task(track_started=True, name='export_contacts_task')
 def export_contacts_task(id):
     """

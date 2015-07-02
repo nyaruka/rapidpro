@@ -72,7 +72,6 @@ class IVRCall(SmartModel):
     duration = models.IntegerField(default=0, null=True,
                                    help_text="The length of this call in seconds")
 
-
     @classmethod
     def create_outgoing(cls, channel, contact, flow, user, call_type=FLOW):
         contact_urn = contact.get_urn(TEL_SCHEME)
@@ -124,7 +123,7 @@ class IVRCall(SmartModel):
                 if qs:
                     url = "%s?%s" % (url, qs)
                 client.calls.update(self.external_id, url=url)
-            except Exception as e: # pragma: no cover
+            except Exception as e:  # pragma: no cover
                 import traceback
                 traceback.print_exc()
                 self.status = FAILED

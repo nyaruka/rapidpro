@@ -35,8 +35,11 @@ def omnibox_query(org, **kwargs):
 
         elif step_uuid:
             from temba.flows.models import FlowStep
-            steps = FlowStep.objects.filter(run__is_active=True, step_uuid=step_uuid,
-                                            left_on=None, run__flow__org=org).distinct('contact').select_related('contact')
+            steps = FlowStep.objects.filter(
+                run__is_active=True,
+                step_uuid=step_uuid,
+                left_on=None,
+                run__flow__org=org).distinct('contact').select_related('contact')
             contact_ids = [f.contact_id for f in steps]
             qs = qs.filter(id__in=contact_ids)
 

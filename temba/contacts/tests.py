@@ -29,13 +29,14 @@ from temba.values.models import STATE, DATETIME
 
 
 class ContactCRUDLTest(_CRUDLTest):
+
     def setUp(self):
         from temba.contacts.views import ContactCRUDL
         super(ContactCRUDLTest, self).setUp()
 
         self.country = AdminBoundary.objects.create(osm_id='171496', name='Rwanda', level=0)
         AdminBoundary.objects.create(osm_id='1708283', name='Kigali', level=1, parent=self.country)
-        
+
         self.crudl = ContactCRUDL
         self.user = self.create_user("tito")
         self.org = Org.objects.create(name="Nyaruka Ltd.", timezone="Africa/Kigali", country=self.country,
@@ -136,13 +137,18 @@ class ContactCRUDLTest(_CRUDLTest):
 
 
 class ContactGroupCRUDLTest(_CRUDLTest):
+
     def setUp(self):
         from temba.contacts.views import ContactGroupCRUDL
 
         super(ContactGroupCRUDLTest, self).setUp()
         self.crudl = ContactGroupCRUDL
         self.user = self.create_user("tito")
-        self.org = Org.objects.create(name="Nyaruka Ltd.", timezone="Africa/Kigali", created_by=self.user, modified_by=self.user)
+        self.org = Org.objects.create(
+            name="Nyaruka Ltd.",
+            timezone="Africa/Kigali",
+            created_by=self.user,
+            modified_by=self.user)
         self.org.administrators.add(self.user)
         self.org.initialize()
 
@@ -158,7 +164,12 @@ class ContactGroupCRUDLTest(_CRUDLTest):
         return dict(name="My Group")
 
     def getUpdatePostData(self):
-        return dict(name="My Updated Group", contacts="%s" % self.frank.pk, join_keyword="updated", join_response="Thanks for joining the group")
+        return dict(
+            name="My Updated Group",
+            contacts="%s" %
+            self.frank.pk,
+            join_keyword="updated",
+            join_response="Thanks for joining the group")
 
     def getManager(self):
         return ContactGroup.user_groups
@@ -216,6 +227,7 @@ class ContactGroupCRUDLTest(_CRUDLTest):
 
 
 class ContactGroupTest(TembaTest):
+
     def setUp(self):
         super(ContactGroupTest, self).setUp()
 
@@ -282,7 +294,8 @@ class ContactGroupTest(TembaTest):
         group = ContactGroup.create(self.org, self.admin, "Group 1")
 
         group.update_query('(age < 18 and gender = "male") or (age > 18 and gender = "female")')
-        self.assertEqual([age, gender], list(ContactGroup.user_groups.get(pk=group.id).query_fields.all().order_by('key')))
+        self.assertEqual([age, gender], list(
+            ContactGroup.user_groups.get(pk=group.id).query_fields.all().order_by('key')))
 
         group.update_query('height > 100')
         self.assertEqual(0, ContactGroup.user_groups.get(pk=group.id).query_fields.count())
@@ -307,7 +320,11 @@ class ContactGroupTest(TembaTest):
         trigger = Trigger.objects.create(org=self.org, keyword="join", created_by=self.admin, modified_by=self.admin)
         trigger.groups.add(group)
 
-        second_trigger = Trigger.objects.create(org=self.org, keyword="register", created_by=self.admin, modified_by=self.admin)
+        second_trigger = Trigger.objects.create(
+            org=self.org,
+            keyword="register",
+            created_by=self.admin,
+            modified_by=self.admin)
         second_trigger.groups.add(group)
 
         response = self.client.post(delete_url, dict())
@@ -337,6 +354,7 @@ class ContactGroupTest(TembaTest):
 
 
 class ContactTest(TembaTest):
+
     def setUp(self):
         TembaTest.setUp(self)
 
@@ -384,15 +402,27 @@ class ContactTest(TembaTest):
         self.login(self.admin)
 
         # try creating a contact with a number that belongs to another contact
-        response = self.client.post(reverse('contacts.contact_create'), data=dict(name='Ben Haggerty', __urn__tel="123"))
+        response = self.client.post(
+            reverse('contacts.contact_create'),
+            data=dict(
+                name='Ben Haggerty',
+                __urn__tel="123"))
         self.assertEquals(1, len(response.context['form'].errors))
 
         # now repost with a unique phone number
-        response = self.client.post(reverse('contacts.contact_create'), data=dict(name='Ben Haggerty', __urn__tel="123-456"))
+        response = self.client.post(
+            reverse('contacts.contact_create'),
+            data=dict(
+                name='Ben Haggerty',
+                __urn__tel="123-456"))
         self.assertNoFormErrors(response)
 
         # repost with the phone number of an orphaned URN
-        response = self.client.post(reverse('contacts.contact_create'), data=dict(name='Ben Haggerty', __urn__tel="8888"))
+        response = self.client.post(
+            reverse('contacts.contact_create'),
+            data=dict(
+                name='Ben Haggerty',
+                __urn__tel="8888"))
         self.assertNoFormErrors(response)
 
         # check that the orphaned URN has been associated with the contact
@@ -637,7 +667,17 @@ class ContactTest(TembaTest):
             # some field data so we can do some querying
             contact.set_field('age', '%s' % i)
             contact.set_field('home', locations[(i + 2) % len(locations)])
-            contact.set_field('join_date', '%s' % datetime_to_str(date(2013, 12, 22) + timezone.timedelta(days=i), date_format))
+            contact.set_field(
+                'join_date',
+                '%s' %
+                datetime_to_str(
+                    date(
+                        2013,
+                        12,
+                        22) +
+                    timezone.timedelta(
+                        days=i),
+                    date_format))
 
         q = lambda query: Contact.search(self.org, query)[0].count()
 
@@ -741,9 +781,30 @@ class ContactTest(TembaTest):
         self.assertEquals(dict(id='c-%d' % self.voldemort.pk, text="250788383383"), response['results'][5])
 
         # 3 sendable URNs with names as extra
-        self.assertEquals(dict(id='u-%d' % joe_tel.pk, text="123", extra="Joe Blow", scheme='tel'), response['results'][6])
-        self.assertEquals(dict(id='u-%d' % frank_tel.pk, text="1234", extra="Frank Smith", scheme='tel'), response['results'][7])
-        self.assertEquals(dict(id='u-%d' % voldemort_tel.pk, text="250788383383", extra=None, scheme='tel'), response['results'][8])
+        self.assertEquals(
+            dict(
+                id='u-%d' %
+                joe_tel.pk,
+                text="123",
+                extra="Joe Blow",
+                scheme='tel'),
+            response['results'][6])
+        self.assertEquals(
+            dict(
+                id='u-%d' %
+                frank_tel.pk,
+                text="1234",
+                extra="Frank Smith",
+                scheme='tel'),
+            response['results'][7])
+        self.assertEquals(
+            dict(
+                id='u-%d' %
+                voldemort_tel.pk,
+                text="250788383383",
+                extra=None,
+                scheme='tel'),
+            response['results'][8])
 
         # apply type filters...
         response = json.loads(self.client.get("%s?types=g" % reverse("contacts.contact_omnibox")).content)
@@ -763,13 +824,41 @@ class ContactTest(TembaTest):
         self.assertEquals(dict(id='c-%d' % self.voldemort.pk, text="250788383383"), response['results'][3])
 
         # 3 sendable URNs with names as extra
-        self.assertEquals(dict(id='u-%d' % joe_tel.pk, text="123", extra="Joe Blow", scheme='tel'), response['results'][4])
-        self.assertEquals(dict(id='u-%d' % frank_tel.pk, text="1234", extra="Frank Smith", scheme='tel'), response['results'][5])
-        self.assertEquals(dict(id='u-%d' % voldemort_tel.pk, text="250788383383", extra=None, scheme='tel'), response['results'][6])
+        self.assertEquals(
+            dict(
+                id='u-%d' %
+                joe_tel.pk,
+                text="123",
+                extra="Joe Blow",
+                scheme='tel'),
+            response['results'][4])
+        self.assertEquals(
+            dict(
+                id='u-%d' %
+                frank_tel.pk,
+                text="1234",
+                extra="Frank Smith",
+                scheme='tel'),
+            response['results'][5])
+        self.assertEquals(
+            dict(
+                id='u-%d' %
+                voldemort_tel.pk,
+                text="250788383383",
+                extra=None,
+                scheme='tel'),
+            response['results'][6])
 
         # search for Frank by phone
         response = json.loads(self.client.get("%s?search=1234" % reverse("contacts.contact_omnibox")).content)
-        self.assertEquals(dict(id='u-%d' % frank_tel.pk, text="1234", extra="Frank Smith", scheme='tel'), response['results'][0])
+        self.assertEquals(
+            dict(
+                id='u-%d' %
+                frank_tel.pk,
+                text="1234",
+                extra="Frank Smith",
+                scheme='tel'),
+            response['results'][0])
         self.assertEquals(1, len(response['results']))
 
         # search for Joe by twitter - won't return anything because there is no twitter channel
@@ -781,13 +870,27 @@ class ContactTest(TembaTest):
 
         # search for again for Joe by twitter
         response = json.loads(self.client.get("%s?search=blow80" % reverse("contacts.contact_omnibox")).content)
-        self.assertEquals(dict(id='u-%d' % joe_twitter.pk, text="blow80", extra="Joe Blow", scheme='twitter'), response['results'][0])
+        self.assertEquals(
+            dict(
+                id='u-%d' %
+                joe_twitter.pk,
+                text="blow80",
+                extra="Joe Blow",
+                scheme='twitter'),
+            response['results'][0])
         self.assertEquals(1, len(response['results']))
 
         # search for Joe again - match on last name and twitter handle
         response = json.loads(self.client.get("%s?search=BLOW" % reverse("contacts.contact_omnibox")).content)
         self.assertEquals(dict(id='c-%d' % self.joe.pk, text="Joe Blow"), response['results'][0])
-        self.assertEquals(dict(id='u-%d' % joe_twitter.pk, text="blow80", extra="Joe Blow", scheme='twitter'), response['results'][1])
+        self.assertEquals(
+            dict(
+                id='u-%d' %
+                joe_twitter.pk,
+                text="blow80",
+                extra="Joe Blow",
+                scheme='twitter'),
+            response['results'][1])
         self.assertEquals(2, len(response['results']))
 
         # make sure our matches are ANDed
@@ -803,15 +906,32 @@ class ContactTest(TembaTest):
         self.assertEquals(2, len(response['results']))
 
         # lookup by group id
-        response = json.loads(self.client.get("%s?&g=%d" % (reverse("contacts.contact_omnibox"), joe_and_frank.pk)).content)
+        response = json.loads(
+            self.client.get(
+                "%s?&g=%d" %
+                (reverse("contacts.contact_omnibox"), joe_and_frank.pk)).content)
         self.assertEquals(dict(id='g-%d' % joe_and_frank.pk, text="Joe and Frank", extra=2), response['results'][0])
         self.assertEquals(1, len(response['results']))
 
         # lookup by URN ids
         urn_ids = "%d,%d" % (self.joe.get_urn(TWITTER_SCHEME).pk, self.frank.get_urn(TEL_SCHEME).pk)
         response = json.loads(self.client.get("%s?&u=%s" % (reverse("contacts.contact_omnibox"), urn_ids)).content)
-        self.assertEquals(dict(id='u-%d' % frank_tel.pk, text="1234", extra="Frank Smith", scheme='tel'), response['results'][0])
-        self.assertEquals(dict(id='u-%d' % joe_twitter.pk, text="blow80", extra="Joe Blow", scheme='twitter'), response['results'][1])
+        self.assertEquals(
+            dict(
+                id='u-%d' %
+                frank_tel.pk,
+                text="1234",
+                extra="Frank Smith",
+                scheme='tel'),
+            response['results'][0])
+        self.assertEquals(
+            dict(
+                id='u-%d' %
+                joe_twitter.pk,
+                text="blow80",
+                extra="Joe Blow",
+                scheme='twitter'),
+            response['results'][1])
         self.assertEquals(2, len(response['results']))
 
         # lookup by message ids
@@ -842,11 +962,16 @@ class ContactTest(TembaTest):
             self.assertEquals(dict(id='c-%d' % self.billy.pk, text="Billy Nophone"), response['results'][2])
             self.assertEquals(dict(id='c-%d' % self.frank.pk, text="Frank Smith"), response['results'][3])
             self.assertEquals(dict(id='c-%d' % self.joe.pk, text="Joe Blow"), response['results'][4])
-            self.assertEquals(dict(id='c-%d' % self.voldemort.pk, text=self.voldemort.anon_identifier), response['results'][5])
+            self.assertEquals(
+                dict(
+                    id='c-%d' %
+                    self.voldemort.pk,
+                    text=self.voldemort.anon_identifier),
+                response['results'][5])
 
             # can search by frank id
             response = json.loads(self.client.get("%s?search=%d" %
-                                        (reverse("contacts.contact_omnibox"), self.frank.pk)).content)
+                                                  (reverse("contacts.contact_omnibox"), self.frank.pk)).content)
             self.assertEquals(dict(id='c-%d' % self.frank.pk, text="Frank Smith"), response['results'][0])
             self.assertEquals(1, len(response['results']))
 
@@ -932,7 +1057,7 @@ class ContactTest(TembaTest):
 
         # try removing it again, should fail
         response = self.client.post(read_url, post_data, follow=True)
-        self.assertEquals(200, response.status_code);
+        self.assertEquals(200, response.status_code)
 
     def test_update_and_list(self):
         from temba.msgs.tasks import check_messages_task
@@ -1266,10 +1391,13 @@ class ContactTest(TembaTest):
         for allowed_urn_scheme in active_urn_schemes:
             self.assertIsNone(Contact.validate_import_header(['name', allowed_urn_scheme]))
 
-
     def do_import(self, user, filename):
 
-        import_params = dict(org_id=self.org.id, timezone=self.org.timezone, extra_fields=[], original_filename=filename)
+        import_params = dict(
+            org_id=self.org.id,
+            timezone=self.org.timezone,
+            extra_fields=[],
+            original_filename=filename)
 
         task = ImportTask.objects.create(
             created_by=user, modified_by=user,
@@ -1384,7 +1512,10 @@ class ContactTest(TembaTest):
         self.assertEquals(response.context['results'], dict(records=2, errors=1, creates=0, updates=2))
 
         # import a spreadsheet where a contact has a missing phone number and another has an invalid number
-        csv_file = open('%s/test_imports/sample_contacts_with_missing_and_invalid_phones.xls' % settings.MEDIA_ROOT, 'rb')
+        csv_file = open(
+            '%s/test_imports/sample_contacts_with_missing_and_invalid_phones.xls' %
+            settings.MEDIA_ROOT,
+            'rb')
         post_data = dict(csv_file=csv_file)
         response = self.client.post(import_url, post_data, follow=True)
         self.assertEquals(response.context['results'], dict(records=1, errors=2, creates=0, updates=1))
@@ -1470,7 +1601,12 @@ class ContactTest(TembaTest):
         post_data = dict(csv_file=csv_file)
         response = self.client.post(import_url, post_data, follow=True)
         self.assertIsNotNone(response.context['task'])
-        self.assertEquals(response.request['PATH_INFO'], reverse('contacts.contact_customize', args=[response.context['task'].pk]))
+        self.assertEquals(
+            response.request['PATH_INFO'],
+            reverse(
+                'contacts.contact_customize',
+                args=[
+                    response.context['task'].pk]))
         self.assertEquals(len(response.context['form'].fields.keys()), 15)
 
         customize_url = reverse('contacts.contact_customize', args=[response.context['task'].pk])
@@ -1497,7 +1633,7 @@ class ContactTest(TembaTest):
         self.assertEquals(Contact.objects.all().count(), 3)
         self.assertEquals(ContactGroup.user_groups.all().count(), 1)
         self.assertEquals(ContactGroup.user_groups.all()[0].name, 'Sample Contacts With Extra Fields')
-        
+
         contact1 = Contact.objects.all().order_by('name')[0]
         self.assertEquals(contact1.get_field_raw('location'), 'Rwanda')  # renamed from 'Country'
         self.assertEquals(contact1.get_field_display('location'), 'Rwanda')  # renamed from 'Country'
@@ -1522,7 +1658,8 @@ class ContactTest(TembaTest):
         self.assertTrue(ContactField.objects.filter(org=self.org, label="Job and Projects"))
         self.assertTrue(ContactField.objects.filter(org=self.org, label="Location"))
 
-        # import spreadsheet with extra columns again but check that giving column a reserved name gives validation error
+        # import spreadsheet with extra columns again but check that giving column
+        # a reserved name gives validation error
         csv_file = open('%s/test_imports/sample_contacts_with_extra_fields.xls' % settings.MEDIA_ROOT, 'rb')
         post_data = dict(csv_file=csv_file)
         response = self.client.post(import_url, post_data, follow=True)
@@ -1555,11 +1692,11 @@ class ContactTest(TembaTest):
         c1 = self.create_contact(name=None, number='0788382382')
         c2 = self.create_contact(name=None, number='0788382382')
         self.assertEquals(c1.pk, c2.pk)
-        
-        field_dict = dict(phone='0788123123', created_by=user, modified_by=user, org=self.org, name='LaToya Jackson') 
+
+        field_dict = dict(phone='0788123123', created_by=user, modified_by=user, org=self.org, name='LaToya Jackson')
         c1 = Contact.create_instance(field_dict)
 
-        field_dict = dict(phone='0788123123', created_by=user, modified_by=user, org=self.org, name='LaToya Jackson') 
+        field_dict = dict(phone='0788123123', created_by=user, modified_by=user, org=self.org, name='LaToya Jackson')
         field_dict['name'] = 'LaToya Jackson'
         c2 = Contact.create_instance(field_dict)
         self.assertEquals(c1.pk, c2.pk)
@@ -1567,7 +1704,7 @@ class ContactTest(TembaTest):
         import_params = dict(org_id=self.org.id, timezone=timezone.UTC, extra_fields=[
             dict(key='nick_name', header='nick name', label='Nickname', type='T')
         ])
-        field_dict = dict(phone='0788123123', created_by=user, modified_by=user, org=self.org, name='LaToya Jackson') 
+        field_dict = dict(phone='0788123123', created_by=user, modified_by=user, org=self.org, name='LaToya Jackson')
         field_dict['yourmom'] = 'face'
         field_dict['nick name'] = 'bob'
         field_dict = Contact.prepare_fields(field_dict, import_params)
@@ -1729,6 +1866,7 @@ class ContactTest(TembaTest):
 
 
 class ContactURNTest(TembaTest):
+
     def setUp(self):
         TembaTest.setUp(self)
 
@@ -1783,28 +1921,49 @@ class ContactURNTest(TembaTest):
         self.assertFalse(ContactURN.validate_urn('twitter', "billy bob"))
 
     def test_get_display(self):
-        urn = ContactURN.objects.create(org=self.org, scheme='tel', path='+250788383383', urn='tel:+250788383383', priority=50)
+        urn = ContactURN.objects.create(
+            org=self.org,
+            scheme='tel',
+            path='+250788383383',
+            urn='tel:+250788383383',
+            priority=50)
         self.assertEquals('0788 383 383', urn.get_display(self.org))
         self.assertEquals('+250788383383', urn.get_display(self.org, full=True))
 
-        urn = ContactURN.objects.create(org=self.org, scheme='twitter', path='billy_bob', urn='twitter:billy_bob', priority=50)
+        urn = ContactURN.objects.create(
+            org=self.org,
+            scheme='twitter',
+            path='billy_bob',
+            urn='twitter:billy_bob',
+            priority=50)
         self.assertEquals('billy_bob', urn.get_display(self.org))
 
 
 class ContactFieldTest(TembaTest):
+
     def setUp(self):
         self.user = self.create_user("tito")
         self.manager1 = self.create_user("mike")
         self.admin = self.create_user("ben")
-        self.org = Org.objects.create(name="Nyaruka Ltd.", timezone="Africa/Kigali", created_by=self.admin, modified_by=self.admin)
+        self.org = Org.objects.create(
+            name="Nyaruka Ltd.",
+            timezone="Africa/Kigali",
+            created_by=self.admin,
+            modified_by=self.admin)
         self.org.administrators.add(self.admin)
         self.org.initialize()
 
         self.user.set_org(self.org)
         self.admin.set_org(self.org)
 
-        self.channel = Channel.objects.create(name="Test Channel", address="0785551212",
-                                              org=self.org, created_by=self.admin, modified_by=self.admin, secret="12345", gcm_id="123")
+        self.channel = Channel.objects.create(
+            name="Test Channel",
+            address="0785551212",
+            org=self.org,
+            created_by=self.admin,
+            modified_by=self.admin,
+            secret="12345",
+            gcm_id="123")
 
         self.joe = self.create_contact(name="Joe Blow", number="123")
         self.frank = self.create_contact(name="Frank Smith", number="1234")
@@ -1820,7 +1979,9 @@ class ContactFieldTest(TembaTest):
     def test_make_key(self):
         self.assertEquals("first_name", ContactField.make_key("First Name"))
         self.assertEquals("second_name", ContactField.make_key("Second   Name  "))
-        self.assertEquals("323_ffsn_slfs_ksflskfs_fk_anfaddgas", ContactField.make_key("  ^%$# %$$ $##323 ffsn slfs ksflskfs!!!! fk$%%%$$$anfaDDGAS ))))))))) "))
+        self.assertEquals(
+            "323_ffsn_slfs_ksflskfs_fk_anfaddgas",
+            ContactField.make_key("  ^%$# %$$ $##323 ffsn slfs ksflskfs!!!! fk$%%%$$$anfaDDGAS ))))))))) "))
 
         with self.assertRaises(ValidationError):
             ContactField.api_make_key("Name")
@@ -1928,10 +2089,20 @@ class ContactFieldTest(TembaTest):
         self.assertIsNone(ContactField.objects.filter(org=self.org, key="first", is_active=True).first())
 
         # the second should be renamed
-        self.assertEquals("Number 2", ContactField.objects.filter(org=self.org, key="second", is_active=True).first().label)
+        self.assertEquals(
+            "Number 2",
+            ContactField.objects.filter(
+                org=self.org,
+                key="second",
+                is_active=True).first().label)
 
         # the third should have a different type
-        self.assertEquals('N', ContactField.objects.filter(org=self.org, key="third", is_active=True).first().value_type)
+        self.assertEquals(
+            'N',
+            ContactField.objects.filter(
+                org=self.org,
+                key="third",
+                is_active=True).first().value_type)
 
         # we should have a fourth field now
         self.assertTrue(ContactField.objects.filter(org=self.org, key='new_field', label="New Field", value_type='T'))
@@ -1949,7 +2120,11 @@ class ContactFieldTest(TembaTest):
     def test_json(self):
         contact_field_json_url = reverse('contacts.contactfield_json')
 
-        self.org2 = Org.objects.create(name="kLab", timezone="Africa/Kigali", created_by=self.admin, modified_by=self.admin)
+        self.org2 = Org.objects.create(
+            name="kLab",
+            timezone="Africa/Kigali",
+            created_by=self.admin,
+            modified_by=self.admin)
         for i in range(30):
             key = 'key%d' % i
             label = 'label%d' % i

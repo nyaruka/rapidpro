@@ -134,8 +134,8 @@ class ScheduleTest(TembaTest):
         # test viewers cannot use action archive or restore
         self.client.logout()
 
-        #create a viewer
-        self.viewer= self.create_user("Viewer")
+        # create a viewer
+        self.viewer = self.create_user("Viewer")
         self.org.viewers.add(self.viewer)
         self.viewer.set_org(self.org)
 
@@ -162,7 +162,15 @@ class ScheduleTest(TembaTest):
         self.assertContains(response, self.voice_flow.name)
         self.assertEquals(200, response.status_code)
 
-        post_data = dict(relative_to=self.planting_date.pk, delivery_hour=15, message='', direction='A', offset=1, unit='D', event_type='F', flow_to_start=self.reminder_flow.pk)
+        post_data = dict(
+            relative_to=self.planting_date.pk,
+            delivery_hour=15,
+            message='',
+            direction='A',
+            offset=1,
+            unit='D',
+            event_type='F',
+            flow_to_start=self.reminder_flow.pk)
         response = self.client.post(reverse('campaigns.campaignevent_create') + "?campaign=%d" % campaign.pk, post_data)
 
         # should be redirected back to our campaign read page
@@ -260,8 +268,15 @@ class ScheduleTest(TembaTest):
         self.assertEquals("Planting Reminders", unicode(campaign))
 
         # create a reminder for our first planting event
-        planting_reminder = CampaignEvent.create_flow_event(self.org, self.admin, campaign, relative_to=self.planting_date,
-                                                            offset=0, unit='D', flow=self.reminder_flow, delivery_hour=17)
+        planting_reminder = CampaignEvent.create_flow_event(
+            self.org,
+            self.admin,
+            campaign,
+            relative_to=self.planting_date,
+            offset=0,
+            unit='D',
+            flow=self.reminder_flow,
+            delivery_hour=17)
 
         self.assertEquals("Planting Date == 0 -> Color Flow", unicode(planting_reminder))
 
@@ -319,8 +334,14 @@ class ScheduleTest(TembaTest):
         self.assertEquals(planting_reminder, fire.event)
 
         # create another reminder
-        planting_reminder2 = CampaignEvent.create_flow_event(self.org, self.admin, campaign, relative_to=self.planting_date,
-                                                             offset=1, unit='D', flow=self.reminder2_flow)
+        planting_reminder2 = CampaignEvent.create_flow_event(
+            self.org,
+            self.admin,
+            campaign,
+            relative_to=self.planting_date,
+            offset=1,
+            unit='D',
+            flow=self.reminder2_flow)
 
         self.assertEquals(1, planting_reminder2.abs_offset())
 

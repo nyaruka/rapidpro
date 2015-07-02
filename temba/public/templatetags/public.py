@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse
 
 register = template.Library()
 
+
 @register.filter
 def gear_link_classes(link, showStyle=False):
     classes = []

@@ -24,9 +24,11 @@ API_REQUEST_QUERIES = 7  # num of required db hits for a subsequent API request
 
 
 class SegmentProfiler(object):  # pragma: no cover
+
     """
     Used in a with block to profile a segment of code
     """
+
     def __init__(self, test, name, db_profile=True, assert_queries=None, assert_tx=None):
         self.test = test
         self.test.segments.append(self)
@@ -202,7 +204,7 @@ class PerformanceTest(TembaTest):  # pragma: no cover
         for g in range(0, count):
             name = '%s %d' % (base_names[g % num_bases], g + 1)
             label = Label.user_labels.create(org=self.org, name=name, folder=None,
-                                         created_by=self.user, modified_by=self.user)
+                                             created_by=self.user, modified_by=self.user)
             labels.append(label)
 
             assign_to = messages[(g % num_bases)::num_bases]
@@ -352,13 +354,13 @@ class PerformanceTest(TembaTest):  # pragma: no cover
         self.clear_cache()
 
         with SegmentProfiler(self, "Fetch first page of contacts from API",
-                             assert_queries=API_INITIAL_REQUEST_QUERIES+7, assert_tx=0):
+                             assert_queries=API_INITIAL_REQUEST_QUERIES + 7, assert_tx=0):
             self._fetch_json('%s.json' % reverse('api.contacts'))
 
         # query count now cached
 
         with SegmentProfiler(self, "Fetch second page of contacts from API",
-                             assert_queries=API_REQUEST_QUERIES+6, assert_tx=0):
+                             assert_queries=API_REQUEST_QUERIES + 6, assert_tx=0):
             self._fetch_json('%s.json?page=2' % reverse('api.contacts'))
 
     def test_api_groups(self):
@@ -369,7 +371,7 @@ class PerformanceTest(TembaTest):  # pragma: no cover
         self.clear_cache()
 
         with SegmentProfiler(self, "Fetch first page of groups from API",
-                             assert_queries=API_INITIAL_REQUEST_QUERIES+2, assert_tx=0):
+                             assert_queries=API_INITIAL_REQUEST_QUERIES + 2, assert_tx=0):
             self._fetch_json('%s.json' % reverse('api.contactgroups'))
 
     def test_api_messages(self):
@@ -383,13 +385,13 @@ class PerformanceTest(TembaTest):  # pragma: no cover
         self.clear_cache()
 
         with SegmentProfiler(self, "Fetch first page of messages from API",
-                             assert_queries=API_INITIAL_REQUEST_QUERIES+3, assert_tx=0):
+                             assert_queries=API_INITIAL_REQUEST_QUERIES + 3, assert_tx=0):
             self._fetch_json('%s.json' % reverse('api.messages'))
 
         # query count now cached
 
         with SegmentProfiler(self, "Fetch second page of messages from API",
-                             assert_queries=API_REQUEST_QUERIES+2, assert_tx=0):
+                             assert_queries=API_REQUEST_QUERIES + 2, assert_tx=0):
             self._fetch_json('%s.json?page=2' % reverse('api.messages'))
 
     def test_api_runs(self):
@@ -401,13 +403,13 @@ class PerformanceTest(TembaTest):  # pragma: no cover
         self.clear_cache()
 
         with SegmentProfiler(self, "Fetch first page of flow runs from API",
-                             assert_queries=API_INITIAL_REQUEST_QUERIES+7, assert_tx=0):
+                             assert_queries=API_INITIAL_REQUEST_QUERIES + 7, assert_tx=0):
             self._fetch_json('%s.json' % reverse('api.runs'))
 
         # query count, terminal nodes and category nodes for the flow all now cached
 
         with SegmentProfiler(self, "Fetch second page of flow runs from API",
-                             assert_queries=API_REQUEST_QUERIES+4, assert_tx=0):
+                             assert_queries=API_REQUEST_QUERIES + 4, assert_tx=0):
             self._fetch_json('%s.json?page=2' % reverse('api.runs'))
 
         with SegmentProfiler(self, "Create new flow runs via API endpoint", assert_tx=1):

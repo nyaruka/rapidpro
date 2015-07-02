@@ -10,7 +10,9 @@ from temba.contacts.models import Contact, TEL_SCHEME
 from temba.orgs.models import Org
 from temba.msgs.models import Msg, OUTGOING
 
+
 class MessageConsole(cmd.Cmd):
+
     """
     Useful REPL'like utility to simulate sending messages into RapidPro. Mostly useful for testing things
     with real contacts across multiple flows and contacts where the simulator isn't enough.
@@ -85,12 +87,30 @@ class MessageConsole(cmd.Cmd):
 
         incoming = Msg.create_incoming(None, (urn.scheme, urn.path), line, date=timezone.now(), org=self.org)
 
-        self.echo((Fore.GREEN + "[%s] " + Fore.YELLOW + ">>" + Fore.MAGENTA + " %s" + Fore.WHITE) % (urn.urn, incoming.text))
+        self.echo(
+            (Fore.GREEN +
+             "[%s] " +
+             Fore.YELLOW +
+             ">>" +
+             Fore.MAGENTA +
+             " %s" +
+             Fore.WHITE) %
+            (urn.urn,
+             incoming.text))
 
         # look up any message responses
         outgoing = Msg.objects.filter(org=self.org, pk__gt=incoming.pk, direction=OUTGOING)
         for response in outgoing:
-            self.echo((Fore.GREEN + "[%s] " + Fore.YELLOW + "<<" + Fore.MAGENTA + " %s" + Fore.WHITE) % (urn.urn, response.text))
+            self.echo(
+                (Fore.GREEN +
+                 "[%s] " +
+                 Fore.YELLOW +
+                 "<<" +
+                 Fore.MAGENTA +
+                 " %s" +
+                 Fore.WHITE) %
+                (urn.urn,
+                 response.text))
 
     def do_EOF(self, line):
         """
@@ -114,8 +134,8 @@ class Command(BaseCommand):  # pragma: no cover
         print("Sending messages for %s\n" % org.name)
 
         intro = Style.BRIGHT + "Welcome to the message console." + \
-                Style.NORMAL + "\n\nSend messages by typing anything." + \
-                "\nChange org with the org command. ex: org 3" + \
-                "\nChange contact with the contact command. ex: contact 250788124124"
+            Style.NORMAL + "\n\nSend messages by typing anything." + \
+            "\nChange org with the org command. ex: org 3" + \
+            "\nChange contact with the contact command. ex: contact 250788124124"
 
         MessageConsole(org).cmdloop(intro=intro)

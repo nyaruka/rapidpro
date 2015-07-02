@@ -33,7 +33,7 @@ class ResultTest(FlowFileTest):
         result = Value.get_value_summary(contact_field=gender)[0]
         self.assertEquals(2, len(result['categories']))
         self.assertEquals(3, result['set'])
-        self.assertEquals(2, result['unset']) # this is two as we have the default contact created by our unit tests
+        self.assertEquals(2, result['unset'])  # this is two as we have the default contact created by our unit tests
         self.assertFalse(result['open_ended'])
         self.assertResult(result, 0, "Female", 2)
         self.assertResult(result, 1, "Male", 1)
@@ -81,13 +81,19 @@ class ResultTest(FlowFileTest):
         result = Value.get_value_summary(contact_field=gender)[0]
         self.assertEquals(2, len(result['categories']))
         self.assertEquals(3, result['set'])
-        self.assertEquals(2, result['unset']) # this is two as we have the default contact created by our unit tests
+        self.assertEquals(2, result['unset'])  # this is two as we have the default contact created by our unit tests
         self.assertFalse(result['open_ended'])
         self.assertResult(result, 0, "Male", 2)
         self.assertResult(result, 1, "Female", 1)
 
     def run_color_gender_flow(self, contact, color, gender, age):
-        self.assertEquals("What is your gender?", self.send_message(self.flow, color, contact=contact, restart_participants=True))
+        self.assertEquals(
+            "What is your gender?",
+            self.send_message(
+                self.flow,
+                color,
+                contact=contact,
+                restart_participants=True))
         self.assertEquals("What is your age?", self.send_message(self.flow, gender, contact=contact))
         self.assertEquals("Thanks.", self.send_message(self.flow, age, contact=contact))
 
@@ -155,21 +161,26 @@ class ResultTest(FlowFileTest):
 
         # what about men that are adults?
         result = Value.get_value_summary(ruleset=color, filters=[dict(ruleset=gender.pk, categories=["Male"]),
-                                         dict(ruleset=age.pk, categories=["Adult"])])[0]
+                                                                 dict(ruleset=age.pk, categories=["Adult"])])[0]
         self.assertResult(result, 0, "Red", 0)
         self.assertResult(result, 1, "Blue", 0)
         self.assertResult(result, 2, "Green", 0)
 
         # union of all genders
         result = Value.get_value_summary(ruleset=color, filters=[dict(ruleset=gender.pk, categories=["Male", "Female"]),
-                                         dict(ruleset=age.pk, categories=["Adult"])])[0]
+                                                                 dict(ruleset=age.pk, categories=["Adult"])])[0]
 
         self.assertResult(result, 0, "Red", 1)
         self.assertResult(result, 1, "Blue", 1)
         self.assertResult(result, 2, "Green", 0)
 
         # just women adults by group
-        result = Value.get_value_summary(ruleset=color, filters=[dict(groups=[ladies.pk]), dict(ruleset=age.pk, categories="Adult")])[0]
+        result = Value.get_value_summary(
+            ruleset=color, filters=[
+                dict(
+                    groups=[
+                        ladies.pk]), dict(
+                    ruleset=age.pk, categories="Adult")])[0]
 
         self.assertResult(result, 0, "Red", 1)
         self.assertResult(result, 1, "Blue", 1)
@@ -179,7 +190,12 @@ class ResultTest(FlowFileTest):
         ladies.update_contacts([self.c2], False)
 
         # get a new summary
-        result = Value.get_value_summary(ruleset=color, filters=[dict(groups=[ladies.pk]), dict(ruleset=age.pk, categories="Adult")])[0]
+        result = Value.get_value_summary(
+            ruleset=color, filters=[
+                dict(
+                    groups=[
+                        ladies.pk]), dict(
+                    ruleset=age.pk, categories="Adult")])[0]
 
         self.assertResult(result, 0, "Red", 1)
         self.assertResult(result, 1, "Blue", 0)
@@ -210,7 +226,14 @@ class ResultTest(FlowFileTest):
         run5 = self.run_color_gender_flow(self.c1, "blue", "male", "16")
 
         # ok, now segment by gender
-        result = Value.get_value_summary(ruleset=color, filters=[], segment=dict(ruleset=gender.pk, categories=["Male", "Female"]))
+        result = Value.get_value_summary(
+            ruleset=color,
+            filters=[],
+            segment=dict(
+                ruleset=gender.pk,
+                categories=[
+                    "Male",
+                    "Female"]))
         male_result = result[0]
         self.assertResult(male_result, 0, "Red", 0)
         self.assertResult(male_result, 1, "Blue", 1)
@@ -222,7 +245,14 @@ class ResultTest(FlowFileTest):
         self.assertResult(female_result, 2, "Green", 0)
 
         # segment by gender again, but use the contact field to do so
-        result = Value.get_value_summary(ruleset=color, filters=[], segment=dict(contact_field="Gender", values=["MALE", "Female"]))
+        result = Value.get_value_summary(
+            ruleset=color,
+            filters=[],
+            segment=dict(
+                contact_field="Gender",
+                values=[
+                    "MALE",
+                    "Female"]))
         male_result = result[0]
         self.assertResult(male_result, 0, "Red", 0)
         self.assertResult(male_result, 1, "Blue", 1)
@@ -327,7 +357,7 @@ class ResultTest(FlowFileTest):
             mock.return_value = []
 
             response = self.client.get(reverse('flows.ruleset_choropleth', args=[color.pk]) +
-                                   "?_format=json&boundary=" + self.org.country.osm_id)
+                                       "?_format=json&boundary=" + self.org.country.osm_id)
 
             # response should be valid json
             response = json.loads(response.content)

@@ -28,6 +28,7 @@ from .models import Trigger, KEYWORD_TRIGGER, SCHEDULE_TRIGGER, INBOUND_CALL_TRI
 
 
 class BaseTriggerForm(forms.ModelForm):
+
     """
     Base form for creating different trigger types
     """
@@ -62,12 +63,15 @@ class BaseTriggerForm(forms.ModelForm):
 
 
 class DefaultTriggerForm(BaseTriggerForm):
+
     """
     Default trigger form which only allows selection of a non-message based flow
     """
+
     def __init__(self, user, *args, **kwargs):
         flows = Flow.objects.filter(is_archived=False, org=user.get_org()).exclude(flow_type=Flow.MESSAGE)
-        super(DefaultTriggerForm, self).__init__(user, flows,  *args, **kwargs)
+        super(DefaultTriggerForm, self).__init__(user, flows, *args, **kwargs)
+
 
 class GroupBasedTriggerForm(BaseTriggerForm):
 
@@ -78,7 +82,8 @@ class GroupBasedTriggerForm(BaseTriggerForm):
         super(GroupBasedTriggerForm, self).__init__(user, flows, *args, **kwargs)
 
         self.fields['groups'].queryset = ContactGroup.user_groups.filter(org=self.user.get_org(), is_active=True)
-        self.fields['groups'].help_text = _("Only apply this trigger to contacts in these groups. (leave empty to apply to all contacts)")
+        self.fields['groups'].help_text = _(
+            "Only apply this trigger to contacts in these groups. (leave empty to apply to all contacts)")
 
     def get_existing_triggers(self, cleaned_data):
         groups = cleaned_data.get('groups', [])
@@ -102,7 +107,9 @@ class GroupBasedTriggerForm(BaseTriggerForm):
     class Meta(BaseTriggerForm.Meta):
         fields = ('flow', 'groups')
 
+
 class KeywordTriggerForm(GroupBasedTriggerForm):
+
     """
     Form for keyword triggers
     """
@@ -129,7 +136,8 @@ class KeywordTriggerForm(GroupBasedTriggerForm):
     def clean(self):
         data = super(KeywordTriggerForm, self).clean()
         if self.get_existing_triggers(data):
-            raise forms.ValidationError(_("An active trigger uses this keyword in some groups, keywords must be unique for each contact group"))
+            raise forms.ValidationError(
+                _("An active trigger uses this keyword in some groups, keywords must be unique for each contact group"))
         return data
 
     class Meta(BaseTriggerForm.Meta):
@@ -137,10 +145,12 @@ class KeywordTriggerForm(GroupBasedTriggerForm):
 
 
 class RegisterTriggerForm(BaseTriggerForm):
+
     """
     Wizard form that creates keyword trigger which starts contacts in a newly created flow which adds them to a group
     """
     class AddNewGroupChoiceField(forms.ModelChoiceField):
+
         def clean(self, value):
             if value.startswith("[_NEW_]"):
                 value = value[7:]
@@ -158,8 +168,12 @@ class RegisterTriggerForm(BaseTriggerForm):
     keyword = forms.CharField(max_length=16, required=True,
                               help_text=_("The first word of the message text"))
 
-    action_join_group = AddNewGroupChoiceField(ContactGroup.user_groups.filter(pk__lt=0), required=True, label=_("Group to Join"),
-                                   help_text=_("The group the contact will join when they send the above keyword"))
+    action_join_group = AddNewGroupChoiceField(
+        ContactGroup.user_groups.filter(
+            pk__lt=0),
+        required=True,
+        label=_("Group to Join"),
+        help_text=_("The group the contact will join when they send the above keyword"))
 
     response = forms.CharField(widget=forms.Textarea(attrs=dict(rows=3)), required=False, label=_("Response"),
                                help_text=_("The message to send in response after they join the group (optional)"))
@@ -190,7 +204,10 @@ class ScheduleTriggerForm(BaseScheduleForm, forms.ModelForm):
         super(ScheduleTriggerForm, self).__init__(*args, **kwargs)
         self.user = user
         self.fields['omnibox'].set_user(user)
-        self.fields['flow'].queryset = Flow.objects.filter(is_archived=False, org=self.user.get_org()).exclude(flow_type=Flow.MESSAGE)
+        self.fields['flow'].queryset = Flow.objects.filter(
+            is_archived=False,
+            org=self.user.get_org()).exclude(
+            flow_type=Flow.MESSAGE)
 
     def clean(self):
         data = super(ScheduleTriggerForm, self).clean()
@@ -204,6 +221,7 @@ class ScheduleTriggerForm(BaseScheduleForm, forms.ModelForm):
         model = Trigger
         fields = ('flow', 'omnibox', 'repeat_period', 'repeat_days', 'start', 'start_datetime_value')
 
+
 class InboundCallTriggerForm(GroupBasedTriggerForm):
 
     def __init__(self, user, *args, **kwargs):
@@ -215,7 +233,9 @@ class InboundCallTriggerForm(GroupBasedTriggerForm):
         existing = existing.filter(trigger_type=INBOUND_CALL_TRIGGER)
         return existing
 
+
 class FollowTriggerForm(BaseTriggerForm):
+
     """
     Form for social network follow triggers
     """
@@ -270,6 +290,7 @@ class TriggerCRUDL(SmartCRUDL):
                'keyword', 'register', 'schedule', 'inbound_call', 'missed_call', 'catchall', 'follow')
 
     class OrgMixin(OrgPermsMixin):
+
         def derive_queryset(self, *args, **kwargs):
             queryset = super(TriggerCRUDL.OrgMixin, self).derive_queryset(*args, **kwargs)
             if not self.request.user.is_authenticated():
@@ -322,7 +343,13 @@ class TriggerCRUDL(SmartCRUDL):
 
         def form_invalid(self, form):
             if '_format' in self.request.REQUEST and self.request.REQUEST['_format'] == 'json':
-                return HttpResponse(json.dumps(dict(status="error", errors=form.errors)), content_type='application/json', status=400)
+                return HttpResponse(
+                    json.dumps(
+                        dict(
+                            status="error",
+                            errors=form.errors)),
+                    content_type='application/json',
+                    status=400)
             else:
                 return super(TriggerCRUDL.Update, self).form_invalid(form)
 
@@ -411,7 +438,7 @@ class TriggerCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super(TriggerCRUDL.BaseList, self).get_context_data(**kwargs)
             context['org_has_triggers'] = Trigger.objects.filter(org=self.request.user.get_org()).count()
-            context['folders']= self.get_folders()
+            context['folders'] = self.get_folders()
             context['request_url'] = self.request.path
             context['actions'] = self.actions
             return context
@@ -419,8 +446,22 @@ class TriggerCRUDL(SmartCRUDL):
         def get_folders(self):
             org = self.request.user.get_org()
             folders = []
-            folders.append(dict(label=_("Active"), url=reverse('triggers.trigger_list'), count=Trigger.objects.filter(is_active=True, is_archived=False, org=org).count()))
-            folders.append(dict(label=_("Archived"), url=reverse('triggers.trigger_archived'), count=Trigger.objects.filter(is_active=True, is_archived=True, org=org).count()))
+            folders.append(
+                dict(
+                    label=_("Active"),
+                    url=reverse('triggers.trigger_list'),
+                    count=Trigger.objects.filter(
+                        is_active=True,
+                        is_archived=False,
+                        org=org).count()))
+            folders.append(
+                dict(
+                    label=_("Archived"),
+                    url=reverse('triggers.trigger_archived'),
+                    count=Trigger.objects.filter(
+                        is_active=True,
+                        is_archived=True,
+                        org=org).count()))
             return folders
 
     class List(BaseList):
@@ -442,7 +483,12 @@ class TriggerCRUDL(SmartCRUDL):
 
         def get_queryset(self, *args, **kwargs):
             qs = super(TriggerCRUDL.List, self).get_queryset(*args, **kwargs)
-            qs = qs.filter(is_active=True, is_archived=False).annotate(earliest_group=Min('groups__name')).order_by('keyword', 'earliest_group')
+            qs = qs.filter(
+                is_active=True,
+                is_archived=False).annotate(
+                earliest_group=Min('groups__name')).order_by(
+                'keyword',
+                'earliest_group')
             return qs
 
     class Archived(BaseList):
@@ -450,7 +496,10 @@ class TriggerCRUDL(SmartCRUDL):
         fields = ('keyword', 'flow', 'trigger_count', 'last_triggered')
 
         def get_queryset(self, *args, **kwargs):
-            return super(TriggerCRUDL.Archived, self).get_queryset(*args, **kwargs).filter(is_active=True, is_archived=True)
+            return super(TriggerCRUDL.Archived,
+                         self).get_queryset(*args,
+                                            **kwargs).filter(is_active=True,
+                                                             is_archived=True)
 
     class CreateTrigger(OrgPermsMixin, SmartCreateView):
         success_url = "@triggers.trigger_list"
@@ -519,7 +568,13 @@ class TriggerCRUDL(SmartCRUDL):
 
         def form_invalid(self, form):
             if '_format' in self.request.REQUEST and self.request.REQUEST['_format'] == 'json':
-                return HttpResponse(json.dumps(dict(status="error", errors=form.errors)), content_type='application/json', status=400)
+                return HttpResponse(
+                    json.dumps(
+                        dict(
+                            status="error",
+                            errors=form.errors)),
+                    content_type='application/json',
+                    status=400)
             else:
                 return super(TriggerCRUDL.Schedule, self).form_invalid(form)
 
@@ -575,7 +630,6 @@ class TriggerCRUDL(SmartCRUDL):
 
             self.post_save(trigger)
 
-
             response = self.render_to_response(self.get_context_data(form=form))
             response['REDIRECT'] = self.get_success_url()
             return response
@@ -601,7 +655,7 @@ class TriggerCRUDL(SmartCRUDL):
         def pre_save(self, obj, *args, **kwargs):
             obj = super(TriggerCRUDL.InboundCall, self).pre_save(obj, *args, **kwargs)
             obj.org = self.request.user.get_org()
-            obj.trigger_type=INBOUND_CALL_TRIGGER
+            obj.trigger_type = INBOUND_CALL_TRIGGER
             return obj
 
         def get_form_kwargs(self):

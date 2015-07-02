@@ -11,29 +11,34 @@ js_info_dict = {
 }
 
 urlpatterns = patterns('',
-    url(r'^', include('temba.public.urls')),
-    url(r'^', include('temba.msgs.urls')),
-    url(r'^', include('temba.contacts.urls')),
-    url(r'^', include('temba.orgs.urls')),
-    url(r'^', include('temba.schedules.urls')),
-    url(r'^', include('temba.flows.urls')),
-    url(r'^', include('temba.reports.urls')),
-    url(r'^', include('temba.triggers.urls')),
-    url(r'^', include('temba.campaigns.urls')),
-    url(r'^', include('temba.ivr.urls')),
-    url(r'^', include('temba.locations.urls')),
-    url(r'^channels/', include('temba.channels.urls')),
-    url(r'^relayers/relayer/sync/(\d+)/$', sync, {}, 'sync'),
-    url(r'^relayers/relayer/register/$', register, {}, 'register'),
-    url(r'^users/', include('smartmin.users.urls')),
-    url(r'^imports/', include('smartmin.csv_imports.urls')),
-    url(r'^api/v1', include('temba.api.urls')),
-    url(r'^assets/', include('temba.assets.urls')),
-    url(r'^jsi18n/$', 'django.views.i18n.javascript_catalog', js_info_dict)
-)
+                       url(r'^', include('temba.public.urls')),
+                       url(r'^', include('temba.msgs.urls')),
+                       url(r'^', include('temba.contacts.urls')),
+                       url(r'^', include('temba.orgs.urls')),
+                       url(r'^', include('temba.schedules.urls')),
+                       url(r'^', include('temba.flows.urls')),
+                       url(r'^', include('temba.reports.urls')),
+                       url(r'^', include('temba.triggers.urls')),
+                       url(r'^', include('temba.campaigns.urls')),
+                       url(r'^', include('temba.ivr.urls')),
+                       url(r'^', include('temba.locations.urls')),
+                       url(r'^channels/', include('temba.channels.urls')),
+                       url(r'^relayers/relayer/sync/(\d+)/$', sync, {}, 'sync'),
+                       url(r'^relayers/relayer/register/$', register, {}, 'register'),
+                       url(r'^users/', include('smartmin.users.urls')),
+                       url(r'^imports/', include('smartmin.csv_imports.urls')),
+                       url(r'^api/v1', include('temba.api.urls')),
+                       url(r'^assets/', include('temba.assets.urls')),
+                       url(r'^jsi18n/$', 'django.views.i18n.javascript_catalog', js_info_dict)
+                       )
 
 if settings.DEBUG:
-    urlpatterns += patterns('', url(r'^media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT, }), )
+    urlpatterns += patterns('',
+                            url(r'^media/(?P<path>.*)$',
+                                'django.views.static.serve',
+                                {'document_root': settings.MEDIA_ROOT,
+                                 }),
+                            )
 
 # import any additional urls
 import importlib
@@ -41,6 +46,8 @@ for app in settings.APP_URLS:
     importlib.import_module(app)
 
 # provide a utility method to initialize our analytics
+
+
 def init_analytics():
     import analytics
     analytics_key = getattr(settings, 'SEGMENT_IO_KEY', None)
@@ -49,6 +56,7 @@ def init_analytics():
 
 # and initialize them (in celery, the above will have to be called manually)
 init_analytics()
+
 
 def track_user(self):  # pragma: no cover
     """

@@ -36,12 +36,19 @@ INITIAL_TIMEZONE_COUNTRY = {'US/Hawaii': 'US',
                             'GMT': '',
                             'UTC': ''}
 
+
 def datetime_to_str(date_obj, format=None, ms=True, tz=None):
     if not date_obj:
         return None
 
     if date_obj.year < 1900:
-        return "%d-%d-%dT%d:%d:%d.%dZ" % (date_obj.year, date_obj.month, date_obj.day, date_obj.hour, date_obj.minute, date_obj.second, date_obj.microsecond)
+        return "%d-%d-%dT%d:%d:%d.%dZ" % (date_obj.year,
+                                          date_obj.month,
+                                          date_obj.day,
+                                          date_obj.hour,
+                                          date_obj.minute,
+                                          date_obj.second,
+                                          date_obj.microsecond)
 
     if not tz:
         tz = timezone.utc
@@ -138,7 +145,7 @@ def ms_to_datetime(ms):
     """
     Converts a millisecond accuracy timestamp to a datetime
     """
-    dt = datetime.datetime.utcfromtimestamp(ms/1000)
+    dt = datetime.datetime.utcfromtimestamp(ms / 1000)
     return dt.replace(microsecond=(ms % 1000) * 1000).replace(tzinfo=pytz.utc)
 
 
@@ -218,11 +225,14 @@ def get_dict_from_cursor(cursor):
         for row in cursor.fetchall()
     ]
 
+
 class DictStruct(object):
+
     """
     Wraps a dictionary turning it into a structure looking object. This is useful to 'mock' dictionaries
     coming from Redis to look like normal objects
     """
+
     def __init__(self, classname, entries, datetime_fields=[]):
         self._classname = classname
         self._values = entries
@@ -243,7 +253,7 @@ class DictStruct(object):
 
     def __setattr__(self, item, value):
         # needed to prevent infinite loop
-        if not self.__dict__.has_key('_initialized'):
+        if '_initialized' not in self.__dict__:
             return object.__setattr__(self, item, value)
 
         if not item in self._values:
@@ -277,9 +287,11 @@ def prepped_request_to_str(prepped):
 
 
 class DateTimeJsonEncoder(json.JSONEncoder):
+
     """
     Our own encoder for datetimes.. we always convert to UTC and always include milliseconds
     """
+
     def default(self, o):
         # See "Date Time String Format" in the ECMA-262 specification.
         if isinstance(o, datetime.datetime):
@@ -344,9 +356,11 @@ def json_to_dict(json_string):
 
 
 class PageableQuery(object):
+
     """
     Allows paging with Paginator of a raw SQL query
     """
+
     def __init__(self, query, order=(), params=()):
         self.query = query
         self.order = order
@@ -385,9 +399,11 @@ class PageableQuery(object):
 
 
 class JsonResponse(HttpResponse):
+
     """
     Borrowed from Django 1.7 until we upgrade to that...
     """
+
     def __init__(self, data, encoder=DjangoJSONEncoder, safe=True, **kwargs):
         if safe and not isinstance(data, dict):
             raise TypeError('In order to allow non-dict objects to be serialized set the safe parameter to False')
@@ -426,10 +442,10 @@ def timezone_to_country_code(tz):
 
     return timezone_country.get(tz, '')
 
+
 def splitting_getlist(request, name, default=None):
     vals = request.QUERY_PARAMS.getlist(name, default)
     if vals and len(vals) == 1:
         return vals[0].split(',')
     else:
         return vals
-

@@ -28,12 +28,28 @@ class ReportCRUDL(SmartCRUDL):
             try:
                 json_dict = json.loads(json_string)
             except Exception as e:
-                return build_json_response(dict(status="error", description="Error parsing JSON: %s" % str(e)), status=400)
+                return build_json_response(
+                    dict(
+                        status="error",
+                        description="Error parsing JSON: %s" %
+                        str(e)),
+                    status=400)
 
             try:
                 report = Report.create_report(org, user, json_dict)
             except Exception as e:
-                import traceback; traceback.print_exc(e)
-                return build_json_response(dict(status="error", description="Error creating report: %s" % str(e)), status=400)
+                import traceback
+                traceback.print_exc(e)
+                return build_json_response(
+                    dict(
+                        status="error",
+                        description="Error creating report: %s" %
+                        str(e)),
+                    status=400)
 
-            return build_json_response(dict(status="success", description="Report Created", report=report.as_json()), status=200)
+            return build_json_response(
+                dict(
+                    status="success",
+                    description="Report Created",
+                    report=report.as_json()),
+                status=200)

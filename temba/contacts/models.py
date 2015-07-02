@@ -35,8 +35,8 @@ START_TEST_CONTACT_PATH = 12065550100
 END_TEST_CONTACT_PATH = 12065550199
 
 
-
 class ContactField(models.Model, OrgModelMixin):
+
     """
     Represents a type of field that can be put on Contacts.
     """
@@ -206,11 +206,11 @@ class Contact(TembaModel, SmartModel, OrgModelMixin):
     @classmethod
     def set_simulation(cls, simulation):
         cls.simulation = simulation
-        
+
     @classmethod
     def get_simulation(cls):
         return cls.simulation
-                
+
     @classmethod
     def all(cls):
         simulation = cls.get_simulation()
@@ -301,9 +301,15 @@ class Contact(TembaModel, SmartModel, OrgModelMixin):
             # otherwise, create a new value for it
             else:
                 category = loc_value.name if loc_value else None
-                existing = Value.objects.create(contact=self, contact_field=field, org=self.org,
-                                                string_value=str_value, decimal_value=dec_value, datetime_value=dt_value,
-                                                location_value=loc_value, category=category)
+                existing = Value.objects.create(
+                    contact=self,
+                    contact_field=field,
+                    org=self.org,
+                    string_value=str_value,
+                    decimal_value=dec_value,
+                    datetime_value=dt_value,
+                    location_value=loc_value,
+                    category=category)
 
         # cache
         setattr(self, '__field__%s' % key, existing)
@@ -462,7 +468,12 @@ class Contact(TembaModel, SmartModel, OrgModelMixin):
 
             # add all new URNs
             for raw, normalized in urns_to_create.iteritems():
-                urn = ContactURN.create(org, contact, normalized['scheme'], normalized['path'], channel=incoming_channel)
+                urn = ContactURN.create(
+                    org,
+                    contact,
+                    normalized['scheme'],
+                    normalized['path'],
+                    channel=incoming_channel)
                 urn_objects[raw] = urn
 
             # save which urns were updated
@@ -602,7 +613,7 @@ class Contact(TembaModel, SmartModel, OrgModelMixin):
         del field_dict['created_by']
         del field_dict['name']
         del field_dict['modified_by']
-        
+
         for key in field_dict.keys():
             value = field_dict[key]
 
@@ -613,7 +624,7 @@ class Contact(TembaModel, SmartModel, OrgModelMixin):
             contact.set_field(key, value)
 
         return contact
-                
+
     @classmethod
     def prepare_fields(cls, field_dict, import_params=None, user=None):
         if not import_params or not 'org_id' in import_params or not 'extra_fields' in import_params:
@@ -700,7 +711,7 @@ class Contact(TembaModel, SmartModel, OrgModelMixin):
             raise Exception(ugettext('The file you provided is missing a required header. At least one of "%s" '
                                      'should be included.' % possible_urn_fields_text))
         return None
-    
+
     @classmethod
     def import_csv(cls, task, log=None):
         from xlrd import XLRDError
@@ -928,7 +939,10 @@ class Contact(TembaModel, SmartModel, OrgModelMixin):
             contact_dict[scheme] = urn_value if not urn_value is None else ''
 
         # get all the values for this contact
-        contact_values = {v.contact_field.key: v for v in Value.objects.filter(contact=self).exclude(contact_field=None).select_related('contact_field')}
+        contact_values = {
+            v.contact_field.key: v for v in Value.objects.filter(
+                contact=self).exclude(
+                contact_field=None).select_related('contact_field')}
 
         # add all fields
         for field in ContactField.objects.filter(org_id=self.org_id).select_related('org'):
@@ -1119,6 +1133,7 @@ URN_SCHEMES_SUPPORTING_FOLLOW = {TWITTER_SCHEME, FACEBOOK_SCHEME}  # schemes tha
 
 
 class ContactURN(models.Model):
+
     """
     A Universal Resource Name. This is essentially a table of formatted URNs that can be used to identify contacts.
     """
@@ -1180,7 +1195,9 @@ class ContactURN(models.Model):
 
         # URN isn't valid without a scheme and path
         if not parsed.scheme or not parsed.path:
-            raise ValueError("URNs must define a scheme (%s) and path (%s), none found in: %s" % (parsed.scheme, parsed.path, urn))
+            raise ValueError(
+                "URNs must define a scheme (%s) and path (%s), none found in: %s" %
+                (parsed.scheme, parsed.path, urn))
 
         return parsed
 
@@ -1300,7 +1317,7 @@ class ContactURN(models.Model):
                 if self.path and self.path[0] == '+':
                     return phonenumbers.format_number(phonenumbers.parse(self.path, None),
                                                       phonenumbers.PhoneNumberFormat.NATIONAL)
-            except Exception: # pragma: no cover
+            except Exception:  # pragma: no cover
                 pass
 
         return self.path
@@ -1324,11 +1341,13 @@ GROUP_TYPE_CHOICES = ((ALL_CONTACTS_GROUP, "All Contacts"),
 
 
 class SystemContactGroupManager(models.Manager):
+
     def get_queryset(self):
         return super(SystemContactGroupManager, self).get_queryset().exclude(group_type=USER_DEFINED_GROUP)
 
 
 class UserContactGroupManager(models.Manager):
+
     def get_queryset(self):
         return super(UserContactGroupManager, self).get_queryset().filter(group_type=USER_DEFINED_GROUP)
 
@@ -1336,8 +1355,11 @@ class UserContactGroupManager(models.Manager):
 class ContactGroup(TembaModel, SmartModel):
     name = models.CharField(verbose_name=_("Name"), max_length=64, help_text=_("The name for this contact group"))
 
-    group_type = models.CharField(max_length=1, choices=GROUP_TYPE_CHOICES, default=USER_DEFINED_GROUP,
-                                  help_text=_("What type of group it is, either user defined or one of our system groups"))
+    group_type = models.CharField(
+        max_length=1,
+        choices=GROUP_TYPE_CHOICES,
+        default=USER_DEFINED_GROUP,
+        help_text=_("What type of group it is, either user defined or one of our system groups"))
 
     contacts = models.ManyToManyField(Contact, verbose_name=_("Contacts"), related_name='all_groups')
 
@@ -1498,7 +1520,11 @@ class ContactGroup(TembaModel, SmartModel):
 class ExportContactsTask(SmartModel):
 
     org = models.ForeignKey(Org, related_name='contacts_exports', help_text=_("The Organization of the user."))
-    group = models.ForeignKey(ContactGroup, null=True, related_name='exports', help_text=_("The unique group to export"))
+    group = models.ForeignKey(
+        ContactGroup,
+        null=True,
+        related_name='exports',
+        help_text=_("The unique group to export"))
     host = models.CharField(max_length=32, help_text=_("The host this export task was created on"))
     task_id = models.CharField(null=True, max_length=64)
 

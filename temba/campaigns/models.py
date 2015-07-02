@@ -70,7 +70,10 @@ class Campaign(SmartModel):
 
                 # first check if we have the objects by id
                 if same_site:
-                    group = ContactGroup.user_groups.filter(id=campaign_spec['group']['id'], org=org, is_active=True).first()
+                    group = ContactGroup.user_groups.filter(
+                        id=campaign_spec['group']['id'],
+                        org=org,
+                        is_active=True).first()
                     if group:
                         group.name = campaign_spec['group']['name']
                         group.save()
@@ -164,13 +167,21 @@ class Campaign(SmartModel):
         events = []
 
         for event in self.events.all().order_by('flow__id'):
-            events.append(dict(id=event.pk, offset=event.offset,
-                               unit=event.unit,
-                               event_type=event.event_type,
-                               delivery_hour=event.delivery_hour,
-                               message=event.message,
-                               flow=dict(id=event.flow.pk, name=event.flow.name),
-                               relative_to=dict(label=event.relative_to.label, key=event.relative_to.key, id=event.relative_to.pk)))
+            events.append(
+                dict(
+                    id=event.pk,
+                    offset=event.offset,
+                    unit=event.unit,
+                    event_type=event.event_type,
+                    delivery_hour=event.delivery_hour,
+                    message=event.message,
+                    flow=dict(
+                        id=event.flow.pk,
+                        name=event.flow.name),
+                    relative_to=dict(
+                        label=event.relative_to.label,
+                        key=event.relative_to.key,
+                        id=event.relative_to.pk)))
         definition['events'] = events
         return definition
 
@@ -184,7 +195,10 @@ class Campaign(SmartModel):
         """
         A unique set of user-facing flows this campaign uses
         """
-        return [event.flow for event in self.events.filter(is_active=True).exclude(flow__flow_type=Flow.MESSAGE).order_by('flow__id').distinct('flow')]
+        return [
+            event.flow for event in self.events.filter(
+                is_active=True).exclude(
+                flow__flow_type=Flow.MESSAGE).order_by('flow__id').distinct('flow')]
 
     def get_sorted_events(self):
         """
@@ -314,7 +328,7 @@ class CampaignEvent(SmartModel):
         if date_value:
             date_value = date_value.replace(second=0, microsecond=0)
 
-        if not self.relative_to.is_active: # pragma: no cover
+        if not self.relative_to.is_active:  # pragma: no cover
             return None
 
         # try to parse it to a datetime
@@ -348,6 +362,7 @@ class CampaignEvent(SmartModel):
 
     def __unicode__(self):
         return "%s == %d -> %s" % (self.relative_to, self.offset, self.flow)
+
 
 class EventFire(Model):
     event = models.ForeignKey('campaigns.CampaignEvent', related_name="event_fires",
@@ -439,8 +454,11 @@ class EventFire(Model):
             from temba.values.models import Value
 
             org = contact_field.org
-            for event in CampaignEvent.objects.filter(relative_to=contact_field,
-                                                      campaign__is_active=True, campaign__is_archived=False, is_active=True):
+            for event in CampaignEvent.objects.filter(
+                    relative_to=contact_field,
+                    campaign__is_active=True,
+                    campaign__is_archived=False,
+                    is_active=True):
 
                 contacts = event.campaign.group.contacts.filter(is_active=True, is_blocked=False).exclude(is_test=True)
                 values = Value.objects.filter(contact__in=contacts, contact_field__key__exact=contact_field.key)

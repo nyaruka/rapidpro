@@ -10,7 +10,9 @@ COUNTRY_LEVEL = 0
 STATE_LEVEL = 1
 DISTRICT_LEVEL = 2
 
+
 class AdminBoundary(models.Model):
+
     """
     Represents a single administrative boundary (like a country, state or district)
     """
@@ -50,8 +52,14 @@ class AdminBoundary(models.Model):
         return result
 
     def get_geojson_feature(self):
-        return geojson.Feature(properties=dict(name=self.name, osm_id=self.osm_id, id=self.pk, level=self.level),
-                               geometry=None if not self.simplified_geometry else geojson.loads(self.simplified_geometry.geojson))
+        return geojson.Feature(
+            properties=dict(
+                name=self.name,
+                osm_id=self.osm_id,
+                id=self.pk,
+                level=self.level),
+            geometry=None if not self.simplified_geometry else geojson.loads(
+                self.simplified_geometry.geojson))
 
     def get_geojson(self):
         return AdminBoundary.get_geojson_dump([self.get_geojson_feature()])
@@ -74,14 +82,9 @@ class BoundaryAlias(SmartModel):
 
     name = models.CharField(max_length=128, help_text="The name for our alias")
 
-    boundary = models.ForeignKey(AdminBoundary, help_text='The admin boundary this alias applies to', related_name='aliases')
+    boundary = models.ForeignKey(
+        AdminBoundary,
+        help_text='The admin boundary this alias applies to',
+        related_name='aliases')
 
     org = models.ForeignKey('orgs.Org', help_text="The org that owns this alias")
-
-
-
-
-
-
-
-

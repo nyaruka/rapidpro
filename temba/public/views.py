@@ -22,6 +22,7 @@ from temba.flows.models import FlowRun
 from urllib import urlencode
 from django.db.models import Count
 
+
 class IndexView(SmartTemplateView):
     template_name = 'public/public_index.haml'
 
@@ -33,6 +34,7 @@ class IndexView(SmartTemplateView):
             context['error_msg'] = urlparse.parse_qs(context['url_params'][1:])['errors'][0]
 
         return context
+
 
 class WelcomeRedirect(RedirectView):
     url = "/welcome"
@@ -64,6 +66,7 @@ class Welcome(SmartTemplateView):
 
     def has_permission(self, request, *args, **kwargs):
         return request.user.is_authenticated()
+
 
 class Privacy(SmartTemplateView):
     template_name = 'public/public_privacy.haml'
@@ -100,6 +103,7 @@ class VideoCRUDL(SmartCRUDL):
             context['videos'] = Video.objects.exclude(pk=self.get_object().pk).order_by('order')
             return context
 
+
 class LeadCRUDL(SmartCRUDL):
     actions = ('create',)
     model = Lead
@@ -115,7 +119,7 @@ class LeadCRUDL(SmartCRUDL):
             return super(LeadCRUDL.Create, self).dispatch(request, *args, **kwargs)
 
         def get_success_url(self):
-            return reverse('orgs.org_signup') + "?%s" % urlencode({'email':self.form.cleaned_data['email']})
+            return reverse('orgs.org_signup') + "?%s" % urlencode({'email': self.form.cleaned_data['email']})
 
         def form_invalid(self, form):
             url = reverse('public.public_index')
@@ -142,6 +146,7 @@ class LeadCRUDL(SmartCRUDL):
 
 class Blog(RedirectView):
     url = "http://blog." + settings.HOSTNAME
+
 
 class GenerateCoupon(View):
 

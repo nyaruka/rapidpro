@@ -25,6 +25,7 @@ from temba.msgs.models import Msg, INCOMING
 from temba.utils import dict_to_struct
 from twilio.util import RequestValidator
 
+
 def add_testing_flag_to_context(*args):
     return dict(testing=settings.TESTING)
 
@@ -49,7 +50,11 @@ class TembaTest(SmartminTest):
         # setup admin boundaries for Rwanda
         self.country = AdminBoundary.objects.create(osm_id='171496', name='Rwanda', level=0)
         self.state1 = AdminBoundary.objects.create(osm_id='1708283', name='Kigali City', level=1, parent=self.country)
-        self.state2 = AdminBoundary.objects.create(osm_id='171591', name='Eastern Province', level=1, parent=self.country)
+        self.state2 = AdminBoundary.objects.create(
+            osm_id='171591',
+            name='Eastern Province',
+            level=1,
+            parent=self.country)
         self.district1 = AdminBoundary.objects.create(osm_id='1711131', name='Gatsibo', level=2, parent=self.state2)
         self.district2 = AdminBoundary.objects.create(osm_id='1711163', name='Kayonza', level=2, parent=self.state2)
         self.district3 = AdminBoundary.objects.create(osm_id='60485579', name='Kigali', level=2, parent=self.state1)
@@ -108,7 +113,11 @@ class TembaTest(SmartminTest):
 
     def create_secondary_org(self):
         self.admin2 = self.create_user("Administrator2")
-        self.org2 = Org.objects.create(name="Trileet Inc.", timezone="Africa/Kigali", created_by=self.admin2, modified_by=self.admin2)
+        self.org2 = Org.objects.create(
+            name="Trileet Inc.",
+            timezone="Africa/Kigali",
+            created_by=self.admin2,
+            modified_by=self.admin2)
         self.org2.administrators.add(self.admin2)
         self.admin2.set_org(self.org)
 
@@ -165,9 +174,32 @@ class TembaTest(SmartminTest):
                                           label='color',
                                           response_type='C',
                                           rules=[
-                                              dict(uuid=uuid(start + 12), destination=uuid(start + 2), test=dict(type='contains', test='orange'), category="Orange"),
-                                              dict(uuid=uuid(start + 13), destination=uuid(start + 3), test=dict(type='contains', test='blue'), category="Blue"),
-                                              dict(uuid=uuid(start + 14), destination=uuid(start + 4), test=dict(type='true'), category="Other"),
+                                              dict(
+                                                  uuid=uuid(
+                                                      start + 12),
+                                                  destination=uuid(
+                                                      start + 2),
+                                                  test=dict(
+                                                      type='contains',
+                                                      test='orange'),
+                                                  category="Orange"),
+                                              dict(
+                                                  uuid=uuid(
+                                                      start + 13),
+                                                  destination=uuid(
+                                                      start + 3),
+                                                  test=dict(
+                                                      type='contains',
+                                                      test='blue'),
+                                                  category="Blue"),
+                                              dict(
+                                                  uuid=uuid(
+                                                      start + 14),
+                                                  destination=uuid(
+                                                      start + 4),
+                                                  test=dict(
+                                                      type='true'),
+                                                  category="Other"),
                                               dict(uuid=uuid(start + 15), test=dict(type='true'), category="Nothing")])  # test case with no destination
                                      ],
                           entry=uuid(start + 1))
@@ -219,7 +251,14 @@ class FlowFileTest(TembaTest):
         self.assertTrue("Missing response from contact.", response)
         self.assertEquals(message, response.text)
 
-    def send_message(self, flow, message, restart_participants=False, contact=None, initiate_flow=False, assert_reply=True):
+    def send_message(
+            self,
+            flow,
+            message,
+            restart_participants=False,
+            contact=None,
+            initiate_flow=False,
+            assert_reply=True):
         """
         Starts the flow, sends the message, returns the reply
         """
@@ -280,6 +319,7 @@ from HTMLParser import HTMLParser
 
 
 class MLStripper(HTMLParser):
+
     def __init__(self):
         self.reset()
         self.fed = []
@@ -308,7 +348,7 @@ class BrowserTest(LiveServerTestCase):  # pragma: no cover
     @classmethod
     def tearDownClass(cls):
         pass
-        #cls.driver.quit()
+        # cls.driver.quit()
         #super(BrowserTest, cls).tearDownClass()
 
     def strip_tags(self, html):
@@ -373,7 +413,7 @@ class BrowserTest(LiveServerTestCase):  # pragma: no cover
         if text not in (self.strip_tags(element.text) if strip_html else element.text):
             self.fail("Couldn't find '%s' in  '%s'" % (text, element.text))
 
-    #def flow_basics(self):
+    # def flow_basics(self):
 
     def browser(self):
 
@@ -444,9 +484,11 @@ class MockResponse(object):
 
 
 class AnonymousOrg(object):
+
     """
     Makes the given org temporarily anonymous
     """
+
     def __init__(self, org):
         self.org = org
 
@@ -467,6 +509,7 @@ class MockRequestValidator(RequestValidator):
     def validate(self, url, post, signature):
         return True
 
+
 class MockTwilioClient(TwilioClient):
 
     def __init__(self, sid, token):
@@ -480,6 +523,7 @@ class MockTwilioClient(TwilioClient):
         return True
 
     class MockCall():
+
         def __init__(self, to=None, from_=None, url=None, status_callback=None):
             self.to = to
             self.from_ = from_
@@ -488,22 +532,26 @@ class MockTwilioClient(TwilioClient):
             self.sid = 'CallSid'
 
     class MockApplication():
+
         def __init__(self, friendly_name):
             self.friendly_name = friendly_name
             self.sid = 'TwilioTestSid'
 
     class MockPhoneNumber():
+
         def __init__(self, phone_number):
             self.phone_number = phone_number
             self.sid = 'PhoneNumberSid'
 
     class MockAccount():
+
         def __init__(self, account_type, auth_token='AccountToken'):
             self.type = account_type
             self.auth_token = auth_token
             self.sid = 'AccountSid'
 
     class MockAccounts():
+
         def __init__(self, *args):
             pass
 
@@ -511,6 +559,7 @@ class MockTwilioClient(TwilioClient):
             return MockTwilioClient.MockAccount(account_type)
 
     class MockPhoneNumbers():
+
         def __init__(self, *args):
             pass
 
@@ -521,12 +570,15 @@ class MockTwilioClient(TwilioClient):
             print "Updating phone number with sid %s" % sid
 
     class MockApplications():
+
         def __init__(self, *args):
             pass
+
         def list(self, friendly_name=None):
             return [MockTwilioClient.MockApplication(friendly_name)]
 
     class MockCalls():
+
         def __init__(self):
             pass
 
@@ -538,4 +590,3 @@ class MockTwilioClient(TwilioClient):
 
         def update(self, external_id, url):
             print "Updating call for %s to url %s" % (external_id, url)
-

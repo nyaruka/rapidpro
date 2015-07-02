@@ -18,18 +18,22 @@ logger = logging.getLogger(__name__)
 
 
 class EvaluationError(Exception):
+
     """
     Exception class for errors during template/expression evaluation
     """
+
     def __init__(self, message, caused_by=None):
         Exception.__init__(self, message)
         self.caused_by = caused_by
 
 
 class EvaluationContext(object):
+
     """
     Evaluation context, i.e. variables and date options
     """
+
     def __init__(self, variables, date_options):
         self.variables = dict(true=True, false=False)  # built-in variables
         self.variables.update(variables)
@@ -71,7 +75,7 @@ def evaluate_template_old(template, context, url_encode=False):
 
             if url_encode:
                 evaluated = urlquote(evaluated)
-        except EvaluationError, e:
+        except EvaluationError as e:
             logger.debug("EvaluationError: %s" % e.message)
 
             # if we can't evaluate expression, include it as is in the output
@@ -111,7 +115,7 @@ def evaluate_expression_old(expression, context):
 
     try:
         value = evaluate_variable(unfiltered, context.variables)
-    except EvaluationError, e:
+    except EvaluationError as e:
         # evaluate_variable is executed recursively so we catch exception below so we can report full identifier name
         raise EvaluationError("Undefined variable '%s'" % unfiltered, e)
 
@@ -134,7 +138,7 @@ def apply_filter_old(value, filter_key, tz, dayfirst):
     :return: the filtered value
     """
     def chunk(str, chunk_size):
-        return [str[i:i+chunk_size] for i in range(0, len(str), chunk_size)]
+        return [str[i:i + chunk_size] for i in range(0, len(str), chunk_size)]
 
     if not value:
         return value
@@ -247,7 +251,7 @@ def evaluate_template_new(template, context, url_encode=False):
             result = val_to_string(evaluated)
 
             return urlquote(result) if url_encode else result
-        except EvaluationError, e:
+        except EvaluationError as e:
             logger.debug("EvaluationError: %s" % e.message)
 
             # if we can't evaluate expression, include it as is in the output
@@ -414,7 +418,7 @@ def invoke_function(name, func, arguments):
             raise TypeError("Function %s cannot be called with %d arguments" % (func.__name__, len(arguments)))
 
         return func(*call_args)
-    except Exception, e:
+    except Exception as e:
         pretty_args = []
         for arg in arguments:
             pretty_args.append(('"%s"' % arg) if isinstance(arg, basestring) else unicode(arg))
@@ -528,7 +532,7 @@ def val_to_integer(value):
     """
     try:
         return int(value)
-    except Exception, e:
+    except Exception as e:
         raise EvaluationError("Can't convert '%s' to an integer" % unicode(value), e)
 
 
@@ -538,7 +542,7 @@ def val_to_decimal(value):
     """
     try:
         return Decimal(value)
-    except Exception, e:
+    except Exception as e:
         raise EvaluationError("Can't convert '%s' to a decimal" % unicode(value), e)
 
 
@@ -663,7 +667,7 @@ def p_expression_function_call(p):
 
     try:
         func = expression_functions[name.lower()]
-    except KeyError, e:
+    except KeyError as e:
         raise EvaluationError("Undefined function '%s'" % name, e)
 
     p[0] = invoke_function(name, func, args)
@@ -733,7 +737,7 @@ def p_expression_mul_div(p):
 
     try:
         p[0] = arg1 * arg2 if op == '*' else arg1 / arg2
-    except DivisionByZero, e:
+    except DivisionByZero as e:
         raise EvaluationError("Division by zero", e)
 
 
@@ -804,7 +808,7 @@ def p_expression_variable(p):
 
     try:
         p[0] = evaluate_variable(p[1].lower(), context.variables)
-    except EvaluationError, e:
+    except EvaluationError as e:
         # evaluate_variable is executed recursively so we catch exception below so we can report full name
         raise EvaluationError("Undefined variable '%s'" % p[1], e)
 
@@ -825,8 +829,8 @@ current_evaluation_context = None  # global as PLY doesn't have a good way to pa
 # and have the prefix f_. Organizes them by name with the prefix removed
 import temba.utils.parser_functions as parser_functions
 fn_module = parser_functions
-expression_functions = {fn.__name__[2:]: fn for fn in fn_module.__dict__.copy().itervalues()
-                        if inspect.isfunction(fn) and inspect.getmodule(fn) == fn_module and fn.__name__.startswith('f_')}
+expression_functions = {fn.__name__[2:]: fn for fn in fn_module.__dict__.copy().itervalues() if inspect.isfunction(
+    fn) and inspect.getmodule(fn) == fn_module and fn.__name__.startswith('f_')}
 
 
 def get_function_listing():

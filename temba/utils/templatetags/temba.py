@@ -5,6 +5,7 @@ from ...campaigns.models import Campaign
 from ...flows.models import Flow
 from ...triggers.models import Trigger
 
+
 @register.filter
 def icon(o):
 
@@ -19,9 +20,11 @@ def icon(o):
 
     return ""
 
+
 @register.filter
 def verbose_name_plural(object):
     return object._meta.verbose_name_plural
+
 
 def lessblock(parser, token):
     args = token.split_contents()
@@ -32,7 +35,9 @@ def lessblock(parser, token):
     parser.delete_first_token()
     return LessBlockNode(nodelist)
 
+
 class LessBlockNode(template.Node):
+
     def __init__(self, nodelist):
         self.nodelist = nodelist
 

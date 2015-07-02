@@ -44,7 +44,9 @@ def as_icon(contact_event):
         icon = 'icon-call-outgoing red'
     return mark_safe('<span class="glyph %s"></span>' % icon)
 
+
 class Render(ttag.helpers.AsTag):
+
     """
     A block tag that renders its contents to a context variable.
 

@@ -65,7 +65,8 @@ def start_msg_flow_batch_task():
         # pop off the next task
         task = pop_task('start_msg_flow_batch')
 
-        # it is possible that somehow we might get None back if more workers were started than tasks got added, bail if so
+        # it is possible that somehow we might get None back if more workers were
+        # started than tasks got added, bail if so
         if task is None:
             return
 
@@ -87,6 +88,7 @@ def start_msg_flow_batch_task():
         traceback.print_exc(e)
         logger.exception("Error starting flow: %s" % id)
 
+
 @task(track_started=True, name="check_flow_stats_accuracy_task")
 def check_flow_stats_accuracy_task(flow_id):
     logger = start_flow_task.get_logger()
@@ -107,6 +109,7 @@ def check_flow_stats_accuracy_task(flow_id):
     except Exception as e:
         logger.exception("Error checking flow stat accuracy: %d" % flow_id)
 
+
 @task(track_started=True, name="calculate_flow_stats")
 def calculate_flow_stats_task(flow_id):
     logger = start_flow_task.get_logger()
@@ -114,6 +117,3 @@ def calculate_flow_stats_task(flow_id):
         Flow.objects.get(pk=flow_id).do_calculate_flow_stats()
     except Exception as e:
         logger.exception("Error calculating flow stats: %d" % flow_id)
-
-
-

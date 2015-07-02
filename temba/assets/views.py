@@ -41,6 +41,7 @@ def handle_asset_request(user, asset_type, identifier):
 
 
 class AssetDownloadView(SmartTemplateView):
+
     """
     Provides a landing page for an asset, e.g. /assets/download/contact_export/123/
     """
@@ -74,9 +75,11 @@ class AssetDownloadView(SmartTemplateView):
 
 
 class AssetStreamView(View):
+
     """
     Provides a direct download stream to an asset, e.g. /assets/stream/contact_export/123/
     """
+
     def get(self, request, *args, **kwargs):
         asset_type = AssetType[kwargs.pop('type')]
         identifier = kwargs.pop('identifier')

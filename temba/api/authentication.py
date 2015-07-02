@@ -6,6 +6,7 @@ from .models import APIToken
 
 
 class APITokenAuthentication(TokenAuthentication):
+
     """
     Simple token based authentication.
 

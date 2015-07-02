@@ -17,6 +17,7 @@ status_choices = (('U', 'Unscheduled'),
 
 
 class Schedule(SmartModel):
+
     """
     Describes a point in the future to execute some action. These are used to schedule Broadcasts
     as a single event or with a specified interval for recurrence.
@@ -25,7 +26,11 @@ class Schedule(SmartModel):
     status = models.CharField(default='U', choices=status_choices, max_length=1)
     repeat_hour_of_day = models.IntegerField(help_text="The hour of the day", null=True)
     repeat_day_of_month = models.IntegerField(null=True, help_text="The day of the month to repeat on")
-    repeat_period = models.CharField(max_length=1, null=True, help_text="When this schedule repeats", choices=repeat_choices)
+    repeat_period = models.CharField(
+        max_length=1,
+        null=True,
+        help_text="When this schedule repeats",
+        choices=repeat_choices)
     repeat_days = models.IntegerField(default=0, null=True, blank=True, help_text="bit mask of days of the week")
     last_fire = models.DateTimeField(null=True, blank=True, default=None, help_text="When this schedule last fired")
     next_fire = models.DateTimeField(null=True, blank=True, default=None, help_text="When this schedule fires next")
@@ -47,11 +52,11 @@ class Schedule(SmartModel):
     def get_broadcast(self):
         if hasattr(self, 'broadcast'):
             return self.broadcast
-        
+
     def get_trigger(self):
         if hasattr(self, 'trigger'):
             return self.trigger
-        
+
     def get_org_timezone(self):
         org = None
 
@@ -68,7 +73,12 @@ class Schedule(SmartModel):
         Get the next point in the future when our schedule should expire again
         """
         hour_of_day = self.repeat_hour_of_day if self.repeat_hour_of_day else trigger_date.hour
-        trigger_date = datetime(trigger_date.year, trigger_date.month, trigger_date.day, hour_of_day).replace(tzinfo=self.get_org_timezone())
+        trigger_date = datetime(
+            trigger_date.year,
+            trigger_date.month,
+            trigger_date.day,
+            hour_of_day).replace(
+            tzinfo=self.get_org_timezone())
 
         if self.repeat_period == "O":
             return trigger_date
@@ -155,11 +165,14 @@ class Schedule(SmartModel):
         if self.repeat_days:
             bitmask_number = bin(self.repeat_days)
             for i in range(7):
-                power = bin(pow(2, i+1))
-                if bin(int(bitmask_number, 2)&int(power, 2)) == power:
-                    days.append(str(int(power,2)))
+                power = bin(pow(2, i + 1))
+                if bin(int(bitmask_number, 2) & int(power, 2)) == power:
+                    days.append(str(int(power, 2)))
         return days
 
     def __unicode__(self):  # pragma: no cover
-        return "[%s] %s %s %s" % (str(self.next_fire), self.repeat_period, self.repeat_day_of_month, self.repeat_hour_of_day)
-
+        return "[%s] %s %s %s" % (str(
+            self.next_fire),
+            self.repeat_period,
+            self.repeat_day_of_month,
+            self.repeat_hour_of_day)
