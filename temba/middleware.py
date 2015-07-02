@@ -56,6 +56,7 @@ class BrandingMiddleware(object):
 
         request.branding = BrandingMiddleware.get_branding_for_host(host)
 
+
 class ActivateLanguageMiddleware(object):
 
     def process_request(self, request):
@@ -104,6 +105,7 @@ class OrgTimezoneMiddleware(object):
 
 
 class FlowSimulationMiddleware(object):
+
     def process_request(self, request):
         Contact.set_simulation(False)
         return None
@@ -118,6 +120,7 @@ from django.conf import settings
 
 
 class ProfilerMiddleware(object):
+
     """
     Simple profile middleware to profile django views. To run it, add ?prof to
     the URL like this:
@@ -135,6 +138,7 @@ class ProfilerMiddleware(object):
     This is adapted from an example found here:
     http://www.slideshare.net/zeeg/django-con-high-performance-django-presentation.
     """
+
     def can(self, request):
         return settings.DEBUG and 'prof' in request.GET
 
@@ -156,11 +160,13 @@ class ProfilerMiddleware(object):
 
 
 class NonAtomicGetsMiddleware(object):
+
     """
     Django's non_atomic_requests decorator gives us no way of enabling/disabling transactions depending on the request
     type. This middleware will make the current request non-atomic if an _non_atomic_gets attribute is set on the view
     function, and if the request method is GET.
     """
+
     def process_view(self, request, view_func, view_args, view_kwargs):
         if getattr(view_func, '_non_atomic_gets', False):
             if request.method.lower() == 'get':
@@ -168,4 +174,3 @@ class NonAtomicGetsMiddleware(object):
             else:
                 view_func._non_atomic_requests = set()
         return None
-

@@ -4,10 +4,12 @@ from rest_framework.renderers import BrowsableAPIRenderer
 
 
 class DocumentationRenderer(BrowsableAPIRenderer):
+
     """
     The regular REST framework browsable API renderer includes a form on each endpoint. We don't provide that and
     instead have a separate API explorer page. This render then just displays the endpoint docs.
     """
+
     def get_context(self, data, accepted_media_type, renderer_context):
         view = renderer_context['view']
         request = renderer_context['request']

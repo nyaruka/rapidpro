@@ -20,7 +20,7 @@ urlpatterns = patterns('',
                        (r'^public/welcome/$', WelcomeRedirect.as_view(), {}, 'public.public_welcome_redirect'),
                        (r'^demo/status/$', csrf_exempt(OrderStatus.as_view()), {}, 'demo.order_status'),
                        (r'^demo/coupon/$', csrf_exempt(GenerateCoupon.as_view()), {}, 'demo.generate_coupon'),
-)
+                       )
 
 urlpatterns += LeadCRUDL().as_urlpatterns()
 urlpatterns += LeadViewer().as_urlpatterns()

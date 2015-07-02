@@ -5,6 +5,7 @@ from .models import Trigger, CATCH_ALL_TRIGGER
 
 
 class TriggerHandler(MessageHandler):
+
     def __init__(self):
         super(TriggerHandler, self).__init__('triggers')
 
@@ -13,6 +14,7 @@ class TriggerHandler(MessageHandler):
 
 
 class CatchAllHandler(MessageHandler):
+
     def __init__(self):
         super(CatchAllHandler, self).__init__('triggers')
 

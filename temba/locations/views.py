@@ -10,6 +10,7 @@ from temba.orgs.views import OrgPermsMixin
 from temba.utils import build_json_response
 from django.utils.translation import ugettext_lazy as _
 
+
 class BoundaryCRUDL(SmartCRUDL):
     actions = ('alias', 'geometry', 'boundaries')
     model = AdminBoundary
@@ -83,7 +84,12 @@ class BoundaryCRUDL(SmartCRUDL):
             try:
                 json_list = json.loads(json_string)
             except Exception as e:
-                return build_json_response(dict(status="error", description="Error parsing JSON: %s" % str(e)), status=400)
+                return build_json_response(
+                    dict(
+                        status="error",
+                        description="Error parsing JSON: %s" %
+                        str(e)),
+                    status=400)
 
             # this can definitely be optimized
             for state in json_list:
@@ -101,7 +107,8 @@ class BoundaryCRUDL(SmartCRUDL):
 
         def get(self, request, *args, **kwargs):
             tops = list(AdminBoundary.objects.filter(parent__osm_id=self.get_object().osm_id).order_by('name'))
-            children = AdminBoundary.objects.filter(Q(parent__osm_id__in=[boundary.osm_id for boundary in tops])).order_by('parent__osm_id', 'name')
+            children = AdminBoundary.objects.filter(
+                Q(parent__osm_id__in=[boundary.osm_id for boundary in tops])).order_by('parent__osm_id', 'name')
 
             boundaries = []
             for top in tops:
@@ -120,11 +127,13 @@ class BoundaryCRUDL(SmartCRUDL):
                             match = '%s %s' % (current_top['name'], current_top['aliases'])
 
                 children = current_top.get('children', [])
-                child['match'] = '%s %s %s %s' % (child['name'], child['aliases'], current_top['name'], current_top['aliases'])
+                child['match'] = '%s %s %s %s' % (child['name'],
+                                                  child['aliases'],
+                                                  current_top['name'],
+                                                  current_top['aliases'])
                 children.append(child)
                 match = '%s %s %s' % (match, child['name'], child['aliases'])
                 current_top['children'] = children
                 current_top['match'] = match
 
             return build_json_response(boundaries)
-

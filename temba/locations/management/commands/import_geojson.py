@@ -7,7 +7,8 @@ from django.core.management.base import BaseCommand, CommandError
 from temba.locations.models import AdminBoundary, COUNTRY_LEVEL, STATE_LEVEL, DISTRICT_LEVEL
 import geojson
 
-class Command(BaseCommand): # pragma: no cover
+
+class Command(BaseCommand):  # pragma: no cover
     option_list = BaseCommand.option_list + (
         make_option('--country', '-c', dest='country', default=None,
                     help="Only process the boundary files for this country osm id."),
@@ -98,11 +99,18 @@ class Command(BaseCommand): # pragma: no cover
 
         # now remove any unseen boundaries
         # TODO: how do we deal with values already assigned to a location? we should probably retry to do some
-        # matching based on the new names? (though unlikely to match if the name didn't match when trying to find the boundary)
+        # matching based on the new names? (though unlikely to match if the name
+        # didn't match when trying to find the boundary)
         if level == STATE_LEVEL:
-            AdminBoundary.objects.filter(level=level, parent__osm_id=country_osm_id).exclude(osm_id__in=seen_osm_ids).delete()
+            AdminBoundary.objects.filter(
+                level=level,
+                parent__osm_id=country_osm_id).exclude(
+                osm_id__in=seen_osm_ids).delete()
         elif level == DISTRICT_LEVEL:
-            AdminBoundary.objects.filter(level=level, parent__parent__osm_id=country_osm_id).exclude(osm_id__in=seen_osm_ids).delete()
+            AdminBoundary.objects.filter(
+                level=level,
+                parent__parent__osm_id=country_osm_id).exclude(
+                osm_id__in=seen_osm_ids).delete()
 
     def handle(self, *args, **options):
         filenames = []
@@ -139,6 +147,3 @@ class Command(BaseCommand): # pragma: no cover
                 else:
                     with open(filename) as json_file:
                         self.import_file(filename, json_file)
-
-
-

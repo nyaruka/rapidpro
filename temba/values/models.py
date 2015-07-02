@@ -99,7 +99,13 @@ class Value(models.Model):
         return sorted(categories, key=lambda c: c['count'], reverse=True)
 
     @classmethod
-    def get_filtered_value_summary(cls, ruleset=None, contact_field=None, filters=None, return_contacts=False, filter_contacts=None):
+    def get_filtered_value_summary(
+            cls,
+            ruleset=None,
+            contact_field=None,
+            filters=None,
+            return_contacts=False,
+            filter_contacts=None):
         """
         Return summary results for the passed in values, optionally filtering by a passed in filter on the contact.
 
@@ -187,7 +193,8 @@ class Value(models.Model):
                     contacts = contacts.filter(contact_query)
 
                 else:
-                    raise ValueError("Invalid filter definition, must include 'group', 'ruleset', 'contact_field' or 'boundary'")
+                    raise ValueError(
+                        "Invalid filter definition, must include 'group', 'ruleset', 'contact_field' or 'boundary'")
 
             contacts = set([c['id'] for c in contacts.values('id')])
 
@@ -200,7 +207,11 @@ class Value(models.Model):
 
         # we are summarizing a flow ruleset
         if ruleset:
-            runs = FlowRun.objects.filter(flow=ruleset.flow).order_by('contact', '-created_on', '-pk').distinct('contact')
+            runs = FlowRun.objects.filter(
+                flow=ruleset.flow).order_by(
+                'contact',
+                '-created_on',
+                '-pk').distinct('contact')
             runs = [r['id'] for r in runs.values('id', 'contact') if r['contact'] in contacts]
 
             # our dict will contain category name to count
@@ -212,7 +223,8 @@ class Value(models.Model):
 
             # restrict our runs, using ANY is way quicker than IN
             if runs:
-                value_counts = value_counts.extra(where=["run_id = ANY(VALUES " + ", ".join(["(%d)" % r for r in runs]) + ")"])
+                value_counts = value_counts.extra(
+                    where=["run_id = ANY(VALUES " + ", ".join(["(%d)" % r for r in runs]) + ")"])
 
             # no matching runs, exclude any values
             else:
@@ -223,7 +235,8 @@ class Value(models.Model):
 
             # if we have runs to filter by, do so using ANY
             if runs:
-                step_contacts = step_contacts.extra(where=["run_id = ANY(VALUES " + ", ".join(["(%d)" % r for r in runs]) + ")"])
+                step_contacts = step_contacts.extra(
+                    where=["run_id = ANY(VALUES " + ", ".join(["(%d)" % r for r in runs]) + ")"])
 
             # otherwise, exclude all
             else:
@@ -261,7 +274,8 @@ class Value(models.Model):
 
         # we are summarizing based on contact field
         else:
-            set_contacts = contacts & set([v['contact'] for v in Value.objects.filter(contact_field=contact_field).values('contact')])
+            set_contacts = contacts & set(
+                [v['contact'] for v in Value.objects.filter(contact_field=contact_field).values('contact')])
             unset_contacts = contacts - set_contacts
 
             values = Value.objects.filter(contact_field=contact_field)
@@ -273,11 +287,16 @@ class Value(models.Model):
 
             elif contact_field.value_type == DECIMAL:
                 values = values.values('decimal_value', 'contact')
-                categories = cls._filtered_values_to_categories(contacts, values, 'decimal_value',
-                                                                formatter=format_decimal, return_contacts=return_contacts)
+                categories = cls._filtered_values_to_categories(
+                    contacts,
+                    values,
+                    'decimal_value',
+                    formatter=format_decimal,
+                    return_contacts=return_contacts)
 
             elif contact_field.value_type == DATETIME:
-                values = values.extra({'date_value': "date_trunc('day', datetime_value)"}).values('date_value', 'contact')
+                values = values.extra({'date_value': "date_trunc('day', datetime_value)"}).values(
+                    'date_value', 'contact')
                 categories = cls._filtered_values_to_categories(contacts, values, 'date_value',
                                                                 return_contacts=return_contacts)
 
@@ -287,7 +306,8 @@ class Value(models.Model):
                                                                 return_contacts=return_contacts)
 
             else:
-                raise ValueError(_("Summary of contact fields with value type of %s is not supported" % contact_field.get_value_type_display()))
+                raise ValueError(_("Summary of contact fields with value type of %s is not supported" %
+                                   contact_field.get_value_type_display()))
 
         print "RulesetSummary [%f]: %s contact_field: %s with filters: %s" % (time.time() - start, ruleset, contact_field, filters)
 
@@ -396,7 +416,8 @@ class Value(models.Model):
         fingerprint = hash(dict_to_json(fingerprint_dict))
 
         # generate our key
-        key = VALUE_SUMMARY_CACHE_KEY + ":" + str(org.id) + ":".join(sorted(list(dependencies))) + ":" + str(fingerprint)
+        key = VALUE_SUMMARY_CACHE_KEY + ":" + \
+            str(org.id) + ":".join(sorted(list(dependencies))) + ":" + str(fingerprint)
 
         # does our value exist?
         r = get_redis_connection()
@@ -420,7 +441,13 @@ class Value(models.Model):
                     # calculate our results for this segment
                     kwargs['filters'] = category_filter
                     (set_count, unset_count, categories) = cls.get_filtered_value_summary(**kwargs)
-                    results.append(dict(label=category, open_ended=open_ended, set=set_count, unset=unset_count, categories=categories))
+                    results.append(
+                        dict(
+                            label=category,
+                            open_ended=open_ended,
+                            set=set_count,
+                            unset=unset_count,
+                            categories=categories))
 
             # segmenting by groups instead, same principle but we add group filters
             elif 'groups' in segment:
@@ -434,7 +461,13 @@ class Value(models.Model):
                     # calculate our results for this segment
                     kwargs['filters'] = category_filter
                     (set_count, unset_count, categories) = cls.get_filtered_value_summary(**kwargs)
-                    results.append(dict(label=group.name, open_ended=open_ended, set=set_count, unset_count=unset_count, categories=categories))
+                    results.append(
+                        dict(
+                            label=group.name,
+                            open_ended=open_ended,
+                            set=set_count,
+                            unset_count=unset_count,
+                            categories=categories))
 
             # segmenting by a contact field, only for passed in categories
             elif 'contact_field' in segment and 'values' in segment:
@@ -448,7 +481,13 @@ class Value(models.Model):
                     # calculate our results for this segment
                     kwargs['filters'] = value_filter
                     (set_count, unset_count, categories) = cls.get_filtered_value_summary(**kwargs)
-                    results.append(dict(label=value, open_ended=open_ended, set=set_count, unset=unset_count, categories=categories))
+                    results.append(
+                        dict(
+                            label=value,
+                            open_ended=open_ended,
+                            set=set_count,
+                            unset=unset_count,
+                            categories=categories))
 
             # segmenting by a location field
             elif 'location' in segment:
@@ -492,7 +531,9 @@ class Value(models.Model):
                 # now get the contacts for our primary query
                 kwargs['return_contacts'] = True
                 kwargs['filter_contacts'] = location_set_contacts
-                (primary_set_contacts, primary_unset_contacts, primary_results) = cls.get_filtered_value_summary(**kwargs)
+                (primary_set_contacts,
+                 primary_unset_contacts,
+                 primary_results) = cls.get_filtered_value_summary(**kwargs)
 
                 # build a map of osm_id to location_result
                 osm_results = {lr['label']: lr for lr in location_results}
@@ -556,7 +597,14 @@ class Value(models.Model):
                 # sort by count, then alphabetically
                 categories = sorted(categories, key=lambda c: (-c['count'], c['label']))
 
-            results.append(dict(label=unicode(_("All")), open_ended=open_ended, set=set_count, unset=unset_count, categories=categories))
+            results.append(
+                dict(
+                    label=unicode(
+                        _("All")),
+                    open_ended=open_ended,
+                    set=set_count,
+                    unset=unset_count,
+                    categories=categories))
 
         # for each of our dependencies, add our key as something that depends on it
         pipe = r.pipeline()

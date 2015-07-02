@@ -61,15 +61,27 @@ class ScheduleTest(TembaTest):
         sched = self.create_schedule('W', [THURSDAY, SATURDAY])
 
         self.assertEquals(sched.repeat_days, 80)
-        self.assertEquals(datetime(2013, 1, 5, hour=10).replace(tzinfo=timezone.pytz.utc), sched.get_next_fire(sched.next_fire))
+        self.assertEquals(
+            datetime(
+                2013, 1, 5, hour=10).replace(
+                tzinfo=timezone.pytz.utc), sched.get_next_fire(
+                sched.next_fire))
 
         # updates six days later on Wednesday
         sched = self.create_schedule('W', [WEDNESDAY, THURSDAY])
-        self.assertEquals(datetime(2013, 1, 9, hour=10).replace(tzinfo=timezone.pytz.utc), sched.get_next_fire(sched.next_fire))
+        self.assertEquals(
+            datetime(
+                2013, 1, 9, hour=10).replace(
+                tzinfo=timezone.pytz.utc), sched.get_next_fire(
+                sched.next_fire))
 
         # since we are starting thursday, a thursday should be 7 days out
         sched = self.create_schedule('W', [THURSDAY])
-        self.assertEquals(datetime(2013, 1, 10, hour=10).replace(tzinfo=timezone.pytz.utc), sched.get_next_fire(sched.next_fire))
+        self.assertEquals(
+            datetime(
+                2013, 1, 10, hour=10).replace(
+                tzinfo=timezone.pytz.utc), sched.get_next_fire(
+                sched.next_fire))
 
         # now update, should advance to next thursday (present time)
         now = timezone.now()
@@ -108,7 +120,20 @@ class ScheduleTest(TembaTest):
         self.assertEquals(str(datetime(2014, 4, 30, hour=10).replace(tzinfo=pytz.utc)), str(sched.next_fire))
 
         sched = self.create_schedule('M', start_date=datetime(2014, 1, 31, hour=10).replace(tzinfo=pytz.utc))
-        self.assertEquals(datetime(2014, 2, 28, hour=10).replace(tzinfo=pytz.utc), sched.get_next_fire(datetime(2014, 2, 27, hour=10).replace(tzinfo=pytz.utc)))
+        self.assertEquals(
+            datetime(
+                2014,
+                2,
+                28,
+                hour=10).replace(
+                tzinfo=pytz.utc),
+            sched.get_next_fire(
+                datetime(
+                    2014,
+                    2,
+                    27,
+                    hour=10).replace(
+                        tzinfo=pytz.utc)))
 
     def test_schedule_ui(self):
 
@@ -127,7 +152,13 @@ class ScheduleTest(TembaTest):
         self.assertIn("This field is required", response.content)
 
         # finally create our message
-        post_data = dict(text="A scheduled message to Joe", omnibox="c-%d" % joe.pk, sender=self.channel.pk, _format="json", schedule=True)
+        post_data = dict(
+            text="A scheduled message to Joe",
+            omnibox="c-%d" %
+            joe.pk,
+            sender=self.channel.pk,
+            _format="json",
+            schedule=True)
         response = json.loads(self.client.post(reverse('msgs.broadcast_send'), post_data, follow=True).content)
         self.assertIn("/broadcast/schedule_read", response['redirect'])
 
@@ -138,15 +169,15 @@ class ScheduleTest(TembaTest):
 
         # update our message
         post_data = dict(message="An updated scheduled message", omnibox="c-%d" % joe.pk)
-        self.client.post(reverse('msgs.broadcast_update', args=[broadcast.pk]),  post_data)
+        self.client.post(reverse('msgs.broadcast_update', args=[broadcast.pk]), post_data)
         self.assertEquals("An updated scheduled message", Broadcast.objects.get(pk=broadcast.pk).text)
 
         # update the schedule
         post_data = dict(repeat_period='W', repeat_days=6, start='later', start_datetime_value=1)
-        response = self.client.post(reverse('schedules.schedule_update', args=[broadcast.schedule.pk]),  post_data)
+        response = self.client.post(reverse('schedules.schedule_update', args=[broadcast.schedule.pk]), post_data)
 
         #broadcast = Broadcast.objects.get(pk=broadcast.pk)
-        #self.assertTrue(broadcast.schedule.has_pending_fire())
+        # self.assertTrue(broadcast.schedule.has_pending_fire())
 
     def test_update(self):
         sched = self.create_schedule('W', [THURSDAY, SATURDAY])

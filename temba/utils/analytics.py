@@ -3,11 +3,13 @@ from __future__ import absolute_import
 import analytics as segment_analytics
 from django.conf import settings
 
+
 def identify(username, attributes):
     """
     Pass through to segment.io analytics.
     """
     segment_analytics.identify(username, attributes)
+
 
 def track(user, event, properties=None, context=None):
     """

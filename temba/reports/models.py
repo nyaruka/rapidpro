@@ -4,6 +4,7 @@ from temba.orgs.models import Org
 from django.utils.translation import ugettext_lazy as _
 import json
 
+
 class Report(SmartModel):
     TITLE = 'title'
     DESCRIPTION = 'description'
@@ -26,7 +27,7 @@ class Report(SmartModel):
                                        help_text=_("Whether this report is currently published"))
 
     @classmethod
-    def create_report(cls, org, user,  json_dict):
+    def create_report(cls, org, user, json_dict):
         title = json_dict.get(Report.TITLE)
         description = json_dict.get(Report.DESCRIPTION)
         config = json_dict.get(Report.CONFIG)
@@ -48,12 +49,15 @@ class Report(SmartModel):
                                   modified_by=user)
 
     def as_json(self):
-        return dict(text=self.title, id=self.pk, description=self.description, config=self.config, public=self.is_published)
+        return dict(
+            text=self.title,
+            id=self.pk,
+            description=self.description,
+            config=self.config,
+            public=self.is_published)
 
     def __unicode__(self):
         return "%s - %s" % (self.pk, self.title)
 
     class Meta:
         unique_together = (('org', 'title'),)
-
-    

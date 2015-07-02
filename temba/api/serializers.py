@@ -300,7 +300,7 @@ class LabelWriteSerializer(WriteSerializer):
 
 
 class ContactGroupReadSerializer(serializers.ModelSerializer):
-    group = serializers.Field(source='id')  # deprecated, use uuid 
+    group = serializers.Field(source='id')  # deprecated, use uuid
     uuid = serializers.Field(source='uuid')
     name = serializers.Field(source='name')
     size = serializers.SerializerMethodField('get_size')
@@ -1250,7 +1250,7 @@ class BroadcastCreateSerializer(WriteSerializer):
         for urn in attrs.get(source, []):
             try:
                 parsed = ContactURN.parse_urn(urn)
-            except ValueError, e:
+            except ValueError as e:
                 raise ValidationError(e.message)
 
             norm_scheme, norm_path = ContactURN.normalize_urn(parsed.scheme, parsed.path, country)
@@ -1404,7 +1404,7 @@ class MsgCreateSerializer(WriteSerializer):
         """
         Create a new broadcast to send out
         """
-        if instance: # pragma: no cover
+        if instance:  # pragma: no cover
             raise ValidationError("Invalid operation")
 
         if 'urn' in attrs and attrs['urn']:
@@ -1543,7 +1543,7 @@ class ChannelClaimSerializer(WriteSerializer):
         """
         Claim our channel
         """
-        if instance: # pragma: no cover
+        if instance:  # pragma: no cover
             raise ValidationError("Invalid operation")
 
         channel = attrs['channel']
@@ -1556,5 +1556,3 @@ class ChannelClaimSerializer(WriteSerializer):
             channel.trigger_sync()
 
         return attrs['channel']
-
-

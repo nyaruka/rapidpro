@@ -61,6 +61,7 @@ class CampaignCRUDL(SmartCRUDL):
     actions = ('create', 'read', 'update', 'list', 'archived')
 
     class OrgMixin(OrgPermsMixin):
+
         def derive_queryset(self, *args, **kwargs):
             queryset = super(CampaignCRUDL.OrgMixin, self).derive_queryset(*args, **kwargs)
             if not self.request.user.is_authenticated():
@@ -81,8 +82,8 @@ class CampaignCRUDL(SmartCRUDL):
             form_kwargs['user'] = self.request.user
             return form_kwargs
 
-
     class Read(OrgMixin, SmartReadView):
+
         def get_gear_links(self):
             links = []
             if self.has_org_perm("campaigns.campaignevent_create"):
@@ -99,13 +100,17 @@ class CampaignCRUDL(SmartCRUDL):
             return links
 
     class Create(OrgPermsMixin, ModalMixin, SmartCreateView):
+
         class CampaignForm(forms.ModelForm):
+
             def __init__(self, user, *args, **kwargs):
                 self.user = user
                 super(CampaignCRUDL.Create.CampaignForm, self).__init__(*args, **kwargs)
 
                 group = self.fields['group']
-                group.queryset = ContactGroup.user_groups.filter(org=self.user.get_org(), is_active=True).order_by('name')
+                group.queryset = ContactGroup.user_groups.filter(
+                    org=self.user.get_org(),
+                    is_active=True).order_by('name')
                 group.user = user
 
             class Meta:
@@ -134,7 +139,7 @@ class CampaignCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super(CampaignCRUDL.BaseList, self).get_context_data(**kwargs)
             context['org_has_campaigns'] = Campaign.objects.filter(org=self.request.user.get_org()).count()
-            context['folders']= self.get_folders()
+            context['folders'] = self.get_folders()
             context['request_url'] = self.request.path
             context['actions'] = self.actions
             return context
@@ -142,8 +147,22 @@ class CampaignCRUDL(SmartCRUDL):
         def get_folders(self):
             org = self.request.user.get_org()
             folders = []
-            folders.append(dict(label="Active", url=reverse('campaigns.campaign_list'), count=Campaign.objects.filter(is_active=True, is_archived=False, org=org).count()))
-            folders.append(dict(label="Archived", url=reverse('campaigns.campaign_archived'), count=Campaign.objects.filter(is_active=True, is_archived=True, org=org).count()))
+            folders.append(
+                dict(
+                    label="Active",
+                    url=reverse('campaigns.campaign_list'),
+                    count=Campaign.objects.filter(
+                        is_active=True,
+                        is_archived=False,
+                        org=org).count()))
+            folders.append(
+                dict(
+                    label="Archived",
+                    url=reverse('campaigns.campaign_archived'),
+                    count=Campaign.objects.filter(
+                        is_active=True,
+                        is_archived=True,
+                        org=org).count()))
             return folders
 
     class List(BaseList):
@@ -228,7 +247,13 @@ class EventForm(forms.ModelForm):
         relative_to.queryset = ContactField.objects.filter(org=self.user.get_org(), is_active=True).order_by('label')
 
         flow = self.fields['flow_to_start']
-        flow.queryset = Flow.objects.filter(org=self.user.get_org(), flow_type__in=[Flow.FLOW, Flow.VOICE], is_active=True, is_archived=False).order_by('name')
+        flow.queryset = Flow.objects.filter(
+            org=self.user.get_org(),
+            flow_type__in=[
+                Flow.FLOW,
+                Flow.VOICE],
+            is_active=True,
+            is_archived=False).order_by('name')
 
     class Meta:
         model = CampaignEvent
@@ -302,7 +327,15 @@ class CampaignEventCRUDL(SmartCRUDL):
         success_message = ''
         form_class = EventForm
 
-        fields = ('event_type', 'message', 'flow_to_start', 'offset', 'unit', 'direction', 'relative_to', 'delivery_hour')
+        fields = (
+            'event_type',
+            'message',
+            'flow_to_start',
+            'offset',
+            'unit',
+            'direction',
+            'relative_to',
+            'delivery_hour')
 
         def get_form_kwargs(self):
             kwargs = super(CampaignEventCRUDL.Update, self).get_form_kwargs()
@@ -348,7 +381,15 @@ class CampaignEventCRUDL(SmartCRUDL):
 
     class Create(OrgPermsMixin, ModalMixin, SmartCreateView):
 
-        fields = ('event_type', 'message', 'flow_to_start', 'offset', 'unit', 'direction', 'relative_to', 'delivery_hour')
+        fields = (
+            'event_type',
+            'message',
+            'flow_to_start',
+            'offset',
+            'unit',
+            'direction',
+            'relative_to',
+            'delivery_hour')
         form_class = EventForm
         success_message = ""
         template_name = "campaigns/campaignevent_update.haml"
@@ -376,6 +417,8 @@ class CampaignEventCRUDL(SmartCRUDL):
 
         def pre_save(self, obj):
             obj = super(CampaignEventCRUDL.Create, self).pre_save(obj)
-            obj.campaign = Campaign.objects.get(org=self.request.user.get_org(), pk=self.request.REQUEST.get('campaign'))
+            obj.campaign = Campaign.objects.get(
+                org=self.request.user.get_org(),
+                pk=self.request.REQUEST.get('campaign'))
             self.form.pre_save(self.request, obj)
             return obj

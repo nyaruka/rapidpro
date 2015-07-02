@@ -45,9 +45,11 @@ DATETIME_LOOKUP_ALIASES = {
 
 
 class SearchException(Exception):
+
     """
     Exception class for unparseable search queries
     """
+
     def __init__(self, message):
         self.message = message
 

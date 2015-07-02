@@ -143,6 +143,7 @@ def get_unique_recipients(urns, contacts, groups):
 
 
 class UnreachableException(Exception):
+
     """
     Exception thrown when a message is being sent to a contact that we don't have a sendable URN for
     """
@@ -150,6 +151,7 @@ class UnreachableException(Exception):
 
 
 class Broadcast(models.Model):
+
     """
     A broadcast is a message that is sent out to more than one recipient, such
     as a ContactGroup or a list of Contacts. It's nothing more than a way to tie
@@ -307,8 +309,15 @@ class Broadcast(models.Model):
         current_msg = None
         contact_id_pairs = []
 
-        pending = self.get_messages().filter(status__in=[PENDING, QUEUED, WIRED], channel=channel,
-                                             contact_urn__scheme=TEL_SCHEME).select_related('contact_urn').order_by('text', 'pk')
+        pending = self.get_messages().filter(
+            status__in=[
+                PENDING,
+                QUEUED,
+                WIRED],
+            channel=channel,
+            contact_urn__scheme=TEL_SCHEME).select_related('contact_urn').order_by(
+            'text',
+            'pk')
 
         for msg in pending:
             if msg.text != current_msg and contact_id_pairs:
@@ -407,7 +416,13 @@ class Broadcast(models.Model):
 
                 # send any messages
                 if trigger_send:
-                    self.org.trigger_send(Msg.objects.filter(broadcast=self, created_on=created_on).select_related('contact', 'contact_urn', 'channel'))
+                    self.org.trigger_send(
+                        Msg.objects.filter(
+                            broadcast=self,
+                            created_on=created_on).select_related(
+                            'contact',
+                            'contact_urn',
+                            'channel'))
 
                     # increment our created on so we can load our next batch
                     created_on = created_on + timedelta(seconds=1)
@@ -419,7 +434,13 @@ class Broadcast(models.Model):
             Msg.objects.bulk_create(batch)
 
             if trigger_send:
-                self.org.trigger_send(Msg.objects.filter(broadcast=self, created_on=created_on).select_related('contact', 'contact_urn', 'channel'))
+                self.org.trigger_send(
+                    Msg.objects.filter(
+                        broadcast=self,
+                        created_on=created_on).select_related(
+                        'contact',
+                        'contact_urn',
+                        'channel'))
 
         # for large batches, status is handled externally
         # we do this as with the high concurrency of sending we can run into postgresl deadlocks
@@ -469,6 +490,7 @@ class Broadcast(models.Model):
 
 
 class Msg(models.Model, OrgModelMixin):
+
     """
     Messages are the main building blocks of a RapidPro application. Channels send and receive
     these, Triggers and Flows handle them when appropriate.
@@ -527,8 +549,11 @@ class Msg(models.Model, OrgModelMixin):
     sent_on = models.DateTimeField(null=True, blank=True, verbose_name=_("Sent On"),
                                    help_text=_("When this message was sent to the endpoint"))
 
-    delivered_on = models.DateTimeField(null=True, blank=True, verbose_name=_("Delivered On"),
-                                        help_text=_("When this message was delivered to the final recipient (for incoming messages, when the message was handled)"))
+    delivered_on = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Delivered On"),
+        help_text=_("When this message was delivered to the final recipient (for incoming messages, when the message was handled)"))
 
     queued_on = models.DateTimeField(null=True, blank=True, verbose_name=_("Queued On"),
                                      help_text=_("When this message was queued to be sent or handled."))
@@ -536,8 +561,13 @@ class Msg(models.Model, OrgModelMixin):
     direction = models.CharField(max_length=1, choices=DIRECTION_CHOICES, verbose_name=_("Direction"),
                                  help_text=_("The direction for this message, either incoming or outgoing"))
 
-    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='P', verbose_name=_("Status"), db_index=True,
-                              help_text=_("The current status for this message"))
+    status = models.CharField(
+        max_length=1,
+        choices=STATUS_CHOICES,
+        default='P',
+        verbose_name=_("Status"),
+        db_index=True,
+        help_text=_("The current status for this message"))
 
     response_to = models.ForeignKey('Msg', null=True, blank=True, related_name='responses',
                                     verbose_name=_("Response To"),
@@ -546,9 +576,13 @@ class Msg(models.Model, OrgModelMixin):
     labels = models.ManyToManyField('Label', related_name='msgs', verbose_name=_("Labels"),
                                     help_text=_("Any labels on this message"))
 
-    visibility = models.CharField(max_length=1, choices=VISIBILITY_CHOICES, default=VISIBLE, db_index=True,
-                                  verbose_name=_("Visibility"),
-                                  help_text=_("The current visibility of this message, either visible, archived or deleted"))
+    visibility = models.CharField(
+        max_length=1,
+        choices=VISIBILITY_CHOICES,
+        default=VISIBLE,
+        db_index=True,
+        verbose_name=_("Visibility"),
+        help_text=_("The current visibility of this message, either visible, archived or deleted"))
 
     has_template_error = models.BooleanField(default=False, verbose_name=_("Has Template Error"),
                                              help_text=_("Whether data for variable substitution are missing"))
@@ -556,8 +590,10 @@ class Msg(models.Model, OrgModelMixin):
     msg_type = models.CharField(max_length=1, choices=MSG_TYPES, null=True, verbose_name=_("Message Type"),
                                 help_text=_('The type of this message'))
 
-    msg_count = models.IntegerField(default=1, verbose_name=_("Message Count"),
-                                    help_text=_("The number of messages that were used to send this message, calculated on Twilio channels"))
+    msg_count = models.IntegerField(
+        default=1,
+        verbose_name=_("Message Count"),
+        help_text=_("The number of messages that were used to send this message, calculated on Twilio channels"))
 
     error_count = models.IntegerField(default=0, verbose_name=_("Error Count"),
                                       help_text=_("The number of times this message has errored"))
@@ -588,13 +624,18 @@ class Msg(models.Model, OrgModelMixin):
 
         # update them to queued
         send_messages = Msg.objects.filter(id__in=msg_ids)
-        send_messages = send_messages.exclude(channel__channel_type=ANDROID).exclude(msg_type=IVR).exclude(topup=None).exclude(contact__is_test=True)
+        send_messages = send_messages.exclude(
+            channel__channel_type=ANDROID).exclude(
+            msg_type=IVR).exclude(
+            topup=None).exclude(
+                contact__is_test=True)
         send_messages.update(status=QUEUED, queued_on=queued_on)
 
         # now push each onto our queue
         for msg in msgs:
             # skip over non-android channels, messages with no top up and test contacts
-            if (msg.msg_type != IVR and msg.channel and msg.channel.channel_type != ANDROID) and msg.topup and not msg.contact.is_test:
+            if (msg.msg_type != IVR and msg.channel and msg.channel.channel_type !=
+                    ANDROID) and msg.topup and not msg.contact.is_test:
                 # serialize the model to a dictionary
                 msg.queued_on = queued_on
                 task = msg.as_task_json()
@@ -644,11 +685,23 @@ class Msg(models.Model, OrgModelMixin):
 
         # record our handling latency for this object
         if msg.queued_on:
-            analytics.track("System", "temba.handling_latency", properties=dict(value=(msg.delivered_on - msg.queued_on).total_seconds()))
+            analytics.track(
+                "System",
+                "temba.handling_latency",
+                properties=dict(
+                    value=(
+                        msg.delivered_on -
+                        msg.queued_on).total_seconds()))
 
         # this is the latency from when the message was received at the channel, which may be different than
         # above if people above us are queueing (or just because clocks are out of sync)
-        analytics.track("System", "temba.channel_handling_latency", properties=dict(value=(msg.delivered_on - msg.created_on).total_seconds()))
+        analytics.track(
+            "System",
+            "temba.channel_handling_latency",
+            properties=dict(
+                value=(
+                    msg.delivered_on -
+                    msg.created_on).total_seconds()))
 
     @classmethod
     def get_messages(cls, org, is_archived=False, direction=None, msg_type=None):
@@ -694,8 +747,14 @@ class Msg(models.Model, OrgModelMixin):
         unread_count = cache.get(key, None)
 
         if unread_count is None:
-            unread_count = Msg.objects.filter(org=org, visibility=VISIBLE, direction=INCOMING, msg_type=INBOX,
-                                              contact__is_test=False, created_on__gt=org.msg_last_viewed, labels=None).count()
+            unread_count = Msg.objects.filter(
+                org=org,
+                visibility=VISIBLE,
+                direction=INCOMING,
+                msg_type=INBOX,
+                contact__is_test=False,
+                created_on__gt=org.msg_last_viewed,
+                labels=None).count()
 
             cache.set(key, unread_count, 900)
 
@@ -738,17 +797,21 @@ class Msg(models.Model, OrgModelMixin):
                 analytics.track("System", "temba.msg_failed_%s" % channel.channel_type.lower())
         else:
             msg.status = ERRORED
-            msg.next_attempt = timezone.now() + timedelta(minutes=5*msg.error_count)
+            msg.next_attempt = timezone.now() + timedelta(minutes=5 * msg.error_count)
 
             if isinstance(msg, Msg):
                 msg.save(update_fields=('status', 'next_attempt', 'error_count'))
             else:
-                Msg.objects.filter(id=msg.id).update(status=msg.status, next_attempt=msg.next_attempt, error_count=msg.error_count)
+                Msg.objects.filter(
+                    id=msg.id).update(
+                    status=msg.status,
+                    next_attempt=msg.next_attempt,
+                    error_count=msg.error_count)
 
             # clear that we tried to send this message (otherwise we'll ignore it when we retry)
             pipe = r.pipeline()
             pipe.srem(timezone.now().strftime(MSG_SENT_KEY), str(msg.id))
-            pipe.srem((timezone.now()-timedelta(days=1)).strftime(MSG_SENT_KEY), str(msg.id))
+            pipe.srem((timezone.now() - timedelta(days=1)).strftime(MSG_SENT_KEY), str(msg.id))
             pipe.execute()
 
             if channel:
@@ -782,13 +845,30 @@ class Msg(models.Model, OrgModelMixin):
 
         # hasattr needed here as queued_on being included is new, so some messages may not have the attribute after push
         if getattr(msg, 'queued_on', None):
-            analytics.track("System", "temba.sending_latency", properties=dict(value=(msg.sent_on - msg.queued_on).total_seconds()))
+            analytics.track(
+                "System",
+                "temba.sending_latency",
+                properties=dict(
+                    value=(
+                        msg.sent_on -
+                        msg.queued_on).total_seconds()))
         else:
-            analytics.track("System", "temba.sending_latency", properties=dict(value=(msg.sent_on - msg.created_on).total_seconds()))
+            analytics.track(
+                "System",
+                "temba.sending_latency",
+                properties=dict(
+                    value=(
+                        msg.sent_on -
+                        msg.created_on).total_seconds()))
 
         # logs that a message was sent for this channel type if our latency is known
         if latency > 0:
-            analytics.track("System", "temba.msg_sent_%s" % channel.channel_type.lower(), properties=dict(value=latency))
+            analytics.track(
+                "System",
+                "temba.msg_sent_%s" %
+                channel.channel_type.lower(),
+                properties=dict(
+                    value=latency))
 
     def as_json(self):
         return dict(direction=self.direction,
@@ -818,16 +898,16 @@ class Msg(models.Model, OrgModelMixin):
                 else:
                     # search for a space to split on, up to 140 characters in
                     index = max_length
-                    while index > max_length-20:
+                    while index > max_length - 20:
                         if text[index] == ' ':
                             break
                         index = index - 1
 
                     # couldn't find a good split, oh well, 160 it is
-                    if index == max_length-20:
+                    if index == max_length - 20:
                         return (text[:max_length], text[max_length:])
                     else:
-                        return (text[:index], text[index+1:])
+                        return (text[:index], text[index + 1:])
 
             parts = []
             rest = text
@@ -838,7 +918,12 @@ class Msg(models.Model, OrgModelMixin):
             return parts
 
     def reply(self, text, user, trigger_send=False, message_context=None):
-        return self.contact.send(text, user, trigger_send=trigger_send, response_to=self, message_context=message_context)
+        return self.contact.send(
+            text,
+            user,
+            trigger_send=trigger_send,
+            response_to=self,
+            message_context=message_context)
 
     def update(self, cmd):
         """
@@ -1121,12 +1206,12 @@ class Msg(models.Model, OrgModelMixin):
             # prevent the loop of message while the sending phone is the channel
             # get all messages with same text going to same number
             same_msgs = Msg.objects.filter(contact_urn=contact_urn,
-                                                contact__is_test=False,
-                                                channel=channel,
-                                                recording_url=recording_url,
-                                                text=text,
-                                                direction=OUTGOING,
-                                                created_on__gte=created_on - timedelta(minutes=10))
+                                           contact__is_test=False,
+                                           channel=channel,
+                                           recording_url=recording_url,
+                                           text=text,
+                                           direction=OUTGOING,
+                                           created_on__gte=created_on - timedelta(minutes=10))
 
             # we aren't considered with robo detection on calls
             same_msg_count = same_msgs.exclude(msg_type=IVR).count()
@@ -1139,8 +1224,15 @@ class Msg(models.Model, OrgModelMixin):
             # we don't want machines talking to each other
             tel = contact.raw_tel()
             if tel and len(tel) < 6:
-                same_msg_count = Msg.objects.filter(contact_urn=contact_urn, contact__is_test=False, channel=channel, text=text,
-                                                    direction=OUTGOING, created_on__gte=created_on - timedelta(hours=24)).count()
+                same_msg_count = Msg.objects.filter(
+                    contact_urn=contact_urn,
+                    contact__is_test=False,
+                    channel=channel,
+                    text=text,
+                    direction=OUTGOING,
+                    created_on__gte=created_on -
+                    timedelta(
+                        hours=24)).count()
                 if same_msg_count >= 10:
                     analytics.track('System', "temba.msg_shortcode_loop_caught", dict(org=org.pk, channel=channel.pk))
                     return None
@@ -1323,6 +1415,7 @@ CALL_TYPES = (('unk', _("Unknown Call Type")),
               (CALL_OUT, _("Outgoing Call")),
               (CALL_OUT_MISSED, _("Missed Outgoing Call")))
 
+
 class Call(SmartModel):
 
     """
@@ -1366,7 +1459,12 @@ class Call(SmartModel):
                                    created_by=user,
                                    modified_by=user)
 
-        analytics.track('System', 'temba.call_%s' % call.get_call_type_display().lower(), dict(channel_type=channel.get_channel_type_display()))
+        analytics.track(
+            'System',
+            'temba.call_%s' %
+            call.get_call_type_display().lower(),
+            dict(
+                channel_type=channel.get_channel_type_display()))
 
         WebHookEvent.trigger_call_event(call)
 
@@ -1381,20 +1479,24 @@ class Call(SmartModel):
         return Call.objects.filter(org=org)
 
 
-STOP_WORDS = 'a,able,about,across,after,all,almost,also,am,among,an,and,any,are,as,at,be,because,been,but,by,can,cannot,could,dear,did,do,does,either,else,ever,every,for,from,get,got,had,has,have,he,her,hers,him,his,how,however,i,if,in,into,is,it,its,just,least,let,like,likely,may,me,might,most,must,my,neither,no,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,she,should,since,so,some,than,that,the,their,them,then,there,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your'.split(',')
+STOP_WORDS = 'a,able,about,across,after,all,almost,also,am,among,an,and,any,are,as,at,be,because,been,but,by,can,cannot,could,dear,did,do,does,either,else,ever,every,for,from,get,got,had,has,have,he,her,hers,him,his,how,however,i,if,in,into,is,it,its,just,least,let,like,likely,may,me,might,most,must,my,neither,no,nor,not,of,off,often,on,only,or,other,our,own,rather,said,say,says,she,should,since,so,some,than,that,the,their,them,then,there,these,they,this,tis,to,too,twas,us,wants,was,we,were,what,when,where,which,while,who,whom,why,will,with,would,yet,you,your'.split(
+    ',')
 
 
 class UserFolderManager(models.Manager):
+
     def get_queryset(self):
         return super(UserFolderManager, self).get_queryset().filter(label_type=Label.USER_FOLDER)
 
 
 class UserLabelManager(models.Manager):
+
     def get_queryset(self):
         return super(UserLabelManager, self).get_queryset().filter(label_type=Label.USER_LABEL)
 
 
 class Label(TembaModel, SmartModel):
+
     """
     Labels represent both user defined labels and folders of labels. User defined labels that can be applied to messages
     much the same way labels or tags apply to messages in web-based email services.
@@ -1528,6 +1630,7 @@ class Label(TembaModel, SmartModel):
 
 
 class ExportMessagesTask(SmartModel):
+
     """
     Wrapper for handling exports of raw messages. This will export all selected messages in
     an Excel spreadsheet, adding sheets as necessary to fall within the guidelines of Excel 97

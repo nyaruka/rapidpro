@@ -54,7 +54,7 @@ class OrgTest(TembaTest):
         response = self.client.get(reverse('orgs.org_edit'))
         self.assertEquals(200, response.status_code)
 
-         # update the name and slug of the organization
+        # update the name and slug of the organization
         data = dict(name="Temba", timezone="Africa/Kigali", date_format=DAYFIRST, slug="nice temba")
         response = self.client.post(reverse('orgs.org_edit'), data)
         self.assertTrue('slug' in response.context['form'].errors)
@@ -149,7 +149,12 @@ class OrgTest(TembaTest):
         self.login(self.admin)
 
         # change the user language
-        post_data = dict(language='pt-br', first_name='Admin', last_name='User', email='administrator@temba.com', current_password='Administrator')
+        post_data = dict(
+            language='pt-br',
+            first_name='Admin',
+            last_name='User',
+            email='administrator@temba.com',
+            current_password='Administrator')
         response = self.client.post(update_url, post_data)
         self.assertRedirect(response, reverse('orgs.org_home'))
 
@@ -183,7 +188,8 @@ class OrgTest(TembaTest):
         # check that our webhook settings have changed
         org = Org.objects.get(pk=self.org.pk)
         self.assertEquals('http://webhooks.uniceflabs.org/', org.get_webhook_url())
-        self.assertDictEqual({'Authorization': 'Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ=='}, org.get_webhook_headers())
+        self.assertDictEqual(
+            {'Authorization': 'Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ=='}, org.get_webhook_headers())
 
     def test_org_administration(self):
         manage_url = reverse('orgs.org_manage')
@@ -338,7 +344,12 @@ class OrgTest(TembaTest):
         response = self.client.get(editor_join_url)
         self.assertEqual(302, response.status_code)
         response = self.client.get(editor_join_url, follow=True)
-        self.assertEqual(response.request['PATH_INFO'], reverse('orgs.org_create_login', args=[editor_invitation.secret]))
+        self.assertEqual(
+            response.request['PATH_INFO'],
+            reverse(
+                'orgs.org_create_login',
+                args=[
+                    editor_invitation.secret]))
 
         # a user is already logged in
         self.invited_editor = self.create_user("InvitedEditor")
@@ -426,7 +437,9 @@ class OrgTest(TembaTest):
         response = self.client.get(choose_url)
         self.assertEquals(200, response.status_code)
         self.assertEquals(0, len(response.context['orgs']))
-        self.assertContains(response, "Your account is not associated with any organization. Please contact your administrator to receive an invitation to an organization.")
+        self.assertContains(
+            response,
+            "Your account is not associated with any organization. Please contact your administrator to receive an invitation to an organization.")
 
         # superuser gets redirected to user management page
         self.login(self.superuser)
@@ -639,7 +652,7 @@ class OrgTest(TembaTest):
 
         response = self.client.post(twilio_account_url, dict(), follow=True)
         org = Org.objects.get(pk=self.org.pk)
-        self.assertEquals(org.config_json()['ACCOUNT_SID'],"" )
+        self.assertEquals(org.config_json()['ACCOUNT_SID'], "")
         self.assertEquals(org.config_json()['ACCOUNT_TOKEN'], "")
         self.assertEquals(org.config_json()['APPLICATION_SID'], "")
 
@@ -706,7 +719,6 @@ class OrgTest(TembaTest):
             # plivo should be added to the session
             self.assertEquals(self.client.session[PLIVO_AUTH_ID], 'auth-id')
             self.assertEquals(self.client.session[PLIVO_AUTH_TOKEN], 'auth-token')
-
 
     def test_patch_folder_queryset(self):
         self.create_contact(name="Bob", number="123")
@@ -860,6 +872,7 @@ class OrgTest(TembaTest):
 
 
 class AnonOrgTest(TembaTest):
+
     """
     Tests the case where our organization is marked as anonymous, that is the phone numbers are masked
     for users.
@@ -1098,7 +1111,12 @@ class OrgCRUDLTest(TembaTest):
         self.assertEquals(200, response.status_code)
         self.assertTrue('email' in response.context['form'].errors)
 
-        post_data = dict(email='myal@wr.org', first_name="Myal", last_name="Greene", language="en-us", current_password='HelloWorld1')
+        post_data = dict(
+            email='myal@wr.org',
+            first_name="Myal",
+            last_name="Greene",
+            language="en-us",
+            current_password='HelloWorld1')
         response = self.client.post(reverse('orgs.user_edit'), post_data)
         self.assertRedirect(response, reverse('orgs.org_home'))
 
@@ -1223,7 +1241,11 @@ class OrgCRUDLTest(TembaTest):
         self.assertRedirect(response, '/msg/inbox/')
 
         # create a new contact
-        response = self.client.post(reverse('contacts.contact_create'), data=dict(name='Ben Haggerty', __urn__tel='0788123123'))
+        response = self.client.post(
+            reverse('contacts.contact_create'),
+            data=dict(
+                name='Ben Haggerty',
+                __urn__tel='0788123123'))
         self.assertNoFormErrors(response)
 
         # make sure that contact's created on is our cs rep
@@ -1241,6 +1263,7 @@ class OrgCRUDLTest(TembaTest):
         # can no longer go to inbox, asked to log in
         response = self.client.get(reverse('msgs.msg_inbox'))
         self.assertRedirect(response, '/users/login/')
+
 
 class BulkExportTest(TembaTest):
 
@@ -1272,7 +1295,6 @@ class BulkExportTest(TembaTest):
         # should have this actionset, but only one action now since one was removed
         other_actionset = ActionSet.objects.filter(flow=flow, y=145, x=731).first()
         self.assertEquals(1, len(other_actionset.get_actions()))
-
 
     def test_export_import(self):
 
@@ -1312,7 +1334,9 @@ class BulkExportTest(TembaTest):
         message_flow = Flow.objects.filter(flow_type='M').order_by('pk').first()
         action_set = message_flow.action_sets.order_by('-y').first()
         actions = action_set.get_actions_dict()
-        self.assertEquals("Hi there, just a quick reminder that you have an appointment at The Clinic at @contact.next_appointment. If you can't make it please call 1-888-THE-CLINIC.", actions[0]['msg'])
+        self.assertEquals(
+            "Hi there, just a quick reminder that you have an appointment at The Clinic at @contact.next_appointment. If you can't make it please call 1-888-THE-CLINIC.",
+            actions[0]['msg'])
         actions[0]['msg'] = 'No reminders for you!'
         action_set.set_actions_dict(actions)
         action_set.save()
@@ -1324,7 +1348,9 @@ class BulkExportTest(TembaTest):
         confirm_appointment = Flow.objects.get(pk=confirm_appointment.pk)
         action_set = confirm_appointment.action_sets.order_by('-y').first()
         actions = action_set.get_actions_dict()
-        self.assertEquals("Thanks, your appointment at The Clinic has been confirmed for @contact.next_appointment. See you then!", actions[0]['msg'])
+        self.assertEquals(
+            "Thanks, your appointment at The Clinic has been confirmed for @contact.next_appointment. See you then!",
+            actions[0]['msg'])
 
         # same with our trigger
         trigger = Trigger.objects.filter(keyword='patient').first()
@@ -1337,7 +1363,9 @@ class BulkExportTest(TembaTest):
         message_flow = Flow.objects.filter(flow_type='M').order_by('pk').first()
         action_set = Flow.objects.get(pk=message_flow.pk).action_sets.order_by('-y').first()
         actions = action_set.get_actions_dict()
-        self.assertEquals("Hi there, just a quick reminder that you have an appointment at The Clinic at @contact.next_appointment. If you can't make it please call 1-888-THE-CLINIC.", actions[0]['msg'])
+        self.assertEquals(
+            "Hi there, just a quick reminder that you have an appointment at The Clinic at @contact.next_appointment. If you can't make it please call 1-888-THE-CLINIC.",
+            actions[0]['msg'])
 
         # and we should have the same number of items as after the first import
         assert_object_counts()

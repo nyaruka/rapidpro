@@ -54,6 +54,7 @@ EVENT_CHOICES = ((SMS_RECEIVED, "Incoming SMS Message"),
 
 
 class WebHookEvent(SmartModel):
+
     """
     Represents an event that needs to be sent to the web hook for a channel.
     """
@@ -206,7 +207,8 @@ class WebHookEvent(SmartModel):
             # if this is a test contact, add an entry to our action log
             if run.contact.is_test:
                 from temba.flows.models import ActionLog
-                log_txt = "Triggered <a href='%s' target='_log'>webhook event</a> - %d" % (reverse('api.log_read', args=[webhook_event.pk]), status_code)
+                log_txt = "Triggered <a href='%s' target='_log'>webhook event</a> - %d" % (
+                    reverse('api.log_read', args=[webhook_event.pk]), status_code)
                 ActionLog.create(run, log_txt, safe=True)
 
         return result
@@ -226,7 +228,7 @@ class WebHookEvent(SmartModel):
         if (event == 'mo_sms' and not org.is_notified_of_mo_sms()) or \
            (event == 'mt_sent' and not org.is_notified_of_mt_sms()) or \
            (event == 'mt_dlvd' and not org.is_notified_of_mt_sms()):
-           return
+            return
 
         api_user = get_api_user()
 
@@ -289,7 +291,7 @@ class WebHookEvent(SmartModel):
         org = channel.org
 
         # no-op if no webhook configured
-        if not org or not org.get_webhook_url(): # pragma: no cover
+        if not org or not org.get_webhook_url():  # pragma: no cover
             return
 
         if not org.is_notified_of_alarms():
@@ -329,7 +331,7 @@ class WebHookEvent(SmartModel):
         # look up the endpoint for this channel
         result = dict(url=self.org.get_webhook_url(), data=urlencode(post_data, doseq=True))
 
-        if not self.org.get_webhook_url(): # pragma: no cover
+        if not self.org.get_webhook_url():  # pragma: no cover
             result['status_code'] = 0
             result['message'] = "No webhook registered for this org, ignoring event"
             self.status = FAILED
@@ -357,7 +359,6 @@ class WebHookEvent(SmartModel):
             # also include any user-defined headers
             headers.update(self.org.get_webhook_headers())
 
-
             s = requests.Session()
             prepped = requests.Request('POST', self.org.get_webhook_url(),
                                        data=post_data,
@@ -384,7 +385,8 @@ class WebHookEvent(SmartModel):
                     if serializer.is_valid():
                         result['serializer'] = serializer
                         obj = serializer.object
-                        result['message'] = "SMS message to %d recipient(s) with text: '%s'" % (len(obj.contacts), obj.text)
+                        result['message'] = "SMS message to %d recipient(s) with text: '%s'" % (
+                            len(obj.contacts), obj.text)
                     else:
                         errors = serializer.errors
                         result['message'] = "Event delivered successfully, ignoring response body, wrong format: %s" % \
@@ -393,7 +395,8 @@ class WebHookEvent(SmartModel):
                 except Exception as e:
                     # we were unable to make anything of the body, that's ok though because
                     # get a 200, so just save our error for posterity
-                    result['message'] = "Event delivered successfully, ignoring response body, not JSON: %s" % unicode(e)
+                    result[
+                        'message'] = "Event delivered successfully, ignoring response body, not JSON: %s" % unicode(e)
 
         except Exception as e:
             # we had an error, log it
@@ -417,7 +420,9 @@ class WebHookEvent(SmartModel):
     def __unicode__(self):
         return "WebHookEvent[%s:%d] %s" % (self.event, self.pk, self.data)
 
+
 class WebHookResult(SmartModel):
+
     """
     Represents the result of trying to deliver an event to a web hook
     """
@@ -467,11 +472,13 @@ class WebHookResult(SmartModel):
                                      modified_by=api_user)
 
         # keep only the most recent 100 events for each org
-        for old_event in WebHookEvent.objects.filter(org=event.org, status__in=['C', 'F']).order_by('-created_on')[100:]: # pragma: no cover
+        for old_event in WebHookEvent.objects.filter(
+                org=event.org, status__in=['C', 'F']).order_by('-created_on')[100:]:  # pragma: no cover
             old_event.delete()
 
 
 class APIToken(models.Model):
+
     """
     Our API token, ties in orgs
     """
@@ -499,6 +506,7 @@ class APIToken(models.Model):
 # Takes care of creating API tokens for new users
 #-----------------------------------------------------------------------------------------------
 
+
 def api_token(obj):
     if not obj.is_authenticated():
         return None
@@ -523,6 +531,7 @@ User.api_token = api_token
 #-----------------------------------------------------------------------------------------------
 # Returns a user that can be used to associate events created by the API service
 #-----------------------------------------------------------------------------------------------
+
 
 def get_api_user():
     # create a Poll user.. this will be used by our SMS app to reply to messages

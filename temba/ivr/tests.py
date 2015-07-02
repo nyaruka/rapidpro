@@ -97,7 +97,11 @@ class IVRTests(FlowFileTest):
 
         # each message should have exactly one step
         for msg in messages:
-            self.assertEquals(1, msg.steps.all().count(), msg="Message '%s' is not attached to exaclty one step" % msg.text)
+            self.assertEquals(
+                1,
+                msg.steps.all().count(),
+                msg="Message '%s' is not attached to exaclty one step" %
+                msg.text)
 
     @mock.patch('temba.orgs.models.TwilioRestClient', MockTwilioClient)
     @mock.patch('temba.ivr.clients.TwilioClient', MockTwilioClient)
@@ -131,10 +135,10 @@ class IVRTests(FlowFileTest):
         with patch('requests.get') as response:
             response.return_value = MockResponse(200, 'Fake Recording Bits')
             self.client.post(reverse('ivr.ivrcall_handle', args=[call.pk]),
-                                     dict(CallStatus='in-progress',
-                                     Digits='#',
-                                     RecordingUrl='http://api.twilio.com/ASID/Recordings/SID',
-                                     RecordingSid='FAKESID'))
+                             dict(CallStatus='in-progress',
+                                  Digits='#',
+                                  RecordingUrl='http://api.twilio.com/ASID/Recordings/SID',
+                                  RecordingSid='FAKESID'))
 
         # now we should have an outbound message
         self.assertEquals('Hi there Eminem', Msg.objects.filter(direction='O', contact=eminem).first().text)
@@ -164,7 +168,6 @@ class IVRTests(FlowFileTest):
 
         # make sure we send the finishOnKey attribute to twilio
         self.assertContains(response, 'finishOnKey="#"')
-
 
     @mock.patch('temba.orgs.models.TwilioRestClient', MockTwilioClient)
     @mock.patch('temba.ivr.clients.TwilioClient', MockTwilioClient)
@@ -231,7 +234,9 @@ class IVRTests(FlowFileTest):
         post_data = dict(CallSid='CallSid', CallStatus='in-progress', CallDuration=20)
         response = self.client.post(reverse('ivr.ivrcall_handle', args=[call.pk]), post_data)
 
-        self.assertContains(response, '<Say>Would you like me to call you? Press one for yes, two for no, or three for maybe.</Say>')
+        self.assertContains(
+            response,
+            '<Say>Would you like me to call you? Press one for yes, two for no, or three for maybe.</Say>')
         self.assertEquals(1, Msg.objects.filter(msg_type=IVR).count())
         self.assertEquals(1, self.org.get_credits_used())
 
@@ -383,9 +388,9 @@ class IVRTests(FlowFileTest):
         post_data = dict(CallSid='CallSid', CallStatus='ringing', Direction='inbound',
                          From='+250788382382', To=self.channel.address)
         response = self.client.post(reverse('api.twilio_handler'), post_data)
-        self.assertContains(response, '<Say>Would you like me to call you? Press one for yes, two for no, or three for maybe.</Say>')
+        self.assertContains(
+            response,
+            '<Say>Would you like me to call you? Press one for yes, two for no, or three for maybe.</Say>')
 
         call = IVRCall.objects.all().first()
         self.assertEquals('+250788382382', call.contact_urn.path)
-
-

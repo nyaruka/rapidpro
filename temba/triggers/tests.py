@@ -102,7 +102,6 @@ class TriggerTest(TembaTest):
         self.assertEquals(1, Trigger.objects.filter(keyword="startkeyword", is_archived=False).count())
         self.assertFalse(other_trigger.pk == Trigger.objects.filter(keyword="startkeyword", is_archived=False)[0].pk)
 
-
         self.contact = self.create_contact('Eric', '+250788382382')
         self.contact2 = self.create_contact('Nic', '+250788383383')
         group1 = self.create_group("first", [self.contact2])
@@ -141,7 +140,7 @@ class TriggerTest(TembaTest):
         self.assertNotContains(response, 'Start a flow after receiving a call')
 
         # make our channel support ivr
-        self.channel.role += CALL+ANSWER
+        self.channel.role += CALL + ANSWER
         self.channel.save()
 
         response = self.client.get(reverse('triggers.trigger_create'))
@@ -207,7 +206,6 @@ class TriggerTest(TembaTest):
 
         tommorrow = now + timedelta(days=1)
         tommorrow_stamp = time.mktime(tommorrow.timetuple())
-
 
         post_data = dict()
         post_data['omnibox'] = "g-%d,c-%d" % (linkin_park.pk, stromae.pk)
@@ -461,7 +459,7 @@ class TriggerTest(TembaTest):
         post_data = dict(flow=flow.pk)
 
         response = self.client.post(trigger_url, post_data)
-        trigger =  Trigger.objects.all().order_by('-pk')[0]
+        trigger = Trigger.objects.all().order_by('-pk')[0]
 
         self.assertEquals(trigger.trigger_type, MISSED_CALL_TRIGGER)
         self.assertEquals(trigger.flow.pk, flow.pk)
@@ -490,7 +488,7 @@ class TriggerTest(TembaTest):
             post_data = dict(flow=flow.pk)
 
             response = self.client.post(trigger_url, post_data)
-            self.assertEquals(i+2, Trigger.objects.all().count())
+            self.assertEquals(i + 2, Trigger.objects.all().count())
             self.assertEquals(1, Trigger.objects.filter(is_archived=False, trigger_type=MISSED_CALL_TRIGGER).count())
 
         # even unarchiving we only have one acive trigger at a time
@@ -503,7 +501,10 @@ class TriggerTest(TembaTest):
 
         response = self.client.post(reverse("triggers.trigger_archived"), post_data)
         self.assertEquals(1, Trigger.objects.filter(is_archived=False, trigger_type=MISSED_CALL_TRIGGER).count())
-        self.assertFalse(active_trigger.pk == Trigger.objects.filter(is_archived=False, trigger_type=MISSED_CALL_TRIGGER)[0].pk)
+        self.assertFalse(
+            active_trigger.pk == Trigger.objects.filter(
+                is_archived=False,
+                trigger_type=MISSED_CALL_TRIGGER)[0].pk)
 
     def test_catch_all_trigger(self):
         self.login(self.admin)
@@ -562,7 +563,7 @@ class TriggerTest(TembaTest):
 
             post_data = dict(flow=flow.pk)
             response = self.client.post(trigger_url, post_data)
-            self.assertEquals(i+2, Trigger.objects.all().count())
+            self.assertEquals(i + 2, Trigger.objects.all().count())
             self.assertEquals(1, Trigger.objects.filter(is_archived=False, trigger_type=CATCH_ALL_TRIGGER).count())
 
         # even unarchiving we only have one acive trigger at a time
@@ -575,7 +576,10 @@ class TriggerTest(TembaTest):
 
         response = self.client.post(reverse("triggers.trigger_archived"), post_data)
         self.assertEquals(1, Trigger.objects.filter(is_archived=False, trigger_type=CATCH_ALL_TRIGGER).count())
-        self.assertFalse(active_trigger.pk == Trigger.objects.filter(is_archived=False, trigger_type=CATCH_ALL_TRIGGER)[0].pk)
+        self.assertFalse(
+            active_trigger.pk == Trigger.objects.filter(
+                is_archived=False,
+                trigger_type=CATCH_ALL_TRIGGER)[0].pk)
 
     def test_update(self):
 
@@ -649,7 +653,7 @@ class TriggerTest(TembaTest):
 
         group = self.create_group("first", [self.contact2])
 
-        trigger = Trigger.objects.create(org=self.org, keyword='where', flow=flow, 
+        trigger = Trigger.objects.create(org=self.org, keyword='where', flow=flow,
                                          created_by=self.admin, modified_by=self.admin)
 
         trigger.groups.add(group)
@@ -716,4 +720,3 @@ class TriggerTest(TembaTest):
 
         # incoming4 should not be handled
         self.assertFalse(Trigger.find_and_handle(incoming4))
-

@@ -119,6 +119,7 @@ class OrgFolder(Enum):
 
 
 class OrgEvent(Enum):
+
     """
     Represents an internal org event
     """
@@ -142,6 +143,7 @@ class OrgEvent(Enum):
 
 
 class OrgLock(Enum):
+
     """
     Org-level lock types
     """
@@ -152,6 +154,7 @@ class OrgLock(Enum):
 
 
 class OrgCache(Enum):
+
     """
     Org-level cache types
     """
@@ -160,9 +163,11 @@ class OrgCache(Enum):
 
 
 class OrgModelMixin(object):
+
     """
     Mixin for objects like contacts, messages which are owned by orgs and affect org caches
     """
+
     def _update_state(self, required_state, new_state, event):
         """
         Updates the state of this org-owned asset and triggers an org event, if it is currently in another state
@@ -188,6 +193,7 @@ class OrgModelMixin(object):
 
 
 class Org(SmartModel):
+
     """
     An Org can have several users and is the main component that holds all Flows, Messages, Contacts, etc. Orgs
     know their country so they can deal with locally formatted numbers (numbers provided without a country code). As such,
@@ -220,7 +226,7 @@ class Org(SmartModel):
                                    help_text=_("Whether day comes first or month comes first in dates"))
 
     webhook = models.TextField(null=True, verbose_name=_("Webhook"),
-                              help_text=_("Webhook endpoint and configuration"))
+                               help_text=_("Webhook endpoint and configuration"))
 
     webhook_events = models.IntegerField(default=0, verbose_name=_("Webhook Events"),
                                          help_text=_("Which type of actions will trigger webhook events."))
@@ -235,14 +241,26 @@ class Org(SmartModel):
     config = models.TextField(null=True, verbose_name=_("Configuration"),
                               help_text=_("More Organization specific configuration"))
 
-    slug = models.SlugField(verbose_name=_("Slug"), max_length=255, null=True, blank=True, unique=True, error_messages=dict(unique=_("This slug is not available")))
+    slug = models.SlugField(
+        verbose_name=_("Slug"),
+        max_length=255,
+        null=True,
+        blank=True,
+        unique=True,
+        error_messages=dict(
+            unique=_("This slug is not available")))
 
-    is_anon = models.BooleanField(default=False,
-                                  help_text=_("Whether this organization anonymizes the phone numbers of contacts within it"))
+    is_anon = models.BooleanField(
+        default=False,
+        help_text=_("Whether this organization anonymizes the phone numbers of contacts within it"))
 
-    primary_language = models.ForeignKey('orgs.Language', null=True, blank=True, related_name='orgs',
-                                         help_text=_('The primary language will be used for contacts with no language preference.'), on_delete=models.SET_NULL)
-
+    primary_language = models.ForeignKey(
+        'orgs.Language',
+        null=True,
+        blank=True,
+        related_name='orgs',
+        help_text=_('The primary language will be used for contacts with no language preference.'),
+        on_delete=models.SET_NULL)
 
     @classmethod
     def get_unique_slug(cls, name):
@@ -360,12 +378,12 @@ class Org(SmartModel):
         """
         from temba.msgs.models import INCOMING, INBOX, FAILED as M_FAILED
 
-        #print "ORG EVENT: %s for %s #%d" % (event.name, type(entity).__name__, entity.pk)
+        # print "ORG EVENT: %s for %s #%d" % (event.name, type(entity).__name__, entity.pk)
 
         r = get_redis_connection()
 
         def update_folder_count(folder, delta):
-            #print " > %d to folder %s" % (delta, folder.name)
+            # print " > %d to folder %s" % (delta, folder.name)
 
             cache_key = self._get_folder_count_cache_key(folder)
             incrby_existing(cache_key, delta, r)
@@ -516,7 +534,8 @@ class Org(SmartModel):
 
                 # filter the (possibly) pre-fetched channels in Python to reduce database hits as this method is called
                 # for every message in a broadcast
-                senders = [r for r in self.channels.all() if SEND in r.role and not r.parent_id and r.is_active and r.address]
+                senders = [
+                    r for r in self.channels.all() if SEND in r.role and not r.parent_id and r.is_active and r.address]
                 senders.sort(key=lambda r: r.id)
 
                 for r in senders:
@@ -850,8 +869,8 @@ class Org(SmartModel):
 
                 if not boundary:
                     # still no boundary? try n-gram of 2
-                    for i in range(0, len(words)-1):
-                        bigram = " ".join(words[i:i+2])
+                    for i in range(0, len(words) - 1):
+                        bigram = " ".join(words[i:i + 2])
                         boundary = self.find_boundary_by_name(bigram, level, parent)
                         if boundary:
                             break
@@ -1015,11 +1034,17 @@ class Org(SmartModel):
 
     def _calculate_credits_total(self):
         # these are the credits that are still active
-        active_credits = self.topups.filter(is_active=True, expires_on__gte=timezone.now()).aggregate(Sum('credits')).get('credits__sum')
+        active_credits = self.topups.filter(
+            is_active=True,
+            expires_on__gte=timezone.now()).aggregate(
+            Sum('credits')).get('credits__sum')
         active_credits = active_credits if active_credits else 0
 
         # these are the credits that have been used in expired topups
-        expired_credits = self.topups.filter(is_active=True, expires_on__lte=timezone.now()).aggregate(Sum('used')).get('used__sum')
+        expired_credits = self.topups.filter(
+            is_active=True,
+            expires_on__lte=timezone.now()).aggregate(
+            Sum('used')).get('used__sum')
         expired_credits = expired_credits if expired_credits else 0
 
         return active_credits + expired_credits
@@ -1086,7 +1111,10 @@ class Org(SmartModel):
             all_uncredited = list(msg_uncredited)
 
             # get all topups that haven't expired
-            unexpired_topups = list(self.topups.filter(is_active=True, expires_on__gte=timezone.now()).order_by('-expires_on'))
+            unexpired_topups = list(
+                self.topups.filter(
+                    is_active=True,
+                    expires_on__gte=timezone.now()).order_by('-expires_on'))
 
             # dict of topups to lists of their newly assigned items
             new_topup_items = {topup: [] for topup in unexpired_topups}
@@ -1148,9 +1176,9 @@ class Org(SmartModel):
             traceback.print_exc()
             return None
 
-    def add_credits(self, bundle, token, user): # pragma: no cover
+    def add_credits(self, bundle, token, user):  # pragma: no cover
         # look up our bundle
-        if not bundle in BUNDLE_MAP:
+        if bundle not in BUNDLE_MAP:
             raise ValidationError(_("Invalid bundle: %s, cannot upgrade.") % bundle)
 
         bundle = BUNDLE_MAP[bundle]
@@ -1267,7 +1295,8 @@ class Org(SmartModel):
                     subscription = customer.cancel_subscription(at_period_end=True)
                 except Exception as e:
                     traceback.print_exc(e)
-                    raise ValidationError(_("Sorry, we are unable to cancel your plan at this time.  Please contact us."))
+                    raise ValidationError(
+                        _("Sorry, we are unable to cancel your plan at this time.  Please contact us."))
             else:
                 raise ValidationError(_("Sorry, we are unable to cancel your plan at this time.  Please contact us."))
 
@@ -1298,7 +1327,8 @@ class Org(SmartModel):
 
                 except Exception as e:
                     traceback.print_exc(e)
-                    raise ValidationError(_("Sorry, we were unable to charge your card, please try again later or contact us."))
+                    raise ValidationError(
+                        _("Sorry, we were unable to charge your card, please try again later or contact us."))
 
         # update our org
         self.stripe_customer = stripe_customer
@@ -1487,12 +1517,23 @@ USER_GROUPS = (('A', _("Administrator")),
 
 
 def get_stripe_credentials():
-    public_key = os.environ.get('STRIPE_PUBLIC_KEY', getattr(settings, 'STRIPE_PUBLIC_KEY', 'MISSING_STRIPE_PUBLIC_KEY'))
-    private_key = os.environ.get('STRIPE_PRIVATE_KEY', getattr(settings, 'STRIPE_PRIVATE_KEY', 'MISSING_STRIPE_PRIVATE_KEY'))
+    public_key = os.environ.get(
+        'STRIPE_PUBLIC_KEY',
+        getattr(
+            settings,
+            'STRIPE_PUBLIC_KEY',
+            'MISSING_STRIPE_PUBLIC_KEY'))
+    private_key = os.environ.get(
+        'STRIPE_PRIVATE_KEY',
+        getattr(
+            settings,
+            'STRIPE_PRIVATE_KEY',
+            'MISSING_STRIPE_PRIVATE_KEY'))
     return (public_key, private_key)
 
 
 class Language(SmartModel):
+
     """
     A Language that has been added to the org. In the end and language is just an iso_code and name
     and it is not really restricted to real-world languages at this level. Instead we restrict the
@@ -1539,14 +1580,18 @@ class Language(SmartModel):
     def __unicode__(self):
         return '%s' % self.name
 
+
 class Invitation(SmartModel):
+
     """
     An Invitation to an e-mail address to join an Org with specific roles.
     """
     org = models.ForeignKey(Org, verbose_name=_("Org"), related_name="invitations",
                             help_text=_("The organization to which the account is invited to view"))
 
-    email = models.EmailField(verbose_name=_("Email"), help_text=_("The email to which we send the invitation of the viewer"))
+    email = models.EmailField(
+        verbose_name=_("Email"),
+        help_text=_("The email to which we send the invitation of the viewer"))
 
     secret = models.CharField(verbose_name=_("Secret"), max_length=64, unique=True,
                               help_text=_("a unique code associated with this invitation"))
@@ -1571,7 +1616,7 @@ class Invitation(SmartModel):
         """
         Generates a [length] characters alpha numeric secret
         """
-        letters="23456789ABCDEFGHJKLMNPQRSTUVWXYZ" # avoid things that could be mistaken ex: 'I' and '1'
+        letters = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"  # avoid things that could be mistaken ex: 'I' and '1'
         return ''.join([random.choice(letters) for _ in range(length)])
 
     def send_invitation(self):
@@ -1597,6 +1642,7 @@ class Invitation(SmartModel):
 
 
 class UserSettings(models.Model):
+
     """
     User specific configuration
     """
@@ -1614,6 +1660,7 @@ class UserSettings(models.Model):
 
 
 class TopUp(SmartModel):
+
     """
     TopUps are used to track usage across the platform. Each TopUp represents a certain number of
     credits that can be consumed by messages.
@@ -1676,6 +1723,7 @@ class TopUp(SmartModel):
 
 
 class CreditAlert(SmartModel):
+
     """
     Tracks when we have sent alerts to organization admins about low credits.
     """
@@ -1715,7 +1763,10 @@ class CreditAlert(SmartModel):
         from temba.msgs.models import Msg
 
         # all active orgs in the last hour
-        active_orgs = Msg.objects.filter(created_on__gte=timezone.now()-timedelta(hours=1)).order_by('org').distinct('org')
+        active_orgs = Msg.objects.filter(
+            created_on__gte=timezone.now() -
+            timedelta(
+                hours=1)).order_by('org').distinct('org')
 
         for msg in active_orgs:
             org = msg.org

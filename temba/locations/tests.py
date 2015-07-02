@@ -2,6 +2,7 @@ import json
 from django.core.urlresolvers import reverse
 from temba.tests import TembaTest
 
+
 class Locationtest(TembaTest):
 
     def test_boundaries(self):
@@ -71,9 +72,3 @@ class Locationtest(TembaTest):
         # now have kigs as an alias
         self.assertEquals("Kigali City", response_json[1]['name'])
         self.assertEquals('kig\nkigs', response_json[1]['aliases'])
-
-
-
-
-
-

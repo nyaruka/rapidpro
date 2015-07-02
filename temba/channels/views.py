@@ -151,6 +151,7 @@ PLIVO_SUPPORTED_COUNTRY_CODES = [61, 32, 1, 420, 372, 358, 49, 852, 36, 972, 370
 # list of codes and countries sorted by country name
 ALL_COUNTRIES = sorted(((code, name) for code, name in COUNTRIES.items()), key=lambda x: x[1])
 
+
 def get_channel_icon(channel_type):
     return RELAYER_TYPE_ICONS.get(channel_type, "icon-channel-external")
 
@@ -238,6 +239,7 @@ def get_commands(channel, commands, sync_event=None):
 
     return commands
 
+
 @disable_middleware
 def sync(request, channel_id):
     start = time.time()
@@ -248,7 +250,14 @@ def sync(request, channel_id):
     commands = []
     channel = Channel.objects.filter(pk=channel_id, is_active=True)
     if not channel:
-        return HttpResponse(json.dumps(dict(cmds=[dict(cmd='rel', relayer_id=channel_id)])), content_type='application/javascript')
+        return HttpResponse(
+            json.dumps(
+                dict(
+                    cmds=[
+                        dict(
+                            cmd='rel',
+                            relayer_id=channel_id)])),
+            content_type='application/javascript')
 
     channel = channel[0]
 
@@ -256,11 +265,16 @@ def sync(request, channel_id):
     request_signature = request.REQUEST.get('signature', '')
 
     if not channel.secret or not channel.org:
-        return HttpResponse(json.dumps(dict(cmds=[channel.build_registration_command()])), content_type='application/javascript')
+        return HttpResponse(
+            json.dumps(
+                dict(
+                    cmds=[
+                        channel.build_registration_command()])),
+            content_type='application/javascript')
 
-    #print "\n\nSECRET: '%s'" % channel.secret
-    #print "TS: %s" % request_time
-    #print "BODY: '%s'\n\n" % request.body
+    # print "\n\nSECRET: '%s'" % channel.secret
+    # print "TS: %s" % request_time
+    # print "BODY: '%s'\n\n" % request.body
 
     # check that the request isn't too old (15 mins)
     now = time.time()
@@ -268,14 +282,22 @@ def sync(request, channel_id):
         return HttpResponse(status=401, content='{ "error_id": 3, "error": "Old Request", "cmds":[] }')
 
     # sign the request
-    signature = hmac.new(key=str(channel.secret + request_time), msg=bytes(request.body), digestmod=hashlib.sha256).digest()
+    signature = hmac.new(
+        key=str(
+            channel.secret +
+            request_time),
+        msg=bytes(
+            request.body),
+        digestmod=hashlib.sha256).digest()
 
     # base64 and url sanitize
     signature = base64.urlsafe_b64encode(signature).strip()
 
     if request_signature != signature:
-        return HttpResponse(status=401,
-                            content='{ "error_id": 1, "error": "Invalid signature: \'%(request)s\'", "cmds":[] }' % {'request':request_signature})
+        return HttpResponse(
+            status=401,
+            content='{ "error_id": 1, "error": "Invalid signature: \'%(request)s\'", "cmds":[] }' % {
+                'request': request_signature})
 
     # update our last seen on our channel
     channel.last_seen = timezone.now()
@@ -389,6 +411,7 @@ def sync(request, channel_id):
 
     return HttpResponse(json.dumps(result), content_type='application/javascript')
 
+
 @disable_middleware
 def register(request):
     if request.method != 'POST':
@@ -403,6 +426,7 @@ def register(request):
 
     result = dict(cmds=[cmd])
     return HttpResponse(json.dumps(result), content_type='application/javascript')
+
 
 class ClaimForm(forms.Form):
     claim_code = forms.CharField(max_length=12,
@@ -432,7 +456,7 @@ class ClaimForm(forms.Form):
                 normalized = phonenumbers.parse(number, self.cleaned_data['channel'].country.code)
                 if not phonenumbers.is_possible_number(normalized):
                     raise forms.ValidationError(_("Invalid phone number, try again."))
-            except: # pragma: no cover
+            except:  # pragma: no cover
                 raise forms.ValidationError(_("Invalid phone number, try again."))
 
             number = phonenumbers.format_number(normalized, phonenumbers.PhoneNumberFormat.E164)
@@ -441,6 +465,7 @@ class ClaimForm(forms.Form):
 
 
 class UpdateChannelForm(forms.ModelForm):
+
     def __init__(self, *args, **kwargs):
         self.object = kwargs['object']
         del kwargs['object']
@@ -461,6 +486,7 @@ class UpdateChannelForm(forms.ModelForm):
 
 
 class UpdateAndroidForm(UpdateChannelForm):
+
     class Meta(UpdateChannelForm.Meta):
         readonly = []
         helps = {'address': _('Phone number of this device')}
@@ -486,9 +512,11 @@ class ChannelCRUDL(SmartCRUDL):
     permissions = True
 
     class AnonMixin(OrgPermsMixin):
+
         """
         Mixin that makes sure that anonymous orgs cannot add channels (have no permission if anon)
         """
+
         def has_permission(self, request, *args, **kwargs):
             org = self.derive_org()
             if not org or org.is_anon:
@@ -514,9 +542,13 @@ class ChannelCRUDL(SmartCRUDL):
                                       href="#",
                                       js_class='remove-sender'))
                 elif self.get_object().channel_type == ANDROID:
-                    links.append(dict(title=_('Enable Bulk Sending'),
-                                      style='btn-primary',
-                                      href="%s?channel=%d" % (reverse("channels.channel_bulk_sender_options"), self.get_object().pk)))
+                    links.append(
+                        dict(
+                            title=_('Enable Bulk Sending'),
+                            style='btn-primary',
+                            href="%s?channel=%d" %
+                            (reverse("channels.channel_bulk_sender_options"),
+                             self.get_object().pk)))
 
                 caller = self.get_object().get_caller()
                 if caller and caller.is_delegate_caller():
@@ -528,7 +560,8 @@ class ChannelCRUDL(SmartCRUDL):
                 # elif self.org.is_connected_to_twilio() and self.request.user.is_beta():
                 #    links.append(dict(title=_('Enable Voice Calling'),
                 #                      style='posterize',
-                #                      href="%s?channel=%d" % (reverse("channels.channel_create_caller"), self.get_object().pk)))
+                # href="%s?channel=%d" % (reverse("channels.channel_create_caller"),
+                # self.get_object().pk)))
             if self.has_org_perm("channels.channel_delete"):
                 links.append(dict(title=_('Remove'),
                                   js_class='remove-channel',
@@ -548,25 +581,34 @@ class ChannelCRUDL(SmartCRUDL):
             if not channel.is_active:
                 raise Http404("No active channel with that id")
 
-            context['sms_count'] = channel.org.get_folder_count(OrgFolder.msgs_inbox) + channel.org.get_folder_count(OrgFolder.msgs_outbox)
+            context['sms_count'] = channel.org.get_folder_count(
+                OrgFolder.msgs_inbox) + channel.org.get_folder_count(OrgFolder.msgs_outbox)
             is_jumbo = context['sms_count'] > 1000000
 
             # calculate the count for real if it won't be too expensive
             if not is_jumbo:
-                context['sms_count'] = Msg.objects.filter(channel=self.object).exclude(msg_type=IVR).exclude(contact__is_test=True).count()
-                context['ivr_count'] = Msg.objects.filter(channel=self.object, msg_type=IVR).exclude(contact__is_test=True).count()
+                context['sms_count'] = Msg.objects.filter(
+                    channel=self.object).exclude(
+                    msg_type=IVR).exclude(
+                    contact__is_test=True).count()
+                context['ivr_count'] = Msg.objects.filter(
+                    channel=self.object,
+                    msg_type=IVR).exclude(
+                    contact__is_test=True).count()
             else:
                 context['sms_count'] = "~%d" % context['sms_count']
                 context['ivr_count'] = 0
 
             context['channel_errors'] = ChannelLog.objects.filter(msg__channel=self.object, is_error=True)
 
-            ## power source stats data
-            source_stats = [[event['power_source'], event['count']] for event in sync_events.order_by('power_source').values('power_source').annotate(count=Count('power_source'))]
+            # power source stats data
+            source_stats = [[event['power_source'], event['count']] for event in sync_events.order_by(
+                'power_source').values('power_source').annotate(count=Count('power_source'))]
             context['source_stats'] = source_stats
 
-            ## network connected to stats
-            network_stats = [[event['network_type'], event['count']] for event in sync_events.order_by('network_type').values('network_type').annotate(count=Count('network_type'))]
+            # network connected to stats
+            network_stats = [[event['network_type'], event['count']] for event in sync_events.order_by(
+                'network_type').values('network_type').annotate(count=Count('network_type'))]
             context['network_stats'] = network_stats
 
             total_network = 0
@@ -622,11 +664,26 @@ class ChannelCRUDL(SmartCRUDL):
                 outgoing_channels.append(sender)
 
             # Show sms messages in a stacked column
-            incoming = list(channel.msgs.filter(created_on__gte=start_date, direction='I', contact__is_test=False).exclude(msg_type=IVR).extra(
-                {'date': "date(msgs_msg.created_on)"}).order_by('date').values('date').annotate(count=Count('id')))
+            incoming = list(
+                channel.msgs.filter(
+                    created_on__gte=start_date,
+                    direction='I',
+                    contact__is_test=False).exclude(
+                    msg_type=IVR).extra(
+                    {
+                        'date': "date(msgs_msg.created_on)"}).order_by('date').values('date').annotate(
+                        count=Count('id')))
 
-            outgoing = list(Msg.objects.filter(channel__in=outgoing_channels, created_on__gte=start_date, direction='O', contact__is_test=False).exclude(msg_type=IVR).extra(
-                {'date': "date(msgs_msg.created_on)"}).order_by('date').values('date').annotate(count=Count('id')))
+            outgoing = list(
+                Msg.objects.filter(
+                    channel__in=outgoing_channels,
+                    created_on__gte=start_date,
+                    direction='O',
+                    contact__is_test=False).exclude(
+                    msg_type=IVR).extra(
+                    {
+                        'date': "date(msgs_msg.created_on)"}).order_by('date').values('date').annotate(
+                        count=Count('id')))
 
             message_stats.append(dict(name=_('Incoming Text'), data=incoming))
             message_stats.append(dict(name=_('Outgoing Text'), data=outgoing))
@@ -635,11 +692,27 @@ class ChannelCRUDL(SmartCRUDL):
             ivr_in = []
             ivr_out = []
             if context['ivr_count']:
-                ivr_out = list(Msg.objects.filter(channel__in=outgoing_channels, created_on__gte=start_date, direction='O', contact__is_test=False, msg_type=IVR).extra(
-                    {'date': "date(msgs_msg.created_on)"}).order_by('date').values('date').annotate(count=Count('id')))
+                ivr_out = list(
+                    Msg.objects.filter(
+                        channel__in=outgoing_channels,
+                        created_on__gte=start_date,
+                        direction='O',
+                        contact__is_test=False,
+                        msg_type=IVR).extra(
+                        {
+                            'date': "date(msgs_msg.created_on)"}).order_by('date').values('date').annotate(
+                        count=Count('id')))
 
-                ivr_in = list(Msg.objects.filter(channel__in=outgoing_channels, created_on__gte=start_date, direction='I', contact__is_test=False, msg_type=IVR).extra(
-                    {'date': "date(msgs_msg.created_on)"}).order_by('date').values('date').annotate(count=Count('id')))
+                ivr_in = list(
+                    Msg.objects.filter(
+                        channel__in=outgoing_channels,
+                        created_on__gte=start_date,
+                        direction='I',
+                        contact__is_test=False,
+                        msg_type=IVR).extra(
+                        {
+                            'date': "date(msgs_msg.created_on)"}).order_by('date').values('date').annotate(
+                        count=Count('id')))
                 message_stats.append(dict(name=_('Incoming IVR'), data=ivr_in))
                 message_stats.append(dict(name=_('Outgoing IVR'), data=ivr_out))
 
@@ -671,7 +744,8 @@ class ChannelCRUDL(SmartCRUDL):
                     return 0
 
             summary_months = 12
-            if is_jumbo: summary_months = 3
+            if is_jumbo:
+                summary_months = 3
 
             for i in range(summary_months):
                 if month_end_time > channel_added_on:
@@ -680,7 +754,7 @@ class ChannelCRUDL(SmartCRUDL):
                                                     created_on__gte=month_start_time,
                                                     contact__is_test=False,
                                                     direction__in=[INCOMING, OUTGOING]).exclude(msg_type=IVR)\
-                                                    .order_by('direction').values('direction').annotate(count=Count('direction'))
+                        .order_by('direction').values('direction').annotate(count=Count('direction'))
 
                     if context['ivr_count']:
                         ivr_counts = Msg.objects.filter(channel=self.object,
@@ -689,7 +763,7 @@ class ChannelCRUDL(SmartCRUDL):
                                                         contact__is_test=False,
                                                         direction__in=[INCOMING, OUTGOING],
                                                         msg_type=IVR).order_by('direction').values('direction')\
-                                                        .annotate(count=Count('direction'))
+                            .annotate(count=Count('direction'))
                     else:
                         ivr_counts = []
 
@@ -699,8 +773,15 @@ class ChannelCRUDL(SmartCRUDL):
                                                     incoming_ivr_count=get_direction_count(ivr_counts, 'I'),
                                                     outgoing_ivr_count=get_direction_count(ivr_counts, 'O')))
                 month_end_time = month_start_time
-                month_start_time = (month_start_time - timedelta(days=7)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
+                month_start_time = (
+                    month_start_time -
+                    timedelta(
+                        days=7)).replace(
+                    day=1,
+                    hour=0,
+                    minute=0,
+                    second=0,
+                    microsecond=0)
 
             context['message_stats_table'] = message_stats_table
 
@@ -720,7 +801,9 @@ class ChannelCRUDL(SmartCRUDL):
 
             try:
                 if channel.channel_type == TWILIO and not channel.is_delegate_sender():
-                    messages.info(request, _("We have disconnected your Twilio number. If you do not need this number you can delete it from the Twilio website."))
+                    messages.info(
+                        request,
+                        _("We have disconnected your Twilio number. If you do not need this number you can delete it from the Twilio website."))
                 else:
                     messages.info(request, _("Your phone number has been removed."))
 
@@ -786,7 +869,9 @@ class ChannelCRUDL(SmartCRUDL):
                 e164_phone_number = None
                 try:
                     parsed = phonenumbers.parse(obj.address, None)
-                    e164_phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164).strip('+')
+                    e164_phone_number = phonenumbers.format_number(
+                        parsed,
+                        phonenumbers.PhoneNumberFormat.E164).strip('+')
                 except Exception:
                     pass
                 for channel in obj.get_delegate_channels():
@@ -865,7 +950,6 @@ class ChannelCRUDL(SmartCRUDL):
         def get_success_url(self):
             return reverse('orgs.org_home')
 
-
     class CreateCaller(OrgPermsMixin, SmartFormView):
 
         class CallerForm(forms.Form):
@@ -911,6 +995,7 @@ class ChannelCRUDL(SmartCRUDL):
             return reverse('orgs.org_home')
 
     class ClaimZenvia(OrgPermsMixin, SmartFormView):
+
         class ZVClaimForm(forms.Form):
             shortcode = forms.CharField(max_length=6, min_length=1,
                                         help_text=_("The Zenvia short code"))
@@ -927,12 +1012,16 @@ class ChannelCRUDL(SmartCRUDL):
         def form_valid(self, form):
             org = self.request.user.get_org()
 
-            if not org: # pragma: no cover
+            if not org:  # pragma: no cover
                 raise Exception(_("No org for this user, cannot claim"))
 
             data = form.cleaned_data
-            self.object = Channel.add_zenvia_channel(org, self.request.user,
-                                                     phone=data['shortcode'], account=data['account'], code=data['code'])
+            self.object = Channel.add_zenvia_channel(
+                org,
+                self.request.user,
+                phone=data['shortcode'],
+                account=data['account'],
+                code=data['code'])
 
             # make sure all contacts added before the channel are normalized
             self.object.ensure_normalized_contacts()
@@ -940,17 +1029,22 @@ class ChannelCRUDL(SmartCRUDL):
             return super(ChannelCRUDL.ClaimZenvia, self).form_valid(form)
 
     class ClaimKannel(OrgPermsMixin, SmartFormView):
+
         class KannelClaimForm(forms.Form):
             number = forms.CharField(max_length=14, min_length=1, label=_("Number"),
                                      help_text=_("The phone number or short code you are connecting"))
             country = forms.ChoiceField(choices=ALL_COUNTRIES, label=_("Country"),
                                         help_text=_("The country this phone number is used in"))
-            url = forms.URLField(max_length=1024, label=_("Send URL"),
-                                 help_text=_("The publicly accessible URL for your Kannel instance for sending. ex: https://kannel.macklemore.co/cgi-bin/sendsms"))
-            username = forms.CharField(max_length=64, required=False,
-                                       help_text=_("The username to use to authenticate to Kannel, if left blank we will generate one for you"))
-            password = forms.CharField(max_length=64, required=False,
-                                       help_text=_("The password to use to authenticate to Kannel, if left blank we will generate one for you"))
+            url = forms.URLField(max_length=1024, label=_("Send URL"), help_text=_(
+                "The publicly accessible URL for your Kannel instance for sending. ex: https://kannel.macklemore.co/cgi-bin/sendsms"))
+            username = forms.CharField(
+                max_length=64,
+                required=False,
+                help_text=_("The username to use to authenticate to Kannel, if left blank we will generate one for you"))
+            password = forms.CharField(
+                max_length=64,
+                required=False,
+                help_text=_("The password to use to authenticate to Kannel, if left blank we will generate one for you"))
 
         title = _("Connect Kannel Service")
         success_url = "id@channels.channel_configuration"
@@ -987,6 +1081,7 @@ class ChannelCRUDL(SmartCRUDL):
             return super(ChannelCRUDL.ClaimKannel, self).form_valid(form)
 
     class ClaimExternal(OrgPermsMixin, SmartFormView):
+
         class EXClaimForm(forms.Form):
 
             number = forms.CharField(max_length=14, min_length=1, label=_("Number"),
@@ -998,10 +1093,11 @@ class ChannelCRUDL(SmartCRUDL):
             method = forms.ChoiceField(choices=(('POST', "HTTP POST"), ('GET', "HTTP GET"), ('PUT', "HTTP PUT")),
                                        help_text=_("What HTTP method to use when calling the URL"))
 
-
         class EXSendClaimForm(forms.Form):
-            url = forms.URLField(max_length=1024, label=_("Send URL"),
-                                 help_text=_("The URL we will POST to when sending messages, with variable substitutions"))
+            url = forms.URLField(
+                max_length=1024,
+                label=_("Send URL"),
+                help_text=_("The URL we will POST to when sending messages, with variable substitutions"))
             method = forms.ChoiceField(choices=(('POST', "HTTP POST"), ('GET', "HTTP GET"), ('PUT', "HTTP PUT")),
                                        help_text=_("What HTTP method to use when calling the URL"))
 
@@ -1018,7 +1114,7 @@ class ChannelCRUDL(SmartCRUDL):
         def form_valid(self, form):
             org = self.request.user.get_org()
 
-            if not org: # pragma: no cover
+            if not org:  # pragma: no cover
                 raise Exception("No org for this user, cannot claim")
 
             data = form.cleaned_data
@@ -1052,11 +1148,15 @@ class ChannelCRUDL(SmartCRUDL):
             return super(ChannelCRUDL.ClaimExternal, self).form_valid(form)
 
     class ClaimAuthenticatedExternal(OrgPermsMixin, SmartFormView):
+
         class AEClaimForm(forms.Form):
             country = forms.ChoiceField(choices=ALL_COUNTRIES, label=_("Country"),
                                         help_text=_("The country this phone number is used in"))
-            number = forms.CharField(max_length=14, min_length=1, label=_("Number"),
-                                     help_text=_("The phone number or short code you are connecting with country code. ex: +250788123124"))
+            number = forms.CharField(
+                max_length=14,
+                min_length=1,
+                label=_("Number"),
+                help_text=_("The phone number or short code you are connecting with country code. ex: +250788123124"))
             username = forms.CharField(label=_("Username"),
                                        help_text=_("The username provided by the provider to use their API"))
             password = forms.CharField(label=_("Password"),
@@ -1077,7 +1177,8 @@ class ChannelCRUDL(SmartCRUDL):
                     cleaned = phonenumbers.parse(number, None)
                     return phonenumbers.format_number(cleaned, phonenumbers.PhoneNumberFormat.E164)
                 except:
-                    raise forms.ValidationError(_("Invalid phone number, please include the country code. ex: +250788123123"))
+                    raise forms.ValidationError(
+                        _("Invalid phone number, please include the country code. ex: +250788123123"))
 
         title = "Connect External Service"
         fields = ('country', 'number', 'username', 'password')
@@ -1119,17 +1220,21 @@ class ChannelCRUDL(SmartCRUDL):
         channel_type = SMSCENTRAL
 
     class ClaimVerboice(ClaimAuthenticatedExternal):
+
         class VerboiceClaimForm(forms.Form):
             country = forms.ChoiceField(choices=ALL_COUNTRIES, label=_("Country"),
                                         help_text=_("The country this phone number is used in"))
-            number = forms.CharField(max_length=14, min_length=1, label=_("Number"),
-                                     help_text=_("The phone number with country code or short code you are connecting. ex: +250788123124 or 15543"))
+            number = forms.CharField(
+                max_length=14,
+                min_length=1,
+                label=_("Number"),
+                help_text=_("The phone number with country code or short code you are connecting. ex: +250788123124 or 15543"))
             username = forms.CharField(label=_("Username"),
                                        help_text=_("The username provided by the provider to use their API"))
             password = forms.CharField(label=_("Password"),
                                        help_text=_("The password provided by the provider to use their API"))
             channel = forms.CharField(label=_("Channel Name"),
-                                           help_text=_("The Verboice channel that will be handling your calls"))
+                                      help_text=_("The Verboice channel that will be handling your calls"))
 
         title = _("Connect Verboice")
         channel_type = VERBOICE
@@ -1148,7 +1253,7 @@ class ChannelCRUDL(SmartCRUDL):
                                                               dict(username=data['username'],
                                                                    password=data['password'],
                                                                    channel=data['channel']),
-                                                              role=CALL+ANSWER)
+                                                              role=CALL + ANSWER)
 
             # make sure all contacts added before the channel are normalized
             self.object.ensure_normalized_contacts()
@@ -1171,6 +1276,7 @@ class ChannelCRUDL(SmartCRUDL):
         channel_type = HIGH_CONNECTION
 
     class ClaimShaqodoon(ClaimAuthenticatedExternal):
+
         class ShaqodoonForm(forms.Form):
             country = forms.ChoiceField(choices=ALL_COUNTRIES, label=_("Country"),
                                         help_text=_("The country this phone number is used in"))
@@ -1216,19 +1322,24 @@ class ChannelCRUDL(SmartCRUDL):
 
             return super(ChannelCRUDL.ClaimAuthenticatedExternal, self).form_valid(form)
 
-
     class ClaimVumi(ClaimAuthenticatedExternal):
+
         class VumiClaimForm(forms.Form):
             country = forms.ChoiceField(choices=ALL_COUNTRIES, label=_("Country"),
                                         help_text=_("The country this phone number is used in"))
-            number = forms.CharField(max_length=14, min_length=1, label=_("Number"),
-                                     help_text=_("The phone number with country code or short code you are connecting. ex: +250788123124 or 15543"))
+            number = forms.CharField(
+                max_length=14,
+                min_length=1,
+                label=_("Number"),
+                help_text=_("The phone number with country code or short code you are connecting. ex: +250788123124 or 15543"))
             account_key = forms.CharField(label=_("Account Key"),
                                           help_text=_("Your Vumi account key as found under Account -> Details"))
-            conversation_key = forms.CharField(label=_("Conversation Key"),
-                                               help_text=_("The key for your Vumi conversation, can be found in the URL"))
-            transport_name = forms.CharField(label=_("Transport Name"),
-                                             help_text=_("The name of the Vumi transport you will use to send and receive messages"))
+            conversation_key = forms.CharField(
+                label=_("Conversation Key"),
+                help_text=_("The key for your Vumi conversation, can be found in the URL"))
+            transport_name = forms.CharField(
+                label=_("Transport Name"),
+                help_text=_("The name of the Vumi transport you will use to send and receive messages"))
 
         title = _("Connect Vumi")
         channel_type = VUMI
@@ -1254,13 +1365,16 @@ class ChannelCRUDL(SmartCRUDL):
 
             return super(ChannelCRUDL.ClaimAuthenticatedExternal, self).form_valid(form)
 
-
     class ClaimClickatell(ClaimAuthenticatedExternal):
+
         class ClickatellForm(forms.Form):
             country = forms.ChoiceField(choices=ALL_COUNTRIES, label=_("Country"),
                                         help_text=_("The country this phone number is used in"))
-            number = forms.CharField(max_length=14, min_length=1, label=_("Number"),
-                                     help_text=_("The phone number with country code or short code you are connecting. ex: +250788123124 or 15543"))
+            number = forms.CharField(
+                max_length=14,
+                min_length=1,
+                label=_("Number"),
+                help_text=_("The phone number with country code or short code you are connecting. ex: +250788123124 or 15543"))
             api_id = forms.CharField(label=_("API ID"),
                                      help_text=_("Your API ID as provided by Clickatell"))
             username = forms.CharField(label=_("Username"),
@@ -1276,7 +1390,8 @@ class ChannelCRUDL(SmartCRUDL):
                         cleaned = phonenumbers.parse(number, self.data['country'])
                         return phonenumbers.format_number(cleaned, phonenumbers.PhoneNumberFormat.E164)
                     except:
-                        raise forms.ValidationError(_("Invalid phone number, please include the country code. ex: +250788123123"))
+                        raise forms.ValidationError(
+                            _("Invalid phone number, please include the country code. ex: +250788123123"))
                 else:
                     return number
 
@@ -1303,8 +1418,8 @@ class ChannelCRUDL(SmartCRUDL):
 
             return super(ChannelCRUDL.ClaimAuthenticatedExternal, self).form_valid(form)
 
-
     class ClaimAfricasTalking(OrgPermsMixin, SmartFormView):
+
         class ATClaimForm(forms.Form):
             shortcode = forms.CharField(max_length=6, min_length=1,
                                         help_text=_("Your short code on Africa's Talking"))
@@ -1321,12 +1436,16 @@ class ChannelCRUDL(SmartCRUDL):
         def form_valid(self, form):
             org = self.request.user.get_org()
 
-            if not org: # pragma: no cover
+            if not org:  # pragma: no cover
                 raise Exception(_("No org for this user, cannot claim"))
 
             data = form.cleaned_data
-            self.object = Channel.add_africas_talking_channel(org, self.request.user,
-                                                              phone=data['shortcode'], username=data['username'], api_key=data['api_key'])
+            self.object = Channel.add_africas_talking_channel(
+                org,
+                self.request.user,
+                phone=data['shortcode'],
+                username=data['username'],
+                api_key=data['api_key'])
 
             # make sure all contacts added before the channel are normalized
             self.object.ensure_normalized_contacts()
@@ -1340,8 +1459,15 @@ class ChannelCRUDL(SmartCRUDL):
 
             # if this is an external channel, build an example URL
             if self.object.channel_type == EXTERNAL:
-                context['example_url'] = Channel.build_send_url(self.object.config_json()[SEND_URL],
-                          {'to': '+250788123123', 'text': "Love is patient. Love is kind", 'from': self.object.address, 'id': '1241244', 'channel': str(self.object.id)})
+                context['example_url'] = Channel.build_send_url(
+                    self.object.config_json()[SEND_URL],
+                    {
+                        'to': '+250788123123',
+                        'text': "Love is patient. Love is kind",
+                        'from': self.object.address,
+                        'id': '1241244',
+                        'channel': str(
+                            self.object.id)})
 
             context['domain'] = settings.HOSTNAME
 
@@ -1375,12 +1501,13 @@ class ChannelCRUDL(SmartCRUDL):
             # are there any that have a different country?
             other_countries = with_countries.exclude(country=country).first()
             if other_countries:
-                form._errors['claim_code'] = form.error_class([_("Sorry, you can only add numbers for the same country (%s)" % other_countries.country)])
+                form._errors['claim_code'] = form.error_class(
+                    [_("Sorry, you can only add numbers for the same country (%s)" % other_countries.country)])
                 return self.form_invalid(form)
 
             # clear any channels that are dupes of this gcm/uuid pair for this org
             for dupe in Channel.objects.filter(gcm_id=self.object.gcm_id, uuid=self.object.uuid, org=org).exclude(
-                                               pk=self.object.pk).exclude(gcm_id=None).exclude(uuid=None):
+                    pk=self.object.pk).exclude(gcm_id=None).exclude(uuid=None):
                 dupe.is_active = False
                 dupe.gcm_id = None
                 dupe.uuid = None
@@ -1445,7 +1572,13 @@ class ChannelCRUDL(SmartCRUDL):
                 if not org:  # pragma: no cover
                     raise Exception(_("No org for this user, cannot claim"))
 
-                channel = Channel.add_twitter_channel(org, self.request.user, screen_name, handle_id, oauth_token, oauth_token_secret)
+                channel = Channel.add_twitter_channel(
+                    org,
+                    self.request.user,
+                    screen_name,
+                    handle_id,
+                    oauth_token,
+                    oauth_token_secret)
                 del self.request.session[SESSION_TWITTER_TOKEN]
                 del self.request.session[SESSION_TWITTER_SECRET]
 
@@ -1506,6 +1639,7 @@ class ChannelCRUDL(SmartCRUDL):
             return obj.address if obj.address else _("Unknown")
 
     class SearchNumbers(OrgPermsMixin, SmartFormView):
+
         class SearchNumbersForm(forms.Form):
             area_code = forms.CharField(max_length=3, min_length=3, required=False,
                                         help_text=_("The area code you want to search for a new number in"))
@@ -1542,9 +1676,15 @@ class ChannelCRUDL(SmartCRUDL):
             if not data['area_code']:
                 available_numbers = self.search_available_numbers(client, country=data['country'])
             elif data['country'] in ['CA', 'US']:
-                available_numbers = self.search_available_numbers(client, area_code=data['area_code'], country=data['country'])
+                available_numbers = self.search_available_numbers(
+                    client,
+                    area_code=data['area_code'],
+                    country=data['country'])
             else:
-                available_numbers = self.search_available_numbers(client, contains=data['area_code'], country=data['country'])
+                available_numbers = self.search_available_numbers(
+                    client,
+                    contains=data['area_code'],
+                    country=data['country'])
 
             numbers = []
 
@@ -1554,8 +1694,8 @@ class ChannelCRUDL(SmartCRUDL):
 
             return HttpResponse(json.dumps(numbers))
 
-
     class BaseClaimNumber(OrgPermsMixin, SmartFormView):
+
         class ClaimNumberForm(forms.Form):
 
             country = forms.ChoiceField(choices=TWILIO_SUPPORTED_COUNTRIES)
@@ -1653,33 +1793,39 @@ class ChannelCRUDL(SmartCRUDL):
             org = self.request.user.get_org()
             if not org:
                 form._errors['upgrade'] = True
-                form._errors['phone_number'] = form.error_class([_("Sorry, you need to have an organization to add numbers. "
-                                                                   "You can still test things out for free using an Android phone.")])
+                form._errors['phone_number'] = form.error_class(
+                    [_("Sorry, you need to have an organization to add numbers. " "You can still test things out for free using an Android phone.")])
                 return self.form_invalid(form)
 
             data = form.cleaned_data
 
             # can't add a channel from a different country
-            other_countries = org.channels.exclude(country=None).exclude(is_active=False).exclude(country=data['country']).first()
+            other_countries = org.channels.exclude(
+                country=None).exclude(
+                is_active=False).exclude(
+                country=data['country']).first()
             if other_countries:
-                form._errors['phone_number'] = form.error_class([_("Sorry, you can only add numbers for the same country (%s)" % other_countries.country)])
+                form._errors['phone_number'] = form.error_class(
+                    [_("Sorry, you can only add numbers for the same country (%s)" % other_countries.country)])
                 return self.form_invalid(form)
 
             phone = phonenumbers.parse(data['phone_number'])
             if not self.is_valid_country(phone.country_code):
-                form._errors['phone_number'] = form.error_class([_("Sorry, the number you chose is not supported. "
-                                                                   "You can still deploy in any country using your own SIM card and an Android phone.")])
+                form._errors['phone_number'] = form.error_class(
+                    [_("Sorry, the number you chose is not supported. " "You can still deploy in any country using your own SIM card and an Android phone.")])
                 return self.form_invalid(form)
 
             # don't add the same number twice to the same account
             existing = org.channels.filter(is_active=True, address=data['phone_number']).first()
             if existing:
-                form._errors['phone_number'] = form.error_class([_("That number is already connected (%s)" % data['phone_number'])])
+                form._errors['phone_number'] = form.error_class(
+                    [_("That number is already connected (%s)" % data['phone_number'])])
                 return self.form_invalid(form)
 
             existing = Channel.objects.filter(is_active=True, address=data['phone_number']).first()
             if existing:
-                form._errors['phone_number'] = form.error_class([_("That number is already connected to another account - %s (%s)" % (existing.org, existing.created_by.username))])
+                form._errors['phone_number'] = form.error_class(
+                    [_("That number is already connected to another account - %s (%s)" % (existing.org, existing.created_by.username))])
                 return self.form_invalid(form)
 
             # try to claim the number from twilio
@@ -1698,8 +1844,9 @@ class ChannelCRUDL(SmartCRUDL):
                 if e.message:
                     form._errors['phone_number'] = form.error_class([unicode(e.message)])
                 else:
-                    form._errors['phone_number'] = _("An error occurred connecting your Twilio number, try removing your "
-                                                     "Twilio account, reconnecting it and trying again.")
+                    form._errors['phone_number'] = _(
+                        "An error occurred connecting your Twilio number, try removing your "
+                        "Twilio account, reconnecting it and trying again.")
                 return self.form_invalid(form)
 
     class ClaimTwilio(BaseClaimNumber):
@@ -1727,7 +1874,6 @@ class ChannelCRUDL(SmartCRUDL):
             else:
                 return HttpResponseRedirect(reverse('channels.channel_claim'))
 
-
         def get_search_countries_tuple(self):
             return TWILIO_SEARCH_COUNTRIES
 
@@ -1748,25 +1894,30 @@ class ChannelCRUDL(SmartCRUDL):
             numbers = []
             for number in twilio_account_numbers:
                 parsed = phonenumbers.parse(number.phone_number, None)
-                numbers.append(dict(number=phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.INTERNATIONAL),
-                                    country=region_code_for_number(parsed)))
+                numbers.append(
+                    dict(
+                        number=phonenumbers.format_number(
+                            parsed,
+                            phonenumbers.PhoneNumberFormat.INTERNATIONAL),
+                        country=region_code_for_number(parsed)))
             return numbers
 
         def is_valid_country(self, country_code):
             return country_code in TWILIO_SUPPORTED_COUNTRY_CODES
 
         def claim_number(self, user, phone_number, country):
-             analytics.track(user.username, 'temba.channel_claim_twilio', properties=dict(number=phone_number))
+            analytics.track(user.username, 'temba.channel_claim_twilio', properties=dict(number=phone_number))
 
-             # add this channel
-             channel = Channel.add_twilio_channel(user.get_org(),
-                                                  user,
-                                                  phone_number,
-                                                  country)
+            # add this channel
+            channel = Channel.add_twilio_channel(user.get_org(),
+                                                 user,
+                                                 phone_number,
+                                                 country)
 
-             return channel
+            return channel
 
     class ClaimNexmo(BaseClaimNumber):
+
         class ClaimNexmoForm(forms.Form):
             country = forms.ChoiceField(choices=NEXMO_SUPPORTED_COUNTRIES)
             phone_number = forms.CharField(help_text=_("The phone number being added"))
@@ -1839,6 +1990,7 @@ class ChannelCRUDL(SmartCRUDL):
             return channel
 
     class SearchNexmo(SearchNumbers):
+
         class SearchNexmoForm(forms.Form):
             area_code = forms.CharField(max_length=3, min_length=3, required=False,
                                         help_text=_("The area code you want to search for a new number in"))
@@ -1865,6 +2017,7 @@ class ChannelCRUDL(SmartCRUDL):
                 return HttpResponse(json.dumps(error=str(e)))
 
     class ClaimPlivo(BaseClaimNumber):
+
         class ClaimPlivoForm(forms.Form):
             country = forms.ChoiceField(choices=PLIVO_SUPPORTED_COUNTRIES)
             phone_number = forms.CharField(help_text=_("The phone number being added"))
@@ -1967,6 +2120,7 @@ class ChannelCRUDL(SmartCRUDL):
                 del self.request.session[PLIVO_AUTH_TOKEN]
 
     class SearchPlivo(SearchNumbers):
+
         class SearchPlivoForm(forms.Form):
             area_code = forms.CharField(max_length=3, min_length=3, required=False,
                                         help_text=_("The area code you want to search for a new number in"))
@@ -2005,7 +2159,9 @@ class ChannelCRUDL(SmartCRUDL):
 
             results_numbers = []
             try:
-                status, response_data = client.search_phone_numbers(dict(country_iso=data['country'], pattern=data['area_code']))
+                status, response_data = client.search_phone_numbers(
+                    dict(
+                        country_iso=data['country'], pattern=data['area_code']))
 
                 if status == 200:
                     for number_dict in response_data['objects']:

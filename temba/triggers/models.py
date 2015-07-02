@@ -62,8 +62,12 @@ class Trigger(SmartModel):
                                     null=True, blank=True, related_name='trigger',
                                     help_text=_('Our recurring schedule'))
 
-    trigger_type = models.CharField(max_length=1, choices=TRIGGER_TYPES, default=KEYWORD_TRIGGER, verbose_name=_("Trigger Type"),
-                                    help_text=_('The type of this trigger'))
+    trigger_type = models.CharField(
+        max_length=1,
+        choices=TRIGGER_TYPES,
+        default=KEYWORD_TRIGGER,
+        verbose_name=_("Trigger Type"),
+        help_text=_('The type of this trigger'))
 
     channel = models.OneToOneField(Channel, verbose_name=_("Channel"), null=True, help_text=_("The associated channel"))
 
@@ -147,7 +151,6 @@ class Trigger(SmartModel):
                     for group in groups:
                         trigger.groups.add(group)
 
-
     @classmethod
     def get_triggers_of_type(cls, org, trigger_type):
         return Trigger.objects.filter(org=org, trigger_type=trigger_type, is_active=True, is_archived=False)
@@ -202,13 +205,29 @@ class Trigger(SmartModel):
         groups_ids = msg.contact.user_groups.values_list('pk', flat=True)
 
         # Check first if we have a trigger for the contact groups
-        matching = Trigger.objects.filter(is_archived=False, is_active=True, org=msg.org, keyword__iexact=keyword,
-                                          flow__is_archived=False, flow__is_active=True, groups__in=groups_ids).order_by('groups__name').prefetch_related('groups', 'groups__contacts')
+        matching = Trigger.objects.filter(
+            is_archived=False,
+            is_active=True,
+            org=msg.org,
+            keyword__iexact=keyword,
+            flow__is_archived=False,
+            flow__is_active=True,
+            groups__in=groups_ids).order_by('groups__name').prefetch_related(
+            'groups',
+            'groups__contacts')
 
         # If no trigger for contact groups find there is a no group trigger
         if not matching:
-            matching = Trigger.objects.filter(is_archived=False, is_active=True, org=msg.org, keyword__iexact=keyword,
-                                              flow__is_archived=False, flow__is_active=True, groups=None).prefetch_related('groups', 'groups__contacts')
+            matching = Trigger.objects.filter(
+                is_archived=False,
+                is_active=True,
+                org=msg.org,
+                keyword__iexact=keyword,
+                flow__is_archived=False,
+                flow__is_active=True,
+                groups=None).prefetch_related(
+                'groups',
+                'groups__contacts')
 
         if not matching:
             return False
@@ -232,13 +251,29 @@ class Trigger(SmartModel):
         groups_ids = contact.user_groups.values_list('pk', flat=True)
 
         # Check first if we have a trigger for the contact groups
-        matching = Trigger.objects.filter(is_archived=False, is_active=True, org=contact.org, trigger_type=INBOUND_CALL_TRIGGER,
-                                          flow__is_archived=False, flow__is_active=True, groups__in=groups_ids).order_by('groups__name').prefetch_related('groups', 'groups__contacts')
+        matching = Trigger.objects.filter(
+            is_archived=False,
+            is_active=True,
+            org=contact.org,
+            trigger_type=INBOUND_CALL_TRIGGER,
+            flow__is_archived=False,
+            flow__is_active=True,
+            groups__in=groups_ids).order_by('groups__name').prefetch_related(
+            'groups',
+            'groups__contacts')
 
         # If no trigger for contact groups find there is a no group trigger
         if not matching:
-            matching = Trigger.objects.filter(is_archived=False, is_active=True, org=contact.org, trigger_type=INBOUND_CALL_TRIGGER,
-                                              flow__is_archived=False, flow__is_active=True, groups=None).prefetch_related('groups', 'groups__contacts')
+            matching = Trigger.objects.filter(
+                is_archived=False,
+                is_active=True,
+                org=contact.org,
+                trigger_type=INBOUND_CALL_TRIGGER,
+                flow__is_archived=False,
+                flow__is_active=True,
+                groups=None).prefetch_related(
+                'groups',
+                'groups__contacts')
 
         if not matching:
             return None
@@ -265,8 +300,12 @@ class Trigger(SmartModel):
         for trigger in remaining_triggers:
 
             if trigger.keyword:
-                same_keyword_triggers = Trigger.objects.filter(org=trigger.org, keyword=trigger.keyword, is_archived=False, is_active=True,
-                                                               trigger_type=KEYWORD_TRIGGER)
+                same_keyword_triggers = Trigger.objects.filter(
+                    org=trigger.org,
+                    keyword=trigger.keyword,
+                    is_archived=False,
+                    is_active=True,
+                    trigger_type=KEYWORD_TRIGGER)
                 if same_keyword_triggers:
                     same_keyword_triggers.update(is_archived=True)
 
@@ -307,6 +346,6 @@ class Trigger(SmartModel):
             self.trigger_count += 1
             self.save()
 
-            return self.flow.start(groups, contacts, restart_participants=True) 
+            return self.flow.start(groups, contacts, restart_participants=True)
 
         return False

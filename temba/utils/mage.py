@@ -5,6 +5,7 @@ import requests
 
 
 class MageError(Exception):
+
     def __init__(self, caused_by=None, error_code=None):
         self.caused_by = caused_by
         self.error_code = error_code
@@ -17,9 +18,11 @@ class MageError(Exception):
 
 
 class MageClient(object):
+
     """
     Simple client for API calls to a Message Mage instance
     """
+
     def __init__(self, base_url, auth_token):
         self.base_url = base_url
         self.auth_token = auth_token

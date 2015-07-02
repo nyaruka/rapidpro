@@ -15,6 +15,7 @@ from temba.utils import build_json_response
 from temba.flows.models import Flow, FlowRun, ActionSet
 from .models import IVRCall, IN_PROGRESS, COMPLETED
 
+
 class CallHandler(View):
 
     @csrf_exempt
