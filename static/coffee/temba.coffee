@@ -161,7 +161,7 @@ findMatches = (query, data, start, lastIdx, prependChar = undefined) ->
       highlighter: (li, query) ->
         return li
 
-      
+
       ###
 ###
       matcher: (flag, subtext) ->
