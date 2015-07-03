@@ -1,0 +1,11 @@
+*.swp
+.DS_Store
+doc/
+node_modules/
+_*
+bower_components/
+components
+.grunt
+*.log
+build/
+.idea
