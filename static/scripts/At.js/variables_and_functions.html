@@ -73,6 +73,49 @@
 
     }
 
+    findMatches = function(query, data, start, lastIdx, prependChar) {
+      var display, matched, name, nextDot, option, results, suffix, _i, _len;
+
+      if (prependChar == null) {
+        prependChar = void 0;
+      }
+      matched = {};
+      results = [];
+      for (_i = 0, _len = data.length; _i < _len; _i++) {
+        option = data[_i];
+        if (option.name.indexOf(query) === 0) {
+          nextDot = option.name.indexOf('.', lastIdx + 1);
+          if (nextDot === -1) {
+            if (prependChar) {
+              name = start + prependChar + option.name;
+            } else {
+              name = option.name;
+            }
+            display = option.display;
+          } else {
+            name = "";
+            suffix = option.name.substring(lastIdx + 1, nextDot);
+          if (start.length > 0 && start !== suffix) {
+            name = start + ".";
+          }
+            name += suffix;
+            if (name.indexOf(query) !== 0) {
+              continue;
+            }
+            display = null;
+          }
+          if (!(name in matched)) {
+            matched[name] = name;
+            results.push({
+              name: name,
+              display: display
+            });
+          }
+        }
+      }
+      return results;
+    };
+
     var at_config = {
       at: "@",
       escapeChar: "@",
@@ -85,6 +128,25 @@
       maxLen: 100,
       suffix: "",
       callbacks: {
+        beforeInsert: function(value, item) {
+          var data, hasMore, option, _i, _len;
+
+          data = variables;
+          hasMore = false;
+          for (_i = 0, _len = data.length; _i < _len; _i++) {
+            option = data[_i];
+            if (option.name.indexOf(value.slice(1)) === 0 && option.name !== value) {
+              hasMore = true;
+              break;
+            }
+          }
+          if (hasMore) {
+            value += '.';
+          } else {
+            value += '';
+          }
+          return value;
+        },
         matcher: function(flag, subtext, escapeChar, should_startWithSpace, acceptSpaceBar) {
           var _a, _y, escapePrefix, match, regexp, space;
           if (escapeChar) {
@@ -113,8 +175,7 @@
         },
 
         filter: function(query, data, searchKey) {
-          var _results, i, item, len;
-          _results = [];
+          var results, i, item, len;
           if (query[0] == '(') {
 
             data = variables_and_functions;
@@ -126,21 +187,49 @@
             }
           }
 
-
-          for (i = 0, len = data.length; i < len; i++) {
-            item = data[i];
-            if (~new String(item[searchKey]).toLowerCase().indexOf(query.toLowerCase())) {
-              _results.push(item);
-            }
+          q = query;
+          lastIdx = q.lastIndexOf('.');
+          start = q.substring(0, lastIdx);
+          results = findMatches(q, data, start, lastIdx);
+          if (results.length > 0) {
+            return results;
           }
-          return _results;
+          flag = "@";
+          flag = "(?:^|\\s)" + flag.replace(/[\-\[\]\/\{\}\(\)\*\+\?\\\^\$\|]/g, "\\$&");
+          regexp = new RegExp("([A-Za-z0-9_+-.]*\\|)([A-Za-z0-9_+-.]*)", "gi");
+          match = regexp.exec(q);
+          if (match) {
+            name = q.substring(0, q.indexOf('|'));
+            found = false;
+            for (_i = 0, _len = data.length; _i < _len; _i++) {
+              d = data[_i];
+              if (d.name === name) {
+                found = true;
+                break;
+              }
+            }
+            if (!found) {
+              return results;
+            }
+            filterQuery = match[2];
+            lastIdx = q.lastIndexOf('|') + 1;
+            start = q.substring(0, lastIdx - 1);
+            filterQuery = q.substring(lastIdx);
+            results = findMatches(filterQuery, filters, start, q.lastIndexOf('|'), '|');
+          }
+
+          return results;
         },
 
         sorter: function(query, items, searchKey) {
           var _results, i, item, len;
           if (!query) {
+            items.push({'name':'(', 'display':"Functions"});
             return items;
           }
+
+          var whole_query = query;
+
           if (query[0] == '(') {
 
             data = variables_and_functions;
@@ -160,6 +249,12 @@
               _results.push(item);
             }
           }
+
+          if (whole_query[0] != '(') {
+            _results.push({'name':'(', 'display':"Functions"})
+          }
+
+
           return _results.sort(function(a, b) {
             return a.atwho_order - b.atwho_order;
           });
