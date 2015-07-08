@@ -63,9 +63,8 @@
         num_par--;
       }
 
-      var queryRegex = new RegExp("([A-Za-z\d_.]*)$", "gi");
+      var queryRegex = new RegExp("([A-Za-z_\d\.]*)(?:[), ]*)?$", "gi");
       var match = queryRegex.exec(query);
-
       if (match) {
         query = match[1] || match[0];
       }
@@ -83,6 +82,7 @@
       startWithSpace: false,
       displayTpl: "<li>${name} <small>${display}</small></li>",
       limit: 200,
+      maxLen: 100,
       suffix: "",
       callbacks: {
         matcher: function(flag, subtext, escapeChar, should_startWithSpace, acceptSpaceBar) {
