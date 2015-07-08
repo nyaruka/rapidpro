@@ -129,12 +129,12 @@
       suffix: "",
       callbacks: {
         beforeInsert: function(value, item) {
-          var data, hasMore, option, _i, _len;
+          var data, hasMore, option, _i, _len, isFunction;
 
-          data = variables;
+          data_variables = variables;
           hasMore = false;
-          for (_i = 0, _len = data.length; _i < _len; _i++) {
-            option = data[_i];
+          for (_i = 0, _len = data_variables.length; _i < _len; _i++) {
+            option = data_variables[_i];
             if (option.name.indexOf(value.slice(1)) === 0 && option.name !== value) {
               hasMore = true;
               break;
@@ -145,6 +145,25 @@
           } else {
             value += '';
           }
+
+          data_functions = functions;
+          isFunction = false;
+          for (_i = 0, _len = data_functions.length; _i < _len; _i++) {
+            option = data_functions[_i];
+            console.log(option.name);
+
+            if (option.name.indexOf(value.slice(2)) === 0 && option.name == value.slice(2)) {
+              isFunction = true;
+              break;
+            }
+          }
+          if (isFunction) {
+            value += '(';
+          } else {
+            value += '';
+          }
+
+
           return value;
         },
         matcher: function(flag, subtext, escapeChar, should_startWithSpace, acceptSpaceBar) {
@@ -290,10 +309,15 @@
               query = find_context_query(query);
             }
 
-            if (action == 'onInsert') {
-              template = ('@' + whole_query).replace(query, '${name}') ;
-            }
 
+            if (action == 'onInsert') {
+
+              if (query == "") {
+                template = '@(${name}';
+              } else {
+                template = ('@' + whole_query).replace(query, '${name}') ;
+              }
+            }
           }
 
 
