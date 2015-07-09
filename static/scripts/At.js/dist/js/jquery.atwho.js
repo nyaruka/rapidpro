@@ -496,7 +496,7 @@ TextareaController = (function(superClass) {
   };
 
   TextareaController.prototype.insert = function(content, $li) {
-    var $inputor, source, startStr, suffix, text;
+    var $inputor, insertBackPos, newPosition, source, startStr, suffix, text;
     $inputor = this.$inputor;
     source = $inputor.val();
     startStr = source.slice(0, Math.max(this.query.headPos - this.at.length, 0));
@@ -504,7 +504,9 @@ TextareaController = (function(superClass) {
     content += suffix;
     text = "" + startStr + content + (source.slice(this.query['endPos'] || 0));
     $inputor.val(text);
-    $inputor.caret('pos', startStr.length + content.length, {
+    insertBackPos = this.getOpt('insertBackPos', 0);
+    newPosition = content.length > insertBackPos ? content.length - insertBackPos : 0;
+    $inputor.caret('pos', startStr.length + newPosition, {
       iframe: this.app.iframe
     });
     if (!$inputor.is(':focus')) {

@@ -72,7 +72,7 @@
       return query;
 
     }
-
+    
     findMatches = function(query, data, start, lastIdx, prependChar) {
       var display, matched, name, nextDot, option, results, suffix, _i, _len;
 
@@ -119,6 +119,7 @@
     var at_config = {
       at: "@",
       escapeChar: "@",
+      insertBackPos: 1,
       data: variables,
       searchKey:"name",
       insertTpl: '@${name}',
@@ -150,7 +151,6 @@
           isFunction = false;
           for (_i = 0, _len = data_functions.length; _i < _len; _i++) {
             option = data_functions[_i];
-            console.log(option.name);
 
             if (option.name.indexOf(value.slice(2)) === 0 && option.name == value.slice(2)) {
               isFunction = true;
@@ -158,9 +158,9 @@
             }
           }
           if (isFunction) {
-            value += '(';
+            value += '()';
           } else {
-            value += '';
+            value += ' ';
           }
 
 

@@ -42,6 +42,8 @@ class TextareaController extends Controller
     content += suffix
     text = "#{startStr}#{content}#{source.slice @query['endPos'] || 0}"
     $inputor.val text
-    $inputor.caret('pos', startStr.length + content.length, {iframe: @app.iframe})
+    insertBackPos = @getOpt 'insertBackPos', 0
+    newPosition = if content.length > insertBackPos then content.length - insertBackPos else 0
+    $inputor.caret('pos', startStr.length + newPosition, {iframe: @app.iframe})
     $inputor.focus() unless $inputor.is ':focus'
     $inputor.change()
