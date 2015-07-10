@@ -293,7 +293,7 @@
           });
         },
         tplEval: function(tpl, map, action) {
-          var error, template;
+          var error, template, regexp;
           template = tpl;
 
           var query = this.query.text;
@@ -315,7 +315,8 @@
               if (query == "") {
                 template = '@(${name}';
               } else {
-                template = ('@' + whole_query).replace(query, '${name}') ;
+                regexp = new RegExp(query + "$");
+                template = ('@' + whole_query).replace(regexp, '${name}') ;
               }
             }
           }
