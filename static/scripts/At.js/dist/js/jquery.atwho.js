@@ -181,7 +181,7 @@ App = (function() {
   };
 
   App.prototype.onKeyup = function(e) {
-    var ref;
+    var ref, ref1;
     switch (e.keyCode) {
       case KEY_CODE.ESC:
         e.preventDefault();
@@ -193,6 +193,11 @@ App = (function() {
       case KEY_CODE.UP:
       case KEY_CODE.CTRL:
         $.noop();
+        break;
+      case KEY_CODE.NINE:
+        if ((ref1 = this.controller()) != null) {
+          ref1.balancePar();
+        }
         break;
       case KEY_CODE.P:
       case KEY_CODE.N:
@@ -473,6 +478,24 @@ TextareaController = (function(superClass) {
       this.view.hide();
     }
     return this.query = query;
+  };
+
+  TextareaController.prototype.balancePar = function() {
+    var caretPos, content, subtext, text;
+    content = this.$inputor.val();
+    caretPos = this.$inputor.caret('pos', {
+      iframe: this.app.iframe
+    });
+    subtext = content.slice(0, caretPos);
+    if (subtext.slice(-1) === '(') {
+      text = subtext + ')' + content.slice(caretPos + 1);
+      this.$inputor.val(text);
+    }
+    this.$inputor.caret('pos', caretPos);
+    if (!$inputor.is(':focus')) {
+      this.$inputor.focus();
+    }
+    return this.$inputor.change();
   };
 
   TextareaController.prototype.rect = function() {
@@ -959,7 +982,8 @@ KEY_CODE = {
   RIGHT: 39,
   DOWN: 40,
   BACKSPACE: 8,
-  SPACE: 32
+  SPACE: 32,
+  NINE: 57
 };
 
 DEFAULT_CALLBACKS = {
@@ -1116,6 +1140,7 @@ $.fn.atwho = function(method) {
 $.fn.atwho["default"] = {
   at: void 0,
   escapeChar: void 0,
+  insertBackPos: 0,
   alias: void 0,
   data: null,
   displayTpl: "<li>${name}</li>",

@@ -14,6 +14,7 @@ KEY_CODE =
   DOWN:40
   BACKSPACE: 8
   SPACE: 32
+  NINE: 57
 
 # Functions set for handling and rendering the data.
 # Others developers can override these methods to tweak At.js such as matcher.

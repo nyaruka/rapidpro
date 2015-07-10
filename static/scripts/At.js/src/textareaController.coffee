@@ -19,6 +19,17 @@ class TextareaController extends Controller
 
     @query = query
 
+  balancePar: ->
+    content = @$inputor.val()
+    caretPos = @$inputor.caret('pos', {iframe: @app.iframe})
+    subtext = content.slice(0, caretPos)
+    if subtext.slice(-1) == '('
+      text = subtext + ')' + content.slice(caretPos + 1)
+      @$inputor.val text
+    @$inputor.caret('pos', caretPos)
+    @$inputor.focus() unless $inputor.is ':focus'
+    @$inputor.change()
+
   # Get offset of current at char(`flag`)
   #
   # @return [Hash] the offset which look likes this: {top: y, left: x, bottom: bottom}
