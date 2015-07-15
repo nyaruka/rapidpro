@@ -92,7 +92,7 @@ class EditableController extends Controller
     # matching
     _range = range.cloneRange()
     _range.setStart range.startContainer, 0
-    matched = @callbacks("matcher").call(this, @at, _range.toString(), this.getOpt('escapeChar'), this.getOpt('startWithSpace'))
+    matched = @callbacks("matcher").call(this, @at, _range.toString(), @getOpt 'startWithSpace')
 
     # wrapping query with .atwho-query
     if $query.length == 0 and typeof matched is 'string' \

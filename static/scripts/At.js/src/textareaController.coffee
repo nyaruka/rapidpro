@@ -6,7 +6,7 @@ class TextareaController extends Controller
     content = @$inputor.val()
     caretPos = @$inputor.caret('pos', {iframe: @app.iframe})
     subtext = content.slice(0, caretPos)
-    query = this.callbacks("matcher").call(this, @at, subtext, this.getOpt('escapeChar'), this.getOpt('startWithSpace'))
+    query = this.callbacks("matcher").call(this, @at, subtext, this.getOpt('startWithSpace'))
     if typeof query is "string" and query.length <= this.getOpt('maxLen', 20)
       start = caretPos - query.length
       end = start + query.length
@@ -18,17 +18,6 @@ class TextareaController extends Controller
       @view.hide()
 
     @query = query
-
-  balancePar: ->
-    content = @$inputor.val()
-    caretPos = @$inputor.caret('pos', {iframe: @app.iframe})
-    subtext = content.slice(0, caretPos)
-    if subtext.slice(-1) == '('
-      text = subtext + ')' + content.slice(caretPos + 1)
-      @$inputor.val text
-    @$inputor.caret('pos', caretPos)
-    @$inputor.focus() unless $inputor.is ':focus'
-    @$inputor.change()
 
   # Get offset of current at char(`flag`)
   #
@@ -53,8 +42,6 @@ class TextareaController extends Controller
     content += suffix
     text = "#{startStr}#{content}#{source.slice @query['endPos'] || 0}"
     $inputor.val text
-    insertBackPos = @getOpt 'insertBackPos', 0
-    newPosition = if content.length > insertBackPos then content.length - insertBackPos else 0
-    $inputor.caret('pos', startStr.length + newPosition, {iframe: @app.iframe})
+    $inputor.caret('pos', startStr.length + content.length, {iframe: @app.iframe})
     $inputor.focus() unless $inputor.is ':focus'
     $inputor.change()

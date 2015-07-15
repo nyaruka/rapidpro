@@ -112,8 +112,6 @@ class App
         this.controller()?.view.hide()
       when KEY_CODE.DOWN, KEY_CODE.UP, KEY_CODE.CTRL
         $.noop()
-      when KEY_CODE.NINE
-        this.controller()?.balancePar()
       when KEY_CODE.P, KEY_CODE.N
         this.dispatch e if not e.ctrlKey
       else

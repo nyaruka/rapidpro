@@ -14,7 +14,6 @@ KEY_CODE =
   DOWN:40
   BACKSPACE: 8
   SPACE: 32
-  NINE: 57
 
 # Functions set for handling and rendering the data.
 # Others developers can override these methods to tweak At.js such as matcher.
@@ -46,19 +45,10 @@ DEFAULT_CALLBACKS =
   #                                 so you can match a first and last name, for ex.
   #
   # @return [String | null] Matched result.
-  matcher: (flag, subtext, escapeChar, should_startWithSpace, acceptSpaceBar) ->
+  matcher: (flag, subtext, should_startWithSpace, acceptSpaceBar) ->
     # escape RegExp
-    escapeChar = escapeChar.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&") if escapeChar
     flag = flag.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")
-    escapePrefix = ""
-    if escapeChar and should_startWithSpace
-      escapePrefix = "(?:^|\\s|[^" + escapeChar + "])"
-    else if escapeChar and not should_startWithSpace
-      escapePrefix = "(?:[^" + escapeChar + "]|^)"
-    else if not escapeChar and should_startWithSpace
-      escapePrefix = "(?:^|\\s)"
-
-    flag = escapePrefix + flag
+    flag = '(?:^|\\s)' + flag if should_startWithSpace
 
     # À
     _a = decodeURI("%C3%80")

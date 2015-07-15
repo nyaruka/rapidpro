@@ -31,8 +31,6 @@ $.fn.atwho = (method) ->
 
 $.fn.atwho.default =
   at: undefined
-  escapeChar: undefined
-  insertBackPos:0
   alias: undefined
   data: null
   displayTpl: "<li>${name}</li>"
