@@ -2874,6 +2874,7 @@ class FlowVersion(SmartModel):
                     version_number=self.version_number)
 
 class FlowRun(models.Model):
+    org = models.ForeignKey(Org, related_name='runs')
     flow = models.ForeignKey(Flow, related_name='runs')
 
     contact = models.ForeignKey(Contact, related_name='runs')
@@ -2903,7 +2904,7 @@ class FlowRun(models.Model):
 
     @classmethod
     def create(cls, flow, contact, start=None, call=None, fields=None, created_on=None, db_insert=True):
-        args = dict(flow=flow, contact=contact, start=start, call=call, fields=fields)
+        args = dict(org_id=flow.id, flow=flow, contact=contact, start=start, call=call, fields=fields)
 
         if created_on:
             args['created_on'] = created_on
