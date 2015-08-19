@@ -16,4 +16,16 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(related_name='runs', to='orgs.Org'),
             preserve_default=True,
         ),
+        migrations.AddField(
+            model_name='flowrun',
+            name='modified_on',
+            field=models.DateTimeField(help_text='When this flow run was last updated', auto_now=True, null=True),
+            preserve_default=True,
+        ),
+        migrations.AlterField(
+            model_name='flowrun',
+            name='org',
+            field=models.ForeignKey(related_name='runs', to='orgs.Org', db_index=False),
+            preserve_default=True,
+        ),
     ]
