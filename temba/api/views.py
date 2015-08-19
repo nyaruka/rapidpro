@@ -2166,10 +2166,15 @@ class FlowRunEndpoint(ListAPIMixin, CreateAPIMixin, BaseAPIView):
         if flow_uuids:
             include_flows = include_flows.filter(uuid__in=flow_uuids)
 
-        queryset = queryset.filter(flow__in=include_flows)
+        # if we are filtering by flows, do so
+        if flow_ids or flow_uuids:
+            queryset = queryset.filter(flow__in=include_flows)
+
+        # otherwise, filter by org
+        else:
+            queryset = queryset.filter(org=org)
 
         # other queries on the runs themselves...
-
         runs = splitting_getlist(self.request, 'run')
         if runs:
             queryset = queryset.filter(pk__in=runs)
@@ -2178,7 +2183,7 @@ class FlowRunEndpoint(ListAPIMixin, CreateAPIMixin, BaseAPIView):
         if before:
             try:
                 before = json_date_to_datetime(before)
-                queryset = queryset.filter(created_on__lte=before)
+                queryset = queryset.filter(modified_on__lte=before)
             except:
                 queryset = queryset.filter(pk=-1)
 
@@ -2186,7 +2191,7 @@ class FlowRunEndpoint(ListAPIMixin, CreateAPIMixin, BaseAPIView):
         if after:
             try:
                 after = json_date_to_datetime(after)
-                queryset = queryset.filter(created_on__gte=after)
+                queryset = queryset.filter(modified_on__gte=after)
             except:
                 queryset = queryset.filter(pk=-1)
 
@@ -2211,7 +2216,7 @@ class FlowRunEndpoint(ListAPIMixin, CreateAPIMixin, BaseAPIView):
         # use prefetch rather than select_related for foreign keys flow/contact to avoid joins
         queryset = queryset.prefetch_related('flow', rulesets_prefetch, steps_prefetch, 'steps__messages', 'contact')
 
-        return queryset.order_by('-pk')
+        return queryset.order_by('-modified_on')
 
     @classmethod
     def get_read_explorer(cls):
