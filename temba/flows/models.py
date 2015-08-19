@@ -2873,9 +2873,11 @@ class FlowVersion(SmartModel):
                     id=self.pk,
                     version_number=self.version_number)
 
+
 class FlowRun(models.Model):
-    org = models.ForeignKey(Org, related_name='runs')
-    flow = models.ForeignKey(Flow, related_name='runs')
+    org = models.ForeignKey(Org, related_name='runs', db_index=False)
+
+    flow = models.ForeignKey(Flow, related_name='runs', db_index=False)
 
     contact = models.ForeignKey(Contact, related_name='runs')
 
@@ -2891,13 +2893,14 @@ class FlowRun(models.Model):
     created_on = models.DateTimeField(default=timezone.now,
                                       help_text=_("When this flow run was created"))
 
-    expires_on = models.DateTimeField(blank=True,
-                                      null=True,
+    expires_on = models.DateTimeField(null=True,
                                       help_text=_("When this flow run will expire"))
 
-    expired_on = models.DateTimeField(blank=True,
-                                      null=True,
+    expired_on = models.DateTimeField(null=True,
                                       help_text=_("When this flow run expired"))
+
+    modified_on = models.DateTimeField(auto_now=True, null=True,
+                                       help_text=_("When this flow run was last updated"))
 
     start = models.ForeignKey('flows.FlowStart', null=True, blank=True, related_name='runs',
                               help_text=_("The FlowStart objects that started this run"))
