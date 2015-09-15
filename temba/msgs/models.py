@@ -615,47 +615,63 @@ class Msg(models.Model):
                         push_task(msg.org, MSG_QUEUE, SEND_MSG_TASK, task, priority=task_priority)
 
     @classmethod
-    def process_message(cls, msg):
+    def process_message(cls, msg, from_mage=False, new_contact=False):
         """
         Processes a message, running it through all our handlers
         """
-        handlers = get_message_handlers()
+        from temba.utils.mage import mage_handle_new_message, mage_handle_new_contact
 
-        if msg.contact.is_blocked:
-            msg.visibility = ARCHIVED
-            msg.save(update_fields=['visibility'])
-        else:
-            for handler in handlers:
-                try:
-                    start = None
-                    if settings.DEBUG:
-                        start = time.time()
+        try:
+            with transaction.atomic():
+                # if message was created in Mage, perform our extra tasks
+                if from_mage:
+                    mage_handle_new_message(msg.org, msg)
+                    if new_contact:
+                        mage_handle_new_contact(msg.org, msg.contact)
 
-                    handled = handler.handle(msg)
+                handlers = get_message_handlers()
 
-                    if start:
-                        print "[%0.2f] %s for %d" % (time.time() - start, handler.name, msg.pk)
+                if msg.contact.is_blocked:
+                    msg.visibility = ARCHIVED
+                    msg.save(update_fields=['visibility'])
+                else:
+                    for handler in handlers:
+                        start = None
+                        if settings.DEBUG:
+                            start = time.time()
 
-                    if handled:
-                        break
-                except Exception as e:  # pragma: no cover
-                    import traceback
-                    traceback.print_exc(e)
-                    logger.exception("Error in message handling: %s" % e)
+                        handled = handler.handle(msg)
 
-        cls.mark_handled(msg)
+                        if start:
+                            print "[%0.2f] %s for %d" % (time.time() - start, handler.name, msg.pk)
 
-        # if this is an inbox message, increment our unread inbox count
-        if msg.msg_type == INBOX:
-            msg.org.increment_unread_msg_count(UNREAD_INBOX_MSGS)
+                        if handled:
+                            break
 
-        # record our handling latency for this object
-        if msg.queued_on:
-            analytics.track("System", "temba.handling_latency", properties=dict(value=(msg.delivered_on - msg.queued_on).total_seconds()))
+                cls.mark_handled(msg)
 
-        # this is the latency from when the message was received at the channel, which may be different than
-        # above if people above us are queueing (or just because clocks are out of sync)
-        analytics.track("System", "temba.channel_handling_latency", properties=dict(value=(msg.delivered_on - msg.created_on).total_seconds()))
+                # if this is an inbox message, increment our unread inbox count
+                if msg.msg_type == INBOX:
+                    msg.org.increment_unread_msg_count(UNREAD_INBOX_MSGS)
+
+                # record our handling latency for this object
+                if msg.queued_on:
+                    analytics.track("System", "temba.handling_latency",
+                                    properties=dict(value=(msg.delivered_on - msg.queued_on).total_seconds()))
+
+                # this is the latency from when the message was received at the channel, which may be different than
+                # above if people above us are queueing (or just because clocks are out of sync)
+                analytics.track("System", "temba.channel_handling_latency",
+                                properties=dict(value=(msg.delivered_on - msg.created_on).total_seconds()))
+
+        except Exception as e:
+            # we threw somewhere in our message handling, this may just be temporary. Set our queued time
+            # to five minutes in the future so we get requeued later
+            msg.queued_on = timezone.now() + timedelta(minutes=5)
+            msg.save()
+
+            # bubble up our exception
+            raise e
 
     @classmethod
     def get_messages(cls, org, is_archived=False, direction=None, msg_type=None):

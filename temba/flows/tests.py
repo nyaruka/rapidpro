@@ -18,7 +18,7 @@ from redis_cache import get_redis_connection
 from smartmin.tests import SmartminTest
 from temba.contacts.models import Contact, ContactGroup, ContactField, TEL_SCHEME
 from temba.msgs.models import Broadcast, Label, Msg, INCOMING, SMS_NORMAL_PRIORITY, SMS_HIGH_PRIORITY, PENDING, FLOW
-from temba.msgs.models import OUTGOING
+from temba.msgs.models import OUTGOING, HANDLED
 from temba.orgs.models import Org, Language
 from temba.tests import TembaTest, MockResponse, FlowFileTest, uuid
 from temba.triggers.models import Trigger, FOLLOW_TRIGGER, CATCH_ALL_TRIGGER, MISSED_CALL_TRIGGER, INBOUND_CALL_TRIGGER
@@ -3609,6 +3609,39 @@ class DuplicateValueTest(FlowFileTest):
         value = Value.objects.get(run=run)
         self.assertEquals("Red", value.category)
 
+class HandlingExceptionTest(FlowFileTest):
+
+    def test_handling_exception(self):
+        # this flow has three main actions:
+        # 1) sends a message
+        # 2) adds the contact to a group
+        # 3) updates the contact's name
+        flow = self.get_flow('exception')
+
+        # we want to make sure that none of those take place if the third action blows up
+
+        # patch contact update_value to blow up
+        with patch.object(ContactField, 'get_or_create') as mock:
+            mock.side_effect = Exception("Kabooom")
+
+            # create our incoming message, we don't use pending because we want to trigger handling manually
+            msg1 = Msg.create_incoming(self.channel, ('tel', self.contact.get_urn().path), "exception", status=HANDLED)
+
+            # handle it, this will throw
+            try:
+                Msg.process_message(msg1)
+                self.fail("Message processing should have thrown")
+            except:
+                msg1 = Msg.objects.get(id=msg1.id)
+
+                # now assert that our contact hasn't been added to any groups
+                self.assertFalse(self.contact.user_groups.all())
+
+                # and that our message is scheduled to be queued in the future
+                self.assertTrue(msg1.queued_on > timezone.now())
+
+                # and that there is no outgoing mesage
+                self.assertFalse(Msg.objects.filter(direction=OUTGOING))
 
 class WebhookLoopTest(FlowFileTest):
 

@@ -1,0 +1,61 @@
+{
+  "version": 5, 
+  "flows": [
+    {
+      "definition": {
+        "base_language": "eng", 
+        "action_sets": [
+          {
+            "y": 0, 
+            "x": 100, 
+            "destination": null, 
+            "uuid": "b83f6247-379c-4a73-a28a-c11530acf1bc", 
+            "actions": [
+              {
+                "msg": {
+                  "eng": "You are now part of the group!"
+                }, 
+                "type": "reply"
+              }, 
+              {
+                "type": "add_group", 
+                "groups": [
+                  {
+                    "name": "Exceptions", 
+                    "id": 40746
+                  }
+                ]
+              }, 
+              {
+                "field": "nickname",
+                "type": "save", 
+                "value": "Exception!", 
+                "label": "Contact Nickname"
+              }
+            ]
+          }
+        ], 
+        "last_saved": "2015-08-20T15:41:46.225385Z", 
+        "entry": "b83f6247-379c-4a73-a28a-c11530acf1bc", 
+        "rule_sets": [], 
+        "metadata": {}
+      }, 
+      "expires": 10080, 
+      "id": 35389, 
+      "flow_type": "F", 
+      "name": "Exception Flow"
+    }
+  ], 
+  "triggers": [
+    {
+      "trigger_type": "K", 
+      "flow": {
+        "name": "Exception Flow", 
+        "id": 35389
+      }, 
+      "groups": [], 
+      "keyword": "exception", 
+      "channel": null
+    }
+  ]
+}
