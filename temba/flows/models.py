@@ -158,7 +158,7 @@ class Flow(TembaModel, SmartModel):
     RULESET_TYPE = 'ruleset_type'
     OPERAND = 'operand'
     METADATA = 'metadata'
-    LAST_SAVED = 'last_saved'
+    SAVED_ON = 'saved_on'
     BASE_LANGUAGE = 'base_language'
     SAVED_BY = 'saved_by'
     VERSION = 'version'
@@ -1913,8 +1913,6 @@ class Flow(TembaModel, SmartModel):
         else:
             flow[Flow.METADATA] = json.loads(self.metadata)
 
-        flow[Flow.LAST_SAVED] = datetime_to_str(self.saved_on)
-
         if self.base_language:
             flow[Flow.BASE_LANGUAGE] = self.base_language
 
@@ -2001,7 +1999,7 @@ class Flow(TembaModel, SmartModel):
                 self.update(json_flow)
                 # TODO: After Django 1.8 consider doing a self.refresh_from_db() here
 
-    def update(self, json_dict, user=None, force=False):
+    def update(self, json_dict, user=None, force=False, saved_on=None):
         """
         Updates a definition for a flow.
         """
@@ -2021,11 +2019,7 @@ class Flow(TembaModel, SmartModel):
         try:
             # check whether the flow has changed since this flow was last saved
             if user and not force:
-                saved_on = json_dict.get(Flow.LAST_SAVED, None)
-                org = user.get_org()
-                tz = org.get_tzinfo()
-
-                if not saved_on or str_to_datetime(saved_on, tz) < self.saved_on:
+                if saved_on and saved_on < self.saved_on:
                     saver = ""
                     if self.saved_by.first_name:
                         saver += "%s " % self.saved_by.first_name

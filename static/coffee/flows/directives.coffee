@@ -149,7 +149,7 @@ app.directive "action", [ "Plumb", "Flow", "$log", (Plumb, Flow, $log) ->
       action._missingTranslation = false
       # grab the appropriate translated version
 
-      iso_code = Flow.flow.base_language
+      iso_code = Flow.flow.definition.base_language
       if currentLanguage
         iso_code = currentLanguage.iso_code
 
@@ -178,13 +178,13 @@ app.directive "action", [ "Plumb", "Flow", "$log", (Plumb, Flow, $log) ->
     scope.$watch (->scope.action.dirty), (current) ->
       if current
         scope.action.dirty = false
-        scope.updateTranslationStatus(scope.action, Flow.flow.base_language, Flow.language)
+        scope.updateTranslationStatus(scope.action, Flow.flow.definition.base_language, Flow.language)
 
     scope.$watch (->scope.action), ->
-        scope.updateTranslationStatus(scope.action, Flow.flow.base_language, Flow.language)
+        scope.updateTranslationStatus(scope.action, Flow.flow.definition.base_language, Flow.language)
 
     scope.$watch (->Flow.language), ->
-      scope.updateTranslationStatus(scope.action, Flow.flow.base_language, Flow.language)
+      scope.updateTranslationStatus(scope.action, Flow.flow.definition.base_language, Flow.language)
 
 
   return {
@@ -268,11 +268,11 @@ app.directive "ruleset", [ "Plumb", "Flow", "$log", (Plumb, Flow, $log) ->
       Plumb.repaint(element)
 
     scope.$watch (->scope.ruleset), ->
-      scope.updateTranslationStatus(scope.ruleset, Flow.flow.base_language, Flow.language)
+      scope.updateTranslationStatus(scope.ruleset, Flow.flow.definition.base_language, Flow.language)
       Plumb.updateConnections(scope.ruleset)
 
     scope.$watch (->Flow.language), ->
-      scope.updateTranslationStatus(scope.ruleset, Flow.flow.base_language, Flow.language)
+      scope.updateTranslationStatus(scope.ruleset, Flow.flow.definition.base_language, Flow.language)
 
 
 

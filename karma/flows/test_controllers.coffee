@@ -107,7 +107,7 @@ describe 'Controllers:', ->
       flowService.contactFieldSearch = []
 
       flowService.fetch(flows.webhook_rule_first.id).then ->
-        actionset = flowService.flow.action_sets[0]
+        actionset = flowService.flow.definition.action_sets[0]
         $scope.clickAction(actionset, actionset.actions[0])
         expect($scope.dialog).not.toBe(undefined)
 
@@ -122,14 +122,14 @@ describe 'Controllers:', ->
 
       $http.flush()
 
-    it 'should ruleset category translation', ->
+    it 'should peform ruleset category translation', ->
 
       # go grab our flow
       flowService.fetch(flows.webhook_rule_first.id)
       flowService.contactFieldSearch = []
       $http.flush()
 
-      ruleset = flowService.flow.rule_sets[0]
+      ruleset = flowService.flow.definition.rule_sets[0]
       $scope.clickRuleset(ruleset)
       $scope.dialog.opened.then ->
         modalScope = $modalStack.getTop().value.modalScope
@@ -166,7 +166,7 @@ describe 'Controllers:', ->
           if ruleset.type == type
             return ruleset
 
-      ruleset = flowService.flow.rule_sets[0]
+      ruleset = flowService.flow.definition.rule_sets[0]
       $scope.clickRuleset(ruleset)
       $scope.dialog.opened.then ->
         modalScope = $modalStack.getTop().value.modalScope
@@ -208,7 +208,7 @@ describe 'Controllers:', ->
           if action.type == type
             return action
 
-      actionset = flowService.flow.action_sets[0]
+      actionset = flowService.flow.definition.action_sets[0]
       action = actionset.actions[0]
       $scope.clickAction(actionset, action)
 

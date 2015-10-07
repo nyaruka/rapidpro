@@ -205,21 +205,21 @@
       %h2
         -if flow.flow_type == 'V'
           .icon-phone
-        {{ flow.name }}
+        [[ flow.name ]]
 
       #pending{ng-show:'pending == "S" || pending == "P"'}
         %div{class:"alert alert-info"}
           -blocktrans
             This flow is in the process of being sent, this message will disappear once all contacts have been added to the flow.
 
-      .languages{ng-show:'languages.length > 1 && flow.base_language && (flow.action_sets.length + flow.rule_sets.length) > 0'}
+      .languages{ng-show:'languages.length > 1 && flow.definition.base_language && (flow.definition.action_sets.length + flow.definition.rule_sets.length) > 0'}
         <span ng-repeat="lang in languages">
           <a href="javascript:void(0);" class='language' ng-class='{active:lang.iso_code == language.iso_code}' ng-click="setLanguage(lang)">[[lang.name]]</a>
           <span ng-hide='$last'>|</span>
         </span>
 
         .translated
-          %span.pct{ng-show:'flow.base_language != language.iso_code'}
+          %span.pct{ng-show:'flow.definition.base_language != language.iso_code'}
             [[flow._pctTranslated]]% translated
 
     #status.hide
@@ -235,7 +235,7 @@
 
       #flow{ class:'{% if not mutable %}readonly{%endif%}'}
 
-        .empty{ng-show:'flow.action_sets.length + flow.rule_sets.length == 0'}
+        .empty{ng-show:'flow.definition.action_sets.length + flow.definition.rule_sets.length == 0'}
 
           .option
             %h4
@@ -296,14 +296,14 @@
                 .category
                   All Responses
 
-        .node{ng-repeat:'action_set in flow.action_sets', drop-scope:'[[getAcceptedScopes("actionset")]]', node:'action_set', ng-dblclick:'$event.stopPropagation()',
+        .node{ng-repeat:'action_set in flow.definition.action_sets', drop-scope:'[[getAcceptedScopes("actionset")]]', node:'action_set', ng-dblclick:'$event.stopPropagation()',
                ng-attr-id:'[[action_set.uuid]]', class:'action-node', ng-class:'{recents:action_set._showMessages, translate:lastActionMissingTranslation(action_set)}',
                ng-style:"{left:action_set.x, top:action_set.y}"}
 
           .active{ng-show:'action_set._active > 0', ng-click:'broadcastToStep(action_set.uuid)'}
             [[action_set._active|number]]
 
-          .flow-start{ng-show:'action_set.uuid == flow.entry'}
+          .flow-start{ng-show:'action_set.uuid == flow.definition.entry'}
             -trans "Flow Start"
 
           .actions{ actionset:'action_set', ng-animate:'"animate"'}
@@ -425,7 +425,7 @@
               [[action_set._visited|number]]
 
 
-        .node{ng-repeat:'ruleset in flow.rule_sets track by ruleset.uuid',
+        .node{ng-repeat:'ruleset in flow.definition.rule_sets track by ruleset.uuid',
               node:'ruleset', drop-scope:'[[getAcceptedScopes("ruleset")]]', ng-dblclick:'$event.stopPropagation()',
               class:'rule-node', ng-attr-id:'[[ruleset.uuid]]',
               ng-class:"{recents:ruleset._showMessages}",
@@ -434,7 +434,7 @@
           .active{ng-show:'ruleset._active > 0', ng-click:'broadcastToStep(ruleset.uuid)'}
             [[ruleset._active|number]]
 
-          .flow-start{ng-show:'ruleset.uuid == flow.entry'}
+          .flow-start{ng-show:'ruleset.uuid == flow.definition.entry'}
             -trans "Flow Start"
 
 
@@ -496,10 +496,7 @@
                   .count{ng-mouseover:'showRecentMessages()', ng-mouseleave:'hideRecentMessages();'}
                     [[category._visited|number]]
 
-
-
-
-        .note{ng-dblclick:'$event.stopPropagation();', ng-repeat:'note in flow.metadata.notes', note:'note'}
+        .note{ng-dblclick:'$event.stopPropagation();', ng-repeat:'note in flow.definition.metadata.notes', note:'note'}
           %a.close{ng-click:'removeNote(note);'}
             .glyph.icon-close
           %textarea.msd-elastic.title.note-input{ng-model:'note.title'}

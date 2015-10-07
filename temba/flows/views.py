@@ -31,7 +31,7 @@ from temba.flows.tasks import export_flow_results_task
 from temba.msgs.models import Msg, VISIBLE, INCOMING, OUTGOING
 from temba.msgs.views import BaseActionForm
 from temba.triggers.models import Trigger, KEYWORD_TRIGGER
-from temba.utils import analytics, build_json_response, percentage, datetime_to_str
+from temba.utils import analytics, build_json_response, percentage, datetime_to_str, str_to_datetime
 from temba.values.models import Value, STATE, DISTRICT
 from .models import FlowStep, RuleSet, ActionLog, ExportFlowResultsTask, FlowLabel, COMPLETE, FAILED, FlowStart
 
@@ -1191,7 +1191,16 @@ class FlowCRUDL(SmartCRUDL):
             # all the translation languages for our org
             languages = [lang.as_json() for lang in flow.org.languages.all().order_by('orgs')]
 
-            flow_json = dict(name=flow.name, flow_type=flow.flow_type, definition=flow.as_json(expand_contacts=True))
+            # determine which version we are on
+            version = flow.versions.all().order_by('-version').first()
+            version = version.version if version else 1
+
+            flow_json = dict(name=flow.name,
+                             flow_type=flow.flow_type,
+                             saved_on=datetime_to_str(flow.saved_on),
+                             version=version,
+                             definition=flow.as_json(expand_contacts=True))
+
             return build_json_response(dict(flow=flow_json, languages=languages))
 
         def post(self, request, *args, **kwargs):
@@ -1209,9 +1218,16 @@ class FlowCRUDL(SmartCRUDL):
             json_dict = json.loads(json_string)
             print json.dumps(json_dict, indent=2)
 
+            saved_on = json_dict.get(Flow.SAVED_ON, None)
+            if saved_on:
+                saved_on = str_to_datetime(saved_on, self.org.get_tzinfo())
+
             from temba.flows.models import FlowException
             try:
-                response_data = self.get_object(self.get_queryset()).update(json_dict, user=self.request.user)
+                response_data = self.get_object(self.get_queryset()).update(json_dict['definition'],
+                                                                            user=self.request.user,
+                                                                            saved_on=saved_on)
+                print response_data
                 return build_json_response(response_data, status=200)
             except FlowException as e:
                 return build_json_response(dict(status="failure", description=str(e)), status=400)
