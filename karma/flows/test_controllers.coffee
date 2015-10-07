@@ -35,7 +35,9 @@ describe 'Controllers:', ->
       $http.whenPOST('/flow/json/' + config.id + '/').respond()
       $http.whenGET('/flow/json/' + config.id + '/').respond(
         {
-          flow: getJSONFixture(file + '.json').flows[0].definition,
+          flow:
+            definition: getJSONFixture(file + '.json').flows[0].definition
+            flow_type: getJSONFixture(file + '.json').flows[0].flow_type
           languages: config.languages
         }
       )
@@ -105,7 +107,7 @@ describe 'Controllers:', ->
       flowService.contactFieldSearch = []
 
       flowService.fetch(flows.webhook_rule_first.id).then ->
-        actionset = flowService.flow.action_sets[0]
+        actionset = flowService.flow.definition.action_sets[0]
         $scope.clickAction(actionset, actionset.actions[0])
         expect($scope.dialog).not.toBe(undefined)
 
@@ -120,14 +122,14 @@ describe 'Controllers:', ->
 
       $http.flush()
 
-    it 'should ruleset category translation', ->
+    it 'should peform ruleset category translation', ->
 
       # go grab our flow
       flowService.fetch(flows.webhook_rule_first.id)
       flowService.contactFieldSearch = []
       $http.flush()
 
-      ruleset = flowService.flow.rule_sets[0]
+      ruleset = flowService.flow.definition.rule_sets[0]
       $scope.clickRuleset(ruleset)
       $scope.dialog.opened.then ->
         modalScope = $modalStack.getTop().value.modalScope
@@ -164,10 +166,12 @@ describe 'Controllers:', ->
           if ruleset.type == type
             return ruleset
 
-      ruleset = flowService.flow.rule_sets[0]
+      ruleset = flowService.flow.definition.rule_sets[0]
       $scope.clickRuleset(ruleset)
       $scope.dialog.opened.then ->
         modalScope = $modalStack.getTop().value.modalScope
+
+
 
         expect(modalScope.isVisibleRulesetType(getRuleConfig('wait_message'))).toBe(true)
         expect(modalScope.isVisibleRulesetType(getRuleConfig('webhook'))).toBe(true)
@@ -178,13 +182,13 @@ describe 'Controllers:', ->
         expect(modalScope.isVisibleRulesetType(getRuleConfig('wait_recording'))).toBe(false)
 
         # now pretend we are a voice flow
-        flowService.flow.type = 'V'
+        flowService.flow.flow_type = 'V'
         expect(modalScope.isVisibleRulesetType(getRuleConfig('wait_digits'))).toBe(true)
         expect(modalScope.isVisibleRulesetType(getRuleConfig('wait_digit'))).toBe(true)
         expect(modalScope.isVisibleRulesetType(getRuleConfig('wait_recording'))).toBe(true)
 
         # and now a survey flow
-        flowService.flow.type = 'S'
+        flowService.flow.flow_type = 'S'
         expect(modalScope.isVisibleRulesetType(getRuleConfig('wait_message'))).toBe(true)
         expect(modalScope.isVisibleRulesetType(getRuleConfig('wait_digits'))).toBe(false)
         expect(modalScope.isVisibleRulesetType(getRuleConfig('webhook'))).toBe(false)
@@ -204,7 +208,7 @@ describe 'Controllers:', ->
           if action.type == type
             return action
 
-      actionset = flowService.flow.action_sets[0]
+      actionset = flowService.flow.definition.action_sets[0]
       action = actionset.actions[0]
       $scope.clickAction(actionset, action)
 
@@ -219,14 +223,14 @@ describe 'Controllers:', ->
         expect(modalScope.validActionFilter(getAction('api'))).toBe(true)
 
         # pretend we are a voice flow
-        flowService.flow.type = 'V'
+        flowService.flow.flow_type = 'V'
         expect(modalScope.validActionFilter(getAction('reply'))).toBe(true)
         expect(modalScope.validActionFilter(getAction('say'))).toBe(true)
         expect(modalScope.validActionFilter(getAction('play'))).toBe(true)
         expect(modalScope.validActionFilter(getAction('api'))).toBe(true)
 
         # now try a survey
-        flowService.flow.type = 'S'
+        flowService.flow.flow_type = 'S'
         expect(modalScope.validActionFilter(getAction('reply'))).toBe(true)
         expect(modalScope.validActionFilter(getAction('say'))).toBe(false)
         expect(modalScope.validActionFilter(getAction('play'))).toBe(false)

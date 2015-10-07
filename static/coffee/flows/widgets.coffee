@@ -27,7 +27,7 @@ app.directive "sms", [ "$log", "Flow", ($log, Flow) ->
     scope.message = scope.sms
 
     if scope.sms
-      localized = scope.sms[Flow.flow.base_language]
+      localized = scope.sms[Flow.flow.definition.base_language]
       if localized?
         scope.message = localized
 

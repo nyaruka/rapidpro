@@ -2,11 +2,11 @@ gettext = (text) ->
   return text
 
 getNode = (flow, uuid) ->
-  for actionset in flow.action_sets
+  for actionset in flow.definition.action_sets
     if actionset.uuid == uuid
       return actionset
 
-  for ruleset in flow.rule_sets
+  for ruleset in flow.definition.rule_sets
     if ruleset.uuid == uuid
       return ruleset
 

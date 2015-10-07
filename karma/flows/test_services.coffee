@@ -23,7 +23,9 @@ describe 'Services:', ->
 
       $http.whenGET('/flow/json/' + config.id + '/').respond(
         {
-          flow: getJSONFixture(file + '.json').flows[0].definition,
+          flow:
+            definition: getJSONFixture(file + '.json').flows[0].definition
+            flow_type: getJSONFixture(file + '.json').flows[0].flow_type
           languages: config.languages
         }
       )
@@ -65,13 +67,13 @@ describe 'Services:', ->
         flow = flowService.flow
 
         # our entry should already be set from reading in the file
-        expect(flow.entry).toBe('127f3736-77ce-4006-9ab0-0c07cea88956')
+        expect(flow.definition.entry).toBe('127f3736-77ce-4006-9ab0-0c07cea88956')
 
         # now determine the start point
         flowService.determineFlowStart()
 
         # it shouldn't have changed from what we had
-        expect(flow.entry).toBe('127f3736-77ce-4006-9ab0-0c07cea88956')
+        expect(flow.definition.entry).toBe('127f3736-77ce-4006-9ab0-0c07cea88956')
 
         # now let's move our entry node down
         entry = getNode(flow, '127f3736-77ce-4006-9ab0-0c07cea88956')
@@ -79,7 +81,7 @@ describe 'Services:', ->
         flowService.determineFlowStart()
 
         # our 'other' action set is now the top
-        expect(flow.entry).toBe('f9adf38f-ab18-49d3-a8ac-db2fe8f1e77f')
+        expect(flow.definition.entry).toBe('f9adf38f-ab18-49d3-a8ac-db2fe8f1e77f')
 
       $http.flush()
 
@@ -196,7 +198,7 @@ describe 'Services:', ->
         flowService.fetch(flows.loop_detection.id).then ->
           # derive all our categories
           flow = flowService.flow
-          for ruleset in flow.rule_sets
+          for ruleset in flow.definition.rule_sets
             flowService.deriveCategories(ruleset, 'eng')
         $http.flush()
 
@@ -241,7 +243,7 @@ describe 'Services:', ->
         expect(allowed).toBe(true, "Failed to allow legitimately branched connection")
 
       it 'should detect arbitrary expression pause', ->
-        for ruleset in flow.rule_sets
+        for ruleset in flow.definition.rule_sets
           if ruleset.uuid == messageSplitA
             ruleset.operand = '=(step.value= contact.last_four_digit)'
             ruleset.ruleset_type = 'wait_message'
@@ -324,7 +326,7 @@ describe 'Services:', ->
         flowService.fetch(flows.favorites.id).then ->
           # derive all our categories
           flow = flowService.flow
-          for ruleset in flow.rule_sets
+          for ruleset in flow.definition.rule_sets
             flowService.deriveCategories(ruleset, 'base')
         $http.flush()
 
@@ -375,6 +377,7 @@ describe 'Services:', ->
 
         # check we have the right number of categories to start
         colors = getNode(flow, colorRulesId)
+        expect(colors._categories).not.toBe(undefined)
         expect(colors._categories.length).toBe(4, 'categories were not derived properly')
 
         # now set the green category name to the same as red

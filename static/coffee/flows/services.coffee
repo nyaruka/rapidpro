@@ -489,13 +489,13 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
             topNode = node
 
       # check each node to see if they are the top
-      for actionset in @flow.action_sets
+      for actionset in @flow.definition.action_sets
         checkTop(actionset)
-      for ruleset in @flow.rule_sets
+      for ruleset in @flow.definition.rule_sets
         checkTop(ruleset)
 
       if topNode
-        @flow.entry = topNode.uuid
+        @flow.definition.entry = topNode.uuid
 
     Flow = @
     $rootScope.$watch (->Flow.dirty), (current, prev) ->
@@ -530,7 +530,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
           $log.debug("Saving.")
 
           if $rootScope.saved_on
-            Flow.flow['last_saved'] = $rootScope.saved_on
+            Flow.flow['saved_on'] = $rootScope.saved_on
 
           $http.post('/flow/json/' + Flow.flowId + '/', utils.toJson(Flow.flow)).error (data, statusCode) ->
 
@@ -599,11 +599,11 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
 
     getNode: (uuid) ->
-      for actionset in @flow.action_sets
+      for actionset in @flow.definition.action_sets
         if actionset.uuid == uuid
           return actionset
 
-      for ruleset in @flow.rule_sets
+      for ruleset in @flow.definition.rule_sets
         if ruleset.uuid == uuid
           return ruleset
 
@@ -670,8 +670,8 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
       # find our unique set of keys
       flowFields = {}
-      if @flow
-        for ruleset in @flow.rule_sets
+      if @flow.definition
+        for ruleset in @flow.definition.rule_sets
           if ruleset.uuid != excludeRuleset?.uuid
             flowFields[@slugify(ruleset.label)] = ruleset.label
 
@@ -815,7 +815,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
       # its a rule source
       if source.length > 1
-        for ruleset in Flow.flow.rule_sets
+        for ruleset in Flow.flow.definition.rule_sets
           if ruleset.uuid == source[0]
 
             # find the category we are updating
@@ -838,7 +838,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
       # its an action source
       else
         # keep our destination up to date
-        for actionset in Flow.flow.action_sets
+        for actionset in Flow.flow.definition.action_sets
           if actionset.uuid == source[0]
             actionset.destination = target
             Plumb.updateConnection(actionset)
@@ -873,10 +873,8 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
         flow = data.flow
 
-        flow.type = window.flow_type
-
         # add uuids for the individual actions, need this for the UI
-        for actionset in flow.action_sets
+        for actionset in flow.definition.action_sets
           for action in actionset.actions
             action.uuid = uuid()
 
@@ -884,24 +882,24 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
         # show our base language first
         for lang in data.languages
-          if lang.iso_code == flow.base_language
+          if lang.iso_code == flow.definition.base_language
             languages.push(lang)
             Flow.language = lang
 
         for lang in data.languages
-          if lang.iso_code != flow.base_language
+          if lang.iso_code != flow.definition.base_language
             languages.push(lang)
 
         # if they don't have our base language in the org, force ourselves as the default
-        if not Flow.language and flow.base_language
+        if not Flow.language and flow.definition.base_language
           Flow.language =
-            iso_code: flow.base_language
+            iso_code: flow.definition.base_language
 
         # if we have language choices, make sure our base language is one of them
         if languages
-          if flow.base_language not in (lang.iso_code for lang in languages)
+          if flow.definition.base_language not in (lang.iso_code for lang in languages)
             languages.unshift
-              iso_code:flow.base_language
+              iso_code:flow.definition.base_language
               name: gettext('Default')
 
         Flow.languages = languages
@@ -952,13 +950,13 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
       if not ruleset.operand
         ruleset.operand = '@step.value'
 
-      for previous, idx in Flow.flow.rule_sets
+      for previous, idx in Flow.flow.definition.rule_sets
         if ruleset.uuid == previous.uuid
 
           # group our rules by category and update the master ruleset
-          @deriveCategories(ruleset, Flow.flow.base_language)
+          @deriveCategories(ruleset, Flow.flow.definition.base_language)
 
-          Flow.flow.rule_sets.splice(idx, 1, ruleset)
+          Flow.flow.definition.rule_sets.splice(idx, 1, ruleset)
           found = true
 
           if markDirty
@@ -966,7 +964,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
           break
 
       if not found
-        Flow.flow.rule_sets.push(ruleset)
+        Flow.flow.definition.rule_sets.push(ruleset)
         if markDirty
           @markDirty()
 
@@ -980,16 +978,17 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
       if @language
         # look at all translatable bits in our flow and check for completeness
         flow = @flow
+
         items = 0
         missing = 0
-        for actionset in flow.action_sets
+        for actionset in flow.definition.action_sets
           for action in actionset.actions
             if action.type in ['send', 'reply', 'say']
               items++
               if action._missingTranslation
                 missing++
 
-        for ruleset in flow.rule_sets
+        for ruleset in flow.definition.rule_sets
           for category in ruleset._categories
               items++
               if category._missingTranslation
@@ -999,7 +998,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
         flow._pctTranslated = (Math.floor(((items - missing) / items) * 100))
         flow._missingTranslation = items > 0
 
-        if flow._pctTranslated == 100 and flow.base_language != @language.iso_code
+        if flow._pctTranslated == 100 and flow.definition.base_language != @language.iso_code
           $rootScope.gearLinks = [
             {
               title: 'Default Language'
@@ -1024,7 +1023,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
       DragHelper.hide()
 
-      flow = Flow.flow
+      definition = Flow.flow.definition
 
       Flow = @
       # disconnect all of our connections to and from the node
@@ -1036,9 +1035,9 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
           Flow.updateDestination(source, null)
 
         # then remove us
-        for rs, idx in flow.rule_sets
+        for rs, idx in definition.rule_sets
           if rs.uuid == ruleset.uuid
-            flow.rule_sets.splice(idx, 1)
+            definition.rule_sets.splice(idx, 1)
             break
       ,0
 
@@ -1046,18 +1045,18 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
     addNote: (x, y) ->
 
-      if not Flow.flow.metadata.notes
-        Flow.flow.metadata.notes = []
+      if not Flow.flow.definition.metadata.notes
+        Flow.flow.definition.metadata.notes = []
 
-      Flow.flow.metadata.notes.push
+      Flow.flow.definition.metadata.notes.push
         x: x
         y: y
         title: 'New Note'
         body: '...'
 
     removeNote: (note) ->
-      idx = Flow.flow.metadata.notes.indexOf(note)
-      Flow.flow.metadata.notes.splice(idx, 1)
+      idx = Flow.flow.definition.metadata.notes.indexOf(note)
+      Flow.flow.definition.metadata.notes.splice(idx, 1)
       @markDirty()
 
     moveActionUp: (actionset, action) ->
@@ -1068,7 +1067,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
 
     removeActionSet: (actionset) ->
-      flow = Flow.flow
+      definition = Flow.flow.definition
 
       service = @
       # disconnect all of our connections to and from action node
@@ -1081,9 +1080,9 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
         # disconnect our connections, then remove it from the flow
         # Plumb.disconnectAllConnections(actionset.uuid)
-        for as, idx in flow.action_sets
+        for as, idx in definition.action_sets
           if as.uuid == actionset.uuid
-            flow.action_sets.splice(idx, 1)
+            definition.action_sets.splice(idx, 1)
             break
       ,0
 
@@ -1166,17 +1165,17 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
       # finally see if our actionset exists or if it needs to be added
       found = false
-      for as in Flow.flow.action_sets
+      for as in Flow.flow.definition.action_sets
         if as.uuid == actionset.uuid
           found = true
           break
 
       if not found
-        Flow.flow.action_sets.push(actionset)
+        Flow.flow.definition.action_sets.push(actionset)
 
-      if Flow.flow.action_sets.length == 1
+      if Flow.flow.definition.action_sets.length == 1
         $timeout ->
-          DragHelper.showSaveResponse($('#' + Flow.flow.action_sets[0].uuid + ' .source'))
+          DragHelper.showSaveResponse($('#' + Flow.flow.definition.action_sets[0].uuid + ' .source'))
         ,0
 
       @checkTerminal(actionset)

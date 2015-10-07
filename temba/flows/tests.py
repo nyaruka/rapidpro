@@ -100,8 +100,7 @@ class RuleTest(TembaTest):
         self.assertEquals(1, versions[0].version)
 
         # create a new update
-        self.definition['last_saved'] = response['saved_on']
-        self.flow.update(self.definition, user=self.admin)
+        self.flow.update(self.definition, user=self.admin, saved_on=str_to_datetime(response['saved_on'], self.org.get_tzinfo()))
         versions = self.flow.versions.all().order_by('created_on')
 
         # now we should have two revisions
@@ -546,8 +545,6 @@ class RuleTest(TembaTest):
         json_dict = self.flow.as_json()
 
         self.maxDiff = None
-        self.definition['last_saved'] = datetime_to_str(self.flow.saved_on)
-
         self.assertEquals(json_dict, self.definition)
 
         # remove one of our actions and rules
@@ -1620,11 +1617,13 @@ class RuleTest(TembaTest):
         response = self.client.get(reverse('flows.flow_json', args=[flow.pk]))
         json_dict = json.loads(response.content)['flow']
 
+        definition = json_dict['definition']
+
         # test setting the json
-        json_dict['action_sets'] = [dict(uuid=uuid(1), x=1, y=1, destination=None,
+        definition['action_sets'] = [dict(uuid=uuid(1), x=1, y=1, destination=None,
                                          actions=[dict(type='reply', msg=dict(base='This flow is more like a broadcast'))])]
-        json_dict['rule_sets'] = []
-        json_dict['entry'] = uuid(1)
+        definition['rule_sets'] = []
+        definition['entry'] = uuid(1)
 
         response = self.client.post(reverse('flows.flow_json', args=[flow.pk]), json.dumps(json_dict), content_type="application/json")
         self.assertEquals(200, response.status_code)
@@ -1634,8 +1633,8 @@ class RuleTest(TembaTest):
         self.assertEquals(actionset.flow, flow)
 
         # can't save with an invalid uuid
-        json_dict['last_saved'] = datetime_to_str(timezone.now())
-        json_dict['action_sets'][0]['destination'] = 'notthere'
+        json_dict['saved_on'] = datetime_to_str(timezone.now())
+        definition['action_sets'][0]['destination'] = 'notthere'
 
         response = self.client.post(reverse('flows.flow_json', args=[flow.pk]), json.dumps(json_dict), content_type="application/json")
         self.assertEquals(400, response.status_code)
@@ -2444,6 +2443,7 @@ class FlowsTest(FlowFileTest):
 
     def test_write_protection(self):
         flow = self.get_flow('favorites')
+        original_saved_on = flow.saved_on
         flow_json = flow.as_json()
 
         # saving should work
@@ -2451,7 +2451,7 @@ class FlowsTest(FlowFileTest):
         self.assertEquals(response.get('status'), 'success')
 
         # but if we save from in the past after our save it should fail
-        response = flow.update(flow_json, self.admin)
+        response = flow.update(flow_json, self.admin, saved_on=original_saved_on)
         self.assertEquals(response.get('status'), 'unsaved')
 
     def test_get_columns_order(self):

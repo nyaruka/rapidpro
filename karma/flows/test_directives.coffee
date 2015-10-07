@@ -21,12 +21,16 @@ describe 'Directives:', ->
       # TODO: directives should not depend on root scope
       #       hack it in until we clean that up
 
-      Flow.flow = getJSONFixture('favorites.json').flows[0].definition
+
+      Flow.flow =
+        definition: getJSONFixture('favorites.json').flows[0].definition
+        flow_type: getJSONFixture('favorites.json').flows[0].flow_type
+
       scope = $rootScope.$new()
       scope.$root = $rootScope
 
       # pick our first action to build some html for
-      scope.action = Flow.flow.action_sets[0].actions[0]
+      scope.action = Flow.flow.definition.action_sets[0].actions[0]
 
       # our action translation hasn't been inspected yet
       expect(scope.action._missingTranslation).toBeUndefined()
