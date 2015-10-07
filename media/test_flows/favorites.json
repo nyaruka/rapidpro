@@ -3,7 +3,6 @@
   "flows": [
     {
       "definition": {
-        "type": "F",
         "base_language": "base", 
         "action_sets": [
           {

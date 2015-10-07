@@ -871,9 +871,8 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
       Flow = @
       $http.get('/flow/json/' + flowId + '/').success (data) ->
 
-        flow = data.flow
-
-        flow.type = window.flow_type
+        flow = data.flow.definition
+        flow.flow_type = data.flow.flow_type
 
         # add uuids for the individual actions, need this for the UI
         for actionset in flow.action_sets

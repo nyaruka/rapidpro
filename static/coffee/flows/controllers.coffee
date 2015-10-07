@@ -1017,7 +1017,7 @@ NodeEditorController = ($rootScope, $scope, $modal, $modalInstance, $timeout, $l
     return true
 
   $scope.isVisibleRulesetType = (rulesetConfig) ->
-    valid = flow.type in rulesetConfig.filter
+    valid = flow.flow_type in rulesetConfig.filter
 
     if (rulesetConfig.type == 'flow_field' or rulesetConfig.type == 'form_field') and $scope.flowFields.length == 0
       return false
@@ -1322,7 +1322,7 @@ NodeEditorController = ($rootScope, $scope, $modal, $modalInstance, $timeout, $l
 
     valid = false
     if action.filter
-      valid = flow.type in action.filter
+      valid = flow.flow_type in action.filter
 
     if startsFlow and action.type == 'flow'
       return false
