@@ -1154,7 +1154,12 @@ class Msg(models.Model):
         if not message_context:
             message_context = dict()
 
-        message_context['channel'] = channel.build_message_context()
+        if contact.is_test:
+            channel_context = dict(__default__='(800) 555-1212', name='Simulator', tel='(800) 555-1212', tel_e164='+18005551212')
+        else:
+            channel_context = channel.build_message_context()
+
+        message_context['channel'] = channel_context
 
         (text, errors) = Msg.substitute_variables(text, contact, message_context, org=org)
 
