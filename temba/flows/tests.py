@@ -1961,6 +1961,13 @@ class ActionTest(TembaTest):
         contact = Contact.objects.get(id=self.contact.pk)
         self.assertEquals("Jackson Newcomer", contact.name)
 
+        run.contact = contact
+        test = SaveToContactAction.from_json(self.org, dict(type='save', label="Channel", value='', field='channel'))
+        test.value = "@channel.tel"
+        test.execute(run, None, None)
+        contact = Contact.objects.get(id=self.contact.pk)
+        self.assertEquals("+250 785 551 212", contact.get_field('channel').string_value)
+
         # first name works with a single word
         run.contact = contact
         contact.name = "Percy"

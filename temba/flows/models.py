@@ -4624,8 +4624,17 @@ class SaveToContactAction(Action):
     def execute(self, run, actionset_uuid, msg, offline_on=None):
         # evaluate our value
         contact = run.contact
+        flow = run.flow
+        org = flow.org
+
+        # mock to allow access to substitution variables on the first actionset for broadcast
+        if not msg:
+            contact, contact_urn = Msg.resolve_recipient(org, flow.created_by, contact, None)
+            channel = run.flow.org.get_send_channel(contact_urn=contact_urn)
+            msg = Msg(contact=contact, channel=channel, created_on=timezone.now(), id=0)
+
         message_context = run.flow.build_message_context(contact, msg)
-        (value, errors) = Msg.substitute_variables(self.value, contact, message_context, org=run.flow.org)
+        (value, errors) = Msg.substitute_variables(self.value, contact, message_context, org=org)
 
         if contact.is_test and errors:
             ActionLog.warn(run, _("Expression contained errors: %s") % ', '.join(errors))
