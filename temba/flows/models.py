@@ -1570,23 +1570,8 @@ class Flow(TembaModel, SmartModel):
         message_map = dict()
         if broadcasts:
 
-            msg = start_msg
-            if not msg:
-                contact = run.contact
-                flow = run.flow
-                org = flow.org
-                user = get_flow_user()
-                scheme = None
-
-                contact, contact_urn = Msg.resolve_recipient(org, user, contact, None)
-                if not contact_urn:
-                    scheme = TEL_SCHEME
-
-                channel = org.get_send_channel(scheme=scheme, contact_urn=contact_urn)
-                msg = Msg(contact=contact, channel=channel, text='', created_on=timezone.now(), id=0)
-
             # create our message context
-            message_context_base = self.build_message_context(None, msg)
+            message_context_base = self.build_message_context(None, start_msg)
             if extra:
                 extra['__default__'] = ", ".join("%s: %s" % (_, extra[_]) for _ in sorted(extra.keys()))
                 message_context_base['extra'] = extra

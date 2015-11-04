@@ -1154,6 +1154,8 @@ class Msg(models.Model):
         if not message_context:
             message_context = dict()
 
+        message_context['channel'] = channel.build_message_context()
+
         (text, errors) = Msg.substitute_variables(text, contact, message_context, org=org)
 
         # if we are doing a single message, check whether this might be a loop of some kind
