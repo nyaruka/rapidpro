@@ -1576,9 +1576,13 @@ class Flow(TembaModel, SmartModel):
                 flow = run.flow
                 org = flow.org
                 user = get_flow_user()
+                scheme = None
 
                 contact, contact_urn = Msg.resolve_recipient(org, user, contact, None)
-                channel = org.get_send_channel(contact_urn=contact_urn)
+                if not contact_urn:
+                    scheme = TEL_SCHEME
+
+                channel = org.get_send_channel(scheme=scheme, contact_urn=contact_urn)
                 msg = Msg(contact=contact, channel=channel, text='', created_on=timezone.now(), id=0)
 
             # create our message context
@@ -2657,9 +2661,13 @@ class ActionSet(models.Model):
             flow = run.flow
             org = flow.org
             user = get_flow_user()
+            scheme = None
 
             contact, contact_urn = Msg.resolve_recipient(org, user, contact, None)
-            channel = org.get_send_channel(contact_urn=contact_urn)
+            if not contact_urn:
+                scheme = TEL_SCHEME
+
+            channel = org.get_send_channel(scheme=scheme, contact_urn=contact_urn)
             msg = Msg(contact=contact, channel=channel, text='', created_on=timezone.now(), id=0)
 
         for action in actions:
