@@ -1,0 +1,42 @@
+{
+  "version": 8, 
+  "flows": [
+    {
+      "base_language": "eng", 
+      "action_sets": [
+        {
+          "y": 0, 
+          "x": 100, 
+          "destination": null, 
+          "uuid": "0e570583-aae3-4932-8590-d9a8910a570e", 
+          "actions": [
+            {
+              "msg": {
+                "eng": "You sent a message to @channel.tel from you number @contact.tel"
+              }, 
+              "type": "reply"
+            }, 
+            {
+              "field": "channel", 
+              "type": "save", 
+              "value": "@channel.tel", 
+              "label": "Channel"
+            }
+          ]
+        }
+      ], 
+      "version": 8, 
+      "flow_type": "F", 
+      "entry": "0e570583-aae3-4932-8590-d9a8910a570e", 
+      "rule_sets": [], 
+      "metadata": {
+        "expires": 10080, 
+        "revision": 4, 
+        "id": 41049, 
+        "name": "Substitution by mock", 
+        "saved_on": "2015-11-04T14:41:45.391534Z"
+      }
+    }
+  ], 
+  "triggers": []
+}
