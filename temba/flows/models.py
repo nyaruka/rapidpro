@@ -1569,8 +1569,20 @@ class Flow(TembaModel, SmartModel):
         # if we have some broadcasts to optimize for
         message_map = dict()
         if broadcasts:
+
+            msg = start_msg
+            if not msg:
+                contact = run.contact
+                flow = run.flow
+                org = flow.org
+                user = get_flow_user()
+
+                contact, contact_urn = Msg.resolve_recipient(org, user, contact, None)
+                channel = org.get_send_channel(contact_urn=contact_urn)
+                msg = Msg(contact=contact, channel=channel, text='', created_on=timezone.now(), id=0)
+
             # create our message context
-            message_context_base = self.build_message_context(None, start_msg)
+            message_context_base = self.build_message_context(None, msg)
             if extra:
                 extra['__default__'] = ", ".join("%s: %s" % (_, extra[_]) for _ in sorted(extra.keys()))
                 message_context_base['extra'] = extra
@@ -2639,6 +2651,16 @@ class ActionSet(models.Model):
     def execute_actions(self, run, msg, started_flows, execute_reply_action=True):
         actions = self.get_actions()
         msgs = []
+
+        if not msg:
+            contact = run.contact
+            flow = run.flow
+            org = flow.org
+            user = get_flow_user()
+
+            contact, contact_urn = Msg.resolve_recipient(org, user, contact, None)
+            channel = org.get_send_channel(contact_urn=contact_urn)
+            msg = Msg(contact=contact, channel=channel, text='', created_on=timezone.now(), id=0)
 
         for action in actions:
             if not execute_reply_action and isinstance(action, ReplyAction):
@@ -4624,17 +4646,9 @@ class SaveToContactAction(Action):
     def execute(self, run, actionset_uuid, msg, offline_on=None):
         # evaluate our value
         contact = run.contact
-        flow = run.flow
-        org = flow.org
-
-        # mock to allow access to substitution variables on the first actionset for broadcast
-        if not msg:
-            contact, contact_urn = Msg.resolve_recipient(org, flow.created_by, contact, None)
-            channel = run.flow.org.get_send_channel(contact_urn=contact_urn)
-            msg = Msg(contact=contact, channel=channel, created_on=timezone.now(), id=0)
 
         message_context = run.flow.build_message_context(contact, msg)
-        (value, errors) = Msg.substitute_variables(self.value, contact, message_context, org=org)
+        (value, errors) = Msg.substitute_variables(self.value, contact, message_context, org=run.flow.org)
 
         if contact.is_test and errors:
             ActionLog.warn(run, _("Expression contained errors: %s") % ', '.join(errors))

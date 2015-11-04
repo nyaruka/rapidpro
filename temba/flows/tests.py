@@ -1961,13 +1961,6 @@ class ActionTest(TembaTest):
         contact = Contact.objects.get(id=self.contact.pk)
         self.assertEquals("Jackson Newcomer", contact.name)
 
-        run.contact = contact
-        test = SaveToContactAction.from_json(self.org, dict(type='save', label="Channel", value='', field='channel'))
-        test.value = "@channel.tel"
-        test.execute(run, None, None)
-        contact = Contact.objects.get(id=self.contact.pk)
-        self.assertEquals("+250 785 551 212", contact.get_field('channel').string_value)
-
         # first name works with a single word
         run.contact = contact
         contact.name = "Percy"
@@ -3203,6 +3196,17 @@ class FlowsTest(FlowFileTest):
         self.assertEquals("Thanks, you typed +250788123123", self.send_message(flow, "0788123123"))
         sms = Msg.objects.get(org=flow.org, contact__urns__path="+250788123123")
         self.assertEquals("Hi from Ben Haggerty! Your phone is 0788 123 123.", sms.text)
+
+        Msg.objects.all().delete()
+
+        flow = self.get_flow('variables-substitution-mock')
+        runs = flow.start_msg_flow(Contact.objects.filter(id=self.contact.id))
+        self.assertEquals(1, len(runs))
+        self.assertEquals(1, self.contact.msgs.all().count())
+        self.assertEquals('You sent a message to +250 785 551 212 from you number (206) 555-2020',
+                          self.contact.msgs.all()[0].text)
+        contact = Contact.objects.get(id=self.contact.pk)
+        self.assertEquals("+250 785 551 212", contact.get_field('channel').string_value)
 
     def test_new_contact(self):
         mother_flow = self.get_flow('mama_mother_registration')
