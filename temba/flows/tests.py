@@ -3208,6 +3208,14 @@ class FlowsTest(FlowFileTest):
         contact = Contact.objects.get(id=self.contact.pk)
         self.assertEquals("+250 785 551 212", contact.get_field('channel').string_value)
 
+        Msg.objects.all().delete()
+
+        flow = self.get_flow('split_by_channel_broadcast')
+        runs = flow.start_msg_flow(Contact.objects.filter(id=self.contact.id))
+        self.assertEquals(1, len(runs))
+        self.assertEquals(1, self.contact.msgs.all().count())
+        self.assertEquals('+250 785 551 212', self.contact.msgs.all()[0].text)
+
     def test_new_contact(self):
         mother_flow = self.get_flow('mama_mother_registration')
         registration_flow = self.get_flow('mama_registration', dict(NEW_MOTHER_FLOW_ID=mother_flow.pk))

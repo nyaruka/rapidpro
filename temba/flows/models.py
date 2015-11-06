@@ -1619,6 +1619,22 @@ class Flow(TembaModel, SmartModel):
             run_msgs = message_map.get(contact.id, [])
             arrived_on = timezone.now()
 
+            if not start_msg:
+                contact = run.contact
+                flow = run.flow
+                org = flow.org
+                user = get_flow_user()
+                scheme = None
+
+                contact, contact_urn = Msg.resolve_recipient(org, user, contact, None)
+                if not contact_urn:
+                    scheme = TEL_SCHEME
+
+                channel = org.get_send_channel(scheme=scheme, contact_urn=contact_urn)
+                start_msg = Msg(contact=contact, channel=channel, text='', created_on=timezone.now(), id=0)
+
+
+
             if entry_actions:
                 run_msgs += entry_actions.execute_actions(run, start_msg, started_flows_by_contact,
                                                           execute_reply_action=not optimize_sending_action)
@@ -2640,20 +2656,6 @@ class ActionSet(models.Model):
     def execute_actions(self, run, msg, started_flows, execute_reply_action=True):
         actions = self.get_actions()
         msgs = []
-
-        if not msg:
-            contact = run.contact
-            flow = run.flow
-            org = flow.org
-            user = get_flow_user()
-            scheme = None
-
-            contact, contact_urn = Msg.resolve_recipient(org, user, contact, None)
-            if not contact_urn:
-                scheme = TEL_SCHEME
-
-            channel = org.get_send_channel(scheme=scheme, contact_urn=contact_urn)
-            msg = Msg(contact=contact, channel=channel, text='', created_on=timezone.now(), id=0)
 
         for action in actions:
             if not execute_reply_action and isinstance(action, ReplyAction):
