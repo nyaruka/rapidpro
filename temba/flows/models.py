@@ -1619,7 +1619,8 @@ class Flow(TembaModel, SmartModel):
             run_msgs = message_map.get(contact.id, [])
             arrived_on = timezone.now()
 
-            if not start_msg:
+            start_msg_or_mock = start_msg
+            if not start_msg_or_mock:
                 contact = run.contact
                 flow = run.flow
                 org = flow.org
@@ -1631,12 +1632,10 @@ class Flow(TembaModel, SmartModel):
                     scheme = TEL_SCHEME
 
                 channel = org.get_send_channel(scheme=scheme, contact_urn=contact_urn)
-                start_msg = Msg(contact=contact, channel=channel, text='', created_on=timezone.now(), id=0)
-
-
+                start_msg_or_mock = Msg(contact=contact, channel=channel, text='', created_on=timezone.now(), id=0)
 
             if entry_actions:
-                run_msgs += entry_actions.execute_actions(run, start_msg, started_flows_by_contact,
+                run_msgs += entry_actions.execute_actions(run, start_msg_or_mock, started_flows_by_contact,
                                                           execute_reply_action=not optimize_sending_action)
 
                 step = self.add_step(run, entry_actions, run_msgs, is_start=True, arrived_on=arrived_on)
@@ -1660,8 +1659,8 @@ class Flow(TembaModel, SmartModel):
                 step = self.add_step(run, entry_rules, run_msgs, is_start=True, arrived_on=arrived_on)
 
                 # if we have a start message, go and handle the rule
-                if start_msg:
-                    Flow.find_and_handle(start_msg, started_flows_by_contact, triggered_start=True)
+                if start_msg_or_mock:
+                    Flow.find_and_handle(start_msg_or_mock, started_flows_by_contact, triggered_start=True)
 
                 # if we didn't get an incoming message, see if we need to evaluate it passively
                 elif not entry_rules.is_pause():
