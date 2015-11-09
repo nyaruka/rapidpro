@@ -1,0 +1,92 @@
+{
+  "version": 8, 
+  "flows": [
+    {
+      "base_language": "eng", 
+      "action_sets": [
+        {
+          "y": 174, 
+          "x": 271, 
+          "destination": null, 
+          "uuid": "fb961dc7-26f1-4a13-a38a-841927fc9ac4", 
+          "actions": [
+            {
+              "msg": {
+                "eng": "@channel.tel"
+              }, 
+              "type": "reply"
+            }
+          ]
+        }, 
+        {
+          "y": 220, 
+          "x": 695, 
+          "destination": null, 
+          "uuid": "e090cdf9-6ad5-475b-89ae-b7421eb93970", 
+          "actions": [
+            {
+              "msg": {
+                "eng": "No"
+              }, 
+              "type": "reply"
+            }
+          ]
+        }
+      ], 
+      "version": 8, 
+      "flow_type": "F", 
+      "entry": "fdc03b09-326a-4d23-a01a-3e57e74dff7e", 
+      "rule_sets": [
+        {
+          "uuid": "fdc03b09-326a-4d23-a01a-3e57e74dff7e", 
+          "webhook_action": null, 
+          "rules": [
+            {
+              "test": {
+                "test": {
+                  "eng": "foo"
+                }, 
+                "type": "contains_any"
+              }, 
+              "category": {
+                "eng": "Foo"
+              }, 
+              "destination": "fb961dc7-26f1-4a13-a38a-841927fc9ac4", 
+              "uuid": "1994f380-ecd9-4958-a93c-43c1489538d9", 
+              "destination_type": "A"
+            }, 
+            {
+              "test": {
+                "test": "true", 
+                "type": "true"
+              }, 
+              "category": {
+                "eng": "Other"
+              }, 
+              "destination": "e090cdf9-6ad5-475b-89ae-b7421eb93970", 
+              "uuid": "cf5cfeb4-1988-4be8-b75b-334f2e351213", 
+              "destination_type": "A"
+            }
+          ], 
+          "webhook": null, 
+          "ruleset_type": "wait_message",
+          "label": "Foo",
+          "operand": "@step.value",
+          "finished_key": null, 
+          "response_type": "", 
+          "y": 0, 
+          "x": 396, 
+          "config": {}
+        }
+      ], 
+      "metadata": {
+        "expires": 10080, 
+        "revision": 20, 
+        "id": 41050, 
+        "name": "Split by message",
+        "saved_on": "2015-11-06T15:54:58.022511Z"
+      }
+    }
+  ], 
+  "triggers": []
+}

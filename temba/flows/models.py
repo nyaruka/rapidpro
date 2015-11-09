@@ -1620,6 +1620,8 @@ class Flow(TembaModel, SmartModel):
             arrived_on = timezone.now()
 
             start_msg_or_mock = start_msg
+
+            # no start_msg? entry actions need a mock msg to access substitution variables
             if not start_msg_or_mock:
                 contact = run.contact
                 flow = run.flow
@@ -1648,7 +1650,7 @@ class Flow(TembaModel, SmartModel):
 
                     next_step = self.add_step(run, destination, previous_step=step, arrived_on=timezone.now())
 
-                    msg = Msg(contact=contact, text='', id=0)
+                    msg = Msg(contact=contact, channel=channel, text='', created_on=timezone.now(), id=0)
                     Flow.handle_destination(destination, next_step, run, msg, started_flows_by_contact,
                                             is_test_contact=contact.is_test)
 
@@ -1659,13 +1661,13 @@ class Flow(TembaModel, SmartModel):
                 step = self.add_step(run, entry_rules, run_msgs, is_start=True, arrived_on=arrived_on)
 
                 # if we have a start message, go and handle the rule
-                if start_msg_or_mock:
-                    Flow.find_and_handle(start_msg_or_mock, started_flows_by_contact, triggered_start=True)
+                if start_msg:
+                    Flow.find_and_handle(start_msg, started_flows_by_contact, triggered_start=True)
 
                 # if we didn't get an incoming message, see if we need to evaluate it passively
                 elif not entry_rules.is_pause():
                     # create an empty placeholder message
-                    msg = Msg(contact=contact, text='', id=0)
+                    msg = Msg(contact=contact, channel=channel, text='', created_on=timezone.now(), id=0)
                     Flow.handle_destination(entry_rules, step, run, msg, started_flows_by_contact)
 
             if start_msg:

@@ -3210,11 +3210,20 @@ class FlowsTest(FlowFileTest):
 
         Msg.objects.all().delete()
 
+        # split my expression should use a mock on broadcast to acess variables
         flow = self.get_flow('split_by_channel_broadcast')
         runs = flow.start_msg_flow(Contact.objects.filter(id=self.contact.id))
         self.assertEquals(1, len(runs))
         self.assertEquals(1, self.contact.msgs.all().count())
         self.assertEquals('+250 785 551 212', self.contact.msgs.all()[0].text)
+
+        Msg.objects.all().delete()
+
+        # split by pausing ruleset should WAIT for an incoming message
+        flow = self.get_flow('split_by_message')
+        runs = flow.start_msg_flow(Contact.objects.filter(id=self.contact.id))
+        self.assertEquals(1, len(runs))
+        self.assertEquals(0, self.contact.msgs.all().count())
 
     def test_new_contact(self):
         mother_flow = self.get_flow('mama_mother_registration')
