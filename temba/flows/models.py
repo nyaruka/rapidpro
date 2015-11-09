@@ -1635,6 +1635,9 @@ class Flow(TembaModel, SmartModel):
 
                 channel = org.get_send_channel(scheme=scheme, contact_urn=contact_urn)
                 start_msg_or_mock = Msg(contact=contact, channel=channel, text='', created_on=timezone.now(), id=0)
+            else:
+                channel = start_msg_or_mock.channel
+
 
             if entry_actions:
                 run_msgs += entry_actions.execute_actions(run, start_msg_or_mock, started_flows_by_contact,
