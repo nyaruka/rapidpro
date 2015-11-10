@@ -1,0 +1,36 @@
+{
+  "version": 8, 
+  "flows": [
+    {
+      "base_language": "eng", 
+      "action_sets": [
+        {
+          "y": 0, 
+          "x": 100, 
+          "destination": null, 
+          "uuid": "8698e7d2-528e-4257-b699-017330b9067f", 
+          "actions": [
+            {
+              "field": "via",
+              "type": "save", 
+              "value": "@channel.tel", 
+              "label": "Via"
+            }
+          ]
+        }
+      ], 
+      "version": 8, 
+      "flow_type": "F", 
+      "entry": "8698e7d2-528e-4257-b699-017330b9067f", 
+      "rule_sets": [], 
+      "metadata": {
+        "expires": 10080, 
+        "revision": 2, 
+        "id": 41054, 
+        "name": "Contact update by mock", 
+        "saved_on": "2015-11-10T20:37:12.564039Z"
+      }
+    }
+  ], 
+  "triggers": []
+}
