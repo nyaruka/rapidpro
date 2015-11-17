@@ -2792,7 +2792,8 @@ class FlowRun(models.Model):
     @classmethod
     def normalize_fields(cls, fields, count=-1):
         """
-        Turns an arbitrary dictionary into a dictionary containing only string keys and values
+        Creates a new dictionary from the given one which is suitable for inclusion in an evaluation context. That is
+        it has a limited number of string keys of limited length, and all contained dictionaries have default values.
         """
         if isinstance(fields, (str, unicode)):
             return fields[:640], count+1
@@ -2802,7 +2803,7 @@ class FlowRun(models.Model):
 
         elif isinstance(fields, dict):
             count += 1
-            field_dict = dict()
+            field_dict = {'__default__': ''}
             for (k, v) in fields.items():
                 (field_dict[k[:255]], count) = FlowRun.normalize_fields(v, count)
 
@@ -2813,9 +2814,9 @@ class FlowRun(models.Model):
 
         elif isinstance(fields, list):
             count += 1
-            list_dict = dict()
+            list_dict = {'__default__': ''}
             for (i, v) in enumerate(fields):
-                (list_dict[str(i)], count) = FlowRun.normalize_fields(v, count)
+                (list_dict[unicode(i)], count) = FlowRun.normalize_fields(v, count)
 
                 if count >= 128:
                     break
@@ -2945,7 +2946,7 @@ class FlowRun(models.Model):
         cls.do_expire_runs(runs)
 
     def update_fields(self, field_map):
-        # validate our field
+        # clean up fields for inclusion in evaluation contexts
         (field_map, count) = FlowRun.normalize_fields(field_map)
 
         if not self.fields:
@@ -2958,12 +2959,7 @@ class FlowRun(models.Model):
         self.save(update_fields=['fields'])
 
     def field_dict(self):
-        if self.fields:
-            extra = json.loads(self.fields)
-            extra['__default__'] = ", ".join("%s: %s" % (_, extra[_]) for _ in sorted(extra.keys()))
-            return extra
-        else:
-            return dict()
+        return json.loads(self.fields) if self.fields else {}
 
     def is_completed(self):
         """

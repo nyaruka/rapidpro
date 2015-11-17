@@ -920,6 +920,7 @@ class FlowTest(TembaTest):
         self.assertEquals("Isaac", extra['1'])
         self.assertEquals("Newton", extra['2'])
         self.assertEquals("Isaac", extra['first_name'])
+        self.assertEquals("", extra['__default__'])
 
         # find that arabic unicode is handled right
         sms.text = "مرحبا العالم"
