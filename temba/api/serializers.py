@@ -9,6 +9,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
+from rest_framework.pagination import BasePaginationSerializer, NextPageField, PreviousPageField
 from temba.campaigns.models import Campaign, CampaignEvent, FLOW_EVENT, MESSAGE_EVENT
 from temba.channels.models import Channel
 from temba.contacts.models import Contact, ContactField, ContactGroup, ContactURN, TEL_SCHEME
@@ -21,6 +22,31 @@ from temba.values.models import VALUE_TYPE_CHOICES
 # we may in the future.
 MAX_BULK_ACTION_ITEMS = 100
 
+
+# ------------------------------------------------------------------------------------------
+# No count Pagination serializer
+# ------------------------------------------------------------------------------------------
+
+class NoCountPaginationSerializer(BasePaginationSerializer):
+
+    def __init__(self, *args, **kwargs):
+
+        super(NoCountPaginationSerializer, self).__init__(*args, **kwargs)
+
+        results_field = self.results_field
+        object_serializer = self.context['view'].serializer_class
+
+        if 'context' in kwargs:
+            context_kwarg = {'context': kwargs['context']}
+        else:
+            context_kwarg = {}
+
+        self.fields[results_field] = object_serializer(source='object_list',
+                                                       many=True,
+                                                       **context_kwarg)
+
+    next = NextPageField(source='*')
+    previous = PreviousPageField(source='*')
 
 # ------------------------------------------------------------------------------------------
 # Field types
