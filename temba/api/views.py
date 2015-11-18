@@ -30,7 +30,7 @@ from temba.api.serializers import ContactFieldReadSerializer, ContactFieldWriteS
 from temba.api.serializers import FlowReadSerializer, FlowRunReadSerializer, FlowRunWriteSerializer, FlowRunStartSerializer, FlowDefinitionWriteSerializer
 from temba.api.serializers import MsgCreateSerializer, MsgCreateResultSerializer, MsgReadSerializer, MsgBulkActionSerializer
 from temba.api.serializers import LabelReadSerializer, LabelWriteSerializer
-from temba.api.serializers import ChannelClaimSerializer, ChannelReadSerializer
+from temba.api.serializers import ChannelClaimSerializer, ChannelReadSerializer, NoCountPaginationSerializer
 from temba.assets.models import AssetType
 from temba.assets.views import handle_asset_request
 from temba.campaigns.models import Campaign, CampaignEvent
@@ -517,7 +517,12 @@ class ListAPIMixin(mixins.ListModelMixin):
     paginator_class = FixedCountPaginator
 
     def paginate_queryset(self, queryset, page_size=None):
-        if self.cache_counts:
+        query_params = self.request.QUERY_PARAMS.copy()
+        if 'page_size' in query_params:
+            queryset.fixed_count = 1000
+            page = super(ListAPIMixin, self).paginate_queryset(queryset)
+
+        elif self.cache_counts:
             # total counts can be expensive so we let some views cache counts based on the query parameters
             query_params = self.request.QUERY_PARAMS.copy()
             if 'page' in query_params:
@@ -2212,6 +2217,7 @@ class FlowRunEndpoint(ListAPIMixin, CreateAPIMixin, BaseAPIView):
     serializer_class = FlowRunReadSerializer
     write_serializer_class = FlowRunStartSerializer
     cache_counts = True
+    paginate_by_param = 'page_size'
 
     def render_write_response(self, write_output, context):
         if write_output:
@@ -2220,6 +2226,14 @@ class FlowRunEndpoint(ListAPIMixin, CreateAPIMixin, BaseAPIView):
         return Response(dict(non_field_errors=["All contacts are already started in this flow, "
                                                "use restart_participants to force them to restart in the flow"]),
                         status=status.HTTP_400_BAD_REQUEST)
+
+    def get_pagination_serializer(self, page):
+        if self.request.QUERY_PARAMS.get('page_size', None):
+            pagination_serialirizer_class = NoCountPaginationSerializer
+            context = self.get_serializer_context()
+            return pagination_serialirizer_class(instance=page, context=context)
+
+        return super(FlowRunEndpoint, self).get_pagination_serializer(page)
 
     def get_queryset(self):
         org = self.request.user.get_org()
