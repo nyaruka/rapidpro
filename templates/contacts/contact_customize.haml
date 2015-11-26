@@ -13,9 +13,9 @@
 
   %p
 
-    %button.select-fields-buttons.btn.btn-primary{onclick:"selectAllFields()"}
+    %button.select-fields-buttons.btn{onclick:"selectAllFields()"}
       -trans "Select All"
-    %button.select-fields-buttons.btn.btn-primary{onclick:"deselectAllFields()"}
+    %button.select-fields-buttons.btn{onclick:"deselectAllFields()"}
       -trans "Deselect All"
   %p
     %form.smartmin-form.horizontal-form{method:"post", action:"{% url 'contacts.contact_customize' object.pk %}", enctype:"multipart/form-data"}
