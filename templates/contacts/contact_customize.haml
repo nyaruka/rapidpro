@@ -10,6 +10,13 @@
     -blocktrans 
       We noticed your file contains some extra columns, you can add these as custom fields on
       your contact by selecting them below.
+
+  %p
+
+    %button.select-fields-buttons.btn.btn-primary{onclick:"selectAllFields()"}
+      -trans "Select All"
+    %button.select-fields-buttons.btn.btn-primary{onclick:"deselectAllFields()"}
+      -trans "Deselect All"
   %p
     %form.smartmin-form.horizontal-form{method:"post", action:"{% url 'contacts.contact_customize' object.pk %}", enctype:"multipart/form-data"}
       -csrf_token
@@ -36,7 +43,7 @@
                       of type
                 %td.field-as-type
                   {% render_field column_control.type_field %}
-                
+
       .form-buttons
         %input.btn.btn-primary{type:"submit", value:"Add Fields"}
         %a.btn{onclick:"javascript:history.go(-1)"}
@@ -46,6 +53,16 @@
   {{ block.super }}
   :javascript
     $(".smartmin-form select").select2({minimumResultsForSearch: -1, width: 'element'});
+
+    function selectAllFields() {
+      $('tr.custom-field > td.field-include-checkbox > .control-group > .controls > input[type="checkbox"]').prop('checked', true);
+      $('.select-fields-buttons').blur();
+    }
+
+    function deselectAllFields() {
+      $('tr.custom-field > td.field-include-checkbox > .control-group > .controls > input[type="checkbox"]').prop('checked', false);
+      $('.select-fields-buttons').blur();
+    }
 
 -block extra-style
   :css
