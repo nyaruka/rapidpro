@@ -1157,6 +1157,18 @@ class Msg(models.Model):
         if not message_context:
             message_context = dict()
 
+        if contact.is_test:
+            channel_context = dict(__default__='(800) 555-1212', name='Simulator', tel='(800) 555-1212', tel_e164='+18005551212')
+        else:
+
+            # empty channel for surveyor message since they are already sent and do not have a channel
+            channel_context = dict()
+
+            if channel:
+                channel_context = channel.build_message_context()
+
+        message_context['channel'] = channel_context
+
         (text, errors) = Msg.substitute_variables(text, contact, message_context, org=org)
 
         # if we are doing a single message, check whether this might be a loop of some kind

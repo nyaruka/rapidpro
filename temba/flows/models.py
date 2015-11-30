@@ -1569,6 +1569,7 @@ class Flow(TembaModel, SmartModel):
         # if we have some broadcasts to optimize for
         message_map = dict()
         if broadcasts:
+
             # create our message context
             message_context_base = self.build_message_context(None, start_msg)
             if extra:
@@ -1617,8 +1618,28 @@ class Flow(TembaModel, SmartModel):
             run_msgs = message_map.get(contact.id, [])
             arrived_on = timezone.now()
 
+            start_msg_or_mock = start_msg
+
+            # no start_msg? entry actions need a mock msg to access substitution variables
+            if not start_msg_or_mock:
+                contact = run.contact
+                flow = run.flow
+                org = flow.org
+                user = get_flow_user()
+                scheme = None
+
+                contact, contact_urn = Msg.resolve_recipient(org, user, contact, None)
+                if not contact_urn:
+                    scheme = TEL_SCHEME
+
+                channel = org.get_send_channel(scheme=scheme, contact_urn=contact_urn)
+                start_msg_or_mock = Msg(contact=contact, channel=channel, text='', created_on=timezone.now(), id=0)
+            else:
+                channel = start_msg_or_mock.channel
+
+
             if entry_actions:
-                run_msgs += entry_actions.execute_actions(run, start_msg, started_flows_by_contact,
+                run_msgs += entry_actions.execute_actions(run, start_msg_or_mock, started_flows_by_contact,
                                                           execute_reply_action=not optimize_sending_action)
 
                 step = self.add_step(run, entry_actions, run_msgs, is_start=True, arrived_on=arrived_on)
@@ -1631,7 +1652,7 @@ class Flow(TembaModel, SmartModel):
 
                     next_step = self.add_step(run, destination, previous_step=step, arrived_on=timezone.now())
 
-                    msg = Msg(contact=contact, text='', id=0)
+                    msg = Msg(contact=contact, channel=channel, text='', created_on=timezone.now(), id=0)
                     Flow.handle_destination(destination, next_step, run, msg, started_flows_by_contact,
                                             is_test_contact=contact.is_test)
 
@@ -1648,7 +1669,7 @@ class Flow(TembaModel, SmartModel):
                 # if we didn't get an incoming message, see if we need to evaluate it passively
                 elif not entry_rules.is_pause():
                     # create an empty placeholder message
-                    msg = Msg(contact=contact, text='', id=0)
+                    msg = Msg(contact=contact, channel=channel, text='', created_on=timezone.now(), id=0)
                     Flow.handle_destination(entry_rules, step, run, msg, started_flows_by_contact)
 
             if start_msg:
@@ -4658,6 +4679,7 @@ class SaveToContactAction(Action):
     def execute(self, run, actionset_uuid, msg, offline_on=None):
         # evaluate our value
         contact = run.contact
+
         message_context = run.flow.build_message_context(contact, msg)
         (value, errors) = Msg.substitute_variables(self.value, contact, message_context, org=run.flow.org)
 

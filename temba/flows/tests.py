@@ -3300,6 +3300,43 @@ class FlowsTest(FlowFileTest):
         sms = Msg.objects.get(org=flow.org, contact__urns__path="+250788123123")
         self.assertEquals("Hi from Ben Haggerty! Your phone is 0788 123 123.", sms.text)
 
+        Msg.objects.all().delete()
+
+        flow = self.get_flow('variables-substitution-mock')
+        runs = flow.start_msg_flow(Contact.objects.filter(id=self.contact.id))
+        self.assertEquals(1, len(runs))
+        self.assertEquals(1, self.contact.msgs.all().count())
+        self.assertEquals('You sent a message to +250 785 551 212 from you number (206) 555-2020',
+                          self.contact.msgs.all()[0].text)
+        contact = Contact.objects.get(id=self.contact.pk)
+        self.assertEquals("+250 785 551 212", contact.get_field('channel').string_value)
+
+        Msg.objects.all().delete()
+
+        # split my expression should use a mock on broadcast to acess variables
+        flow = self.get_flow('split_by_channel_broadcast')
+        runs = flow.start_msg_flow(Contact.objects.filter(id=self.contact.id))
+        self.assertEquals(1, len(runs))
+        self.assertEquals(1, self.contact.msgs.all().count())
+        self.assertEquals('+250 785 551 212', self.contact.msgs.all()[0].text)
+
+        Msg.objects.all().delete()
+
+        # split by pausing ruleset should WAIT for an incoming message
+        flow = self.get_flow('split_by_message')
+        runs = flow.start_msg_flow(Contact.objects.filter(id=self.contact.id))
+        self.assertEquals(1, len(runs))
+        self.assertEquals(0, self.contact.msgs.all().count())
+
+        Msg.objects.all().delete()
+
+        flow = self.get_flow('contact-update-by-mock')
+        runs = flow.start_msg_flow(Contact.objects.filter(id=self.contact.id))
+        self.assertEquals(1, len(runs))
+        self.assertEquals(0, self.contact.msgs.all().count())
+        contact = Contact.objects.get(id=self.contact.pk)
+        self.assertEquals("+250 785 551 212", contact.get_field('via').string_value)
+
     def test_new_contact(self):
         mother_flow = self.get_flow('mama_mother_registration')
         registration_flow = self.get_flow('mama_registration', dict(NEW_MOTHER_FLOW_ID=mother_flow.pk))
