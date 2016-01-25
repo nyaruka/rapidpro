@@ -11,5 +11,14 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # noop placeholder
+        migrations.AlterField(
+            model_name='broadcast',
+            name='purged',
+            field=models.BooleanField(default=False, help_text='If the messages for this broadcast have been purged'),
+        ),
+        migrations.AlterField(
+            model_name='msg',
+            name='purged',
+            field=models.BooleanField(default=False, help_text='If this message has been purged'),
+        ),
     ]
