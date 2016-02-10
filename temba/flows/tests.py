@@ -1721,6 +1721,26 @@ class FlowTest(TembaTest):
         # shouldn't have a new flow start as validation failed
         self.assertFalse(FlowStart.objects.filter(flow=flow).exclude(id__lte=new_start.id))
 
+        new_start.status = COMPLETE
+        new_start.save()
+
+        post_data = dict()
+        post_data['omnibox'] = "n-%s" % '+250788382382'
+        post_data['restart_participants'] = 'on'
+
+        count = Broadcast.objects.all().count()
+        # try to start again
+        response = self.client.post(reverse('flows.flow_broadcast', args=[flow.pk]), post_data, follow=True)
+
+        # no form error
+        self.assertFalse('form' in response.context)
+
+        self.assertEquals(count + 1, Broadcast.objects.all().count())
+
+        # should be in a completed state
+        self.assertEquals(COMPLETE, start.status)
+        self.assertEquals(1, start.contact_count)
+
         # test ivr flow creation
         self.channel.role = 'SRCA'
         self.channel.save()
