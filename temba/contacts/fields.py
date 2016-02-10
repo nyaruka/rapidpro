@@ -32,6 +32,7 @@ class OmniboxWidget(forms.TextInput):
                 contact = Contact.get_or_create(org, user, urns=[urn_tuple])
                 urn = contact.urn_objects[urn_tuple]
                 urn_ids.append(urn.pk)
+                contact_ids.append(contact.pk)
 
         groups = ContactGroup.user_groups.filter(id__in=group_ids, org=org, is_active=True)
         contacts = Contact.objects.filter(id__in=contact_ids, org=org, is_active=True)

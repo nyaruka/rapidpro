@@ -93,7 +93,8 @@ function omnibox(ele, types, options) {
         },
         containerCssClass: "omnibox-select2",
         formatSelection:formatOmniboxSelection,
-        formatResult:formatOmniboxOption
+        formatResult:formatOmniboxOption,
+        createSearchChoice: arbitraryNumberOption
     });
 }
 

@@ -26,7 +26,7 @@ from temba.locations.models import AdminBoundary
 from temba.msgs.models import Broadcast, Label, Msg, INCOMING, SMS_NORMAL_PRIORITY, SMS_HIGH_PRIORITY, PENDING, FLOW
 from temba.msgs.models import OUTGOING, Call
 from temba.orgs.models import Org, Language, CURRENT_EXPORT_VERSION
-from temba.tests import TembaTest, MockResponse, FlowFileTest, uuid
+from temba.tests import TembaTest, MockResponse, FlowFileTest, uuid, AnonymousOrg
 from temba.triggers.models import Trigger
 from temba.utils import datetime_to_str, str_to_datetime
 from temba.values.models import Value
@@ -1727,6 +1727,31 @@ class FlowTest(TembaTest):
 
         # shouldn't have a new flow start as validation failed
         self.assertFalse(FlowStart.objects.filter(flow=flow).exclude(id__lte=new_start.id))
+
+        # all previous runs are completed
+        new_start.status = COMPLETE
+        new_start.save()
+
+        # try sending using a number
+        post_data = dict()
+        post_data['omnibox'] = "n-%s" % '+250788382382'
+        post_data['restart_participants'] = 'on'
+
+        count = Broadcast.objects.all().count()
+        response = self.client.post(reverse('flows.flow_broadcast', args=[flow.pk]), post_data, follow=True)
+        # no form error
+        self.assertFalse('form' in response.context)
+
+        self.assertEquals(count + 1, Broadcast.objects.all().count())
+
+        # should be in a completed state
+        self.assertEquals(COMPLETE, start.status)
+        self.assertEquals(1, start.contact_count)
+
+        with AnonymousOrg(self.org):
+            # should not send to raw number in anon orgs
+            response = self.client.post(reverse('flows.flow_broadcast', args=[flow.pk]), post_data, follow=True)
+            self.assertTrue(response.context['form'].errors)
 
         # test ivr flow creation
         self.channel.role = 'SRCA'

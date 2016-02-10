@@ -1174,12 +1174,12 @@ class BroadcastCRUDLTest(TembaTest):
 
         # raw number means a new contact created
         new_urn = ContactURN.objects.get(path='+250780000001')
-        Contact.objects.get(urns=new_urn)
+        new_contact = Contact.objects.get(urns=new_urn)
 
         broadcast = Broadcast.objects.get()
         self.assertEqual(broadcast.text, "Hey Joe, where you goin' with that gun in your hand?")
         self.assertEqual(set(broadcast.groups.all()), {just_joe})
-        self.assertEqual(set(broadcast.contacts.all()), {self.frank})
+        self.assertEqual(set(broadcast.contacts.all()), {self.frank, new_contact})
         self.assertEqual(set(broadcast.urns.all()), {new_urn})
 
     def test_update(self):
