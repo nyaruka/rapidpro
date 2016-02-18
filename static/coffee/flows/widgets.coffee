@@ -1,10 +1,23 @@
 app = angular.module('temba.widgets', [])
 
+adjustHotkey = (element) ->
+  $(element).unbind('keyup').keyup (event), ->
+    modifierPressed = event.ctrlKey
+    if navigator.appVersion.indexOf("Mac")!=-1
+      modifierPressed = event.metaKey
+
+    if modifierPressed and event.which == 65
+      $(element).select()
+      event.preventDefault()
+
 #============================================================================
 # Simple directive for displaying a localized textarea with a char counter
 #============================================================================
 app.directive "sms", [ "$log", "Flow", ($log, Flow) ->
   link = (scope, element, attrs) ->
+
+    $(element).find('input,textarea').each ->
+      adjustHotkey(this)
 
     scope.showCounter = true
     if attrs.showCounter?
