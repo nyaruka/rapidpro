@@ -104,6 +104,18 @@
       // focus the text field on show
       $("#send-message #id_text").focus();
 
+      $("#send-message #id_text").unbind('keyup').keyup(function(e){
+        var modifierPressed = e.ctrlKey;
+        if (navigator.appVersion.indexOf("Mac")!=-1){
+          modifierPressed = e.metaKey;
+        }
+
+        if (modifierPressed && e.which == 65) {
+          $(this).select();
+          e.preventDefault();
+        }
+      });
+
       // handle the ordering on the select2
       $('.select2-input').attr('tabindex', 2);
 
