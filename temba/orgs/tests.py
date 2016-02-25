@@ -1016,6 +1016,16 @@ class OrgTest(TembaTest):
                     org.refresh_from_db()
                     self.assertFalse(org.is_connected_to_twilio())
 
+    def test_twilio_account(self):
+        self.login(self.admin)
+
+        twilio_account_url = reverse('orgs.org_twilio_account')
+        self.org.config = {}
+        self.org.save()
+
+        response = self.client.get(twilio_account_url)
+        self.assertEqual(response.status_code, 200)
+
 
     def test_connect_nexmo(self):
         self.login(self.admin)

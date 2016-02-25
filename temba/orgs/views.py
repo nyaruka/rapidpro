@@ -1501,8 +1501,8 @@ class OrgCRUDL(SmartCRUDL):
         def derive_initial(self):
             initial = super(OrgCRUDL.TwilioAccount, self).derive_initial()
             config = json.loads(self.object.config)
-            initial['account_sid'] = config['ACCOUNT_SID']
-            initial['account_token'] = config['ACCOUNT_TOKEN']
+            initial['account_sid'] = config.get('ACCOUNT_SID', None)
+            initial['account_token'] = config.get('ACCOUNT_TOKEN', None)
             initial['disconnect'] = 'false'
             return initial
 
