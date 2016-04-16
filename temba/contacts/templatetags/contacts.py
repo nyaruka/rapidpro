@@ -74,6 +74,55 @@ def urn_icon(urn):
 
 
 @register.filter
+def osm_link(geo_url):
+    (media_type, delim, location) = geo_url.partition(':')
+    coords = location.split(',')
+    if len(coords) == 2:
+        (lat, lng) = coords
+        return 'http://www.openstreetmap.org/#map=17/%s/%s' % (lat, lng)
+
+
+@register.filter
+def location(geo_url):
+    (media_type, delim, location) = geo_url.partition(':')
+    if len(location.split(',')) == 2:
+        return location
+
+
+@register.filter
+def media_url(media):
+    if media:
+        # TODO: remove after migration msgs.0053
+        if media.startswith('http'):
+            return media
+        return media.partition(':')[2]
+
+
+@register.filter
+def media_content_type(media):
+    if media:
+        # TODO: remove after migration msgs.0053
+        if media.startswith('http'):
+            return 'audio/x-wav'
+        return media.partition(':')[0]
+
+
+@register.filter
+def media_type(media):
+    media_type = media_content_type(media)
+    if media_type and '/' in media_type:
+        media_type = media_type.split('/')[0]
+    return media_type
+
+
+@register.filter
+def is_content_type(content_type, type):
+    if type == 'wav':
+        return content_type in ['audio/wav', 'audio/x-wav', 'audio/vnd.wav']
+    return False
+
+
+@register.filter
 def activity_icon(item):
     name = type(item).__name__
     if name == 'Msg':
