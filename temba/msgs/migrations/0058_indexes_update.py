@@ -40,7 +40,7 @@ WHERE direction = 'O' AND visibility = 'V' AND status = 'F';
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('msgs', '0055_update_triggers'),
+        ('msgs', '0057_update_triggers'),
     ]
 
     operations = [
