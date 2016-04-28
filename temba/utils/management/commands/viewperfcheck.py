@@ -1,13 +1,12 @@
 from __future__ import unicode_literals
 
-import six
 import time
 
 from colorama import init as colorama_init, Fore, Style
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.core.urlresolvers import reverse
-from django.db import connection
+from django.db import connection, reset_queries
 from django.http import HttpRequest
 from django.test.client import Client
 from importlib import import_module
@@ -58,8 +57,10 @@ VIEW_TESTS = [
     ('api.v2.runs', '?responded=true', 'flows_flowrun'),
 ]
 
-MAX_WEB_REQUEST_TIME = 3  # maximum number of seconds considered acceptable for a regular web page request
-MAX_API_REQUEST_TIME = 1  # maximum number of seconds considered acceptable for an API request
+
+REQUEST_TIME_LIMITS = (0.5, 1)  # limit for warning, limit for problem
+DB_TIME_LIMITS = (0.5, 1)
+NUM_QUERY_LIMITS = (50, 100)
 
 
 class Command(BaseCommand):  # pragma: no cover
@@ -71,6 +72,8 @@ class Command(BaseCommand):  # pragma: no cover
 
     def handle(self, token, *args, **options):
         colorama_init()
+
+        settings.COMPRESS_ENABLED = True
 
         try:
             token_obj = APIToken.objects.get(key=token)
@@ -85,16 +88,16 @@ class Command(BaseCommand):  # pragma: no cover
                              user.pk,
                              colored(org.name, Fore.BLUE),
                              org.pk,
-                             colored(token_obj.role, Fore.BLUE)))
+                             colored(token_obj.role.name, Fore.BLUE)))
+
+        self.stdout.write("URL / HTTP status / request time / database time / number of queries / indexes scanned")
+        self.stdout.write("--------------------------------------------------------------------------------------")
 
         for test in VIEW_TESTS:
-            self.test_url(token_obj, *test)
+            self.test_url(token_obj, *test, num_requests=3)
 
-    def test_url(self, token, view_name, query, table):
-        pre_index_scans = self.get_index_scan_counts(table)
-        is_api_url = view_name.startswith('api.')
-
-        if is_api_url:
+    def test_url(self, token, view_name, query, table, num_requests):
+        if view_name.startswith('api.'):
             url = reverse(view_name) + '.json' + query
 
             client = APIClient()
@@ -109,9 +112,23 @@ class Command(BaseCommand):  # pragma: no cover
             s['org_id'] = token.org.pk
             s.save()
 
-        start_time = time.time()
-        response = client.get(url)
-        time_taken = time.time() - start_time
+        pre_index_scans = self.get_index_scan_counts(table)
+
+        statuses = []
+        request_times = []
+        db_times = []
+        query_counts = []
+
+        for r in range(num_requests):
+            reset_queries()
+            start_time = time.time()
+
+            response = client.get(url)
+
+            statuses.append(response.status_code)
+            request_times.append(time.time() - start_time)
+            db_times.append(sum([float(q['time']) for q in connection.queries]))
+            query_counts.append(len(connection.queries))
 
         # TODO figure out how to get stats to refresh without this workaround.
         # You'd think that SELECT pg_stat_clear_snapshot() might work but no.
@@ -119,16 +136,21 @@ class Command(BaseCommand):  # pragma: no cover
         time.sleep(1)
 
         post_index_scans = self.get_index_scan_counts(table)
-
-        access_result = colored(response.status_code, Fore.GREEN if 200 <= response.status_code < 300 else Fore.RED)
-
-        time_limit = MAX_API_REQUEST_TIME if is_api_url else MAX_WEB_REQUEST_TIME
-        time_result = colored("%.3f" % time_taken, Fore.GREEN if time_taken < time_limit else Fore.RED) + " secs"
-
         used_indexes = [i for i, scans in pre_index_scans.iteritems() if post_index_scans.get(i) > scans]
-        index_result = ",".join(used_indexes)
 
-        self.stdout.write("GET %s %s / %s / %s" % (url, access_result, time_result, index_result))
+        last_status = statuses[-1]
+        avg_request_time = sum(request_times) / len(request_times)
+        avg_db_time = sum(db_times) / len(db_times)
+        last_query_count = query_counts[-1]
+
+        self.stdout.write("%s %s / %s secs / %s secs / %s queries / %s" % (
+            url,
+            colored(last_status, Fore.GREEN if 200 <= last_status < 300 else Fore.RED),
+            colorcoded(avg_request_time, REQUEST_TIME_LIMITS),
+            colorcoded(avg_db_time, DB_TIME_LIMITS),
+            colorcoded(last_query_count, NUM_QUERY_LIMITS),
+            styled(", ".join(used_indexes), Style.DIM)
+        ))
 
     @staticmethod
     def get_index_scan_counts(table_name):
@@ -142,12 +164,26 @@ class Command(BaseCommand):  # pragma: no cover
         return {row[0]: row[1] for row in rows}
 
 
-def colored(text, color):
-    return color + six.text_type(text) + Fore.RESET
+def colorcoded(val, limits):
+    if val > limits[1]:
+        color = Fore.RED
+    elif val > limits[0]:
+        color = Fore.YELLOW
+    else:
+        color = Fore.GREEN
+
+    if isinstance(val, float):
+        val = "%.3f" % val
+
+    return colored(val, color)
 
 
-def styled(text, style):
-    return style + six.text_type(text) + Style.RESET_ALL
+def colored(val, color):
+    return color + unicode(val) + Fore.RESET
+
+
+def styled(val, style):
+    return style + unicode(val) + Style.RESET_ALL
 
 
 class DjangoClient(Client):
