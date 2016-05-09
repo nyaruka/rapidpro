@@ -25,7 +25,7 @@ from temba.utils import str_to_bool, json_date_to_datetime
 from .serializers import BroadcastReadSerializer, CampaignReadSerializer, CampaignEventReadSerializer
 from .serializers import ChannelReadSerializer, ChannelEventReadSerializer, ContactReadSerializer
 from .serializers import ContactFieldReadSerializer, ContactGroupReadSerializer, FlowRunReadSerializer
-from .serializers import LabelReadSerializer, MsgReadSerializer
+from .serializers import FlowRunReadSerializerIncludeSteps, LabelReadSerializer, MsgReadSerializer
 from ..models import APIPermission, SSLPermission
 from ..support import InvalidQueryError, CustomCursorPagination
 
@@ -1187,7 +1187,8 @@ class RunsEndpoint(ListAPIMixin, BaseAPIView):
      * **flow** - the UUID and name of the flow (object), filterable as `flow` with UUID.
      * **contact** - the UUID and name of the contact (object), filterable as `contact` with UUID.
      * **responded** - whether the contact responded (boolean), filterable as `responded`.
-     * **steps** - steps visited by the contact on the flow (array of objects).
+     * **include_steps** - whether to include the steps array in the response, `default: False`.
+     * **steps** - steps visited by the contact on the flow (array of objects), Only if `include_steps = True`.
      * **created_on** - the datetime when this run was started (datetime).
      * **modified_on** - when this run was last modified (datetime), filterable as `before` and `after`.
      * **exited_on** - the datetime when this run exited or null if it is still active (datetime).
@@ -1246,6 +1247,14 @@ class RunsEndpoint(ListAPIMixin, BaseAPIView):
     exclusive_params = ('contact', 'flow')
     throttle_scope = 'v2.runs'
 
+    def get_serializer_class(self):
+        params = self.request.query_params
+
+        if str_to_bool(params.get('include_steps')):
+            return FlowRunReadSerializerIncludeSteps
+
+        return FlowRunReadSerializer
+
     def filter_queryset(self, queryset):
         params = self.request.query_params
         org = self.request.user.get_org()
@@ -1278,16 +1287,21 @@ class RunsEndpoint(ListAPIMixin, BaseAPIView):
             queryset = queryset.exclude(contact__pk__in=test_contact_ids)
 
         # limit to responded runs (optional)
-        if str_to_bool(params.get('responded')):
-            queryset = queryset.filter(responded=True)
+        responded = params.get('responded')
+        if responded is not None:
+            queryset = queryset.filter(responded=str_to_bool(responded))
 
         # use prefetch rather than select_related for foreign keys to avoid joins
         queryset = queryset.prefetch_related(
             Prefetch('flow', queryset=Flow.objects.only('uuid', 'name')),
             Prefetch('contact', queryset=Contact.objects.only('uuid', 'name')),
-            Prefetch('steps', queryset=FlowStep.objects.order_by('arrived_on')),
-            Prefetch('steps__messages', queryset=Msg.all_messages.only('text')),
         )
+
+        if str_to_bool(params.get('include_steps')):
+            queryset = queryset.prefetch_related(
+                Prefetch('steps', queryset=FlowStep.objects.order_by('arrived_on')),
+                Prefetch('steps__messages', queryset=Msg.all_messages.only('text')),
+            )
 
         return self.filter_before_after(queryset, 'modified_on')
 
@@ -1304,6 +1318,7 @@ class RunsEndpoint(ListAPIMixin, BaseAPIView):
                 {'name': 'flow', 'required': False, 'help': "A flow UUID to filter by, ex: f5901b62-ba76-4003-9c62-72fdacc1b7b7"},
                 {'name': 'contact', 'required': False, 'help': "A contact UUID to filter by, ex: 09d23a05-47fe-11e4-bfe9-b8f6b119e9ab"},
                 {'name': 'responded', 'required': False, 'help': "Whether to only return runs with contact responses"},
+                {'name': 'include_steps', 'required': False, 'help': "Whether to include the steps array in the response"},
                 {'name': 'before', 'required': False, 'help': "Only return runs modified before this date, ex: 2015-01-28T18:00:00.000"},
                 {'name': 'after', 'required': False, 'help': "Only return runs modified after this date, ex: 2015-01-28T18:00:00.000"}
             ]

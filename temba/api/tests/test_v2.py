@@ -970,8 +970,40 @@ class APITest(TembaTest):
         frank_run1.refresh_from_db()
 
         # no filtering
-        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 6):
+        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 4):
             response = self.fetchJSON(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['next'], None)
+        self.assertResultsById(response, [joe_run3, frank_run2, frank_run1, joe_run2, joe_run1])
+
+        joe_run1_steps = list(joe_run1.steps.order_by('pk'))
+        frank_run2_steps = list(frank_run2.steps.order_by('pk'))
+
+        self.assertEqual(response.json['results'][1], {
+            'id': frank_run2.pk,
+            'flow': {'uuid': flow1.uuid, 'name': "Color Flow"},
+            'contact': {'uuid': self.frank.uuid, 'name': self.frank.name},
+            'responded': False,
+            'created_on': format_datetime(frank_run2.created_on),
+            'modified_on': format_datetime(frank_run2.modified_on),
+            'exited_on': None,
+            'exit_type': None
+        })
+        self.assertEqual(response.json['results'][4], {
+            'id': joe_run1.pk,
+            'flow': {'uuid': flow1.uuid, 'name': "Color Flow"},
+            'contact': {'uuid': self.joe.uuid, 'name': self.joe.name},
+            'responded': True,
+            'created_on': format_datetime(joe_run1.created_on),
+            'modified_on': format_datetime(joe_run1.modified_on),
+            'exited_on': format_datetime(joe_run1.exited_on),
+            'exit_type': 'completed'
+        })
+
+        # no filtering with include steps
+        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 6):
+            response = self.fetchJSON(url, 'include_steps=TrUe')
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['next'], None)
@@ -1088,6 +1120,10 @@ class APITest(TembaTest):
         # filter by contact + responded
         response = self.fetchJSON(url, 'contact=%s&responded=yes' % self.joe.uuid)
         self.assertResultsById(response, [joe_run1])
+
+        # filter by contact + non responded
+        response = self.fetchJSON(url, 'contact=%s&responded=no' % self.joe.uuid)
+        self.assertResultsById(response, [joe_run3, joe_run2])
 
         # filter by after
         response = self.fetchJSON(url, 'after=%s' % format_datetime(frank_run1.modified_on))

@@ -233,7 +233,6 @@ class FlowRunReadSerializer(ReadSerializer):
 
     flow = serializers.SerializerMethodField()
     contact = serializers.SerializerMethodField()
-    steps = serializers.SerializerMethodField()
     exit_type = serializers.SerializerMethodField()
 
     def get_flow(self, obj):
@@ -241,6 +240,18 @@ class FlowRunReadSerializer(ReadSerializer):
 
     def get_contact(self, obj):
         return {'uuid': obj.contact.uuid, 'name': obj.contact.name}
+
+    def get_exit_type(self, obj):
+        return self.EXIT_TYPES.get(obj.exit_type)
+
+    class Meta:
+        model = FlowRun
+        fields = ('id', 'flow', 'contact', 'responded',
+                  'created_on', 'modified_on', 'exited_on', 'exit_type')
+
+
+class FlowRunReadSerializerIncludeSteps(FlowRunReadSerializer):
+    steps = serializers.SerializerMethodField()
 
     def get_steps(self, obj):
         steps = []
@@ -254,9 +265,6 @@ class FlowRunReadSerializer(ReadSerializer):
                           'value': val,
                           'category': step.rule_category})
         return steps
-
-    def get_exit_type(self, obj):
-        return self.EXIT_TYPES.get(obj.exit_type)
 
     class Meta:
         model = FlowRun
