@@ -1308,7 +1308,8 @@ class ChannelTest(TembaTest):
         Channel.objects.all().delete()
 
         claim_facebook_url = reverse('channels.channel_claim_facebook')
-        token = 'x' * 200
+        # we don't know how long FB tokens can be, but accept short ones
+        token = 'x' * 10
 
         with patch('requests.get') as mock:
             mock.return_value = MockResponse(400, json.dumps(dict(error=dict(message="Failed validation"))))
@@ -1326,7 +1327,8 @@ class ChannelTest(TembaTest):
             response = self.client.post(claim_facebook_url, dict(page_access_token=token), follow=True)
 
             # assert our channel got created
-            channel = Channel.objects.get()
+            channel = Channel.objects.all().first()
+            self.assertIsNotNone(channel)
             self.assertEqual(channel.config_json()[AUTH_TOKEN], token)
             self.assertEqual(channel.config_json()[PAGE_NAME], 'Temba')
             self.assertEqual(channel.address, '10')
