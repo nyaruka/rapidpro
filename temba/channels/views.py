@@ -1709,8 +1709,7 @@ class ChannelCRUDL(SmartCRUDL):
 
     class ClaimFacebook(OrgPermsMixin, SmartFormView):
         class FacebookForm(forms.Form):
-            page_access_token = forms.CharField(min_length=100, required=True,
-                                                help_text=_("The Page Access Token for your Application"))
+            page_access_token = forms.CharField(required=True, help_text=_("The Page Access Token for your Application"))
 
             def clean_page_access_token(self):
                 token = self.cleaned_data['page_access_token']
