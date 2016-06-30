@@ -28,7 +28,8 @@ from temba.triggers.models import Trigger
 from temba.utils import datetime_to_str, str_to_datetime
 from temba.values.models import Value
 from uuid import uuid4
-from .flow_migrations import migrate_to_version_5, migrate_to_version_6, migrate_to_version_7, migrate_to_version_8
+from .flow_migrations import migrate_to_version_5, migrate_to_version_6, migrate_to_version_7
+from .flow_migrations import migrate_to_version_8, migrate_to_version_9, migrate_export_to_version_9
 from .models import Flow, FlowStep, FlowRun, FlowLabel, FlowStart, FlowRevision, FlowException, ExportFlowResultsTask
 from .models import ActionSet, RuleSet, Action, Rule, FlowRunCount, get_flow_user
 from .models import Test, TrueTest, FalseTest, AndTest, OrTest, PhoneTest, NumberTest
@@ -789,7 +790,7 @@ class FlowTest(TembaTest):
                                name='Copy of Color Flow is a long name to use for something like thi',
                                revision=1,
                                expires=60,
-                               id=copy.pk,
+                               uuid=copy.uuid,
                                saved_on=datetime_to_str(copy.saved_on)),
                           copy_json['metadata'])
 
@@ -824,7 +825,7 @@ class FlowTest(TembaTest):
     def test_parsing(self):
         # save this flow
         self.flow.update(self.definition)
-        flow = Flow.objects.get(pk=self.flow.id)
+        self.flow.refresh_from_db()
 
         # should have created the appropriate RuleSet and ActionSet objects
         self.assertEquals(4, ActionSet.objects.all().count())
@@ -833,7 +834,7 @@ class FlowTest(TembaTest):
         actions = entry.get_actions()
         self.assertEquals(1, len(actions))
         self.assertEquals(ReplyAction(dict(base='What is your favorite color?')).as_json(), actions[0].as_json())
-        self.assertEquals(entry.uuid, flow.entry_uuid)
+        self.assertEquals(entry.uuid, self.flow.entry_uuid)
 
         orange = ActionSet.objects.get(uuid=uuid(2))
         actions = orange.get_actions()
@@ -872,9 +873,10 @@ class FlowTest(TembaTest):
         self.definition['metadata']['saved_on'] = datetime_to_str(self.flow.saved_on)
         self.definition['metadata']['revision'] = 1
         self.definition['metadata']['expires'] = self.flow.expires_after_minutes
-        self.definition['metadata']['id'] = self.flow.pk
+        self.definition['metadata']['uuid'] = self.flow.uuid
 
         self.definition['flow_type'] = self.flow.flow_type
+
         self.assertEquals(json_dict, self.definition)
 
         # remove one of our actions and rules
@@ -890,7 +892,7 @@ class FlowTest(TembaTest):
         actions = entry.get_actions()
         self.assertEquals(1, len(actions))
         self.assertEquals(ReplyAction(dict(base='What is your favorite color?')).as_json(), actions[0].as_json())
-        self.assertEquals(entry.uuid, flow.entry_uuid)
+        self.assertEquals(entry.uuid, self.flow.entry_uuid)
 
         orange = ActionSet.objects.get(uuid=uuid(2))
         actions = orange.get_actions()
@@ -1865,7 +1867,7 @@ class FlowTest(TembaTest):
         self.assertTrue('restart_participants' in response.context['form'].fields)
 
         post_data = dict()
-        post_data['omnibox'] = "c-%d" % self.contact.pk
+        post_data['omnibox'] = "c-%s" % self.contact.uuid
         post_data['restart_participants'] = 'on'
 
         count = Broadcast.objects.all().count()
@@ -3905,32 +3907,6 @@ class FlowsTest(FlowFileTest):
         sms = Msg.all_messages.filter(contact=chw).order_by('-created_on')[0]
         self.assertEquals("Please follow up with Judy Pottier, she has reported she is in pain.", sms.text)
 
-    def test_flow_export_dynamic_group(self):
-        flow = self.get_flow('favorites')
-
-        # get one of our flow actionsets, change it to an AddToGroupAction
-        actionset = ActionSet.objects.filter(flow=flow).order_by('y').first()
-
-        # replace the actions
-        actionset.set_actions_dict([AddToGroupAction([dict(id=1, name="Other Group"), '@contact.name']).as_json()])
-        actionset.save()
-
-        # now try to export it
-        self.login(self.admin)
-        response = self.client.get(reverse('flows.flow_export', args=[flow.pk]))
-        self.assertEquals(200, response.status_code)
-
-        # try to import the flow
-        flow.delete()
-        definition = json.loads(response.content)
-        Flow.import_flows(definition, self.org, self.admin)
-
-        # make sure the created flow has the same action set
-        flow = Flow.objects.filter(name="%s" % flow.name).first()
-        actionset = ActionSet.objects.filter(flow=flow).order_by('y').first()
-
-        self.assertTrue('@contact.name' in actionset.get_actions()[0].groups)
-
     def test_flow_delete(self):
         from temba.campaigns.models import Campaign, CampaignEvent
         flow = self.get_flow('favorites')
@@ -3980,46 +3956,6 @@ class FlowsTest(FlowFileTest):
         trigger.refresh_from_db()
         self.assertFalse(trigger.is_active)
 
-    def test_flow_export(self):
-        flow = self.get_flow('favorites')
-
-        # now let's export it
-        self.login(self.admin)
-        response = self.client.get(reverse('flows.flow_export', args=[flow.pk]))
-        modified_on = flow.modified_on
-        self.assertEquals(200, response.status_code)
-
-        definition = json.loads(response.content)
-        self.assertEqual(CURRENT_EXPORT_VERSION, definition.get('version', 0))
-        self.assertEqual(1, len(definition.get('flows', [])))
-
-        # try importing it and see that we have an updated flow
-        Flow.import_flows(definition, self.org, self.admin)
-        flow = Flow.objects.filter(name="%s" % flow.name).first()
-        self.assertIsNotNone(flow)
-        self.assertNotEqual(modified_on, flow.modified_on)
-
-        # don't allow exports that reference other flows
-        new_mother = self.get_flow('new_mother')
-        flow = self.get_flow('references_other_flows',
-                             substitutions=dict(START_FLOW=new_mother.pk,
-                                                TRIGGER_FLOW=self.get_flow('pain_flow').pk))
-        response = self.client.get(reverse('flows.flow_export', args=[flow.pk]))
-        self.assertContains(response, "Sorry, this flow cannot be exported")
-        self.assertContains(response, "New Mother")
-        self.assertContains(response, "Pain Flow")
-
-        # now try importing it into a completey different org
-        trey = self.create_user("Trey Anastasio")
-        trey_org = Org.objects.create(name="Gotta Jiboo", timezone="Africa/Kigali", created_by=trey, modified_by=trey)
-        trey_org.administrators.add(trey)
-
-        response = self.client.get(reverse('flows.flow_export', args=[new_mother.pk]))
-        definition = json.loads(response.content)
-
-        Flow.import_flows(definition, trey_org, trey)
-        self.assertIsNotNone(Flow.objects.filter(org=trey_org, name="New Mother").first())
-
     def test_start_flow_action(self):
         self.import_file('flow-starts')
         parent = Flow.objects.get(name='Parent Flow')
@@ -4060,7 +3996,7 @@ class FlowsTest(FlowFileTest):
         self.assertEquals('Thank you! I like blue.', replies[0])
         self.assertEquals('This message was not translated.', replies[1])
 
-        # now add a primary language to our org
+        # now add a primary languge to our org
         self.org.primary_language = spanish
         self.org.save()
 
@@ -4178,9 +4114,9 @@ class FlowsTest(FlowFileTest):
 
         # create an action on flow1 to start flow2
         flow1.update(dict(action_sets=[dict(uuid=uuid(1), x=1, y=1,
-                                            actions=[dict(type='flow', id=flow2.pk)])]))
+                                            actions=[dict(type='flow', flow=dict(uuid=flow2.uuid))])]))
         flow2.update(dict(action_sets=[dict(uuid=uuid(2), x=1, y=1,
-                                            actions=[dict(type='flow', id=flow1.pk)])]))
+                                            actions=[dict(type='flow', flow=dict(uuid=flow1.uuid))])]))
 
         # start the flow, shouldn't get into a loop, but both should get started
         flow1.start([], [self.contact])
@@ -4425,7 +4361,7 @@ class FlowsTest(FlowFileTest):
         json_dict = favorites.as_json()
         action = json_dict['action_sets'][1]['actions'][0]
         action['type'] = 'send'
-        action['contacts'] = [dict(id=self.contact.pk)]
+        action['contacts'] = [dict(uuid=self.contact.uuid)]
         action['groups'] = []
         action['variables'] = []
         json_dict['action_sets'][1]['actions'][0] = action
@@ -4480,7 +4416,7 @@ class FlowMigrationTest(FlowFileTest):
                              expires=flow.expires_after_minutes, id=flow.pk,
                              revision=revision.revision if revision else 1)
 
-        flow_json = FlowRevision.migrate_definition(flow_json, flow.version_number, to_version=to_version)
+        flow_json = FlowRevision.migrate_definition(self.org, flow_json, flow.version_number, to_version=to_version)
         if 'definition' in flow_json:
             flow_json = flow_json['definition']
 
@@ -4528,6 +4464,96 @@ class FlowMigrationTest(FlowFileTest):
         self.assertEquals(flow_json['base_language'], 'base')
         self.assertEquals(5, len(flow_json['action_sets']))
         self.assertEquals(1, len(flow_json['rule_sets']))
+
+    def test_migrate_to_9(self):
+
+        # our group and flow to move to uuids
+        group = self.create_group("Phans", [])
+        previous_flow = self.create_flow()
+        start_flow = self.create_flow()
+        label = Label.get_or_create(self.org, self.admin, 'My label')
+
+        substitutions = dict(group_id=group.pk,
+                             contact_id=self.contact.pk,
+                             start_flow_id=start_flow.pk,
+                             previous_flow_id=previous_flow.pk,
+                             label_id=label.pk)
+
+        exported_json = json.loads(self.get_import_json('migrate_to_9', substitutions))
+        exported_json = migrate_export_to_version_9(exported_json, self.org, True)
+
+        # our campaign events shouldn't have ids
+        campaign = exported_json['campaigns'][0]
+        event = campaign['events'][0]
+
+        # campaigns should have uuids
+        self.assertIn('uuid', campaign)
+        self.assertNotIn('id', campaign)
+
+        # our event flow should be a uuid
+        self.assertIn('flow', event)
+        self.assertIn('uuid', event['flow'])
+        self.assertNotIn('id', event['flow'])
+
+        # our relative field should not have an id
+        self.assertNotIn('id', event['relative_to'])
+
+        # evaluate that the flow json is migrated properly
+        flow_json = exported_json['flows'][0]
+
+        # check that contacts migrated properly
+        send_action = flow_json['action_sets'][0]['actions'][1]
+        self.assertEquals(1, len(send_action['contacts']))
+        self.assertEquals(1, len(send_action['groups']))
+
+        for contact in send_action['contacts']:
+            self.assertIn('uuid', contact)
+            self.assertNotIn('id', contact)
+
+        for group in send_action['groups']:
+            self.assertIn('uuid', group)
+            self.assertNotIn('id', contact)
+
+        label_action = flow_json['action_sets'][0]['actions'][2]
+        for label in label_action.get('labels'):
+            self.assertNotIn('id', label)
+            self.assertIn('uuid', label)
+
+        action_set = flow_json['action_sets'][1]
+        actions = action_set['actions']
+
+        for action in actions[0:2]:
+            self.assertIn(action['type'], ('del_group', 'add_group'))
+            self.assertIn('uuid', action['groups'][0])
+            self.assertNotIn('id', action['groups'][0])
+
+        for action in actions[2:4]:
+            self.assertIn(action['type'], ('trigger-flow', 'flow'))
+            self.assertIn('flow', action)
+            self.assertIn('uuid', action['flow'])
+            self.assertIn('name', action['flow'])
+            self.assertNotIn('id', action)
+            self.assertNotIn('name', action)
+
+        # we also switch flow ids to uuids in the metadata
+        self.assertIn('uuid', flow_json['metadata'])
+        self.assertNotIn('id', flow_json['metadata'])
+
+        # import the same thing again, should have the same uuids
+        new_exported_json = json.loads(self.get_import_json('migrate_to_9', substitutions))
+        new_exported_json = migrate_export_to_version_9(new_exported_json, self.org, True)
+        self.assertEqual(flow_json['metadata']['uuid'], new_exported_json['flows'][0]['metadata']['uuid'])
+
+        # but when done as a different site, it should be unique
+        new_exported_json = json.loads(self.get_import_json('migrate_to_9', substitutions))
+        new_exported_json = migrate_export_to_version_9(new_exported_json, self.org, False)
+        self.assertNotEqual(flow_json['metadata']['uuid'], new_exported_json['flows'][0]['metadata']['uuid'])
+
+        # can also just import a single flow
+        exported_json = json.loads(self.get_import_json('migrate_to_9', substitutions))
+        flow_json = migrate_to_version_9(exported_json['flows'][0], self.org)
+        self.assertIn('uuid', flow_json['metadata'])
+        self.assertNotIn('id', flow_json['metadata'])
 
     def test_migrate_to_8(self):
         # file uses old style expressions
@@ -4858,6 +4884,18 @@ class MissedCallChannelTest(FlowFileTest):
         flow = self.get_flow('call-channel-split')
 
         # trigger a missed call on our channel
+        call = ChannelEvent.create(self.channel, 'tel:+250788111222', ChannelEvent.TYPE_CALL_IN_MISSED,
+                                   timezone.now(), 0)
+
+        # we aren't in the group, so no run should be started
+        run = FlowRun.objects.filter(flow=flow).first()
+        self.assertIsNone(run)
+
+        # but if we add our contact to the group..
+        group = ContactGroup.user_groups.filter(name='Trigger Group').first()
+        group.update_contacts(self.admin, [self.create_contact(number='+250788111222')], True)
+
+        # now create another missed call which should fire our trigger
         call = ChannelEvent.create(self.channel, 'tel:+250788111222', ChannelEvent.TYPE_CALL_IN_MISSED,
                                    timezone.now(), 0)
 
