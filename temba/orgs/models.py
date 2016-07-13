@@ -90,6 +90,9 @@ NEXMO_KEY = 'NEXMO_KEY'
 NEXMO_SECRET = 'NEXMO_SECRET'
 NEXMO_UUID = 'NEXMO_UUID'
 
+TRANSFERTO_ACCOUNT_LOGIN = 'TRANSFERTO_ACCOUNT_LOGIN'
+TRANSFERTO_AIRTIME_API_TOKEN = 'TRANSFERTO_AIRTIME_API_TOKEN'
+
 ORG_STATUS = 'STATUS'
 SUSPENDED = 'suspended'
 RESTORED = 'restored'
@@ -512,6 +515,20 @@ class Org(SmartModel):
         """
         return json.loads(self.webhook).get('headers', dict()) if self.webhook else dict()
 
+    def get_org_channel_countries(self):
+        org_channel_countries = []
+        channels_countries = self.channels.filter(is_active=True).exclude(country=None).values('country').distinct()
+
+        for country in channels_countries:
+            code = country['country']
+            country_obj = pycountry.countries.get(alpha2=code)
+            country_name = country_obj.name
+            currency = pycountry.currencies.get(numeric=country_obj.numeric)
+            org_channel_countries.append(dict(code=code, name=country_name, currency_code=currency.letter,
+                                              currency_name=currency.name))
+
+        return sorted(org_channel_countries, key=lambda k: k['name'])
+
     @classmethod
     def get_possible_countries(cls):
         return AdminBoundary.objects.filter(level=0).order_by('name')
@@ -550,6 +567,35 @@ class Org(SmartModel):
                 with r.lock(key, timeout=900):
                     pending = Channel.get_pending_messages(self)
                     Msg.send_messages(pending)
+
+    def connect_transferto(self, account_login, airtime_api_token):
+        transferto_config = {TRANSFERTO_ACCOUNT_LOGIN: account_login.strip(),
+                             TRANSFERTO_AIRTIME_API_TOKEN: airtime_api_token.strip()}
+
+        config = self.config_json()
+        config.update(transferto_config)
+        self.config = json.dumps(config)
+
+        # clear all our channel configurations
+        self.save(update_fields=['config'])
+
+    def is_connected_to_transferto(self):
+        if self.config:
+            config = self.config_json()
+            transferto_account_login = config.get(TRANSFERTO_ACCOUNT_LOGIN, None)
+            transferto_airtime_api_token = config.get(TRANSFERTO_AIRTIME_API_TOKEN, None)
+
+            return transferto_account_login and transferto_airtime_api_token
+        else:
+            return False
+
+    def remove_transferto_account(self):
+        if self.config:
+            config = self.config_json()
+            config[TRANSFERTO_ACCOUNT_LOGIN] = ''
+            config[TRANSFERTO_AIRTIME_API_TOKEN] = ''
+            self.config = json.dumps(config)
+            self.save()
 
     def connect_nexmo(self, api_key, api_secret):
         nexmo_uuid = str(uuid4())

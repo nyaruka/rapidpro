@@ -221,6 +221,7 @@ INSTALLED_APPS = (
     'temba.ivr',
     'temba.locations',
     'temba.values',
+    'temba.events',
 )
 
 # the last installed app that uses smartmin permissions
@@ -375,6 +376,7 @@ PERMISSIONS = {
                  'service',
                  'signup',
                  'surveyor',
+                 'transferto_account',
                  'trial',
                  'twilio_account',
                  'twilio_connect',
@@ -582,6 +584,7 @@ GROUP_PERMISSIONS = {
         'orgs.org_nexmo_configuration',
         'orgs.org_plivo_connect',
         'orgs.org_profile',
+        'orgs.org_transferto_account',
         'orgs.org_twilio_account',
         'orgs.org_twilio_connect',
         'orgs.org_webhook',
