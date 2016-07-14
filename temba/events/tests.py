@@ -1,3 +1,4 @@
+from django.core.urlresolvers import reverse
 from mock import patch
 from temba.events.models import AirtimeEvent
 from temba.tests import TembaTest, MockResponse
@@ -32,3 +33,35 @@ class AirtimeEventTest(TembaTest):
                          self.airtime_event.get_transferto_response_json(action='command'))
 
         mock_post_transferto.assert_called_once_with('mylogin', 'api_token', action='command')
+
+    def test_list(self):
+        list_url = reverse('events.airtimeevent_list')
+
+        self.login(self.user)
+        response = self.client.get(list_url)
+        self.assertRedirect(response, '/users/login/')
+
+        self.login(self.editor)
+        response = self.client.get(list_url)
+        self.assertRedirect(response, '/users/login/')
+
+        self.login(self.admin)
+        response = self.client.get(list_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(self.airtime_event in response.context['object_list'])
+
+    def test_read(self):
+        read_url = reverse('events.airtimeevent_read', args=[self.airtime_event.pk])
+
+        self.login(self.user)
+        response = self.client.get(read_url)
+        self.assertRedirect(response, '/users/login/')
+
+        self.login(self.editor)
+        response = self.client.get(read_url)
+        self.assertRedirect(response, '/users/login/')
+
+        self.login(self.admin)
+        response = self.client.get(read_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.airtime_event.pk, response.context['object'].pk)

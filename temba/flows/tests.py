@@ -4409,6 +4409,8 @@ class FlowsTest(FlowFileTest):
         airtime_event = AirtimeEvent.objects.all().first()
         self.assertEqual(airtime_event.status, AirtimeEvent.COMPLETE)
         self.assertEqual(airtime_event.last_message, "Airtime Transferred Successfully")
+        self.assertEqual(mock_post_transferto.call_count, 3)
+        mock_post_transferto.reset_mock()
 
         mock_post_transferto.side_effect = [MockResponse(200, "error_code=0\r\nerror_txt=\r\ncountry=Rwanda\r\n"
                                                               "product_list=5,10,20,30\r\n"),
@@ -4425,6 +4427,39 @@ class FlowsTest(FlowFileTest):
         self.assertEqual(airtime_event.status, AirtimeEvent.FAILED)
         self.assertEqual(airtime_event.last_message, "Error transferring airtime: Failed by invalid amount "
                                                      "configuration or missing amount configuration for Rwanda")
+
+        self.assertEqual(mock_post_transferto.call_count, 1)
+        mock_post_transferto.reset_mock()
+
+        mock_post_transferto.side_effect = [MockResponse(200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
+                                                              "product_list=5,10,20,30\r\n"),
+                                            MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserve_id=234\r\n"),
+                                            MockResponse(200, "error_code=0\r\nerror_txt=\r\n")]
+
+        test_contact = Contact.get_test_contact(self.admin)
+
+        runs = flow.start_msg_flow([test_contact.id])
+        self.assertEquals(1, len(runs))
+
+        # no saved airtime event in DB
+        self.assertEquals(2, AirtimeEvent.objects.all().count())
+        self.assertEqual(mock_post_transferto.call_count, 0)
+
+        contact2 = self.create_contact(name='Bismack Biyombo', number='+250788123123', twitter='biyombo')
+        self.assertEqual(contact2.get_urn().path, 'biyombo')
+
+        runs = flow.start_msg_flow([contact2.id])
+        self.assertEquals(1, len(runs))
+        self.assertEquals(1, contact2.msgs.all().count())
+        self.assertEquals('Message complete', contact2.msgs.all()[0].text)
+
+        self.assertEquals(3, AirtimeEvent.objects.all().count())
+        airtime_event = AirtimeEvent.objects.all().last()
+        self.assertEqual(airtime_event.status, AirtimeEvent.COMPLETE)
+        self.assertEqual(airtime_event.recipient, '+250788123123')
+        self.assertNotEqual(airtime_event.recipient, 'biyombo')
+        self.assertEqual(mock_post_transferto.call_count, 3)
+        mock_post_transferto.reset_mock()
 
 
 class FlowMigrationTest(FlowFileTest):

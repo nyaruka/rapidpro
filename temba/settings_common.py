@@ -562,6 +562,9 @@ GROUP_PERMISSIONS = {
 
         'csv_imports.importtask.*',
 
+        'events.airtimeevent_list',
+        'events.airtimeevent_read',
+
         'ivr.ivrcall.*',
 
         'locations.adminboundary_alias',

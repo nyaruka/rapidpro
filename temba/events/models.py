@@ -46,6 +46,9 @@ class AirtimeEvent(SmartModel):
 
     @classmethod
     def post_transferto_api_response(cls, login, token, **kwargs):
+        if not settings.SEND_WEBHOOKS:
+            raise Exception("!! Skipping WebHook send, SEND_WEBHOOKS set to False")
+
         key = str(int(time.time()))
         md5 = hashlib.md5()
         md5.update(login + token + key)
@@ -53,9 +56,6 @@ class AirtimeEvent(SmartModel):
 
         data = kwargs
         data.update(dict(login=login, key=key, md5=md5))
-
-        if not settings.SEND_WEBHOOKS:
-            raise Exception("!! Skipping WebHook send, SEND_WEBHOOKS set to False")
 
         response = requests.post(cls.TRANSFERTO_AIRTIME_API_URL, data)
 
@@ -88,6 +88,16 @@ class AirtimeEvent(SmartModel):
 
     @classmethod
     def trigger_flow_event(cls, flow, run, ruleset, contact, event):
+
+        # flow simulation will always simulate a suceessful airtime transfer
+        # without saving the object in the DB
+        if run.contact.is_test:
+            from temba.flows.models import ActionLog
+            log_txt = "Simulate Complete airtime transfer"
+            ActionLog.create(run, log_txt, safe=True)
+
+            return AirtimeEvent(status=AirtimeEvent.COMPLETE)
+
         org = flow.org
         api_user = get_api_user()
 
@@ -107,7 +117,7 @@ class AirtimeEvent(SmartModel):
         # we might not have an sms (or channel) yet
         channel = None
         text = None
-        contact_urn = contact.get_urn()
+        contact_urn = contact.get_urn(TEL_SCHEME)
 
         if event and not contact.is_test:
             text = event.text
@@ -115,7 +125,7 @@ class AirtimeEvent(SmartModel):
             contact_urn = event.contact_urn
 
         if not contact_urn:
-            contact_urn = contact.get_urn()
+            contact_urn = contact.get_urn(TEL_SCHEME)
 
         if channel:
             channel_id = channel.pk

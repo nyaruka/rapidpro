@@ -28,6 +28,10 @@
           Disconnecting your TransferTo account. Are you sure you want to proceed?
     %a#disconnect-transferto-form.posterize{href:'{% url "orgs.org_transferto_account" %}?disconnect=true'}
 
+  -if object.has_airtime_event_log
+    %hr
+      %a.btn{href:'{% url "events.airtimeevent_list" %}'}
+        -trans "Airtime Events Log"
 
 -block extra-script
   :javascript
