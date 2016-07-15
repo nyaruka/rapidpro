@@ -1710,7 +1710,7 @@ class OrgCRUDL(SmartCRUDL):
             org = user.get_org()
             disconnect = form.cleaned_data.get('disconnect', 'false') == 'true'
             if disconnect:
-                org.remove_transferto_account()
+                org.remove_transferto_account(user)
                 return HttpResponseRedirect(reverse('orgs.org_home'))
             else:
                 account_login = form.cleaned_data['account_login']

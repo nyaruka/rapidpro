@@ -1183,7 +1183,7 @@ class OrgTest(TembaTest):
 
         self.assertTrue(self.org.is_connected_to_transferto())
 
-        self.org.remove_transferto_account()
+        self.org.remove_transferto_account(self.admin)
 
         self.assertFalse(self.org.is_connected_to_transferto())
 
