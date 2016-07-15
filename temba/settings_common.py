@@ -225,7 +225,7 @@ INSTALLED_APPS = (
 )
 
 # the last installed app that uses smartmin permissions
-PERMISSIONS_APP = 'temba.values'
+PERMISSIONS_APP = 'temba.events'
 
 LOGGING = {
     'version': 1,
