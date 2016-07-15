@@ -46,7 +46,7 @@ class AirtimeEvent(SmartModel):
 
     @classmethod
     def post_transferto_api_response(cls, login, token, **kwargs):
-        if not settings.SEND_WEBHOOKS:
+        if not settings.SEND_AIRTIME:
             raise Exception("!! Skipping WebHook send, SEND_WEBHOOKS set to False")
 
         key = str(int(time.time()))

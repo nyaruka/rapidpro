@@ -1073,6 +1073,12 @@ SEND_WEBHOOKS = False
 #         could cause emails to be sent in test environment
 SEND_EMAILS = False
 
+######
+# DANGER: only turn this on if you know what you are doing!
+#         could cause emails to be sent in test environment
+SEND_AIRTIME = False
+
+
 MESSAGE_HANDLERS = ['temba.triggers.handlers.TriggerHandler',
                     'temba.flows.handlers.FlowHandler',
                     'temba.triggers.handlers.CatchAllHandler']
