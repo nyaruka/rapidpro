@@ -8,7 +8,7 @@ class AirtimeEventTest(TembaTest):
     def setUp(self):
         super(AirtimeEventTest, self).setUp()
 
-        self.org.connect_transferto('mylogin', 'api_token')
+        self.org.connect_transferto('mylogin', 'api_token', self.admin)
         self.airtime_event = AirtimeEvent.objects.create(org=self.org, recipient='+250788123123', amount='100',
                                                          created_by=self.admin, modified_by=self.admin)
 

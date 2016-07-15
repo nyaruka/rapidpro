@@ -572,16 +572,15 @@ class Org(SmartModel):
         from temba.events.models import AirtimeEvent
         return AirtimeEvent.objects.filter(org=self).exists()
 
-    def connect_transferto(self, account_login, airtime_api_token):
+    def connect_transferto(self, account_login, airtime_api_token, user):
         transferto_config = {TRANSFERTO_ACCOUNT_LOGIN: account_login.strip(),
                              TRANSFERTO_AIRTIME_API_TOKEN: airtime_api_token.strip()}
 
         config = self.config_json()
         config.update(transferto_config)
         self.config = json.dumps(config)
-
-        # clear all our channel configurations
-        self.save(update_fields=['config'])
+        self.modified_by = user
+        self.save()
 
     def is_connected_to_transferto(self):
         if self.config:
@@ -593,31 +592,33 @@ class Org(SmartModel):
         else:
             return False
 
-    def remove_transferto_account(self):
+    def remove_transferto_account(self, user):
         if self.config:
             config = self.config_json()
             config[TRANSFERTO_ACCOUNT_LOGIN] = ''
             config[TRANSFERTO_AIRTIME_API_TOKEN] = ''
             self.config = json.dumps(config)
+            self.modified_by = user
             self.save()
 
-    def connect_nexmo(self, api_key, api_secret):
+    def connect_nexmo(self, api_key, api_secret, user):
         nexmo_uuid = str(uuid4())
         nexmo_config = {NEXMO_KEY: api_key.strip(), NEXMO_SECRET: api_secret.strip(), NEXMO_UUID: nexmo_uuid}
 
         config = self.config_json()
         config.update(nexmo_config)
         self.config = json.dumps(config)
+        self.modified_by = user
+        self.save()
 
         # clear all our channel configurations
-        self.save(update_fields=['config'])
         self.clear_channel_caches()
 
     def nexmo_uuid(self):
         config = self.config_json()
         return config.get(NEXMO_UUID, None)
 
-    def connect_twilio(self, account_sid, account_token):
+    def connect_twilio(self, account_sid, account_token, user):
         client = TwilioRestClient(account_sid, account_token)
         app_name = "%s/%d" % (settings.TEMBA_HOST.lower(), self.pk)
         apps = client.applications.list(friendly_name=app_name)
@@ -642,9 +643,10 @@ class Org(SmartModel):
         config = self.config_json()
         config.update(twilio_config)
         self.config = json.dumps(config)
+        self.modified_by = user
+        self.save()
 
         # clear all our channel configurations
-        self.save(update_fields=['config'])
         self.clear_channel_caches()
 
     def is_connected_to_nexmo(self):
@@ -668,12 +670,13 @@ class Org(SmartModel):
                 return True
         return False
 
-    def remove_nexmo_account(self):
+    def remove_nexmo_account(self, user):
         if self.config:
             config = self.config_json()
             config[NEXMO_KEY] = ''
             config[NEXMO_SECRET] = ''
             self.config = json.dumps(config)
+            self.modified_by = user
             self.save()
 
             # release any nexmo channels
@@ -685,13 +688,14 @@ class Org(SmartModel):
             # clear all our channel configurations
             self.clear_channel_caches()
 
-    def remove_twilio_account(self):
+    def remove_twilio_account(self, user):
         if self.config:
             config = self.config_json()
             config[ACCOUNT_SID] = ''
             config[ACCOUNT_TOKEN] = ''
             config[APPLICATION_SID] = ''
             self.config = json.dumps(config)
+            self.modified_by = user
             self.save()
 
             # release any twilio channels

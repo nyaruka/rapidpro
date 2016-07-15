@@ -615,7 +615,7 @@ class OrgCRUDL(SmartCRUDL):
             account_token = form.cleaned_data['account_token']
 
             org = self.get_object()
-            org.connect_twilio(account_sid, account_token)
+            org.connect_twilio(account_sid, account_token, user=self.request.user)
             org.save()
 
             response = self.render_to_response(self.get_context_data(form=form,
@@ -673,7 +673,7 @@ class OrgCRUDL(SmartCRUDL):
             return reverse("orgs.org_home")
 
         def save(self, obj):
-            obj.remove_nexmo_account()
+            obj.remove_nexmo_account(self.request.user)
 
         def get_context_data(self, **kwargs):
             context = super(OrgCRUDL.NexmoAccount, self).get_context_data(**kwargs)
@@ -716,7 +716,7 @@ class OrgCRUDL(SmartCRUDL):
 
             org = self.get_object()
 
-            org.connect_nexmo(api_key, api_secret)
+            org.connect_nexmo(api_key, api_secret, self.request.user)
 
             org.save()
 
@@ -1706,19 +1706,17 @@ class OrgCRUDL(SmartCRUDL):
             return initial
 
         def form_valid(self, form):
+            user = self.request.user
+            org = user.get_org()
             disconnect = form.cleaned_data.get('disconnect', 'false') == 'true'
             if disconnect:
-                user = self.request.user
-                org = user.get_org()
                 org.remove_transferto_account()
                 return HttpResponseRedirect(reverse('orgs.org_home'))
             else:
-                user = self.request.user
-                org = user.get_org()
                 account_login = form.cleaned_data['account_login']
                 airtime_api_token = form.cleaned_data['airtime_api_token']
 
-                org.connect_transferto(account_login, airtime_api_token)
+                org.connect_transferto(account_login, airtime_api_token, user)
                 return super(OrgCRUDL.TransfertoAccount, self).form_valid(form)
 
     class TwilioAccount(InferOrgMixin, OrgPermsMixin, SmartUpdateView):
@@ -1779,19 +1777,17 @@ class OrgCRUDL(SmartCRUDL):
 
         def form_valid(self, form):
             disconnect = form.cleaned_data.get('disconnect', 'false') == 'true'
+            user = self.request.user
+            org = user.get_org()
+
             if disconnect:
-                user = self.request.user
-                org = user.get_org()
-                org.remove_twilio_account()
+                org.remove_twilio_account(self.request.user)
                 return HttpResponseRedirect(reverse('orgs.org_home'))
             else:
-
-                user = self.request.user
-                org = user.get_org()
                 account_sid = form.cleaned_data['account_sid']
                 account_token = form.cleaned_data['account_token']
 
-                org.connect_twilio(account_sid, account_token)
+                org.connect_twilio(account_sid, account_token, user)
                 return super(OrgCRUDL.TwilioAccount, self).form_valid(form)
 
     class Edit(InferOrgMixin, OrgPermsMixin, SmartUpdateView):

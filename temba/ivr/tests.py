@@ -41,7 +41,7 @@ class IVRTests(FlowFileTest):
         MockTwilioClient.MockCalls.create = create
 
         # connect it and check our client is configured
-        self.org.connect_twilio("TEST_SID", "TEST_TOKEN")
+        self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
         self.org.save()
 
         # import an ivr flow
@@ -66,7 +66,7 @@ class IVRTests(FlowFileTest):
     def test_ivr_recording(self):
 
         # create our ivr setup
-        self.org.connect_twilio("TEST_SID", "TEST_TOKEN")
+        self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
         self.org.save()
         self.import_file('capture_recording')
         flow = Flow.objects.filter(name='Capture Recording').first()
@@ -145,7 +145,7 @@ class IVRTests(FlowFileTest):
     @patch('temba.ivr.clients.TwilioClient', MockTwilioClient)
     @patch('twilio.util.RequestValidator', MockRequestValidator)
     def test_ivr_child_flow(self):
-        self.org.connect_twilio("TEST_SID", "TEST_TOKEN")
+        self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
         self.org.save()
 
         msg_flow = self.get_flow('ivr_child_flow')
@@ -173,7 +173,7 @@ class IVRTests(FlowFileTest):
     @patch('temba.ivr.clients.TwilioClient', MockTwilioClient)
     @patch('twilio.util.RequestValidator', MockRequestValidator)
     def test_ivr_call_redirect(self):
-        self.org.connect_twilio("TEST_SID", "TEST_TOKEN")
+        self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
         self.org.save()
 
         # import our flows
@@ -214,7 +214,7 @@ class IVRTests(FlowFileTest):
     @patch('temba.ivr.clients.TwilioClient', MockTwilioClient)
     @patch('twilio.util.RequestValidator', MockRequestValidator)
     def test_text_trigger_ivr(self):
-        self.org.connect_twilio("TEST_SID", "TEST_TOKEN")
+        self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
         self.org.save()
 
         # import our flows
@@ -248,7 +248,7 @@ class IVRTests(FlowFileTest):
     @patch('twilio.util.RequestValidator', MockRequestValidator)
     def test_non_blocking_rule_ivr(self):
 
-        self.org.connect_twilio("TEST_SID", "TEST_TOKEN")
+        self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
         self.org.save()
 
         # flow goes: passive -> recording -> msg
@@ -292,7 +292,7 @@ class IVRTests(FlowFileTest):
     @patch('twilio.util.RequestValidator', MockRequestValidator)
     def test_ivr_digit_gather(self):
 
-        self.org.connect_twilio("TEST_SID", "TEST_TOKEN")
+        self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
         self.org.save()
 
         # import an ivr flow
@@ -330,7 +330,7 @@ class IVRTests(FlowFileTest):
         self.assertIsNone(self.org.get_twilio_client())
 
         # connect it and check our client is configured
-        self.org.connect_twilio("TEST_SID", "TEST_TOKEN")
+        self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
         self.org.save()
         self.assertTrue(self.org.is_connected_to_twilio())
         self.assertIsNotNone(self.org.get_twilio_client())
@@ -501,7 +501,7 @@ class IVRTests(FlowFileTest):
     @patch('twilio.util.RequestValidator', MockRequestValidator)
     def test_rule_first_ivr_flow(self):
         # connect it and check our client is configured
-        self.org.connect_twilio("TEST_SID", "TEST_TOKEN")
+        self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
         self.org.save()
 
         # import an ivr flow
@@ -542,7 +542,7 @@ class IVRTests(FlowFileTest):
     def test_incoming_call(self):
 
         # connect it and check our client is configured
-        self.org.connect_twilio("TEST_SID", "TEST_TOKEN")
+        self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
         self.org.save()
 
         # import an ivr flow
@@ -561,7 +561,7 @@ class IVRTests(FlowFileTest):
     @patch('temba.ivr.clients.TwilioClient', MockTwilioClient)
     @patch('twilio.util.RequestValidator', MockRequestValidator)
     def test_incoming_start(self):
-        self.org.connect_twilio("TEST_SID", "TEST_TOKEN")
+        self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
         self.org.save()
 
         self.get_flow('call_me_start')
