@@ -2782,6 +2782,7 @@ class FlowStep(models.Model):
 
 
 class RuleSet(models.Model):
+    RESTHOOK = 'resthook'
 
     TYPE_WAIT_MESSAGE = 'wait_message'
 
@@ -2797,6 +2798,7 @@ class RuleSet(models.Model):
     TYPE_WAIT_GPS = 'wait_gps'
 
     TYPE_WEBHOOK = 'webhook'
+    TYPE_RESTHOOK = 'resthook'
     TYPE_FLOW_FIELD = 'flow_field'
     TYPE_FORM_FIELD = 'form_field'
     TYPE_CONTACT_FIELD = 'contact_field'
@@ -2812,11 +2814,13 @@ class RuleSet(models.Model):
                     (TYPE_WAIT_DIGIT, "Wait for digit"),
                     (TYPE_WAIT_DIGITS, "Wait for digits"),
                     (TYPE_WEBHOOK, "Webhook"),
+                    (TYPE_RESTHOOK, "Resthook"),
                     (TYPE_FLOW_FIELD, "Split on flow field"),
                     (TYPE_CONTACT_FIELD, "Split on contact field"),
                     (TYPE_EXPRESSION, "Split by expression"))
 
     uuid = models.CharField(max_length=36, unique=True)
+
     flow = models.ForeignKey(Flow, related_name='rule_sets')
 
     label = models.CharField(max_length=64, null=True, blank=True,
@@ -2957,15 +2961,29 @@ class RuleSet(models.Model):
 
         context = run.flow.build_message_context(run.contact, msg)
 
-        if self.ruleset_type == RuleSet.TYPE_WEBHOOK:
-            from temba.api.models import WebHookEvent
-            (value, errors) = Msg.substitute_variables(self.webhook_url, run.contact, context,
-                                                       org=run.flow.org, url_encode=True)
-            result = WebHookEvent.trigger_flow_event(value, self.flow, run, self,
-                                                     run.contact, msg, self.webhook_action)
+        if self.ruleset_type in [RuleSet.TYPE_WEBHOOK, RuleSet.TYPE_RESTHOOK]:
+            # figure out which URLs will be called
+            if self.ruleset_type == RuleSet.TYPE_WEBHOOK:
+                resthook = None
+                urls = [self.webhook_url]
+                action = self.webhook_action
 
-            # rebuild our context again, the webhook may have populated something
-            context = run.flow.build_message_context(run.contact, msg)
+            elif self.ruleset_type == RuleSet.TYPE_RESTHOOK:
+                from temba.api.models import Resthook
+
+                # look up the rest hook
+                resthook = Resthook.objects.filter(is_active=True, org=run.org, slug=self.config_json()[RuleSet.RESTHOOK]).first()
+                urls = resthook.get_subscriber_urls()
+                action = 'POST'
+
+            # fire off each of our URLs
+            for url in urls:
+                from temba.api.models import WebHookEvent
+                (value, errors) = Msg.substitute_variables(url, run.contact, context,
+                                                           org=run.flow.org, url_encode=True)
+
+                result = WebHookEvent.trigger_flow_event(value, self.flow, run, self,
+                                                         run.contact, msg, action, resthook=resthook)
 
             rule = self.get_rules()[0]
             rule.category = run.flow.get_base_text(rule.category)
