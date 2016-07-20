@@ -445,6 +445,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
         # online flows
         { type: 'webhook', name:'Call Webhook', verbose_name: 'Call webhook', split:'webhook response', filter:[TEXT,VOICE] },
+        { type: 'airtime', name:'Transfer Airtime', verbose_name: 'Transfer Airtime', split: 'transfer airtime', filter:[TEXT, VOICE] },
 
         # all flows
         { type: 'flow_field', name:'Split by Flow Field', verbose_name: 'Split by flow field', filter:ALL },
@@ -905,6 +906,8 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
           for action in actionset.actions
             action.uuid = uuid()
 
+
+        flow.org_channel_countries = data.org_channel_countries
         # save away the available channels
         Flow.channels = data.channels
 
