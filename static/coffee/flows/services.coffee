@@ -412,45 +412,45 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
     constructor: ->
 
       @actions = [
-        { type:'say', name:'Play Message', verbose_name:'Play a message', icon: 'icon-bubble-3', message: true, filter:[VOICE] }
-        { type:'play', name:'Play Recording', verbose_name:'Play a contact recording', icon: 'icon-mic', filter:[VOICE]}
-        { type:'reply', name:'Send Message', verbose_name:'Send an SMS response', icon: 'icon-bubble-3', message:true, filter:ALL }
-        { type:'send', name:'Send Message', verbose_name: 'Send an SMS to somebody else', icon: 'icon-bubble-3', message:true, filter:[TEXT,VOICE] }
-        { type:'add_label', name:'Add Label', verbose_name: 'Add a label to a Message', icon: 'icon-tag', filter:ALL }
-        { type:'save', name:'Update Contact', verbose_name:'Update the contact', icon: 'icon-user', filter:ALL }
-        { type:'add_group', name:'Add to Groups', verbose_name:'Add contact to a group', icon: 'icon-users-2', groups:true, filter:ALL }
-        { type:'del_group', name:'Remove from Groups', verbose_name:'Remove contact from a group', icon: 'icon-users-2', groups:true, filter:ALL }
-        { type:'api', name:'Webhook', verbose_name:'Make a call to an external server', icon: 'icon-cloud-upload', filter:[TEXT,VOICE] }
-        { type:'email', name:'Send Email', verbose_name: 'Send an email', icon: 'icon-bubble-3', filter:[TEXT,VOICE] }
-        { type:'lang', name:'Set Language', verbose_name:'Set language for contact', icon: 'icon-language', filter:ALL }
-        { type:'channel', name:'Set Channel', verbose_name:'Set preferred channel', icon: 'icon-phone', filter:[TEXT, VOICE] }
-        { type:'flow', name:'Start Another Flow', verbose_name:'Start another flow', icon: 'icon-tree', flows:true, filter:[TEXT,VOICE] }
-        { type:'trigger-flow',   name:'Start Someone in a Flow', verbose_name:'Start someone else in a flow', icon: 'icon-tree', flows:true, filter:[TEXT,VOICE] }
+        { type:'say', name:'Play Message', verbose_name:'Play a Message', icon: 'icon-bubble-3', message: true, filter:[VOICE] }
+        { type:'play', name:'Play Recording', verbose_name:"Play the Contact's Recording", icon: 'icon-mic', filter:[VOICE]}
+        { type:'reply', name:'Send Message', verbose_name:'Send a Message', icon: 'icon-bubble-3', message:true, filter:ALL }
+        { type:'send', name:'Send Message', verbose_name: 'Send a Message to different Contact', icon: 'icon-bubble-3', message:true, filter:[TEXT,VOICE] }
+        { type:'add_label', name:'Add Label', verbose_name: 'Add a Label to a Message', icon: 'icon-tag', filter:ALL }
+        { type:'save', name:'Update Contact', verbose_name:'Update a Contact Field', icon: 'icon-user', filter:ALL }
+        { type:'add_group', name:'Add to Groups', verbose_name:'Add the Contact to a Group', icon: 'icon-users-2', groups:true, filter:ALL }
+        { type:'del_group', name:'Remove from Groups', verbose_name:'Remove the Contact from a Group', icon: 'icon-users-2', groups:true, filter:ALL }
+        { type:'api', name:'Webhook', verbose_name:'Make a request to a Webhook', icon: 'icon-cloud-upload', filter:[TEXT,VOICE] }
+        { type:'email', name:'Send Email', verbose_name: 'Send an Email', icon: 'icon-bubble-3', filter:[TEXT,VOICE] }
+        { type:'lang', name:'Set Language', verbose_name:"Set the Contact's preferred Language", icon: 'icon-language', filter:ALL }
+        { type:'channel', name:'Set Channel', verbose_name:"Set the Contact's preferred Channel", icon: 'icon-phone', filter:[TEXT, VOICE] }
+        { type:'flow', name:'Start Another Flow', verbose_name:'Start a different Flow', icon: 'icon-tree', flows:true, filter:[TEXT,VOICE] }
+        { type:'trigger-flow',   name:'Start Someone in a Flow', verbose_name:'Start a different Contact in a Flow', icon: 'icon-tree', flows:true, filter:[TEXT,VOICE] }
       ]
 
       @rulesets = [
 
-        { type: 'wait_message', name:'Wait for Response', verbose_name: 'Wait for response', split:'message response', filter:[TEXT,SURVEY] },
+        { type: 'wait_message', name:'Wait for Response', verbose_name: 'Wait for Message', split:'message response', filter:[TEXT,SURVEY] },
 
         # survey media types
-        { type: 'wait_photo', name:'Wait for a photo', verbose_name: 'Wait for photo', filter:[SURVEY] },
-        { type: 'wait_audio', name:'Wait for an audio recording', verbose_name: 'Wait for audio', filter:[SURVEY] },
-        { type: 'wait_video', name:'Wait for a video', verbose_name: 'Wait for video', filter:[SURVEY] },
+        { type: 'wait_photo', name:'Wait for a photo', verbose_name: 'Wait for Photo', filter:[SURVEY] },
+        { type: 'wait_audio', name:'Wait for an audio recording', verbose_name: 'Wait for Audio', filter:[SURVEY] },
+        { type: 'wait_video', name:'Wait for a video', verbose_name: 'Wait for Video', filter:[SURVEY] },
         { type: 'wait_gps', name:'Wait for GPS coordinates', verbose_name: 'Wait for GPS', filter:[SURVEY] },
 
         # voice flows only
-        { type: 'wait_recording', name:'Get Recording', verbose_name: 'Wait for recording', filter:VOICE },
-        { type: 'wait_digit', name:'Get Menu Selection', verbose_name: 'Wait for menu selection', filter:VOICE },
-        { type: 'wait_digits', name:'Get Digits', verbose_name: 'Wait for multiple digits', split:'digits', filter:VOICE },
+        { type: 'wait_recording', name:'Get Recording', verbose_name: 'Wait for a Recording', filter:VOICE },
+        { type: 'wait_digit', name:'Get Menu Selection', verbose_name: 'Wait for Menu Selection', filter:VOICE },
+        { type: 'wait_digits', name:'Get Digits', verbose_name: 'Wait for Multiple Digits', split:'digits', filter:VOICE },
 
         # online flows
-        { type: 'webhook', name:'Call Webhook', verbose_name: 'Call webhook', split:'webhook response', filter:[TEXT,VOICE] },
+        { type: 'webhook', name:'Call Webhook', verbose_name: 'Make a request to a Webhook', split:'webhook response', filter:[TEXT,VOICE] },
 
         # all flows
-        { type: 'flow_field', name:'Split by Flow Field', verbose_name: 'Split by flow field', filter:ALL },
-        { type: 'contact_field', name: 'Split by Contact Field', verbose_name: 'Split by contact field', filter:ALL },
-        { type: 'expression', name:'Split by Expression', verbose_name: 'Split by expression', filter:ALL },
-        { type: 'form_field', name:'Split by Message Form', verbose_name: 'Split by message form', filter:ALL },
+        { type: 'flow_field', name:'Split by Flow Field', verbose_name: 'Split by Flow Field', filter:ALL },
+        { type: 'contact_field', name: 'Split by Contact Field', verbose_name: 'Split by Contact Field', filter:ALL },
+        { type: 'expression', name:'Split by Expression', verbose_name: 'Split by Expression', filter:ALL },
+        { type: 'form_field', name:'Split by Message Form', verbose_name: 'Split by Message Form', filter:ALL },
 
         # Not supported yet
         # { type: 'group', verbose_name: 'Split by group membership', ivr:true, text:true},
@@ -462,7 +462,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
       @operators = [
         { type:'contains_any', name:'Contains any', verbose_name:'has any of these words', operands: 1, localized:true }
-        { type:'contains', name: 'Contains all', verbose_name:'has all of the words', operands: 1, localized:true }
+        { type:'contains', name: 'Contains all', verbose_name:'has all of the these words', operands: 1, localized:true }
         { type:'not_empty', name: 'Not empty', verbose_name:'is not empty', operands: 0, localized:true }
         { type:'starts', name: 'Starts with', verbose_name:'starts with', operands: 1, voice:true, localized:true }
         { type:'number', name: 'Has a number', verbose_name:'has a number', operands: 0, voice:true }
@@ -560,7 +560,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
               resolveObj =
                 type: -> "error"
                 title: -> "Error Saving"
-                body: -> "Sorry, but we were unable to save your flow. Please reload the page and try again, this may clear your latest changes."
+                body: -> "Sorry, we were unable to save your flow. Your latest changes may not have been saved. Please reload the page and try again."
                 details: -> data.description
                 ok: -> 'Reload'
 
@@ -680,7 +680,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
         @detectLoop(source, targetId, path)
       catch e
         $log.debug(e.message)
-        return 'Connecting these together would create an infinite loop in your flow. To connect these, make sure to pass it through an action that waits for a response.'
+        return 'Connecting these together would create an infinite loop in your flow. Consider adding a step in between.'
       return null
 
     # translates a string into a slug
