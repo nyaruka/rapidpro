@@ -433,15 +433,15 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
         { type: 'wait_message', name:'Wait for Response', verbose_name: 'Wait for Message', split:'message response', filter:[TEXT,SURVEY] },
 
         # survey media types
-        { type: 'wait_photo', name:'Wait for a photo', verbose_name: 'Wait for Photo', filter:[SURVEY] },
-        { type: 'wait_audio', name:'Wait for an audio recording', verbose_name: 'Wait for Audio', filter:[SURVEY] },
-        { type: 'wait_video', name:'Wait for a video', verbose_name: 'Wait for Video', filter:[SURVEY] },
+        { type: 'wait_photo', name:'Wait for a photo', verbose_name: 'Wait for photo', filter:[SURVEY] },
+        { type: 'wait_audio', name:'Wait for an audio recording', verbose_name: 'Wait for audio', filter:[SURVEY] },
+        { type: 'wait_video', name:'Wait for a video', verbose_name: 'Wait for video', filter:[SURVEY] },
         { type: 'wait_gps', name:'Wait for GPS coordinates', verbose_name: 'Wait for GPS', filter:[SURVEY] },
 
         # voice flows only
-        { type: 'wait_recording', name:'Get Recording', verbose_name: 'Wait for a Recording', filter:VOICE },
-        { type: 'wait_digit', name:'Get Menu Selection', verbose_name: 'Wait for Menu Selection', filter:VOICE },
-        { type: 'wait_digits', name:'Get Digits', verbose_name: 'Wait for Multiple Digits', split:'digits', filter:VOICE },
+        { type: 'wait_recording', name:'Get Recording', verbose_name: 'Wait for a recording', filter:VOICE },
+        { type: 'wait_digit', name:'Get Menu Selection', verbose_name: 'Wait for menu selection', filter:VOICE },
+        { type: 'wait_digits', name:'Get Digits', verbose_name: 'Wait for multiple digits', split:'digits', filter:VOICE },
 
         # online flows
         { type: 'webhook', name:'Call Webhook', verbose_name: 'Make a request to a Webhook', split:'webhook response', filter:[TEXT,VOICE] },
@@ -449,8 +449,8 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
         # all flows
         { type: 'flow_field', name:'Split by Flow Field', verbose_name: 'Split by Flow Field', filter:ALL },
         { type: 'contact_field', name: 'Split by Contact Field', verbose_name: 'Split by Contact Field', filter:ALL },
-        { type: 'expression', name:'Split by Expression', verbose_name: 'Split by Expression', filter:ALL },
-        { type: 'form_field', name:'Split by Message Form', verbose_name: 'Split by Message Form', filter:ALL },
+        { type: 'expression', name:'Split by Expression', verbose_name: 'Split by expression', filter:ALL },
+        { type: 'form_field', name:'Split by Message Form', verbose_name: 'Split by message form', filter:ALL },
 
         # Not supported yet
         # { type: 'group', verbose_name: 'Split by group membership', ivr:true, text:true},
