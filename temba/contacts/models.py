@@ -1357,7 +1357,7 @@ class Contact(TembaModel):
 
         # add all URNs
         for scheme, label in ContactURN.SCHEME_CHOICES:
-            urn_value = self.get_urn_display(scheme=scheme, org=org)
+            urn_value = self.get_urn_display(scheme=scheme, org=org, full=True)
             contact_dict[scheme] = urn_value if urn_value is not None else ''
 
         field_values = Value.objects.filter(contact=self).exclude(contact_field=None)\
@@ -1739,11 +1739,11 @@ class ContactURN(models.Model):
             return self.ANON_MASK
 
         if self.scheme == TEL_SCHEME and not full:
-            # if we don't want a full tell, see if we can show the national format instead
+            # show the international format
             try:
                 if self.path and self.path[0] == '+':
                     return phonenumbers.format_number(phonenumbers.parse(self.path, None),
-                                                      phonenumbers.PhoneNumberFormat.NATIONAL)
+                                                      phonenumbers.PhoneNumberFormat.INTERNATIONAL)
             except Exception:  # pragma: no cover
                 pass
 

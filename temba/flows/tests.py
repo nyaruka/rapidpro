@@ -433,7 +433,7 @@ class FlowTest(TembaTest):
         # our message should have gotten a reply
         reply = Msg.objects.get(response_to=incoming)
         self.assertEquals(self.contact, reply.contact)
-        self.assertEquals("I love orange too! You said: orange which is category: Orange You are: 0788 382 382 SMS: orange Flow: color: orange", reply.text)
+        self.assertEquals("I love orange too! You said: orange which is category: Orange You are: +250788382382 SMS: orange Flow: color: orange", reply.text)
 
         # should be high priority
         self.assertEqual(reply.priority, Msg.PRIORITY_HIGH)
@@ -669,7 +669,7 @@ class FlowTest(TembaTest):
         self.assertExcelRow(sheet_msgs, 5, [contact1_out3.contact.uuid, "+250788382382", "Eric",
                                             contact1_out3.created_on, "OUT",
                                             "I love orange too! You said: orange which is category: Orange You are: "
-                                            "0788 382 382 SMS: orange Flow: color: light beige\ncolor: orange",
+                                            "+250788382382 SMS: orange Flow: color: light beige\ncolor: orange",
                                             "Test Channel"], tz)
 
         # test without msgs or runs or unresponded
@@ -2575,7 +2575,7 @@ class ActionTest(TembaTest):
 
         self.assertEquals(len(mail.outbox), 2)
         self.assertEquals(mail.outbox[1].subject, "Eric added in subject")
-        self.assertEquals(mail.outbox[1].body, "Eric uses phone 0788 382 382")
+        self.assertEquals(mail.outbox[1].body, "Eric uses phone +250788382382")
         self.assertEquals(mail.outbox[1].recipients(), ["eric@nyaruka.com"])  # invalid emails are ignored
 
         # check simulator reports invalid addresses
@@ -2586,7 +2586,7 @@ class ActionTest(TembaTest):
 
         logs = list(ActionLog.objects.order_by('pk'))
         self.assertEqual(logs[0].level, ActionLog.LEVEL_INFO)
-        self.assertEqual(logs[0].text, "&quot;Test Contact uses phone (206) 555-0100&quot; would be sent to testcontact@nyaruka.com")
+        self.assertEqual(logs[0].text, "&quot;Test Contact uses phone +12065550100&quot; would be sent to testcontact@nyaruka.com")
         self.assertEqual(logs[1].level, ActionLog.LEVEL_WARN)
         self.assertEqual(logs[1].text, "Some email address appear to be invalid: Test Contact, xyz")
 
@@ -4278,7 +4278,7 @@ class FlowsTest(FlowFileTest):
 
         self.assertEquals("Thanks, you typed +250788123123", self.send_message(flow, "0788123123"))
         sms = Msg.objects.get(org=flow.org, contact__urns__path="+250788123123")
-        self.assertEquals("Hi from Ben Haggerty! Your phone is 0788 123 123.", sms.text)
+        self.assertEquals("Hi from Ben Haggerty! Your phone is +250788123123.", sms.text)
 
     def test_group_send(self):
         # create an inactive group with the same name, to test that this doesn't blow up our import
