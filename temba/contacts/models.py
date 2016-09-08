@@ -1739,11 +1739,11 @@ class ContactURN(models.Model):
             return self.ANON_MASK
 
         if self.scheme == TEL_SCHEME and not full:
-            # if we don't want a full tell, see if we can show the national format instead
+            # show the international format
             try:
                 if self.path and self.path[0] == '+':
                     return phonenumbers.format_number(phonenumbers.parse(self.path, None),
-                                                      phonenumbers.PhoneNumberFormat.NATIONAL)
+                                                      phonenumbers.PhoneNumberFormat.INTERNATIONAL)
             except Exception:  # pragma: no cover
                 pass
 

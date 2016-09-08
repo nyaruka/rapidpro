@@ -833,7 +833,7 @@ class ContactTest(TembaTest):
         self.assertEqual("Joe Blow", self.joe.get_display(short=True))
         self.assertEqual("Joe Blow", self.joe.get_display())
         self.assertEqual("+250788383383", self.voldemort.get_display(org=self.org, full=True))
-        self.assertEqual("0788 383 383", self.voldemort.get_display())
+        self.assertEqual("+250 788 383 383", self.voldemort.get_display())
         self.assertEqual("Wolfeschlegelsteinhausenbergerdorff", mr_long_name.get_display())
         self.assertEqual("Wolfeschlegelstei...", mr_long_name.get_display(short=True))
         self.assertEqual("Billy Nophone", self.billy.get_display())
@@ -842,12 +842,12 @@ class ContactTest(TembaTest):
         self.assertEqual("blow80", self.joe.get_urn_display(org=self.org, full=True))
         self.assertEqual("blow80", self.joe.get_urn_display())
         self.assertEqual("+250788383383", self.voldemort.get_urn_display(org=self.org, full=True))
-        self.assertEqual("0788 383 383", self.voldemort.get_urn_display())
+        self.assertEqual("+250 788 383 383", self.voldemort.get_urn_display())
         self.assertEqual("8877", mr_long_name.get_urn_display())
         self.assertEqual("", self.billy.get_urn_display())
 
         self.assertEqual("Joe Blow", self.joe.__unicode__())
-        self.assertEqual("0788 383 383", self.voldemort.__unicode__())
+        self.assertEqual("+250 788 383 383", self.voldemort.__unicode__())
         self.assertEqual("Wolfeschlegelsteinhausenbergerdorff", mr_long_name.__unicode__())
         self.assertEqual("Billy Nophone", self.billy.__unicode__())
 
@@ -3204,7 +3204,7 @@ class ContactURNTest(TembaTest):
 
     def test_get_display(self):
         urn = ContactURN.objects.create(org=self.org, scheme='tel', path='+250788383383', urn='tel:+250788383383', priority=50)
-        self.assertEqual(urn.get_display(self.org), '0788 383 383')
+        self.assertEqual(urn.get_display(self.org), '+250 788 383 383')
         self.assertEqual(urn.get_display(self.org, full=True), '+250788383383')
 
         urn = ContactURN.objects.create(org=self.org, scheme='twitter', path='billy_bob', urn='twitter:billy_bob', priority=50)
