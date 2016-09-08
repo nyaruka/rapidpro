@@ -1357,7 +1357,7 @@ class Contact(TembaModel):
 
         # add all URNs
         for scheme, label in ContactURN.SCHEME_CHOICES:
-            urn_value = self.get_urn_display(scheme=scheme, org=org)
+            urn_value = self.get_urn_display(scheme=scheme, org=org, full=True)
             contact_dict[scheme] = urn_value if urn_value is not None else ''
 
         field_values = Value.objects.filter(contact=self).exclude(contact_field=None)\
