@@ -1574,7 +1574,6 @@ class APITest(TembaTest):
                             'text': "Quelle est votre couleur préférée?"
                         }
                     ],
-                    'text': "Quelle est votre couleur préférée?",
                     'value': None,
                     'category': None,
                     'type': 'actionset'
@@ -1584,7 +1583,6 @@ class APITest(TembaTest):
                     'arrived_on': format_datetime(frank_run2_steps[1].arrived_on),
                     'left_on': None,
                     'messages': [],
-                    'text': None,
                     'value': None,
                     'category': None,
                     'type': 'ruleset'
@@ -1612,7 +1610,6 @@ class APITest(TembaTest):
                             'text': "What is your favorite color?"
                         }
                     ],
-                    'text': "What is your favorite color?",
                     'value': None,
                     'category': None,
                     'type': 'actionset'
@@ -1628,7 +1625,6 @@ class APITest(TembaTest):
                             'text': "it is blue"
                         }
                     ],
-                    'text': "it is blue",
                     'value': 'blue',
                     'category': "Blue",
                     'type': 'ruleset'
@@ -1644,7 +1640,6 @@ class APITest(TembaTest):
                             'text': "Blue is sad. :("
                         }
                     ],
-                    'text': "Blue is sad. :(",
                     'value': None,
                     'category': None,
                     'type': 'actionset'
@@ -1670,7 +1665,6 @@ class APITest(TembaTest):
                 'text': "Quelle est votre couleur préférée?"
             }
         ])
-        self.assertEqual(response.json['results'][2]['steps'][0]['text'], "Quelle est votre couleur préférée?")
 
         # filter by id
         response = self.fetchJSON(url, 'id=%d' % frank_run2.pk)

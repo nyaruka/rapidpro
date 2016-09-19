@@ -475,7 +475,6 @@ class FlowRunReadSerializer(ReadSerializer):
                           'arrived_on': format_datetime(step.arrived_on),
                           'left_on': format_datetime(step.left_on),
                           'messages': self.get_step_messages(run, step),
-                          'text': step.get_text(run=run),  # TODO remove
                           'value': val,
                           'category': step.rule_category})
         return steps
