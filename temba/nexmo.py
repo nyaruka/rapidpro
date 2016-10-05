@@ -114,21 +114,27 @@ class NexmoClient(object):
 
     def search_numbers(self, country, pattern):
         path = '/number/search/%s/%s/%s?features=SMS' % (self.api_key, self.api_secret, country)
-        response = self._fire_get(path, dict(pattern=pattern))
+        response = self._fire_get(path, dict(pattern=pattern, search_pattern=1))
+        numbers = []
         if int(response.get('count', 0)):
-            return response['numbers']
-        else:
-            return []
+            numbers += response['numbers']
+
+        path = '/number/search/%s/%s/%s?features=VOICE' % (self.api_key, self.api_secret, country)
+        response = self._fire_get(path, dict(pattern=pattern, search_pattern=1))
+        if int(response.get('count', 0)):
+            numbers += response['numbers']
+
+        return numbers
 
     def buy_number(self, country, number):
         number = number.lstrip('+')
         path = '/number/buy/%s/%s/%s/%s' % (self.api_key, self.api_secret, country, number)
         self._fire_post(path, dict())
 
-    def update_number(self, country, number, moURL):
+    def update_number(self, country, number, moURL, answerURL):
         number = number.lstrip('+')
         path = '/number/update/%s/%s/%s/%s' % (self.api_key, self.api_secret, country, number)
-        self._fire_post(path, dict(moHttpUrl=moURL))
+        self._fire_post(path, dict(moHttpUrl=moURL, voiceCallbackType='vxml', voiceCallbackValue=answerURL))
 
     def test_credentials(self):
         try:

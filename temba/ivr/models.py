@@ -97,8 +97,9 @@ class IVRCall(SmartModel):
         test_call = IVRCall.objects.filter(contact__is_test=True, flow=flow)
         if test_call:
             test_call = test_call[0]
-            if not test_call.is_done():
-                test_call.hangup()
+            if test_call.channel.channel_type in [Channel.TYPE_TWILIO]:
+                if not test_call.is_done():
+                    test_call.hangup()
 
     def is_flow(self):
         return self.call_type == FLOW
@@ -156,32 +157,41 @@ class IVRCall(SmartModel):
                     run = FlowRun.objects.filter(call=self)
                     ActionLog.create(run[0], "Call ended.")
 
-    def update_status(self, status, duration):
+    def update_status(self, status, duration, channel_type):
         """
         Updates our status from a twilio status string
         """
-        if status == 'queued':
-            self.status = QUEUED
-        elif status == 'ringing':
-            self.status = RINGING
-        elif status == 'no-answer':
-            self.status = NO_ANSWER
-        elif status == 'in-progress':
-            if self.status != IN_PROGRESS:
-                self.started_on = timezone.now()
-            self.status = IN_PROGRESS
-        elif status == 'completed':
-            if self.contact.is_test:
-                run = FlowRun.objects.filter(call=self)
-                if run:
-                    ActionLog.create(run[0], _("Call ended."))
-            self.status = COMPLETED
-        elif status == 'busy':
-            self.status = BUSY
-        elif status == 'failed':
-            self.status = FAILED
-        elif status == 'canceled':
-            self.status = CANCELED
+        if channel_type in [Channel.TYPE_TWILIO, Channel.TYPE_VERBOICE]:
+            if status == 'queued':
+                self.status = QUEUED
+            elif status == 'ringing':
+                self.status = RINGING
+            elif status == 'no-answer':
+                self.status = NO_ANSWER
+            elif status == 'in-progress':
+                if self.status != IN_PROGRESS:
+                    self.started_on = timezone.now()
+                self.status = IN_PROGRESS
+            elif status == 'completed':
+                if self.contact.is_test:
+                    run = FlowRun.objects.filter(call=self)
+                    if run:
+                        ActionLog.create(run[0], _("Call ended."))
+                self.status = COMPLETED
+            elif status == 'busy':
+                self.status = BUSY
+            elif status == 'failed':
+                self.status = FAILED
+            elif status == 'canceled':
+                self.status = CANCELED
+
+        elif channel_type in [Channel.TYPE_NEXMO]:
+            if status is None:
+                self.status = IN_PROGRESS
+            elif status != 'ok':
+                self.status = FAILED
+            else:
+                self.status = COMPLETED
 
         self.duration = duration
 

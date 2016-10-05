@@ -32,8 +32,10 @@ from smartmin.models import SmartModel
 from temba.nexmo import NexmoClient
 from temba.orgs.models import Org, OrgLock, APPLICATION_SID, NEXMO_UUID
 from temba.utils.email import send_template_email
-from temba.utils import analytics, random_string, dict_to_struct, dict_to_json
+from temba.utils import analytics, random_string, dict_to_struct, dict_to_json, voicexml
 from time import sleep
+
+from twilio import twiml
 from twilio.rest import TwilioRestClient
 from twython import Twython
 from temba.utils.gsm7 import is_gsm7, replace_non_gsm7_accents
@@ -407,10 +409,15 @@ class Channel(TembaModel):
 
         mo_path = reverse('handlers.nexmo_handler', args=['receive', org_uuid])
 
+        channel_uuid = generate_uuid()
+
+        answer_url = reverse('handlers.nexmo_call_handler', args=['answer', channel_uuid])
+
         # update the delivery URLs for it
         from temba.settings import TEMBA_HOST
         try:
-            client.update_number(country, phone_number, 'http://%s%s' % (TEMBA_HOST, mo_path))
+            client.update_number(country, phone_number, 'http://%s%s' % (TEMBA_HOST, mo_path),
+                                 'http://%s%s' % (TEMBA_HOST, answer_url))
 
         except Exception as e:
             # shortcodes don't seem to claim right on nexmo, move forward anyways
@@ -428,7 +435,9 @@ class Channel(TembaModel):
             # nexmo ships numbers around as E164 without the leading +
             nexmo_phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164).strip('+')
 
-        return Channel.create(org, user, country, Channel.TYPE_NEXMO, name=phone, address=phone_number, bod=nexmo_phone_number)
+        return Channel.create(org, user, country, Channel.TYPE_NEXMO, name=phone, address=phone_number,
+                              role=Channel.ROLE_SEND + Channel.ROLE_RECEIVE + Channel.ROLE_CALL + Channel.ROLE_ANSWER,
+                              bod=nexmo_phone_number, uuid=channel_uuid)
 
     @classmethod
     def add_twilio_channel(cls, org, user, phone_number, country, role):
@@ -696,11 +705,21 @@ class Channel(TembaModel):
     def is_delegate_caller(self):
         return self.parent and Channel.ROLE_CALL in self.role
 
+    def generate_ivr_response(self):
+        if self.channel_type in [Channel.TYPE_TWILIO, Channel.TYPE_VERBOICE]:
+            return twiml.Response()
+        if self.channel_type in [Channel.TYPE_NEXMO]:
+            return voicexml.Response()
+        return None
+
     def get_ivr_client(self):
         if self.channel_type == Channel.TYPE_TWILIO:
             return self.org.get_twilio_client()
-        if self.channel_type == Channel.TYPE_VERBOICE:
+        elif self.channel_type == Channel.TYPE_VERBOICE:
             return self.org.get_verboice_client()
+        elif self.channel_type == Channel.TYPE_NEXMO:
+            return self.org.get_nexmo_client()
+
         return None
 
     def supports_ivr(self):

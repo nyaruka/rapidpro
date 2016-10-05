@@ -10,11 +10,13 @@ import time
 from django.conf import settings
 from django.core.files import File
 from django.core.files.temp import NamedTemporaryFile
+from django.core.urlresolvers import reverse
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 from temba.contacts.models import Contact, URN
 from temba.flows.models import Flow
 from temba.ivr.models import IN_PROGRESS
+from temba.nexmo import NexmoClient as NexmoCli
 from twilio import TwilioRestException
 from twilio.rest import TwilioRestClient
 from twilio.util import RequestValidator
@@ -22,6 +24,40 @@ from twilio.util import RequestValidator
 
 class IVRException(Exception):
     pass
+
+
+class NexmoClient(NexmoCli):
+
+    def __init__(self, api_key, api_secret, org=None):
+        self.org = org
+        super(NexmoClient, self).__init__(api_key=api_key, api_secret=api_secret)
+
+    def validate(self, request):
+        return True
+
+    def start_call(self, call, to, from_, status_callback):
+        params = dict(api_key=self.api_key, api_secret=self.api_secret)
+
+        url = 'https://%s%s' % (settings.TEMBA_HOST, reverse('ivr.ivrcall_handle', args=[call.pk]))
+
+        params['answer_url'] = url
+        params['to'] = to.strip('+')
+        params['from'] = from_.strip('+')
+        params['status_url'] = url
+        params['status_method'] = "POST"
+        params['error_url'] = url
+        params['error_method'] = "POST"
+
+        response = requests.post('https://rest.nexmo.com/call/json', params=params)
+        response_json = response.json()
+
+        if 'call-id' not in response_json:
+            raise IVRException(_("Nexmo call failed, with status %s") % response_json.get('status'))
+
+        call_id = response_json.get('call-id')
+
+        call.external_id = unicode(call_id)
+        call.save()
 
 
 class TwilioClient(TwilioRestClient):
@@ -116,7 +152,7 @@ class VerboiceClient:
         Contact.get_or_create(channel.org, channel.created_by, urns=[URN.from_tel(to)])
 
         # Verboice differs from Twilio in that they expect the first block of twiml up front
-        payload = unicode(Flow.handle_call(call, {}))
+        payload = unicode(Flow.handle_call(call))
 
         # now we can post that to verboice
         url = "%s?%s" % (self.endpoint, urlencode(dict(channel=self.verboice_channel, address=to)))
