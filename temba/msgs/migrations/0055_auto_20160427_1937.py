@@ -14,7 +14,7 @@ def populate_recipients_for_broadcast(Broadcast, MsgManager, broadcast_id):
     msgs for this broadcast, then populate the recipients based on the URNs of
     those messages
     """
-    urn_ids = MsgManager.filter(broadcast=broadcast_id).values_list('contact_urn_id', flat=True)
+    urn_ids = set(MsgManager.filter(broadcast=broadcast_id).values_list('contact_urn_id', flat=True))
 
     # clear any current recipients, we are rebuilding
     RelatedRecipients = Broadcast.recipients.through
