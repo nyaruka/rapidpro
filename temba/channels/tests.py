@@ -5485,7 +5485,7 @@ class TwilioTest(TembaTest):
         self.channel.delete()
 
         post_data = dict(To=self.channel.address, From='+250788383300', Body="Hello World")
-        twiml_api_url = reverse('handlers.twiml_api_handler', args=['1234-1234-1234-12345'])
+        twiml_api_url = reverse('handlers.twiml_api_handler', args=['received', '1234-1234-1234-12345'])
         response = self.client.post(twiml_api_url, post_data)
         self.assertEquals(400, response.status_code)
 
@@ -5500,7 +5500,7 @@ class TwilioTest(TembaTest):
         self.channel.save()
 
         post_data = dict(To=self.channel.address, From='+250788383300', Body="Hello World")
-        twiml_api_url = reverse('handlers.twiml_api_handler', args=[self.channel.uuid])
+        twiml_api_url = reverse('handlers.twiml_api_handler', args=['received', self.channel.uuid])
 
         try:
             self.client.post(twiml_api_url, post_data)
@@ -5511,7 +5511,7 @@ class TwilioTest(TembaTest):
         client = self.channel.get_twiml_client()
         validator = RequestValidator(client.auth[1])
         signature = validator.compute_signature(
-            'https://' + settings.HOSTNAME + '/handlers/twiml_api/' + self.channel.uuid,
+            'https://' + settings.HOSTNAME + '/handlers/twiml_api/received/' + self.channel.uuid,
             post_data
         )
         response = self.client.post(twiml_api_url, post_data, **{'HTTP_X_TWILIO_SIGNATURE': signature})
