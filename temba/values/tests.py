@@ -8,7 +8,6 @@ from django.utils import timezone
 from mock import patch
 from temba.contacts.models import ContactField
 from temba.flows.models import RuleSet
-from temba.orgs.models import Language
 from temba.tests import FlowFileTest
 from .models import Value
 
@@ -386,12 +385,14 @@ class ResultTest(FlowFileTest):
         def run_flow(contact, word):
             self.assertEquals("Thank you", self.send_message(flow, word, contact=contact, restart_participants=True))
 
-        (c1, c2, c3, c4, c5, c6) = (self.create_contact("Contact1", '0788111111'),
-                                    self.create_contact("Contact2", '0788222222'),
-                                    self.create_contact("Contact3", '0788333333'),
-                                    self.create_contact("Contact4", '0788444444'),
-                                    self.create_contact("Contact5", '0788555555'),
-                                    self.create_contact("Contact6", '0788666666', is_test=True))
+        (c1, c2, c3, c4, c5, c6, c7) = (self.create_contact("Contact1", '0788111111'),
+                                        self.create_contact("Contact2", '0788222222'),
+                                        self.create_contact("Contact3", '0788333333'),
+                                        self.create_contact("Contact4", '0788444444'),
+                                        self.create_contact("Contact5", '0788555555'),
+                                        self.create_contact("Contact6", '0788666666', is_test=True),
+                                        self.create_contact("Contact7", '0788777777')
+                                        )
 
         run_flow(c1, "1 better place")
         run_flow(c2, "the great coffee")
@@ -399,39 +400,15 @@ class ResultTest(FlowFileTest):
         run_flow(c4, "awesome than this encore")
         run_flow(c5, "from an awesome place in kigali")
         run_flow(c6, "awesome coffee")
+        run_flow(c7, "the great coffee")
 
         random = RuleSet.objects.get(flow=flow, label="Random")
 
         result = Value.get_value_summary(ruleset=random)[0]
-        self.assertEquals(10, len(result['categories']))
+        self.assertEquals(5, len(result['categories']))
         self.assertTrue(result['open_ended'])
-        self.assertResult(result, 0, "awesome", 2)
-        self.assertResult(result, 1, "place", 2)
-        self.assertResult(result, 2, "better", 1)
-        self.assertResult(result, 3, "black", 1)
-        self.assertResult(result, 4, "coffee", 1)
-        self.assertResult(result, 5, "cup", 1)
-        self.assertResult(result, 6, "encore", 1)
-        self.assertResult(result, 7, "great", 1)
-        self.assertResult(result, 8, "kigali", 1)
-        self.assertResult(result, 9, "tea", 1)
-
-        # add French to org languages
-        Language.create(self.org, self.admin, 'French', 'fre')
-
-        # make sure we cleared the cache
-        Value.invalidate_cache(ruleset=random)
-
-        # encore is a french stop word and should not be included this time
-        result = Value.get_value_summary(ruleset=random)[0]
-        self.assertEquals(9, len(result['categories']))
-        self.assertTrue(result['open_ended'])
-        self.assertResult(result, 0, "awesome", 2)
-        self.assertResult(result, 1, "place", 2)
-        self.assertResult(result, 2, "better", 1)
-        self.assertResult(result, 3, "black", 1)
-        self.assertResult(result, 4, "coffee", 1)
-        self.assertResult(result, 5, "cup", 1)
-        self.assertResult(result, 6, "great", 1)
-        self.assertResult(result, 7, "kigali", 1)
-        self.assertResult(result, 8, "tea", 1)
+        self.assertResult(result, 0, "the great coffee", 2)
+        self.assertResult(result, 1, "1 better place", 1)
+        self.assertResult(result, 2, "1 cup of black tea", 1)
+        self.assertResult(result, 3, "awesome than this encore", 1)
+        self.assertResult(result, 4, "from an awesome place in kigali", 1)
