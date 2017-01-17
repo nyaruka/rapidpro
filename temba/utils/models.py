@@ -4,6 +4,7 @@ from collections import defaultdict
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from django_redis import get_redis_connection
 from smartmin.models import SmartModel
 from uuid import uuid4
 
@@ -83,3 +84,28 @@ class ChunkIterator(object):
 
     def next(self):
         return self._generator.next()
+
+
+class HighpointMixin(object):
+    """
+    Mixin for classes which have an operation which is routinely resumed from a highpoint
+    """
+    HIGHPOINT_KEY = None
+
+    @classmethod
+    def get_last_highpoint(cls):
+        # get the row id of the last highpoint
+        r = get_redis_connection()
+        last_highpoint = r.get(cls.HIGHPOINT_KEY)
+        if not last_highpoint:
+            last_highpoint = 0
+
+        return last_highpoint
+
+    @classmethod
+    def save_new_highpoint(cls):
+        # insert our new top squashed id
+        new_highpoint = cls.objects.order_by('-id').first()
+        if new_highpoint:
+            r = get_redis_connection()
+            r.set(cls.HIGHPOINT_KEY, new_highpoint.id)

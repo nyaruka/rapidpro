@@ -37,7 +37,7 @@ from temba.orgs.models import Org, Language, UNREAD_FLOW_MSGS, CURRENT_EXPORT_VE
 from temba.utils import get_datetime_format, str_to_datetime, datetime_to_str, analytics, json_date_to_datetime
 from temba.utils import chunk_list, clean_string, on_transaction_commit
 from temba.utils.email import send_template_email, is_valid_address
-from temba.utils.models import TembaModel, ChunkIterator, generate_uuid
+from temba.utils.models import TembaModel, ChunkIterator, generate_uuid, HighpointMixin
 from temba.utils.profiler import SegmentProfiler
 from temba.utils.queues import push_task
 from temba.values.models import Value
@@ -3697,12 +3697,12 @@ class FlowRevision(SmartModel):
                     revision=self.revision)
 
 
-class FlowPathCount(models.Model):
+class FlowPathCount(models.Model, HighpointMixin):
     """
-    Maintains hourly counts of flow paths
+    Maintains hourly counts of contacts travelling on flow path segments
     """
 
-    LAST_SQUASH_KEY = 'last_flowpathcount_squash'
+    HIGHPOINT_KEY = 'last_flowpathcount_squash'
 
     flow = models.ForeignKey(Flow, related_name='activity', help_text=_("The flow where the activity occurred"))
     from_uuid = models.UUIDField(help_text=_("Which flow node they came from"))
@@ -3713,15 +3713,7 @@ class FlowPathCount(models.Model):
     @classmethod
     def squash_counts(cls):
         # get the id of the last count we squashed
-        r = get_redis_connection()
-        last_squash = r.get(FlowPathCount.LAST_SQUASH_KEY)
-        if not last_squash:
-            last_squash = 0
-
-        # insert our new top squashed id
-        max_id = FlowPathCount.objects.all().order_by('-id').first()
-        if max_id:
-            r.set(FlowPathCount.LAST_SQUASH_KEY, max_id.id)
+        last_squash = cls.get_last_highpoint()
 
         # get the unique ids for all new ones
         start = time.time()
@@ -3736,7 +3728,9 @@ class FlowPathCount(models.Model):
 
             squash_count += 1
 
-        print "Squashed flowpathcounts for %d combinations in %0.3fs" % (squash_count, time.time() - start)
+        print("Squashed flowpathcounts for %d combinations in %0.3fs" % (squash_count, time.time() - start))
+
+        cls.save_new_highpoint()
 
     def __unicode__(self):  # pragma: no cover
         return "FlowPathCount(%d) %s:%s %s count: %d" % (self.flow_id, self.from_uuid, self.to_uuid, self.period, self.count)
@@ -3745,7 +3739,7 @@ class FlowPathCount(models.Model):
         index_together = ['flow', 'from_uuid', 'to_uuid', 'period']
 
 
-class FlowRunCount(models.Model):
+class FlowRunCount(models.Model, HighpointMixin):
     """
     Maintains counts of different states of exit types of flow runs on a flow. These are calculated
     via triggers on the database.
@@ -3754,15 +3748,12 @@ class FlowRunCount(models.Model):
     exit_type = models.CharField(null=True, max_length=1, choices=FlowRun.EXIT_TYPE_CHOICES)
     count = models.IntegerField(default=0)
 
-    LAST_SQUASH_KEY = 'last_flowruncount_squash'
+    HIGHPOINT_KEY = 'last_flowruncount_squash'
 
     @classmethod
     def squash_counts(cls):
         # get the id of the last count we squashed
-        r = get_redis_connection()
-        last_squash = r.get(FlowRunCount.LAST_SQUASH_KEY)
-        if not last_squash:
-            last_squash = 0
+        last_squash = cls.get_last_highpoint()
 
         # get the unique flow ids for all new ones
         start = time.time()
@@ -3775,11 +3766,9 @@ class FlowRunCount(models.Model):
             squash_count += 1
 
         # insert our new top squashed id
-        max_id = FlowRunCount.objects.all().order_by('-id').first()
-        if max_id:
-            r.set(FlowRunCount.LAST_SQUASH_KEY, max_id.id)
+        cls.save_new_highpoint()
 
-        print "Squashed run counts for %d pairs in %0.3fs" % (squash_count, time.time() - start)
+        print("Squashed run counts for %d pairs in %0.3fs" % (squash_count, time.time() - start))
 
     @classmethod
     def run_count(cls, flow):

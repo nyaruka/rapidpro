@@ -39,6 +39,7 @@ from temba.utils import languages
 from temba.utils.cache import get_cacheable_result, get_cacheable_attr, incrby_existing
 from temba.utils.email import send_template_email
 from temba.utils.currencies import currency_for_country
+from temba.utils.models import HighpointMixin
 from temba.utils.timezones import timezone_to_country_code
 from timezone_field import TimeZoneField
 from twilio.rest import TwilioRestClient
@@ -2116,7 +2117,7 @@ class Debit(models.Model):
             cache.set(cls.LAST_SQUASH_KEY, max_id)
 
 
-class TopUpCredits(models.Model):
+class TopUpCredits(models.Model, HighpointMixin):
     """
     Used to track number of credits used on a topup, mostly maintained by triggers on Msg insertion.
     """
@@ -2124,15 +2125,12 @@ class TopUpCredits(models.Model):
                               help_text=_("The topup these credits are being used against"))
     used = models.IntegerField(help_text=_("How many credits were used, can be negative"))
 
-    LAST_SQUASH_KEY = 'last_topupcredits_squash'
+    HIGHPOINT_KEY = 'last_topupcredits_squash'
 
     @classmethod
     def squash_credits(cls):
         # get the id of the last count we squashed
-        r = get_redis_connection()
-        last_squash = r.get(TopUpCredits.LAST_SQUASH_KEY)
-        if not last_squash:
-            last_squash = 0
+        last_squash = cls.get_last_highpoint()
 
         # get the unique flow ids for all new ones
         squash_count = 0
@@ -2144,9 +2142,7 @@ class TopUpCredits(models.Model):
             squash_count += 1
 
         # insert our new top squashed id
-        max_id = TopUpCredits.objects.all().order_by('-id').first()
-        if max_id:
-            r.set(TopUpCredits.LAST_SQUASH_KEY, max_id.id)
+        cls.save_new_highpoint()
 
 
 class CreditAlert(SmartModel):

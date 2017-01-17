@@ -33,6 +33,7 @@ from temba.nexmo import NexmoClient
 from temba.orgs.models import Org, OrgLock, APPLICATION_SID, NEXMO_UUID
 from temba.utils.email import send_template_email
 from temba.utils import analytics, random_string, dict_to_struct, dict_to_json, on_transaction_commit
+from temba.utils.models import HighpointMixin
 from time import sleep
 
 from twilio import TwilioRestException
@@ -2891,13 +2892,13 @@ SEND_FUNCTIONS = {Channel.TYPE_AFRICAS_TALKING: Channel.send_africas_talking_mes
                   Channel.TYPE_ZENVIA: Channel.send_zenvia_message}
 
 
-class ChannelCount(models.Model):
+class ChannelCount(models.Model, HighpointMixin):
     """
     This model is maintained by Postgres triggers and maintains the daily counts of messages and ivr interactions
     on each day. This allows for fast visualizations of activity on the channel read page as well as summaries
     of message usage over the course of time.
     """
-    LAST_SQUASH_KEY = 'last_channelcount_squash'
+    HIGHPOINT_KEY = 'last_channelcount_squash'
 
     INCOMING_MSG_TYPE = 'IM'  # Incoming message
     OUTGOING_MSG_TYPE = 'OM'  # Outgoing message
@@ -2931,10 +2932,7 @@ class ChannelCount(models.Model):
     @classmethod
     def squash_counts(cls):
         # get the id of the last count we squashed
-        r = get_redis_connection()
-        last_squash = r.get(ChannelCount.LAST_SQUASH_KEY)
-        if not last_squash:
-            last_squash = 0
+        last_squash = cls.get_last_highpoint()
 
         # get the unique ids for all new ones
         start = time.time()
@@ -2949,11 +2947,9 @@ class ChannelCount(models.Model):
             squash_count += 1
 
         # insert our new top squashed id
-        max_id = ChannelCount.objects.all().order_by('-id').first()
-        if max_id:
-            r.set(ChannelCount.LAST_SQUASH_KEY, max_id.id)
+        cls.save_new_highpoint()
 
-        print "Squashed channel counts for %d pairs in %0.3fs" % (squash_count, time.time() - start)
+        print("Squashed channel counts for %d pairs in %0.3fs" % (squash_count, time.time() - start))
 
     def __unicode__(self):  # pragma: no cover
         return "ChannelCount(%d) %s %s count: %d" % (self.channel_id, self.count_type, self.day, self.count)
