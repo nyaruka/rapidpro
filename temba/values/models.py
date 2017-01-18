@@ -3,14 +3,13 @@ from __future__ import absolute_import, unicode_literals
 import time
 
 from collections import defaultdict
-from django.db import models, connection
-from django.db.models import Q
+from django.db import models
+from django.db.models import Q, Count
 from django.utils.translation import ugettext_lazy as _
 from django_redis import get_redis_connection
 from temba.locations.models import AdminBoundary
 from temba.orgs.models import Org
-from temba.utils import format_decimal, get_dict_from_cursor, dict_to_json, json_to_dict
-from stop_words import safe_get_stop_words
+from temba.utils import format_decimal, dict_to_json, json_to_dict
 
 
 VALUE_SUMMARY_CACHE_KEY = 'value_summary'
@@ -527,42 +526,20 @@ class Value(models.Model):
 
             # Check we have and we have an OPEN ENDED ruleset
             if ruleset and len(ruleset.get_rules()) == 1 and isinstance(ruleset.get_rules()[0].test, TrueTest):
-                cursor = connection.cursor()
 
-                custom_sql = """SELECT w.label, count(*) AS count FROM (
-                    SELECT
-                      regexp_split_to_table(LOWER(text), E'[^[:alnum:]_]') AS label
-                    FROM msgs_msg INNER JOIN contacts_contact ON ( msgs_msg.contact_id = contacts_contact.id )
-                    WHERE msgs_msg.id IN (
-                      SELECT
-                        msg_id
-                        FROM flows_flowstep_messages, flows_flowstep
-                        WHERE flowstep_id = flows_flowstep.id AND
-                        flows_flowstep.step_uuid = '%s'
-                      ) AND contacts_contact.is_test = False
-                  ) w group by w.label order by count desc;""" % ruleset.uuid
+                from temba.flows.models import FlowStep
+                rs_steps = FlowStep.objects.filter(step_uuid=ruleset.uuid, contact__is_test=False)
+                uncleaned_categories = rs_steps.values('messages__text').annotate(count=Count('id')).order_by('-count')
 
-                cursor.execute(custom_sql)
-                unclean_categories = get_dict_from_cursor(cursor)
-                categories = []
-
-                org_languages = [lang.name.lower() for lang in org.languages.filter(orgs=None).distinct()]
-
-                if 'english' not in org_languages:
-                    org_languages.append('english')
-
-                ignore_words = []
-                for lang in org_languages:
-                    ignore_words += safe_get_stop_words(lang)
-
-                for category in unclean_categories:
-                    if len(category['label']) > 1 and category['label'] not in ignore_words and len(categories) < 100:
-                        categories.append(dict(label=category['label'], count=int(category['count'])))
+                categories = [dict(label=elt['messages__text'],
+                                   count=elt['count'])
+                              for elt in uncleaned_categories if elt['messages__text']]
 
                 # sort by count, then alphabetically
                 categories = sorted(categories, key=lambda c: (-c['count'], c['label']))
 
-            results.append(dict(label=unicode(_("All")), open_ended=open_ended, set=set_count, unset=unset_count, categories=categories))
+            results.append(dict(label=unicode(_("All")), open_ended=open_ended, set=set_count, unset=unset_count,
+                                categories=categories))
 
         # for each of our dependencies, add our key as something that depends on it
         pipe = r.pipeline()

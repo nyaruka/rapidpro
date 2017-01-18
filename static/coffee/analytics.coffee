@@ -326,6 +326,10 @@ FieldController = ($scope, $http) ->
             if categories_with_contacts == 1
               chartType = 'bar'
 
+            else if data.open_ended
+              chartType = 'hidden'
+              showDataTable = true
+
             else if data.categories.length > 20
               chartType = 'donut'
 
@@ -902,28 +906,29 @@ app.directive "datatable", ->
 
           text += "</tr>"
 
-        for category in cat_segment.categories
-          text += "<tr><td class='datatable-label'>" + escapeHtml(category.label) + "</td>"
+        if cat_segment
+          for category in cat_segment.categories
+            text += "<tr><td class='datatable-label'>" + escapeHtml(category.label) + "</td>"
 
-          for segment, segment_idx in config.segments
-            clazz = 'datatable-value'
-            if segment_idx % 2 == 1
-              clazz += ' datatable-segment-odd'
+            for segment, segment_idx in config.segments
+              clazz = 'datatable-value'
+              if segment_idx % 2 == 1
+                clazz += ' datatable-segment-odd'
 
-            category_count = 0
-            for cat in segment.categories
-              if cat.label == category.label
-                category_count = cat.count
-                break
+              category_count = 0
+              for cat in segment.categories
+                if cat.label == category.label
+                  category_count = cat.count
+                  break
 
-            text += "<td class='" + clazz + "'>" + category_count + "</td>"
+              text += "<td class='" + clazz + "'>" + category_count + "</td>"
 
-            percent = 0
-            if segment.total > 0
-              percent = Math.round(category_count * 100 / segment.total)
-            text += "<td class='" + clazz + "'>" + percent + "%</td>"
+              percent = 0
+              if segment.total > 0
+                percent = Math.round(category_count * 100 / segment.total)
+              text += "<td class='" + clazz + "'>" + percent + "%</td>"
 
-          text += "</tr>"
+            text += "</tr>"
 
         text += "</table>"
 
