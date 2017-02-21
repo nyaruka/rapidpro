@@ -71,7 +71,11 @@ class SqlObjectOperation(object):
             if not identifier:
                 raise InvalidSQLException(raw.value)
 
-            name = identifier.value
+            # see https://github.com/andialbrecht/sqlparse/issues/322
+            if identifier.value.startswith('CONCURRENTLY '):
+                name = identifier.value[13:]
+            else:
+                name = identifier.value
 
         return cls(raw.value.strip(), sql_type, name, is_create)
 
