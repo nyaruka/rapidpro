@@ -1934,17 +1934,14 @@ class Channel(TembaModel):
 
     @classmethod
     def send_vumi_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED, Msg
+        from temba.msgs.models import WIRED
         from temba.contacts.models import Contact
 
         is_ussd = channel.channel_type in Channel.USSD_CHANNELS
         channel.config['transport_name'] = 'ussd_transport' if is_ussd else 'mtech_ng_smpp_transport'
 
-        in_reply_to = Msg.objects.values_list(
-            'external_id', flat=True).filter(pk=msg.response_to_id).first()
-
         payload = dict(message_id=msg.id,
-                       in_reply_to=in_reply_to,
+                       in_reply_to=msg.response_to.external_id if msg.response_to_id else None,
                        session_event="resume" if is_ussd else None,
                        to_addr=msg.urn_path,
                        from_addr=channel.address,
