@@ -9479,6 +9479,7 @@ class FacebookTest(TembaTest):
             # check the status of the message now errored
             msg.refresh_from_db()
             self.assertEquals(ERRORED, msg.status)
+            self.assertTrue(mock.called)
 
         # test blocked or opted out
         with patch('requests.post') as mock:
@@ -9547,6 +9548,8 @@ class FacebookTest(TembaTest):
                                   message=dict(attachment=dict(type="image",
                                                                payload=dict(
                                                                    url="https://example.com/attachments/pic.jpg")))))
+
+            self.assertTrue(mock.called)
 
         with patch('requests.post') as mock:
             mock.return_value = [MockResponse(200, '{"recipient_id":"1234", '
