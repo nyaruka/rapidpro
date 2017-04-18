@@ -2799,8 +2799,9 @@ class RunsEndpoint(ListAPIMixin, BaseAPIView):
             queryset = queryset.exclude(contact__pk__in=test_contact_ids)
 
         # limit to responded runs (optional)
-        if str_to_bool(params.get('responded')):
-            queryset = queryset.filter(responded=True)
+        responded = params.get('responded')
+        if responded is not None:
+            queryset = queryset.filter(responded=str_to_bool(responded))
 
         # use prefetch rather than select_related for foreign keys to avoid joins
         queryset = queryset.prefetch_related(

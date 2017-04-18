@@ -2120,6 +2120,10 @@ class APITest(TembaTest):
         response = self.fetchJSON(url, 'contact=%s&responded=yes' % self.joe.uuid)
         self.assertResultsById(response, [joe_run1])
 
+        # filter by contact + responded
+        response = self.fetchJSON(url, 'contact=%s&responded=no' % self.joe.uuid)
+        self.assertResultsById(response, [joe_run3, joe_run2])
+
         # filter by after
         response = self.fetchJSON(url, 'after=%s' % format_datetime(frank_run1.modified_on))
         self.assertResultsById(response, [joe_run3, joe_run2, frank_run2, frank_run1])
