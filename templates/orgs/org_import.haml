@@ -10,7 +10,13 @@
 - block pjax
 
   -if not user_org.is_import_flows_tier
-    -include "includes/import_disabled.html"
+    -if brand.slug == "textit"
+      %p
+        -blocktrans
+          Sorry, importing is enabled for paid accounts only. <a href="https://textit.in/purchase/">Top up</a>
+          to unlock this feature.
+    -else
+      -include "includes/import_disabled.html"
   -else
     #pjax
       .row{style:"height:250px;"}
@@ -131,7 +137,7 @@
     opacity: 0;
     z-index: 2;
   }
-  
+
   #import-message {
     font-size: 22px;
   }
