@@ -1590,8 +1590,17 @@ class Channel(TembaModel):
                 raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code != 200:
+
+            fatal = False
+            response_json = response.json()
+            error_code = response_json.get('error', dict()).get('code', None)
+            if error_code and error_code == 200:
+                contact_obj = Contact.objects.get(id=msg.contact)
+                contact_obj.stop(contact_obj.modified_by)
+                fatal = True
+
             raise SendException("Got non-200 response [%d] from Facebook" % response.status_code,
-                                event=event, start=start)
+                                event=event, fatal=fatal, start=start)
 
         # grab our external id out, Facebook response is in format:
         # "{"recipient_id":"997011467086879","message_id":"mid.1459532331848:2534ddacc3993a4b78"}"

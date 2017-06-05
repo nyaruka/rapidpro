@@ -9911,7 +9911,7 @@ class FacebookTest(TembaTest):
             self.assertEqual(json.loads(mock.call_args[0][1]),
                              dict(recipient=dict(id="1234"), message=dict(text="Facebook Msg")))
 
-        with patch('requests.get') as mock:
+        with patch('requests.post') as mock:
             mock.return_value = MockResponse(412, 'Error')
 
             # manually send it off
@@ -9920,6 +9920,26 @@ class FacebookTest(TembaTest):
             # check the status of the message now errored
             msg.refresh_from_db()
             self.assertEquals(ERRORED, msg.status)
+            self.assertTrue(mock.called)
+
+        # test blocked or opted out
+        with patch('requests.post') as mock:
+            mock.return_value = MockResponse(412, '{"error":{"code":200,'
+                                                  '"message":"(#200) This person isn\'t available right now."}}')
+
+            contact = msg.contact
+            self.assertFalse(contact.is_stopped)
+
+            # manually send it off
+            Channel.send_message(dict_to_struct('MsgStruct', msg.as_task_json()))
+
+            # check the status of the message now failed
+            msg.refresh_from_db()
+            self.assertEquals(FAILED, msg.status)
+
+            # contact shoudl have been stopped
+            contact.refresh_from_db()
+            self.assertTrue(contact.is_stopped)
 
         with patch('requests.post') as mock:
             mock.side_effect = Exception('Kaboom!')
@@ -9970,7 +9990,9 @@ class FacebookTest(TembaTest):
                                                                payload=dict(
                                                                    url="https://example.com/attachments/pic.jpg")))))
 
-        with patch('requests.get') as mock:
+            self.assertTrue(mock.called)
+
+        with patch('requests.post') as mock:
             mock.return_value = [MockResponse(200, '{"recipient_id":"1234", '
                                                    '"message_id":"mid.external"}'),
                                  MockResponse(412, 'Error')]
