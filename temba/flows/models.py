@@ -800,7 +800,16 @@ class Flow(TembaModel):
         # Create the step for our destination
         destination = Flow.get_node(flow, rule.destination, rule.destination_type)
         if destination:
-            step = flow.add_step(run, destination, rule=rule.uuid, category=rule.category, previous_step=step)
+            operand = None
+            if ruleset.operand:
+                context = run.flow.build_expressions_context(run.contact, msg)
+                (operand, errors) = Msg.substitute_variables(ruleset.operand, context, org=run.flow.org)
+                # ignore the operand if it is the same as the incoming message
+                if operand == msg.text:
+                    operand = None
+
+            step = flow.add_step(run, destination, rule=rule.uuid, category=rule.category, previous_step=step,
+                                 operand=operand)
 
         return dict(handled=True, destination=destination, step=step, msgs=msgs)
 
@@ -1797,7 +1806,8 @@ class Flow(TembaModel):
         return runs
 
     def add_step(self, run, node,
-                 msgs=None, rule=None, category=None, is_start=False, previous_step=None, arrived_on=None):
+                 msgs=None, rule=None, category=None, is_start=False, previous_step=None, arrived_on=None,
+                 operand=None):
         if msgs is None:
             msgs = []
 
@@ -1810,7 +1820,7 @@ class Flow(TembaModel):
             previous_step.save(update_fields=('left_on', 'next_uuid'))
 
             if not previous_step.contact.is_test:
-                FlowPathRecentMessage.record_step(previous_step)
+                FlowPathRecentMessage.record_step(previous_step, operand)
 
         # update our timeouts
         timeout = node.get_timeout() if isinstance(node, RuleSet) else None
@@ -3708,14 +3718,18 @@ class FlowPathRecentMessage(models.Model):
     created_on = models.DateTimeField(help_text=_("When the message arrived"))
 
     @classmethod
-    def record_step(cls, step):
+    def record_step(cls, step, operand):
         from_uuid = step.rule_uuid or step.step_uuid
         to_uuid = step.next_uuid
 
         objs = []
-        for msg in step.messages.all():
+        if operand:
             objs.append(cls(from_uuid=from_uuid, to_uuid=to_uuid,
-                            run=step.run, text=msg.text, created_on=msg.created_on))
+                            run=step.run, text=operand, created_on=step.left_on))
+        else:
+            for msg in step.messages.all():
+                objs.append(cls(from_uuid=from_uuid, to_uuid=to_uuid,
+                                run=step.run, text=msg.text, created_on=msg.created_on))
         cls.objects.bulk_create(objs)
 
     @classmethod

@@ -5317,6 +5317,37 @@ class FlowsTest(FlowFileTest):
         msg = Msg.objects.filter(direction='O', contact=tupac).first()
         self.assertEquals('Hi there Tupac', msg.text)
 
+    def test_non_blocking_rule_recentmessages(self):
+
+        flow = self.get_flow('non_blocking_rule_first')
+        self.login(self.admin)
+        recent_messages_url = reverse('flows.flow_recent_messages', args=[flow.pk])
+
+        eminem = self.create_contact('Eminem Marshall Mathers', '+12345')
+        durant = self.create_contact('Kevin Durant', '+12123')
+        flow.start(groups=[], contacts=[eminem, durant])
+        msg = Msg.objects.filter(direction='O', contact=eminem).first()
+        self.assertEquals('Hi there Eminem', msg.text)
+
+        ruleset = RuleSet.objects.filter(flow=flow, label='Name').first()
+        first_ruleset_uuid = ruleset.uuid
+
+        eminem_rule = ruleset.get_rules()[0]
+        eminem_rule_uuid = eminem_rule.uuid
+        eminem_rule_destination = eminem_rule.destination
+
+        eminem_params = "?step=%s&destination=%s&rule=%s" % (first_ruleset_uuid, eminem_rule_destination, eminem_rule_uuid)
+
+        def assert_recent(resp, msgs):
+            self.assertEqual([r['text'] for r in resp.json()], msgs)
+
+        # no params returns no results
+        assert_recent(self.client.get(recent_messages_url), [])
+
+        # one entry for eminem segment and make sure that is the value of the operand use in the rules tests
+        response = self.client.get(recent_messages_url + eminem_params)
+        assert_recent(response, ["Eminem Marshall Mathers"])
+
     def test_webhook_rule_first(self):
 
         flow = self.get_flow('webhook_rule_first')
