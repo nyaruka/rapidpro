@@ -1807,6 +1807,22 @@ class Contact(TembaModel):
         if tel:
             return tel.path
 
+    def get_languages(self, org=None):
+        """
+        Gets the preferred languages for this contact
+        """
+        org = org or self.org
+        languages = []
+
+        # if we have a language and it's a valid org language, it has priority
+        if self.language and self.language in org.get_language_codes():
+            languages.append(self.language)
+
+        if org.primary_language:
+            languages.append(org.primary_language.iso_code)
+
+        return languages
+
     def send(self, text, user, trigger_send=True, response_to=None, message_context=None, session=None,
              attachments=None, msg_type=None, created_on=None, all_urns=False):
         from temba.msgs.models import Msg, INBOX, PENDING, SENT, UnreachableException

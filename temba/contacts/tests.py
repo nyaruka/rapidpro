@@ -24,7 +24,7 @@ from temba.flows.models import FlowRun
 from temba.ivr.models import IVRCall
 from temba.locations.models import AdminBoundary
 from temba.msgs.models import Msg, Label, SystemLabel, Broadcast, BroadcastRecipient
-from temba.orgs.models import Org
+from temba.orgs.models import Org, Language
 from temba.schedules.models import Schedule
 from temba.tests import AnonymousOrg, TembaTest
 from temba.triggers.models import Trigger
@@ -3701,6 +3701,33 @@ class ContactTest(TembaTest):
 
         # twitter should be preferred outgoing again
         self.assertEqual(self.joe.urns.all()[0].scheme, TWITTER_SCHEME)
+
+    def test_get_languages(self):
+        self.joe.language = None
+        self.joe.save()
+
+        self.assertEqual(self.joe.get_languages(), [])
+
+        # update org so it has two languages: English (primary), Kinyarwanda
+        eng = Language.create(self.org, self.user, "English", 'eng')
+        Language.create(self.org, self.user, "Kinyarwanda", 'kin')
+
+        self.org.primary_language = eng
+        self.org.save()
+
+        self.assertEqual(self.joe.get_languages(), ['eng'])
+
+        # give Joe a valid org language
+        self.joe.language = 'kin'
+        self.joe.save()
+
+        self.assertEqual(self.joe.get_languages(), ['kin', 'eng'])
+
+        # give Joe a language which is not an org language
+        self.joe.language = 'fre'
+        self.joe.save()
+
+        self.assertEqual(self.joe.get_languages(), ['eng'])
 
 
 class ContactURNTest(TembaTest):
