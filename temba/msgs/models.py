@@ -356,12 +356,8 @@ class Broadcast(models.Model):
         org = org or self.org  # org object can be provided to allow caching of org languages
         preferred_languages = []
 
-        # if contact has a language and it's a valid org language, it has priority
-        if contact is not None and contact.language and contact.language in org.get_language_codes():
-            preferred_languages.append(contact.language)
-
-        if org.primary_language:
-            preferred_languages.append(org.primary_language.iso_code)
+        if contact:
+            preferred_languages += contact.get_languages(org)
 
         preferred_languages.append(self.base_language)
 
