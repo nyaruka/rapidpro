@@ -9743,7 +9743,7 @@ class FacebookTest(TembaTest):
             # check the status of the message now errored
             msg.refresh_from_db()
             self.assertEquals(ERRORED, msg.status)
-            self.assertTrue(Contact.objects.get(pk=msg.contact.id).is_stopped)
+            self.assertFalse(Contact.objects.get(pk=msg.contact.id).is_stopped)
 
         with patch('requests.post') as mock:
             mock.side_effect = Exception('Kaboom!')
