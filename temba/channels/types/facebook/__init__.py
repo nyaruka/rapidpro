@@ -7,7 +7,7 @@ import time
 
 from django.utils.translation import ugettext_lazy as _
 from temba.contacts.models import Contact, ContactURN, URN, FACEBOOK_SCHEME
-from temba.msgs.models import Attachment, WIRED
+from temba.msgs.models import Attachment, WIRED, INCOMING, FAILED, ERRORED
 from temba.orgs.models import Org
 from temba.triggers.models import Trigger
 from temba.utils.http import HttpEvent
@@ -97,6 +97,15 @@ class FacebookType(ChannelType):
                 raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code != 200:
+            contact_obj = Contact.objects.get(id=msg.contact)
+            last_ten_messages = contact_obj.msgs.all().exclude(pk=msg.id)[:10].values('direction', 'status')
+            recent_success = len(last_ten_messages) < 10
+            for last_msg in last_ten_messages:
+                recent_success = recent_success or last_msg['direction'] == INCOMING or last_msg['status'] not in [FAILED, ERRORED]
+
+            if not recent_success:
+                contact_obj.stop(contact_obj.created_by)
+
             raise SendException("Got non-200 response [%d] from Facebook" % response.status_code,
                                 event=event, start=start)
 
