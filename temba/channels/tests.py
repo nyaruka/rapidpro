@@ -9661,8 +9661,9 @@ class FacebookTest(TembaTest):
 
         settings.SEND_MESSAGES = True
 
-        with patch('requests.get') as mock:
-            mock.return_value = MockResponse(412, 'Error')
+        with patch('requests.post') as mock:
+            mock.return_value = MockResponse(412, '{"error": {"message": "(#200) This person isn\'t available '
+                                                  'right now.", "code": 200, "error_subcode": 1545041}}')
 
             # manually send it off
             Channel.send_message(dict_to_struct('MsgStruct', msg.as_task_json()))
