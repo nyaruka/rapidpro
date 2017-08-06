@@ -764,7 +764,7 @@ class ChannelTest(TembaTest):
         self.assertEquals(0, response.context['message_stats_table'][0]['outgoing_ivr_count'])
 
         # send messages with a test contact
-        Msg.create_incoming(self.tel_channel, test_contact.get_urn().urn, 'This incoming message will not be counted')
+        Msg.create_incoming(self.tel_channel, test_contact.get_urn().identity, 'This incoming message will not be counted')
         Msg.create_outgoing(self.org, self.user, test_contact, 'This outgoing message will not be counted')
 
         response = self.fetch_protected(reverse('channels.channel_read', args=[self.tel_channel.uuid]), self.superuser)
@@ -782,7 +782,7 @@ class ChannelTest(TembaTest):
         self.assertEquals(0, response.context['message_stats_table'][0]['outgoing_ivr_count'])
 
         # send messages with a normal contact
-        Msg.create_incoming(self.tel_channel, joe.get_urn(TEL_SCHEME).urn, 'This incoming message will be counted')
+        Msg.create_incoming(self.tel_channel, joe.get_urn(TEL_SCHEME).identity, 'This incoming message will be counted')
         Msg.create_outgoing(self.org, self.user, joe, 'This outgoing message will be counted')
 
         # now we have an inbound message and two outbounds
@@ -805,7 +805,7 @@ class ChannelTest(TembaTest):
         self.tel_channel.save()
 
         from temba.msgs.models import IVR
-        Msg.create_incoming(self.tel_channel, test_contact.get_urn().urn, 'incoming ivr as a test contact', msg_type=IVR)
+        Msg.create_incoming(self.tel_channel, test_contact.get_urn().identity, 'incoming ivr as a test contact', msg_type=IVR)
         Msg.create_outgoing(self.org, self.user, test_contact, 'outgoing ivr as a test contact', msg_type=IVR)
         response = self.fetch_protected(reverse('channels.channel_read', args=[self.tel_channel.uuid]), self.superuser)
 
@@ -819,7 +819,7 @@ class ChannelTest(TembaTest):
         self.assertEquals(0, response.context['message_stats_table'][0]['outgoing_ivr_count'])
 
         # now let's create an ivr interaction from a real contact
-        Msg.create_incoming(self.tel_channel, joe.get_urn().urn, 'incoming ivr', msg_type=IVR)
+        Msg.create_incoming(self.tel_channel, joe.get_urn().identity, 'incoming ivr', msg_type=IVR)
         Msg.create_outgoing(self.org, self.user, joe, 'outgoing ivr', msg_type=IVR)
         response = self.fetch_protected(reverse('channels.channel_read', args=[self.tel_channel.uuid]), self.superuser)
 
@@ -2412,7 +2412,7 @@ class ChannelEventTest(TembaTest):
         event = ChannelEvent.create(self.channel, "tel:+250783535665", ChannelEvent.TYPE_CALL_OUT, now, 300)
 
         contact = Contact.objects.get()
-        self.assertEqual(contact.get_urn().urn, "tel:+250783535665")
+        self.assertEqual(contact.get_urn().identity, "tel:+250783535665")
 
         self.assertEqual(event.org, self.org)
         self.assertEqual(event.channel, self.channel)
@@ -7841,6 +7841,32 @@ class TwitterTest(TembaTest):
 
                 # assert we were only called once
                 self.assertEquals(1, mock.call_count)
+                self.assertEquals("joe81", mock.call_args[1]['data']['screen_name'])
+
+                # check the status of the message is now sent
+                msg.refresh_from_db()
+                self.assertEquals(WIRED, msg.status)
+                self.assertEquals('1234567890', msg.external_id)
+                self.assertTrue(msg.sent_on)
+                self.assertEqual(mock.call_args[1]['data']['text'], msg.text)
+
+                self.clear_cache()
+
+            ChannelLog.objects.all().delete()
+            msg.contact_urn.display = "joe81"
+            msg.contact_urn.path = "12345"
+            msg.contact_urn.identity = "twitter:12345"
+            msg.contact_urn.save()
+
+            with patch('requests.sessions.Session.post') as mock:
+                mock.return_value = MockResponse(200, json.dumps(dict(id=1234567890)))
+
+                # manually send it off
+                Channel.send_message(dict_to_struct('MsgStruct', msg.as_task_json()))
+
+                # assert we were only called once
+                self.assertEquals(1, mock.call_count)
+                self.assertEquals("12345", mock.call_args[1]['data']['user_id'])
 
                 # check the status of the message is now sent
                 msg.refresh_from_db()
@@ -7980,7 +8006,7 @@ class MageHandlerTest(TembaTest):
                                          modified_by=self.user, created_by=self.user,
                                          modified_on=timezone.now(), created_on=timezone.now())
         urn = ContactURN.objects.create(org=self.org, contact=contact,
-                                        urn="twitter:%s" % twitter, scheme="twitter", path=twitter, priority="90")
+                                        identity="twitter:%s" % twitter, scheme="twitter", path=twitter, priority="90")
         return contact, urn
 
     def create_message_like_mage(self, text, contact, contact_urn=None):
@@ -9242,7 +9268,7 @@ class FacebookTest(TembaTest):
             self.assertEqual(response.status_code, 200)
 
             # check the channel affinity for our URN
-            urn = ContactURN.objects.get(urn='facebook:5678')
+            urn = ContactURN.objects.get(identity='facebook:5678')
             self.assertEqual(self.channel, urn.channel)
 
             # create another facebook channel
@@ -9258,7 +9284,7 @@ class FacebookTest(TembaTest):
             response = self.client.post(callback_url, json.dumps(data), content_type="application/json")
             self.assertEqual(response.status_code, 200)
 
-            urn = ContactURN.objects.get(urn='facebook:5678')
+            urn = ContactURN.objects.get(identity='facebook:5678')
             self.assertEqual(channel2, urn.channel)
 
     def test_ignored_webhooks(self):
@@ -10901,7 +10927,7 @@ class FcmTest(TembaTest):
         # load our message
         msg = Msg.objects.get()
         self.assertEquals("12345678901qwertyuiopq", msg.contact.get_urn(FCM_SCHEME).auth)
-        self.assertEquals("fcm:12345abcde", msg.contact.get_urn(FCM_SCHEME).urn)
+        self.assertEquals("fcm:12345abcde", msg.contact.get_urn(FCM_SCHEME).identity)
         self.assertEquals(self.org, msg.org)
         self.assertEquals(self.channel, msg.channel)
         self.assertEquals("Hello World!", msg.text)

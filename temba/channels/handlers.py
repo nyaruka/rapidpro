@@ -2520,7 +2520,7 @@ class GlobeHandler(BaseChannelHandler):
                     return HttpResponse("Missing one of dateTime, senderAddress, message, messageId or destinationAddress in message", status=400)
 
                 try:
-                    scheme, destination = URN.to_parts(inbound_msg['destinationAddress'])
+                    scheme, destination, display = URN.to_parts(inbound_msg['destinationAddress'])
                 except ValueError as v:
                     return HttpResponse("Error parsing destination address: " + str(v), status=400)
 
@@ -2530,7 +2530,7 @@ class GlobeHandler(BaseChannelHandler):
 
                 # parse our sender address out, it is a URN looking thing
                 try:
-                    scheme, sender_tel = URN.to_parts(inbound_msg['senderAddress'])
+                    scheme, sender_tel, display = URN.to_parts(inbound_msg['senderAddress'])
                 except ValueError as v:
                     return HttpResponse("Error parsing sender address: " + str(v), status=400)
 
@@ -2968,7 +2968,7 @@ class TwitterHandler(BaseChannelHandler):
                 if int(sender_id) == channel_config['handle_id']:
                     continue
 
-                urn = URN.from_twitter(users[sender_id]['screen_name'])
+                urn = URN.from_twitter(sender_id, display=users[sender_id]['screen_name'])
                 name = None if channel.org.is_anon else users[sender_id]['name']
                 contact = Contact.get_or_create(channel.org, channel.created_by, name=name, urns=[urn], channel=channel)
 
