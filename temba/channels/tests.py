@@ -9652,8 +9652,8 @@ class FacebookTest(TembaTest):
     def test_many_sending_failure_stop_contact(self):
         joe = self.create_contact("Joe", urn="facebook:1234")
 
-        # simulate 10 failed messages
-        for i in range(10):
+        # simulate 5 failed messages
+        for i in range(5):
             msg = joe.send("Facebook Msg %s" % i, self.admin, trigger_send=False)[0]
 
         joe.msgs.all().update(direction=OUTGOING, status=FAILED)

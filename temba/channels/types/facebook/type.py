@@ -105,13 +105,13 @@ class FacebookType(ChannelType):
 
                 contact_obj = Contact.objects.get(id=msg.contact)
                 last_ten_messages_ids = Msg.objects.filter(contact=contact_obj, created_on__gte=contact_obj.created_on,
-                                                           created_on__lt=msg.created_on)[:10].values_list('id',
-                                                                                                           flat=True)
+                                                           created_on__lt=msg.created_on)[:5].values_list('id',
+                                                                                                          flat=True)
 
-                if not len(last_ten_messages_ids) < 10:
+                if not len(last_ten_messages_ids) < 5:
                     # make sure all the recent 10 messages were from us and all failed to stop the contact
                     recent_success = Msg.objects.filter(id__in=last_ten_messages_ids,
-                                                        direction=OUTGOING, status__in=[FAILED, ERRORED]).count() < 10
+                                                        direction=OUTGOING, status__in=[FAILED, ERRORED]).count() < 5
 
                     if not recent_success:
                         contact_obj.stop(contact_obj.created_by)
