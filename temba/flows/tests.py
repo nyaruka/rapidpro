@@ -4324,7 +4324,7 @@ class SimulationTest(FlowFileTest):
     def test_ussd_simulation_session_end(self):
         self.ussd_channel = Channel.create(
             self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '*123#',
-            scheme='tel', uuid='00000000-0000-0000-0000-000000002222',
+            schemes=['tel'], uuid='00000000-0000-0000-0000-000000002222',
             role=Channel.ROLE_USSD)
 
         flow = self.get_flow('ussd_session_end')
@@ -5534,7 +5534,7 @@ class FlowsTest(FlowFileTest):
         self.assertEquals('Thank you! I like blue.', replies[0])
         self.assertEquals('This message was not translated.', replies[1])
 
-        # now add a primary languge to our org
+        # now add a primary language to our org
         self.org.primary_language = spanish
         self.org.save()
 
@@ -5889,6 +5889,26 @@ class FlowsTest(FlowFileTest):
         self.assertEqual('Welcome message.', msgs[8].text)
         self.assertEqual('Have you heard of show X? Yes or No?', msgs[9].text)
 
+    def test_trigger_flow_complete(self):
+        contact2 = self.create_contact(name='Jason Tatum', number='+250788123123')
+
+        self.get_flow('trigger_flow_complete', dict(contact2_uuid=contact2.uuid))
+
+        parent = Flow.objects.get(org=self.org, name='Flow A')
+
+        parent.start(groups=[], contacts=[self.contact], restart_participants=True)
+
+        self.assertEqual(1, FlowRun.objects.filter(contact=self.contact).count())
+        self.assertEqual(1, FlowRun.objects.filter(contact=contact2).count())
+
+        run1 = FlowRun.objects.filter(contact=self.contact).first()
+        run2 = FlowRun.objects.filter(contact=contact2).first()
+
+        self.assertEqual(run1.exit_type, FlowRun.EXIT_TYPE_COMPLETED)
+        self.assertFalse(run1.is_active)
+
+        self.assertEqual(run2.parent.id, run1.id)
+
     def test_translations_rule_first(self):
 
         # import a rule first flow that already has language dicts
@@ -5941,7 +5961,7 @@ class FlowsTest(FlowFileTest):
         reply = json_dict['action_sets'][1]['actions'][0]
         self.assertEquals('Good choice, I like @flow.color.category too! What is your favorite beer?', reply['msg']['base'])
 
-        # now interact with the flow and make sure we get an appropriate resonse
+        # now interact with the flow and make sure we get an appropriate response
         FlowRun.objects.all().delete()
 
         self.assertEquals("What is your favorite color?", self.send_message(favorites, "favorites", initiate_flow=True))
@@ -7072,7 +7092,7 @@ class OrderingTest(FlowFileTest):
         self.contact2 = self.create_contact('Ryan Lewis', '+12065552121')
 
         self.channel.delete()
-        self.channel = Channel.create(self.org, self.user, 'KE', 'EX', None, '+250788123123', scheme='tel',
+        self.channel = Channel.create(self.org, self.user, 'KE', 'EX', None, '+250788123123', schemes=['tel'],
                                       config=dict(send_url='https://google.com'))
 
     def tearDown(self):
@@ -7467,7 +7487,7 @@ class StackedExitsTest(FlowFileTest):
         super(StackedExitsTest, self).setUp()
 
         self.channel.delete()
-        self.channel = Channel.create(self.org, self.user, 'KE', 'EX', None, '+250788123123', scheme='tel',
+        self.channel = Channel.create(self.org, self.user, 'KE', 'EX', None, '+250788123123', schemes=['tel'],
                                       config=dict(send_url='https://google.com'))
 
     def test_stacked_exits(self):
@@ -7543,7 +7563,7 @@ class ParentChildOrderingTest(FlowFileTest):
     def setUp(self):
         super(ParentChildOrderingTest, self).setUp()
         self.channel.delete()
-        self.channel = Channel.create(self.org, self.user, 'KE', 'EX', None, '+250788123123', scheme='tel',
+        self.channel = Channel.create(self.org, self.user, 'KE', 'EX', None, '+250788123123', schemes=['tel'],
                                       config=dict(send_url='https://google.com'))
 
     def test_parent_child_ordering(self):
@@ -7566,7 +7586,7 @@ class AndroidChildStatus(FlowFileTest):
     def setUp(self):
         super(AndroidChildStatus, self).setUp()
         self.channel.delete()
-        self.channel = Channel.create(self.org, self.user, 'RW', 'A', None, '+250788123123', scheme='tel')
+        self.channel = Channel.create(self.org, self.user, 'RW', 'A', None, '+250788123123', schemes=['tel'])
 
     def test_split_first(self):
         self.get_flow('split_first_child_msg')
@@ -7594,11 +7614,11 @@ class FlowChannelSelectionTest(FlowFileTest):
         self.channel.delete()
         self.sms_channel = Channel.create(
             self.org, self.user, 'RW', Channel.TYPE_JUNEBUG, None, '+250788123123',
-            scheme='tel', uuid='00000000-0000-0000-0000-000000001111',
+            schemes=['tel'], uuid='00000000-0000-0000-0000-000000001111',
             role=Channel.DEFAULT_ROLE)
         self.ussd_channel = Channel.create(
             self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '*123#',
-            scheme='tel', uuid='00000000-0000-0000-0000-000000002222',
+            schemes=['tel'], uuid='00000000-0000-0000-0000-000000002222',
             role=Channel.ROLE_USSD)
 
     def test_sms_channel_selection(self):
