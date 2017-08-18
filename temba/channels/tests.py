@@ -29,7 +29,7 @@ from smartmin.tests import SmartminTest
 from temba.api.models import WebHookEvent
 from temba.contacts.models import Contact, ContactGroup, ContactURN, URN, TEL_SCHEME, TWITTER_SCHEME, EXTERNAL_SCHEME, \
     LINE_SCHEME, JIOCHAT_SCHEME
-from temba.msgs.models import Broadcast, Msg, IVR, WIRED, FAILED, SENT, DELIVERED, ERRORED, INCOMING, PENDING
+from temba.msgs.models import Broadcast, Msg, IVR, WIRED, FAILED, SENT, DELIVERED, ERRORED, INCOMING, PENDING, OUTGOING
 from temba.channels.views import channel_status_processor
 from temba.contacts.models import TELEGRAM_SCHEME, FACEBOOK_SCHEME, VIBER_SCHEME, FCM_SCHEME
 from temba.ivr.models import IVRCall
@@ -9778,6 +9778,7 @@ class FacebookTest(TembaTest):
             # check the status of the message now errored
             msg.refresh_from_db()
             self.assertEquals(ERRORED, msg.status)
+            self.assertFalse(Contact.objects.get(pk=msg.contact.id).is_stopped)
 
         with patch('requests.post') as mock:
             mock.side_effect = Exception('Kaboom!')
@@ -9791,6 +9792,31 @@ class FacebookTest(TembaTest):
 
             self.assertFalse(ChannelLog.objects.filter(description__icontains="local variable 'response' "
                                                                               "referenced before assignment"))
+
+    def test_many_sending_failure_stop_contact(self):
+        joe = self.create_contact("Joe", urn="facebook:1234")
+
+        # simulate 5 failed messages
+        for i in range(5):
+            msg = joe.send("Facebook Msg %s" % i, self.admin, trigger_send=False)[0]
+
+        joe.msgs.all().update(direction=OUTGOING, status=FAILED)
+
+        msg = joe.send("Facebook Msg", self.admin, trigger_send=False)[0]
+
+        settings.SEND_MESSAGES = True
+
+        with patch('requests.post') as mock:
+            mock.return_value = MockResponse(412, '{"error": {"message": "(#200) This person isn\'t available '
+                                                  'right now.", "code": 200, "error_subcode": 1545041}}')
+
+            # manually send it off
+            Channel.send_message(dict_to_struct('MsgStruct', msg.as_task_json()))
+
+            # check the status of the message now errored
+            msg.refresh_from_db()
+            self.assertEquals(ERRORED, msg.status)
+            self.assertTrue(Contact.objects.get(pk=msg.contact.id).is_stopped)
 
     def test_send_media(self):
         joe = self.create_contact("Joe", urn="facebook:1234")
