@@ -1375,10 +1375,6 @@ class FlowCRUDL(SmartCRUDL):
                 for log in logs:
                     log.delete()
 
-                msgs = Msg.objects.filter(contact=test_contact)
-                for msg in msgs:
-                    msg.delete()
-
                 calls = IVRCall.objects.filter(contact=test_contact)
                 for call in calls:
                     call.delete()
@@ -1387,11 +1383,15 @@ class FlowCRUDL(SmartCRUDL):
                 for session in ussd_sessions:
                     session.delete()
 
-                for run in runs:
-                    run.delete()
+                msgs = Msg.objects.filter(contact=test_contact)
+                for msg in msgs:
+                    msg.delete()
 
                 for step in steps:
                     step.delete()
+
+                for run in runs:
+                    run.delete()
 
                 # reset all contact fields values
                 test_contact.values.all().delete()

@@ -4343,6 +4343,10 @@ class SimulationTest(FlowFileTest):
         session = USSDSession.objects.get()
         self.assertEquals(session.status, USSDSession.COMPLETED)
 
+        response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
+        self.assertEquals(response.status_code, 200)
+        self.assertFalse(USSDSession.objects.filter(pk=session.pk))
+
     def test_ussd_simulation_without_channel_doesnt_run(self):
         Channel.objects.all().delete()
 
@@ -4358,6 +4362,32 @@ class SimulationTest(FlowFileTest):
         self.assertEqual(response.json()['status'], 'error')
 
         self.assertEqual(flow.runs.count(), 0)
+
+    def test_ivr_simulation(self):
+        # configure our account to be IVR enabled
+        self.channel.channel_type = Channel.TYPE_TWILIO
+        self.channel.role = Channel.ROLE_CALL + Channel.ROLE_ANSWER + Channel.ROLE_SEND
+        self.channel.save()
+
+        flow = self.get_flow('call_me_maybe')
+
+        simulate_url = reverse('flows.flow_simulate', args=[flow.pk])
+
+        post_data = dict(has_refresh=True, new_message="4")
+
+        self.login(self.admin)
+        response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
+
+        self.assertEquals(response.status_code, 200)
+
+        call = IVRCall.objects.get()
+        self.assertTrue(call.contact.is_test)
+
+        response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
+        self.assertEquals(response.status_code, 200)
+
+        # previous object was deleted
+        self.assertFalse(IVRCall.objects.filter(pk=call.pk))
 
 
 class FlowsTest(FlowFileTest):
