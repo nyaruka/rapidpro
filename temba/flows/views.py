@@ -1387,8 +1387,11 @@ class FlowCRUDL(SmartCRUDL):
                 for session in ussd_sessions:
                     session.delete()
 
-                runs.delete()
-                steps.delete()
+                for run in runs:
+                    run.delete()
+
+                for step in steps:
+                    step.delete()
 
                 # reset all contact fields values
                 test_contact.values.all().delete()
