@@ -1371,10 +1371,21 @@ class FlowCRUDL(SmartCRUDL):
                 if runs and runs.first().created_on < timezone.now() - timedelta(hours=24):  # pragma: needs cover
                     analytics.track(user.username, 'temba.flow_simulated')
 
-                ActionLog.objects.filter(run__in=runs).delete()
-                Msg.objects.filter(contact=test_contact).delete()
-                IVRCall.objects.filter(contact=test_contact).delete()
-                USSDSession.objects.filter(contact=test_contact).delete()
+                logs = ActionLog.objects.filter(run__in=runs)
+                for log in logs:
+                    log.delete()
+
+                msgs = Msg.objects.filter(contact=test_contact)
+                for msg in msgs:
+                    msg.delete()
+
+                calls = IVRCall.objects.filter(contact=test_contact)
+                for call in calls:
+                    call.delete()
+
+                ussd_sessions = USSDSession.objects.filter(contact=test_contact)
+                for session in ussd_sessions:
+                    session.delete()
 
                 runs.delete()
                 steps.delete()
