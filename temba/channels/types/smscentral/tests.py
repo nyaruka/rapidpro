@@ -5,12 +5,12 @@ from temba.tests import TembaTest
 from ...models import Channel
 
 
-class BlackmynaTypeTest(TembaTest):
+class SMSCentralTypeTest(TembaTest):
 
     def test_claim(self):
         Channel.objects.all().delete()
 
-        url = reverse('channels.claim_blackmyna')
+        url = reverse('channels.claim_smscentral')
 
         self.login(self.admin)
 
@@ -22,7 +22,7 @@ class BlackmynaTypeTest(TembaTest):
         response = self.client.get(url)
         post_data = response.context['form'].initial
 
-        post_data['country'] = 'NI'
+        post_data['country'] = 'PH'
         post_data['number'] = '250788123123'
         post_data['username'] = 'user1'
         post_data['password'] = 'pass1'
@@ -31,11 +31,11 @@ class BlackmynaTypeTest(TembaTest):
 
         channel = Channel.objects.get()
 
-        self.assertEquals('NI', channel.country)
+        self.assertEquals('PH', channel.country)
         self.assertEquals(post_data['username'], channel.config_json()['username'])
         self.assertEquals(post_data['password'], channel.config_json()['password'])
         self.assertEquals('+250788123123', channel.address)
-        self.assertEquals('BM', channel.channel_type)
+        self.assertEquals('SC', channel.channel_type)
 
         config_url = reverse('channels.channel_configuration', args=[channel.pk])
         self.assertRedirect(response, config_url)
@@ -43,15 +43,14 @@ class BlackmynaTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEquals(200, response.status_code)
 
-        self.assertContains(response, reverse('handlers.blackmyna_handler', args=['status', channel.uuid]))
-        self.assertContains(response, reverse('handlers.blackmyna_handler', args=['receive', channel.uuid]))
+        self.assertContains(response, reverse('handlers.smscentral_handler', args=['receive', channel.uuid]))
 
         Channel.objects.all().delete()
 
         response = self.client.get(url)
         post_data = response.context['form'].initial
 
-        post_data['country'] = 'NI'
+        post_data['country'] = 'PH'
         post_data['number'] = '20050'
         post_data['username'] = 'user1'
         post_data['password'] = 'pass1'
@@ -60,8 +59,8 @@ class BlackmynaTypeTest(TembaTest):
 
         channel = Channel.objects.get()
 
-        self.assertEquals('NI', channel.country)
+        self.assertEquals('PH', channel.country)
         self.assertEquals(post_data['username'], channel.config_json()['username'])
         self.assertEquals(post_data['password'], channel.config_json()['password'])
         self.assertEquals('20050', channel.address)
-        self.assertEquals('BM', channel.channel_type)
+        self.assertEquals('SC', channel.channel_type)

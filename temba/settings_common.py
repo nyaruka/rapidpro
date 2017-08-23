@@ -1108,6 +1108,7 @@ CHANNEL_TYPES = [
     'temba.channels.types.infobip.InfobipType',
     'temba.channels.types.jiochat.JioChatType',
     'temba.channels.types.line.LineType',
+    'temba.channels.types.smscentral.SMSCentralType',
     'temba.channels.types.telegram.TelegramType',
     'temba.channels.types.twitter.TwitterType',
     'temba.channels.types.twitter_activity.TwitterActivityType',
