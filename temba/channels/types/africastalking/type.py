@@ -33,6 +33,8 @@ class AfricastalkingType(ChannelType):
     max_length = 160
     attachment_support = False
 
+    timezones = ["Africa/Nairobi", "Africa/Kampala", "Africa/Lilongwe"]
+
     def send(self, channel, msg, text):
         from temba.msgs.models import SENT
 

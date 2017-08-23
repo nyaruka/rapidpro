@@ -9,10 +9,19 @@ class AfricastalkingTypeTest(TembaTest):
 
     def test_claim(self):
         Channel.objects.all().delete()
-        self.login(self.admin)
 
         url = reverse('channels.claim_africastalking')
+        self.login(self.admin)
 
+        response = self.client.get(reverse('channels.channel_claim'))
+        self.assertNotContains(response, url)
+
+        self.org.timezone = "Africa/Nairobi"
+        self.org.save()
+
+        # check that claim page URL appears on claim list page
+        response = self.client.get(reverse('channels.channel_claim'))
+        self.assertContains(response, url)
         # visit the africa's talking page
         response = self.client.get(url)
         self.assertEquals(200, response.status_code)
