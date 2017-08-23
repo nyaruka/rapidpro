@@ -8,7 +8,7 @@ from ...models import Channel
 from ...views import ClaimViewMixin, ALL_COUNTRIES
 
 
-class ClaimView(ClaimViewMixin, SmartFormView):
+class AuthenticatedExternalClaimView(ClaimViewMixin, SmartFormView):
     class Form(ClaimViewMixin.Form):
         country = forms.ChoiceField(choices=ALL_COUNTRIES, label=_("Country"),
                                     help_text=_("The country this phone number is used in"))
@@ -55,4 +55,4 @@ class ClaimView(ClaimViewMixin, SmartFormView):
                                                                  self.channel_type,
                                                                  data.get('url'))
 
-        return super(ClaimView, self).form_valid(form)
+        return super(AuthenticatedExternalClaimView, self).form_valid(form)

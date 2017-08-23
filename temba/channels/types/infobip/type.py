@@ -8,7 +8,7 @@ import time
 
 from django.utils.translation import ugettext_lazy as _
 
-from temba.channels.types.infobip.views import ClaimView
+from temba.channels.types.authenticatedexternal.views import AuthenticatedExternalClaimView
 from temba.contacts.models import TEL_SCHEME
 from temba.utils.http import HttpEvent
 from ...models import Channel, ChannelType, SendException, TEMBA_HEADERS
@@ -26,7 +26,7 @@ class InfobipType(ChannelType):
     icon = 'icon-power-cord'
 
     claim_blurb = _("""Easily add a two way number you have configured with <a href="http://infobip.com">Infobip</a> using their APIs.""")
-    claim_view = ClaimView
+    claim_view = AuthenticatedExternalClaimView
 
     schemes = [TEL_SCHEME]
     max_length = 1600
