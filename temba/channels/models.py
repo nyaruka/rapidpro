@@ -166,7 +166,6 @@ class Channel(TembaModel):
     TYPE_DARTMEDIA = 'DA'
     TYPE_DUMMY = 'DM'
     TYPE_GLOBE = 'GL'
-    TYPE_HIGH_CONNECTION = 'HX'
     TYPE_HUB9 = 'H9'
     TYPE_JASMIN = 'JS'
     TYPE_JUNEBUG = 'JN'
@@ -269,7 +268,6 @@ class Channel(TembaModel):
         TYPE_DARTMEDIA: dict(schemes=['tel'], max_length=160),
         TYPE_DUMMY: dict(schemes=['tel'], max_length=160),
         TYPE_GLOBE: dict(schemes=['tel'], max_length=160),
-        TYPE_HIGH_CONNECTION: dict(schemes=['tel'], max_length=1500),
         TYPE_HUB9: dict(schemes=['tel'], max_length=1600),
         TYPE_JASMIN: dict(schemes=['tel'], max_length=1600),
         TYPE_JUNEBUG: dict(schemes=['tel'], max_length=1600),
@@ -298,7 +296,6 @@ class Channel(TembaModel):
                     (TYPE_DARTMEDIA, "Dart Media"),
                     (TYPE_DUMMY, "Dummy"),
                     (TYPE_GLOBE, "Globe Labs"),
-                    (TYPE_HIGH_CONNECTION, "High Connection"),
                     (TYPE_HUB9, "Hub9"),
                     (TYPE_JASMIN, "Jasmin"),
                     (TYPE_JUNEBUG, "Junebug"),
@@ -1740,42 +1737,6 @@ class Channel(TembaModel):
         Channel.success(channel, msg, WIRED, start, events=events)
 
     @classmethod
-    def send_high_connection_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-
-        payload = {
-            'accountid': channel.config[Channel.CONFIG_USERNAME],
-            'password': channel.config[Channel.CONFIG_PASSWORD],
-            'text': text,
-            'to': msg.urn_path,
-            'ret_id': msg.id,
-            'datacoding': 8,
-            'userdata': 'textit',
-            'ret_url': 'https://%s%s' % (settings.HOSTNAME, reverse('handlers.hcnx_handler', args=['status', channel.uuid])),
-            'ret_mo_url': 'https://%s%s' % (settings.HOSTNAME, reverse('handlers.hcnx_handler', args=['receive', channel.uuid]))
-        }
-
-        # build our send URL
-        url = 'https://highpushfastapi-v2.hcnx.eu/api' + '?' + urlencode(payload)
-        log_payload = urlencode(payload)
-        start = time.time()
-
-        event = HttpEvent('GET', url, log_payload)
-
-        try:
-            response = requests.get(url, headers=TEMBA_HEADERS, timeout=30)
-            event.status_code = response.status_code
-            event.response_body = response.text
-        except Exception as e:
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
-
-        Channel.success(channel, msg, WIRED, start, event=event)
-
-    @classmethod
     def send_macrokiosk_message(cls, channel, msg, text):
         from temba.msgs.models import WIRED
 
@@ -2541,7 +2502,6 @@ SEND_FUNCTIONS = {Channel.TYPE_CHIKKA: Channel.send_chikka_message,
                   Channel.TYPE_DARTMEDIA: Channel.send_hub9_or_dartmedia_message,
                   Channel.TYPE_DUMMY: Channel.send_dummy_message,
                   Channel.TYPE_GLOBE: Channel.send_globe_message,
-                  Channel.TYPE_HIGH_CONNECTION: Channel.send_high_connection_message,
                   Channel.TYPE_HUB9: Channel.send_hub9_or_dartmedia_message,
                   Channel.TYPE_JASMIN: Channel.send_jasmin_message,
                   Channel.TYPE_JUNEBUG: Channel.send_junebug_message,
