@@ -6,13 +6,13 @@ from temba.tests import TembaTest
 from ...models import Channel
 
 
-class DartMediaTypeTest(TembaTest):
+class Hub9TypeTest(TembaTest):
 
     @override_settings(IP_ADDRESSES=('10.10.10.10', '172.16.20.30'))
     def test_claim(self):
         Channel.objects.all().delete()
 
-        url = reverse('channels.claim_dart_media')
+        url = reverse('channels.claim_hub9')
 
         self.login(self.admin)
 
@@ -46,7 +46,7 @@ class DartMediaTypeTest(TembaTest):
         self.assertEquals(post_data['number'], channel.address)
         self.assertEquals(post_data['username'], channel.config_json()['username'])
         self.assertEquals(post_data['password'], channel.config_json()['password'])
-        self.assertEquals('DA', channel.channel_type)
+        self.assertEquals('H9', channel.channel_type)
 
         config_url = reverse('channels.channel_configuration', args=[channel.pk])
         self.assertRedirect(response, config_url)
@@ -54,8 +54,8 @@ class DartMediaTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEquals(200, response.status_code)
 
-        self.assertContains(response, reverse('handlers.dartmedia_handler', args=['received', channel.uuid]))
-        self.assertContains(response, reverse('handlers.dartmedia_handler', args=['delivered', channel.uuid]))
+        self.assertContains(response, reverse('handlers.hub9_handler', args=['received', channel.uuid]))
+        self.assertContains(response, reverse('handlers.hub9_handler', args=['delivered', channel.uuid]))
 
         # check we show the IP to whitelist
         self.assertContains(response, "10.10.10.10")

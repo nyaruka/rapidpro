@@ -14,27 +14,26 @@ from temba.utils.http import HttpEvent
 from ...models import Channel, ChannelType, SendException, TEMBA_HEADERS
 
 
-# DartMedia is an aggregator in Indonesia, set this to the endpoint for your service
+# Hub9 is an aggregator in Indonesia, set this to the endpoint for your service
 # and make sure you send from a whitelisted IP Address
-DART_MEDIA_ENDPOINT = 'http://202.43.169.11/APIhttpU/receive2waysms.php'
+HUB9_ENDPOINT = 'http://175.103.48.29:28078/testing/smsmt.php'
 
 
-class DartMediaType(ChannelType):
+class Hub9Type(ChannelType):
     """
     An DartMedia channel (http://dartmedia.biz/)
     """
 
-    code = 'DA'
+    code = 'H9'
     category = ChannelType.Category.PHONE
 
-    name = "DartMedia"
-    slug = "dart_media"
+    name = "Hub9"
 
-    claim_blurb = _("""Easily add a two way number you have configured with <a href="http://dartmedia.biz/">Dart Media</a> in Indonesia.""")
+    claim_blurb = _("""Easily add a two way number you have configured with Hub9 in Indonesia.""")
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
-    max_length = 160
+    max_length = 1600
     attachment_support = False
 
     timezones = ["Asia/Jakarta"]
@@ -52,7 +51,7 @@ class DartMediaType(ChannelType):
         #   &message=Test+Normal+Single+Message&dcs=0
         #   &udhl=0&charset=utf-8
         #
-        url = DART_MEDIA_ENDPOINT
+        url = HUB9_ENDPOINT
         payload = dict(userid=channel.config['username'], password=channel.config['password'],
                        original=channel.address.lstrip('+'), sendto=msg.urn_path.lstrip('+'),
                        messageid=msg.id, message=text, dcs=0, udhl=0)
