@@ -14,7 +14,7 @@ from temba.utils.http import HttpEvent
 from ...models import Channel, ChannelType, SendException, TEMBA_HEADERS
 
 
-class AfricastalkingType(ChannelType):
+class AfricasTalkingType(ChannelType):
     """
     An Africa's Talking channel (https://africastalking.com/)
     """
