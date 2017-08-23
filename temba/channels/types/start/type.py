@@ -24,7 +24,6 @@ class StartType(ChannelType):
     category = ChannelType.Category.PHONE
 
     name = "Start Mobile"
-    icon = 'icon-channel-external'
 
     claim_blurb = _("""Easily add a two way number you have configured with <a href="https://bulk.startmobile.ua/">Start Mobile</a> using their APIs.""")
     claim_view = AuthenticatedExternalClaimView
@@ -33,6 +32,8 @@ class StartType(ChannelType):
     max_length = 1600
 
     attachment_support = False
+
+    timezones = ["Europe/Kiev"]
 
     def send(self, channel, msg, text):
         from temba.msgs.models import WIRED

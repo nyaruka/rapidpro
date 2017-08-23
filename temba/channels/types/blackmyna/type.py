@@ -22,7 +22,6 @@ class BlackmynaType(ChannelType):
     category = ChannelType.Category.PHONE
 
     name = "Blackmyna"
-    icon = 'icon-power-cord'
 
     claim_blurb = _("""Easily add a two way number you have configured with <a href="http://blackmyna.com">Blackmyna</a> using their APIs.""")
     claim_view = AuthenticatedExternalClaimView
@@ -30,6 +29,8 @@ class BlackmynaType(ChannelType):
     schemes = [TEL_SCHEME]
     max_length = 1600
     attachment_support = False
+
+    timezones = ["Asia/Kathmandu"]
 
     def send(self, channel, msg, text):
         from temba.msgs.models import WIRED

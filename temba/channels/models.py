@@ -90,6 +90,7 @@ class ChannelType(six.with_metaclass(ABCMeta)):
     max_tps = None
     attachment_support = False
     free_sending = False
+    timezones = []
 
     def is_available_to(self, user):
         """
