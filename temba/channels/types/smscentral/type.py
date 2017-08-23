@@ -23,7 +23,7 @@ class SMSCentralType(ChannelType):
     category = ChannelType.Category.PHONE
 
     name = "SMSCentral"
-    icon = 'icon-power-cord'
+    icon = 'icon-channel-external'
 
     claim_blurb = _("""Easily add a two way number you have configured with <a href="http://smscentral.com.np/">SMSCentral</a> using their APIs.""")
     claim_view = AuthenticatedExternalClaimView

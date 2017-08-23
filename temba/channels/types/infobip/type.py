@@ -23,7 +23,7 @@ class InfobipType(ChannelType):
     category = ChannelType.Category.PHONE
 
     name = "Infobip"
-    icon = 'icon-power-cord'
+    icon = 'icon-channel-external'
 
     claim_blurb = _("""Easily add a two way number you have configured with <a href="http://infobip.com">Infobip</a> using their APIs.""")
     claim_view = AuthenticatedExternalClaimView

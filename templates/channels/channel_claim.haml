@@ -463,22 +463,6 @@
                 -blocktrans
                   Easily add a two way number you have configured with <a href="http://macrokiosk.com/">Macrokiosk</a> using their APIs.
 
-    -if org_timezone == 'Europe/Kiev'
-      .claim-row.start-channel
-        .row
-          .span3
-            %a.btn.btn-primary.btn-primary-muted.btn-claim{href:"{% url 'channels.channel_claim_start' %}"}
-              .btn-container
-                .claim-glyph.icon-channel-external
-                %p.claim-text
-                  -trans "Start Mobile Number"
-
-          .span9
-            .claim-description
-              %div
-                -blocktrans
-                  Easily add a two way number you have configured with <a href="https://bulk.startmobile.ua/">Start Mobile</a> using their APIs.
-
     -if org_timezone == 'Asia/Karachi'
       .claim-row.m3tech-channel{class:"{% if recommended_channel == 'm3tech' %}recommended{% endif %}"}
         .recommendation.hide
