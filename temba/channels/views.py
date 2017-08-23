@@ -867,7 +867,7 @@ class ChannelCRUDL(SmartCRUDL):
                'claim_verboice', 'claim_clickatell', 'claim_plivo', 'search_plivo',
                'claim_yo', 'claim_viber', 'create_viber',
                'claim_twilio_messaging_service', 'claim_zenvia', 'claim_jasmin', 'claim_mblox', 'claim_globe',
-               'claim_twiml_api', 'claim_dart_media', 'claim_junebug', 'facebook_whitelist',
+               'claim_twiml_api', 'claim_junebug', 'facebook_whitelist',
                'claim_red_rabbit', 'claim_macrokiosk')
     permissions = True
 
@@ -1779,17 +1779,6 @@ class ChannelCRUDL(SmartCRUDL):
             return "Indonesia"
 
         def get_submitted_country(self, data):  # pragma: needs cover
-            return "ID"
-
-    class ClaimDartMedia(ClaimAuthenticatedExternal):
-        title = _("Connect Dart Media")
-        channel_type = Channel.TYPE_DARTMEDIA
-        readonly = ('country',)
-
-        def get_country(self, obj):
-            return "Indonesia"
-
-        def get_submitted_country(self, data):
             return "ID"
 
     class ClaimShaqodoon(ClaimAuthenticatedExternal):

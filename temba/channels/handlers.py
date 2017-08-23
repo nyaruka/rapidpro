@@ -764,7 +764,7 @@ class Hub9Handler(BaseChannelHandler):
     url_name = 'handlers.hub9_handler'
 
     def get_channel_type(self):
-        return Channel.TYPE_HUB9
+        return 'H9'
 
     def get(self, request, *args, **kwargs):
         from temba.msgs.models import Msg
@@ -828,7 +828,7 @@ class DartMediaHandler(Hub9Handler):
     url_name = 'handlers.dartmedia_handler'
 
     def get_channel_type(self):
-        return Channel.TYPE_DARTMEDIA
+        return "DA"
 
 
 class HighConnectionHandler(BaseChannelHandler):

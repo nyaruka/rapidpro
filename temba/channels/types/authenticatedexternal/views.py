@@ -40,6 +40,9 @@ class AuthenticatedExternalClaimView(ClaimViewMixin, SmartFormView):
 
     form_class = Form
 
+    def get_submitted_country(self, data):
+        return data['country']
+
     def form_valid(self, form):
         org = self.request.user.get_org()
 
@@ -48,7 +51,7 @@ class AuthenticatedExternalClaimView(ClaimViewMixin, SmartFormView):
 
         data = form.cleaned_data
         self.object = Channel.add_authenticated_external_channel(org, self.request.user,
-                                                                 data['country'],
+                                                                 self.get_submitted_country(data),
                                                                  data['number'],
                                                                  data['username'],
                                                                  data['password'],
