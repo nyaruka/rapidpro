@@ -9,7 +9,8 @@ from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
 from temba.channels.types.yo.views import ClaimView
-from temba.contacts.models import TEL_SCHEME
+from temba.contacts.models import Contact, TEL_SCHEME
+from temba.msgs.models import SENT
 from temba.utils.http import HttpEvent
 from ...models import Channel, ChannelType, SendException, TEMBA_HEADERS
 
@@ -40,8 +41,6 @@ class YoType(ChannelType):
     timezones = ["Africa/Kampala"]
 
     def send(self, channel, msg, text):
-        from temba.msgs.models import SENT
-        from temba.contacts.models import Contact
 
         # build our message dict
         params = dict(origin=channel.address.lstrip('+'),

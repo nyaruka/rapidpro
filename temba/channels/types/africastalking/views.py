@@ -20,7 +20,6 @@ class ClaimView(ClaimViewMixin, SmartFormView):
                                   help_text=_("Your api key, should be 64 characters"))
 
     form_class = Form
-    fields = ('shortcode', 'country', 'is_shared', 'username', 'api_key')
 
     def form_valid(self, form):
         org = self.request.user.get_org()

@@ -13,6 +13,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from temba.channels.types.yo.views import ClaimView
 from temba.contacts.models import TEL_SCHEME
+from temba.msgs.models import WIRED
+from temba.utils import gsm7
 from temba.utils.http import HttpEvent
 from ...models import Channel, ChannelType, SendException
 
@@ -36,8 +38,6 @@ class JasminType(ChannelType):
     attachment_support = False
 
     def send(self, channel, msg, text):
-        from temba.msgs.models import WIRED
-        from temba.utils import gsm7
 
         # build our callback dlr url, jasmin will call this when our message is sent or delivered
         dlr_url = 'https://%s%s' % (settings.HOSTNAME, reverse('handlers.jasmin_handler', args=['status', channel.uuid]))

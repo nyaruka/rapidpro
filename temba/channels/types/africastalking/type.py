@@ -10,6 +10,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from temba.channels.types.africastalking.views import ClaimView
 from temba.contacts.models import TEL_SCHEME
+from temba.msgs.models import SENT
 from temba.utils.http import HttpEvent
 from ...models import Channel, ChannelType, SendException, TEMBA_HEADERS
 
@@ -36,7 +37,6 @@ class AfricasTalkingType(ChannelType):
     timezones = ["Africa/Nairobi", "Africa/Kampala", "Africa/Lilongwe"]
 
     def send(self, channel, msg, text):
-        from temba.msgs.models import SENT
 
         payload = dict(username=channel.config['username'],
                        to=msg.urn_path,

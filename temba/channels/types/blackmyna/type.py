@@ -7,8 +7,9 @@ import six
 
 from django.utils.translation import ugettext_lazy as _
 
-from temba.channels.types.authenticatedexternal.views import AuthenticatedExternalClaimView
+from temba.channels.views import AuthenticatedExternalClaimView
 from temba.contacts.models import TEL_SCHEME
+from temba.msgs.models import WIRED
 from temba.utils.http import HttpEvent
 from ...models import Channel, ChannelType, SendException, TEMBA_HEADERS
 
@@ -33,7 +34,6 @@ class BlackmynaType(ChannelType):
     timezones = ["Asia/Kathmandu"]
 
     def send(self, channel, msg, text):
-        from temba.msgs.models import WIRED
 
         payload = {
             'address': msg.urn_path,

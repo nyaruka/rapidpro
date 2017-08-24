@@ -1,4 +1,4 @@
-from temba.channels.types.authenticatedexternal.views import AuthenticatedExternalClaimView
+from temba.channels.views import AuthenticatedExternalClaimView
 
 
 class ClaimView(AuthenticatedExternalClaimView):

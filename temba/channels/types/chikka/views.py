@@ -4,8 +4,7 @@ from django import forms
 
 from django.utils.translation import ugettext_lazy as _
 
-from temba.channels.types.authenticatedexternal.views import AuthenticatedExternalClaimView
-from temba.channels.views import ALL_COUNTRIES, ClaimViewMixin
+from temba.channels.views import ALL_COUNTRIES, ClaimViewMixin, AuthenticatedExternalClaimView
 
 
 class ClaimView(AuthenticatedExternalClaimView):

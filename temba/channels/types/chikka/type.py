@@ -11,6 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from temba.channels.types.chikka.views import ClaimView
 from temba.contacts.models import TEL_SCHEME
+from temba.msgs.models import Msg, WIRED
 from temba.utils.http import HttpEvent
 from ...models import Channel, ChannelType, SendException, TEMBA_HEADERS
 
@@ -36,7 +37,6 @@ class ChikkaType(ChannelType):
     timezones = ['Asia/Manila']
 
     def send(self, channel, msg, text):
-        from temba.msgs.models import Msg, WIRED
 
         payload = {
             'message_type': 'SEND',

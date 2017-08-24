@@ -10,6 +10,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from temba.channels.types.dartmedia.views import ClaimView
 from temba.contacts.models import TEL_SCHEME
+from temba.msgs.models import SENT
 from temba.utils.http import HttpEvent
 from ...models import Channel, ChannelType, SendException, TEMBA_HEADERS
 
@@ -39,7 +40,6 @@ class Hub9Type(ChannelType):
     timezones = ["Asia/Jakarta"]
 
     def send(self, channel, msg, text):
-        from temba.msgs.models import SENT
 
         # http://175.103.48.29:28078/testing/smsmt.php?
         #   userid=xxx

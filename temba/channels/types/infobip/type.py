@@ -8,8 +8,9 @@ import time
 
 from django.utils.translation import ugettext_lazy as _
 
-from temba.channels.types.authenticatedexternal.views import AuthenticatedExternalClaimView
+from temba.channels.views import AuthenticatedExternalClaimView
 from temba.contacts.models import TEL_SCHEME
+from temba.msgs.models import SENT
 from temba.utils.http import HttpEvent
 from ...models import Channel, ChannelType, SendException, TEMBA_HEADERS
 
@@ -32,7 +33,6 @@ class InfobipType(ChannelType):
     attachment_support = False
 
     def send(self, channel, msg, text):
-        from temba.msgs.models import SENT
 
         url = "https://api.infobip.com/sms/1/text/single"
 
