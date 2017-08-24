@@ -861,7 +861,7 @@ class UpdateTwitterForm(UpdateChannelForm):
 class ChannelCRUDL(SmartCRUDL):
     model = Channel
     actions = ('list', 'claim', 'update', 'read', 'delete', 'search_numbers', 'claim_twilio',
-               'claim_android', 'claim_chikka', 'configuration',
+               'claim_android', 'configuration',
                'search_nexmo', 'claim_nexmo', 'bulk_sender_options', 'create_bulk_sender',
                'claim_vumi', 'claim_vumi_ussd', 'create_caller', 'claim_kannel', 'claim_shaqodoon',
                'claim_verboice', 'claim_clickatell', 'claim_plivo', 'search_plivo',
@@ -1640,28 +1640,6 @@ class ChannelCRUDL(SmartCRUDL):
         channel_type = Channel.TYPE_MBLOX
         form_class = MBloxForm
         fields = ('country', 'number', 'username', 'password')
-
-    class ClaimChikka(ClaimAuthenticatedExternal):
-        class ChikkaForm(forms.Form):
-            country = forms.ChoiceField(choices=ALL_COUNTRIES, label=_("Country"),
-                                        help_text=_("The country this phone number is used in"))
-            number = forms.CharField(max_length=14, min_length=4, label=_("Number"),
-                                     help_text=_("The short code you are connecting."))
-            username = forms.CharField(label=_("Client Id"),
-                                       help_text=_("The Client Id found on your Chikka API credentials page"))
-            password = forms.CharField(label=_("Secret Key"),
-                                       help_text=_("The Secret Key found on your Chikka API credentials page"))
-
-        title = _("Connect Chikka")
-        channel_type = Channel.TYPE_CHIKKA
-        readonly = ('country', )
-        form_class = ChikkaForm
-
-        def get_country(self, obj):
-            return "Philippines"
-
-        def get_submitted_country(self, data):
-            return 'PH'
 
     class ClaimVerboice(ClaimAuthenticatedExternal):
         class VerboiceClaimForm(forms.Form):
