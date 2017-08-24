@@ -10,16 +10,17 @@ from temba.channels.views import ALL_COUNTRIES, ClaimViewMixin
 
 
 class ClaimView(AuthenticatedExternalClaimView):
-    class YoClaimForm(ClaimViewMixin.Form):
+    class JasminForm(ClaimViewMixin.Form):
         country = forms.ChoiceField(choices=ALL_COUNTRIES, label=_("Country"),
                                     help_text=_("The country this phone number is used in"))
-        number = forms.CharField(max_length=14, min_length=1, label=_("Number"),
-                                 help_text=_("The phone number or short code you are connecting with country code. "
-                                             "ex: +250788123124"))
-        username = forms.CharField(label=_("Account Number"),
-                                   help_text=_("Your Yo! account YBS account number"))
-        password = forms.CharField(label=_("Gateway Password"),
-                                   help_text=_("Your Yo! SMS Gateway password"))
+        number = forms.CharField(max_length=14, min_length=4, label=_("Number"),
+                                 help_text=_("The short code or phone number you are connecting."))
+        url = forms.URLField(label=_("URL"),
+                             help_text=_("The URL for the Jasmin server send path. ex: https://jasmin.gateway.io/send"))
+        username = forms.CharField(label=_("Username"),
+                                   help_text=_("The username to be used to authenticate to Jasmin"))
+        password = forms.CharField(label=_("Password"),
+                                   help_text=_("The password to be used to authenticate to Jasmin"))
 
         def clean_number(self):
             number = self.data['number']
@@ -39,10 +40,4 @@ class ClaimView(AuthenticatedExternalClaimView):
                 raise forms.ValidationError(
                     _("Invalid phone number, please include the country code. ex: +250788123123"))
 
-    form_class = YoClaimForm
-
-    def get_country(self, obj):
-        return "Uganda"
-
-    def get_submitted_country(self, data):
-        return "UG"
+    form_class = JasminForm
