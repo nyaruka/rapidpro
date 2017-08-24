@@ -535,7 +535,7 @@ class YoHandler(ExternalHandler):
     url_name = 'handlers.yo_handler'
 
     def get_channel_type(self):
-        return Channel.TYPE_YO
+        return 'YO'
 
 
 class TelegramHandler(BaseChannelHandler):
