@@ -291,7 +291,6 @@ class Channel(TembaModel):
                     (TYPE_NEXMO, "Nexmo"),
                     (TYPE_PLIVO, "Plivo"),
                     (TYPE_RED_RABBIT, "Red Rabbit"),
-                    (TYPE_SHAQODOON, "Shaqodoon"),
                     (TYPE_TWILIO, "Twilio"),
                     (TYPE_TWIML, "TwiML Rest API"),
                     (TYPE_TWILIO_MESSAGING_SERVICE, "Twilio Messaging Service"),
@@ -1550,38 +1549,6 @@ class Channel(TembaModel):
         Channel.success(channel, msg, WIRED, start, event=event)
 
     @classmethod
-    def send_shaqodoon_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-
-        # requests are signed with a key built as follows:
-        # signing_key = md5(username|password|from|to|msg|key|current_date)
-        # where current_date is in the format: d/m/y H
-        payload = {'from': channel.address.lstrip('+'), 'to': msg.urn_path.lstrip('+'),
-                   'username': channel.config[Channel.CONFIG_USERNAME], 'password': channel.config[Channel.CONFIG_PASSWORD],
-                   'msg': text}
-
-        # build our send URL
-        url = channel.config[Channel.CONFIG_SEND_URL] + "?" + urlencode(payload)
-        start = time.time()
-
-        event = HttpEvent('GET', url)
-
-        try:
-            # these guys use a self signed certificate
-            response = requests.get(url, headers=TEMBA_HEADERS, timeout=15, verify=False)
-            event.status_code = response.status_code
-            event.response_body = response.text
-
-        except Exception as e:
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
-
-        Channel.success(channel, msg, WIRED, start, event=event)
-
-    @classmethod
     def send_dummy_message(cls, channel, msg, text):  # pragma: no cover
         from temba.msgs.models import WIRED
 
@@ -2240,7 +2207,6 @@ SEND_FUNCTIONS = {Channel.TYPE_CLICKATELL: Channel.send_clickatell_message,
                   Channel.TYPE_NEXMO: Channel.send_nexmo_message,
                   Channel.TYPE_PLIVO: Channel.send_plivo_message,
                   Channel.TYPE_RED_RABBIT: Channel.send_red_rabbit_message,
-                  Channel.TYPE_SHAQODOON: Channel.send_shaqodoon_message,
                   Channel.TYPE_TWILIO: Channel.send_twilio_message,
                   Channel.TYPE_TWIML: Channel.send_twilio_message,
                   Channel.TYPE_TWILIO_MESSAGING_SERVICE: Channel.send_twilio_message,

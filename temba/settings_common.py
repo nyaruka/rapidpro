@@ -1115,6 +1115,7 @@ CHANNEL_TYPES = [
     'temba.channels.types.jiochat.JioChatType',
     'temba.channels.types.line.LineType',
     'temba.channels.types.m3tech.M3TechType',
+    'temba.channels.types.shaqodoon.ShaqodoonType',
     'temba.channels.types.smscentral.SMSCentralType',
     'temba.channels.types.start.StartType',
     'temba.channels.types.telegram.TelegramType',
