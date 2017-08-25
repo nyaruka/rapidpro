@@ -5,7 +5,7 @@ from temba.tests import TembaTest
 from ...models import Channel
 
 
-class ShaqodoonTypeTest(TembaTest):
+class ClickatellTypeTest(TembaTest):
 
     def test_claim(self):
         Channel.objects.all().delete()
