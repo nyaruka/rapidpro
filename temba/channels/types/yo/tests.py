@@ -26,6 +26,7 @@ class YoTypeTest(TembaTest):
 
         # try to claim a channel
         response = self.client.get(url)
+        self.assertEquals(response.context['view'].get_country({}), 'Uganda')
         post_data = response.context['form'].initial
 
         post_data['country'] = 'UG'
