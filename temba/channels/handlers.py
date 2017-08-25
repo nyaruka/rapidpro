@@ -524,7 +524,7 @@ class ShaqodoonHandler(ExternalHandler):
     url_name = 'handlers.shaqodoon_handler'
 
     def get_channel_type(self):
-        return Channel.TYPE_SHAQODOON
+        return 'SQ'
 
 
 class YoHandler(ExternalHandler):
@@ -1509,7 +1509,7 @@ class ClickatellHandler(BaseChannelHandler):
         request_uuid = kwargs['uuid']
 
         # look up the channel
-        channel = Channel.objects.filter(uuid=request_uuid, is_active=True, channel_type=Channel.TYPE_CLICKATELL).exclude(org=None).first()
+        channel = Channel.objects.filter(uuid=request_uuid, is_active=True, channel_type='CT').exclude(org=None).first()
         if not channel:  # pragma: needs cover
             return HttpResponse("Channel not found for id: %s" % request_uuid, status=400)
 

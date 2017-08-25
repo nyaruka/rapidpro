@@ -17,7 +17,7 @@ from ...models import Channel, ChannelType, SendException, TEMBA_HEADERS
 
 class ShaqodoonType(ChannelType):
     """
-    An Shaqodoon channel (http://www.jasminsms.com/)
+    An Shaqodoon channel
     """
 
     code = 'SQ'
@@ -30,7 +30,7 @@ class ShaqodoonType(ChannelType):
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
-    max_length = 160
+    max_length = 1600
     attachment_support = False
 
     timezones = ['Africa/Mogadishu']
