@@ -60,29 +60,6 @@
                   code from <a href="http://www.zenvia.com.br/">Zenvia</a> and connect it
                   in a few simple steps.
 
-    -if org_timezone == 'Asia/Manila'
-      .claim-row.globe-channel{class:"{% if recommended_channel == 'globe' %}recommended{% endif %}"}
-        .recommendation.hide
-          %h3
-            -trans "Recommendation"
-          -blocktrans with "<a href='http://www.globelabs.com.ph/'>" as link_start and "</a>" as link_end
-            We recommend using Globe Labs in the Phillipines. Visit {{link_start}}their website{{link_end}} for details.
-
-        .row
-          .span3
-            %a.btn.btn-primary.btn-primary-muted.btn-claim{href:"{% url 'channels.channel_claim_globe' %}"}
-              .btn-container
-                .claim-glyph.icon-channel-external
-                %p.claim-text
-                  -trans "Globe Short Code"
-
-          .span9
-            .claim-description
-              %div
-                -blocktrans with brand.name as brand
-
-
-
     -if not user_org.is_connected_to_twilio
       .claim-row.twilio-channel{class:"{% if recommended_channel == 'twilio' %}recommended{% endif %}"}
         .recommendation.hide
