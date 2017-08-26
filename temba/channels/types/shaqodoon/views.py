@@ -37,7 +37,7 @@ class ClaimView(AuthenticatedExternalClaimView):
 
         data = form.cleaned_data
         self.object = Channel.add_config_external_channel(org, self.request.user,
-                                                          'SO', data['number'], Channel.TYPE_SHAQODOON,
+                                                          'SO', data['number'], 'SQ',
                                                           dict(send_url=data['url'],
                                                                username=data['username'],
                                                                password=data['password']))

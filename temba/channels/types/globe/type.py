@@ -25,8 +25,8 @@ class GlobeType(ChannelType):
 
     name = "Globe Labs"
 
-    claim_blurb = _("""Connect your <a href="http://clickatell.com/" target="_blank">Clickatell</a> number, we'll walk you
-                       through the steps necessary to get your Clickatell connection working in a few minutes.""")
+    claim_blurb = _("""If you are based in the Phillipines, you can integrate {{ brand }} with Globe Labs to send
+                       and receive messages on your shortcode.""")
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
