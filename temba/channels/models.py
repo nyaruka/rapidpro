@@ -167,7 +167,6 @@ class Channel(TembaModel):
     TYPE_MACROKIOSK = 'MK'
     TYPE_NEXMO = 'NX'
     TYPE_PLIVO = 'PL'
-    TYPE_RED_RABBIT = 'RR'
     TYPE_TWILIO = 'T'
     TYPE_TWIML = 'TW'
     TYPE_TWILIO_MESSAGING_SERVICE = 'TMS'
@@ -260,7 +259,6 @@ class Channel(TembaModel):
         TYPE_MACROKIOSK: dict(schemes=['tel'], max_length=1600),
         TYPE_NEXMO: dict(schemes=['tel'], max_length=1600, max_tps=1),
         TYPE_PLIVO: dict(schemes=['tel'], max_length=1600),
-        TYPE_RED_RABBIT: dict(schemes=['tel'], max_length=1600),
         TYPE_TWILIO: dict(schemes=['tel'], max_length=1600),
         TYPE_TWIML: dict(schemes=['tel'], max_length=1600),
         TYPE_TWILIO_MESSAGING_SERVICE: dict(schemes=['tel'], max_length=1600),
@@ -279,7 +277,6 @@ class Channel(TembaModel):
                     (TYPE_MACROKIOSK, "Macrokiosk"),
                     (TYPE_NEXMO, "Nexmo"),
                     (TYPE_PLIVO, "Plivo"),
-                    (TYPE_RED_RABBIT, "Red Rabbit"),
                     (TYPE_TWILIO, "Twilio"),
                     (TYPE_TWIML, "TwiML Rest API"),
                     (TYPE_TWILIO_MESSAGING_SERVICE, "Twilio Messaging Service"),
@@ -1285,41 +1282,6 @@ class Channel(TembaModel):
                                       request_time=request_time_ms)
 
     @classmethod
-    def send_red_rabbit_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-        encoding, text = Channel.determine_encoding(text, replace=True)
-
-        # http://http1.javna.com/epicenter/gatewaysendG.asp?LoginName=xxxx&Password=xxxx&Tracking=1&Mobtyp=1&MessageRecipients=962796760057&MessageBody=hi&SenderName=Xxx
-        params = dict()
-        params['LoginName'] = channel.config[Channel.CONFIG_USERNAME]
-        params['Password'] = channel.config[Channel.CONFIG_PASSWORD]
-        params['Tracking'] = 1
-        params['Mobtyp'] = 1
-        params['MessageRecipients'] = msg.urn_path.lstrip('+')
-        params['MessageBody'] = text
-        params['SenderName'] = channel.address.lstrip('+')
-
-        # we are unicode
-        if encoding == Encoding.UNICODE:
-            params['Msgtyp'] = 10 if len(text) >= 70 else 9
-        elif len(text) > 160:
-            params['Msgtyp'] = 5
-
-        url = 'http://http1.javna.com/epicenter/GatewaySendG.asp'
-        event = HttpEvent('GET', url + '?' + urlencode(params))
-        start = time.time()
-
-        try:
-            response = requests.get(url, params=params, headers=TEMBA_HEADERS, timeout=15)
-            event.status_code = response.status_code
-            event.response_body = response.text
-
-        except Exception as e:  # pragma: no cover
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        Channel.success(channel, msg, WIRED, start, event=event)
-
-    @classmethod
     def send_junebug_message(cls, channel, msg, text):
         from temba.msgs.models import WIRED, Msg
         from temba.ussd.models import USSDSession
@@ -2044,7 +2006,6 @@ SEND_FUNCTIONS = {Channel.TYPE_DUMMY: Channel.send_dummy_message,
                   Channel.TYPE_MACROKIOSK: Channel.send_macrokiosk_message,
                   Channel.TYPE_NEXMO: Channel.send_nexmo_message,
                   Channel.TYPE_PLIVO: Channel.send_plivo_message,
-                  Channel.TYPE_RED_RABBIT: Channel.send_red_rabbit_message,
                   Channel.TYPE_TWILIO: Channel.send_twilio_message,
                   Channel.TYPE_TWIML: Channel.send_twilio_message,
                   Channel.TYPE_TWILIO_MESSAGING_SERVICE: Channel.send_twilio_message,

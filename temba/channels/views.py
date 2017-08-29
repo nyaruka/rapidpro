@@ -920,8 +920,7 @@ class ChannelCRUDL(SmartCRUDL):
                'claim_verboice', 'claim_plivo', 'search_plivo',
                'claim_viber', 'create_viber',
                'claim_twilio_messaging_service', 'claim_zenvia',
-               'claim_twiml_api', 'claim_junebug', 'facebook_whitelist',
-               'claim_red_rabbit', 'claim_macrokiosk')
+               'claim_twiml_api', 'claim_junebug', 'facebook_whitelist', 'claim_macrokiosk')
     permissions = True
 
     class Read(OrgObjPermsMixin, SmartReadView):
@@ -1625,10 +1624,6 @@ class ChannelCRUDL(SmartCRUDL):
                                                                      data.get('url'))
 
             return super(ChannelCRUDL.ClaimAuthenticatedExternal, self).form_valid(form)
-
-    class ClaimRedRabbit(ClaimAuthenticatedExternal):
-        title = _("Connect Red Rabbit")
-        channel_type = Channel.TYPE_RED_RABBIT
 
     class ClaimJunebug(ClaimAuthenticatedExternal):
         class JunebugForm(forms.Form):
