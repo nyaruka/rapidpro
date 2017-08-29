@@ -34,7 +34,9 @@ class StartType(ChannelType):
 
     attachment_support = False
 
-    timezones = ["Europe/Kiev"]
+    def is_available_to(self, user):
+        org = user.get_org()
+        return org.timezone and six.text_type(org.timezone) in ["Europe/Kiev"]
 
     def send(self, channel, msg, text):
 
