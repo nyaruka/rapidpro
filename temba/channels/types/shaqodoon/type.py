@@ -33,7 +33,9 @@ class ShaqodoonType(ChannelType):
     max_length = 1600
     attachment_support = False
 
-    timezones = ['Africa/Mogadishu']
+    def is_available_to(self, user):
+        org = user.get_org()
+        return org.timezone and six.text_type(org.timezone) in ['Africa/Mogadishu']
 
     def send(self, channel, msg, text):
         # requests are signed with a key built as follows:
