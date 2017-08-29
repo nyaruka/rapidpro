@@ -11,7 +11,7 @@ from django.utils.http import urlencode
 
 from django.utils.translation import ugettext_lazy as _
 
-from temba.channels.types.yo.views import ClaimView
+from temba.channels.types.jasmin.views import ClaimView
 from temba.contacts.models import TEL_SCHEME
 from temba.msgs.models import WIRED
 from temba.utils import gsm7

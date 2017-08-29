@@ -26,6 +26,7 @@ class JasminTypeTest(TembaTest):
         post_data['number'] = '250788123123'
         post_data['username'] = 'user1'
         post_data['password'] = 'pass1'
+        post_data['url'] = "https://jasmin.gateway.io/send"
 
         response = self.client.post(url, post_data)
 
@@ -34,6 +35,7 @@ class JasminTypeTest(TembaTest):
         self.assertEquals('UG', channel.country)
         self.assertEquals(post_data['username'], channel.config_json()['username'])
         self.assertEquals(post_data['password'], channel.config_json()['password'])
+        self.assertEquals(post_data['url'], channel.config_json()['send_url'])
         self.assertEquals('+250788123123', channel.address)
         self.assertEquals('JS', channel.channel_type)
 
@@ -54,6 +56,7 @@ class JasminTypeTest(TembaTest):
         post_data['number'] = '20050'
         post_data['username'] = 'user1'
         post_data['password'] = 'pass1'
+        post_data['url'] = "https://jasmin.gateway.io/send"
 
         response = self.client.post(url, post_data)
 
@@ -62,5 +65,6 @@ class JasminTypeTest(TembaTest):
         self.assertEquals('UG', channel.country)
         self.assertEquals(post_data['username'], channel.config_json()['username'])
         self.assertEquals(post_data['password'], channel.config_json()['password'])
+        self.assertEquals(post_data['url'], channel.config_json()['send_url'])
         self.assertEquals('20050', channel.address)
         self.assertEquals('JS', channel.channel_type)
