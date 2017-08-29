@@ -34,7 +34,9 @@ class ChikkaType(ChannelType):
     max_length = 160
     attachment_support = False
 
-    timezones = ['Asia/Manila']
+    def is_available_to(self, user):
+        org = user.get_org()
+        return org.timezone and six.text_type(org.timezone) in ['Asia/Manila']
 
     def send(self, channel, msg, text):
 

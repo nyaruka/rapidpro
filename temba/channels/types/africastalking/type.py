@@ -34,7 +34,9 @@ class AfricasTalkingType(ChannelType):
     max_length = 160
     attachment_support = False
 
-    timezones = ["Africa/Nairobi", "Africa/Kampala", "Africa/Lilongwe"]
+    def is_available_to(self, user):
+        org = user.get_org()
+        return org.timezone and six.text_type(org.timezone) in ["Africa/Nairobi", "Africa/Kampala", "Africa/Lilongwe"]
 
     def send(self, channel, msg, text):
 
