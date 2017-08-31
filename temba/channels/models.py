@@ -164,7 +164,6 @@ class Channel(TembaModel):
     TYPE_JUNEBUG = 'JN'
     TYPE_JUNEBUG_USSD = 'JNU'
     TYPE_KANNEL = 'KN'
-    TYPE_MACROKIOSK = 'MK'
     TYPE_NEXMO = 'NX'
     TYPE_PLIVO = 'PL'
     TYPE_TWILIO = 'T'
@@ -255,7 +254,6 @@ class Channel(TembaModel):
         TYPE_JUNEBUG: dict(schemes=['tel'], max_length=1600),
         TYPE_JUNEBUG_USSD: dict(schemes=['tel'], max_length=1600),
         TYPE_KANNEL: dict(schemes=['tel'], max_length=1600),
-        TYPE_MACROKIOSK: dict(schemes=['tel'], max_length=1600),
         TYPE_NEXMO: dict(schemes=['tel'], max_length=1600, max_tps=1),
         TYPE_PLIVO: dict(schemes=['tel'], max_length=1600),
         TYPE_TWILIO: dict(schemes=['tel'], max_length=1600),
@@ -272,7 +270,6 @@ class Channel(TembaModel):
                     (TYPE_JUNEBUG, "Junebug"),
                     (TYPE_JUNEBUG_USSD, "Junebug USSD"),
                     (TYPE_KANNEL, "Kannel"),
-                    (TYPE_MACROKIOSK, "Macrokiosk"),
                     (TYPE_NEXMO, "Nexmo"),
                     (TYPE_PLIVO, "Plivo"),
                     (TYPE_TWILIO, "Twilio"),
@@ -1462,54 +1459,6 @@ class Channel(TembaModel):
         Channel.success(channel, msg, WIRED, start, event=event)
 
     @classmethod
-    def send_macrokiosk_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-
-        # determine our encoding
-        encoding, text = Channel.determine_encoding(text, replace=True)
-
-        # if this looks like unicode, ask macrokiosk to send as unicode
-        if encoding == Encoding.UNICODE:
-            message_type = 5
-        else:
-            message_type = 0
-
-        # strip a leading +
-        recipient = msg.urn_path[1:] if msg.urn_path.startswith('+') else msg.urn_path
-
-        data = {
-            'user': channel.config[Channel.CONFIG_USERNAME], 'pass': channel.config[Channel.CONFIG_PASSWORD],
-            'to': recipient, 'text': text, 'from': channel.config[Channel.CONFIG_MACROKIOSK_SENDER_ID],
-            'servid': channel.config[Channel.CONFIG_MACROKIOSK_SERVICE_ID], 'type': message_type
-        }
-
-        url = 'https://www.etracker.cc/bulksms/send'
-        payload = json.dumps(data)
-
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        headers.update(TEMBA_HEADERS)
-
-        event = HttpEvent('POST', url, payload)
-
-        start = time.time()
-
-        try:
-            response = requests.post(url, json=data, headers=headers, timeout=30)
-            event.status_code = response.status_code
-            event.response_body = response.text
-
-            external_id = response.json().get('msgid', None)
-
-        except Exception as e:
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        if response.status_code not in [200, 201, 202]:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
-
-        Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)
-
-    @classmethod
     def send_vumi_message(cls, channel, msg, text):
         from temba.msgs.models import WIRED, Msg
         from temba.contacts.models import Contact
@@ -1964,7 +1913,6 @@ SEND_FUNCTIONS = {Channel.TYPE_DUMMY: Channel.send_dummy_message,
                   Channel.TYPE_JUNEBUG: Channel.send_junebug_message,
                   Channel.TYPE_JUNEBUG_USSD: Channel.send_junebug_message,
                   Channel.TYPE_KANNEL: Channel.send_kannel_message,
-                  Channel.TYPE_MACROKIOSK: Channel.send_macrokiosk_message,
                   Channel.TYPE_NEXMO: Channel.send_nexmo_message,
                   Channel.TYPE_PLIVO: Channel.send_plivo_message,
                   Channel.TYPE_TWILIO: Channel.send_twilio_message,
