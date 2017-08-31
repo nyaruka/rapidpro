@@ -2543,49 +2543,6 @@ class ChannelClaimTest(TembaTest):
         # our configuration page should list our receive URL
         self.assertContains(response, reverse('handlers.kannel_handler', args=['receive', channel.uuid]))
 
-    def test_zenvia(self):
-        Channel.objects.all().delete()
-
-        self.login(self.admin)
-
-        # shouldn't be able to see the claim zenvia page if we aren't part of that group
-        response = self.client.get(reverse('channels.channel_claim'))
-        self.assertNotContains(response, "Zenvia")
-
-        # but if we are in the proper time zone
-        self.org.timezone = pytz.timezone('America/Sao_Paulo')
-        self.org.save()
-
-        response = self.client.get(reverse('channels.channel_claim'))
-        self.assertContains(response, "Zenvia")
-
-        # try to claim a channel
-        response = self.client.get(reverse('channels.channel_claim_zenvia'))
-        post_data = response.context['form'].initial
-
-        post_data['account'] = 'rapidpro.gw'
-        post_data['code'] = 'h7GpAIEp85'
-        post_data['shortcode'] = '28595'
-
-        response = self.client.post(reverse('channels.channel_claim_zenvia'), post_data)
-
-        channel = Channel.objects.get()
-
-        self.assertEquals('BR', channel.country)
-        self.assertEquals(post_data['account'], channel.config_json()['account'])
-        self.assertEquals(post_data['code'], channel.config_json()['code'])
-        self.assertEquals(post_data['shortcode'], channel.address)
-        self.assertEquals('ZV', channel.channel_type)
-
-        config_url = reverse('channels.channel_configuration', args=[channel.pk])
-        self.assertRedirect(response, config_url)
-
-        response = self.client.get(config_url)
-        self.assertEquals(200, response.status_code)
-
-        self.assertContains(response, reverse('handlers.zenvia_handler', args=['status', channel.uuid]))
-        self.assertContains(response, reverse('handlers.zenvia_handler', args=['receive', channel.uuid]))
-
     def test_claim_viber(self):
         Channel.objects.all().delete()
         self.login(self.admin)
