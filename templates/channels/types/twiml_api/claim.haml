@@ -1,6 +1,18 @@
 -extends "smartmin/form.html"
 -load i18n
 
+-block title
+  .medium-help.float-left{class:"{{ view.channel_type.icon }}"}
+
+  %h2.font_normalize.header-margin
+    {{ title }}
+
+-block pre-form
+  .info
+    %p
+      -blocktrans
+        You can add a TwiML REST API as a channel using your TwiML instance.
+
 -block extra-script
   {{ block.super }}
 
@@ -9,18 +21,6 @@
       $("#id_country").select2();
       $('#id_role').select2({ minimumResultsForSearch: -1, width: '150px' });
     });
-
--block title
-  .medium-help.icon-channel-twilio.float-left
-
-  %h2.font_normalize.header-margin
-    -trans "Connect TwiML REST API"
-
--block pre-form
-  .info
-    %p
-      -blocktrans
-        You can add a TwiML REST API as a channel using your TwiML instance.
 
 
 -block extra-style

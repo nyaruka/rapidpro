@@ -196,21 +196,6 @@
                 Connect your <a href="https://junebug.praekelt.org/" target="_blank">Junebug</a> instance that you have
                 already set up and configured.
 
-    .claim-row.twiml-channel
-      .row
-        .span3
-          %a.btn.btn-primary.btn-primary-muted.btn-claim{href:"{% url 'channels.channel_claim_twiml_api' %}"}
-            .btn-container
-              .claim-glyph.icon-channel-twilio
-              %p.claim-text
-                -trans "TwiML API"
-
-        .span9
-          .claim-description
-            %div
-              -blocktrans
-                Connect to a service that speaks TwiML. You can use this to connect to TwiML compatible services outside of Twilio.
-
     -if False
       .claim-row.verboice-channel
         .recommendation.hide

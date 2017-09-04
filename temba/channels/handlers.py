@@ -177,7 +177,7 @@ class TwimlAPIHandler(BaseChannelHandler):
                 call = IVRCall.objects.filter(external_id=call_sid).first()
                 if call:
                     call.update_status(request.POST.get('CallStatus', None), request.POST.get('CallDuration', None),
-                                       Channel.TYPE_TWIML)
+                                       'TW')
                     call.save()
                     return HttpResponse("Call status updated")
             return HttpResponse("No call found")
@@ -195,8 +195,7 @@ class TwimlAPIHandler(BaseChannelHandler):
             # validate this request is coming from twilio
             org = sms.org
 
-            if self.get_channel_type() in [Channel.TYPE_TWILIO,
-                                           Channel.TYPE_TWIML,
+            if self.get_channel_type() in [Channel.TYPE_TWILIO, 'TW',
                                            Channel.TYPE_TWILIO_MESSAGING_SERVICE] and not org.is_connected_to_twilio():
                 return HttpResponse("No Twilio account is connected", status=400)
 
@@ -267,7 +266,7 @@ class TwimlAPIHandler(BaseChannelHandler):
             return channel.get_ivr_client()
 
     def get_channel_type(self):
-        return Channel.TYPE_TWIML
+        return 'TW'
 
 
 class TwilioHandler(TwimlAPIHandler):

@@ -803,7 +803,7 @@
     %code
       https://{{ domain }}{% url 'handlers.viber_handler' 'receive' object.uuid %}
 
-  -elif object.channel_type == 'VI'
+  -elif object.channel_type == 'VP'
     %h4
       -blocktrans
         Your Viber public channel is connected. If needed the webhook endpoints are listed below.
