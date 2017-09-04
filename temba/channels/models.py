@@ -166,7 +166,6 @@ class Channel(TembaModel):
     TYPE_NEXMO = 'NX'
     TYPE_PLIVO = 'PL'
     TYPE_TWILIO = 'T'
-    TYPE_TWILIO_MESSAGING_SERVICE = 'TMS'
     TYPE_VERBOICE = 'VB'
     TYPE_VIBER = 'VI'
     TYPE_VUMI = 'VM'
@@ -254,7 +253,6 @@ class Channel(TembaModel):
         TYPE_NEXMO: dict(schemes=['tel'], max_length=1600, max_tps=1),
         TYPE_PLIVO: dict(schemes=['tel'], max_length=1600),
         TYPE_TWILIO: dict(schemes=['tel'], max_length=1600),
-        TYPE_TWILIO_MESSAGING_SERVICE: dict(schemes=['tel'], max_length=1600),
         TYPE_VERBOICE: dict(schemes=['tel'], max_length=1600),
         TYPE_VIBER: dict(schemes=['tel'], max_length=1000),
         TYPE_VUMI: dict(schemes=['tel'], max_length=1600),
@@ -268,7 +266,6 @@ class Channel(TembaModel):
                     (TYPE_NEXMO, "Nexmo"),
                     (TYPE_PLIVO, "Plivo"),
                     (TYPE_TWILIO, "Twilio"),
-                    (TYPE_TWILIO_MESSAGING_SERVICE, "Twilio Messaging Service"),
                     (TYPE_VERBOICE, "Verboice"),
                     (TYPE_VIBER, "Viber"),
                     (TYPE_VUMI, "Vumi"),
@@ -278,7 +275,6 @@ class Channel(TembaModel):
         TYPE_ANDROID: "icon-channel-android",
         TYPE_NEXMO: "icon-channel-nexmo",
         TYPE_TWILIO: "icon-channel-twilio",
-        TYPE_TWILIO_MESSAGING_SERVICE: "icon-channel-twilio",
         TYPE_PLIVO: "icon-channel-plivo",
         TYPE_VIBER: "icon-viber"
     }
@@ -292,7 +288,7 @@ class Channel(TembaModel):
 
     NCCO_CHANNELS = [TYPE_NEXMO]
 
-    MEDIA_CHANNELS = [TYPE_TWILIO, TYPE_TWILIO_MESSAGING_SERVICE]
+    MEDIA_CHANNELS = [TYPE_TWILIO]
 
     HIDE_CONFIG_PAGE = [TYPE_TWILIO, TYPE_ANDROID]
 
@@ -616,7 +612,7 @@ class Channel(TembaModel):
     def add_twilio_messaging_service_channel(cls, org, user, messaging_service_sid, country):
         config = dict(messaging_service_sid=messaging_service_sid)
 
-        return Channel.create(org, user, country, Channel.TYPE_TWILIO_MESSAGING_SERVICE,
+        return Channel.create(org, user, country, 'TMS',
                               name=messaging_service_sid, address=None, config=config)
 
     @classmethod
@@ -1508,7 +1504,7 @@ class Channel(TembaModel):
             client = TembaTwilioRestClient(channel.org_config[ACCOUNT_SID], channel.org_config[ACCOUNT_TOKEN])
 
         try:
-            if channel.channel_type == Channel.TYPE_TWILIO_MESSAGING_SERVICE:
+            if channel.channel_type == 'TMS':
                 messaging_service_sid = channel.config['messaging_service_sid']
                 client.messages.create(to=msg.urn_path,
                                        messaging_service_sid=messaging_service_sid,
@@ -1834,7 +1830,6 @@ SEND_FUNCTIONS = {Channel.TYPE_DUMMY: Channel.send_dummy_message,
                   Channel.TYPE_PLIVO: Channel.send_plivo_message,
 
                   Channel.TYPE_TWILIO: Channel.send_twilio_message,
-                  Channel.TYPE_TWILIO_MESSAGING_SERVICE: Channel.send_twilio_message,
 
                   Channel.TYPE_VIBER: Channel.send_viber_message,
 

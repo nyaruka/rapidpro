@@ -195,8 +195,7 @@ class TwimlAPIHandler(BaseChannelHandler):
             # validate this request is coming from twilio
             org = sms.org
 
-            if self.get_channel_type() in [Channel.TYPE_TWILIO, 'TW',
-                                           Channel.TYPE_TWILIO_MESSAGING_SERVICE] and not org.is_connected_to_twilio():
+            if self.get_channel_type() in [Channel.TYPE_TWILIO, 'TW', 'TMS'] and not org.is_connected_to_twilio():
                 return HttpResponse("No Twilio account is connected", status=400)
 
             channel = sms.channel
@@ -260,7 +259,7 @@ class TwimlAPIHandler(BaseChannelHandler):
         return Channel.objects.filter(uuid=uuid, is_active=True, channel_type=self.get_channel_type()).exclude(org=None).first()
 
     def get_client(self, channel):
-        if channel.channel_type == Channel.TYPE_TWILIO_MESSAGING_SERVICE:
+        if channel.channel_type == 'TMS':
             return channel.org.get_twilio_client()
         else:
             return channel.get_ivr_client()
@@ -296,7 +295,7 @@ class TwilioMessagingServiceHandler(BaseChannelHandler):
         action = kwargs['action']
         channel_uuid = kwargs['uuid']
 
-        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type=Channel.TYPE_TWILIO_MESSAGING_SERVICE).exclude(org=None).first()
+        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type='TMS').exclude(org=None).first()
         if not channel:  # pragma: needs cover
             return HttpResponse("Channel with uuid: %s not found." % channel_uuid, status=404)
 

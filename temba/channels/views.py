@@ -919,7 +919,6 @@ class ChannelCRUDL(SmartCRUDL):
                'claim_vumi', 'claim_vumi_ussd', 'create_caller',
                'claim_verboice', 'claim_plivo', 'search_plivo',
                'claim_viber', 'create_viber',
-               'claim_twilio_messaging_service',
                'claim_junebug', 'facebook_whitelist')
     permissions = True
 

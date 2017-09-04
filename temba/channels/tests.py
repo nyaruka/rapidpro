@@ -50,7 +50,6 @@ from .models import Channel, ChannelCount, ChannelEvent, SyncEvent, Alert, Chann
     ChannelSession
 from .models import DART_MEDIA_ENDPOINT
 from .tasks import check_channels_task, squash_channelcounts, refresh_jiochat_access_tokens
-from .views import TWILIO_SUPPORTED_COUNTRIES
 
 
 class ChannelTest(TembaTest):
@@ -1366,67 +1365,6 @@ class ChannelTest(TembaTest):
                 self.assertIsNone(self.org.channels.all().first())
                 self.assertEqual(mock_numbers.call_args_list[-1][1], dict(voice_application_sid='',
                                                                           sms_application_sid=''))
-
-    @patch('temba.ivr.clients.TwilioClient', MockTwilioClient)
-    @patch('twilio.util.RequestValidator', MockRequestValidator)
-    def test_claim_twilio_messaging_service(self):
-
-        self.login(self.admin)
-
-        # remove any existing channels
-        self.org.channels.all().delete()
-
-        # make sure twilio is on the claim page
-        response = self.client.get(reverse('channels.channel_claim'))
-        self.assertContains(response, "Twilio")
-        self.assertContains(response, reverse('orgs.org_twilio_connect'))
-
-        twilio_config = dict()
-        twilio_config[ACCOUNT_SID] = 'account-sid'
-        twilio_config[ACCOUNT_TOKEN] = 'account-token'
-        twilio_config[APPLICATION_SID] = 'TwilioTestSid'
-
-        self.org.config = json.dumps(twilio_config)
-        self.org.save()
-
-        claim_twilio_ms = reverse('channels.channel_claim_twilio_messaging_service')
-        response = self.client.get(reverse('channels.channel_claim'))
-        self.assertContains(response, claim_twilio_ms)
-
-        response = self.client.get(claim_twilio_ms)
-        self.assertTrue('account_trial' in response.context)
-        self.assertFalse(response.context['account_trial'])
-
-        with patch('temba.orgs.models.Org.get_twilio_client') as mock_get_twilio_client:
-            mock_get_twilio_client.return_value = None
-
-            response = self.client.get(claim_twilio_ms)
-            self.assertRedirects(response, reverse('channels.channel_claim'))
-
-            mock_get_twilio_client.side_effect = TwilioRestException(401, 'http://twilio', msg='Authentication Failure', code=20003)
-
-            response = self.client.get(claim_twilio_ms)
-            self.assertRedirects(response, reverse('channels.channel_claim'))
-
-        with patch('temba.tests.MockTwilioClient.MockAccounts.get') as mock_get:
-            mock_get.return_value = MockTwilioClient.MockAccount('Trial')
-
-            response = self.client.get(claim_twilio_ms)
-            self.assertTrue('account_trial' in response.context)
-            self.assertTrue(response.context['account_trial'])
-
-        response = self.client.get(claim_twilio_ms)
-        self.assertEqual(response.context['form'].fields['country'].choices, list(TWILIO_SUPPORTED_COUNTRIES))
-        self.assertContains(response, "icon-channel-twilio")
-
-        response = self.client.post(claim_twilio_ms, dict())
-        self.assertTrue(response.context['form'].errors)
-
-        response = self.client.post(claim_twilio_ms, dict(country='US', messaging_service_sid='MSG-SERVICE-SID'))
-        channel = self.org.channels.get()
-        self.assertRedirects(response, reverse('channels.channel_configuration', args=[channel.pk]))
-        self.assertEqual(channel.channel_type, "TMS")
-        self.assertEqual(channel.config_json(), dict(messaging_service_sid="MSG-SERVICE-SID"))
 
     def test_search_nexmo(self):
         self.login(self.admin)
