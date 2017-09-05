@@ -28,5 +28,5 @@ class TwimlAPIType(ChannelType):
     attachment_support = True
 
     def send(self, channel, msg, text):
-        # use regular Twilio messaging service channel sending
-        return Channel.get_type_from_code('TMS').send(channel, msg, text)
+        # use regular Twilio channel sending
+        return Channel.get_type_from_code('T').send(channel, msg, text)

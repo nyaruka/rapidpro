@@ -165,7 +165,6 @@ class Channel(TembaModel):
     TYPE_JUNEBUG_USSD = 'JNU'
     TYPE_NEXMO = 'NX'
     TYPE_PLIVO = 'PL'
-    TYPE_TWILIO = 'T'
     TYPE_VERBOICE = 'VB'
     TYPE_VIBER = 'VI'
     TYPE_VUMI = 'VM'
@@ -252,7 +251,6 @@ class Channel(TembaModel):
         TYPE_JUNEBUG_USSD: dict(schemes=['tel'], max_length=1600),
         TYPE_NEXMO: dict(schemes=['tel'], max_length=1600, max_tps=1),
         TYPE_PLIVO: dict(schemes=['tel'], max_length=1600),
-        TYPE_TWILIO: dict(schemes=['tel'], max_length=1600),
         TYPE_VERBOICE: dict(schemes=['tel'], max_length=1600),
         TYPE_VIBER: dict(schemes=['tel'], max_length=1000),
         TYPE_VUMI: dict(schemes=['tel'], max_length=1600),
@@ -265,7 +263,6 @@ class Channel(TembaModel):
                     (TYPE_JUNEBUG_USSD, "Junebug USSD"),
                     (TYPE_NEXMO, "Nexmo"),
                     (TYPE_PLIVO, "Plivo"),
-                    (TYPE_TWILIO, "Twilio"),
                     (TYPE_VERBOICE, "Verboice"),
                     (TYPE_VIBER, "Viber"),
                     (TYPE_VUMI, "Vumi"),
@@ -274,7 +271,6 @@ class Channel(TembaModel):
     TYPE_ICONS = {
         TYPE_ANDROID: "icon-channel-android",
         TYPE_NEXMO: "icon-channel-nexmo",
-        TYPE_TWILIO: "icon-channel-twilio",
         TYPE_PLIVO: "icon-channel-plivo",
         TYPE_VIBER: "icon-viber"
     }
@@ -284,13 +280,13 @@ class Channel(TembaModel):
     # list of all USSD channels
     USSD_CHANNELS = [TYPE_VUMI_USSD, TYPE_JUNEBUG_USSD]
 
-    TWIML_CHANNELS = [TYPE_TWILIO, TYPE_VERBOICE, "TW"]
+    TWIML_CHANNELS = ['T', TYPE_VERBOICE, "TW"]
 
     NCCO_CHANNELS = [TYPE_NEXMO]
 
-    MEDIA_CHANNELS = [TYPE_TWILIO]
+    MEDIA_CHANNELS = []
 
-    HIDE_CONFIG_PAGE = [TYPE_TWILIO, TYPE_ANDROID]
+    HIDE_CONFIG_PAGE = ['T', TYPE_ANDROID]
 
     VIBER_NO_SERVICE_ID = 'no_service_id'
 
@@ -605,7 +601,7 @@ class Channel(TembaModel):
 
         config = {'application_sid': new_app.sid, 'number_sid': number_sid}
 
-        return Channel.create(org, user, country, Channel.TYPE_TWILIO, name=phone, address=phone_number, role=role,
+        return Channel.create(org, user, country, 'T', name=phone, address=phone_number, role=role,
                               config=config, uuid=channel_uuid)
 
     @classmethod
@@ -663,7 +659,7 @@ class Channel(TembaModel):
 
     @classmethod
     def add_call_channel(cls, org, user, channel):
-        return Channel.create(org, user, channel.country, Channel.TYPE_TWILIO, name="Twilio Caller",
+        return Channel.create(org, user, channel.country, 'T', name="Twilio Caller",
                               address=channel.address, role=Channel.ROLE_CALL, parent=channel)
 
     @classmethod
@@ -773,7 +769,7 @@ class Channel(TembaModel):
         with ChannelStructs or Channels
         """
         # Twilio only supports mms in the US and Canada
-        if channel.channel_type == cls.TYPE_TWILIO:
+        if channel.channel_type == 'T':
             return channel.country in ('US', 'CA')
         else:
             return cls.get_type_from_code(channel.channel_type).has_attachment_support(channel)
@@ -831,7 +827,7 @@ class Channel(TembaModel):
         if not (self.is_active and self.org):
             return None
 
-        if self.channel_type == Channel.TYPE_TWILIO:
+        if self.channel_type == 'T':
             return self.org.get_twilio_client()
         elif self.channel_type == 'TW':
             return self.get_twiml_client()
@@ -1093,7 +1089,7 @@ class Channel(TembaModel):
                 client.delete_application(params=dict(app_id=self.config_json()[Channel.CONFIG_PLIVO_APP_ID]))
 
             # delete Twilio SMS application
-            elif self.channel_type == Channel.TYPE_TWILIO:
+            elif self.channel_type == 'T':
                 client = self.org.get_twilio_client()
                 number_update_args = dict()
 
@@ -1828,8 +1824,6 @@ SEND_FUNCTIONS = {Channel.TYPE_DUMMY: Channel.send_dummy_message,
                   Channel.TYPE_NEXMO: Channel.send_nexmo_message,
 
                   Channel.TYPE_PLIVO: Channel.send_plivo_message,
-
-                  Channel.TYPE_TWILIO: Channel.send_twilio_message,
 
                   Channel.TYPE_VIBER: Channel.send_viber_message,
 

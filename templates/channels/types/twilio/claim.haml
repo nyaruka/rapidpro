@@ -5,7 +5,7 @@
 
 -block title-icon
   .title-icon
-    %span.glyph.icon-channel-twilio
+    %span.glyph{class:"{{ view.channel_type.icon }}"}
 
 - block account-trial-warning
   - if account_trial

@@ -1132,6 +1132,7 @@ CHANNEL_TYPES = [
     'temba.channels.types.smscentral.SMSCentralType',
     'temba.channels.types.start.StartType',
     'temba.channels.types.telegram.TelegramType',
+    'temba.channels.types.twilio.TwilioType',
     'temba.channels.types.twilio_messaging_service.TwilioMessagingServiceType',
     'temba.channels.types.twiml_api.TwimlAPIType',
     'temba.channels.types.twitter.TwitterType',

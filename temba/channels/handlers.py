@@ -119,7 +119,7 @@ class TwimlAPIHandler(BaseChannelHandler):
 
             org = channel.org
 
-            if self.get_channel_type() == Channel.TYPE_TWILIO and not org.is_connected_to_twilio():
+            if self.get_channel_type() == 'T' and not org.is_connected_to_twilio():
                 return HttpResponse("No Twilio account is connected", status=400)
 
             client = self.get_client(channel=channel)
@@ -144,7 +144,7 @@ class TwimlAPIHandler(BaseChannelHandler):
 
                     call.update_status(request.POST.get('CallStatus', None),
                                        request.POST.get('CallDuration', None),
-                                       Channel.TYPE_TWILIO)
+                                       'T')
                     call.save()
 
                     FlowRun.create(flow, contact.pk, session=session, connection=call)
@@ -195,7 +195,7 @@ class TwimlAPIHandler(BaseChannelHandler):
             # validate this request is coming from twilio
             org = sms.org
 
-            if self.get_channel_type() in [Channel.TYPE_TWILIO, 'TW', 'TMS'] and not org.is_connected_to_twilio():
+            if self.get_channel_type() in ['T', 'TW', 'TMS'] and not org.is_connected_to_twilio():
                 return HttpResponse("No Twilio account is connected", status=400)
 
             channel = sms.channel
@@ -228,7 +228,7 @@ class TwimlAPIHandler(BaseChannelHandler):
 
             org = channel.org
 
-            if self.get_channel_type() == Channel.TYPE_TWILIO and not org.is_connected_to_twilio():
+            if self.get_channel_type() == 'T' and not org.is_connected_to_twilio():
                 return HttpResponse("No Twilio account is connected", status=400)
 
             client = self.get_client(channel=channel)
@@ -274,7 +274,7 @@ class TwilioHandler(TwimlAPIHandler):
     url_name = 'handlers.twilio_handler'
 
     def get_channel_type(self):
-        return Channel.TYPE_TWILIO
+        return 'T'
 
 
 class TwilioMessagingServiceHandler(BaseChannelHandler):
