@@ -191,7 +191,7 @@ class Command(BaseCommand):
         self.configure_random(len(orgs))
 
         # in real life Nexmo messages are throttled, but that's not necessary for this simulation
-        del Channel.CHANNEL_SETTINGS[Channel.TYPE_NEXMO]['max_tps']
+        del Channel.CHANNEL_SETTINGS['NX']['max_tps']
 
         inputs_by_flow_name = {f['name']: f['templates'] for f in FLOWS}
 

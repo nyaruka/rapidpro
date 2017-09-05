@@ -1067,6 +1067,7 @@ class Channel(TembaModel):
             except Exception as e:  # pragma: no cover
                 # proceed with removing this channel but log the problem
                 logger.exception(six.text_type(e))
+                raise e
 
             # hangup all its calls
             from temba.ivr.models import IVRCall
