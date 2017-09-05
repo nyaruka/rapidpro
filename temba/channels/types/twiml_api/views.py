@@ -38,7 +38,8 @@ class ClaimView(ClaimViewMixin, SmartFormView):
     form_class = TwimlApiClaimForm
 
     def form_valid(self, form):
-        org = self.request.user.get_org()
+        user = self.request.user
+        org = user.get_org()
         data = form.cleaned_data
 
         country = data.get('country')
@@ -56,8 +57,29 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             phone_number = phonenumbers.parse(number=number, region=country)
             number = "{0}{1}".format(str(phone_number.country_code), str(phone_number.national_number))
 
-        self.object = Channel.add_twiml_api_channel(org=org, user=self.request.user, country=country, address=number,
-                                                    config=config, role=role)
+        address = number
+
+        is_short_code = len(address) <= 6
+
+        name = address
+
+        if is_short_code:
+            role = Channel.ROLE_SEND + Channel.ROLE_RECEIVE
+        else:
+            address = "+%s" % address
+            name = phonenumbers.format_number(phonenumbers.parse(address, None), phonenumbers.PhoneNumberFormat.NATIONAL)
+
+        existing = Channel.objects.filter(address=address, org=org, channel_type='TW').first()
+        if existing:
+            existing.name = name
+            existing.address = address
+            existing.config = json.dumps(config)
+            existing.country = country
+            existing.role = role
+            existing.save()
+            self.object = existing
+        else:
+            self.object = Channel.create(org, user, country, 'TW', name=name, address=address, config=config, role=role)
 
         # if they didn't set a username or password, generate them, we do this after the addition above
         # because we use the channel id in the configuration

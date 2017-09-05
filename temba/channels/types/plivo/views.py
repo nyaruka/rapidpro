@@ -1,6 +1,7 @@
 import phonenumbers
 import plivo
 import pycountry
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django import forms
 from django.http import HttpResponseRedirect
@@ -12,6 +13,7 @@ from temba.channels.models import Channel
 from temba.channels.views import BaseClaimNumberMixin, ClaimViewMixin, PLIVO_SUPPORTED_COUNTRIES
 from temba.channels.views import PLIVO_SUPPORTED_COUNTRY_CODES
 from temba.utils import analytics
+from temba.utils.models import generate_uuid
 
 
 class ClaimView(BaseClaimNumberMixin, SmartFormView):
@@ -101,13 +103,53 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
         auth_id = self.request.session.get(Channel.CONFIG_PLIVO_AUTH_ID, None)
         auth_token = self.request.session.get(Channel.CONFIG_PLIVO_AUTH_TOKEN, None)
 
-        # add this channel
-        channel = Channel.add_plivo_channel(user.get_org(),
-                                            user,
-                                            country,
-                                            phone_number,
-                                            auth_id,
-                                            auth_token)
+        org = user.get_org()
+
+        plivo_uuid = generate_uuid()
+        app_name = "%s/%s" % (settings.TEMBA_HOST.lower(), plivo_uuid)
+
+        client = plivo.RestAPI(auth_id, auth_token)
+
+        message_url = "https://" + settings.TEMBA_HOST + "%s" % reverse('handlers.plivo_handler', args=['receive', plivo_uuid])
+        answer_url = "https://" + settings.AWS_BUCKET_DOMAIN + "/plivo_voice_unavailable.xml"
+
+        plivo_response_status, plivo_response = client.create_application(params=dict(app_name=app_name,
+                                                                                      answer_url=answer_url,
+                                                                                      message_url=message_url))
+
+        if plivo_response_status in [201, 200, 202]:
+            plivo_app_id = plivo_response['app_id']
+        else:  # pragma: no cover
+            plivo_app_id = None
+
+        plivo_config = {Channel.CONFIG_PLIVO_AUTH_ID: auth_id,
+                        Channel.CONFIG_PLIVO_AUTH_TOKEN: auth_token,
+                        Channel.CONFIG_PLIVO_APP_ID: plivo_app_id}
+
+        plivo_number = phone_number.strip('+ ').replace(' ', '')
+
+        plivo_response_status, plivo_response = client.get_number(params=dict(number=plivo_number))
+
+        if plivo_response_status != 200:
+            plivo_response_status, plivo_response = client.buy_phone_number(params=dict(number=plivo_number))
+
+            if plivo_response_status != 201:  # pragma: no cover
+                raise Exception(_("There was a problem claiming that number, please check the balance on your account."))
+
+            plivo_response_status, plivo_response = client.get_number(params=dict(number=plivo_number))
+
+        if plivo_response_status == 200:
+            plivo_response_status, plivo_response = client.modify_number(params=dict(number=plivo_number,
+                                                                                     app_id=plivo_app_id))
+            if plivo_response_status != 202:  # pragma: no cover
+                raise Exception(_("There was a problem updating that number, please try again."))
+
+        phone_number = '+' + plivo_number
+        phone = phonenumbers.format_number(phonenumbers.parse(phone_number, None),
+                                           phonenumbers.PhoneNumberFormat.NATIONAL)
+
+        channel = Channel.create(org, user, country, 'PL', name=phone, address=phone_number,
+                                 config=plivo_config, uuid=plivo_uuid)
 
         analytics.track(user.username, 'temba.channel_claim_plivo', dict(number=phone_number))
 

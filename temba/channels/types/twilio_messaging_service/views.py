@@ -42,14 +42,17 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         return context
 
     def form_valid(self, form):
-        org = self.request.user.get_org()
+        user = self.request.user
+        org = user.get_org()
 
         if not org:  # pragma: no cover
             raise Exception(_("No org for this user, cannot claim"))
 
         data = form.cleaned_data
-        self.object = Channel.add_twilio_messaging_service_channel(org, self.request.user,
-                                                                   messaging_service_sid=data['messaging_service_sid'],
-                                                                   country=data['country'])
+
+        config = dict(messaging_service_sid=data['messaging_service_sid'])
+
+        self.object = Channel.create(org, user, data['country'], 'TMS',
+                                     name=data['messaging_service_sid'], address=None, config=config)
 
         return super(ClaimView, self).form_valid(form)

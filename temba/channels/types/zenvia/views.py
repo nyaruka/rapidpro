@@ -20,16 +20,19 @@ class ClaimView(ClaimViewMixin, SmartFormView):
     form_class = ZVClaimForm
 
     def form_valid(self, form):
-        org = self.request.user.get_org()
+        user = self.request.user
+        org = user.get_org()
 
         if not org:  # pragma: no cover
             raise Exception(_("No org for this user, cannot claim"))
 
         data = form.cleaned_data
-        self.object = Channel.add_zenvia_channel(org,
-                                                 self.request.user,
-                                                 phone=data['shortcode'],
-                                                 account=data['account'],
-                                                 code=data['code'])
+        phone = data['shortcode']
+        account = data['account']
+        code = data['code']
+
+        config = dict(account=account, code=code)
+
+        self.object = Channel.create(org, user, 'BR', 'ZV', name="Zenvia: %s" % phone, address=phone, config=config)
 
         return super(ClaimView, self).form_valid(form)

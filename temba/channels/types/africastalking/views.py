@@ -22,15 +22,18 @@ class ClaimView(ClaimViewMixin, SmartFormView):
     form_class = Form
 
     def form_valid(self, form):
-        org = self.request.user.get_org()
+        user = self.request.user
+        org = user.get_org()
 
         if not org:  # pragma: no cover
             raise Exception(_("No org for this user, cannot claim"))
 
         data = form.cleaned_data
-        self.object = Channel.add_africas_talking_channel(org, self.request.user,
-                                                          country=data['country'],
-                                                          phone=data['shortcode'], username=data['username'],
-                                                          api_key=data['api_key'], is_shared=data['is_shared'])
+
+        config = dict(username=data['username'], api_key=data['api_key'], is_shared=data['is_shared'])
+
+        self.object = Channel.create(org, user, data['country'], 'AT',
+                                     name="Africa's Talking: %s" % data['shortcode'], address=data['shortcode'],
+                                     config=config)
 
         return super(ClaimView, self).form_valid(form)

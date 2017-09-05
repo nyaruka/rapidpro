@@ -9,8 +9,9 @@ from smartmin.views import SmartFormView
 from temba.channels.models import Channel
 from temba.channels.views import BaseClaimNumberMixin, ClaimViewMixin, NEXMO_SUPPORTED_COUNTRIES, \
     NEXMO_SUPPORTED_COUNTRY_CODES
-from temba.orgs.models import Org
+from temba.orgs.models import Org, NEXMO_UUID, NEXMO_APP_ID
 from temba.utils import analytics
+from temba.utils.models import generate_uuid
 
 
 class ClaimView(BaseClaimNumberMixin, SmartFormView):
@@ -77,12 +78,75 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
         return numbers
 
     def claim_number(self, user, phone_number, country, role):
-        analytics.track(user.username, 'temba.channel_claim_nexmo', dict(number=phone_number))
+        org = user.get_org()
 
-        # add this channel
-        channel = Channel.add_nexmo_channel(user.get_org(),
-                                            user,
-                                            country,
-                                            phone_number)
+        client = org.get_nexmo_client()
+        org_config = org.config_json()
+        org_uuid = org_config.get(NEXMO_UUID)
+        app_id = org_config.get(NEXMO_APP_ID)
+
+        nexmo_phones = client.get_numbers(phone_number)
+        is_shortcode = False
+
+        # try it with just the national code (for short codes)
+        if not nexmo_phones:
+            parsed = phonenumbers.parse(phone_number, None)
+            shortcode = str(parsed.national_number)
+
+            nexmo_phones = client.get_numbers(shortcode)
+
+            if nexmo_phones:
+                is_shortcode = True
+                phone_number = shortcode
+
+        # buy the number if we have to
+        if not nexmo_phones:
+            try:
+                client.buy_nexmo_number(country, phone_number)
+            except Exception as e:
+                raise Exception(_("There was a problem claiming that number, "
+                                  "please check the balance on your account. " +
+                                  "Note that you can only claim numbers after "
+                                  "adding credit to your Nexmo account.") + "\n" + str(e))
+
+        mo_path = reverse('handlers.nexmo_handler', args=['receive', org_uuid])
+
+        channel_uuid = generate_uuid()
+
+        nexmo_phones = client.get_numbers(phone_number)
+
+        features = [elt.upper() for elt in nexmo_phones[0]['features']]
+        role = ''
+        if 'SMS' in features:
+            role += Channel.ROLE_SEND + Channel.ROLE_RECEIVE
+
+        if 'VOICE' in features:
+            role += Channel.ROLE_ANSWER + Channel.ROLE_CALL
+
+        # update the delivery URLs for it
+        from temba.settings import TEMBA_HOST
+        try:
+            client.update_nexmo_number(country, phone_number, 'https://%s%s' % (TEMBA_HOST, mo_path), app_id)
+
+        except Exception as e:  # pragma: no cover
+            # shortcodes don't seem to claim right on nexmo, move forward anyways
+            if not is_shortcode:
+                raise Exception(_("There was a problem claiming that number, please check the balance on your account.") +
+                                "\n" + str(e))
+
+        if is_shortcode:
+            phone = phone_number
+            nexmo_phone_number = phone_number
+        else:
+            parsed = phonenumbers.parse(phone_number, None)
+            phone = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.INTERNATIONAL)
+
+            # nexmo ships numbers around as E164 without the leading +
+            nexmo_phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164).strip('+')
+
+        channel = Channel.create(org, user, country, 'NX', name=phone, address=phone_number, role=role,
+                                 bod=nexmo_phone_number, uuid=channel_uuid)
+
+        analytics.track(user.username, 'temba.channel_claim_nexmo', dict(number=phone_number))
 
         return channel
