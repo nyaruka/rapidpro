@@ -1088,32 +1088,6 @@ class Channel(TembaModel):
                 client = plivo.RestAPI(self.config_json()[Channel.CONFIG_PLIVO_AUTH_ID], self.config_json()[Channel.CONFIG_PLIVO_AUTH_TOKEN])
                 client.delete_application(params=dict(app_id=self.config_json()[Channel.CONFIG_PLIVO_APP_ID]))
 
-            # delete Twilio SMS application
-            elif self.channel_type == 'T':
-                client = self.org.get_twilio_client()
-                number_update_args = dict()
-
-                if not self.is_delegate_sender():
-                    number_update_args['sms_application_sid'] = ""
-
-                if self.supports_ivr():
-                    number_update_args['voice_application_sid'] = ""
-
-                try:
-                    number_sid = self.bod or self.config_json()['number_sid']
-                    client.phone_numbers.update(number_sid, **number_update_args)
-                except Exception:
-                    if client:
-                        matching = client.phone_numbers.list(phone_number=self.address)
-                        if matching:
-                            client.phone_numbers.update(matching[0].sid, **number_update_args)
-
-                if 'application_sid' in config:
-                    try:
-                        client.applications.delete(sid=config['application_sid'])
-                    except TwilioRestException:  # pragma: no cover
-                        pass
-
         # save off our org and gcm id before nullifying
         org = self.org
         fcm_id = config.pop(Channel.CONFIG_FCM_ID, None)

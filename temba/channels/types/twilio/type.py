@@ -34,6 +34,32 @@ class TwilioType(ChannelType):
 
     attachment_support = True
 
+    def deactivate(self, channel):
+        config = channel.config_json()
+        client = channel.org.get_twilio_client()
+        number_update_args = dict()
+
+        if not channel.is_delegate_sender():
+            number_update_args['sms_application_sid'] = ""
+
+        if channel.supports_ivr():
+            number_update_args['voice_application_sid'] = ""
+
+        try:
+            number_sid = channel.bod or channel.config_json()['number_sid']
+            client.phone_numbers.update(number_sid, **number_update_args)
+        except Exception:
+            if client:
+                matching = client.phone_numbers.list(phone_number=channel.address)
+                if matching:
+                    client.phone_numbers.update(matching[0].sid, **number_update_args)
+
+        if 'application_sid' in config:
+            try:
+                client.applications.delete(sid=config['application_sid'])
+            except TwilioRestException:  # pragma: no cover
+                pass
+
     def send(self, channel, msg, text):
         callback_url = Channel.build_twilio_callback_url(channel.uuid, msg.id)
 
