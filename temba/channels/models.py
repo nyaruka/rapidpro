@@ -4,7 +4,6 @@ import json
 import logging
 import phonenumbers
 import plivo
-import regex
 import requests
 import six
 import time
@@ -40,9 +39,8 @@ from temba.utils import analytics, random_string, dict_to_struct, dict_to_json, 
 from temba.utils.email import send_template_email
 from temba.utils.gsm7 import is_gsm7, replace_non_gsm7_accents
 from temba.utils.http import HttpEvent
-from temba.utils.nexmo import NexmoClient, NCCOResponse
+from temba.utils.nexmo import NCCOResponse
 from temba.utils.models import SquashableModel, TembaModel, generate_uuid
-from time import sleep
 from twilio import twiml, TwilioRestException
 from uuid import uuid4
 from xml.sax.saxutils import escape
@@ -163,7 +161,6 @@ class Channel(TembaModel):
     TYPE_DUMMY = 'DM'
     TYPE_JUNEBUG = 'JN'
     TYPE_JUNEBUG_USSD = 'JNU'
-    TYPE_NEXMO = 'NX'
     TYPE_VERBOICE = 'VB'
     TYPE_VIBER = 'VI'
     TYPE_VUMI = 'VM'
@@ -248,7 +245,6 @@ class Channel(TembaModel):
         TYPE_DUMMY: dict(schemes=['tel'], max_length=160),
         TYPE_JUNEBUG: dict(schemes=['tel'], max_length=1600),
         TYPE_JUNEBUG_USSD: dict(schemes=['tel'], max_length=1600),
-        TYPE_NEXMO: dict(schemes=['tel'], max_length=1600, max_tps=1),
         TYPE_VERBOICE: dict(schemes=['tel'], max_length=1600),
         TYPE_VIBER: dict(schemes=['tel'], max_length=1000),
         TYPE_VUMI: dict(schemes=['tel'], max_length=1600),
@@ -259,7 +255,6 @@ class Channel(TembaModel):
                     (TYPE_DUMMY, "Dummy"),
                     (TYPE_JUNEBUG, "Junebug"),
                     (TYPE_JUNEBUG_USSD, "Junebug USSD"),
-                    (TYPE_NEXMO, "Nexmo"),
                     (TYPE_VERBOICE, "Verboice"),
                     (TYPE_VIBER, "Viber"),
                     (TYPE_VUMI, "Vumi"),
@@ -267,7 +262,6 @@ class Channel(TembaModel):
 
     TYPE_ICONS = {
         TYPE_ANDROID: "icon-channel-android",
-        TYPE_NEXMO: "icon-channel-nexmo",
         TYPE_VIBER: "icon-viber"
     }
 
@@ -278,7 +272,7 @@ class Channel(TembaModel):
 
     TWIML_CHANNELS = ['T', TYPE_VERBOICE, "TW"]
 
-    NCCO_CHANNELS = [TYPE_NEXMO]
+    NCCO_CHANNELS = ['NX']
 
     MEDIA_CHANNELS = []
 
@@ -537,7 +531,7 @@ class Channel(TembaModel):
             # nexmo ships numbers around as E164 without the leading +
             nexmo_phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164).strip('+')
 
-        return Channel.create(org, user, country, Channel.TYPE_NEXMO, name=phone, address=phone_number, role=role,
+        return Channel.create(org, user, country, 'NX', name=phone, address=phone_number, role=role,
                               bod=nexmo_phone_number, uuid=channel_uuid)
 
     @classmethod
@@ -650,7 +644,7 @@ class Channel(TembaModel):
         parsed = phonenumbers.parse(channel.address, None)
         nexmo_phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164).strip('+')
 
-        return Channel.create(user.get_org(), user, channel.country, Channel.TYPE_NEXMO, name="Nexmo Sender",
+        return Channel.create(user.get_org(), user, channel.country, 'NX', name="Nexmo Sender",
                               address=channel.address, role=Channel.ROLE_SEND, parent=channel, bod=nexmo_phone_number)
 
     @classmethod
@@ -829,7 +823,7 @@ class Channel(TembaModel):
             return self.get_twiml_client()
         elif self.channel_type == Channel.TYPE_VERBOICE:  # pragma: no cover
             return self.org.get_verboice_client()
-        elif self.channel_type == Channel.TYPE_NEXMO:
+        elif self.channel_type == 'NX':
             return self.org.get_nexmo_client()
 
     def get_twiml_client(self):
@@ -1416,32 +1410,6 @@ class Channel(TembaModel):
         Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)
 
     @classmethod
-    def send_nexmo_message(cls, channel, msg, text):
-        from temba.msgs.models import SENT
-        from temba.orgs.models import NEXMO_KEY, NEXMO_SECRET, NEXMO_APP_ID, NEXMO_APP_PRIVATE_KEY
-
-        client = NexmoClient(channel.org_config[NEXMO_KEY], channel.org_config[NEXMO_SECRET],
-                             channel.org_config[NEXMO_APP_ID], channel.org_config[NEXMO_APP_PRIVATE_KEY])
-        start = time.time()
-
-        event = None
-        attempts = 0
-        while not event:
-            try:
-                (message_id, event) = client.send_message_via_nexmo(channel.address, msg.urn_path, text)
-            except SendException as e:
-                match = regex.match(r'.*Throughput Rate Exceeded - please wait \[ (\d+) \] and retry.*', e.events[0].response_body)
-
-                # this is a throughput failure, attempt to wait up to three times
-                if match and attempts < 3:
-                    sleep(float(match.group(1)) / 1000)
-                    attempts += 1
-                else:
-                    raise e
-
-        Channel.success(channel, msg, SENT, start, event=event, external_id=message_id)
-
-    @classmethod
     def send_twilio_message(cls, channel, msg, text):
         from temba.msgs.models import Attachment, WIRED
         from temba.orgs.models import ACCOUNT_SID, ACCOUNT_TOKEN
@@ -1747,8 +1715,6 @@ SEND_FUNCTIONS = {Channel.TYPE_DUMMY: Channel.send_dummy_message,
 
                   Channel.TYPE_JUNEBUG: Channel.send_junebug_message,
                   Channel.TYPE_JUNEBUG_USSD: Channel.send_junebug_message,
-
-                  Channel.TYPE_NEXMO: Channel.send_nexmo_message,
 
                   Channel.TYPE_VIBER: Channel.send_viber_message,
 

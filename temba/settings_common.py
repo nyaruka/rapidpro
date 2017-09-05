@@ -1127,6 +1127,7 @@ CHANNEL_TYPES = [
     'temba.channels.types.m3tech.M3TechType',
     'temba.channels.types.macrokiosk.MacrokioskType',
     'temba.channels.types.mblox.MbloxType',
+    'temba.channels.types.nexmo.NexmoType',
     'temba.channels.types.plivo.PlivoType',
     'temba.channels.types.redrabbit.RedRabbitType',
     'temba.channels.types.shaqodoon.ShaqodoonType',

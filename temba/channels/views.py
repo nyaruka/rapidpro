@@ -1354,7 +1354,7 @@ class ChannelCRUDL(SmartCRUDL):
 
             if channel_type == Channel.TYPE_ANDROID:
                 return UpdateAndroidForm
-            elif channel_type == Channel.TYPE_NEXMO:
+            elif channel_type == 'NX':
                 return UpdateNexmoForm
             elif TWITTER_SCHEME in self.object.schemes:
                 return UpdateTwitterForm
@@ -1432,7 +1432,7 @@ class ChannelCRUDL(SmartCRUDL):
 
             def clean_connection(self):
                 connection = self.cleaned_data['connection']
-                if connection == Channel.TYPE_NEXMO and not self.org.is_connected_to_nexmo():
+                if connection == 'NX' and not self.org.is_connected_to_nexmo():
                     raise forms.ValidationError(_("A connection to a Nexmo account is required"))
                 return connection
 
