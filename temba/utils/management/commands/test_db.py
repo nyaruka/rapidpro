@@ -58,7 +58,7 @@ USERS = (
 )
 CHANNELS = (
     {'name': "Android", 'channel_type': Channel.TYPE_ANDROID, 'scheme': 'tel', 'address': "1234"},
-    {'name': "Nexmo", 'channel_type': Channel.TYPE_NEXMO, 'scheme': 'tel', 'address': "2345"},
+    {'name': "Nexmo", 'channel_type': 'NX', 'scheme': 'tel', 'address': "2345"},
     {'name': "Twitter", 'channel_type': 'TT', 'scheme': 'twitter', 'address': "my_handle"},
 )
 FIELDS = (

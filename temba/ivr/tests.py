@@ -31,7 +31,7 @@ class IVRTests(FlowFileTest):
         settings.SEND_CALLS = True
 
         # configure our account to be IVR enabled
-        self.channel.channel_type = Channel.TYPE_TWILIO
+        self.channel.channel_type = 'T'
         self.channel.role = Channel.ROLE_CALL + Channel.ROLE_ANSWER + Channel.ROLE_SEND
         self.channel.save()
         self.admin.groups.add(Group.objects.get(name="Beta"))
@@ -61,14 +61,14 @@ class IVRTests(FlowFileTest):
         self.assertEquals(IVRCall.PENDING, call.status)
 
         # call should be on a Twilio channel since that's all we have
-        self.assertEquals(Channel.TYPE_TWILIO, call.channel.channel_type)
+        self.assertEquals('T', call.channel.channel_type)
 
         # connect Nexmo instead
         self.org.connect_nexmo('123', '456', self.admin)
         self.org.save()
 
         # manually create a Nexmo channel
-        nexmo = Channel.create(self.org, self.user, 'RW', Channel.TYPE_NEXMO, role=Channel.ROLE_CALL + Channel.ROLE_ANSWER + Channel.ROLE_SEND,
+        nexmo = Channel.create(self.org, self.user, 'RW', 'NX', role=Channel.ROLE_CALL + Channel.ROLE_ANSWER + Channel.ROLE_SEND,
                                name="Nexmo Channel", address="+250785551215")
 
         # set the preferred channel on this contact to Twilio
@@ -79,7 +79,7 @@ class IVRTests(FlowFileTest):
 
         call = IVRCall.objects.all().last()
         self.assertEquals(IVRCall.PENDING, call.status)
-        self.assertEquals(Channel.TYPE_TWILIO, call.channel.channel_type)
+        self.assertEquals('T', call.channel.channel_type)
 
         # switch back to Nexmo being the preferred channel
         contact.set_preferred_channel(nexmo)
@@ -93,7 +93,7 @@ class IVRTests(FlowFileTest):
 
         call = IVRCall.objects.all().last()
         self.assertEquals(IVRCall.PENDING, call.status)
-        self.assertEquals(Channel.TYPE_NEXMO, call.channel.channel_type)
+        self.assertEquals('NX', call.channel.channel_type)
 
     @patch('temba.ivr.clients.TwilioClient', MockTwilioClient)
     @patch('twilio.util.RequestValidator', MockRequestValidator)
@@ -303,7 +303,7 @@ class IVRTests(FlowFileTest):
         self.org.connect_nexmo('123', '456', self.admin)
         self.org.save()
 
-        self.channel.channel_type = Channel.TYPE_NEXMO
+        self.channel.channel_type = 'NX'
         self.channel.save()
 
         self.import_file('capture_recording')
@@ -709,7 +709,7 @@ class IVRTests(FlowFileTest):
         self.org.connect_nexmo('123', '456', self.admin)
         self.org.save()
 
-        self.channel.channel_type = Channel.TYPE_NEXMO
+        self.channel.channel_type = 'NX'
         self.channel.save()
 
         # import an ivr flow
@@ -760,7 +760,7 @@ class IVRTests(FlowFileTest):
         self.org.connect_nexmo('123', '456', self.admin)
         self.org.save()
 
-        self.channel.channel_type = Channel.TYPE_NEXMO
+        self.channel.channel_type = 'NX'
         self.channel.save()
 
         # import an ivr flow
@@ -810,7 +810,7 @@ class IVRTests(FlowFileTest):
         self.org.connect_nexmo('123', '456', self.admin)
         self.org.save()
 
-        self.channel.channel_type = Channel.TYPE_NEXMO
+        self.channel.channel_type = 'NX'
         self.channel.save()
 
         # import an ivr flow
@@ -946,7 +946,7 @@ class IVRTests(FlowFileTest):
         self.assertEqual('H', msg.status)
 
         # explicitly hanging up on a test call should remove it
-        call.update_status('in-progress', 0, Channel.TYPE_TWILIO)
+        call.update_status('in-progress', 0, 'T')
         call.save()
         IVRCall.hangup_test_call(flow)
         self.assertTrue(IVRCall.objects.filter(pk=call.pk).first())
@@ -1056,21 +1056,21 @@ class IVRTests(FlowFileTest):
             else:
                 self.assertIsNone(call_to_update.ended_on)
 
-        test_status_update(call, 'queued', IVRCall.QUEUED, Channel.TYPE_TWILIO)
-        test_status_update(call, 'ringing', IVRCall.RINGING, Channel.TYPE_TWILIO)
-        test_status_update(call, 'canceled', IVRCall.CANCELED, Channel.TYPE_TWILIO)
-        test_status_update(call, 'busy', IVRCall.BUSY, Channel.TYPE_TWILIO)
-        test_status_update(call, 'failed', IVRCall.FAILED, Channel.TYPE_TWILIO)
-        test_status_update(call, 'no-answer', IVRCall.NO_ANSWER, Channel.TYPE_TWILIO)
+        test_status_update(call, 'queued', IVRCall.QUEUED, 'T')
+        test_status_update(call, 'ringing', IVRCall.RINGING, 'T')
+        test_status_update(call, 'canceled', IVRCall.CANCELED, 'T')
+        test_status_update(call, 'busy', IVRCall.BUSY, 'T')
+        test_status_update(call, 'failed', IVRCall.FAILED, 'T')
+        test_status_update(call, 'no-answer', IVRCall.NO_ANSWER, 'T')
 
-        test_status_update(call, 'answered', IVRCall.IN_PROGRESS, Channel.TYPE_NEXMO)
-        test_status_update(call, 'ringing', IVRCall.RINGING, Channel.TYPE_NEXMO)
-        test_status_update(call, 'completed', IVRCall.COMPLETED, Channel.TYPE_NEXMO)
-        test_status_update(call, 'failed', IVRCall.FAILED, Channel.TYPE_NEXMO)
-        test_status_update(call, 'unanswered', IVRCall.NO_ANSWER, Channel.TYPE_NEXMO)
-        test_status_update(call, 'timeout', IVRCall.NO_ANSWER, Channel.TYPE_NEXMO)
-        test_status_update(call, 'busy', IVRCall.BUSY, Channel.TYPE_NEXMO)
-        test_status_update(call, 'rejected', IVRCall.BUSY, Channel.TYPE_NEXMO)
+        test_status_update(call, 'answered', IVRCall.IN_PROGRESS, 'NX')
+        test_status_update(call, 'ringing', IVRCall.RINGING, 'NX')
+        test_status_update(call, 'completed', IVRCall.COMPLETED, 'NX')
+        test_status_update(call, 'failed', IVRCall.FAILED, 'NX')
+        test_status_update(call, 'unanswered', IVRCall.NO_ANSWER, 'NX')
+        test_status_update(call, 'timeout', IVRCall.NO_ANSWER, 'NX')
+        test_status_update(call, 'busy', IVRCall.BUSY, 'NX')
+        test_status_update(call, 'rejected', IVRCall.BUSY, 'NX')
 
         FlowStep.objects.all().delete()
         IVRCall.objects.all().delete()
@@ -1105,7 +1105,7 @@ class IVRTests(FlowFileTest):
         Contact.set_simulation(True)
         flow.start([], [test_contact])
         call = IVRCall.objects.filter(direction=IVRCall.OUTGOING).order_by('-pk').first()
-        call.update_status('completed', 30, Channel.TYPE_TWILIO)
+        call.update_status('completed', 30, 'T')
         call.save()
         call.refresh_from_db()
 
@@ -1113,7 +1113,7 @@ class IVRTests(FlowFileTest):
         self.assertEqual(call.duration, 30)
 
         # now look at implied duration
-        call.update_status('in-progress', None, Channel.TYPE_TWILIO)
+        call.update_status('in-progress', None, 'T')
         call.save()
         call.refresh_from_db()
         self.assertIsNotNone(call.get_duration())
@@ -1251,7 +1251,7 @@ class IVRTests(FlowFileTest):
         self.org.connect_nexmo('123', '456', self.admin)
         self.org.save()
 
-        self.channel.channel_type = Channel.TYPE_NEXMO
+        self.channel.channel_type = 'NX'
         self.channel.save()
 
         nexmo_uuid = self.org.config_json()['NEXMO_UUID']
@@ -1293,7 +1293,7 @@ class IVRTests(FlowFileTest):
         self.org.connect_nexmo('123', '456', self.admin)
         self.org.save()
 
-        self.channel.channel_type = Channel.TYPE_NEXMO
+        self.channel.channel_type = 'NX'
         self.channel.save()
 
         nexmo_uuid = self.org.config_json()['NEXMO_UUID']
@@ -1435,7 +1435,7 @@ class IVRTests(FlowFileTest):
         self.org.connect_nexmo('123', '456', self.admin)
         self.org.save()
 
-        self.channel.channel_type = Channel.TYPE_NEXMO
+        self.channel.channel_type = 'NX'
         self.channel.save()
 
         nexmo_uuid = self.org.config_json()['NEXMO_UUID']
@@ -1553,7 +1553,7 @@ class IVRTests(FlowFileTest):
         self.org.connect_nexmo('123', '456', self.admin)
         self.org.save()
 
-        self.channel.channel_type = Channel.TYPE_NEXMO
+        self.channel.channel_type = 'NX'
         self.channel.save()
 
         # import an ivr flow
@@ -1608,7 +1608,7 @@ class IVRTests(FlowFileTest):
         self.org.connect_nexmo('123', '456', self.admin)
         self.org.save()
 
-        self.channel.channel_type = Channel.TYPE_NEXMO
+        self.channel.channel_type = 'NX'
         self.channel.save()
 
         # import an ivr flow
