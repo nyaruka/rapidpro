@@ -164,7 +164,6 @@ class Channel(TembaModel):
     TYPE_JUNEBUG = 'JN'
     TYPE_JUNEBUG_USSD = 'JNU'
     TYPE_NEXMO = 'NX'
-    TYPE_PLIVO = 'PL'
     TYPE_VERBOICE = 'VB'
     TYPE_VIBER = 'VI'
     TYPE_VUMI = 'VM'
@@ -250,7 +249,6 @@ class Channel(TembaModel):
         TYPE_JUNEBUG: dict(schemes=['tel'], max_length=1600),
         TYPE_JUNEBUG_USSD: dict(schemes=['tel'], max_length=1600),
         TYPE_NEXMO: dict(schemes=['tel'], max_length=1600, max_tps=1),
-        TYPE_PLIVO: dict(schemes=['tel'], max_length=1600),
         TYPE_VERBOICE: dict(schemes=['tel'], max_length=1600),
         TYPE_VIBER: dict(schemes=['tel'], max_length=1000),
         TYPE_VUMI: dict(schemes=['tel'], max_length=1600),
@@ -262,7 +260,6 @@ class Channel(TembaModel):
                     (TYPE_JUNEBUG, "Junebug"),
                     (TYPE_JUNEBUG_USSD, "Junebug USSD"),
                     (TYPE_NEXMO, "Nexmo"),
-                    (TYPE_PLIVO, "Plivo"),
                     (TYPE_VERBOICE, "Verboice"),
                     (TYPE_VIBER, "Viber"),
                     (TYPE_VUMI, "Vumi"),
@@ -271,7 +268,6 @@ class Channel(TembaModel):
     TYPE_ICONS = {
         TYPE_ANDROID: "icon-channel-android",
         TYPE_NEXMO: "icon-channel-nexmo",
-        TYPE_PLIVO: "icon-channel-plivo",
         TYPE_VIBER: "icon-viber"
     }
 
@@ -472,7 +468,7 @@ class Channel(TembaModel):
         phone = phonenumbers.format_number(phonenumbers.parse(phone_number, None),
                                            phonenumbers.PhoneNumberFormat.NATIONAL)
 
-        return Channel.create(org, user, country, Channel.TYPE_PLIVO, name=phone, address=phone_number,
+        return Channel.create(org, user, country, 'PL', name=phone, address=phone_number,
                               config=plivo_config, uuid=plivo_uuid)
 
     @classmethod
@@ -1083,11 +1079,6 @@ class Channel(TembaModel):
             for call in IVRCall.objects.filter(channel=self):
                 call.close()
 
-            # delete Plivo application
-            if self.channel_type == Channel.TYPE_PLIVO:
-                client = plivo.RestAPI(self.config_json()[Channel.CONFIG_PLIVO_AUTH_ID], self.config_json()[Channel.CONFIG_PLIVO_AUTH_TOKEN])
-                client.delete_application(params=dict(app_id=self.config_json()[Channel.CONFIG_PLIVO_APP_ID]))
-
         # save off our org and gcm id before nullifying
         org = self.org
         fcm_id = config.pop(Channel.CONFIG_FCM_ID, None)
@@ -1506,44 +1497,6 @@ class Channel(TembaModel):
             raise SendException(six.text_type(e), events=client.messages.events)
 
     @classmethod
-    def send_plivo_message(cls, channel, msg, text):
-        import plivo
-        from temba.msgs.models import WIRED
-
-        # url used for logs and exceptions
-        url = 'https://api.plivo.com/v1/Account/%s/Message/' % channel.config[Channel.CONFIG_PLIVO_AUTH_ID]
-
-        client = plivo.RestAPI(channel.config[Channel.CONFIG_PLIVO_AUTH_ID], channel.config[Channel.CONFIG_PLIVO_AUTH_TOKEN])
-        status_url = "https://" + settings.TEMBA_HOST + "%s" % reverse('handlers.plivo_handler',
-                                                                       args=['status', channel.uuid])
-
-        payload = {'src': channel.address.lstrip('+'),
-                   'dst': msg.urn_path.lstrip('+'),
-                   'text': text,
-                   'url': status_url,
-                   'method': 'POST'}
-
-        event = HttpEvent('POST', url, json.dumps(payload))
-
-        start = time.time()
-
-        try:
-            # TODO: Grab real request and response here
-            plivo_response_status, plivo_response = client.send_message(params=payload)
-            event.status_code = plivo_response_status
-            event.response_body = plivo_response
-
-        except Exception as e:  # pragma: no cover
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        if plivo_response_status != 200 and plivo_response_status != 201 and plivo_response_status != 202:
-            raise SendException("Got non-200 response [%d] from API" % plivo_response_status,
-                                event=event, start=start)
-
-        external_id = plivo_response['message_uuid'][0]
-        Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)
-
-    @classmethod
     def send_viber_message(cls, channel, msg, text):
         from temba.msgs.models import WIRED
 
@@ -1796,8 +1749,6 @@ SEND_FUNCTIONS = {Channel.TYPE_DUMMY: Channel.send_dummy_message,
                   Channel.TYPE_JUNEBUG_USSD: Channel.send_junebug_message,
 
                   Channel.TYPE_NEXMO: Channel.send_nexmo_message,
-
-                  Channel.TYPE_PLIVO: Channel.send_plivo_message,
 
                   Channel.TYPE_VIBER: Channel.send_viber_message,
 
