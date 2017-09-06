@@ -41,7 +41,6 @@ from temba.utils.http import HttpEvent
 from temba.utils.nexmo import NCCOResponse
 from temba.utils.models import SquashableModel, TembaModel, generate_uuid
 from twilio import twiml
-from uuid import uuid4
 from xml.sax.saxutils import escape
 
 logger = logging.getLogger(__name__)
@@ -415,66 +414,6 @@ class Channel(TembaModel):
                                     schemes=['tel'], parent=None):
         return Channel.create(org, user, country, channel_type, name=address, address=address,
                               config=config, role=role, schemes=schemes, parent=parent)
-
-    @classmethod
-    def add_twilio_channel(cls, org, user, phone_number, country, role):
-        client = org.get_twilio_client()
-        twilio_phones = client.phone_numbers.list(phone_number=phone_number)
-        channel_uuid = uuid4()
-
-        # create new TwiML app
-        new_receive_url = "https://" + settings.TEMBA_HOST + reverse('handlers.twilio_handler', args=['receive', channel_uuid])
-        new_status_url = "https://" + settings.TEMBA_HOST + reverse('handlers.twilio_handler', args=['status', channel_uuid])
-        new_voice_url = "https://" + settings.TEMBA_HOST + reverse('handlers.twilio_handler', args=['voice', channel_uuid])
-
-        new_app = client.applications.create(
-            friendly_name="%s/%s" % (settings.TEMBA_HOST.lower(), channel_uuid),
-            sms_url=new_receive_url,
-            sms_method="POST",
-            voice_url=new_voice_url,
-            voice_fallback_url="https://" + settings.AWS_BUCKET_DOMAIN + "/voice_unavailable.xml",
-            voice_fallback_method='GET',
-            status_callback=new_status_url,
-            status_callback_method='POST'
-        )
-
-        is_short_code = len(phone_number) <= 6
-        if is_short_code:
-            short_codes = client.sms.short_codes.list(short_code=phone_number)
-
-            if short_codes:
-                short_code = short_codes[0]
-                number_sid = short_code.sid
-                app_url = "https://" + settings.TEMBA_HOST + "%s" % reverse('handlers.twilio_handler', args=['receive', channel_uuid])
-                client.sms.short_codes.update(number_sid, sms_url=app_url, sms_method='POST')
-
-                role = Channel.ROLE_SEND + Channel.ROLE_RECEIVE
-                phone = phone_number
-
-            else:  # pragma: no cover
-                raise Exception(_("Short code not found on your Twilio Account. "
-                                  "Please check you own the short code and Try again"))
-        else:
-            if twilio_phones:
-                twilio_phone = twilio_phones[0]
-                client.phone_numbers.update(twilio_phone.sid,
-                                            voice_application_sid=new_app.sid,
-                                            sms_application_sid=new_app.sid)
-
-            else:  # pragma: needs cover
-                twilio_phone = client.phone_numbers.purchase(phone_number=phone_number,
-                                                             voice_application_sid=new_app.sid,
-                                                             sms_application_sid=new_app.sid)
-
-            phone = phonenumbers.format_number(phonenumbers.parse(phone_number, None),
-                                               phonenumbers.PhoneNumberFormat.NATIONAL)
-
-            number_sid = twilio_phone.sid
-
-        config = {'application_sid': new_app.sid, 'number_sid': number_sid}
-
-        return Channel.create(org, user, country, 'T', name=phone, address=phone_number, role=role,
-                              config=config, uuid=channel_uuid)
 
     @classmethod
     def add_send_channel(cls, user, channel):
