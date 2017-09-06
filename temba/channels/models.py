@@ -161,7 +161,6 @@ class Channel(TembaModel):
     TYPE_JUNEBUG_USSD = 'JNU'
     TYPE_VERBOICE = 'VB'
     TYPE_VIBER = 'VI'
-    TYPE_VUMI = 'VM'
     TYPE_VUMI_USSD = 'VMU'
 
     # keys for various config options stored in the channel config dict
@@ -245,7 +244,6 @@ class Channel(TembaModel):
         TYPE_JUNEBUG_USSD: dict(schemes=['tel'], max_length=1600),
         TYPE_VERBOICE: dict(schemes=['tel'], max_length=1600),
         TYPE_VIBER: dict(schemes=['tel'], max_length=1000),
-        TYPE_VUMI: dict(schemes=['tel'], max_length=1600),
         TYPE_VUMI_USSD: dict(schemes=['tel'], max_length=182),
     }
 
@@ -255,7 +253,6 @@ class Channel(TembaModel):
                     (TYPE_JUNEBUG_USSD, "Junebug USSD"),
                     (TYPE_VERBOICE, "Verboice"),
                     (TYPE_VIBER, "Viber"),
-                    (TYPE_VUMI, "Vumi"),
                     (TYPE_VUMI_USSD, "Vumi USSD"))
 
     TYPE_ICONS = {
@@ -1441,7 +1438,6 @@ SEND_FUNCTIONS = {Channel.TYPE_DUMMY: Channel.send_dummy_message,
 
                   Channel.TYPE_VIBER: Channel.send_viber_message,
 
-                  Channel.TYPE_VUMI: Channel.send_vumi_message,
                   Channel.TYPE_VUMI_USSD: Channel.send_vumi_message}
 
 

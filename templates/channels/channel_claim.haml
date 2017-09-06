@@ -126,27 +126,6 @@
                 -blocktrans
                   Use a <a href="http://verboice.instedd.org">Verboice</a> connection to leverage in-country SIP connections for building voice (IVR) flows.
 
-    -if False
-      .claim-row.vumi-channel
-        .recommendation.hide
-          %h3
-            -trans "Recommendation"
-          -blocktrans
-            We recommend using Vumi to connect a short code in your country, select this option to configure your number.
-        .row
-          .span3
-            %a.btn.btn-primary.btn-primary-muted.btn-claim{href:"{% url 'channels.channel_claim_vumi' %}"}
-              .btn-container
-                .claim-glyph.icon-channel-external
-                %p.claim-text
-                  -trans "Vumi Number"
-
-          .span9
-            .claim-description
-              %div
-                -blocktrans
-                  Easily connect your <a href="http://vumi.com/">Vumi</a> account to take advantage of two way texting across different mediums.
-
     -if org_timezone == 'Africa/Johannesburg'
       .claim-row.vumi-ussd-channel
         .recommendation.hide
