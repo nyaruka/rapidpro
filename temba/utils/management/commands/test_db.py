@@ -22,7 +22,6 @@ from django_redis import get_redis_connection
 from subprocess import check_call, CalledProcessError
 from temba.channels.models import Channel
 from temba.channels.tasks import squash_channelcounts
-from temba.channels.types import TYPES
 from temba.contacts.models import Contact, ContactField, ContactGroup, ContactURN, ContactGroupCount, URN, TEL_SCHEME, TWITTER_SCHEME
 from temba.flows.models import FlowStart, FlowRun
 from temba.flows.tasks import squash_flowpathcounts, squash_flowruncounts, prune_recentmessages
@@ -192,7 +191,7 @@ class Command(BaseCommand):
         self.configure_random(len(orgs))
 
         # in real life Nexmo messages are throttled, but that's not necessary for this simulation
-        TYPES['NX'].max_tps = None
+        Channel.get_type_from_code('NX').max_tps = None
 
         inputs_by_flow_name = {f['name']: f['templates'] for f in FLOWS}
 
