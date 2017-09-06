@@ -40,6 +40,7 @@ def reload_channel_types():
             max_length=type_settings.get('max_length'),
             max_tps=type_settings.get('max_tps'),
             attachment_support=code in Channel.MEDIA_CHANNELS,
+            is_ussd=code in Channel.USSD_CHANNELS,
             free_sending=code in Channel.FREE_SENDING_CHANNEL_TYPES,
             send=SEND_FUNCTIONS.get(code),
         ))

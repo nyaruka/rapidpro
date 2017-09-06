@@ -1,3 +1,5 @@
+from __future__ import unicode_literals, absolute_import
+
 import json
 
 import time
@@ -38,7 +40,7 @@ class VumiType(ChannelType):
 
     def send(self, channel, msg, text):
 
-        is_ussd = channel.channel_type in Channel.USSD_CHANNELS
+        is_ussd = self.is_ussd
         channel.config['transport_name'] = 'ussd_transport' if is_ussd else 'mtech_ng_smpp_transport'
 
         session = None
