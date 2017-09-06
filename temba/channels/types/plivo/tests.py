@@ -80,8 +80,8 @@ class PlivoTypeTest(TembaTest):
         with patch('temba.channels.views.plivo.RestAPI.get_account') as mock_plivo_get_account:
             with patch('temba.channels.views.plivo.RestAPI.create_application') as mock_plivo_create_application:
 
-                with patch('temba.channels.models.plivo.RestAPI.get_number') as mock_plivo_get_number:
-                    with patch('temba.channels.models.plivo.RestAPI.buy_phone_number') as mock_plivo_buy_phone_number:
+                with patch('temba.channels.types.plivo.views.plivo.RestAPI.get_number') as mock_plivo_get_number:
+                    with patch('temba.channels.types.plivo.views.plivo.RestAPI.buy_phone_number') as mock_plivo_buy_phone_number:
                         mock_plivo_get_account.return_value = (200, MockResponse(200, json.dumps(dict())))
 
                         mock_plivo_create_application.return_value = (200, dict(app_id='app-id'))
