@@ -23,6 +23,7 @@ class JunebugTypeTest(TembaTest):
             "url": "http://example.com/messages.json",
             "username": "foo",
             "password": "bar",
+            "secret": "secret-word"
         }
 
         response = self.client.post(url, post_data)
@@ -30,3 +31,4 @@ class JunebugTypeTest(TembaTest):
         channel = Channel.objects.get()
         self.assertEquals(channel.channel_type, 'JNU')
         self.assertEquals(channel.role, Channel.ROLE_USSD)
+        self.assertEqual(channel.secret, "secret-word")

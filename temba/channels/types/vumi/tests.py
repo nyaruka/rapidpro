@@ -57,3 +57,25 @@ class VumiTypeTest(TembaTest):
 
         self.assertContains(response, reverse('handlers.vumi_handler', args=['receive', channel.uuid]))
         self.assertContains(response, reverse('handlers.vumi_handler', args=['event', channel.uuid]))
+
+        Channel.objects.all().delete()
+
+        post_data = {
+            "country": "NG",
+            "number": "+273454325324",
+            "account_key": "account1",
+            "conversation_key": "conversation1",
+        }
+
+        response = self.client.post(url, post_data)
+
+        channel = Channel.objects.get()
+
+        self.assertTrue(uuid.UUID(channel.config_json()['access_token'], version=4))
+        self.assertEquals(channel.country, post_data['country'])
+        self.assertEquals(channel.address, post_data['number'])
+        self.assertEquals(channel.config_json()['account_key'], post_data['account_key'])
+        self.assertEquals(channel.config_json()['conversation_key'], post_data['conversation_key'])
+        self.assertEquals(channel.config_json()['api_url'], "https://go.vumi.org/api/v1/go/http_api_nostream")
+        self.assertEquals(channel.channel_type, 'VM')
+        self.assertEquals(channel.role, Channel.DEFAULT_ROLE)

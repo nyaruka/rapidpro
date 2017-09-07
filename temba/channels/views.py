@@ -1556,19 +1556,7 @@ class ChannelCRUDL(SmartCRUDL):
 
             return super(ChannelCRUDL.ClaimViber, self).form_valid(form)
 
-    class ClaimAuthenticatedExternal(OrgPermsMixin, SmartFormView):
-
-        title = "Connect External Service"
-        form_class = None
-        permission = 'channels.channel_claim'
-        success_url = "id@channels.channel_configuration"
-        channel_type = "AE"
-        template_name = 'channels/channel_claim_authenticated.html'
-
-        def get_submitted_country(self, data):
-            return data['country']
-
-    class ClaimVerboice(ClaimAuthenticatedExternal):
+    class ClaimVerboice(OrgPermsMixin, SmartFormView):
         class VerboiceClaimForm(forms.Form):
             country = forms.ChoiceField(choices=ALL_COUNTRIES, label=_("Country"),
                                         help_text=_("The country this phone number is used in"))
@@ -1585,6 +1573,9 @@ class ChannelCRUDL(SmartCRUDL):
         title = _("Connect Verboice")
         channel_type = Channel.TYPE_VERBOICE
         form_class = VerboiceClaimForm
+        permission = 'channels.channel_claim'
+        success_url = "id@channels.channel_configuration"
+        template_name = 'channels/channel_claim_verboice.html'
         fields = ('country', 'number', 'username', 'password', 'channel')
 
         def form_valid(self, form):  # pragma: needs cover
@@ -1601,7 +1592,7 @@ class ChannelCRUDL(SmartCRUDL):
                                                                    channel=data['channel']),
                                                               role=Channel.ROLE_CALL + Channel.ROLE_ANSWER)
 
-            return super(ChannelCRUDL.ClaimAuthenticatedExternal, self).form_valid(form)
+            return super(ChannelCRUDL.ClaimVerboice, self).form_valid(form)
 
     class Configuration(OrgPermsMixin, SmartReadView):
 
