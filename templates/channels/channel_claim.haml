@@ -89,22 +89,6 @@
                   Another great option is to connect
                   a <a href="http://nexmo.com" target="_blank">Nexmo</a> Account and get a dedicated number in a few minutes.
 
-    .claim-row.junebug-channel
-      .row
-        .span3
-          %a.btn.btn-primary.btn-primary-muted.btn-claim{href:"{% url 'channels.channel_claim_junebug' %}"}
-            .btn-container
-              .claim-glyph.icon-junebug
-              %p.claim-text
-                -trans "Junebug"
-
-        .span9
-          .claim-description
-            %div
-              -blocktrans
-                Connect your <a href="https://junebug.praekelt.org/" target="_blank">Junebug</a> instance that you have
-                already set up and configured.
-
     -if False
       .claim-row.verboice-channel
         .recommendation.hide

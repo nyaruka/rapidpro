@@ -164,8 +164,6 @@ class ChannelType(six.with_metaclass(ABCMeta)):
 class Channel(TembaModel):
     TYPE_ANDROID = 'A'
     TYPE_DUMMY = 'DM'
-    TYPE_JUNEBUG = 'JN'
-    TYPE_JUNEBUG_USSD = 'JNU'
     TYPE_VERBOICE = 'VB'
     TYPE_VIBER = 'VI'
 
@@ -246,16 +244,12 @@ class Channel(TembaModel):
     CHANNEL_SETTINGS = {
         TYPE_ANDROID: dict(schemes=['tel'], max_length=-1),
         TYPE_DUMMY: dict(schemes=['tel'], max_length=160),
-        TYPE_JUNEBUG: dict(schemes=['tel'], max_length=1600),
-        TYPE_JUNEBUG_USSD: dict(schemes=['tel'], max_length=1600),
         TYPE_VERBOICE: dict(schemes=['tel'], max_length=1600),
         TYPE_VIBER: dict(schemes=['tel'], max_length=1000),
     }
 
     TYPE_CHOICES = ((TYPE_ANDROID, "Android"),
                     (TYPE_DUMMY, "Dummy"),
-                    (TYPE_JUNEBUG, "Junebug"),
-                    (TYPE_JUNEBUG_USSD, "Junebug USSD"),
                     (TYPE_VERBOICE, "Verboice"),
                     (TYPE_VIBER, "Viber"))
 
@@ -267,7 +261,7 @@ class Channel(TembaModel):
     FREE_SENDING_CHANNEL_TYPES = [TYPE_VIBER]
 
     # list of all USSD channels
-    USSD_CHANNELS = [TYPE_JUNEBUG_USSD]
+    USSD_CHANNELS = []
 
     TWIML_CHANNELS = ['T', TYPE_VERBOICE, "TW"]
 
@@ -1020,7 +1014,7 @@ class Channel(TembaModel):
             reverse('handlers.junebug_handler',
                     args=['event', channel.uuid]))
 
-        is_ussd = channel.channel_type == Channel.TYPE_JUNEBUG_USSD
+        is_ussd = channel.channel_type == 'JNU'
 
         # build our payload
         payload = dict()
@@ -1351,10 +1345,6 @@ STATUS_NOT_CHARGING = "NOT"
 STATUS_FULL = "FUL"
 
 SEND_FUNCTIONS = {Channel.TYPE_DUMMY: Channel.send_dummy_message,
-
-                  Channel.TYPE_JUNEBUG: Channel.send_junebug_message,
-                  Channel.TYPE_JUNEBUG_USSD: Channel.send_junebug_message,
-
                   Channel.TYPE_VIBER: Channel.send_viber_message}
 
 

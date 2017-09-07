@@ -1122,6 +1122,8 @@ CHANNEL_TYPES = [
     'temba.channels.types.infobip.InfobipType',
     'temba.channels.types.jasmin.JasminType',
     'temba.channels.types.jiochat.JioChatType',
+    'temba.channels.types.junebug.JunebugType',
+    'temba.channels.types.junebug_ussd.JunebugUSSDType',
     'temba.channels.types.kannel.KannelType',
     'temba.channels.types.line.LineType',
     'temba.channels.types.m3tech.M3TechType',
