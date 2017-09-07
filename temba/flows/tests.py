@@ -2889,7 +2889,7 @@ class ActionTest(TembaTest):
 
     def test_ussd_action(self):
         self.channel.delete()
-        self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '+250788123123',
+        self.channel = Channel.create(self.org, self.user, 'RW', 'JNU', None, '+250788123123',
                                       role=Channel.ROLE_USSD)
 
         msg = self.create_msg(direction=INCOMING, contact=self.contact, text="Green is my favorite")
@@ -2931,7 +2931,7 @@ class ActionTest(TembaTest):
 
     def test_multilanguage_ussd_menu_partly_translated(self):
         self.channel.delete()
-        self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '+250788123123',
+        self.channel = Channel.create(self.org, self.user, 'RW', 'JNU', None, '+250788123123',
                                       role=Channel.ROLE_USSD)
 
         msg = self.create_msg(direction=INCOMING, contact=self.contact, text="Green is my favorite")
@@ -3843,7 +3843,7 @@ class FlowRunTest(TembaTest):
     def test_is_interrupted(self):
         self.channel.delete()
         # Create a USSD channel type to test USSDSession.INTERRUPTED status
-        self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '+250788123123',
+        self.channel = Channel.create(self.org, self.user, 'RW', 'JNU', None, '+250788123123',
                                       role=Channel.ROLE_USSD)
 
         flow = self.get_flow('ussd_example')
@@ -4269,7 +4269,7 @@ class SimulationTest(FlowFileTest):
     @patch('temba.ussd.models.USSDSession.handle_incoming')
     def test_ussd_simulation(self, handle_incoming):
         self.channel.delete()
-        self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '+250788123123',
+        self.channel = Channel.create(self.org, self.user, 'RW', 'JNU', None, '+250788123123',
                                       role=Channel.ROLE_USSD + Channel.DEFAULT_ROLE)
         flow = self.get_flow('ussd_example')
 
@@ -4295,7 +4295,7 @@ class SimulationTest(FlowFileTest):
     @patch('temba.ussd.models.USSDSession.handle_incoming')
     def test_ussd_simulation_interrupt(self, handle_incoming):
         self.channel.delete()
-        self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '+250788123123',
+        self.channel = Channel.create(self.org, self.user, 'RW', 'JNU', None, '+250788123123',
                                       role=Channel.ROLE_USSD + Channel.DEFAULT_ROLE)
         flow = self.get_flow('ussd_example')
 
@@ -4316,7 +4316,7 @@ class SimulationTest(FlowFileTest):
 
     def test_ussd_simulation_connection_end(self):
         self.ussd_channel = Channel.create(
-            self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '*123#',
+            self.org, self.user, 'RW', 'JNU', None, '*123#',
             schemes=['tel'], uuid='00000000-0000-0000-0000-000000002222',
             role=Channel.ROLE_USSD)
 
@@ -6061,7 +6061,7 @@ class FlowsTest(FlowFileTest):
     def test_interrupted_state(self):
         self.channel.delete()
         # Create a USSD channel type to test USSDSession.INTERRUPTED status
-        self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '+250788123123',
+        self.channel = Channel.create(self.org, self.user, 'RW', 'JNU', None, '+250788123123',
                                       role=Channel.ROLE_USSD)
 
         flow = self.get_flow('ussd_interrupt_example')
@@ -6085,7 +6085,7 @@ class FlowsTest(FlowFileTest):
     def test_empty_interrupt_state(self):
         self.channel.delete()
         # Create a USSD channel type to test USSDSession.INTERRUPTED status
-        self.channel = Channel.create(self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '+250788123123',
+        self.channel = Channel.create(self.org, self.user, 'RW', 'JNU', None, '+250788123123',
                                       role=Channel.ROLE_USSD)
 
         flow = self.get_flow('ussd_interrupt_example')
@@ -7611,7 +7611,7 @@ class FlowChannelSelectionTest(FlowFileTest):
             schemes=['tel'], uuid='00000000-0000-0000-0000-000000001111',
             role=Channel.DEFAULT_ROLE)
         self.ussd_channel = Channel.create(
-            self.org, self.user, 'RW', Channel.TYPE_JUNEBUG_USSD, None, '*123#',
+            self.org, self.user, 'RW', 'JNU', None, '*123#',
             schemes=['tel'], uuid='00000000-0000-0000-0000-000000002222',
             role=Channel.ROLE_USSD)
 
