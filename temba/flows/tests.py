@@ -7607,7 +7607,7 @@ class FlowChannelSelectionTest(FlowFileTest):
         super(FlowChannelSelectionTest, self).setUp()
         self.channel.delete()
         self.sms_channel = Channel.create(
-            self.org, self.user, 'RW', Channel.TYPE_JUNEBUG, None, '+250788123123',
+            self.org, self.user, 'RW', 'JN', None, '+250788123123',
             schemes=['tel'], uuid='00000000-0000-0000-0000-000000001111',
             role=Channel.DEFAULT_ROLE)
         self.ussd_channel = Channel.create(
