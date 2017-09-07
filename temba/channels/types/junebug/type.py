@@ -51,7 +51,7 @@ class JunebugType(ChannelType):
             reverse('handlers.junebug_handler',
                     args=['event', channel.uuid]))
 
-        is_ussd = self.is_ussd
+        is_ussd = Channel.get_type_from_code(channel.channel_type).has_ussd_support(channel)
 
         # build our payload
         payload = dict()
