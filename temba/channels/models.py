@@ -6,7 +6,6 @@ import phonenumbers
 import plivo
 import regex
 import requests
-import re
 import six
 import time
 import urlparse
@@ -27,7 +26,7 @@ from django.db.models import Q, Max, Sum
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
-from django.utils.http import urlencode, urlquote_plus
+from django.utils.http import urlquote_plus
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from django_countries.fields import CountryField
@@ -47,7 +46,7 @@ from temba.utils.models import SquashableModel, TembaModel, generate_uuid
 from time import sleep
 from twilio import twiml, TwilioRestException
 from uuid import uuid4
-from xml.sax.saxutils import quoteattr, escape
+from xml.sax.saxutils import escape
 
 logger = logging.getLogger(__name__)
 
@@ -164,29 +163,12 @@ class ChannelType(six.with_metaclass(ABCMeta)):
 
 @six.python_2_unicode_compatible
 class Channel(TembaModel):
-    TYPE_AFRICAS_TALKING = 'AT'
     TYPE_ANDROID = 'A'
-    TYPE_BLACKMYNA = 'BM'
-    TYPE_CHIKKA = 'CK'
-    TYPE_CLICKATELL = 'CT'
-    TYPE_DARTMEDIA = 'DA'
     TYPE_DUMMY = 'DM'
-    TYPE_GLOBE = 'GL'
-    TYPE_HIGH_CONNECTION = 'HX'
-    TYPE_HUB9 = 'H9'
-    TYPE_JASMIN = 'JS'
     TYPE_JUNEBUG = 'JN'
     TYPE_JUNEBUG_USSD = 'JNU'
-    TYPE_KANNEL = 'KN'
-    TYPE_MACROKIOSK = 'MK'
-    TYPE_M3TECH = 'M3'
-    TYPE_MBLOX = 'MB'
     TYPE_NEXMO = 'NX'
     TYPE_PLIVO = 'PL'
-    TYPE_RED_RABBIT = 'RR'
-    TYPE_SHAQODOON = 'SQ'
-    TYPE_SMSCENTRAL = 'SC'
-    TYPE_START = 'ST'
     TYPE_TWILIO = 'T'
     TYPE_TWIML = 'TW'
     TYPE_TWILIO_MESSAGING_SERVICE = 'TMS'
@@ -194,8 +176,6 @@ class Channel(TembaModel):
     TYPE_VIBER = 'VI'
     TYPE_VUMI = 'VM'
     TYPE_VUMI_USSD = 'VMU'
-    TYPE_YO = 'YO'
-    TYPE_ZENVIA = 'ZV'
 
     # keys for various config options stored in the channel config dict
     CONFIG_SEND_URL = 'send_url'
@@ -272,29 +252,12 @@ class Channel(TembaModel):
 
     # various hard coded settings for the channel types
     CHANNEL_SETTINGS = {
-        TYPE_AFRICAS_TALKING: dict(schemes=['tel'], max_length=160),
         TYPE_ANDROID: dict(schemes=['tel'], max_length=-1),
-        TYPE_BLACKMYNA: dict(schemes=['tel'], max_length=1600),
-        TYPE_CHIKKA: dict(schemes=['tel'], max_length=160),
-        TYPE_CLICKATELL: dict(schemes=['tel'], max_length=420),
-        TYPE_DARTMEDIA: dict(schemes=['tel'], max_length=160),
         TYPE_DUMMY: dict(schemes=['tel'], max_length=160),
-        TYPE_GLOBE: dict(schemes=['tel'], max_length=160),
-        TYPE_HIGH_CONNECTION: dict(schemes=['tel'], max_length=1500),
-        TYPE_HUB9: dict(schemes=['tel'], max_length=1600),
-        TYPE_JASMIN: dict(schemes=['tel'], max_length=1600),
         TYPE_JUNEBUG: dict(schemes=['tel'], max_length=1600),
         TYPE_JUNEBUG_USSD: dict(schemes=['tel'], max_length=1600),
-        TYPE_KANNEL: dict(schemes=['tel'], max_length=1600),
-        TYPE_MACROKIOSK: dict(schemes=['tel'], max_length=1600),
-        TYPE_M3TECH: dict(schemes=['tel'], max_length=160),
         TYPE_NEXMO: dict(schemes=['tel'], max_length=1600, max_tps=1),
-        TYPE_MBLOX: dict(schemes=['tel'], max_length=459),
         TYPE_PLIVO: dict(schemes=['tel'], max_length=1600),
-        TYPE_RED_RABBIT: dict(schemes=['tel'], max_length=1600),
-        TYPE_SHAQODOON: dict(schemes=['tel'], max_length=1600),
-        TYPE_SMSCENTRAL: dict(schemes=['tel'], max_length=1600, max_tps=1),
-        TYPE_START: dict(schemes=['tel'], max_length=1600),
         TYPE_TWILIO: dict(schemes=['tel'], max_length=1600),
         TYPE_TWIML: dict(schemes=['tel'], max_length=1600),
         TYPE_TWILIO_MESSAGING_SERVICE: dict(schemes=['tel'], max_length=1600),
@@ -302,52 +265,29 @@ class Channel(TembaModel):
         TYPE_VIBER: dict(schemes=['tel'], max_length=1000),
         TYPE_VUMI: dict(schemes=['tel'], max_length=1600),
         TYPE_VUMI_USSD: dict(schemes=['tel'], max_length=182),
-        TYPE_YO: dict(schemes=['tel'], max_length=1600),
-        TYPE_ZENVIA: dict(schemes=['tel'], max_length=150),
     }
 
-    TYPE_CHOICES = ((TYPE_AFRICAS_TALKING, "Africa's Talking"),
-                    (TYPE_ANDROID, "Android"),
-                    (TYPE_BLACKMYNA, "Blackmyna"),
-                    (TYPE_CHIKKA, "Chikka"),
-                    (TYPE_CLICKATELL, "Clickatell"),
-                    (TYPE_DARTMEDIA, "Dart Media"),
+    TYPE_CHOICES = ((TYPE_ANDROID, "Android"),
                     (TYPE_DUMMY, "Dummy"),
-                    (TYPE_GLOBE, "Globe Labs"),
-                    (TYPE_HIGH_CONNECTION, "High Connection"),
-                    (TYPE_HUB9, "Hub9"),
-                    (TYPE_JASMIN, "Jasmin"),
                     (TYPE_JUNEBUG, "Junebug"),
                     (TYPE_JUNEBUG_USSD, "Junebug USSD"),
-                    (TYPE_KANNEL, "Kannel"),
-                    (TYPE_MACROKIOSK, "Macrokiosk"),
-                    (TYPE_M3TECH, "M3 Tech"),
-                    (TYPE_MBLOX, "Mblox"),
                     (TYPE_NEXMO, "Nexmo"),
                     (TYPE_PLIVO, "Plivo"),
-                    (TYPE_RED_RABBIT, "Red Rabbit"),
-                    (TYPE_SHAQODOON, "Shaqodoon"),
-                    (TYPE_SMSCENTRAL, "SMSCentral"),
-                    (TYPE_START, "Start Mobile"),
                     (TYPE_TWILIO, "Twilio"),
                     (TYPE_TWIML, "TwiML Rest API"),
                     (TYPE_TWILIO_MESSAGING_SERVICE, "Twilio Messaging Service"),
                     (TYPE_VERBOICE, "Verboice"),
                     (TYPE_VIBER, "Viber"),
                     (TYPE_VUMI, "Vumi"),
-                    (TYPE_VUMI_USSD, "Vumi USSD"),
-                    (TYPE_YO, "Yo!"),
-                    (TYPE_ZENVIA, "Zenvia"))
+                    (TYPE_VUMI_USSD, "Vumi USSD"))
 
     TYPE_ICONS = {
         TYPE_ANDROID: "icon-channel-android",
-        TYPE_KANNEL: "icon-channel-kannel",
         TYPE_NEXMO: "icon-channel-nexmo",
         TYPE_TWILIO: "icon-channel-twilio",
         TYPE_TWIML: "icon-channel-twilio",
         TYPE_TWILIO_MESSAGING_SERVICE: "icon-channel-twilio",
         TYPE_PLIVO: "icon-channel-plivo",
-        TYPE_CLICKATELL: "icon-channel-clickatell",
         TYPE_VIBER: "icon-viber"
     }
 
@@ -715,14 +655,14 @@ class Channel(TembaModel):
     def add_africas_talking_channel(cls, org, user, country, phone, username, api_key, is_shared=False):
         config = dict(username=username, api_key=api_key, is_shared=is_shared)
 
-        return Channel.create(org, user, country, Channel.TYPE_AFRICAS_TALKING,
+        return Channel.create(org, user, country, 'AT',
                               name="Africa's Talking: %s" % phone, address=phone, config=config)
 
     @classmethod
     def add_zenvia_channel(cls, org, user, phone, account, code):
         config = dict(account=account, code=code)
 
-        return Channel.create(org, user, 'BR', Channel.TYPE_ZENVIA, name="Zenvia: %s" % phone, address=phone, config=config)
+        return Channel.create(org, user, 'BR', 'ZV', name="Zenvia: %s" % phone, address=phone, config=config)
 
     @classmethod
     def add_send_channel(cls, user, channel):
@@ -1343,94 +1283,6 @@ class Channel(TembaModel):
                                       CHATBASE_TYPE_AGENT)
 
     @classmethod
-    def send_red_rabbit_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-        encoding, text = Channel.determine_encoding(text, replace=True)
-
-        # http://http1.javna.com/epicenter/gatewaysendG.asp?LoginName=xxxx&Password=xxxx&Tracking=1&Mobtyp=1&MessageRecipients=962796760057&MessageBody=hi&SenderName=Xxx
-        params = dict()
-        params['LoginName'] = channel.config[Channel.CONFIG_USERNAME]
-        params['Password'] = channel.config[Channel.CONFIG_PASSWORD]
-        params['Tracking'] = 1
-        params['Mobtyp'] = 1
-        params['MessageRecipients'] = msg.urn_path.lstrip('+')
-        params['MessageBody'] = text
-        params['SenderName'] = channel.address.lstrip('+')
-
-        # we are unicode
-        if encoding == Encoding.UNICODE:
-            params['Msgtyp'] = 10 if len(text) >= 70 else 9
-        elif len(text) > 160:
-            params['Msgtyp'] = 5
-
-        url = 'http://http1.javna.com/epicenter/GatewaySendG.asp'
-        event = HttpEvent('GET', url + '?' + urlencode(params))
-        start = time.time()
-
-        try:
-            response = requests.get(url, params=params, headers=TEMBA_HEADERS, timeout=15)
-            event.status_code = response.status_code
-            event.response_body = response.text
-
-        except Exception as e:  # pragma: no cover
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        Channel.success(channel, msg, WIRED, start, event=event)
-
-    @classmethod
-    def send_jasmin_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-        from temba.utils import gsm7
-
-        # build our callback dlr url, jasmin will call this when our message is sent or delivered
-        dlr_url = 'https://%s%s' % (settings.HOSTNAME, reverse('handlers.jasmin_handler', args=['status', channel.uuid]))
-
-        # encode to GSM7
-        encoded = gsm7.encode(text, 'replace')[0]
-
-        # build our payload
-        payload = dict()
-        payload['from'] = channel.address.lstrip('+')
-        payload['to'] = msg.urn_path.lstrip('+')
-        payload['username'] = channel.config[Channel.CONFIG_USERNAME]
-        payload['password'] = channel.config[Channel.CONFIG_PASSWORD]
-        payload['dlr'] = dlr_url
-        payload['dlr-level'] = '2'
-        payload['dlr-method'] = 'POST'
-        payload['coding'] = '0'
-        payload['content'] = encoded
-
-        log_payload = payload.copy()
-        log_payload['password'] = 'x' * len(log_payload['password'])
-
-        log_url = channel.config[Channel.CONFIG_SEND_URL] + "?" + urlencode(log_payload)
-        start = time.time()
-
-        event = HttpEvent('GET', log_url, log_payload)
-
-        try:
-            response = requests.get(channel.config[Channel.CONFIG_SEND_URL], verify=True, params=payload, timeout=15)
-            event.status_code = response.status_code
-            event.response_body = response.text
-
-        except Exception as e:
-            raise SendException(six.text_type(e),
-                                event=event, start=start)
-
-        if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from Jasmin" % response.status_code,
-                                event=event, start=start)
-
-        # save the external id, response should be in format:
-        # Success "07033084-5cfd-4812-90a4-e4d24ffb6e3d"
-        external_id = None
-        match = re.match(r"Success \"(.*)\"", response.text)
-        if match:
-            external_id = match.group(1)
-
-        Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)
-
-    @classmethod
     def send_junebug_message(cls, channel, msg, text):
         from temba.msgs.models import WIRED, Msg
         from temba.ussd.models import USSDSession
@@ -1515,171 +1367,6 @@ class Channel(TembaModel):
                                 start=start)
 
     @classmethod
-    def send_mblox_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-
-        # build our payload
-        payload = dict()
-        payload['from'] = channel.address.lstrip('+')
-        payload['to'] = [msg.urn_path.lstrip('+')]
-        payload['body'] = text
-        payload['delivery_report'] = 'per_recipient'
-
-        request_body = json.dumps(payload)
-
-        url = 'https://api.mblox.com/xms/v1/%s/batches' % channel.config[Channel.CONFIG_USERNAME]
-        headers = {'Content-Type': 'application/json',
-                   'Authorization': 'Bearer %s' % channel.config[Channel.CONFIG_PASSWORD]}
-
-        start = time.time()
-
-        event = HttpEvent('POST', url, request_body)
-
-        try:
-            response = requests.post(url, request_body, headers=headers, timeout=15)
-            event.status_code = response.status_code
-            event.response_body = response.text
-        except Exception as e:  # pragma: no cover
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from MBlox" % response.status_code,
-                                event=event, start=start)
-
-        # response in format:
-        # {
-        #  "id": "Oyi75urq5_yB",
-        #  "to": [ "593997290044" ],
-        #  "from": "18444651185",
-        #  "canceled": false,
-        #  "body": "Hello world.",
-        #  "type": "mt_text",
-        #  "created_at": "2016-03-30T17:55:03.683Z",
-        #  "modified_at": "2016-03-30T17:55:03.683Z",
-        #  "delivery_report": "none",
-        #  "expire_at": "2016-04-02T17:55:03.683Z"
-        # }
-
-        external_id = None
-        try:
-            response_json = response.json()
-            external_id = response_json['id']
-        except:  # pragma: no cover
-            raise SendException("Unable to parse response body from MBlox",
-                                event=event, start=start)
-
-        Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)
-
-    @classmethod
-    def send_kannel_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-
-        # build our callback dlr url, kannel will call this when our message is sent or delivered
-        dlr_url = 'https://%s%s?id=%d&status=%%d' % (settings.HOSTNAME, reverse('handlers.kannel_handler', args=['status', channel.uuid]), msg.id)
-        dlr_mask = 31
-
-        # build our payload
-        payload = dict()
-        payload['from'] = channel.address
-        payload['username'] = channel.config[Channel.CONFIG_USERNAME]
-        payload['password'] = channel.config[Channel.CONFIG_PASSWORD]
-        payload['text'] = text
-        payload['to'] = msg.urn_path
-        payload['dlr-url'] = dlr_url
-        payload['dlr-mask'] = dlr_mask
-
-        # if this a reply to a message, set a higher priority
-        if msg.response_to_id:
-            payload['priority'] = 1
-
-        # should our to actually be in national format?
-        use_national = channel.config.get(Channel.CONFIG_USE_NATIONAL, False)
-        if use_national:
-            # parse and remap our 'to' address
-            parsed = phonenumbers.parse(msg.urn_path)
-            payload['to'] = str(parsed.national_number)
-
-        # figure out if we should send encoding or do any of our own substitution
-        desired_encoding = channel.config.get(Channel.CONFIG_ENCODING, Channel.ENCODING_DEFAULT)
-
-        # they want unicode, they get unicode!
-        if desired_encoding == Channel.ENCODING_UNICODE:
-            payload['coding'] = '2'
-            payload['charset'] = 'utf8'
-
-        # otherwise, if this is smart encoding, try to derive it
-        elif desired_encoding == Channel.ENCODING_SMART:
-            # if this is smart encoding, figure out what encoding we will use
-            encoding, text = Channel.determine_encoding(text, replace=True)
-            payload['text'] = text
-
-            if encoding == Encoding.UNICODE:
-                payload['coding'] = '2'
-                payload['charset'] = 'utf8'
-
-        log_payload = payload.copy()
-        log_payload['password'] = 'x' * len(log_payload['password'])
-
-        url = channel.config[Channel.CONFIG_SEND_URL]
-        log_url = url
-        if log_url.find("?") >= 0:  # pragma: no cover
-            log_url += "&" + urlencode(log_payload)
-        else:
-            log_url += "?" + urlencode(log_payload)
-
-        event = HttpEvent('GET', log_url)
-        start = time.time()
-
-        try:
-            if channel.config.get(Channel.CONFIG_VERIFY_SSL, True):
-                response = requests.get(url, verify=True, params=payload, timeout=15)
-            else:
-                response = requests.get(url, verify=False, params=payload, timeout=15)
-
-            event.status_code = response.status_code
-            event.response_body = response.text
-        except Exception as e:
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from Kannel" % response.status_code,
-                                event=event, start=start)
-
-        Channel.success(channel, msg, WIRED, start, event=event)
-
-    @classmethod
-    def send_shaqodoon_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-
-        # requests are signed with a key built as follows:
-        # signing_key = md5(username|password|from|to|msg|key|current_date)
-        # where current_date is in the format: d/m/y H
-        payload = {'from': channel.address.lstrip('+'), 'to': msg.urn_path.lstrip('+'),
-                   'username': channel.config[Channel.CONFIG_USERNAME], 'password': channel.config[Channel.CONFIG_PASSWORD],
-                   'msg': text}
-
-        # build our send URL
-        url = channel.config[Channel.CONFIG_SEND_URL] + "?" + urlencode(payload)
-        start = time.time()
-
-        event = HttpEvent('GET', url)
-
-        try:
-            # these guys use a self signed certificate
-            response = requests.get(url, headers=TEMBA_HEADERS, timeout=15, verify=False)
-            event.status_code = response.status_code
-            event.response_body = response.text
-
-        except Exception as e:
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
-
-        Channel.success(channel, msg, WIRED, start, event=event)
-
-    @classmethod
     def send_dummy_message(cls, channel, msg, text):  # pragma: no cover
         from temba.msgs.models import WIRED
 
@@ -1692,285 +1379,6 @@ class Channel(TembaModel):
         event = HttpEvent('GET', 'http://fake')
 
         # record the message as sent
-        Channel.success(channel, msg, WIRED, start, event=event)
-
-    @classmethod
-    def send_chikka_message(cls, channel, msg, text):
-        from temba.msgs.models import Msg, WIRED
-
-        payload = {
-            'message_type': 'SEND',
-            'mobile_number': msg.urn_path.lstrip('+'),
-            'shortcode': channel.address,
-            'message_id': msg.id,
-            'message': text,
-            'request_cost': 'FREE',
-            'client_id': channel.config[Channel.CONFIG_USERNAME],
-            'secret_key': channel.config[Channel.CONFIG_PASSWORD]
-        }
-
-        # if this is a response to a user SMS, then we need to set this as a reply
-        # response ids are only valid for up to 24 hours
-        response_window = timedelta(hours=24)
-        if msg.response_to_id and msg.created_on > timezone.now() - response_window:
-            response_to = Msg.objects.filter(id=msg.response_to_id).first()
-            if response_to:
-                payload['message_type'] = 'REPLY'
-                payload['request_id'] = response_to.external_id
-
-        # build our send URL
-        url = 'https://post.chikka.com/smsapi/request'
-        start = time.time()
-
-        log_payload = payload.copy()
-        log_payload['secret_key'] = 'x' * len(log_payload['secret_key'])
-
-        event = HttpEvent('POST', url, log_payload)
-        events = [event]
-
-        try:
-            response = requests.post(url, data=payload, headers=TEMBA_HEADERS, timeout=5)
-            event.status_code = response.status_code
-            event.response_body = response.text
-        except Exception as e:
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        # if they reject our request_id, send it as a normal send
-        if response.status_code == 400 and 'request_id' in payload:
-            error = response.json()
-            if error.get('message', None) == 'BAD REQUEST' and error.get('description', None) == 'Invalid/Used Request ID':
-                try:
-
-                    # operate on a copy so we can still inspect our original call
-                    payload = payload.copy()
-                    del payload['request_id']
-                    payload['message_type'] = 'SEND'
-
-                    event = HttpEvent('POST', url, payload)
-                    events.append(event)
-
-                    response = requests.post(url, data=payload, headers=TEMBA_HEADERS, timeout=5)
-                    event.status_code = response.status_code
-                    event.response_body = response.text
-
-                    log_payload = payload.copy()
-                    log_payload['secret_key'] = 'x' * len(log_payload['secret_key'])
-
-                except Exception as e:
-                    raise SendException(six.text_type(e), events=events, start=start)
-
-        if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                events=events, start=start)
-
-        Channel.success(channel, msg, WIRED, start, events=events)
-
-    @classmethod
-    def send_high_connection_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-
-        payload = {
-            'accountid': channel.config[Channel.CONFIG_USERNAME],
-            'password': channel.config[Channel.CONFIG_PASSWORD],
-            'text': text,
-            'to': msg.urn_path,
-            'ret_id': msg.id,
-            'datacoding': 8,
-            'userdata': 'textit',
-            'ret_url': 'https://%s%s' % (settings.HOSTNAME, reverse('handlers.hcnx_handler', args=['status', channel.uuid])),
-            'ret_mo_url': 'https://%s%s' % (settings.HOSTNAME, reverse('handlers.hcnx_handler', args=['receive', channel.uuid]))
-        }
-
-        # build our send URL
-        url = 'https://highpushfastapi-v2.hcnx.eu/api' + '?' + urlencode(payload)
-        log_payload = urlencode(payload)
-        start = time.time()
-
-        event = HttpEvent('GET', url, log_payload)
-
-        try:
-            response = requests.get(url, headers=TEMBA_HEADERS, timeout=30)
-            event.status_code = response.status_code
-            event.response_body = response.text
-        except Exception as e:
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
-
-        Channel.success(channel, msg, WIRED, start, event=event)
-
-    @classmethod
-    def send_blackmyna_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-
-        payload = {
-            'address': msg.urn_path,
-            'senderaddress': channel.address,
-            'message': text,
-        }
-
-        url = 'http://api.blackmyna.com/2/smsmessaging/outbound'
-        external_id = None
-        start = time.time()
-
-        event = HttpEvent('POST', url, payload)
-
-        try:
-            response = requests.post(url, data=payload, headers=TEMBA_HEADERS, timeout=30,
-                                     auth=(channel.config[Channel.CONFIG_USERNAME], channel.config[Channel.CONFIG_PASSWORD]))
-            # parse our response, should be JSON that looks something like:
-            # [{
-            #   "recipient" : recipient_number_1,
-            #   "id" : Unique_identifier (universally unique identifier UUID)
-            # }]
-            event.status_code = response.status_code
-            event.response_body = response.text
-
-            response_json = response.json()
-
-            # we only care about the first piece
-            if response_json and len(response_json) > 0:
-                external_id = response_json[0].get('id', None)
-
-        except Exception as e:
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:  # pragma: needs cover
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
-
-        Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)
-
-    @classmethod
-    def send_start_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-
-        url = 'http://bulk.startmobile.com.ua/clients.php'
-        post_body = u"""
-          <message>
-            <service id="single" source=$$FROM$$ validity=$$VALIDITY$$/>
-            <to>$$TO$$</to>
-            <body content-type="plain/text" encoding="plain">$$BODY$$</body>
-          </message>
-        """
-        post_body = post_body.replace("$$FROM$$", quoteattr(channel.address))
-
-        # tell Start to attempt to deliver this message for up to 12 hours
-        post_body = post_body.replace("$$VALIDITY$$", quoteattr("+12 hours"))
-        post_body = post_body.replace("$$TO$$", escape(msg.urn_path))
-        post_body = post_body.replace("$$BODY$$", escape(text))
-        event = HttpEvent('POST', url, post_body)
-        post_body = post_body.encode('utf8')
-
-        start = time.time()
-        try:
-            headers = {'Content-Type': 'application/xml; charset=utf8'}
-            headers.update(TEMBA_HEADERS)
-
-            response = requests.post(url,
-                                     data=post_body,
-                                     headers=headers,
-                                     auth=(channel.config[Channel.CONFIG_USERNAME], channel.config[Channel.CONFIG_PASSWORD]),
-                                     timeout=30)
-
-            event.status_code = response.status_code
-            event.response_body = response.text
-
-        except Exception as e:
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        if (response.status_code != 200 and response.status_code != 201) or response.text.find("error") >= 0:
-            raise SendException("Error Sending Message", event=event, start=start)
-
-        # parse out our id, this is XML but we only care about the id
-        external_id = None
-        start_idx = response.text.find("<id>")
-        end_idx = response.text.find("</id>")
-        if end_idx > start_idx > 0:
-            external_id = response.text[start_idx + 4:end_idx]
-
-        Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)
-
-    @classmethod
-    def send_macrokiosk_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-
-        # determine our encoding
-        encoding, text = Channel.determine_encoding(text, replace=True)
-
-        # if this looks like unicode, ask macrokiosk to send as unicode
-        if encoding == Encoding.UNICODE:
-            message_type = 5
-        else:
-            message_type = 0
-
-        # strip a leading +
-        recipient = msg.urn_path[1:] if msg.urn_path.startswith('+') else msg.urn_path
-
-        data = {
-            'user': channel.config[Channel.CONFIG_USERNAME], 'pass': channel.config[Channel.CONFIG_PASSWORD],
-            'to': recipient, 'text': text, 'from': channel.config[Channel.CONFIG_MACROKIOSK_SENDER_ID],
-            'servid': channel.config[Channel.CONFIG_MACROKIOSK_SERVICE_ID], 'type': message_type
-        }
-
-        url = 'https://www.etracker.cc/bulksms/send'
-        payload = json.dumps(data)
-
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        headers.update(TEMBA_HEADERS)
-
-        event = HttpEvent('POST', url, payload)
-
-        start = time.time()
-
-        try:
-            response = requests.post(url, json=data, headers=headers, timeout=30)
-            event.status_code = response.status_code
-            event.response_body = response.text
-
-            external_id = response.json().get('msgid', None)
-
-        except Exception as e:
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        if response.status_code not in [200, 201, 202]:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
-
-        Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)
-
-    @classmethod
-    def send_smscentral_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-
-        # strip a leading +
-        mobile = msg.urn_path[1:] if msg.urn_path.startswith('+') else msg.urn_path
-
-        payload = {
-            'user': channel.config[Channel.CONFIG_USERNAME], 'pass': channel.config[Channel.CONFIG_PASSWORD], 'mobile': mobile, 'content': text,
-        }
-
-        url = 'http://smail.smscentral.com.np/bp/ApiSms.php'
-        log_payload = urlencode(payload)
-
-        event = HttpEvent('POST', url, log_payload)
-
-        start = time.time()
-
-        try:
-            response = requests.post(url, data=payload, headers=TEMBA_HEADERS, timeout=30)
-            event.status_code = response.status_code
-            event.response_body = response.text
-
-        except Exception as e:
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
-
         Channel.success(channel, msg, WIRED, start, event=event)
 
     @classmethod
@@ -2059,45 +1467,6 @@ class Channel(TembaModel):
         Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)
 
     @classmethod
-    def send_globe_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-
-        payload = {
-            'address': msg.urn_path.lstrip('+'),
-            'message': text,
-            'passphrase': channel.config['passphrase'],
-            'app_id': channel.config['app_id'],
-            'app_secret': channel.config['app_secret']
-        }
-        headers = dict(TEMBA_HEADERS)
-
-        url = 'https://devapi.globelabs.com.ph/smsmessaging/v1/outbound/%s/requests' % channel.address
-
-        event = HttpEvent('POST', url, json.dumps(payload))
-
-        start = time.time()
-
-        try:
-            response = requests.post(url,
-                                     data=payload,
-                                     headers=headers,
-                                     timeout=5)
-            event.status_code = response.status_code
-            event.response_body = response.text
-
-        except Exception as e:
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        if response.status_code != 200 and response.status_code != 201:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
-
-        # parse our response
-        response.json()
-
-        Channel.success(channel, msg, WIRED, start, event=event)
-
-    @classmethod
     def send_nexmo_message(cls, channel, msg, text):
         from temba.msgs.models import SENT
         from temba.orgs.models import NEXMO_KEY, NEXMO_SECRET, NEXMO_APP_ID, NEXMO_APP_PRIVATE_KEY
@@ -2122,225 +1491,6 @@ class Channel(TembaModel):
                     raise e
 
         Channel.success(channel, msg, SENT, start, event=event, external_id=message_id)
-
-    @classmethod
-    def send_yo_message(cls, channel, msg, text):
-        from temba.msgs.models import SENT
-        from temba.contacts.models import Contact
-
-        # build our message dict
-        params = dict(origin=channel.address.lstrip('+'),
-                      sms_content=text,
-                      destinations=msg.urn_path.lstrip('+'),
-                      ybsacctno=channel.config['username'],
-                      password=channel.config['password'])
-        log_params = params.copy()
-        log_params['password'] = 'x' * len(log_params['password'])
-
-        start = time.time()
-        failed = False
-        fatal = False
-        events = []
-
-        for send_url in [Channel.YO_API_URL_1, Channel.YO_API_URL_2, Channel.YO_API_URL_3]:
-            url = send_url + '?' + urlencode(params)
-            log_url = send_url + '?' + urlencode(log_params)
-
-            event = HttpEvent('GET', log_url)
-            events.append(event)
-
-            failed = False
-            try:
-                response = requests.get(url, headers=TEMBA_HEADERS, timeout=5)
-                event.status_code = response.status_code
-                event.response_body = response.text
-
-                response_qs = urlparse.parse_qs(response.text)
-            except Exception:
-                failed = True
-
-            if not failed and response.status_code != 200 and response.status_code != 201:
-                failed = True
-
-            # if it wasn't successfully delivered, throw
-            if not failed and response_qs.get('ybs_autocreate_status', [''])[0] != 'OK':
-                failed = True
-
-            # check if we failed permanently (they blocked us)
-            if failed and response_qs.get('ybs_autocreate_message', [''])[0].find('BLACKLISTED') >= 0:
-                contact = Contact.objects.get(id=msg.contact)
-                contact.stop(contact.modified_by)
-                fatal = True
-                break
-
-            # if we sent the message, then move on
-            if not failed:
-                break
-
-        if failed:
-            raise SendException("Received error from Yo! API",
-                                events=events, fatal=fatal, start=start)
-
-        Channel.success(channel, msg, SENT, start, events=events)
-
-    @classmethod
-    def send_hub9_or_dartmedia_message(cls, channel, msg, text):
-        from temba.msgs.models import SENT
-
-        # http://175.103.48.29:28078/testing/smsmt.php?
-        #   userid=xxx
-        #   &password=xxxx
-        #   &original=6282881134567
-        #   &sendto=628159152565
-        #   &messagetype=0
-        #   &messageid=1897869768
-        #   &message=Test+Normal+Single+Message&dcs=0
-        #   &udhl=0&charset=utf-8
-        #
-        if channel.channel_type == Channel.TYPE_HUB9:
-            url = HUB9_ENDPOINT
-        elif channel.channel_type == Channel.TYPE_DARTMEDIA:
-            url = DART_MEDIA_ENDPOINT
-
-        payload = dict(userid=channel.config['username'], password=channel.config['password'],
-                       original=channel.address.lstrip('+'), sendto=msg.urn_path.lstrip('+'),
-                       messageid=msg.id, message=text, dcs=0, udhl=0)
-
-        # build up our querystring and send it as a get
-        send_url = "%s?%s" % (url, urlencode(payload))
-        payload['password'] = 'x' * len(payload['password'])
-        masked_url = "%s?%s" % (url, urlencode(payload))
-
-        event = HttpEvent('GET', masked_url)
-
-        start = time.time()
-
-        try:
-            response = requests.get(send_url, headers=TEMBA_HEADERS, timeout=15)
-            event.status_code = response.status_code
-            event.response_body = response.text
-            if not response:  # pragma: no cover
-                raise SendException("Unable to send message",
-                                    event=event, start=start)
-
-            if response.status_code != 200 and response.status_code != 201:
-                raise SendException("Received non 200 status: %d" % response.status_code,
-                                    event=event, start=start)
-
-            # if it wasn't successfully delivered, throw
-            if response.text != "000":  # pragma: no cover
-                error = "Unknown error"
-                if response.text == "001":
-                    error = "Error 001: Authentication Error"
-                elif response.text == "101":
-                    error = "Error 101: Account expired or invalid parameters"
-
-                raise SendException(error, event=event, start=start)
-
-            Channel.success(channel, msg, SENT, start, event=event)
-
-        except SendException as e:
-            raise e
-        except Exception as e:  # pragma: no cover
-            reason = "Unknown error"
-            try:
-                if e.message and e.message.reason:
-                    reason = e.message.reason
-            except Exception:
-                pass
-            raise SendException(u"Unable to send message: %s" % six.text_type(reason)[:64],
-                                event=event, start=start)
-
-    @classmethod
-    def send_zenvia_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-
-        # Zenvia accepts messages via a GET
-        # http://www.zenvia360.com.br/GatewayIntegration/msgSms.do?dispatch=send&account=temba&
-        # code=abc123&to=5511996458779&msg=my message content&id=123&callbackOption=1
-        payload = dict(dispatch='send',
-                       account=channel.config['account'],
-                       code=channel.config['code'],
-                       msg=text,
-                       to=msg.urn_path,
-                       id=msg.id,
-                       callbackOption=1)
-
-        zenvia_url = "http://www.zenvia360.com.br/GatewayIntegration/msgSms.do"
-        headers = {'Content-Type': "text/html", 'Accept-Charset': 'ISO-8859-1'}
-        headers.update(TEMBA_HEADERS)
-
-        event = HttpEvent('POST', zenvia_url, urlencode(payload))
-
-        start = time.time()
-
-        try:
-            response = requests.get(zenvia_url, params=payload, headers=headers, timeout=5)
-            event.status_code = response.status_code
-            event.response_body = response.text
-
-        except Exception as e:
-            raise SendException(u"Unable to send message: %s" % six.text_type(e),
-                                event=event, start=start)
-
-        if response.status_code != 200 and response.status_code != 201:
-            raise SendException("Got non-200 response from API: %d" % response.status_code,
-                                event=event, start=start)
-
-        response_code = int(response.text[:3])
-
-        if response_code != 0:
-            raise Exception("Got non-zero response from Zenvia: %s" % response.text)
-
-        Channel.success(channel, msg, WIRED, start, event=event)
-
-    @classmethod
-    def send_africas_talking_message(cls, channel, msg, text):
-        from temba.msgs.models import SENT
-
-        payload = dict(username=channel.config['username'],
-                       to=msg.urn_path,
-                       message=text)
-
-        # if this isn't a shared shortcode, send the from address
-        if not channel.config.get('is_shared', False):
-            payload['from'] = channel.address
-
-        headers = dict(Accept='application/json', apikey=channel.config['api_key'])
-        headers.update(TEMBA_HEADERS)
-
-        api_url = "https://api.africastalking.com/version1/messaging"
-
-        event = HttpEvent('POST', api_url, urlencode(payload))
-
-        start = time.time()
-
-        try:
-            response = requests.post(api_url,
-                                     data=payload, headers=headers, timeout=5)
-            event.status_code = response.status_code
-            event.response_body = response.text
-        except Exception as e:
-            raise SendException(u"Unable to send message: %s" % six.text_type(e),
-                                event=event, start=start)
-
-        if response.status_code != 200 and response.status_code != 201:
-            raise SendException("Got non-200 response from API: %d" % response.status_code,
-                                event=event, start=start)
-
-        response_data = response.json()
-
-        # grab the status out of our response
-        status = response_data['SMSMessageData']['Recipients'][0]['status']
-        if status != 'Success':
-            raise SendException("Got non success status from API: %s" % status,
-                                event=event, start=start)
-
-        # set our external id so we know when it is actually sent, this is missing in cases where
-        # it wasn't sent, in which case we'll become an errored message
-        external_id = response_data['SMSMessageData']['Recipients'][0]['messageId']
-
-        Channel.success(channel, msg, SENT, start, event=event, external_id=external_id)
 
     @classmethod
     def send_twilio_message(cls, channel, msg, text):
@@ -2398,58 +1548,6 @@ class Channel(TembaModel):
             raise SendException(six.text_type(e), events=client.messages.events)
 
     @classmethod
-    def send_clickatell_message(cls, channel, msg, text):
-        """
-        Sends a message to Clickatell, they expect a GET in the following format:
-             https://api.clickatell.com/http/sendmsg?api_id=xxx&user=xxxx&password=xxxx&to=xxxxx&text=xxxx
-        """
-        from temba.msgs.models import WIRED
-
-        # determine our encoding
-        encoding, text = Channel.determine_encoding(text, replace=True)
-
-        # if this looks like unicode, ask clickatell to send as unicode
-        if encoding == Encoding.UNICODE:
-            unicode_switch = 1
-        else:
-            unicode_switch = 0
-
-        url = 'https://api.clickatell.com/http/sendmsg'
-        payload = {'api_id': channel.config[Channel.CONFIG_API_ID],
-                   'user': channel.config[Channel.CONFIG_USERNAME],
-                   'password': channel.config[Channel.CONFIG_PASSWORD],
-                   'from': channel.address.lstrip('+'),
-                   'concat': 3,
-                   'callback': 7,
-                   'mo': 1,
-                   'unicode': unicode_switch,
-                   'to': msg.urn_path.lstrip('+'),
-                   'text': text}
-
-        event = HttpEvent('GET', url + "?" + urlencode(payload))
-
-        start = time.time()
-
-        try:
-            response = requests.get(url, params=payload, headers=TEMBA_HEADERS, timeout=5)
-            event.status_code = response.status_code
-            event.response_body = response.text
-
-        except Exception as e:
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
-
-        # parse out the external id for the message, comes in the format: "ID: id12312312312"
-        external_id = None
-        if response.text.startswith("ID: "):
-            external_id = response.text[4:]
-
-        Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)
-
-    @classmethod
     def send_plivo_message(cls, channel, msg, text):
         import plivo
         from temba.msgs.models import WIRED
@@ -2486,62 +1584,6 @@ class Channel(TembaModel):
 
         external_id = plivo_response['message_uuid'][0]
         Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)
-
-    @classmethod
-    def send_m3tech_message(cls, channel, msg, text):
-        from temba.msgs.models import WIRED
-
-        # determine our encoding
-        encoding, text = Channel.determine_encoding(text, replace=True)
-
-        # if this looks like unicode, ask m3tech to send as unicode
-        if encoding == Encoding.UNICODE:
-            sms_type = '7'
-        else:
-            sms_type = '0'
-
-        url = 'https://secure.m3techservice.com/GenericServiceRestAPI/api/SendSMS'
-        payload = {'AuthKey': 'm3-Tech',
-                   'UserId': channel.config[Channel.CONFIG_USERNAME],
-                   'Password': channel.config[Channel.CONFIG_PASSWORD],
-                   'MobileNo': msg.urn_path.lstrip('+'),
-                   'MsgId': msg.id,
-                   'SMS': text,
-                   'MsgHeader': channel.address.lstrip('+'),
-                   'SMSType': sms_type,
-                   'HandsetPort': '0',
-                   'SMSChannel': '0',
-                   'Telco': '0'}
-
-        event = HttpEvent('GET', url + "?" + urlencode(payload))
-
-        start = time.time()
-
-        try:
-            response = requests.get(url, params=payload, headers=TEMBA_HEADERS, timeout=5)
-            event.status_code = response.status_code
-            event.response_body = response.text
-
-        except Exception as e:
-            raise SendException(six.text_type(e), event=event, start=start)
-
-        if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
-
-        # our response is JSON and should contain a 0 as a status code:
-        # [{"Response":"0"}]
-        try:
-            response_code = json.loads(response.text)[0]["Response"]
-        except Exception as e:
-            response_code = str(e)
-
-        # <Response>0</Response>
-        if response_code != "0":
-            raise SendException("Received non-zero status from API: %s" % str(response_code),
-                                event=event, start=start)
-
-        Channel.success(channel, msg, WIRED, start, event=event)
 
     @classmethod
     def send_viber_message(cls, channel, msg, text):
@@ -2790,36 +1832,17 @@ STATUS_DISCHARGING = "DIS"
 STATUS_NOT_CHARGING = "NOT"
 STATUS_FULL = "FUL"
 
-SEND_FUNCTIONS = {Channel.TYPE_AFRICAS_TALKING: Channel.send_africas_talking_message,
-                  Channel.TYPE_BLACKMYNA: Channel.send_blackmyna_message,
-                  Channel.TYPE_CHIKKA: Channel.send_chikka_message,
-                  Channel.TYPE_CLICKATELL: Channel.send_clickatell_message,
-                  Channel.TYPE_DARTMEDIA: Channel.send_hub9_or_dartmedia_message,
-                  Channel.TYPE_DUMMY: Channel.send_dummy_message,
-                  Channel.TYPE_GLOBE: Channel.send_globe_message,
-                  Channel.TYPE_HIGH_CONNECTION: Channel.send_high_connection_message,
-                  Channel.TYPE_HUB9: Channel.send_hub9_or_dartmedia_message,
-                  Channel.TYPE_JASMIN: Channel.send_jasmin_message,
+SEND_FUNCTIONS = {Channel.TYPE_DUMMY: Channel.send_dummy_message,
                   Channel.TYPE_JUNEBUG: Channel.send_junebug_message,
                   Channel.TYPE_JUNEBUG_USSD: Channel.send_junebug_message,
-                  Channel.TYPE_KANNEL: Channel.send_kannel_message,
-                  Channel.TYPE_M3TECH: Channel.send_m3tech_message,
-                  Channel.TYPE_MACROKIOSK: Channel.send_macrokiosk_message,
-                  Channel.TYPE_MBLOX: Channel.send_mblox_message,
                   Channel.TYPE_NEXMO: Channel.send_nexmo_message,
                   Channel.TYPE_PLIVO: Channel.send_plivo_message,
-                  Channel.TYPE_RED_RABBIT: Channel.send_red_rabbit_message,
-                  Channel.TYPE_SHAQODOON: Channel.send_shaqodoon_message,
-                  Channel.TYPE_SMSCENTRAL: Channel.send_smscentral_message,
-                  Channel.TYPE_START: Channel.send_start_message,
                   Channel.TYPE_TWILIO: Channel.send_twilio_message,
                   Channel.TYPE_TWIML: Channel.send_twilio_message,
                   Channel.TYPE_TWILIO_MESSAGING_SERVICE: Channel.send_twilio_message,
                   Channel.TYPE_VIBER: Channel.send_viber_message,
                   Channel.TYPE_VUMI: Channel.send_vumi_message,
-                  Channel.TYPE_VUMI_USSD: Channel.send_vumi_message,
-                  Channel.TYPE_YO: Channel.send_yo_message,
-                  Channel.TYPE_ZENVIA: Channel.send_zenvia_message}
+                  Channel.TYPE_VUMI_USSD: Channel.send_vumi_message}
 
 
 @six.python_2_unicode_compatible

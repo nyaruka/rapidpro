@@ -165,7 +165,7 @@ class OrgTest(TembaTest):
 
         self.org.timezone = pytz.timezone('Asia/Jakarta')
         self.org.save()
-        self.assertEquals(self.org.get_recommended_channel(), 'hub9')
+        self.assertEquals(self.org.get_recommended_channel(), 'dartmedia')
 
         self.org.timezone = pytz.timezone('Africa/Mogadishu')
         self.org.save()

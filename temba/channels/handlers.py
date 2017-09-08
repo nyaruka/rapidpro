@@ -335,7 +335,7 @@ class AfricasTalkingHandler(BaseChannelHandler):
         action = kwargs['action']
         channel_uuid = kwargs['uuid']
 
-        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type=Channel.TYPE_AFRICAS_TALKING).exclude(org=None).first()
+        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type='AT').exclude(org=None).first()
         if not channel:
             return HttpResponse("Channel with uuid: %s not found." % channel_uuid, status=404)
 
@@ -392,7 +392,7 @@ class ZenviaHandler(BaseChannelHandler):
         action = kwargs['action']
         channel_uuid = kwargs['uuid']
 
-        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type=Channel.TYPE_ZENVIA).exclude(org=None).first()
+        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type="ZV").exclude(org=None).first()
         if not channel:
             return HttpResponse("Channel with uuid: %s not found." % channel_uuid, status=404)
 
@@ -526,7 +526,7 @@ class ShaqodoonHandler(ExternalHandler):
     url_name = 'handlers.shaqodoon_handler'
 
     def get_channel_type(self):
-        return Channel.TYPE_SHAQODOON
+        return 'SQ'
 
 
 class YoHandler(ExternalHandler):
@@ -537,7 +537,7 @@ class YoHandler(ExternalHandler):
     url_name = 'handlers.yo_handler'
 
     def get_channel_type(self):
-        return Channel.TYPE_YO
+        return 'YO'
 
 
 class TelegramHandler(BaseChannelHandler):
@@ -766,7 +766,7 @@ class Hub9Handler(BaseChannelHandler):
     url_name = 'handlers.hub9_handler'
 
     def get_channel_type(self):
-        return Channel.TYPE_HUB9
+        return 'H9'
 
     def get(self, request, *args, **kwargs):
         from temba.msgs.models import Msg
@@ -830,7 +830,7 @@ class DartMediaHandler(Hub9Handler):
     url_name = 'handlers.dartmedia_handler'
 
     def get_channel_type(self):
-        return Channel.TYPE_DARTMEDIA
+        return "DA"
 
 
 class HighConnectionHandler(BaseChannelHandler):
@@ -845,7 +845,7 @@ class HighConnectionHandler(BaseChannelHandler):
         from temba.msgs.models import Msg
 
         channel_uuid = kwargs['uuid']
-        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type=Channel.TYPE_HIGH_CONNECTION).exclude(org=None).first()
+        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type='HX').exclude(org=None).first()
         if not channel:
             return HttpResponse("Channel with uuid: %s not found." % channel_uuid, status=400)
 
@@ -905,7 +905,7 @@ class BlackmynaHandler(BaseChannelHandler):
         from temba.msgs.models import Msg
 
         channel_uuid = kwargs['uuid']
-        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type=Channel.TYPE_BLACKMYNA).exclude(org=None).first()
+        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type='BM').exclude(org=None).first()
         if not channel:
             return HttpResponse("Channel with uuid: %s not found." % channel_uuid, status=400)
 
@@ -961,7 +961,7 @@ class SMSCentralHandler(BaseChannelHandler):
         from temba.msgs.models import Msg
 
         channel_uuid = kwargs['uuid']
-        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type=Channel.TYPE_SMSCENTRAL).exclude(org=None).first()
+        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type='SC').exclude(org=None).first()
         if not channel:
             return HttpResponse("Channel with uuid: %s not found." % channel_uuid, status=400)
 
@@ -993,7 +993,7 @@ class MacroKioskHandler(BaseChannelHandler):
         from temba.msgs.models import Msg
 
         channel_uuid = kwargs['uuid']
-        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type=Channel.TYPE_MACROKIOSK).exclude(org=None).first()
+        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type='MK').exclude(org=None).first()
         if not channel:
             return HttpResponse("Channel with uuid: %s not found." % channel_uuid, status=400)
 
@@ -1054,7 +1054,7 @@ class M3TechHandler(ExternalHandler):
     url_name = 'handlers.m3tech_handler'
 
     def get_channel_type(self):
-        return Channel.TYPE_M3TECH
+        return 'M3'
 
 
 class NexmoCallHandler(BaseChannelHandler):
@@ -1428,7 +1428,7 @@ class KannelHandler(BaseChannelHandler):
         request_uuid = kwargs['uuid']
 
         # look up the channel
-        channel = Channel.objects.filter(uuid=request_uuid, is_active=True, channel_type=Channel.TYPE_KANNEL).exclude(org=None).first()
+        channel = Channel.objects.filter(uuid=request_uuid, is_active=True, channel_type='KN').exclude(org=None).first()
         if not channel:
             return HttpResponse("Channel not found for id: %s" % request_uuid, status=400)
 
@@ -1513,7 +1513,7 @@ class ClickatellHandler(BaseChannelHandler):
         request_uuid = kwargs['uuid']
 
         # look up the channel
-        channel = Channel.objects.filter(uuid=request_uuid, is_active=True, channel_type=Channel.TYPE_CLICKATELL).exclude(org=None).first()
+        channel = Channel.objects.filter(uuid=request_uuid, is_active=True, channel_type='CT').exclude(org=None).first()
         if not channel:  # pragma: needs cover
             return HttpResponse("Channel not found for id: %s" % request_uuid, status=400)
 
@@ -1792,7 +1792,7 @@ class StartHandler(BaseChannelHandler):
 
         channel_uuid = kwargs['uuid']
 
-        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type=Channel.TYPE_START).exclude(org=None).first()
+        channel = Channel.objects.filter(uuid=channel_uuid, is_active=True, channel_type='ST').exclude(org=None).first()
         if not channel:
             return HttpResponse("Channel with uuid: %s not found." % channel_uuid, status=400)
 
@@ -1843,7 +1843,7 @@ class ChikkaHandler(BaseChannelHandler):
         action = self.get_param('message_type').lower()
 
         # look up the channel
-        channel = Channel.objects.filter(uuid=request_uuid, is_active=True, channel_type=Channel.TYPE_CHIKKA).exclude(org=None).first()
+        channel = Channel.objects.filter(uuid=request_uuid, is_active=True, channel_type='CK').exclude(org=None).first()
         if not channel:
             return HttpResponse("Error, channel not found for id: %s" % request_uuid, status=400)
 
@@ -1922,7 +1922,7 @@ class JasminHandler(BaseChannelHandler):
         request_uuid = kwargs['uuid']
 
         # look up the channel
-        channel = Channel.objects.filter(uuid=request_uuid, is_active=True, channel_type=Channel.TYPE_JASMIN).exclude(org=None).first()
+        channel = Channel.objects.filter(uuid=request_uuid, is_active=True, channel_type='JS').exclude(org=None).first()
         if not channel:
             return HttpResponse("Channel not found for id: %s" % request_uuid, status=400)
 
@@ -2142,7 +2142,7 @@ class MbloxHandler(BaseChannelHandler):
 
         # look up the channel
         channel = Channel.objects.filter(uuid=request_uuid, is_active=True,
-                                         channel_type=Channel.TYPE_MBLOX).exclude(org=None).first()
+                                         channel_type='MB').exclude(org=None).first()
         if not channel:
             return HttpResponse("Channel not found for id: %s" % request_uuid, status=400)
 
@@ -2542,7 +2542,7 @@ class GlobeHandler(BaseChannelHandler):
         request_uuid = kwargs['uuid']
 
         # look up the channel
-        channel = Channel.objects.filter(uuid=request_uuid, is_active=True, channel_type=Channel.TYPE_GLOBE).exclude(org=None).first()
+        channel = Channel.objects.filter(uuid=request_uuid, is_active=True, channel_type='GL').exclude(org=None).first()
         if not channel:
             return HttpResponse("Channel not found for id: %s" % request_uuid, status=400)
 
