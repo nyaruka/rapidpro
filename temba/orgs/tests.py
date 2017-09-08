@@ -165,7 +165,7 @@ class OrgTest(TembaTest):
 
         self.org.timezone = pytz.timezone('Asia/Jakarta')
         self.org.save()
-        self.assertEquals(self.org.get_recommended_channel(), 'hub9')
+        self.assertEquals(self.org.get_recommended_channel(), 'dartmedia')
 
         self.org.timezone = pytz.timezone('Africa/Mogadishu')
         self.org.save()
@@ -1701,7 +1701,7 @@ class OrgTest(TembaTest):
             self.assertEqual(response.status_code, 302)
 
             response = self.client.get(nexmo_configuration_url, follow=True)
-            self.assertEqual(response.request['PATH_INFO'], reverse('channels.channel_claim_nexmo'))
+            self.assertEqual(response.request['PATH_INFO'], reverse('channels.claim_nexmo'))
 
         with patch('temba.utils.nexmo.NexmoClient.update_account') as mock_update_account:
             mock_update_account.side_effect = [nexmo.Error, nexmo.Error]
@@ -2259,14 +2259,14 @@ class OrgCRUDLTest(TembaTest):
         self.assertEqual(set(), self.org.get_schemes(Channel.ROLE_RECEIVE))
 
         # add a receive only tel channel
-        Channel.create(self.org, self.user, 'RW', Channel.TYPE_TWILIO, "Nexmo", "0785551212", role="R", secret="45678", gcm_id="123")
+        Channel.create(self.org, self.user, 'RW', 'T', "Nexmo", "0785551212", role="R", secret="45678", gcm_id="123")
 
         self.org = Org.objects.get(pk=self.org.pk)
         self.assertEqual(set(), self.org.get_schemes(Channel.ROLE_SEND))
         self.assertEqual({TEL_SCHEME}, self.org.get_schemes(Channel.ROLE_RECEIVE))
 
         # add a send/receive tel channel
-        Channel.create(self.org, self.user, 'RW', Channel.TYPE_TWILIO, "Twilio", "0785553434", role="SR", secret="56789", gcm_id="456")
+        Channel.create(self.org, self.user, 'RW', 'T', "Twilio", "0785553434", role="SR", secret="56789", gcm_id="456")
         self.org = Org.objects.get(pk=self.org.id)
         self.assertEqual({TEL_SCHEME}, self.org.get_schemes(Channel.ROLE_SEND))
         self.assertEqual({TEL_SCHEME}, self.org.get_schemes(Channel.ROLE_RECEIVE))
