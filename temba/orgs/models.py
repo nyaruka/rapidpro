@@ -1547,7 +1547,10 @@ class Org(SmartModel):
                 for card in existing_cards:
                     card.delete()
 
-                card = customer.cards.create(card=token)
+                try:
+                    card = customer.cards.create(card=token)
+                except stripe.CardError:
+                    raise ValidationError(_("Sorry, your card was declined, please contact your provider or try another card."))
 
                 customer.default_card = card.id
                 customer.save()
@@ -1601,8 +1604,12 @@ class Org(SmartModel):
 
             return topup
 
+        except ValidationError as e:
+            raise e
+
         except Exception as e:
-            traceback.print_exc(e)
+            logger = logging.getLogger(__name__)
+            logger.error("Error adding credits to org", exc_info=True)
             raise ValidationError(_("Sorry, we were unable to process your payment, please try again later or contact us."))
 
     def account_value(self):
