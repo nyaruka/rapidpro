@@ -371,8 +371,8 @@ class AfricasTalkingHandler(BaseChannelHandler):
             external_id = request.POST['id']
 
             # look up the message
-            sms = Msg.objects.filter(channel=channel, external_id=external_id).select_related('channel').first()
-            if not sms:
+            sms = Msg.objects.filter(external_id=external_id).select_related('channel').first()
+            if not sms or sms.channel != channel:
                 return HttpResponse("No SMS message with id: %s" % external_id, status=404)
 
             if status == 'Success':
@@ -759,8 +759,8 @@ class InfobipHandler(BaseChannelHandler):
         status = message.get('status')
 
         # look up the message
-        sms = Msg.objects.filter(channel=channel, external_id=external_id).select_related('channel').first()
-        if not sms:  # pragma: needs cover
+        sms = Msg.objects.filter(external_id=external_id).select_related('channel').first()
+        if not sms or sms.channel != channel:  # pragma: needs cover
             return HttpResponse("No SMS message with external id: %s" % external_id, status=404)
 
         if status == 'DELIVERED':
@@ -970,8 +970,8 @@ class BlackmynaHandler(BaseChannelHandler):
             status = int(self.get_param('status', 0))
 
             # look up the message
-            sms = Msg.objects.filter(channel=channel, external_id=msg_id).select_related('channel').first()
-            if not sms:
+            sms = Msg.objects.filter(external_id=msg_id).select_related('channel').first()
+            if not sms or sms.channel != channel:
                 return HttpResponse("No SMS message with id: %s" % msg_id, status=400)
 
             if status == 8:
@@ -1062,8 +1062,8 @@ class MacroKioskHandler(BaseChannelHandler):
             status = self.get_param('status')
 
             # look up the message
-            sms = Msg.objects.filter(channel=channel, external_id=msg_id).select_related('channel').first()
-            if not sms:
+            sms = Msg.objects.filter(external_id=msg_id).select_related('channel').first()
+            if not sms or sms.channel != channel:
                 return HttpResponse("No SMS message with id: %s" % msg_id, status=400)
 
             if status == 'ACCEPTED':
@@ -1280,8 +1280,8 @@ class NexmoHandler(BaseChannelHandler):
         if action == 'status':
 
             # look up the message
-            sms = Msg.objects.filter(channel=channel, external_id=external_id).select_related('channel').first()
-            if not sms:
+            sms = Msg.objects.filter(external_id=external_id).select_related('channel').first()
+            if not sms or sms.channel != channel:
                 return HttpResponse("No SMS message with external id: %s" % external_id, status=200)
 
             status = self.get_param('status')
@@ -1380,9 +1380,9 @@ class VumiHandler(BaseChannelHandler):
             status = body['event_type']
 
             # look up the message
-            message = Msg.objects.filter(channel=channel, external_id=external_id).select_related('channel')
+            message = Msg.objects.filter(external_id=external_id).select_related('channel')
 
-            if not message:
+            if not message or message.channel != channel:
                 return HttpResponse("Message with external id of '%s' not found" % external_id, status=404)
 
             if status not in ('ack', 'nack', 'delivery_report'):  # pragma: needs cover
@@ -1592,17 +1592,17 @@ class ClickatellHandler(BaseChannelHandler):
 
         # Clickatell is telling us a message status changed
         if action == 'status':
-            sms_id = self.get_param('apiMsgId')
+            msg_id = self.get_param('apiMsgId')
             status_code = self.get_param('status')
 
-            if sms_id is None or status_code is None:  # pragma: needs cover
+            if msg_id is None or status_code is None:  # pragma: needs cover
                 # return 200 as clickatell pings our endpoint during configuration
                 return HttpResponse("Missing one of 'apiMsgId' or 'status' in request parameters.", status=200)
 
             # look up the message
-            sms = Msg.objects.filter(channel=channel, external_id=sms_id).select_related('channel')
-            if not sms:  # pragma: needs cover
-                return HttpResponse("Message with external id of '%s' not found" % sms_id, status=400)
+            msgs = Msg.objects.filter(external_id=msg_id).select_related('channel')
+            if not msgs or msgs[0].channel != channel:  # pragma: needs cover
+                return HttpResponse("Message with external id of '%s' not found" % msg_id, status=400)
 
             # possible status codes Clickatell will send us
             STATUS_CHOICES = {'001': FAILED,      # incorrect msg id
@@ -1628,21 +1628,21 @@ class ClickatellHandler(BaseChannelHandler):
 
             # only update to SENT status if still in WIRED state
             if status == SENT:  # pragma: needs cover
-                for sms_obj in sms.filter(status__in=[PENDING, QUEUED, WIRED]):
-                    sms_obj.status_sent()
+                for msg in msgs.filter(status__in=[PENDING, QUEUED, WIRED]):
+                    msg.status_sent()
             elif status == DELIVERED:
-                for sms_obj in sms:
-                    sms_obj.status_delivered()
+                for msg in msgs:
+                    msg.status_delivered()
             elif status == FAILED:
-                for sms_obj in sms:
-                    sms_obj.status_fail()
-                    Channel.track_status(sms_obj.channel, "Failed")
+                for msg in msgs:
+                    msg.status_fail()
+                    Channel.track_status(msg.channel, "Failed")
             else:
                 # ignore wired, we are wired by default
                 pass
 
             # update the broadcast status
-            bcast = sms.first().broadcast
+            bcast = msgs.first().broadcast
             if bcast:  # pragma: needs cover
                 bcast.update()
 
@@ -1735,8 +1735,8 @@ class PlivoHandler(BaseChannelHandler):
                 sms_id = parent_id
 
             # look up the message
-            sms = Msg.objects.filter(channel=channel, external_id=sms_id).select_related('channel')
-            if not sms:
+            sms = Msg.objects.filter(external_id=sms_id).select_related('channel')
+            if not sms or sms.channel != channel:
                 return HttpResponse("Message with external id of '%s' not found" % sms_id, status=400)
 
             STATUS_CHOICES = {'queued': WIRED,
@@ -2006,21 +2006,21 @@ class JasminHandler(BaseChannelHandler):
             if not all(k in request.POST for k in ['id', 'dlvrd', 'err']):
                 return HttpResponse("Missing one of 'id' or 'dlvrd' or 'err' in request parameters.", status=400)
 
-            sms_id = request.POST['id']
+            msg_id = request.POST['id']
             dlvrd = request.POST['dlvrd']
             err = request.POST['err']
 
             # look up the message
-            sms = Msg.objects.filter(channel=channel, external_id=sms_id).select_related('channel')
-            if not sms:  # pragma: needs cover
-                return HttpResponse("Message with external id of '%s' not found" % sms_id, status=400)
+            msgs = Msg.objects.filter(external_id=msg_id).select_related('channel')
+            if not msgs or msgs[0].channel != channel:  # pragma: needs cover
+                return HttpResponse("Message with external id of '%s' not found" % msg_id, status=400)
 
             if dlvrd == '1':
-                for sms_obj in sms:
-                    sms_obj.status_delivered()
+                for msg in msgs:
+                    msg.status_delivered()
             elif err == '1':
-                for sms_obj in sms:
-                    sms_obj.status_fail()
+                for msg in msgs:
+                    msg.status_fail()
 
             # tell Jasmin we handled this
             return HttpResponse('ACK/Jasmin')
@@ -2108,9 +2108,9 @@ class JunebugHandler(BaseChannelHandler):
             message_id = data['message_id']
             event_type = data["event_type"]
 
-            # look up the message
-            message = Msg.objects.filter(channel=channel, external_id=message_id).select_related('channel')
-            if not message:
+            # look up the messages
+            messages = Msg.objects.filter(external_id=message_id).select_related('channel')
+            if not messages or messages[0].channel != channel:
                 status = 400
                 response_body = "Message with external id of '%s' not found" % (message_id,)
                 event = HttpEvent(request_method, request_path, request_body, status, response_body)
@@ -2118,18 +2118,18 @@ class JunebugHandler(BaseChannelHandler):
                 return HttpResponse(response_body, status=status)
 
             if event_type == 'submitted':
-                for message_obj in message:
+                for message_obj in messages:
                     message_obj.status_sent()
             if event_type == 'delivery_succeeded':
-                for message_obj in message:
+                for message_obj in messages:
                     message_obj.status_delivered()
             elif event_type in ['delivery_failed', 'rejected']:
-                for message_obj in message:
+                for message_obj in messages:
                     message_obj.status_fail()
 
             response_body = {
                 'status': self.ACK,
-                'message_ids': [message_obj.pk for message_obj in message]
+                'message_ids': [message_obj.pk for message_obj in messages]
             }
             event = HttpEvent(request_method, request_path, request_body, 200, json.dumps(response_body))
             log_channel(channel, 'Handled %s event_type.' % (event_type), event)
@@ -2243,8 +2243,8 @@ class MbloxHandler(BaseChannelHandler):
             status = body['status']
 
             # look up the message
-            msgs = Msg.objects.filter(channel=channel, external_id=msg_id).select_related('channel')
-            if not msgs:
+            msgs = Msg.objects.filter(external_id=msg_id).select_related('channel')
+            if not msgs or msgs[0].channel != channel:
                 return HttpResponse("Message with external id of '%s' not found" % msg_id, status=400)
 
             if status == 'Delivered':
@@ -2577,10 +2577,8 @@ class FacebookHandler(BaseChannelHandler):
 
                     elif 'delivery' in envelope and 'mids' in envelope['delivery']:
                         for external_id in envelope['delivery']['mids']:
-                            msg = Msg.objects.filter(channel=channel,
-                                                     direction=OUTGOING,
-                                                     external_id=external_id).first()
-                            if msg:
+                            msg = Msg.objects.filter(external_id=external_id).first()
+                            if msg and msg.channel == channel and msg.direction == OUTGOING:
                                 msg.status_delivered()
                                 status.append("Msg %d updated." % msg.id)
 
@@ -2710,8 +2708,8 @@ class ViberHandler(BaseChannelHandler):
             # }
             external_id = body['message_token']
 
-            msg = Msg.objects.filter(channel=channel, direction='O', external_id=external_id).select_related('channel').first()
-            if not msg:
+            msg = Msg.objects.filter(external_id=external_id).select_related('channel').first()
+            if not msg or msg.channel != channel:
                 # viber is hammers us incessantly if we give 400s for non-existant message_ids
                 return HttpResponse("Message with external id of '%s' not found" % external_id)
 
@@ -2907,8 +2905,8 @@ class ViberPublicHandler(BaseChannelHandler):
             #    "message_token": 4912661846655238145,
             #    "user_id": "01234567890A="
             # }
-            msg = Msg.objects.filter(channel=channel, direction='O', external_id=body['message_token']).select_related('channel').first()
-            if not msg:
+            msg = Msg.objects.filter(external_id=body['message_token']).select_related('channel').first()
+            if not msg or msg.channel != channel:
                 return HttpResponse("Message with external id of '%s' not found" % body['message_token'])
 
             if event == 'delivered':
