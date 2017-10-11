@@ -1384,8 +1384,8 @@ class FlowCRUDL(SmartCRUDL):
                 IVRCall.objects.filter(contact=test_contact).delete()
                 USSDSession.objects.filter(contact=test_contact).delete()
 
-                runs.delete()
                 steps.delete()
+                FlowRun.objects.filter(contact=test_contact).delete()
 
                 # reset all contact fields values
                 test_contact.values.all().delete()
