@@ -914,7 +914,7 @@ class FlowCRUDL(SmartCRUDL):
 
         def get_context_data(self, *args, **kwargs):
 
-            flow = self.get_object(self.get_queryset())
+            flow = self.get_object(self.get_queryset().select_related('org'))
 
             # hangup any test calls if we have them
             if flow.flow_type == Flow.VOICE:
@@ -933,7 +933,7 @@ class FlowCRUDL(SmartCRUDL):
             if org:
                 languages = org.languages.all().order_by('orgs')
                 for lang in languages:
-                    if self.get_object().base_language == lang.iso_code:
+                    if flow.base_language == lang.iso_code:
                         context['base_language'] = lang
 
                 context['languages'] = languages
@@ -1384,8 +1384,8 @@ class FlowCRUDL(SmartCRUDL):
                 IVRCall.objects.filter(contact=test_contact).delete()
                 USSDSession.objects.filter(contact=test_contact).delete()
 
-                runs.delete()
                 steps.delete()
+                FlowRun.objects.filter(contact=test_contact).delete()
 
                 # reset all contact fields values
                 test_contact.values.all().delete()

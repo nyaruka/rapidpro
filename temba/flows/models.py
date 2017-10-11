@@ -2013,7 +2013,7 @@ class Flow(TembaModel):
 
         # add in our rulesets
         rulesets = []
-        for ruleset in RuleSet.objects.filter(flow=self).order_by('pk'):
+        for ruleset in RuleSet.objects.filter(flow=self).order_by('pk').select_related('flow'):
             rulesets.append(ruleset.as_json())
         flow[Flow.RULE_SETS] = rulesets
 
