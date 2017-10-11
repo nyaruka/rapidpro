@@ -141,6 +141,11 @@ class AnonMixin(OrgPermsMixin):
 
 class OrgObjPermsMixin(OrgPermsMixin):
 
+    def get_object(self, queryset=None):
+        if queryset is None:
+            queryset = self.derive_queryset().select_related('org')
+        return super(OrgObjPermsMixin, self).get_object(queryset=queryset)
+
     def get_object_org(self):
         return self.get_object().org
 
