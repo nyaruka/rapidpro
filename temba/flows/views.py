@@ -14,7 +14,7 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.files.storage import default_storage
 from django.core.urlresolvers import reverse
-from django.db.models import Count, Min, Max, Sum, Q
+from django.db.models import Count, Min, Max, Sum
 from django import forms
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.utils import timezone
@@ -26,7 +26,7 @@ from functools import cmp_to_key
 from itertools import chain
 from smartmin.views import SmartCRUDL, SmartCreateView, SmartReadView, SmartListView, SmartUpdateView
 from smartmin.views import SmartDeleteView, SmartTemplateView, SmartFormView
-from temba.channels.models import Channel, ChannelLog
+from temba.channels.models import Channel
 from temba.contacts.fields import OmniboxField
 from temba.contacts.models import Contact, ContactGroup, ContactField, TEL_SCHEME, ContactURN
 from temba.ivr.models import IVRCall
@@ -1380,20 +1380,12 @@ class FlowCRUDL(SmartCRUDL):
                     analytics.track(user.username, 'temba.flow_simulated')
 
                 ActionLog.objects.filter(run__in=runs).delete()
+                Msg.objects.filter(contact=test_contact).delete()
+                IVRCall.objects.filter(contact=test_contact).delete()
+                USSDSession.objects.filter(contact=test_contact).delete()
 
-                msgs = Msg.objects.filter(contact=test_contact)
-                calls = IVRCall.objects.filter(contact=test_contact)
-                ussd_sessions = USSDSession.objects.filter(contact=test_contact)
-
-                channel_logs = ChannelLog.objects.filter(Q(msg__in=msgs) | Q(connection__in=calls) | Q(connection__in=ussd_sessions))
-
-                channel_logs.delete()
-                msgs.delete()
-                calls.delete()
-                ussd_sessions.delete()
-
+                runs.delete()
                 steps.delete()
-                FlowRun.objects.filter(contact=test_contact).delete()
 
                 # reset all contact fields values
                 test_contact.values.all().delete()
