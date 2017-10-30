@@ -5729,6 +5729,10 @@ class FlowsTest(FlowFileTest):
             # and our flow is dependent on us
             self.assertIsNotNone(flow.field_dependencies.filter(key__in=[key]).first(), "Flow is missing dependency on %s (%s)" % (key, label))
 
+        # can't create fields named id or mailto
+        self.assertIsNone(ContactField.objects.filter(key='id').first())
+        self.assertIsNone(ContactField.objects.filter(key='mailto').first())
+
         # deleting should fail since the 'Dependencies' flow depends on us
         self.client.post(reverse('flows.flow_delete', args=[child.id]))
         self.assertIsNotNone(Flow.objects.filter(id=child.id, is_active=True).first())

@@ -412,7 +412,7 @@ class ContactCRUDL(SmartCRUDL):
                         if not ContactField.is_valid_label(field_label):
                             raise forms.ValidationError(_("Field names can only contain letters, numbers, hypens"))
 
-                        if not ContactField.is_valid_key(field_key):
+                        if not ContactField.is_valid_key(self.org, field_key):
                             raise forms.ValidationError(_("%s is an invalid name or is a reserved name for contact "
                                                           "fields, field names should start with a letter.") % value)
 
@@ -1268,8 +1268,8 @@ class ManageFieldsForm(forms.Form):
                     if label.lower() in used_labels:
                         raise forms.ValidationError(_("Field names must be unique. '%s' is duplicated") % label)
 
-                    elif not ContactField.is_valid_key(ContactField.make_key(label)):
-                        raise forms.ValidationError(_("Field name '%s' is a reserved word") % label)
+                    elif not ContactField.is_valid_key(self.org, ContactField.make_key(label)):
+                            raise forms.ValidationError(_("Field name '%s' is a reserved word") % label)
                     used_labels.append(label.lower())
                 else:
                     # don't allow fields that are dependencies for flows be removed
