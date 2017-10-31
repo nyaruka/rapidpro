@@ -508,7 +508,7 @@ class ContactFieldWriteSerializer(WriteSerializer):
             raise serializers.ValidationError("Can only contain letters, numbers and hypens.")
 
         key = ContactField.make_key(value)
-        if not ContactField.is_valid_key(self.org, key):
+        if not ContactField.is_valid_key(self.context['org'], key):
             raise serializers.ValidationError("Generated key \"%s\" is invalid or a reserved name." % key)
 
         return value
