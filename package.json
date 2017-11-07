@@ -2,6 +2,10 @@
   "name": "rapidpro",
   "repository": "git@github.com:rapidpro/rapidpro.git",
   "license": "AGPL-3.0",
+  "version": "0.0.1",
+  "scripts": {
+    "test": "karma start karma.conf.coffee --single-run --browsers PhantomJS"
+  },
   "dependencies": {
     "bower": "^1.7.9",
     "coffee-script": "^1.9.3",
