@@ -1,0 +1,29 @@
+version: '2.1'
+
+services:
+  rapidpro:
+    build:
+      context: .
+    command: python manage.py runserver 0.0.0.0:8000
+    depends_on:
+      - redis
+      - db
+    volumes:
+      - ./:/project
+    ports:
+      - "8000:8000"
+  
+  redis:
+    image: redis:3-alpine
+
+  db:
+    image: mdillon/postgis:9.6-alpine
+    environment:
+      - POSTGRES_USER=docker
+      - POSTGERS_PASSWORD=docker
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data: {}
+
