@@ -8,7 +8,6 @@ from .views import FieldsEndpoint, FlowStartsEndpoint, GroupsEndpoint, LabelsEnd
 from .views import OrgEndpoint, ResthooksEndpoint, ResthookEventsEndpoint, ResthookSubscribersEndpoint, RunsEndpoint
 from .views import BoundariesEndpoint, ContactActionsEndpoint, MessageActionsEndpoint
 
-
 urlpatterns = [
     url(r'^$', RootView.as_view(), name='api.v2'),
     url(r'^explorer/$', ExplorerView.as_view(), name='api.v2.explorer'),

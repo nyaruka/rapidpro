@@ -48,8 +48,12 @@ class Welcome(SmartTemplateView):
         org = user.get_org()
 
         if org:
-            user_dict = dict(email=user.email, first_name=user.first_name,
-                             last_name=user.last_name, brand=self.request.branding['slug'])
+            user_dict = dict(
+                email=user.email,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                brand=self.request.branding['slug']
+            )
             if org:
                 user_dict['org'] = org.name
                 user_dict['paid'] = org.account_value()
@@ -67,12 +71,12 @@ class Privacy(SmartTemplateView):
 
 
 class LeadViewer(SmartCRUDL):
-    actions = ('list',)
+    actions = ('list', )
     model = Lead
     permissions = True
 
     class List(SmartListView):
-        default_order = ('-created_on',)
+        default_order = ('-created_on', )
         fields = ('created_on', 'email')
 
 
@@ -99,12 +103,12 @@ class VideoCRUDL(SmartCRUDL):
 
 
 class LeadCRUDL(SmartCRUDL):
-    actions = ('create',)
+    actions = ('create', )
     model = Lead
     permissions = False
 
     class Create(SmartFormView, SmartCreateView):
-        fields = ('email',)
+        fields = ('email', )
         title = _("Register for public beta")
         success_message = ''
 
@@ -131,8 +135,10 @@ class LeadCRUDL(SmartCRUDL):
             obj.modified_by = anon
 
             if self.request.user.is_anonymous():
-                analytics.identify(obj.email, dict(email=obj.email, plan='None', segment=randint(1, 10),
-                                                   brand=self.request.branding['slug']))
+                analytics.identify(
+                    obj.email,
+                    dict(email=obj.email, plan='None', segment=randint(1, 10), brand=self.request.branding['slug'])
+                )
                 analytics.track(obj.email, 'temba.org_lead')
 
             return obj
@@ -143,7 +149,6 @@ class Blog(RedirectView):
 
 
 class GenerateCoupon(View):
-
     def post(self, *args, **kwargs):
         # return a generated coupon
         return HttpResponse(json.dumps(dict(coupon=random_string(6))))
@@ -153,36 +158,41 @@ class GenerateCoupon(View):
 
 
 class OrderStatus(View):
-
     def post(self, request, *args, **kwargs):
         text = request.GET.get('text', '')
 
         if text.lower() == 'cu001':
-            response = dict(status="Shipped",
-                            order='CU001',
-                            name="Ben Haggerty",
-                            order_number="PLAT2012",
-                            ship_date="October 9th",
-                            delivery_date="April 3rd",
-                            description="Vogue White Wall x 4")
+            response = dict(
+                status="Shipped",
+                order='CU001',
+                name="Ben Haggerty",
+                order_number="PLAT2012",
+                ship_date="October 9th",
+                delivery_date="April 3rd",
+                description="Vogue White Wall x 4"
+            )
 
         elif text.lower() == 'cu002':
-            response = dict(status="Pending",
-                            order='CU002',
-                            name="Ryan Lewis",
-                            username="rlewis",
-                            ship_date="August 14th",
-                            order_number="FLAG13",
-                            description="American Flag x 1")
+            response = dict(
+                status="Pending",
+                order='CU002',
+                name="Ryan Lewis",
+                username="rlewis",
+                ship_date="August 14th",
+                order_number="FLAG13",
+                description="American Flag x 1"
+            )
 
         elif text.lower() == 'cu003':
-            response = dict(status="Cancelled",
-                            order='CU003',
-                            name="R Kelly",
-                            username="rkelly",
-                            cancel_date="December 2nd",
-                            order_number="SHET51",
-                            description="Bed Sheets, Queen x 1")
+            response = dict(
+                status="Cancelled",
+                order='CU003',
+                name="R Kelly",
+                username="rkelly",
+                cancel_date="December 2nd",
+                order_number="SHET51",
+                description="Bed Sheets, Queen x 1"
+            )
         else:
             response = dict(status="Invalid")
 

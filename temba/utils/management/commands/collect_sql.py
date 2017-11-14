@@ -51,7 +51,7 @@ class SqlObjectOperation(object):
 
         if tokens[0].value.upper() in ('CREATE', 'CREATE OR REPLACE'):
             is_create = True
-        elif tokens[0].value.upper() in ('DROP',):
+        elif tokens[0].value.upper() in ('DROP', ):
             is_create = False
         else:
             return None
@@ -85,11 +85,17 @@ class Command(BaseCommand):  # pragma: no cover
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--preserve-order', action='store_true', dest='preserve_order', default=False,
+            '--preserve-order',
+            action='store_true',
+            dest='preserve_order',
+            default=False,
             help='Whether to preserve order of operations rather than sorting by object name.',
         )
         parser.add_argument(
-            '--output-dir', action='store', dest='output_dir', default='temba/sql',
+            '--output-dir',
+            action='store',
+            dest='output_dir',
+            default='temba/sql',
             help='The output directory for generated SQL files.',
         )
 

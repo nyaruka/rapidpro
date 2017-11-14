@@ -116,14 +116,22 @@ def process_message_task(msg_event):
 
             if contact_msg:
                 msg_event = json.loads(contact_msg[0])
-                msg = Msg.objects.filter(id=msg_event['id'], status=PENDING).select_related('org', 'contact', 'contact_urn', 'channel').first()
+                msg = Msg.objects.filter(
+                    id=msg_event['id'], status=PENDING
+                ).select_related('org', 'contact', 'contact_urn', 'channel').first()
 
                 if msg:
-                    process_message(msg, msg_event.get('from_mage', msg_event.get('new_message', False)), msg_event.get('new_contact', False))
+                    process_message(
+                        msg,
+                        msg_event.get('from_mage', msg_event.get('new_message', False)),
+                        msg_event.get('new_contact', False)
+                    )
 
     # backwards compatibility for events without contact ids, we handle the message directly
     else:
-        msg = Msg.objects.filter(id=msg_event['id'], status=PENDING).select_related('org', 'contact', 'contact_urn', 'channel').first()
+        msg = Msg.objects.filter(
+            id=msg_event['id'], status=PENDING
+        ).select_related('org', 'contact', 'contact_urn', 'channel').first()
         if msg:
             # grab our contact lock and handle this message
             key = 'pcm_%d' % msg.contact_id
@@ -157,8 +165,9 @@ def send_to_flow_node(org_id, user_id, text, **kwargs):
 
     qs = Contact.objects.filter(org=org, is_blocked=False, is_stopped=False, is_active=True, is_test=simulation)
 
-    steps = FlowStep.objects.filter(run__is_active=True, step_uuid=step_uuid,
-                                    left_on=None, run__flow__org=org).distinct('contact').select_related('contact')
+    steps = FlowStep.objects.filter(
+        run__is_active=True, step_uuid=step_uuid, left_on=None, run__flow__org=org
+    ).distinct('contact').select_related('contact')
     contact_uuids = [f.contact.uuid for f in steps]
     contacts = qs.filter(uuid__in=contact_uuids).order_by('name')
 
@@ -166,8 +175,7 @@ def send_to_flow_node(org_id, user_id, text, **kwargs):
     broadcast = Broadcast.create(org, user, text, recipients)
     broadcast.send(expressions_context={})
 
-    analytics.track(user.username, 'temba.broadcast_created',
-                    dict(contacts=len(contacts), groups=0, urns=0))
+    analytics.track(user.username, 'temba.broadcast_created', dict(contacts=len(contacts), groups=0, urns=0))
 
 
 @task(track_started=True, name='send_spam')
@@ -215,19 +223,27 @@ def collect_message_metrics_task():  # pragma: needs cover
     analytics.gauge('temba.current_outgoing_queued', count)
 
     # current # of initializing messages (excluding Android)
-    count = Msg.objects.filter(direction=OUTGOING, status=INITIALIZING).exclude(channel=None).exclude(topup=None).exclude(channel__channel_type='A').count()
+    count = Msg.objects.filter(
+        direction=OUTGOING, status=INITIALIZING
+    ).exclude(channel=None).exclude(topup=None).exclude(channel__channel_type='A').count()
     analytics.gauge('temba.current_outgoing_initializing', count)
 
     # current # of pending messages (excluding Android)
-    count = Msg.objects.filter(direction=OUTGOING, status=PENDING).exclude(channel=None).exclude(topup=None).exclude(channel__channel_type='A').count()
+    count = Msg.objects.filter(
+        direction=OUTGOING, status=PENDING
+    ).exclude(channel=None).exclude(topup=None).exclude(channel__channel_type='A').count()
     analytics.gauge('temba.current_outgoing_pending', count)
 
     # current # of errored messages (excluding Android)
-    count = Msg.objects.filter(direction=OUTGOING, status=ERRORED).exclude(channel=None).exclude(topup=None).exclude(channel__channel_type='A').count()
+    count = Msg.objects.filter(
+        direction=OUTGOING, status=ERRORED
+    ).exclude(channel=None).exclude(topup=None).exclude(channel__channel_type='A').count()
     analytics.gauge('temba.current_outgoing_errored', count)
 
     # current # of android outgoing messages waiting to be sent
-    count = Msg.objects.filter(direction=OUTGOING, status__in=[PENDING, QUEUED], channel__channel_type='A').exclude(channel=None).exclude(topup=None).count()
+    count = Msg.objects.filter(
+        direction=OUTGOING, status__in=[PENDING, QUEUED], channel__channel_type='A'
+    ).exclude(channel=None).exclude(topup=None).count()
     analytics.gauge('temba.current_outgoing_android', count)
 
     # current # of pending incoming messages that haven't yet been handled
@@ -346,8 +362,10 @@ def purge_broadcasts_task():
     purgeable_orgs = list(Org.objects.filter(is_purgeable=True))
 
     # determine which broadcasts are old
-    purge_ids = list(Broadcast.objects.filter(org__in=purgeable_orgs, created_on__lt=purge_before,
-                                              purged=False).values_list('pk', flat=True))
+    purge_ids = list(
+        Broadcast.objects.filter(org__in=purgeable_orgs, created_on__lt=purge_before,
+                                 purged=False).values_list('pk', flat=True)
+    )
     bcasts_purged = 0
     msgs_deleted = 0
 
@@ -368,11 +386,16 @@ def purge_broadcasts_task():
                     if tc['topup_id']:
                         batch_topup_counts[tc['topup_id']] += tc['count']
 
-                for msg_id, msg_bcast, msg_status, contact_id in list(broadcast.msgs.values_list('id', 'broadcast', 'status', 'contact')):
+                for msg_id, msg_bcast, msg_status, contact_id in list(
+                    broadcast.msgs.values_list('id', 'broadcast', 'status', 'contact')
+                ):
                     batch_message_ids.append(msg_id)
                     batch_contact_ids_by_status[(msg_bcast, msg_status)].append(contact_id)
 
-            print("[PURGE] Gathered topup counts and message list (%d topups, %d messages)" % (len(batch_topup_counts), len(batch_message_ids)))
+            print(
+                "[PURGE] Gathered topup counts and message list (%d topups, %d messages)" %
+                (len(batch_topup_counts), len(batch_message_ids))
+            )
 
             # create debit objects for each topup
             for topup_id, msg_count in six.iteritems(batch_topup_counts):
@@ -384,7 +407,9 @@ def purge_broadcasts_task():
             non_sent_recipients = 0
             for (msg_bcast, msg_status), contact_ids in six.iteritems(batch_contact_ids_by_status):
                 for contact_ids_batch in chunk_list(contact_ids, 1000):
-                    recipients = BroadcastRecipient.objects.filter(broadcast=msg_bcast, contact_id__in=contact_ids_batch)
+                    recipients = BroadcastRecipient.objects.filter(
+                        broadcast=msg_bcast, contact_id__in=contact_ids_batch
+                    )
                     recipients.update(purged_status=msg_status)
 
                 non_sent_recipients += len(contact_ids)
@@ -412,11 +437,16 @@ def purge_broadcasts_task():
         bcasts_purged += len(batch_ids)
         msgs_deleted += len(batch_message_ids)
 
-        print("[PURGE] Purged %d of %d broadcasts (%d messages deleted)" % (bcasts_purged, len(purge_ids), msgs_deleted))
+        print(
+            "[PURGE] Purged %d of %d broadcasts (%d messages deleted)" % (bcasts_purged, len(purge_ids), msgs_deleted)
+        )
 
     Debit.squash()
 
-    print("[PURGE] Finished purging %d broadcasts older than %s, deleting %d messages" % (len(purge_ids), purge_before, msgs_deleted))
+    print(
+        "[PURGE] Finished purging %d broadcasts older than %s, deleting %d messages" %
+        (len(purge_ids), purge_before, msgs_deleted)
+    )
 
 
 @nonoverlapping_task(track_started=True, name="squash_systemlabels")

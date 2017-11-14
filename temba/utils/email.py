@@ -14,11 +14,13 @@ class TembaEmailValidator(EmailValidator):
     user_regex = re.compile(
         r"(^[-!#$%&'*+/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*\Z"  # dot-atom
         r'|^"([\001-\010\013\014\016-\[\]-\177]|\\[\001-\011\013\014\016-\177])*"\Z)',  # quoted-string
-        re.IGNORECASE)
+        re.IGNORECASE
+    )
     domain_regex = re.compile(
         # max length for domain name labels is 63 characters per RFC 1034
         r'(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,63}|[A-Z0-9-]{2,}(?<!-))\Z',
-        re.IGNORECASE)
+        re.IGNORECASE
+    )
 
 
 temba_validate_email = TembaEmailValidator()
@@ -64,7 +66,9 @@ def send_simple_email(recipients, subject, body, from_email=None):
     send_temba_email(subject, body, None, from_email, recipient_list)
 
 
-def send_custom_smtp_email(recipients, subject, body, from_email, smtp_host, smtp_port, smtp_username, smtp_password, use_tls):
+def send_custom_smtp_email(
+    recipients, subject, body, from_email, smtp_host, smtp_port, smtp_username, smtp_password, use_tls
+):
     """
     Sends a text email to the given recipients using the SMTP configuration
 
@@ -83,8 +87,15 @@ def send_custom_smtp_email(recipients, subject, body, from_email, smtp_host, smt
     if smtp_port is not None:
         smtp_port = int(smtp_port)
 
-    connection = get_smtp_connection(None, fail_silently=False, host=smtp_host, port=smtp_port, username=smtp_username,
-                                     password=smtp_password, use_tls=use_tls)
+    connection = get_smtp_connection(
+        None,
+        fail_silently=False,
+        host=smtp_host,
+        port=smtp_port,
+        username=smtp_username,
+        password=smtp_password,
+        use_tls=use_tls
+    )
 
     send_temba_email(subject, body, None, from_email, recipient_list, connection=connection)
 

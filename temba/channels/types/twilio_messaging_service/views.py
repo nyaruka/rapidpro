@@ -15,8 +15,9 @@ from ...views import ClaimViewMixin, TWILIO_SUPPORTED_COUNTRIES
 class ClaimView(ClaimViewMixin, SmartFormView):
     class TwilioMessagingServiceForm(ClaimViewMixin.Form):
         country = forms.ChoiceField(choices=TWILIO_SUPPORTED_COUNTRIES)
-        messaging_service_sid = forms.CharField(label=_("Messaging Service SID"),
-                                                help_text=_("The Twilio Messaging Service SID"))
+        messaging_service_sid = forms.CharField(
+            label=_("Messaging Service SID"), help_text=_("The Twilio Messaging Service SID")
+        )
 
     form_class = TwilioMessagingServiceForm
 
@@ -51,11 +52,14 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         data = form.cleaned_data
 
         org_config = org.config_json()
-        config = {Channel.CONFIG_MESSAGING_SERVICE_SID: data['messaging_service_sid'],
-                  Channel.CONFIG_ACCOUNT_SID: org_config[ACCOUNT_SID],
-                  Channel.CONFIG_AUTH_TOKEN: org_config[ACCOUNT_TOKEN]}
+        config = {
+            Channel.CONFIG_MESSAGING_SERVICE_SID: data['messaging_service_sid'],
+            Channel.CONFIG_ACCOUNT_SID: org_config[ACCOUNT_SID],
+            Channel.CONFIG_AUTH_TOKEN: org_config[ACCOUNT_TOKEN]
+        }
 
-        self.object = Channel.create(org, user, data['country'], 'TMS',
-                                     name=data['messaging_service_sid'], address=None, config=config)
+        self.object = Channel.create(
+            org, user, data['country'], 'TMS', name=data['messaging_service_sid'], address=None, config=config
+        )
 
         return super(ClaimView, self).form_valid(form)

@@ -30,8 +30,10 @@ class YoType(ChannelType):
     name = "YO!"
     slug = 'yo'
 
-    claim_blurb = _("""If you are based in Uganda, you can integrate with <a href="http://www.yo.co.ug/">Yo!</a> to send
-                    and receive messages on your shortcode.""")
+    claim_blurb = _(
+        """If you are based in Uganda, you can integrate with <a href="http://www.yo.co.ug/">Yo!</a> to send
+                    and receive messages on your shortcode."""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
@@ -48,11 +50,13 @@ class YoType(ChannelType):
     def send(self, channel, msg, text):
 
         # build our message dict
-        params = dict(origin=channel.address.lstrip('+'),
-                      sms_content=text,
-                      destinations=msg.urn_path.lstrip('+'),
-                      ybsacctno=channel.config['username'],
-                      password=channel.config['password'])
+        params = dict(
+            origin=channel.address.lstrip('+'),
+            sms_content=text,
+            destinations=msg.urn_path.lstrip('+'),
+            ybsacctno=channel.config['username'],
+            password=channel.config['password']
+        )
         log_params = params.copy()
         log_params['password'] = 'x' * len(log_params['password'])
 
@@ -97,7 +101,6 @@ class YoType(ChannelType):
                 break
 
         if failed:
-            raise SendException("Received error from Yo! API",
-                                events=events, fatal=fatal, start=start)
+            raise SendException("Received error from Yo! API", events=events, fatal=fatal, start=start)
 
         Channel.success(channel, msg, SENT, start, events=events)

@@ -71,6 +71,7 @@ class AssetStreamView(SmartView, View):
     """
     Provides a direct download stream to an asset, e.g. /assets/stream/contact_export/123/
     """
+
     def has_permission(self, request, *args, **kwargs):
         return self.request.user.is_authenticated()
 

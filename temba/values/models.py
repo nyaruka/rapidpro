@@ -36,12 +36,9 @@ class Value(models.Model):
     TYPE_DISTRICT = 'I'
     TYPE_WARD = 'W'
 
-    TYPE_CONFIG = ((TYPE_TEXT, _("Text"), 'text'),
-                   (TYPE_DECIMAL, _("Numeric"), 'numeric'),
-                   (TYPE_DATETIME, _("Date & Time"), 'datetime'),
-                   (TYPE_STATE, _("State"), 'state'),
-                   (TYPE_DISTRICT, _("District"), 'district'),
-                   (TYPE_WARD, _("Ward"), 'ward'))
+    TYPE_CONFIG = ((TYPE_TEXT, _("Text"), 'text'), (TYPE_DECIMAL, _("Numeric"), 'numeric'),
+                   (TYPE_DATETIME, _("Date & Time"), 'datetime'), (TYPE_STATE, _("State"), 'state'),
+                   (TYPE_DISTRICT, _("District"), 'district'), (TYPE_WARD, _("Ward"), 'ward'))
 
     TYPE_CHOICES = [(c[0], c[1]) for c in TYPE_CONFIG]
 
@@ -50,39 +47,52 @@ class Value(models.Model):
     VIDEO = 'V'
     IMAGE = 'I'
 
-    MEDIA_TYPES = ((GPS, _("GPS Coordinates")),
-                   (VIDEO, _("Video")),
-                   (AUDIO, _("Audio")),
-                   (IMAGE, _("Image")))
+    MEDIA_TYPES = ((GPS, _("GPS Coordinates")), (VIDEO, _("Video")), (AUDIO, _("Audio")), (IMAGE, _("Image")))
 
     MAX_VALUE_LEN = settings.VALUE_FIELD_SIZE
 
     contact = models.ForeignKey('contacts.Contact', related_name='values')
 
-    contact_field = models.ForeignKey('contacts.ContactField', null=True, on_delete=models.SET_NULL,
-                                      help_text="The ContactField this value is for, if any")
+    contact_field = models.ForeignKey(
+        'contacts.ContactField',
+        null=True,
+        on_delete=models.SET_NULL,
+        help_text="The ContactField this value is for, if any"
+    )
 
-    ruleset = models.ForeignKey('flows.RuleSet', null=True, on_delete=models.SET_NULL,
-                                help_text="The RuleSet this value is for, if any")
+    ruleset = models.ForeignKey(
+        'flows.RuleSet', null=True, on_delete=models.SET_NULL, help_text="The RuleSet this value is for, if any"
+    )
 
-    run = models.ForeignKey('flows.FlowRun', null=True, related_name='values', on_delete=models.SET_NULL,
-                            help_text="The FlowRun this value is for, if any")
+    run = models.ForeignKey(
+        'flows.FlowRun',
+        null=True,
+        related_name='values',
+        on_delete=models.SET_NULL,
+        help_text="The FlowRun this value is for, if any"
+    )
 
-    rule_uuid = models.CharField(max_length=255, null=True, db_index=True,
-                                 help_text="The rule that matched, only appropriate for RuleSet values")
+    rule_uuid = models.CharField(
+        max_length=255,
+        null=True,
+        db_index=True,
+        help_text="The rule that matched, only appropriate for RuleSet values"
+    )
 
-    category = models.CharField(max_length=128, null=True,
-                                help_text="The name of the category this value matched in the RuleSet")
+    category = models.CharField(
+        max_length=128, null=True, help_text="The name of the category this value matched in the RuleSet"
+    )
 
     string_value = models.TextField(help_text="The string value or string representation of this value")
 
-    decimal_value = models.DecimalField(max_digits=36, decimal_places=8, null=True,
-                                        help_text="The decimal value of this value if any.")
-    datetime_value = models.DateTimeField(null=True,
-                                          help_text="The datetime value of this value if any.")
+    decimal_value = models.DecimalField(
+        max_digits=36, decimal_places=8, null=True, help_text="The decimal value of this value if any."
+    )
+    datetime_value = models.DateTimeField(null=True, help_text="The datetime value of this value if any.")
 
-    location_value = models.ForeignKey(AdminBoundary, on_delete=models.SET_NULL, null=True,
-                                       help_text="The location value of this value if any.")
+    location_value = models.ForeignKey(
+        AdminBoundary, on_delete=models.SET_NULL, null=True, help_text="The location value of this value if any."
+    )
 
     media_value = models.TextField(max_length=640, null=True, help_text="The media value if any.")
 
@@ -120,7 +130,9 @@ class Value(models.Model):
         return sorted(categories, key=lambda c: c['count'], reverse=True), set_contacts
 
     @classmethod
-    def get_filtered_value_summary(cls, ruleset=None, contact_field=None, filters=None, return_contacts=False, filter_contacts=None):
+    def get_filtered_value_summary(
+        cls, ruleset=None, contact_field=None, filters=None, return_contacts=False, filter_contacts=None
+    ):
         """
         Return summary results for the passed in values, optionally filtering by a passed in filter on the contact.
 
@@ -193,8 +205,10 @@ class Value(models.Model):
                         boundaries = [boundaries]
 
                     # filter our contacts by those that are in that location boundary
-                    contacts = contacts.filter(values__contact_field__id=contact_filter['location'],
-                                               values__location_value__osm_id__in=boundaries)
+                    contacts = contacts.filter(
+                        values__contact_field__id=contact_filter['location'],
+                        values__location_value__osm_id__in=boundaries
+                    )
 
                 # we are filtering by a contact field
                 elif 'contact_field' in contact_filter:
@@ -202,13 +216,17 @@ class Value(models.Model):
 
                     # we can't use __in as we want case insensitive matching
                     for value in contact_filter['values']:
-                        contact_query |= Q(values__contact_field__id=contact_filter['contact_field'],
-                                           values__string_value__iexact=value)
+                        contact_query |= Q(
+                            values__contact_field__id=contact_filter['contact_field'],
+                            values__string_value__iexact=value
+                        )
 
                     contacts = contacts.filter(contact_query)
 
                 else:  # pragma: needs cover
-                    raise ValueError("Invalid filter definition, must include 'group', 'ruleset', 'contact_field' or 'boundary'")
+                    raise ValueError(
+                        "Invalid filter definition, must include 'group', 'ruleset', 'contact_field' or 'boundary'"
+                    )
 
             contacts = set([c['id'] for c in contacts.values('id')])
 
@@ -224,9 +242,11 @@ class Value(models.Model):
             filter_uuids = set(self_filter_uuids)
 
             # grab all the flow steps for this ruleset, this gets us the most recent run for each contact
-            steps = [fs for fs in FlowStep.objects.filter(step_uuid=ruleset.uuid)
-                                                  .values('arrived_on', 'rule_uuid', 'contact')
-                                                  .order_by('-arrived_on')]
+            steps = [
+                fs
+                for fs in FlowStep.objects.filter(step_uuid=ruleset.uuid).values('arrived_on', 'rule_uuid', 'contact')
+                .order_by('-arrived_on')
+            ]
 
             # this will build up sets of contacts for each rule uuid
             seen_contacts = set()
@@ -265,33 +285,45 @@ class Value(models.Model):
 
             if contact_field.value_type == Value.TYPE_TEXT:
                 values = values.values('string_value', 'contact')
-                categories, set_contacts = cls._filtered_values_to_categories(contacts, values, 'string_value',
-                                                                              return_contacts=return_contacts)
+                categories, set_contacts = cls._filtered_values_to_categories(
+                    contacts, values, 'string_value', return_contacts=return_contacts
+                )
 
             elif contact_field.value_type == Value.TYPE_DECIMAL:
                 values = values.values('decimal_value', 'contact')
-                categories, set_contacts = cls._filtered_values_to_categories(contacts, values, 'decimal_value',
-                                                                              formatter=format_decimal,
-                                                                              return_contacts=return_contacts)
+                categories, set_contacts = cls._filtered_values_to_categories(
+                    contacts, values, 'decimal_value', formatter=format_decimal, return_contacts=return_contacts
+                )
 
             elif contact_field.value_type == Value.TYPE_DATETIME:
-                values = values.extra({'date_value': "date_trunc('day', datetime_value)"}).values('date_value', 'contact')
-                categories, set_contacts = cls._filtered_values_to_categories(contacts, values, 'date_value',
-                                                                              return_contacts=return_contacts)
+                values = values.extra({
+                    'date_value': "date_trunc('day', datetime_value)"
+                }).values('date_value', 'contact')
+                categories, set_contacts = cls._filtered_values_to_categories(
+                    contacts, values, 'date_value', return_contacts=return_contacts
+                )
 
             elif contact_field.value_type in [Value.TYPE_STATE, Value.TYPE_DISTRICT, Value.TYPE_WARD]:
                 values = values.values('location_value__osm_id', 'contact')
-                categories, set_contacts = cls._filtered_values_to_categories(contacts, values, 'location_value__osm_id',
-                                                                              return_contacts=return_contacts)
+                categories, set_contacts = cls._filtered_values_to_categories(
+                    contacts, values, 'location_value__osm_id', return_contacts=return_contacts
+                )
 
             else:  # pragma: needs cover
-                raise ValueError(_("Summary of contact fields with value type of %s is not supported" % contact_field.get_value_type_display()))
+                raise ValueError(
+                    _(
+                        "Summary of contact fields with value type of %s is not supported" %
+                        contact_field.get_value_type_display()
+                    )
+                )
 
             set_contacts = contacts & set_contacts
             unset_contacts = contacts - set_contacts
 
-        print("RulesetSummary [%f]: %s contact_field: %s with filters: %s"
-              % (time.time() - start, ruleset, contact_field, filters))
+        print(
+            "RulesetSummary [%f]: %s contact_field: %s with filters: %s" %
+            (time.time() - start, ruleset, contact_field, filters)
+        )
 
         if return_contacts:
             return (set_contacts, unset_contacts, categories)
@@ -398,7 +430,8 @@ class Value(models.Model):
         fingerprint = hash(dict_to_json(fingerprint_dict))
 
         # generate our key
-        key = VALUE_SUMMARY_CACHE_KEY + ":" + str(org.id) + ":".join(sorted(list(dependencies))) + ":" + str(fingerprint)
+        key = VALUE_SUMMARY_CACHE_KEY + ":" + str(org.id) + ":".join(sorted(list(dependencies))
+                                                                     ) + ":" + str(fingerprint)
 
         # does our value exist?
         r = get_redis_connection()
@@ -422,7 +455,15 @@ class Value(models.Model):
                     # calculate our results for this segment
                     kwargs['filters'] = category_filter
                     (set_count, unset_count, categories) = cls.get_filtered_value_summary(**kwargs)
-                    results.append(dict(label=category, open_ended=open_ended, set=set_count, unset=unset_count, categories=categories))
+                    results.append(
+                        dict(
+                            label=category,
+                            open_ended=open_ended,
+                            set=set_count,
+                            unset=unset_count,
+                            categories=categories
+                        )
+                    )
 
             # segmenting by groups instead, same principle but we add group filters
             elif 'groups' in segment:  # pragma: needs cover
@@ -436,7 +477,15 @@ class Value(models.Model):
                     # calculate our results for this segment
                     kwargs['filters'] = category_filter
                     (set_count, unset_count, categories) = cls.get_filtered_value_summary(**kwargs)
-                    results.append(dict(label=group.name, open_ended=open_ended, set=set_count, unset_count=unset_count, categories=categories))
+                    results.append(
+                        dict(
+                            label=group.name,
+                            open_ended=open_ended,
+                            set=set_count,
+                            unset_count=unset_count,
+                            categories=categories
+                        )
+                    )
 
             # segmenting by a contact field, only for passed in categories
             elif 'contact_field' in segment and 'values' in segment:
@@ -450,7 +499,15 @@ class Value(models.Model):
                     # calculate our results for this segment
                     kwargs['filters'] = value_filter
                     (set_count, unset_count, categories) = cls.get_filtered_value_summary(**kwargs)
-                    results.append(dict(label=value, open_ended=open_ended, set=set_count, unset=unset_count, categories=categories))
+                    results.append(
+                        dict(
+                            label=value,
+                            open_ended=open_ended,
+                            set=set_count,
+                            unset=unset_count,
+                            categories=categories
+                        )
+                    )
 
             # segmenting by a location field
             elif 'location' in segment:
@@ -458,7 +515,9 @@ class Value(models.Model):
                 field = ContactField.get_by_label(org, segment['location'])
 
                 # make sure they are segmenting on a location type that makes sense
-                if field.value_type not in [Value.TYPE_STATE, Value.TYPE_DISTRICT, Value.TYPE_WARD]:  # pragma: needs cover
+                if field.value_type not in [
+                    Value.TYPE_STATE, Value.TYPE_DISTRICT, Value.TYPE_WARD
+                ]:  # pragma: needs cover
                     raise ValueError(_("Cannot segment on location for field that is not a State or District type"))
 
                 # make sure our org has a country for location based responses
@@ -497,7 +556,8 @@ class Value(models.Model):
                 # now get the contacts for our primary query
                 kwargs['return_contacts'] = True
                 kwargs['filter_contacts'] = location_set_contacts
-                (primary_set_contacts, primary_unset_contacts, primary_results) = cls.get_filtered_value_summary(**kwargs)
+                (primary_set_contacts, primary_unset_contacts,
+                 primary_results) = cls.get_filtered_value_summary(**kwargs)
 
                 # build a map of osm_id to location_result
                 osm_results = {lr['label']: lr for lr in location_results}
@@ -507,9 +567,7 @@ class Value(models.Model):
                     location_result = osm_results.get(boundary.osm_id, empty_result)
 
                     # clone our primary results
-                    segmented_results = dict(label=boundary.name,
-                                             boundary=boundary.osm_id,
-                                             open_ended=open_ended)
+                    segmented_results = dict(label=boundary.name, boundary=boundary.osm_id, open_ended=open_ended)
 
                     location_categories = list()
                     location_contacts = set(location_result['contacts'])
@@ -567,7 +625,15 @@ class Value(models.Model):
                 # sort by count, then alphabetically
                 categories = sorted(categories, key=lambda c: (-c['count'], c['label']))
 
-            results.append(dict(label=six.text_type(_("All")), open_ended=open_ended, set=set_count, unset=unset_count, categories=categories))
+            results.append(
+                dict(
+                    label=six.text_type(_("All")),
+                    open_ended=open_ended,
+                    set=set_count,
+                    unset=unset_count,
+                    categories=categories
+                )
+            )
 
         # for each of our dependencies, add our key as something that depends on it
         pipe = r.pipeline()

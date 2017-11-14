@@ -23,8 +23,10 @@ class FirebaseCloudMessagingType(ChannelType):
     name = "Firebase Cloud Messaging"
     icon = 'icon-fcm'
 
-    claim_blurb = _("""Add a <a href="https://firebase.google.com/docs/cloud-messaging/" target="_blank"> Firebase Cloud
-    Messaging Channel</a> to send and receive messages. Your users will need an App to send and receive messages.""")
+    claim_blurb = _(
+        """Add a <a href="https://firebase.google.com/docs/cloud-messaging/" target="_blank"> Firebase Cloud
+    Messaging Channel</a> to send and receive messages. Your users will need an App to send and receive messages."""
+    )
     claim_view = ClaimView
 
     schemes = [FCM_SCHEME]
@@ -50,14 +52,16 @@ class FirebaseCloudMessagingType(ChannelType):
         }
 
         if channel.config.get('FCM_NOTIFICATION'):
-            data['notification'] = {
-                'title': title,
-                'body': text
-            }
+            data['notification'] = {'title': title, 'body': text}
             data['content_available'] = True
 
         payload = json.dumps(data)
-        headers = http_headers(extra={'Content-Type': 'application/json', 'Authorization': 'key=%s' % channel.config.get('FCM_KEY')})
+        headers = http_headers(
+            extra={
+                'Content-Type': 'application/json',
+                'Authorization': 'key=%s' % channel.config.get('FCM_KEY')
+            }
+        )
 
         event = HttpEvent('POST', url, payload)
 
@@ -74,5 +78,6 @@ class FirebaseCloudMessagingType(ChannelType):
             external_id = result.get('multicast_id')
             Channel.success(channel, msg, WIRED, start, events=[event], external_id=external_id)
         else:
-            raise SendException("Got non-200 response [%d] from Firebase Cloud Messaging" % response.status_code,
-                                event, start=start)
+            raise SendException(
+                "Got non-200 response [%d] from Firebase Cloud Messaging" % response.status_code, event, start=start
+            )

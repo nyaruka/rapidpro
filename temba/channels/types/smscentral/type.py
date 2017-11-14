@@ -25,7 +25,9 @@ class SMSCentralType(ChannelType):
     name = "SMSCentral"
     icon = 'icon-channel-external'
 
-    claim_blurb = _("""Easily add a two way number you have configured with <a href="http://smscentral.com.np/">SMSCentral</a> using their APIs.""")
+    claim_blurb = _(
+        """Easily add a two way number you have configured with <a href="http://smscentral.com.np/">SMSCentral</a> using their APIs."""
+    )
     claim_view = AuthenticatedExternalClaimView
 
     schemes = [TEL_SCHEME]
@@ -44,7 +46,10 @@ class SMSCentralType(ChannelType):
         mobile = msg.urn_path[1:] if msg.urn_path.startswith('+') else msg.urn_path
 
         payload = {
-            'user': channel.config[Channel.CONFIG_USERNAME], 'pass': channel.config[Channel.CONFIG_PASSWORD], 'mobile': mobile, 'content': text,
+            'user': channel.config[Channel.CONFIG_USERNAME],
+            'pass': channel.config[Channel.CONFIG_PASSWORD],
+            'mobile': mobile,
+            'content': text,
         }
 
         url = 'http://smail.smscentral.com.np/bp/ApiSms.php'
@@ -63,7 +68,6 @@ class SMSCentralType(ChannelType):
             raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
+            raise SendException("Got non-200 response [%d] from API" % response.status_code, event=event, start=start)
 
         Channel.success(channel, msg, WIRED, start, event=event)

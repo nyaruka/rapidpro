@@ -21,6 +21,7 @@ class MageClient(object):  # pragma: needs cover
     """
     Simple client for API calls to a Message Mage instance
     """
+
     def __init__(self, base_url, auth_token):
         self.base_url = base_url
         self.auth_token = auth_token
@@ -48,9 +49,7 @@ class MageClient(object):  # pragma: needs cover
         func = getattr(self.client, method)
         params = params or {}
 
-        requests_args = {
-            'headers': {'Authorization': 'Token %s' % self.auth_token}
-        }
+        requests_args = {'headers': {'Authorization': 'Token %s' % self.auth_token}}
 
         if method == 'get':
             requests_args['params'] = params
@@ -78,7 +77,7 @@ def handle_new_message(org, msg):
     # Mage no longer assigns topups
     if not msg.topup_id:
         (msg.topup_id, amount) = org.decrement_credit()
-        msg.save(update_fields=('topup_id',))
+        msg.save(update_fields=('topup_id', ))
 
     # set the preferred channel for this contact
     msg.contact.set_preferred_channel(msg.channel)
@@ -95,6 +94,6 @@ def handle_new_contact(org, contact):
     Contacts created by mage or courier are only saved to the database. Here we take care of the other stuff
     """
     # possible to have dynamic groups based on name
-    contact.handle_update(attrs=('name',))
+    contact.handle_update(attrs=('name', ))
 
     analytics.gauge('temba.contact_created')

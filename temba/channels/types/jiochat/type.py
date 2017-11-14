@@ -20,9 +20,11 @@ class JioChatType(ChannelType):
     name = "JioChat"
     icon = 'icon-jiochat'
 
-    claim_blurb = _("""Add a <a href="https://jiochat.me">JioChat</a> bot to send and receive messages to JioChat users
+    claim_blurb = _(
+        """Add a <a href="https://jiochat.me">JioChat</a> bot to send and receive messages to JioChat users
                 for free. Your users will need an Android, Windows or iOS device and a JioChat account to send
-                and receive messages.""")
+                and receive messages."""
+    )
     claim_view = ClaimView
 
     schemes = [JIOCHAT_SCHEME]
@@ -33,9 +35,9 @@ class JioChatType(ChannelType):
     def send(self, channel, msg, text):
         data = {'msgtype': 'text', 'touser': msg.urn_path, 'text': {'content': text}}
 
-        client = JiochatClient(channel.uuid,
-                               channel.config.get('jiochat_app_id'),
-                               channel.config.get('jiochat_app_secret'))
+        client = JiochatClient(
+            channel.uuid, channel.config.get('jiochat_app_id'), channel.config.get('jiochat_app_secret')
+        )
 
         start = time.time()
 

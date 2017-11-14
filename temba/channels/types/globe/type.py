@@ -24,8 +24,10 @@ class GlobeType(ChannelType):
 
     name = "Globe Labs"
 
-    claim_blurb = _("""If you are based in the Phillipines, you can integrate {{ brand.name }} with Globe Labs to send
-                       and receive messages on your shortcode.""")
+    claim_blurb = _(
+        """If you are based in the Phillipines, you can integrate {{ brand.name }} with Globe Labs to send
+                       and receive messages on your shortcode."""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
@@ -53,10 +55,7 @@ class GlobeType(ChannelType):
         start = time.time()
 
         try:
-            response = requests.post(url,
-                                     data=payload,
-                                     headers=http_headers(),
-                                     timeout=5)
+            response = requests.post(url, data=payload, headers=http_headers(), timeout=5)
             event.status_code = response.status_code
             event.response_body = response.text
 
@@ -64,8 +63,7 @@ class GlobeType(ChannelType):
             raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code != 200 and response.status_code != 201:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
+            raise SendException("Got non-200 response [%d] from API" % response.status_code, event=event, start=start)
 
         # parse our response
         response.json()

@@ -18,7 +18,6 @@ class BoundaryCRUDL(SmartCRUDL):
     model = AdminBoundary
 
     class Alias(OrgPermsMixin, SmartReadView):
-
         @classmethod
         def derive_url_pattern(cls, path, action):
             # though we are a read view, we don't actually need an id passed
@@ -26,8 +25,7 @@ class BoundaryCRUDL(SmartCRUDL):
             return r'^%s/%s/$' % (path, action)
 
         def pre_process(self, request, *args, **kwargs):
-            response = super(BoundaryCRUDL.Alias, self).pre_process(
-                self, request, *args, **kwargs)
+            response = super(BoundaryCRUDL.Alias, self).pre_process(self, request, *args, **kwargs)
 
             # we didn't shortcut for some other reason, check that they have an
             # org
@@ -44,7 +42,6 @@ class BoundaryCRUDL(SmartCRUDL):
             return org.country
 
     class Geometry(OrgPermsMixin, SmartReadView):
-
         @classmethod
         def derive_url_pattern(cls, path, action):
             # though we are a read view, we don't actually need an id passed
@@ -60,7 +57,6 @@ class BoundaryCRUDL(SmartCRUDL):
             return HttpResponse(self.object.get_geojson(), content_type='application/json')
 
     class Boundaries(OrgPermsMixin, SmartUpdateView):
-
         @csrf_exempt
         def dispatch(self, *args, **kwargs):
             return super(BoundaryCRUDL.Boundaries, self).dispatch(*args, **kwargs)
@@ -75,7 +71,6 @@ class BoundaryCRUDL(SmartCRUDL):
             return AdminBoundary.objects.get(osm_id=self.kwargs['osmId'])
 
         def post(self, request, *args, **kwargs):
-
             def update_boundary_aliases(boundary):
                 level_boundary = AdminBoundary.objects.filter(osm_id=boundary['osm_id']).first()
                 if level_boundary:
@@ -87,8 +82,13 @@ class BoundaryCRUDL(SmartCRUDL):
                 BoundaryAlias.objects.filter(boundary=boundary, org=org).delete()
                 for new_alias in new_aliases.split('\n'):
                     if new_alias:
-                        BoundaryAlias.objects.create(boundary=boundary, org=org, name=new_alias.strip(),
-                                                     created_by=self.request.user, modified_by=self.request.user)
+                        BoundaryAlias.objects.create(
+                            boundary=boundary,
+                            org=org,
+                            name=new_alias.strip(),
+                            created_by=self.request.user,
+                            modified_by=self.request.user
+                        )
 
             # try to parse our body
             json_string = request.body
@@ -115,11 +115,10 @@ class BoundaryCRUDL(SmartCRUDL):
             return JsonResponse(json_list, safe=False)
 
         def get(self, request, *args, **kwargs):
-            tops = list(AdminBoundary.objects.filter(
-                parent__osm_id=self.get_object().osm_id).order_by('name'))
+            tops = list(AdminBoundary.objects.filter(parent__osm_id=self.get_object().osm_id).order_by('name'))
 
-            tops_children = AdminBoundary.objects.filter(Q(parent__osm_id__in=[
-                boundary.osm_id for boundary in tops])).order_by('parent__osm_id', 'name')
+            tops_children = AdminBoundary.objects.filter(Q(parent__osm_id__in=[boundary.osm_id for boundary in tops])
+                                                         ).order_by('parent__osm_id', 'name')
 
             boundaries = [top.as_json() for top in tops]
 
@@ -138,13 +137,13 @@ class BoundaryCRUDL(SmartCRUDL):
                 children = current_top.get('children', [])
                 child['match'] = '%s %s' % (child['name'], child['aliases'])
 
-                child_children = list(AdminBoundary.objects.filter(
-                    Q(parent__osm_id=child['osm_id'])).order_by('name'))
+                child_children = list(AdminBoundary.objects.filter(Q(parent__osm_id=child['osm_id'])).order_by('name'))
                 sub_children = child.get('children', [])
                 for sub_child in child_children:
                     sub_child = sub_child.as_json()
-                    sub_child['match'] = '%s %s %s %s %s' % (sub_child['name'], sub_child[
-                                                             'aliases'], child['name'], child['aliases'], match)
+                    sub_child['match'] = '%s %s %s %s %s' % (
+                        sub_child['name'], sub_child['aliases'], child['name'], child['aliases'], match
+                    )
 
                     sub_children.append(sub_child)
                     child['match'] = '%s %s %s' % (child['match'], sub_child['name'], sub_child['aliases'])

@@ -15,7 +15,6 @@ from temba.flows.models import Flow, FlowRun, FlowStep
 
 
 class CallHandler(View):
-
     @csrf_exempt
     def dispatch(self, *args, **kwargs):
         return super(CallHandler, self).dispatch(*args, **kwargs)
@@ -31,7 +30,7 @@ class CallHandler(View):
 
         channel = call.channel
 
-        if not(channel.is_active and channel.org):
+        if not (channel.is_active and channel.org):
             return HttpResponse("No channel found", status=400)
 
         channel_type = channel.channel_type
@@ -128,7 +127,9 @@ class CallHandler(View):
 
             if not has_event and call.status not in IVRCall.DONE or hangup:
                 if call.is_ivr():
-                    response = Flow.handle_call(call, text=text, saved_media_url=saved_media_url, hangup=hangup, resume=resume)
+                    response = Flow.handle_call(
+                        call, text=text, saved_media_url=saved_media_url, hangup=hangup, resume=resume
+                    )
                     event = HttpEvent(request_method, request_path, request_body, 200, six.text_type(response))
                     if ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_NCCO:
                         ChannelLog.log_ivr_interaction(call, "Incoming request for call", event)
@@ -148,8 +149,10 @@ class CallHandler(View):
                             final_step = FlowStep.objects.filter(run=run).order_by('-arrived_on').first()
                             run.set_completed(final_step=final_step)
 
-                response = dict(description="Updated call status",
-                                call=dict(status=call.get_status_display(), duration=call.duration))
+                response = dict(
+                    description="Updated call status",
+                    call=dict(status=call.get_status_display(), duration=call.duration)
+                )
 
                 event = HttpEvent(request_method, request_path, request_body, 200, json.dumps(response))
                 ChannelLog.log_ivr_interaction(call, "Updated call status", event)

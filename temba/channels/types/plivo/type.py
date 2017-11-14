@@ -27,7 +27,9 @@ class PlivoType(ChannelType):
     name = "Plivo"
     icon = "icon-channel-plivo"
 
-    claim_blurb = _("""Easily add a two way number you have configured with <a href="https://www.plivo.com/">Plivo</a> using their APIs.""")
+    claim_blurb = _(
+        """Easily add a two way number you have configured with <a href="https://www.plivo.com/">Plivo</a> using their APIs."""
+    )
     claim_view = ClaimView
 
     show_config_page = False
@@ -37,23 +39,27 @@ class PlivoType(ChannelType):
 
     def deactivate(self, channel):
         config = channel.config_json()
-        client = plivo.RestAPI(config[Channel.CONFIG_PLIVO_AUTH_ID],
-                               config[Channel.CONFIG_PLIVO_AUTH_TOKEN])
+        client = plivo.RestAPI(config[Channel.CONFIG_PLIVO_AUTH_ID], config[Channel.CONFIG_PLIVO_AUTH_TOKEN])
         client.delete_application(params=dict(app_id=config[Channel.CONFIG_PLIVO_APP_ID]))
 
     def send(self, channel, msg, text):
         # url used for logs and exceptions
         url = 'https://api.plivo.com/v1/Account/%s/Message/' % channel.config[Channel.CONFIG_PLIVO_AUTH_ID]
 
-        client = plivo.RestAPI(channel.config[Channel.CONFIG_PLIVO_AUTH_ID], channel.config[Channel.CONFIG_PLIVO_AUTH_TOKEN])
-        status_url = "https://" + settings.HOSTNAME + "%s" % reverse('handlers.plivo_handler',
-                                                                     args=['status', channel.uuid])
+        client = plivo.RestAPI(
+            channel.config[Channel.CONFIG_PLIVO_AUTH_ID], channel.config[Channel.CONFIG_PLIVO_AUTH_TOKEN]
+        )
+        status_url = "https://" + settings.HOSTNAME + "%s" % reverse(
+            'handlers.plivo_handler', args=['status', channel.uuid]
+        )
 
-        payload = {'src': channel.address.lstrip('+'),
-                   'dst': msg.urn_path.lstrip('+'),
-                   'text': text,
-                   'url': status_url,
-                   'method': 'POST'}
+        payload = {
+            'src': channel.address.lstrip('+'),
+            'dst': msg.urn_path.lstrip('+'),
+            'text': text,
+            'url': status_url,
+            'method': 'POST'
+        }
 
         event = HttpEvent('POST', url, json.dumps(payload))
 
@@ -69,8 +75,7 @@ class PlivoType(ChannelType):
             raise SendException(six.text_type(e), event=event, start=start)
 
         if plivo_response_status != 200 and plivo_response_status != 201 and plivo_response_status != 202:
-            raise SendException("Got non-200 response [%d] from API" % plivo_response_status,
-                                event=event, start=start)
+            raise SendException("Got non-200 response [%d] from API" % plivo_response_status, event=event, start=start)
 
         external_id = plivo_response['message_uuid'][0]
         Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)

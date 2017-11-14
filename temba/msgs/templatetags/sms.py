@@ -7,14 +7,7 @@ from temba.channels.models import ChannelEvent
 register = template.Library()
 
 PLAYABLE_CONTENT_TYPES = {
-    'audio/wav',
-    'audio/x-wav',
-    'audio/vnd.wav',
-    'audio/ogg',
-    'audio/mp3',
-    'audio/m4a',
-    'video/mp4',
-    'video/webm'
+    'audio/wav', 'audio/x-wav', 'audio/vnd.wav', 'audio/ogg', 'audio/mp3', 'audio/m4a', 'video/mp4', 'video/webm'
 }
 
 
@@ -97,7 +90,7 @@ def render(parser, token):
         raise ValueError("render tag should be followed by keyword as and the name of a context variable")
     as_var = bits[2]
 
-    nodes = parser.parse(('endrender',))
+    nodes = parser.parse(('endrender', ))
     parser.delete_first_token()
     return RenderNode(nodes, as_var)
 
@@ -107,7 +100,7 @@ def attachment_button(attachment):
     content_type, delim, url = attachment.partition(":")
 
     # some OGG/OGA attachments may have wrong content type
-    if content_type == 'application/octet-stream' and (url.endswith('.ogg') or url.endswith('.oga')):  # pragma: no cover
+    if (content_type == 'application/octet-stream' and (url.endswith('.ogg') or url.endswith('.oga'))):  # pragma: no cover
         content_type = 'audio/ogg'
 
     category = content_type.split('/')[0] if '/' in content_type else content_type
@@ -116,7 +109,10 @@ def attachment_button(attachment):
         preview = url
 
         (lat, lng) = url.split(',')
-        url = 'http://www.openstreetmap.org/?mlat=%(lat)s&mlon=%(lng)s#map=18/%(lat)s/%(lng)s' % {"lat": lat, "lng": lng}
+        url = 'http://www.openstreetmap.org/?mlat=%(lat)s&mlon=%(lng)s#map=18/%(lat)s/%(lng)s' % {
+            "lat": lat,
+            "lng": lng
+        }
     else:
         preview = url.rpartition('.')[2].upper()  # preview is the file extension in uppercase
 

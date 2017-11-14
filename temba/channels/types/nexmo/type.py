@@ -27,7 +27,9 @@ class NexmoType(ChannelType):
     name = "Nexmo"
     icon = "icon-channel-nexmo"
 
-    claim_blurb = _("""Easily add a two way number you have configured with <a href="https://www.nexmo.com/">Nexmo</a> using their APIs.""")
+    claim_blurb = _(
+        """Easily add a two way number you have configured with <a href="https://www.nexmo.com/">Nexmo</a> using their APIs."""
+    )
     claim_view = ClaimView
 
     update_form = UpdateNexmoForm
@@ -39,16 +41,19 @@ class NexmoType(ChannelType):
     ivr_protocol = ChannelType.IVRProtocol.IVR_PROTOCOL_NCCO
 
     def is_recommended_to(self, user):
-        NEXMO_RECOMMENDED_COUNTRIES = ['US', 'CA', 'GB', 'AU', 'AT', 'FI', 'DE', 'HK', 'HU',
-                                       'LT', 'NL', 'NO', 'PL', 'SE', 'CH', 'BE', 'ES', 'ZA']
+        NEXMO_RECOMMENDED_COUNTRIES = [
+            'US', 'CA', 'GB', 'AU', 'AT', 'FI', 'DE', 'HK', 'HU', 'LT', 'NL', 'NO', 'PL', 'SE', 'CH', 'BE', 'ES', 'ZA'
+        ]
         org = user.get_org()
         countrycode = timezone_to_country_code(org.timezone)
         return countrycode in NEXMO_RECOMMENDED_COUNTRIES
 
     def send(self, channel, msg, text):
 
-        client = NexmoClient(channel.org_config[NEXMO_KEY], channel.org_config[NEXMO_SECRET],
-                             channel.org_config[NEXMO_APP_ID], channel.org_config[NEXMO_APP_PRIVATE_KEY])
+        client = NexmoClient(
+            channel.org_config[NEXMO_KEY], channel.org_config[NEXMO_SECRET], channel.org_config[NEXMO_APP_ID],
+            channel.org_config[NEXMO_APP_PRIVATE_KEY]
+        )
         start = time.time()
 
         event = None
@@ -57,7 +62,9 @@ class NexmoType(ChannelType):
             try:
                 (message_id, event) = client.send_message_via_nexmo(channel.address, msg.urn_path, text)
             except SendException as e:
-                match = regex.match(r'.*Throughput Rate Exceeded - please wait \[ (\d+) \] and retry.*', e.events[0].response_body)
+                match = regex.match(
+                    r'.*Throughput Rate Exceeded - please wait \[ (\d+) \] and retry.*', e.events[0].response_body
+                )
 
                 # this is a throughput failure, attempt to wait up to three times
                 if match and attempts < 3:

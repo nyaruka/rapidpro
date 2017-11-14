@@ -62,7 +62,9 @@ class JiochatClient:
 
                 response_json = response.json()
                 event.response_body = json.dumps(response_json)
-                ChannelLog.log_channel_request(channel_id, "Successfully fetched access token from Jiochat", event, start)
+                ChannelLog.log_channel_request(
+                    channel_id, "Successfully fetched access token from Jiochat", event, start
+                )
 
                 access_token = response_json['access_token']
                 cache.set(key, access_token, timeout=7200)
@@ -155,8 +157,9 @@ class JiochatClient:
             raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from JioChat" % response.status_code,
-                                event=event, start=start)
+            raise SendException(
+                "Got non-200 response [%d] from JioChat" % response.status_code, event=event, start=start
+            )
 
         return response, event
 

@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-
 """
 We need our own custom template loaders because we allow templates to be overridden even when the extension doesn't
 match, i.e. a template called index.haml can override index.html in Smartmin
@@ -48,7 +47,6 @@ def get_haml_loader(loader):
 
 
 haml_loaders = dict((name, get_haml_loader(loader)) for (name, loader) in get_django_template_loaders())
-
 
 HamlFilesystemLoader = get_haml_loader(filesystem)
 HamlAppDirectoriesLoader = get_haml_loader(app_directories)

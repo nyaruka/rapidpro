@@ -23,7 +23,9 @@ class BlackmynaType(ChannelType):
 
     name = "Blackmyna"
 
-    claim_blurb = _("""Easily add a two way number you have configured with <a href="http://blackmyna.com">Blackmyna</a> using their APIs.""")
+    claim_blurb = _(
+        """Easily add a two way number you have configured with <a href="http://blackmyna.com">Blackmyna</a> using their APIs."""
+    )
     claim_view = AuthenticatedExternalClaimView
 
     schemes = [TEL_SCHEME]
@@ -52,8 +54,13 @@ class BlackmynaType(ChannelType):
         event = HttpEvent('POST', url, payload)
 
         try:
-            response = requests.post(url, data=payload, headers=http_headers(), timeout=30,
-                                     auth=(channel.config[Channel.CONFIG_USERNAME], channel.config[Channel.CONFIG_PASSWORD]))
+            response = requests.post(
+                url,
+                data=payload,
+                headers=http_headers(),
+                timeout=30,
+                auth=(channel.config[Channel.CONFIG_USERNAME], channel.config[Channel.CONFIG_PASSWORD])
+            )
             # parse our response, should be JSON that looks something like:
             # [{
             #   "recipient" : recipient_number_1,
@@ -72,7 +79,6 @@ class BlackmynaType(ChannelType):
             raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:  # pragma: needs cover
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
+            raise SendException("Got non-200 response [%d] from API" % response.status_code, event=event, start=start)
 
         Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)

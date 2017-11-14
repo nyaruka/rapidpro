@@ -25,8 +25,10 @@ class ClickatellType(ChannelType):
     name = "Clickatell"
     icon = "icon-channel-clickatell"
 
-    claim_blurb = _("""Connect your <a href="http://clickatell.com/" target="_blank">Clickatell</a> number, we'll walk you
-                           through the steps necessary to get your Clickatell connection working in a few minutes.""")
+    claim_blurb = _(
+        """Connect your <a href="http://clickatell.com/" target="_blank">Clickatell</a> number, we'll walk you
+                           through the steps necessary to get your Clickatell connection working in a few minutes."""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
@@ -44,16 +46,18 @@ class ClickatellType(ChannelType):
             unicode_switch = 0
 
         url = 'https://api.clickatell.com/http/sendmsg'
-        payload = {'api_id': channel.config[Channel.CONFIG_API_ID],
-                   'user': channel.config[Channel.CONFIG_USERNAME],
-                   'password': channel.config[Channel.CONFIG_PASSWORD],
-                   'from': channel.address.lstrip('+'),
-                   'concat': 3,
-                   'callback': 7,
-                   'mo': 1,
-                   'unicode': unicode_switch,
-                   'to': msg.urn_path.lstrip('+'),
-                   'text': text}
+        payload = {
+            'api_id': channel.config[Channel.CONFIG_API_ID],
+            'user': channel.config[Channel.CONFIG_USERNAME],
+            'password': channel.config[Channel.CONFIG_PASSWORD],
+            'from': channel.address.lstrip('+'),
+            'concat': 3,
+            'callback': 7,
+            'mo': 1,
+            'unicode': unicode_switch,
+            'to': msg.urn_path.lstrip('+'),
+            'text': text
+        }
 
         event = HttpEvent('GET', url + "?" + urlencode(payload))
 
@@ -68,8 +72,7 @@ class ClickatellType(ChannelType):
             raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
+            raise SendException("Got non-200 response [%d] from API" % response.status_code, event=event, start=start)
 
         # parse out the external id for the message, comes in the format: "ID: id12312312312"
         external_id = None

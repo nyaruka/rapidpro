@@ -34,8 +34,10 @@ class TwitterType(ChannelType):
     show_config_page = False
     free_sending = True
 
-    FATAL_403S = ("messages to this user right now",  # handle is suspended
-                  "users who are not following you")  # handle no longer follows us
+    FATAL_403S = (
+        "messages to this user right now",  # handle is suspended
+        "users who are not following you"
+    )  # handle no longer follows us
 
     def activate(self, channel):
         # tell Mage to activate this channel

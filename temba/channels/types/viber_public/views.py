@@ -34,7 +34,8 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         address = response_json['id']
         config = {'auth_token': auth_token}
 
-        self.object = Channel.create(org, self.request.user, None, self.channel_type,
-                                     name=name, address=address, config=config)
+        self.object = Channel.create(
+            org, self.request.user, None, self.channel_type, name=name, address=address, config=config
+        )
 
         return super(ClaimView, self).form_valid(form)

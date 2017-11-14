@@ -16,20 +16,17 @@ class Report(SmartModel):
     CONFIG = 'config'
     ID = 'id'
 
-    title = models.CharField(verbose_name=_("Title"),
-                             max_length=64,
-                             help_text=_("The name title or this report"))
+    title = models.CharField(verbose_name=_("Title"), max_length=64, help_text=_("The name title or this report"))
 
-    description = models.TextField(verbose_name=_("Description"),
-                                   help_text=_("The full description for the report"))
+    description = models.TextField(verbose_name=_("Description"), help_text=_("The full description for the report"))
 
     org = models.ForeignKey(Org)
 
-    config = models.TextField(null=True, verbose_name=_("Configuration"),
-                              help_text=_("The JSON encoded configurations for this report"))
+    config = models.TextField(
+        null=True, verbose_name=_("Configuration"), help_text=_("The JSON encoded configurations for this report")
+    )
 
-    is_published = models.BooleanField(default=False,
-                                       help_text=_("Whether this report is currently published"))
+    is_published = models.BooleanField(default=False, help_text=_("Whether this report is currently published"))
 
     @classmethod
     def create_report(cls, org, user, json_dict):
@@ -40,24 +37,26 @@ class Report(SmartModel):
 
         existing = cls.objects.filter(pk=id, org=org)
         if existing:
-            existing.update(title=title,
-                            description=description,
-                            config=json.dumps(config))
+            existing.update(title=title, description=description, config=json.dumps(config))
 
             return cls.objects.get(pk=id)
 
-        return cls.objects.create(title=title,
-                                  description=description,
-                                  config=json.dumps(config),
-                                  org=org,
-                                  created_by=user,
-                                  modified_by=user)
+        return cls.objects.create(
+            title=title,
+            description=description,
+            config=json.dumps(config),
+            org=org,
+            created_by=user,
+            modified_by=user
+        )
 
     def as_json(self):
-        return dict(text=self.title, id=self.pk, description=self.description, config=self.config, public=self.is_published)
+        return dict(
+            text=self.title, id=self.pk, description=self.description, config=self.config, public=self.is_published
+        )
 
     def __str__(self):  # pragma: needs cover
         return "%s - %s" % (self.pk, self.title)
 
     class Meta:
-        unique_together = (('org', 'title'),)
+        unique_together = (('org', 'title'), )

@@ -59,8 +59,10 @@ TEST_URLS = (
     '/contact/?search=' + urlquote_plus('gender=F'),
     '/contact/?search=' + urlquote_plus('joined=""'),
     '/contact/?search=' + urlquote_plus('joined!=""'),
-    '/contact/?search=' + urlquote_plus('district=Wudil or district=Anka or district=Zuru or district=Kaura or '
-                                        'district=Giwa or district=Kalgo or district=Shanga or district=Bunza'),
+    '/contact/?search=' + urlquote_plus(
+        'district=Wudil or district=Anka or district=Zuru or district=Kaura or '
+        'district=Giwa or district=Kalgo or district=Shanga or district=Bunza'
+    ),
     '/contact/?search=' + urlquote_plus('gender=M and state=Katsina and age<40 and joined>') + '{1-year-ago}',
     '/contact/?search=' + urlquote_plus('(gender=M and district=Faskari) or (gender=F and district=Zuru)'),
     '/contact/blocked/',
@@ -112,18 +114,54 @@ class Command(BaseCommand):  # pragma: no cover
     help = "Runs performance tests on a database generated with make_test_db"
 
     def add_arguments(self, parser):
-        parser.add_argument('--include', type=str, action='store', dest='include_pattern', default=None,
-                            help="Only test URLs matching this pattern.")
-        parser.add_argument('--orgs', type=str, action='store', dest='org_ids', default=None,
-                            help="Comma separated database ids of orgs to test. Defaults to first and last org.")
-        parser.add_argument('--org-limits', type=str, action='store', dest='org_limits', default=None,
-                            help="Comma separated hard time limits for each org in milliseconds.")
-        parser.add_argument('--num-requests', type=int, action='store', dest='num_requests', default=DEFAULT_NUM_REQUESTS,
-                            help="Number of requests to make for each URL. Default is %d." % DEFAULT_NUM_REQUESTS)
-        parser.add_argument('--results-file', type=str, action='store', dest='results_file', default=DEFAULT_RESULTS_FILE,
-                            help="Path of file to write results to. Default is '%s'." % DEFAULT_RESULTS_FILE)
-        parser.add_argument('--results-html', type=str, action='store', dest='results_html', default=None,
-                            help="Path of file to write HTML results to. Default is none.")
+        parser.add_argument(
+            '--include',
+            type=str,
+            action='store',
+            dest='include_pattern',
+            default=None,
+            help="Only test URLs matching this pattern."
+        )
+        parser.add_argument(
+            '--orgs',
+            type=str,
+            action='store',
+            dest='org_ids',
+            default=None,
+            help="Comma separated database ids of orgs to test. Defaults to first and last org."
+        )
+        parser.add_argument(
+            '--org-limits',
+            type=str,
+            action='store',
+            dest='org_limits',
+            default=None,
+            help="Comma separated hard time limits for each org in milliseconds."
+        )
+        parser.add_argument(
+            '--num-requests',
+            type=int,
+            action='store',
+            dest='num_requests',
+            default=DEFAULT_NUM_REQUESTS,
+            help="Number of requests to make for each URL. Default is %d." % DEFAULT_NUM_REQUESTS
+        )
+        parser.add_argument(
+            '--results-file',
+            type=str,
+            action='store',
+            dest='results_file',
+            default=DEFAULT_RESULTS_FILE,
+            help="Path of file to write results to. Default is '%s'." % DEFAULT_RESULTS_FILE
+        )
+        parser.add_argument(
+            '--results-html',
+            type=str,
+            action='store',
+            dest='results_html',
+            default=None,
+            help="Path of file to write HTML results to. Default is none."
+        )
 
     def handle(self, include_pattern, org_ids, org_limits, num_requests, results_file, results_html, *args, **options):
         self.client = Client()
@@ -175,8 +213,11 @@ class Command(BaseCommand):  # pragma: no cover
         """
         Tests the given URLs for the given org
         """
-        self.stdout.write(self.style.MIGRATE_HEADING("Org #%d (%d contacts, %dms max allowed)"
-                                                     % (org.id, org.org_contacts.count(), org.allowed_max)))
+        self.stdout.write(
+            self.style.MIGRATE_HEADING(
+                "Org #%d (%d contacts, %dms max allowed)" % (org.id, org.org_contacts.count(), org.allowed_max)
+            )
+        )
 
         # build a URL context for this org
         url_context = {}
@@ -258,9 +299,10 @@ class Command(BaseCommand):  # pragma: no cover
         with open(path, 'w') as f:
             json.dump({
                 'started': started.isoformat(),
-                'results': [
-                    {'org': r['org'].id, 'tests': [t.as_json() for t in r['tests']]} for r in results
-                ]
+                'results': [{
+                    'org': r['org'].id,
+                    'tests': [t.as_json() for t in r['tests']]
+                } for r in results]
             }, f, indent=4)
 
     def save_html_results(self, path, results):
@@ -274,7 +316,8 @@ class Command(BaseCommand):  # pragma: no cover
             f.write(footer)
 
     def write_org_html(self, f, org, tests):
-        f.write("""
+        f.write(
+            """
         <tr style="background-color: #2f4970; color: white">
             <th style="padding: 5px" colspan="5">Org #%d (%d contacts, %dms max allowed)</th>
         </tr>
@@ -285,7 +328,8 @@ class Command(BaseCommand):  # pragma: no cover
             <th style="padding: 5px">Change (ms)</th>
             <th style="padding: 5px">Change (%%)</th>
         </tr>
-        """ % (org.id, org.org_contacts.count(), org.allowed_max))
+        """ % (org.id, org.org_contacts.count(), org.allowed_max)
+        )
 
         for test in tests:
             if test.change:

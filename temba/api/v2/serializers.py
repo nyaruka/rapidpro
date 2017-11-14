@@ -41,6 +41,7 @@ class ReadSerializer(serializers.ModelSerializer):
     """
     We deviate slightly from regular REST framework usage with distinct serializers for reading and writing
     """
+
     def save(self, **kwargs):  # pragma: no cover
         raise ValueError("Can't call save on a read serializer")
 
@@ -50,17 +51,24 @@ class WriteSerializer(serializers.Serializer):
     The normal REST framework way is to have the view decide if it's an update on existing instance or a create for a
     new instance. Since our logic for that gets relatively complex, we have the serializer make that call.
     """
+
     def run_validation(self, data=serializers.empty):
         if not isinstance(data, dict):
-            raise serializers.ValidationError(detail={
-                'non_field_errors': ["Request body should be a single JSON object"]
-            })
+            raise serializers.ValidationError(
+                detail={
+                    'non_field_errors': ["Request body should be a single JSON object"]
+                }
+            )
 
         if self.context['org'].is_suspended():
-            raise serializers.ValidationError(detail={
-                'non_field_errors': ["Sorry, your account is currently suspended. "
-                                     "To enable sending messages, please contact support."]
-            })
+            raise serializers.ValidationError(
+                detail={
+                    'non_field_errors': [
+                        "Sorry, your account is currently suspended. "
+                        "To enable sending messages, please contact support."
+                    ]
+                }
+            )
 
         return super(WriteSerializer, self).run_validation(data)
 
@@ -68,6 +76,7 @@ class WriteSerializer(serializers.Serializer):
 # ============================================================
 # Serializers (A-Z)
 # ============================================================
+
 
 class AdminBoundaryReadSerializer(ReadSerializer):
     parent = serializers.SerializerMethodField()
@@ -136,11 +145,14 @@ class BroadcastWriteSerializer(WriteSerializer):
         text, base_language = self.validated_data['text']
 
         # create the broadcast
-        broadcast = Broadcast.create(self.context['org'], self.context['user'],
-                                     text=text,
-                                     base_language=base_language,
-                                     recipients=recipients,
-                                     channel=self.validated_data.get('channel'))
+        broadcast = Broadcast.create(
+            self.context['org'],
+            self.context['user'],
+            text=text,
+            base_language=base_language,
+            recipients=recipients,
+            channel=self.validated_data.get('channel')
+        )
 
         # send in task
         on_transaction_commit(lambda: send_broadcast_task.delay(broadcast.id))
@@ -180,9 +192,11 @@ class CampaignReadSerializer(ReadSerializer):
 
 
 class CampaignWriteSerializer(WriteSerializer):
-    name = serializers.CharField(required=True, max_length=Campaign.MAX_NAME_LEN, validators=[
-        UniqueForOrgValidator(queryset=Campaign.objects.filter(is_active=True))
-    ])
+    name = serializers.CharField(
+        required=True,
+        max_length=Campaign.MAX_NAME_LEN,
+        validators=[UniqueForOrgValidator(queryset=Campaign.objects.filter(is_active=True))]
+    )
     group = fields.ContactGroupField(required=True)
 
     def save(self):
@@ -221,7 +235,9 @@ class CampaignEventReadSerializer(ReadSerializer):
 
     class Meta:
         model = CampaignEvent
-        fields = ('uuid', 'campaign', 'relative_to', 'offset', 'unit', 'delivery_hour', 'flow', 'message', 'created_on')
+        fields = (
+            'uuid', 'campaign', 'relative_to', 'offset', 'unit', 'delivery_hour', 'flow', 'message', 'created_on'
+        )
 
 
 class CampaignEventWriteSerializer(WriteSerializer):
@@ -279,8 +295,9 @@ class CampaignEventWriteSerializer(WriteSerializer):
 
                 # if we aren't currently a message event, we need to create our hidden message flow
                 if self.instance.event_type != CampaignEvent.TYPE_MESSAGE:
-                    self.instance.flow = Flow.create_single_message(self.context['org'], self.context['user'],
-                                                                    translations, base_language)
+                    self.instance.flow = Flow.create_single_message(
+                        self.context['org'], self.context['user'], translations, base_language
+                    )
                     self.instance.event_type = CampaignEvent.TYPE_MESSAGE
 
                 # otherwise, we can just update that flow
@@ -298,13 +315,15 @@ class CampaignEventWriteSerializer(WriteSerializer):
 
         else:
             if flow:
-                self.instance = CampaignEvent.create_flow_event(self.context['org'], self.context['user'], campaign,
-                                                                relative_to, offset, unit, flow, delivery_hour)
+                self.instance = CampaignEvent.create_flow_event(
+                    self.context['org'], self.context['user'], campaign, relative_to, offset, unit, flow, delivery_hour
+                )
             else:
                 translations, base_language = message
-                self.instance = CampaignEvent.create_message_event(self.context['org'], self.context['user'], campaign,
-                                                                   relative_to, offset, unit, translations,
-                                                                   delivery_hour, base_language)
+                self.instance = CampaignEvent.create_message_event(
+                    self.context['org'], self.context['user'], campaign, relative_to, offset, unit, translations,
+                    delivery_hour, base_language
+                )
             self.instance.update_flow_name()
 
         # create our event fires for this event in the background
@@ -383,8 +402,9 @@ class ContactReadSerializer(ReadSerializer):
 
     class Meta:
         model = Contact
-        fields = ('uuid', 'name', 'language', 'urns', 'groups', 'fields', 'blocked', 'stopped',
-                  'created_on', 'modified_on')
+        fields = (
+            'uuid', 'name', 'language', 'urns', 'groups', 'fields', 'blocked', 'stopped', 'created_on', 'modified_on'
+        )
 
 
 class ContactWriteSerializer(WriteSerializer):
@@ -468,8 +488,9 @@ class ContactWriteSerializer(WriteSerializer):
             if changed:
                 self.instance.save(update_fields=changed)
         else:
-            self.instance = Contact.get_or_create(self.context['org'], self.context['user'], name,
-                                                  urns=urns, language=language)
+            self.instance = Contact.get_or_create(
+                self.context['org'], self.context['user'], name, urns=urns, language=language
+            )
 
         # update our fields
         if custom_fields is not None:
@@ -499,9 +520,11 @@ class ContactFieldReadSerializer(ReadSerializer):
 class ContactFieldWriteSerializer(WriteSerializer):
     VALUE_TYPES = extract_constants(Value.TYPE_CONFIG, reverse=True)
 
-    label = serializers.CharField(required=True, max_length=ContactField.MAX_LABEL_LEN, validators=[
-        UniqueForOrgValidator(ContactField.objects.filter(is_active=True), ignore_case=True)
-    ])
+    label = serializers.CharField(
+        required=True,
+        max_length=ContactField.MAX_LABEL_LEN,
+        validators=[UniqueForOrgValidator(ContactField.objects.filter(is_active=True), ignore_case=True)]
+    )
     value_type = serializers.ChoiceField(required=True, choices=VALUE_TYPES.keys())
 
     def validate_label(self, value):
@@ -521,9 +544,11 @@ class ContactFieldWriteSerializer(WriteSerializer):
 
         fields_count = ContactField.objects.filter(org=self.context['org']).count()
         if not self.instance and fields_count >= ContactField.MAX_ORG_CONTACTFIELDS:
-            raise serializers.ValidationError("This org has %s contact fields and the limit is %s. "
-                                              "You must delete existing ones before you can "
-                                              "create new ones." % (fields_count, ContactField.MAX_ORG_CONTACTFIELDS))
+            raise serializers.ValidationError(
+                "This org has %s contact fields and the limit is %s. "
+                "You must delete existing ones before you can "
+                "create new ones." % (fields_count, ContactField.MAX_ORG_CONTACTFIELDS)
+            )
 
         return data
 
@@ -552,9 +577,11 @@ class ContactGroupReadSerializer(ReadSerializer):
 
 
 class ContactGroupWriteSerializer(WriteSerializer):
-    name = serializers.CharField(required=True, max_length=ContactGroup.MAX_NAME_LEN, validators=[
-        UniqueForOrgValidator(queryset=ContactGroup.user_groups.filter(is_active=True), ignore_case=True)
-    ])
+    name = serializers.CharField(
+        required=True,
+        max_length=ContactGroup.MAX_NAME_LEN,
+        validators=[UniqueForOrgValidator(queryset=ContactGroup.user_groups.filter(is_active=True), ignore_case=True)]
+    )
 
     def validate_name(self, value):
         if not ContactGroup.is_valid_name(value):
@@ -564,9 +591,11 @@ class ContactGroupWriteSerializer(WriteSerializer):
     def validate(self, data):
         group_count = ContactGroup.user_groups.filter(org=self.context['org']).count()
         if group_count >= ContactGroup.MAX_ORG_CONTACTGROUPS:
-            raise serializers.ValidationError("This org has %s groups and the limit is %s. "
-                                              "You must delete existing ones before you can "
-                                              "create new ones." % (group_count, ContactGroup.MAX_ORG_CONTACTGROUPS))
+            raise serializers.ValidationError(
+                "This org has %s groups and the limit is %s. "
+                "You must delete existing ones before you can "
+                "create new ones." % (group_count, ContactGroup.MAX_ORG_CONTACTGROUPS)
+            )
         return data
 
     def save(self):
@@ -574,7 +603,7 @@ class ContactGroupWriteSerializer(WriteSerializer):
 
         if self.instance:
             self.instance.name = name
-            self.instance.save(update_fields=('name',))
+            self.instance.save(update_fields=('name', ))
             return self.instance
         else:
             return ContactGroup.get_or_create(self.context['org'], self.context['user'], name)
@@ -610,7 +639,9 @@ class ContactBulkActionSerializer(WriteSerializer):
             # if adding to a group, check for blocked contacts
             invalid_uuids = {c.uuid for c in contacts if c.is_blocked or c.is_stopped}
             if invalid_uuids:
-                raise serializers.ValidationError("Blocked or stopped contacts cannot be added to groups: %s" % ', '.join(invalid_uuids))
+                raise serializers.ValidationError(
+                    "Blocked or stopped contacts cannot be added to groups: %s" % ', '.join(invalid_uuids)
+                )
 
         return data
 
@@ -698,8 +729,10 @@ class FlowRunReadSerializer(ReadSerializer):
 
     class Meta:
         model = FlowRun
-        fields = ('id', 'flow', 'contact', 'start', 'responded', 'path', 'values',
-                  'created_on', 'modified_on', 'exited_on', 'exit_type')
+        fields = (
+            'id', 'flow', 'contact', 'start', 'responded', 'path', 'values', 'created_on', 'modified_on', 'exited_on',
+            'exit_type'
+        )
 
 
 class FlowStartReadSerializer(ReadSerializer):
@@ -727,7 +760,10 @@ class FlowStartReadSerializer(ReadSerializer):
 
     class Meta:
         model = FlowStart
-        fields = ('id', 'uuid', 'flow', 'status', 'groups', 'contacts', 'restart_participants', 'extra', 'created_on', 'modified_on')
+        fields = (
+            'id', 'uuid', 'flow', 'status', 'groups', 'contacts', 'restart_participants', 'extra', 'created_on',
+            'modified_on'
+        )
 
 
 class FlowStartWriteSerializer(WriteSerializer):
@@ -765,9 +801,14 @@ class FlowStartWriteSerializer(WriteSerializer):
             contacts.append(contact)
 
         # ok, let's go create our flow start, the actual starting will happen in our view
-        return FlowStart.create(self.validated_data['flow'], self.context['user'],
-                                restart_participants=restart_participants,
-                                contacts=contacts, groups=groups, extra=extra)
+        return FlowStart.create(
+            self.validated_data['flow'],
+            self.context['user'],
+            restart_participants=restart_participants,
+            contacts=contacts,
+            groups=groups,
+            extra=extra
+        )
 
 
 class LabelReadSerializer(ReadSerializer):
@@ -783,9 +824,11 @@ class LabelReadSerializer(ReadSerializer):
 
 
 class LabelWriteSerializer(WriteSerializer):
-    name = serializers.CharField(required=True, max_length=Label.MAX_NAME_LEN, validators=[
-        UniqueForOrgValidator(queryset=Label.label_objects.filter(is_active=True), ignore_case=True)
-    ])
+    name = serializers.CharField(
+        required=True,
+        max_length=Label.MAX_NAME_LEN,
+        validators=[UniqueForOrgValidator(queryset=Label.label_objects.filter(is_active=True), ignore_case=True)]
+    )
 
     def validate_name(self, value):
         if not Label.is_valid_name(value):
@@ -795,9 +838,11 @@ class LabelWriteSerializer(WriteSerializer):
     def validate(self, data):
         labels_count = Label.label_objects.filter(org=self.context['org'], is_active=True).count()
         if labels_count >= Label.MAX_ORG_LABELS:
-            raise serializers.ValidationError("This org has %s labels and the limit is %s. "
-                                              "You must delete existing ones before you can "
-                                              "create new ones." % (labels_count, Label.MAX_ORG_LABELS))
+            raise serializers.ValidationError(
+                "This org has %s labels and the limit is %s. "
+                "You must delete existing ones before you can "
+                "create new ones." % (labels_count, Label.MAX_ORG_LABELS)
+            )
         return data
 
     def save(self):
@@ -805,7 +850,7 @@ class LabelWriteSerializer(WriteSerializer):
 
         if self.instance:
             self.instance.name = name
-            self.instance.save(update_fields=('name',))
+            self.instance.save(update_fields=('name', ))
             return self.instance
         else:
             return Label.get_or_create(self.context['org'], self.context['user'], name)
@@ -814,15 +859,8 @@ class LabelWriteSerializer(WriteSerializer):
 class MsgReadSerializer(ReadSerializer):
     STATUSES = extract_constants(STATUS_CONFIG)
     VISIBILITIES = extract_constants(Msg.VISIBILITY_CONFIG)
-    DIRECTIONS = {
-        INCOMING: 'in',
-        OUTGOING: 'out'
-    }
-    MSG_TYPES = {
-        INBOX: 'inbox',
-        FLOW: 'flow',
-        IVR: 'ivr'
-    }
+    DIRECTIONS = {INCOMING: 'in', OUTGOING: 'out'}
+    MSG_TYPES = {INBOX: 'inbox', FLOW: 'flow', IVR: 'ivr'}
 
     broadcast = serializers.SerializerMethodField()
     contact = fields.ContactField()
@@ -864,9 +902,10 @@ class MsgReadSerializer(ReadSerializer):
 
     class Meta:
         model = Msg
-        fields = ('id', 'broadcast', 'contact', 'urn', 'channel',
-                  'direction', 'type', 'status', 'archived', 'visibility', 'text', 'labels',
-                  'attachments', 'created_on', 'sent_on', 'modified_on', 'media')
+        fields = (
+            'id', 'broadcast', 'contact', 'urn', 'channel', 'direction', 'type', 'status', 'archived', 'visibility',
+            'text', 'labels', 'attachments', 'created_on', 'sent_on', 'modified_on', 'media'
+        )
 
 
 class MsgBulkActionSerializer(WriteSerializer):
@@ -975,7 +1014,9 @@ class ResthookSubscriberWriteSerializer(WriteSerializer):
         target_url = data['target_url']
 
         # make sure this combination doesn't already exist
-        if ResthookSubscriber.objects.filter(resthook=resthook, target_url=target_url, is_active=True):  # pragma: needs cover
+        if ResthookSubscriber.objects.filter(
+            resthook=resthook, target_url=target_url, is_active=True
+        ):  # pragma: needs cover
             raise serializers.ValidationError("URL is already subscribed to this event.")
 
         return data

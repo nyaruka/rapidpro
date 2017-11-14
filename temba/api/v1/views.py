@@ -33,7 +33,6 @@ class RootView(views.APIView):
 
 
 class AuthenticateEndpoint(SmartFormView):
-
     class LoginForm(forms.Form):
         email = forms.CharField()
         password = forms.CharField()
@@ -294,20 +293,24 @@ class ContactEndpoint(ListAPIMixin, CreateAPIMixin, BaseAPIView):
 
         groups = self.request.query_params.getlist('group', None)  # deprecated, use group_uuids
         if groups:
-            queryset = queryset.filter(all_groups__name__in=groups,
-                                       all_groups__group_type=ContactGroup.TYPE_USER_DEFINED)
+            queryset = queryset.filter(
+                all_groups__name__in=groups, all_groups__group_type=ContactGroup.TYPE_USER_DEFINED
+            )
 
         group_uuids = self.request.query_params.getlist('group_uuids', None)
         if group_uuids:
-            queryset = queryset.filter(all_groups__uuid__in=group_uuids,
-                                       all_groups__group_type=ContactGroup.TYPE_USER_DEFINED)
+            queryset = queryset.filter(
+                all_groups__uuid__in=group_uuids, all_groups__group_type=ContactGroup.TYPE_USER_DEFINED
+            )
 
         uuids = self.request.query_params.getlist('uuid', None)
         if uuids:
             queryset = queryset.filter(uuid__in=uuids)
 
         # can't prefetch a custom manager directly, so here we prefetch user groups as new attribute
-        user_groups_prefetch = Prefetch('all_groups', queryset=ContactGroup.user_groups.all(), to_attr='prefetched_user_groups')
+        user_groups_prefetch = Prefetch(
+            'all_groups', queryset=ContactGroup.user_groups.all(), to_attr='prefetched_user_groups'
+        )
 
         return queryset.select_related('org').prefetch_related(user_groups_prefetch).order_by('-modified_on', 'pk')
 
@@ -730,13 +733,15 @@ class OrgEndpoint(BaseAPIView):
     def get(self, request, *args, **kwargs):
         org = request.user.get_org()
 
-        data = dict(name=org.name,
-                    country=org.get_country_code(),
-                    languages=[l.iso_code for l in org.languages.order_by('iso_code')],
-                    primary_language=org.primary_language.iso_code if org.primary_language else None,
-                    timezone=six.text_type(org.timezone),
-                    date_style=('day_first' if org.get_dayfirst() else 'month_first'),
-                    anon=org.is_anon)
+        data = dict(
+            name=org.name,
+            country=org.get_country_code(),
+            languages=[l.iso_code for l in org.languages.order_by('iso_code')],
+            primary_language=org.primary_language.iso_code if org.primary_language else None,
+            timezone=six.text_type(org.timezone),
+            date_style=('day_first' if org.get_dayfirst() else 'month_first'),
+            anon=org.is_anon
+        )
 
         return Response(data, status=status.HTTP_200_OK)
 

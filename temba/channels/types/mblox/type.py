@@ -24,7 +24,9 @@ class MbloxType(ChannelType):
 
     name = "Mblox"
 
-    claim_blurb = _("""Easily add a two way number you have configured with <a href="https://www.mblox.com/">Mblox</a> using their APIs.""")
+    claim_blurb = _(
+        """Easily add a two way number you have configured with <a href="https://www.mblox.com/">Mblox</a> using their APIs."""
+    )
 
     claim_view = AuthenticatedExternalClaimView
 
@@ -43,8 +45,10 @@ class MbloxType(ChannelType):
         request_body = json.dumps(payload)
 
         url = 'https://api.mblox.com/xms/v1/%s/batches' % channel.config[Channel.CONFIG_USERNAME]
-        headers = {'Content-Type': 'application/json',
-                   'Authorization': 'Bearer %s' % channel.config[Channel.CONFIG_PASSWORD]}
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer %s' % channel.config[Channel.CONFIG_PASSWORD]
+        }
 
         start = time.time()
 
@@ -58,8 +62,9 @@ class MbloxType(ChannelType):
             raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from MBlox" % response.status_code,
-                                event=event, start=start)
+            raise SendException(
+                "Got non-200 response [%d] from MBlox" % response.status_code, event=event, start=start
+            )
 
         # response in format:
         # {
@@ -80,7 +85,6 @@ class MbloxType(ChannelType):
             response_json = response.json()
             external_id = response_json['id']
         except Exception:  # pragma: no cover
-            raise SendException("Unable to parse response body from MBlox",
-                                event=event, start=start)
+            raise SendException("Unable to parse response body from MBlox", event=event, start=start)
 
         Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)

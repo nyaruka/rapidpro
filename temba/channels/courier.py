@@ -38,31 +38,30 @@ def msg_as_task(msg):
     """
     Used to serialize msgs as tasks to courier
     """
-    msg_json = dict(id=msg.id,
-                    uuid=str(msg.uuid) if msg.uuid else "",
-                    org_id=msg.org_id,
-                    channel_id=msg.channel_id,
-                    channel_uuid=msg.channel.uuid,
-                    contact_id=msg.contact_id,
-                    contact_urn_id=msg.contact_urn_id,
-
-                    status=msg.status,
-                    direction=msg.direction,
-                    text=msg.text,
-                    high_priority=msg.high_priority,
-                    urn=msg.contact_urn.urn,
-                    error_count=msg.error_count,
-                    attachments=msg.attachments,
-                    response_to_id=msg.response_to_id,
-                    external_id=msg.external_id,
-
-                    tps_cost=msg.channel.calculate_tps_cost(msg),
-
-                    next_attempt=datetime_to_str(msg.next_attempt, ms=True),
-                    created_on=datetime_to_str(msg.created_on, ms=True),
-                    modified_on=datetime_to_str(msg.modified_on, ms=True),
-                    queued_on=datetime_to_str(msg.queued_on, ms=True),
-                    sent_on=datetime_to_str(msg.sent_on, ms=True))
+    msg_json = dict(
+        id=msg.id,
+        uuid=str(msg.uuid) if msg.uuid else "",
+        org_id=msg.org_id,
+        channel_id=msg.channel_id,
+        channel_uuid=msg.channel.uuid,
+        contact_id=msg.contact_id,
+        contact_urn_id=msg.contact_urn_id,
+        status=msg.status,
+        direction=msg.direction,
+        text=msg.text,
+        high_priority=msg.high_priority,
+        urn=msg.contact_urn.urn,
+        error_count=msg.error_count,
+        attachments=msg.attachments,
+        response_to_id=msg.response_to_id,
+        external_id=msg.external_id,
+        tps_cost=msg.channel.calculate_tps_cost(msg),
+        next_attempt=datetime_to_str(msg.next_attempt, ms=True),
+        created_on=datetime_to_str(msg.created_on, ms=True),
+        modified_on=datetime_to_str(msg.modified_on, ms=True),
+        queued_on=datetime_to_str(msg.queued_on, ms=True),
+        sent_on=datetime_to_str(msg.sent_on, ms=True)
+    )
 
     if msg.contact_urn.auth:  # pragma: no cover
         msg_json['contact_urn_auth'] = msg.contact_urn.auth
@@ -73,7 +72,6 @@ def msg_as_task(msg):
 COURIER_HIGH_PRIORITY = 1
 COURIER_LOW_PRIORITY = 0
 COURIER_DEFAULT_TPS = 10
-
 
 # Our lua script for properly inserting items to a courier queue
 # from https://github.com/nyaruka/courier/blob/master/queue/queue.go

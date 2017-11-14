@@ -21,6 +21,7 @@ class TranslatableField(HStoreField):
     """
     Model field which is a set of language code and translation pairs stored as HSTORE
     """
+
     class Validator(object):
         def __init__(self, max_length):
             self.max_length = max_length
@@ -30,7 +31,9 @@ class TranslatableField(HStoreField):
                 if lang != 'base' and len(lang) != 3:
                     raise ValidationError("'%s' is not a valid language code." % lang)
                 if len(translation) > self.max_length:
-                    raise ValidationError("Translation for '%s' exceeds the %d character limit." % (lang, self.max_length))
+                    raise ValidationError(
+                        "Translation for '%s' exceeds the %d character limit." % (lang, self.max_length)
+                    )
 
     def __init__(self, max_length, **kwargs):
         super(TranslatableField, self).__init__(**kwargs)
@@ -44,8 +47,14 @@ class TranslatableField(HStoreField):
 
 class TembaModel(SmartModel):
 
-    uuid = models.CharField(max_length=36, unique=True, db_index=True, default=generate_uuid,
-                            verbose_name=_("Unique Identifier"), help_text=_("The unique identifier for this object"))
+    uuid = models.CharField(
+        max_length=36,
+        unique=True,
+        db_index=True,
+        default=generate_uuid,
+        verbose_name=_("Unique Identifier"),
+        help_text=_("The unique identifier for this object")
+    )
 
     class Meta:
         abstract = True
@@ -89,8 +98,17 @@ class ChunkIterator(object):
     """
     Queryset wrapper to chunk queries and reduce in-memory footprint
     """
-    def __init__(self, model, ids, order_by=None, select_related=None, prefetch_related=None,
-                 contact_fields=None, max_obj_num=1000):
+
+    def __init__(
+        self,
+        model,
+        ids,
+        order_by=None,
+        select_related=None,
+        prefetch_related=None,
+        contact_fields=None,
+        max_obj_num=1000
+    ):
         self._model = model
         self._ids = ids
         self._order_by = order_by

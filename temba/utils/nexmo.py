@@ -86,21 +86,24 @@ class NexmoClient(nx.Client):
             raise SendException(u"Failed sending message: %s" % response.text, event=event)
 
         if not messages or int(messages[0]['status']) != 0:
-            raise SendException(u"Failed sending message, received error status [%s]" % messages[0]['status'],
-                                event=event)
+            raise SendException(
+                u"Failed sending message, received error status [%s]" % messages[0]['status'], event=event
+            )
 
         else:
             return messages[0]['message-id'], event
 
     def search_numbers(self, country, pattern):
-        response = nx.Client.get_available_numbers(self, country_code=country, pattern=pattern, search_pattern=1,
-                                                   features='SMS', country=country)
+        response = nx.Client.get_available_numbers(
+            self, country_code=country, pattern=pattern, search_pattern=1, features='SMS', country=country
+        )
         numbers = []
         if int(response.get('count', 0)):
             numbers += response['numbers']
 
-        response = nx.Client.get_available_numbers(self, country_code=country, pattern=pattern, search_pattern=1,
-                                                   features='VOICE', country=country)
+        response = nx.Client.get_available_numbers(
+            self, country_code=country, pattern=pattern, search_pattern=1, features='VOICE', country=country
+        )
         if int(response.get('count', 0)):
             numbers += response['numbers']
 
@@ -120,8 +123,9 @@ class NexmoClient(nx.Client):
 
     def update_nexmo_number(self, country, number, moURL, app_id):
         number = number.lstrip('+')
-        params = dict(moHttpUrl=moURL, msisdn=number, country=country, voiceCallbackType='app',
-                      voiceCallbackValue=app_id)
+        params = dict(
+            moHttpUrl=moURL, msisdn=number, country=country, voiceCallbackType='app', voiceCallbackValue=app_id
+        )
         try:
             nx.Client.update_number(self, params=params)
         except nx.ClientError as e:
@@ -173,8 +177,10 @@ def __main__():  # pragma: no cover
     # print "Buying %s: %s" % (seattle_numbers[0]['msisdn'], n.buy_number('US', seattle_numbers[0]['msisdn']))
 
     # update the MO for one of our numbers
-    print("Updating Number %s: %s" % (numbers[0]['msisdn'],
-                                      n.update_nexmo_number('US', numbers[0]['msisdn'], 'http://rapidpro.io')))
+    print(
+        "Updating Number %s: %s" %
+        (numbers[0]['msisdn'], n.update_nexmo_number('US', numbers[0]['msisdn'], 'http://rapidpro.io'))
+    )
 
     # update the MO for our account
     print("Updating Account: %s" % n.update_account("http://rapidpro.io", "http://rapidpro.io"))
@@ -188,7 +194,6 @@ class NCCOException(Exception):
 
 
 class NCCOResponse(object):
-
     def __init__(self, **kwargs):
         self.document = []
 
@@ -243,8 +248,12 @@ class NCCOResponse(object):
         return self
 
     def redirect(self, url=None, **kwargs):
-        result = dict(action='input', maxDigits=1, timeOut=1,
-                      eventUrl=["%s%sinput_redirect=1" % (url, "?" if '?' not in url else "&")])
+        result = dict(
+            action='input',
+            maxDigits=1,
+            timeOut=1,
+            eventUrl=["%s%sinput_redirect=1" % (url, "?" if '?' not in url else "&")]
+        )
 
         self.document.append(result)
         return self
@@ -288,9 +297,15 @@ class NCCOResponse(object):
             result['eventUrl'] = [kwargs.get('action')]
 
         self.document.append(result)
-        result = dict(action='input', maxDigits=1, timeOut=1,
-                      eventUrl=["%s%ssave_media=1" % (kwargs.get('action'),
-                                                      "?" if '?' not in six.text_type(kwargs.get('action')) else "&")])
+        result = dict(
+            action='input',
+            maxDigits=1,
+            timeOut=1,
+            eventUrl=[
+                "%s%ssave_media=1" %
+                (kwargs.get('action'), "?" if '?' not in six.text_type(kwargs.get('action')) else "&")
+            ]
+        )
 
         self.document.append(result)
 

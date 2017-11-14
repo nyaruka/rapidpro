@@ -26,8 +26,10 @@ class ChikkaType(ChannelType):
 
     name = "Chikka"
 
-    claim_blurb = _("""If you are based in the Phillipines, you can integrate with Chikka to send
-                       and receive messages on your shortcode.""")
+    claim_blurb = _(
+        """If you are based in the Phillipines, you can integrate with Chikka to send
+                       and receive messages on your shortcode."""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
@@ -80,7 +82,8 @@ class ChikkaType(ChannelType):
         # if they reject our request_id, send it as a normal send
         if response.status_code == 400 and 'request_id' in payload:
             error = response.json()
-            if error.get('message', None) == 'BAD REQUEST' and error.get('description', None) == 'Invalid/Used Request ID':
+            if error.get('message', None
+                         ) == 'BAD REQUEST' and error.get('description', None) == 'Invalid/Used Request ID':
                 try:
 
                     # operate on a copy so we can still inspect our original call
@@ -102,7 +105,8 @@ class ChikkaType(ChannelType):
                     raise SendException(six.text_type(e), events=events, start=start)
 
         if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                events=events, start=start)
+            raise SendException(
+                "Got non-200 response [%d] from API" % response.status_code, events=events, start=start
+            )
 
         Channel.success(channel, msg, WIRED, start, events=events)

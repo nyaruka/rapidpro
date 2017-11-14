@@ -29,8 +29,10 @@ class KannelType(ChannelType):
     name = "Kannel"
     icon = "icon-channel-kannel"
 
-    claim_blurb = _("""Connect your <a href="http://www.kannel.org/" target="_blank">Kannel</a> instance, we'll walk you through
-                       the steps necessary to get your SMSC connection working in a few minutes.""")
+    claim_blurb = _(
+        """Connect your <a href="http://www.kannel.org/" target="_blank">Kannel</a> instance, we'll walk you through
+                       the steps necessary to get your SMSC connection working in a few minutes."""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
@@ -40,7 +42,9 @@ class KannelType(ChannelType):
 
     def send(self, channel, msg, text):
         # build our callback dlr url, kannel will call this when our message is sent or delivered
-        dlr_url = 'https://%s%s?id=%d&status=%%d' % (settings.HOSTNAME, reverse('courier.kn', args=[channel.uuid, 'status']), msg.id)
+        dlr_url = 'https://%s%s?id=%d&status=%%d' % (
+            settings.HOSTNAME, reverse('courier.kn', args=[channel.uuid, 'status']), msg.id
+        )
         dlr_mask = 31
 
         # build our payload
@@ -107,7 +111,8 @@ class KannelType(ChannelType):
             raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from Kannel" % response.status_code,
-                                event=event, start=start)
+            raise SendException(
+                "Got non-200 response [%d] from Kannel" % response.status_code, event=event, start=start
+            )
 
         Channel.success(channel, msg, WIRED, start, event=event)

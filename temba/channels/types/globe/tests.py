@@ -27,10 +27,11 @@ class GlobeTypeTest(TembaTest):
         response = self.client.get(claim_url)
         self.assertEqual(200, response.status_code)
 
-        response = self.client.post(claim_url,
-                                    dict(number=21586380, app_id="AppId",
-                                         app_secret="AppSecret", passphrase="Passphrase"),
-                                    follow=True)
+        response = self.client.post(
+            claim_url,
+            dict(number=21586380, app_id="AppId", app_secret="AppSecret", passphrase="Passphrase"),
+            follow=True
+        )
         self.assertEqual(200, response.status_code)
 
         channel = Channel.objects.get(channel_type='GL')

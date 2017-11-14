@@ -34,15 +34,13 @@ class Trigger(SmartModel):
     TYPE_USSD_PULL = 'U'
     TYPE_INBOUND_CALL = 'V'
 
-    TRIGGER_TYPES = ((TYPE_KEYWORD, _("Keyword Trigger")),
-                     (TYPE_SCHEDULE, _("Schedule Trigger")),
-                     (TYPE_INBOUND_CALL, _("Inbound Call Trigger")),
-                     (TYPE_MISSED_CALL, _("Missed Call Trigger")),
-                     (TYPE_CATCH_ALL, _("Catch All Trigger")),
-                     (TYPE_FOLLOW, _("Follow Account Trigger")),
-                     (TYPE_NEW_CONVERSATION, _("New Conversation Trigger")),
-                     (TYPE_USSD_PULL, _("USSD Pull Session Trigger")),
-                     (TYPE_REFERRAL, _("Referral Trigger")))
+    TRIGGER_TYPES = ((TYPE_KEYWORD, _("Keyword Trigger")), (TYPE_SCHEDULE, _("Schedule Trigger")),
+                     (TYPE_INBOUND_CALL,
+                      _("Inbound Call Trigger")), (TYPE_MISSED_CALL,
+                                                   _("Missed Call Trigger")), (TYPE_CATCH_ALL, _("Catch All Trigger")),
+                     (TYPE_FOLLOW,
+                      _("Follow Account Trigger")), (TYPE_NEW_CONVERSATION, _("New Conversation Trigger")),
+                     (TYPE_USSD_PULL, _("USSD Pull Session Trigger")), (TYPE_REFERRAL, _("Referral Trigger")))
 
     KEYWORD_MAX_LEN = 16
 
@@ -54,47 +52,87 @@ class Trigger(SmartModel):
 
     org = models.ForeignKey(Org, verbose_name=_("Org"), help_text=_("The organization this trigger belongs to"))
 
-    keyword = models.CharField(verbose_name=_("Keyword"), max_length=KEYWORD_MAX_LEN, null=True, blank=True,
-                               help_text=_("Word to match in the message text"))
+    keyword = models.CharField(
+        verbose_name=_("Keyword"),
+        max_length=KEYWORD_MAX_LEN,
+        null=True,
+        blank=True,
+        help_text=_("Word to match in the message text")
+    )
 
-    referrer_id = models.CharField(verbose_name=_("Referrer Id"), max_length=255, null=True, blank=True,
-                                   help_text=_("The referrer id that triggers us"))
+    referrer_id = models.CharField(
+        verbose_name=_("Referrer Id"),
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text=_("The referrer id that triggers us")
+    )
 
-    flow = models.ForeignKey(Flow, verbose_name=_("Flow"),
-                             help_text=_("Which flow will be started"), related_name="triggers")
+    flow = models.ForeignKey(
+        Flow, verbose_name=_("Flow"), help_text=_("Which flow will be started"), related_name="triggers"
+    )
 
-    last_triggered = models.DateTimeField(verbose_name=_("Last Triggered"), default=None, null=True,
-                                          help_text=_("The last time this trigger was fired"))
+    last_triggered = models.DateTimeField(
+        verbose_name=_("Last Triggered"), default=None, null=True, help_text=_("The last time this trigger was fired")
+    )
 
-    trigger_count = models.IntegerField(verbose_name=_("Trigger Count"), default=0,
-                                        help_text=_("How many times this trigger has fired"))
+    trigger_count = models.IntegerField(
+        verbose_name=_("Trigger Count"), default=0, help_text=_("How many times this trigger has fired")
+    )
 
-    is_archived = models.BooleanField(verbose_name=_("Is Archived"), default=False,
-                                      help_text=_("Whether this trigger is archived"))
+    is_archived = models.BooleanField(
+        verbose_name=_("Is Archived"), default=False, help_text=_("Whether this trigger is archived")
+    )
 
-    groups = models.ManyToManyField(ContactGroup, verbose_name=_("Groups"),
-                                    help_text=_("The groups to broadcast the flow to"))
+    groups = models.ManyToManyField(
+        ContactGroup, verbose_name=_("Groups"), help_text=_("The groups to broadcast the flow to")
+    )
 
-    contacts = models.ManyToManyField(Contact, verbose_name=_("Contacts"),
-                                      help_text=_("Individual contacts to broadcast the flow to"))
+    contacts = models.ManyToManyField(
+        Contact, verbose_name=_("Contacts"), help_text=_("Individual contacts to broadcast the flow to")
+    )
 
-    schedule = models.OneToOneField('schedules.Schedule', verbose_name=_("Schedule"),
-                                    null=True, blank=True, related_name='trigger',
-                                    help_text=_('Our recurring schedule'))
+    schedule = models.OneToOneField(
+        'schedules.Schedule',
+        verbose_name=_("Schedule"),
+        null=True,
+        blank=True,
+        related_name='trigger',
+        help_text=_('Our recurring schedule')
+    )
 
-    trigger_type = models.CharField(max_length=1, choices=TRIGGER_TYPES, default=TYPE_KEYWORD,
-                                    verbose_name=_("Trigger Type"), help_text=_('The type of this trigger'))
+    trigger_type = models.CharField(
+        max_length=1,
+        choices=TRIGGER_TYPES,
+        default=TYPE_KEYWORD,
+        verbose_name=_("Trigger Type"),
+        help_text=_('The type of this trigger')
+    )
 
-    match_type = models.CharField(max_length=1, choices=MATCH_TYPES, default=MATCH_FIRST_WORD, null=True,
-                                  verbose_name=_("Trigger When"), help_text=_('How to match a message with a keyword'))
+    match_type = models.CharField(
+        max_length=1,
+        choices=MATCH_TYPES,
+        default=MATCH_FIRST_WORD,
+        null=True,
+        verbose_name=_("Trigger When"),
+        help_text=_('How to match a message with a keyword')
+    )
 
-    channel = models.ForeignKey(Channel, verbose_name=_("Channel"), null=True, related_name='triggers',
-                                help_text=_("The associated channel"))
+    channel = models.ForeignKey(
+        Channel, verbose_name=_("Channel"), null=True, related_name='triggers', help_text=_("The associated channel")
+    )
 
     @classmethod
     def create(cls, org, user, trigger_type, flow, channel=None, **kwargs):
-        trigger = cls.objects.create(org=org, trigger_type=trigger_type, flow=flow, channel=channel,
-                                     created_by=user, modified_by=user, **kwargs)
+        trigger = cls.objects.create(
+            org=org,
+            trigger_type=trigger_type,
+            flow=flow,
+            channel=channel,
+            created_by=user,
+            modified_by=user,
+            **kwargs
+        )
 
         # archive any conflicts
         trigger.archive_conflicts(user)
@@ -114,18 +152,22 @@ class Trigger(SmartModel):
         """
         An exportable dict representing our trigger
         """
-        return dict(trigger_type=self.trigger_type,
-                    keyword=self.keyword,
-                    flow=dict(uuid=self.flow.uuid, name=self.flow.name),
-                    groups=[dict(uuid=group.uuid, name=group.name) for group in self.groups.all()],
-                    channel=self.channel.uuid if self.channel else None)
+        return dict(
+            trigger_type=self.trigger_type,
+            keyword=self.keyword,
+            flow=dict(uuid=self.flow.uuid, name=self.flow.name),
+            groups=[dict(uuid=group.uuid, name=group.name) for group in self.groups.all()],
+            channel=self.channel.uuid if self.channel else None
+        )
 
     def trigger_scopes(self):
         """
         Returns keys that represents the scopes that this trigger can operate against (and might conflict with other triggers with)
         """
         groups = ['**'] if not self.groups else [str(g.id) for g in self.groups.all().order_by('id')]
-        return ['%s_%s_%s_%s' % (self.trigger_type, str(self.channel_id), group, str(self.keyword)) for group in groups]
+        return [
+            '%s_%s_%s_%s' % (self.trigger_type, str(self.channel_id), group, str(self.keyword)) for group in groups
+        ]
 
     def archive(self, user):
         self.modified_by = user
@@ -153,7 +195,9 @@ class Trigger(SmartModel):
         now = timezone.now()
 
         if not self.trigger_type == Trigger.TYPE_SCHEDULE:
-            matches = Trigger.objects.filter(org=self.org, is_active=True, is_archived=False, trigger_type=self.trigger_type)
+            matches = Trigger.objects.filter(
+                org=self.org, is_active=True, is_archived=False, trigger_type=self.trigger_type
+            )
 
             # if this trigger has a keyword, only archive others with the same keyword
             if self.keyword:
@@ -243,10 +287,15 @@ class Trigger(SmartModel):
                     if channel:
                         channel = Channel.objects.filter(uuid=channel, org=org).first()
 
-                    trigger = Trigger.objects.create(org=org, trigger_type=trigger_spec['trigger_type'],
-                                                     keyword=trigger_spec['keyword'], flow=flow,
-                                                     created_by=user, modified_by=user,
-                                                     channel=channel)
+                    trigger = Trigger.objects.create(
+                        org=org,
+                        trigger_type=trigger_spec['trigger_type'],
+                        keyword=trigger_spec['keyword'],
+                        flow=flow,
+                        created_by=user,
+                        modified_by=user,
+                        channel=channel
+                    )
 
                     for group in groups:
                         trigger.groups.add(group)
@@ -309,19 +358,26 @@ class Trigger(SmartModel):
             return False
 
         # skip if message contact is currently active in a flow
-        active_run_qs = FlowRun.objects.filter(is_active=True, contact=msg.contact,
-                                               flow__is_active=True, flow__is_archived=False)
+        active_run_qs = FlowRun.objects.filter(
+            is_active=True, contact=msg.contact, flow__is_active=True, flow__is_archived=False
+        )
         active_run = active_run_qs.prefetch_related('steps').order_by("-created_on", "-pk").first()
 
         if active_run and active_run.flow.ignore_triggers and not active_run.is_completed():
             return False
 
         # find a matching keyword trigger with an active flow
-        trigger = Trigger.objects.filter(org=msg.org, is_archived=False, is_active=True, trigger_type=cls.TYPE_KEYWORD,
-                                         flow__is_archived=False, flow__is_active=True)
+        trigger = Trigger.objects.filter(
+            org=msg.org,
+            is_archived=False,
+            is_active=True,
+            trigger_type=cls.TYPE_KEYWORD,
+            flow__is_archived=False,
+            flow__is_active=True
+        )
 
         # if message text is only one word, then we can match 'only-word' triggers too
-        match_types = (cls.MATCH_FIRST_WORD, cls.MATCH_ONLY_WORD) if len(words) == 1 else (cls.MATCH_FIRST_WORD,)
+        match_types = (cls.MATCH_FIRST_WORD, cls.MATCH_ONLY_WORD) if len(words) == 1 else (cls.MATCH_FIRST_WORD, )
         trigger = trigger.filter(keyword__iexact=words[0], match_type__in=match_types)
 
         # trigger needs to match the contact's groups or be non-group specific
@@ -384,9 +440,16 @@ class Trigger(SmartModel):
         else:
             return None
 
-        matching = Trigger.objects.filter(is_archived=False, is_active=True, org=contact.org, keyword__iexact=keyword,
-                                          trigger_type=Trigger.TYPE_USSD_PULL, flow__is_archived=False,
-                                          flow__is_active=True, groups=None)
+        matching = Trigger.objects.filter(
+            is_archived=False,
+            is_active=True,
+            org=contact.org,
+            keyword__iexact=keyword,
+            trigger_type=Trigger.TYPE_USSD_PULL,
+            flow__is_archived=False,
+            flow__is_active=True,
+            groups=None
+        )
 
         if not matching:
             return None

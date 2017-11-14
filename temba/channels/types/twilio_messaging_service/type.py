@@ -21,7 +21,9 @@ class TwilioMessagingServiceType(ChannelType):
     slug = "twilio_messaging_service"
     icon = "icon-channel-twilio"
 
-    claim_blurb = _("""You can connect a messaging service from your Twilio account to benefit from <a href="https://www.twilio.com/copilot">Twilio Copilot features</a></br>""")
+    claim_blurb = _(
+        """You can connect a messaging service from your Twilio account to benefit from <a href="https://www.twilio.com/copilot">Twilio Copilot features</a></br>"""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]

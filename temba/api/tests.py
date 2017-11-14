@@ -69,10 +69,13 @@ class APITokenTest(TembaTest):
         self.assertEqual(set(APIToken.get_orgs_for_role(self.admin, self.surveyors_group)), {self.org, self.org2})
 
     def test_get_allowed_roles(self):
-        self.assertEqual(set(APIToken.get_allowed_roles(self.org, self.admin)),
-                         {self.admins_group, self.editors_group, self.surveyors_group})
-        self.assertEqual(set(APIToken.get_allowed_roles(self.org, self.editor)),
-                         {self.editors_group, self.surveyors_group})
+        self.assertEqual(
+            set(APIToken.get_allowed_roles(self.org, self.admin)),
+            {self.admins_group, self.editors_group, self.surveyors_group}
+        )
+        self.assertEqual(
+            set(APIToken.get_allowed_roles(self.org, self.editor)), {self.editors_group, self.surveyors_group}
+        )
         self.assertEqual(set(APIToken.get_allowed_roles(self.org, self.surveyor)), {self.surveyors_group})
         self.assertEqual(set(APIToken.get_allowed_roles(self.org, self.user)), set())
 
@@ -90,7 +93,6 @@ class APITokenTest(TembaTest):
 
 
 class WebHookTest(TembaTest):
-
     def setUp(self):
         super(WebHookTest, self).setUp()
         self.joe = self.create_contact("Joe Blow", "0788123123")
@@ -112,12 +114,14 @@ class WebHookTest(TembaTest):
     def test_call_deliveries(self):
         self.setupChannel()
         now = timezone.now()
-        call = ChannelEvent.objects.create(org=self.org,
-                                           channel=self.channel,
-                                           contact=self.joe,
-                                           contact_urn=self.joe.get_urn(),
-                                           event_type=ChannelEvent.TYPE_CALL_IN_MISSED,
-                                           occurred_on=now)
+        call = ChannelEvent.objects.create(
+            org=self.org,
+            channel=self.channel,
+            contact=self.joe,
+            contact_urn=self.joe.get_urn(),
+            event_type=ChannelEvent.TYPE_CALL_IN_MISSED,
+            occurred_on=now
+        )
 
         self.setupChannel()
 
@@ -167,16 +171,18 @@ class WebHookTest(TembaTest):
             self.assertEqual(self.channel.pk, int(data['channel'][0]))
 
     def test_alarm_deliveries(self):
-        sync_event = SyncEvent.objects.create(channel=self.channel,
-                                              power_source='AC',
-                                              power_status='CHARGING',
-                                              power_level=85,
-                                              network_type='WIFI',
-                                              pending_message_count=5,
-                                              retry_message_count=4,
-                                              incoming_command_count=0,
-                                              created_by=self.admin,
-                                              modified_by=self.admin)
+        sync_event = SyncEvent.objects.create(
+            channel=self.channel,
+            power_source='AC',
+            power_status='CHARGING',
+            power_level=85,
+            network_type='WIFI',
+            pending_message_count=5,
+            retry_message_count=4,
+            incoming_command_count=0,
+            created_by=self.admin,
+            modified_by=self.admin
+        )
 
         self.setupChannel()
 
@@ -241,8 +247,13 @@ class WebHookTest(TembaTest):
         flow.start([], [self.joe])
 
         # have joe reply with mauve, which will put him in the other category that triggers the API Action
-        sms = self.create_msg(contact=self.joe, direction='I', status='H', text="Mauve",
-                              attachments=["image/jpeg:http://s3.com/text.jpg", "audio/mp4:http://s3.com/text.mp4"])
+        sms = self.create_msg(
+            contact=self.joe,
+            direction='I',
+            status='H',
+            text="Mauve",
+            attachments=["image/jpeg:http://s3.com/text.jpg", "audio/mp4:http://s3.com/text.mp4"]
+        )
 
         mock_send.return_value = MockResponse(200, "{}")
         Flow.find_and_handle(sms)
@@ -510,7 +521,9 @@ class WebHookTest(TembaTest):
             self.assertTrue(mock.called)
 
             broadcast = Broadcast.objects.get()
-            contact = Contact.get_or_create(self.org, self.admin, name=None, urns=["tel:+250788123123"], channel=self.channel)
+            contact = Contact.get_or_create(
+                self.org, self.admin, name=None, urns=["tel:+250788123123"], channel=self.channel
+            )
             self.assertTrue(broadcast.text, {'base': "I am success"})
             self.assertTrue(contact, broadcast.contacts.all())
 
@@ -587,10 +600,8 @@ class WebHookTest(TembaTest):
         # check that our webhook settings have saved
         self.assertEqual('http://fake.com/webhook.php', self.channel.org.get_webhook_url())
         self.assertDictEqual({
-            'X-My-Header':
-            'foobar',
-            'Authorization':
-            'Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ=='
+            'X-My-Header': 'foobar',
+            'Authorization': 'Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ=='
         }, self.channel.org.get_webhook_headers())
 
         with patch('requests.Session.send') as mock:
@@ -626,8 +637,10 @@ class WebHookTest(TembaTest):
         with patch('requests.post') as mock:
             mock.return_value = MockResponse(200, '{ "phone": "+250788123123", "text": "I am success" }')
 
-            response = self.client.post(reverse('api.webhook_tunnel'),
-                                        dict(url="http://webhook.url/", data="phone=250788383383&values=foo&bogus=2"))
+            response = self.client.post(
+                reverse('api.webhook_tunnel'),
+                dict(url="http://webhook.url/", data="phone=250788383383&values=foo&bogus=2")
+            )
             self.assertEqual(200, response.status_code)
             self.assertContains(response, "I am success")
             self.assertTrue('values' in mock.call_args[1]['data'])

@@ -14,7 +14,6 @@ from .models import Schedule
 
 
 class BaseScheduleForm(object):
-
     def starts_never(self):
         return self.cleaned_data['start'] == "never"
 
@@ -61,7 +60,7 @@ class ScheduleForm(BaseScheduleForm, forms.ModelForm):
 
 class ScheduleCRUDL(SmartCRUDL):
     model = Schedule
-    actions = ('update',)
+    actions = ('update', )
 
     class Update(OrgPermsMixin, SmartUpdateView):
         form_class = ScheduleForm

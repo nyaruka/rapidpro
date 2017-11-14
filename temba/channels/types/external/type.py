@@ -70,7 +70,6 @@ class ExternalType(ChannelType):
             raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
+            raise SendException("Got non-200 response [%d] from API" % response.status_code, event=event, start=start)
 
         Channel.success(channel, msg, WIRED, start, event=event)

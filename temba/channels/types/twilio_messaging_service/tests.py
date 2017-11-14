@@ -12,7 +12,6 @@ from temba.tests import TembaTest, MockTwilioClient, MockRequestValidator
 
 
 class TwilioMessagingServiceTypeTest(TembaTest):
-
     @patch('temba.ivr.clients.TwilioClient', MockTwilioClient)
     @patch('twilio.util.RequestValidator', MockRequestValidator)
     def test_claim(self):
@@ -54,7 +53,9 @@ class TwilioMessagingServiceTypeTest(TembaTest):
             response = self.client.get(claim_twilio_ms)
             self.assertRedirects(response, reverse('orgs.org_twilio_connect'))
 
-            mock_get_twilio_client.side_effect = TwilioRestException(401, 'http://twilio', msg='Authentication Failure', code=20003)
+            mock_get_twilio_client.side_effect = TwilioRestException(
+                401, 'http://twilio', msg='Authentication Failure', code=20003
+            )
 
             response = self.client.get(claim_twilio_ms)
             self.assertRedirects(response, reverse('orgs.org_twilio_connect'))

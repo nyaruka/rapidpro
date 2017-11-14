@@ -21,7 +21,6 @@ from itertools import islice
 DEFAULT_DATE = datetime.datetime(1, 1, 1, 0, 0, 0, 0, None)
 MAX_UTC_OFFSET = 14 * 60 * 60  # max offset postgres supports for a timezone
 
-
 TRANSFERTO_COUNTRY_NAMES = {
     'Democratic Republic of the Congo': 'CD',
     'Ivory Coast': 'CI',
@@ -48,7 +47,10 @@ def datetime_to_str(date_obj, format=None, ms=True, tz=None):
         date_obj = tz.localize(datetime.datetime.combine(date_obj, datetime.time(0, 0, 0)))
 
     if date_obj.year < 1900:
-        return "%d-%d-%dT%d:%d:%d.%dZ" % (date_obj.year, date_obj.month, date_obj.day, date_obj.hour, date_obj.minute, date_obj.second, date_obj.microsecond)
+        return "%d-%d-%dT%d:%d:%d.%dZ" % (
+            date_obj.year, date_obj.month, date_obj.day, date_obj.hour, date_obj.minute, date_obj.second,
+            date_obj.microsecond
+        )
 
     if isinstance(date_obj, datetime.datetime):
         date_obj = timezone.localtime(date_obj, tz)
@@ -236,10 +238,7 @@ def get_dict_from_cursor(cursor):
     Returns all rows from a cursor as a dict
     """
     desc = cursor.description
-    return [
-        dict(zip([col[0] for col in desc], row))
-        for row in cursor.fetchall()
-    ]
+    return [dict(zip([col[0] for col in desc], row)) for row in cursor.fetchall()]
 
 
 @six.python_2_unicode_compatible
@@ -248,6 +247,7 @@ class DictStruct(object):
     Wraps a dictionary turning it into a structure looking object. This is useful to 'mock' dictionaries
     coming from Redis to look like normal objects
     """
+
     def __init__(self, classname, entries, datetime_fields=()):
         self._classname = classname
         self._values = entries
@@ -305,6 +305,7 @@ class DateTimeJsonEncoder(json.JSONEncoder):
     """
     Our own encoder for datetimes.. we always convert to UTC and always include milliseconds
     """
+
     def default(self, o):
         # See "Date Time String Format" in the ECMA-262 specification.
         if isinstance(o, datetime.datetime):

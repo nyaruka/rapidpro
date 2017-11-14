@@ -14,7 +14,6 @@ from temba.utils import chunk_list
 from temba.utils.cache import QueueRecord
 from temba.utils.queues import push_task, nonoverlapping_task
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -50,7 +49,9 @@ def check_campaigns_task():
 
             if queued_fire_ids:
                 try:
-                    push_task(flow.org_id, HANDLER_QUEUE, HANDLE_EVENT_TASK, dict(type=FIRE_EVENT, fires=queued_fire_ids))
+                    push_task(
+                        flow.org_id, HANDLER_QUEUE, HANDLE_EVENT_TASK, dict(type=FIRE_EVENT, fires=queued_fire_ids)
+                    )
 
                     queued_fires.set_queued(queued_fire_ids)
                 except Exception:  # pragma: no cover

@@ -17,7 +17,6 @@ from temba.utils.mage import MageClient
 from temba.temba_celery import app as celery_app
 from .models import Channel, Alert, ChannelLog, ChannelCount
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -74,9 +73,11 @@ def send_msg_task():
             # send each of our msgs
             while msg_tasks:
                 msg_task = msg_tasks.pop(0)
-                msg = dict_to_struct('MockMsg', msg_task,
-                                     datetime_fields=['modified_on', 'sent_on', 'created_on', 'queued_on',
-                                                      'next_attempt'])
+                msg = dict_to_struct(
+                    'MockMsg',
+                    msg_task,
+                    datetime_fields=['modified_on', 'sent_on', 'created_on', 'queued_on', 'next_attempt']
+                )
                 Channel.send_message(msg)
 
                 # if there are more messages to send for this contact, sleep a second before moving on
@@ -163,8 +164,9 @@ def fb_channel_subscribe(channel_id):
         page_access_token = channel.config_json()[Channel.CONFIG_AUTH_TOKEN]
 
         # subscribe to messaging events for this channel
-        response = requests.post('https://graph.facebook.com/v2.6/me/subscribed_apps',
-                                 params=dict(access_token=page_access_token))
+        response = requests.post(
+            'https://graph.facebook.com/v2.6/me/subscribed_apps', params=dict(access_token=page_access_token)
+        )
 
         if response.status_code != 200 or not response.json()['success']:
             print("Unable to subscribe for delivery of events: %s" % response.content)

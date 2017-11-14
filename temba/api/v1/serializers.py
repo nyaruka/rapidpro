@@ -44,10 +44,12 @@ def validate_bulk_fetch(fetched, uuids):
 # Field types
 # ------------------------------------------------------------------------------------------
 
+
 class DateTimeField(serializers.DateTimeField):
     """
     For backward compatibility, datetime fields are limited to millisecond accuracy
     """
+
     def to_representation(self, value):
         return format_datetime(value)
 
@@ -56,6 +58,7 @@ class StringArrayField(serializers.ListField):
     """
     List of strings or a single string
     """
+
     def __init__(self, **kwargs):
         super(StringArrayField, self).__init__(child=serializers.CharField(allow_blank=False), **kwargs)
 
@@ -73,7 +76,6 @@ class StringArrayField(serializers.ListField):
 
 
 class StringDictField(serializers.DictField):
-
     def __init__(self, **kwargs):
         super(StringDictField, self).__init__(child=serializers.CharField(), **kwargs)
 
@@ -91,6 +93,7 @@ class PhoneArrayField(serializers.ListField):
     """
     List of phone numbers or a single phone number
     """
+
     def to_internal_value(self, data):
         if isinstance(data, six.string_types):
             return [URN.from_tel(data)]
@@ -111,13 +114,11 @@ class PhoneArrayField(serializers.ListField):
 
 
 class ChannelField(serializers.PrimaryKeyRelatedField):
-
     def __init__(self, **kwargs):
         super(ChannelField, self).__init__(queryset=Channel.objects.filter(is_active=True), **kwargs)
 
 
 class UUIDField(serializers.CharField):
-
     def __init__(self, **kwargs):
         super(UUIDField, self).__init__(max_length=36, **kwargs)
 
@@ -125,6 +126,7 @@ class UUIDField(serializers.CharField):
 # ------------------------------------------------------------------------------------------
 # Serializers
 # ------------------------------------------------------------------------------------------
+
 
 class ReadSerializer(serializers.ModelSerializer):
     """
@@ -138,6 +140,7 @@ class WriteSerializer(serializers.Serializer):
     The normal REST framework way is to have the view decide if it's an update on existing instance or a create for a
     new instance. Since our logic for that gets relatively complex, we have the serializer make that call.
     """
+
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user')
         self.org = kwargs.pop('org') if 'org' in kwargs else self.user.get_org()
@@ -148,7 +151,11 @@ class WriteSerializer(serializers.Serializer):
 
     def run_validation(self, data=serializers.empty):
         if not isinstance(data, dict):
-            raise serializers.ValidationError(detail={'non_field_errors': ["Request body should be a single JSON object"]})
+            raise serializers.ValidationError(
+                detail={
+                    'non_field_errors': ["Request body should be a single JSON object"]
+                }
+            )
 
         return super(WriteSerializer, self).run_validation(data)
 
@@ -213,8 +220,10 @@ class ContactReadSerializer(ReadSerializer):
 
     class Meta:
         model = Contact
-        fields = ('uuid', 'name', 'language', 'group_uuids', 'urns', 'fields',
-                  'blocked', 'failed', 'modified_on', 'phone', 'groups')
+        fields = (
+            'uuid', 'name', 'language', 'group_uuids', 'urns', 'fields', 'blocked', 'failed', 'modified_on', 'phone',
+            'groups'
+        )
 
 
 class ContactWriteSerializer(WriteSerializer):
@@ -314,7 +323,9 @@ class ContactWriteSerializer(WriteSerializer):
             raise serializers.ValidationError("Cannot provide both urns and phone parameters together")
 
         if data.get('group_uuids') is not None and data.get('groups') is not None:
-            raise serializers.ValidationError("Parameter groups is deprecated and can't be used together with group_uuids")
+            raise serializers.ValidationError(
+                "Parameter groups is deprecated and can't be used together with group_uuids"
+            )
 
         if self.org.is_anon and self.instance and self.parsed_urns is not None:
             raise serializers.ValidationError("Cannot update contact URNs on anonymous organizations")
@@ -390,9 +401,9 @@ class ContactWriteSerializer(WriteSerializer):
                     self.instance.set_field(self.user, existing_by_key.key, value)
                     continue
                 elif self.new_fields and key in self.new_fields:
-                    new_field = ContactField.get_or_create(org=self.org, user=self.user,
-                                                           key=regex.sub('[^A-Za-z0-9]+', '_', key).lower(),
-                                                           label=key)
+                    new_field = ContactField.get_or_create(
+                        org=self.org, user=self.user, key=regex.sub('[^A-Za-z0-9]+', '_', key).lower(), label=key
+                    )
                     self.instance.set_field(self.user, new_field.key, value)
 
                 # TODO as above, need to get users to stop updating via label
@@ -448,10 +459,11 @@ class ContactFieldWriteSerializer(WriteSerializer):
 
         fields_count = ContactField.objects.filter(org=self.org).count()
         if not self.instance and fields_count >= ContactField.MAX_ORG_CONTACTFIELDS:
-            raise serializers.ValidationError('This org has %s contact fields and the limit is %s. '
-                                              'You must delete existing ones before '
-                                              'you can create new ones.' % (fields_count,
-                                                                            ContactField.MAX_ORG_CONTACTFIELDS))
+            raise serializers.ValidationError(
+                'This org has %s contact fields and the limit is %s. '
+                'You must delete existing ones before '
+                'you can create new ones.' % (fields_count, ContactField.MAX_ORG_CONTACTFIELDS)
+            )
 
         data['key'] = key
         return data
@@ -506,17 +518,23 @@ class FlowReadSerializer(ReadSerializer):
             elif len(ruleset.get_rules()) == 1:
                 response_type = 'O'
 
-            rulesets.append(dict(node=ruleset.uuid,
-                                 label=ruleset.label,
-                                 ruleset_type=ruleset.ruleset_type,
-                                 response_type=response_type,  # deprecated
-                                 id=ruleset.id))  # deprecated
+            rulesets.append(
+                dict(
+                    node=ruleset.uuid,
+                    label=ruleset.label,
+                    ruleset_type=ruleset.ruleset_type,
+                    response_type=response_type,  # deprecated
+                    id=ruleset.id
+                )
+            )  # deprecated
         return rulesets
 
     class Meta:
         model = Flow
-        fields = ('uuid', 'archived', 'expires', 'name', 'labels', 'runs', 'completed_runs', 'participants', 'rulesets',
-                  'created_on', 'flow')
+        fields = (
+            'uuid', 'archived', 'expires', 'name', 'labels', 'runs', 'completed_runs', 'participants', 'rulesets',
+            'created_on', 'flow'
+        )
 
 
 class FlowRunReadSerializer(ReadSerializer):
@@ -554,12 +572,16 @@ class FlowRunReadSerializer(ReadSerializer):
     def get_steps(self, obj):
         steps = []
         for step in obj.steps.all():
-            steps.append(dict(type=step.step_type,
-                              node=step.step_uuid,
-                              arrived_on=step.arrived_on,
-                              left_on=step.left_on,
-                              text=step.get_text(),
-                              value=six.text_type(step.rule_value)))
+            steps.append(
+                dict(
+                    type=step.step_type,
+                    node=step.step_uuid,
+                    arrived_on=step.arrived_on,
+                    left_on=step.left_on,
+                    text=step.get_text(),
+                    value=six.text_type(step.rule_value)
+                )
+            )
 
         return steps
 
@@ -568,8 +590,10 @@ class FlowRunReadSerializer(ReadSerializer):
 
     class Meta:
         model = FlowRun
-        fields = ('flow_uuid', 'flow', 'run', 'contact', 'completed', 'values',
-                  'steps', 'created_on', 'modified_on', 'expires_on', 'expired_on')
+        fields = (
+            'flow_uuid', 'flow', 'run', 'contact', 'completed', 'values', 'steps', 'created_on', 'modified_on',
+            'expires_on', 'expired_on'
+        )
 
 
 class FlowRunWriteSerializer(WriteSerializer):
@@ -660,7 +684,9 @@ class FlowRunWriteSerializer(WriteSerializer):
                     break
 
             if not node_obj:
-                raise serializers.ValidationError("No such node with UUID %s in flow '%s'" % (step['node'], self.flow_obj.name))
+                raise serializers.ValidationError(
+                    "No such node with UUID %s in flow '%s'" % (step['node'], self.flow_obj.name)
+                )
             else:
                 rule = step.get('rule', None)
                 if rule:
@@ -690,11 +716,18 @@ class FlowRunWriteSerializer(WriteSerializer):
         completed = self.validated_data.get('completed', False)
 
         # look for previous run with this contact and flow
-        run = FlowRun.objects.filter(org=self.org, contact=self.contact_obj, submitted_by=self.submitted_by_obj,
-                                     flow=self.flow_obj, created_on=started).order_by('-modified_on').first()
+        run = FlowRun.objects.filter(
+            org=self.org,
+            contact=self.contact_obj,
+            submitted_by=self.submitted_by_obj,
+            flow=self.flow_obj,
+            created_on=started
+        ).order_by('-modified_on').first()
 
         if not run:
-            run = FlowRun.create(self.flow_obj, self.contact_obj.pk, created_on=started, submitted_by=self.submitted_by_obj)
+            run = FlowRun.create(
+                self.flow_obj, self.contact_obj.pk, created_on=started, submitted_by=self.submitted_by_obj
+            )
 
         step_objs = []
         previous_rule = None
@@ -709,7 +742,7 @@ class FlowRunWriteSerializer(WriteSerializer):
 
             run.set_completed(final_step, completed_on=completed_on)
         else:
-            run.save(update_fields=('modified_on',))
+            run.save(update_fields=('modified_on', ))
 
         return run
 
@@ -838,8 +871,9 @@ class MsgCreateSerializer(WriteSerializer):
             contacts.append(contact)
 
         # create the broadcast
-        broadcast = Broadcast.create(self.org, self.user, self.validated_data['text'],
-                                     recipients=contacts, channel=channel)
+        broadcast = Broadcast.create(
+            self.org, self.user, self.validated_data['text'], recipients=contacts, channel=channel
+        )
 
         # send it
         broadcast.send(expressions_context={})

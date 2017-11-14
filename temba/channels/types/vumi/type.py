@@ -25,7 +25,9 @@ class VumiType(ChannelType):
 
     name = "Vumi"
 
-    claim_blurb = _("""Easily connect your <a href="http://vumi.com/">Vumi</a> account to take advantage of two way texting across different mediums.""")
+    claim_blurb = _(
+        """Easily connect your <a href="http://vumi.com/">Vumi</a> account to take advantage of two way texting across different mediums."""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
@@ -54,16 +56,18 @@ class VumiType(ChannelType):
         if msg.response_to_id:
             in_reply_to = Msg.objects.values_list('external_id', flat=True).filter(pk=msg.response_to_id).first()
 
-        payload = dict(message_id=msg.id,
-                       in_reply_to=in_reply_to,
-                       session_event=session_event,
-                       to_addr=msg.urn_path,
-                       from_addr=channel.address,
-                       content=text,
-                       transport_name=channel.config['transport_name'],
-                       transport_type='ussd' if is_ussd else 'sms',
-                       transport_metadata={},
-                       helper_metadata={})
+        payload = dict(
+            message_id=msg.id,
+            in_reply_to=in_reply_to,
+            session_event=session_event,
+            to_addr=msg.urn_path,
+            from_addr=channel.address,
+            content=text,
+            transport_name=channel.config['transport_name'],
+            transport_type='ussd' if is_ussd else 'sms',
+            transport_metadata={},
+            helper_metadata={}
+        )
 
         payload = json.dumps(payload)
 
@@ -81,11 +85,13 @@ class VumiType(ChannelType):
         validator(url)
 
         try:
-            response = requests.put(url,
-                                    data=payload,
-                                    headers=headers,
-                                    timeout=30,
-                                    auth=(channel.config['account_key'], channel.config['access_token']))
+            response = requests.put(
+                url,
+                data=payload,
+                headers=headers,
+                timeout=30,
+                auth=(channel.config['account_key'], channel.config['access_token'])
+            )
 
             event.status_code = response.status_code
             event.response_body = response.text
@@ -103,8 +109,9 @@ class VumiType(ChannelType):
                 contact.stop(contact.modified_by)
                 fatal = True
 
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, fatal=fatal, start=start)
+            raise SendException(
+                "Got non-200 response [%d] from API" % response.status_code, event=event, fatal=fatal, start=start
+            )
 
         # parse our response
         body = response.json()

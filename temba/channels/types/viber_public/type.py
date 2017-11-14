@@ -25,9 +25,11 @@ class ViberPublicType(ChannelType):
     name = "Viber"
     icon = 'icon-viber'
 
-    claim_blurb = _("""Connect a <a href="http://viber.com/en/">Viber</a> public channel to send and receive messages to
+    claim_blurb = _(
+        """Connect a <a href="http://viber.com/en/">Viber</a> public channel to send and receive messages to
     Viber users for free. Your users will need an Android, Windows or iOS device and a Viber account to send and receive
-    messages.""")
+    messages."""
+    )
     claim_view = ClaimView
 
     schemes = [VIBER_SCHEME]
@@ -39,11 +41,14 @@ class ViberPublicType(ChannelType):
         auth_token = channel.config_json()['auth_token']
         handler_url = "https://" + settings.HOSTNAME + reverse('courier.vp', args=[channel.uuid])
 
-        requests.post('https://chatapi.viber.com/pa/set_webhook', json={
-            'auth_token': auth_token,
-            'url': handler_url,
-            'event_types': ['delivered', 'failed', 'conversation_started']
-        })
+        requests.post(
+            'https://chatapi.viber.com/pa/set_webhook',
+            json={
+                'auth_token': auth_token,
+                'url': handler_url,
+                'event_types': ['delivered', 'failed', 'conversation_started']
+            }
+        )
 
     def deactivate(self, channel):
         auth_token = channel.config_json()['auth_token']
@@ -73,13 +78,13 @@ class ViberPublicType(ChannelType):
             raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code not in [200, 201, 202]:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
+            raise SendException("Got non-200 response [%d] from API" % response.status_code, event=event, start=start)
 
         # success is 0, everything else is a failure
         if response_json['status'] != 0:
-            raise SendException("Got non-0 status [%d] from API" % response_json['status'],
-                                event=event, fatal=True, start=start)
+            raise SendException(
+                "Got non-0 status [%d] from API" % response_json['status'], event=event, fatal=True, start=start
+            )
 
         external_id = response.json().get('message_token', None)
         Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)

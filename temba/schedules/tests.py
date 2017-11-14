@@ -12,17 +12,16 @@ from temba.msgs.models import Broadcast
 from temba.tests import TembaTest
 from .models import Schedule
 
-MONDAY = 0     # 2
-TUESDAY = 1    # 4
+MONDAY = 0  # 2
+TUESDAY = 1  # 4
 WEDNESDAY = 2  # 8
-THURSDAY = 3   # 16
-FRIDAY = 4     # 32
-SATURDAY = 5   # 64
-SUNDAY = 6     # 128
+THURSDAY = 3  # 16
+FRIDAY = 4  # 32
+SATURDAY = 5  # 64
+SUNDAY = 6  # 128
 
 
 class ScheduleTest(TembaTest):
-
     def create_schedule(self, repeat_period, repeat_days=[], start_date=None):
 
         if not start_date:
@@ -60,15 +59,21 @@ class ScheduleTest(TembaTest):
         sched = self.create_schedule('W', [THURSDAY, SATURDAY])
 
         self.assertEqual(sched.repeat_days, 80)
-        self.assertEqual(datetime(2013, 1, 5, hour=10).replace(tzinfo=timezone.pytz.utc), sched.get_next_fire(sched.next_fire))
+        self.assertEqual(
+            datetime(2013, 1, 5, hour=10).replace(tzinfo=timezone.pytz.utc), sched.get_next_fire(sched.next_fire)
+        )
 
         # updates six days later on Wednesday
         sched = self.create_schedule('W', [WEDNESDAY, THURSDAY])
-        self.assertEqual(datetime(2013, 1, 9, hour=10).replace(tzinfo=timezone.pytz.utc), sched.get_next_fire(sched.next_fire))
+        self.assertEqual(
+            datetime(2013, 1, 9, hour=10).replace(tzinfo=timezone.pytz.utc), sched.get_next_fire(sched.next_fire)
+        )
 
         # since we are starting thursday, a thursday should be 7 days out
         sched = self.create_schedule('W', [THURSDAY])
-        self.assertEqual(datetime(2013, 1, 10, hour=10).replace(tzinfo=timezone.pytz.utc), sched.get_next_fire(sched.next_fire))
+        self.assertEqual(
+            datetime(2013, 1, 10, hour=10).replace(tzinfo=timezone.pytz.utc), sched.get_next_fire(sched.next_fire)
+        )
 
         # now update, should advance to next thursday (present time)
         now = timezone.now()
@@ -107,7 +112,10 @@ class ScheduleTest(TembaTest):
         self.assertEqual(str(datetime(2014, 4, 30, hour=10).replace(tzinfo=pytz.utc)), str(sched.next_fire))
 
         sched = self.create_schedule('M', start_date=datetime(2014, 1, 31, hour=10).replace(tzinfo=pytz.utc))
-        self.assertEqual(datetime(2014, 2, 28, hour=10).replace(tzinfo=pytz.utc), sched.get_next_fire(datetime(2014, 2, 27, hour=10).replace(tzinfo=pytz.utc)))
+        self.assertEqual(
+            datetime(2014, 2, 28, hour=10).replace(tzinfo=pytz.utc),
+            sched.get_next_fire(datetime(2014, 2, 27, hour=10).replace(tzinfo=pytz.utc))
+        )
 
     def test_schedule_ui(self):
 
@@ -126,8 +134,12 @@ class ScheduleTest(TembaTest):
         self.assertIn("This field is required", response.content)
 
         # finally create our message
-        post_data = dict(text="A scheduled message to Joe", omnibox="c-%s" % joe.uuid, sender=self.channel.pk, schedule=True)
-        response = json.loads(self.client.post(reverse('msgs.broadcast_send') + '?_format=json', post_data, follow=True).content)
+        post_data = dict(
+            text="A scheduled message to Joe", omnibox="c-%s" % joe.uuid, sender=self.channel.pk, schedule=True
+        )
+        response = json.loads(
+            self.client.post(reverse('msgs.broadcast_send') + '?_format=json', post_data, follow=True).content
+        )
         self.assertIn("/broadcast/schedule_read", response['redirect'])
 
         # fetch our formax page

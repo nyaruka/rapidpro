@@ -10,7 +10,6 @@ from temba.tests import TembaTest, MockResponse
 
 
 class PlivoTypeTest(TembaTest):
-
     def test_claim(self):
         self.login(self.admin)
 
@@ -41,11 +40,17 @@ class PlivoTypeTest(TembaTest):
         # let's add a number already connected to the account
         with patch('requests.get') as plivo_get:
             with patch('requests.post') as plivo_post:
-                plivo_get.return_value = MockResponse(200,
-                                                      json.dumps(dict(objects=[dict(number='16062681435',
-                                                                                    region="California, UNITED STATES"),
-                                                                               dict(number='8080',
-                                                                                    region='GUADALAJARA, MEXICO')])))
+                plivo_get.return_value = MockResponse(
+                    200,
+                    json.dumps(
+                        dict(
+                            objects=[
+                                dict(number='16062681435', region="California, UNITED STATES"),
+                                dict(number='8080', region='GUADALAJARA, MEXICO')
+                            ]
+                        )
+                    )
+                )
 
                 plivo_post.return_value = MockResponse(202, json.dumps(dict(status='changed', app_id='app-id')))
 
@@ -71,9 +76,13 @@ class PlivoTypeTest(TembaTest):
                 # make sure it is actually connected
                 channel = Channel.objects.get(channel_type='PL', org=self.org)
                 self.assertEqual(channel.role, Channel.ROLE_SEND + Channel.ROLE_RECEIVE)
-                self.assertEqual(channel.config_json(), {Channel.CONFIG_PLIVO_AUTH_ID: 'auth-id',
-                                                         Channel.CONFIG_PLIVO_AUTH_TOKEN: 'auth-token',
-                                                         Channel.CONFIG_PLIVO_APP_ID: 'app-id'})
+                self.assertEqual(
+                    channel.config_json(), {
+                        Channel.CONFIG_PLIVO_AUTH_ID: 'auth-id',
+                        Channel.CONFIG_PLIVO_AUTH_TOKEN: 'auth-token',
+                        Channel.CONFIG_PLIVO_APP_ID: 'app-id'
+                    }
+                )
                 self.assertEqual(channel.address, "+16062681435")
                 # no more credential in the session
                 self.assertFalse(Channel.CONFIG_PLIVO_AUTH_ID in self.client.session)
@@ -86,7 +95,9 @@ class PlivoTypeTest(TembaTest):
             with patch('temba.channels.views.plivo.RestAPI.create_application') as mock_plivo_create_application:
 
                 with patch('temba.channels.types.plivo.views.plivo.RestAPI.get_number') as mock_plivo_get_number:
-                    with patch('temba.channels.types.plivo.views.plivo.RestAPI.buy_phone_number') as mock_plivo_buy_phone_number:
+                    with patch(
+                        'temba.channels.types.plivo.views.plivo.RestAPI.buy_phone_number'
+                    ) as mock_plivo_buy_phone_number:
                         mock_plivo_get_account.return_value = (200, MockResponse(200, json.dumps(dict())))
 
                         mock_plivo_create_application.return_value = (200, dict(app_id='app-id'))
@@ -96,7 +107,10 @@ class PlivoTypeTest(TembaTest):
                         response_body = json.dumps({
                             'status': 'fulfilled',
                             'message': 'created',
-                            'numbers': [{'status': 'Success', 'number': '27816855210'}],
+                            'numbers': [{
+                                'status': 'Success',
+                                'number': '27816855210'
+                            }],
                             'api_id': '4334c747-9e83-11e5-9147-22000acb8094'
                         })
                         mock_plivo_buy_phone_number.return_value = (201, MockResponse(201, response_body))
@@ -110,16 +124,20 @@ class PlivoTypeTest(TembaTest):
                         self.assertTrue(Channel.CONFIG_PLIVO_AUTH_ID in self.client.session)
                         self.assertTrue(Channel.CONFIG_PLIVO_AUTH_TOKEN in self.client.session)
 
-                        response = self.client.post(claim_plivo_url, dict(phone_number='+1 606-268-1440', country='US'))
+                        response = self.client.post(
+                            claim_plivo_url, dict(phone_number='+1 606-268-1440', country='US')
+                        )
                         self.assertRedirects(response, reverse('public.public_welcome') + "?success")
 
                         # make sure it is actually connected
                         channel = Channel.objects.get(channel_type='PL', org=self.org)
-                        self.assertEqual(channel.config_json(), {
-                            Channel.CONFIG_PLIVO_AUTH_ID: 'auth-id',
-                            Channel.CONFIG_PLIVO_AUTH_TOKEN: 'auth-token',
-                            Channel.CONFIG_PLIVO_APP_ID: 'app-id'
-                        })
+                        self.assertEqual(
+                            channel.config_json(), {
+                                Channel.CONFIG_PLIVO_AUTH_ID: 'auth-id',
+                                Channel.CONFIG_PLIVO_AUTH_TOKEN: 'auth-token',
+                                Channel.CONFIG_PLIVO_APP_ID: 'app-id'
+                            }
+                        )
                         self.assertEqual(channel.address, "+16062681440")
                         # no more credential in the session
                         self.assertFalse(Channel.CONFIG_PLIVO_AUTH_ID in self.client.session)

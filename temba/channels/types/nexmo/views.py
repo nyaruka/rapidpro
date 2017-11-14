@@ -17,14 +17,13 @@ from temba.utils.models import generate_uuid
 
 
 class ClaimView(BaseClaimNumberMixin, SmartFormView):
-
     class Form(ClaimViewMixin.Form):
         country = forms.ChoiceField(choices=NEXMO_SUPPORTED_COUNTRIES)
         phone_number = forms.CharField(help_text=_("The phone number being added"))
 
         def clean_phone_number(self):
             if not self.cleaned_data.get('country', None):  # pragma: needs cover
-                    raise ValidationError(_("That number is not currently supported."))
+                raise ValidationError(_("That number is not currently supported."))
 
             phone = self.cleaned_data['phone_number']
             phone = phonenumbers.parse(phone, self.cleaned_data['country'])
@@ -106,10 +105,13 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             try:
                 client.buy_nexmo_number(country, phone_number)
             except Exception as e:
-                raise Exception(_("There was a problem claiming that number, "
-                                  "please check the balance on your account. " +
-                                  "Note that you can only claim numbers after "
-                                  "adding credit to your Nexmo account.") + "\n" + str(e))
+                raise Exception(
+                    _(
+                        "There was a problem claiming that number, "
+                        "please check the balance on your account. " + "Note that you can only claim numbers after "
+                        "adding credit to your Nexmo account."
+                    ) + "\n" + str(e)
+                )
 
         mo_path = reverse('handlers.nexmo_handler', args=['receive', org_uuid])
 
@@ -133,8 +135,10 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
         except Exception as e:  # pragma: no cover
             # shortcodes don't seem to claim right on nexmo, move forward anyways
             if not is_shortcode:
-                raise Exception(_("There was a problem claiming that number, please check the balance on your account.") +
-                                "\n" + str(e))
+                raise Exception(
+                    _("There was a problem claiming that number, please check the balance on your account.") + "\n" +
+                    str(e)
+                )
 
         if is_shortcode:
             phone = phone_number
@@ -146,8 +150,17 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             # nexmo ships numbers around as E164 without the leading +
             nexmo_phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164).strip('+')
 
-        channel = Channel.create(org, user, country, 'NX', name=phone, address=phone_number, role=role,
-                                 bod=nexmo_phone_number, uuid=channel_uuid)
+        channel = Channel.create(
+            org,
+            user,
+            country,
+            'NX',
+            name=phone,
+            address=phone_number,
+            role=role,
+            bod=nexmo_phone_number,
+            uuid=channel_uuid
+        )
 
         analytics.track(user.username, 'temba.channel_claim_nexmo', dict(number=phone_number))
 

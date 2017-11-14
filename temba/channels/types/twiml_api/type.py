@@ -19,7 +19,9 @@ class TwimlAPIType(ChannelType):
     slug = "twiml_api"
     icon = "icon-channel-twilio"
 
-    claim_blurb = _("""Connect to a service that speaks TwiML. You can use this to connect to TwiML compatible services outside of Twilio.""")
+    claim_blurb = _(
+        """Connect to a service that speaks TwiML. You can use this to connect to TwiML compatible services outside of Twilio."""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]

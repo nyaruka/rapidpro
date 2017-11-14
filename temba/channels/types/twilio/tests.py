@@ -12,7 +12,6 @@ from temba.tests import TembaTest, MockTwilioClient, MockRequestValidator
 
 
 class TwilioTypeTest(TembaTest):
-
     @patch('temba.ivr.clients.TwilioClient', MockTwilioClient)
     @patch('twilio.util.RequestValidator', MockRequestValidator)
     def test_claim(self):
@@ -50,8 +49,9 @@ class TwilioTypeTest(TembaTest):
             response = self.client.get(claim_twilio)
             self.assertRedirects(response, reverse('orgs.org_twilio_connect'))
 
-            mock_get_twilio_client.side_effect = TwilioRestException(401, 'http://twilio', msg='Authentication Failure',
-                                                                     code=20003)
+            mock_get_twilio_client.side_effect = TwilioRestException(
+                401, 'http://twilio', msg='Authentication Failure', code=20003
+            )
 
             response = self.client.get(claim_twilio)
             self.assertRedirects(response, reverse('orgs.org_twilio_connect'))
@@ -81,8 +81,10 @@ class TwilioTypeTest(TembaTest):
 
             mock_search.return_value = []
             response = self.client.post(search_url, {'country': 'US', 'area_code': ''})
-            self.assertEqual(json.loads(response.content)['error'],
-                             "Sorry, no numbers found, please enter another area code and try again.")
+            self.assertEqual(
+                json.loads(response.content)['error'],
+                "Sorry, no numbers found, please enter another area code and try again."
+            )
 
             # try searching for non-US number
             mock_search.return_value = [MockTwilioClient.MockPhoneNumber('+442812345678')]
@@ -91,8 +93,10 @@ class TwilioTypeTest(TembaTest):
 
             mock_search.return_value = []
             response = self.client.post(search_url, {'country': 'GB', 'area_code': ''})
-            self.assertEqual(json.loads(response.content)['error'],
-                             "Sorry, no numbers found, please enter another pattern and try again.")
+            self.assertEqual(
+                json.loads(response.content)['error'],
+                "Sorry, no numbers found, please enter another pattern and try again."
+            )
 
         with patch('temba.tests.MockTwilioClient.MockPhoneNumbers.list') as mock_numbers:
             mock_numbers.return_value = [MockTwilioClient.MockPhoneNumber('+12062345678')]
@@ -109,8 +113,9 @@ class TwilioTypeTest(TembaTest):
 
                 # make sure it is actually connected
                 channel = Channel.objects.get(channel_type='T', org=self.org)
-                self.assertEqual(channel.role,
-                                 Channel.ROLE_CALL + Channel.ROLE_ANSWER + Channel.ROLE_SEND + Channel.ROLE_RECEIVE)
+                self.assertEqual(
+                    channel.role, Channel.ROLE_CALL + Channel.ROLE_ANSWER + Channel.ROLE_SEND + Channel.ROLE_RECEIVE
+                )
 
                 channel_config = channel.config_json()
                 self.assertEqual(channel_config[Channel.CONFIG_ACCOUNT_SID], 'account-sid')
@@ -185,8 +190,9 @@ class TwilioTypeTest(TembaTest):
         with self.settings(IS_PROD=True):
             with patch('temba.tests.MockTwilioClient.MockPhoneNumbers.update') as mock_numbers:
                 # our twilio channel removal should fail on bad auth
-                mock_numbers.side_effect = TwilioRestException(401, 'http://twilio', msg='Authentication Failure',
-                                                               code=20003)
+                mock_numbers.side_effect = TwilioRestException(
+                    401, 'http://twilio', msg='Authentication Failure', code=20003
+                )
                 self.client.post(reverse('channels.channel_delete', args=[twilio_channel.pk]))
                 self.assertIsNotNone(self.org.channels.all().first())
 
@@ -199,5 +205,6 @@ class TwilioTypeTest(TembaTest):
                 mock_numbers.side_effect = None
                 self.client.post(reverse('channels.channel_delete', args=[twilio_channel.pk]))
                 self.assertIsNone(self.org.channels.all().first())
-                self.assertEqual(mock_numbers.call_args_list[-1][1], dict(voice_application_sid='',
-                                                                          sms_application_sid=''))
+                self.assertEqual(
+                    mock_numbers.call_args_list[-1][1], dict(voice_application_sid='', sms_application_sid='')
+                )

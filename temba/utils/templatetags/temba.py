@@ -9,15 +9,13 @@ from ...campaigns.models import Campaign
 from ...flows.models import Flow
 from ...triggers.models import Trigger
 
-TIME_SINCE_CHUNKS = (
-    (60 * 60 * 24 * 365, ungettext_lazy('%d year', '%d years')),
-    (60 * 60 * 24 * 30, ungettext_lazy('%d month', '%d months')),
-    (60 * 60 * 24 * 7, ungettext_lazy('%d week', '%d weeks')),
-    (60 * 60 * 24, ungettext_lazy('%d day', '%d days')),
-    (60 * 60, ungettext_lazy('%d hour', '%d hours')),
-    (60, ungettext_lazy('%d minute', '%d minutes')),
-    (1, ungettext_lazy('%d second', '%d seconds'))
-)
+TIME_SINCE_CHUNKS = ((60 * 60 * 24 * 365,
+                      ungettext_lazy('%d year',
+                                     '%d years')), (60 * 60 * 24 * 30, ungettext_lazy('%d month', '%d months')),
+                     (60 * 60 * 24 * 7,
+                      ungettext_lazy('%d week', '%d weeks')), (60 * 60 * 24, ungettext_lazy('%d day', '%d days')),
+                     (60 * 60, ungettext_lazy('%d hour', '%d hours')), (60, ungettext_lazy('%d minute', '%d minutes')),
+                     (1, ungettext_lazy('%d second', '%d seconds')))
 
 
 @register.filter
@@ -130,7 +128,7 @@ def lessblock(parser, token):
     if len(args) != 1:  # pragma: no cover
         raise TemplateSyntaxError("lessblock tag takes no arguments, got: [%s]" % ",".join(args))
 
-    nodelist = parser.parse(('endlessblock',))
+    nodelist = parser.parse(('endlessblock', ))
     parser.delete_first_token()
     return LessBlockNode(nodelist)
 

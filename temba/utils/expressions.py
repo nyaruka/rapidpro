@@ -31,7 +31,11 @@ def get_function_listing():
     global listing
 
     if listing is None:
-        listing = [{'name': f['name'], 'display': f['description'], 'signature': _build_function_signature(f)} for f in DEFAULT_FUNCTION_MANAGER.build_listing()]
+        listing = [{
+            'name': f['name'],
+            'display': f['description'],
+            'signature': _build_function_signature(f)
+        } for f in DEFAULT_FUNCTION_MANAGER.build_listing()]
     return listing
 
 
@@ -65,14 +69,16 @@ def _build_function_signature(f):
 # Old style expression migration
 # ======================================================================================================================
 
-FILTER_REPLACEMENTS = {'lower_case': 'LOWER({0})',
-                       'upper_case': 'UPPER({0})',
-                       'capitalize': 'PROPER({0})',
-                       'title_case': 'PROPER({0})',
-                       'first_word': 'FIRST_WORD({0})',
-                       'remove_first_word': 'REMOVE_FIRST_WORD({0})',
-                       'read_digits': 'READ_DIGITS({0})',
-                       'time_delta': '{0} + {1}'}
+FILTER_REPLACEMENTS = {
+    'lower_case': 'LOWER({0})',
+    'upper_case': 'UPPER({0})',
+    'capitalize': 'PROPER({0})',
+    'title_case': 'PROPER({0})',
+    'first_word': 'FIRST_WORD({0})',
+    'remove_first_word': 'REMOVE_FIRST_WORD({0})',
+    'read_digits': 'READ_DIGITS({0})',
+    'time_delta': '{0} + {1}'
+}
 
 
 def migrate_template(text):
@@ -94,6 +100,7 @@ def replace_filter_style(text):
     Migrates text which may contain filter style expressions, e.g. "Hi @contact.name|upper_case", converting them to
     new style expressions, e.g. "Hi @(UPPER(contact))"
     """
+
     def replace_expression(match):
         expression = match.group(1)
         new_style = convert_filter_style(expression)
@@ -142,10 +149,10 @@ def replace_equals_style(text):
     Migrates text which may contain equals style expressions, e.g. "Hi =UPPER(contact)", converting them to new style
     expressions, e.g. "Hi @(UPPER(contact))"
     """
-    STATE_BODY = 0            # not in a expression
-    STATE_PREFIX = 1          # '=' prefix that denotes the start of an expression
-    STATE_IDENTIFIER = 2      # the identifier part, e.g. 'SUM' in '=SUM(1, 2)' or 'contact.age' in '=contact.age'
-    STATE_BALANCED = 3        # the balanced parentheses delimited part, e.g. '(1, 2)' in 'SUM(1, 2)'
+    STATE_BODY = 0  # not in a expression
+    STATE_PREFIX = 1  # '=' prefix that denotes the start of an expression
+    STATE_IDENTIFIER = 2  # the identifier part, e.g. 'SUM' in '=SUM(1, 2)' or 'contact.age' in '=contact.age'
+    STATE_BALANCED = 3  # the balanced parentheses delimited part, e.g. '(1, 2)' in 'SUM(1, 2)'
     STATE_STRING_LITERAL = 4  # a string literal
     input_chars = list(text)
     output_chars = []

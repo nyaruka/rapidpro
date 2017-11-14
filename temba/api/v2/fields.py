@@ -51,6 +51,7 @@ class TranslatableField(serializers.Field):
     """
     A field which is either a simple string or a translations dict
     """
+
     def __init__(self, **kwargs):
         self.max_length = kwargs.pop('max_length', None)
         super(TranslatableField, self).__init__(**kwargs)
@@ -64,7 +65,9 @@ class TranslatableField(serializers.Field):
 
         if isinstance(data, six.string_types):
             if len(data) > self.max_length:
-                raise serializers.ValidationError("Ensure this field has no more than %d characters." % self.max_length)
+                raise serializers.ValidationError(
+                    "Ensure this field has no more than %d characters." % self.max_length
+                )
 
             data = {base_language: data}
 
@@ -80,6 +83,7 @@ class LimitedListField(serializers.ListField):
     """
     A list field which can be only be written to with a limited number of items
     """
+
     def to_internal_value(self, data):
         validate_size(data, DEFAULT_MAX_LIST_ITEMS)
 
@@ -90,6 +94,7 @@ class LimitedDictField(serializers.DictField):
     """
     A dict field which can be only be written to with a limited number of items
     """
+
     def to_internal_value(self, data):
         validate_size(data, DEFAULT_MAX_DICT_ITEMS)
 
@@ -116,7 +121,7 @@ class URNListField(LimitedListField):
 class TembaModelField(serializers.RelatedField):
     model = None
     model_manager = 'objects'
-    lookup_fields = ('uuid',)
+    lookup_fields = ('uuid', )
     ignore_case_for_fields = ()
 
     class LimitedSizeList(serializers.ManyRelatedField):
@@ -200,7 +205,7 @@ class ContactField(TembaModelField):
 
 class ContactFieldField(TembaModelField):
     model = ContactFieldModel
-    lookup_fields = ('key',)
+    lookup_fields = ('key', )
 
     def to_representation(self, obj):
         return {'key': obj.key, 'label': obj.label}
@@ -210,7 +215,7 @@ class ContactGroupField(TembaModelField):
     model = ContactGroup
     model_manager = 'user_groups'
     lookup_fields = ('uuid', 'name')
-    ignore_case_for_fields = ('name',)
+    ignore_case_for_fields = ('name', )
 
     def __init__(self, **kwargs):
         self.allow_dynamic = kwargs.pop('allow_dynamic', True)
@@ -233,12 +238,14 @@ class LabelField(TembaModelField):
     model = Label
     model_manager = 'label_objects'
     lookup_fields = ('uuid', 'name')
-    ignore_case_for_fields = ('name',)
+    ignore_case_for_fields = ('name', )
 
 
 class MessageField(TembaModelField):
     model = Msg
-    lookup_fields = ('id',)
+    lookup_fields = ('id', )
 
     def get_queryset(self):
-        return self.model.objects.filter(org=self.context['org'], contact__is_test=False).exclude(visibility=Msg.VISIBILITY_DELETED)
+        return self.model.objects.filter(
+            org=self.context['org'], contact__is_test=False
+        ).exclude(visibility=Msg.VISIBILITY_DELETED)

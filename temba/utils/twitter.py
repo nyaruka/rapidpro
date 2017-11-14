@@ -19,7 +19,6 @@ from temba.utils.http import HttpEvent
 
 
 class TembaTwython(Twython):  # pragma: no cover
-
     def __init__(self, *args, **kwargs):
         super(TembaTwython, self).__init__(*args, **kwargs)
         self.events = []
@@ -103,8 +102,7 @@ class TembaTwython(Twython):  # pragma: no cover
 
         if response.status_code > 304:
             # If there is no error message, use a default.
-            errors = content.get('errors',
-                                 [{'message': 'An error occurred processing your request.'}])
+            errors = content.get('errors', [{'message': 'An error occurred processing your request.'}])
             if errors and isinstance(errors, list):
                 error_message = errors[0]['message']
             else:
@@ -120,9 +118,9 @@ class TembaTwython(Twython):  # pragma: no cover
                 # a 400 "Bad Authentication data" for invalid/expired app keys/user tokens
                 ExceptionType = TwythonAuthError
 
-            raise ExceptionType(error_message,
-                                error_code=response.status_code,
-                                retry_after=response.headers.get('retry-after'))
+            raise ExceptionType(
+                error_message, error_code=response.status_code, retry_after=response.headers.get('retry-after')
+            )
 
         # if we have a json error here, then it's not an official Twitter API error
         if json_error and response.status_code not in (200, 201, 202):  # pragma: no cover

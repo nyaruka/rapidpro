@@ -1,13 +1,11 @@
 from __future__ import unicode_literals, absolute_import
 
-
 from django.urls import reverse
 from temba.tests import TembaTest
 from ...models import Channel
 
 
 class JunebugTypeTest(TembaTest):
-
     def test_claim(self):
         Channel.objects.all().delete()
         self.login(self.admin)

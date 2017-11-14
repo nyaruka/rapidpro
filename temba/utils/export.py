@@ -44,10 +44,8 @@ class BaseExportTask(TembaModel):
     STATUS_PROCESSING = 'O'
     STATUS_COMPLETE = 'C'
     STATUS_FAILED = 'F'
-    STATUS_CHOICES = ((STATUS_PENDING, _("Pending")),
-                      (STATUS_PROCESSING, _("Processing")),
-                      (STATUS_COMPLETE, _("Complete")),
-                      (STATUS_FAILED, _("Failed")))
+    STATUS_CHOICES = ((STATUS_PENDING, _("Pending")), (STATUS_PROCESSING, _("Processing")),
+                      (STATUS_COMPLETE, _("Complete")), (STATUS_FAILED, _("Failed")))
 
     org = models.ForeignKey('orgs.Org', related_name='%(class)ss', help_text=_("The organization of the user."))
 
@@ -70,8 +68,10 @@ class BaseExportTask(TembaModel):
             branding = self.org.get_branding()
 
             # notify user who requested this export
-            send_template_email(self.created_by.username, self.email_subject, self.email_template,
-                                self.get_email_context(branding), branding)
+            send_template_email(
+                self.created_by.username, self.email_subject, self.email_template,
+                self.get_email_context(branding), branding
+            )
         except Exception:
             import traceback
             traceback.print_exc()
@@ -81,7 +81,9 @@ class BaseExportTask(TembaModel):
         finally:
             elapsed = time.time() - start
             print("Completed %s in %.1f seconds" % (self.analytics_key, elapsed))
-            analytics.track(self.created_by.username, 'temba.%s_latency' % self.analytics_key, properties=dict(value=elapsed))
+            analytics.track(
+                self.created_by.username, 'temba.%s_latency' % self.analytics_key, properties=dict(value=elapsed)
+            )
 
             gc.collect()  # force garbage collection
 
@@ -93,7 +95,7 @@ class BaseExportTask(TembaModel):
 
     def update_status(self, status):
         self.status = status
-        self.save(update_fields=('status',))
+        self.save(update_fields=('status', ))
 
     @classmethod
     def get_recent_unfinished(cls, org):
@@ -101,7 +103,8 @@ class BaseExportTask(TembaModel):
         Checks for unfinished exports created in the last 24 hours for this org, and returns the most recent
         """
         return cls.objects.filter(
-            org=org, created_on__gt=timezone.now() - timedelta(hours=24),
+            org=org,
+            created_on__gt=timezone.now() - timedelta(hours=24),
             status__in=(cls.STATUS_PENDING, cls.STATUS_PROCESSING)
         ).order_by('-created_on').first()
 
@@ -146,6 +149,7 @@ class TableExporter(object):
     When writing to an Excel sheet, this also takes care of creating different sheets every 1048576
     rows, as again, Excel file only support that many per sheet.
     """
+
     def __init__(self, task, sheet_name, columns):
         self.task = task
         self.columns = columns

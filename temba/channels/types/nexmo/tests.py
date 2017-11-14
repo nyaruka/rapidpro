@@ -10,7 +10,6 @@ from temba.tests import TembaTest, MockResponse
 
 
 class NexmoTypeTest(TembaTest):
-
     @patch('temba.utils.nexmo.time.sleep')
     def test_claim(self, mock_time_sleep):
         mock_time_sleep.return_value = None
@@ -30,8 +29,13 @@ class NexmoTypeTest(TembaTest):
         response = self.client.get(claim_nexmo, follow=True)
         self.assertEqual(response.request['PATH_INFO'], reverse('orgs.org_nexmo_connect'))
 
-        nexmo_config = dict(NEXMO_KEY='nexmo-key', NEXMO_SECRET='nexmo-secret', NEXMO_UUID='nexmo-uuid',
-                            NEXMO_APP_ID='nexmo-app-id', NEXMO_APP_PRIVATE_KEY='nexmo-app-private-key')
+        nexmo_config = dict(
+            NEXMO_KEY='nexmo-key',
+            NEXMO_SECRET='nexmo-secret',
+            NEXMO_UUID='nexmo-uuid',
+            NEXMO_APP_ID='nexmo-app-id',
+            NEXMO_APP_PRIVATE_KEY='nexmo-app-private-key'
+        )
         self.org.config = json.dumps(nexmo_config)
         self.org.save()
 
@@ -44,12 +48,14 @@ class NexmoTypeTest(TembaTest):
             with patch('requests.post') as nexmo_post:
                 nexmo_get.side_effect = [
                     MockResponse(200, '{"count":0,"numbers":[] }'),
-                    MockResponse(200,
-                                 '{"count":1,"numbers":[{"features": ["SMS"], "type":"mobile-lvn",'
-                                 '"country":"US","msisdn":"8080"}] }'),
-                    MockResponse(200,
-                                 '{"count":1,"numbers":[{"features": ["SMS"], "type":"mobile-lvn",'
-                                 '"country":"US","msisdn":"8080"}] }'),
+                    MockResponse(
+                        200, '{"count":1,"numbers":[{"features": ["SMS"], "type":"mobile-lvn",'
+                        '"country":"US","msisdn":"8080"}] }'
+                    ),
+                    MockResponse(
+                        200, '{"count":1,"numbers":[{"features": ["SMS"], "type":"mobile-lvn",'
+                        '"country":"US","msisdn":"8080"}] }'
+                    ),
                 ]
                 nexmo_post.return_value = MockResponse(200, '{"error-code": "200"}')
                 response = self.client.post(claim_nexmo, dict(country='US', phone_number='8080'))
@@ -68,9 +74,10 @@ class NexmoTypeTest(TembaTest):
                 nexmo_get.side_effect = [
                     MockResponse(200, '{"count":0,"numbers":[] }'),
                     MockResponse(200, '{"count":0,"numbers":[] }'),
-                    MockResponse(200,
-                                 '{"count":1,"numbers":[{"features": ["sms", "voice"], "type":"mobile",'
-                                 '"country":"US","msisdn":"+12065551212"}] }'),
+                    MockResponse(
+                        200, '{"count":1,"numbers":[{"features": ["sms", "voice"], "type":"mobile",'
+                        '"country":"US","msisdn":"+12065551212"}] }'
+                    ),
                 ]
                 nexmo_post.return_value = MockResponse(200, '{"error-code": "200"}')
                 response = self.client.post(claim_nexmo, dict(country='US', phone_number='+12065551212'))
@@ -91,9 +98,10 @@ class NexmoTypeTest(TembaTest):
                     MockResponse(429, '{"error_code":429,"message":"max limit, retry later" }'),
                     MockResponse(200, '{"count":0,"numbers":[] }'),
                     MockResponse(429, '{"error_code":429,"message":"max limit, retry later" }'),
-                    MockResponse(200,
-                                 '{"count":1,"numbers":[{"features": ["sms", "voice"], "type":"mobile",'
-                                 '"country":"US","msisdn":"+12065551212"}] }'),
+                    MockResponse(
+                        200, '{"count":1,"numbers":[{"features": ["sms", "voice"], "type":"mobile",'
+                        '"country":"US","msisdn":"+12065551212"}] }'
+                    ),
                 ]
                 nexmo_post.side_effect = [
                     MockResponse(429, '{"error_code":429,"message":"max limit, retry later" }'),
@@ -121,18 +129,21 @@ class NexmoTypeTest(TembaTest):
                 nexmo_post.side_effect = Exception('Error')
                 response = self.client.post(claim_nexmo, dict(country='US', phone_number='+12065551212'))
                 self.assertTrue(response.context['form'].errors)
-                self.assertContains(response, "There was a problem claiming that number, "
-                                              "please check the balance on your account. "
-                                              "Note that you can only claim numbers after "
-                                              "adding credit to your Nexmo account.")
+                self.assertContains(
+                    response, "There was a problem claiming that number, "
+                    "please check the balance on your account. "
+                    "Note that you can only claim numbers after "
+                    "adding credit to your Nexmo account."
+                )
                 Channel.objects.all().delete()
 
         # let's add a number already connected to the account
         with patch('requests.get') as nexmo_get:
             with patch('requests.post') as nexmo_post:
-                nexmo_get.return_value = MockResponse(200,
-                                                      '{"count":1,"numbers":[{"features": ["SMS", "VOICE"], '
-                                                      '"type":"mobile-lvn","country":"US","msisdn":"13607884540"}] }')
+                nexmo_get.return_value = MockResponse(
+                    200, '{"count":1,"numbers":[{"features": ["SMS", "VOICE"], '
+                    '"type":"mobile-lvn","country":"US","msisdn":"13607884540"}] }'
+                )
                 nexmo_post.return_value = MockResponse(200, '{"error-code": "200"}')
 
                 # make sure our number appears on the claim page
@@ -166,7 +177,10 @@ class NexmoTypeTest(TembaTest):
                 self.assertEqual('MTN', channel.address)
 
                 # add a canada number
-                nexmo_get.return_value = MockResponse(200, '{"count":1,"numbers":[{"features": ["SMS", "VOICE"], "type":"mobile-lvn","country":"CA","msisdn":"15797884540"}] }')
+                nexmo_get.return_value = MockResponse(
+                    200,
+                    '{"count":1,"numbers":[{"features": ["SMS", "VOICE"], "type":"mobile-lvn","country":"CA","msisdn":"15797884540"}] }'
+                )
                 nexmo_post.return_value = MockResponse(200, '{"error-code": "200"}')
 
                 # make sure our number appears on the claim page
@@ -179,7 +193,9 @@ class NexmoTypeTest(TembaTest):
                 self.assertRedirects(response, reverse('public.public_welcome') + "?success")
 
                 # make sure it is actually connected
-                self.assertTrue(Channel.objects.filter(channel_type='NX', org=self.org, address='+15797884540').first())
+                self.assertTrue(
+                    Channel.objects.filter(channel_type='NX', org=self.org, address='+15797884540').first()
+                )
 
                 # as is our old one
                 self.assertTrue(Channel.objects.filter(channel_type='NX', org=self.org, address='MTN').first())

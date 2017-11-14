@@ -26,7 +26,9 @@ class TwilioType(ChannelType):
     name = "Twilio"
     icon = "icon-channel-twilio"
 
-    claim_blurb = _("""Easily add a two way number you have configured with <a href="https://www.twilio.com/">Twilio</a> using their APIs.""")
+    claim_blurb = _(
+        """Easily add a two way number you have configured with <a href="https://www.twilio.com/">Twilio</a> using their APIs."""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
@@ -81,26 +83,35 @@ class TwilioType(ChannelType):
 
         if channel.channel_type == 'TW':  # pragma: no cover
             config = channel.config
-            client = TembaTwilioRestClient(config.get(Channel.CONFIG_ACCOUNT_SID), config.get(Channel.CONFIG_AUTH_TOKEN),
-                                           base=config.get(Channel.CONFIG_SEND_URL))
+            client = TembaTwilioRestClient(
+                config.get(Channel.CONFIG_ACCOUNT_SID),
+                config.get(Channel.CONFIG_AUTH_TOKEN),
+                base=config.get(Channel.CONFIG_SEND_URL)
+            )
         else:
             config = channel.config
-            client = TembaTwilioRestClient(config.get(Channel.CONFIG_ACCOUNT_SID), config.get(Channel.CONFIG_AUTH_TOKEN))
+            client = TembaTwilioRestClient(
+                config.get(Channel.CONFIG_ACCOUNT_SID), config.get(Channel.CONFIG_AUTH_TOKEN)
+            )
 
         try:
             if channel.channel_type == 'TMS':
                 messaging_service_sid = channel.config['messaging_service_sid']
-                client.messages.create(to=msg.urn_path,
-                                       messaging_service_sid=messaging_service_sid,
-                                       body=text,
-                                       media_url=media_urls,
-                                       status_callback=callback_url)
+                client.messages.create(
+                    to=msg.urn_path,
+                    messaging_service_sid=messaging_service_sid,
+                    body=text,
+                    media_url=media_urls,
+                    status_callback=callback_url
+                )
             else:
-                client.messages.create(to=msg.urn_path,
-                                       from_=channel.address,
-                                       body=text,
-                                       media_url=media_urls,
-                                       status_callback=callback_url)
+                client.messages.create(
+                    to=msg.urn_path,
+                    from_=channel.address,
+                    body=text,
+                    media_url=media_urls,
+                    status_callback=callback_url
+                )
 
             Channel.success(channel, msg, WIRED, start, events=client.messages.events)
 

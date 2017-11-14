@@ -11,7 +11,7 @@ from .models import Report
 
 
 class ReportCRUDL(SmartCRUDL):
-    actions = ('create',)
+    actions = ('create', )
     model = Report
 
     class Create(OrgPermsMixin, SmartCreateView):

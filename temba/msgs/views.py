@@ -89,7 +89,9 @@ class SendMessageForm(Form):
     def clean(self):
         cleaned = super(SendMessageForm, self).clean()
         if self.user.get_org().is_suspended():
-            raise ValidationError(_("Sorry, your account is currently suspended. To enable sending messages, please contact support."))
+            raise ValidationError(
+                _("Sorry, your account is currently suspended. To enable sending messages, please contact support.")
+            )
         return cleaned
 
 
@@ -152,7 +154,11 @@ class InboxView(OrgPermsMixin, SmartListView):
             dict(count=counts[SystemLabel.TYPE_OUTBOX], label=_("Outbox"), url=reverse('msgs.msg_outbox')),
             dict(count=counts[SystemLabel.TYPE_SENT], label=_("Sent"), url=reverse('msgs.msg_sent')),
             dict(count=counts[SystemLabel.TYPE_CALLS], label=_("Calls"), url=reverse('channels.channelevent_calls')),
-            dict(count=counts[SystemLabel.TYPE_SCHEDULED], label=_("Schedules"), url=reverse('msgs.broadcast_schedule_list')),
+            dict(
+                count=counts[SystemLabel.TYPE_SCHEDULED],
+                label=_("Schedules"),
+                url=reverse('msgs.broadcast_schedule_list')
+            ),
             dict(count=counts[SystemLabel.TYPE_FAILED], label=_("Failed"), url=reverse('msgs.msg_failed'))
         ]
 
@@ -213,13 +219,20 @@ class BroadcastCRUDL(SmartCRUDL):
 
         def derive_formax_sections(self, formax, context):
             if self.has_org_perm('msgs.broadcast_update'):
-                formax.add_section('contact', reverse('msgs.broadcast_update', args=[self.object.pk]), icon='icon-megaphone')
+                formax.add_section(
+                    'contact', reverse('msgs.broadcast_update', args=[self.object.pk]), icon='icon-megaphone'
+                )
 
             if self.has_org_perm('schedules.schedule_update'):
                 action = 'formax'
                 if len(self.get_object().children.all()) == 0:
                     action = 'fixed'
-                formax.add_section('schedule', reverse('schedules.schedule_update', args=[self.object.schedule.pk]), icon='icon-calendar', action=action)
+                formax.add_section(
+                    'schedule',
+                    reverse('schedules.schedule_update', args=[self.object.schedule.pk]),
+                    icon='icon-calendar',
+                    action=action
+                )
 
     class Update(OrgObjPermsMixin, SmartUpdateView):
         form_class = BroadcastForm
@@ -307,7 +320,9 @@ class BroadcastCRUDL(SmartCRUDL):
 
         def form_invalid(self, form):
             if '_format' in self.request.GET and self.request.GET['_format'] == 'json':
-                return HttpResponse(json.dumps(dict(status="error", errors=form.errors)), content_type='application/json', status=400)
+                return HttpResponse(
+                    json.dumps(dict(status="error", errors=form.errors)), content_type='application/json', status=400
+                )
             else:
                 return super(BroadcastCRUDL.Send, self).form_invalid(form)
 
@@ -351,15 +366,16 @@ class BroadcastCRUDL(SmartCRUDL):
                     recipients.append(urn)
 
             schedule = Schedule.objects.create(created_by=user, modified_by=user) if has_schedule else None
-            broadcast = Broadcast.create(org, user, text, recipients,
-                                         schedule=schedule)
+            broadcast = Broadcast.create(org, user, text, recipients, schedule=schedule)
 
             if not has_schedule:
                 self.post_save(broadcast)
                 super(BroadcastCRUDL.Send, self).form_valid(form)
 
-            analytics.track(self.request.user.username, 'temba.broadcast_created',
-                            dict(contacts=len(contacts), groups=len(groups), urns=len(urns)))
+            analytics.track(
+                self.request.user.username, 'temba.broadcast_created',
+                dict(contacts=len(contacts), groups=len(groups), urns=len(urns))
+            )
 
             if '_format' in self.request.GET and self.request.GET['_format'] == 'json':
                 data = dict(status="success", redirect=reverse('msgs.broadcast_schedule_read', args=[broadcast.pk]))
@@ -382,11 +398,9 @@ class BroadcastCRUDL(SmartCRUDL):
 
 
 class MsgActionForm(BaseActionForm):
-    allowed_actions = (('label', _("Label Messages")),
-                       ('archive', _("Archive Messages")),
-                       ('restore', _("Move to Inbox")),
-                       ('resend', _("Resend Messages")),
-                       ('delete', _("Delete Messages")))
+    allowed_actions = (('label', _("Label Messages")), ('archive', _("Archive Messages")),
+                       ('restore', _("Move to Inbox")), ('resend',
+                                                         _("Resend Messages")), ('delete', _("Delete Messages")))
 
     model = Msg
     label_model = Label
@@ -398,7 +412,6 @@ class MsgActionForm(BaseActionForm):
 
 
 class MsgActionMixin(SmartListView):
-
     @csrf_exempt
     def dispatch(self, *args, **kwargs):
         return super(MsgActionMixin, self).dispatch(*args, **kwargs)
@@ -420,12 +433,11 @@ class MsgActionMixin(SmartListView):
 
 
 class TestMessageForm(forms.Form):
-    channel = forms.ModelChoiceField(Channel.objects.filter(id__lt=0),
-                                     help_text=_("Which channel will deliver the message"))
-    urn = forms.CharField(max_length=14,
-                          help_text=_("The URN of the contact delivering this message"))
-    text = forms.CharField(max_length=160, widget=forms.Textarea,
-                           help_text=_("The message that is being delivered"))
+    channel = forms.ModelChoiceField(
+        Channel.objects.filter(id__lt=0), help_text=_("Which channel will deliver the message")
+    )
+    urn = forms.CharField(max_length=14, help_text=_("The URN of the contact delivering this message"))
+    text = forms.CharField(max_length=160, widget=forms.Textarea, help_text=_("The message that is being delivered"))
 
     def __init__(self, *args, **kwargs):  # pragma: needs cover
         org = kwargs['org']
@@ -441,14 +453,19 @@ class ExportForm(Form):
 
     export_all = forms.ChoiceField(choices=(), label=_("Selection"), initial=0)
 
-    groups = forms.ModelMultipleChoiceField(queryset=ContactGroup.user_groups.none(),
-                                            required=False, label=_("Groups"))
-    start_date = forms.DateField(required=False,
-                                 help_text=_("The date for the oldest message to export. "
-                                             "(Leave blank to export from the oldest message)."))
-    end_date = forms.DateField(required=False,
-                               help_text=_("The date for the latest message to export. "
-                                           "(Leave blank to export up to the latest message)."))
+    groups = forms.ModelMultipleChoiceField(
+        queryset=ContactGroup.user_groups.none(), required=False, label=_("Groups")
+    )
+    start_date = forms.DateField(
+        required=False,
+        help_text=_("The date for the oldest message to export. "
+                    "(Leave blank to export from the oldest message).")
+    )
+    end_date = forms.DateField(
+        required=False,
+        help_text=_("The date for the latest message to export. "
+                    "(Leave blank to export up to the latest message).")
+    )
 
     def __init__(self, user, label, *args, **kwargs):
         super(ExportForm, self).__init__(*args, **kwargs)
@@ -457,8 +474,10 @@ class ExportForm(Form):
         self.fields['export_all'].choices = self.LABEL_CHOICES if label else self.SYSTEM_LABEL_CHOICES
 
         self.fields['groups'].queryset = ContactGroup.user_groups.filter(org=self.user.get_org(), is_active=True)
-        self.fields['groups'].help_text = _("Export only messages from these contact groups. "
-                                            "(Leave blank to export all messages).")
+        self.fields['groups'].help_text = _(
+            "Export only messages from these contact groups. "
+            "(Leave blank to export all messages)."
+        )
 
     def clean(self):
         cleaned_data = super(ExportForm, self).clean()
@@ -497,7 +516,9 @@ class MsgCRUDL(SmartCRUDL):
 
         def form_invalid(self, form):  # pragma: needs cover
             if '_format' in self.request.GET and self.request.GET['_format'] == 'json':
-                return HttpResponse(json.dumps(dict(status="error", errors=form.errors)), content_type='application/json', status=400)
+                return HttpResponse(
+                    json.dumps(dict(status="error", errors=form.errors)), content_type='application/json', status=400
+                )
             else:
                 return super(MsgCRUDL.Export, self).form_invalid(form)
 
@@ -515,34 +536,55 @@ class MsgCRUDL(SmartCRUDL):
             # is there already an export taking place?
             existing = ExportMessagesTask.get_recent_unfinished(org)
             if existing:
-                messages.info(self.request,
-                              _("There is already an export in progress, started by %s. You must wait "
-                                "for that export to complete before starting another." % existing.created_by.username))
+                messages.info(
+                    self.request,
+                    _(
+                        "There is already an export in progress, started by %s. You must wait "
+                        "for that export to complete before starting another." % existing.created_by.username
+                    )
+                )
 
             # otherwise, off we go
             else:
-                export = ExportMessagesTask.create(org, user, system_label=system_label, label=label,
-                                                   groups=groups, start_date=start_date, end_date=end_date)
+                export = ExportMessagesTask.create(
+                    org,
+                    user,
+                    system_label=system_label,
+                    label=label,
+                    groups=groups,
+                    start_date=start_date,
+                    end_date=end_date
+                )
 
                 on_transaction_commit(lambda: export_messages_task.delay(export.id))
 
                 if not getattr(settings, 'CELERY_ALWAYS_EAGER', False):  # pragma: needs cover
-                    messages.info(self.request, _("We are preparing your export. We will e-mail you at %s when "
-                                                  "it is ready.") % self.request.user.username)
+                    messages.info(
+                        self.request,
+                        _("We are preparing your export. We will e-mail you at %s when "
+                          "it is ready.") % self.request.user.username
+                    )
 
                 else:
                     dl_url = reverse('assets.download', kwargs=dict(type='message_export', pk=export.pk))
-                    messages.info(self.request, _("Export complete, you can find it here: %s (production users "
-                                                  "will get an email)") % dl_url)
+                    messages.info(
+                        self.request,
+                        _("Export complete, you can find it here: %s (production users "
+                          "will get an email)") % dl_url
+                    )
 
             messages.success(self.request, self.derive_success_message())
 
             if 'HTTP_X_PJAX' not in self.request.META:
                 return HttpResponseRedirect(self.get_success_url())
             else:  # pragma: no cover
-                response = self.render_to_response(self.get_context_data(form=form,
-                                                                         success_url=self.get_success_url(),
-                                                                         success_script=getattr(self, 'success_script', None)))
+                response = self.render_to_response(
+                    self.get_context_data(
+                        form=form,
+                        success_url=self.get_success_url(),
+                        success_script=getattr(self, 'success_script', None)
+                    )
+                )
                 response['Temba-Success'] = self.get_success_url()
                 response['REDIRECT'] = self.get_success_url()
                 return response
@@ -561,8 +603,9 @@ class MsgCRUDL(SmartCRUDL):
 
         def form_valid(self, *args, **kwargs):  # pragma: no cover
             data = self.form.cleaned_data
-            handled = Msg.create_incoming(data['channel'], URN.from_tel(data['urn']), data['text'],
-                                          user=self.request.user)
+            handled = Msg.create_incoming(
+                data['channel'], URN.from_tel(data['urn']), data['text'], user=self.request.user
+            )
 
             kwargs = self.get_form_kwargs()
             kwargs['initial'] = data
@@ -625,7 +668,8 @@ class MsgCRUDL(SmartCRUDL):
 
         def get_queryset(self, **kwargs):
             qs = super(MsgCRUDL.Outbox, self).get_queryset(**kwargs)
-            return qs.order_by('-created_on').prefetch_related('channel_logs', 'steps__run__flow').select_related('contact')
+            return qs.order_by('-created_on').prefetch_related('channel_logs',
+                                                               'steps__run__flow').select_related('contact')
 
     class Sent(MsgActionMixin, InboxView):
         title = _("Sent Messages")
@@ -636,7 +680,8 @@ class MsgCRUDL(SmartCRUDL):
 
         def get_queryset(self, **kwargs):  # pragma: needs cover
             qs = super(MsgCRUDL.Sent, self).get_queryset(**kwargs)
-            return qs.order_by('-created_on').prefetch_related('channel_logs', 'steps__run__flow').select_related('contact')
+            return qs.order_by('-created_on').prefetch_related('channel_logs',
+                                                               'steps__run__flow').select_related('contact')
 
     class Failed(MsgActionMixin, InboxView):
         title = _("Failed Outgoing Messages")
@@ -648,7 +693,8 @@ class MsgCRUDL(SmartCRUDL):
 
         def get_queryset(self, **kwargs):
             qs = super(MsgCRUDL.Failed, self).get_queryset(**kwargs)
-            return qs.order_by('-created_on').prefetch_related('channel_logs', 'steps__run__flow').select_related('contact')
+            return qs.order_by('-created_on').prefetch_related('channel_logs',
+                                                               'steps__run__flow').select_related('contact')
 
     class Filter(MsgActionMixin, InboxView):
         template_name = 'msgs/msg_filter.haml'
@@ -669,8 +715,9 @@ class MsgCRUDL(SmartCRUDL):
                 links.append(dict(title=_('Export'), href='#', js_class="msg-export-btn"))
 
             if self.has_org_perm('msgs.broadcast_send'):
-                links.append(dict(title=_('Send All'), style='btn-primary', href="#",
-                                  js_class='filter-send-all-send-button'))
+                links.append(
+                    dict(title=_('Send All'), style='btn-primary', href="#", js_class='filter-send-all-send-button')
+                )
 
             if self.has_org_perm('msgs.label_delete'):
                 links.append(dict(title=_('Remove'), href="#", js_class='remove-label'))
@@ -704,9 +751,13 @@ class BaseLabelForm(forms.ModelForm):
 
         labels_count = Label.all_objects.filter(org=self.org, is_active=True).count()
         if labels_count >= Label.MAX_ORG_LABELS:
-            raise forms.ValidationError(_("This org has %s labels and the limit is %s. "
-                                          "You must delete existing ones before you can "
-                                          "create new ones." % (labels_count, Label.MAX_ORG_LABELS)))
+            raise forms.ValidationError(
+                _(
+                    "This org has %s labels and the limit is %s. "
+                    "You must delete existing ones before you can "
+                    "create new ones." % (labels_count, Label.MAX_ORG_LABELS)
+                )
+            )
 
         return name
 
@@ -744,7 +795,7 @@ class LabelCRUDL(SmartCRUDL):
 
     class List(OrgPermsMixin, SmartListView):
         paginate_by = None
-        default_order = ('name',)
+        default_order = ('name', )
 
         def derive_queryset(self, **kwargs):
             return Label.label_objects.filter(org=self.request.user.get_org())
@@ -781,7 +832,7 @@ class LabelCRUDL(SmartCRUDL):
             return obj
 
     class CreateFolder(ModalMixin, OrgPermsMixin, SmartCreateView):
-        fields = ('name',)
+        fields = ('name', )
         success_url = '@msgs.msg_inbox'
         form_class = FolderForm
         success_message = ''
@@ -813,7 +864,7 @@ class LabelCRUDL(SmartCRUDL):
             return _("Update Folder") if self.get_object().is_folder() else _("Update Label")
 
         def derive_fields(self):
-            return ('name',) if self.get_object().is_folder() else ('name', 'folder')
+            return ('name', ) if self.get_object().is_folder() else ('name', 'folder')
 
     class Delete(OrgObjPermsMixin, SmartDeleteView):
         redirect_url = "@msgs.msg_inbox"

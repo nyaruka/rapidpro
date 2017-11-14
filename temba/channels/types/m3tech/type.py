@@ -25,7 +25,9 @@ class M3TechType(ChannelType):
 
     name = "M3 Tech"
 
-    claim_blurb = _("""Easily add a two way number you have configured with <a href="http://m3techservice.com">M3 Tech</a> using their APIs.""")
+    claim_blurb = _(
+        """Easily add a two way number you have configured with <a href="http://m3techservice.com">M3 Tech</a> using their APIs."""
+    )
     claim_view = AuthenticatedExternalClaimView
 
     schemes = [TEL_SCHEME]
@@ -48,17 +50,19 @@ class M3TechType(ChannelType):
             sms_type = '0'
 
         url = 'https://secure.m3techservice.com/GenericServiceRestAPI/api/SendSMS'
-        payload = {'AuthKey': 'm3-Tech',
-                   'UserId': channel.config[Channel.CONFIG_USERNAME],
-                   'Password': channel.config[Channel.CONFIG_PASSWORD],
-                   'MobileNo': msg.urn_path.lstrip('+'),
-                   'MsgId': msg.id,
-                   'SMS': text,
-                   'MsgHeader': channel.address.lstrip('+'),
-                   'SMSType': sms_type,
-                   'HandsetPort': '0',
-                   'SMSChannel': '0',
-                   'Telco': '0'}
+        payload = {
+            'AuthKey': 'm3-Tech',
+            'UserId': channel.config[Channel.CONFIG_USERNAME],
+            'Password': channel.config[Channel.CONFIG_PASSWORD],
+            'MobileNo': msg.urn_path.lstrip('+'),
+            'MsgId': msg.id,
+            'SMS': text,
+            'MsgHeader': channel.address.lstrip('+'),
+            'SMSType': sms_type,
+            'HandsetPort': '0',
+            'SMSChannel': '0',
+            'Telco': '0'
+        }
 
         event = HttpEvent('GET', url + "?" + urlencode(payload))
 
@@ -73,8 +77,7 @@ class M3TechType(ChannelType):
             raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
+            raise SendException("Got non-200 response [%d] from API" % response.status_code, event=event, start=start)
 
         # our response is JSON and should contain a 0 as a status code:
         # [{"Response":"0"}]
@@ -85,7 +88,6 @@ class M3TechType(ChannelType):
 
         # <Response>0</Response>
         if response_code != "0":
-            raise SendException("Received non-zero status from API: %s" % str(response_code),
-                                event=event, start=start)
+            raise SendException("Received non-zero status from API: %s" % str(response_code), event=event, start=start)
 
         Channel.success(channel, msg, WIRED, start, event=event)

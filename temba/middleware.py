@@ -12,7 +12,6 @@ from temba.contacts.models import Contact
 
 
 class ExceptionMiddleware(object):
-
     def process_exception(self, request, exception):
         if settings.DEBUG:
             traceback.print_exc(exception)
@@ -24,6 +23,7 @@ class OrgHeaderMiddleware(object):
     """
     Simple middleware to add a response header with the current org id, which can then be included in logs
     """
+
     def process_response(self, request, response):
         # if we have a user, log our org id
         if hasattr(request, 'user') and request.user.is_authenticated():
@@ -34,7 +34,6 @@ class OrgHeaderMiddleware(object):
 
 
 class BrandingMiddleware(object):
-
     @classmethod
     def get_branding_for_host(cls, host):
 
@@ -73,7 +72,6 @@ class BrandingMiddleware(object):
 
 
 class ActivateLanguageMiddleware(object):
-
     def process_request(self, request):
         user = request.user
         language = request.branding.get('language', settings.DEFAULT_LANGUAGE)
@@ -86,7 +84,6 @@ class ActivateLanguageMiddleware(object):
 
 
 class OrgTimezoneMiddleware(object):
-
     def process_request(self, request):
         user = request.user
         org = None
@@ -103,7 +100,8 @@ class OrgTimezoneMiddleware(object):
 
             # otherwise, show them what orgs are available
             else:
-                user_orgs = user.org_admins.all() | user.org_editors.all() | user.org_viewers.all() | user.org_surveyors.all()
+                user_orgs = user.org_admins.all() | user.org_editors.all() | user.org_viewers.all(
+                ) | user.org_surveyors.all()
                 user_orgs = user_orgs.distinct('pk')
 
                 if user_orgs.count() == 1:
@@ -123,6 +121,7 @@ class FlowSimulationMiddleware(object):
     """
     Resets Contact.set_simulation(False) for every request
     """
+
     def process_request(self, request):
         Contact.set_simulation(False)
         return None
@@ -146,13 +145,14 @@ class ProfilerMiddleware(object):  # pragma: no cover
     This is adapted from an example found here:
     http://www.slideshare.net/zeeg/django-con-high-performance-django-presentation.
     """
+
     def can(self, request):
         return settings.DEBUG and 'prof' in request.GET
 
     def process_view(self, request, callback, callback_args, callback_kwargs):
         if self.can(request):
             self.profiler = cProfile.Profile()
-            args = (request,) + callback_args
+            args = (request, ) + callback_args
             return self.profiler.runcall(callback, *args, **callback_kwargs)
 
     def process_response(self, request, response):

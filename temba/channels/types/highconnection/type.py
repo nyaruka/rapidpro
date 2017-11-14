@@ -27,8 +27,10 @@ class HighConnectionType(ChannelType):
     name = "High Connection"
     slug = "high_connection"
 
-    claim_blurb = _("""If you are based in France, you can purchase a number from High Connexion
-                  <a href="http://www.highconnexion.com/en/">High Connection</a> and connect it in a few simple steps.""")
+    claim_blurb = _(
+        """If you are based in France, you can purchase a number from High Connexion
+                  <a href="http://www.highconnexion.com/en/">High Connection</a> and connect it in a few simple steps."""
+    )
     claim_view = AuthenticatedExternalClaimView
 
     schemes = [TEL_SCHEME]
@@ -49,8 +51,10 @@ class HighConnectionType(ChannelType):
             'ret_id': msg.id,
             'datacoding': 8,
             'userdata': 'textit',
-            'ret_url': 'https://%s%s' % (settings.HOSTNAME, reverse('handlers.hcnx_handler', args=['status', channel.uuid])),
-            'ret_mo_url': 'https://%s%s' % (settings.HOSTNAME, reverse('handlers.hcnx_handler', args=['receive', channel.uuid]))
+            'ret_url': 'https://%s%s' %
+            (settings.HOSTNAME, reverse('handlers.hcnx_handler', args=['status', channel.uuid])),
+            'ret_mo_url': 'https://%s%s' %
+            (settings.HOSTNAME, reverse('handlers.hcnx_handler', args=['receive', channel.uuid]))
         }
 
         # build our send URL
@@ -68,7 +72,6 @@ class HighConnectionType(ChannelType):
             raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
+            raise SendException("Got non-200 response [%d] from API" % response.status_code, event=event, start=start)
 
         Channel.success(channel, msg, WIRED, start, event=event)

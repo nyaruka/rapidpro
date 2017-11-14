@@ -12,8 +12,9 @@ from ...views import ClaimViewMixin
 
 class ClaimView(ClaimViewMixin, SmartFormView):
     class Form(ClaimViewMixin.Form):
-        page_access_token = forms.CharField(min_length=43, required=True,
-                                            help_text=_("The Page Access Token for your Application"))
+        page_access_token = forms.CharField(
+            min_length=43, required=True, help_text=_("The Page Access Token for your Application")
+        )
 
         def clean_page_access_token(self):
             value = self.cleaned_data['page_access_token']
@@ -37,7 +38,15 @@ class ClaimView(ClaimViewMixin, SmartFormView):
 
         config = {'auth_token': auth_token, 'page_name': page['name']}
 
-        self.object = Channel.create(org, self.request.user, None, self.channel_type, name=page['name'],
-                                     address=page['id'], config=config, secret=Channel.generate_secret())
+        self.object = Channel.create(
+            org,
+            self.request.user,
+            None,
+            self.channel_type,
+            name=page['name'],
+            address=page['id'],
+            config=config,
+            secret=Channel.generate_secret()
+        )
 
         return super(ClaimView, self).form_valid(form)

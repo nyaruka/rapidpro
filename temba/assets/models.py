@@ -7,7 +7,6 @@ from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.urlresolvers import reverse
 
-
 ASSET_STORES_BY_KEY = {}
 ASSET_STORES_BY_MODEL = {}
 
@@ -82,13 +81,17 @@ class BaseAssetStore(object):
         # if our storage backend is S3
         if settings.DEFAULT_FILE_STORAGE == 'storages.backends.s3boto.S3BotoStorage':  # pragma: needs cover
             # generate our URL manually so that we can force the download name for the user
-            url = default_storage.connection.generate_url(default_storage.querystring_expire,
-                                                          method='GET', bucket=default_storage.bucket.name,
-                                                          key=default_storage._encode_name(path),
-                                                          query_auth=default_storage.querystring_auth,
-                                                          force_http=not default_storage.secure_urls,
-                                                          response_headers={'response-content-disposition':
-                                                                            'attachment;filename=%s' % filename})
+            url = default_storage.connection.generate_url(
+                default_storage.querystring_expire,
+                method='GET',
+                bucket=default_storage.bucket.name,
+                key=default_storage._encode_name(path),
+                query_auth=default_storage.querystring_auth,
+                force_http=not default_storage.secure_urls,
+                response_headers={
+                    'response-content-disposition': 'attachment;filename=%s' % filename
+                }
+            )
 
         # otherwise, let the backend generate the URL
         else:

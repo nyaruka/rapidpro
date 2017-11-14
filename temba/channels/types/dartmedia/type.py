@@ -13,7 +13,6 @@ from temba.msgs.models import SENT
 from temba.utils.http import HttpEvent, http_headers
 from ...models import Channel, ChannelType, SendException
 
-
 # DartMedia is an aggregator in Indonesia, set this to the endpoint for your service
 # and make sure you send from a whitelisted IP Address
 DART_MEDIA_ENDPOINT = 'http://202.43.169.11/APIhttpU/receive2waysms.php'
@@ -29,7 +28,9 @@ class DartMediaType(ChannelType):
 
     name = "DartMedia"
 
-    claim_blurb = _("""Easily add a two way number you have configured with <a href="http://dartmedia.biz/">Dart Media</a> in Indonesia.""")
+    claim_blurb = _(
+        """Easily add a two way number you have configured with <a href="http://dartmedia.biz/">Dart Media</a> in Indonesia."""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
@@ -56,9 +57,16 @@ class DartMediaType(ChannelType):
         #   &udhl=0&charset=utf-8
         #
         url = DART_MEDIA_ENDPOINT
-        payload = dict(userid=channel.config['username'], password=channel.config['password'],
-                       original=channel.address.lstrip('+'), sendto=msg.urn_path.lstrip('+'),
-                       messageid=msg.id, message=text, dcs=0, udhl=0)
+        payload = dict(
+            userid=channel.config['username'],
+            password=channel.config['password'],
+            original=channel.address.lstrip('+'),
+            sendto=msg.urn_path.lstrip('+'),
+            messageid=msg.id,
+            message=text,
+            dcs=0,
+            udhl=0
+        )
 
         # build up our querystring and send it as a get
         send_url = "%s?%s" % (url, urlencode(payload))
@@ -74,12 +82,10 @@ class DartMediaType(ChannelType):
             event.status_code = response.status_code
             event.response_body = response.text
             if not response:  # pragma: no cover
-                raise SendException("Unable to send message",
-                                    event=event, start=start)
+                raise SendException("Unable to send message", event=event, start=start)
 
             if response.status_code != 200 and response.status_code != 201:
-                raise SendException("Received non 200 status: %d" % response.status_code,
-                                    event=event, start=start)
+                raise SendException("Received non 200 status: %d" % response.status_code, event=event, start=start)
 
             # if it wasn't successfully delivered, throw
             if response.text != "000":  # pragma: no cover

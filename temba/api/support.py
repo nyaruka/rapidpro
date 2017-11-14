@@ -46,6 +46,7 @@ class OrgRateThrottle(ScopedRateThrottle):
     """
     Throttle class which rate limits across an org
     """
+
     def get_cache_key(self, request, view):
         ident = None
         if request.user.is_authenticated():
@@ -61,6 +62,7 @@ class DocumentationRenderer(BrowsableAPIRenderer):
     The regular REST framework browsable API renderer includes a form on each endpoint. We don't provide that and
     instead have a separate API explorer page. This render then just displays the endpoint docs.
     """
+
     def get_context(self, data, accepted_media_type, renderer_context):
         view = renderer_context['view']
         request = renderer_context['request']

@@ -78,8 +78,12 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
         numbers = []
         for number in twilio_account_numbers:
             parsed = phonenumbers.parse(number.phone_number, None)
-            numbers.append(dict(number=phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.INTERNATIONAL),
-                                country=region_code_for_number(parsed)))
+            numbers.append(
+                dict(
+                    number=phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.INTERNATIONAL),
+                    country=region_code_for_number(parsed)
+                )
+            )
 
         org_country = timezone_to_country_code(org.timezone)
         for number in twilio_short_codes:
@@ -102,8 +106,12 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
 
         # create new TwiML app
         new_receive_url = "https://" + settings.HOSTNAME + reverse('courier.t', args=[channel_uuid, 'receive'])
-        new_status_url = "https://" + settings.HOSTNAME + reverse('handlers.twilio_handler', args=['status', channel_uuid])
-        new_voice_url = "https://" + settings.HOSTNAME + reverse('handlers.twilio_handler', args=['voice', channel_uuid])
+        new_status_url = "https://" + settings.HOSTNAME + reverse(
+            'handlers.twilio_handler', args=['status', channel_uuid]
+        )
+        new_voice_url = "https://" + settings.HOSTNAME + reverse(
+            'handlers.twilio_handler', args=['voice', channel_uuid]
+        )
 
         new_app = client.applications.create(
             friendly_name="%s/%s" % (settings.HOSTNAME.lower(), channel_uuid),
@@ -123,40 +131,50 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             if short_codes:
                 short_code = short_codes[0]
                 number_sid = short_code.sid
-                app_url = "https://" + settings.HOSTNAME + "%s" % reverse('handlers.twilio_handler', args=['receive', channel_uuid])
+                app_url = "https://" + settings.HOSTNAME + "%s" % reverse(
+                    'handlers.twilio_handler', args=['receive', channel_uuid]
+                )
                 client.sms.short_codes.update(number_sid, sms_url=app_url, sms_method='POST')
 
                 role = Channel.ROLE_SEND + Channel.ROLE_RECEIVE
                 phone = phone_number
 
             else:  # pragma: no cover
-                raise Exception(_("Short code not found on your Twilio Account. "
-                                  "Please check you own the short code and Try again"))
+                raise Exception(
+                    _(
+                        "Short code not found on your Twilio Account. "
+                        "Please check you own the short code and Try again"
+                    )
+                )
         else:
             if twilio_phones:
                 twilio_phone = twilio_phones[0]
-                client.phone_numbers.update(twilio_phone.sid,
-                                            voice_application_sid=new_app.sid,
-                                            sms_application_sid=new_app.sid)
+                client.phone_numbers.update(
+                    twilio_phone.sid, voice_application_sid=new_app.sid, sms_application_sid=new_app.sid
+                )
 
             else:  # pragma: needs cover
-                twilio_phone = client.phone_numbers.purchase(phone_number=phone_number,
-                                                             voice_application_sid=new_app.sid,
-                                                             sms_application_sid=new_app.sid)
+                twilio_phone = client.phone_numbers.purchase(
+                    phone_number=phone_number, voice_application_sid=new_app.sid, sms_application_sid=new_app.sid
+                )
 
-            phone = phonenumbers.format_number(phonenumbers.parse(phone_number, None),
-                                               phonenumbers.PhoneNumberFormat.NATIONAL)
+            phone = phonenumbers.format_number(
+                phonenumbers.parse(phone_number, None), phonenumbers.PhoneNumberFormat.NATIONAL
+            )
 
             number_sid = twilio_phone.sid
 
         org_config = org.config_json()
-        config = {Channel.CONFIG_APPLICATION_SID: new_app.sid,
-                  Channel.CONFIG_NUMBER_SID: number_sid,
-                  Channel.CONFIG_ACCOUNT_SID: org_config[ACCOUNT_SID],
-                  Channel.CONFIG_AUTH_TOKEN: org_config[ACCOUNT_TOKEN]}
+        config = {
+            Channel.CONFIG_APPLICATION_SID: new_app.sid,
+            Channel.CONFIG_NUMBER_SID: number_sid,
+            Channel.CONFIG_ACCOUNT_SID: org_config[ACCOUNT_SID],
+            Channel.CONFIG_AUTH_TOKEN: org_config[ACCOUNT_TOKEN]
+        }
 
-        channel = Channel.create(org, user, country, 'T', name=phone, address=phone_number, role=role,
-                                 config=config, uuid=channel_uuid)
+        channel = Channel.create(
+            org, user, country, 'T', name=phone, address=phone_number, role=role, config=config, uuid=channel_uuid
+        )
 
         analytics.track(user.username, 'temba.channel_claim_twilio', properties=dict(number=phone_number))
 

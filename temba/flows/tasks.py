@@ -29,7 +29,9 @@ def update_run_expirations_task(flow_id):
     """
     Update all of our current run expirations according to our new expiration period
     """
-    for step in FlowStep.objects.filter(run__flow__id=flow_id, run__is_active=True, left_on=None).distinct('run'):  # pragma: needs cover
+    for step in FlowStep.objects.filter(
+        run__flow__id=flow_id, run__is_active=True, left_on=None
+    ).distinct('run'):  # pragma: needs cover
         step.run.update_expiration(step.arrived_on)
 
     # force an expiration update
@@ -45,7 +47,9 @@ def check_flows_task():
     FlowRun.bulk_exit(runs, FlowRun.EXIT_TYPE_EXPIRED)
 
 
-@nonoverlapping_task(track_started=True, name='check_flow_timeouts_task', lock_key='check_flow_timeouts', lock_timeout=3600)  # pragma: no cover
+@nonoverlapping_task(
+    track_started=True, name='check_flow_timeouts_task', lock_key='check_flow_timeouts', lock_timeout=3600
+)  # pragma: no cover
 def check_flow_timeouts_task():
     """
     See if any flow runs have timed out
@@ -117,18 +121,26 @@ def start_msg_flow_batch_task():
         started_flows = [] if not task_obj['started_flows'] else task_obj['started_flows']
         start_msg = None if not task_obj['start_msg'] else Msg.objects.filter(pk=task_obj['start_msg']).first()
         extra = task_obj['extra']
-        flow_start = None if not task_obj['flow_start'] else FlowStart.objects.filter(pk=task_obj['flow_start']).first()
+        flow_start = None if not task_obj['flow_start'] else FlowStart.objects.filter(pk=task_obj['flow_start']
+                                                                                      ).first()
         contacts = task_obj['contacts']
 
         # and go do our work
-        flow.start_msg_flow_batch(contacts, broadcasts=broadcasts,
-                                  started_flows=started_flows, start_msg=start_msg,
-                                  extra=extra, flow_start=flow_start)
+        flow.start_msg_flow_batch(
+            contacts,
+            broadcasts=broadcasts,
+            started_flows=started_flows,
+            start_msg=start_msg,
+            extra=extra,
+            flow_start=flow_start
+        )
     finally:
         complete_task(Flow.START_MSG_FLOW_BATCH, org_id)
 
-    print("Started batch of %d contacts in flow %d [%d] in %0.3fs"
-          % (len(contacts), flow.id, flow.org_id, time.time() - start))
+    print(
+        "Started batch of %d contacts in flow %d [%d] in %0.3fs" %
+        (len(contacts), flow.id, flow.org_id, time.time() - start)
+    )
 
 
 @nonoverlapping_task(track_started=True, name="squash_flowpathcounts", lock_key='squash_flowpathcounts')

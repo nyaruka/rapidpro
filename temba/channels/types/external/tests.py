@@ -55,8 +55,14 @@ class ExternalTypeTest(TembaTest):
         self.assertContains(response, reverse('courier.ex', args=[channel.uuid, 'receive']))
 
         # test substitution in our url
-        self.assertEqual('http://test.com/send.php?from=5080&text=test&to=%2B250788383383',
-                         channel.replace_variables(ext_url, {'from': "5080", 'text': "test", 'to': "+250788383383"}))
+        self.assertEqual(
+            'http://test.com/send.php?from=5080&text=test&to=%2B250788383383',
+            channel.replace_variables(ext_url, {
+                'from': "5080",
+                'text': "test",
+                'to': "+250788383383"
+            })
+        )
 
         # test substitution with unicode
         self.assertEqual(
@@ -65,17 +71,23 @@ class ExternalTypeTest(TembaTest):
                 'from': "5080",
                 'text': "Reply “1” for good",
                 'to': "+250788383383"
-            }))
+            })
+        )
 
         # test substitution with XML encoding
         body = "<xml>{{text}}</xml>"
-        self.assertEqual("<xml>Hello &amp; World</xml>",
-                         channel.replace_variables(body, {'text': "Hello & World"}, Channel.CONTENT_TYPE_XML))
+        self.assertEqual(
+            "<xml>Hello &amp; World</xml>",
+            channel.replace_variables(body, {'text': "Hello & World"}, Channel.CONTENT_TYPE_XML)
+        )
 
-        self.assertEqual("<xml>التوطين</xml>",
-                         channel.replace_variables(body, {'text': "التوطين"}, Channel.CONTENT_TYPE_XML))
+        self.assertEqual(
+            "<xml>التوطين</xml>", channel.replace_variables(body, {'text': "التوطين"}, Channel.CONTENT_TYPE_XML)
+        )
 
         # test substitution with JSON encoding
         body = "{ body: {{text}} }"
-        self.assertEqual("{ body: \"this is \\\"quote\\\"\" }",
-                         channel.replace_variables(body, {'text': "this is \"quote\""}, Channel.CONTENT_TYPE_JSON))
+        self.assertEqual(
+            "{ body: \"this is \\\"quote\\\"\" }",
+            channel.replace_variables(body, {'text': "this is \"quote\""}, Channel.CONTENT_TYPE_JSON)
+        )

@@ -12,8 +12,9 @@ from ...views import ClaimViewMixin
 
 class ClaimView(ClaimViewMixin, SmartFormView):
     class Form(ClaimViewMixin.Form):
-        auth_token = forms.CharField(label=_("Authentication Token"),
-                                     help_text=_("The Authentication token for your Telegram Bot"))
+        auth_token = forms.CharField(
+            label=_("Authentication Token"), help_text=_("The Authentication token for your Telegram Bot")
+        )
 
         def clean_auth_token(self):
             org = self.request.user.get_org()
@@ -41,7 +42,16 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         bot = telegram.Bot(auth_token)
         me = bot.get_me()
 
-        self.object = Channel.create(org, self.request.user, None, self.channel_type,
-                                     name=me.first_name, address=me.username, config={'auth_token': auth_token})
+        self.object = Channel.create(
+            org,
+            self.request.user,
+            None,
+            self.channel_type,
+            name=me.first_name,
+            address=me.username,
+            config={
+                'auth_token': auth_token
+            }
+        )
 
         return super(ClaimView, self).form_valid(form)

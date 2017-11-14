@@ -10,7 +10,6 @@ from temba.utils.twitter import TembaTwython
 from ...models import Channel
 from ...views import ClaimViewMixin
 
-
 SESSION_TWITTER_API_KEY = 'twitter_api_key'
 SESSION_TWITTER_API_SECRET = 'twitter_api_secret'
 SESSION_TWITTER_OAUTH_TOKEN = 'twitter_oauth_token'
@@ -18,7 +17,6 @@ SESSION_TWITTER_OAUTH_SECRET = 'twitter_oauth_token_secret'
 
 
 class ClaimView(ClaimViewMixin, SmartTemplateView):
-
     def pre_process(self, *args, **kwargs):
         response = super(ClaimView, self).pre_process(*args, **kwargs)
 
@@ -43,9 +41,16 @@ class ClaimView(ClaimViewMixin, SmartTemplateView):
             del self.request.session[SESSION_TWITTER_OAUTH_SECRET]
 
             # check there isn't already a channel for this Twitter account
-            if self.org.channels.filter(channel_type=self.channel_type.code, address=screen_name, is_active=True).exists():
-                messages.error(self.request, _("A Twitter channel for that handle already exists, and must be removed"
-                                               "before another channel can be created for that handle."))
+            if self.org.channels.filter(
+                channel_type=self.channel_type.code, address=screen_name, is_active=True
+            ).exists():
+                messages.error(
+                    self.request,
+                    _(
+                        "A Twitter channel for that handle already exists, and must be removed"
+                        "before another channel can be created for that handle."
+                    )
+                )
                 return response
             else:
                 config = {
@@ -53,8 +58,15 @@ class ClaimView(ClaimViewMixin, SmartTemplateView):
                     'oauth_token': oauth_token,
                     'oauth_token_secret': oauth_token_secret
                 }
-                self.object = Channel.create(org, self.request.user, None, self.channel_type,
-                                             name="@%s" % screen_name, address=screen_name, config=config)
+                self.object = Channel.create(
+                    org,
+                    self.request.user,
+                    None,
+                    self.channel_type,
+                    name="@%s" % screen_name,
+                    address=screen_name,
+                    config=config
+                )
 
             return redirect(self.get_success_url())
 

@@ -73,6 +73,7 @@ class QueueRecord(object):
     objects as queued, which is more efficient than having separate keys for each item. By having these expire after
     24 hours we ensure that our Redis sets can't grow indefinitely even if things fail.
     """
+
     def __init__(self, key_prefix, item_val=None):
         self.item_val = item_val or str
 

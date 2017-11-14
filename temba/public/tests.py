@@ -8,7 +8,6 @@ from .views import VideoCRUDL
 
 
 class PublicTest(SmartminTest):
-
     def setUp(self):
         self.superuser = User.objects.create_superuser(username="super", email="super@user.com", password="super")
         self.user = self.create_user("tito")
@@ -118,24 +117,34 @@ class PublicTest(SmartminTest):
         response = self.client.get(sitemap_url)
 
         # but first item is always home page
-        self.assertEqual(response.context['urlset'][0], {'priority': '0.5',
-                                                         'item': 'public.public_index',
-                                                         'lastmod': None,
-                                                         'changefreq': 'daily',
-                                                         'location': u'http://example.com/'})
+        self.assertEqual(
+            response.context['urlset'][0], {
+                'priority': '0.5',
+                'item': 'public.public_index',
+                'lastmod': None,
+                'changefreq': 'daily',
+                'location': u'http://example.com/'
+            }
+        )
 
         num_fixed_items = len(response.context['urlset'])
 
         # adding a video will dynamically add a new item
-        Video.objects.create(name="Item14", summary="Unicorn", description="Video of unicorns", vimeo_id="1234",
-                             order=0, created_by=self.superuser, modified_by=self.superuser)
+        Video.objects.create(
+            name="Item14",
+            summary="Unicorn",
+            description="Video of unicorns",
+            vimeo_id="1234",
+            order=0,
+            created_by=self.superuser,
+            modified_by=self.superuser
+        )
 
         response = self.client.get(sitemap_url)
         self.assertEqual(len(response.context['urlset']), num_fixed_items + 1)
 
 
 class VideoCRUDLTest(_CRUDLTest):
-
     def setUp(self):
         super(VideoCRUDLTest, self).setUp()
         self.crudl = VideoCRUDL

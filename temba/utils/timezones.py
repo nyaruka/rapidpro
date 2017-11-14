@@ -6,7 +6,6 @@ import six
 from datetime import datetime
 from timezone_field import TimeZoneFormField as BaseTimeZoneFormField
 
-
 # these are not mapped by pytz.country_timezones
 INITIAL_TIMEZONE_COUNTRY = {
     'US/Hawaii': 'US',

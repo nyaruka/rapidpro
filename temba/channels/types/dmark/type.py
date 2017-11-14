@@ -19,9 +19,11 @@ class DMarkType(ChannelType):
     name = "DMark"
     icon = 'icon-channel-external'
 
-    claim_blurb = _("""If you are based in Uganda or DRC you can purchase a short
+    claim_blurb = _(
+        """If you are based in Uganda or DRC you can purchase a short
     code from <a href="http://dmarkmobile.com/">DMark Mobile</a> and connect it
-    in a few simple steps.""")
+    in a few simple steps."""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]

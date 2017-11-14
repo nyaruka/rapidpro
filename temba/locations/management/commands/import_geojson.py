@@ -15,10 +15,9 @@ class Command(BaseCommand):  # pragma: no cover
 
     def add_arguments(self, parser):
         parser.add_argument('files', nargs='+')
-        parser.add_argument('--country',
-                            dest='country',
-                            default=None,
-                            help="Only process the boundary files for this country osm id")
+        parser.add_argument(
+            '--country', dest='country', default=None, help="Only process the boundary files for this country osm id"
+        )
 
     def import_file(self, filename, file):
         admin_json = geojson.loads(file.read())
@@ -30,8 +29,7 @@ class Command(BaseCommand):  # pragma: no cover
 
         # parse our filename.. they are in the format:
         # 192787admin2_simplified.json
-        match = regex.match(
-            r'(\w\d+)admin(\d)(_simplified)?\.json$', filename, regex.V0)
+        match = regex.match(r'(\w\d+)admin(\d)(_simplified)?\.json$', filename, regex.V0)
         level = None
         is_simplified = None
         if match:
@@ -40,8 +38,7 @@ class Command(BaseCommand):  # pragma: no cover
         else:
             # else parse other filenames that are in
             # admin_level_0_simplified.json format.
-            match = regex.match(
-                r'admin_level_(\d)(_simplified)?\.json$', filename, regex.V0)
+            match = regex.match(r'admin_level_(\d)(_simplified)?\.json$', filename, regex.V0)
             if match:
                 level = int(match.group(1))
                 is_simplified = True if match.group(2) else False
@@ -74,8 +71,7 @@ class Command(BaseCommand):  # pragma: no cover
             if parent_osm_id and parent_osm_id != 'None':
                 parent = AdminBoundary.objects.filter(osm_id=parent_osm_id).first()
                 if not parent:
-                    print("Skipping %s (%s) as parent %s not found." %
-                          (name, osm_id, parent_osm_id))
+                    print("Skipping %s (%s) as parent %s not found." % (name, osm_id, parent_osm_id))
                     continue
 
             # try to find existing admin level by osm_id
@@ -96,8 +92,7 @@ class Command(BaseCommand):  # pragma: no cover
                 for polygon in feature['geometry']['coordinates']:
                     polygons.append(Polygon(*polygon))
             else:
-                raise Exception("Error importing %s, unknown geometry type '%s'" % (
-                    name, feature['geometry']['type']))
+                raise Exception("Error importing %s, unknown geometry type '%s'" % (name, feature['geometry']['type']))
 
             geometry = MultiPolygon(polygons)
 

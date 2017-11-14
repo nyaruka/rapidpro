@@ -7,7 +7,6 @@ from temba.tests import TembaTest, MockTwilioClient, MockRequestValidator
 
 
 class TwimlAPITypeTest(TembaTest):
-
     @patch('temba.ivr.clients.TwilioClient', MockTwilioClient)
     @patch('twilio.util.RequestValidator', MockRequestValidator)
     def test_claim(self):
@@ -30,22 +29,61 @@ class TwimlAPITypeTest(TembaTest):
         response = self.client.post(claim_url, dict(number='5512345678', country='AA'))
         self.assertTrue(response.context['form'].errors)
 
-        response = self.client.post(claim_url, dict(country='US', number='12345678', url='https://twilio.com', role='SR', account_sid='abcd1234', account_token='abcd1234'))
+        response = self.client.post(
+            claim_url,
+            dict(
+                country='US',
+                number='12345678',
+                url='https://twilio.com',
+                role='SR',
+                account_sid='abcd1234',
+                account_token='abcd1234'
+            )
+        )
         channel = self.org.channels.all().first()
         self.assertRedirects(response, reverse('channels.channel_configuration', args=[channel.pk]))
         self.assertEqual(channel.channel_type, "TW")
-        self.assertEqual(channel.config_json(), dict(ACCOUNT_TOKEN='abcd1234', send_url='https://twilio.com', ACCOUNT_SID='abcd1234'))
+        self.assertEqual(
+            channel.config_json(),
+            dict(ACCOUNT_TOKEN='abcd1234', send_url='https://twilio.com', ACCOUNT_SID='abcd1234')
+        )
 
-        response = self.client.post(claim_url, dict(country='US', number='12345678', url='https://twilio.com', role='SR', account_sid='abcd4321', account_token='abcd4321'))
+        response = self.client.post(
+            claim_url,
+            dict(
+                country='US',
+                number='12345678',
+                url='https://twilio.com',
+                role='SR',
+                account_sid='abcd4321',
+                account_token='abcd4321'
+            )
+        )
         channel = self.org.channels.all().first()
         self.assertRedirects(response, reverse('channels.channel_configuration', args=[channel.pk]))
         self.assertEqual(channel.channel_type, "TW")
-        self.assertEqual(channel.config_json(), dict(ACCOUNT_TOKEN='abcd4321', send_url='https://twilio.com', ACCOUNT_SID='abcd4321'))
+        self.assertEqual(
+            channel.config_json(),
+            dict(ACCOUNT_TOKEN='abcd4321', send_url='https://twilio.com', ACCOUNT_SID='abcd4321')
+        )
 
         self.org.channels.update(is_active=False, org=None)
 
-        response = self.client.post(claim_url, dict(country='US', number='8080', url='https://twilio.com', role='SR', account_sid='abcd1234', account_token='abcd1234'))
+        response = self.client.post(
+            claim_url,
+            dict(
+                country='US',
+                number='8080',
+                url='https://twilio.com',
+                role='SR',
+                account_sid='abcd1234',
+                account_token='abcd1234'
+            )
+        )
         channel = self.org.channels.all().first()
         self.assertRedirects(response, reverse('channels.channel_configuration', args=[channel.pk]))
         self.assertEqual(channel.channel_type, "TW")
-        self.assertEqual(channel.config_json(), dict(ACCOUNT_TOKEN='abcd1234', send_url='https://twilio.com', ACCOUNT_SID='abcd1234'))
+        self.assertEqual(
+            channel.config_json(),
+            dict(ACCOUNT_TOKEN='abcd1234', send_url='https://twilio.com', ACCOUNT_SID='abcd1234')
+        )

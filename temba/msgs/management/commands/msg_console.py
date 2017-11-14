@@ -10,7 +10,6 @@ from temba.orgs.models import Org
 from temba.msgs.models import Msg, OUTGOING
 import six
 
-
 DEFAULT_ORG = '1'
 DEFAULT_URN = "tel:+250788123123"
 
@@ -37,6 +36,7 @@ class MessageConsole(cmd.Cmd):
     Useful REPL'like utility to simulate sending messages into RapidPro. Mostly useful for testing things
     with real contacts across multiple flows and contacts where the simulator isn't enough.
     """
+
     def __init__(self, org, urn, *args, **kwargs):
         cmd.Cmd.__init__(self, *args, **kwargs)
 
@@ -110,15 +110,18 @@ class MessageConsole(cmd.Cmd):
         """
         urn = self.contact.get_urn()
 
-        incoming = Msg.create_incoming(None, URN.from_parts(urn.scheme, urn.path),
-                                       line, date=timezone.now(), org=self.org)
+        incoming = Msg.create_incoming(
+            None, URN.from_parts(urn.scheme, urn.path), line, date=timezone.now(), org=self.org
+        )
 
-        self.echo((Fore.GREEN + "[%s] " + Fore.YELLOW + ">>" + Fore.MAGENTA + " %s" + Fore.WHITE) % (six.text_type(urn), incoming.text))
+        self.echo((Fore.GREEN + "[%s] " + Fore.YELLOW + ">>" + Fore.MAGENTA + " %s" + Fore.WHITE) %
+                  (six.text_type(urn), incoming.text))
 
         # look up any message responses
         outgoing = Msg.objects.filter(org=self.org, pk__gt=incoming.pk, direction=OUTGOING).order_by('sent_on')
         for response in outgoing:
-            self.echo((Fore.GREEN + "[%s] " + Fore.YELLOW + "<<" + Fore.MAGENTA + " %s" + Fore.WHITE) % (six.text_type(urn), response.text))
+            self.echo((Fore.GREEN + "[%s] " + Fore.YELLOW + "<<" + Fore.MAGENTA + " %s" + Fore.WHITE) %
+                      (six.text_type(urn), response.text))
 
     def do_EOF(self, line):
         """
@@ -134,13 +137,24 @@ class MessageConsole(cmd.Cmd):
 
 
 class Command(BaseCommand):  # pragma: no cover
-
     def add_arguments(self, parser):
-        parser.add_argument('--org', type=str, action='store', dest='org', default=DEFAULT_ORG,
-                            help="The id or name of the organization to send messages for")
+        parser.add_argument(
+            '--org',
+            type=str,
+            action='store',
+            dest='org',
+            default=DEFAULT_ORG,
+            help="The id or name of the organization to send messages for"
+        )
 
-        parser.add_argument('--urn', type=str, action='store', dest='urn', default=DEFAULT_URN,
-                            help="The URN of the contact to send messages for")
+        parser.add_argument(
+            '--urn',
+            type=str,
+            action='store',
+            dest='urn',
+            default=DEFAULT_URN,
+            help="The URN of the contact to send messages for"
+        )
 
     def handle(self, *args, **options):
         colorama_init()
@@ -154,6 +168,7 @@ class Command(BaseCommand):  # pragma: no cover
         intro += "Change contact with the contact command, ex: " + Fore.YELLOW + "contact tel:+250788124124" + Fore.WHITE + "\n"
         intro += "Exit with the " + Fore.YELLOW + "exit" + Fore.WHITE + " command\n\n"
 
-        intro += ("Currently sending messages for %s [%d] as " + Fore.CYAN + "%s" + Fore.WHITE) % (org.name, org.id, urn)
+        intro += ("Currently sending messages for %s [%d] as " + Fore.CYAN + "%s" + Fore.WHITE
+                  ) % (org.name, org.id, urn)
 
         MessageConsole(org, urn).cmdloop(intro=intro)

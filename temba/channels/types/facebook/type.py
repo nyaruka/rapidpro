@@ -25,9 +25,11 @@ class FacebookType(ChannelType):
     name = "Facebook"
     icon = 'icon-facebook-official'
 
-    claim_blurb = _("""Add a <a href="http://facebook.com">Facebook</a> bot to send and receive messages on behalf
+    claim_blurb = _(
+        """Add a <a href="http://facebook.com">Facebook</a> bot to send and receive messages on behalf
     of one of your Facebook pages for free. You will need to create a Facebook application on their
-    <a href="http://developers.facebook.com">developers</a> site first.""")
+    <a href="http://developers.facebook.com">developers</a> site first."""
+    )
     claim_view = ClaimView
 
     schemes = [FACEBOOK_SCHEME]
@@ -37,9 +39,12 @@ class FacebookType(ChannelType):
 
     def deactivate(self, channel):
         config = channel.config_json()
-        requests.delete('https://graph.facebook.com/v2.5/me/subscribed_apps', params={
-            'access_token': config[Channel.CONFIG_AUTH_TOKEN]
-        })
+        requests.delete(
+            'https://graph.facebook.com/v2.5/me/subscribed_apps',
+            params={
+                'access_token': config[Channel.CONFIG_AUTH_TOKEN]
+            }
+        )
 
     def activate_trigger(self, trigger):
         # if this is new conversation trigger, register for the FB callback
@@ -97,8 +102,9 @@ class FacebookType(ChannelType):
                 raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code != 200:
-            raise SendException("Got non-200 response [%d] from Facebook" % response.status_code,
-                                event=event, start=start)
+            raise SendException(
+                "Got non-200 response [%d] from Facebook" % response.status_code, event=event, start=start
+            )
 
         # grab our external id out, Facebook response is in format:
         # "{"recipient_id":"997011467086879","message_id":"mid.1459532331848:2534ddacc3993a4b78"}"
@@ -145,8 +151,11 @@ class FacebookType(ChannelType):
 
         access_token = channel.config_json()[Channel.CONFIG_AUTH_TOKEN]
 
-        response = requests.post(url, json=body, params={'access_token': access_token},
-                                 headers={'Content-Type': 'application/json'})
+        response = requests.post(
+            url, json=body, params={'access_token': access_token}, headers={
+                'Content-Type': 'application/json'
+            }
+        )
 
         if response.status_code != 200:  # pragma: no cover
             raise Exception(_("Unable to update call to action: %s" % response.text))

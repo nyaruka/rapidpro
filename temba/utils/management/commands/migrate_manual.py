@@ -16,12 +16,11 @@ class Command(BaseCommand):  # pragma: no cover
     help = "Applies a migration manually which may have been previously applied or faked"
 
     def add_arguments(self, parser):
-        parser.add_argument('app_label',
-                            help='App label of an application to synchronize the state.')
-        parser.add_argument('migration_name',
-                            help='Database state will be brought to the state after that migration.')
-        parser.add_argument('--record', action='store_true', dest='record', default=False,
-                            help='Record migration as applied.')
+        parser.add_argument('app_label', help='App label of an application to synchronize the state.')
+        parser.add_argument('migration_name', help='Database state will be brought to the state after that migration.')
+        parser.add_argument(
+            '--record', action='store_true', dest='record', default=False, help='Record migration as applied.'
+        )
 
     def handle(self, app_label, migration_name, *args, **options):
         self.verbosity = options.get('verbosity')

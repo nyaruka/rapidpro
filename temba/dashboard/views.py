@@ -36,17 +36,21 @@ class MessageHistory(OrgPermsMixin, SmartTemplateView):
             orgs = Org.objects.filter(Q(id=org.id) | Q(parent=org))
 
         # get all our counts for that period
-        daily_counts = ChannelCount.objects.filter(count_type__in=[ChannelCount.INCOMING_MSG_TYPE,
-                                                                   ChannelCount.OUTGOING_MSG_TYPE,
-                                                                   ChannelCount.INCOMING_IVR_TYPE,
-                                                                   ChannelCount.OUTGOING_IVR_TYPE])
+        daily_counts = ChannelCount.objects.filter(
+            count_type__in=[
+                ChannelCount.INCOMING_MSG_TYPE, ChannelCount.OUTGOING_MSG_TYPE, ChannelCount.INCOMING_IVR_TYPE,
+                ChannelCount.OUTGOING_IVR_TYPE
+            ]
+        )
 
         daily_counts = daily_counts.filter(day__gt='2013-02-01').filter(day__lte=timezone.now())
 
         if orgs or not is_support:
             daily_counts = daily_counts.filter(channel__org__in=orgs)
 
-        daily_counts = list(daily_counts.values('day', 'count_type').order_by('day', 'count_type').annotate(count_sum=Sum('count')))
+        daily_counts = list(
+            daily_counts.values('day', 'count_type').order_by('day', 'count_type').annotate(count_sum=Sum('count'))
+        )
 
         msgs_in = []
         msgs_out = []
@@ -130,18 +134,29 @@ class RangeDetails(OrgPermsMixin, SmartTemplateView):
                 count_types += [ChannelCount.INCOMING_MSG_TYPE, ChannelCount.INCOMING_IVR_TYPE]
 
             # get all our counts for that period
-            daily_counts = ChannelCount.objects.filter(count_type__in=count_types).filter(day__gte=begin).filter(day__lte=end).exclude(channel__org=None)
+            daily_counts = ChannelCount.objects.filter(count_type__in=count_types
+                                                       ).filter(day__gte=begin).filter(day__lte=end
+                                                                                       ).exclude(channel__org=None)
             if orgs:
                 daily_counts = daily_counts.filter(channel__org__in=orgs)
 
-            context['orgs'] = list(daily_counts.values('channel__org', 'channel__org__name').order_by('-count_sum',).annotate(count_sum=Sum('count'))[:12])
+            context['orgs'] = list(
+                daily_counts.values('channel__org', 'channel__org__name').order_by(
+                    '-count_sum',
+                ).annotate(count_sum=Sum('count'))[:12]
+            )
 
-            channel_types = ChannelCount.objects.filter(count_type__in=count_types).filter(day__gte=begin).filter(day__lte=end).exclude(channel__org=None)
+            channel_types = ChannelCount.objects.filter(count_type__in=count_types
+                                                        ).filter(day__gte=begin).filter(day__lte=end
+                                                                                        ).exclude(channel__org=None)
 
             if orgs or not is_support:
                 channel_types = channel_types.filter(channel__org__in=orgs)
 
-            channel_types = list(channel_types.values('channel__channel_type').order_by('-count_sum', ).annotate(count_sum=Sum('count')))
+            channel_types = list(
+                channel_types.values('channel__channel_type').order_by('-count_sum',
+                                                                       ).annotate(count_sum=Sum('count'))
+            )
 
             # populate the channel names
             pie = []

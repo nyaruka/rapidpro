@@ -18,12 +18,17 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         org = self.request.user.get_org()
         cleaned_data = form.cleaned_data
 
-        config = {
-            'jiochat_app_id': cleaned_data.get('app_id'),
-            'jiochat_app_secret': cleaned_data.get('app_secret')
-        }
+        config = {'jiochat_app_id': cleaned_data.get('app_id'), 'jiochat_app_secret': cleaned_data.get('app_secret')}
 
-        self.object = Channel.create(org, self.request.user, None, self.channel_type, name='', address='',
-                                     config=config, secret=Channel.generate_secret(32))
+        self.object = Channel.create(
+            org,
+            self.request.user,
+            None,
+            self.channel_type,
+            name='',
+            address='',
+            config=config,
+            secret=Channel.generate_secret(32)
+        )
 
         return super(ClaimView, self).form_valid(form)

@@ -31,8 +31,9 @@ class ClaimView(ClaimViewMixin, SmartFormView):
                     user = twitter.verify_credentials()
 
                     # check there isn't already a channel for this Twitter account
-                    if org.channels.filter(channel_type=self.channel_type.code,
-                                           address=user['screen_name'], is_active=True).exists():
+                    if org.channels.filter(
+                        channel_type=self.channel_type.code, address=user['screen_name'], is_active=True
+                    ).exists():
                         raise ValidationError(_("A Twitter channel already exists for that handle."))
 
                 except TwythonError:
@@ -64,7 +65,14 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             'access_token_secret': access_token_secret
         }
 
-        self.object = Channel.create(org, self.request.user, None, self.channel_type, name="@%s" % screen_name,
-                                     address=screen_name, config=config)
+        self.object = Channel.create(
+            org,
+            self.request.user,
+            None,
+            self.channel_type,
+            name="@%s" % screen_name,
+            address=screen_name,
+            config=config
+        )
 
         return super(ClaimView, self).form_valid(form)

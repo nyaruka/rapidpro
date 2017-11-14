@@ -1,6 +1,5 @@
 from __future__ import unicode_literals, absolute_import
 
-
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 from smartmin.views import SmartFormView
@@ -10,12 +9,9 @@ from ...views import ClaimViewMixin
 
 class ClaimView(ClaimViewMixin, SmartFormView):
     class ZVClaimForm(ClaimViewMixin.Form):
-        shortcode = forms.CharField(max_length=6, min_length=1,
-                                    help_text=_("The Zenvia short code"))
-        account = forms.CharField(max_length=32,
-                                  help_text=_("Your account name on Zenvia"))
-        code = forms.CharField(max_length=64,
-                               help_text=_("Your api code on Zenvia for authentication"))
+        shortcode = forms.CharField(max_length=6, min_length=1, help_text=_("The Zenvia short code"))
+        account = forms.CharField(max_length=32, help_text=_("Your account name on Zenvia"))
+        code = forms.CharField(max_length=64, help_text=_("Your api code on Zenvia for authentication"))
 
     form_class = ZVClaimForm
 

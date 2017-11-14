@@ -33,7 +33,6 @@ from temba.orgs.tasks import squash_topupcredits
 from temba.utils import chunk_list, ms_to_datetime, datetime_to_str, datetime_to_ms
 from temba.values.models import Value
 
-
 # maximum age in days of database content
 CONTENT_AGE = 3 * 365
 
@@ -44,53 +43,153 @@ USER_PASSWORD = "Qwerty123"
 LOCATIONS_DUMP = 'test-data/nigeria.bin'
 
 # organization names are generated from these components
-ORG_NAMES = (
-    ("UNICEF", "WHO", "WFP", "UNESCO", "UNHCR", "UNITAR", "FAO", "UNEP", "UNAIDS", "UNDAF"),
-    ("Nigeria", "Chile", "Indonesia", "Rwanda", "Mexico", "Zambia", "India", "Brazil", "Sudan", "Mozambique")
-)
+ORG_NAMES = (("UNICEF", "WHO", "WFP", "UNESCO", "UNHCR", "UNITAR", "FAO", "UNEP", "UNAIDS", "UNDAF"),
+             ("Nigeria", "Chile", "Indonesia", "Rwanda", "Mexico", "Zambia", "India", "Brazil", "Sudan", "Mozambique"))
 
 # the users, channels, groups, labels and fields to create for each organization
 USERS = (
-    {'username': "admin%d", 'email': "org%d_admin@example.com", 'role': 'administrators'},
-    {'username': "editor%d", 'email': "org%d_editor@example.com", 'role': 'editors'},
-    {'username': "viewer%d", 'email': "org%d_viewer@example.com", 'role': 'viewers'},
-    {'username': "surveyor%d", 'email': "org%d_surveyor@example.com", 'role': 'surveyors'},
+    {
+        'username': "admin%d",
+        'email': "org%d_admin@example.com",
+        'role': 'administrators'
+    },
+    {
+        'username': "editor%d",
+        'email': "org%d_editor@example.com",
+        'role': 'editors'
+    },
+    {
+        'username': "viewer%d",
+        'email': "org%d_viewer@example.com",
+        'role': 'viewers'
+    },
+    {
+        'username': "surveyor%d",
+        'email': "org%d_surveyor@example.com",
+        'role': 'surveyors'
+    },
 )
 CHANNELS = (
-    {'name': "Android", 'channel_type': Channel.TYPE_ANDROID, 'scheme': 'tel', 'address': "1234"},
-    {'name': "Nexmo", 'channel_type': 'NX', 'scheme': 'tel', 'address': "2345"},
-    {'name': "Twitter", 'channel_type': 'TT', 'scheme': 'twitter', 'address': "my_handle"},
+    {
+        'name': "Android",
+        'channel_type': Channel.TYPE_ANDROID,
+        'scheme': 'tel',
+        'address': "1234"
+    },
+    {
+        'name': "Nexmo",
+        'channel_type': 'NX',
+        'scheme': 'tel',
+        'address': "2345"
+    },
+    {
+        'name': "Twitter",
+        'channel_type': 'TT',
+        'scheme': 'twitter',
+        'address': "my_handle"
+    },
 )
 FIELDS = (
-    {'key': 'gender', 'label': "Gender", 'value_type': Value.TYPE_TEXT},
-    {'key': 'age', 'label': "Age", 'value_type': Value.TYPE_DECIMAL},
-    {'key': 'joined', 'label': "Joined On", 'value_type': Value.TYPE_DATETIME},
-    {'key': 'ward', 'label': "Ward", 'value_type': Value.TYPE_WARD},
-    {'key': 'district', 'label': "District", 'value_type': Value.TYPE_DISTRICT},
-    {'key': 'state', 'label': "State", 'value_type': Value.TYPE_STATE},
+    {
+        'key': 'gender',
+        'label': "Gender",
+        'value_type': Value.TYPE_TEXT
+    },
+    {
+        'key': 'age',
+        'label': "Age",
+        'value_type': Value.TYPE_DECIMAL
+    },
+    {
+        'key': 'joined',
+        'label': "Joined On",
+        'value_type': Value.TYPE_DATETIME
+    },
+    {
+        'key': 'ward',
+        'label': "Ward",
+        'value_type': Value.TYPE_WARD
+    },
+    {
+        'key': 'district',
+        'label': "District",
+        'value_type': Value.TYPE_DISTRICT
+    },
+    {
+        'key': 'state',
+        'label': "State",
+        'value_type': Value.TYPE_STATE
+    },
 )
 GROUPS = (
-    {'name': "Reporters", 'query': None, 'member': 0.95},  # member is either a probability or callable
-    {'name': "Farmers", 'query': None, 'member': 0.5},
-    {'name': "Doctors", 'query': None, 'member': 0.4},
-    {'name': "Teachers", 'query': None, 'member': 0.3},
-    {'name': "Drivers", 'query': None, 'member': 0.2},
-    {'name': "Testers", 'query': None, 'member': 0.1},
-    {'name': "Empty", 'query': None, 'member': 0.0},
-    {'name': "Youth (Dynamic)", 'query': 'age <= 18', 'member': lambda c: c['age'] and c['age'] <= 18},
-    {'name': "Unregistered (Dynamic)", 'query': 'joined = ""', 'member': lambda c: not c['joined']},
-    {'name': "Districts (Dynamic)", 'query': 'district=Faskari or district=Zuru or district=Anka',
-     'member': lambda c: c['district'] and c['district'].name in ("Faskari", "Zuru", "Anka")},
+    {
+        'name': "Reporters",
+        'query': None,
+        'member': 0.95
+    },  # member is either a probability or callable
+    {
+        'name': "Farmers",
+        'query': None,
+        'member': 0.5
+    },
+    {
+        'name': "Doctors",
+        'query': None,
+        'member': 0.4
+    },
+    {
+        'name': "Teachers",
+        'query': None,
+        'member': 0.3
+    },
+    {
+        'name': "Drivers",
+        'query': None,
+        'member': 0.2
+    },
+    {
+        'name': "Testers",
+        'query': None,
+        'member': 0.1
+    },
+    {
+        'name': "Empty",
+        'query': None,
+        'member': 0.0
+    },
+    {
+        'name': "Youth (Dynamic)",
+        'query': 'age <= 18',
+        'member': lambda c: c['age'] and c['age'] <= 18
+    },
+    {
+        'name': "Unregistered (Dynamic)",
+        'query': 'joined = ""',
+        'member': lambda c: not c['joined']
+    },
+    {
+        'name': "Districts (Dynamic)",
+        'query': 'district=Faskari or district=Zuru or district=Anka',
+        'member': lambda c: c['district'] and c['district'].name in ("Faskari", "Zuru", "Anka")
+    },
 )
 LABELS = ("Reporting", "Testing", "Youth", "Farming", "Health", "Education", "Trade", "Driving", "Building", "Spam")
-FLOWS = (
-    {'name': "Favorites", 'file': "favorites.json", 'templates': (
+FLOWS = ({
+    'name': "Favorites",
+    'file': "favorites.json",
+    'templates': (
         ["blue", "mutzig", "bob"],
         ["orange", "green", "primus", "jeb"],
-    )},
-    {'name': "SMS Form", 'file': "sms_form.json", 'templates': (["22 F Seattle"], ["35 M MIAMI"])},
-    {'name': "Pick a Number", 'file': "pick_a_number.json", 'templates': (["1"], ["4"], ["5"], ["7"], ["8"])}
-)
+    )
+}, {
+    'name': "SMS Form",
+    'file': "sms_form.json",
+    'templates': (["22 F Seattle"], ["35 M MIAMI"])
+}, {
+    'name': "Pick a Number",
+    'file': "pick_a_number.json",
+    'templates': (["1"], ["4"], ["5"], ["7"], ["8"])
+})
 
 # contact names are generated from these components
 CONTACT_NAMES = (
@@ -117,8 +216,9 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         cmd = self
-        subparsers = parser.add_subparsers(dest='command', help='Command to perform',
-                                           parser_class=lambda **kw: CommandParser(cmd, **kw))
+        subparsers = parser.add_subparsers(
+            dest='command', help='Command to perform', parser_class=lambda **kw: CommandParser(cmd, **kw)
+        )
 
         gen_parser = subparsers.add_parser('generate', help='Generates a clean testing database')
         gen_parser.add_argument('--orgs', type=int, action='store', dest='num_orgs', default=10)
@@ -241,8 +341,11 @@ class Command(BaseCommand):
         # load dump into current db with pg_restore
         db_config = settings.DATABASES['default']
         try:
-            check_call('export PGPASSWORD=%s && pg_restore -U%s -w -d %s %s' %
-                       (db_config['PASSWORD'], db_config['USER'], db_config['NAME'], path), shell=True)
+            check_call(
+                'export PGPASSWORD=%s && pg_restore -U%s -w -d %s %s' %
+                (db_config['PASSWORD'], db_config['USER'], db_config['NAME'], path),
+                shell=True
+            )
         except CalledProcessError:  # pragma: no cover
             raise CommandError("Error occurred whilst calling pg_restore to load locations dump")
 
@@ -266,9 +369,17 @@ class Command(BaseCommand):
 
         orgs = []
         for o in range(num_total):
-            orgs.append(Org(name=org_names[o % len(org_names)], timezone=self.random.choice(pytz.all_timezones),
-                            brand='rapidpro.io', country=country,
-                            created_on=self.db_begins_on, created_by=superuser, modified_by=superuser))
+            orgs.append(
+                Org(
+                    name=org_names[o % len(org_names)],
+                    timezone=self.random.choice(pytz.all_timezones),
+                    brand='rapidpro.io',
+                    country=country,
+                    created_on=self.db_begins_on,
+                    created_by=superuser,
+                    modified_by=superuser
+                )
+            )
         Org.objects.bulk_create(orgs)
         orgs = list(Org.objects.order_by('id'))
 
@@ -282,7 +393,8 @@ class Command(BaseCommand):
                 'users': [],
                 'fields': {},
                 'groups': [],
-                'system_groups': {g.group_type: g for g in ContactGroup.system_groups.filter(org=org)},
+                'system_groups': {g.group_type: g
+                                  for g in ContactGroup.system_groups.filter(org=org)},
             }
 
         self._log(self.style.SUCCESS("OK") + '\n')
@@ -313,9 +425,15 @@ class Command(BaseCommand):
         for org in orgs:
             user = org.cache['users'][0]
             for c in CHANNELS:
-                Channel.objects.create(org=org, name=c['name'], channel_type=c['channel_type'],
-                                       address=c['address'], schemes=[c['scheme']],
-                                       created_by=user, modified_by=user)
+                Channel.objects.create(
+                    org=org,
+                    name=c['name'],
+                    channel_type=c['channel_type'],
+                    address=c['address'],
+                    schemes=[c['scheme']],
+                    created_by=user,
+                    modified_by=user
+                )
 
         self._log(self.style.SUCCESS("OK") + '\n')
 
@@ -328,9 +446,15 @@ class Command(BaseCommand):
         for org in orgs:
             user = org.cache['users'][0]
             for f in FIELDS:
-                field = ContactField.objects.create(org=org, key=f['key'], label=f['label'],
-                                                    value_type=f['value_type'], show_in_table=True,
-                                                    created_by=user, modified_by=user)
+                field = ContactField.objects.create(
+                    org=org,
+                    key=f['key'],
+                    label=f['label'],
+                    value_type=f['value_type'],
+                    show_in_table=True,
+                    created_by=user,
+                    modified_by=user
+                )
                 org.cache['fields'][f['key']] = field
 
         self._log(self.style.SUCCESS("OK") + '\n')
@@ -422,7 +546,8 @@ class Command(BaseCommand):
                         'name': name,
                         'groups': [],
                         'tel': '+2507%08d' % c_index if self.probability(CONTACT_HAS_TEL_PROB) else None,
-                        'twitter': '%s%d' % (name.replace(' ', '_').lower() if name else 'tweep', c_index) if self.probability(CONTACT_HAS_TWITTER_PROB) else None,
+                        'twitter': '%s%d' % (name.replace(' ', '_').lower() if name else 'tweep', c_index)
+                        if self.probability(CONTACT_HAS_TWITTER_PROB) else None,
                         'gender': self.random_choice(('M', 'F')) if self.probability(CONTACT_HAS_FIELD_PROB) else None,
                         'age': self.random.randint(16, 80) if self.probability(CONTACT_HAS_FIELD_PROB) else None,
                         'joined': self.random_date() if self.probability(CONTACT_HAS_FIELD_PROB) else None,
@@ -473,11 +598,18 @@ class Command(BaseCommand):
         Bulk creates a batch of contacts from flat representations
         """
         for c in batch:
-            c['object'] = Contact(org=c['org'], name=c['name'], language=c['language'],
-                                  is_stopped=c['is_stopped'], is_blocked=c['is_blocked'],
-                                  is_active=c['is_active'],
-                                  created_by=c['user'], created_on=c['created_on'],
-                                  modified_by=c['user'], modified_on=c['modified_on'])
+            c['object'] = Contact(
+                org=c['org'],
+                name=c['name'],
+                language=c['language'],
+                is_stopped=c['is_stopped'],
+                is_blocked=c['is_blocked'],
+                is_active=c['is_active'],
+                created_by=c['user'],
+                created_on=c['created_on'],
+                modified_by=c['user'],
+                modified_on=c['modified_on']
+            )
         Contact.objects.bulk_create([c['object'] for c in batch])
 
         # now that contacts have pks, bulk create the actual URN, value and group membership objects
@@ -490,29 +622,86 @@ class Command(BaseCommand):
             c['urns'] = []
 
             if c['tel']:
-                c['urns'].append(ContactURN(org=org, contact=c['object'], priority=50, scheme=TEL_SCHEME,
-                                            path=c['tel'], identity=URN.from_tel(c['tel'])))
+                c['urns'].append(
+                    ContactURN(
+                        org=org,
+                        contact=c['object'],
+                        priority=50,
+                        scheme=TEL_SCHEME,
+                        path=c['tel'],
+                        identity=URN.from_tel(c['tel'])
+                    )
+                )
             if c['twitter']:
-                c['urns'].append(ContactURN(org=org, contact=c['object'], priority=50, scheme=TWITTER_SCHEME,
-                                            path=c['twitter'], identity=URN.from_twitter(c['twitter'])))
+                c['urns'].append(
+                    ContactURN(
+                        org=org,
+                        contact=c['object'],
+                        priority=50,
+                        scheme=TWITTER_SCHEME,
+                        path=c['twitter'],
+                        identity=URN.from_twitter(c['twitter'])
+                    )
+                )
             if c['gender']:
-                batch_values.append(Value(org=org, contact=c['object'], contact_field=org.cache['fields']['gender'],
-                                          string_value=c['gender']))
+                batch_values.append(
+                    Value(
+                        org=org,
+                        contact=c['object'],
+                        contact_field=org.cache['fields']['gender'],
+                        string_value=c['gender']
+                    )
+                )
             if c['age']:
-                batch_values.append(Value(org=org, contact=c['object'], contact_field=org.cache['fields']['age'],
-                                          string_value=str(c['age']), decimal_value=c['age']))
+                batch_values.append(
+                    Value(
+                        org=org,
+                        contact=c['object'],
+                        contact_field=org.cache['fields']['age'],
+                        string_value=str(c['age']),
+                        decimal_value=c['age']
+                    )
+                )
             if c['joined']:
-                batch_values.append(Value(org=org, contact=c['object'], contact_field=org.cache['fields']['joined'],
-                                          string_value=datetime_to_str(c['joined']), datetime_value=c['joined']))
+                batch_values.append(
+                    Value(
+                        org=org,
+                        contact=c['object'],
+                        contact_field=org.cache['fields']['joined'],
+                        string_value=datetime_to_str(c['joined']),
+                        datetime_value=c['joined']
+                    )
+                )
             if c['ward']:
-                batch_values.append(Value(org=org, contact=c['object'], contact_field=org.cache['fields']['ward'],
-                                          string_value=c['ward'].name, location_value=c['ward']))
+                batch_values.append(
+                    Value(
+                        org=org,
+                        contact=c['object'],
+                        contact_field=org.cache['fields']['ward'],
+                        string_value=c['ward'].name,
+                        location_value=c['ward']
+                    )
+                )
             if c['district']:
-                batch_values.append(Value(org=org, contact=c['object'], contact_field=org.cache['fields']['district'],
-                                          string_value=c['district'].name, location_value=c['district']))
+                batch_values.append(
+                    Value(
+                        org=org,
+                        contact=c['object'],
+                        contact_field=org.cache['fields']['district'],
+                        string_value=c['district'].name,
+                        location_value=c['district']
+                    )
+                )
             if c['state']:
-                batch_values.append(Value(org=org, contact=c['object'], contact_field=org.cache['fields']['state'],
-                                          string_value=c['state'].name, location_value=c['state']))
+                batch_values.append(
+                    Value(
+                        org=org,
+                        contact=c['object'],
+                        contact_field=org.cache['fields']['state'],
+                        string_value=c['state'].name,
+                        location_value=c['state']
+                    )
+                )
             for g in c['groups']:
                 batch_memberships.append(ContactGroup.contacts.through(contact=c['object'], contactgroup=g))
 
@@ -565,8 +754,10 @@ class Command(BaseCommand):
             group = self.random_choice(org.cache['groups'])
             contacts_started = list(group.contacts.values_list('id', flat=True))
 
-            self._log(" > Starting flow %s for group %s (%d) in org %s\n"
-                      % (flow.name, group.name, len(contacts_started), org.name))
+            self._log(
+                " > Starting flow %s for group %s (%d) in org %s\n" %
+                (flow.name, group.name, len(contacts_started), org.name)
+            )
 
             start = FlowStart.create(flow, user, groups=[group], restart_participants=True)
             start.start()
@@ -691,6 +882,7 @@ class DisableTriggersOn(object):
     """
     Helper context manager for temporarily disabling database triggers for a given model
     """
+
     def __init__(self, *models):
         self.tables = [m._meta.db_table for m in models]
 

@@ -12,9 +12,20 @@ class FirebaseCloudMessagingTypeTest(TembaTest):
     def setUp(self):
         super(FirebaseCloudMessagingTypeTest, self).setUp()
 
-        self.channel = Channel.create(self.org, self.user, None, 'FCM', name="Firebase", address="87654",
-                                      role="SR", schemes=['fcm'],
-                                      config={'FCM_TITLE': 'Title', 'FCM_KEY': '87654'})
+        self.channel = Channel.create(
+            self.org,
+            self.user,
+            None,
+            'FCM',
+            name="Firebase",
+            address="87654",
+            role="SR",
+            schemes=['fcm'],
+            config={
+                'FCM_TITLE': 'Title',
+                'FCM_KEY': '87654'
+            }
+        )
 
     @patch('requests.get')
     def test_claim(self, mock_get):
@@ -26,15 +37,27 @@ class FirebaseCloudMessagingTypeTest(TembaTest):
         response = self.client.get(reverse('channels.channel_claim'))
         self.assertContains(response, url)
 
-        mock_get.return_value = MockResponse(200, json.dumps({'title': 'FCM Channel', 'key': 'abcde12345', 'send_notification': 'True'}))
+        mock_get.return_value = MockResponse(
+            200, json.dumps({
+                'title': 'FCM Channel',
+                'key': 'abcde12345',
+                'send_notification': 'True'
+            })
+        )
 
-        response = self.client.post(url, {
-            'title': 'FCM Channel',
-            'key': 'abcde12345',
-            'send_notification': 'True'
-        }, follow=True)
+        response = self.client.post(
+            url, {'title': 'FCM Channel',
+                  'key': 'abcde12345',
+                  'send_notification': 'True'}, follow=True
+        )
 
         channel = Channel.objects.get(address='abcde12345')
         self.assertRedirects(response, reverse('channels.channel_configuration', args=[channel.id]))
         self.assertEqual(channel.channel_type, "FCM")
-        self.assertEqual(channel.config_json(), {'FCM_KEY': 'abcde12345', 'FCM_TITLE': 'FCM Channel', 'FCM_NOTIFICATION': True})
+        self.assertEqual(
+            channel.config_json(), {
+                'FCM_KEY': 'abcde12345',
+                'FCM_TITLE': 'FCM Channel',
+                'FCM_NOTIFICATION': True
+            }
+        )

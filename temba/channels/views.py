@@ -37,430 +37,432 @@ from temba.utils import analytics
 from twilio import TwilioRestException
 from .models import Channel, ChannelEvent, SyncEvent, Alert, ChannelLog, ChannelCount
 
-
 COUNTRIES_NAMES = {key: value for key, value in COUNTRIES.iteritems()}
 COUNTRIES_NAMES['GB'] = _("United Kingdom")
 COUNTRIES_NAMES['US'] = _("United States")
-
 
 COUNTRY_CALLING_CODES = {
     "AF": (93, ),  # Afghanistan
     "AX": (35818, ),  # Åland Islands
     "AL": (355, ),  # Albania
-    "DZ": (213,),  # Algeria
-    "AS": (1684,),  # American Samoa
-    "AD": (376,),  # Andorra
-    "AO": (244,),  # Angola
-    "AI": (1264,),  # Anguilla
+    "DZ": (213, ),  # Algeria
+    "AS": (1684, ),  # American Samoa
+    "AD": (376, ),  # Andorra
+    "AO": (244, ),  # Angola
+    "AI": (1264, ),  # Anguilla
     "AQ": (),  # Antarctica
-    "AG": (1268,),  # Antigua and Barbuda
-    "AR": (54,),  # Argentina
-    "AM": (374,),  # Armenia
-    "AW": (297,),  # Aruba
-    "AU": (61,),  # Australia
-    "AT": (43,),  # Austria
-    "AZ": (994,),  # Azerbaijan
-    "BS": (1242,),  # Bahamas
-    "BH": (973,),  # Bahrain
-    "BD": (880,),  # Bangladesh
-    "BB": (1246,),  # Barbados
-    "BY": (375,),  # Belarus
-    "BE": (32,),  # Belgium
-    "BZ": (501,),  # Belize
-    "BJ": (229,),  # Benin
-    "BM": (1441,),  # Bermuda
-    "BT": (975,),  # Bhutan
-    "BO": (591,),  # Bolivia (Plurinational State of)
-    "BQ": (5997,),  # Bonaire, Sint Eustatius and Saba
-    "BA": (387,),  # Bosnia and Herzegovina
-    "BW": (267,),  # Botswana
+    "AG": (1268, ),  # Antigua and Barbuda
+    "AR": (54, ),  # Argentina
+    "AM": (374, ),  # Armenia
+    "AW": (297, ),  # Aruba
+    "AU": (61, ),  # Australia
+    "AT": (43, ),  # Austria
+    "AZ": (994, ),  # Azerbaijan
+    "BS": (1242, ),  # Bahamas
+    "BH": (973, ),  # Bahrain
+    "BD": (880, ),  # Bangladesh
+    "BB": (1246, ),  # Barbados
+    "BY": (375, ),  # Belarus
+    "BE": (32, ),  # Belgium
+    "BZ": (501, ),  # Belize
+    "BJ": (229, ),  # Benin
+    "BM": (1441, ),  # Bermuda
+    "BT": (975, ),  # Bhutan
+    "BO": (591, ),  # Bolivia (Plurinational State of)
+    "BQ": (5997, ),  # Bonaire, Sint Eustatius and Saba
+    "BA": (387, ),  # Bosnia and Herzegovina
+    "BW": (267, ),  # Botswana
     "BV": (),  # Bouvet Island
-    "BR": (55,),  # Brazil
-    "IO": (246,),  # British Indian Ocean Territory
-    "BN": (673,),  # Brunei Darussalam
-    "BG": (359,),  # Bulgaria
-    "BF": (226,),  # Burkina Faso
-    "BI": (257,),  # Burundi
-    "CV": (238,),  # Cabo Verde
-    "KH": (855,),  # Cambodia
-    "CM": (237,),  # Cameroon
-    "CA": (1,),  # Canada
-    "KY": (1345,),  # Cayman Islands
-    "CF": (236,),  # Central African Republic
-    "TD": (235,),  # Chad
-    "CL": (56,),  # Chile
-    "CN": (86,),  # China
-    "CX": (6189164,),  # Christmas Island
-    "CC": (6189162,),  # Cocos (Keeling) Islands
-    "CO": (57,),  # Colombia
-    "KM": (269,),  # Comoros
-    "CD": (243,),  # Congo (the Democratic Republic of the)
-    "CG": (242,),  # Congo
-    "CK": (682,),  # Cook Islands
-    "CR": (506,),  # Costa Rica
-    "CI": (225,),  # Côte d'Ivoire
-    "HR": (385,),  # Croatia
-    "CU": (53,),  # Cuba
-    "CW": (5999,),  # Curaçao
-    "CY": (357,),  # Cyprus
-    "CZ": (420,),  # Czech Republic
-    "DK": (45,),  # Denmark
-    "DJ": (253,),  # Djibouti
-    "DM": (1767,),  # Dominica
+    "BR": (55, ),  # Brazil
+    "IO": (246, ),  # British Indian Ocean Territory
+    "BN": (673, ),  # Brunei Darussalam
+    "BG": (359, ),  # Bulgaria
+    "BF": (226, ),  # Burkina Faso
+    "BI": (257, ),  # Burundi
+    "CV": (238, ),  # Cabo Verde
+    "KH": (855, ),  # Cambodia
+    "CM": (237, ),  # Cameroon
+    "CA": (1, ),  # Canada
+    "KY": (1345, ),  # Cayman Islands
+    "CF": (236, ),  # Central African Republic
+    "TD": (235, ),  # Chad
+    "CL": (56, ),  # Chile
+    "CN": (86, ),  # China
+    "CX": (6189164, ),  # Christmas Island
+    "CC": (6189162, ),  # Cocos (Keeling) Islands
+    "CO": (57, ),  # Colombia
+    "KM": (269, ),  # Comoros
+    "CD": (243, ),  # Congo (the Democratic Republic of the)
+    "CG": (242, ),  # Congo
+    "CK": (682, ),  # Cook Islands
+    "CR": (506, ),  # Costa Rica
+    "CI": (225, ),  # Côte d'Ivoire
+    "HR": (385, ),  # Croatia
+    "CU": (53, ),  # Cuba
+    "CW": (5999, ),  # Curaçao
+    "CY": (357, ),  # Cyprus
+    "CZ": (420, ),  # Czech Republic
+    "DK": (45, ),  # Denmark
+    "DJ": (253, ),  # Djibouti
+    "DM": (1767, ),  # Dominica
     "DO": (1809, 1829, 1849),  # Dominican Republic
-    "EC": (539,),  # Ecuador
-    "EG": (20,),  # Egypt
-    "SV": (503,),  # El Salvador
-    "GQ": (240,),  # Equatorial Guinea
-    "ER": (291,),  # Eritrea
-    "EE": (372,),  # Estonia
-    "ET": (251,),  # Ethiopia
-    "FK": (500,),  # Falkland Islands  [Malvinas]
-    "FO": (298,),  # Faroe Islands
-    "FJ": (679,),  # Fiji
-    "FI": (358,),  # Finland
-    "FR": (33,),  # France
-    "GF": (594,),  # French Guiana
-    "PF": (689,),  # French Polynesia
+    "EC": (539, ),  # Ecuador
+    "EG": (20, ),  # Egypt
+    "SV": (503, ),  # El Salvador
+    "GQ": (240, ),  # Equatorial Guinea
+    "ER": (291, ),  # Eritrea
+    "EE": (372, ),  # Estonia
+    "ET": (251, ),  # Ethiopia
+    "FK": (500, ),  # Falkland Islands  [Malvinas]
+    "FO": (298, ),  # Faroe Islands
+    "FJ": (679, ),  # Fiji
+    "FI": (358, ),  # Finland
+    "FR": (33, ),  # France
+    "GF": (594, ),  # French Guiana
+    "PF": (689, ),  # French Polynesia
     "TF": (),  # French Southern Territories
-    "GA": (241,),  # Gabon
-    "GM": (220,),  # Gambia
-    "GE": (995,),  # Georgia
-    "DE": (49,),  # Germany
-    "GH": (233,),  # Ghana
-    "GI": (350,),  # Gibraltar
-    "GR": (30,),  # Greece
-    "GL": (299,),  # Greenland
-    "GD": (1473,),  # Grenada
-    "GP": (590,),  # Guadeloupe
-    "GU": (1671,),  # Guam
-    "GT": (502,),  # Guatemala
+    "GA": (241, ),  # Gabon
+    "GM": (220, ),  # Gambia
+    "GE": (995, ),  # Georgia
+    "DE": (49, ),  # Germany
+    "GH": (233, ),  # Ghana
+    "GI": (350, ),  # Gibraltar
+    "GR": (30, ),  # Greece
+    "GL": (299, ),  # Greenland
+    "GD": (1473, ),  # Grenada
+    "GP": (590, ),  # Guadeloupe
+    "GU": (1671, ),  # Guam
+    "GT": (502, ),  # Guatemala
     "GG": (441481, 447781, 447839, 447911),  # Guernsey
-    "GN": (224,),  # Guinea
-    "GW": (245,),  # Guinea-Bissau
-    "GY": (592,),  # Guyana
-    "HT": (509,),  # Haiti
+    "GN": (224, ),  # Guinea
+    "GW": (245, ),  # Guinea-Bissau
+    "GY": (592, ),  # Guyana
+    "HT": (509, ),  # Haiti
     "HM": (),  # Heard Island and McDonald Islands
     "VA": (379, 3906698),  # Holy See
-    "HN": (504,),  # Honduras
-    "HK": (852,),  # Hong Kong
-    "HU": (36,),  # Hungary
-    "IS": (354,),  # Iceland
-    "IN": (91,),  # India
-    "ID": (62,),  # Indonesia
-    "IR": (98,),  # Iran (Islamic Republic of)
-    "IQ": (964,),  # Iraq
-    "IE": (353,),  # Ireland
+    "HN": (504, ),  # Honduras
+    "HK": (852, ),  # Hong Kong
+    "HU": (36, ),  # Hungary
+    "IS": (354, ),  # Iceland
+    "IN": (91, ),  # India
+    "ID": (62, ),  # Indonesia
+    "IR": (98, ),  # Iran (Islamic Republic of)
+    "IQ": (964, ),  # Iraq
+    "IE": (353, ),  # Ireland
     "IM": (441624, 447524, 447624, 447924),  # Isle of Man
-    "IL": (972,),  # Israel
-    "IT": (39,),  # Italy
-    "JM": (1876,),  # Jamaica
-    "JP": (81,),  # Japan
-    "JE": (441534,),  # Jersey
-    "JO": (962,),  # Jordan
+    "IL": (972, ),  # Israel
+    "IT": (39, ),  # Italy
+    "JM": (1876, ),  # Jamaica
+    "JP": (81, ),  # Japan
+    "JE": (441534, ),  # Jersey
+    "JO": (962, ),  # Jordan
     "KZ": (76, 77),  # Kazakhstan
-    "KE": (254,),  # Kenya
-    "KI": (686,),  # Kiribati
-    "KP": (850,),  # Korea (the Democratic People's Republic of)
-    "KR": (82,),  # Korea (the Republic of)
-    "KW": (965,),  # Kuwait
-    "KG": (996,),  # Kyrgyzstan
-    "LA": (856,),  # Lao People's Democratic Republic
-    "LV": (371,),  # Latvia
-    "LB": (961,),  # Lebanon
-    "LS": (266,),  # Lesotho
-    "LR": (231,),  # Liberia
-    "LY": (218,),  # Libya
-    "LI": (423,),  # Liechtenstein
-    "LT": (370,),  # Lithuania
-    "LU": (352,),  # Luxembourg
-    "MO": (853,),  # Macao
-    "MK": (389,),  # Macedonia (the former Yugoslav Republic of)
-    "MG": (261,),  # Madagascar
-    "MW": (265,),  # Malawi
-    "MY": (60,),  # Malaysia
-    "MV": (960,),  # Maldives
-    "ML": (223,),   # Mali
-    "MT": (356,),   # Malta
-    "MH": (692,),   # Marshall Islands
-    "MQ": (596,),   # Martinique
-    "MR": (222,),   # Mauritania
-    "MU": (230,),   # Mauritius
-    "YT": (262269, 262639),   # Mayotte
-    "MX": (52,),   # Mexico
-    "FM": (691,),   # Micronesia (Federated States of)
-    "MD": (373,),   # Moldova (the Republic of)
-    "MC": (377,),   # Monaco
-    "MN": (976,),   # Mongolia
-    "ME": (382,),   # Montenegro
-    "MS": (1664,),   # Montserrat
-    "MA": (212,),   # Morocco
-    "MZ": (258,),   # Mozambique
-    "MM": (95,),   # Myanmar
-    "NA": (264,),   # Namibia
-    "NR": (674,),   # Nauru
-    "NP": (977,),   # Nepal
-    "NL": (31,),   # Netherlands
-    "NC": (687,),   # New Caledonia
-    "NZ": (64,),   # New Zealand
-    "NI": (505,),   # Nicaragua
-    "NE": (227,),   # Niger
-    "NG": (243,),   # Nigeria
-    "NU": (683,),   # Niue
-    "NF": (6723,),   # Norfolk Island
-    "MP": (1670,),   # Northern Mariana Islands
-    "NO": (47,),   # Norway
-    "OM": (968,),   # Oman
-    "PK": (92,),   # Pakistan
-    "PW": (680,),   # Palau
-    "PS": (970,),   # Palestine, State of
-    "PA": (507,),   # Panama
-    "PG": (675,),   # Papua New Guinea
-    "PY": (595,),   # Paraguay
-    "PE": (51,),   # Peru
-    "PH": (63,),  # _("Philippines
-    "PN": (64,),   # Pitcairn
-    "PL": (48,),   # Poland
-    "PT": (351,),   # Portugal
-    "PR": (1787, 1939),   # Puerto Rico
-    "QA": (974,),   # Qatar
-    "RE": (262,),   # Réunion
-    "RO": (40,),   # Romania
-    "RU": (7,),   # Russian Federation
-    "RW": (250,),   # Rwanda
-    "BL": (590,),  # _("Saint Barthélemy
-    "SH": (290,),   # Saint Helena, Ascension and Tristan da Cunha
-    "KN": (1869,),   # Saint Kitts and Nevis
-    "LC": (1758,),   # Saint Lucia
-    "MF": (590,),   # Saint Martin (French part)
-    "PM": (508,),   # Saint Pierre and Miquelon
-    "VC": (1784,),   # Saint Vincent and the Grenadines
-    "WS": (685,),   # Samoa
-    "SM": (378,),   # San Marino
-    "ST": (239,),   # Sao Tome and Principe
-    "SA": (966,),   # Saudi Arabia
-    "SN": (221,),   # Senegal
-    "RS": (381,),   # Serbia
-    "SC": (248,),   # Seychelles
-    "SL": (232,),   # Sierra Leone
-    "SG": (65,),   # Singapore
-    "SX": (1721,),   # Sint Maarten (Dutch part)
-    "SK": (421,),   # Slovakia
-    "SI": (386,),  # Slovenia
-    "SB": (677,),   # Solomon Islands
-    "SO": (252,),   # Somalia
-    "ZA": (27,),   # South Africa
-    "GS": (500,),   # South Georgia and the South Sandwich Islands
-    "SS": (211,),   # South Sudan
-    "ES": (34,),   # Spain
-    "LK": (94,),   # Sri Lanka
-    "SD": (249,),   # Sudan
-    "SR": (597,),   # Suriname
-    "SJ": (4779,),   # Svalbard and Jan Mayen
-    "SZ": (268,),   # Swaziland
-    "SE": (46,),   # Sweden
-    "CH": (41,),   # Switzerland
-    "SY": (963,),   # Syrian Arab Republic
-    "TW": (886,),   # Taiwan (Province of China)
-    "TJ": (992,),   # Tajikistan
-    "TZ": (255,),   # Tanzania, United Republic of
-    "TH": (66,),   # Thailand
-    "TL": (),   # Timor-Leste
-    "TG": (228,),   # Togo
-    "TK": (690,),   # Tokelau
-    "TO": (676,),   # Tonga
-    "TT": (1868,),   # Trinidad and Tobago
-    "TN": (216,),   # Tunisia
-    "TR": (90,),   # Turkey
-    "TM": (993,),   # Turkmenistan
-    "TC": (1649,),   # Turks and Caicos Islands
-    "TV": (668,),   # Tuvalu
-    "UG": (256,),   # Uganda
-    "UA": (380,),   # Ukraine
-    "AE": (971,),   # United Arab Emirates
-    "GB": (44,),   # United Kingdom of Great Britain and Northern Ireland
-    "UM": (),   # United States Minor Outlying Islands
-    "US": (1,),   # United States of America
-    "UY": (598,),   # Uruguay
-    "UZ": (998,),   # Uzbekistan
-    "VU": (678,),   # Vanuatu
-    "VE": (58,),   # Venezuela (Bolivarian Republic of)
-    "VN": (84,),   # Viet Nam
-    "VG": (),   # Virgin Islands (British)
-    "VI": (),   # Virgin Islands (U.S.)
-    "WF": (681,),   # Wallis and Futuna
-    "EH": (),   # Western Sahara
-    "YE": (967,),   # Yemen
-    "ZM": (260,),   # Zambia
-    "ZW": (263,),   # Zimbabwe
+    "KE": (254, ),  # Kenya
+    "KI": (686, ),  # Kiribati
+    "KP": (850, ),  # Korea (the Democratic People's Republic of)
+    "KR": (82, ),  # Korea (the Republic of)
+    "KW": (965, ),  # Kuwait
+    "KG": (996, ),  # Kyrgyzstan
+    "LA": (856, ),  # Lao People's Democratic Republic
+    "LV": (371, ),  # Latvia
+    "LB": (961, ),  # Lebanon
+    "LS": (266, ),  # Lesotho
+    "LR": (231, ),  # Liberia
+    "LY": (218, ),  # Libya
+    "LI": (423, ),  # Liechtenstein
+    "LT": (370, ),  # Lithuania
+    "LU": (352, ),  # Luxembourg
+    "MO": (853, ),  # Macao
+    "MK": (389, ),  # Macedonia (the former Yugoslav Republic of)
+    "MG": (261, ),  # Madagascar
+    "MW": (265, ),  # Malawi
+    "MY": (60, ),  # Malaysia
+    "MV": (960, ),  # Maldives
+    "ML": (223, ),  # Mali
+    "MT": (356, ),  # Malta
+    "MH": (692, ),  # Marshall Islands
+    "MQ": (596, ),  # Martinique
+    "MR": (222, ),  # Mauritania
+    "MU": (230, ),  # Mauritius
+    "YT": (262269, 262639),  # Mayotte
+    "MX": (52, ),  # Mexico
+    "FM": (691, ),  # Micronesia (Federated States of)
+    "MD": (373, ),  # Moldova (the Republic of)
+    "MC": (377, ),  # Monaco
+    "MN": (976, ),  # Mongolia
+    "ME": (382, ),  # Montenegro
+    "MS": (1664, ),  # Montserrat
+    "MA": (212, ),  # Morocco
+    "MZ": (258, ),  # Mozambique
+    "MM": (95, ),  # Myanmar
+    "NA": (264, ),  # Namibia
+    "NR": (674, ),  # Nauru
+    "NP": (977, ),  # Nepal
+    "NL": (31, ),  # Netherlands
+    "NC": (687, ),  # New Caledonia
+    "NZ": (64, ),  # New Zealand
+    "NI": (505, ),  # Nicaragua
+    "NE": (227, ),  # Niger
+    "NG": (243, ),  # Nigeria
+    "NU": (683, ),  # Niue
+    "NF": (6723, ),  # Norfolk Island
+    "MP": (1670, ),  # Northern Mariana Islands
+    "NO": (47, ),  # Norway
+    "OM": (968, ),  # Oman
+    "PK": (92, ),  # Pakistan
+    "PW": (680, ),  # Palau
+    "PS": (970, ),  # Palestine, State of
+    "PA": (507, ),  # Panama
+    "PG": (675, ),  # Papua New Guinea
+    "PY": (595, ),  # Paraguay
+    "PE": (51, ),  # Peru
+    "PH": (63, ),  # _("Philippines
+    "PN": (64, ),  # Pitcairn
+    "PL": (48, ),  # Poland
+    "PT": (351, ),  # Portugal
+    "PR": (1787, 1939),  # Puerto Rico
+    "QA": (974, ),  # Qatar
+    "RE": (262, ),  # Réunion
+    "RO": (40, ),  # Romania
+    "RU": (7, ),  # Russian Federation
+    "RW": (250, ),  # Rwanda
+    "BL": (590, ),  # _("Saint Barthélemy
+    "SH": (290, ),  # Saint Helena, Ascension and Tristan da Cunha
+    "KN": (1869, ),  # Saint Kitts and Nevis
+    "LC": (1758, ),  # Saint Lucia
+    "MF": (590, ),  # Saint Martin (French part)
+    "PM": (508, ),  # Saint Pierre and Miquelon
+    "VC": (1784, ),  # Saint Vincent and the Grenadines
+    "WS": (685, ),  # Samoa
+    "SM": (378, ),  # San Marino
+    "ST": (239, ),  # Sao Tome and Principe
+    "SA": (966, ),  # Saudi Arabia
+    "SN": (221, ),  # Senegal
+    "RS": (381, ),  # Serbia
+    "SC": (248, ),  # Seychelles
+    "SL": (232, ),  # Sierra Leone
+    "SG": (65, ),  # Singapore
+    "SX": (1721, ),  # Sint Maarten (Dutch part)
+    "SK": (421, ),  # Slovakia
+    "SI": (386, ),  # Slovenia
+    "SB": (677, ),  # Solomon Islands
+    "SO": (252, ),  # Somalia
+    "ZA": (27, ),  # South Africa
+    "GS": (500, ),  # South Georgia and the South Sandwich Islands
+    "SS": (211, ),  # South Sudan
+    "ES": (34, ),  # Spain
+    "LK": (94, ),  # Sri Lanka
+    "SD": (249, ),  # Sudan
+    "SR": (597, ),  # Suriname
+    "SJ": (4779, ),  # Svalbard and Jan Mayen
+    "SZ": (268, ),  # Swaziland
+    "SE": (46, ),  # Sweden
+    "CH": (41, ),  # Switzerland
+    "SY": (963, ),  # Syrian Arab Republic
+    "TW": (886, ),  # Taiwan (Province of China)
+    "TJ": (992, ),  # Tajikistan
+    "TZ": (255, ),  # Tanzania, United Republic of
+    "TH": (66, ),  # Thailand
+    "TL": (),  # Timor-Leste
+    "TG": (228, ),  # Togo
+    "TK": (690, ),  # Tokelau
+    "TO": (676, ),  # Tonga
+    "TT": (1868, ),  # Trinidad and Tobago
+    "TN": (216, ),  # Tunisia
+    "TR": (90, ),  # Turkey
+    "TM": (993, ),  # Turkmenistan
+    "TC": (1649, ),  # Turks and Caicos Islands
+    "TV": (668, ),  # Tuvalu
+    "UG": (256, ),  # Uganda
+    "UA": (380, ),  # Ukraine
+    "AE": (971, ),  # United Arab Emirates
+    "GB": (44, ),  # United Kingdom of Great Britain and Northern Ireland
+    "UM": (),  # United States Minor Outlying Islands
+    "US": (1, ),  # United States of America
+    "UY": (598, ),  # Uruguay
+    "UZ": (998, ),  # Uzbekistan
+    "VU": (678, ),  # Vanuatu
+    "VE": (58, ),  # Venezuela (Bolivarian Republic of)
+    "VN": (84, ),  # Viet Nam
+    "VG": (),  # Virgin Islands (British)
+    "VI": (),  # Virgin Islands (U.S.)
+    "WF": (681, ),  # Wallis and Futuna
+    "EH": (),  # Western Sahara
+    "YE": (967, ),  # Yemen
+    "ZM": (260, ),  # Zambia
+    "ZW": (263, ),  # Zimbabwe
 }
 
-TWILIO_SEARCH_COUNTRIES_CONFIG = ('BE',  # Belgium
-                                  'CA',  # Canada
-                                  'FI',  # Finland
-                                  'NO',  # Norway
-                                  'PL',  # Poland
-                                  'ES',  # Spain
-                                  'SE',  # Sweden
-                                  'GB',  # United Kingdom
-                                  'US'   # United States
-                                  )
+TWILIO_SEARCH_COUNTRIES_CONFIG = (
+    'BE',  # Belgium
+    'CA',  # Canada
+    'FI',  # Finland
+    'NO',  # Norway
+    'PL',  # Poland
+    'ES',  # Spain
+    'SE',  # Sweden
+    'GB',  # United Kingdom
+    'US'  # United States
+)
 
 TWILIO_SEARCH_COUNTRIES = tuple([(elt, COUNTRIES_NAMES[elt]) for elt in TWILIO_SEARCH_COUNTRIES_CONFIG])
 
-TWILIO_SUPPORTED_COUNTRIES_CONFIG = ('AU',  # Australia
-                                     'AT',  # Austria
-                                     'BE',  # Belgium
-                                     'CA',  # Canada
-                                     'CL',  # Chile  # Beta
-                                     'CZ',  # Czech Republic  # Beta
-                                     'DK',  # Denmark  # Beta
-                                     'EE',  # Estonia
-                                     'FI',  # Finland
-                                     'FR',  # France  # Beta
-                                     'DE',  # Germany
-                                     'HK',  # Hong Kong
-                                     'HU',  # Hungary  # Beta
-                                     'IE',  # Ireland,
-                                     'IL',  # Israel  # Beta
-                                     'LT',  # Lithuania
-                                     'MX',  # Mexico  # Beta
-                                     'NO',  # Norway
-                                     'PL',  # Poland
-                                     'ES',  # Spain
-                                     'SE',  # Sweden
-                                     'CH',  # Switzerland
-                                     'GB',  # United Kingdom
-                                     'US',  # United States
-                                     )
+TWILIO_SUPPORTED_COUNTRIES_CONFIG = (
+    'AU',  # Australia
+    'AT',  # Austria
+    'BE',  # Belgium
+    'CA',  # Canada
+    'CL',  # Chile  # Beta
+    'CZ',  # Czech Republic  # Beta
+    'DK',  # Denmark  # Beta
+    'EE',  # Estonia
+    'FI',  # Finland
+    'FR',  # France  # Beta
+    'DE',  # Germany
+    'HK',  # Hong Kong
+    'HU',  # Hungary  # Beta
+    'IE',  # Ireland,
+    'IL',  # Israel  # Beta
+    'LT',  # Lithuania
+    'MX',  # Mexico  # Beta
+    'NO',  # Norway
+    'PL',  # Poland
+    'ES',  # Spain
+    'SE',  # Sweden
+    'CH',  # Switzerland
+    'GB',  # United Kingdom
+    'US',  # United States
+)
 
 TWILIO_SUPPORTED_COUNTRIES = tuple([(elt, COUNTRIES_NAMES[elt]) for elt in TWILIO_SUPPORTED_COUNTRIES_CONFIG])
 
-TWILIO_SUPPORTED_COUNTRY_CODES = list(set([code
-                                           for elt in TWILIO_SUPPORTED_COUNTRIES_CONFIG
-                                           for code in list(COUNTRY_CALLING_CODES[elt])]))
+TWILIO_SUPPORTED_COUNTRY_CODES = list(
+    set([code for elt in TWILIO_SUPPORTED_COUNTRIES_CONFIG for code in list(COUNTRY_CALLING_CODES[elt])])
+)
 
-NEXMO_SUPPORTED_COUNTRIES_CONFIG = ('DZ',  # Algeria
-                                    'AR',  # Argentina
-                                    'AU',  # Australia
-                                    'AT',  # Austria
-                                    'BH',  # Bahrain
-                                    'BE',  # Belgium
-                                    'BJ',  # Benin
-                                    'BO',  # Bolivia
-                                    'BR',  # Brazil
-                                    'BG',  # Bulgaria
-                                    'KH',  # Cambodia
-                                    'CA',  # Canada
-                                    'KY',  # Cayman Islands
-                                    'CL',  # Chile
-                                    'CN',  # China
-                                    'CO',  # Colombia
-                                    'CR',  # Costa Rica
-                                    'HR',  # Croatia
-                                    'CY',  # Cyprus
-                                    'CZ',  # Czech Republic
-                                    'DK',  # Denmark
-                                    'DO',  # Dominican Republic
-                                    'SV',  # El Salvador
-                                    'EE',  # Estonia
-                                    'FI',  # Finland
-                                    'FR',  # France
-                                    'GE',  # Georgia
-                                    'DE',  # Germany
-                                    'GH',  # Ghana
-                                    'GR',  # Greece
-                                    'GD',  # Grenanda
-                                    'GT',  # Guatemala
-                                    'HN',  # Honduras
-                                    'HK',  # Hong Kong
-                                    'HU',  # Hungary
-                                    'IS',  # Iceland
-                                    'IN',  # India
-                                    'ID',  # Indonesia
-                                    'IE',  # Ireland
-                                    'IL',  # Israel
-                                    'IT',  # Italy
-                                    'JM',  # Jamaica
-                                    'JP',  # Japan
-                                    'KE',  # Kenya
-                                    'LV',  # Latvia
-                                    'LI',  # Liechtenstein
-                                    'LT',  # Lithuania
-                                    'LU',  # Luxembourg
-                                    'MO',  # Macau
-                                    'MY',  # Malaysia
-                                    'MT',  # Malta
-                                    'MX',  # Mexico
-                                    'MD',  # Moldova
-                                    'NL',  # Netherlands
-                                    'NZ',  # New Zealand
-                                    'NG',  # Nigeria
-                                    'NO',  # Norway
-                                    'PK',  # Pakistan
-                                    'PA',  # Panama
-                                    'PE',  # Peru
-                                    'PH',  # Philippines
-                                    'PL',  # Poland
-                                    'PT',  # Portugal
-                                    'PR',  # Puerto Rico
-                                    'RO',  # Romania
-                                    'RU',  # Russia
-                                    'RW',  # Rwanda
-                                    'SA',  # Saudi Arabia
-                                    'SG',  # Singapore
-                                    'SK',  # Slovakia
-                                    'SI',  # Slovenia
-                                    'ZA',  # South Africa
-                                    'KR',  # South Korea
-                                    'ES',  # Spain
-                                    'SE',  # Sweden
-                                    'CH',  # Switzerland
-                                    'TW',  # Taiwan
-                                    'TJ',  # Tajikistan
-                                    'TH',  # Thailand
-                                    'TT',  # Trinidad and Tobago
-                                    'TR',  # Turkey
-                                    'GB',  # United Kingdom
-                                    'US',  # United States
-                                    'UY',  # Uruguay
-                                    'VE',  # Venezuala
-                                    'ZM',  # Zambia
-                                    )
+NEXMO_SUPPORTED_COUNTRIES_CONFIG = (
+    'DZ',  # Algeria
+    'AR',  # Argentina
+    'AU',  # Australia
+    'AT',  # Austria
+    'BH',  # Bahrain
+    'BE',  # Belgium
+    'BJ',  # Benin
+    'BO',  # Bolivia
+    'BR',  # Brazil
+    'BG',  # Bulgaria
+    'KH',  # Cambodia
+    'CA',  # Canada
+    'KY',  # Cayman Islands
+    'CL',  # Chile
+    'CN',  # China
+    'CO',  # Colombia
+    'CR',  # Costa Rica
+    'HR',  # Croatia
+    'CY',  # Cyprus
+    'CZ',  # Czech Republic
+    'DK',  # Denmark
+    'DO',  # Dominican Republic
+    'SV',  # El Salvador
+    'EE',  # Estonia
+    'FI',  # Finland
+    'FR',  # France
+    'GE',  # Georgia
+    'DE',  # Germany
+    'GH',  # Ghana
+    'GR',  # Greece
+    'GD',  # Grenanda
+    'GT',  # Guatemala
+    'HN',  # Honduras
+    'HK',  # Hong Kong
+    'HU',  # Hungary
+    'IS',  # Iceland
+    'IN',  # India
+    'ID',  # Indonesia
+    'IE',  # Ireland
+    'IL',  # Israel
+    'IT',  # Italy
+    'JM',  # Jamaica
+    'JP',  # Japan
+    'KE',  # Kenya
+    'LV',  # Latvia
+    'LI',  # Liechtenstein
+    'LT',  # Lithuania
+    'LU',  # Luxembourg
+    'MO',  # Macau
+    'MY',  # Malaysia
+    'MT',  # Malta
+    'MX',  # Mexico
+    'MD',  # Moldova
+    'NL',  # Netherlands
+    'NZ',  # New Zealand
+    'NG',  # Nigeria
+    'NO',  # Norway
+    'PK',  # Pakistan
+    'PA',  # Panama
+    'PE',  # Peru
+    'PH',  # Philippines
+    'PL',  # Poland
+    'PT',  # Portugal
+    'PR',  # Puerto Rico
+    'RO',  # Romania
+    'RU',  # Russia
+    'RW',  # Rwanda
+    'SA',  # Saudi Arabia
+    'SG',  # Singapore
+    'SK',  # Slovakia
+    'SI',  # Slovenia
+    'ZA',  # South Africa
+    'KR',  # South Korea
+    'ES',  # Spain
+    'SE',  # Sweden
+    'CH',  # Switzerland
+    'TW',  # Taiwan
+    'TJ',  # Tajikistan
+    'TH',  # Thailand
+    'TT',  # Trinidad and Tobago
+    'TR',  # Turkey
+    'GB',  # United Kingdom
+    'US',  # United States
+    'UY',  # Uruguay
+    'VE',  # Venezuala
+    'ZM',  # Zambia
+)
 
 NEXMO_SUPPORTED_COUNTRIES = tuple([(elt, COUNTRIES_NAMES[elt]) for elt in NEXMO_SUPPORTED_COUNTRIES_CONFIG])
 
-NEXMO_SUPPORTED_COUNTRY_CODES = list(set([code
-                                          for elt in NEXMO_SUPPORTED_COUNTRIES_CONFIG
-                                          for code in list(COUNTRY_CALLING_CODES[elt])]))
+NEXMO_SUPPORTED_COUNTRY_CODES = list(
+    set([code for elt in NEXMO_SUPPORTED_COUNTRIES_CONFIG for code in list(COUNTRY_CALLING_CODES[elt])])
+)
 
-PLIVO_SUPPORTED_COUNTRIES_CONFIG = ('AU',  # Australia
-                                    'BE',  # Belgium
-                                    'CA',  # Canada
-                                    'CZ',  # Czech Republic
-                                    'EE',  # Estonia
-                                    'FI',  # Finland
-                                    'DE',  # Germany
-                                    'HK',  # Hong Kong
-                                    'HU',  # Hungary
-                                    'IL',  # Israel
-                                    'LT',  # Lithuania
-                                    'MX',  # Mexico
-                                    'NO',  # Norway
-                                    'PK',  # Pakistan
-                                    'PL',  # Poland
-                                    'ZA',  # South Africa
-                                    'SE',  # Sweden
-                                    'CH',  # Switzerland
-                                    'GB',  # United Kingdom
-                                    'US',  # United States
-                                    )
+PLIVO_SUPPORTED_COUNTRIES_CONFIG = (
+    'AU',  # Australia
+    'BE',  # Belgium
+    'CA',  # Canada
+    'CZ',  # Czech Republic
+    'EE',  # Estonia
+    'FI',  # Finland
+    'DE',  # Germany
+    'HK',  # Hong Kong
+    'HU',  # Hungary
+    'IL',  # Israel
+    'LT',  # Lithuania
+    'MX',  # Mexico
+    'NO',  # Norway
+    'PK',  # Pakistan
+    'PL',  # Poland
+    'ZA',  # South Africa
+    'SE',  # Sweden
+    'CH',  # Switzerland
+    'GB',  # United Kingdom
+    'US',  # United States
+)
 
 PLIVO_SUPPORTED_COUNTRIES = tuple([(elt, COUNTRIES_NAMES[elt]) for elt in PLIVO_SUPPORTED_COUNTRIES_CONFIG])
 
-PLIVO_SUPPORTED_COUNTRY_CODES = list(set([code
-                                          for elt in PLIVO_SUPPORTED_COUNTRIES_CONFIG
-                                          for code in list(COUNTRY_CALLING_CODES[elt])]))
+PLIVO_SUPPORTED_COUNTRY_CODES = list(
+    set([code for elt in PLIVO_SUPPORTED_COUNTRIES_CONFIG for code in list(COUNTRY_CALLING_CODES[elt])])
+)
 
 # django_countries now uses a dict of countries, let's turn it in our tuple
 # list of codes and countries sorted by country name
@@ -573,14 +575,21 @@ def sync(request, channel_id):
         return JsonResponse({"error_id": 3, "error": "Old Request", "cmds": []}, status=401)
 
     # sign the request
-    signature = hmac.new(key=str(channel.secret + request_time), msg=bytes(request.body), digestmod=hashlib.sha256).digest()
+    signature = hmac.new(
+        key=str(channel.secret + request_time), msg=bytes(request.body), digestmod=hashlib.sha256
+    ).digest()
 
     # base64 and url sanitize
     signature = base64.urlsafe_b64encode(signature).strip()
 
     if request_signature != signature:
-        return JsonResponse({"error_id": 1, "error": "Invalid signature: \'%(request)s\'"
-                                                     % {'request': request_signature}, "cmds": []}, status=401)
+        return JsonResponse({
+            "error_id": 1,
+            "error": "Invalid signature: \'%(request)s\'" % {
+                'request': request_signature
+            },
+            "cmds": []
+        }, status=401)
 
     # update our last seen on our channel if we haven't seen this channel in a bit
     if not channel.last_seen or timezone.now() - channel.last_seen > timedelta(minutes=5):
@@ -772,15 +781,21 @@ class ClaimViewMixin(OrgPermsMixin):
 
 class AuthenticatedExternalClaimView(ClaimViewMixin, SmartFormView):
     class Form(ClaimViewMixin.Form):
-        country = forms.ChoiceField(choices=ALL_COUNTRIES, label=_("Country"),
-                                    help_text=_("The country this phone number is used in"))
-        number = forms.CharField(max_length=14, min_length=1, label=_("Number"),
-                                 help_text=_(
-                                     "The phone number or short code you are connecting with country code. ex: +250788123124"))
-        username = forms.CharField(label=_("Username"),
-                                   help_text=_("The username provided by the provider to use their API"))
-        password = forms.CharField(label=_("Password"),
-                                   help_text=_("The password provided by the provider to use their API"))
+        country = forms.ChoiceField(
+            choices=ALL_COUNTRIES, label=_("Country"), help_text=_("The country this phone number is used in")
+        )
+        number = forms.CharField(
+            max_length=14,
+            min_length=1,
+            label=_("Number"),
+            help_text=_("The phone number or short code you are connecting with country code. ex: +250788123124")
+        )
+        username = forms.CharField(
+            label=_("Username"), help_text=_("The username provided by the provider to use their API")
+        )
+        password = forms.CharField(
+            label=_("Password"), help_text=_("The password provided by the provider to use their API")
+        )
 
         def clean_number(self):
             number = self.data['number']
@@ -798,7 +813,8 @@ class AuthenticatedExternalClaimView(ClaimViewMixin, SmartFormView):
                 return phonenumbers.format_number(cleaned, phonenumbers.PhoneNumberFormat.E164)
             except Exception:  # pragma: needs cover
                 raise forms.ValidationError(
-                    _("Invalid phone number, please include the country code. ex: +250788123123"))
+                    _("Invalid phone number, please include the country code. ex: +250788123123")
+                )
 
     form_class = Form
 
@@ -812,13 +828,11 @@ class AuthenticatedExternalClaimView(ClaimViewMixin, SmartFormView):
             raise Exception("No org for this user, cannot claim")
 
         data = form.cleaned_data
-        self.object = Channel.add_authenticated_external_channel(org, self.request.user,
-                                                                 self.get_submitted_country(data),
-                                                                 data['number'],
-                                                                 data['username'],
-                                                                 data['password'],
-                                                                 self.channel_type,
-                                                                 data.get('url'))
+        self.object = Channel.add_authenticated_external_channel(
+            org, self.request.user,
+            self.get_submitted_country(data), data['number'], data['username'], data['password'], self.channel_type,
+            data.get('url')
+        )
 
         return super(AuthenticatedExternalClaimView, self).form_valid(form)
 
@@ -862,36 +876,52 @@ class BaseClaimNumberMixin(ClaimViewMixin):
         return supported_country_iso_codes
 
     def get_search_countries_tuple(self):  # pragma: no cover
-        raise NotImplementedError('method "get_search_countries_tuple" should be overridden in %s.%s'
-                                  % (self.crudl.__class__.__name__, self.__class__.__name__))
+        raise NotImplementedError(
+            'method "get_search_countries_tuple" should be overridden in %s.%s' %
+            (self.crudl.__class__.__name__, self.__class__.__name__)
+        )
 
     def get_supported_countries_tuple(self):  # pragma: no cover
-        raise NotImplementedError('method "get_supported_countries_tuple" should be overridden in %s.%s'
-                                  % (self.crudl.__class__.__name__, self.__class__.__name__))
+        raise NotImplementedError(
+            'method "get_supported_countries_tuple" should be overridden in %s.%s' %
+            (self.crudl.__class__.__name__, self.__class__.__name__)
+        )
 
     def get_search_url(self):  # pragma: no cover
-        raise NotImplementedError('method "get_search_url" should be overridden in %s.%s'
-                                  % (self.crudl.__class__.__name__, self.__class__.__name__))
+        raise NotImplementedError(
+            'method "get_search_url" should be overridden in %s.%s' %
+            (self.crudl.__class__.__name__, self.__class__.__name__)
+        )
 
     def get_claim_url(self):  # pragma: no cover
-        raise NotImplementedError('method "get_claim_url" should be overridden in %s.%s'
-                                  % (self.crudl.__class__.__name__, self.__class__.__name__))
+        raise NotImplementedError(
+            'method "get_claim_url" should be overridden in %s.%s' %
+            (self.crudl.__class__.__name__, self.__class__.__name__)
+        )
 
     def get_existing_numbers(self, org):  # pragma: no cover
-        raise NotImplementedError('method "get_existing_numbers" should be overridden in %s.%s'
-                                  % (self.crudl.__class__.__name__, self.__class__.__name__))
+        raise NotImplementedError(
+            'method "get_existing_numbers" should be overridden in %s.%s' %
+            (self.crudl.__class__.__name__, self.__class__.__name__)
+        )
 
     def is_valid_country(self, country_code):  # pragma: no cover
-        raise NotImplementedError('method "is_valid_country" should be overridden in %s.%s'
-                                  % (self.crudl.__class__.__name__, self.__class__.__name__))
+        raise NotImplementedError(
+            'method "is_valid_country" should be overridden in %s.%s' %
+            (self.crudl.__class__.__name__, self.__class__.__name__)
+        )
 
     def is_messaging_country(self, country):  # pragma: no cover
-        raise NotImplementedError('method "is_messaging_country" should be overridden in %s.%s'
-                                  % (self.crudl.__class__.__name__, self.__class__.__name__))
+        raise NotImplementedError(
+            'method "is_messaging_country" should be overridden in %s.%s' %
+            (self.crudl.__class__.__name__, self.__class__.__name__)
+        )
 
     def claim_number(self, user, phone_number, country, role):  # pragma: no cover
-        raise NotImplementedError('method "claim_number" should be overridden in %s.%s'
-                                  % (self.crudl.__class__.__name__, self.__class__.__name__))
+        raise NotImplementedError(
+            'method "claim_number" should be overridden in %s.%s' %
+            (self.crudl.__class__.__name__, self.__class__.__name__)
+        )
 
     def remove_api_credentials_from_session(self):
         pass
@@ -902,9 +932,12 @@ class BaseClaimNumberMixin(ClaimViewMixin):
         org = self.request.user.get_org()
         if not org:  # pragma: needs cover
             form._errors['upgrade'] = True
-            form._errors['phone_number'] = form.error_class(
-                [_("Sorry, you need to have an organization to add numbers. "
-                   "You can still test things out for free using an Android phone.")])
+            form._errors['phone_number'] = form.error_class([
+                _(
+                    "Sorry, you need to have an organization to add numbers. "
+                    "You can still test things out for free using an Android phone."
+                )
+            ])
             return self.form_invalid(form)
 
         data = form.cleaned_data
@@ -913,21 +946,31 @@ class BaseClaimNumberMixin(ClaimViewMixin):
         if len(data['phone_number']) > 6:
             phone = phonenumbers.parse(data['phone_number'])
             if not self.is_valid_country(phone.country_code):  # pragma: needs cover
-                form._errors['phone_number'] = form.error_class([_("Sorry, the number you chose is not supported. "
-                                                                   "You can still deploy in any country using your "
-                                                                   "own SIM card and an Android phone.")])
+                form._errors['phone_number'] = form.error_class([
+                    _(
+                        "Sorry, the number you chose is not supported. "
+                        "You can still deploy in any country using your "
+                        "own SIM card and an Android phone."
+                    )
+                ])
                 return self.form_invalid(form)
 
         # don't add the same number twice to the same account
         existing = org.channels.filter(is_active=True, address=data['phone_number']).first()
         if existing:  # pragma: needs cover
-            form._errors['phone_number'] = form.error_class(
-                [_("That number is already connected (%s)" % data['phone_number'])])
+            form._errors['phone_number'] = form.error_class([
+                _("That number is already connected (%s)" % data['phone_number'])
+            ])
             return self.form_invalid(form)
 
         existing = Channel.objects.filter(is_active=True, address=data['phone_number']).first()
         if existing:  # pragma: needs cover
-            form._errors['phone_number'] = form.error_class([_("That number is already connected to another account - %s (%s)" % (existing.org, existing.created_by.username))])
+            form._errors['phone_number'] = form.error_class([
+                _(
+                    "That number is already connected to another account - %s (%s)" %
+                    (existing.org, existing.created_by.username)
+                )
+            ])
             return self.form_invalid(form)
 
         # try to claim the number
@@ -947,7 +990,8 @@ class BaseClaimNumberMixin(ClaimViewMixin):
             else:
                 form._errors['phone_number'] = _(
                     "An error occurred connecting your Twilio number, try removing your "
-                    "Twilio account, reconnecting it and trying again.")
+                    "Twilio account, reconnecting it and trying again."
+                )
             return self.form_invalid(form)
 
 
@@ -1011,14 +1055,17 @@ class UpdateChannelForm(forms.ModelForm):
         model = Channel
         fields = 'name', 'address', 'country', 'alert_email'
         config_fields = []
-        readonly = ('address', 'country',)
+        readonly = (
+            'address',
+            'country',
+        )
         labels = {'address': _('Address')}
         helps = {'address': _('The number or address of this channel')}
 
 
 class UpdateNexmoForm(UpdateChannelForm):
     class Meta(UpdateChannelForm.Meta):
-        readonly = ('country',)
+        readonly = ('country', )
 
 
 class UpdateAndroidForm(UpdateChannelForm):
@@ -1030,7 +1077,7 @@ class UpdateAndroidForm(UpdateChannelForm):
 class UpdateTwitterForm(UpdateChannelForm):
     class Meta(UpdateChannelForm.Meta):
         fields = 'name', 'address', 'alert_email'
-        readonly = ('address',)
+        readonly = ('address', )
         labels = {'address': _('Handle')}
         helps = {'address': _('Twitter handle of this channel')}
 
@@ -1042,11 +1089,11 @@ TYPE_UPDATE_FORM_CLASSES = {
 
 class ChannelCRUDL(SmartCRUDL):
     model = Channel
-    actions = ('list', 'claim', 'update', 'read', 'delete', 'search_numbers',
-               'claim_android', 'configuration',
-               'search_nexmo', 'bulk_sender_options', 'create_bulk_sender',
-               'create_caller', 'claim_verboice', 'search_plivo',
-               'claim_viber', 'create_viber', 'facebook_whitelist')
+    actions = (
+        'list', 'claim', 'update', 'read', 'delete', 'search_numbers', 'claim_android', 'configuration',
+        'search_nexmo', 'bulk_sender_options', 'create_bulk_sender', 'create_caller', 'claim_verboice', 'search_plivo',
+        'claim_viber', 'create_viber', 'facebook_whitelist'
+    )
     permissions = True
 
     class Read(OrgObjPermsMixin, SmartReadView):
@@ -1060,32 +1107,39 @@ class ChannelCRUDL(SmartCRUDL):
             links = []
 
             if self.has_org_perm("channels.channel_update"):
-                links.append(dict(title=_('Edit'),
-                                  style='btn-primary',
-                                  href=reverse('channels.channel_update', args=[self.get_object().id])))
+                links.append(
+                    dict(
+                        title=_('Edit'),
+                        style='btn-primary',
+                        href=reverse('channels.channel_update', args=[self.get_object().id])
+                    )
+                )
 
                 sender = self.get_object().get_sender()
                 if sender and sender.is_delegate_sender():
-                    links.append(dict(title=_('Disable Bulk Sending'),
-                                      style='btn-primary',
-                                      href="#",
-                                      js_class='remove-sender'))
+                    links.append(
+                        dict(title=_('Disable Bulk Sending'), style='btn-primary', href="#", js_class='remove-sender')
+                    )
                 elif self.get_object().channel_type == Channel.TYPE_ANDROID:
-                    links.append(dict(title=_('Enable Bulk Sending'),
-                                      style='btn-primary',
-                                      href="%s?channel=%d" % (reverse("channels.channel_bulk_sender_options"), self.get_object().pk)))
+                    links.append(
+                        dict(
+                            title=_('Enable Bulk Sending'),
+                            style='btn-primary',
+                            href="%s?channel=%d" %
+                            (reverse("channels.channel_bulk_sender_options"), self.get_object().pk)
+                        )
+                    )
 
                 caller = self.get_object().get_caller()
                 if caller and caller.is_delegate_caller():
-                    links.append(dict(title=_('Disable Voice Calling'),
-                                      style='btn-primary',
-                                      href="#",
-                                      js_class='remove-caller'))
+                    links.append(
+                        dict(
+                            title=_('Disable Voice Calling'), style='btn-primary', href="#", js_class='remove-caller'
+                        )
+                    )
 
             if self.has_org_perm("channels.channel_delete"):
-                links.append(dict(title=_('Remove'),
-                                  js_class='remove-channel',
-                                  href="#"))
+                links.append(dict(title=_('Remove'), js_class='remove-channel', href="#"))
 
             if self.object.channel_type == 'FB' and self.has_org_perm('channels.channel_facebook_whitelist'):
                 links.append(dict(title=_("Whitelist Domain"), js_class='facebook-whitelist', href='#'))
@@ -1110,16 +1164,14 @@ class ChannelCRUDL(SmartCRUDL):
 
             # power source stats data
             source_stats = [[event['power_source'], event['count']]
-                            for event in sync_events.order_by('power_source')
-                                                    .values('power_source')
-                                                    .annotate(count=Count('power_source'))]
+                            for event in sync_events.order_by('power_source').values('power_source')
+                            .annotate(count=Count('power_source'))]
             context['source_stats'] = source_stats
 
             # network connected to stats
             network_stats = [[event['network_type'], event['count']]
-                             for event in sync_events.order_by('network_type')
-                                                     .values('network_type')
-                                                     .annotate(count=Count('network_type'))]
+                             for event in sync_events.order_by('network_type').values('network_type')
+                             .annotate(count=Count('network_type'))]
             context['network_stats'] = network_stats
 
             total_network = 0
@@ -1187,14 +1239,14 @@ class ChannelCRUDL(SmartCRUDL):
                 message_stats.append(dict(name=_('Outgoing IVR'), data=ivr_out))
 
             # get all our counts for that period
-            daily_counts = list(ChannelCount.objects.filter(channel__in=channels, day__gte=start_date)
-                                                    .filter(count_type__in=[ChannelCount.INCOMING_MSG_TYPE,
-                                                                            ChannelCount.OUTGOING_MSG_TYPE,
-                                                                            ChannelCount.INCOMING_IVR_TYPE,
-                                                                            ChannelCount.OUTGOING_IVR_TYPE])
-                                                    .values('day', 'count_type')
-                                                    .order_by('day', 'count_type')
-                                                    .annotate(count_sum=Sum('count')))
+            daily_counts = list(
+                ChannelCount.objects.filter(channel__in=channels, day__gte=start_date).filter(
+                    count_type__in=[
+                        ChannelCount.INCOMING_MSG_TYPE, ChannelCount.OUTGOING_MSG_TYPE, ChannelCount.INCOMING_IVR_TYPE,
+                        ChannelCount.OUTGOING_IVR_TYPE
+                    ]
+                ).values('day', 'count_type').order_by('day', 'count_type').annotate(count_sum=Sum('count'))
+            )
 
             current = start_date
             while current <= end_date:
@@ -1221,15 +1273,16 @@ class ChannelCRUDL(SmartCRUDL):
             month_start = channel.created_on.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
             # get our totals grouped by month
-            monthly_totals = list(ChannelCount.objects.filter(channel=channel, day__gte=month_start)
-                                                      .filter(count_type__in=[ChannelCount.INCOMING_MSG_TYPE,
-                                                                              ChannelCount.OUTGOING_MSG_TYPE,
-                                                                              ChannelCount.INCOMING_IVR_TYPE,
-                                                                              ChannelCount.OUTGOING_IVR_TYPE])
-                                                      .extra({'month': "date_trunc('month', day)"})
-                                                      .values('month', 'count_type')
-                                                      .order_by('month', 'count_type')
-                                                      .annotate(count_sum=Sum('count')))
+            monthly_totals = list(
+                ChannelCount.objects.filter(channel=channel, day__gte=month_start).filter(
+                    count_type__in=[
+                        ChannelCount.INCOMING_MSG_TYPE, ChannelCount.OUTGOING_MSG_TYPE, ChannelCount.INCOMING_IVR_TYPE,
+                        ChannelCount.OUTGOING_IVR_TYPE
+                    ]
+                ).extra({
+                    'month': "date_trunc('month', day)"
+                }).values('month', 'count_type').order_by('month', 'count_type').annotate(count_sum=Sum('count'))
+            )
 
             # calculate our summary table for last 12 months
             now = timezone.now()
@@ -1250,11 +1303,15 @@ class ChannelCRUDL(SmartCRUDL):
                     elif monthly_total['count_type'] == ChannelCount.OUTGOING_IVR_TYPE:
                         ivr_out = monthly_total['count_sum']
 
-                message_stats_table.append(dict(month_start=month_start,
-                                                incoming_messages_count=msg_in,
-                                                outgoing_messages_count=msg_out,
-                                                incoming_ivr_count=ivr_in,
-                                                outgoing_ivr_count=ivr_out))
+                message_stats_table.append(
+                    dict(
+                        month_start=month_start,
+                        incoming_messages_count=msg_in,
+                        outgoing_messages_count=msg_out,
+                        incoming_ivr_count=ivr_in,
+                        outgoing_ivr_count=ivr_out
+                    )
+                )
 
                 month_start = (month_start + timedelta(days=32)).replace(day=1)
 
@@ -1266,8 +1323,11 @@ class ChannelCRUDL(SmartCRUDL):
 
     class FacebookWhitelist(ModalMixin, OrgObjPermsMixin, SmartModelActionView):
         class DomainForm(forms.Form):
-            whitelisted_domain = forms.URLField(required=True, initial='https://',
-                                                help_text="The domain to whitelist for Messenger extensions  ex: https://yourdomain.com")
+            whitelisted_domain = forms.URLField(
+                required=True,
+                initial='https://',
+                help_text="The domain to whitelist for Messenger extensions  ex: https://yourdomain.com"
+            )
 
         slug_url_kwarg = 'uuid'
         success_url = 'uuid@channels.channel_read'
@@ -1283,10 +1343,14 @@ class ChannelCRUDL(SmartCRUDL):
             #  "domain_action_type": "add"
             # }' "https://graph.facebook.com/v2.6/me/thread_settings?access_token=PAGE_ACCESS_TOKEN"
             access_token = self.object.config_json()[Channel.CONFIG_AUTH_TOKEN]
-            response = requests.post('https://graph.facebook.com/v2.6/me/thread_settings?access_token=' + access_token,
-                                     json=dict(setting_type='domain_whitelisting',
-                                               whitelisted_domains=[self.form.cleaned_data['whitelisted_domain']],
-                                               domain_action_type='add'))
+            response = requests.post(
+                'https://graph.facebook.com/v2.6/me/thread_settings?access_token=' + access_token,
+                json=dict(
+                    setting_type='domain_whitelisting',
+                    whitelisted_domains=[self.form.cleaned_data['whitelisted_domain']],
+                    domain_action_type='add'
+                )
+            )
 
             if response.status_code != 200:
                 response_json = response.json()
@@ -1297,7 +1361,7 @@ class ChannelCRUDL(SmartCRUDL):
         cancel_url = 'id@channels.channel_read'
         title = _("Remove Android")
         success_message = ''
-        fields = ('id',)
+        fields = ('id', )
 
         def get_success_url(self):
             return reverse('orgs.org_home')
@@ -1309,7 +1373,12 @@ class ChannelCRUDL(SmartCRUDL):
                 channel.release(trigger_sync=self.request.META['SERVER_NAME'] != "testserver")
 
                 if channel.channel_type == 'T' and not channel.is_delegate_sender():
-                    messages.info(request, _("We have disconnected your Twilio number. If you do not need this number you can delete it from the Twilio website."))
+                    messages.info(
+                        request,
+                        _(
+                            "We have disconnected your Twilio number. If you do not need this number you can delete it from the Twilio website."
+                        )
+                    )
                 else:
                     messages.info(request, _("Your phone number has been removed."))
 
@@ -1317,9 +1386,20 @@ class ChannelCRUDL(SmartCRUDL):
 
             except TwilioRestException as e:
                 if e.code == 20003:
-                    messages.error(request, _("We can no longer authenticate with your Twilio Account. To delete this channel please update your Twilio connection settings."))
+                    messages.error(
+                        request,
+                        _(
+                            "We can no longer authenticate with your Twilio Account. To delete this channel please update your Twilio connection settings."
+                        )
+                    )
                 else:
-                    messages.error(request, _("Twilio reported an error removing your channel (Twilio error %s). Please try again later." % e.code))
+                    messages.error(
+                        request,
+                        _(
+                            "Twilio reported an error removing your channel (Twilio error %s). Please try again later."
+                            % e.code
+                        )
+                    )
                 return HttpResponseRedirect(reverse("orgs.org_home"))
 
             except Exception as e:  # pragma: no cover
@@ -1373,7 +1453,8 @@ class ChannelCRUDL(SmartCRUDL):
                 e164_phone_number = None
                 try:
                     parsed = phonenumbers.parse(obj.address, None)
-                    e164_phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164).strip('+')
+                    e164_phone_number = phonenumbers.format_number(parsed,
+                                                                   phonenumbers.PhoneNumberFormat.E164).strip('+')
                 except Exception:
                     pass
                 for channel in obj.get_delegate_channels():  # pragma: needs cover
@@ -1384,7 +1465,6 @@ class ChannelCRUDL(SmartCRUDL):
             return obj
 
     class Claim(OrgPermsMixin, SmartTemplateView):
-
         def get_context_data(self, **kwargs):
             context = super(ChannelCRUDL.Claim, self).get_context_data(**kwargs)
             user = self.request.user
@@ -1418,7 +1498,6 @@ class ChannelCRUDL(SmartCRUDL):
         pass
 
     class CreateBulkSender(OrgPermsMixin, SmartFormView):
-
         class BulkSenderForm(forms.Form):
             connection = forms.CharField(max_length=2, widget=forms.HiddenInput, required=False)
             channel = forms.IntegerField(widget=forms.HiddenInput, required=False)
@@ -1509,11 +1588,10 @@ class ChannelCRUDL(SmartCRUDL):
 
     class CreateViber(OrgPermsMixin, SmartFormView):
         class ViberCreateForm(forms.Form):
-            name = forms.CharField(max_length=32, min_length=1,
-                                   help_text=_("The name of your Viber bot"))
+            name = forms.CharField(max_length=32, min_length=1, help_text=_("The name of your Viber bot"))
 
         title = _("Connect Viber Bot")
-        fields = ('name',)
+        fields = ('name', )
         form_class = ViberCreateForm
         permission = 'channels.channel_claim'
         success_url = "id@channels.channel_claim_viber"
@@ -1521,9 +1599,7 @@ class ChannelCRUDL(SmartCRUDL):
         def form_valid(self, form):
             org = self.request.user.get_org()
             data = form.cleaned_data
-            self.object = Channel.add_viber_channel(org,
-                                                    self.request.user,
-                                                    data['name'])
+            self.object = Channel.add_viber_channel(org, self.request.user, data['name'])
 
             return super(ChannelCRUDL.CreateViber, self).form_valid(form)
 
@@ -1533,10 +1609,10 @@ class ChannelCRUDL(SmartCRUDL):
 
             class Meta:
                 model = Channel
-                fields = ('service_id',)
+                fields = ('service_id', )
 
         title = _("Connect Viber Bot")
-        fields = ('service_id',)
+        fields = ('service_id', )
         form_class = ViberClaimForm
         permission = 'channels.channel_claim'
         success_url = "id@channels.channel_configuration"
@@ -1557,17 +1633,27 @@ class ChannelCRUDL(SmartCRUDL):
 
     class ClaimVerboice(OrgPermsMixin, SmartFormView):
         class VerboiceClaimForm(forms.Form):
-            country = forms.ChoiceField(choices=ALL_COUNTRIES, label=_("Country"),
-                                        help_text=_("The country this phone number is used in"))
-            number = forms.CharField(max_length=14, min_length=1, label=_("Number"),
-                                     help_text=_("The phone number with country code or short code you are connecting. "
-                                                 "ex: +250788123124 or 15543"))
-            username = forms.CharField(label=_("Username"),
-                                       help_text=_("The username provided by the provider to use their API"))
-            password = forms.CharField(label=_("Password"),
-                                       help_text=_("The password provided by the provider to use their API"))
-            channel = forms.CharField(label=_("Channel Name"),
-                                      help_text=_("The Verboice channel that will be handling your calls"))
+            country = forms.ChoiceField(
+                choices=ALL_COUNTRIES, label=_("Country"), help_text=_("The country this phone number is used in")
+            )
+            number = forms.CharField(
+                max_length=14,
+                min_length=1,
+                label=_("Number"),
+                help_text=_(
+                    "The phone number with country code or short code you are connecting. "
+                    "ex: +250788123124 or 15543"
+                )
+            )
+            username = forms.CharField(
+                label=_("Username"), help_text=_("The username provided by the provider to use their API")
+            )
+            password = forms.CharField(
+                label=_("Password"), help_text=_("The password provided by the provider to use their API")
+            )
+            channel = forms.CharField(
+                label=_("Channel Name"), help_text=_("The Verboice channel that will be handling your calls")
+            )
 
         title = _("Connect Verboice")
         channel_type = Channel.TYPE_VERBOICE
@@ -1584,16 +1670,18 @@ class ChannelCRUDL(SmartCRUDL):
                 raise Exception(_("No org for this user, cannot claim"))
 
             data = form.cleaned_data
-            self.object = Channel.add_config_external_channel(org, self.request.user,
-                                                              data['country'], data['number'], Channel.TYPE_VERBOICE,
-                                                              dict(username=data['username'],
-                                                                   password=data['password'],
-                                                                   channel=data['channel']),
-                                                              role=Channel.ROLE_CALL + Channel.ROLE_ANSWER)
+            self.object = Channel.add_config_external_channel(
+                org,
+                self.request.user,
+                data['country'],
+                data['number'],
+                Channel.TYPE_VERBOICE,
+                dict(username=data['username'], password=data['password'], channel=data['channel']),
+                role=Channel.ROLE_CALL + Channel.ROLE_ANSWER
+            )
             return super(ChannelCRUDL.ClaimVerboice, self).form_valid(form)
 
     class Configuration(OrgPermsMixin, SmartReadView):
-
         def get_context_data(self, **kwargs):
             context = super(ChannelCRUDL.Configuration, self).get_context_data(**kwargs)
 
@@ -1646,8 +1734,9 @@ class ChannelCRUDL(SmartCRUDL):
             self.object = Channel.objects.filter(claim_code=self.form.cleaned_data['claim_code']).first()
 
             country = self.object.country
-            phone_country = ContactURN.derive_country_from_tel(self.form.cleaned_data['phone_number'],
-                                                               str(self.object.country))
+            phone_country = ContactURN.derive_country_from_tel(
+                self.form.cleaned_data['phone_number'], str(self.object.country)
+            )
 
             # always prefer the country of the phone number they are entering if we have one
             if phone_country and phone_country != country:  # pragma: needs cover
@@ -1715,8 +1804,12 @@ class ChannelCRUDL(SmartCRUDL):
 
     class SearchNumbers(OrgPermsMixin, SmartFormView):
         class SearchNumbersForm(forms.Form):
-            area_code = forms.CharField(max_length=3, min_length=3, required=False,
-                                        help_text=_("The area code you want to search for a new number in"))
+            area_code = forms.CharField(
+                max_length=3,
+                min_length=3,
+                required=False,
+                help_text=_("The area code you want to search for a new number in")
+            )
             country = forms.ChoiceField(choices=TWILIO_SEARCH_COUNTRIES)
 
         form_class = SearchNumbersForm
@@ -1750,30 +1843,54 @@ class ChannelCRUDL(SmartCRUDL):
             if not data['area_code']:
                 available_numbers = self.search_available_numbers(client, country=data['country'])
             elif data['country'] in ['CA', 'US']:
-                available_numbers = self.search_available_numbers(client, area_code=data['area_code'], country=data['country'])
+                available_numbers = self.search_available_numbers(
+                    client, area_code=data['area_code'], country=data['country']
+                )
             else:
-                available_numbers = self.search_available_numbers(client, contains=data['area_code'], country=data['country'])
+                available_numbers = self.search_available_numbers(
+                    client, contains=data['area_code'], country=data['country']
+                )
 
             numbers = []
 
             for number in available_numbers:
-                numbers.append(phonenumbers.format_number(phonenumbers.parse(number.phone_number, None),
-                                                          phonenumbers.PhoneNumberFormat.INTERNATIONAL))
+                numbers.append(
+                    phonenumbers.format_number(
+                        phonenumbers.parse(number.phone_number, None), phonenumbers.PhoneNumberFormat.INTERNATIONAL
+                    )
+                )
 
             if not numbers:
                 if data['country'] in ['CA', 'US']:
-                    return HttpResponse(json.dumps(dict(error=str(_("Sorry, no numbers found, "
-                                                                    "please enter another area code and try again.")))))
+                    return HttpResponse(
+                        json.dumps(
+                            dict(
+                                error=str(
+                                    _("Sorry, no numbers found, "
+                                      "please enter another area code and try again.")
+                                )
+                            )
+                        )
+                    )
                 else:
-                    return HttpResponse(json.dumps(dict(error=str(_("Sorry, no numbers found, "
-                                                                    "please enter another pattern and try again.")))))
+                    return HttpResponse(
+                        json.dumps(
+                            dict(
+                                error=str(
+                                    _("Sorry, no numbers found, "
+                                      "please enter another pattern and try again.")
+                                )
+                            )
+                        )
+                    )
 
             return JsonResponse(numbers, safe=False)
 
     class SearchNexmo(SearchNumbers):
         class SearchNexmoForm(forms.Form):
-            area_code = forms.CharField(max_length=7, required=False,
-                                        help_text=_("The area code you want to search for a new number in"))
+            area_code = forms.CharField(
+                max_length=7, required=False, help_text=_("The area code you want to search for a new number in")
+            )
             country = forms.ChoiceField(choices=NEXMO_SUPPORTED_COUNTRIES)
 
         form_class = SearchNexmoForm
@@ -1788,8 +1905,12 @@ class ChannelCRUDL(SmartCRUDL):
                 numbers = []
 
                 for number in available_numbers:
-                    numbers.append(phonenumbers.format_number(phonenumbers.parse(number['msisdn'], data['country']),
-                                                              phonenumbers.PhoneNumberFormat.INTERNATIONAL))
+                    numbers.append(
+                        phonenumbers.format_number(
+                            phonenumbers.parse(number['msisdn'], data['country']),
+                            phonenumbers.PhoneNumberFormat.INTERNATIONAL
+                        )
+                    )
 
                 return JsonResponse(numbers, safe=False)
             except Exception as e:
@@ -1797,8 +1918,12 @@ class ChannelCRUDL(SmartCRUDL):
 
     class SearchPlivo(SearchNumbers):
         class SearchPlivoForm(forms.Form):
-            area_code = forms.CharField(max_length=3, min_length=3, required=False,
-                                        help_text=_("The area code you want to search for a new number in"))
+            area_code = forms.CharField(
+                max_length=3,
+                min_length=3,
+                required=False,
+                help_text=_("The area code you want to search for a new number in")
+            )
             country = forms.ChoiceField(choices=PLIVO_SUPPORTED_COUNTRIES)
 
         form_class = SearchPlivoForm
@@ -1832,14 +1957,18 @@ class ChannelCRUDL(SmartCRUDL):
 
             results_numbers = []
             try:
-                status, response_data = client.search_phone_numbers(dict(country_iso=data['country'], pattern=data['area_code']))
+                status, response_data = client.search_phone_numbers(
+                    dict(country_iso=data['country'], pattern=data['area_code'])
+                )
 
                 if status == 200:
                     results_numbers = ['+' + number_dict['number'] for number_dict in response_data['objects']]
 
-                numbers = [phonenumbers.format_number(phonenumbers.parse(number, None),
-                                                      phonenumbers.PhoneNumberFormat.INTERNATIONAL)
-                           for number in results_numbers]
+                numbers = [
+                    phonenumbers.format_number(
+                        phonenumbers.parse(number, None), phonenumbers.PhoneNumberFormat.INTERNATIONAL
+                    ) for number in results_numbers
+                ]
                 return JsonResponse(numbers, safe=False)
             except Exception as e:
                 return JsonResponse(dict(error=str(e)))
@@ -1847,7 +1976,7 @@ class ChannelCRUDL(SmartCRUDL):
 
 class ChannelEventCRUDL(SmartCRUDL):
     model = ChannelEvent
-    actions = ('calls',)
+    actions = ('calls', )
 
     class Calls(InboxView):
         title = _("Calls")
@@ -1880,7 +2009,9 @@ class ChannelLogCRUDL(SmartCRUDL):
             channel = Channel.objects.get(pk=self.request.GET['channel'])
 
             if self.request.GET.get('sessions'):
-                logs = ChannelLog.objects.filter(channel=channel).exclude(connection=None).values_list('connection_id', flat=True)
+                logs = ChannelLog.objects.filter(channel=channel).exclude(connection=None).values_list(
+                    'connection_id', flat=True
+                )
                 events = ChannelSession.objects.filter(id__in=logs).order_by('-created_on')
 
                 if self.request.GET.get('errors'):
@@ -1890,7 +2021,9 @@ class ChannelLogCRUDL(SmartCRUDL):
                 events = ChannelLog.objects.filter(channel=channel, connection=None, msg=None).order_by('-created_on')
 
             else:
-                events = ChannelLog.objects.filter(channel=channel, connection=None).exclude(msg=None).order_by('-created_on').select_related('msg__contact', 'msg')
+                events = ChannelLog.objects.filter(
+                    channel=channel, connection=None
+                ).exclude(msg=None).order_by('-created_on').select_related('msg__contact', 'msg')
                 events.count = lambda: channel.get_non_ivr_log_count()
 
             return events

@@ -9,8 +9,7 @@ from django.conf import settings
 from django_redis import get_redis_connection
 from temba.utils import dict_to_json
 
-
-LOW_PRIORITY = +10000000   # +10M ~ 110 days
+LOW_PRIORITY = +10000000  # +10M ~ 110 days
 DEFAULT_PRIORITY = 0
 HIGH_PRIORITY = -10000000  # -10M ~ 110 days
 HIGHER_PRIORITY = -20000000  # -20M ~ 220 days
@@ -75,7 +74,9 @@ def start_task(task_name):
               "if not next(val) then redis.call('zrem', ARGV[1], ARGV[3]) return nil \n"\
               "else redis.call('zincrby', ARGV[1], 1, ARGV[3]); redis.call('zremrangebyrank', ARGV[2], 0, 0) return val[1] end\n"
 
-        task = r.eval(lua, 3, 'active_set', 'queue', 'org', active_set, '%s:%d' % (task_name, int(org_queue[0])), org_queue[0])
+        task = r.eval(
+            lua, 3, 'active_set', 'queue', 'org', active_set, '%s:%d' % (task_name, int(org_queue[0])), org_queue[0]
+        )
 
         # found a task? then break out
         if task is not None:
@@ -125,6 +126,7 @@ def nonoverlapping_task(*task_args, **task_kwargs):
     """
     Decorator to create an task whose executions are prevented from overlapping by a redis lock
     """
+
     def _nonoverlapping_task(task_func):
         def wrapper(*exec_args, **exec_kwargs):
             r = get_redis_connection()
@@ -146,4 +148,5 @@ def nonoverlapping_task(*task_args, **task_kwargs):
                     task_func(*exec_args, **exec_kwargs)
 
         return shared_task(*task_args, **task_kwargs)(wrapper)
+
     return _nonoverlapping_task

@@ -21,11 +21,11 @@ def omnibox_query(org, **kwargs):
     # determine what type of group/contact/URN lookup is being requested
     contact_uuids = kwargs.get('c', None)  # contacts with ids
     message_ids = kwargs.get('m', None)  # contacts with message ids
-    label_id = kwargs.get('l', None)     # contacts in flow step with UUID
-    group_uuids = kwargs.get('g', None)    # groups with ids
-    urn_ids = kwargs.get('u', None)      # URNs with ids
+    label_id = kwargs.get('l', None)  # contacts in flow step with UUID
+    group_uuids = kwargs.get('g', None)  # groups with ids
+    urn_ids = kwargs.get('u', None)  # URNs with ids
     search = kwargs.get('search', None)  # search of groups, contacts and URNs
-    types = list(kwargs.get('types', ''))    # limit search to types (g | s | c | u)
+    types = list(kwargs.get('types', ''))  # limit search to types (g | s | c | u)
 
     # these lookups return a Contact queryset
     if contact_uuids or message_ids or label_id:
@@ -84,7 +84,7 @@ def omnibox_mixed_search(org, search, types):
             groups = groups.filter(query=None)
 
         if search:
-            groups = term_search(groups, ('name__icontains',), search_terms)
+            groups = term_search(groups, ('name__icontains', ), search_terms)
 
         results += list(groups.order_by(Upper('name'))[:per_type_limit])
 
@@ -99,7 +99,7 @@ def omnibox_mixed_search(org, search, types):
         if org.is_anon and search_id is not None:
             contacts = contacts.filter(id=search_id)
         elif search:
-            contacts = term_search(contacts, ('name__icontains',), search_terms)
+            contacts = term_search(contacts, ('name__icontains', ), search_terms)
 
         results += list(contacts.order_by(Upper('name'))[:per_type_limit])
 
@@ -111,7 +111,7 @@ def omnibox_mixed_search(org, search, types):
         urns = ContactURN.objects.filter(org=org, scheme__in=allowed_schemes).exclude(contact=None)
 
         if search:
-            urns = term_search(urns, ('path__icontains',), search_terms)
+            urns = term_search(urns, ('path__icontains', ), search_terms)
 
         results += list(urns.prefetch_related('contact').order_by(Upper('path'))[:per_type_limit])
 
@@ -129,16 +129,9 @@ def omnibox_results_to_dict(org, results):
 
     for obj in results:
         if isinstance(obj, ContactGroup):
-            result = {
-                'id': 'g-%s' % obj.uuid,
-                'text': obj.name,
-                'extra': group_counts[obj]
-            }
+            result = {'id': 'g-%s' % obj.uuid, 'text': obj.name, 'extra': group_counts[obj]}
         elif isinstance(obj, Contact):
-            result = {
-                'id': 'c-%s' % obj.uuid,
-                'text': obj.get_display(org)
-            }
+            result = {'id': 'c-%s' % obj.uuid, 'text': obj.get_display(org)}
         elif isinstance(obj, ContactURN):
             result = {
                 'id': 'u-%d' % obj.id,

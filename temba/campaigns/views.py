@@ -17,8 +17,7 @@ from .models import Campaign, CampaignEvent, EventFire
 
 
 class CampaignActionForm(BaseActionForm):
-    allowed_actions = (('archive', "Archive Campaigns"),
-                       ('restore', "Restore Campaigns"))
+    allowed_actions = (('archive', "Archive Campaigns"), ('restore', "Restore Campaigns"))
 
     model = Campaign
     has_is_active = True
@@ -28,7 +27,6 @@ class CampaignActionForm(BaseActionForm):
 
 
 class CampaignActionMixin(SmartListView):
-
     @csrf_exempt
     def dispatch(self, *args, **kwargs):
         return super(CampaignActionMixin, self).dispatch(*args, **kwargs)
@@ -44,9 +42,12 @@ class CampaignActionMixin(SmartListView):
 
 
 class UpdateCampaignForm(forms.ModelForm):
-    group = forms.ModelChoiceField(queryset=ContactGroup.user_groups.filter(pk__lt=0),
-                                   required=True, label="Group",
-                                   help_text="Which group this campaign operates on")
+    group = forms.ModelChoiceField(
+        queryset=ContactGroup.user_groups.filter(pk__lt=0),
+        required=True,
+        label="Group",
+        help_text="Which group this campaign operates on"
+    )
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs['user']
@@ -92,7 +93,9 @@ class CampaignCRUDL(SmartCRUDL):
 
             group_changed = new_group != previous_group
             if group_changed:
-                fires = EventFire.objects.filter(event__campaign=self.object, event__campaign__group=previous_group, fired=None)
+                fires = EventFire.objects.filter(
+                    event__campaign=self.object, event__campaign__group=previous_group, fired=None
+                )
                 fires.delete()
 
             # save our campaign
@@ -103,9 +106,13 @@ class CampaignCRUDL(SmartCRUDL):
             if group_changed:
                 EventFire.update_campaign_events(self.object)
 
-            response = self.render_to_response(self.get_context_data(form=form,
-                                                                     success_url=self.get_success_url(),
-                                                                     success_script=getattr(self, 'success_script', None)))
+            response = self.render_to_response(
+                self.get_context_data(
+                    form=form,
+                    success_url=self.get_success_url(),
+                    success_script=getattr(self, 'success_script', None)
+                )
+            )
             response['Temba-Success'] = self.get_success_url()
             return response
 
@@ -113,15 +120,10 @@ class CampaignCRUDL(SmartCRUDL):
         def get_gear_links(self):
             links = []
             if self.has_org_perm("campaigns.campaignevent_create"):
-                links.append(dict(title='Add Event',
-                                  style='btn-primary',
-                                  js_class='add-event',
-                                  href='#'))
+                links.append(dict(title='Add Event', style='btn-primary', js_class='add-event', href='#'))
 
             if self.has_org_perm("campaigns.campaign_update"):
-                links.append(dict(title='Edit',
-                                  js_class='update-campaign',
-                                  href='#'))
+                links.append(dict(title='Edit', js_class='update-campaign', href='#'))
 
             return links
 
@@ -155,9 +157,12 @@ class CampaignCRUDL(SmartCRUDL):
             return kwargs
 
     class BaseList(CampaignActionMixin, OrgMixin, OrgPermsMixin, SmartListView):
-        fields = ('name', 'group',)
+        fields = (
+            'name',
+            'group',
+        )
         default_template = 'campaigns/campaign_list.html'
-        default_order = ('-modified_on',)
+        default_order = ('-modified_on', )
 
         def get_context_data(self, **kwargs):
             context = super(CampaignCRUDL.BaseList, self).get_context_data(**kwargs)
@@ -170,13 +175,28 @@ class CampaignCRUDL(SmartCRUDL):
         def get_folders(self):
             org = self.request.user.get_org()
             folders = []
-            folders.append(dict(label="Active", url=reverse('campaigns.campaign_list'), count=Campaign.objects.filter(is_active=True, is_archived=False, org=org).count()))
-            folders.append(dict(label="Archived", url=reverse('campaigns.campaign_archived'), count=Campaign.objects.filter(is_active=True, is_archived=True, org=org).count()))
+            folders.append(
+                dict(
+                    label="Active",
+                    url=reverse('campaigns.campaign_list'),
+                    count=Campaign.objects.filter(is_active=True, is_archived=False, org=org).count()
+                )
+            )
+            folders.append(
+                dict(
+                    label="Archived",
+                    url=reverse('campaigns.campaign_archived'),
+                    count=Campaign.objects.filter(is_active=True, is_archived=True, org=org).count()
+                )
+            )
             return folders
 
     class List(BaseList):
-        fields = ('name', 'group',)
-        actions = ('archive',)
+        fields = (
+            'name',
+            'group',
+        )
+        actions = ('archive', )
         search_fields = ('name__icontains', 'group__name__icontains')
 
         def get_queryset(self, *args, **kwargs):
@@ -185,8 +205,8 @@ class CampaignCRUDL(SmartCRUDL):
             return qs
 
     class Archived(BaseList):
-        fields = ('name',)
-        actions = ('restore',)
+        fields = ('name', )
+        actions = ('restore', )
 
         def get_queryset(self, *args, **kwargs):
             qs = super(CampaignCRUDL.Archived, self).get_queryset(*args, **kwargs)
@@ -196,11 +216,12 @@ class CampaignCRUDL(SmartCRUDL):
 
 class EventForm(forms.ModelForm):
 
-    event_type = forms.ChoiceField(choices=((CampaignEvent.TYPE_MESSAGE, "Send a message"),
-                                            (CampaignEvent.TYPE_FLOW, "Start a flow")), required=True)
+    event_type = forms.ChoiceField(
+        choices=((CampaignEvent.TYPE_MESSAGE, "Send a message"), (CampaignEvent.TYPE_FLOW, "Start a flow")),
+        required=True
+    )
 
-    direction = forms.ChoiceField(choices=(('B', "Before"),
-                                           ('A', "After")), required=True)
+    direction = forms.ChoiceField(choices=(('B', "Before"), ('A', "After")), required=True)
 
     unit = forms.ChoiceField(choices=CampaignEvent.UNIT_CHOICES, required=True)
 
@@ -221,7 +242,8 @@ class EventForm(forms.ModelForm):
                 iso_code = lang['iso_code']
                 if iso_code in self.data and len(self.data[iso_code].strip()) > Msg.MAX_TEXT_LEN:
                     raise ValidationError(
-                        _("Translation for '%s' exceeds the %d character limit.") % (lang['name'], Msg.MAX_TEXT_LEN))
+                        _("Translation for '%s' exceeds the %d character limit.") % (lang['name'], Msg.MAX_TEXT_LEN)
+                    )
 
         return data
 
@@ -277,8 +299,9 @@ class EventForm(forms.ModelForm):
         relative_to.queryset = ContactField.objects.filter(org=org, is_active=True).order_by('label')
 
         flow = self.fields['flow_to_start']
-        flow.queryset = Flow.objects.filter(org=self.user.get_org(), flow_type__in=[Flow.FLOW, Flow.VOICE],
-                                            is_active=True, is_archived=False).order_by('name')
+        flow.queryset = Flow.objects.filter(
+            org=self.user.get_org(), flow_type__in=[Flow.FLOW, Flow.VOICE], is_active=True, is_archived=False
+        ).order_by('name')
 
         message = self.instance.message or {}
         self.languages = []
@@ -326,9 +349,9 @@ class EventForm(forms.ModelForm):
 
         # add our default language, we'll insert it at the front of the list
         if base_language and base_language not in self.fields:
-            field = forms.CharField(widget=forms.Textarea, required=False,
-                                    label=_('Default'),
-                                    initial=message.get(base_language))
+            field = forms.CharField(
+                widget=forms.Textarea, required=False, label=_('Default'), initial=message.get(base_language)
+            )
 
             self.fields[base_language] = field
             field.language = dict(iso_code=base_language, name='Default')
@@ -344,7 +367,6 @@ class CampaignEventCRUDL(SmartCRUDL):
     actions = ('create', 'delete', 'read', 'update')
 
     class Read(OrgObjPermsMixin, SmartReadView):
-
         def get_object_org(self):
             return self.get_object().campaign.org
 
@@ -368,15 +390,17 @@ class CampaignEventCRUDL(SmartCRUDL):
         def get_gear_links(self):
             links = []
             if self.has_org_perm("campaigns.campaignevent_update"):
-                links.append(dict(title='Edit',
-                                  js_class='update-event',
-                                  href='#'))
+                links.append(dict(title='Edit', js_class='update-event', href='#'))
 
             if self.has_org_perm("campaigns.campaignevent_delete"):
-                links.append(dict(title='Delete',
-                                  delete=True,
-                                  success_url=reverse('campaigns.campaign_read', args=[self.get_object().campaign.pk]),
-                                  href=reverse('campaigns.campaignevent_delete', args=[self.get_object().id])))
+                links.append(
+                    dict(
+                        title='Delete',
+                        delete=True,
+                        success_url=reverse('campaigns.campaign_read', args=[self.get_object().campaign.pk]),
+                        href=reverse('campaigns.campaignevent_delete', args=[self.get_object().id])
+                    )
+                )
 
             return links
 

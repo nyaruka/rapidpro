@@ -23,17 +23,17 @@ class AirtimeTransfer(SmartModel):
     SUCCESS = 'S'
     FAILED = 'F'
 
-    STATUS_CHOICES = ((PENDING, "Pending"),
-                      (SUCCESS, "Success"),
-                      (FAILED, "Failed"))
+    STATUS_CHOICES = ((PENDING, "Pending"), (SUCCESS, "Success"), (FAILED, "Failed"))
 
     org = models.ForeignKey(Org, help_text="The organization that this airtime was triggered for")
 
-    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='P',
-                              help_text="The state this event is currently in")
+    status = models.CharField(
+        max_length=1, choices=STATUS_CHOICES, default='P', help_text="The state this event is currently in"
+    )
 
-    channel = models.ForeignKey(Channel, null=True, blank=True,
-                                help_text="The channel that this airtime is relating to")
+    channel = models.ForeignKey(
+        Channel, null=True, blank=True, help_text="The channel that this airtime is relating to"
+    )
 
     contact = models.ForeignKey(Contact, help_text="The contact that this airtime is sent to")
 
@@ -47,8 +47,9 @@ class AirtimeTransfer(SmartModel):
 
     response = models.TextField(null=True, blank=True, default="")
 
-    message = models.CharField(max_length=255, null=True, blank=True,
-                               help_text="A message describing the end status, error messages go here")
+    message = models.CharField(
+        max_length=255, null=True, blank=True, help_text="A message describing the end status, error messages go here"
+    )
 
     @classmethod
     def post_transferto_api_response(cls, login, token, airtime_obj=None, **kwargs):
@@ -109,8 +110,15 @@ class AirtimeTransfer(SmartModel):
         if not contact_urn:
             contact_urn = contact.get_urn(TEL_SCHEME)
 
-        airtime = AirtimeTransfer.objects.create(org=org, channel=channel, contact=contact, recipient=contact_urn.path,
-                                                 amount=0, created_by=api_user, modified_by=api_user)
+        airtime = AirtimeTransfer.objects.create(
+            org=org,
+            channel=channel,
+            contact=contact,
+            recipient=contact_urn.path,
+            amount=0,
+            created_by=api_user,
+            modified_by=api_user
+        )
 
         message = "None"
         try:
@@ -128,8 +136,12 @@ class AirtimeTransfer(SmartModel):
                 account_currency = config.get(TRANSFERTO_ACCOUNT_CURRENCY, '')
 
             action = 'msisdn_info'
-            request_kwargs = dict(action=action, destination_msisdn=airtime.recipient, currency=account_currency,
-                                  delivered_amount_info='1')
+            request_kwargs = dict(
+                action=action,
+                destination_msisdn=airtime.recipient,
+                currency=account_currency,
+                delivered_amount_info='1'
+            )
             response = airtime.get_transferto_response(**request_kwargs)
             content_json = AirtimeTransfer.parse_transferto_response(response.content)
 
@@ -215,12 +227,14 @@ class AirtimeTransfer(SmartModel):
             transaction_id = content_json.get('reserved_id')
 
             action = 'topup'
-            request_kwargs = dict(action=action,
-                                  reserved_id=transaction_id,
-                                  msisdn=channel.address if channel else '',
-                                  destination_msisdn=airtime.recipient,
-                                  currency=account_currency,
-                                  product=airtime.denomination)
+            request_kwargs = dict(
+                action=action,
+                reserved_id=transaction_id,
+                msisdn=channel.address if channel else '',
+                destination_msisdn=airtime.recipient,
+                currency=account_currency,
+                product=airtime.denomination
+            )
 
             if skuid:
                 request_kwargs['skuid'] = skuid

@@ -33,7 +33,7 @@ class VXMLResponse(object):
 
     def play(self, url=None, digits=None, **kwargs):
         if url is None and digits is None:
-            raise VoiceXMLException("Please specify either a url or digits to play.",)
+            raise VoiceXMLException("Please specify either a url or digits to play.", )
 
         result = ''
         if digits:
@@ -88,7 +88,9 @@ class VXMLResponse(object):
 
         if kwargs.get('action', False):
             method = kwargs.get('method', 'post')
-            result += '<nomatch><submit next="' + kwargs.get('action') + '?empty=1" method="' + method + '" /></nomatch>'
+            result += '<nomatch><submit next="' + kwargs.get(
+                'action'
+            ) + '?empty=1" method="' + method + '" /></nomatch>'
 
         result += '</field>'
         if kwargs.get('action', False):

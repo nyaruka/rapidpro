@@ -24,8 +24,10 @@ class ShaqodoonType(ChannelType):
 
     name = "Shaqodoon"
 
-    claim_blurb = _("""If you are based in Somalia, you can integrate with Shaqodoon to send
-                       and receive messages on your shortcode.""")
+    claim_blurb = _(
+        """If you are based in Somalia, you can integrate with Shaqodoon to send
+                       and receive messages on your shortcode."""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
@@ -43,9 +45,13 @@ class ShaqodoonType(ChannelType):
         # requests are signed with a key built as follows:
         # signing_key = md5(username|password|from|to|msg|key|current_date)
         # where current_date is in the format: d/m/y H
-        payload = {'from': channel.address.lstrip('+'), 'to': msg.urn_path.lstrip('+'),
-                   'username': channel.config[Channel.CONFIG_USERNAME], 'password': channel.config[Channel.CONFIG_PASSWORD],
-                   'msg': text}
+        payload = {
+            'from': channel.address.lstrip('+'),
+            'to': msg.urn_path.lstrip('+'),
+            'username': channel.config[Channel.CONFIG_USERNAME],
+            'password': channel.config[Channel.CONFIG_PASSWORD],
+            'msg': text
+        }
 
         # build our send URL
         url = channel.config[Channel.CONFIG_SEND_URL] + "?" + urlencode(payload)
@@ -63,7 +69,6 @@ class ShaqodoonType(ChannelType):
             raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
+            raise SendException("Got non-200 response [%d] from API" % response.status_code, event=event, start=start)
 
         Channel.success(channel, msg, WIRED, start, event=event)

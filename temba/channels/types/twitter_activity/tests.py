@@ -17,14 +17,23 @@ class TwitterActivityTypeTest(TembaTest):
     def setUp(self):
         super(TwitterActivityTypeTest, self).setUp()
 
-        self.channel = Channel.create(self.org, self.user, None, 'TWT', name="Twitter Beta", address="beta_bob",
-                                      role="SR",
-                                      config={'api_key': 'ak1',
-                                              'api_secret': 'as1',
-                                              'access_token': 'at1',
-                                              'access_token_secret': 'ats1',
-                                              'handle_id': 'h123456',
-                                              'webhook_id': 'wh45678'})
+        self.channel = Channel.create(
+            self.org,
+            self.user,
+            None,
+            'TWT',
+            name="Twitter Beta",
+            address="beta_bob",
+            role="SR",
+            config={
+                'api_key': 'ak1',
+                'api_secret': 'as1',
+                'access_token': 'at1',
+                'access_token_secret': 'ats1',
+                'handle_id': 'h123456',
+                'webhook_id': 'wh45678'
+            }
+        )
 
     @override_settings(IS_PROD=True)
     @patch('temba.utils.twitter.TembaTwython.subscribe_to_webhook')
@@ -48,8 +57,10 @@ class TwitterActivityTypeTest(TembaTest):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Connect Twitter Activity API")
 
-        self.assertEqual(list(response.context['form'].fields.keys()),
-                         ['api_key', 'api_secret', 'access_token', 'access_token_secret', 'loc'])
+        self.assertEqual(
+            list(response.context['form'].fields.keys()),
+            ['api_key', 'api_secret', 'access_token', 'access_token_secret', 'loc']
+        )
 
         # try submitting empty form
         response = self.client.post(url, {})
@@ -62,7 +73,14 @@ class TwitterActivityTypeTest(TembaTest):
         # try submitting with invalid credentials
         mock_verify_credentials.side_effect = TwythonError("Invalid credentials")
 
-        response = self.client.post(url, {'api_key': 'ak', 'api_secret': 'as', 'access_token': 'at', 'access_token_secret': 'ats'})
+        response = self.client.post(
+            url, {
+                'api_key': 'ak',
+                'api_secret': 'as',
+                'access_token': 'at',
+                'access_token_secret': 'ats'
+            }
+        )
         self.assertEqual(response.status_code, 200)
         self.assertFormError(response, 'form', None, "The provided Twitter credentials do not appear to be valid.")
 
@@ -70,7 +88,14 @@ class TwitterActivityTypeTest(TembaTest):
         mock_verify_credentials.side_effect = None
         mock_verify_credentials.return_value = {'id': '345678', 'screen_name': "beta_bob"}
 
-        response = self.client.post(url, {'api_key': 'ak', 'api_secret': 'as', 'access_token': 'at', 'access_token_secret': 'ats'})
+        response = self.client.post(
+            url, {
+                'api_key': 'ak',
+                'api_secret': 'as',
+                'access_token': 'at',
+                'access_token_secret': 'ats'
+            }
+        )
         self.assertEqual(response.status_code, 200)
         self.assertFormError(response, 'form', None, "A Twitter channel already exists for that handle.")
 
@@ -78,12 +103,27 @@ class TwitterActivityTypeTest(TembaTest):
         mock_verify_credentials.return_value = {'id': '87654', 'screen_name': "jimmy"}
         mock_register_webhook.return_value = {'id': "1234567"}
 
-        response = self.client.post(url, {'api_key': 'ak', 'api_secret': 'as', 'access_token': 'at', 'access_token_secret': 'ats'})
+        response = self.client.post(
+            url, {
+                'api_key': 'ak',
+                'api_secret': 'as',
+                'access_token': 'at',
+                'access_token_secret': 'ats'
+            }
+        )
         self.assertEqual(response.status_code, 302)
 
         channel = Channel.objects.get(address='jimmy')
-        self.assertEqual(json.loads(channel.config), {'handle_id': '87654', 'api_key': 'ak', 'api_secret': 'as',
-                                                      'access_token': 'at', 'access_token_secret': 'ats', 'webhook_id': '1234567'})
+        self.assertEqual(
+            json.loads(channel.config), {
+                'handle_id': '87654',
+                'api_key': 'ak',
+                'api_secret': 'as',
+                'access_token': 'at',
+                'access_token_secret': 'ats',
+                'webhook_id': '1234567'
+            }
+        )
 
         mock_register_webhook.assert_called_once_with('https://temba.ngrok.io/c/twt/%s/receive' % channel.uuid)
         mock_subscribe_to_webhook.assert_called_once_with("1234567")
@@ -140,7 +180,9 @@ class TwitterActivityTypeTest(TembaTest):
         self.assertEqual("twitterid:12345", old_fred.urns.all()[0].identity)
 
         self.jane = self.create_contact("jane", twitter="jane10")
-        mock_lookup_user.side_effect = Exception("Twitter API returned a 404 (Not Found), No user matches for specified terms.")
+        mock_lookup_user.side_effect = Exception(
+            "Twitter API returned a 404 (Not Found), No user matches for specified terms."
+        )
         resolve_twitter_ids()
 
         self.jane.refresh_from_db()

@@ -19,12 +19,10 @@ DEBUG = True
 TESTING = sys.argv[1:2] == ['test']
 
 if TESTING:
-    PASSWORD_HASHERS = ('django.contrib.auth.hashers.MD5PasswordHasher',)
+    PASSWORD_HASHERS = ('django.contrib.auth.hashers.MD5PasswordHasher', )
     DEBUG = False
 
-ADMINS = (
-    ('RapidPro', 'code@yourdomain.io'),
-)
+ADMINS = (('RapidPro', 'code@yourdomain.io'), )
 MANAGERS = ADMINS
 
 # hardcode the postgis version so we can do reset db's from a blank database
@@ -72,11 +70,7 @@ LANGUAGE_CODE = 'en-us'
 # -----------------------------------------------------------------------------------
 # Available languages for translation
 # -----------------------------------------------------------------------------------
-LANGUAGES = (
-    ('en-us', _("English")),
-    ('pt-br', _("Portuguese")),
-    ('fr', _("French")),
-    ('es', _("Spanish")))
+LANGUAGES = (('en-us', _("English")), ('pt-br', _("Portuguese")), ('fr', _("French")), ('es', _("Spanish")))
 
 DEFAULT_LANGUAGE = "en-us"
 DEFAULT_SMS_LANGUAGE = "en-us"
@@ -107,24 +101,25 @@ STATICFILES_FINDERS = (
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'your own secret key'
 
-EMAIL_CONTEXT_PROCESSORS = ('temba.utils.email.link_components',)
-
+EMAIL_CONTEXT_PROCESSORS = ('temba.utils.email.link_components', )
 
 # -----------------------------------------------------------------------------------
 # Directory Configuration
 # -----------------------------------------------------------------------------------
 PROJECT_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)))
-LOCALE_PATHS = (os.path.join(PROJECT_DIR, '../locale'),)
+LOCALE_PATHS = (os.path.join(PROJECT_DIR, '../locale'), )
 RESOURCES_DIR = os.path.join(PROJECT_DIR, '../resources')
-FIXTURE_DIRS = (os.path.join(PROJECT_DIR, '../fixtures'),)
+FIXTURE_DIRS = (os.path.join(PROJECT_DIR, '../fixtures'), )
 TESTFILES_DIR = os.path.join(PROJECT_DIR, '../testfiles')
-STATICFILES_DIRS = (os.path.join(PROJECT_DIR, '../static'), os.path.join(PROJECT_DIR, '../media'), )
+STATICFILES_DIRS = (
+    os.path.join(PROJECT_DIR, '../static'),
+    os.path.join(PROJECT_DIR, '../media'),
+)
 STATIC_ROOT = os.path.join(PROJECT_DIR, '../sitestatic')
 STATIC_URL = '/sitestatic/'
 COMPRESS_ROOT = os.path.join(PROJECT_DIR, '../sitestatic')
 MEDIA_ROOT = os.path.join(PROJECT_DIR, '../media')
 MEDIA_URL = "/media/"
-
 
 # -----------------------------------------------------------------------------------
 # Templates Configuration
@@ -150,10 +145,8 @@ TEMPLATES = [
                 'temba.orgs.context_processors.settings_includer',
             ],
             'loaders': [
-                'temba.utils.haml.HamlFilesystemLoader',
-                'temba.utils.haml.HamlAppDirectoriesLoader',
-                'django.template.loaders.filesystem.Loader',
-                'django.template.loaders.app_directories.Loader',
+                'temba.utils.haml.HamlFilesystemLoader', 'temba.utils.haml.HamlAppDirectoriesLoader',
+                'django.template.loaders.filesystem.Loader', 'django.template.loaders.app_directories.Loader',
                 'django.template.loaders.eggs.Loader'
             ],
             'debug': False if TESTING else DEBUG
@@ -182,10 +175,7 @@ ROOT_URLCONF = 'temba.urls'
 # other urls to add
 APP_URLS = []
 
-SITEMAP = ('public.public_index',
-           'public.public_blog',
-           'public.video_list',
-           'api')
+SITEMAP = ('public.public_index', 'public.public_blog', 'public.video_list', 'api')
 
 INSTALLED_APPS = (
     'django.contrib.auth',
@@ -309,7 +299,8 @@ BRANDING = {
         'allow_signups': True,
         'tiers': dict(import_flows=0, multi_user=0, multi_org=0),
         'bundles': [],
-        'welcome_packs': [dict(size=5000, name="Demo Account"), dict(size=100000, name="UNICEF Account")],
+        'welcome_packs': [dict(size=5000, name="Demo Account"),
+                          dict(size=100000, name="UNICEF Account")],
         'description': _("Visually build nationally scalable mobile applications from anywhere in the world."),
         'credits': _("Copyright &copy; 2012-2017 UNICEF, Nyaruka. All Rights Reserved.")
     }
@@ -322,187 +313,154 @@ DEFAULT_BRAND = 'rapidpro.io'
 
 # this lets us easily create new permissions across our objects
 PERMISSIONS = {
-    '*': ('create',  # can create an object
-          'read',    # can read an object, viewing it's details
-          'update',  # can update an object
-          'delete',  # can delete an object,
-          'list'),   # can view a list of the objects
-
-    'api.apitoken': ('refresh',),
-
+    '*': (
+        'create',  # can create an object
+        'read',  # can read an object, viewing it's details
+        'update',  # can update an object
+        'delete',  # can delete an object,
+        'list'
+    ),  # can view a list of the objects
+    'api.apitoken': ('refresh', ),
     'api.resthook': ('api', 'list'),
-
-    'api.webhookevent': ('api',),
-
-    'api.resthooksubscriber': ('api',),
-
-    'campaigns.campaign': ('api',
-                           'archived',
-                           ),
-
-    'campaigns.campaignevent': ('api',),
-
-
-    'contacts.contact': ('api',
-                         'block',
-                         'blocked',
-                         'break_anon',
-                         'customize',
-                         'export',
-                         'stopped',
-                         'filter',
-                         'history',
-                         'import',
-                         'omnibox',
-                         'unblock',
-                         'unstop',
-                         'update_fields',
-                         'update_fields_input'
-                         ),
-
-    'contacts.contactfield': ('api',
-                              'json',
-                              'managefields'),
-
-    'contacts.contactgroup': ('api',),
-
-    'ivr.ivrcall': ('start',),
-
-    'locations.adminboundary': ('alias',
-                                'api',
-                                'boundaries',
-                                'geometry'),
-
-    'orgs.org': ('accounts',
-                 'smtp_server',
-                 'api',
-                 'country',
-                 'chatbase',
-                 'clear_cache',
-                 'create_login',
-                 'create_sub_org',
-                 'dashboard',
-                 'download',
-                 'edit',
-                 'edit_sub_org',
-                 'export',
-                 'grant',
-                 'home',
-                 'import',
-                 'join',
-                 'languages',
-                 'manage',
-                 'manage_accounts',
-                 'manage_accounts_sub_org',
-                 'nexmo_configuration',
-                 'nexmo_account',
-                 'nexmo_connect',
-                 'plivo_connect',
-                 'profile',
-                 'resthooks',
-                 'service',
-                 'signup',
-                 'sub_orgs',
-                 'surveyor',
-                 'transfer_credits',
-                 'transfer_to_account',
-                 'trial',
-                 'twilio_account',
-                 'twilio_connect',
-                 'webhook',
-                 ),
-
-    'orgs.usersettings': ('phone',),
-
-    'channels.channel': ('api',
-                         'bulk_sender_options',
-                         'claim',
-                         'configuration',
-                         'create_bulk_sender',
-                         'create_caller',
-                         'errors',
-                         'facebook_whitelist',
-                         'search_nexmo',
-                         'search_numbers',
-                         ),
-
-    'channels.channellog': ('session',),
-
-    'channels.channelevent': ('api',
-                              'calls'),
-
-    'flows.flowstart': ('api',),
-
-    'flows.flow': ('activity',
-                   'activity_chart',
-                   'activity_list',
-                   'analytics',
-                   'api',
-                   'archived',
-                   'broadcast',
-                   'campaign',
-                   'completion',
-                   'copy',
-                   'editor',
-                   'export',
-                   'export_results',
-                   'filter',
-                   'json',
-                   'read',
-                   'recent_messages',
-                   'results',
-                   'revisions',
-                   'run_table',
-                   'simulate',
-                   'upload_action_recording',
-                   'upload_media_action',
-                   ),
-
-    'flows.ruleset': ('analytics',
-                      'choropleth',
-                      'map',
-                      'results',
-                      ),
-
-    'msgs.msg': ('api',
-                 'archive',
-                 'archived',
-                 'export',
-                 'failed',
-                 'filter',
-                 'flow',
-                 'inbox',
-                 'label',
-                 'outbox',
-                 'sent',
-                 'test',
-                 'update',
-                 ),
-
-    'msgs.broadcast': ('api',
-                       'detail',
-                       'schedule',
-                       'schedule_list',
-                       'schedule_read',
-                       'send',
-                       ),
-
+    'api.webhookevent': ('api', ),
+    'api.resthooksubscriber': ('api', ),
+    'campaigns.campaign': (
+        'api',
+        'archived',
+    ),
+    'campaigns.campaignevent': ('api', ),
+    'contacts.contact': (
+        'api', 'block', 'blocked', 'break_anon', 'customize', 'export', 'stopped', 'filter', 'history', 'import',
+        'omnibox', 'unblock', 'unstop', 'update_fields', 'update_fields_input'
+    ),
+    'contacts.contactfield': ('api', 'json', 'managefields'),
+    'contacts.contactgroup': ('api', ),
+    'ivr.ivrcall': ('start', ),
+    'locations.adminboundary': ('alias', 'api', 'boundaries', 'geometry'),
+    'orgs.org': (
+        'accounts',
+        'smtp_server',
+        'api',
+        'country',
+        'chatbase',
+        'clear_cache',
+        'create_login',
+        'create_sub_org',
+        'dashboard',
+        'download',
+        'edit',
+        'edit_sub_org',
+        'export',
+        'grant',
+        'home',
+        'import',
+        'join',
+        'languages',
+        'manage',
+        'manage_accounts',
+        'manage_accounts_sub_org',
+        'nexmo_configuration',
+        'nexmo_account',
+        'nexmo_connect',
+        'plivo_connect',
+        'profile',
+        'resthooks',
+        'service',
+        'signup',
+        'sub_orgs',
+        'surveyor',
+        'transfer_credits',
+        'transfer_to_account',
+        'trial',
+        'twilio_account',
+        'twilio_connect',
+        'webhook',
+    ),
+    'orgs.usersettings': ('phone', ),
+    'channels.channel': (
+        'api',
+        'bulk_sender_options',
+        'claim',
+        'configuration',
+        'create_bulk_sender',
+        'create_caller',
+        'errors',
+        'facebook_whitelist',
+        'search_nexmo',
+        'search_numbers',
+    ),
+    'channels.channellog': ('session', ),
+    'channels.channelevent': ('api', 'calls'),
+    'flows.flowstart': ('api', ),
+    'flows.flow': (
+        'activity',
+        'activity_chart',
+        'activity_list',
+        'analytics',
+        'api',
+        'archived',
+        'broadcast',
+        'campaign',
+        'completion',
+        'copy',
+        'editor',
+        'export',
+        'export_results',
+        'filter',
+        'json',
+        'read',
+        'recent_messages',
+        'results',
+        'revisions',
+        'run_table',
+        'simulate',
+        'upload_action_recording',
+        'upload_media_action',
+    ),
+    'flows.ruleset': (
+        'analytics',
+        'choropleth',
+        'map',
+        'results',
+    ),
+    'msgs.msg': (
+        'api',
+        'archive',
+        'archived',
+        'export',
+        'failed',
+        'filter',
+        'flow',
+        'inbox',
+        'label',
+        'outbox',
+        'sent',
+        'test',
+        'update',
+    ),
+    'msgs.broadcast': (
+        'api',
+        'detail',
+        'schedule',
+        'schedule_list',
+        'schedule_read',
+        'send',
+    ),
     'msgs.label': ('api', 'create', 'create_folder'),
-
-    'orgs.topup': ('manage',),
-
-    'triggers.trigger': ('archived',
-                         'catchall',
-                         'follow',
-                         'inbound_call',
-                         'keyword',
-                         'missed_call',
-                         'new_conversation',
-                         'referral',
-                         'register',
-                         'schedule',
-                         'ussd',
-                         ),
+    'orgs.topup': ('manage', ),
+    'triggers.trigger': (
+        'archived',
+        'catchall',
+        'follow',
+        'inbound_call',
+        'keyword',
+        'missed_call',
+        'new_conversation',
+        'referral',
+        'register',
+        'schedule',
+        'ussd',
+    ),
 }
 
 # assigns the permissions that each group should have
@@ -510,10 +468,8 @@ GROUP_PERMISSIONS = {
     "Service Users": (  # internal Temba services have limited permissions
         'msgs.msg_create',
     ),
-    "Alpha": (
-    ),
-    "Beta": (
-    ),
+    "Alpha": (),
+    "Beta": (),
     "Surveyors": (
         'contacts.contact_api',
         'contacts.contactfield_api',
@@ -523,9 +479,7 @@ GROUP_PERMISSIONS = {
         'orgs.org_surveyor',
         'msgs.msg_api',
     ),
-    "Granters": (
-        'orgs.org_grant',
-    ),
+    "Granters": ('orgs.org_grant', ),
     "Customer Support": (
         'auth.user_list',
         'auth.user_update',
@@ -547,7 +501,6 @@ GROUP_PERMISSIONS = {
     "Administrators": (
         'airtime.airtimetransfer_list',
         'airtime.airtimetransfer_read',
-
         'api.apitoken_refresh',
         'api.resthook_api',
         'api.resthook_list',
@@ -555,10 +508,8 @@ GROUP_PERMISSIONS = {
         'api.webhookevent_api',
         'api.webhookevent_list',
         'api.webhookevent_read',
-
         'campaigns.campaign.*',
         'campaigns.campaignevent.*',
-
         'contacts.contact_api',
         'contacts.contact_block',
         'contacts.contact_blocked',
@@ -580,17 +531,13 @@ GROUP_PERMISSIONS = {
         'contacts.contact_update_fields_input',
         'contacts.contactfield.*',
         'contacts.contactgroup.*',
-
         'csv_imports.importtask.*',
-
         'ivr.ivrcall.*',
         'ussd.ussdsession.*',
-
         'locations.adminboundary_alias',
         'locations.adminboundary_api',
         'locations.adminboundary_boundaries',
         'locations.adminboundary_geometry',
-
         'orgs.org_accounts',
         'orgs.org_smtp_server',
         'orgs.org_api',
@@ -623,7 +570,6 @@ GROUP_PERMISSIONS = {
         'orgs.topup_read',
         'orgs.usersettings_phone',
         'orgs.usersettings_update',
-
         'channels.channel_api',
         'channels.channel_bulk_sender_options',
         'channels.channel_claim',
@@ -642,17 +588,13 @@ GROUP_PERMISSIONS = {
         'channels.channellog_list',
         'channels.channellog_read',
         'channels.channellog_session',
-
         'reports.report.*',
-
         'flows.flow.*',
         'flows.flowstart_api',
         'flows.flowlabel.*',
         'flows.ruleset.*',
         'flows.flowrun_delete',
-
         'schedules.schedule.*',
-
         'msgs.broadcast.*',
         'msgs.broadcastschedule.*',
         'msgs.label.*',
@@ -669,9 +611,7 @@ GROUP_PERMISSIONS = {
         'msgs.msg_outbox',
         'msgs.msg_sent',
         'msgs.msg_update',
-
         'triggers.trigger.*',
-
     ),
     "Editors": (
         'api.apitoken_refresh',
@@ -681,13 +621,10 @@ GROUP_PERMISSIONS = {
         'api.webhookevent_api',
         'api.webhookevent_list',
         'api.webhookevent_read',
-
         'airtime.airtimetransfer_list',
         'airtime.airtimetransfer_read',
-
         'campaigns.campaign.*',
         'campaigns.campaignevent.*',
-
         'contacts.contact_api',
         'contacts.contact_block',
         'contacts.contact_blocked',
@@ -709,17 +646,13 @@ GROUP_PERMISSIONS = {
         'contacts.contact_update_fields_input',
         'contacts.contactfield.*',
         'contacts.contactgroup.*',
-
         'csv_imports.importtask.*',
-
         'ivr.ivrcall.*',
         'ussd.ussdsession.*',
-
         'locations.adminboundary_alias',
         'locations.adminboundary_api',
         'locations.adminboundary_boundaries',
         'locations.adminboundary_geometry',
-
         'orgs.org_api',
         'orgs.org_download',
         'orgs.org_export',
@@ -732,7 +665,6 @@ GROUP_PERMISSIONS = {
         'orgs.topup_read',
         'orgs.usersettings_phone',
         'orgs.usersettings_update',
-
         'channels.channel_api',
         'channels.channel_bulk_sender_options',
         'channels.channel_claim',
@@ -746,16 +678,12 @@ GROUP_PERMISSIONS = {
         'channels.channel_search_numbers',
         'channels.channel_update',
         'channels.channelevent.*',
-
         'reports.report.*',
-
         'flows.flow.*',
         'flows.flowstart_api',
         'flows.flowlabel.*',
         'flows.ruleset.*',
-
         'schedules.schedule.*',
-
         'msgs.broadcast.*',
         'msgs.broadcastschedule.*',
         'msgs.label.*',
@@ -772,18 +700,14 @@ GROUP_PERMISSIONS = {
         'msgs.msg_outbox',
         'msgs.msg_sent',
         'msgs.msg_update',
-
         'triggers.trigger.*',
-
     ),
     "Viewers": (
         'api.resthook_list',
-
         'campaigns.campaign_archived',
         'campaigns.campaign_list',
         'campaigns.campaign_read',
         'campaigns.campaignevent_read',
-
         'contacts.contact_blocked',
         'contacts.contact_export',
         'contacts.contact_filter',
@@ -791,22 +715,18 @@ GROUP_PERMISSIONS = {
         'contacts.contact_list',
         'contacts.contact_read',
         'contacts.contact_stopped',
-
         'locations.adminboundary_boundaries',
         'locations.adminboundary_geometry',
         'locations.adminboundary_alias',
-
         'orgs.org_download',
         'orgs.org_export',
         'orgs.org_home',
         'orgs.org_profile',
         'orgs.topup_list',
         'orgs.topup_read',
-
         'channels.channel_list',
         'channels.channel_read',
         'channels.channelevent_calls',
-
         'flows.flow_activity',
         'flows.flow_activity_chart',
         'flows.flow_archived',
@@ -826,7 +746,6 @@ GROUP_PERMISSIONS = {
         'flows.ruleset_analytics',
         'flows.ruleset_results',
         'flows.ruleset_choropleth',
-
         'msgs.broadcast_schedule_list',
         'msgs.broadcast_schedule_read',
         'msgs.msg_archived',
@@ -837,7 +756,6 @@ GROUP_PERMISSIONS = {
         'msgs.msg_inbox',
         'msgs.msg_outbox',
         'msgs.msg_sent',
-
         'triggers.trigger_archived',
         'triggers.trigger_list',
     )
@@ -851,9 +769,7 @@ LOGOUT_URL = "/users/logout/"
 LOGIN_REDIRECT_URL = "/org/choose/"
 LOGOUT_REDIRECT_URL = "/"
 
-AUTHENTICATION_BACKENDS = (
-    'smartmin.backends.CaseInsensitiveBackend',
-)
+AUTHENTICATION_BACKENDS = ('smartmin.backends.CaseInsensitiveBackend', )
 
 ANONYMOUS_USER_NAME = 'AnonymousUser'
 
@@ -861,7 +777,7 @@ ANONYMOUS_USER_NAME = 'AnonymousUser'
 # Our test runner includes a mocked HTTP server and the ability to exclude apps
 # -----------------------------------------------------------------------------------
 TEST_RUNNER = 'temba.tests.TembaTestRunner'
-TEST_EXCLUDE = ('smartmin',)
+TEST_EXCLUDE = ('smartmin', )
 
 # -----------------------------------------------------------------------------------
 # Debug Toolbar
@@ -969,7 +885,6 @@ CELERYBEAT_SCHEDULE = {
         'task': 'refresh_jiochat_access_tokens',
         'schedule': timedelta(seconds=3600),
     },
-
 }
 
 # Mapping of task name to task function path, used when CELERY_ALWAYS_EAGER is set to True
@@ -1020,16 +935,12 @@ CACHES = {
 # Django-rest-framework configuration
 # -----------------------------------------------------------------------------------
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated', ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.SessionAuthentication',
         'temba.api.support.APITokenAuthentication',
     ),
-    'DEFAULT_THROTTLE_CLASSES': (
-        'temba.api.support.OrgRateThrottle',
-    ),
+    'DEFAULT_THROTTLE_CLASSES': ('temba.api.support.OrgRateThrottle', ),
     'DEFAULT_THROTTLE_RATES': {
         'v2': '2500/hour',
         'v2.contacts': '2500/hour',
@@ -1038,10 +949,7 @@ REST_FRAMEWORK = {
         'v2.api': '2500/hour',
     },
     'PAGE_SIZE': 250,
-    'DEFAULT_RENDERER_CLASSES': (
-        'temba.api.support.DocumentationRenderer',
-        'rest_framework.renderers.JSONRenderer'
-    ),
+    'DEFAULT_RENDERER_CLASSES': ('temba.api.support.DocumentationRenderer', 'rest_framework.renderers.JSONRenderer'),
     'EXCEPTION_HANDLER': 'temba.api.support.temba_exception_handler',
     'UNICODE_JSON': False
 }
@@ -1055,10 +963,9 @@ if TESTING:
     # if only testing, disable coffeescript and less compilation
     COMPRESS_PRECOMPILERS = ()
 else:
-    COMPRESS_PRECOMPILERS = (
-        ('text/less', 'lessc --include-path="%s" {infile} {outfile}' % os.path.join(PROJECT_DIR, '../static', 'less')),
-        ('text/coffeescript', 'coffee --compile --stdio')
-    )
+    COMPRESS_PRECOMPILERS = ((
+        'text/less', 'lessc --include-path="%s" {infile} {outfile}' % os.path.join(PROJECT_DIR, '../static', 'less')
+    ), ('text/coffeescript', 'coffee --compile --stdio'))
 
 COMPRESS_ENABLED = False
 COMPRESS_OFFLINE = False
@@ -1108,8 +1015,7 @@ SEND_CHATBASE = False
 SEND_CALLS = False
 
 MESSAGE_HANDLERS = [
-    'temba.triggers.handlers.TriggerHandler',
-    'temba.flows.handlers.FlowHandler',
+    'temba.triggers.handlers.TriggerHandler', 'temba.flows.handlers.FlowHandler',
     'temba.triggers.handlers.CatchAllHandler'
 ]
 
@@ -1205,7 +1111,6 @@ COURIER_CHANNELS = set(['DK'])
 # Chatbase integration
 # -----------------------------------------------------------------------------------
 CHATBASE_API_URL = 'https://chatbase.com/api/message'
-
 
 # To allow manage fields to support up to 1000 fields
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 4000

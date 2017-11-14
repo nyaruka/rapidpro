@@ -24,7 +24,9 @@ class MacrokioskType(ChannelType):
 
     name = "Macrokiosk"
 
-    claim_blurb = _("""Easily add a two way number you have configured with <a href="http://macrokiosk.com/">Macrokiosk</a> using their APIs.""")
+    claim_blurb = _(
+        """Easily add a two way number you have configured with <a href="http://macrokiosk.com/">Macrokiosk</a> using their APIs."""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
@@ -50,9 +52,13 @@ class MacrokioskType(ChannelType):
         recipient = msg.urn_path[1:] if msg.urn_path.startswith('+') else msg.urn_path
 
         data = {
-            'user': channel.config[Channel.CONFIG_USERNAME], 'pass': channel.config[Channel.CONFIG_PASSWORD],
-            'to': recipient, 'text': text, 'from': channel.config[Channel.CONFIG_MACROKIOSK_SENDER_ID],
-            'servid': channel.config[Channel.CONFIG_MACROKIOSK_SERVICE_ID], 'type': message_type
+            'user': channel.config[Channel.CONFIG_USERNAME],
+            'pass': channel.config[Channel.CONFIG_PASSWORD],
+            'to': recipient,
+            'text': text,
+            'from': channel.config[Channel.CONFIG_MACROKIOSK_SENDER_ID],
+            'servid': channel.config[Channel.CONFIG_MACROKIOSK_SERVICE_ID],
+            'type': message_type
         }
 
         url = 'https://www.etracker.cc/bulksms/send'
@@ -74,7 +80,6 @@ class MacrokioskType(ChannelType):
             raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code not in [200, 201, 202]:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
+            raise SendException("Got non-200 response [%d] from API" % response.status_code, event=event, start=start)
 
         Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)

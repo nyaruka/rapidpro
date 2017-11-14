@@ -12,9 +12,20 @@ class LineTypeTest(TembaTest):
     def setUp(self):
         super(LineTypeTest, self).setUp()
 
-        self.channel = Channel.create(self.org, self.user, None, 'LN', name="LINE", address="12345",
-                                      role="SR", schemes=['line'],
-                                      config={'auth_token': 'abcdef098765', 'channel_secret': '87654'})
+        self.channel = Channel.create(
+            self.org,
+            self.user,
+            None,
+            'LN',
+            name="LINE",
+            address="12345",
+            role="SR",
+            schemes=['line'],
+            config={
+                'auth_token': 'abcdef098765',
+                'channel_secret': '87654'
+            }
+        )
 
     @patch('requests.get')
     def test_claim(self, mock_get):
@@ -34,12 +45,14 @@ class LineTypeTest(TembaTest):
 
         channel = Channel.objects.get(address='u1234567890')
         self.assertRedirects(response, reverse('channels.channel_configuration', args=[channel.id]))
-        self.assertEqual(channel.config_json(), {
-            'auth_token': 'abcdef123456',
-            'channel_secret': '123456',
-            'channel_id': 123456789,
-            'channel_mid': 'u1234567890'
-        })
+        self.assertEqual(
+            channel.config_json(), {
+                'auth_token': 'abcdef123456',
+                'channel_secret': '123456',
+                'channel_id': 123456789,
+                'channel_mid': 'u1234567890'
+            }
+        )
 
         response = self.client.post(url, payload, follow=True)
         self.assertContains(response, "A channel with this configuration already exists.")

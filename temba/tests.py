@@ -44,6 +44,7 @@ class MockServerRequestHandler(BaseHTTPRequestHandler):
     """
     A simple HTTP handler which responds to a request with a matching mocked request
     """
+
     def _handle_request(self, method, data=None):
         if not self.server.mocked_requests:
             raise ValueError("unexpected request %s %s with no mock configured" % (method, self.path))
@@ -86,6 +87,7 @@ class MockServer(HTTPServer):
     Webhook calls may call out to external HTTP servers so a instance of this server runs alongside the test suite
     and provides a mechanism for mocking requests to particular URLs
     """
+
     @six.python_2_unicode_compatible
     class Request(object):
         def __init__(self, method, path, content, content_type, status):
@@ -129,6 +131,7 @@ class TembaTestRunner(DiscoverRunner):
     """
     Adds the ability to exclude tests in given packages to the default test runner, and starts the mock server instance
     """
+
     def __init__(self, *args, **kwargs):
         settings.TESTING = True
 
@@ -185,7 +188,9 @@ class TembaTest(SmartminTest):
         # setup admin boundaries for Rwanda
         self.country = AdminBoundary.objects.create(osm_id='171496', name='Rwanda', level=0)
         self.state1 = AdminBoundary.objects.create(osm_id='1708283', name='Kigali City', level=1, parent=self.country)
-        self.state2 = AdminBoundary.objects.create(osm_id='171591', name='Eastern Province', level=1, parent=self.country)
+        self.state2 = AdminBoundary.objects.create(
+            osm_id='171591', name='Eastern Province', level=1, parent=self.country
+        )
         self.district1 = AdminBoundary.objects.create(osm_id='1711131', name='Gatsibo', level=2, parent=self.state2)
         self.district2 = AdminBoundary.objects.create(osm_id='1711163', name='Kayônza', level=2, parent=self.state2)
         self.district3 = AdminBoundary.objects.create(osm_id='3963734', name='Nyarugenge', level=2, parent=self.state1)
@@ -194,8 +199,14 @@ class TembaTest(SmartminTest):
         self.ward2 = AdminBoundary.objects.create(osm_id='171116381', name='Kabare', level=3, parent=self.district2)
         self.ward3 = AdminBoundary.objects.create(osm_id='171114281', name='Bukure', level=3, parent=self.district4)
 
-        self.org = Org.objects.create(name="Temba", timezone=pytz.timezone("Africa/Kigali"), country=self.country,
-                                      brand=settings.DEFAULT_BRAND, created_by=self.user, modified_by=self.user)
+        self.org = Org.objects.create(
+            name="Temba",
+            timezone=pytz.timezone("Africa/Kigali"),
+            country=self.country,
+            brand=settings.DEFAULT_BRAND,
+            created_by=self.user,
+            modified_by=self.user
+        )
 
         self.org.initialize(topup_size=1000)
 
@@ -218,8 +229,17 @@ class TembaTest(SmartminTest):
         self.welcome_topup = self.org.topups.all()[0]
 
         # a single Android channel
-        self.channel = Channel.create(self.org, self.user, 'RW', 'A', name="Test Channel", address="+250785551212",
-                                      device="Nexus 5X", secret="12345", gcm_id="123")
+        self.channel = Channel.create(
+            self.org,
+            self.user,
+            'RW',
+            'A',
+            name="Test Channel",
+            address="+250785551212",
+            device="Nexus 5X",
+            secret="12345",
+            gcm_id="123"
+        )
 
         # reset our simulation to False
         Contact.set_simulation(False)
@@ -315,8 +335,13 @@ class TembaTest(SmartminTest):
 
     def create_secondary_org(self, topup_size=None):
         self.admin2 = self.create_user("Administrator2")
-        self.org2 = Org.objects.create(name="Trileet Inc.", timezone="Africa/Kigali", brand='rapidpro.io',
-                                       created_by=self.admin2, modified_by=self.admin2)
+        self.org2 = Org.objects.create(
+            name="Trileet Inc.",
+            timezone="Africa/Kigali",
+            brand='rapidpro.io',
+            created_by=self.admin2,
+            modified_by=self.admin2
+        )
         self.org2.administrators.add(self.admin2)
         self.admin2.set_org(self.org)
 
@@ -363,8 +388,9 @@ class TembaTest(SmartminTest):
             return group
 
     def create_field(self, key, label, value_type=Value.TYPE_TEXT):
-        return ContactField.objects.create(org=self.org, key=key, label=label, value_type=value_type,
-                                           created_by=self.admin, modified_by=self.admin)
+        return ContactField.objects.create(
+            org=self.org, key=key, label=label, value_type=value_type, created_by=self.admin, modified_by=self.admin
+        )
 
     def create_msg(self, **kwargs):
         if 'org' not in kwargs:
@@ -398,22 +424,20 @@ class TembaTest(SmartminTest):
                 "flow_type": "F",
                 "base_language": "eng",
                 "entry": node_uuid,
-                "action_sets": [
-                    {
-                        "uuid": node_uuid,
-                        "x": 0,
-                        "y": 0,
-                        "actions": [
-                            {
-                                "msg": {"eng": "Hey everybody!"},
-                                "media": {},
-                                "send_all": False,
-                                "type": "reply"
-                            }
-                        ],
-                        "destination": None
-                    }
-                ],
+                "action_sets": [{
+                    "uuid": node_uuid,
+                    "x": 0,
+                    "y": 0,
+                    "actions": [{
+                        "msg": {
+                            "eng": "Hey everybody!"
+                        },
+                        "media": {},
+                        "send_all": False,
+                        "type": "reply"
+                    }],
+                    "destination": None
+                }],
                 "rule_sets": [],
             }
         flow.update(definition)
@@ -478,7 +502,10 @@ class TembaTest(SmartminTest):
 
     def assertAllRequestsMade(self):
         if self.mock_server.mocked_requests:
-            self.fail("test has %d unused mock requests: %s" % (len(mock_server.mocked_requests), mock_server.mocked_requests))
+            self.fail(
+                "test has %d unused mock requests: %s" %
+                (len(mock_server.mocked_requests), mock_server.mocked_requests)
+            )
 
     def assertExcelRow(self, sheet, row_num, values, tz=None):
         """
@@ -526,7 +553,6 @@ class TembaTest(SmartminTest):
 
 
 class FlowFileTest(TembaTest):
-
     def setUp(self):
         super(FlowFileTest, self).setUp()
         self.contact = self.create_contact('Ben Haggerty', '+12065552020')
@@ -550,8 +576,16 @@ class FlowFileTest(TembaTest):
             Flow.find_and_handle(incoming)
         return Msg.objects.filter(response_to=incoming).order_by('pk').first()
 
-    def send_message(self, flow, message, restart_participants=False, contact=None, initiate_flow=False,
-                     assert_reply=True, assert_handle=True):
+    def send_message(
+        self,
+        flow,
+        message,
+        restart_participants=False,
+        contact=None,
+        initiate_flow=False,
+        assert_reply=True,
+        assert_handle=True
+    ):
         """
         Starts the flow, sends the message, returns the reply
         """
@@ -565,7 +599,9 @@ class FlowFileTest(TembaTest):
 
             # start the flow
             if initiate_flow:
-                flow.start(groups=[], contacts=[contact], restart_participants=restart_participants, start_msg=incoming)
+                flow.start(
+                    groups=[], contacts=[contact], restart_participants=restart_participants, start_msg=incoming
+                )
             else:
                 flow.start(groups=[], contacts=[contact], restart_participants=restart_participants)
                 (handled, msgs) = Flow.find_and_handle(incoming)
@@ -613,7 +649,6 @@ class MLStripper(HTMLParser):  # pragma: no cover
 
 
 class BrowserTest(LiveServerTestCase):  # pragma: no cover
-
     @classmethod
     def setUpClass(cls):
         cls.driver = WebDriver()
@@ -715,8 +750,17 @@ class BrowserTest(LiveServerTestCase):  # pragma: no cover
 
         # set up our channel for claiming
         anon = get_anonymous_user()
-        channel = Channel.create(None, anon, 'RW', 'A', name="Test Channel", address="0785551212",
-                                 claim_code='AAABBBCCC', secret="12345", gcm_id="123")
+        channel = Channel.create(
+            None,
+            anon,
+            'RW',
+            'A',
+            name="Test Channel",
+            address="0785551212",
+            claim_code='AAABBBCCC',
+            secret="12345",
+            gcm_id="123"
+        )
 
         # and claim it
         self.fetch_page(reverse('channels.channel_claim_android'))
@@ -744,7 +788,6 @@ class BrowserTest(LiveServerTestCase):  # pragma: no cover
 
 
 class MockResponse(object):
-
     def __init__(self, status_code, text, method='GET', url='http://foo.com/', headers=None):
         self.text = text
         self.content = text
@@ -773,6 +816,7 @@ class AnonymousOrg(object):
     """
     Makes the given org temporarily anonymous
     """
+
     def __init__(self, org):
         self.org = org
 
@@ -786,7 +830,6 @@ class AnonymousOrg(object):
 
 
 class MockRequestValidator(RequestValidator):
-
     def __init__(self, token):
         pass
 
@@ -795,7 +838,6 @@ class MockRequestValidator(RequestValidator):
 
 
 class MockTwilioClient(TwilioClient):
-
     def __init__(self, sid, token, org=None, base=None):
         self.org = org
         self.base = base

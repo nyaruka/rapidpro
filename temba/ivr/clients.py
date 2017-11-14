@@ -26,7 +26,6 @@ class IVRException(Exception):
 
 
 class NexmoClient(NexmoCli):
-
     def __init__(self, api_key, api_secret, app_id, app_private_key, org=None):
         self.org = org
         NexmoCli.__init__(self, api_key, api_secret, app_id, app_private_key)
@@ -75,7 +74,9 @@ class NexmoClient(NexmoCli):
                 ChannelLog.log_ivr_interaction(call, 'Started call', event)
 
         except Exception as e:
-            event = HttpEvent('POST', 'https://api.nexmo.com/v1/calls', json.dumps(params), response_body=six.text_type(e))
+            event = HttpEvent(
+                'POST', 'https://api.nexmo.com/v1/calls', json.dumps(params), response_body=six.text_type(e)
+            )
             ChannelLog.log_ivr_interaction(call, 'Call start failed', event, is_error=True)
 
             call.status = IVRCall.FAILED
@@ -120,7 +121,6 @@ class NexmoClient(NexmoCli):
 
 
 class TwilioClient(TembaTwilioRestClient):
-
     def __init__(self, account, token, org=None, **kwargs):
         self.org = org
         super(TwilioClient, self).__init__(account=account, token=token, **kwargs)
@@ -130,10 +130,9 @@ class TwilioClient(TembaTwilioRestClient):
             raise IVRException("SEND_CALLS set to False, skipping call start")
 
         try:
-            twilio_call = self.calls.create(to=to,
-                                            from_=call.channel.address,
-                                            url=status_callback,
-                                            status_callback=status_callback)
+            twilio_call = self.calls.create(
+                to=to, from_=call.channel.address, url=status_callback, status_callback=status_callback
+            )
             call.external_id = six.text_type(twilio_call.sid)
             call.save()
 
@@ -187,7 +186,6 @@ class TwilioClient(TembaTwilioRestClient):
 
 
 class VerboiceClient:  # pragma: needs cover
-
     def __init__(self, channel):
         self.endpoint = 'https://verboice.instedd.org/api/call'
 

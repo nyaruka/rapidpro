@@ -15,18 +15,21 @@ from ...views import ClaimViewMixin
 
 class ClaimView(ClaimViewMixin, SmartFormView):
     class Form(ClaimViewMixin.Form):
-        access_token = forms.CharField(label=_("Access Token"), required=True,
-                                       help_text=_("The Access Token of the LINE Bot"))
+        access_token = forms.CharField(
+            label=_("Access Token"), required=True, help_text=_("The Access Token of the LINE Bot")
+        )
         secret = forms.CharField(label=_("Secret"), required=True, help_text=_("The Secret of the LINE Bot"))
 
         def clean(self):
             access_token = self.cleaned_data.get('access_token')
             secret = self.cleaned_data.get('secret')
 
-            headers = http_headers(extra={
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer %s' % access_token
-            })
+            headers = http_headers(
+                extra={
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer %s' % access_token
+                }
+            )
 
             response = requests.get('https://api.line.me/v1/oauth/verify', headers=headers)
             content = response.json()
@@ -45,9 +48,11 @@ class ClaimView(ClaimViewMixin, SmartFormView):
                 }
 
                 existing = Channel.objects.filter(
-                    Q(config__contains=channel_id) | Q(config__contains=secret) | Q(
-                        config__contains=access_token), channel_type=self.channel_type.code, address=channel_mid,
-                    is_active=True).first()
+                    Q(config__contains=channel_id) | Q(config__contains=secret) | Q(config__contains=access_token),
+                    channel_type=self.channel_type.code,
+                    address=channel_mid,
+                    is_active=True
+                ).first()
                 if existing:
                     raise ValidationError(_("A channel with this configuration already exists."))
 
@@ -82,7 +87,14 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             'channel_mid': channel_mid
         }
 
-        self.object = Channel.create(org, self.request.user, None, self.channel_type,
-                                     name=profile.get('display_name'), address=channel_mid, config=config)
+        self.object = Channel.create(
+            org,
+            self.request.user,
+            None,
+            self.channel_type,
+            name=profile.get('display_name'),
+            address=channel_mid,
+            config=config
+        )
 
         return super(ClaimView, self).form_valid(form)

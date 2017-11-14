@@ -19,6 +19,7 @@ class SegmentProfiler(object):  # pragma: no cover
     """
     Used in a with block to profile a segment of code
     """
+
     def __init__(self, name, test=None, db_profile=True, assert_queries=None, assert_tx=None, force_profile=False):
         self.name = name
 
@@ -95,6 +96,7 @@ def time_monitor(threshold):
     """
     Method decorator to time a method call and log an error if time exceeds the given threshold in milliseconds.
     """
+
     def _time_monitor(func):
         def wrapper(*args, **kwargs):
             start = time.time()
@@ -106,5 +108,7 @@ def time_monitor(threshold):
                 logger.error('Call to %s took %d milliseconds.' % (func.__name__, time_taken), extra={'stack': True})
 
             return result
+
         return wrapper
+
     return _time_monitor

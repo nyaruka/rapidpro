@@ -14,9 +14,19 @@ class TelegramTypeTest(TembaTest):
     def setUp(self):
         super(TelegramTypeTest, self).setUp()
 
-        self.channel = Channel.create(self.org, self.user, None, 'TG', name="Telegram", address="12345",
-                                      role="SR", schemes=['telegram'],
-                                      config={'auth_token': '123456789:BAEKbsOKAL23CXufXG4ksNV7Dq7e_1qi3j8'})
+        self.channel = Channel.create(
+            self.org,
+            self.user,
+            None,
+            'TG',
+            name="Telegram",
+            address="12345",
+            role="SR",
+            schemes=['telegram'],
+            config={
+                'auth_token': '123456789:BAEKbsOKAL23CXufXG4ksNV7Dq7e_1qi3j8'
+            }
+        )
 
     @override_settings(IS_PROD=True)
     @patch('telegram.Bot.get_me')
@@ -38,8 +48,10 @@ class TelegramTypeTest(TembaTest):
         mock_get_me.side_effect = telegram.TelegramError('Boom')
         response = self.client.post(url, {'auth_token': 'invalid'})
         self.assertEqual(200, response.status_code)
-        self.assertEqual('Your authentication token is invalid, please check and try again',
-                         response.context['form'].errors['auth_token'][0])
+        self.assertEqual(
+            'Your authentication token is invalid, please check and try again',
+            response.context['form'].errors['auth_token'][0]
+        )
 
         user = telegram.User(123, 'Rapid', True)
         user.last_name = 'Bot'
@@ -58,8 +70,10 @@ class TelegramTypeTest(TembaTest):
         self.assertEqual(302, response.status_code)
 
         response = self.client.post(url, {'auth_token': '184875172:BAEKbsOKAL23CXufXG4ksNV7Dq7e_1qi3j8'})
-        self.assertEqual('A telegram channel for this bot already exists on your account.',
-                         response.context['form'].errors['auth_token'][0])
+        self.assertEqual(
+            'A telegram channel for this bot already exists on your account.',
+            response.context['form'].errors['auth_token'][0]
+        )
 
         contact = self.create_contact('Telegram User', urn=URN.from_telegram('1234'))
 

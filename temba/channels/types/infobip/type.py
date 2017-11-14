@@ -26,7 +26,9 @@ class InfobipType(ChannelType):
 
     name = "Infobip"
 
-    claim_blurb = _("""Easily add a two way number you have configured with <a href="http://infobip.com">Infobip</a> using their APIs.""")
+    claim_blurb = _(
+        """Easily add a two way number you have configured with <a href="http://infobip.com">Infobip</a> using their APIs."""
+    )
     claim_view = AuthenticatedExternalClaimView
 
     schemes = [TEL_SCHEME]
@@ -40,11 +42,13 @@ class InfobipType(ChannelType):
         password = channel.config['password']
         encoded_auth = base64.b64encode(username + ":" + password)
 
-        headers = http_headers(extra={
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': 'Basic %s' % encoded_auth
-        })
+        headers = http_headers(
+            extra={
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': 'Basic %s' % encoded_auth
+            }
+        )
 
         # if the channel config has specified and override hostname use that, otherwise use settings
         event_hostname = channel.config.get(Channel.CONFIG_RP_HOSTNAME_OVERRIDE, settings.HOSTNAME)
@@ -52,18 +56,19 @@ class InfobipType(ChannelType):
         # the event url InfoBip will forward delivery reports to
         status_url = 'https://%s%s' % (event_hostname, reverse('courier.ib', args=[channel.uuid, 'delivered']))
 
-        payload = {"messages": [
-            {
+        payload = {
+            "messages": [{
                 "from": channel.address.lstrip('+'),
-                "destinations": [
-                    {"to": msg.urn_path.lstrip('+'), "messageId": msg.id}
-                ],
+                "destinations": [{
+                    "to": msg.urn_path.lstrip('+'),
+                    "messageId": msg.id
+                }],
                 "text": text,
                 "notifyContentType": "application/json",
                 "intermediateReport": True,
                 "notifyUrl": status_url
-            }
-        ]}
+            }]
+        }
 
         event = HttpEvent('POST', url, json.dumps(payload))
         events = [event]
@@ -74,19 +79,18 @@ class InfobipType(ChannelType):
             event.status_code = response.status_code
             event.response_body = response.text
         except Exception as e:
-            raise SendException(u"Unable to send message: %s" % six.text_type(e),
-                                events=events, start=start)
+            raise SendException(u"Unable to send message: %s" % six.text_type(e), events=events, start=start)
 
         if response.status_code != 200 and response.status_code != 201:
-            raise SendException("Received non 200 status: %d" % response.status_code,
-                                events=events, start=start)
+            raise SendException("Received non 200 status: %d" % response.status_code, events=events, start=start)
 
         response_json = response.json()
         messages = response_json['messages']
 
         # if it wasn't successfully delivered, throw
         if int(messages[0]['status']['groupId']) not in [1, 3]:
-            raise SendException("Received error status: %s" % messages[0]['status']['description'],
-                                events=events, start=start)
+            raise SendException(
+                "Received error status: %s" % messages[0]['status']['description'], events=events, start=start
+            )
 
         Channel.success(channel, msg, SENT, start, events=events)

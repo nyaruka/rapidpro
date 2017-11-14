@@ -32,21 +32,24 @@ def reload_channel_types():
     # create types on the fly for each type not yet converted to a dynamic type
     for code, name in Channel.TYPE_CHOICES:
         type_settings = Channel.CHANNEL_SETTINGS[code]
-        dyn_type_class = type(str(code + 'Type'), (ChannelType,), dict(
-            code=code,
-            name=name,
-            slug=code.lower(),
-            icon=Channel.TYPE_ICONS.get(code, 'icon-channel-external'),
-            show_config_page=code not in Channel.HIDE_CONFIG_PAGE,
-            schemes=type_settings.get('schemes'),
-            max_length=type_settings.get('max_length'),
-            max_tps=type_settings.get('max_tps'),
-            attachment_support=False,
-            free_sending=code in Channel.FREE_SENDING_CHANNEL_TYPES,
-            update_form=TYPE_UPDATE_FORM_CLASSES.get(code),
-            send=SEND_FUNCTIONS.get(code),
-            ivr_protocol=ChannelType.IVRProtocol.IVR_PROTOCOL_TWIML if code in Channel.TWIML_CHANNELS else None
-        ))
+        dyn_type_class = type(
+            str(code + 'Type'), (ChannelType, ),
+            dict(
+                code=code,
+                name=name,
+                slug=code.lower(),
+                icon=Channel.TYPE_ICONS.get(code, 'icon-channel-external'),
+                show_config_page=code not in Channel.HIDE_CONFIG_PAGE,
+                schemes=type_settings.get('schemes'),
+                max_length=type_settings.get('max_length'),
+                max_tps=type_settings.get('max_tps'),
+                attachment_support=False,
+                free_sending=code in Channel.FREE_SENDING_CHANNEL_TYPES,
+                update_form=TYPE_UPDATE_FORM_CLASSES.get(code),
+                send=SEND_FUNCTIONS.get(code),
+                ivr_protocol=ChannelType.IVRProtocol.IVR_PROTOCOL_TWIML if code in Channel.TWIML_CHANNELS else None
+            )
+        )
         register_channel_type(dyn_type_class)
 
 

@@ -42,6 +42,7 @@ class SearchException(Exception):
     """
     Exception class for unparseable search queries
     """
+
     def __init__(self, message):
         self.message = message
 
@@ -58,7 +59,7 @@ class ContactQuery(object):
     PROP_SCHEME = 'S'
     PROP_FIELD = 'F'
 
-    SEARCHABLE_ATTRIBUTES = ('name',)
+    SEARCHABLE_ATTRIBUTES = ('name', )
 
     SEARCHABLE_SCHEMES = ('tel', 'twitter')
 
@@ -111,6 +112,7 @@ class QueryNode(object):
     """
     A search query node which is either a condition or a boolean combination of other conditions
     """
+
     def simplify(self):
         return self
 
@@ -129,21 +131,9 @@ class Condition(QueryNode):
 
     TEXT_LOOKUPS = {'=': 'iexact'}
 
-    DECIMAL_LOOKUPS = {
-        '=': 'exact',
-        '>': 'gt',
-        '>=': 'gte',
-        '<': 'lt',
-        '<=': 'lte'
-    }
+    DECIMAL_LOOKUPS = {'=': 'exact', '>': 'gt', '>=': 'gte', '<': 'lt', '<=': 'lte'}
 
-    DATETIME_LOOKUPS = {
-        '=': '<equal>',
-        '>': 'gt',
-        '>=': 'gte',
-        '<': 'lt',
-        '<=': 'lte'
-    }
+    DATETIME_LOOKUPS = {'=': '<equal>', '>': 'gt', '>=': 'gte', '<': 'lt', '<=': 'lte'}
 
     LOCATION_LOOKUPS = {'=': 'iexact', '~': 'icontains'}
 
@@ -297,7 +287,12 @@ class Condition(QueryNode):
     @staticmethod
     def get_base_value_query():
         return Value.objects.annotate(
-            field_and_string_value=Concat('contact_field_id', Val('|'), Upper(Substr('string_value', 1, STRING_VALUE_COMPARISON_LIMIT)), output_field=CharField())
+            field_and_string_value=Concat(
+                'contact_field_id',
+                Val('|'),
+                Upper(Substr('string_value', 1, STRING_VALUE_COMPARISON_LIMIT)),
+                output_field=CharField()
+            )
         ).values('contact_id')
 
     @staticmethod
@@ -308,7 +303,9 @@ class Condition(QueryNode):
             raise SearchException(_("%s isn't a valid number") % val)
 
     def __eq__(self, other):
-        return isinstance(other, Condition) and self.prop == other.prop and self.comparator == other.comparator and self.value == other.value
+        return isinstance(
+            other, Condition
+        ) and self.prop == other.prop and self.comparator == other.comparator and self.value == other.value
 
     def __str__(self):
         return '%s%s%s' % (self.prop, self.comparator, self.value)
@@ -320,7 +317,7 @@ class IsSetCondition(Condition):
       * A condition of the form x != "" is interpreted as "x is set"
       * A condition of the form x = "" is interpreted as "x is not set"
     """
-    IS_SET_LOOKUPS = ('!=',)
+    IS_SET_LOOKUPS = ('!=', )
     IS_NOT_SET_LOOKUPS = ('is', '=')
 
     def __init__(self, prop, comparator):
@@ -442,6 +439,7 @@ class SinglePropCombination(BoolCombination):
     A special case combination where all conditions are on the same property and so may be optimized to query the value
     table only once.
     """
+
     def __init__(self, prop, op, *children):
         assert all([isinstance(c, Condition) and c.prop == prop for c in children])
 
@@ -478,7 +476,8 @@ class SinglePropCombination(BoolCombination):
         return super(SinglePropCombination, self).as_query(org, prop_map, base_set)
 
     def __eq__(self, other):
-        return isinstance(other, SinglePropCombination) and self.prop == other.prop and super(SinglePropCombination, self).__eq__(other)
+        return isinstance(other, SinglePropCombination
+                          ) and self.prop == other.prop and super(SinglePropCombination, self).__eq__(other)
 
     def __str__(self):
         op = 'OR' if self.op == self.OR else 'AND'
@@ -486,7 +485,6 @@ class SinglePropCombination(BoolCombination):
 
 
 class ContactQLVisitor(ParseTreeVisitor):
-
     def visitParse(self, ctx):
         return self.visit(ctx.expression())
 

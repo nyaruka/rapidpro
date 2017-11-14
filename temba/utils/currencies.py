@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import pycountry
-
 """
 These are exceptions according to ISO 4217 because they are super-national
 currencies, not belonging to any single country.
@@ -134,7 +133,8 @@ CURRENCY_EXCEPTIONS = {
     'YE': 'YER',
     'YT': 'EUR',
     'ZM': 'ZMW',
-    'ZW': 'ZWL'}
+    'ZW': 'ZWL'
+}
 
 
 def currency_for_country(alpha2):

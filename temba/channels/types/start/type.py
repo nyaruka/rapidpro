@@ -24,7 +24,9 @@ class StartType(ChannelType):
 
     name = "Start Mobile"
 
-    claim_blurb = _("""Easily add a two way number you have configured with <a href="https://bulk.startmobile.ua/">Start Mobile</a> using their APIs.""")
+    claim_blurb = _(
+        """Easily add a two way number you have configured with <a href="https://bulk.startmobile.ua/">Start Mobile</a> using their APIs."""
+    )
     claim_view = AuthenticatedExternalClaimView
 
     schemes = [TEL_SCHEME]
@@ -59,11 +61,13 @@ class StartType(ChannelType):
         try:
             headers = http_headers(extra={'Content-Type': 'application/xml; charset=utf8'})
 
-            response = requests.post(url,
-                                     data=post_body,
-                                     headers=headers,
-                                     auth=(channel.config[Channel.CONFIG_USERNAME], channel.config[Channel.CONFIG_PASSWORD]),
-                                     timeout=30)
+            response = requests.post(
+                url,
+                data=post_body,
+                headers=headers,
+                auth=(channel.config[Channel.CONFIG_USERNAME], channel.config[Channel.CONFIG_PASSWORD]),
+                timeout=30
+            )
 
             event.status_code = response.status_code
             event.response_body = response.text

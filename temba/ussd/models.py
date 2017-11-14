@@ -62,25 +62,52 @@ class USSDSession(ChannelSession):
     def start_async(self, flow, date, message_id):
         from temba.msgs.models import Msg, USSD
         message = Msg.objects.create(
-            channel=self.channel, contact=self.contact, contact_urn=self.contact_urn,
-            sent_on=date, connection=self, msg_type=USSD, external_id=message_id,
-            created_on=timezone.now(), modified_on=timezone.now(), org=self.channel.org,
-            direction=self.INCOMING)
+            channel=self.channel,
+            contact=self.contact,
+            contact_urn=self.contact_urn,
+            sent_on=date,
+            connection=self,
+            msg_type=USSD,
+            external_id=message_id,
+            created_on=timezone.now(),
+            modified_on=timezone.now(),
+            org=self.channel.org,
+            direction=self.INCOMING
+        )
         flow.start([], [self.contact], start_msg=message, restart_participants=True, connection=self)
 
     def handle_async(self, urn, content, date, message_id):
         from temba.msgs.models import Msg, USSD
         Msg.create_incoming(
-            channel=self.channel, org=self.org, urn=urn, text=content or '', date=date, connection=self,
-            msg_type=USSD, external_id=message_id)
+            channel=self.channel,
+            org=self.org,
+            urn=urn,
+            text=content or '',
+            date=date,
+            connection=self,
+            msg_type=USSD,
+            external_id=message_id
+        )
 
     def handle_sync(self):  # pragma: needs cover
         # TODO: implement for InfoBip and other sync APIs
         pass
 
     @classmethod
-    def handle_incoming(cls, channel, urn, date, external_id, contact=None, message_id=None, status=None,
-                        content=None, starcode=None, org=None, async=True):
+    def handle_incoming(
+        cls,
+        channel,
+        urn,
+        date,
+        external_id,
+        contact=None,
+        message_id=None,
+        status=None,
+        content=None,
+        starcode=None,
+        org=None,
+        async=True
+    ):
 
         trigger = None
         contact_urn = None
@@ -100,8 +127,9 @@ class USSDSession(ChannelSession):
             contact_urn.update_affinity(channel)
 
         # setup session
-        defaults = dict(channel=channel, contact=contact, contact_urn=contact_urn,
-                        org=channel.org if channel else contact.org)
+        defaults = dict(
+            channel=channel, contact=contact, contact_urn=contact_urn, org=channel.org if channel else contact.org
+        )
 
         if status == cls.TRIGGERED:
             trigger = Trigger.find_trigger_for_ussd_session(contact, starcode)

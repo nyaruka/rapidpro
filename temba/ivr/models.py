@@ -27,15 +27,28 @@ class IVRCall(ChannelSession):
 
     @classmethod
     def create_outgoing(cls, channel, contact, contact_urn, user):
-        return IVRCall.objects.create(channel=channel, contact=contact, contact_urn=contact_urn,
-                                      direction=IVRCall.OUTGOING, org=channel.org,
-                                      created_by=user, modified_by=user)
+        return IVRCall.objects.create(
+            channel=channel,
+            contact=contact,
+            contact_urn=contact_urn,
+            direction=IVRCall.OUTGOING,
+            org=channel.org,
+            created_by=user,
+            modified_by=user
+        )
 
     @classmethod
     def create_incoming(cls, channel, contact, contact_urn, user, external_id):
-        return IVRCall.objects.create(channel=channel, contact=contact, contact_urn=contact_urn,
-                                      direction=IVRCall.INCOMING, org=channel.org, created_by=user,
-                                      modified_by=user, external_id=external_id)
+        return IVRCall.objects.create(
+            channel=channel,
+            contact=contact,
+            contact_urn=contact_urn,
+            direction=IVRCall.INCOMING,
+            org=channel.org,
+            created_by=user,
+            modified_by=user,
+            external_id=external_id
+        )
 
     @classmethod
     def hangup_test_call(cls, flow):

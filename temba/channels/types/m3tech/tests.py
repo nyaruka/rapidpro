@@ -6,7 +6,6 @@ from ...models import Channel
 
 
 class M3TechTypeTest(TembaTest):
-
     def test_claim(self):
         Channel.objects.all().delete()
 

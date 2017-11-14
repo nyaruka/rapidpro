@@ -8,7 +8,6 @@ from ...models import Channel
 
 
 class VumiUSSDTypeTest(TembaTest):
-
     def test_claim(self):
         Channel.objects.all().delete()
 

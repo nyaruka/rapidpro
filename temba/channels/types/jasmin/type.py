@@ -28,8 +28,10 @@ class JasminType(ChannelType):
 
     name = "Jasmin"
 
-    claim_blurb = _("""Connect your <a href="http://www.jasminsms.com/" target="_blank">Jasmin</a> instance that you have
-                       already connected to an SMSC.""")
+    claim_blurb = _(
+        """Connect your <a href="http://www.jasminsms.com/" target="_blank">Jasmin</a> instance that you have
+                       already connected to an SMSC."""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
@@ -39,16 +41,25 @@ class JasminType(ChannelType):
     def send(self, channel, msg, text):
 
         # build our callback dlr url, jasmin will call this when our message is sent or delivered
-        dlr_url = 'https://%s%s' % (settings.HOSTNAME, reverse('handlers.jasmin_handler', args=['status', channel.uuid]))
+        dlr_url = 'https://%s%s' % (
+            settings.HOSTNAME, reverse('handlers.jasmin_handler', args=['status', channel.uuid])
+        )
 
         # encode to GSM7
         encoded = gsm7.encode(text, 'replace')[0]
 
         # build our payload
-        payload = {'from': channel.address.lstrip('+'), 'to': msg.urn_path.lstrip('+'),
-                   'username': channel.config[Channel.CONFIG_USERNAME],
-                   'password': channel.config[Channel.CONFIG_PASSWORD], 'dlr': dlr_url, 'dlr-level': '2',
-                   'dlr-method': 'POST', 'coding': '0', 'content': encoded}
+        payload = {
+            'from': channel.address.lstrip('+'),
+            'to': msg.urn_path.lstrip('+'),
+            'username': channel.config[Channel.CONFIG_USERNAME],
+            'password': channel.config[Channel.CONFIG_PASSWORD],
+            'dlr': dlr_url,
+            'dlr-level': '2',
+            'dlr-method': 'POST',
+            'coding': '0',
+            'content': encoded
+        }
 
         log_payload = payload.copy()
         log_payload['password'] = 'x' * len(log_payload['password'])
@@ -64,12 +75,12 @@ class JasminType(ChannelType):
             event.response_body = response.text
 
         except Exception as e:
-            raise SendException(six.text_type(e),
-                                event=event, start=start)
+            raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code != 200 and response.status_code != 201 and response.status_code != 202:
-            raise SendException("Got non-200 response [%d] from Jasmin" % response.status_code,
-                                event=event, start=start)
+            raise SendException(
+                "Got non-200 response [%d] from Jasmin" % response.status_code, event=event, start=start
+            )
 
         # save the external id, response should be in format:
         # Success "07033084-5cfd-4812-90a4-e4d24ffb6e3d"

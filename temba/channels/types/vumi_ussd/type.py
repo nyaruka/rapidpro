@@ -20,7 +20,9 @@ class VumiUSSDType(ChannelType):
     name = "Vumi USSD"
     slug = 'vumi_ussd'
 
-    claim_blurb = _("""Easily connect your <a href="http://go.vumi.org/">Vumi</a> account to take advantage of session based messaging across USSD transports.""")
+    claim_blurb = _(
+        """Easily connect your <a href="http://go.vumi.org/">Vumi</a> account to take advantage of session based messaging across USSD transports."""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]

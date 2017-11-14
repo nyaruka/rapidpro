@@ -14,7 +14,6 @@ from .models import Value
 
 
 class ResultTest(FlowFileTest):
-
     def assertResult(self, result, index, category, count):
         self.assertEqual(count, result['categories'][index]['count'])
         self.assertEqual(category, result['categories'][index]['label'])
@@ -65,7 +64,9 @@ class ResultTest(FlowFileTest):
         self.assertEqual(3, result['unset'])
         self.assertResult(result, 0, "1708283", 2)
 
-        reg_date = ContactField.get_or_create(self.org, self.admin, 'reg_date', label="Registration Date", value_type=Value.TYPE_DATETIME)
+        reg_date = ContactField.get_or_create(
+            self.org, self.admin, 'reg_date', label="Registration Date", value_type=Value.TYPE_DATETIME
+        )
         now = timezone.now()
 
         c1.set_field(self.user, 'reg_date', now.replace(hour=9))
@@ -96,17 +97,19 @@ class ResultTest(FlowFileTest):
         self.assertNotEqual(new_value.string_value, original_value.string_value)
 
     def run_color_gender_flow(self, contact, color, gender, age):
-        self.assertEqual(self.send_message(self.flow, color, contact=contact, restart_participants=True), "What is your gender?")
+        self.assertEqual(
+            self.send_message(self.flow, color, contact=contact, restart_participants=True), "What is your gender?"
+        )
         self.assertEqual(self.send_message(self.flow, gender, contact=contact), "What is your age?")
         self.assertEqual(self.send_message(self.flow, age, contact=contact), "Thanks.")
 
     def setup_color_gender_flow(self):
         self.flow = self.get_flow('color_gender_age')
 
-        (self.c1, self.c2, self.c3, self.c4) = (self.create_contact("Contact1", '0788111111'),
-                                                self.create_contact("Contact2", '0788222222'),
-                                                self.create_contact("Contact3", '0788333333'),
-                                                self.create_contact("Contact4", '0788444444'))
+        (self.c1, self.c2, self.c3, self.c4) = (
+            self.create_contact("Contact1", '0788111111'), self.create_contact("Contact2", '0788222222'),
+            self.create_contact("Contact3", '0788333333'), self.create_contact("Contact4", '0788444444')
+        )
 
     def test_category_results(self):
         self.setup_color_gender_flow()
@@ -178,22 +181,33 @@ class ResultTest(FlowFileTest):
         self.assertResult(result, 2, "Green", 1)
 
         # what about men that are adults?
-        result = Value.get_value_summary(ruleset=color, filters=[dict(ruleset=gender.pk, categories=["Male"]),
-                                         dict(ruleset=age.pk, categories=["Adult"])])[0]
+        result = Value.get_value_summary(
+            ruleset=color,
+            filters=[dict(ruleset=gender.pk, categories=["Male"]),
+                     dict(ruleset=age.pk, categories=["Adult"])]
+        )[0]
         self.assertResult(result, 0, "Red", 0)
         self.assertResult(result, 1, "Blue", 0)
         self.assertResult(result, 2, "Green", 0)
 
         # union of all genders
-        result = Value.get_value_summary(ruleset=color, filters=[dict(ruleset=gender.pk, categories=["Male", "Female"]),
-                                         dict(ruleset=age.pk, categories=["Adult"])])[0]
+        result = Value.get_value_summary(
+            ruleset=color,
+            filters=[
+                dict(ruleset=gender.pk, categories=["Male", "Female"]),
+                dict(ruleset=age.pk, categories=["Adult"])
+            ]
+        )[0]
 
         self.assertResult(result, 0, "Red", 1)
         self.assertResult(result, 1, "Blue", 1)
         self.assertResult(result, 2, "Green", 0)
 
         # just women adults by group
-        result = Value.get_value_summary(ruleset=color, filters=[dict(groups=[ladies.pk]), dict(ruleset=age.pk, categories="Adult")])[0]
+        result = Value.get_value_summary(
+            ruleset=color, filters=[dict(groups=[ladies.pk]),
+                                    dict(ruleset=age.pk, categories="Adult")]
+        )[0]
 
         self.assertResult(result, 0, "Red", 1)
         self.assertResult(result, 1, "Blue", 1)
@@ -203,7 +217,10 @@ class ResultTest(FlowFileTest):
         ladies.update_contacts(self.user, [self.c2], False)
 
         # get a new summary
-        result = Value.get_value_summary(ruleset=color, filters=[dict(groups=[ladies.pk]), dict(ruleset=age.pk, categories="Adult")])[0]
+        result = Value.get_value_summary(
+            ruleset=color, filters=[dict(groups=[ladies.pk]),
+                                    dict(ruleset=age.pk, categories="Adult")]
+        )[0]
 
         self.assertResult(result, 0, "Red", 1)
         self.assertResult(result, 1, "Blue", 0)
@@ -234,7 +251,9 @@ class ResultTest(FlowFileTest):
         self.run_color_gender_flow(self.c1, "blue", "male", "16")
 
         # ok, now segment by gender
-        result = Value.get_value_summary(ruleset=color, filters=[], segment=dict(ruleset=gender.pk, categories=["Male", "Female"]))
+        result = Value.get_value_summary(
+            ruleset=color, filters=[], segment=dict(ruleset=gender.pk, categories=["Male", "Female"])
+        )
         male_result = result[0]
         self.assertResult(male_result, 0, "Red", 0)
         self.assertResult(male_result, 1, "Blue", 1)
@@ -246,7 +265,9 @@ class ResultTest(FlowFileTest):
         self.assertResult(female_result, 2, "Green", 0)
 
         # segment by gender again, but use the contact field to do so
-        result = Value.get_value_summary(ruleset=color, filters=[], segment=dict(contact_field="Gender", values=["MALE", "Female"]))
+        result = Value.get_value_summary(
+            ruleset=color, filters=[], segment=dict(contact_field="Gender", values=["MALE", "Female"])
+        )
         male_result = result[0]
         self.assertResult(male_result, 0, "Red", 0)
         self.assertResult(male_result, 1, "Blue", 1)
@@ -258,8 +279,11 @@ class ResultTest(FlowFileTest):
         self.assertResult(female_result, 2, "Green", 0)
 
         # add in a filter at the same time
-        result = Value.get_value_summary(ruleset=color, filters=[dict(ruleset=color.pk, categories=["Blue"])],
-                                         segment=dict(ruleset=gender.pk, categories=["Male", "Female"]))
+        result = Value.get_value_summary(
+            ruleset=color,
+            filters=[dict(ruleset=color.pk, categories=["Blue"])],
+            segment=dict(ruleset=gender.pk, categories=["Male", "Female"])
+        )
 
         male_result = result[0]
         self.assertResult(male_result, 0, "Red", 0)
@@ -320,8 +344,9 @@ class ResultTest(FlowFileTest):
 
         # do a sanity check on our choropleth view
         self.login(self.admin)
-        response = self.client.get(reverse('flows.ruleset_choropleth', args=[color.pk]) +
-                                   "?_format=json&boundary=" + self.org.country.osm_id)
+        response = self.client.get(
+            reverse('flows.ruleset_choropleth', args=[color.pk]) + "?_format=json&boundary=" + self.org.country.osm_id
+        )
 
         # response should be valid json
         response = response.json()
@@ -350,8 +375,10 @@ class ResultTest(FlowFileTest):
         with patch('temba.values.models.Value.get_value_summary') as mock:
             mock.return_value = []
 
-            response = self.client.get(reverse('flows.ruleset_choropleth', args=[color.pk]) +
-                                       "?_format=json&boundary=" + self.org.country.osm_id)
+            response = self.client.get(
+                reverse('flows.ruleset_choropleth', args=[color.pk]) + "?_format=json&boundary=" +
+                self.org.country.osm_id
+            )
 
             # response should be valid json
             response = response.json()
@@ -386,12 +413,11 @@ class ResultTest(FlowFileTest):
         def run_flow(contact, word):
             self.assertEqual("Thank you", self.send_message(flow, word, contact=contact, restart_participants=True))
 
-        (c1, c2, c3, c4, c5, c6) = (self.create_contact("Contact1", '0788111111'),
-                                    self.create_contact("Contact2", '0788222222'),
-                                    self.create_contact("Contact3", '0788333333'),
-                                    self.create_contact("Contact4", '0788444444'),
-                                    self.create_contact("Contact5", '0788555555'),
-                                    self.create_contact("Contact6", '0788666666', is_test=True))
+        (c1, c2, c3, c4, c5, c6) = (
+            self.create_contact("Contact1", '0788111111'), self.create_contact("Contact2", '0788222222'),
+            self.create_contact("Contact3", '0788333333'), self.create_contact("Contact4", '0788444444'),
+            self.create_contact("Contact5", '0788555555'), self.create_contact("Contact6", '0788666666', is_test=True)
+        )
 
         run_flow(c1, "1 better place")
         run_flow(c2, "the great coffee")

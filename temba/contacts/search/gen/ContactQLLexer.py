@@ -161,7 +161,7 @@ class ContactQLLexer(Lexer):
 
     atn = ATNDeserializer().deserialize(serializedATN())
 
-    decisionsToDFA = [ DFA(ds, i) for i, ds in enumerate(atn.decisionToState) ]
+    decisionsToDFA = [DFA(ds, i) for i, ds in enumerate(atn.decisionToState)]
 
     LPAREN = 1
     RPAREN = 2
@@ -173,21 +173,21 @@ class ContactQLLexer(Lexer):
     WS = 8
     ERROR = 9
 
-    channelNames = [ u"DEFAULT_TOKEN_CHANNEL", u"HIDDEN" ]
+    channelNames = [u"DEFAULT_TOKEN_CHANNEL", u"HIDDEN"]
 
-    modeNames = [ u"DEFAULT_MODE" ]
+    modeNames = [u"DEFAULT_MODE"]
 
-    literalNames = [ u"<INVALID>",
-            u"'('", u"')'" ]
+    literalNames = [u"<INVALID>", u"'('", u"')'"]
 
-    symbolicNames = [ u"<INVALID>",
-            u"LPAREN", u"RPAREN", u"AND", u"OR", u"COMPARATOR", u"TEXT", 
-            u"STRING", u"WS", u"ERROR" ]
+    symbolicNames = [
+        u"<INVALID>", u"LPAREN", u"RPAREN", u"AND", u"OR", u"COMPARATOR", u"TEXT", u"STRING", u"WS", u"ERROR"
+    ]
 
-    ruleNames = [ u"HAS", u"IS", u"LPAREN", u"RPAREN", u"AND", u"OR", u"COMPARATOR", 
-                  u"TEXT", u"STRING", u"WS", u"ERROR", u"UnicodeLetter", 
-                  u"UnicodeClass_LU", u"UnicodeClass_LL", u"UnicodeClass_LT", 
-                  u"UnicodeClass_LM", u"UnicodeClass_LO", u"UnicodeDigit" ]
+    ruleNames = [
+        u"HAS", u"IS", u"LPAREN", u"RPAREN", u"AND", u"OR", u"COMPARATOR", u"TEXT", u"STRING", u"WS", u"ERROR",
+        u"UnicodeLetter", u"UnicodeClass_LU", u"UnicodeClass_LL", u"UnicodeClass_LT", u"UnicodeClass_LM",
+        u"UnicodeClass_LO", u"UnicodeDigit"
+    ]
 
     grammarFileName = u"ContactQL.g4"
 
@@ -197,5 +197,3 @@ class ContactQLLexer(Lexer):
         self._interp = LexerATNSimulator(self, self.atn, self.decisionsToDFA, PredictionContextCache())
         self._actions = None
         self._predicates = None
-
-

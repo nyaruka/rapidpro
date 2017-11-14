@@ -11,16 +11,28 @@ from temba.channels.views import ALL_COUNTRIES, ClaimViewMixin, AuthenticatedExt
 
 class ClaimView(AuthenticatedExternalClaimView):
     class Form(ClaimViewMixin.Form):
-            country = forms.ChoiceField(choices=ALL_COUNTRIES, label=_("Country"),
-                                        help_text=_("The country this phone number is used in"))
-            number = forms.CharField(max_length=14, min_length=1, label=_("Number"),
-                                     help_text=_("The phone number with country code or short code you are connecting. ex: +250788123124 or 15543"))
-            account_key = forms.CharField(label=_("Account Key"),
-                                          help_text=_("Your Vumi account key as found under Account -> Details"))
-            conversation_key = forms.CharField(label=_("Conversation Key"),
-                                               help_text=_("The key for your Vumi conversation, can be found in the URL"))
-            api_url = forms.URLField(label=_("API URL"), required=False,
-                                     help_text=_("Custom VUMI API Endpoint. Leave blank to use default of: '%s'" % Channel.VUMI_GO_API_URL))
+        country = forms.ChoiceField(
+            choices=ALL_COUNTRIES, label=_("Country"), help_text=_("The country this phone number is used in")
+        )
+        number = forms.CharField(
+            max_length=14,
+            min_length=1,
+            label=_("Number"),
+            help_text=_(
+                "The phone number with country code or short code you are connecting. ex: +250788123124 or 15543"
+            )
+        )
+        account_key = forms.CharField(
+            label=_("Account Key"), help_text=_("Your Vumi account key as found under Account -> Details")
+        )
+        conversation_key = forms.CharField(
+            label=_("Conversation Key"), help_text=_("The key for your Vumi conversation, can be found in the URL")
+        )
+        api_url = forms.URLField(
+            label=_("API URL"),
+            required=False,
+            help_text=_("Custom VUMI API Endpoint. Leave blank to use default of: '%s'" % Channel.VUMI_GO_API_URL)
+        )
 
     form_class = Form
 
@@ -36,12 +48,19 @@ class ClaimView(AuthenticatedExternalClaimView):
         else:
             api_url = data.get('api_url')
 
-        self.object = Channel.add_config_external_channel(org, self.request.user,
-                                                          data['country'], data['number'], 'VM',
-                                                          dict(account_key=data['account_key'],
-                                                               access_token=str(uuid4()),
-                                                               conversation_key=data['conversation_key'],
-                                                               api_url=api_url),
-                                                          role=Channel.DEFAULT_ROLE)
+        self.object = Channel.add_config_external_channel(
+            org,
+            self.request.user,
+            data['country'],
+            data['number'],
+            'VM',
+            dict(
+                account_key=data['account_key'],
+                access_token=str(uuid4()),
+                conversation_key=data['conversation_key'],
+                api_url=api_url
+            ),
+            role=Channel.DEFAULT_ROLE
+        )
 
         return super(AuthenticatedExternalClaimView, self).form_valid(form)

@@ -23,9 +23,11 @@ class LineType(ChannelType):
     name = "LINE"
     icon = 'icon-line'
 
-    claim_blurb = _("""Add a <a href="https://line.me">LINE</a> bot to send and receive messages to LINE users
+    claim_blurb = _(
+        """Add a <a href="https://line.me">LINE</a> bot to send and receive messages to LINE users
                 for free. Your users will need an Android, Windows or iOS device and a LINE account to send
-                and receive messages.""")
+                and receive messages."""
+    )
     claim_view = ClaimView
 
     schemes = [LINE_SCHEME]
@@ -39,10 +41,12 @@ class LineType(ChannelType):
         data = json.dumps({'to': msg.urn_path, 'messages': [{'type': 'text', 'text': text}]})
 
         start = time.time()
-        headers = http_headers(extra={
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer %s' % channel_access_token
-        })
+        headers = http_headers(
+            extra={
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer %s' % channel_access_token
+            }
+        )
         send_url = 'https://api.line.me/v2/bot/message/push'
 
         event = HttpEvent('POST', send_url, data)
@@ -57,7 +61,6 @@ class LineType(ChannelType):
             raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code not in [200, 201, 202]:  # pragma: needs cover
-            raise SendException("Got non-200 response [%d] from Line" % response.status_code,
-                                event=event, start=start)
+            raise SendException("Got non-200 response [%d] from Line" % response.status_code, event=event, start=start)
 
         Channel.success(channel, msg, WIRED, start, event=event)

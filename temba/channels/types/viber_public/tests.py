@@ -13,8 +13,19 @@ class ViberPublicTypeTest(TembaTest):
     def setUp(self):
         super(ViberPublicTypeTest, self).setUp()
 
-        self.channel = Channel.create(self.org, self.user, None, 'VP', name="Viber", address="12345",
-                                      role="SR", schemes=['viber'], config={'auth_token': 'abcd1234'})
+        self.channel = Channel.create(
+            self.org,
+            self.user,
+            None,
+            'VP',
+            name="Viber",
+            address="12345",
+            role="SR",
+            schemes=['viber'],
+            config={
+                'auth_token': 'abcd1234'
+            }
+        )
 
     @override_settings(IS_PROD=True)
     @patch('requests.post')
@@ -36,9 +47,22 @@ class ViberPublicTypeTest(TembaTest):
 
         # ok this time claim with a success
         mock_post.side_effect = [
-            MockResponse(200, json.dumps({'status': 0, 'status_message': "ok", 'id': "viberId", 'uri': "viberName"})),
-            MockResponse(200, json.dumps({'status': 0, 'status_message': "ok", 'id': "viberId", 'uri': "viberName"})),
-            MockResponse(200, json.dumps({'status': 0, 'status_message': "ok"}))
+            MockResponse(200, json.dumps({
+                'status': 0,
+                'status_message': "ok",
+                'id': "viberId",
+                'uri': "viberName"
+            })),
+            MockResponse(200, json.dumps({
+                'status': 0,
+                'status_message': "ok",
+                'id': "viberId",
+                'uri': "viberName"
+            })),
+            MockResponse(200, json.dumps({
+                'status': 0,
+                'status_message': "ok"
+            }))
         ]
 
         self.client.post(url, {'auth_token': '123456'}, follow=True)

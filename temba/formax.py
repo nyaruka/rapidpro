@@ -9,7 +9,6 @@ from orgs.context_processors import user_group_perms_processor
 
 
 class FormaxMixin(object):
-
     def derive_formax_sections(self, formax, context):  # pragma: needs cover
         return None
 
@@ -24,7 +23,6 @@ class FormaxMixin(object):
 
 
 class Formax(object):
-
     def __init__(self, request):
         self.sections = []
         self.request = request
@@ -47,8 +45,18 @@ class Formax(object):
         # redirects don't do us any good
         if not isinstance(response, HttpResponseRedirect):
             response.render()
-            self.sections.append(dict(name=name, url=url, response=response.content,
-                                      icon=icon, action=action, button=button, nobutton=nobutton, dependents=dependents))
+            self.sections.append(
+                dict(
+                    name=name,
+                    url=url,
+                    response=response.content,
+                    icon=icon,
+                    action=action,
+                    button=button,
+                    nobutton=nobutton,
+                    dependents=dependents
+                )
+            )
 
         if settings.DEBUG:
             print("%s took: %f" % (url, time.time() - start))

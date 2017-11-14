@@ -20,7 +20,6 @@ from temba.utils.models import generate_uuid
 
 
 class ClaimView(BaseClaimNumberMixin, SmartFormView):
-
     class Form(ClaimViewMixin.Form):
         country = forms.ChoiceField(choices=PLIVO_SUPPORTED_COUNTRIES)
         phone_number = forms.CharField(help_text=_("The phone number being added"))
@@ -94,8 +93,7 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
                         phone_number = number_dict['number']
                     else:
                         parsed = phonenumbers.parse('+' + number_dict['number'], None)
-                        phone_number = phonenumbers.format_number(parsed,
-                                                                  phonenumbers.PhoneNumberFormat.INTERNATIONAL)
+                        phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.INTERNATIONAL)
 
                     account_numbers.append(dict(number=phone_number, country=country))
 
@@ -113,21 +111,25 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
 
         client = plivo.RestAPI(auth_id, auth_token)
 
-        message_url = "https://" + settings.HOSTNAME + "%s" % reverse('handlers.plivo_handler', args=['receive', plivo_uuid])
+        message_url = "https://" + settings.HOSTNAME + "%s" % reverse(
+            'handlers.plivo_handler', args=['receive', plivo_uuid]
+        )
         answer_url = "https://" + settings.AWS_BUCKET_DOMAIN + "/plivo_voice_unavailable.xml"
 
-        plivo_response_status, plivo_response = client.create_application(params=dict(app_name=app_name,
-                                                                                      answer_url=answer_url,
-                                                                                      message_url=message_url))
+        plivo_response_status, plivo_response = client.create_application(
+            params=dict(app_name=app_name, answer_url=answer_url, message_url=message_url)
+        )
 
         if plivo_response_status in [201, 200, 202]:
             plivo_app_id = plivo_response['app_id']
         else:  # pragma: no cover
             plivo_app_id = None
 
-        plivo_config = {Channel.CONFIG_PLIVO_AUTH_ID: auth_id,
-                        Channel.CONFIG_PLIVO_AUTH_TOKEN: auth_token,
-                        Channel.CONFIG_PLIVO_APP_ID: plivo_app_id}
+        plivo_config = {
+            Channel.CONFIG_PLIVO_AUTH_ID: auth_id,
+            Channel.CONFIG_PLIVO_AUTH_TOKEN: auth_token,
+            Channel.CONFIG_PLIVO_APP_ID: plivo_app_id
+        }
 
         plivo_number = phone_number.strip('+ ').replace(' ', '')
 
@@ -137,22 +139,27 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             plivo_response_status, plivo_response = client.buy_phone_number(params=dict(number=plivo_number))
 
             if plivo_response_status != 201:  # pragma: no cover
-                raise Exception(_("There was a problem claiming that number, please check the balance on your account."))
+                raise Exception(
+                    _("There was a problem claiming that number, please check the balance on your account.")
+                )
 
             plivo_response_status, plivo_response = client.get_number(params=dict(number=plivo_number))
 
         if plivo_response_status == 200:
-            plivo_response_status, plivo_response = client.modify_number(params=dict(number=plivo_number,
-                                                                                     app_id=plivo_app_id))
+            plivo_response_status, plivo_response = client.modify_number(
+                params=dict(number=plivo_number, app_id=plivo_app_id)
+            )
             if plivo_response_status != 202:  # pragma: no cover
                 raise Exception(_("There was a problem updating that number, please try again."))
 
         phone_number = '+' + plivo_number
-        phone = phonenumbers.format_number(phonenumbers.parse(phone_number, None),
-                                           phonenumbers.PhoneNumberFormat.NATIONAL)
+        phone = phonenumbers.format_number(
+            phonenumbers.parse(phone_number, None), phonenumbers.PhoneNumberFormat.NATIONAL
+        )
 
-        channel = Channel.create(org, user, country, 'PL', name=phone, address=phone_number,
-                                 config=plivo_config, uuid=plivo_uuid)
+        channel = Channel.create(
+            org, user, country, 'PL', name=phone, address=phone_number, config=plivo_config, uuid=plivo_uuid
+        )
 
         analytics.track(user.username, 'temba.channel_claim_plivo', dict(number=phone_number))
 

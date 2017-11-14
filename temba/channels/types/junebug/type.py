@@ -30,7 +30,9 @@ class JunebugType(ChannelType):
     name = "Junebug"
     icon = "icon-junebug"
 
-    claim_blurb = _("""Connect your <a href="https://junebug.praekelt.org/" target="_blank">Junebug</a> instance that you have already set up and configured.""")
+    claim_blurb = _(
+        """Connect your <a href="https://junebug.praekelt.org/" target="_blank">Junebug</a> instance that you have already set up and configured."""
+    )
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
@@ -80,10 +82,13 @@ class JunebugType(ChannelType):
 
         try:
             response = requests.post(
-                channel.config[Channel.CONFIG_SEND_URL], verify=True,
-                json=payload, timeout=15, headers=headers,
-                auth=(channel.config[Channel.CONFIG_USERNAME],
-                      channel.config[Channel.CONFIG_PASSWORD]))
+                channel.config[Channel.CONFIG_SEND_URL],
+                verify=True,
+                json=payload,
+                timeout=15,
+                headers=headers,
+                auth=(channel.config[Channel.CONFIG_USERNAME], channel.config[Channel.CONFIG_PASSWORD])
+            )
 
             event.status_code = response.status_code
             event.response_body = response.text
@@ -92,8 +97,9 @@ class JunebugType(ChannelType):
             raise SendException(text_type(e), event=event, start=start)
 
         if not (200 <= response.status_code < 300):
-            raise SendException("Received a non 200 response %d from Junebug" % response.status_code,
-                                event=event, start=start)
+            raise SendException(
+                "Received a non 200 response %d from Junebug" % response.status_code, event=event, start=start
+            )
 
         data = response.json()
 
@@ -104,8 +110,10 @@ class JunebugType(ChannelType):
             message_id = data['result']['message_id']
             Channel.success(channel, msg, WIRED, start, event=event, external_id=message_id)
         except KeyError as e:
-            raise SendException("Unable to read external message_id: %r" % (e,),
-                                event=HttpEvent('POST', log_url,
-                                                request_body=json.dumps(json.dumps(payload)),
-                                                response_body=json.dumps(data)),
-                                start=start)
+            raise SendException(
+                "Unable to read external message_id: %r" % (e, ),
+                event=HttpEvent(
+                    'POST', log_url, request_body=json.dumps(json.dumps(payload)), response_body=json.dumps(data)
+                ),
+                start=start
+            )

@@ -9,7 +9,6 @@ GSM7_BASIC = u"@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ\x1bÆæßÉ !
 
 GSM7_EXTENDED = u"^{}\\[~]|€"
 
-
 # All valid GSM7 characters, table format
 VALID_GSM7 = GSM7_BASIC + GSM7_EXTENDED
 
@@ -19,45 +18,45 @@ GSM7_BASIC_CHARS = {c for c in GSM7_BASIC}
 GSM7_EXTENDED_CHARS = {c for c in GSM7_EXTENDED}
 
 # Characters we replace in GSM7 with versions that can actually be encoded
-GSM7_REPLACEMENTS = {u'á': 'a',
-                     u'ê': 'e',
-                     u'ã': 'a',
-                     u'â': 'a',
-                     u'ç': 'c',
-                     u'í': 'i',
-                     u'î': 'i',
-                     u'ú': 'u',
-                     u'û': 'u',
-                     u'õ': 'o',
-                     u'ô': 'o',
-                     u'ó': 'o',
+GSM7_REPLACEMENTS = {
+    u'á': 'a',
+    u'ê': 'e',
+    u'ã': 'a',
+    u'â': 'a',
+    u'ç': 'c',
+    u'í': 'i',
+    u'î': 'i',
+    u'ú': 'u',
+    u'û': 'u',
+    u'õ': 'o',
+    u'ô': 'o',
+    u'ó': 'o',
+    u'Á': 'A',
+    u'Â': 'A',
+    u'Ã': 'A',
+    u'À': 'A',
+    u'Ç': 'C',
+    u'È': 'E',
+    u'Ê': 'E',
+    u'Í': 'I',
+    u'Î': 'I',
+    u'Ì': 'I',
+    u'Ó': 'O',
+    u'Ô': 'O',
+    u'Ò': 'O',
+    u'Õ': 'O',
+    u'Ú': 'U',
+    u'Ù': 'U',
+    u'Û': 'U',
 
-                     u'Á': 'A',
-                     u'Â': 'A',
-                     u'Ã': 'A',
-                     u'À': 'A',
-                     u'Ç': 'C',
-                     u'È': 'E',
-                     u'Ê': 'E',
-                     u'Í': 'I',
-                     u'Î': 'I',
-                     u'Ì': 'I',
-                     u'Ó': 'O',
-                     u'Ô': 'O',
-                     u'Ò': 'O',
-                     u'Õ': 'O',
-                     u'Ú': 'U',
-                     u'Ù': 'U',
-                     u'Û': 'U',
-
-                     # shit Word likes replacing automatically
-                     u'’': '\'',
-                     u'‘': '\'',
-                     u'“': '"',
-                     u'”': '"',
-                     u'–': '-',
-                     u'\xa0': ' ',
-                     }
+    # shit Word likes replacing automatically
+    u'’': '\'',
+    u'‘': '\'',
+    u'“': '"',
+    u'”': '"',
+    u'–': '-',
+    u'\xa0': ' ',
+}
 
 
 def is_gsm7(text):
@@ -94,10 +93,9 @@ def_regular_decode_dict = {
     '\x07': u'\u00EC',  # LATIN SMALL LETTER I WITH GRAVE
     '\x08': u'\u00F2',  # LATIN SMALL LETTER O WITH GRAVE
     '\x09': u'\u00C7',  # LATIN CAPITAL LETTER C WITH CEDILLA
-                        # The Unicode page suggests this is a mistake: but
-                        # it's still in the latest version of the spec and
-                        # our implementation has to be exact.
-
+    # The Unicode page suggests this is a mistake: but
+    # it's still in the latest version of the spec and
+    # our implementation has to be exact.
     '\x0A': u'\u000A',  # LINE FEED
     '\x0B': u'\u00D8',  # LATIN CAPITAL LETTER O WITH STROKE
     '\x0C': u'\u00F8',  # LATIN SMALL LETTER O WITH STROKE
@@ -237,7 +235,6 @@ def_escape_decode_dict = {
 # important to ensure the conversion is exact.
 def_replace_encode_dict = {
     u'\u00E7': '\x09',  # LATIN SMALL LETTER C WITH CEDILLA
-
     u'\u0391': '\x41',  # GREEK CAPITAL LETTER ALPHA
     u'\u0392': '\x42',  # GREEK CAPITAL LETTER BETA
     u'\u0395': '\x45',  # GREEK CAPITAL LETTER EPSILON

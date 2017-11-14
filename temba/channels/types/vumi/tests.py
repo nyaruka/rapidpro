@@ -8,7 +8,6 @@ from ...models import Channel
 
 
 class VumiTypeTest(TembaTest):
-
     def test_claim(self):
         Channel.objects.all().delete()
         url = reverse('channels.claim_vumi')

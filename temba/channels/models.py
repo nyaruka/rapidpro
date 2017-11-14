@@ -67,6 +67,7 @@ class ChannelType(six.with_metaclass(ABCMeta)):
     """
     Base class for all dynamic channel types
     """
+
     class Category(Enum):
         PHONE = 1
         SOCIAL_MEDIA = 2
@@ -220,8 +221,7 @@ class Channel(TembaModel):
     ENCODING_SMART = 'S'  # we try simple substitutions to GSM7 then go to unicode if it still isn't GSM7
     ENCODING_UNICODE = 'U'  # we send everything as unicode
 
-    ENCODING_CHOICES = ((ENCODING_DEFAULT, _("Default Encoding")),
-                        (ENCODING_SMART, _("Smart Encoding")),
+    ENCODING_CHOICES = ((ENCODING_DEFAULT, _("Default Encoding")), (ENCODING_SMART, _("Smart Encoding")),
                         (ENCODING_UNICODE, _("Unicode Encoding")))
 
     # the role types for our channels
@@ -256,8 +256,8 @@ class Channel(TembaModel):
     }
 
     CONTENT_TYPE_CHOICES = ((CONTENT_TYPE_URLENCODED, _("URL Encoded - application/x-www-form-urlencoded")),
-                            (CONTENT_TYPE_JSON, _("JSON - application/json")),
-                            (CONTENT_TYPE_XML, _("XML - text/xml; charset=utf-8")))
+                            (CONTENT_TYPE_JSON,
+                             _("JSON - application/json")), (CONTENT_TYPE_XML, _("XML - text/xml; charset=utf-8")))
 
     # our default max tps is 50
     DEFAULT_TPS = 50
@@ -270,15 +270,10 @@ class Channel(TembaModel):
         TYPE_VIBER: dict(schemes=['tel'], max_length=1000)
     }
 
-    TYPE_CHOICES = ((TYPE_ANDROID, "Android"),
-                    (TYPE_DUMMY, "Dummy"),
-                    (TYPE_VERBOICE, "Verboice"),
+    TYPE_CHOICES = ((TYPE_ANDROID, "Android"), (TYPE_DUMMY, "Dummy"), (TYPE_VERBOICE, "Verboice"),
                     (TYPE_VIBER, "Viber"))
 
-    TYPE_ICONS = {
-        TYPE_ANDROID: "icon-channel-android",
-        TYPE_VIBER: "icon-viber"
-    }
+    TYPE_ICONS = {TYPE_ANDROID: "icon-channel-android", TYPE_VIBER: "icon-viber"}
 
     FREE_SENDING_CHANNEL_TYPES = [TYPE_VIBER]
 
@@ -288,63 +283,140 @@ class Channel(TembaModel):
 
     VIBER_NO_SERVICE_ID = 'no_service_id'
 
-    SIMULATOR_CONTEXT = dict(__default__='(800) 555-1212', name='Simulator', tel='(800) 555-1212', tel_e164='+18005551212')
+    SIMULATOR_CONTEXT = dict(
+        __default__='(800) 555-1212', name='Simulator', tel='(800) 555-1212', tel_e164='+18005551212'
+    )
 
     channel_type = models.CharField(verbose_name=_("Channel Type"), max_length=3)
 
-    name = models.CharField(verbose_name=_("Name"), max_length=64, blank=True, null=True,
-                            help_text=_("Descriptive label for this channel"))
+    name = models.CharField(
+        verbose_name=_("Name"),
+        max_length=64,
+        blank=True,
+        null=True,
+        help_text=_("Descriptive label for this channel")
+    )
 
-    address = models.CharField(verbose_name=_("Address"), max_length=255, blank=True, null=True,
-                               help_text=_("Address with which this channel communicates"))
+    address = models.CharField(
+        verbose_name=_("Address"),
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text=_("Address with which this channel communicates")
+    )
 
-    country = CountryField(verbose_name=_("Country"), null=True, blank=True,
-                           help_text=_("Country which this channel is for"))
+    country = CountryField(
+        verbose_name=_("Country"), null=True, blank=True, help_text=_("Country which this channel is for")
+    )
 
-    org = models.ForeignKey(Org, verbose_name=_("Org"), related_name="channels", blank=True, null=True,
-                            help_text=_("Organization using this channel"))
+    org = models.ForeignKey(
+        Org,
+        verbose_name=_("Org"),
+        related_name="channels",
+        blank=True,
+        null=True,
+        help_text=_("Organization using this channel")
+    )
 
-    gcm_id = models.CharField(verbose_name=_("GCM ID"), max_length=255, blank=True, null=True,
-                              help_text=_("The registration id for using Google Cloud Messaging"))
+    gcm_id = models.CharField(
+        verbose_name=_("GCM ID"),
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text=_("The registration id for using Google Cloud Messaging")
+    )
 
-    claim_code = models.CharField(verbose_name=_("Claim Code"), max_length=16, blank=True, null=True, unique=True,
-                                  help_text=_("The token the user will us to claim this channel"))
+    claim_code = models.CharField(
+        verbose_name=_("Claim Code"),
+        max_length=16,
+        blank=True,
+        null=True,
+        unique=True,
+        help_text=_("The token the user will us to claim this channel")
+    )
 
-    secret = models.CharField(verbose_name=_("Secret"), max_length=64, blank=True, null=True, unique=True,
-                              help_text=_("The secret token this channel should use when signing requests"))
+    secret = models.CharField(
+        verbose_name=_("Secret"),
+        max_length=64,
+        blank=True,
+        null=True,
+        unique=True,
+        help_text=_("The secret token this channel should use when signing requests")
+    )
 
-    last_seen = models.DateTimeField(verbose_name=_("Last Seen"), auto_now_add=True,
-                                     help_text=_("The last time this channel contacted the server"))
+    last_seen = models.DateTimeField(
+        verbose_name=_("Last Seen"), auto_now_add=True, help_text=_("The last time this channel contacted the server")
+    )
 
-    device = models.CharField(verbose_name=_("Device"), max_length=255, null=True, blank=True,
-                              help_text=_("The type of Android device this channel is running on"))
+    device = models.CharField(
+        verbose_name=_("Device"),
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text=_("The type of Android device this channel is running on")
+    )
 
-    os = models.CharField(verbose_name=_("OS"), max_length=255, null=True, blank=True,
-                          help_text=_("What Android OS version this channel is running on"))
+    os = models.CharField(
+        verbose_name=_("OS"),
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text=_("What Android OS version this channel is running on")
+    )
 
-    alert_email = models.EmailField(verbose_name=_("Alert Email"), null=True, blank=True,
-                                    help_text=_("We will send email alerts to this address if experiencing issues sending"))
+    alert_email = models.EmailField(
+        verbose_name=_("Alert Email"),
+        null=True,
+        blank=True,
+        help_text=_("We will send email alerts to this address if experiencing issues sending")
+    )
 
-    config = models.TextField(verbose_name=_("Config"), null=True,
-                              help_text=_("Any channel specific configuration, used for the various aggregators"))
+    config = models.TextField(
+        verbose_name=_("Config"),
+        null=True,
+        help_text=_("Any channel specific configuration, used for the various aggregators")
+    )
 
-    schemes = ArrayField(models.CharField(max_length=16), default=['tel'],
-                         verbose_name="URN Schemes", help_text=_("The URN schemes this channel supports"))
+    schemes = ArrayField(
+        models.CharField(max_length=16),
+        default=['tel'],
+        verbose_name="URN Schemes",
+        help_text=_("The URN schemes this channel supports")
+    )
 
-    role = models.CharField(verbose_name="Channel Role", max_length=4, default=DEFAULT_ROLE,
-                            help_text=_("The roles this channel can fulfill"))
+    role = models.CharField(
+        verbose_name="Channel Role",
+        max_length=4,
+        default=DEFAULT_ROLE,
+        help_text=_("The roles this channel can fulfill")
+    )
 
-    parent = models.ForeignKey('self', blank=True, null=True,
-                               help_text=_("The channel this channel is working on behalf of"))
+    parent = models.ForeignKey(
+        'self', blank=True, null=True, help_text=_("The channel this channel is working on behalf of")
+    )
 
-    bod = models.TextField(verbose_name=_("Optional Data"), null=True,
-                           help_text=_("Any channel specific state data"))
+    bod = models.TextField(verbose_name=_("Optional Data"), null=True, help_text=_("Any channel specific state data"))
 
-    tps = models.IntegerField(verbose_name=_("Maximum Transactions per Second"), null=True,
-                              help_text=_("The max number of messages that will be sent per second"))
+    tps = models.IntegerField(
+        verbose_name=_("Maximum Transactions per Second"),
+        null=True,
+        help_text=_("The max number of messages that will be sent per second")
+    )
 
     @classmethod
-    def create(cls, org, user, country, channel_type, name=None, address=None, config=None, role=DEFAULT_ROLE, schemes=None, **kwargs):
+    def create(
+        cls,
+        org,
+        user,
+        country,
+        channel_type,
+        name=None,
+        address=None,
+        config=None,
+        role=DEFAULT_ROLE,
+        schemes=None,
+        **kwargs
+    ):
         if isinstance(channel_type, six.string_types):
             channel_type = cls.get_type_from_code(channel_type)
 
@@ -363,12 +435,18 @@ class Channel(TembaModel):
         if config is None:
             config = {}
 
-        create_args = dict(org=org, created_by=user, modified_by=user,
-                           country=country,
-                           channel_type=channel_type.code,
-                           name=name, address=address,
-                           config=json.dumps(config),
-                           role=role, schemes=schemes)
+        create_args = dict(
+            org=org,
+            created_by=user,
+            modified_by=user,
+            country=country,
+            channel_type=channel_type.code,
+            name=name,
+            address=address,
+            config=json.dumps(config),
+            role=role,
+            schemes=schemes
+        )
         create_args.update(kwargs)
 
         if 'uuid' not in create_args:
@@ -411,8 +489,9 @@ class Channel(TembaModel):
         return Channel.create(org, user, None, Channel.TYPE_VIBER, name=name, address=Channel.VIBER_NO_SERVICE_ID)
 
     @classmethod
-    def add_authenticated_external_channel(cls, org, user, country, phone_number,
-                                           username, password, channel_type, url, role=DEFAULT_ROLE):
+    def add_authenticated_external_channel(
+        cls, org, user, country, phone_number, username, password, channel_type, url, role=DEFAULT_ROLE
+    ):
         try:
             parsed = phonenumbers.parse(phone_number, None)
             phone = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.INTERNATIONAL)
@@ -421,14 +500,26 @@ class Channel(TembaModel):
             phone = phone_number
 
         config = dict(username=username, password=password, send_url=url)
-        return Channel.create(org, user, country, channel_type, name=phone, address=phone_number, config=config,
-                              role=role)
+        return Channel.create(
+            org, user, country, channel_type, name=phone, address=phone_number, config=config, role=role
+        )
 
     @classmethod
-    def add_config_external_channel(cls, org, user, country, address, channel_type, config, role=DEFAULT_ROLE,
-                                    schemes=['tel'], parent=None):
-        return Channel.create(org, user, country, channel_type, name=address, address=address,
-                              config=config, role=role, schemes=schemes, parent=parent)
+    def add_config_external_channel(
+        cls, org, user, country, address, channel_type, config, role=DEFAULT_ROLE, schemes=['tel'], parent=None
+    ):
+        return Channel.create(
+            org,
+            user,
+            country,
+            channel_type,
+            name=address,
+            address=address,
+            config=config,
+            role=role,
+            schemes=schemes,
+            parent=parent
+        )
 
     @classmethod
     def add_send_channel(cls, user, channel):
@@ -436,13 +527,30 @@ class Channel(TembaModel):
         parsed = phonenumbers.parse(channel.address, None)
         nexmo_phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164).strip('+')
 
-        return Channel.create(user.get_org(), user, channel.country, 'NX', name="Nexmo Sender",
-                              address=channel.address, role=Channel.ROLE_SEND, parent=channel, bod=nexmo_phone_number)
+        return Channel.create(
+            user.get_org(),
+            user,
+            channel.country,
+            'NX',
+            name="Nexmo Sender",
+            address=channel.address,
+            role=Channel.ROLE_SEND,
+            parent=channel,
+            bod=nexmo_phone_number
+        )
 
     @classmethod
     def add_call_channel(cls, org, user, channel):
-        return Channel.create(org, user, channel.country, 'T', name="Twilio Caller",
-                              address=channel.address, role=Channel.ROLE_CALL, parent=channel)
+        return Channel.create(
+            org,
+            user,
+            channel.country,
+            'T',
+            name="Twilio Caller",
+            address=channel.address,
+            role=Channel.ROLE_CALL,
+            parent=channel
+        )
 
     @classmethod
     def refresh_all_jiochat_access_token(cls, channel_id=None):
@@ -496,7 +604,7 @@ class Channel(TembaModel):
         # if any inactive channel has this UUID, we can steal it
         for ch in Channel.objects.filter(uuid=uuid, is_active=False):
             ch.uuid = generate_uuid()
-            ch.save(update_fields=('uuid',))
+            ch.save(update_fields=('uuid', ))
 
         # generate random secret and claim code
         claim_code = cls.generate_claim_code()
@@ -504,8 +612,20 @@ class Channel(TembaModel):
         anon = get_anonymous_user()
         config = {Channel.CONFIG_FCM_ID: fcm_id}
 
-        return Channel.create(None, anon, country, Channel.TYPE_ANDROID, None, None, gcm_id=gcm_id, config=config,
-                              uuid=uuid, device=device, claim_code=claim_code, secret=secret)
+        return Channel.create(
+            None,
+            anon,
+            country,
+            Channel.TYPE_ANDROID,
+            None,
+            None,
+            gcm_id=gcm_id,
+            config=config,
+            uuid=uuid,
+            device=device,
+            claim_code=claim_code,
+            secret=secret
+        )
 
     @classmethod
     def generate_claim_code(cls):
@@ -723,26 +843,32 @@ class Channel(TembaModel):
         # also save our org config, as it has twilio and nexmo keys
         org_config = self.org.config_json()
 
-        return dict(id=self.id, org=self.org_id, country=six.text_type(self.country), address=self.address,
-                    uuid=self.uuid, secret=self.secret, channel_type=self.channel_type, name=self.name,
-                    config=self.config_json(), org_config=org_config)
+        return dict(
+            id=self.id,
+            org=self.org_id,
+            country=six.text_type(self.country),
+            address=self.address,
+            uuid=self.uuid,
+            secret=self.secret,
+            channel_type=self.channel_type,
+            name=self.name,
+            config=self.config_json(),
+            org_config=org_config
+        )
 
     def build_registration_command(self):
         # create a claim code if we don't have one
         if not self.claim_code:
             self.claim_code = self.generate_claim_code()
-            self.save(update_fields=('claim_code',))
+            self.save(update_fields=('claim_code', ))
 
         # create a secret if we don't have one
         if not self.secret:
             self.secret = self.generate_secret()
-            self.save(update_fields=('secret',))
+            self.save(update_fields=('secret', ))
 
         # return our command
-        return dict(cmd='reg',
-                    relayer_claim_code=self.claim_code,
-                    relayer_secret=self.secret,
-                    relayer_id=self.id)
+        return dict(cmd='reg', relayer_claim_code=self.claim_code, relayer_secret=self.secret, relayer_id=self.id)
 
     def get_latest_sent_message(self):
         # all message states that are successfully sent
@@ -809,8 +935,11 @@ class Channel(TembaModel):
     def get_unsent_messages(self):
         # use our optimized index for our org outbox
         from temba.msgs.models import Msg
-        return Msg.objects.filter(org=self.org.id, status__in=['P', 'Q'], direction='O',
-                                  visibility='V').filter(channel=self, contact__is_test=False)
+        return Msg.objects.filter(
+            org=self.org.id, status__in=['P', 'Q'], direction='O', visibility='V'
+        ).filter(
+            channel=self, contact__is_test=False
+        )
 
     def is_new(self):
         # is this channel newer than an hour
@@ -900,7 +1029,9 @@ class Channel(TembaModel):
 
         # mark any messages in sending mode as failed for this channel
         from temba.msgs.models import Msg, OUTGOING, PENDING, QUEUED, ERRORED, FAILED
-        Msg.objects.filter(channel=self, direction=OUTGOING, status__in=[QUEUED, PENDING, ERRORED]).update(status=FAILED)
+        Msg.objects.filter(
+            channel=self, direction=OUTGOING, status__in=[QUEUED, PENDING, ERRORED]
+        ).update(status=FAILED)
 
         # trigger the orphaned channel
         if trigger_sync and self.channel_type == Channel.TYPE_ANDROID:  # pragma: no cover
@@ -1011,26 +1142,33 @@ class Channel(TembaModel):
 
         for event in events:
             # write to our log file
-            print(u"[%d] %0.3fs SENT - %s %s \"%s\" %s \"%s\"" %
-                  (msg.id, request_time, event.method, event.url, event.request_body, event.status_code, event.response_body))
+            print(
+                u"[%d] %0.3fs SENT - %s %s \"%s\" %s \"%s\"" % (
+                    msg.id, request_time, event.method, event.url, event.request_body, event.status_code,
+                    event.response_body
+                )
+            )
 
             # lastly store a ChannelLog object for the user
-            ChannelLog.objects.create(channel_id=msg.channel,
-                                      msg_id=msg.id,
-                                      is_error=False,
-                                      description='Successfully delivered',
-                                      method=event.method,
-                                      url=event.url,
-                                      request=event.request_body,
-                                      response=event.response_body,
-                                      response_status=event.status_code,
-                                      request_time=request_time_ms)
+            ChannelLog.objects.create(
+                channel_id=msg.channel,
+                msg_id=msg.id,
+                is_error=False,
+                description='Successfully delivered',
+                method=event.method,
+                url=event.url,
+                request=event.request_body,
+                response=event.response_body,
+                response_status=event.status_code,
+                request_time=request_time_ms
+            )
 
             # Sending data to Chatbase API
             if hasattr(msg, 'is_org_connected_to_chatbase'):
                 chatbase_version = msg.chatbase_version if hasattr(msg, 'chatbase_version') else None
-                Msg.send_chatbase_log(msg.chatbase_api_key, chatbase_version, channel.name, msg.text, msg.contact,
-                                      CHATBASE_TYPE_AGENT)
+                Msg.send_chatbase_log(
+                    msg.chatbase_api_key, chatbase_version, channel.name, msg.text, msg.contact, CHATBASE_TYPE_AGENT
+                )
 
     @classmethod
     def send_dummy_message(cls, channel, msg, text):  # pragma: no cover
@@ -1052,13 +1190,16 @@ class Channel(TembaModel):
         from temba.msgs.models import WIRED
 
         url = 'https://services.viber.com/vibersrvc/1/send_message'
-        payload = {'service_id': int(channel.address),
-                   'dest': msg.urn_path.lstrip('+'),
-                   'seq': msg.id,
-                   'type': 206,
-                   'message': {
-                       '#txt': text,
-                       '#tracking_data': 'tracking_id:%d' % msg.id}}
+        payload = {
+            'service_id': int(channel.address),
+            'dest': msg.urn_path.lstrip('+'),
+            'seq': msg.id,
+            'type': 206,
+            'message': {
+                '#txt': text,
+                '#tracking_data': 'tracking_id:%d' % msg.id
+            }
+        }
 
         event = HttpEvent('POST', url, json.dumps(payload))
         start = time.time()
@@ -1074,13 +1215,13 @@ class Channel(TembaModel):
             raise SendException(six.text_type(e), event=event, start=start)
 
         if response.status_code not in [200, 201, 202]:
-            raise SendException("Got non-200 response [%d] from API" % response.status_code,
-                                event=event, start=start)
+            raise SendException("Got non-200 response [%d] from API" % response.status_code, event=event, start=start)
 
         # success is 0, everything else is a failure
         if response_json['status'] != 0:
-            raise SendException("Got non-0 status [%d] from API" % response_json['status'],
-                                event=event, fatal=True, start=start)
+            raise SendException(
+                "Got non-0 status [%d] from API" % response_json['status'], event=event, fatal=True, start=start
+            )
 
         external_id = response.json().get('message_token', None)
         Channel.success(channel, msg, WIRED, start, event=event, external_id=external_id)
@@ -1100,9 +1241,10 @@ class Channel(TembaModel):
         five_minutes_ago = now - timedelta(minutes=5)
 
         pending = Msg.objects.filter(org=org, direction=OUTGOING)
-        pending = pending.filter(Q(status=PENDING, created_on__lte=five_minutes_ago) |
-                                 Q(status=QUEUED, queued_on__lte=hours_ago) |
-                                 Q(status=ERRORED, next_attempt__lte=now))
+        pending = pending.filter(
+            Q(status=PENDING, created_on__lte=five_minutes_ago) | Q(status=QUEUED, queued_on__lte=hours_ago) |
+            Q(status=ERRORED, next_attempt__lte=now)
+        )
         pending = pending.exclude(channel__channel_type=Channel.TYPE_ANDROID)
 
         # only SMS'es that have a topup and aren't the test contact
@@ -1276,7 +1418,8 @@ class Channel(TembaModel):
         return self.get_count([ChannelCount.SUCCESS_LOG_TYPE])
 
     def get_ivr_log_count(self):
-        return ChannelLog.objects.filter(channel=self).exclude(connection=None).order_by('connection').distinct('connection').count()
+        return ChannelLog.objects.filter(channel=self).exclude(connection=None
+                                                               ).order_by('connection').distinct('connection').count()
 
     def get_non_ivr_log_count(self):
         return self.get_log_count() - self.get_ivr_log_count()
@@ -1296,8 +1439,7 @@ STATUS_DISCHARGING = "DIS"
 STATUS_NOT_CHARGING = "NOT"
 STATUS_FULL = "FUL"
 
-SEND_FUNCTIONS = {Channel.TYPE_DUMMY: Channel.send_dummy_message,
-                  Channel.TYPE_VIBER: Channel.send_viber_message}
+SEND_FUNCTIONS = {Channel.TYPE_DUMMY: Channel.send_dummy_message, Channel.TYPE_VIBER: Channel.send_viber_message}
 
 
 @six.python_2_unicode_compatible
@@ -1313,23 +1455,19 @@ class ChannelCount(SquashableModel):
     OUTGOING_MSG_TYPE = 'OM'  # Outgoing message
     INCOMING_IVR_TYPE = 'IV'  # Incoming IVR step
     OUTGOING_IVR_TYPE = 'OV'  # Outgoing IVR step
-    SUCCESS_LOG_TYPE = 'LS'   # ChannelLog record
-    ERROR_LOG_TYPE = 'LE'     # ChannelLog record that is an error
+    SUCCESS_LOG_TYPE = 'LS'  # ChannelLog record
+    ERROR_LOG_TYPE = 'LE'  # ChannelLog record that is an error
 
-    COUNT_TYPE_CHOICES = ((INCOMING_MSG_TYPE, _("Incoming Message")),
-                          (OUTGOING_MSG_TYPE, _("Outgoing Message")),
-                          (INCOMING_IVR_TYPE, _("Incoming Voice")),
-                          (OUTGOING_IVR_TYPE, _("Outgoing Voice")),
-                          (SUCCESS_LOG_TYPE, _("Success Log Record")),
-                          (ERROR_LOG_TYPE, _("Error Log Record")))
+    COUNT_TYPE_CHOICES = ((INCOMING_MSG_TYPE, _("Incoming Message")), (OUTGOING_MSG_TYPE, _("Outgoing Message")),
+                          (INCOMING_IVR_TYPE, _("Incoming Voice")), (OUTGOING_IVR_TYPE, _("Outgoing Voice")),
+                          (SUCCESS_LOG_TYPE, _("Success Log Record")), (ERROR_LOG_TYPE, _("Error Log Record")))
 
-    channel = models.ForeignKey(Channel,
-                                help_text=_("The channel this is a daily summary count for"))
-    count_type = models.CharField(choices=COUNT_TYPE_CHOICES, max_length=2,
-                                  help_text=_("What type of message this row is counting"))
+    channel = models.ForeignKey(Channel, help_text=_("The channel this is a daily summary count for"))
+    count_type = models.CharField(
+        choices=COUNT_TYPE_CHOICES, max_length=2, help_text=_("What type of message this row is counting")
+    )
     day = models.DateField(null=True, help_text=_("The day this count is for"))
-    count = models.IntegerField(default=0,
-                                help_text=_("The count of messages on this day and type"))
+    count = models.IntegerField(default=0, help_text=_("The count of messages on this day and type"))
 
     @classmethod
     def get_day_count(cls, channel, count_type, day):
@@ -1347,7 +1485,9 @@ class ChannelCount(SquashableModel):
             )
             INSERT INTO %(table)s("channel_id", "count_type", "day", "count", "is_squashed")
             VALUES (%%s, %%s, %%s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
-            """ % {'table': cls._meta.db_table}
+            """ % {
+                'table': cls._meta.db_table
+            }
 
             params = (distinct_set.channel_id, distinct_set.count_type, distinct_set.day) * 2
         else:
@@ -1357,7 +1497,9 @@ class ChannelCount(SquashableModel):
             )
             INSERT INTO %(table)s("channel_id", "count_type", "day", "count", "is_squashed")
             VALUES (%%s, %%s, NULL, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
-            """ % {'table': cls._meta.db_table}
+            """ % {
+                'table': cls._meta.db_table
+            }
 
             params = (distinct_set.channel_id, distinct_set.count_type) * 2
 
@@ -1386,35 +1528,45 @@ class ChannelEvent(models.Model):
     EXTRA_REFERRER_ID = 'referrer_id'
 
     # single char flag, human readable name, API readable name
-    TYPE_CONFIG = ((TYPE_UNKNOWN, _("Unknown Call Type"), 'unknown'),
-                   (TYPE_CALL_OUT, _("Outgoing Call"), 'call-out'),
-                   (TYPE_CALL_OUT_MISSED, _("Missed Outgoing Call"), 'call-out-missed'),
-                   (TYPE_CALL_IN, _("Incoming Call"), 'call-in'),
-                   (TYPE_CALL_IN_MISSED, _("Missed Incoming Call"), 'call-in-missed'),
-                   (TYPE_NEW_CONVERSATION, _("New Conversation"), 'new-conversation'),
-                   (TYPE_REFERRAL, _("Referral"), 'referral'),
-                   (TYPE_FOLLOW, _("Follow"), 'follow'))
+    TYPE_CONFIG = ((TYPE_UNKNOWN, _("Unknown Call Type"), 'unknown'), (TYPE_CALL_OUT, _("Outgoing Call"), 'call-out'),
+                   (TYPE_CALL_OUT_MISSED, _("Missed Outgoing Call"),
+                    'call-out-missed'), (TYPE_CALL_IN, _("Incoming Call"), 'call-in'),
+                   (TYPE_CALL_IN_MISSED, _("Missed Incoming Call"),
+                    'call-in-missed'), (TYPE_NEW_CONVERSATION, _("New Conversation"),
+                                        'new-conversation'), (TYPE_REFERRAL, _("Referral"),
+                                                              'referral'), (TYPE_FOLLOW, _("Follow"), 'follow'))
 
     TYPE_CHOICES = [(t[0], t[1]) for t in TYPE_CONFIG]
 
     CALL_TYPES = {TYPE_CALL_OUT, TYPE_CALL_OUT_MISSED, TYPE_CALL_IN, TYPE_CALL_IN_MISSED}
 
-    org = models.ForeignKey(Org, verbose_name=_("Org"),
-                            help_text=_("The org this event is connected to"))
-    channel = models.ForeignKey(Channel, verbose_name=_("Channel"),
-                                help_text=_("The channel on which this event took place"))
-    event_type = models.CharField(max_length=16, choices=TYPE_CHOICES, verbose_name=_("Event Type"),
-                                  help_text=_("The type of event"))
-    contact = models.ForeignKey('contacts.Contact', verbose_name=_("Contact"), related_name='channel_events',
-                                help_text=_("The contact associated with this event"))
-    contact_urn = models.ForeignKey('contacts.ContactURN', null=True, verbose_name=_("URN"), related_name='channel_events',
-                                    help_text=_("The contact URN associated with this event"))
-    extra = models.TextField(verbose_name=_("Extra"), null=True,
-                             help_text=_("Any extra properties on this event as JSON"))
-    occurred_on = models.DateTimeField(verbose_name=_("Occurred On"),
-                                       help_text=_("When this event took place"))
-    created_on = models.DateTimeField(verbose_name=_("Created On"), default=timezone.now,
-                                      help_text=_("When this event was created"))
+    org = models.ForeignKey(Org, verbose_name=_("Org"), help_text=_("The org this event is connected to"))
+    channel = models.ForeignKey(
+        Channel, verbose_name=_("Channel"), help_text=_("The channel on which this event took place")
+    )
+    event_type = models.CharField(
+        max_length=16, choices=TYPE_CHOICES, verbose_name=_("Event Type"), help_text=_("The type of event")
+    )
+    contact = models.ForeignKey(
+        'contacts.Contact',
+        verbose_name=_("Contact"),
+        related_name='channel_events',
+        help_text=_("The contact associated with this event")
+    )
+    contact_urn = models.ForeignKey(
+        'contacts.ContactURN',
+        null=True,
+        verbose_name=_("URN"),
+        related_name='channel_events',
+        help_text=_("The contact URN associated with this event")
+    )
+    extra = models.TextField(
+        verbose_name=_("Extra"), null=True, help_text=_("Any extra properties on this event as JSON")
+    )
+    occurred_on = models.DateTimeField(verbose_name=_("Occurred On"), help_text=_("When this event took place"))
+    created_on = models.DateTimeField(
+        verbose_name=_("Created On"), default=timezone.now, help_text=_("When this event was created")
+    )
 
     @classmethod
     def create(cls, channel, urn, event_type, occurred_on, extra=None):
@@ -1429,8 +1581,15 @@ class ChannelEvent(models.Model):
         contact_urn = contact.urn_objects[urn]
 
         extra_json = None if not extra else json.dumps(extra)
-        event = cls.objects.create(org=org, channel=channel, contact=contact, contact_urn=contact_urn,
-                                   occurred_on=occurred_on, event_type=event_type, extra=extra_json)
+        event = cls.objects.create(
+            org=org,
+            channel=channel,
+            contact=contact,
+            contact_urn=contact_urn,
+            occurred_on=occurred_on,
+            event_type=event_type,
+            extra=extra_json
+        )
 
         if event_type in cls.CALL_TYPES:
             analytics.gauge('temba.call_%s' % event.get_event_type_display().lower().replace(' ', '_'))
@@ -1457,8 +1616,13 @@ class ChannelEvent(models.Model):
             handled = Trigger.catch_triggers(self, Trigger.TYPE_NEW_CONVERSATION, self.channel)
 
         elif self.event_type == ChannelEvent.TYPE_REFERRAL:
-            handled = Trigger.catch_triggers(self, Trigger.TYPE_REFERRAL, self.channel,
-                                             referrer_id=self.extra_json().get('referrer_id'), extra=self.extra_json())
+            handled = Trigger.catch_triggers(
+                self,
+                Trigger.TYPE_REFERRAL,
+                self.channel,
+                referrer_id=self.extra_json().get('referrer_id'),
+                extra=self.extra_json()
+            )
 
         elif self.event_type == ChannelEvent.TYPE_FOLLOW:
             handled = Trigger.catch_triggers(self, Trigger.TYPE_FOLLOW, self.channel)
@@ -1476,7 +1640,6 @@ class ChannelEvent(models.Model):
 
 
 class SendException(Exception):
-
     def __init__(self, description, event=None, events=None, fatal=False, start=None):
         super(SendException, self).__init__(description)
 
@@ -1490,30 +1653,30 @@ class SendException(Exception):
 
 
 class ChannelLog(models.Model):
-    channel = models.ForeignKey(Channel, related_name='logs',
-                                help_text=_("The channel the message was sent on"))
-    msg = models.ForeignKey('msgs.Msg', related_name='channel_logs', null=True,
-                            help_text=_("The message that was sent"))
+    channel = models.ForeignKey(Channel, related_name='logs', help_text=_("The channel the message was sent on"))
+    msg = models.ForeignKey(
+        'msgs.Msg', related_name='channel_logs', null=True, help_text=_("The message that was sent")
+    )
 
-    connection = models.ForeignKey('channels.ChannelSession', related_name='channel_logs', null=True,
-                                   help_text=_("The channel session for this log"))
+    connection = models.ForeignKey(
+        'channels.ChannelSession',
+        related_name='channel_logs',
+        null=True,
+        help_text=_("The channel session for this log")
+    )
 
-    description = models.CharField(max_length=255,
-                                   help_text=_("A description of the status of this message send"))
-    is_error = models.BooleanField(default=None,
-                                   help_text=_("Whether an error was encountered when sending the message"))
-    url = models.TextField(null=True,
-                           help_text=_("The URL used when sending the message"))
-    method = models.CharField(max_length=16, null=True,
-                              help_text=_("The HTTP method used when sending the message"))
-    request = models.TextField(null=True,
-                               help_text=_("The body of the request used when sending the message"))
-    response = models.TextField(null=True,
-                                help_text=_("The body of the response received when sending the message"))
-    response_status = models.IntegerField(null=True,
-                                          help_text=_("The response code received when sending the message"))
-    created_on = models.DateTimeField(auto_now_add=True,
-                                      help_text=_("When this log message was logged"))
+    description = models.CharField(max_length=255, help_text=_("A description of the status of this message send"))
+    is_error = models.BooleanField(
+        default=None, help_text=_("Whether an error was encountered when sending the message")
+    )
+    url = models.TextField(null=True, help_text=_("The URL used when sending the message"))
+    method = models.CharField(max_length=16, null=True, help_text=_("The HTTP method used when sending the message"))
+    request = models.TextField(null=True, help_text=_("The body of the request used when sending the message"))
+    response = models.TextField(null=True, help_text=_("The body of the response received when sending the message"))
+    response_status = models.IntegerField(
+        null=True, help_text=_("The response code received when sending the message")
+    )
+    created_on = models.DateTimeField(auto_now_add=True, help_text=_("When this log message was logged"))
     request_time = models.IntegerField(null=True, help_text=_('Time it took to process this request'))
 
     @classmethod
@@ -1522,22 +1685,28 @@ class ChannelLog(models.Model):
         request_time = 0 if not e.start else time.time() - e.start
 
         for event in e.events:
-            print(u"[%d] %0.3fs ERROR - %s %s \"%s\" %s \"%s\"" %
-                  (msg.id, request_time, event.method, event.url, event.request_body, event.status_code, event.response_body))
+            print(
+                u"[%d] %0.3fs ERROR - %s %s \"%s\" %s \"%s\"" % (
+                    msg.id, request_time, event.method, event.url, event.request_body, event.status_code,
+                    event.response_body
+                )
+            )
 
             # log our request time in ms
             request_time_ms = request_time * 1000
 
-            ChannelLog.objects.create(channel_id=msg.channel,
-                                      msg_id=msg.id,
-                                      is_error=True,
-                                      description=six.text_type(e.description)[:255],
-                                      method=event.method,
-                                      url=event.url,
-                                      request=event.request_body,
-                                      response=event.response_body,
-                                      response_status=event.status_code,
-                                      request_time=request_time_ms)
+            ChannelLog.objects.create(
+                channel_id=msg.channel,
+                msg_id=msg.id,
+                is_error=True,
+                description=six.text_type(e.description)[:255],
+                method=event.method,
+                url=event.url,
+                request=event.request_body,
+                response=event.response_body,
+                response_status=event.status_code,
+                request_time=request_time_ms
+            )
 
         if request_time > 0:
             analytics.gauge('temba.msg_sent_%s' % channel.channel_type.lower(), request_time)
@@ -1545,49 +1714,52 @@ class ChannelLog(models.Model):
     @classmethod
     def log_error(cls, msg, description):
         print(u"[%d] ERROR - %s" % (msg.id, description))
-        ChannelLog.objects.create(channel_id=msg.channel,
-                                  msg_id=msg.id,
-                                  is_error=True,
-                                  description=description[:255])
+        ChannelLog.objects.create(channel_id=msg.channel, msg_id=msg.id, is_error=True, description=description[:255])
 
     @classmethod
     def log_message(cls, msg, description, event, is_error=False):
-        ChannelLog.objects.create(channel_id=msg.channel_id,
-                                  msg=msg,
-                                  request=event.request_body,
-                                  response=event.response_body,
-                                  url=event.url,
-                                  method=event.method,
-                                  is_error=is_error,
-                                  response_status=event.status_code,
-                                  description=description[:255])
+        ChannelLog.objects.create(
+            channel_id=msg.channel_id,
+            msg=msg,
+            request=event.request_body,
+            response=event.response_body,
+            url=event.url,
+            method=event.method,
+            is_error=is_error,
+            response_status=event.status_code,
+            description=description[:255]
+        )
 
     @classmethod
     def log_ivr_interaction(cls, call, description, event, is_error=False):
-        ChannelLog.objects.create(channel_id=call.channel_id,
-                                  connection_id=call.id,
-                                  request=six.text_type(event.request_body),
-                                  response=six.text_type(event.response_body),
-                                  url=event.url,
-                                  method=event.method,
-                                  is_error=is_error,
-                                  response_status=event.status_code,
-                                  description=description[:255])
+        ChannelLog.objects.create(
+            channel_id=call.channel_id,
+            connection_id=call.id,
+            request=six.text_type(event.request_body),
+            response=six.text_type(event.response_body),
+            url=event.url,
+            method=event.method,
+            is_error=is_error,
+            response_status=event.status_code,
+            description=description[:255]
+        )
 
     @classmethod
     def log_channel_request(cls, channel_id, description, event, start, is_error=False):
         request_time = 0 if not start else time.time() - start
         request_time_ms = request_time * 1000
 
-        ChannelLog.objects.create(channel_id=channel_id,
-                                  request=six.text_type(event.request_body),
-                                  response=six.text_type(event.response_body),
-                                  url=event.url,
-                                  method=event.method,
-                                  is_error=is_error,
-                                  response_status=event.status_code,
-                                  description=description[:255],
-                                  request_time=request_time_ms)
+        ChannelLog.objects.create(
+            channel_id=channel_id,
+            request=six.text_type(event.request_body),
+            response=six.text_type(event.response_body),
+            url=event.url,
+            method=event.method,
+            is_error=is_error,
+            response_status=event.status_code,
+            description=description[:255],
+            request_time=request_time_ms
+        )
 
     def get_url_host(self):
         parsed = urlparse.urlparse(self.url)
@@ -1618,24 +1790,45 @@ class ChannelLog(models.Model):
 
 
 class SyncEvent(SmartModel):
-    channel = models.ForeignKey(Channel, verbose_name=_("Channel"),
-                                help_text=_("The channel that synced to the server"))
-    power_source = models.CharField(verbose_name=_("Power Source"), max_length=64,
-                                    help_text=_("The power source the device is using"))
-    power_status = models.CharField(verbose_name=_("Power Status"), max_length=64, default="STATUS_UNKNOWN",
-                                    help_text=_("The power status. eg: Charging, Full or Discharging"))
+    channel = models.ForeignKey(
+        Channel, verbose_name=_("Channel"), help_text=_("The channel that synced to the server")
+    )
+    power_source = models.CharField(
+        verbose_name=_("Power Source"), max_length=64, help_text=_("The power source the device is using")
+    )
+    power_status = models.CharField(
+        verbose_name=_("Power Status"),
+        max_length=64,
+        default="STATUS_UNKNOWN",
+        help_text=_("The power status. eg: Charging, Full or Discharging")
+    )
     power_level = models.IntegerField(verbose_name=_("Power Level"), help_text=_("The power level of the battery"))
-    network_type = models.CharField(verbose_name=_("Network Type"), max_length=128,
-                                    help_text=_("The data network type to which the channel is connected"))
+    network_type = models.CharField(
+        verbose_name=_("Network Type"),
+        max_length=128,
+        help_text=_("The data network type to which the channel is connected")
+    )
     lifetime = models.IntegerField(verbose_name=_("Lifetime"), null=True, blank=True, default=0)
-    pending_message_count = models.IntegerField(verbose_name=_("Pending Messages Count"),
-                                                help_text=_("The number of messages on the channel in PENDING state"), default=0)
-    retry_message_count = models.IntegerField(verbose_name=_("Retry Message Count"),
-                                              help_text=_("The number of messages on the channel in RETRY state"), default=0)
-    incoming_command_count = models.IntegerField(verbose_name=_("Incoming Command Count"),
-                                                 help_text=_("The number of commands that the channel gave us"), default=0)
-    outgoing_command_count = models.IntegerField(verbose_name=_("Outgoing Command Count"),
-                                                 help_text=_("The number of commands that we gave the channel"), default=0)
+    pending_message_count = models.IntegerField(
+        verbose_name=_("Pending Messages Count"),
+        help_text=_("The number of messages on the channel in PENDING state"),
+        default=0
+    )
+    retry_message_count = models.IntegerField(
+        verbose_name=_("Retry Message Count"),
+        help_text=_("The number of messages on the channel in RETRY state"),
+        default=0
+    )
+    incoming_command_count = models.IntegerField(
+        verbose_name=_("Incoming Command Count"),
+        help_text=_("The number of commands that the channel gave us"),
+        default=0
+    )
+    outgoing_command_count = models.IntegerField(
+        verbose_name=_("Outgoing Command Count"),
+        help_text=_("The number of commands that we gave the channel"),
+        default=0
+    )
 
     @classmethod
     def create(cls, channel, cmd, incoming_commands):
@@ -1705,32 +1898,44 @@ class Alert(SmartModel):
     TYPE_POWER = 'P'
     TYPE_SMS = 'S'
 
-    TYPE_CHOICES = ((TYPE_POWER, _("Power")),                 # channel has low power
-                    (TYPE_DISCONNECTED, _("Disconnected")),   # channel hasn't synced in a while
-                    (TYPE_SMS, _("SMS")))                     # channel has many unsent messages
+    TYPE_CHOICES = (
+        (TYPE_POWER, _("Power")),  # channel has low power
+        (TYPE_DISCONNECTED, _("Disconnected")),  # channel hasn't synced in a while
+        (TYPE_SMS, _("SMS"))
+    )  # channel has many unsent messages
 
-    channel = models.ForeignKey(Channel, verbose_name=_("Channel"),
-                                help_text=_("The channel that this alert is for"))
-    sync_event = models.ForeignKey(SyncEvent, verbose_name=_("Sync Event"), null=True,
-                                   help_text=_("The sync event that caused this alert to be sent (if any)"))
-    alert_type = models.CharField(verbose_name=_("Alert Type"), max_length=1, choices=TYPE_CHOICES,
-                                  help_text=_("The type of alert the channel is sending"))
+    channel = models.ForeignKey(Channel, verbose_name=_("Channel"), help_text=_("The channel that this alert is for"))
+    sync_event = models.ForeignKey(
+        SyncEvent,
+        verbose_name=_("Sync Event"),
+        null=True,
+        help_text=_("The sync event that caused this alert to be sent (if any)")
+    )
+    alert_type = models.CharField(
+        verbose_name=_("Alert Type"),
+        max_length=1,
+        choices=TYPE_CHOICES,
+        help_text=_("The type of alert the channel is sending")
+    )
     ended_on = models.DateTimeField(verbose_name=_("Ended On"), blank=True, null=True)
 
     @classmethod
     def check_power_alert(cls, sync):
         alert_user = get_alert_user()
 
-        if sync.power_status in (STATUS_DISCHARGING, STATUS_UNKNOWN, STATUS_NOT_CHARGING) and int(sync.power_level) < 25:
+        if sync.power_status in (STATUS_DISCHARGING, STATUS_UNKNOWN,
+                                 STATUS_NOT_CHARGING) and int(sync.power_level) < 25:
 
             alerts = Alert.objects.filter(sync_event__channel=sync.channel, alert_type=cls.TYPE_POWER, ended_on=None)
 
             if not alerts:
-                new_alert = Alert.objects.create(channel=sync.channel,
-                                                 sync_event=sync,
-                                                 alert_type=cls.TYPE_POWER,
-                                                 created_by=alert_user,
-                                                 modified_by=alert_user)
+                new_alert = Alert.objects.create(
+                    channel=sync.channel,
+                    sync_event=sync,
+                    alert_type=cls.TYPE_POWER,
+                    created_by=alert_user,
+                    modified_by=alert_user
+                )
                 new_alert.send_alert()
 
         if sync.power_status == STATUS_CHARGING or sync.power_status == STATUS_FULL:
@@ -1760,11 +1965,14 @@ class Alert(SmartModel):
                 alert.save()
                 alert.send_resolved()
 
-        for channel in Channel.objects.filter(channel_type=Channel.TYPE_ANDROID, is_active=True).exclude(org=None).exclude(last_seen__gte=thirty_minutes_ago):
+        for channel in Channel.objects.filter(
+            channel_type=Channel.TYPE_ANDROID, is_active=True
+        ).exclude(org=None).exclude(last_seen__gte=thirty_minutes_ago):
             # have we already sent an alert for this channel
             if not Alert.objects.filter(channel=channel, alert_type=cls.TYPE_DISCONNECTED, ended_on=None):
-                alert = Alert.objects.create(channel=channel, alert_type=cls.TYPE_DISCONNECTED,
-                                             modified_by=alert_user, created_by=alert_user)
+                alert = Alert.objects.create(
+                    channel=channel, alert_type=cls.TYPE_DISCONNECTED, modified_by=alert_user, created_by=alert_user
+                )
                 alert.send_alert()
 
         day_ago = timezone.now() - timedelta(days=1)
@@ -1774,13 +1982,28 @@ class Alert(SmartModel):
         for alert in Alert.objects.filter(alert_type=cls.TYPE_SMS, ended_on=None):
             # are there still queued messages?
 
-            if not Msg.objects.filter(status__in=['Q', 'P'], channel=alert.channel, contact__is_test=False, created_on__lte=thirty_minutes_ago).exclude(created_on__lte=day_ago):
+            if not Msg.objects.filter(
+                status__in=['Q', 'P'],
+                channel=alert.channel,
+                contact__is_test=False,
+                created_on__lte=thirty_minutes_ago
+            ).exclude(created_on__lte=day_ago):
                 alert.ended_on = timezone.now()
                 alert.save()
 
         # now look for channels that have many unsent messages
-        queued_messages = Msg.objects.filter(status__in=['Q', 'P'], contact__is_test=False).order_by('channel', 'created_on').exclude(created_on__gte=thirty_minutes_ago).exclude(created_on__lte=day_ago).exclude(channel=None).values('channel').annotate(latest_queued=Max('created_on'))
-        sent_messages = Msg.objects.filter(status__in=['S', 'D'], contact__is_test=False).exclude(created_on__lte=day_ago).exclude(channel=None).order_by('channel', 'sent_on').values('channel').annotate(latest_sent=Max('sent_on'))
+        queued_messages = Msg.objects.filter(
+            status__in=['Q', 'P'], contact__is_test=False
+        ).order_by(
+            'channel', 'created_on'
+        ).exclude(created_on__gte=thirty_minutes_ago
+                  ).exclude(created_on__lte=day_ago
+                            ).exclude(channel=None).values('channel').annotate(latest_queued=Max('created_on'))
+        sent_messages = Msg.objects.filter(
+            status__in=['S', 'D'], contact__is_test=False
+        ).exclude(created_on__lte=day_ago).exclude(channel=None).order_by(
+            'channel', 'sent_on'
+        ).values('channel').annotate(latest_sent=Max('sent_on'))
 
         channels = dict()
         for queued in queued_messages:
@@ -1802,8 +2025,9 @@ class Alert(SmartModel):
 
                 # if we haven't sent an alert in the past six ours
                 if not Alert.objects.filter(channel=channel).filter(Q(created_on__gt=six_hours_ago)):
-                    alert = Alert.objects.create(channel=channel, alert_type=cls.TYPE_SMS,
-                                                 modified_by=alert_user, created_by=alert_user)
+                    alert = Alert.objects.create(
+                        channel=channel, alert_type=cls.TYPE_SMS, modified_by=alert_user, created_by=alert_user
+                    )
                     alert.send_alert()
 
     def send_alert(self):
@@ -1847,9 +2071,16 @@ class Alert(SmartModel):
         else:  # pragma: no cover
             raise Exception(_("Unknown alert type: %(alert)s") % {'alert': self.alert_type})
 
-        context = dict(org=self.channel.org, channel=self.channel, now=timezone.now(),
-                       last_seen=self.channel.last_seen, sync=self.sync_event)
-        context['unsent_count'] = Msg.objects.filter(channel=self.channel, status__in=['Q', 'P'], contact__is_test=False).count()
+        context = dict(
+            org=self.channel.org,
+            channel=self.channel,
+            now=timezone.now(),
+            last_seen=self.channel.last_seen,
+            sync=self.sync_event
+        )
+        context['unsent_count'] = Msg.objects.filter(
+            channel=self.channel, status__in=['Q', 'P'], contact__is_test=False
+        ).count()
         context['subject'] = subject
 
         send_template_email(self.channel.alert_email, subject, template, context, self.channel.org.get_branding())
@@ -1888,51 +2119,42 @@ class ChannelSession(SmartModel):
     IVR = 'F'
     USSD = 'U'
 
-    DIRECTION_CHOICES = ((INCOMING, "Incoming"),
-                         (OUTGOING, "Outgoing"))
+    DIRECTION_CHOICES = ((INCOMING, "Incoming"), (OUTGOING, "Outgoing"))
 
-    TYPE_CHOICES = ((IVR, "IVR"), (USSD, "USSD"),)
+    TYPE_CHOICES = (
+        (IVR, "IVR"),
+        (USSD, "USSD"),
+    )
 
-    STATUS_CHOICES = ((PENDING, "Pending"),
-                      (QUEUED, "Queued"),
-                      (RINGING, "Ringing"),
-                      (IN_PROGRESS, "In Progress"),
-                      (COMPLETED, "Complete"),
-                      (BUSY, "Busy"),
-                      (FAILED, "Failed"),
-                      (NO_ANSWER, "No Answer"),
-                      (CANCELED, "Canceled"),
-                      (INTERRUPTED, "Interrupted"),
-                      (TRIGGERED, "Triggered"),
-                      (INITIATED, "Initiated"),
-                      (ENDING, "Ending"))
+    STATUS_CHOICES = ((PENDING, "Pending"), (QUEUED, "Queued"), (RINGING, "Ringing"), (IN_PROGRESS, "In Progress"),
+                      (COMPLETED, "Complete"), (BUSY, "Busy"), (FAILED, "Failed"), (NO_ANSWER, "No Answer"),
+                      (CANCELED, "Canceled"), (INTERRUPTED, "Interrupted"), (TRIGGERED, "Triggered"),
+                      (INITIATED, "Initiated"), (ENDING, "Ending"))
 
-    external_id = models.CharField(max_length=255,
-                                   help_text="The external id for this session, our twilio id usually")
-    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=PENDING,
-                              help_text="The status of this session")
-    channel = models.ForeignKey('Channel',
-                                help_text="The channel that created this session")
-    contact = models.ForeignKey('contacts.Contact', related_name='sessions',
-                                help_text="Who this session is with")
-    contact_urn = models.ForeignKey('contacts.ContactURN', verbose_name=_("Contact URN"),
-                                    help_text=_("The URN this session is communicating with"))
-    direction = models.CharField(max_length=1, choices=DIRECTION_CHOICES,
-                                 help_text="The direction of this session, either incoming or outgoing")
-    started_on = models.DateTimeField(null=True, blank=True,
-                                      help_text="When this session was connected and started")
-    ended_on = models.DateTimeField(null=True, blank=True,
-                                    help_text="When this session ended")
-    org = models.ForeignKey(Org,
-                            help_text="The organization this session belongs to")
-    session_type = models.CharField(max_length=1, choices=TYPE_CHOICES,
-                                    help_text="What sort of session this is")
-    duration = models.IntegerField(default=0, null=True,
-                                   help_text="The length of this session in seconds")
+    external_id = models.CharField(max_length=255, help_text="The external id for this session, our twilio id usually")
+    status = models.CharField(
+        max_length=1, choices=STATUS_CHOICES, default=PENDING, help_text="The status of this session"
+    )
+    channel = models.ForeignKey('Channel', help_text="The channel that created this session")
+    contact = models.ForeignKey('contacts.Contact', related_name='sessions', help_text="Who this session is with")
+    contact_urn = models.ForeignKey(
+        'contacts.ContactURN',
+        verbose_name=_("Contact URN"),
+        help_text=_("The URN this session is communicating with")
+    )
+    direction = models.CharField(
+        max_length=1,
+        choices=DIRECTION_CHOICES,
+        help_text="The direction of this session, either incoming or outgoing"
+    )
+    started_on = models.DateTimeField(null=True, blank=True, help_text="When this session was connected and started")
+    ended_on = models.DateTimeField(null=True, blank=True, help_text="When this session ended")
+    org = models.ForeignKey(Org, help_text="The organization this session belongs to")
+    session_type = models.CharField(max_length=1, choices=TYPE_CHOICES, help_text="What sort of session this is")
+    duration = models.IntegerField(default=0, null=True, help_text="The length of this session in seconds")
 
     def __init__(self, *args, **kwargs):
         super(ChannelSession, self).__init__(*args, **kwargs)
-
         """ This is needed when referencing `session` from `FlowRun`. Since
         the FK is bound to ChannelSession, when it initializes an instance from
         DB we need to specify the class based on `session_type` so we can access

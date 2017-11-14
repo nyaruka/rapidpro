@@ -13,8 +13,14 @@ class AirtimeEventTest(TembaTest):
 
         self.contact = self.create_contact('Ben Haggerty', '+12065552020')
         self.org.connect_transferto('mylogin', 'api_token', self.admin)
-        self.airtime = AirtimeTransfer.objects.create(org=self.org, recipient='+12065552020', amount='100',
-                                                      contact=self.contact, created_by=self.admin, modified_by=self.admin)
+        self.airtime = AirtimeTransfer.objects.create(
+            org=self.org,
+            recipient='+12065552020',
+            amount='100',
+            contact=self.contact,
+            created_by=self.admin,
+            modified_by=self.admin
+        )
 
     def test_parse_transferto_response(self):
         self.assertEqual(AirtimeTransfer.parse_transferto_response(""), dict())
@@ -23,11 +29,12 @@ class AirtimeEventTest(TembaTest):
 
         self.assertEqual(AirtimeTransfer.parse_transferto_response("foo\r\nbar"), dict())
 
-        self.assertEqual(AirtimeTransfer.parse_transferto_response("foo=allo\r\nbar"),
-                         dict(foo='allo'))
+        self.assertEqual(AirtimeTransfer.parse_transferto_response("foo=allo\r\nbar"), dict(foo='allo'))
 
-        self.assertEqual(AirtimeTransfer.parse_transferto_response("foo=allo\r\nbar=1,2,3\r\n"),
-                         dict(foo='allo', bar=['1', '2', '3']))
+        self.assertEqual(
+            AirtimeTransfer.parse_transferto_response("foo=allo\r\nbar=1,2,3\r\n"),
+            dict(foo='allo', bar=['1', '2', '3'])
+        )
 
     @patch('requests.post')
     def test_post_transferto_api_response(self, mock_post):
@@ -62,8 +69,9 @@ class AirtimeEventTest(TembaTest):
             self.assertEqual(self.airtime.response, model_obj_response)
             mock_post.reset_mock()
 
-            response = AirtimeTransfer.post_transferto_api_response('login_acc', 'token', airtime_obj=self.airtime,
-                                                                    action='ping')
+            response = AirtimeTransfer.post_transferto_api_response(
+                'login_acc', 'token', airtime_obj=self.airtime, action='ping'
+            )
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.content, "foo=allo\r\nbar=1,2,3\r\n")
             self.assertEqual(mock_post.call_count, 1)
@@ -92,8 +100,9 @@ class AirtimeEventTest(TembaTest):
             self.assertEqual(200, response.status_code)
             self.assertEqual(response.content, "foo=allo\r\nbar=1,2,3\r\n")
 
-            mock_post_transferto.assert_called_once_with('mylogin', 'api_token', airtime_obj=self.airtime,
-                                                         action='command')
+            mock_post_transferto.assert_called_once_with(
+                'mylogin', 'api_token', airtime_obj=self.airtime, action='command'
+            )
 
     @patch('temba.airtime.models.AirtimeTransfer.post_transferto_api_response')
     @patch('temba.airtime.models.AirtimeTransfer.get_transferto_response')
@@ -104,19 +113,25 @@ class AirtimeEventTest(TembaTest):
 
         # disconnect transferTo account
         org.remove_transferto_account(self.admin)
-        mock_response.side_effect = [MockResponse(200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
-                                                       "product_list=0.25,0.5,1,1.5\r\n"
-                                                       "local_info_value_list=5,10,20,30\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\n")]
+        mock_response.side_effect = [
+            MockResponse(
+                200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
+                "product_list=0.25,0.5,1,1.5\r\n"
+                "local_info_value_list=5,10,20,30\r\n"
+            ),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\n")
+        ]
 
         mock_post_api_response.return_value = MockResponse(200, "error_code=0\r\ncurrency=USD\r\n")
 
         airtime = AirtimeTransfer.trigger_airtime_event(org, ruleset, self.contact, None)
         self.assertEqual(airtime.status, AirtimeTransfer.FAILED)
         self.assertEqual(airtime.contact, self.contact)
-        self.assertEqual(airtime.message, "Error transferring airtime: No transferTo Account connected to "
-                                          "this organization")
+        self.assertEqual(
+            airtime.message, "Error transferring airtime: No transferTo Account connected to "
+            "this organization"
+        )
 
         # we never call TransferTo API if no account is connected
         self.assertEqual(mock_response.call_count, 0)
@@ -125,152 +140,247 @@ class AirtimeEventTest(TembaTest):
         # now have an account connected
         org.connect_transferto('mylogin', 'api_token', self.admin)
 
-        mock_response.side_effect = [MockResponse(200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
-                                                       "product_list=0.25,0.5,1,1.5\r\n"
-                                                       "local_info_value_list=5,10,20,30\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\n")]
+        mock_response.side_effect = [
+            MockResponse(
+                200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
+                "product_list=0.25,0.5,1,1.5\r\n"
+                "local_info_value_list=5,10,20,30\r\n"
+            ),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\n")
+        ]
 
         airtime = AirtimeTransfer.trigger_airtime_event(org, ruleset, self.contact, None)
         self.assertEqual(airtime.status, AirtimeTransfer.SUCCESS)
         self.assertEqual(airtime.contact, self.contact)
         self.assertEqual(airtime.message, "Airtime Transferred Successfully")
         self.assertEqual(mock_response.call_count, 3)
-        self.assertTrue(({'action': 'msisdn_info', 'currency': 'USD', 'destination_msisdn': '+12065552020', 'delivered_amount_info': '1'},) in mock_response.call_args_list)
-        self.assertTrue(({'action': 'reserve_id'},) in mock_response.call_args_list)
-        self.assertTrue(({'action': 'topup', 'reserved_id': '234', 'msisdn': '',
-                          'destination_msisdn': '+12065552020', 'currency': 'USD',
-                          'product': '0.5'},) in mock_response.call_args_list)
+        self.assertTrue(({
+            'action': 'msisdn_info',
+            'currency': 'USD',
+            'destination_msisdn': '+12065552020',
+            'delivered_amount_info': '1'
+        }, ) in mock_response.call_args_list)
+        self.assertTrue(({'action': 'reserve_id'}, ) in mock_response.call_args_list)
+        self.assertTrue(({
+            'action': 'topup',
+            'reserved_id': '234',
+            'msisdn': '',
+            'destination_msisdn': '+12065552020',
+            'currency': 'USD',
+            'product': '0.5'
+        }, ) in mock_response.call_args_list)
         mock_response.reset_mock()
 
-        mock_response.side_effect = [MockResponse(200, "error_code=0\r\nerror_txt=\r\ncountry=Rwanda\r\n"
-                                                       "product_list=0.25,0.5,1,1.5\r\n"
-                                                       "local_info_value_list=5,10,20,30\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\n")]
+        mock_response.side_effect = [
+            MockResponse(
+                200, "error_code=0\r\nerror_txt=\r\ncountry=Rwanda\r\n"
+                "product_list=0.25,0.5,1,1.5\r\n"
+                "local_info_value_list=5,10,20,30\r\n"
+            ),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\n")
+        ]
 
         airtime = AirtimeTransfer.trigger_airtime_event(org, ruleset, self.contact, None)
         self.assertEqual(airtime.status, AirtimeTransfer.FAILED)
-        self.assertEqual(airtime.message, "Error transferring airtime: Failed by invalid amount "
-                                          "configuration or missing amount configuration for Rwanda")
-        self.assertTrue(({'action': 'msisdn_info', 'currency': 'USD',
-                          'destination_msisdn': '+12065552020', 'delivered_amount_info': '1'},) in mock_response.call_args_list)
+        self.assertEqual(
+            airtime.message, "Error transferring airtime: Failed by invalid amount "
+            "configuration or missing amount configuration for Rwanda"
+        )
+        self.assertTrue(({
+            'action': 'msisdn_info',
+            'currency': 'USD',
+            'destination_msisdn': '+12065552020',
+            'delivered_amount_info': '1'
+        }, ) in mock_response.call_args_list)
         self.assertEqual(mock_response.call_count, 1)
         mock_response.reset_mock()
 
         # first error code not 0
-        mock_response.side_effect = [MockResponse(200, "error_code=1\r\nerror_txt=\r\ncountry=United States\r\n"
-                                                       "product_list=0.25,0.5,1,1.5\r\n"
-                                                       "local_info_value_list=5,10,20,30\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\n")]
+        mock_response.side_effect = [
+            MockResponse(
+                200, "error_code=1\r\nerror_txt=\r\ncountry=United States\r\n"
+                "product_list=0.25,0.5,1,1.5\r\n"
+                "local_info_value_list=5,10,20,30\r\n"
+            ),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\n")
+        ]
 
         airtime = AirtimeTransfer.trigger_airtime_event(org, ruleset, self.contact, None)
         self.assertEqual(airtime.status, AirtimeTransfer.FAILED)
-        self.assertTrue(({'action': 'msisdn_info', 'currency': 'USD',
-                          'destination_msisdn': '+12065552020', 'delivered_amount_info': '1'},) in mock_response.call_args_list)
+        self.assertTrue(({
+            'action': 'msisdn_info',
+            'currency': 'USD',
+            'destination_msisdn': '+12065552020',
+            'delivered_amount_info': '1'
+        }, ) in mock_response.call_args_list)
         self.assertEqual(mock_response.call_count, 1)
         mock_response.reset_mock()
 
         # second error code not 0
-        mock_response.side_effect = [MockResponse(200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
-                                                       "product_list=0.25,0.5,1,1.5\r\n"
-                                                       "local_info_value_list=5,10,20,30\r\n"),
-                                     MockResponse(200, "error_code=1\r\nerror_txt=\r\nreserved_id=234\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\n")]
+        mock_response.side_effect = [
+            MockResponse(
+                200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
+                "product_list=0.25,0.5,1,1.5\r\n"
+                "local_info_value_list=5,10,20,30\r\n"
+            ),
+            MockResponse(200, "error_code=1\r\nerror_txt=\r\nreserved_id=234\r\n"),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\n")
+        ]
 
         airtime = AirtimeTransfer.trigger_airtime_event(org, ruleset, self.contact, None)
         self.assertEqual(airtime.status, AirtimeTransfer.FAILED)
 
-        self.assertTrue(({'action': 'msisdn_info', 'currency': 'USD',
-                          'destination_msisdn': '+12065552020', 'delivered_amount_info': '1'},) in mock_response.call_args_list)
-        self.assertTrue(({'action': 'reserve_id'},) in mock_response.call_args_list)
+        self.assertTrue(({
+            'action': 'msisdn_info',
+            'currency': 'USD',
+            'destination_msisdn': '+12065552020',
+            'delivered_amount_info': '1'
+        }, ) in mock_response.call_args_list)
+        self.assertTrue(({'action': 'reserve_id'}, ) in mock_response.call_args_list)
         self.assertEqual(mock_response.call_count, 2)
         mock_response.reset_mock()
 
         # third error code not 0
-        mock_response.side_effect = [MockResponse(200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
-                                                       "product_list=0.25,0.5,1,1.5\r\n"
-                                                       "local_info_value_list=5,10,20,30\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
-                                     MockResponse(200, "error_code=1\r\nerror_txt=\r\n")]
+        mock_response.side_effect = [
+            MockResponse(
+                200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
+                "product_list=0.25,0.5,1,1.5\r\n"
+                "local_info_value_list=5,10,20,30\r\n"
+            ),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
+            MockResponse(200, "error_code=1\r\nerror_txt=\r\n")
+        ]
 
         airtime = AirtimeTransfer.trigger_airtime_event(org, ruleset, self.contact, None)
         self.assertEqual(airtime.status, AirtimeTransfer.FAILED)
-        self.assertTrue(({'action': 'msisdn_info', 'currency': 'USD',
-                          'destination_msisdn': '+12065552020', 'delivered_amount_info': '1'},) in mock_response.call_args_list)
-        self.assertTrue(({'action': 'reserve_id'},) in mock_response.call_args_list)
-        self.assertTrue(({'action': 'topup', 'reserved_id': '234', 'msisdn': '',
-                          'destination_msisdn': '+12065552020', 'currency': 'USD',
-                          'product': '0.5'},) in mock_response.call_args_list)
+        self.assertTrue(({
+            'action': 'msisdn_info',
+            'currency': 'USD',
+            'destination_msisdn': '+12065552020',
+            'delivered_amount_info': '1'
+        }, ) in mock_response.call_args_list)
+        self.assertTrue(({'action': 'reserve_id'}, ) in mock_response.call_args_list)
+        self.assertTrue(({
+            'action': 'topup',
+            'reserved_id': '234',
+            'msisdn': '',
+            'destination_msisdn': '+12065552020',
+            'currency': 'USD',
+            'product': '0.5'
+        }, ) in mock_response.call_args_list)
         self.assertEqual(mock_response.call_count, 3)
         mock_response.reset_mock()
 
         # when we need to include skuid
-        mock_response.side_effect = [MockResponse(200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
-                                                       "product_list=0.25,0.5,1,1.5\r\n"
-                                                       "skuid_list=1625,9805,4561,9715\r\n"
-                                                       "local_info_value_list=5,10,20,30\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\n")]
+        mock_response.side_effect = [
+            MockResponse(
+                200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
+                "product_list=0.25,0.5,1,1.5\r\n"
+                "skuid_list=1625,9805,4561,9715\r\n"
+                "local_info_value_list=5,10,20,30\r\n"
+            ),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\n")
+        ]
 
         airtime = AirtimeTransfer.trigger_airtime_event(org, ruleset, self.contact, None)
         self.assertEqual(airtime.status, AirtimeTransfer.SUCCESS)
         self.assertEqual(airtime.contact, self.contact)
         self.assertEqual(airtime.message, "Airtime Transferred Successfully")
         self.assertEqual(mock_response.call_count, 3)
-        self.assertTrue(({'action': 'msisdn_info', 'currency': 'USD', 'destination_msisdn': '+12065552020',
-                          'delivered_amount_info': '1'},) in mock_response.call_args_list)
-        self.assertTrue(({'action': 'reserve_id'},) in mock_response.call_args_list)
-        self.assertTrue(({'action': 'topup', 'reserved_id': '234', 'msisdn': '', 'skuid': '9805',
-                          'destination_msisdn': '+12065552020', 'currency': 'USD',
-                          'product': '0.5'},) in mock_response.call_args_list)
+        self.assertTrue(({
+            'action': 'msisdn_info',
+            'currency': 'USD',
+            'destination_msisdn': '+12065552020',
+            'delivered_amount_info': '1'
+        }, ) in mock_response.call_args_list)
+        self.assertTrue(({'action': 'reserve_id'}, ) in mock_response.call_args_list)
+        self.assertTrue(({
+            'action': 'topup',
+            'reserved_id': '234',
+            'msisdn': '',
+            'skuid': '9805',
+            'destination_msisdn': '+12065552020',
+            'currency': 'USD',
+            'product': '0.5'
+        }, ) in mock_response.call_args_list)
         mock_response.reset_mock()
 
         # when product_list, skuid_list, ... are not parsed as lists in the case of a single value
 
-        mock_response.side_effect = [MockResponse(200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
-                                                       "product_list=0.5\r\n"
-                                                       "skuid_list=5505\r\n"
-                                                       "local_info_value_list=10\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\n")]
+        mock_response.side_effect = [
+            MockResponse(
+                200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
+                "product_list=0.5\r\n"
+                "skuid_list=5505\r\n"
+                "local_info_value_list=10\r\n"
+            ),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\n")
+        ]
 
         airtime = AirtimeTransfer.trigger_airtime_event(org, ruleset, self.contact, None)
         self.assertEqual(airtime.status, AirtimeTransfer.SUCCESS)
         self.assertEqual(airtime.contact, self.contact)
         self.assertEqual(airtime.message, "Airtime Transferred Successfully")
         self.assertEqual(mock_response.call_count, 3)
-        self.assertTrue(({'action': 'msisdn_info', 'currency': 'USD', 'destination_msisdn': '+12065552020',
-                          'delivered_amount_info': '1'},) in mock_response.call_args_list)
-        self.assertTrue(({'action': 'reserve_id'},) in mock_response.call_args_list)
-        self.assertTrue(({'action': 'topup', 'reserved_id': '234', 'msisdn': '', 'skuid': '5505',
-                          'destination_msisdn': '+12065552020', 'currency': 'USD',
-                          'product': '0.5'},) in mock_response.call_args_list)
+        self.assertTrue(({
+            'action': 'msisdn_info',
+            'currency': 'USD',
+            'destination_msisdn': '+12065552020',
+            'delivered_amount_info': '1'
+        }, ) in mock_response.call_args_list)
+        self.assertTrue(({'action': 'reserve_id'}, ) in mock_response.call_args_list)
+        self.assertTrue(({
+            'action': 'topup',
+            'reserved_id': '234',
+            'msisdn': '',
+            'skuid': '5505',
+            'destination_msisdn': '+12065552020',
+            'currency': 'USD',
+            'product': '0.5'
+        }, ) in mock_response.call_args_list)
         mock_response.reset_mock()
 
         # for open range only, no product_list, no skuid_list,
         # just a skuid we just have to pass the amount as denomination
-        mock_response.side_effect = [MockResponse(200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
-                                                       "open_range_minimum_amount_local_currency=5\r\n"
-                                                       "open_range_maximum_amount_local_currency=100\r\n"
-                                                       "open_range_minimum_amount_requested_currency=0.25\r\n"
-                                                       "open_range_maximum_amount_requested_currency=5\r\n"
-                                                       "skuid=9940\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
-                                     MockResponse(200, "error_code=0\r\nerror_txt=\r\n")]
+        mock_response.side_effect = [
+            MockResponse(
+                200, "error_code=0\r\nerror_txt=\r\ncountry=United States\r\n"
+                "open_range_minimum_amount_local_currency=5\r\n"
+                "open_range_maximum_amount_local_currency=100\r\n"
+                "open_range_minimum_amount_requested_currency=0.25\r\n"
+                "open_range_maximum_amount_requested_currency=5\r\n"
+                "skuid=9940\r\n"
+            ),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\nreserved_id=234\r\n"),
+            MockResponse(200, "error_code=0\r\nerror_txt=\r\n")
+        ]
 
         airtime = AirtimeTransfer.trigger_airtime_event(org, ruleset, self.contact, None)
         self.assertEqual(airtime.status, AirtimeTransfer.SUCCESS)
         self.assertEqual(airtime.contact, self.contact)
         self.assertEqual(airtime.message, "Airtime Transferred Successfully")
         self.assertEqual(mock_response.call_count, 3)
-        self.assertTrue(({'action': 'msisdn_info', 'currency': 'USD', 'destination_msisdn': '+12065552020',
-                          'delivered_amount_info': '1'},) in mock_response.call_args_list)
-        self.assertTrue(({'action': 'reserve_id'},) in mock_response.call_args_list)
-        self.assertTrue(({'action': 'topup', 'reserved_id': '234', 'msisdn': '', 'skuid': '9940',
-                          'destination_msisdn': '+12065552020', 'currency': 'USD',
-                          'product': '0.5'},) in mock_response.call_args_list)
+        self.assertTrue(({
+            'action': 'msisdn_info',
+            'currency': 'USD',
+            'destination_msisdn': '+12065552020',
+            'delivered_amount_info': '1'
+        }, ) in mock_response.call_args_list)
+        self.assertTrue(({'action': 'reserve_id'}, ) in mock_response.call_args_list)
+        self.assertTrue(({
+            'action': 'topup',
+            'reserved_id': '234',
+            'msisdn': '',
+            'skuid': '9940',
+            'destination_msisdn': '+12065552020',
+            'currency': 'USD',
+            'product': '0.5'
+        }, ) in mock_response.call_args_list)
         mock_response.reset_mock()
 
     def test_list(self):

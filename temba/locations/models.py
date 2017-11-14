@@ -26,22 +26,30 @@ class AdminBoundary(MPTTModel, models.Model):
     # being very unlikely to show up in an admin boundary name.
     PATH_SEPARATOR = '>'
 
-    osm_id = models.CharField(max_length=15, unique=True,
-                              help_text="This is the OSM id for this administrative boundary")
+    osm_id = models.CharField(
+        max_length=15, unique=True, help_text="This is the OSM id for this administrative boundary"
+    )
 
-    name = models.CharField(max_length=128,
-                            help_text="The name of our administrative boundary")
+    name = models.CharField(max_length=128, help_text="The name of our administrative boundary")
 
-    level = models.IntegerField(help_text="The level of the boundary, 0 for country, 1 for state, 2 for district, 3 for ward")
+    level = models.IntegerField(
+        help_text="The level of the boundary, 0 for country, 1 for state, 2 for district, 3 for ward"
+    )
 
-    parent = TreeForeignKey('self', null=True, blank=True, related_name='children', db_index=True,
-                            help_text="The parent to this political boundary if any")
+    parent = TreeForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        related_name='children',
+        db_index=True,
+        help_text="The parent to this political boundary if any"
+    )
 
-    geometry = models.MultiPolygonField(null=True,
-                                        help_text="The full geometry of this administrative boundary")
+    geometry = models.MultiPolygonField(null=True, help_text="The full geometry of this administrative boundary")
 
-    simplified_geometry = models.MultiPolygonField(null=True,
-                                                   help_text="The simplified geometry of this administrative boundary")
+    simplified_geometry = models.MultiPolygonField(
+        null=True, help_text="The simplified geometry of this administrative boundary"
+    )
 
     objects = models.GeoManager()
 
@@ -52,8 +60,7 @@ class AdminBoundary(MPTTModel, models.Model):
         return geojson.dumps(feature_collection)
 
     def as_json(self):
-        result = dict(osm_id=self.osm_id, name=self.name,
-                      level=self.level, aliases='')
+        result = dict(osm_id=self.osm_id, name=self.name, level=self.level, aliases='')
 
         if self.parent:
             result['parent_osm_id'] = self.parent.osm_id
@@ -63,9 +70,11 @@ class AdminBoundary(MPTTModel, models.Model):
         return result
 
     def get_geojson_feature(self):
-        return geojson.Feature(properties=dict(name=self.name, osm_id=self.osm_id, id=self.pk, level=self.level),
-                               zoomable=True if self.children.all() else False,
-                               geometry=None if not self.simplified_geometry else geojson.loads(self.simplified_geometry.geojson))
+        return geojson.Feature(
+            properties=dict(name=self.name, osm_id=self.osm_id, id=self.pk, level=self.level),
+            zoomable=True if self.children.all() else False,
+            geometry=None if not self.simplified_geometry else geojson.loads(self.simplified_geometry.geojson)
+        )
 
     def get_geojson(self):
         return AdminBoundary.get_geojson_dump([self.get_geojson_feature()])
@@ -82,7 +91,10 @@ class AdminBoundary(MPTTModel, models.Model):
         each level.
         """
         if self.parent:
-            return "%s %s %s" % (self.parent.as_path(), AdminBoundary.PATH_SEPARATOR, self.name.replace(AdminBoundary.PATH_SEPARATOR, " "))
+            return "%s %s %s" % (
+                self.parent.as_path(), AdminBoundary.PATH_SEPARATOR,
+                self.name.replace(AdminBoundary.PATH_SEPARATOR, " ")
+            )
         else:
             return self.name.replace(AdminBoundary.PATH_SEPARATOR, " ")
 
@@ -109,7 +121,9 @@ class BoundaryAlias(SmartModel):
     """
     name = models.CharField(max_length=128, help_text="The name for our alias")
 
-    boundary = models.ForeignKey(AdminBoundary, help_text='The admin boundary this alias applies to', related_name='aliases')
+    boundary = models.ForeignKey(
+        AdminBoundary, help_text='The admin boundary this alias applies to', related_name='aliases'
+    )
 
     org = models.ForeignKey('orgs.Org', help_text="The org that owns this alias")
 

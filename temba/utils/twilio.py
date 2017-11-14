@@ -20,12 +20,10 @@ def encode_atom(atom):  # pragma: no cover
     elif isinstance(atom, six.string_types):
         return atom.encode('utf-8')
     else:
-        raise ValueError('list elements should be an integer, '
-                         'binary, or string')
+        raise ValueError('list elements should be an integer, ' 'binary, or string')
 
 
 class LoggingResource(Resource):  # pragma: no cover
-
     def __init__(self, *args, **kwargs):
         super(LoggingResource, self).__init__(*args, **kwargs)
         self.events = []
@@ -49,8 +47,7 @@ class LoggingResource(Resource):  # pragma: no cover
                 elif isinstance(v, (six.integer_types, six.binary_type, six.string_types)):
                     udata[key] = encode_atom(v)
                 else:
-                    raise ValueError('data should be an integer, '
-                                     'binary, or string, or sequence ')
+                    raise ValueError('data should be an integer, ' 'binary, or string, or sequence ')
             data = urlencode(udata, doseq=True)
 
         event = HttpEvent(method, uri, data)
@@ -68,19 +65,16 @@ class LoggingResource(Resource):  # pragma: no cover
 
 
 class LoggingCalls(LoggingResource, Calls):  # pragma: no cover
-
     def __init__(self, *args, **kwargs):
         super(LoggingCalls, self).__init__(*args, **kwargs)
 
 
 class LoggingMessages(LoggingResource, Messages):  # pragma: nocover
-
     def __init__(self, *args, **kwargs):
         super(LoggingMessages, self).__init__(*args, **kwargs)
 
 
 class TembaTwilioRestClient(TwilioRestClient):  # pragma: no cover
-
     def __init__(self, *args, **kwargs):
         super(TembaTwilioRestClient, self).__init__(*args, **kwargs)
 

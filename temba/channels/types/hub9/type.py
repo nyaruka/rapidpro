@@ -12,7 +12,6 @@ from temba.msgs.models import SENT
 from temba.utils.http import HttpEvent, http_headers
 from ...models import Channel, ChannelType, SendException
 
-
 # Hub9 is an aggregator in Indonesia, set this to the endpoint for your service
 # and make sure you send from a whitelisted IP Address
 HUB9_ENDPOINT = 'http://175.103.48.29:28078/testing/smsmt.php'
@@ -55,9 +54,16 @@ class Hub9Type(ChannelType):
         #   &udhl=0&charset=utf-8
         #
         url = HUB9_ENDPOINT
-        payload = dict(userid=channel.config['username'], password=channel.config['password'],
-                       original=channel.address.lstrip('+'), sendto=msg.urn_path.lstrip('+'),
-                       messageid=msg.id, message=text, dcs=0, udhl=0)
+        payload = dict(
+            userid=channel.config['username'],
+            password=channel.config['password'],
+            original=channel.address.lstrip('+'),
+            sendto=msg.urn_path.lstrip('+'),
+            messageid=msg.id,
+            message=text,
+            dcs=0,
+            udhl=0
+        )
 
         # build up our querystring and send it as a get
         send_url = "%s?%s" % (url, urlencode(payload))
@@ -73,12 +79,10 @@ class Hub9Type(ChannelType):
             event.status_code = response.status_code
             event.response_body = response.text
             if not response:  # pragma: no cover
-                raise SendException("Unable to send message",
-                                    event=event, start=start)
+                raise SendException("Unable to send message", event=event, start=start)
 
             if response.status_code != 200 and response.status_code != 201:
-                raise SendException("Received non 200 status: %d" % response.status_code,
-                                    event=event, start=start)
+                raise SendException("Received non 200 status: %d" % response.status_code, event=event, start=start)
 
             # if it wasn't successfully delivered, throw
             if response.text != "000":  # pragma: no cover
