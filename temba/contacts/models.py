@@ -1625,8 +1625,8 @@ class Contact(TembaModel):
             Value.objects
             .filter(contact_id__in=contact_map.keys(), contact_field_id__in=key_map.keys())
             .select_related('contact_field', 'location_value')
-            .defer('location_value__geometry', 'location_value__simplified_geometry')
         )
+
         for value in values:
             contact = contact_map[value.contact_id]
             field_key = key_map[value.contact_field_id]

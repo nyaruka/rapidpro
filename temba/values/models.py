@@ -23,6 +23,14 @@ RULESET_KEY = 'vsd::vsr%d'
 VALUE_SUMMARY_CACHE_TIME = 60 * 60 * 24 * 30
 
 
+# default manager for Values, doesn't load geometries from AdminBoundary
+class NoGeometryManager(models.Manager):
+    def get_queryset(self):
+        return super(NoGeometryManager, self).get_queryset().defer(
+            'location_value__geometry', 'location_value__simplified_geometry'
+        )
+
+
 @six.python_2_unicode_compatible
 class Value(models.Model):
     """
@@ -90,6 +98,8 @@ class Value(models.Model):
 
     created_on = models.DateTimeField(auto_now_add=True)
     modified_on = models.DateTimeField(auto_now=True)
+
+    objects = NoGeometryManager()
 
     @classmethod
     def _filtered_values_to_categories(cls, contacts, values, label_field, formatter=None, return_contacts=False):
