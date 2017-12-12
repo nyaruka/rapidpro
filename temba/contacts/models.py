@@ -1621,8 +1621,12 @@ class Contact(TembaModel):
             setattr(contact, '__urns', list())  # initialize URN list cache (setattr avoids name mangling or __urns)
 
         # cache all field values
-        values = Value.objects.filter(contact_id__in=contact_map.keys(),
-                                      contact_field_id__in=key_map.keys()).select_related('contact_field', 'location_value')
+        values = (
+            Value.objects
+            .filter(contact_id__in=contact_map.keys(), contact_field_id__in=key_map.keys())
+            .select_related('contact_field', 'location_value')
+        )
+
         for value in values:
             contact = contact_map[value.contact_id]
             field_key = key_map[value.contact_field_id]
