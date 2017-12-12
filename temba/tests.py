@@ -275,7 +275,7 @@ class TembaTest(SmartminTest):
         Clears the redis cache. We are extra paranoid here and actually hard-code redis to 'localhost' and '10'
         Redis 10 is our testing redis db
         """
-        r = redis.StrictRedis(host='localhost', db=10)
+        r = redis.StrictRedis(host=settings.REDIS_HOST, db=10)
         r.flushdb()
 
     def clear_storage(self):
