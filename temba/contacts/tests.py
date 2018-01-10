@@ -4096,15 +4096,20 @@ class ContactFieldTest(TembaTest):
         self.assertEqual("323_ffsn_slfs_ksflskfs_fk_anfaddgas", ContactField.make_key("  ^%$# %$$ $##323 ffsn slfs ksflskfs!!!! fk$%%%$$$anfaDDGAS ))))))))) "))
 
     def test_is_valid_key(self):
-        self.assertTrue(ContactField.is_valid_key("age"))
-        self.assertTrue(ContactField.is_valid_key("age_now_2"))
-        self.assertFalse(ContactField.is_valid_key("Age"))   # must be lowercase
-        self.assertFalse(ContactField.is_valid_key("age!"))  # can't have punctuation
-        self.assertFalse(ContactField.is_valid_key("âge"))   # a-z only
-        self.assertFalse(ContactField.is_valid_key("2up"))   # can't start with a number
-        self.assertFalse(ContactField.is_valid_key("name"))  # can't be a reserved name
-        self.assertFalse(ContactField.is_valid_key("uuid"))
-        self.assertFalse(ContactField.is_valid_key("a" * 37))  # too long
+        self.assertTrue(ContactField.is_valid_key(self.org, "age"))
+        self.assertTrue(ContactField.is_valid_key(self.org, "age_now_2"))
+        self.assertTrue(ContactField.is_valid_key(self.org, "id"))      # not reserved
+        self.assertFalse(ContactField.is_valid_key(self.org, "Age"))     # must be lowercase
+        self.assertFalse(ContactField.is_valid_key(self.org, "age!"))    # can't have punctuation
+        self.assertFalse(ContactField.is_valid_key(self.org, "âge"))     # a-z only
+        self.assertFalse(ContactField.is_valid_key(self.org, "2up"))     # can't start with a number
+        self.assertFalse(ContactField.is_valid_key(self.org, "name"))    # can't be a reserved name
+        self.assertFalse(ContactField.is_valid_key(self.org, "uuid"))    # reserved
+        self.assertFalse(ContactField.is_valid_key(self.org, "a" * 37))  # too long
+
+        # anon orgs have reserved id fields
+        self.org.is_anon = True
+        self.assertFalse(ContactField.is_valid_key(self.org, "id"))      # reserved in anon
 
     def test_is_valid_label(self):
         self.assertTrue(ContactField.is_valid_label("Age"))

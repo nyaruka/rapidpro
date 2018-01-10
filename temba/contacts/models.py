@@ -356,8 +356,9 @@ class ContactField(SmartModel):
         return regex.sub(r'([^a-z0-9]+)', '_', key.strip(), regex.V0)
 
     @classmethod
-    def is_valid_key(cls, key):
-        return regex.match(r'^[a-z][a-z0-9_]*$', key, regex.V0) and key not in Contact.RESERVED_FIELDS and len(key) <= cls.MAX_KEY_LEN
+    def is_valid_key(cls, org, key):
+        reserved = Contact.RESERVED_ANON if org.is_anon else Contact.RESERVED_FIELDS
+        return regex.match(r'^[a-z][a-z0-9_]*$', key, regex.V0) and key not in reserved and len(key) <= cls.MAX_KEY_LEN
 
     @classmethod
     def is_valid_label(cls, label):
@@ -397,7 +398,7 @@ class ContactField(SmartModel):
                 field = ContactField.get_by_label(org, label)
 
             # we have a field with a invalid key we should ignore it
-            if field and not ContactField.is_valid_key(field.key):
+            if field and not ContactField.is_valid_key(org, field.key):
                 field = None
 
             if field:
@@ -444,7 +445,7 @@ class ContactField(SmartModel):
                 if show_in_table is None:
                     show_in_table = False
 
-                if not ContactField.is_valid_key(key):
+                if not ContactField.is_valid_key(org, key):
                     raise ValueError('Field key %s has invalid characters or is a reserved field name' % key)
 
                 field = ContactField.objects.create(org=org, key=key, label=label,
@@ -502,8 +503,10 @@ class Contact(TembaModel):
 
     # reserved contact fields
     RESERVED_FIELDS = [
-        NAME, FIRST_NAME, PHONE, LANGUAGE, GROUPS, UUID, CONTACT_UUID, ID, 'created_by', 'modified_by', 'org', 'is', 'has', 'tel', 'tel_e164',
+        NAME, FIRST_NAME, PHONE, LANGUAGE, GROUPS, UUID, CONTACT_UUID, 'created_by', 'modified_by', 'org', 'is', 'has', 'tel', 'tel_e164',
     ] + [c[0] for c in IMPORT_HEADERS]
+
+    RESERVED_ANON = RESERVED_FIELDS + ['id']
 
     @property
     def anon_identifier(self):

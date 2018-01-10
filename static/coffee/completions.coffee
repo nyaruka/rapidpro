@@ -137,9 +137,10 @@ class window.AutoComplete
     if not text
       return []
 
-    # these are acceptable keys, that we don't necessarily want to show completion for
+    # these are acceptable keys that we don't want to show completion for
     validKeys = {
       "id": true,
+      "mailto": true,
       "telegram": true,
       "facebook": true
     }

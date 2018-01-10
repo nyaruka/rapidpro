@@ -2422,6 +2422,9 @@ class Flow(TembaModel):
         return revision
 
     def update_dependencies(self):
+        # don't auto create these fields even if they are allowed, note that
+        # dependencies will still be created if the fields already exist
+        EXCLUDE_FIELD_CREATION = ('mailto', 'id')
 
         # if we are an older version, induce a system rev which will update our dependencies
         if Flow.is_before_version(self.version_number, get_current_export_version()):
@@ -2431,7 +2434,7 @@ class Flow(TembaModel):
         # otherwise, go about updating our dependencies assuming a current flow
         groups = set()
         flows = set()
-        collector = ContactFieldCollector()
+        collector = ContactFieldCollector(self.org)
 
         # find any references in our actions
         fields = set()
@@ -2508,10 +2511,11 @@ class Flow(TembaModel):
 
             # create any field that doesn't already exist
             for field in fields:
-                if ContactField.is_valid_key(field) and field not in existing:
+                if ContactField.is_valid_key(self.org, field) and field not in existing:
                     # reverse slug to get a reasonable label
                     label = ' '.join([word.capitalize() for word in field.split('_')])
-                    ContactField.get_or_create(self.org, self.modified_by, field, label)
+                    if field not in EXCLUDE_FIELD_CREATION:
+                        ContactField.get_or_create(self.org, self.modified_by, field, label)
 
         fields = ContactField.objects.filter(org=self.org, key__in=fields)
 

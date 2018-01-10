@@ -423,7 +423,7 @@ class ContactFieldWriteSerializer(WriteSerializer):
     value_type = serializers.CharField(required=True)
 
     def validate_key(self, value):
-        if value and not ContactField.is_valid_key(value):
+        if value and not ContactField.is_valid_key(self.org, value):
             raise serializers.ValidationError("Field is invalid or a reserved name")
         return value
 
@@ -443,7 +443,7 @@ class ContactFieldWriteSerializer(WriteSerializer):
 
         if not key:
             key = ContactField.make_key(label)
-            if not ContactField.is_valid_key(key):
+            if not ContactField.is_valid_key(self.org, key):
                 raise serializers.ValidationError(_("Generated key for '%s' is invalid or a reserved name") % label)
 
         fields_count = ContactField.objects.filter(org=self.org).count()
