@@ -795,7 +795,7 @@ class Flow(TembaModel):
 
         # actually execute all the actions in our actionset
         msgs = actionset.execute_actions(run, msg, started_flows)
-        run.add_messages(msgs, step=step)
+        run.add_messages(msgs)
 
         # and onto the destination
         destination = Flow.get_node(actionset.flow, actionset.destination, actionset.destination_type)
@@ -829,7 +829,7 @@ class Flow(TembaModel):
                     extra['flow'] = message_context.get('flow', {})
 
                     if msg.id > 0:
-                        run.add_messages([msg], step=step)
+                        run.add_messages([msg])
                         run.update_expiration(timezone.now())
 
                     if flow:
@@ -858,7 +858,7 @@ class Flow(TembaModel):
 
         # add the message to our step
         if msg.id > 0:
-            run.add_messages([msg], step=step)
+            run.add_messages([msg])
             run.update_expiration(timezone.now())
 
         if ruleset.ruleset_type in RuleSet.TYPE_MEDIA and msg.attachments:
@@ -898,7 +898,7 @@ class Flow(TembaModel):
         context = run.flow.build_expressions_context(run.contact, msg)
         msgs = action.execute(run, context, ruleset.uuid, msg)
 
-        run.add_messages(msgs, step=step)
+        run.add_messages(msgs)
 
         return dict(handled=True, destination=None, step=step, msgs=msgs)
 
@@ -1771,7 +1771,7 @@ class Flow(TembaModel):
                         run_msgs += step_msgs
 
                 if start_msg:
-                    run.add_messages([start_msg], step=step)
+                    run.add_messages([start_msg])
 
                 # set the msgs that were sent by this run so that any caller can deal with them
                 run.start_msgs = run_msgs
@@ -1820,9 +1820,6 @@ class Flow(TembaModel):
             previous_step.next_uuid = node.uuid
             previous_step.save(update_fields=('left_on', 'rule_uuid', 'next_uuid'))
 
-            if not previous_step.contact.is_test:
-                FlowPathRecentRun.record(exit_uuid, node.uuid, run, visited_on=arrived_on)
-
         # update our timeouts
         timeout = node.get_timeout() if isinstance(node, RuleSet) else None
         run.update_timeout(arrived_on, timeout)
@@ -1837,13 +1834,16 @@ class Flow(TembaModel):
                                        step_uuid=node.uuid, arrived_on=arrived_on)
 
         # for each message, associate it with this step and set the label on it
-        run.add_messages(msgs, step=step)
+        run.add_messages(msgs)
 
         path = run.get_path()
 
         # complete previous step
         if path and exit_uuid:
             path[-1][FlowRun.PATH_EXIT_UUID] = exit_uuid
+
+            if not run.contact.is_test:
+                FlowPathRecentRun.record(exit_uuid, node.uuid, run, visited_on=arrived_on)
 
         # create new step
         path.append({FlowRun.PATH_NODE_UUID: node.uuid, FlowRun.PATH_ARRIVED_ON: arrived_on.isoformat()})
@@ -2761,7 +2761,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             # continue the parent flows to continue async
             on_transaction_commit(lambda: continue_parent_flows.delay(id_batch))
 
-    def add_messages(self, msgs, step=None):
+    def add_messages(self, msgs):
         """
         Associates the given messages with this run
         """
@@ -2778,13 +2778,6 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             if msg.id not in self.message_ids:
                 self.message_ids.append(msg.id)
                 needs_update = True
-
-            if step:
-                step.messages.add(msg)
-
-                # if this msg is part of a broadcast, save that on our flowstep so we can later purge the msg
-                if msg.broadcast:
-                    step.broadcasts.add(msg.broadcast)
 
             # incoming non-IVR messages won't have a type yet so update that
             if not msg.msg_type or msg.msg_type == INBOX:
@@ -3313,24 +3306,6 @@ class FlowStep(models.Model):
             self.rule_value = six.text_type(value)[:Msg.MAX_TEXT_LEN]
 
         self.save(update_fields=('rule_uuid', 'rule_value'))
-
-    def get_text(self, run=None):
-        """
-        Returns a single text value for this step. Since steps can have multiple outgoing messages, this isn't very
-        useful but needed for backwards compatibility in API v1.
-        """
-        msg = self.messages.all().first()
-        if msg:
-            return msg.text
-
-        # It's possible that messages have been purged but we still have broadcasts. Broadcast isn't implicitly ordered
-        # like Msg is so .all().first() would cause an extra db hit even if all() has been prefetched.
-        broadcasts = list(self.broadcasts.all())
-        if broadcasts:  # pragma: needs cover
-            run = run or self.run
-            return broadcasts[0].get_translated_text(run.contact, org=run.org)
-
-        return None
 
     def get_node(self):
         """
