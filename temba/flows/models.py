@@ -3226,7 +3226,7 @@ class FlowStep(models.Model):
         else:
             actions = Action.from_json_array(flow.org, json_obj['actions'])
 
-            last_incoming = Msg.objects.filter(org=run.org, direction=INCOMING, steps__run=run).order_by('-pk').first()
+            last_incoming = run.get_messages().filter(direction=INCOMING).order_by('-pk').first()
 
             for action in actions:
                 context = flow.build_expressions_context(run.contact, last_incoming)
