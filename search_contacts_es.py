@@ -77,13 +77,36 @@ query_1 = {
     }
 }
 
+query_resist_1 = {
+    "query": {
+        "bool": {
+            "must": [{
+                "bool": {
+                    "must": [
+                        {"match": {"fields.state.keyword": "CA"}},
+                        {"range": {
+                            "fields.total_emails_sent": {
+                                "gte": 3
+                            }
+                        }},
+                    ]
+                }},
+            ],
+            "filter": [
+                {"term": {"is_blocked": False}},
+                {"term": {"is_active": True}},
+                {"term": {"is_stopped": False}}
+            ]
+        }
+    }
+}
+
 
 start = time.time()
 
 res = es.search(
-    index='org_1', body=query_1, size=10
+    index='org_1', body=query_resist_1, size=10
 )
-
 
 print(time.time() - start)
 

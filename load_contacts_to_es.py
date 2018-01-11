@@ -46,7 +46,7 @@ def serialize_value(field, value):
 
 def contact_serializator():
     print('init contact', end='')
-    contacts = Contact.objects.filter(org=org).iterator()
+    contacts = Contact.objects.filter(org=org).order_by('id').iterator()
 
     total_contacts = Contact.objects.filter(org=org).count()
 
