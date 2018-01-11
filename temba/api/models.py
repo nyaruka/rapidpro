@@ -366,9 +366,7 @@ class WebHookEvent(SmartModel):
             steps.append(dict(type=step.step_type,
                               node=step.step_uuid,
                               arrived_on=datetime_to_str(step.arrived_on),
-                              left_on=datetime_to_str(step.left_on),
-                              text="",
-                              value=step.rule_value))
+                              left_on=datetime_to_str(step.left_on)))
 
         data = dict(channel=channel.id if channel else -1,
                     channel_uuid=channel.uuid if channel else None,

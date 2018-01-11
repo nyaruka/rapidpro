@@ -42,7 +42,7 @@ from temba.msgs.models import Broadcast, Msg, FLOW, INBOX, INCOMING, QUEUED, FAI
 from temba.msgs.models import PENDING, DELIVERED, USSD as MSG_TYPE_USSD, OUTGOING
 from temba.orgs.models import Org, Language, get_current_export_version
 from temba.utils import analytics, chunk_list, on_transaction_commit
-from temba.utils.dates import get_datetime_format, str_to_datetime, datetime_to_str, json_date_to_datetime
+from temba.utils.dates import str_to_datetime, datetime_to_str, json_date_to_datetime
 from temba.utils.email import is_valid_address
 from temba.utils.export import BaseExportTask, BaseExportAssetStore
 from temba.utils.expressions import ContactFieldCollector
@@ -3263,8 +3263,7 @@ class FlowStep(models.Model):
 
             # update our step with our rule details
             step.rule_uuid = rule_uuid
-            step.rule_value = rule_value
-            step.save(update_fields=('rule_uuid', 'rule_value'))
+            step.save(update_fields=('rule_uuid',))
 
         return step
 
@@ -3294,18 +3293,7 @@ class FlowStep(models.Model):
 
     def save_rule_match(self, rule, value):
         self.rule_uuid = rule.uuid
-
-        if value is None:
-            value = ''
-
-        # format our rule value appropriately
-        if isinstance(value, datetime):
-            (date_format, time_format) = get_datetime_format(self.run.flow.org.get_dayfirst())
-            self.rule_value = datetime_to_str(value, tz=self.run.flow.org.timezone, format=time_format, ms=False)
-        else:
-            self.rule_value = six.text_type(value)[:Msg.MAX_TEXT_LEN]
-
-        self.save(update_fields=('rule_uuid', 'rule_value'))
+        self.save(update_fields=('rule_uuid',))
 
     def get_node(self):
         """
