@@ -3129,7 +3129,6 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
         return "FlowRun: %s Flow: %s\n%s" % (self.uuid, self.flow.uuid, json.dumps(self.get_results(), indent=2))
 
 
-@six.python_2_unicode_compatible
 class FlowStep(models.Model):
     """
     A contact's visit to a node in a flow (rule set or action set)
