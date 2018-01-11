@@ -3304,9 +3304,6 @@ class FlowStep(models.Model):
         else:  # pragma: needs cover
             return ActionSet.objects.filter(uuid=self.step_uuid).first()
 
-    def __str__(self):
-        return "%s - %s:%s" % (self.run.contact, self.step_type, self.step_uuid)
-
 
 @six.python_2_unicode_compatible
 class RuleSet(models.Model):
