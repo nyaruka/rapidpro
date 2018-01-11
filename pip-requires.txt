@@ -74,3 +74,6 @@ flake8-print
 mock
 responses
 selenium
+
+########################## elasticsearch ##########################
+elasticsearch
