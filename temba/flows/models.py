@@ -1851,9 +1851,6 @@ class Flow(TembaModel):
         if path and exit_uuid:
             path[-1][FlowRun.PATH_EXIT_UUID] = exit_uuid
 
-            if not run.contact.is_test:
-                FlowPathRecentRun.record(exit_uuid, node.uuid, run, visited_on=arrived_on)
-
         # create new step
         path.append({FlowRun.PATH_NODE_UUID: node.uuid, FlowRun.PATH_ARRIVED_ON: arrived_on.isoformat()})
 
@@ -2948,9 +2945,6 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
         for step in self.steps.all():
             step.release()
 
-        # clear any recent messages
-        self.recent_messages.all().delete()
-
         # lastly delete ourselves
         self.delete()
 
@@ -3983,25 +3977,6 @@ class FlowPathCount(SquashableModel):
         index_together = ['flow', 'from_uuid', 'to_uuid', 'period']
 
 
-class FlowPathRecentMessage(models.Model):
-    """
-    Maintains recent messages for a flow path segment. Doesn't store references to actual steps or messages as these
-    might be purged.
-    """
-    id = models.BigAutoField(auto_created=True, primary_key=True, verbose_name='ID')
-
-    from_uuid = models.UUIDField(help_text=_("Which flow node they came from"))
-    to_uuid = models.UUIDField(help_text=_("Which flow node they went to"))
-    run = models.ForeignKey(FlowRun, related_name='recent_messages')
-    text = models.TextField(help_text=_("The message text"))
-    created_on = models.DateTimeField(help_text=_("When the message arrived"))
-
-    class Meta:
-        indexes = [
-            models.Index(fields=['from_uuid', 'to_uuid', '-created_on'])
-        ]
-
-
 class FlowPathRecentRun(models.Model):
     """
     Maintains recent runs for a flow path segment
@@ -4015,10 +3990,6 @@ class FlowPathRecentRun(models.Model):
     to_uuid = models.UUIDField(help_text=_("Which flow node they went to"))
     run = models.ForeignKey(FlowRun, related_name='recent_runs')
     visited_on = models.DateTimeField(help_text=_("When the run visited this path segment"), default=timezone.now)
-
-    @classmethod
-    def record(cls, exit_uuid, to_uuid, run, visited_on=None):
-        cls.objects.create(from_uuid=exit_uuid, to_uuid=to_uuid, run=run, visited_on=visited_on or timezone.now())
 
     @classmethod
     def get_recent(cls, exit_uuids, to_uuid, limit=PRUNE_TO):
