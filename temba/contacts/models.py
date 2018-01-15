@@ -34,6 +34,7 @@ from temba.utils.profiler import time_monitor
 from temba.utils.text import clean_string, truncate
 from temba.values.models import Value
 
+
 logger = logging.getLogger(__name__)
 
 # phone number for every org's test contact
@@ -928,6 +929,9 @@ class Contact(TembaModel):
 
                         # handle group and campaign updates
                         contact.handle_update(attrs=updated_attrs)
+
+                        # TODO: sync updated contact with ElasticSearch
+                        #
                         return contact
 
         # perform everything in a org-level lock to prevent duplication by different instances
@@ -1017,6 +1021,9 @@ class Contact(TembaModel):
 
         # handle group and campaign updates
         contact.handle_update(attrs=updated_attrs, urns=updated_urns)
+
+        # TODO: sync new contact with ElasticSearch
+        #
         return contact
 
     @classmethod

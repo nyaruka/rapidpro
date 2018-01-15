@@ -54,7 +54,7 @@ query = {
 # contact search for `name is Dave or tel has 250700009`
 # wildcard search is 'expensive' but using `trigrams` analyzer on URNs does not produce same results as in the database
 # `name.keyword` index is used when we want to exactly match a 'term'
-# expressions in *filter* section do not contribute to the relevance index and should be exact
+# expressions in *filter* section do not contribute to the **relevance** index and should be exact
 query_1 = {
     "query": {
         "bool": {
