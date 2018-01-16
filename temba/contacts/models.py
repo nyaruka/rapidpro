@@ -14,7 +14,7 @@ import uuid
 from collections import defaultdict
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.db import models, transaction, IntegrityError, connection
+from django.db import models, transaction, IntegrityError
 from django.db.models import Count, Max, Q, Sum
 from django.utils import timezone
 from django.utils.translation import ugettext, ugettext_lazy as _
@@ -780,21 +780,6 @@ class Contact(TembaModel):
                                                 location_value=loc_value, category=category)
                 has_changed = True
 
-        # TODO: update contact _fields
-        value_mapping = {
-            Value.TYPE_TEXT: existing.string_value,
-            Value.TYPE_DECIMAL: float(existing.decimal_value),
-            Value.TYPE_DATETIME: existing.datetime_value,
-            Value.TYPE_STATE: existing.location_value.path if existing.location_value else '',
-            Value.TYPE_DISTRICT: existing.location_value.path if existing.location_value else '',
-            Value.TYPE_WARD: existing.location_value.path if existing.location_value else ''
-        }
-        with connection.cursor() as cur:
-            cur.callproc(
-                'es_update_contact.update_contact_fields',
-                (self.pk, json.dumps({field.key: value_mapping[field.value_type]}))
-            )
-
         # cache this field value
         self.set_cached_field_value(key, existing)
 
@@ -945,8 +930,6 @@ class Contact(TembaModel):
                         # handle group and campaign updates
                         contact.handle_update(attrs=updated_attrs)
 
-                        # TODO: sync updated contact with ElasticSearch
-                        #
                         return contact
 
         # perform everything in a org-level lock to prevent duplication by different instances
@@ -1037,8 +1020,6 @@ class Contact(TembaModel):
         # handle group and campaign updates
         contact.handle_update(attrs=updated_attrs, urns=updated_urns)
 
-        # TODO: sync new contact with ElasticSearch
-        #
         return contact
 
     @classmethod

@@ -14,22 +14,28 @@ django.setup()
 es = Elasticsearch('http://localhost:9200')
 
 
-CONTACTS_IN_BATCH = 5000
+CONTACTS_IN_BATCH = 1000
 CONTACTS_SYNCED = 0
 
 
 def serialize_bulk_operations(contacts):
     global CONTACTS_SYNCED
-    for contact_pk, contact_org_id, contact_document in contacts:
+    with connection.cursor() as cur:
+        for contact_pk, contact_org_id in contacts:
 
-        index_name = 'org_{}'.format(contact_org_id)
+            index_name = 'org_{}'.format(contact_org_id)
 
-        yield {
-            'index': {'_index': index_name, '_type': 'contact', '_id': contact_pk}
-        }
-        yield contact_document
+            yield {
+                'index': {'_index': index_name, '_type': 'contact', '_id': contact_pk}
+            }
 
-        CONTACTS_SYNCED += 1
+            cur.execute(
+                'select * from es_update_contact.serialize_contact(%s, %s)', (contact_org_id, contact_pk)
+            )
+            contact_document = cur.fetchone()
+            yield contact_document
+
+            CONTACTS_SYNCED += 1
 
 
 if __name__ == '__main__':
@@ -40,12 +46,12 @@ if __name__ == '__main__':
         with transaction.atomic():
             with connection.cursor() as cur:
                 cur.execute(
-                    'select contact_pk, contact_org_id, contact_document from es_update_contact.dequeue_contact(%s)',
+                    'select contact_pk, contact_org_id from es_update_contact.dequeue_contact(%s)',
                     (CONTACTS_IN_BATCH, )
                 )
 
                 operations = serialize_bulk_operations(
-                    ((c_id, c_org_id, work_task) for c_id, c_org_id, work_task in cur)
+                    ((c_id, c_org_id) for c_id, c_org_id in cur)
                 )
 
                 # peek into generator to see if we have data for sync
