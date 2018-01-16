@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, division, print_function
 
-import json
 import time
 
 import itertools
@@ -16,16 +15,21 @@ es = Elasticsearch('http://localhost:9200')
 
 
 CONTACTS_IN_BATCH = 5000
+CONTACTS_SYNCED = 0
 
 
 def serialize_bulk_operations(contacts):
-    for contact in contacts:
-        index_name = 'org_{}'.format(1)  # contact['org_id']
-        contact_id = contact['id']
+    global CONTACTS_SYNCED
+    for contact_pk, contact_org_id, contact_document in contacts:
+
+        index_name = 'org_{}'.format(contact_org_id)
+
         yield {
-            'index': {'_index': index_name, '_type': 'contact', '_id': contact_id}
+            'index': {'_index': index_name, '_type': 'contact', '_id': contact_pk}
         }
-        yield contact
+        yield contact_document
+
+        CONTACTS_SYNCED += 1
 
 
 if __name__ == '__main__':
@@ -35,9 +39,14 @@ if __name__ == '__main__':
 
         with transaction.atomic():
             with connection.cursor() as cur:
-                cur.execute('select * from es_update_contact.dequeue_contact(%s)', (CONTACTS_IN_BATCH, ))
+                cur.execute(
+                    'select contact_pk, contact_org_id, contact_document from es_update_contact.dequeue_contact(%s)',
+                    (CONTACTS_IN_BATCH, )
+                )
 
-                operations = serialize_bulk_operations((json.loads(work_task) for _, _, work_task, _ in cur))
+                operations = serialize_bulk_operations(
+                    ((c_id, c_org_id, work_task) for c_id, c_org_id, work_task in cur)
+                )
 
                 # peek into generator to see if we have data for sync
                 operation = next(operations, None)
@@ -45,9 +54,10 @@ if __name__ == '__main__':
                 if operation is not None:
                     print('indexing ', end='')
 
-                    es.bulk(itertools.chain([operation], operations), index='org_1', doc_type='contact')
+                    es.bulk(itertools.chain([operation], operations))
 
-                    print(CONTACTS_IN_BATCH, 'contacts in', time.time() - start_time)
+                    print(CONTACTS_SYNCED, 'contacts in', time.time() - start_time)
 
         # wait
         time.sleep(0.250)
+        CONTACTS_SYNCED = 0

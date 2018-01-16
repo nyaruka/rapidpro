@@ -4,6 +4,7 @@ CREATE SCHEMA IF NOT EXISTS es_update_contact;
 CREATE TABLE IF NOT EXISTS es_update_contact.task (
   id BIGSERIAL PRIMARY KEY,
   contact_pk INTEGER NOT NULL,
+  contact_org_id INTEGER NOT NULL,
   contact_document TEXT NOT NULL,
   created_on TIMESTAMP DEFAULT now()
 );
@@ -132,7 +133,7 @@ $BODY$
   DECLARE
   BEGIN
 
-    INSERT INTO es_update_contact.task (contact_pk, contact_document) SELECT NEW.id, es_update_contact.serialize_contact(NEW.org_id, NEW.id);
+    INSERT INTO es_update_contact.task (contact_pk, contact_org_id, contact_document) SELECT NEW.id, NEW.org_id, es_update_contact.serialize_contact(NEW.org_id, NEW.id);
 
     RETURN NEW;
 
@@ -141,25 +142,21 @@ $BODY$
   LANGUAGE plpgsql VOLATILE ;
 
 
-CREATE OR REPLACE FUNCTION es_update_contact.dequeue_contact()
+CREATE OR REPLACE FUNCTION es_update_contact.dequeue_contact(i_max_tasks INTEGER DEFAULT 1000)
 
-  RETURNS es_update_contact.task AS
+  RETURNS SETOF es_update_contact.task AS
 
 $BODY$
-  DECLARE
-    v_task es_update_contact.task;
   BEGIN
 
-    DELETE FROM es_update_contact.task
-    WHERE id = (
+    RETURN QUERY DELETE FROM es_update_contact.task
+    WHERE id IN (
       SELECT id FROM es_update_contact.task
       ORDER BY id
       FOR UPDATE SKIP LOCKED
-      LIMIT 1
+      LIMIT i_max_tasks
     )
-    RETURNING * INTO v_task;
-
-    RETURN v_task;
+    RETURNING *;
   END;
 $BODY$
 LANGUAGE plpgsql VOLATILE;
@@ -342,7 +339,7 @@ $BODY$
   DECLARE
   BEGIN
 
-    INSERT INTO es_update_contact.task (contact_pk, contact_document) SELECT NEW.id, jsonb_build_object(
+    INSERT INTO es_update_contact.task (contact_pk, contact_org_id, contact_document) SELECT NEW.id, NEW.org_id, jsonb_build_object(
         'id', NEW.id,
         'name', NEW.name,
         'language', NEW.language,
