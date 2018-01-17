@@ -677,7 +677,7 @@ class Contact(TembaModel):
             return org.format_date(value.datetime_value)
         elif field.value_type == Value.TYPE_DECIMAL:
             return format_decimal(value.decimal_value)
-        elif field.value_type in [Value.TYPE_STATE, Value.TYPE_DISTRICT, Value.TYPE_WARD] and value.location_value:
+        elif field.value_type in [Value.TYPE_STATE, Value.TYPE_DISTRICT, Value.TYPE_WARD]:
             return value.location_value.name
         else:
             return value.string_value
@@ -746,38 +746,46 @@ class Contact(TembaModel):
             else:
                 loc_value = None
 
-            category = loc_value.name if loc_value else None
-
-            # find the existing value
-            existing = Value.objects.filter(contact=self, contact_field__pk=field.id).first()
-
-            if existing:
-                # only update the existing value if it will be different
-                if existing.string_value != str_value \
-                        or existing.decimal_value != dec_value \
-                        or existing.datetime_value != dt_value \
-                        or existing.location_value != loc_value \
-                        or existing.category != category:
-
-                    existing.string_value = str_value
-                    existing.decimal_value = dec_value
-                    existing.datetime_value = dt_value
-                    existing.location_value = loc_value
-                    existing.category = category
-
-                    existing.save(update_fields=['string_value', 'decimal_value', 'datetime_value',
-                                                 'location_value', 'category', 'modified_on'])
-                    has_changed = True
-
-                # remove any others on the same field that may exist
-                Value.objects.filter(contact=self, contact_field__pk=field.id).exclude(id=existing.id).delete()
-
-            # otherwise, create a new value for it
-            else:
-                existing = Value.objects.create(contact=self, contact_field=field, org=self.org,
-                                                string_value=str_value, decimal_value=dec_value, datetime_value=dt_value,
-                                                location_value=loc_value, category=category)
+            # if we are typed and have no typed value, delete our value
+            if ((field.value_type == Value.TYPE_DATETIME and dt_value is None) or
+                    (field.value_type == Value.TYPE_DECIMAL and dec_value is None) or
+                    (field.value_type in [Value.TYPE_STATE, Value.TYPE_DISTRICT, Value.TYPE_WARD] and loc_value is None)):
+                Value.objects.filter(contact=self, contact_field__pk=field.id).delete()
                 has_changed = True
+
+            # otherwise, write our new value
+            else:
+                # find the existing value
+                existing = Value.objects.filter(contact=self, contact_field__pk=field.id).first()
+                category = loc_value.name if loc_value else None
+
+                if existing:
+                    # only update the existing value if it will be different
+                    if existing.string_value != str_value \
+                            or existing.decimal_value != dec_value \
+                            or existing.datetime_value != dt_value \
+                            or existing.location_value != loc_value \
+                            or existing.category != category:
+
+                        existing.string_value = str_value
+                        existing.decimal_value = dec_value
+                        existing.datetime_value = dt_value
+                        existing.location_value = loc_value
+                        existing.category = category
+
+                        existing.save(update_fields=['string_value', 'decimal_value', 'datetime_value',
+                                                     'location_value', 'category', 'modified_on'])
+                        has_changed = True
+
+                    # remove any others on the same field that may exist
+                    Value.objects.filter(contact=self, contact_field__pk=field.id).exclude(id=existing.id).delete()
+
+                # otherwise, create a new value for it
+                else:
+                    existing = Value.objects.create(contact=self, contact_field=field, org=self.org,
+                                                    string_value=str_value, decimal_value=dec_value, datetime_value=dt_value,
+                                                    location_value=loc_value, category=category)
+                    has_changed = True
 
         # cache this field value
         self.set_cached_field_value(key, existing)
