@@ -12,6 +12,8 @@ import time
 import uuid
 
 from collections import defaultdict
+
+from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import models, transaction, IntegrityError
@@ -420,6 +422,7 @@ class ContactField(SmartModel):
                     field.label = label
                     changed = True
 
+                # TODO: field value types are static and strongly typed
                 # update our type if we were given one
                 if value_type and field.value_type != value_type:
                     field.value_type = value_type
@@ -471,23 +474,37 @@ MAX_HISTORY = 50
 
 @six.python_2_unicode_compatible
 class Contact(TembaModel):
-    name = models.CharField(verbose_name=_("Name"), max_length=128, blank=True, null=True,
-                            help_text=_("The name of this contact"))
+    name = models.CharField(
+        max_length=128, blank=True, null=True,
+        verbose_name=_("Name"), help_text=_("The name of this contact")
+    )
 
-    org = models.ForeignKey(Org, verbose_name=_("Org"), related_name="org_contacts",
-                            help_text=_("The organization that this contact belongs to"))
+    org = models.ForeignKey(
+        'orgs.Org', related_name="org_contacts",
+        verbose_name=_("Org"), help_text=_("The organization that this contact belongs to")
+    )
 
-    is_blocked = models.BooleanField(verbose_name=_("Is Blocked"), default=False,
-                                     help_text=_("Whether this contact has been blocked"))
+    is_blocked = models.BooleanField(
+        default=False,
+        verbose_name=_("Is Blocked"), help_text=_("Whether this contact has been blocked")
+    )
 
-    is_test = models.BooleanField(verbose_name=_("Is Test"), default=False,
-                                  help_text=_("Whether this contact is for simulation"))
+    is_test = models.BooleanField(
+        default=False,
+        verbose_name=_("Is Test"), help_text=_("Whether this contact is for simulation")
+    )
 
-    is_stopped = models.BooleanField(verbose_name=_("Is Stopped"), default=False,
-                                     help_text=_("Whether this contact has opted out of receiving messages"))
+    is_stopped = models.BooleanField(
+        default=False,
+        verbose_name=_("Is Stopped"), help_text=_("Whether this contact has opted out of receiving messages")
+    )
 
-    language = models.CharField(max_length=3, verbose_name=_("Language"), null=True, blank=True,
-                                help_text=_("The preferred language for this contact"))
+    language = models.CharField(
+        max_length=3, null=True, blank=True,
+        verbose_name=_("Language"), help_text=_("The preferred language for this contact")
+    )
+
+    _fields_as_json = JSONField(default={})
 
     simulation = False
 
@@ -719,6 +736,9 @@ class Contact(TembaModel):
             # setting a blank value is equivalent to removing the value
             Value.objects.filter(contact=self, contact_field__pk=field.id).delete()
             has_changed = True
+
+            # blank or None values are set as undefined
+            typed_field_value = None
         else:
             # parse as all value data types
             str_value = six.text_type(value)[:Value.MAX_VALUE_LEN]
@@ -748,6 +768,18 @@ class Contact(TembaModel):
 
             category = loc_value.name if loc_value else None
 
+            # remap value_types
+            value_type_mapping = {
+                Value.TYPE_TEXT: str_value if str_value else None,
+                Value.TYPE_DECIMAL: float(dec_value) if dec_value else None,
+                Value.TYPE_DATETIME: dt_value.isoformat() if dt_value else None,
+                Value.TYPE_STATE: loc_value.path if loc_value else None,
+                Value.TYPE_DISTRICT: loc_value.path if loc_value else None,
+                Value.TYPE_WARD: loc_value.path if loc_value else None
+            }
+
+            typed_field_value = value_type_mapping[field.value_type]
+
             # find the existing value
             existing = Value.objects.filter(contact=self, contact_field__pk=field.id).first()
 
@@ -765,8 +797,9 @@ class Contact(TembaModel):
                     existing.location_value = loc_value
                     existing.category = category
 
-                    existing.save(update_fields=['string_value', 'decimal_value', 'datetime_value',
-                                                 'location_value', 'category', 'modified_on'])
+                    existing.save(update_fields=(
+                        'string_value', 'decimal_value', 'datetime_value', 'location_value', 'category', 'modified_on'
+                    ))
                     has_changed = True
 
                 # remove any others on the same field that may exist
@@ -784,7 +817,9 @@ class Contact(TembaModel):
 
         if has_changed:
             self.modified_by = user
-            self.save(update_fields=('modified_by', 'modified_on'))
+            self._fields_as_json.update({key: typed_field_value})
+
+            self.save(update_fields=('modified_by', 'modified_on', '_fields_as_json'))
 
             # update any groups or campaigns for this contact if not importing
             if not importing:

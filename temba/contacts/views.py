@@ -241,7 +241,7 @@ class ContactFieldForm(forms.ModelForm):
 
     class Meta:
         model = Contact
-        fields = '__all__'
+        fields = ['name', 'org', 'is_blocked', 'is_test', 'is_stopped', 'language']
 
 
 class ContactForm(forms.ModelForm):
@@ -331,7 +331,7 @@ class ContactForm(forms.ModelForm):
 
     class Meta:
         model = Contact
-        fields = '__all__'
+        fields = ['name', 'org', 'is_blocked', 'is_test', 'is_stopped', 'language']
 
 
 class UpdateContactForm(ContactForm):

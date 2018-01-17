@@ -3613,6 +3613,19 @@ class ContactTest(TembaTest):
         self.assertEqual(c5.pk, c1.pk)
         self.assertEqual(c5.name, "Goran Dragic")
 
+    def test_fields_as_json(self):
+        ContactField.get_or_create(
+            self.org, self.admin, 'birth_date', label='Birth Date', value_type=Value.TYPE_DATETIME
+        )
+
+        # set 'birth_date' field
+        self.joe.set_field(self.user, 'birth_date', '2018-01-17T12:20:10Z')
+        self.assertIsNotNone(self.joe._fields_as_json['birth_date'])
+
+        # unset 'birth_date' field
+        self.joe.set_field(self.user, 'birth_date', '')
+        self.assertIsNone(self.joe._fields_as_json['birth_date'])
+
     def test_fields(self):
         # set a field on joe
         self.joe.set_field(self.user, 'abc_1234', 'Joe', label="Name")
