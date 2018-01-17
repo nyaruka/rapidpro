@@ -28,6 +28,7 @@ from temba.channels.models import Channel
 from temba.locations.models import AdminBoundary
 from temba.orgs.models import Org, OrgLock
 from temba.utils import analytics, format_decimal, chunk_list, get_anonymous_user
+from temba.utils.dates import str_to_datetime
 from temba.utils.languages import _get_language_name_iso6393
 from temba.utils.models import SquashableModel, TembaModel
 from temba.utils.cache import get_cacheable_attr
@@ -673,12 +674,28 @@ class Contact(TembaModel):
         """
         Gets either the field category if set, or the formatted field value
         """
-        value = self.get_field(key)
-        if value:
-            field = value.contact_field
-            return Contact.get_field_display_for_value(field, value, org=self.org)
+        field_value = self.get_field(key)
+        if field_value:
+            field = field_value.contact_field
+            # read the value from the contact object
+            value = self._fields_as_json.get(key, None)
+            return Contact.format_field_value_for_display(self.org, field.value_type, value)
         else:
             return None
+
+    @staticmethod
+    def format_field_value_for_display(org, field_type, value):
+        if value is None:
+            return None
+
+        if field_type == Value.TYPE_DATETIME:
+            return org.format_date(str_to_datetime(value, tz=org.timezone))
+        elif field_type == Value.TYPE_DECIMAL:
+            return format_decimal(value)
+        elif field_type in [Value.TYPE_STATE, Value.TYPE_DISTRICT, Value.TYPE_WARD]:
+            return value
+        else:
+            return value
 
     @classmethod
     def get_field_display_for_value(cls, field, value, org=None):
