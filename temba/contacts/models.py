@@ -13,7 +13,6 @@ import uuid
 
 from collections import defaultdict
 
-from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import models, transaction, IntegrityError
@@ -473,6 +472,25 @@ NEW_CONTACT_VARIABLE = "@new_contact"
 MAX_HISTORY = 50
 
 
+class JSONAsText(models.TextField):
+    """
+    Custom JSON field that is stored as Text in the database
+
+    Note:
+        uses standard JSON serializers so it expects that all data is a valid JSON data
+    """
+    def from_db_value(self, value, *args, **kwargs):
+        if value is None:
+            return value
+        return json.loads(value)
+
+    def to_python(self, value):
+        if value is None:
+            return value
+
+        return json.dumps(value)
+
+
 @six.python_2_unicode_compatible
 class Contact(TembaModel):
     name = models.CharField(
@@ -505,7 +523,7 @@ class Contact(TembaModel):
         verbose_name=_("Language"), help_text=_("The preferred language for this contact")
     )
 
-    _fields_as_json = JSONField(default={})
+    fields_as_json = JSONAsText(default={})
 
     simulation = False
 
@@ -678,7 +696,7 @@ class Contact(TembaModel):
         if field_value:
             field = field_value.contact_field
             # read the value from the contact object
-            value = self._fields_as_json.get(key, None)
+            value = self.fields_as_json.get(key, None)
             return Contact.format_field_value_for_display(self.org, field.value_type, value)
         else:
             return None
@@ -834,9 +852,10 @@ class Contact(TembaModel):
 
         if has_changed:
             self.modified_by = user
-            self._fields_as_json.update({key: typed_field_value})
 
-            self.save(update_fields=('modified_by', 'modified_on', '_fields_as_json'))
+            self.fields_as_json.update({key: typed_field_value})
+
+            self.save(update_fields=('modified_by', 'modified_on', 'fields_as_json'))
 
             # update any groups or campaigns for this contact if not importing
             if not importing:

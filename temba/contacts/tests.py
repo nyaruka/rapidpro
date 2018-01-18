@@ -3620,11 +3620,14 @@ class ContactTest(TembaTest):
 
         # set 'birth_date' field
         self.joe.set_field(self.user, 'birth_date', '2018-01-17T12:20:10Z')
-        self.assertIsNotNone(self.joe._fields_as_json['birth_date'])
+        self.assertIsNotNone(self.joe.fields_as_json['birth_date'])
+
+        # read field
+        self.assertEqual(self.joe.get_field_display('birth_date'), '17-01-2018 14:20')
 
         # unset 'birth_date' field
         self.joe.set_field(self.user, 'birth_date', '')
-        self.assertIsNone(self.joe._fields_as_json['birth_date'])
+        self.assertIsNone(self.joe.fields_as_json['birth_date'])
 
     def test_fields(self):
         # set a field on joe
