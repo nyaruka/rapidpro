@@ -2,6 +2,7 @@ from __future__ import print_function, unicode_literals
 
 import six
 import time
+import json
 
 from django.contrib.postgres.fields import HStoreField
 from django.core.exceptions import ValidationError
@@ -39,6 +40,31 @@ class TranslatableField(HStoreField):
     @cached_property
     def validators(self):
         return super(TranslatableField, self).validators + [TranslatableField.Validator(self.max_length)]
+
+
+class JSONAsText(models.TextField):
+    """
+    Custom JSON field that is stored as Text in the database
+
+    Note:
+        uses standard JSON serializers so it expects that all data is a valid JSON data
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(JSONAsText, self).__init__(*args, **kwargs)
+
+        self.default = {}
+
+    def from_db_value(self, value, *args, **kwargs):
+        if value is None:
+            return value
+        return json.loads(value)
+
+    def to_python(self, value):
+        if value is None:
+            return value
+
+        return json.dumps(value)
 
 
 class TembaModel(SmartModel):

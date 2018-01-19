@@ -3613,21 +3613,21 @@ class ContactTest(TembaTest):
         self.assertEqual(c5.pk, c1.pk)
         self.assertEqual(c5.name, "Goran Dragic")
 
-    def test_fields_as_json(self):
+    def test_field_values(self):
         ContactField.get_or_create(
             self.org, self.admin, 'birth_date', label='Birth Date', value_type=Value.TYPE_DATETIME
         )
 
         # set 'birth_date' field
         self.joe.set_field(self.user, 'birth_date', '2018-01-17T12:20:10Z')
-        self.assertIsNotNone(self.joe.fields_as_json['birth_date'])
+        self.assertIsNotNone(self.joe.field_values['birth_date'])
 
         # read field
         self.assertEqual(self.joe.get_field_display('birth_date'), '17-01-2018 14:20')
 
         # unset 'birth_date' field
         self.joe.set_field(self.user, 'birth_date', '')
-        self.assertIsNone(self.joe.fields_as_json['birth_date'])
+        self.assertIsNone(self.joe.field_values['birth_date'])
 
     def test_fields(self):
         # set a field on joe
@@ -3671,7 +3671,7 @@ class ContactTest(TembaTest):
         self.assertIsNone(self.joe.get_field('birth_date').decimal_value)
         self.assertIsNone(self.joe.get_field('birth_date').datetime_value)
 
-    def test_field_values(self):
+    def test_field_values_on_contact(self):
         registration_field = ContactField.get_or_create(self.org, self.admin, 'registration_date', "Registration Date",
                                                         None, Value.TYPE_DATETIME)
 

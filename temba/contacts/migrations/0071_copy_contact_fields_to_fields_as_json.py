@@ -26,7 +26,7 @@ def copy_contact_fields_to_contact_model(qs):
                 try:
                     cur.execute("""
                       UPDATE contacts_contact SET
-                        fields_as_json = es_update_contact.serialize_contact_fields(%s, %s)
+                        field_values = es_update_contact.serialize_contact_fields(%s, %s)
                       WHERE id = %s;
                     """, (contact.org_id, contact.pk, contact.pk)
                     )
@@ -49,7 +49,8 @@ def copy_contact_fields_to_contact_model(qs):
 
                     batch_start_time = time.time()
 
-            print('Contacts:', idx, '/', total_contacts)
+            if idx > 0:
+                print('Contacts:', idx, '/', total_contacts)
 
 
 def apply_manual():

@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='contact',
-            name='fields_as_json',
-            field=temba.contacts.models.JSONAsText(default={}),
+            name='field_values',
+            field=temba.contacts.models.JSONAsText(),
         ),
     ]

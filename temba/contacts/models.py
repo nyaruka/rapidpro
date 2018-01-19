@@ -29,7 +29,7 @@ from temba.orgs.models import Org, OrgLock
 from temba.utils import analytics, format_decimal, chunk_list, get_anonymous_user
 from temba.utils.dates import str_to_datetime
 from temba.utils.languages import _get_language_name_iso6393
-from temba.utils.models import SquashableModel, TembaModel
+from temba.utils.models import SquashableModel, TembaModel, JSONAsText
 from temba.utils.cache import get_cacheable_attr
 from temba.utils.export import BaseExportAssetStore, BaseExportTask, TableExporter
 from temba.utils.profiler import time_monitor
@@ -472,58 +472,27 @@ NEW_CONTACT_VARIABLE = "@new_contact"
 MAX_HISTORY = 50
 
 
-class JSONAsText(models.TextField):
-    """
-    Custom JSON field that is stored as Text in the database
-
-    Note:
-        uses standard JSON serializers so it expects that all data is a valid JSON data
-    """
-    def from_db_value(self, value, *args, **kwargs):
-        if value is None:
-            return value
-        return json.loads(value)
-
-    def to_python(self, value):
-        if value is None:
-            return value
-
-        return json.dumps(value)
-
-
 @six.python_2_unicode_compatible
 class Contact(TembaModel):
-    name = models.CharField(
-        max_length=128, blank=True, null=True,
-        verbose_name=_("Name"), help_text=_("The name of this contact")
-    )
+    name = models.CharField(verbose_name=_("Name"), max_length=128, blank=True, null=True,
+                            help_text=_("The name of this contact"))
 
-    org = models.ForeignKey(
-        'orgs.Org', related_name="org_contacts",
-        verbose_name=_("Org"), help_text=_("The organization that this contact belongs to")
-    )
+    org = models.ForeignKey(Org, verbose_name=_("Org"), related_name="org_contacts",
+                            help_text=_("The organization that this contact belongs to"))
 
-    is_blocked = models.BooleanField(
-        default=False,
-        verbose_name=_("Is Blocked"), help_text=_("Whether this contact has been blocked")
-    )
+    is_blocked = models.BooleanField(verbose_name=_("Is Blocked"), default=False,
+                                     help_text=_("Whether this contact has been blocked"))
 
-    is_test = models.BooleanField(
-        default=False,
-        verbose_name=_("Is Test"), help_text=_("Whether this contact is for simulation")
-    )
+    is_test = models.BooleanField(verbose_name=_("Is Test"), default=False,
+                                  help_text=_("Whether this contact is for simulation"))
 
-    is_stopped = models.BooleanField(
-        default=False,
-        verbose_name=_("Is Stopped"), help_text=_("Whether this contact has opted out of receiving messages")
-    )
+    is_stopped = models.BooleanField(verbose_name=_("Is Stopped"), default=False,
+                                     help_text=_("Whether this contact has opted out of receiving messages"))
 
-    language = models.CharField(
-        max_length=3, null=True, blank=True,
-        verbose_name=_("Language"), help_text=_("The preferred language for this contact")
-    )
+    language = models.CharField(max_length=3, verbose_name=_("Language"), null=True, blank=True,
+                                help_text=_("The preferred language for this contact"))
 
-    fields_as_json = JSONAsText(default={})
+    field_values = JSONAsText()
 
     simulation = False
 
@@ -696,7 +665,7 @@ class Contact(TembaModel):
         if field_value:
             field = field_value.contact_field
             # read the value from the contact object
-            value = self.fields_as_json.get(key, None)
+            value = self.field_values.get(key, None)
             return Contact.format_field_value_for_display(self.org, field.value_type, value)
         else:
             return None
@@ -853,9 +822,9 @@ class Contact(TembaModel):
         if has_changed:
             self.modified_by = user
 
-            self.fields_as_json.update({key: typed_field_value})
+            self.field_values.update({key: typed_field_value})
 
-            self.save(update_fields=('modified_by', 'modified_on', 'fields_as_json'))
+            self.save(update_fields=('modified_by', 'modified_on', 'field_values'))
 
             # update any groups or campaigns for this contact if not importing
             if not importing:
