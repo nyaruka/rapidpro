@@ -89,7 +89,11 @@ $BODY$
     t_result text;
   BEGIN
 
-    v_query := $query$select row_to_json(row)::text FROM (with $query$;
+    IF i_org_id IS NULL OR i_contact_id IS NULL THEN
+      return $${}$$;
+    END IF;
+
+    v_query := $query$select coalesce(row_to_json(row)::text, '{}') FROM (with $query$;
 
     -- read contact field definition for specified org
     t_query := format($$SELECT id, key, value_type FROM public.contacts_contactfield WHERE org_id = %L AND is_active = TRUE ORDER BY id$$, i_org_id);
@@ -135,6 +139,7 @@ $BODY$
     END LOOP;
 
     IF NOT FOUND THEN
+      -- RAISE NOTICE 'NOT FOUND %,%', i_org_id, i_contact_id;
       return $${}$$;
     END IF;
 
@@ -152,6 +157,10 @@ ORDER BY id) as row$$, array_to_string(q_field_predicates, ' LEFT JOIN '), i_con
 
     -- RAISE NOTICE '%', v_query;
     EXECUTE v_query INTO t_result;
+
+    IF t_result IS NULL THEN
+      return $${}$$;
+    END IF;
 
     return t_result;
 
