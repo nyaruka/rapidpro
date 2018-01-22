@@ -28,7 +28,7 @@ from temba.locations.models import AdminBoundary
 from temba.msgs.models import Msg, Label, SystemLabel, Broadcast, BroadcastRecipient
 from temba.orgs.models import Org
 from temba.schedules.models import Schedule
-from temba.tests import AnonymousOrg, TembaTest
+from temba.tests import AnonymousOrg, TembaTest, TembaMigrationTest
 from temba.triggers.models import Trigger
 from temba.utils.dates import datetime_to_str, datetime_to_ms, get_datetime_format
 from temba.utils.profiler import QueryTracker
@@ -2393,7 +2393,7 @@ class ContactTest(TembaTest):
         # check that old URN is detached, new URN is attached, and Joe still exists
         self.joe = Contact.objects.get(pk=self.joe.id)
         self.assertEqual(self.joe.get_urn_display(scheme=TEL_SCHEME), "0783 835 665")
-        self.assertEqual(self.joe.get_field_raw('state'), "newyork")  # raw user input as location wasn't matched
+        self.assertEqual(self.joe.get_field_raw('state'), None)  # raw user input as location wasn't matched
         self.assertIsNone(Contact.from_urn(self.org, "tel:+250781111111"))  # original tel is nobody now
 
         # update joe, change his number back
@@ -3691,7 +3691,7 @@ class ContactTest(TembaTest):
         joe.set_field(self.user, 'weight', "xxx")
         value = joe.get_field(weight_field.key)
         self.assertEqual(Contact.serialize_field_value(weight_field, value), None)
-        self.assertEqual(Contact.get_field_display_for_value(weight_field, value), "")
+        self.assertEqual(Contact.get_field_display_for_value(weight_field, value), None)
 
         value = joe.get_field(state_field.key)
         self.assertEqual(Contact.serialize_field_value(state_field, value), 'Rwanda > Kigali City')
@@ -3714,7 +3714,7 @@ class ContactTest(TembaTest):
         joe = Contact.objects.get(pk=self.joe.pk)
         joe.set_field(self.user, 'district', 'Remera')
         value = Value.objects.filter(contact=joe, contact_field=district_field).first()
-        self.assertFalse(value.location_value)
+        self.assertIsNone(value)
 
         state_field = ContactField.get_or_create(self.org, self.admin, 'state', 'State', None, Value.TYPE_STATE)
 
@@ -4648,3 +4648,34 @@ class PhoneNumberTest(TestCase):
         self.assertIsNone(is_it_a_phonenumber('AMAZONS'))
         self.assertIsNone(is_it_a_phonenumber('name = "Jack"'))
         self.assertIsNone(is_it_a_phonenumber('(social = "234-432-324")'))
+
+
+class TestMigration0070(TembaMigrationTest):
+    migrate_from = '0069_iso639-3'
+    migrate_to = '0070_delete_empty_typed_fields'
+
+    def setUpBeforeMigration(self, apps):
+        self.state = self.create_field("state", "state", Value.TYPE_STATE)
+        self.decimal = self.create_field("decimal", "decimal", Value.TYPE_DECIMAL)
+        self.datetime = self.create_field("datetime", "datetime", Value.TYPE_DATETIME)
+
+        self.joe = self.create_contact(name="Joe", number="+250788383383")
+        Value.objects.create(org=self.org, contact=self.joe, contact_field=self.state, string_value="kigali city", location_value=self.state1)
+        Value.objects.create(org=self.org, contact=self.joe, contact_field=self.decimal, string_value="10", decimal_value=10)
+        Value.objects.create(org=self.org, contact=self.joe, contact_field=self.datetime, string_value=timezone.now(), datetime_value=timezone.now())
+
+        self.fred = self.create_contact(name="Fred", number="+250788382382")
+        Value.objects.create(org=self.org, contact=self.fred, contact_field=self.state, string_value="kigali")
+        Value.objects.create(org=self.org, contact=self.fred, contact_field=self.decimal, string_value="10")
+        Value.objects.create(org=self.org, contact=self.fred, contact_field=self.datetime, string_value=timezone.now())
+
+        # create a contact group that contains non-none states (this will include both fred and joe)
+        self.has_state = ContactGroup.create_dynamic(self.org, self.admin, "has state", "state != \"\"")
+        self.assertEqual(2, self.has_state.contacts.all().count())
+
+    def test_removed_empty_fields(self):
+        # after migration, joe should still have 3 values, fred should have none
+        self.assertEqual(3, Value.objects.filter(contact=self.joe).count())
+        self.assertEqual(0, Value.objects.filter(contact=self.fred).count())
+        self.assertTrue(self.has_state.contacts.filter(id=self.joe.id))
+        self.assertFalse(self.has_state.contacts.filter(id=self.fred.id))
