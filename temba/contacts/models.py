@@ -12,6 +12,7 @@ import time
 import uuid
 
 from collections import defaultdict
+
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import models, transaction, IntegrityError
@@ -26,8 +27,9 @@ from temba.channels.models import Channel
 from temba.locations.models import AdminBoundary
 from temba.orgs.models import Org, OrgLock
 from temba.utils import analytics, format_decimal, chunk_list, get_anonymous_user
+from temba.utils.dates import str_to_datetime
 from temba.utils.languages import _get_language_name_iso6393
-from temba.utils.models import SquashableModel, TembaModel
+from temba.utils.models import SquashableModel, TembaModel, JSONAsText
 from temba.utils.cache import get_cacheable_attr
 from temba.utils.export import BaseExportAssetStore, BaseExportTask, TableExporter
 from temba.utils.profiler import time_monitor
@@ -420,6 +422,7 @@ class ContactField(SmartModel):
                     field.label = label
                     changed = True
 
+                # TODO: field value types are static and strongly typed
                 # update our type if we were given one
                 if value_type and field.value_type != value_type:
                     field.value_type = value_type
@@ -488,6 +491,8 @@ class Contact(TembaModel):
 
     language = models.CharField(max_length=3, verbose_name=_("Language"), null=True, blank=True,
                                 help_text=_("The preferred language for this contact"))
+
+    field_values = JSONAsText()
 
     simulation = False
 
@@ -656,12 +661,28 @@ class Contact(TembaModel):
         """
         Gets either the field category if set, or the formatted field value
         """
-        value = self.get_field(key)
-        if value:
-            field = value.contact_field
-            return Contact.get_field_display_for_value(field, value, org=self.org)
+        field_value = self.get_field(key)
+        if field_value:
+            field = field_value.contact_field
+            # read the value from the contact object
+            value = self.field_values.get(key, None)
+            return Contact.format_field_value_for_display(self.org, field.value_type, value)
         else:
             return None
+
+    @staticmethod
+    def format_field_value_for_display(org, field_type, value):
+        if value is None:
+            return None
+
+        if field_type == Value.TYPE_DATETIME:
+            return org.format_date(str_to_datetime(value, tz=org.timezone))
+        elif field_type == Value.TYPE_DECIMAL:
+            return format_decimal(value)
+        elif field_type in [Value.TYPE_STATE, Value.TYPE_DISTRICT, Value.TYPE_WARD]:
+            return value
+        else:
+            return value
 
     @classmethod
     def get_field_display_for_value(cls, field, value, org=None):
@@ -719,6 +740,9 @@ class Contact(TembaModel):
             # setting a blank value is equivalent to removing the value
             Value.objects.filter(contact=self, contact_field__pk=field.id).delete()
             has_changed = True
+
+            # blank or None values are set as undefined
+            typed_field_value = None
         else:
             # parse as all value data types
             str_value = six.text_type(value)[:Value.MAX_VALUE_LEN]
@@ -748,6 +772,18 @@ class Contact(TembaModel):
 
             category = loc_value.name if loc_value else None
 
+            # remap value_types
+            value_type_mapping = {
+                Value.TYPE_TEXT: str_value if str_value else None,
+                Value.TYPE_DECIMAL: float(dec_value) if dec_value else None,
+                Value.TYPE_DATETIME: dt_value.isoformat() if dt_value else None,
+                Value.TYPE_STATE: loc_value.path if loc_value else None,
+                Value.TYPE_DISTRICT: loc_value.path if loc_value else None,
+                Value.TYPE_WARD: loc_value.path if loc_value else None
+            }
+
+            typed_field_value = value_type_mapping[field.value_type]
+
             # find the existing value
             existing = Value.objects.filter(contact=self, contact_field__pk=field.id).first()
 
@@ -765,8 +801,9 @@ class Contact(TembaModel):
                     existing.location_value = loc_value
                     existing.category = category
 
-                    existing.save(update_fields=['string_value', 'decimal_value', 'datetime_value',
-                                                 'location_value', 'category', 'modified_on'])
+                    existing.save(update_fields=(
+                        'string_value', 'decimal_value', 'datetime_value', 'location_value', 'category', 'modified_on'
+                    ))
                     has_changed = True
 
                 # remove any others on the same field that may exist
@@ -784,7 +821,10 @@ class Contact(TembaModel):
 
         if has_changed:
             self.modified_by = user
-            self.save(update_fields=('modified_by', 'modified_on'))
+
+            self.field_values.update({key: typed_field_value})
+
+            self.save(update_fields=('modified_by', 'modified_on', 'field_values'))
 
             # update any groups or campaigns for this contact if not importing
             if not importing:

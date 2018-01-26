@@ -11,6 +11,7 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.db.models import Value as DbValue
 from django.db.models.functions import Substr, Concat
+from django.db import connection
 from django.test import TestCase
 from django.utils import timezone
 from mock import patch
@@ -3620,6 +3621,22 @@ class ContactTest(TembaTest):
         self.assertEqual(c5.pk, c1.pk)
         self.assertEqual(c5.name, "Goran Dragic")
 
+    def test_field_values_on_contact(self):
+        ContactField.get_or_create(
+            self.org, self.admin, 'birth_date', label='Birth Date', value_type=Value.TYPE_DATETIME
+        )
+
+        # set 'birth_date' field
+        self.joe.set_field(self.user, 'birth_date', '2018-01-17T12:20:10Z')
+        self.assertIsNotNone(self.joe.field_values['birth_date'])
+
+        # read field
+        self.assertEqual(self.joe.get_field_display('birth_date'), '17-01-2018 14:20')
+
+        # unset 'birth_date' field
+        self.joe.set_field(self.user, 'birth_date', '')
+        self.assertIsNone(self.joe.field_values['birth_date'])
+
     def test_fields(self):
         # set a field on joe
         self.joe.set_field(self.user, 'abc_1234', 'Joe', label="Name")
@@ -4655,3 +4672,137 @@ class PhoneNumberTest(TestCase):
         self.assertIsNone(is_it_a_phonenumber('AMAZONS'))
         self.assertIsNone(is_it_a_phonenumber('name = "Jack"'))
         self.assertIsNone(is_it_a_phonenumber('(social = "234-432-324")'))
+
+
+class SQLContactFieldsTest(TembaTest):
+    def setUp(self):
+        self.clear_cache()
+
+        # setup admin boundaries for Rwanda
+        self.country = AdminBoundary.objects.create(osm_id='171496', name='Rwanda', level=0)
+        self.state1 = AdminBoundary.objects.create(osm_id='1708283', name='Kigali City', level=1, parent=self.country)
+        self.state2 = AdminBoundary.objects.create(
+            osm_id='171591', name='Eastern Province', level=1, parent=self.country
+        )
+        self.district1 = AdminBoundary.objects.create(osm_id='1711131', name='Gatsibo', level=2, parent=self.state2)
+        self.district2 = AdminBoundary.objects.create(osm_id='1711163', name='Kayônza', level=2, parent=self.state2)
+        self.district3 = AdminBoundary.objects.create(osm_id='3963734', name='Nyarugenge', level=2, parent=self.state1)
+        self.district4 = AdminBoundary.objects.create(osm_id='1711142', name='Rwamagana', level=2, parent=self.state2)
+        self.ward1 = AdminBoundary.objects.create(osm_id='171113181', name='Kageyo', level=3, parent=self.district1)
+        self.ward2 = AdminBoundary.objects.create(osm_id='171116381', name='Kabare', level=3, parent=self.district2)
+        self.ward3 = AdminBoundary.objects.create(osm_id='171114281', name='Bukure', level=3, parent=self.district4)
+
+        self.country.update_path()
+
+        self.user = self.create_user("User")
+
+        self.org1 = Org.objects.create(
+            name="FieldsOrg", timezone=pytz.timezone("Africa/Kigali"), country=self.country,
+            brand=settings.DEFAULT_BRAND, created_by=self.user, modified_by=self.user
+        )
+        self.org1.initialize(topup_size=1000)
+
+        self.org2 = Org.objects.create(
+            name="NoFieldsOrg", timezone=pytz.timezone("Africa/Kigali"), country=self.country,
+            brand=settings.DEFAULT_BRAND, created_by=self.user, modified_by=self.user
+        )
+        self.org2.initialize(topup_size=1000)
+
+        self.user.set_org(self.org1)
+        self.user.set_org(self.org2)
+        self.org1.viewers.add(self.user)
+        self.org1.editors.add(self.user)
+        self.org1.administrators.add(self.user)
+        self.org1.surveyors.add(self.user)
+        self.org2.viewers.add(self.user)
+        self.org2.editors.add(self.user)
+        self.org2.administrators.add(self.user)
+        self.org2.surveyors.add(self.user)
+
+        # reset our simulation to False
+        Contact.set_simulation(False)
+
+        # Org1, 4 fields, 3 contacts full fields, partial fields and no fields
+        # Org2, 0 fields, 1 contacts, no fields
+
+        ContactField.get_or_create(self.org1, self.user, 'field1', 'Field1', value_type=Value.TYPE_TEXT)
+        ContactField.get_or_create(self.org1, self.user, 'field2', 'Field2', value_type=Value.TYPE_DATETIME)
+        ContactField.get_or_create(self.org1, self.user, 'field3', 'Field3', value_type=Value.TYPE_DECIMAL)
+        ContactField.get_or_create(self.org1, self.user, 'field4', 'Field4', value_type=Value.TYPE_STATE)
+
+        self.contact11 = Contact.get_or_create(
+            self.org1, self.user, name="Contact 11", urns=["tel:123411", "twitter:hola11"]
+        )
+        self.contact11.set_field(self.user, key='field1', value='Hello')
+        self.contact11.set_field(self.user, key='field2', value='2017-10-31T12:54:23Z')
+        self.contact11.set_field(self.user, key='field3', value='3.45')
+        self.contact11.set_field(self.user, key='field4', value='Kigali City')
+
+        self.contact12 = Contact.get_or_create(
+            self.org1, self.user, name="Contact 12", urns=["tel:123412", "twitter:hola12"]
+        )
+        self.contact12.set_field(self.user, key='field1', value='Hello')
+        self.contact12.set_field(self.user, key='field2', value='2017-10-31T12:54:23Z')
+
+        self.contact13 = Contact.get_or_create(
+            self.org1, self.user, name="Contact 13", urns=["tel:123413", "twitter:hola13"]
+        )
+
+        self.contact21 = Contact.get_or_create(
+            self.org2, self.user, name="Contact 21", urns=["tel:123421", "twitter:hola21"]
+        )
+
+    def tearDown(self):
+        pass
+
+    def test_serialize_contact_fields(self):
+
+        def serialize_contact_fields(cur, org_id, contact_id):
+            cur.execute('select * FROM es_update_contact.serialize_contact_fields(%s, %s)', (org_id, contact_id))
+            return cur.fetchone()[0]
+
+        with connection.cursor() as cur:
+            # contact with all field data
+            self.assertEqual(
+                serialize_contact_fields(cur, self.contact11.org_id, self.contact11.id), (
+                    '{"field1":"Hello","field2":"2017-10-31T12:54:23+00:00","field3":3.45000000,'
+                    '"field4":"Rwanda > Kigali City"}'
+                )
+            )
+
+            # contact with partial field data
+            self.assertEqual(
+                serialize_contact_fields(cur, self.contact12.org_id, self.contact12.id),
+                '{"field1":"Hello","field2":"2017-10-31T12:54:23+00:00","field3":null,"field4":null}'
+            )
+
+            # contact with no field data
+            self.assertEqual(
+                serialize_contact_fields(cur, self.contact13.org_id, self.contact13.id),
+                '{"field1":null,"field2":null,"field3":null,"field4":null}'
+            )
+
+            # org with no fields
+            self.assertEqual(
+                serialize_contact_fields(cur, self.contact21.org_id, self.contact21.id), '{}'
+            )
+
+            # unknown org_id
+            self.assertEqual(
+                serialize_contact_fields(cur, -1, self.contact21.id), '{}'
+            )
+
+            # unknown contact_id
+            self.assertEqual(
+                serialize_contact_fields(cur, self.contact11.org_id, -1), '{}'
+            )
+
+            # unknown org_id and contact_id
+            self.assertEqual(
+                serialize_contact_fields(cur, -1, -1), '{}'
+            )
+
+            # null org_id and contact_id
+            self.assertEqual(
+                serialize_contact_fields(cur, None, None), '{}'
+            )
