@@ -104,41 +104,6 @@ class FlowPropsCache(Enum):
     category_nodes = 2
 
 
-def edit_distance(s1, s2):  # pragma: no cover
-    """
-    Compute the Damerau-Levenshtein distance between two given
-    strings (s1 and s2)
-    """
-    # if first letters are different, infinite distance
-    if s1 and s2 and s1[0] != s2[0]:
-        return 100
-
-    d = {}
-    lenstr1 = len(s1)
-    lenstr2 = len(s2)
-
-    for i in range(-1, lenstr1 + 1):
-        d[(i, -1)] = i + 1
-    for j in range(-1, lenstr2 + 1):
-        d[(-1, j)] = j + 1
-
-    for i in range(0, lenstr1):
-        for j in range(0, lenstr2):
-            if s1[i] == s2[j]:
-                cost = 0
-            else:
-                cost = 1
-            d[(i, j)] = min(
-                d[(i - 1, j)] + 1,  # deletion
-                d[(i, j - 1)] + 1,  # insertion
-                d[(i - 1, j - 1)] + cost,  # substitution
-            )
-            if i > 1 and j > 1 and s1[i] == s2[j - 1] and s1[i - 1] == s2[j]:
-                d[(i, j)] = min(d[(i, j)], d[i - 2, j - 2] + cost)  # transposition
-
-    return d[lenstr1 - 1, lenstr2 - 1]
-
-
 @six.python_2_unicode_compatible
 class FlowSession(models.Model):
     org = models.ForeignKey(Org, help_text="The organization this session belongs to")
@@ -2708,7 +2673,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
         if isinstance(fields, six.string_types):
             return fields[:Value.MAX_VALUE_LEN], count + 1
 
-        elif isinstance(fields, numbers.Number):
+        elif isinstance(fields, numbers.Number) or isinstance(fields, bool):
             return fields, count + 1
 
         elif isinstance(fields, dict):
@@ -2733,8 +2698,10 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
 
             return list_dict, count
 
-        else:
-            return six.text_type(fields), count + 1
+        elif fields is None:
+            return "", count + 1
+        else:  # pragma: no cover
+            raise ValueError("Unsupported type %s in extra" % six.text_type(type(fields)))
 
     @classmethod
     def bulk_exit(cls, runs, exit_type):
@@ -2922,8 +2889,13 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
                 # get the last outgoing msg for this contact
                 msg = self.get_last_msg(OUTGOING)
 
+                # if the last outgoing message wasn't assigned a credit, then clear our timeout
+                if msg and msg.topup_id is None:
+                    self.timeout_on = None
+                    self.save(update_fields=['timeout_on', 'modified_on'])
+
                 # check that our last outgoing msg was sent and our timeout is in the past, otherwise reschedule
-                if msg and (not msg.sent_on or timezone.now() < msg.sent_on + timedelta(minutes=timeout) - timedelta(seconds=5)):
+                elif msg and (not msg.sent_on or timezone.now() < msg.sent_on + timedelta(minutes=timeout) - timedelta(seconds=5)):
                     self.update_timeout(msg.sent_on if msg.sent_on else timezone.now(), timeout)
 
                 # look good, lets resume this run
@@ -3540,17 +3512,9 @@ class RuleSet(models.Model):
 
                 (value, errors) = Msg.evaluate_template(url, context, org=run.flow.org, url_encode=True)
 
-                # resthooks trigger legacy api for now
-                legacy_format = resthook or self.config_json().get('legacy_format', False)
-
-                if legacy_format:
-                    result = WebHookEvent.trigger_flow_webhook_legacy(run, value, self, msg, action,
-                                                                      resthook=resthook,
-                                                                      headers=header)
-                else:
-                    result = WebHookEvent.trigger_flow_webhook(run, value, self.uuid, msg, action,
-                                                               resthook=resthook,
-                                                               headers=header)
+                result = WebHookEvent.trigger_flow_webhook(run, value, self.uuid, msg, action,
+                                                           resthook=resthook,
+                                                           headers=header)
 
                 # we haven't recorded any status yet, do so
                 if not status_code:
@@ -3672,10 +3636,10 @@ class RuleSet(models.Model):
                     finished_key=self.finished_key, ruleset_type=self.ruleset_type, response_type=self.response_type,
                     operand=self.operand, config=self.config_json())
 
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         if self.label:
             return "RuleSet: %s - %s" % (self.uuid, self.label)
-        else:  # pragma: no cover
+        else:
             return "RuleSet: %s" % (self.uuid,)
 
 
@@ -4302,7 +4266,7 @@ class ExportFlowResultsTask(BaseExportTask):
         # get all result saving nodes across all flows being exported
         show_submitted_by = False
         result_nodes = []
-        flows = list(self.flows.filter(is_active=True, is_archived=False).prefetch_related(
+        flows = list(self.flows.filter(is_active=True).prefetch_related(
             Prefetch('rule_sets', RuleSet.objects.exclude(label=None).order_by('y', 'id'))
         ))
         for flow in flows:
@@ -4855,35 +4819,23 @@ class WebhookAction(Action):
     TYPE = 'api'
     ACTION = 'action'
 
-    # old webhooks support legacy format
-    LEGACY_FORMAT = 'legacy_format'
-
-    def __init__(self, uuid, webhook, action='POST', webhook_headers=None, legacy_format=None):
+    def __init__(self, uuid, webhook, action='POST', webhook_headers=None):
         super(WebhookAction, self).__init__(uuid)
 
         self.webhook = webhook
         self.action = action
         self.webhook_headers = webhook_headers
-        self.legacy_format = legacy_format
 
     @classmethod
     def from_json(cls, org, json_obj):
         return cls(json_obj.get(cls.UUID),
                    json_obj.get('webhook', org.get_webhook_url()),
                    json_obj.get('action', 'POST'),
-                   json_obj.get('webhook_headers', []),
-                   json_obj.get(cls.LEGACY_FORMAT))
+                   json_obj.get('webhook_headers', []))
 
     def as_json(self):
-
-        json_dict = dict(type=self.TYPE, uuid=self.uuid, webhook=self.webhook, action=self.action,
-                         webhook_headers=self.webhook_headers)
-
-        # only include legacy format flag if it is true or false
-        if self.legacy_format is not None:
-            json_dict[self.LEGACY_FORMAT] = self.legacy_format
-
-        return json_dict
+        return dict(type=self.TYPE, uuid=self.uuid, webhook=self.webhook, action=self.action,
+                    webhook_headers=self.webhook_headers)
 
     def execute(self, run, context, actionset_uuid, msg, offline_on=None):
         from temba.api.models import WebHookEvent
@@ -4898,10 +4850,7 @@ class WebhookAction(Action):
             for item in self.webhook_headers:
                 headers[item.get('name')] = item.get('value')
 
-        if self.legacy_format:
-            WebHookEvent.trigger_flow_webhook_legacy(run, value, actionset_uuid, msg, self.action, headers=headers)
-        else:
-            WebHookEvent.trigger_flow_webhook(run, value, actionset_uuid, msg, self.action, headers=headers)
+        WebHookEvent.trigger_flow_webhook(run, value, actionset_uuid, msg, self.action, headers=headers)
         return []
 
 
@@ -5399,6 +5348,9 @@ class VariableContactAction(Action):
     GROUPS = 'groups'
     VARIABLES = 'variables'
     PHONE = 'phone'
+    PATH = 'path'
+    SCHEME = 'scheme'
+    URNS = 'urns'
     NAME = 'name'
     ID = 'id'
 
@@ -5434,9 +5386,21 @@ class VariableContactAction(Action):
             phone = contact.get(VariableContactAction.PHONE, None)
             contact_uuid = contact.get(VariableContactAction.UUID, None)
 
+            urns = []
+            for urn in contact.get(VariableContactAction.URNS, []):
+                scheme = urn.get(VariableContactAction.SCHEME)
+                path = urn.get(VariableContactAction.PATH)
+
+                if scheme and path:
+                    urns.append(URN.from_parts(scheme, path))
+
             contact = Contact.objects.filter(uuid=contact_uuid, org=org).first()
-            if not contact and phone:  # pragma: needs cover
-                contact = Contact.get_or_create(org, org.created_by, name=None, urns=[(TEL_SCHEME, phone)])
+
+            if not contact and (phone or urn):
+                if phone:  # pragma: needs cover
+                    contact = Contact.get_or_create_by_urns(org, org.created_by, name=None, urns=[URN.from_tel(phone)])
+                elif urns:
+                    contact = Contact.get_or_create_by_urns(org, org.created_by, name=None, urns=urns)
 
                 # if they dont have a name use the one in our action
                 if name and not contact.name:  # pragma: needs cover
@@ -5470,7 +5434,7 @@ class VariableContactAction(Action):
 
                 # otherwise, really create the contact
                 else:
-                    contacts.append(Contact.get_or_create(run.org, get_flow_user(run.org), name=None, urns=()))
+                    contacts.append(Contact.get_or_create_by_urns(run.org, get_flow_user(run.org), name=None, urns=()))
 
             # other type of variable, perform our substitution
             else:
@@ -5489,7 +5453,7 @@ class VariableContactAction(Action):
                     country = run.flow.org.get_country_code()
                     (number, valid) = URN.normalize_number(variable, country)
                     if number and valid:
-                        contact = Contact.get_or_create(run.org, get_flow_user(run.org), urns=[URN.from_tel(number)])
+                        contact, contact_urn = Contact.get_or_create(run.org, URN.from_tel(number), user=get_flow_user(run.org))
                         contacts.append(contact)
 
         return groups, contacts
@@ -6364,12 +6328,6 @@ class ContainsTest(Test):
             if word == test:
                 matches.append(index)
                 continue
-
-            # words are over 4 characters and start with the same letter
-            if len(word) > 4 and len(test) > 4 and word[0] == test[0]:
-                # edit distance of 1 or less is a match
-                if edit_distance(word, test) <= 1:
-                    matches.append(index)
 
         return matches
 
