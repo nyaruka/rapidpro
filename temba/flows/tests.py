@@ -935,41 +935,6 @@ class FlowTest(TembaTest):
         self.assertEqual(len(list(sheet_msgs.rows)), 14)  # header + 13 messages
         self.assertEqual(len(list(sheet_msgs.columns)), 7)
 
-    def test_export_results_list_messages_once(self):
-        contact1_run1 = self.flow.start([], [self.contact])[0]
-
-        contact1_in1 = self.create_msg(direction=INCOMING, contact=self.contact, text="Red")
-        Flow.find_and_handle(contact1_in1)
-
-        contact1_run1.refresh_from_db()
-
-        contact1_run1_rs = FlowStep.objects.filter(run=contact1_run1, step_type='R')
-        contact1_out1 = contact1_run1.get_messages().get(text="What is your favorite color?")
-        contact1_out2 = contact1_run1.get_messages().get(text="That is a funny color. Try again.")
-
-        # consider msg is also on the second step too to test it is not exported in two rows
-        contact1_run1_rs.last().messages.add(contact1_in1)
-
-        tz = self.org.timezone
-        workbook = self.export_flow_results(self.flow)
-
-        sheet_runs, sheet_contacts, sheet_msgs = workbook.worksheets
-
-        self.assertEqual(len(list(sheet_msgs.rows)), 4)  # header + 2 msgs
-
-        self.assertExcelRow(sheet_msgs, 0, ["Contact UUID", "URN", "Name", "Date", "Direction", "Message", "Channel"])
-
-        self.assertExcelRow(sheet_msgs, 1, [contact1_out1.contact.uuid, "+250788382382", "Eric",
-                                            contact1_out1.created_on, "OUT",
-                                            "What is your favorite color?", "Test Channel"], tz)
-
-        self.assertExcelRow(sheet_msgs, 2, [contact1_run1.contact.uuid, "+250788382382", "Eric",
-                                            contact1_in1.created_on, 'IN', "Red", "Test Channel"], tz)
-
-        self.assertExcelRow(sheet_msgs, 3, [contact1_out2.contact.uuid, "+250788382382", "Eric",
-                                            contact1_out2.created_on, "OUT",
-                                            "That is a funny color. Try again.", "Test Channel"], tz)
-
     def test_export_results_remove_control_characters(self):
         contact1_run1 = self.flow.start([], [self.contact])[0]
 
@@ -1114,7 +1079,6 @@ class FlowTest(TembaTest):
         self.mockRequest('POST', '/coupon', '{"coupon": "NEXUS4"}')
         self.flow.start([], [self.contact])
 
-        self.assertTrue(self.flow.get_steps())
         self.assertTrue(Msg.objects.all())
         msg = Msg.objects.all()[0]
         self.assertFalse("@extra.coupon" in msg.text)
