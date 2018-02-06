@@ -26,6 +26,76 @@ class M3TechType(ChannelType):
     name = "M3 Tech"
 
     claim_blurb = _("""Easily add a two way number you have configured with <a href="http://m3techservice.com">M3 Tech</a> using their APIs.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your connection you'll need to notify M3Tech of the following callback URLs:
+        </h4>
+
+        <h4>Received URL</h4>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.m3' channel.uuid 'receive' %}</code>
+
+        <p>
+        When a new message is received by M3Tech, it should notify us with a POST to the following URL, passing
+        the following parameters: 'from' and 'text'
+        </p>
+
+        <pre class="prettyprint example" >
+        POST https://{{ channel.callback_domain }}{% url 'courier.m3' channel.uuid 'receive' %}
+            from=%2B250788123123&text=Love+is+patient.+Love+is+kind.
+        </pre>
+        <hr/>
+
+        <h4>Sent URL</h4>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.m3' channel.uuid 'sent' %}</code>
+
+        <p>
+        When M3Tech successfully sends a message, it should notify us with a POST to the following URL, passing
+        the id of the message as the parameter 'id' (reporting sent messages is optional)
+        </p>
+
+        <pre class="prettyprint example" >
+        POST https://{{ channel.callback_domain }}{% url 'courier.m3' channel.uuid 'sent' %}
+            id=2599235
+        </pre>
+        <hr/>
+
+        <h4>Delivered URL</h4>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.m3' channel.uuid 'delivered' %}</code>
+
+        <p>
+        When M3Tech successfully delivers a message, it should notify us with a POST to the following URL, passing
+        the id of the message as the parameter 'id' (reporting deliveries is optional)
+        </p>
+
+        <pre class="prettyprint example" >
+        POST https://{{ channel.callback_domain }}{% url 'courier.m3' channel.uuid 'delivered' %}
+            id=2599235
+        </pre>
+        <hr/>
+
+        <h4>Failed URL</h4>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.m3' channel.uuid 'failed' %}</code>
+
+        <p>
+        If M3Tech fails to send an outgoing message, it should notify us with a POST to the following URL, passing
+        the id of the message as the parameter 'id' (reporting failed sends is optional)
+        </p>
+
+        <pre class="prettyprint example" >
+        POST https://{{ channel.callback_domain }}{% url 'courier.m3' channel.uuid 'failed' %}
+            id=2599235
+        </pre>
+
+        <hr/>
+        """
+    )
+
     claim_view = AuthenticatedExternalClaimView
 
     schemes = [TEL_SCHEME]
