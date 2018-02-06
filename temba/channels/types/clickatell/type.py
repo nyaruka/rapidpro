@@ -36,7 +36,7 @@ class ClickatellType(ChannelType):
         (leave username and password blank)
         </p>
 
-        <code>https://{{ domain }}{% url 'courier.ct' object.uuid 'receive' %}</code>
+        <code>https://{{ channel.callback_domain }}{% url 'courier.ct' channel.uuid 'receive' %}</code>
 
         <hr>
 
@@ -48,7 +48,7 @@ class ClickatellType(ChannelType):
         to the URL below. (leave username and password blank)
         </p>
 
-        <code>https://{{ domain }}{% url 'courier.ct' object.uuid 'status' %}</code>
+        <code>https://{{ channel.callback_domain }}{% url 'courier.ct' channel.uuid 'status' %}</code>
         <hr>
         """
     )
