@@ -28,6 +28,28 @@ class ChikkaType(ChannelType):
 
     claim_blurb = _("""If you are based in the Phillipines, you can integrate with Chikka to send
                        and receive messages on your shortcode.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your Chikka connection you need to set the following URLs in your Chikka account API settings.
+        </h4>
+        <hr/>
+
+        <h4>Notification Receiver URL</h4>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.ck' channel.uuid %}</code>
+
+        <hr/>
+
+        <h4>Message Receiver URL</h4>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.ck' channel.uuid %}</code>
+
+        <hr/>
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
