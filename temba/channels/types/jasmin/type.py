@@ -29,6 +29,28 @@ class JasminType(ChannelType):
 
     claim_blurb = _("""Connect your <a href="http://www.jasminsms.com/" target="_blank">Jasmin</a> instance that you have
                        already connected to an SMSC.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        As a last step you'll need to configure Jasmin to call the following URL for MO (incoming) messages.
+        </h4>
+        <hr>
+
+        <h4>Push Message URL</h4>
+
+        <p>
+        This endpoint will be called by Jasmin when new messages are received to your number, it must be configured
+        to be called as a POST
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.js' channel.uuid 'receive' %}</code>
+
+        <hr/>
+
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
