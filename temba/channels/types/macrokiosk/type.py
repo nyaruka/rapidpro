@@ -25,6 +25,34 @@ class MacrokioskType(ChannelType):
     name = "Macrokiosk"
 
     claim_blurb = _("""Easily add a two way number you have configured with <a href="http://macrokiosk.com/">Macrokiosk</a> using their APIs.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your MACROKIOSK connection you'll need to notify MACROKIOSK of the following URLs.
+        </h4>
+
+        <hr>
+
+        <h4>Inbound URL</h4>
+
+        <p>This endpoint should be called by MACROKIOSK when new messages are received to your number.</p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.mk' channel.uuid 'receive' %}</code>
+
+        <hr>
+
+        <h4>DLR URL</h4>
+
+        <p>This endpoint should be called by MACROKIOSK when the message status changes. (delivery reports)</p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.mk' channel.uuid 'status' %}</code>
+
+        <hr>
+
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
