@@ -26,6 +26,23 @@ class GlobeType(ChannelType):
 
     claim_blurb = _("""If you are based in the Phillipines, you can integrate {{ brand.name }} with Globe Labs to send
                        and receive messages on your shortcode.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your Globe Labs connection you'll need to set the following notify URI for SMS on your
+        application configuration page.
+        </h4>
+        <hr>
+
+        <h4>Notify URI</h4>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.gl' channel.uuid 'receive' %}</code>
+
+        <hr>
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
