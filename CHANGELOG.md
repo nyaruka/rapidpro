@@ -1,3 +1,12 @@
+v3.0.316
+----------
+ * Remove stop endpoint for MT
+
+v3.0.315
+----------
+ * Inactive flows should not be listed on the API endpoint
+ * Add Mtarget channel type
+
 v3.0.314
 ----------
  * Add run dict to default webhook payload
