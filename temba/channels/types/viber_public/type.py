@@ -27,6 +27,24 @@ class ViberPublicType(ChannelType):
     claim_blurb = _("""Connect a <a href="http://viber.com/en/">Viber</a> public channel to send and receive messages to
     Viber users for free. Your users will need an Android, Windows or iOS device and a Viber account to send and receive
     messages.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        Your Viber channel is connected. If needed the webhook endpoints are listed below.
+        </h4>
+
+        <hr>
+
+        <h4>Webhook URL</h4>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.vp' channel.uuid %}</code>
+
+        <hr>
+
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [VIBER_SCHEME]
