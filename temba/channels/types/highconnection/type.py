@@ -28,6 +28,24 @@ class HighConnectionType(ChannelType):
 
     claim_blurb = _("""If you are based in France, you can purchase a number from High Connexion
                   <a href="http://www.highconnexion.com/en/">High Connection</a> and connect it in a few simple steps.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your connection you'll need to notify HighConnection of the following URL for
+        incoming (MO) messages
+        </h4>
+        <hr/>
+
+        <h4>Receive URL</h4>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.hx' channel.uuid 'receive' %}</code>
+
+        <hr/>
+
+        """
+    )
+
     claim_view = AuthenticatedExternalCallbackClaimView
 
     schemes = [TEL_SCHEME]

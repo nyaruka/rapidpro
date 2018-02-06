@@ -34,7 +34,7 @@ class ShaqodoonType(ChannelType):
         URL for incoming messages to {{ channel.address }}
         </h4>
         <code>https://{{ channel.callback_domain }}{% url 'courier.sq' channel.uuid 'receive' %}</code>
-        <hr>
+        <hr/>
         """
     )
 

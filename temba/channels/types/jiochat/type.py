@@ -29,7 +29,7 @@ class JioChatType(ChannelType):
         <h4>
         To finish configuring your JioChat connection, you'll need to enter the following webhook URL and token on JioChat Developer Center configuration
         </h4>
-        <hr>
+        <hr/>
 
         <h4>Webhook URL</h4>
 
@@ -38,6 +38,8 @@ class JioChatType(ChannelType):
         <h4>Token</h4>
 
         <code>{{ channel.config_json.secret }}</code>
+
+        <hr/>
         """
     )
 

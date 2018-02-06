@@ -34,13 +34,13 @@ class ViberPublicType(ChannelType):
         Your Viber channel is connected. If needed the webhook endpoints are listed below.
         </h4>
 
-        <hr>
+        <hr/>
 
         <h4>Webhook URL</h4>
 
         <code>https://{{ channel.callback_domain }}{% url 'courier.vp' channel.uuid %}</code>
 
-        <hr>
+        <hr/>
 
         """
     )

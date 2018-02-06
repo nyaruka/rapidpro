@@ -54,7 +54,7 @@ class NexmoType(ChannelType):
         <p>The callback URL is called by Nexmo when you receive an incoming call</h4>
 
         <code>https://{{ channel.callback_domain }}{% url 'handlers.nexmo_call_handler' 'answer' channel.uuid %}</code>
-        <hr>
+        <hr/>
 
         """
     )

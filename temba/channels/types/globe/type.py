@@ -33,13 +33,13 @@ class GlobeType(ChannelType):
         To finish configuring your Globe Labs connection you'll need to set the following notify URI for SMS on your
         application configuration page.
         </h4>
-        <hr>
+        <hr/>
 
         <h4>Notify URI</h4>
 
         <code>https://{{ channel.callback_domain }}{% url 'courier.gl' channel.uuid 'receive' %}</code>
 
-        <hr>
+        <hr/>
         """
     )
 
