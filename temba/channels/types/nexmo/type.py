@@ -29,6 +29,36 @@ class NexmoType(ChannelType):
     icon = "icon-channel-nexmo"
 
     claim_blurb = _("""Easily add a two way number you have configured with <a href="https://www.nexmo.com/">Nexmo</a> using their APIs.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        Your Nexmo configuration URLs are as follows. These should have been set up automatically when claiming
+        your number, but if not you can set them from your Nexmo dashboard."
+        </h4>
+
+        <h4>Callback URL for Inbound Messages</h4>
+
+        <p>The callback URL is called by Nexmo when you receive new incoming messages.</p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.nx' channel.uuid 'receive' %}</code>
+
+        <h4>Callback URL for Delivery Receipt</h4>
+
+        <p>The delivery URL is called by Nexmo when a message is successfully delivered to a recipient.</p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.nx' channel.uuid 'status' %}</code>
+
+        <h4>Callback URL for Incoming Call</h4>
+
+        <p>The callback URL is called by Nexmo when you receive an incoming call</h4>
+
+        <code>https://{{ channel.callback_domain }}{% url 'handlers.nexmo_call_handler' 'answer' channel.uuid %}</code>
+        <hr>
+
+        """
+    )
+
     claim_view = ClaimView
 
     update_form = UpdateNexmoForm
