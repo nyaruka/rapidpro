@@ -28,6 +28,42 @@ class FacebookType(ChannelType):
     claim_blurb = _("""Add a <a href="http://facebook.com">Facebook</a> bot to send and receive messages on behalf
     of one of your Facebook pages for free. You will need to create a Facebook application on their
     <a href="http://developers.facebook.com">developers</a> site first.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your Facebook connection, you'll need to enter the following webhook URL and token on your application's
+        Messenger settings page. Make sure to check all boxes within the 'Webhooks' section to subscribe to all incoming Facebook events
+        and referral parameters (<code>messaging_referrals</code>), within the same section, select the page whose events you'd like the
+        webhook to subscribe to.
+        </h4>
+
+        <div class="important" >
+            <p>
+            It may take up to ten minutes for a new webhook to take effect after being set on your Facebook application. Remember,
+            until your Facebook application is approved by Facebook you will only be able to send and receive messages
+            with administrators of your application.
+            </p>
+        </div>
+
+        <p>
+        When submitting your application for approval, make sure to include the <code>pages_messaging</code>
+        and <code>pages_messaging_subscriptions</code> permissions so that you are able to initiate conversations with your contacts.
+        </p>
+        <hr/>
+
+        <h4>Webhook URL</h4>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.fb' channel.uuid %}</code>
+
+        <h4>Verify Token</h4>
+
+        <code>{{ channel.config_json.secret }}</code>
+
+        <hr/>
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [FACEBOOK_SCHEME]
