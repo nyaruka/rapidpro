@@ -332,6 +332,7 @@ class WebHookEvent(SmartModel):
 
         return result
 
+    @classmethod
     def trigger_sms_event(cls, event, msg, time):
         if not msg.channel:
             return
