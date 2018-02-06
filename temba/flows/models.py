@@ -830,7 +830,6 @@ class Flow(TembaModel):
             # store the media path as the value
             value = msg.attachments[0].split(':', 1)[1]
 
-        step.save_rule_match(rule, value)
         ruleset.save_run_value(run, rule, value, msg.text)
 
         # output the new value if in the simulator
@@ -1790,9 +1789,8 @@ class Flow(TembaModel):
 
         if previous_step:
             previous_step.left_on = arrived_on
-            previous_step.rule_uuid = exit_uuid
             previous_step.next_uuid = node.uuid
-            previous_step.save(update_fields=('left_on', 'rule_uuid', 'next_uuid'))
+            previous_step.save(update_fields=('left_on', 'next_uuid'))
 
         # update our timeouts
         timeout = node.get_timeout() if isinstance(node, RuleSet) else None
@@ -1800,8 +1798,7 @@ class Flow(TembaModel):
 
         if not is_start:
             # mark any other states for this contact as evaluated, contacts can only be in one place at time
-            self.get_steps().filter(run=run, left_on=None).update(left_on=arrived_on, next_uuid=node.uuid,
-                                                                  rule_uuid=exit_uuid)
+            self.get_steps().filter(run=run, left_on=None).update(left_on=arrived_on, next_uuid=node.uuid)
 
         # then add our new step and associate it with our message
         step = FlowStep.objects.create(run=run, contact=run.contact, step_type=node.get_step_type(),
@@ -3264,10 +3261,6 @@ class FlowStep(models.Model):
 
     def release(self):
         self.delete()
-
-    def save_rule_match(self, rule, value):
-        self.rule_uuid = rule.uuid
-        self.save(update_fields=('rule_uuid',))
 
     def get_node(self):
         """
