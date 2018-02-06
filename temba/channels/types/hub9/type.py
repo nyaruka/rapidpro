@@ -86,7 +86,7 @@ class Hub9Type(ChannelType):
         </p>
 
         {% for ip_address in ip_addresses %}
-        <code>ip_address</code>
+        <code>{{ip_address}}</code>
         {% endfor %}
 
         <hr/>
