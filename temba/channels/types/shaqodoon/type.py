@@ -26,6 +26,18 @@ class ShaqodoonType(ChannelType):
 
     claim_blurb = _("""If you are based in Somalia, you can integrate with Shaqodoon to send
                        and receive messages on your shortcode.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your Shaqodoon connection you'll need to provide Shaqodoon with the following delivery
+        URL for incoming messages to {{ channel.address }}
+        </h4>
+        <code>https://{{ channel.callback_domain }}{% url 'courier.sq' channel.uuid 'receive' %}</code>
+        <hr>
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
