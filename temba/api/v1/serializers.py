@@ -670,13 +670,11 @@ class FlowRunWriteSerializer(WriteSerializer):
         if not run or run.submitted_by != self.submitted_by_obj:
             run = FlowRun.create(self.flow_obj, self.contact_obj, created_on=started, submitted_by=self.submitted_by_obj)
 
-        step_objs = [FlowStep.from_json(step, self.flow_obj, run) for step in steps]
+        run.update_from_surveyor(steps)
 
         if completed:
-            final_step = step_objs[len(step_objs) - 1] if step_objs else None
             completed_on = steps[len(steps) - 1]['arrived_on'] if steps else None
-
-            run.set_completed(final_step, completed_on=completed_on)
+            run.set_completed(None, completed_on=completed_on)
         else:
             run.save(update_fields=('modified_on',))
 
