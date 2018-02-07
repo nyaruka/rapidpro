@@ -2638,15 +2638,11 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
                         rule_input = rule_dict['text']
                         rule_media = None
 
-                    # are we resuming from a node we waited at?
-                    if prev_step and prev_step[FlowRun.PATH_NODE_UUID] == str(node.uuid):
-                        path[-1]['exit_uuid'] = exit_uuid
-                    else:
-                        path.append({
-                            FlowRun.PATH_NODE_UUID: node.uuid,
-                            FlowRun.PATH_ARRIVED_ON: arrived_on.isoformat(),
-                            FlowRun.PATH_EXIT_UUID: exit_uuid
-                        })
+                    path.append({
+                        FlowRun.PATH_NODE_UUID: node.uuid,
+                        FlowRun.PATH_ARRIVED_ON: arrived_on.isoformat(),
+                        FlowRun.PATH_EXIT_UUID: exit_uuid
+                    })
 
                     # if a msg was sent to this ruleset, create it
                     if node.is_pause():
@@ -2697,8 +2693,9 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
                     msgs += action.execute(self, context, node.uuid, msg=last_incoming, offline_on=arrived_on)
                     self.add_messages(msgs)
 
+        self.current_node_uuid = path[-1][FlowRun.PATH_NODE_UUID]
         self.path = json.dumps(path)
-        self.save(update_fields=('path',))
+        self.save(update_fields=('path', 'current_node_uuid'))
 
     @cached_property
     def cached_child(self):

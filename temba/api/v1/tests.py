@@ -635,6 +635,7 @@ class APITest(TembaTest):
         self.assertEqual(run.get_path(), [
             {'node_uuid': color_prompt.uuid, 'arrived_on': '2015-08-25T11:09:30.088000+00:00'}
         ])
+        self.assertEqual(str(run.current_node_uuid), color_prompt.uuid)
 
         # outgoing message for reply
         out_msgs = list(Msg.objects.filter(direction='O').order_by('pk'))

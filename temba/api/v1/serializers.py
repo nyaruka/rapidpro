@@ -10,7 +10,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 from temba.channels.models import Channel
 from temba.contacts.models import Contact, ContactField, ContactGroup, ContactURN, URN, TEL_SCHEME
-from temba.flows.models import Flow, FlowRun, FlowStep, RuleSet, FlowRevision
+from temba.flows.models import Flow, FlowRun, RuleSet, FlowRevision
 from temba.locations.models import AdminBoundary
 from temba.msgs.models import Broadcast, Msg
 from temba.orgs.models import get_current_export_version
@@ -595,14 +595,7 @@ class FlowRunWriteSerializer(WriteSerializer):
                 return self.ruleset
 
             def is_pause(self):
-                from temba.flows.models import RuleSet
                 return self.node['ruleset_type'] in RuleSet.TYPE_WAIT
-
-            def get_step_type(self):
-                if self.is_ruleset():
-                    return FlowStep.TYPE_RULE_SET
-                else:
-                    return FlowStep.TYPE_ACTION_SET
 
         steps = data.get('steps')
         revision = data.get('revision', data.get('version'))
