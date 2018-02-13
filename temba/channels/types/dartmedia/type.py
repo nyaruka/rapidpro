@@ -30,6 +30,71 @@ class DartMediaType(ChannelType):
     name = "DartMedia"
 
     claim_blurb = _("""Easily add a two way number you have configured with <a href="http://dartmedia.biz/">Dart Media</a> in Indonesia.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your Dart Media connection you'll need to provide them with the following details.
+        </h4>
+
+        <div class="clearfix">
+            <div class="config-value">
+                <div class="name">
+                Username:
+                </div>
+                <div class="value">
+                {{ channel.config_json.username }}
+                </div>
+            </div>
+            <div class="config-value">
+                <div class="name">
+                Password:
+                </div>
+                <div class="value">
+                 xxxxxxxx
+                </div>
+            </div>
+        </div>
+        <div class="clearfix"></div>
+
+        <hr/>
+
+        <h4>Received URL</h4>
+
+        <p>
+        This endpoint should be called by Dart Media when new messages are received to your number. You can set the receive URL on your Dart Media account by contacting your sales agent.
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.da' channel.uuid 'receive' %}</code>
+
+        <hr/>
+
+        <h4>Delivered URL</h4>
+
+        <p>
+        This endpoint should be called by Dart Media when a message has been to the final recipient. (delivery reports)
+        You can set the delivery callback URL on your Dart Media account by contacting your sales agent.
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.da' channel.uuid 'delivered' %}</code>
+
+        <hr/>
+
+        <h4>IP Addresses</h4>
+
+        <p>
+        Contact your sales agent to make sure the following IPs are whitelisted
+        </p>
+
+        {% for ip_address in ip_addresses %}
+        <code>{{ip_address}}</code>
+        {% endfor %}
+
+        <hr/>
+
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]

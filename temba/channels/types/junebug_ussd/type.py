@@ -20,6 +20,28 @@ class JunebugUSSDType(ChannelType):
     icon = "icon-junebug"
 
     claim_blurb = _("""Connect your <a href="https://junebug.praekelt.org/" target="_blank">Junebug</a> instance that you have already set up and configured.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        As a last step you'll need to configure Junebug to call the following URL for MO (incoming) messages.
+        </h4>
+
+        <hr/>
+
+        <h4>Push Message URL</h4>
+
+        <p>
+        This endpoint will be called by Junebug when new messages are received to your number, it must be configured
+        to be called as a POST
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.jn' channel.uuid 'inbound' %}</code>
+
+        <hr/>
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]

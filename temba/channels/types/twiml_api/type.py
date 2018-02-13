@@ -20,6 +20,34 @@ class TwimlAPIType(ChannelType):
     icon = "icon-channel-twilio"
 
     claim_blurb = _("""Connect to a service that speaks TwiML. You can use this to connect to TwiML compatible services outside of Twilio.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your TwiML REST API channel you'll need to add the following URL in your TwiML REST API instance.
+        </h4>
+        <hr>
+
+        <h4>TwiML REST API Host</h4>
+
+        <p>
+        The endpoint which will receive Twilio API requests for this channel
+        </p>
+
+        <code>{{ channel.config_json.send_url }}</code>
+
+        <h4>Request URL</h4>
+
+        <p>
+        Incoming messages for this channel will be sent to this endpoint.
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'handlers.twiml_api_handler' channel.uuid %}</code>
+
+        <hr/>
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]

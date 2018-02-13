@@ -26,6 +26,25 @@ class MbloxType(ChannelType):
 
     claim_blurb = _("""Easily add a two way number you have configured with <a href="https://www.mblox.com/">Mblox</a> using their APIs.""")
 
+    configuration_blurb = _(
+        """
+        <h4>
+        As a last step you'll need to set the following callback URL on your Mblox account:
+        </h4>
+        <hr>
+
+        <h4>Callback URL</h4>
+
+        <p>
+        This endpoint will be called by Mblox when new messages are received to your number and for delivery reports.
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.mb' channel.uuid 'receive' %}</code>
+
+        <hr>
+        """
+    )
+
     claim_view = AuthenticatedExternalClaimView
 
     schemes = [TEL_SCHEME]

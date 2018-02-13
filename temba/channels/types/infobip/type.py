@@ -26,6 +26,59 @@ class InfobipType(ChannelType):
     name = "Infobip"
 
     claim_blurb = _("""Easily add a two way number you have configured with <a href="http://infobip.com">Infobip</a> using their APIs.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your Infobip connection you'll need to set the following callback URLs on the
+        Infobip website under your account.
+        </h4>
+        <div class="clearfix">
+            <div class="config-value">
+                <div class="name">
+                Username:
+                </div>
+                <div class="value">
+                {{ channel.config_json.username }}
+                </div>
+            </div>
+            <div class="config-value">
+                <div class="name">
+                Password:
+                </div>
+                <div class="value">
+                xxxxxxxx
+                </div>
+            </div>
+        </div>
+        <div class="clearfix"></div>
+
+        <hr/>
+
+        <h4>Received URL</h4>
+
+        <p>
+        This endpoint should be called with a POST by Infobip when new messages are received to your number. You can set the receive URL on your Infobip account by contacting your sales agent.
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.ib' channel.uuid 'receive' %}</code>
+
+        <hr/>
+
+        <h4>Delivered URL</h4>
+
+        <p>
+        This endpoint should be called with a POST by Infobip when a message has been to the final recipient. (delivery reports)
+        You can set the delivery callback URL on your Infobip account by contacting your sales agent.
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.ib' channel.uuid 'delivered' %}</code>
+
+        <hr/>
+
+        """
+    )
+
     claim_view = AuthenticatedExternalCallbackClaimView
 
     schemes = [TEL_SCHEME]

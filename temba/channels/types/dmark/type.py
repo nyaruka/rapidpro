@@ -22,6 +22,23 @@ class DMarkType(ChannelType):
     claim_blurb = _("""If you are based in Uganda or DRC you can purchase a short
     code from <a href="http://dmarkmobile.com/">DMark Mobile</a> and connect it
     in a few simple steps.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your DMark channel you need to set DMark to send MO messages to the URL below.
+        <h4/>
+
+        <hr/>
+
+        <h4>Receive URL</h4>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.dk' channel.uuid 'receive' %}</code>
+
+        <hr/>
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]

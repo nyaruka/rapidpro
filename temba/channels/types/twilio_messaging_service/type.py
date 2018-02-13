@@ -22,6 +22,28 @@ class TwilioMessagingServiceType(ChannelType):
     icon = "icon-channel-twilio"
 
     claim_blurb = _("""You can connect a messaging service from your Twilio account to benefit from <a href="https://www.twilio.com/copilot">Twilio Copilot features</a></br>""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your Twilio Messaging Service connection you'll need to add the following URL in your Messaging Service Inbound Settings.
+        </h4>
+
+        <hr/>
+
+        <h4>Request URL</h4>
+
+        <p>
+        This endpoint should be called by Twilio when new messages are received by your Messaging Service.
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.tms' channel.uuid 'receive' %}</code>
+
+        <hr/>
+
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]

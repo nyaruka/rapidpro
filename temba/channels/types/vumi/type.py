@@ -26,6 +26,66 @@ class VumiType(ChannelType):
     name = "Vumi"
 
     claim_blurb = _("""Easily connect your <a href="http://vumi.com/">Vumi</a> account to take advantage of two way texting across different mediums.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your Vumi connection you'll need to set the following parameters on your Vumi conversation:
+        </h4>
+
+        <div class ="clearfix">
+            <div class="config-value">
+                <div class="name">
+                Conversation Key:
+                </div>
+                <div class="value">
+                {{ channel.config_json.conversation_key }}
+                </div>
+            </div>
+            <div class="config-value">
+                <div class="name">
+                Account Key:
+                </div>
+                <div class="value">
+                {{ channel.config_json.account_key }}
+                </div>
+            </div>
+        </div>
+        <div class="clearfix"></div>
+
+        <hr/>
+
+        <h4>API Token</h4>
+
+        <p>
+        This token is used to authenticate with your Vumi account, set it by editing the "Content" page on your conversation.
+        </p>
+
+        <code>{{ channel.config_json.access_token }}</code>
+
+        <hr/>
+
+        <h4>Push Message URL</h4>
+
+        <p>
+        This endpoint will be called by Vumi when new messages are received to your number.
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.vm' channel.uuid 'receive' %}</code>
+
+        <hr/>
+
+        <h4>Push Event URL</h4>
+
+        <p>
+        This endpoint will be called by Vumi when sent messages are sent or delivered.
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.vm' channel.uuid 'event' %}</code>
+        <hr/>
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]

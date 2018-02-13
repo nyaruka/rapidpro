@@ -25,6 +25,28 @@ class StartType(ChannelType):
     name = "Start Mobile"
 
     claim_blurb = _("""Easily add a two way number you have configured with <a href="https://bulk.startmobile.ua/">Start Mobile</a> using their APIs.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your Start connection you'll need to notify Start of the following receiving URL.
+        </h4>
+
+        <hr/>
+
+        <h4>Inbound URL</h4>
+
+        <p>
+        This endpoint should be called by Start when new messages are received to your number.
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.st' channel.uuid 'receive' %}</code>
+
+        </hr>
+
+        """
+    )
+
     claim_view = AuthenticatedExternalClaimView
 
     schemes = [TEL_SCHEME]

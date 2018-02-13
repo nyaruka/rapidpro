@@ -24,6 +24,38 @@ class BlackmynaType(ChannelType):
     name = "Blackmyna"
 
     claim_blurb = _("""Easily add a two way number you have configured with <a href="http://blackmyna.com">Blackmyna</a> using their APIs.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your Blackmyna connection you'll need to notify Blackmyna of the following URLs.
+        </h4>
+
+        <hr/>
+
+        <h4>Inbound URL</h4>
+
+        <p>
+        This endpoint should be called by Blackmyna when new messages are received to your number.
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.bm' channel.uuid 'receive' %}</code>
+
+        <hr/>
+
+        <h4>DLR URL</h4>
+
+        <p>
+        This endpoint should be called by Blackmyna when the message status changes. (delivery reports)
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.bm' channel.uuid 'status' %}</code>
+
+        <hr/>
+
+        """
+    )
+
     claim_view = AuthenticatedExternalClaimView
 
     schemes = [TEL_SCHEME]

@@ -26,6 +26,42 @@ class LineType(ChannelType):
     claim_blurb = _("""Add a <a href="https://line.me">LINE</a> bot to send and receive messages to LINE users
                 for free. Your users will need an Android, Windows or iOS device and a LINE account to send
                 and receive messages.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish the configuration of Line channel you'll need to set the following callback URL in the Line Bot settings page, following the steps below:
+        </h4>
+
+        <div class="info">
+            <p>
+                <ol class="line-steps"
+                    <li>
+                        Configure "Callback URL" in the channel page (the same page which get the information Channel Secret and Channel Access Token) by clicking on the "Edit" button, filling the field "webhook URL" and pressing on the "Save" button.
+                    </li>
+                    <li>
+                        Fill the IP addresses in the "Server IP Whitelist" with the list of addresses displayed below.
+                    </li>
+                </ol>
+            </p>
+        </div>
+
+        <h4>Callback URL</h4>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.ln' channel.uuid %}</code>
+
+        <hr/>
+
+        <h4>IP Addresses</h4>
+
+        {% for ip_address in ip_addresses %}
+        <code>{{ip_address}}</code>
+        {% endfor %}
+
+        <hr/>
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [LINE_SCHEME]

@@ -28,6 +28,59 @@ class AfricasTalkingType(ChannelType):
     claim_blurb = _("""If you are based in Kenya, Uganda or Malawi you can purchase a short
     code from <a href="http://africastalking.com">Africa's Talking</a> and connect it
     in a few simple steps.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your Africa's Talking connection you'll need to set the following callback URLs on the
+        Africa's Talking website under your account.
+        </h4>
+
+        <div class="clearfix">
+            <div class="config-value">
+                <div class="name">
+                Username:
+                </div>
+                <div class="value">
+                {{ channel.config_json.username }}
+                </div>
+            </div>
+            <div class="config-value">
+                <div class="name">
+                API Key:
+                </div>
+                <div class="value">
+                {{ channel.config_json.api_key }}
+                </div>
+            </div>
+        </div>
+        <div class="clearfix"></div>
+        <hr/>
+
+        <h4>Callback URL"</h4>
+
+        <p>
+        You can set the callback URL on your Africa's Talking account by visiting the SMS Dashboard page, then clicking on
+        <a href="http://www.africastalking.com/account/sms/smscallback" target="africastalking">Callback URL</a>.
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.at' channel.uuid 'receive' %}</code>
+
+        <hr/>
+
+        <h4>Delivery URL</h4>
+
+        <p>
+        You can set the delivery URL on your Africa's Talking account by visiting the SMS Dashboard page, then clicking on"
+        <a href="http://www.africastalking.com/account/sms/dlrcallback" target="africastalking">Delivery Reports</a>.
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.at' channel.uuid 'status' %}</code>
+
+        <hr/>
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]

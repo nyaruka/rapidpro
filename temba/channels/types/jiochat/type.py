@@ -23,6 +23,26 @@ class JioChatType(ChannelType):
     claim_blurb = _("""Add a <a href="https://jiochat.me">JioChat</a> bot to send and receive messages to JioChat users
                 for free. Your users will need an Android, Windows or iOS device and a JioChat account to send
                 and receive messages.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your JioChat connection, you'll need to enter the following webhook URL and token on JioChat Developer Center configuration
+        </h4>
+        <hr/>
+
+        <h4>Webhook URL</h4>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.jc' channel.uuid %}</code>
+
+        <h4>Token</h4>
+
+        <code>{{ channel.config_json.secret }}</code>
+
+        <hr/>
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [JIOCHAT_SCHEME]

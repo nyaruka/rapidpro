@@ -193,7 +193,7 @@ class ChannelType(six.with_metaclass(ABCMeta)):
         Allows ChannelTypes to define the blurb to show on the channel configuration page.
         """
         if self.__class__.configuration_blurb is not None:
-            return Engine.get_default().from_string(self.configuration_blurb).render(context=Context(dict(channel=channel)))
+            return Engine.get_default().from_string(self.configuration_blurb).render(context=Context(dict(channel=channel, ip_addresses=settings.IP_ADDRESSES)))
         else:
             return ""
 

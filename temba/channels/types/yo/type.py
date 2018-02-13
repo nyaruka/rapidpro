@@ -32,6 +32,26 @@ class YoType(ChannelType):
 
     claim_blurb = _("""If you are based in Uganda, you can integrate with <a href="http://www.yo.co.ug/">Yo!</a> to send
                     and receive messages on your shortcode.""")
+
+    configuration_blurb = _(
+        """
+        <h4>
+        To finish configuring your Yo! connection you'll need to notify Yo! of the following inbound SMS URL.
+        </h4>
+        <hr/>
+
+        <h4>Inbound SMS URL</h4>
+
+        <p>
+        This URL should be called with a GET by Yo! when new incoming messages are received on your shortcode.
+        </p>
+
+        <code>https://{{ channel.callback_domain }}{% url 'courier.yo' channel.uuid 'receive' %}</code>
+
+        <hr/>
+        """
+    )
+
     claim_view = ClaimView
 
     schemes = [TEL_SCHEME]
