@@ -42,7 +42,7 @@ from temba.msgs.models import Broadcast, Msg, FLOW, INBOX, INCOMING, QUEUED, FAI
 from temba.msgs.models import PENDING, DELIVERED, USSD as MSG_TYPE_USSD, OUTGOING
 from temba.orgs.models import Org, Language, get_current_export_version
 from temba.utils import analytics, chunk_list, on_transaction_commit
-from temba.utils.dates import get_datetime_format, str_to_datetime, datetime_to_str, json_date_to_datetime
+from temba.utils.dates import str_to_datetime, datetime_to_str, json_date_to_datetime
 from temba.utils.email import is_valid_address
 from temba.utils.export import BaseExportTask, BaseExportAssetStore
 from temba.utils.expressions import ContactFieldCollector
@@ -760,7 +760,7 @@ class Flow(TembaModel):
 
         # actually execute all the actions in our actionset
         msgs = actionset.execute_actions(run, msg, started_flows)
-        run.add_messages(msgs, step=step)
+        run.add_messages(msgs)
 
         # and onto the destination
         destination = Flow.get_node(actionset.flow, actionset.destination, actionset.destination_type)
@@ -794,7 +794,7 @@ class Flow(TembaModel):
                     extra['flow'] = message_context.get('flow', {})
 
                     if msg.id > 0:
-                        run.add_messages([msg], step=step)
+                        run.add_messages([msg])
                         run.update_expiration(timezone.now())
 
                     if flow:
@@ -823,14 +823,13 @@ class Flow(TembaModel):
 
         # add the message to our step
         if msg.id > 0:
-            run.add_messages([msg], step=step)
+            run.add_messages([msg])
             run.update_expiration(timezone.now())
 
         if ruleset.ruleset_type in RuleSet.TYPE_MEDIA and msg.attachments:
             # store the media path as the value
             value = msg.attachments[0].split(':', 1)[1]
 
-        step.save_rule_match(rule, value)
         ruleset.save_run_value(run, rule, value, msg.text)
 
         # output the new value if in the simulator
@@ -863,7 +862,7 @@ class Flow(TembaModel):
         context = run.flow.build_expressions_context(run.contact, msg)
         msgs = action.execute(run, context, ruleset.uuid, msg)
 
-        run.add_messages(msgs, step=step)
+        run.add_messages(msgs)
 
         return dict(handled=True, destination=None, step=step, msgs=msgs)
 
@@ -1736,7 +1735,7 @@ class Flow(TembaModel):
                         run_msgs += step_msgs
 
                 if start_msg:
-                    run.add_messages([start_msg], step=step)
+                    run.add_messages([start_msg])
 
                 # set the msgs that were sent by this run so that any caller can deal with them
                 run.start_msgs = run_msgs
@@ -1781,9 +1780,8 @@ class Flow(TembaModel):
 
         if previous_step:
             previous_step.left_on = arrived_on
-            previous_step.rule_uuid = exit_uuid
             previous_step.next_uuid = node.uuid
-            previous_step.save(update_fields=('left_on', 'rule_uuid', 'next_uuid'))
+            previous_step.save(update_fields=('left_on', 'next_uuid'))
 
         # update our timeouts
         timeout = node.get_timeout() if isinstance(node, RuleSet) else None
@@ -1791,15 +1789,14 @@ class Flow(TembaModel):
 
         if not is_start:
             # mark any other states for this contact as evaluated, contacts can only be in one place at time
-            self.get_steps().filter(run=run, left_on=None).update(left_on=arrived_on, next_uuid=node.uuid,
-                                                                  rule_uuid=exit_uuid)
+            self.get_steps().filter(run=run, left_on=None).update(left_on=arrived_on, next_uuid=node.uuid)
 
         # then add our new step and associate it with our message
         step = FlowStep.objects.create(run=run, contact=run.contact, step_type=node.get_step_type(),
                                        step_uuid=node.uuid, arrived_on=arrived_on)
 
         # for each message, associate it with this step and set the label on it
-        run.add_messages(msgs, step=step)
+        run.add_messages(msgs)
 
         path = run.path
 
@@ -2577,6 +2574,120 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
     current_node_uuid = models.UUIDField(null=True,
                                          help_text=_("The current node location of this run in the flow"))
 
+    def update_from_surveyor(self, step_dicts):
+        """
+        Updates this run with the given Surveyor step JSON. For example an actionset might generate a step like:
+
+            {
+                "node": "32cf414b-35e3-4c75-8a78-d5f4de925e13",
+                "arrived_on": "2015-08-25T11:59:30.088Z",
+                "actions": [{"msg":"Hi Joe","type":"reply"}],
+                "errors": []
+            }
+
+        Whereas a ruleset might generate a step like:
+
+            {
+                "node": "32cf414b-35e3-4c75-8a78-d5f4de925e13",
+                "arrived_on": "2015-08-25T11:59:30.088Z",
+                "rule": {
+                    "uuid": "7b2fa286-5ef0-4c6a-a770-45dd65384b50",
+                    "text": "I like blue",
+                    "value": "blue",
+                    "category": "Blue",
+                    "media": null
+                },
+                "errors": []
+            }
+        """
+        path = self.get_path()
+        msgs = []
+
+        for step_dict in step_dicts:
+            node = step_dict['node']
+            arrived_on = json_date_to_datetime(step_dict['arrived_on'])
+
+            prev_step = path[-1] if path else None
+            if prev_step:
+                # was the previous step an actionset that we need to complete with an exit UUID ?
+                prev_action_set = self.flow.action_sets.filter(uuid=prev_step[FlowRun.PATH_NODE_UUID]).first()
+                if prev_action_set and FlowRun.PATH_EXIT_UUID not in prev_step:
+                    prev_step[FlowRun.PATH_EXIT_UUID] = str(prev_action_set.exit_uuid)
+
+            if node.is_ruleset():
+                rule_dict = step_dict.get('rule')
+                if rule_dict:
+                    exit_uuid = step_dict['rule']['uuid']
+
+                    if 'media' in rule_dict:
+                        rule_media = rule_dict['media']
+                        (media_type, url) = rule_media.split(':', 1)
+                        rule_value = url
+                        rule_input = url
+                    else:
+                        rule_value = rule_dict['value']
+                        rule_input = rule_dict['text']
+                        rule_media = None
+
+                    path.append({
+                        FlowRun.PATH_NODE_UUID: node.uuid,
+                        FlowRun.PATH_ARRIVED_ON: arrived_on.isoformat(),
+                        FlowRun.PATH_EXIT_UUID: exit_uuid
+                    })
+
+                    # if a msg was sent to this ruleset, create it
+                    if node.is_pause():
+                        incoming = Msg.create_incoming(org=self.org, contact=self.contact, text=rule_input,
+                                                       attachments=[rule_media] if rule_media else None,
+                                                       msg_type=FLOW, status=HANDLED, date=arrived_on,
+                                                       channel=None, urn=None)
+                        self.add_messages([incoming])
+
+                    ruleset = self.flow.rule_sets.filter(uuid=str(node.uuid)).first()
+                    if ruleset:
+                        # look for an exact rule match by UUID
+                        rule = None
+                        for r in ruleset.get_rules():
+                            if r.uuid == exit_uuid:
+                                rule = r
+                                break
+
+                        if not rule:
+                            # the user updated the rules try to match the new rules
+                            msg = Msg(org=self.org, contact=self.contact, text=rule_input, id=0)
+                            rule, value = ruleset.find_matching_rule(None, self, msg)
+                            if not rule:
+                                raise ValueError("No such rule with UUID %s" % exit_uuid)
+
+                            rule_value = value
+
+                        ruleset.save_run_value(self, rule, rule_value, rule_input)
+                else:
+                    path.append({
+                        FlowRun.PATH_NODE_UUID: node.uuid,
+                        FlowRun.PATH_ARRIVED_ON: arrived_on.isoformat(),
+                    })
+
+            # node is an actionset
+            else:
+                path.append({
+                    FlowRun.PATH_NODE_UUID: node.uuid,
+                    FlowRun.PATH_ARRIVED_ON: arrived_on.isoformat()
+                })
+
+                actions = Action.from_json_array(self.org, step_dict['actions'])
+
+                last_incoming = self.get_messages().filter(direction=INCOMING).order_by('-pk').first()
+
+                for action in actions:
+                    context = self.flow.build_expressions_context(self.contact, last_incoming)
+                    msgs += action.execute(self, context, node.uuid, msg=last_incoming, offline_on=arrived_on)
+                    self.add_messages(msgs)
+
+        self.current_node_uuid = path[-1][FlowRun.PATH_NODE_UUID]
+        self.path = json.dumps(path)
+        self.save(update_fields=('path', 'current_node_uuid'))
+
     @cached_property
     def cached_child(self):
         child = FlowRun.objects.filter(parent=self).order_by('-created_on').select_related('flow').first()
@@ -2725,7 +2836,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             # continue the parent flows to continue async
             on_transaction_commit(lambda: continue_parent_flows.delay(id_batch))
 
-    def add_messages(self, msgs, step=None):
+    def add_messages(self, msgs):
         """
         Associates the given messages with this run
         """
@@ -2742,13 +2853,6 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             if msg.id not in self.message_ids:
                 self.message_ids.append(msg.id)
                 needs_update = True
-
-            if step:
-                step.messages.add(msg)
-
-                # if this msg is part of a broadcast, save that on our flowstep so we can later purge the msg
-                if msg.broadcast:
-                    step.broadcasts.add(msg.broadcast)
 
             # incoming non-IVR messages won't have a type yet so update that
             if not msg.msg_type or msg.msg_type == INBOX:
@@ -3092,7 +3196,6 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
         return "FlowRun: %s Flow: %s\n%s" % (self.uuid, self.flow.uuid, json.dumps(self.results, indent=2))
 
 
-@six.python_2_unicode_compatible
 class FlowStep(models.Model):
     """
     A contact's visit to a node in a flow (rule set or action set)
@@ -3138,100 +3241,6 @@ class FlowStep(models.Model):
                                         help_text=_("Any broadcasts that are associated with this step (only sent)"))
 
     @classmethod
-    def from_json(cls, json_obj, flow, run):
-        """
-        Creates a new flow step from the given Surveyor step JSON
-        """
-        node = json_obj['node']
-        arrived_on = json_date_to_datetime(json_obj['arrived_on'])
-
-        # find the previous step
-        prev_step = cls.objects.filter(run=run).order_by('-left_on').first()
-
-        # figure out which exit was taken by that step
-        exit_uuid = None
-        if prev_step:
-            if prev_step.step_type == cls.TYPE_RULE_SET:
-                exit_uuid = prev_step.rule_uuid
-            else:
-                prev_node = prev_step.get_node()
-                if prev_node:
-                    exit_uuid = prev_node.exit_uuid
-
-        # generate the messages for this step
-        msgs = []
-        if node.is_ruleset():
-            incoming = None
-            if node.is_pause():
-                # if a msg was sent to this ruleset, create it
-                if json_obj['rule']:
-
-                    media = None
-                    if 'media' in json_obj['rule']:
-
-                        media = json_obj['rule']['media']
-                        (media_type, url) = media.split(':', 1)
-
-                        # store the non-typed url in the value and text
-                        json_obj['rule']['value'] = url
-                        json_obj['rule']['text'] = url
-
-                    # if we received a message
-                    incoming = Msg.create_incoming(org=run.org, contact=run.contact, text=json_obj['rule']['text'],
-                                                   attachments=[media] if media else None,
-                                                   msg_type=FLOW, status=HANDLED, date=arrived_on,
-                                                   channel=None, urn=None)
-            else:  # pragma: needs cover
-                incoming = Msg.objects.filter(org=run.org, direction=INCOMING, steps__run=run).order_by('-pk').first()
-
-            if incoming:
-                msgs.append(incoming)
-        else:
-            actions = Action.from_json_array(flow.org, json_obj['actions'])
-
-            last_incoming = Msg.objects.filter(org=run.org, direction=INCOMING, steps__run=run).order_by('-pk').first()
-
-            for action in actions:
-                context = flow.build_expressions_context(run.contact, last_incoming)
-                msgs += action.execute(run, context, node.uuid, msg=last_incoming, offline_on=arrived_on)
-
-        step = flow.add_step(run, node, msgs=msgs, previous_step=prev_step, arrived_on=arrived_on, exit_uuid=exit_uuid)
-
-        # if a rule was picked on this ruleset
-        if node.is_ruleset() and json_obj['rule']:
-            rule_uuid = json_obj['rule']['uuid']
-            rule_value = json_obj['rule']['value']
-
-            # update the value if we have an existing ruleset
-            ruleset = RuleSet.objects.filter(flow=flow, uuid=node.uuid).first()
-            if ruleset:
-                rule = None
-                for r in ruleset.get_rules():
-                    if r.uuid == rule_uuid:
-                        rule = r
-                        break
-
-                if not rule:
-                    # the user updated the rules try to match the new rules
-                    msg = Msg(org=run.org, contact=run.contact, text=json_obj['rule']['text'], id=0)
-                    rule, value = ruleset.find_matching_rule(step, run, msg)
-
-                    if not rule:
-                        raise ValueError("No such rule with UUID %s" % rule_uuid)
-
-                    rule_uuid = rule.uuid
-                    rule_value = value
-
-                ruleset.save_run_value(run, rule, rule_value, json_obj['rule']['text'])
-
-            # update our step with our rule details
-            step.rule_uuid = rule_uuid
-            step.rule_value = rule_value
-            step.save(update_fields=('rule_uuid', 'rule_value'))
-
-        return step
-
-    @classmethod
     def get_active_steps_for_contact(cls, contact, step_type=None):
 
         steps = FlowStep.objects.filter(run__is_active=True, run__flow__is_active=True, run__contact=contact,
@@ -3255,21 +3264,6 @@ class FlowStep(models.Model):
     def release(self):
         self.delete()
 
-    def save_rule_match(self, rule, value):
-        self.rule_uuid = rule.uuid
-
-        if value is None:
-            value = ''
-
-        # format our rule value appropriately
-        if isinstance(value, datetime):
-            (date_format, time_format) = get_datetime_format(self.run.flow.org.get_dayfirst())
-            self.rule_value = datetime_to_str(value, tz=self.run.flow.org.timezone, format=time_format, ms=False)
-        else:
-            self.rule_value = six.text_type(value)[:Msg.MAX_TEXT_LEN]
-
-        self.save(update_fields=('rule_uuid', 'rule_value'))
-
     def get_node(self):
         """
         Returns the node (i.e. a RuleSet or ActionSet) associated with this step
@@ -3278,9 +3272,6 @@ class FlowStep(models.Model):
             return RuleSet.objects.filter(uuid=self.step_uuid).first()
         else:  # pragma: needs cover
             return ActionSet.objects.filter(uuid=self.step_uuid).first()
-
-    def __str__(self):
-        return "%s - %s:%s" % (self.run.contact, self.step_type, self.step_uuid)
 
 
 @six.python_2_unicode_compatible
