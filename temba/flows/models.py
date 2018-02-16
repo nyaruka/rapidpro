@@ -42,7 +42,7 @@ from temba.msgs.models import Broadcast, Msg, FLOW, INBOX, INCOMING, QUEUED, FAI
 from temba.msgs.models import PENDING, DELIVERED, USSD as MSG_TYPE_USSD, OUTGOING
 from temba.orgs.models import Org, Language, get_current_export_version
 from temba.utils import analytics, chunk_list, on_transaction_commit
-from temba.utils.dates import get_datetime_format, str_to_datetime, datetime_to_str, json_date_to_datetime
+from temba.utils.dates import str_to_datetime, datetime_to_str, json_date_to_datetime
 from temba.utils.email import is_valid_address
 from temba.utils.export import BaseExportTask, BaseExportAssetStore
 from temba.utils.expressions import ContactFieldCollector
@@ -760,7 +760,7 @@ class Flow(TembaModel):
 
         # actually execute all the actions in our actionset
         msgs = actionset.execute_actions(run, msg, started_flows)
-        run.add_messages(msgs, step=step)
+        run.add_messages(msgs)
 
         # and onto the destination
         destination = Flow.get_node(actionset.flow, actionset.destination, actionset.destination_type)
@@ -794,7 +794,7 @@ class Flow(TembaModel):
                     extra['flow'] = message_context.get('flow', {})
 
                     if msg.id > 0:
-                        run.add_messages([msg], step=step)
+                        run.add_messages([msg])
                         run.update_expiration(timezone.now())
 
                     if flow:
@@ -823,7 +823,7 @@ class Flow(TembaModel):
 
         # add the message to our step
         if msg.id > 0:
-            run.add_messages([msg], step=step)
+            run.add_messages([msg])
             run.update_expiration(timezone.now())
 
         if ruleset.ruleset_type in RuleSet.TYPE_MEDIA and msg.attachments:
@@ -863,7 +863,7 @@ class Flow(TembaModel):
         context = run.flow.build_expressions_context(run.contact, msg)
         msgs = action.execute(run, context, ruleset.uuid, msg)
 
-        run.add_messages(msgs, step=step)
+        run.add_messages(msgs)
 
         return dict(handled=True, destination=None, step=step, msgs=msgs)
 
@@ -1736,7 +1736,7 @@ class Flow(TembaModel):
                         run_msgs += step_msgs
 
                 if start_msg:
-                    run.add_messages([start_msg], step=step)
+                    run.add_messages([start_msg])
 
                 # set the msgs that were sent by this run so that any caller can deal with them
                 run.start_msgs = run_msgs
@@ -1799,7 +1799,7 @@ class Flow(TembaModel):
                                        step_uuid=node.uuid, arrived_on=arrived_on)
 
         # for each message, associate it with this step and set the label on it
-        run.add_messages(msgs, step=step)
+        run.add_messages(msgs)
 
         path = run.path
 
@@ -2725,7 +2725,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             # continue the parent flows to continue async
             on_transaction_commit(lambda: continue_parent_flows.delay(id_batch))
 
-    def add_messages(self, msgs, step=None):
+    def add_messages(self, msgs):
         """
         Associates the given messages with this run
         """
@@ -2742,13 +2742,6 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             if msg.id not in self.message_ids:
                 self.message_ids.append(msg.id)
                 needs_update = True
-
-            if step:
-                step.messages.add(msg)
-
-                # if this msg is part of a broadcast, save that on our flowstep so we can later purge the msg
-                if msg.broadcast:
-                    step.broadcasts.add(msg.broadcast)
 
             # incoming non-IVR messages won't have a type yet so update that
             if not msg.msg_type or msg.msg_type == INBOX:
@@ -3092,7 +3085,6 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
         return "FlowRun: %s Flow: %s\n%s" % (self.uuid, self.flow.uuid, json.dumps(self.results, indent=2))
 
 
-@six.python_2_unicode_compatible
 class FlowStep(models.Model):
     """
     A contact's visit to a node in a flow (rule set or action set)
@@ -3189,7 +3181,7 @@ class FlowStep(models.Model):
         else:
             actions = Action.from_json_array(flow.org, json_obj['actions'])
 
-            last_incoming = Msg.objects.filter(org=run.org, direction=INCOMING, steps__run=run).order_by('-pk').first()
+            last_incoming = run.get_messages().filter(direction=INCOMING).order_by('-pk').first()
 
             for action in actions:
                 context = flow.build_expressions_context(run.contact, last_incoming)
@@ -3226,8 +3218,7 @@ class FlowStep(models.Model):
 
             # update our step with our rule details
             step.rule_uuid = rule_uuid
-            step.rule_value = rule_value
-            step.save(update_fields=('rule_uuid', 'rule_value'))
+            step.save(update_fields=('rule_uuid',))
 
         return step
 
@@ -3257,18 +3248,7 @@ class FlowStep(models.Model):
 
     def save_rule_match(self, rule, value):
         self.rule_uuid = rule.uuid
-
-        if value is None:
-            value = ''
-
-        # format our rule value appropriately
-        if isinstance(value, datetime):
-            (date_format, time_format) = get_datetime_format(self.run.flow.org.get_dayfirst())
-            self.rule_value = datetime_to_str(value, tz=self.run.flow.org.timezone, format=time_format, ms=False)
-        else:
-            self.rule_value = six.text_type(value)[:Msg.MAX_TEXT_LEN]
-
-        self.save(update_fields=('rule_uuid', 'rule_value'))
+        self.save(update_fields=('rule_uuid',))
 
     def get_node(self):
         """
@@ -3278,9 +3258,6 @@ class FlowStep(models.Model):
             return RuleSet.objects.filter(uuid=self.step_uuid).first()
         else:  # pragma: needs cover
             return ActionSet.objects.filter(uuid=self.step_uuid).first()
-
-    def __str__(self):
-        return "%s - %s:%s" % (self.run.contact, self.step_type, self.step_uuid)
 
 
 @six.python_2_unicode_compatible
