@@ -3276,7 +3276,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             # continue the parent flows to continue async
             on_transaction_commit(lambda: continue_parent_flows.delay(id_batch))
 
-    def add_messages(self, msgs, step=None):
+    def add_messages(self, msgs, step):
         """
         Associates the given messages with this run
         """
@@ -3294,12 +3294,11 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
                 self.message_ids.append(msg.id)
                 needs_update = True
 
-            if step:
-                step.messages.add(msg)
+            step.messages.add(msg)
 
-                # if this msg is part of a broadcast, save that on our flowstep so we can later purge the msg
-                if msg.broadcast:
-                    step.broadcasts.add(msg.broadcast)
+            # if this msg is part of a broadcast, save that on our flowstep so we can later purge the msg
+            if msg.broadcast:
+                step.broadcasts.add(msg.broadcast)
 
             # incoming non-IVR messages won't have a type yet so update that
             if not msg.msg_type or msg.msg_type == INBOX:
