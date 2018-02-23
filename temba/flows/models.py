@@ -2033,10 +2033,15 @@ class Flow(TembaModel):
             run.path = run.path[len(run.path) - FlowRun.PATH_MAX_STEPS:]
 
         run.current_node_uuid = run.path[-1][FlowRun.PATH_NODE_UUID]
-        run.save(update_fields=('path', 'current_node_uuid'))
 
         # for each message, associate it with this step and set the label on it
-        run.add_messages(msgs, step=step)
+        run.add_messages(msgs, step=step, do_save=False)
+
+        update_fields = ['path', 'current_node_uuid']
+        if msgs:
+            update_fields += ['message_ids', 'responded']
+
+        run.save(update_fields=update_fields)
 
         return step
 
@@ -3277,7 +3282,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             # continue the parent flows to continue async
             on_transaction_commit(lambda: continue_parent_flows.delay(id_batch))
 
-    def add_messages(self, msgs, step):
+    def add_messages(self, msgs, step, do_save=True):
         """
         Associates the given messages with this run
         """
@@ -3334,9 +3339,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
                     self.responded = True
                     needs_update = True
 
-        if needs_update:
-            # TODO defer saving if called from add_step
-
+        if needs_update and do_save:
             self.save(update_fields=('responded', 'message_ids', 'path'))
 
     def get_message_ids(self):
