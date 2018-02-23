@@ -970,6 +970,9 @@ class Flow(TembaModel):
 
         # actually execute all the actions in our actionset
         msgs = actionset.execute_actions(run, msg, started_flows)
+
+        # TODO run might now be inactive causing the following path update to blow up
+
         run.add_messages(msgs, step=step)
 
         # and onto the destination
@@ -1003,7 +1006,8 @@ class Flow(TembaModel):
                     extra = message_context.get('extra', {})
                     extra['flow'] = message_context.get('flow', {})
 
-                    if msg.id > 0:
+                    # if this is real message that hasn't already been added to this run, add it
+                    if msg.id and msg.id > 0 and msg.msg_type != FLOW:
                         run.add_messages([msg], step=step)
                         run.update_expiration(timezone.now())
 
@@ -1031,8 +1035,8 @@ class Flow(TembaModel):
 
         flow = ruleset.flow
 
-        # add the message to our step
-        if msg.id > 0:
+        # if this is real message that hasn't already been added to this run, add it
+        if msg.id and msg.id > 0 and msg.msg_type != FLOW:
             run.add_messages([msg], step=step)
             run.update_expiration(timezone.now())
 
@@ -2018,25 +2022,22 @@ class Flow(TembaModel):
         step = FlowStep.objects.create(run=run, contact=run.contact, step_type=node.get_step_type(),
                                        step_uuid=node.uuid, arrived_on=arrived_on)
 
-        # for each message, associate it with this step and set the label on it
-        run.add_messages(msgs, step=step)
-
-        path = run.path
-
         # complete previous step
-        if path and exit_uuid:
-            path[-1][FlowRun.PATH_EXIT_UUID] = exit_uuid
+        if run.path and exit_uuid:
+            run.path[-1][FlowRun.PATH_EXIT_UUID] = exit_uuid
 
         # create new step
-        path.append({FlowRun.PATH_NODE_UUID: node.uuid, FlowRun.PATH_ARRIVED_ON: arrived_on.isoformat()})
+        run.path.append({FlowRun.PATH_NODE_UUID: node.uuid, FlowRun.PATH_ARRIVED_ON: arrived_on.isoformat()})
 
         # trim path to ensure it can't grow indefinitely
-        if len(path) > FlowRun.PATH_MAX_STEPS:
-            path = path[len(path) - FlowRun.PATH_MAX_STEPS:]
+        if len(run.path) > FlowRun.PATH_MAX_STEPS:
+            run.path = run.path[len(run.path) - FlowRun.PATH_MAX_STEPS:]
 
-        run.path = path
-        run.current_node_uuid = path[-1][FlowRun.PATH_NODE_UUID]
+        run.current_node_uuid = run.path[-1][FlowRun.PATH_NODE_UUID]
         run.save(update_fields=('path', 'current_node_uuid'))
+
+        # for each message, associate it with this step and set the label on it
+        run.add_messages(msgs, step=step)
 
         return step
 
@@ -2734,6 +2735,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
 
     PATH_NODE_UUID = 'node_uuid'
     PATH_ARRIVED_ON = 'arrived_on'
+    PATH_EVENTS = 'events'
     PATH_EXIT_UUID = 'exit_uuid'
     PATH_MAX_STEPS = 100
 
@@ -3280,8 +3282,18 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
         """
         Associates the given messages with this run
         """
+        # find the step in the path that these messages should be added to (either last or penultimate)
+        if self.path and self.path[-1]['node_uuid'] == step.step_uuid:
+            path_step = self.path[-1]
+        elif len(self.path) >= 2 and self.path[-2]['node_uuid'] == step.step_uuid:
+            path_step = self.path[-2]
+        else:  # pragma: no cover
+            raise ValueError("Trying to add messages to a step which doesn't exist in the run path")
+
         if self.message_ids is None:
             self.message_ids = []
+        if FlowRun.PATH_EVENTS not in path_step:
+            path_step[FlowRun.PATH_EVENTS] = []
 
         needs_update = False
 
@@ -3290,11 +3302,23 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             if not msg or not msg.id:
                 continue
 
-            if msg.id not in self.message_ids:
-                self.message_ids.append(msg.id)
-                needs_update = True
+            needs_update = True
 
+            if msg.id in self.message_ids:  # pragma: no cover
+                raise ValueError("Can't add the same message ('%s') to a run more than once" % msg.text)
+
+            self.message_ids.append(msg.id)
             step.messages.add(msg)
+
+            path_step[FlowRun.PATH_EVENTS].append({
+                'type': 'msg_in' if msg.direction == INCOMING else 'msg_out',
+                'msg': {
+                    'uuid': str(msg.uuid),
+                    'text': msg.text,
+                    'urn': msg.contact_urn.urn if msg.contact_urn else None,
+                    'channel_uuid': str(msg.channel.uuid) if msg.channel else None,
+                }
+            })
 
             # if this msg is part of a broadcast, save that on our flowstep so we can later purge the msg
             if msg.broadcast:
@@ -3312,7 +3336,9 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
                     needs_update = True
 
         if needs_update:
-            self.save(update_fields=('responded', 'message_ids'))
+            # TODO defer saving if called from add_step
+
+            self.save(update_fields=('responded', 'message_ids', 'path'))
 
     def get_message_ids(self):
         """
