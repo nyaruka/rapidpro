@@ -1911,7 +1911,7 @@ class Flow(TembaModel):
             if entry_rules:
                 entry_rules.flow = self
 
-        msgs = []
+        msgs_to_send = []
         optimize_sending_action = len(broadcasts) > 0
 
         for run in runs:
@@ -1919,7 +1919,8 @@ class Flow(TembaModel):
 
             # each contact maintains its own list of started flows
             started_flows_by_contact = list(started_flows)
-            run_msgs = message_map.get(contact.id, [])
+            run_msgs = [start_msg] if start_msg else []
+            run_msgs += message_map.get(contact.id, [])
             arrived_on = timezone.now()
 
             try:
@@ -1959,15 +1960,13 @@ class Flow(TembaModel):
                         handled, step_msgs = Flow.handle_destination(entry_rules, step, run, msg, started_flows_by_contact, trigger_send=False, continue_parent=False)
                         run_msgs += step_msgs
 
-                if start_msg:
-                    run.add_messages([start_msg], step=step)
-
                 # set the msgs that were sent by this run so that any caller can deal with them
-                run.start_msgs = run_msgs
+                run.start_msgs = [m for m in run_msgs if m.direction == OUTGOING]
 
                 # add these messages as ones that are ready to send
                 for msg in run_msgs:
-                    msgs.append(msg)
+                    if msg.direction == OUTGOING:
+                        msgs_to_send.append(msg)
 
             except Exception:
                 logger.error('Failed starting flow %d for contact %d' % (self.id, contact.id), exc_info=1, extra={'stack': True})
@@ -1976,19 +1975,19 @@ class Flow(TembaModel):
                 run.set_interrupted()
 
                 # mark our messages as failed
-                Msg.objects.filter(id__in=[m.id for m in run_msgs]).update(status=FAILED)
+                Msg.objects.filter(id__in=[m.id for m in run_msgs if m.direction == OUTGOING]).update(status=FAILED)
 
                 # remove our msgs from our parent's concerns
                 run.start_msgs = []
 
         # trigger our messages to be sent
-        if msgs and not parent_run:
+        if msgs_to_send and not parent_run:
             # then send them off
-            msgs.sort(key=lambda message: (message.contact_id, message.created_on))
-            Msg.objects.filter(id__in=[m.id for m in msgs]).update(status=PENDING)
+            msgs_to_send.sort(key=lambda message: (message.contact_id, message.created_on))
+            Msg.objects.filter(id__in=[m.id for m in msgs_to_send]).update(status=PENDING)
 
             # trigger a sync
-            self.org.trigger_send(msgs)
+            self.org.trigger_send(msgs_to_send)
 
         # if we have a flow start, check whether we are complete
         if flow_start:
