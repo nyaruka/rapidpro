@@ -2847,7 +2847,12 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             }
             if 'exit_uuid' in s:
                 step[FlowRun.PATH_EXIT_UUID] = s['exit_uuid']
+            if 'events' in s:
+                keep_events = [ev for ev in s['events'] if ev['type'] in ('msg_received', 'send_msg')]
+                if keep_events:
+                    step[FlowRun.PATH_EVENTS] = keep_events
             path.append(step)
+
         current_node_uuid = path[-1][FlowRun.PATH_NODE_UUID]
 
         if existing:
@@ -3314,15 +3319,17 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             self.message_ids.append(msg.id)
             step.messages.add(msg)
 
-            path_step[FlowRun.PATH_EVENTS].append({
-                'type': 'msg_in' if msg.direction == INCOMING else 'msg_out',
-                'msg': {
-                    'uuid': str(msg.uuid),
-                    'text': msg.text,
-                    'urn': msg.contact_urn.urn if msg.contact_urn else None,
-                    'channel_uuid': str(msg.channel.uuid) if msg.channel else None,
-                }
-            })
+            if msg.direction == INCOMING:
+                msg_event = goflow.event_from_incoming(msg)
+            elif msg.direction == OUTGOING:
+                msg_event = goflow.event_from_outgoing(msg)
+
+                # TODO augment flowserver event with some extra details?
+                # msg_event['_msg_uuid'] = str(msg.uuid)
+                # msg_event['_urn'] = msg.contact_urn.urn
+                # msg_event['_channel_uuid'] = str(msg.channel.uuid)
+
+            path_step[FlowRun.PATH_EVENTS].append(msg_event)
 
             # if this msg is part of a broadcast, save that on our flowstep so we can later purge the msg
             if msg.broadcast:

@@ -93,6 +93,37 @@ def serialize_location_hierarchy(country, aliases_from_org=None):
     return [_serialize_node(node) for node in get_cached_trees(queryset)][0]
 
 
+def event_from_incoming(msg):
+    event = {
+        'type': "msg_received",
+        'created_on': msg.created_on.isoformat(),
+        'msg_uuid': str(msg.uuid),
+        'text': msg.text,
+        'contact': {'uuid': str(msg.contact.uuid), 'name': msg.contact.name}
+    }
+    if msg.contact_urn:
+        event['urn'] = msg.contact_urn.urn
+    if msg.channel:
+        event['channel'] = {'uuid': str(msg.channel.uuid), 'name': msg.channel.name}
+    if msg.attachments:
+        event['attachments'] = msg.attachments
+
+    return event
+
+
+def event_from_outgoing(msg):
+    event = {
+        'type': "send_msg",
+        'created_on': msg.created_on.isoformat(),
+        'text': msg.text,
+        'contacts': [{'uuid': str(msg.contact.uuid), 'name': msg.contact.name}],
+    }
+    if msg.attachments:
+        event['attachments'] = msg.attachments
+
+    return event
+
+
 class RequestBuilder(object):
     def __init__(self, client, asset_timestamp):
         self.client = client
@@ -242,22 +273,7 @@ class RequestBuilder(object):
         """
         Include a msg_received event in response to receiving a message from the session contact
         """
-        event = {
-            'type': "msg_received",
-            'created_on': msg.created_on.isoformat(),
-            'msg_uuid': str(msg.uuid),
-            'text': msg.text,
-            'contact_uuid': str(msg.contact.uuid),
-
-        }
-        if msg.contact_urn:
-            event['urn'] = msg.contact_urn.urn
-        if msg.channel:
-            event['channel_uuid'] = str(msg.channel.uuid)
-        if msg.attachments:
-            event['attachments'] = msg.attachments
-
-        self.request['events'].append(event)
+        self.request['events'].append(event_from_incoming(msg))
         return self
 
     def add_run_expired(self, run):
