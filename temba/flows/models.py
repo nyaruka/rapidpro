@@ -1995,10 +1995,10 @@ class Flow(TembaModel):
 
         return runs
 
-    def add_step(self, run, node, msgs=None, exit_uuid=None, is_start=False, previous_step=None, arrived_on=None):
-        if msgs is None:
-            msgs = []
-
+    def add_step(self, run, node, msgs=(), exit_uuid=None, is_start=False, previous_step=None, arrived_on=None):
+        """
+        Adds a new step in the path of the given run
+        """
         if not arrived_on:
             arrived_on = timezone.now()
 
@@ -2034,11 +2034,11 @@ class Flow(TembaModel):
 
         run.current_node_uuid = run.path[-1][FlowRun.PATH_NODE_UUID]
 
-        # for each message, associate it with this step and set the label on it
-        run.add_messages(msgs, step=step, do_save=False)
-
         update_fields = ['path', 'current_node_uuid']
+
+        # if we have messages, add them to the path too
         if msgs:
+            run.add_messages(msgs, step=step, do_save=False)
             update_fields += ['message_ids', 'responded']
 
         run.save(update_fields=update_fields)

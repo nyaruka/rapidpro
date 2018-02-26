@@ -4820,8 +4820,8 @@ class FlowsTest(FlowFileTest):
             # first item in the path should have node, arrived, and exit
             self.assertEqual(set(payload['path'][0].keys()), {'node_uuid', 'arrived_on', 'events', 'exit_uuid'})
 
-            # last item has the same, but no exit
-            self.assertEqual(set(payload['path'][-1].keys()), {'node_uuid', 'arrived_on', 'events'})
+            # last item has the same, but no events or exit
+            self.assertEqual(set(payload['path'][-1].keys()), {'node_uuid', 'arrived_on'})
 
             for key, value in six.iteritems(results):
                 result = payload['results'].get(key)
@@ -8941,7 +8941,7 @@ class QueryTest(FlowFileTest):
 
         # mock our webhook call which will get triggered in the flow
         self.mockRequest('GET', '/ip_test', '{"ip":"192.168.1.1"}', content_type='application/json')
-        with QueryTracker(assert_query_count=147, stack_count=10, skip_unique_queries=True):
+        with QueryTracker(assert_query_count=145, stack_count=10, skip_unique_queries=True):
             flow.start([], [self.contact])
 
 
