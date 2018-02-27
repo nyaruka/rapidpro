@@ -970,9 +970,6 @@ class Flow(TembaModel):
 
         # actually execute all the actions in our actionset
         msgs = actionset.execute_actions(run, msg, started_flows)
-
-        # TODO run might now be inactive causing the following path update to blow up
-
         run.add_messages(msgs, step=step)
 
         # and onto the destination
@@ -1007,7 +1004,7 @@ class Flow(TembaModel):
                     extra['flow'] = message_context.get('flow', {})
 
                     # if this is real message that hasn't already been added to this run, add it
-                    if msg.id and msg.id > 0 and msg.msg_type != FLOW:
+                    if msg.id and msg.id > 0 and msg.msg_type != FLOW and not hasattr(msg, '_added_to_run'):
                         run.add_messages([msg], step=step)
                         run.update_expiration(timezone.now())
 
@@ -1036,7 +1033,7 @@ class Flow(TembaModel):
         flow = ruleset.flow
 
         # if this is real message that hasn't already been added to this run, add it
-        if msg.id and msg.id > 0 and msg.msg_type != FLOW:
+        if msg.id and msg.id > 0 and msg.msg_type != FLOW and not hasattr(msg, '_added_to_run'):
             run.add_messages([msg], step=step)
             run.update_expiration(timezone.now())
 
@@ -3307,21 +3304,20 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
         needs_update = False
 
         for msg in msgs:
-            # no-op for no msg or mock msgs
-            if not msg or not msg.id:
+            # don't include pseudo msgs
+            if not msg.id:
                 continue
-
-            needs_update = True
-
             if msg.id in self.message_ids:  # pragma: no cover
                 raise ValueError("Can't add the same message ('%s') to a run more than once" % msg.text)
+
+            needs_update = True
 
             self.message_ids.append(msg.id)
             step.messages.add(msg)
 
             if msg.direction == INCOMING:
                 msg_event = goflow.event_from_incoming(msg)
-            elif msg.direction == OUTGOING:
+            else:
                 msg_event = goflow.event_from_outgoing(msg)
 
                 # TODO augment flowserver event with some extra details?
@@ -3340,11 +3336,13 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
                 msg.msg_type = FLOW
                 msg.save(update_fields=['msg_type'])
 
+            # checking FLOW vs INBOX doesn't work for USSD messages so we reply on a temp attribute instead
+            msg._added_to_run = True
+
             # if message is from contact, mark run as responded
             if msg.direction == INCOMING:
                 if not self.responded:
                     self.responded = True
-                    needs_update = True
 
         if needs_update and do_save:
             self.save(update_fields=('responded', 'message_ids', 'path'))

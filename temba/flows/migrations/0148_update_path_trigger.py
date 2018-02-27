@@ -29,9 +29,6 @@ BEGIN
   -- restrict changes to runs
   IF TG_OP = 'UPDATE' THEN
     IF NEW.is_active AND NOT OLD.is_active THEN RAISE EXCEPTION 'Cannot re-activate an inactive flow run'; END IF;
-
-    -- TODO this is blowing up because we add message events after runs have been interrupted
-    -- IF NOT OLD.is_active AND NEW.path != OLD.path THEN RAISE EXCEPTION 'Cannot modify path on an inactive flow run'; END IF;
   END IF;
 
   IF TG_OP = 'UPDATE' OR TG_OP = 'DELETE' THEN
