@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import json
 import pytz
 import six
+import iso8601
 
 from datetime import datetime, date, timedelta
 from django.core.files.base import ContentFile
@@ -2485,7 +2486,7 @@ class ContactTest(TembaTest):
         state_field = ContactField.get_or_create(self.org, self.admin, "state")
         self.joe = Contact.objects.get(pk=self.joe.id)
         self.assertEqual(self.joe.get_urn_display(scheme=TEL_SCHEME), "0783 835 665")
-        self.assertEqual(self.joe.get_field_value(state_field.uuid), "newyork")  # raw user input as location wasn't matched
+        self.assertIsNone(self.joe.get_field_value(state_field.uuid))  # raw user input as location wasn't matched
         self.assertIsNone(Contact.from_urn(self.org, "tel:+250781111111"))  # original tel is nobody now
 
         # update joe, change his number back
@@ -3458,8 +3459,8 @@ class ContactTest(TembaTest):
 
         self.assertIsNone(contact1.get_field_value(district_field.uuid))  # wasn't included
         self.assertEqual(contact1.get_field_value(job_and_projects_field.uuid), 'coach')  # renamed from 'Professional Status'
-        self.assertEqual(contact1.get_field_value(postal_code_field.uuid), '600.35')
-        self.assertEqual(contact1.get_field_value(joined_field.uuid), '31-12-2014 00:00')  # persisted value is localized to org
+        self.assertEqual(contact1.get_field_string(postal_code_field.uuid), '600.35')
+        self.assertEqual(contact1.get_field_string(joined_field.uuid), '2014-12-31T00:00:00+02:00')  # persisted value is localized to org
         self.assertEqual(contact1.get_field_display('joined'), '31-12-2014 00:00')  # display value is also localized
 
         self.assertTrue(ContactField.objects.filter(org=self.org, label="Job and Projects"))
@@ -3572,7 +3573,7 @@ class ContactTest(TembaTest):
 
         contact1 = Contact.objects.all().order_by('name')[0]
         startdate_field = ContactField.get_or_create(self.org, self.admin, 'startdate')
-        self.assertEqual(contact1.get_field_value(startdate_field.uuid), '31-12-2014 10:00')
+        self.assertEqual(contact1.get_field_value(startdate_field.uuid), iso8601.parse_date('2014-12-31T10:00:00+0200'))
 
     def test_contact_import_handle_update_contact(self):
         self.login(self.admin)
@@ -3609,7 +3610,7 @@ class ContactTest(TembaTest):
         team_field = ContactField.get_or_create(self.org, self.admin, 'team')
 
         contact1 = Contact.objects.filter(name='John Blow').first()
-        self.assertEqual(contact1.get_field_value(planting_date_field.uuid), '31-12-2020 10:00')
+        self.assertEqual(contact1.get_field_value(planting_date_field.uuid), iso8601.parse_date('2020-12-31T10:00:00+0200'))
         self.assertEqual(contact1.get_field_value(team_field.uuid), 'Ballers')
 
         event_fire = EventFire.objects.filter(event=self.message_event, contact=contact1,
