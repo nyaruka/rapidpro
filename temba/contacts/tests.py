@@ -2482,9 +2482,10 @@ class ContactTest(TembaTest):
         self.client.post(reverse('contacts.contact_update_fields', args=[self.joe.id]), dict(contact_field=contact_field.id, field_value='newyork'))
 
         # check that old URN is detached, new URN is attached, and Joe still exists
+        state_field = ContactField.get_or_create(self.org, self.admin, "state")
         self.joe = Contact.objects.get(pk=self.joe.id)
         self.assertEqual(self.joe.get_urn_display(scheme=TEL_SCHEME), "0783 835 665")
-        self.assertEqual(self.joe.get_field_raw('state'), "newyork")  # raw user input as location wasn't matched
+        self.assertEqual(self.joe.get_field_value(state_field.uuid), "newyork")  # raw user input as location wasn't matched
         self.assertIsNone(Contact.from_urn(self.org, "tel:+250781111111"))  # original tel is nobody now
 
         # update joe, change his number back
@@ -3424,13 +3425,17 @@ class ContactTest(TembaTest):
         self.assertEqual(ContactGroup.user_groups.all().count(), 1)
         self.assertEqual(ContactGroup.user_groups.all()[0].name, 'Sample Contacts With Extra Fields')
 
+        location_field = ContactField.get_or_create(self.org, self.admin, 'location')
         contact1 = Contact.objects.all().order_by('name')[0]
-        self.assertEqual(contact1.get_field_raw('location'), 'Rwanda')  # renamed from 'Country'
-        self.assertEqual(contact1.get_field_display('location'), 'Rwanda')  # renamed from 'Country'
+        self.assertEqual(contact1.get_field_value(location_field.uuid), 'Rwanda')  # renamed from 'Country'
 
-        self.assertEqual(contact1.get_field_raw('ride_or_drive'), 'Moto')  # the existing field was looked up by label
-        self.assertEqual(contact1.get_field_raw('wears'), 'Bứnto')  # existing field was looked up by label & stripped
-        self.assertEqual(contact1.get_field_raw('email'), 'eric@example.com')
+        ride_or_drive_field = ContactField.get_or_create(self.org, self.admin, 'ride_or_drive')
+        wears_field = ContactField.get_or_create(self.org, self.admin, 'wears')
+        email_field = ContactField.get_or_create(self.org, self.admin, 'email')
+
+        self.assertEqual(contact1.get_field_value(ride_or_drive_field.uuid), 'Moto')  # the existing field was looked up by label
+        self.assertEqual(contact1.get_field_value(wears_field.uuid), 'Bứnto')  # existing field was looked up by label & stripped
+        self.assertEqual(contact1.get_field_value(email_field.uuid), 'eric@example.com')
 
         self.assertEqual(contact1.get_urn(schemes=[TWITTER_SCHEME]).path, 'ewok')
         self.assertEqual(contact1.get_urn(schemes=[EXTERNAL_SCHEME]).path, 'abc-1111')
@@ -3446,10 +3451,15 @@ class ContactTest(TembaTest):
         ContactField.objects.filter(key='location').update(value_type=Value.TYPE_STATE)
         contact1 = Contact.objects.all().order_by('name')[0]
 
-        self.assertIsNone(contact1.get_field_raw('district'))  # wasn't included
-        self.assertEqual(contact1.get_field_raw('job_and_projects'), 'coach')  # renamed from 'Professional Status'
-        self.assertEqual(contact1.get_field_raw('postal_code'), '600.35')
-        self.assertEqual(contact1.get_field_raw('joined'), '31-12-2014 00:00')  # persisted value is localized to org
+        district_field = ContactField.get_or_create(self.org, self.admin, 'district')
+        job_and_projects_field = ContactField.get_or_create(self.org, self.admin, 'job_and_projects')
+        postal_code_field = ContactField.get_or_create(self.org, self.admin, 'postal_code')
+        joined_field = ContactField.get_or_create(self.org, self.admin, 'joined')
+
+        self.assertIsNone(contact1.get_field_value(district_field.uuid))  # wasn't included
+        self.assertEqual(contact1.get_field_value(job_and_projects_field.uuid), 'coach')  # renamed from 'Professional Status'
+        self.assertEqual(contact1.get_field_value(postal_code_field.uuid), '600.35')
+        self.assertEqual(contact1.get_field_value(joined_field.uuid), '31-12-2014 00:00')  # persisted value is localized to org
         self.assertEqual(contact1.get_field_display('joined'), '31-12-2014 00:00')  # display value is also localized
 
         self.assertTrue(ContactField.objects.filter(org=self.org, label="Job and Projects"))
@@ -3561,7 +3571,8 @@ class ContactTest(TembaTest):
                                                            updates=0))
 
         contact1 = Contact.objects.all().order_by('name')[0]
-        self.assertEqual(contact1.get_field_raw('startdate'), '31-12-2014 10:00')
+        startdate_field = ContactField.get_or_create(self.org, self.admin, 'startdate')
+        self.assertEqual(contact1.get_field_value(startdate_field.uuid), '31-12-2014 10:00')
 
     def test_contact_import_handle_update_contact(self):
         self.login(self.admin)
@@ -3594,9 +3605,12 @@ class ContactTest(TembaTest):
         self.assertEqual(response.context['results'], dict(records=1, errors=0, error_messages=[], creates=0,
                                                            updates=1))
 
+        planting_date_field = ContactField.get_or_create(self.org, self.admin, 'planting_date')
+        team_field = ContactField.get_or_create(self.org, self.admin, 'team')
+
         contact1 = Contact.objects.filter(name='John Blow').first()
-        self.assertEqual(contact1.get_field_raw('planting_date'), '31-12-2020 10:00')
-        self.assertEqual(contact1.get_field_raw('team'), 'Ballers')
+        self.assertEqual(contact1.get_field_value(planting_date_field.uuid), '31-12-2020 10:00')
+        self.assertEqual(contact1.get_field_value(team_field.uuid), 'Ballers')
 
         event_fire = EventFire.objects.filter(event=self.message_event, contact=contact1,
                                               event__campaign__group__in=[ballers]).first()
@@ -3844,21 +3858,19 @@ class ContactTest(TembaTest):
     def test_fields(self):
         # set a field on joe
         self.joe.set_field(self.user, 'abc_1234', 'Joe', label="Name")
-        self.assertEqual('Joe', self.joe.get_field_raw('abc_1234'))
+        abc_field = ContactField.get_or_create(self.org, self.admin, 'abc_1234')
+        self.assertEqual('Joe', self.joe.get_field_value(abc_field.uuid))
 
         self.joe.set_field(self.user, 'abc_1234', None)
-        self.assertEqual(None, self.joe.get_field_raw('abc_1234'))
+        self.assertEqual(None, self.joe.get_field_value(abc_field.uuid))
 
         # try storing an integer, should get turned into a string
         self.joe.set_field(self.user, 'abc_1234', 1)
-        self.assertEqual('1', self.joe.get_field_raw('abc_1234'))
-
-        # we should have a field with the key
-        ContactField.objects.get(key='abc_1234', label="Name", org=self.joe.org)
+        self.assertEqual('1', self.joe.get_field_value(abc_field.uuid))
 
         # setting with a different label should update it
         self.joe.set_field(self.user, 'abc_1234', 'Joe', label="First Name")
-        self.assertEqual('Joe', self.joe.get_field_raw('abc_1234'))
+        self.assertEqual('Joe', self.joe.get_field_value(abc_field.uuid))
         ContactField.objects.get(key='abc_1234', label="First Name", org=self.joe.org)
 
         modified_on = self.joe.modified_on
