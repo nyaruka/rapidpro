@@ -785,7 +785,7 @@ class FlowTest(TembaTest):
 
         # contact name with an illegal character
         self.contact3.name = "Nor\02bert"
-        self.contact3.save()
+        self.contact3.save(update_fields=('name',))
 
         contact1_run1, contact2_run1, contact3_run1 = self.flow.start([], [self.contact, self.contact2, self.contact3])
 
@@ -2899,7 +2899,7 @@ class ActionPackedTest(FlowFileTest):
         group = ContactGroup.user_groups.filter(name=group_name).first()
         group.update_contacts(self.admin, [self.contact], False)
         self.contact.name += ' '
-        self.contact.save()
+        self.contact.save(update_fields=('name',))
         self.start_flow()
         self.assertInUserGroups(self.contact, [group_name])
 
@@ -3041,7 +3041,7 @@ class ActionPackedTest(FlowFileTest):
 
         # first name works starting with a single word
         self.contact.name = 'Percy'
-        self.contact.save()
+        self.contact.save(update_fields=('name',))
         self.update_action_field(self.flow, name_action_uuid, 'value', ' Cole')
         self.start_flow()
         self.contact.refresh_from_db()
@@ -3523,7 +3523,7 @@ class ActionTest(TembaTest):
         # try with a test contact and a group
         test_contact = Contact.get_test_contact(self.user)
         test_contact.name = "Mr Test"
-        test_contact.save()
+        test_contact.save(update_fields=('name',))
         test_contact.set_field(self.user, 'state', "IN", label="State")
 
         self.other_group.update_contacts(self.user, [self.contact2], True)
@@ -3703,7 +3703,7 @@ class ActionTest(TembaTest):
         # first name works with a single word
         run.contact = contact
         contact.name = "Percy"
-        contact.save()
+        contact.save(update_fields=('name',))
 
         test = SaveToContactAction.from_json(self.org, dict(type='save', label="First Name", value='', field='first_name'))
         test.value = " Cole"
@@ -3874,7 +3874,7 @@ class ActionTest(TembaTest):
 
         # having the group name containing a space doesn't change anything
         self.contact.name += " "
-        self.contact.save()
+        self.contact.save(update_fields=('name',))
         run.contact = self.contact
 
         self.execute_action(action, run, msg)
@@ -6051,7 +6051,7 @@ class FlowsTest(FlowFileTest):
 
         # update our name to rowan so we match the name rule
         self.contact.name = "Rowan"
-        self.contact.save()
+        self.contact.save(update_fields=('name',))
 
         # but remove ourselves from the group so we enter the loop
         group_a.contacts.remove(self.contact)
@@ -6225,7 +6225,7 @@ class FlowsTest(FlowFileTest):
     def test_substitution(self):
         flow = self.get_flow('substitution')
         self.contact.name = "Ben Haggerty"
-        self.contact.save()
+        self.contact.save(update_fields=('name',))
 
         runs = flow.start_msg_flow([self.contact.id])
         self.assertEqual(1, len(runs))
@@ -6527,7 +6527,7 @@ class FlowsTest(FlowFileTest):
 
         # but set our contact's language explicitly should keep us at english
         self.contact.language = 'eng'
-        self.contact.save()
+        self.contact.save(update_fields=('language',))
         self.assertEqual('Hello friend! What is your favorite color?',
                          self.send_message(flow, 'start flow', restart_participants=True, initiate_flow=True))
 
@@ -7031,7 +7031,7 @@ class FlowsTest(FlowFileTest):
         # now set our contact's preferred language to klingon
         FlowRun.objects.all().delete()
         self.contact.language = 'tlh'
-        self.contact.save()
+        self.contact.save(update_fields=('language',))
 
         self.assertEqual("Kikshtik derklop?", self.send_message(favorites, "favorite", initiate_flow=True))
         self.assertEqual("Katishklick Shnik Red Errrrrrrrklop", self.send_message(favorites, "RED"))
