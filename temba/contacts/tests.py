@@ -33,6 +33,7 @@ from temba.triggers.models import Trigger
 from temba.utils.dates import datetime_to_str, datetime_to_ms, get_datetime_format
 from temba.utils.profiler import QueryTracker
 from temba.values.models import Value
+from temba.tests.base import MigrationTest
 from .models import Contact, ContactGroup, ContactField, ContactURN, ExportContactsTask, URN, EXTERNAL_SCHEME
 from .models import TEL_SCHEME, TWITTER_SCHEME, ContactGroupCount
 from .search import parse_query, ContactQuery, Condition, IsSetCondition, BoolCombination, SinglePropCombination, SearchException
@@ -45,8 +46,8 @@ class ContactCRUDLTest(_CRUDLTest):
         from temba.contacts.views import ContactCRUDL
         super(ContactCRUDLTest, self).setUp()
 
-        self.country = AdminBoundary.objects.create(osm_id='171496', name='Rwanda', level=0)
-        AdminBoundary.objects.create(osm_id='1708283', name='Kigali', level=1, parent=self.country)
+        self.country = AdminBoundary.create(osm_id='171496', name='Rwanda', level=0)
+        AdminBoundary.create(osm_id='1708283', name='Kigali', level=1, parent=self.country)
 
         self.crudl = ContactCRUDL
         self.user = self.create_user("tito")
@@ -267,7 +268,7 @@ class ContactGroupTest(TembaTest):
             ContactField.get_or_create(self.org, self.admin, key, value_type=Value.TYPE_DECIMAL)
             ContactGroup.create_dynamic(self.org, self.admin, "Group %s" % (key), '(%s > 10)' % key)
 
-        with QueryTracker(assert_query_count=216, stack_count=16, skip_unique_queries=False):
+        with QueryTracker(assert_query_count=184, stack_count=16, skip_unique_queries=False):
             flow.start([], [self.joe])
 
     def test_get_or_create(self):
@@ -3706,6 +3707,139 @@ class ContactTest(TembaTest):
         self.assertEqual(c5.pk, c1.pk)
         self.assertEqual(c5.name, "Goran Dragic")
 
+    def test_field_json(self):
+        # simple text field
+        self.joe.set_field(self.user, 'dog', "Chef", label="Dog")
+        self.joe.refresh_from_db()
+        dog_uuid = six.text_type(ContactField.objects.get(key="dog").uuid)
+
+        self.assertEqual(self.joe.fields, {dog_uuid: {"text": "Chef"}})
+
+        self.joe.set_field(self.user, 'dog', "")
+        self.joe.refresh_from_db()
+        self.assertEqual(self.joe.fields, {})
+
+        # numeric field value
+        self.joe.set_field(self.user, 'dog', "23.00")
+        self.joe.refresh_from_db()
+        self.assertEqual(
+            self.joe.fields,
+            {
+                dog_uuid: {
+                    "text": "23.00",
+                    "decimal": "23"
+                }
+            }
+        )
+
+        # datetime instead
+        self.joe.set_field(self.user, 'dog', "2018-03-05T02:31:00.000Z")
+        self.joe.refresh_from_db()
+        self.assertEqual(
+            self.joe.fields,
+            {
+                dog_uuid: {
+                    "text": "2018-03-05T02:31:00.000Z",
+                    "datetime": "2018-03-05T04:31:00+02:00"
+                }
+            }
+        )
+
+        # setting another field doesn't ruin anything
+        self.joe.set_field(self.user, 'cat', "Rando", label="Cat")
+        self.joe.refresh_from_db()
+        cat_uuid = six.text_type(ContactField.objects.get(key="cat").uuid)
+        self.assertEqual(
+            self.joe.fields,
+            {
+                dog_uuid: {
+                    "text": "2018-03-05T02:31:00.000Z",
+                    "datetime": "2018-03-05T04:31:00+02:00"
+                },
+                cat_uuid: {
+                    "text": "Rando"
+                }
+            }
+        )
+
+        # setting a fully qualified path parses to that level, regardless of field type
+        self.joe.set_field(self.user, 'cat', "Rwanda > Kigali City")
+        self.joe.refresh_from_db()
+        self.assertEqual(
+            self.joe.fields,
+            {
+                dog_uuid: {
+                    "text": "2018-03-05T02:31:00.000Z",
+                    "datetime": "2018-03-05T04:31:00+02:00"
+                },
+                cat_uuid: {
+                    "text": "Rwanda > Kigali City",
+                    "state": "Rwanda > Kigali City"
+                }
+            }
+        )
+
+        # clear our previous fields
+        self.joe.set_field(self.user, 'dog', "")
+        self.assertEqual(
+            self.joe.fields,
+            {
+                cat_uuid: {
+                    "text": "Rwanda > Kigali City",
+                    "state": "Rwanda > Kigali City"
+                }
+            }
+        )
+        self.joe.refresh_from_db()
+
+        self.joe.set_field(self.user, 'cat', "")
+        self.joe.refresh_from_db()
+
+        # we try a bit harder if we know it is a location field
+        state_uuid = six.text_type(
+            ContactField.get_or_create(self.org, self.user, "state", "State", value_type=Value.TYPE_STATE).uuid)
+        self.joe.set_field(self.user, 'state', "i live in eastern province")
+        self.joe.refresh_from_db()
+        self.assertEqual(
+            self.joe.fields,
+            {
+                state_uuid: {
+                    "text": "i live in eastern province",
+                    "state": "Rwanda > Eastern Province"
+                }
+            }
+        )
+
+        # ok, let's test our other boundary levels
+        district_uuid = six.text_type(
+            ContactField.get_or_create(self.org, self.user, "district", "District", value_type=Value.TYPE_DISTRICT).uuid)
+        ward_uuid = six.text_type(
+            ContactField.get_or_create(self.org, self.user, "ward", "Ward", value_type=Value.TYPE_WARD).uuid)
+        self.joe.set_field(self.user, 'district', 'gatsibo')
+        self.joe.set_field(self.user, 'ward', 'kageyo')
+        self.joe.refresh_from_db()
+
+        self.assertEqual(
+            self.joe.fields,
+            {
+                state_uuid: {
+                    "text": "i live in eastern province",
+                    "state": "Rwanda > Eastern Province",
+                },
+                district_uuid: {
+                    "text": "gatsibo",
+                    "state": "Rwanda > Eastern Province",
+                    "district": "Rwanda > Eastern Province > Gatsibo",
+                },
+                ward_uuid: {
+                    "text": "kageyo",
+                    "state": "Rwanda > Eastern Province",
+                    "district": "Rwanda > Eastern Province > Gatsibo",
+                    "ward": "Rwanda > Eastern Province > Gatsibo > Kageyo",
+                },
+            }
+        )
+
     def test_fields(self):
         # set a field on joe
         self.joe.set_field(self.user, 'abc_1234', 'Joe', label="Name")
@@ -3729,7 +3863,7 @@ class ContactTest(TembaTest):
         modified_on = self.joe.modified_on
 
         # set_field should only write to the database if the value changes
-        with self.assertNumQueries(7):
+        with self.assertNumQueries(3):
             self.joe.set_field(self.user, 'abc_1234', 'Joe')
 
         self.joe.refresh_from_db()
@@ -3799,10 +3933,10 @@ class ContactTest(TembaTest):
         not_state_field = ContactField.get_or_create(self.org, self.admin, 'not_state', 'Not State', None, Value.TYPE_TEXT)
 
         # add duplicate district in different states
-        east_province = AdminBoundary.objects.create(osm_id='R005', name='East Province', level=1, parent=self.country)
-        AdminBoundary.objects.create(osm_id='R004', name='Remera', level=2, parent=east_province)
+        east_province = AdminBoundary.create(osm_id='R005', name='East Province', level=1, parent=self.country)
+        AdminBoundary.create(osm_id='R004', name='Remera', level=2, parent=east_province)
         kigali = AdminBoundary.objects.get(name="Kigali City")
-        AdminBoundary.objects.create(osm_id='R003', name='Remera', level=2, parent=kigali)
+        AdminBoundary.create(osm_id='R003', name='Remera', level=2, parent=kigali)
 
         joe = Contact.objects.get(pk=self.joe.pk)
         joe.set_field(self.user, 'district', 'Remera')
@@ -3832,9 +3966,9 @@ class ContactTest(TembaTest):
 
     def test_set_location_ward_fields(self):
 
-        state = AdminBoundary.objects.create(osm_id='3710302', name='Kano', level=1, parent=self.country)
-        district = AdminBoundary.objects.create(osm_id='3710307', name='Bichi', level=2, parent=state)
-        ward = AdminBoundary.objects.create(osm_id='3710377', name='Bichi', level=3, parent=district)
+        state = AdminBoundary.create(osm_id='3710302', name='Kano', level=1, parent=self.country)
+        district = AdminBoundary.create(osm_id='3710307', name='Bichi', level=2, parent=state)
+        ward = AdminBoundary.create(osm_id='3710377', name='Bichi', level=3, parent=district)
         user1 = self.create_user("mcren")
 
         ContactField.get_or_create(self.org, user1, 'state', 'State', None, Value.TYPE_STATE)
@@ -4756,3 +4890,66 @@ class PhoneNumberTest(TestCase):
         self.assertEqual(is_phonenumber('AMAZONS'), (False, None))
         self.assertEqual(is_phonenumber('name = "Jack"'), (False, None))
         self.assertEqual(is_phonenumber('(social = "234-432-324")'), (False, None))
+
+
+class BackfillContactFieldsTest(MigrationTest):
+    migrate_from = '0072_contact_fields'
+    migrate_to = '0073_backfill_contact_fields'
+    app = 'contacts'
+
+    def setUpBeforeMigration(self, apps):
+        self.joe = self.create_contact("Joe")
+        self.text_field = ContactField.get_or_create(self.org, self.admin, "dog")
+        self.datetime_field = ContactField.get_or_create(self.org, self.admin, "dob", value_type=Value.TYPE_DATETIME)
+        self.decimal_field = ContactField.get_or_create(self.org, self.admin, "weight", value_type=Value.TYPE_DECIMAL)
+        self.state_field = ContactField.get_or_create(self.org, self.admin, "state", value_type=Value.TYPE_STATE)
+        self.district_field = ContactField.get_or_create(self.org, self.admin, "district", value_type=Value.TYPE_DISTRICT)
+        self.ward_field = ContactField.get_or_create(self.org, self.admin, "ward", value_type=Value.TYPE_WARD)
+
+        # set just the values for these contacts
+        Value.objects.create(org=self.org, contact=self.joe, contact_field=self.text_field,
+                             string_value="Chef")
+        Value.objects.create(org=self.org, contact=self.joe, contact_field=self.datetime_field,
+                             string_value="2018-03-02T02:05:30Z", datetime_value=self.org.parse_date("2018-03-02T02:05:30Z"))
+        Value.objects.create(org=self.org, contact=self.joe, contact_field=self.decimal_field,
+                             string_value="12.00", decimal_value=12.0)
+        Value.objects.create(org=self.org, contact=self.joe, contact_field=self.state_field,
+                             string_value="Eastern Province", location_value=AdminBoundary.objects.get(name="Eastern Province"))
+        Value.objects.create(org=self.org, contact=self.joe, contact_field=self.district_field,
+                             string_value="Kayônza", location_value=AdminBoundary.objects.get(name="Kayônza"))
+        Value.objects.create(org=self.org, contact=self.joe, contact_field=self.ward_field,
+                             string_value="Kabare", location_value=AdminBoundary.objects.get(name="Kabare"))
+
+    def test_fields_migrated(self):
+        self.joe.refresh_from_db()
+        self.assertEqual(
+            self.joe.fields,
+            {
+                six.text_type(self.text_field.uuid): {
+                    "text": "Chef"
+                },
+                six.text_type(self.datetime_field.uuid): {
+                    "text": "2018-03-02T02:05:30Z",
+                    "datetime": "2018-03-02T04:05:30+02:00",
+                },
+                six.text_type(self.decimal_field.uuid): {
+                    "text": "12.00",
+                    "decimal": "12",
+                },
+                six.text_type(self.state_field.uuid): {
+                    "text": "Eastern Province",
+                    "state": "Rwanda > Eastern Province",
+                },
+                six.text_type(self.district_field.uuid): {
+                    "text": "Kayônza",
+                    "state": "Rwanda > Eastern Province",
+                    "district": "Rwanda > Eastern Province > Kayônza",
+                },
+                six.text_type(self.ward_field.uuid): {
+                    "text": "Kabare",
+                    "state": "Rwanda > Eastern Province",
+                    "district": "Rwanda > Eastern Province > Kayônza",
+                    "ward": "Rwanda > Eastern Province > Kayônza > Kabare",
+                },
+            }
+        )

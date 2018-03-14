@@ -166,17 +166,23 @@ if TESTING:
     TEMPLATES[0]['OPTIONS']['context_processors'] += ('temba.tests.add_testing_flag_to_context', )
 
 MIDDLEWARE_CLASSES = (
-    'django.middleware.common.CommonMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'temba.middleware.BrandingMiddleware',
     'temba.middleware.OrgTimezoneMiddleware',
     'temba.middleware.FlowSimulationMiddleware',
     'temba.middleware.ActivateLanguageMiddleware',
     'temba.middleware.OrgHeaderMiddleware',
 )
+
+# security middleware configuration
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
 
 ROOT_URLCONF = 'temba.urls'
 
@@ -1201,7 +1207,7 @@ SUCCESS_LOGS_TRIM_TIME = 48
 ALL_LOGS_TRIM_TIME = 24 * 30
 
 # -----------------------------------------------------------------------------------
-# Flowserver - disabled by default. GoFlow defaults to http://localhost:8080
+# Flowserver - disabled by default. GoFlow defaults to http://localhost:8800
 # -----------------------------------------------------------------------------------
 FLOW_SERVER_URL = 'http://localhost:8080'
 FLOW_SERVER_AUTH_TOKEN = None
