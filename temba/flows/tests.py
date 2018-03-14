@@ -4769,7 +4769,7 @@ class FlowsTest(FlowFileTest):
                 'events': [
                     {
                         'type': 'msg_created',
-                        'created_on': msg1.created_on.isoformat(),
+                        'created_on': matchers.ISODate(),
                         'msg': {
                             'uuid': str(msg1.uuid),
                             'text': 'What is your favorite color?',
@@ -4786,7 +4786,7 @@ class FlowsTest(FlowFileTest):
                 'events': [
                     {
                         'type': 'msg_received',
-                        'created_on': msg2.created_on.isoformat(),
+                        'created_on': matchers.ISODate(),
                         'msg': {
                             'uuid': str(msg2.uuid),
                             'text': 'I like red',

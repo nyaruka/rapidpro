@@ -638,10 +638,12 @@ class APITest(TembaTest):
                 'arrived_on': '2015-08-25T11:09:30.088000+00:00',
                 'events': [
                     {
-                        'type': 'send_msg',
+                        'type': 'msg_created',
                         'created_on': matchers.ISODate(),
-                        'contacts': [{'uuid': str(self.joe.uuid), 'name': 'Joe Blow'}],
-                        'text': 'What is your favorite color?',
+                        'msg': {
+                            'uuid': matchers.UUID4String(),
+                            'text': 'What is your favorite color?'
+                        }
                     }
                 ],
             }
@@ -714,10 +716,12 @@ class APITest(TembaTest):
                 'arrived_on': '2015-08-25T11:09:30.088000+00:00',
                 'events': [
                     {
-                        'type': 'send_msg',
+                        'type': 'msg_created',
                         'created_on': matchers.ISODate(),
-                        'contacts': [{'uuid': str(self.joe.uuid), 'name': 'Joe Blow'}],
-                        'text': 'What is your favorite color?',
+                        'msg': {
+                            'uuid': matchers.UUID4String(),
+                            'text': 'What is your favorite color?'
+                        }
                     }
                 ],
                 'exit_uuid': color_prompt.exit_uuid
@@ -728,10 +732,11 @@ class APITest(TembaTest):
                 'events': [
                     {
                         'type': 'msg_received',
-                        'created_on': '2015-09-16T00:00:00+00:00',
-                        'contact': {'uuid': str(self.joe.uuid), 'name': 'Joe Blow'},
-                        'msg_uuid': matchers.UUID4String(),
-                        'text': 'I like orange',
+                        'created_on': matchers.ISODate(),
+                        'msg': {
+                            'uuid': matchers.UUID4String(),
+                            'text': 'I like orange',
+                        }
                     }
                 ],
                 'exit_uuid': orange_rule.uuid
@@ -741,10 +746,12 @@ class APITest(TembaTest):
                 'arrived_on': '2015-08-25T11:13:30.088000+00:00',
                 'events': [
                     {
-                        'type': 'send_msg',
+                        'type': 'msg_created',
                         'created_on': matchers.ISODate(),
-                        'contacts': [{'uuid': str(self.joe.uuid), 'name': 'Joe Blow'}],
-                        'text': 'I love orange too!',
+                        'msg': {
+                            'uuid': matchers.UUID4String(),
+                            'text': 'I love orange too!'
+                        }
                     }
                 ],
                 'exit_uuid': color_reply.exit_uuid

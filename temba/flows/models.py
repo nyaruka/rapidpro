@@ -2854,7 +2854,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             if 'exit_uuid' in s:
                 step[FlowRun.PATH_EXIT_UUID] = s['exit_uuid']
             if 'events' in s:
-                keep_events = [ev for ev in s['events'] if ev['type'] in ('msg_received', 'send_msg')]
+                keep_events = [ev for ev in s['events'] if ev['type'] in ('msg_received', 'msg_created')]
                 if keep_events:
                     step[FlowRun.PATH_EVENTS] = keep_events
             path.append(step)
@@ -2993,7 +2993,8 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             channel=channel,
             high_priority=self.session.responded,
             created_on=created_on,
-            response_to=msg_in if msg_in and msg_in.id else None
+            response_to=msg_in if msg_in and msg_in.id else None,
+            uuid=msg['uuid']
         )
 
         return [msg_out], [msg_out]
