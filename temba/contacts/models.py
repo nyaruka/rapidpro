@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import datetime
+import itertools
 import json
 import logging
 import os
@@ -25,13 +26,14 @@ from temba.assets.models import register_asset_store
 from temba.channels.models import Channel
 from temba.locations.models import AdminBoundary
 from temba.orgs.models import Org, OrgLock
-from temba.utils import analytics, format_decimal, chunk_list, get_anonymous_user
+from temba.utils import analytics, format_decimal, chunk_list, get_anonymous_user, on_transaction_commit
 from temba.utils.languages import _get_language_name_iso6393
 from temba.utils.models import SquashableModel, TembaModel
 from temba.utils.cache import get_cacheable_attr
 from temba.utils.export import BaseExportAssetStore, BaseExportTask, TableExporter
 from temba.utils.profiler import time_monitor
 from temba.utils.text import clean_string, truncate
+from temba.utils.urns import parse_urn, ParsedURN
 from temba.values.models import Value
 
 logger = logging.getLogger(__name__)
@@ -95,7 +97,7 @@ class URN(object):
         raise ValueError("Class shouldn't be instantiated")
 
     @classmethod
-    def from_parts(cls, scheme, path, display=None):
+    def from_parts(cls, scheme, path, query=None, display=None):
         """
         Formats a URN scheme and path as single URN string, e.g. tel:+250783835665
         """
@@ -105,10 +107,7 @@ class URN(object):
         if not path:
             raise ValueError("Invalid path component: '%s'" % path)
 
-        if display:
-            return '%s:%s#%s' % (scheme, path, display)
-        else:
-            return '%s:%s' % (scheme, path)
+        return six.text_type(ParsedURN(scheme, path, query=query, fragment=display))
 
     @classmethod
     def to_parts(cls, urn):
@@ -116,23 +115,14 @@ class URN(object):
         Parses a URN string (e.g. tel:+250783835665) into a tuple of scheme and path
         """
         try:
-            scheme, path = urn.split(':', 1)
-        except Exception:
+            parsed = parse_urn(urn)
+        except ValueError:
             raise ValueError("URN strings must contain scheme and path components")
 
-        if not scheme or scheme not in cls.VALID_SCHEMES:
-            raise ValueError("URN contains an invalid scheme component: '%s'" % scheme)
+        if parsed.scheme not in cls.VALID_SCHEMES:
+            raise ValueError("URN contains an invalid scheme component: '%s'" % parsed.scheme)
 
-        if not path:
-            raise ValueError("URN contains an invalid path component: '%s'" % path)
-
-        path_parts = path.split("#")
-        display = None
-        if len(path_parts) > 1:
-            path = path_parts[0]
-            display = path_parts[1]
-
-        return scheme, path, display
+        return parsed.scheme, parsed.path, parsed.query or None, parsed.fragment or None
 
     @classmethod
     def validate(cls, urn, country_code=None):
@@ -140,7 +130,7 @@ class URN(object):
         Validates a normalized URN
         """
         try:
-            scheme, path, display = cls.to_parts(urn)
+            scheme, path, query, display = cls.to_parts(urn)
         except ValueError:
             return False
 
@@ -200,7 +190,7 @@ class URN(object):
         """
         Normalizes the path of a URN string. Should be called anytime looking for a URN match.
         """
-        scheme, path, display = cls.to_parts(urn)
+        scheme, path, query, display = cls.to_parts(urn)
 
         norm_path = six.text_type(path).strip()
 
@@ -221,7 +211,7 @@ class URN(object):
         elif scheme == EMAIL_SCHEME:
             norm_path = norm_path.lower()
 
-        return cls.from_parts(scheme, norm_path, display)
+        return cls.from_parts(scheme, norm_path, query, display)
 
     @classmethod
     def normalize_number(cls, number, country_code):
@@ -261,7 +251,7 @@ class URN(object):
 
     @classmethod
     def identity(cls, urn):
-        scheme, path, display = URN.to_parts(urn)
+        scheme, path, query, display = URN.to_parts(urn)
         return URN.from_parts(scheme, path)
 
     @classmethod
@@ -288,7 +278,7 @@ class URN(object):
 
     @classmethod
     def from_twitterid(cls, id, screen_name=None):
-        return cls.from_parts(TWITTERID_SCHEME, id, screen_name)
+        return cls.from_parts(TWITTERID_SCHEME, id, display=screen_name)
 
     @classmethod
     def from_email(cls, path):
@@ -1263,11 +1253,11 @@ class Contact(TembaModel):
         active_scheme = [scheme[0] for scheme in ContactURN.SCHEME_CHOICES if scheme[0] != TEL_SCHEME]
 
         # remove any field that's not a reserved field or an explicitly included extra field
-        for key in field_dict.keys():
-            if (key not in Contact.ATTRIBUTE_AND_URN_IMPORT_HEADERS) and key not in extra_fields and key not in active_scheme:
-                del field_dict[key]
-
-        return field_dict
+        return {
+            key: value
+            for key, value in field_dict.items()
+            if not ((key not in Contact.ATTRIBUTE_AND_URN_IMPORT_HEADERS) and key not in extra_fields and key not in active_scheme)
+        }
 
     @classmethod
     def get_org_import_file_headers(cls, csv_file, org):
@@ -1286,7 +1276,7 @@ class Contact(TembaModel):
         # write our file out
         tmp_file = os.path.join(settings.MEDIA_ROOT, 'tmp/%s' % str(uuid4()))
 
-        out_file = open(tmp_file, 'w')
+        out_file = open(tmp_file, 'wb')
         out_file.write(csv_file.read())
         out_file.close()
 
@@ -1392,7 +1382,7 @@ class Contact(TembaModel):
             except Exception as e:  # pragma: needs cover
                 if log:
                     import traceback
-                    traceback.print_exc(100, log)
+                    traceback.print_exc(limit=100, file=log)
                 raise Exception("Line %d: %s\n\n%s" % (line_number, str(e), str(log_field_values)))
 
         if import_results is not None:
@@ -1431,7 +1421,7 @@ class Contact(TembaModel):
         tmp_file = os.path.join(settings.MEDIA_ROOT, 'tmp/%s.%s' % (str(uuid4()), extension.lower()))
         filename.open()
 
-        out_file = open(tmp_file, 'w')
+        out_file = open(tmp_file, 'wb')
         out_file.write(filename.read())
         out_file.close()
 
@@ -2112,7 +2102,7 @@ class ContactURN(models.Model):
 
     @classmethod
     def create(cls, org, contact, urn_as_string, channel=None, priority=None, auth=None):
-        scheme, path, display = URN.to_parts(urn_as_string)
+        scheme, path, query, display = URN.to_parts(urn_as_string)
         urn_as_string = URN.from_parts(scheme, path)
 
         if not priority:
@@ -2130,7 +2120,7 @@ class ContactURN(models.Model):
             urn_as_string = URN.normalize(urn_as_string, country_code)
 
         identity = URN.identity(urn_as_string)
-        (scheme, path, display) = URN.to_parts(urn_as_string)
+        (scheme, path, query, display) = URN.to_parts(urn_as_string)
 
         existing = cls.objects.filter(org=org, identity=identity).select_related('contact').first()
 
@@ -2218,13 +2208,10 @@ class ContactURN(models.Model):
         """
         Returns a full representation of this contact URN as a string
         """
-        return URN.from_parts(self.scheme, self.path, self.display)
+        return URN.from_parts(self.scheme, self.path, display=self.display)
 
     def __str__(self):  # pragma: no cover
-        return URN.from_parts(self.scheme, self.path, self.display)
-
-    def __unicode__(self):  # pragma: no cover
-        return URN.from_parts(self.scheme, self.path, self.display)
+        return self.urn
 
     class Meta:
         unique_together = ('identity', 'org')
@@ -2257,11 +2244,26 @@ class ContactGroup(TembaModel):
                     (TYPE_STOPPED, "Stopped Contacts"),
                     (TYPE_USER_DEFINED, "User Defined Groups"))
 
+    STATUS_INITIALIZING = 'I'  # group has been created but not yet (re)evaluated
+    STATUS_EVALUATING = 'V'    # a task is currently (re)evaluating this group
+    STATUS_READY = 'R'         # group is ready for use
+
+    # single char flag, human readable name, API readable name
+    STATUS_CONFIG = ((STATUS_INITIALIZING, _("Initializing"), 'initializing'),
+                     (STATUS_EVALUATING, _("Evaluating"), 'evaluating'),
+                     (STATUS_READY, _("Ready"), 'ready'))
+
+    STATUS_CHOICES = [(s[0], s[1]) for s in STATUS_CONFIG]
+
+    REEVALUATE_LOCK_KEY = 'contactgroup_reevaluating_%d'
+
     name = models.CharField(verbose_name=_("Name"), max_length=MAX_NAME_LEN,
                             help_text=_("The name of this contact group"))
 
     group_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_USER_DEFINED,
                                   help_text=_("What type of group it is, either user defined or one of our system groups"))
+
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_INITIALIZING)
 
     contacts = models.ManyToManyField(Contact, verbose_name=_("Contacts"), related_name='all_groups')
 
@@ -2287,13 +2289,15 @@ class ContactGroup(TembaModel):
         return cls.user_groups.filter(name__iexact=cls.clean_name(name), org=org).first()
 
     @classmethod
-    def get_user_groups(cls, org, dynamic=None):
+    def get_user_groups(cls, org, dynamic=None, ready_only=True):
         """
         Gets all user groups for the given org - optionally filtering by dynamic vs static
         """
         groups = cls.user_groups.filter(org=org, is_active=True)
         if dynamic is not None:
             groups = groups.filter(query=None) if dynamic is False else groups.exclude(query=None)
+        if ready_only:
+            groups = groups.filter(status=ContactGroup.STATUS_READY)
 
         return groups
 
@@ -2327,12 +2331,9 @@ class ContactGroup(TembaModel):
         if not query:
             raise ValueError("Query cannot be empty for a dynamic group")
 
-        # this is in a transaction and if update_query raises ValueError (because the query is invalid)
-        # we will rollback the database changes
-        with transaction.atomic():
-            group = cls._create(org, user, name, query=query)
-            group.update_query(query=query)
-            return group
+        group = cls._create(org, user, name, query=query)
+        group.update_query(query=query)
+        return group
 
     @classmethod
     def _create(cls, org, user, name, task=None, query=None):
@@ -2350,8 +2351,14 @@ class ContactGroup(TembaModel):
             existing = cls.get_user_group(org, full_group_name)
             count += 1
 
-        return cls.user_groups.create(org=org, name=full_group_name, query=query,
-                                      import_task=task, created_by=user, modified_by=user)
+        return cls.user_groups.create(
+            org=org,
+            name=full_group_name,
+            query=query,
+            status=ContactGroup.STATUS_INITIALIZING if query else ContactGroup.STATUS_READY,
+            import_task=task,
+            created_by=user, modified_by=user
+        )
 
     @classmethod
     def clean_name(cls, name):
@@ -2446,27 +2453,55 @@ class ContactGroup(TembaModel):
         Updates the query for a dynamic group
         """
         from .search import extract_fields, parse_query
+        from .tasks import reevaluate_dynamic_group
 
         if not self.is_dynamic:
-            raise ValueError("Can only update query for a dynamic group")
+            raise ValueError("Cannot update query on a non-dynamic group")
+        if self.status == ContactGroup.STATUS_EVALUATING:
+            raise ValueError("Cannot update query on a group which is currently re-evaluating")
 
         parsed_query = parse_query(text=query)
 
-        if parsed_query.can_be_dynamic_group():
-            self.query = parsed_query.as_text()
-            self.save(update_fields=('query',))
+        if not parsed_query.can_be_dynamic_group():
+            raise ValueError("Cannot use query '%s' as a dynamic group")
 
-            self.query_fields.clear()
+        self.query = parsed_query.as_text()
+        self.status = ContactGroup.STATUS_INITIALIZING
+        self.save(update_fields=('query', 'status'))
 
-            for field in extract_fields(self.org, self.query):
-                self.query_fields.add(field)
+        # update the set of contact fields that this query depends on
+        self.query_fields.clear()
 
-            dynamic_members, _ = self._get_dynamic_members()
-            members = list(dynamic_members)
-            self.contacts.clear()
-            self.contacts.add(*members)
-        else:
-            raise ValueError('Cannot update a dynamic query that is not allowed')
+        for field in extract_fields(self.org, self.query):
+            self.query_fields.add(field)
+
+        # start background task to re-evaluate who belongs in this group
+        on_transaction_commit(lambda: reevaluate_dynamic_group.delay(self.id))
+
+    def reevaluate(self):
+        """
+        Re-evaluates the contacts in a dynamic group
+        """
+        if self.status == ContactGroup.STATUS_EVALUATING:
+            raise ValueError("Cannot re-evaluate a group which is currently re-evaluating")
+
+        self.status = ContactGroup.STATUS_EVALUATING
+        self.save(update_fields=('status',))
+
+        new_members, _ = self._get_dynamic_members()
+        new_member_ids = {c.id for c in new_members}
+        existing_member_ids = set(self.contacts.values_list('id', flat=True))
+        to_add = [c for c in new_members if c.id not in existing_member_ids]
+        to_remove = [c for c in self.contacts.only('id') if c.id not in new_member_ids]
+
+        self.contacts.add(*to_add)
+        self.contacts.remove(*to_remove)
+
+        for changed_contact in itertools.chain(to_add + to_remove):
+            changed_contact.handle_update(group=self)
+
+        self.status = ContactGroup.STATUS_READY
+        self.save(update_fields=('status',))
 
     def _get_dynamic_members(self, base_set=None, is_new=False):
         """

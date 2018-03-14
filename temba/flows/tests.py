@@ -13,6 +13,7 @@ from uuid import uuid4
 from datetime import timedelta
 from decimal import Decimal
 
+from django.utils.encoding import force_text
 from mock import patch
 from openpyxl import load_workbook
 
@@ -33,7 +34,7 @@ from temba.orgs.models import Language, get_current_export_version
 from temba.tests import TembaTest, MockResponse, FlowFileTest, also_in_flowserver, skip_if_no_flowserver, matchers
 from temba.triggers.models import Trigger
 from temba.utils.dates import datetime_to_str
-from temba.utils.goflow import FlowServerException
+from temba.utils.goflow import FlowServerException, get_client
 from temba.utils.profiler import QueryTracker
 from temba.values.models import Value
 
@@ -471,14 +472,14 @@ class FlowTest(TembaTest):
 
         test_contact = Contact.get_test_contact(self.admin)
 
-        activity = json.loads(self.client.get(reverse('flows.flow_activity', args=[self.flow.pk])).content)
+        activity = self.client.get(reverse('flows.flow_activity', args=[self.flow.pk])).json()
         self.assertEqual(2, activity['visited'][color_prompt.exit_uuid + ":" + color_ruleset.uuid])
         self.assertEqual(2, activity['activity'][color_ruleset.uuid])
         self.assertFalse(activity['is_starting'])
 
         # check activity with IVR test call
         IVRCall.create_incoming(self.channel, test_contact, test_contact.get_urn(), self.admin, 'CallSid')
-        activity = json.loads(self.client.get(reverse('flows.flow_activity', args=[self.flow.pk])).content)
+        activity = self.client.get(reverse('flows.flow_activity', args=[self.flow.pk])).json()
         self.assertEqual(2, activity['visited'][color_prompt.exit_uuid + ":" + color_ruleset.uuid])
         self.assertEqual(2, activity['activity'][color_ruleset.uuid])
 
@@ -2360,7 +2361,7 @@ class FlowTest(TembaTest):
         response = self.client.get(simulate_url)
         self.assertEqual(response.status_code, 302)
 
-        post_data = {'has_refresh': True}
+        post_data = {'has_refresh': True, 'version': '1'}
 
         response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
         json_dict = response.json()
@@ -2550,14 +2551,14 @@ class FlowTest(TembaTest):
         response = self.client.get(flow_list_url)
         self.assertEqual(1, len(response.context['object_list']))
         # no create links
-        self.assertFalse(flow_create_url in response.content)
-        self.assertFalse(flowlabel_create_url in response.content)
+        self.assertNotContains(response, flow_create_url)
+        self.assertNotContains(response, flowlabel_create_url)
         # verify the action buttons we have
-        self.assertNotIn('object-btn-unlabel', response.content)
-        self.assertNotIn('object-btn-restore', response.content)
-        self.assertNotIn('object-btn-archive', response.content)
-        self.assertNotIn('object-btn-label', response.content)
-        self.assertIn('object-btn-export', response.content)
+        self.assertNotContains(response, 'object-btn-unlabel')
+        self.assertNotContains(response, 'object-btn-restore')
+        self.assertNotContains(response, 'object-btn-archive')
+        self.assertNotContains(response, 'object-btn-label')
+        self.assertContains(response, 'object-btn-export')
 
         # can not label
         post_data = dict()
@@ -3382,7 +3383,7 @@ class ActionTest(TembaTest):
         self.assertIsNotNone(action.msg)
         # we have three languages, although only 2 are (partly) translated
         self.assertEqual(len(action.msg.keys()), 3)
-        self.assertEqual(list(action.msg.keys()), [u'rus', u'hun', u'eng'])
+        six.assertCountEqual(self, list(action.msg.keys()), [u'rus', u'hun', u'eng'])
 
         # we don't have any translation for Russian, so it should be the same as eng
         self.assertEqual(action.msg['eng'], action.msg['rus'])
@@ -4550,7 +4551,36 @@ class WebhookTest(TembaTest):
 
 class SimulationTest(FlowFileTest):
 
+    @override_settings(FLOW_SERVER_AUTH_TOKEN='1234', FLOW_SERVER_FORCE=True)
     def test_simulation(self):
+        flow = self.get_flow('favorites')
+
+        client = get_client()
+
+        payload = client.request_builder(int(time.time() * 1000000)).add_contact_changed(self.contact).request
+
+        # add a manual trigger
+        payload['trigger'] = {
+            'type': 'manual',
+            'flow': {'uuid': str(flow.uuid), 'name': flow.name},
+            'triggered_on': timezone.now().isoformat()
+        }
+
+        simulate_url = reverse('flows.flow_simulate', args=[flow.pk])
+        self.login(self.admin)
+        response = self.client.post(simulate_url, json.dumps(payload), content_type="application/json")
+
+        # create a new payload based on the session we get back
+        payload = client.request_builder(int(time.time() * 1000000)).add_contact_changed(self.contact).request
+        payload['session'] = response.json()['session']
+        self.add_message(payload, 'blue')
+
+        response = self.client.post(simulate_url, json.dumps(payload), content_type="application/json").json()
+        replies = self.get_replies(response)
+        self.assertEqual(1, len(replies))
+        self.assertEqual('Good choice, I like Blue too! What is your favorite beer?', replies[0])
+
+    def test_simulation_legacy(self):
         flow = self.get_flow('pick_a_number')
 
         # remove our channels
@@ -4561,9 +4591,7 @@ class SimulationTest(FlowFileTest):
         self.admin.last_name = "Haggerty"
         self.admin.save()
 
-        post_data = dict()
-        post_data['has_refresh'] = True
-
+        post_data = dict(has_refresh=True, version="1")
         self.login(self.admin)
         response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
         json_dict = response.json()
@@ -4595,7 +4623,7 @@ class SimulationTest(FlowFileTest):
 
         simulate_url = reverse('flows.flow_simulate', args=[flow.pk])
 
-        post_data = dict(has_refresh=True, new_message="derp")
+        post_data = dict(has_refresh=True, new_message="derp", version="1")
 
         self.login(self.admin)
         response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
@@ -4621,7 +4649,7 @@ class SimulationTest(FlowFileTest):
 
         simulate_url = reverse('flows.flow_simulate', args=[flow.pk])
 
-        post_data = dict(has_refresh=True, new_message="__interrupt__")
+        post_data = dict(has_refresh=True, new_message='__interrupt__', version='1')
 
         self.login(self.admin)
         response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
@@ -4644,7 +4672,7 @@ class SimulationTest(FlowFileTest):
 
         simulate_url = reverse('flows.flow_simulate', args=[flow.pk])
 
-        post_data = dict(has_refresh=True, new_message="4")
+        post_data = dict(has_refresh=True, new_message='4', version='1')
 
         self.login(self.admin)
         response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
@@ -4661,7 +4689,7 @@ class SimulationTest(FlowFileTest):
 
         simulate_url = reverse('flows.flow_simulate', args=[flow.pk])
 
-        post_data = dict(has_refresh=True, new_message="4")
+        post_data = dict(has_refresh=True, new_message='4', version='1')
 
         self.login(self.admin)
         response = self.client.post(simulate_url, json.dumps(post_data), content_type="application/json")
@@ -5148,7 +5176,7 @@ class FlowsTest(FlowFileTest):
 
             # fetch counts endpoint, should have 2 color results (one is a test contact)
             response = self.client.get(reverse('flows.flow_category_counts', args=[favorites.uuid]))
-            counts = json.loads(response.content)['counts']
+            counts = response.json()['counts']
             self.assertEqual("Color", counts[0]['name'])
             self.assertEqual(2, counts[0]['total'])
 
@@ -5178,7 +5206,7 @@ class FlowsTest(FlowFileTest):
             self.assertEqual(1, len(response.context['runs']))
             # self.assertNotContains(response, "ic-append-from")
 
-            next_link = re.search('ic-append-from=\"(.*)\" ic-trigger-on', response.content).group(1)
+            next_link = re.search('ic-append-from=\"(.*)\" ic-trigger-on', force_text(response.content)).group(1)
             response = self.client.get(next_link)
             self.assertEqual(200, response.status_code)
 
@@ -7032,12 +7060,12 @@ class FlowsTest(FlowFileTest):
         # test that simulation takes language into account
         self.login(self.admin)
         simulate_url = reverse('flows.flow_simulate', args=[favorites.pk])
-        response = json.loads(self.client.post(simulate_url, json.dumps(dict(has_refresh=True)), content_type="application/json").content)
+        response = self.client.post(simulate_url, json.dumps(dict(has_refresh=True, version="1")), content_type="application/json").json()
         self.assertEqual('What is your favorite color?', response['messages'][1]['text'])
 
         # now lets toggle the UI to Klingon and try the same thing
         simulate_url = "%s?lang=tlh" % reverse('flows.flow_simulate', args=[favorites.pk])
-        response = json.loads(self.client.post(simulate_url, json.dumps(dict(has_refresh=True)), content_type="application/json").content)
+        response = self.client.post(simulate_url, json.dumps(dict(has_refresh=True, version="1")), content_type="application/json").json()
         self.assertEqual('Bleck', response['messages'][1]['text'])
 
     def test_interrupted_state(self):
@@ -7076,7 +7104,7 @@ class FlowsTest(FlowFileTest):
         # disconnect action from interrupt state
         ruleset = flow.rule_sets.first()
         rules = ruleset.get_rules()
-        interrupt_rule = filter(lambda rule: isinstance(rule.test, InterruptTest), rules)[0]
+        interrupt_rule = next(rule for rule in rules if isinstance(rule.test, InterruptTest))
         interrupt_rule.destination = None
         interrupt_rule.destination_type = None
         ruleset.set_rules(rules)
@@ -9172,15 +9200,15 @@ class FlowServerTest(TembaTest):
         # with some extra
         run4, = flow.start([], [self.contact], restart_participants=True, extra={'foo': "bar"})
 
-        self.assertTrue(run4.session.output['runs'][0]['extra'], {'foo': "bar"})
+        self.assertTrue(run4.session.output['trigger']['params'], {'foo': "bar"})
 
         # with an initial message
         msg = self.create_msg(direction='I', text="Hello", contact=self.contact)
         run5, = flow.start([], [self.contact], restart_participants=True, start_msg=msg)
         run5_output = run5.session.output['runs'][0]
 
-        self.assertTrue(run5_output['path'][0]['events'][2]['type'], "msg_received")
-        self.assertTrue(run5_output['path'][0]['events'][2]['text'], "Hello")
+        self.assertTrue(run5_output['path'][0]['events'][0]['type'], "msg_received")
+        self.assertTrue(run5_output['path'][0]['events'][0]['msg']['text'], "Hello")
 
         # when flowserver returns an error
         with patch('temba.utils.goflow.FlowServerClient.start') as mock_start:

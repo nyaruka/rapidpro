@@ -21,6 +21,7 @@ from django.db import connection
 from django.test import LiveServerTestCase, override_settings
 from django.test.runner import DiscoverRunner
 from django.utils import timezone
+from django.utils.encoding import force_bytes, force_text
 from future.moves.html.parser import HTMLParser
 from selenium.webdriver.firefox.webdriver import WebDriver
 from smartmin.tests import SmartminTest
@@ -354,6 +355,33 @@ class TembaTest(six.with_metaclass(AddFlowServerTestsMeta, SmartminTest)):
     def create_field(self, key, label, value_type=Value.TYPE_TEXT):
         return ContactField.objects.create(org=self.org, key=key, label=label, value_type=value_type,
                                            created_by=self.admin, modified_by=self.admin)
+
+    def add_message(self, payload, text):
+        """
+        Add a message to the payload for the flow server using the default contact
+        """
+        payload['events'] = [{
+            'type': 'msg_received',
+            'msg': {
+                'text': text,
+                'uuid': six.text_type(uuid4()),
+                'urn': 'tel:+12065551212',
+                'created_on': timezone.now().isoformat(),
+            },
+            'created_on': timezone.now().isoformat(),
+            'contact': payload['session']['contact']
+        }]
+
+    def get_replies(self, response):
+        """
+        Gets any replies in a response from the flow server as a list of strings
+        """
+        replies = []
+        for log in response['log']:
+            if 'event' in log:
+                if log['event']['type'] == 'broadcast_created':
+                    replies.append(log['event']['text'])
+        return replies
 
     def create_msg(self, **kwargs):
         if 'org' not in kwargs:
@@ -760,14 +788,16 @@ class BrowserTest(LiveServerTestCase):  # pragma: no cover
 class MockResponse(object):
 
     def __init__(self, status_code, text, method='GET', url='http://foo.com/', headers=None):
-        self.text = text
-        self.content = text
-        self.body = text
+        self.text = force_text(text)
+        self.content = force_bytes(text)
+        self.body = force_text(text)
         self.status_code = status_code
         self.headers = headers if headers else {}
         self.url = url
         self.ok = True
         self.cookies = dict()
+        self.streaming = False
+        self.charset = 'utf-8'
 
         # mock up a request object on our response as well
         self.request = dict_to_struct('MockRequest', dict(method=method, url=url, body='request body'))

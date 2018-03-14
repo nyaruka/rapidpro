@@ -743,7 +743,7 @@ class Org(SmartModel):
         from temba.airtime.models import AirtimeTransfer
         response = AirtimeTransfer.post_transferto_api_response(account_login, airtime_api_token,
                                                                 action='check_wallet')
-        parsed_response = AirtimeTransfer.parse_transferto_response(response.content)
+        parsed_response = AirtimeTransfer.parse_transferto_response(response.text)
         account_currency = parsed_response.get('currency', '')
         config.update({TRANSFERTO_ACCOUNT_CURRENCY: account_currency})
         self.config = config
@@ -1409,8 +1409,9 @@ class Org(SmartModel):
         either ORG_CREDITS_CACHE_TTL or time remaining on the expiration
         """
         if not topup:
-            return 0
-        return min((ORG_CREDITS_CACHE_TTL, int((topup.expires_on - timezone.now()).total_seconds())))
+            return 10
+
+        return max(10, min((ORG_CREDITS_CACHE_TTL, int((topup.expires_on - timezone.now()).total_seconds()))))
 
     def _calculate_active_topup(self):
         """
@@ -1677,8 +1678,8 @@ class Org(SmartModel):
 
                 try:
                     subscription = customer.cancel_subscription(at_period_end=True)
-                except Exception as e:
-                    traceback.print_exc(e)
+                except Exception:
+                    traceback.print_exc()
                     raise ValidationError(_("Sorry, we are unable to cancel your plan at this time.  Please contact us."))
             else:
                 raise ValidationError(_("Sorry, we are unable to cancel your plan at this time.  Please contact us."))
@@ -1691,9 +1692,9 @@ class Org(SmartModel):
 
                     analytics.track(user.username, 'temba.plan_upgraded', dict(previousPlan=self.plan, plan=new_plan))
 
-                except Exception as e:
+                except Exception:
                     # can't load it, oh well, we'll try to create one dynamically below
-                    traceback.print_exc(e)
+                    traceback.print_exc()
                     customer = None
 
             # if we don't have a customer, go create one
@@ -1708,8 +1709,8 @@ class Org(SmartModel):
 
                     analytics.track(user.username, 'temba.plan_upgraded', dict(previousPlan=self.plan, plan=new_plan))
 
-                except Exception as e:
-                    traceback.print_exc(e)
+                except Exception:
+                    traceback.print_exc()
                     raise ValidationError(_("Sorry, we were unable to charge your card, please try again later or contact us."))
 
         # update our org
