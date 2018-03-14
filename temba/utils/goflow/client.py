@@ -12,37 +12,6 @@ from .serialize import (
 )
 
 
-def event_from_incoming(msg):
-    event = {
-        'type': "msg_received",
-        'created_on': msg.created_on.isoformat(),
-        'msg_uuid': str(msg.uuid),
-        'text': msg.text,
-        'contact': {'uuid': str(msg.contact.uuid), 'name': msg.contact.name}
-    }
-    if msg.contact_urn:
-        event['urn'] = msg.contact_urn.urn
-    if msg.channel:
-        event['channel'] = {'uuid': str(msg.channel.uuid), 'name': msg.channel.name}
-    if msg.attachments:
-        event['attachments'] = msg.attachments
-
-    return event
-
-
-def event_from_outgoing(msg):
-    event = {
-        'type': "send_msg",
-        'created_on': msg.created_on.isoformat(),
-        'text': msg.text,
-        'contacts': [{'uuid': str(msg.contact.uuid), 'name': msg.contact.name}],
-    }
-    if msg.attachments:
-        event['attachments'] = msg.attachments
-
-    return event
-
-
 class RequestBuilder(object):
     def __init__(self, client, asset_timestamp):
         self.client = client

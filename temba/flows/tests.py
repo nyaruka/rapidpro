@@ -448,10 +448,14 @@ class FlowTest(TembaTest):
                 'arrived_on': matchers.ISODate(),
                 'events': [
                     {
-                        'type': 'send_msg',
-                        'created_on': matchers.ISODate(),
-                        'text': "What is your favorite color?",
-                        'contacts': [{'uuid': str(self.contact.uuid), 'name': "Eric"}],
+                        'type': 'msg_created',
+                        'created_on': contact1_msg.created_on.isoformat(),
+                        'msg': {
+                            'uuid': str(contact1_msg.uuid),
+                            'text': "What is your favorite color?",
+                            'urn': 'tel:+250788382382',
+                            'channel': {'uuid': str(self.channel.uuid), 'name': 'Test Channel'}
+                        }
                     }
                 ],
                 'exit_uuid': str(color_prompt.exit_uuid)
@@ -536,10 +540,14 @@ class FlowTest(TembaTest):
                 'arrived_on': matchers.ISODate(),
                 'events': [
                     {
-                        'type': 'send_msg',
-                        'created_on': matchers.ISODate(),
-                        'text': "What is your favorite color?",
-                        'contacts': [{'uuid': str(self.contact.uuid), 'name': "Eric"}],
+                        'type': 'msg_created',
+                        'created_on': contact1_msg.created_on.isoformat(),
+                        'msg': {
+                            'uuid': str(contact1_msg.uuid),
+                            'text': "What is your favorite color?",
+                            'urn': 'tel:+250788382382',
+                            'channel': {'uuid': str(self.channel.uuid), 'name': 'Test Channel'}
+                        }
                     }
                 ],
                 'exit_uuid': str(color_prompt.exit_uuid)
@@ -550,12 +558,13 @@ class FlowTest(TembaTest):
                 'events': [
                     {
                         'type': 'msg_received',
-                        'created_on': matchers.ISODate(),
-                        'text': "orange",
-                        'urn': 'tel:+250788382382',
-                        'msg_uuid': str(incoming.uuid),
-                        'contact': {'uuid': str(self.contact.uuid), 'name': "Eric"},
-                        'channel': {'uuid': str(self.channel.uuid), 'name': "Test Channel"}
+                        'created_on': incoming.created_on.isoformat(),
+                        'msg': {
+                            'uuid': str(incoming.uuid),
+                            'text': "orange",
+                            'urn': 'tel:+250788382382',
+                            'channel': {'uuid': str(self.channel.uuid), 'name': 'Test Channel'}
+                        }
                     }
                 ],
                 'exit_uuid': str(orange_rule.uuid)
@@ -565,10 +574,14 @@ class FlowTest(TembaTest):
                 'arrived_on': matchers.ISODate(),
                 'events': [
                     {
-                        'type': 'send_msg',
-                        'created_on': matchers.ISODate(),
-                        'text': "I love orange too! You said: orange which is category: Orange You are: 0788 382 382 SMS: orange Flow: color: orange",
-                        'contacts': [{'uuid': str(self.contact.uuid), 'name': "Eric"}],
+                        'type': 'msg_created',
+                        'created_on': reply.created_on.isoformat(),
+                        'msg': {
+                            'uuid': str(reply.uuid),
+                            'text': "I love orange too! You said: orange which is category: Orange You are: 0788 382 382 SMS: orange Flow: color: orange",
+                            'urn': 'tel:+250788382382',
+                            'channel': {'uuid': str(self.channel.uuid), 'name': 'Test Channel'}
+                        }
                     }
                 ]
             }
@@ -4751,51 +4764,60 @@ class FlowsTest(FlowFileTest):
         })
         self.assertEqual(run.path, [
             {
-                "node_uuid": str(action_set1.uuid),
-                "arrived_on": matchers.ISODate(),
-                "events": [
+                'node_uuid': str(action_set1.uuid),
+                'arrived_on': matchers.ISODate(),
+                'events': [
                     {
-                        "type": "send_msg",
-                        "created_on": matchers.ISODate(),
-                        "text": "What is your favorite color?",
-                        "contacts": [{"uuid": str(self.contact.uuid), "name": "Ben Haggerty"}]
+                        'type': 'msg_created',
+                        'created_on': msg1.created_on.isoformat(),
+                        'msg': {
+                            'uuid': str(msg1.uuid),
+                            'text': 'What is your favorite color?',
+                            'urn': 'tel:+12065552020',
+                            'channel': {'uuid': str(self.channel.uuid), 'name': 'Test Channel'}
+                        }
                     }
                 ],
-                "exit_uuid": str(action_set1.exit_uuid)
+                'exit_uuid': str(action_set1.exit_uuid)
             },
             {
-                "node_uuid": str(rule_set1.uuid),
-                "arrived_on": matchers.ISODate(),
-                "events": [
+                'node_uuid': str(rule_set1.uuid),
+                'arrived_on': matchers.ISODate(),
+                'events': [
                     {
-                        "type": "msg_received",
-                        "created_on": matchers.ISODate(),
-                        "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
-                        "text": "I like red",
-                        "attachments": ["image/jpeg:http://example.com/test.jpg"],
-                        "urn": "tel:+12065552020",
-                        "contact": {"uuid": str(self.contact.uuid), "name": "Ben Haggerty"},
-                        "msg_uuid": str(msg2.uuid)
+                        'type': 'msg_received',
+                        'created_on': msg2.created_on.isoformat(),
+                        'msg': {
+                            'uuid': str(msg2.uuid),
+                            'text': 'I like red',
+                            'attachments': ['image/jpeg:http://example.com/test.jpg'],
+                            'urn': 'tel:+12065552020',
+                            'channel': {'uuid': str(self.channel.uuid), 'name': 'Test Channel'}
+                        }
                     }
                 ],
-                "exit_uuid": str(red_rule['uuid'])
+                'exit_uuid': str(red_rule['uuid'])
             },
             {
-                "node_uuid": str(action_set3.uuid),
-                "arrived_on": matchers.ISODate(),
-                "events": [
+                'node_uuid': str(action_set3.uuid),
+                'arrived_on': matchers.ISODate(),
+                'events': [
                     {
-                        "text": "Good choice, I like Red too! What is your favorite beer?",
-                        "created_on": matchers.ISODate(),
-                        "type": "send_msg",
-                        "contacts": [{"uuid": str(self.contact.uuid), "name": "Ben Haggerty"}]
+                        'type': 'msg_created',
+                        'created_on': matchers.ISODate(),
+                        'msg': {
+                            'uuid': matchers.UUID4String(),
+                            'text': 'Good choice, I like Red too! What is your favorite beer?',
+                            'urn': 'tel:+12065552020',
+                            'channel': {'uuid': str(self.channel.uuid), 'name': 'Test Channel'}
+                        }
                     }
                 ],
-                "exit_uuid": str(action_set3.exit_uuid)
+                'exit_uuid': str(action_set3.exit_uuid)
             },
             {
-                "node_uuid": str(rule_set2.uuid),
-                "arrived_on": matchers.ISODate()
+                'node_uuid': str(rule_set2.uuid),
+                'arrived_on': matchers.ISODate()
             }
         ])
 

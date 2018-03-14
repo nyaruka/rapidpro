@@ -3352,17 +3352,11 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             self.message_ids.append(msg.id)
             step.messages.add(msg)
 
-            if msg.direction == INCOMING:
-                msg_event = goflow.event_from_incoming(msg)
-            else:
-                msg_event = goflow.event_from_outgoing(msg)
-
-                # TODO augment flowserver event with some extra details?
-                # msg_event['_msg_uuid'] = str(msg.uuid)
-                # msg_event['_urn'] = msg.contact_urn.urn
-                # msg_event['_channel_uuid'] = str(msg.channel.uuid)
-
-            path_step[FlowRun.PATH_EVENTS].append(msg_event)
+            path_step[FlowRun.PATH_EVENTS].append({
+                'type': 'msg_received' if msg.direction == INCOMING else 'msg_created',
+                'msg': goflow.serialize_message(msg),
+                'created_on': msg.created_on.isoformat()
+            })
 
             # if this msg is part of a broadcast, save that on our flowstep so we can later purge the msg
             if msg.broadcast:
