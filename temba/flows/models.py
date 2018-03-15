@@ -997,11 +997,6 @@ class Flow(TembaModel):
                     extra = message_context.get('extra', {})
                     extra['flow'] = message_context.get('flow', {})
 
-                    # if this is real message that hasn't already been added to this run, add it
-                    if msg.id and msg.id > 0 and msg.msg_type != FLOW and not hasattr(msg, '_added_to_run'):
-                        run.add_messages([msg], step=step)
-                        run.update_expiration(timezone.now())
-
                     if flow:
                         child_runs = flow.start([], [run.contact], started_flows=started_flows,
                                                 restart_participants=True, extra=extra,
@@ -3326,11 +3321,9 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
         """
         Associates the given messages with this run
         """
-        # find the step in the path that these messages should be added to (either last or penultimate)
+        # find the last step in the path that these messages should be added to
         if self.path and self.path[-1]['node_uuid'] == step.step_uuid:
             path_step = self.path[-1]
-        elif len(self.path) >= 2 and self.path[-2]['node_uuid'] == step.step_uuid:
-            path_step = self.path[-2]
         else:  # pragma: no cover
             raise ValueError("Trying to add messages to a step which doesn't exist in the run path")
 
