@@ -529,7 +529,7 @@ class FlowTest(TembaTest):
                 'name': 'color',
                 'value': 'orange',
                 'created_on': matchers.ISODate(),
-                'input': 'orange'
+                'operand': 'orange'
             }
         })
 
@@ -2681,7 +2681,7 @@ class FlowTest(TembaTest):
         self.assertEqual(results['color']['name'], 'color')
         self.assertEqual(results['color']['category'], 'Blue')
         self.assertEqual(results['color']['value'], 'blue')
-        self.assertEqual(results['color']['input'], incoming.text)
+        self.assertEqual(results['color']['operand'], incoming.text)
 
     def test_ignore_keyword_triggers(self):
         self.flow.start([], [self.contact])
@@ -4333,7 +4333,7 @@ class WebhookTest(TembaTest):
                 'name': 'Order Status',
                 'value': 'Get ',
                 'created_on': matchers.ISODate(),
-                'input': ''
+                'operand': ''
             },
             'response_1': {
                 'category': 'Success',
@@ -4341,7 +4341,7 @@ class WebhookTest(TembaTest):
                 'name': 'Response 1',
                 'value': '{ "text": "Get", "blank": "" }',
                 'created_on': matchers.ISODate(),
-                'input': ''
+                'operand': ''
             }
         })
 
@@ -4364,7 +4364,7 @@ class WebhookTest(TembaTest):
                 'name': 'Order Status',
                 'value': 'Post ',
                 'created_on': matchers.ISODate(),
-                'input': ''
+                'operand': ''
             },
             'response_1': {
                 'category': 'Success',
@@ -4372,7 +4372,7 @@ class WebhookTest(TembaTest):
                 'name': 'Response 1',
                 'value': '{ "text": "Post", "blank": "" }',
                 'created_on': matchers.ISODate(),
-                'input': ''
+                'operand': ''
             }
         })
 
@@ -4428,7 +4428,7 @@ class WebhookTest(TembaTest):
                 'name': 'Response 1',
                 'value': 'Server Error',
                 'created_on': matchers.ISODate(),
-                'input': ''
+                'operand': ''
             }
         })
 
@@ -4692,7 +4692,7 @@ class FlowsTest(FlowFileTest):
                 'name': "Color",
                 'value': "red",
                 'created_on': matchers.ISODate(),
-                'input': "I like red\nhttp://example.com/test.jpg"
+                'operand': "I like red\nhttp://example.com/test.jpg"
             }
         })
 
@@ -4716,7 +4716,7 @@ class FlowsTest(FlowFileTest):
                 'name': "Color",
                 'value': "red",
                 'created_on': matchers.ISODate(),
-                'input': "I like red\nhttp://example.com/test.jpg"
+                'operand': "I like red\nhttp://example.com/test.jpg"
             },
             'beer': {
                 'category': "Primus",
@@ -4724,7 +4724,7 @@ class FlowsTest(FlowFileTest):
                 'name': "Beer",
                 'value': "primus",
                 'created_on': matchers.ISODate(),
-                'input': "primus"
+                'operand': "primus"
             }
         })
 
@@ -9014,12 +9014,12 @@ class TypeTest(TembaTest):
 
         self.assertEqual('Text', results['text']['name'])
         self.assertEqual('Some Text', results['text']['value'])
-        self.assertEqual('Some Text', results['text']['input'])
+        self.assertEqual('Some Text', results['text']['operand'])
         self.assertEqual('All Responses', results['text']['category'])
 
         self.assertEqual('Date', results['date']['name'])
         self.assertEqual("not a date", results['date']['value'])
-        self.assertEqual('not a date', results['date']['input'])
+        self.assertEqual('not a date', results['date']['operand'])
         self.assertEqual('Other', results['date']['category'])
 
         self.assertTrue(Flow.find_and_handle(self.create_msg(contact=contact, direction=INCOMING, text="Born 23/06/1977")))
@@ -9032,34 +9032,34 @@ class TypeTest(TembaTest):
 
         self.assertEqual('Text', results['text']['name'])
         self.assertEqual('Some Text', results['text']['value'])
-        self.assertEqual('Some Text', results['text']['input'])
+        self.assertEqual('Some Text', results['text']['operand'])
         self.assertEqual('All Responses', results['text']['category'])
 
         self.assertEqual('Date', results['date']['name'])
         self.assertTrue(results['date']['value'].startswith("1977-06-23T"))
-        self.assertEqual('Born 23/06/1977', results['date']['input'])
+        self.assertEqual('Born 23/06/1977', results['date']['operand'])
         self.assertEqual('is a date', results['date']['category'])
 
         self.assertEqual('Number', results['number']['name'])
         self.assertEqual('10', results['number']['value'])
-        self.assertEqual('The number is 10', results['number']['input'])
+        self.assertEqual('The number is 10', results['number']['operand'])
         self.assertEqual('numeric', results['number']['category'])
 
         self.assertEqual('State', results['state']['name'])
         self.assertEqual('Rwanda > Eastern Province', results['state']['value'])
-        self.assertEqual('I\'m in Eastern Province', results['state']['input'])
+        self.assertEqual('I\'m in Eastern Province', results['state']['operand'])
         self.assertEqual('state', results['state']['category'])
         self.assertNotIn('category_localized', results['state'])
 
         self.assertEqual('District', results['district']['name'])
         self.assertEqual('Rwanda > Eastern Province > Gatsibo', results['district']['value'])
-        self.assertEqual('That\'s in Gatsibo', results['district']['input'])
+        self.assertEqual('That\'s in Gatsibo', results['district']['operand'])
         self.assertEqual('district', results['district']['category'])
         self.assertEqual('le district', results['district']['category_localized'])
 
         self.assertEqual('Ward', results['ward']['name'])
         self.assertEqual('Rwanda > Eastern Province > Gatsibo > Kageyo', results['ward']['value'])
-        self.assertEqual('ya ok that\'s Kageyo', results['ward']['input'])
+        self.assertEqual('ya ok that\'s Kageyo', results['ward']['operand'])
         self.assertEqual('ward', results['ward']['category'])
 
 
