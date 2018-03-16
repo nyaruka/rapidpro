@@ -2738,7 +2738,8 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
     RESULT_CATEGORY = 'category'
     RESULT_CATEGORY_LOCALIZED = 'category_localized'
     RESULT_VALUE = 'value'
-    RESULT_INPUT = 'input'
+    RESULT_OPERAND = 'operand'
+    RESULT_INPUT = 'input'  # deprecated in favour of operand
     RESULT_CREATED_ON = 'created_on'
 
     PATH_NODE_UUID = 'node_uuid'
@@ -3209,7 +3210,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             """
             return {
                 '__default__': res[FlowRun.RESULT_VALUE],
-                'text': res.get(FlowRun.RESULT_INPUT),
+                'text': res.get(FlowRun.RESULT_OPERAND) or res.get(FlowRun.RESULT_INPUT),
                 'time': res[FlowRun.RESULT_CREATED_ON],
                 'category': res.get(FlowRun.RESULT_CATEGORY_LOCALIZED, res[FlowRun.RESULT_CATEGORY]),
                 'value': res[FlowRun.RESULT_VALUE]
@@ -3669,7 +3670,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             FlowRun.RESULT_NODE_UUID: node_uuid,
             FlowRun.RESULT_CATEGORY: category,
             FlowRun.RESULT_VALUE: FlowRun.serialize_value(raw_value),
-            FlowRun.RESULT_INPUT: raw_input,
+            FlowRun.RESULT_OPERAND: raw_input,
             FlowRun.RESULT_CREATED_ON: timezone.now().isoformat(),
         }
 
@@ -4941,7 +4942,7 @@ class ExportFlowResultsTask(BaseExportTask):
                     node_result = results_by_node.get(node.uuid, {})
                     node_category = node_result.get(FlowRun.RESULT_CATEGORY, "")
                     node_value = node_result.get(FlowRun.RESULT_VALUE, "")
-                    node_input = node_result.get(FlowRun.RESULT_INPUT, "")
+                    node_input = node_result.get(FlowRun.RESULT_OPERAND, "") or node_result.get(FlowRun.RESULT_INPUT, "")
                     result_values += [node_category, node_value, node_input]
 
                     if node_result:

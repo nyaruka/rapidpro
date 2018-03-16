@@ -714,7 +714,7 @@ class APITest(TembaTest):
         self.assertEqual(results['color']['name'], "color")
         self.assertEqual(results['color']['category'], "Orange")
         self.assertEqual(results['color']['value'], "orange")
-        self.assertEqual(results['color']['input'], "I like orange")
+        self.assertEqual(results['color']['operand'], "I like orange")
         self.assertIsNotNone(results['color']['created_on'])
 
         # check messages

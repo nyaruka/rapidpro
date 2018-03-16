@@ -282,7 +282,7 @@ class WebHookTest(TembaTest):
                 'name': 'color',
                 'value': 'Mauve',
                 'created_on': matchers.ISODate(),
-                'input': 'Mauve\nhttp://s3.com/text.jpg\nhttp://s3.com/text.mp4'
+                'operand': 'Mauve\nhttp://s3.com/text.jpg\nhttp://s3.com/text.mp4'
             }
         })
 
@@ -307,8 +307,8 @@ class WebHookTest(TembaTest):
             {'uuid': str(self.joe.uuid), 'name': self.joe.name, 'urn': six.text_type(self.joe.get_urn('tel'))}
         )
 
-        # make sure we don't have an input
-        self.assertNotIn('input', event.data)
+        # make sure we don't have an operand
+        self.assertNotIn('operand', event.data)
 
     @patch('temba.api.models.time.time')
     def test_webhook_result_timing(self, mock_time):
