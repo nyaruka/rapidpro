@@ -787,9 +787,9 @@ class ContactCRUDL(SmartCRUDL):
             contact_fields = []
             fields = ContactField.objects.filter(org=contact.org, is_active=True).order_by('label', 'pk')
             for field in fields:
-                value = getattr(contact, '__field__%s' % field.key)
+                value = contact.get_field_value(field)
                 if value:
-                    display = Contact.get_field_display_for_value(field, value)
+                    display = contact.get_field_display(field)
                     contact_fields.append(dict(id=field.id, label=field.label, value=display, featured=field.show_in_table))
 
             # stuff in the contact's language in the fields as well
@@ -1145,7 +1145,7 @@ class ContactCRUDL(SmartCRUDL):
                 contact_field = ContactField.objects.filter(id=field_id).first()
                 context['contact_field'] = contact_field
                 if contact_field:
-                    context['value'] = self.get_object().get_field_display(contact_field.key)
+                    context['value'] = self.get_object().get_field_display(contact_field)
             return context
 
     class Block(OrgPermsMixin, SmartUpdateView):
@@ -1306,30 +1306,29 @@ class ManageFieldsForm(forms.Form):
         super(ManageFieldsForm, self).__init__(*args, **kwargs)
 
     def clean(self):
-        used_labels = []
-        for key in self.cleaned_data:
-            if key.startswith('field_'):
-                idx = key[6:]
-                field = self.cleaned_data[key]
-                label = self.cleaned_data["label_%s" % idx]
+        used_labels = set()
+        for key in sorted(key for key in self.cleaned_data.keys() if key.startswith('field_')):
+            idx = key[6:]
+            field = self.cleaned_data[key]
+            label = self.cleaned_data["label_%s" % idx]
 
-                if label:
-                    if not ContactField.is_valid_label(label):
-                        raise forms.ValidationError(_("Field names can only contain letters, numbers and hypens"))
+            if label:
+                if not ContactField.is_valid_label(label):
+                    raise forms.ValidationError(_("Field names can only contain letters, numbers and hypens"))
 
-                    if label.lower() in used_labels:
-                        raise forms.ValidationError(_("Field names must be unique. '%s' is duplicated") % label)
+                if label.lower() in used_labels:
+                    raise forms.ValidationError(_("Field names must be unique. '%s' is duplicated") % label)
 
-                    elif not ContactField.is_valid_key(ContactField.make_key(label)):
-                        raise forms.ValidationError(_("Field name '%s' is a reserved word") % label)
-                    used_labels.append(label.lower())
-                else:
-                    # don't allow fields that are dependencies for flows be removed
-                    if field != '__new_field':
-                        from temba.flows.models import Flow
-                        flow = Flow.objects.filter(org=self.org, field_dependencies__in=[field]).first()
-                        if flow:
-                            raise forms.ValidationError(_('The field "%s" cannot be removed while it is still used in the flow "%s"' % (field.label, flow.name)))
+                elif not ContactField.is_valid_key(ContactField.make_key(label)):
+                    raise forms.ValidationError(_("Field name '%s' is a reserved word") % label)
+                used_labels.add(label.lower())
+            else:
+                # don't allow fields that are dependencies for flows be removed
+                if field != '__new_field':
+                    from temba.flows.models import Flow
+                    flow = Flow.objects.filter(org=self.org, field_dependencies__in=[field]).first()
+                    if flow:
+                        raise forms.ValidationError(_('The field "%s" cannot be removed while it is still used in the flow "%s"' % (field.label, flow.name)))
 
         return self.cleaned_data
 

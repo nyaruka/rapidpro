@@ -498,7 +498,9 @@ class FlowCRUDL(SmartCRUDL):
                 added_keywords = keywords.difference(existing_keywords)
                 archived_keywords = [t.keyword for t in obj.triggers.filter(org=org, flow=obj, trigger_type=Trigger.TYPE_KEYWORD,
                                                                             is_archived=True, groups=None)]
-                for keyword in added_keywords:
+
+                # set difference does not have a deterministic order, we need to sort the keywords
+                for keyword in sorted(added_keywords):
                     # first check if the added keyword is not amongst archived
                     if keyword in archived_keywords:  # pragma: needs cover
                         obj.triggers.filter(org=org, flow=obj, keyword=keyword, groups=None).update(is_archived=False)
@@ -1209,8 +1211,9 @@ class FlowCRUDL(SmartCRUDL):
                 test_contact.values.all().delete()
 
                 # reset the name for our test contact too
+                test_contact.fields = {}
                 test_contact.name = "%s %s" % (request.user.first_name, request.user.last_name)
-                test_contact.save(update_fields=('name',))
+                test_contact.save(update_fields=('name', 'fields'))
 
                 # reset the groups for test contact
                 for group in test_contact.all_groups.all():

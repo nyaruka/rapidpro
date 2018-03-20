@@ -1,3 +1,28 @@
+v3.0.342
+----------
+ * Fix for decimal values in JSON fields attribute
+ * Fix for not being able to change contact field types if campaign event inactive
+
+v3.0.341
+----------
+ * Add if not exists to index creation for fields
+ * Last of Py3 compatibility changes
+
+v3.0.340
+----------
+ * Use fields JSON field on Contact instead of Value table for all reading.
+ * Force campaign events to be based off of DateTime fields
+ * Migration to change all contact fields used in campaign events to DateTime
+ * Migration to add GIN index on Contact.fields
+
+v3.0.339
+----------
+ * Remove leading and trailing spaces on location string before boundaries path query
+ * Require use of update_fields with Contact.save()
+ * Event time of contact_changed is when contact was modified
+ * Use latest goflow release
+ * Make special channel accessible during simulator use
+
 v3.0.338
 ----------
  * Always serialize contact field datetime values in the org timezone

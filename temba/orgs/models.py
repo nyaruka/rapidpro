@@ -14,7 +14,7 @@ import six
 import stripe
 import traceback
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
@@ -1064,7 +1064,7 @@ class Org(SmartModel):
         """
         # while technically we could resolve a full boundary path without a country, our policy is that
         # if you don't have a country set then you don't have locations
-        return AdminBoundary.objects.filter(path__iexact=location_string).first() if self.country_id and isinstance(location_string, six.string_types) else None
+        return AdminBoundary.objects.filter(path__iexact=location_string.strip()).first() if self.country_id and isinstance(location_string, six.string_types) else None
 
     def parse_location(self, location_string, level, parent=None):
         """
@@ -1535,9 +1535,13 @@ class Org(SmartModel):
     @cached_property
     def cached_contact_fields(self):
         from temba.contacts.models import ContactField
-        fields = ContactField.objects.filter(org=self, is_active=True)
-        for field in fields:
-            field.org = self
+
+        # build an ordered dictionary of key->contact field
+        fields = OrderedDict()
+        for cf in ContactField.objects.filter(org=self, is_active=True).order_by('key'):
+            cf.org = self
+            fields[cf.key] = cf
+
         return fields
 
     def clear_cached_groups(self):

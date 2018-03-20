@@ -10,7 +10,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from django_redis import get_redis_connection
-from django.db import transaction
+from django.db import transaction, connection
 from django.contrib.auth.models import User
 from django.test import override_settings
 from mock import patch
@@ -1276,7 +1276,7 @@ class BroadcastTest(TembaTest):
         self.assertEqual(("Hello Joe Blow", []), substitute("Hello @(PROPER(contact))", dict()))
         self.assertEqual(("Hello JOE", []), substitute("Hello @(UPPER(contact.first_name))", dict()))
         self.assertEqual(("Hello 3", []), substitute("Hello @(contact.goats)", dict()))
-        self.assertEqual(("Hello 37.45000000", []), substitute("Hello @(contact.temp)", dict()))
+        self.assertEqual(("Hello 37.45", []), substitute("Hello @(contact.temp)", dict()))
         self.assertEqual(("Hello 37", []), substitute("Hello @(INT(contact.temp))", dict()))
         self.assertEqual(("Hello 37.45", []), substitute("Hello @(FIXED(contact.temp))", dict()))
 
@@ -2257,7 +2257,9 @@ class CeleryTaskTest(TembaTest):
         fullmsg = "Object %r unexpectedly not found in the database" % obj
         fullmsg += ": " + msg if msg else ""
         try:
-            type(obj).objects.using('direct').get(pk=obj.pk)
+            # close the current connection to the database, so we force it to open a new connection
+            connection.close()
+            type(obj).objects.get(pk=obj.pk)
         except obj.DoesNotExist:
             self.fail(fullmsg)
 

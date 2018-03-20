@@ -4860,7 +4860,7 @@ class ExportFlowResultsTask(BaseExportTask):
         contact_field_ids = config.get(ExportFlowResultsTask.CONTACT_FIELDS, [])
         extra_urns = config.get(ExportFlowResultsTask.EXTRA_URNS, [])
 
-        contact_fields = [cf for cf in self.org.cached_contact_fields if cf.id in contact_field_ids]
+        contact_fields = [cf for cf in self.org.cached_contact_fields.values() if cf.id in contact_field_ids]
 
         # get all result saving nodes across all flows being exported
         show_submitted_by = False
@@ -4922,6 +4922,8 @@ class ExportFlowResultsTask(BaseExportTask):
             for run in run_batch:
                 # is this a new contact?
                 if run.contact != current_contact:
+                    run.contact.org = self.org
+
                     if not contacts_sheet or contacts_sheet._max_row >= self.MAX_EXCEL_ROWS:  # pragma: no cover
                         contacts_sheet = self._add_contacts_sheet(book, contacts_columns)
 
@@ -4950,7 +4952,7 @@ class ExportFlowResultsTask(BaseExportTask):
                     current_contact_values.append(self._get_contact_groups_display(run.contact))
 
                     for cf in contact_fields:
-                        field_value = Contact.get_field_display_for_value(cf, run.contact.get_field(cf.key.lower()), self.org)
+                        field_value = run.contact.get_field_display(cf)
                         current_contact_values.append(self.prepare_value(field_value))
 
                 # get this run's results by node UUID
@@ -5547,7 +5549,7 @@ class AddToGroupAction(Action):
                                 ActionLog.error(run, _("%s is a dynamic group which we can't add contacts to") % group.name)
                             else:  # pragma: needs cover
                                 ActionLog.error(run, _("%s is a dynamic group which we can't remove contacts from") % group.name)
-                        continue
+                        continue  # pragma: can't cover
 
                     group.org = run.org
                     group.update_contacts(user, [contact], add)
