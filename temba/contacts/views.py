@@ -5,6 +5,9 @@ import json
 import regex
 import six
 import logging
+
+from django.core.paginator import Paginator
+from django.utils.functional import cached_property
 from elasticsearch.serializer import JSONSerializer as es_JSONSerializer
 
 from collections import OrderedDict
@@ -124,6 +127,27 @@ class ContactGroupForm(forms.ModelForm):
         model = ContactGroup
 
 
+class ESPaginator(Paginator):
+    """
+    Paginator that knows how to work with ES dsl Search objects
+    """
+
+    @cached_property
+    def count(self):
+        # execute search to get the count
+        return self.object_list.count()
+
+    def _get_page(self, *args, **kwargs):
+        new_args = list(args)
+
+        # we need to execute the ES search again, to get the actual page of records
+        new_object_list = args[0].execute()
+
+        new_args[0] = new_object_list
+
+        return super(ESPaginator, self)._get_page(*new_args, **kwargs)
+
+
 class ContactListView(OrgPermsMixin, SmartListView):
     """
     Base class for contact list views with contact folders and groups listed by the side
@@ -133,6 +157,14 @@ class ContactListView(OrgPermsMixin, SmartListView):
     paginate_by = 50
 
     parsed_search = None
+
+    # queryset is no longer a django model, so we can't use _meta to read the fields (smartmin - derive_fields)
+    fields = (
+        'is_active', 'created_by', 'created_on', 'modified_by', 'modified_on', 'uuid', 'name', 'org', 'is_blocked',
+        'is_test', 'is_stopped', 'language', 'fields'
+    )
+
+    paginator_class = ESPaginator
 
     def derive_group(self):
         return ContactGroup.all_groups.get(org=self.request.user.get_org(), group_type=self.system_group)
@@ -163,22 +195,23 @@ class ContactListView(OrgPermsMixin, SmartListView):
         from .search import contact_es_search
         from temba.utils.es import ES
         try:  # pragma: no cover
-            es_search = contact_es_search(org, search_query, group)
+            es_search = contact_es_search(org, search_query, group).using(ES)
 
-            es_result = es_search.using(ES).execute(ignore_cache=True)
+        except SearchException as e:
+            self.search_error = six.text_type(e)
 
             # .count() will evaluate the DB query
-            if the_qs.count() != es_result.hits.total and (the_qs.count() > 0 and the_qs.first().modified_on < timezone.now() - timedelta(seconds=120)):
+            if the_qs.count() != es_search.count() and (the_qs.count() > 0 and the_qs.first().modified_on < timezone.now() - timedelta(seconds=120)):
                 logger.error(
                     'Contact query result mismatch, DB={}, ES={}, search_text=\'{}\', ES_query={}'.format(
-                        the_qs.count(), es_result.hits.total, search_query,
+                        the_qs.count(), es_search.count(), search_query,
                         es_JSONSerializer().dumps(es_search.to_dict())
                     )
                 )
         except SearchException:
             logger.exception("Exception while executing contact query. search_text={}".format(search_query))
 
-        return the_qs
+        return es_search
 
     def get_context_data(self, **kwargs):
         org = self.request.user.get_org()
@@ -190,6 +223,12 @@ class ContactListView(OrgPermsMixin, SmartListView):
             self.object_list.count = lambda: counts[self.system_group]
 
         context = super(ContactListView, self).get_context_data(**kwargs)
+
+        # most of the code expects a Django model, we only use ES to get the IDs of contacts, and fetch those from DB
+        pks = [result.id for result in context['object_list']]
+        qs = self.model.objects.filter(pk__in=pks)
+
+        context['object_list'] = qs.all()
 
         folders = [
             dict(count=counts[ContactGroup.TYPE_ALL], label=_("All Contacts"), url=reverse('contacts.contact_list')),
