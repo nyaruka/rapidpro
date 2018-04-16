@@ -200,16 +200,14 @@ class ContactListView(OrgPermsMixin, SmartListView):
         except SearchException as e:
             self.search_error = six.text_type(e)
 
-            # .count() will evaluate the DB query
-            if the_qs.count() != es_search.count() and (the_qs.count() > 0 and the_qs.first().modified_on < timezone.now() - timedelta(seconds=120)):
-                logger.error(
-                    'Contact query result mismatch, DB={}, ES={}, search_text=\'{}\', ES_query={}'.format(
-                        the_qs.count(), es_search.count(), search_query,
-                        es_JSONSerializer().dumps(es_search.to_dict())
-                    )
+        # .count() will evaluate the DB query
+        if the_qs.count() != es_search.count():
+            logger.warning(
+                'Contact query result mismatch, DB={}, ES={}, search_text=\'{}\', ES_query={}'.format(
+                    the_qs.count(), es_search.count(), search_query,
+                    es_JSONSerializer().dumps(es_search.to_dict())
                 )
-        except SearchException:
-            logger.exception("Exception while executing contact query. search_text={}".format(search_query))
+            )
 
         return es_search
 
