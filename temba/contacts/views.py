@@ -165,7 +165,7 @@ class ContactListView(ESPaginationMixin, OrgPermsMixin, SmartListView):
             from .search import contact_es_search
             from temba.utils.es import ES
             try:  # pragma: no cover
-                es_search = contact_es_search(org, search_query, group).using(ES)
+                es_search = contact_es_search(org, search_query, group).source(include=['id']).using(ES)
 
                 qs_count = the_qs.count()
 
