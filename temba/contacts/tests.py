@@ -221,6 +221,18 @@ class ContactGroupTest(TembaTest):
         self.mary.set_field(self.admin, 'age', 21)
         self.mary.set_field(self.admin, 'gender', "female")
 
+        mock_ES.search.return_value = {
+            "_shards": {"failed": 0, "successful": 10, "total": 10}, "timed_out": False, "took": 1, "_scroll_id": '1',
+            'hits': {'hits': [
+                {'_type': '_doc', '_index': 'dummy_index', '_source': {'id': self.joe.id}},
+                {'_type': '_doc', '_index': 'dummy_index', '_source': {'id': self.mary.id}}
+            ]}
+        }
+        mock_ES.scroll.return_value = {
+            "_shards": {"failed": 0, "successful": 10, "total": 10}, "timed_out": False, "took": 1, "_scroll_id": '1',
+            'hits': {'hits': []}
+        }
+        mock_ES.count.return_value = {'count': 2}
         group = ContactGroup.create_dynamic(
             self.org, self.admin, "Group two",
             '(Age < 18 and gender = "male") or (Age > 18 and gender = "female")'
@@ -233,6 +245,18 @@ class ContactGroupTest(TembaTest):
         self.assertEqual(group.status, ContactGroup.STATUS_READY)
 
         # update group query
+        mock_ES.search.return_value = {
+            "_shards": {"failed": 0, "successful": 10, "total": 10}, "timed_out": False, "took": 1, "_scroll_id": '1',
+            'hits': {'hits': [
+                {'_type': '_doc', '_index': 'dummy_index', '_source': {'id': self.mary.id}}
+            ]}
+        }
+        mock_ES.scroll.return_value = {
+            "_shards": {"failed": 0, "successful": 10, "total": 10}, "timed_out": False, "took": 1, "_scroll_id": '1',
+            'hits': {'hits': []}
+        }
+        mock_ES.count.return_value = {'count': 1}
+
         group.update_query('age > 18')
 
         group.refresh_from_db()
