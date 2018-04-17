@@ -161,29 +161,33 @@ class ContactListView(ESPaginationMixin, OrgPermsMixin, SmartListView):
 
         the_qs = qs.filter(is_test=False).order_by('-id').prefetch_related('org', 'all_groups')
 
-        from .search import contact_es_search
-        from temba.utils.es import ES
-        try:  # pragma: no cover
-            es_search = contact_es_search(org, search_query, group).using(ES)
+        if search_query:
+            from .search import contact_es_search
+            from temba.utils.es import ES
+            try:  # pragma: no cover
+                es_search = contact_es_search(org, search_query, group).using(ES)
 
-            qs_count = the_qs.count()
+                qs_count = the_qs.count()
 
-            if abs(qs_count - int(es_search.count())) > 1 and (the_qs.count() > 0 and the_qs.first().modified_on < timezone.now() - timedelta(seconds=30)):
-                logger.error(
-                    'Contact query result mismatch, DB={}, ES={}, search_text=\'{}\', ES_query={}'.format(
-                        the_qs.count(), es_search.count(), search_query,
-                        es_JSONSerializer().dumps(es_search.to_dict())
+                if abs(qs_count - int(es_search.count())) > 1 and (the_qs.count() > 0 and the_qs.first().modified_on < timezone.now() - timedelta(seconds=30)):
+                    logger.error(
+                        'Contact query result mismatch, DB={}, ES={}, search_text=\'{}\', ES_query={}'.format(
+                            the_qs.count(), es_search.count(), search_query,
+                            es_JSONSerializer().dumps(es_search.to_dict())
+                        )
                     )
-                )
 
-            return es_search
+                return es_search
 
-        except SearchException as e:
-            self.search_error = six.text_type(e)
-            logger.exception("Exception while executing contact query. search_text={}".format(search_query))
+            except SearchException as e:
+                self.search_error = six.text_type(e)
+                logger.exception("Exception while executing contact query. search_text={}".format(search_query))
 
-            # this should be an empty resultset
-            return contact_es_search(org, '', group).using(ES).none()
+                # this should be an empty resultset
+                return contact_es_search(org, '', group).using(ES).none()
+        else:
+            # if user search is not defined, use DB to select contacts
+            return group.contacts.all()
 
     def get_context_data(self, **kwargs):
         org = self.request.user.get_org()

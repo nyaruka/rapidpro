@@ -9,6 +9,7 @@ from django.views import View
 from django.utils.translation import ugettext_lazy as _
 
 from temba.utils.models import mapEStoDB
+from temba.utils.es import ModelESSearch
 
 
 class PostOnlyMixin(View):
@@ -147,10 +148,13 @@ class ESPaginator(Paginator):
     def _get_page(self, *args, **kwargs):
         new_args = list(args)
 
-        # we need to execute the ES search again, to get the actual page of records
-        new_object_list = args[0].execute()
+        es_search = args[0]
 
-        new_args[0] = new_object_list
+        if isinstance(es_search, ModelESSearch):
+            # we need to execute the ES search again, to get the actual page of records
+            new_object_list = args[0].execute()
+
+            new_args[0] = new_object_list
 
         return super(ESPaginator, self)._get_page(*new_args, **kwargs)
 
@@ -160,8 +164,13 @@ class ESPaginationMixin:
 
     def paginate_queryset(self, es_search, page_size):
 
-        paginator, page, es_queryset, is_paginated = super(ESPaginationMixin, self).paginate_queryset(es_search, page_size)
+        if isinstance(es_search, ModelESSearch):
 
-        model_queryset = mapEStoDB(self.model, es_queryset)
+            paginator, page, es_queryset, is_paginated = super(ESPaginationMixin, self).paginate_queryset(es_search, page_size)
 
-        return paginator, page, model_queryset, is_paginated
+            model_queryset = mapEStoDB(self.model, es_queryset)
+
+            return paginator, page, model_queryset, is_paginated
+
+        else:
+            return super(ESPaginationMixin, self).paginate_queryset(es_search, page_size)
