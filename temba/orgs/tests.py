@@ -2019,10 +2019,14 @@ class AnonOrgTest(TembaTest):
         self.assertContains(response, ContactURN.ANON_MASK_HTML)
 
         # can't search for it
+        mock_ES.search.return_value = {'_hits': []}
+        mock_ES.count.return_value = {'count': 0}
+
         response = self.client.get(reverse('contacts.contact_list') + "?search=788")
 
         # can't look for 788 as that is in the search box..
         self.assertNotContains(response, "123123")
+        self.assertContains(response, 'No matching contacts.')
 
         # create a flow
         flow = self.get_flow('color')

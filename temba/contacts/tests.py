@@ -90,22 +90,30 @@ class ContactCRUDLTest(_CRUDLTest):
         self.frank, urn_obj = Contact.get_or_create(self.org, "tel:124", user=self.user, name='Frank')
         self.frank.set_field(self.user, 'age', 18)
 
+        mock_ES.search.return_value = {'_hits': [{'id': self.frank.id}, {'id': self.joe.id}]}
+        mock_ES.count.return_value = {'count': 2}
         response = self._do_test_view('list')
         self.assertEqual(list(response.context['object_list']), [self.frank, self.joe])
         self.assertIsNone(response.context['search_error'])
 
+        mock_ES.search.return_value = {'_hits': [{'id': self.frank.id}]}
+        mock_ES.count.return_value = {'count': 1}
         response = self._do_test_view('list', query_string='search=age+%3D+18')
         self.assertEqual(list(response.context['object_list']), [self.frank])
         self.assertEqual(response.context['search'], 'age = 18')
         self.assertEqual(response.context['save_dynamic_search'], True)
         self.assertIsNone(response.context['search_error'])
 
+        mock_ES.search.return_value = {'_hits': [{'id': self.joe.id}]}
+        mock_ES.count.return_value = {'count': 1}
         response = self._do_test_view('list', query_string='search=age+>+18+and+home+%3D+"Kigali"')
         self.assertEqual(list(response.context['object_list']), [self.joe])
         self.assertEqual(response.context['search'], 'age > 18 AND home = "Kigali"')
         self.assertEqual(response.context['save_dynamic_search'], True)
         self.assertIsNone(response.context['search_error'])
 
+        mock_ES.search.return_value = {'_hits': [{'id': self.joe.id}]}
+        mock_ES.count.return_value = {'count': 1}
         response = self._do_test_view('list', query_string='search=Joe')
         self.assertEqual(list(response.context['object_list']), [self.joe])
         self.assertEqual(response.context['search'], 'name ~ "Joe"')
@@ -113,6 +121,8 @@ class ContactCRUDLTest(_CRUDLTest):
         self.assertIsNone(response.context['search_error'])
 
         # try with invalid search string
+        mock_ES.search.return_value = None
+        mock_ES.count.return_value = None
         response = self._do_test_view('list', query_string='search=(((')
         self.assertEqual(list(response.context['object_list']), [])
         self.assertEqual(response.context['search_error'], "Search query contains an error")
@@ -211,6 +221,18 @@ class ContactGroupTest(TembaTest):
         self.mary.set_field(self.admin, 'age', 21)
         self.mary.set_field(self.admin, 'gender', "female")
 
+        mock_ES.search.return_value = {
+            "_shards": {"failed": 0, "successful": 10, "total": 10}, "timed_out": False, "took": 1, "_scroll_id": '1',
+            'hits': {'hits': [
+                {'_type': '_doc', '_index': 'dummy_index', '_source': {'id': self.joe.id}},
+                {'_type': '_doc', '_index': 'dummy_index', '_source': {'id': self.mary.id}}
+            ]}
+        }
+        mock_ES.scroll.return_value = {
+            "_shards": {"failed": 0, "successful": 10, "total": 10}, "timed_out": False, "took": 1, "_scroll_id": '1',
+            'hits': {'hits': []}
+        }
+        mock_ES.count.return_value = {'count': 2}
         group = ContactGroup.create_dynamic(
             self.org, self.admin, "Group two",
             '(Age < 18 and gender = "male") or (Age > 18 and gender = "female")'
@@ -223,6 +245,18 @@ class ContactGroupTest(TembaTest):
         self.assertEqual(group.status, ContactGroup.STATUS_READY)
 
         # update group query
+        mock_ES.search.return_value = {
+            "_shards": {"failed": 0, "successful": 10, "total": 10}, "timed_out": False, "took": 1, "_scroll_id": '1',
+            'hits': {'hits': [
+                {'_type': '_doc', '_index': 'dummy_index', '_source': {'id': self.mary.id}}
+            ]}
+        }
+        mock_ES.scroll.return_value = {
+            "_shards": {"failed": 0, "successful": 10, "total": 10}, "timed_out": False, "took": 1, "_scroll_id": '1',
+            'hits': {'hits': []}
+        }
+        mock_ES.count.return_value = {'count': 1}
+
         group.update_query('age > 18')
 
         group.refresh_from_db()
