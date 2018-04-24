@@ -2,43 +2,47 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
-import regex
-import six
 import logging
-from elasticsearch.serializer import JSONSerializer as es_JSONSerializer
-
 from collections import OrderedDict
 from datetime import timedelta
+
+import regex
+import six
 from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.core.files.base import ContentFile
+from django.core.paginator import Paginator
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError
 from django.db.models import Q
 from django.db.models.functions import Upper
 from django.http import HttpResponseRedirect, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
+from django.utils.functional import cached_property
 from django.utils.http import urlquote_plus
 from django.utils.translation import ugettext_lazy as _
+from django.views.decorators.csrf import csrf_exempt
+from elasticsearch.serializer import JSONSerializer as es_JSONSerializer
 from smartmin.csv_imports.models import ImportTask
 from smartmin.views import SmartCreateView, SmartCRUDL, SmartCSVImportView, SmartDeleteView, SmartFormView
 from smartmin.views import SmartListView, SmartReadView, SmartUpdateView, SmartTemplateView, smart_url
+
 from temba.msgs.views import SendMessageForm
 from temba.orgs.views import OrgPermsMixin, OrgObjPermsMixin, ModalMixin
-from temba.values.models import Value
 from temba.utils import analytics, languages, on_transaction_commit
 from temba.utils.dates import datetime_to_ms, ms_to_datetime
+from temba.utils.es import ModelESSearch
 from temba.utils.fields import Select2Field
+from temba.utils.models import mapEStoDB
 from temba.utils.text import slugify_with
-from temba.utils.views import BaseActionForm, ESPaginationMixin
+from temba.utils.views import BaseActionForm
+from temba.values.models import Value
 from .models import Contact, ContactGroup, ContactGroupCount, ContactField, ContactURN, URN, URN_SCHEME_CONFIG
 from .models import ExportContactsTask, TEL_SCHEME
 from .omnibox import omnibox_query, omnibox_results_to_dict
 from .search import SearchException, parse_query
 from .tasks import export_contacts_task
-
 
 logger = logging.getLogger(__name__)
 
@@ -124,15 +128,71 @@ class ContactGroupForm(forms.ModelForm):
         model = ContactGroup
 
 
-class ContactListView(ESPaginationMixin, OrgPermsMixin, SmartListView):
+class ContactPaginator(Paginator):
+    """
+    Paginator that knows how to work with ES dsl Search objects
+    """
+
+    def __init__(self, queryset, per_page, **kwargs):
+        self.group = kwargs.pop('group')
+        super(ContactPaginator, self).__init__(queryset, per_page, **kwargs)
+
+    @cached_property
+    def count(self):
+        return self.object_list.count()
+
+    def _get_page(self, queryset, number, paginator, **kwargs):
+        # this is a search, use ES pagination
+        if isinstance(queryset, ModelESSearch):
+            # we need to execute the ES search again, to get the actual page of records
+            queryset = queryset.execute()
+
+        # this is a normal list without a search, create our subselect query for this page
+        elif queryset.count() > 0:
+            bottom = (number - 1) * self.per_page
+            top = bottom + self.per_page
+            page_contact_ids = (
+                self.group.contacts.through.objects
+                .filter(contactgroup=self.group)
+                .order_by('-contact_id')
+                .values_list('contact_id', flat=True)[bottom:top]
+            )
+            queryset = (
+                Contact.objects
+                .filter(id__in=page_contact_ids, is_test=False)
+                .order_by('-id')
+                .prefetch_related('org', 'all_groups')
+            )
+
+        return super(ContactPaginator, self)._get_page(queryset, number, paginator, **kwargs)
+
+
+class ContactListView(OrgPermsMixin, SmartListView):
     """
     Base class for contact list views with contact folders and groups listed by the side
     """
     system_group = None
     add_button = True
     paginate_by = 50
-
     parsed_search = None
+
+    paginator_class = ContactPaginator
+
+    def get_paginator(self, queryset, per_page, orphans=0, allow_empty_first_page=True, **kwargs):
+        return ContactPaginator(
+            queryset, per_page, orphans=orphans, allow_empty_first_page=allow_empty_first_page,
+            group=self.derive_group(), **kwargs
+        )
+
+    def paginate_queryset(self, queryset, page_size):
+        if isinstance(queryset, ModelESSearch):
+            paginator, page, es_queryset, is_paginated = super(ContactListView, self).paginate_queryset(queryset, page_size)
+            model_queryset = mapEStoDB(self.model, es_queryset)
+
+            return paginator, page, model_queryset, is_paginated
+
+        else:
+            return super(ContactListView, self).paginate_queryset(queryset, page_size)
 
     def derive_group(self):
         return ContactGroup.all_groups.get(org=self.request.user.get_org(), group_type=self.system_group)
@@ -185,17 +245,18 @@ class ContactListView(ESPaginationMixin, OrgPermsMixin, SmartListView):
                 # this should be an empty resultset
                 return Contact.objects.none()
         else:
-            # if user search is not defined, use DB to select contacts
+            # if user search is not defined, use the DB to select contacts
             return group.contacts.all().filter(is_test=False).order_by('-id').prefetch_related('org', 'all_groups')
 
     def get_context_data(self, **kwargs):
         org = self.request.user.get_org()
         counts = ContactGroup.get_system_group_counts(org)
+        group = self.derive_group()
 
-        # if there isn't a search filtering the queryset, we can replace the count function with a quick cache lookup to
-        # speed up paging
-        if self.system_group and 'search' not in self.request.GET:
-            self.object_list.count = lambda: counts[self.system_group]
+        # if there isn't a search filtering the queryset, we can replace the count function using ContactGroupCounts
+        if group and 'search' not in self.request.GET:
+            group_count = ContactGroupCount.get_totals([group])
+            self.object_list.count = lambda: group_count[group]
 
         context = super(ContactListView, self).get_context_data(**kwargs)
 
