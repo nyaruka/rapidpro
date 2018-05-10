@@ -95,12 +95,6 @@ def send_alert_task(alert_id, resolved):
     alert.send_email(resolved)
 
 
-@task(track_started=True, name='refresh_all_access_tokens')
-def refresh_all_access_tokens(channel_id=None):  # pragma: no cover
-    Channel.refresh_all_access_token('JC', channel_id=channel_id)
-    Channel.refresh_all_access_token('WC', channel_id=channel_id)
-
-
 @nonoverlapping_task(track_started=True, name='trim_channel_log_task')
 def trim_channel_log_task():  # pragma: needs cover
     """

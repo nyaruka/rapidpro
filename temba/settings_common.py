@@ -994,8 +994,12 @@ CELERYBEAT_SCHEDULE = {
         'task': 'resolve_twitter_ids_task',
         'schedule': timedelta(seconds=900)
     },
-    "refresh-all-access-tokens": {
-        'task': 'refresh_all_access_tokens',
+    "refresh-jiochat-access-tokens": {
+        'task': 'refresh_jiochat_access_tokens',
+        'schedule': timedelta(seconds=3600)
+    },
+    "refresh-wechat-access-tokens": {
+        'task': 'refresh_wechat_access_tokens',
         'schedule': timedelta(seconds=3600)
     },
     "refresh-whatsapp-tokens": {
