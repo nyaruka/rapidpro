@@ -5,14 +5,14 @@ from django.urls import reverse
 from mock import patch
 from temba.contacts.models import URN
 from temba.tests import TembaTest, MockResponse
-from temba.utils.jiochat import JiochatClient
+from temba.utils.wechat import WeChatClient
 from ...models import Channel, ChannelLog
-from temba.channels.types.jiochat.tasks import refresh_jiochat_access_tokens
+from temba.channels.types.wechat.tasks import refresh_wechat_access_tokens
 
 
-class JioChatTypeTest(TembaTest):
+class WeChatTypeTest(TembaTest):
     def test_claim(self):
-        url = reverse('channels.types.jiochat.claim')
+        url = reverse('channels.types.wechat.claim')
 
         self.login(self.admin)
 
@@ -28,13 +28,13 @@ class JioChatTypeTest(TembaTest):
 
         response = self.client.post(url, post_data)
 
-        channel = Channel.objects.get(channel_type='JC')
+        channel = Channel.objects.get(channel_type='WC')
 
         self.assertEqual(
             channel.config,
             {
-                'jiochat_app_id': post_data['app_id'],
-                'jiochat_app_secret': post_data['app_secret'],
+                'wechat_app_id': post_data['app_id'],
+                'wechat_app_secret': post_data['app_secret'],
                 'secret': channel.config['secret'],
             }
         )
@@ -45,43 +45,43 @@ class JioChatTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse('courier.jc', args=[channel.uuid]))
+        self.assertContains(response, reverse('courier.wc', args=[channel.uuid]))
         self.assertContains(response, channel.config[Channel.CONFIG_SECRET])
 
-        contact = self.create_contact('Jiochat User', urn=URN.from_jiochat('1234'))
+        contact = self.create_contact('WeChat User', urn=URN.from_wechat('1234'))
 
         # make sure we our jiochat channel satisfies as a send channel
         response = self.client.get(reverse('contacts.contact_read', args=[contact.uuid]))
         send_channel = response.context['send_channel']
         self.assertIsNotNone(send_channel)
-        self.assertEqual(send_channel.channel_type, 'JC')
+        self.assertEqual(send_channel.channel_type, 'WC')
 
     @patch('requests.post')
-    def test_refresh_jiochat_tokens(self, mock_post):
-        channel = Channel.create(self.org, self.user, None, 'JC', None, '1212',
-                                 config={'jiochat_app_id': 'app-id',
-                                         'jiochat_app_secret': 'app-secret',
+    def test_refresh_wechat_tokens(self, mock_post):
+        channel = Channel.create(self.org, self.user, None, 'WC', None, '1212',
+                                 config={'wechat_app_id': 'app-id',
+                                         'wechat_app_secret': 'app-secret',
                                          'secret': Channel.generate_secret(32)},
                                  uuid='00000000-0000-0000-0000-000000001234')
 
         mock_post.return_value = MockResponse(400, '{ "error":"Failed" }')
 
         self.assertFalse(ChannelLog.objects.all())
-        refresh_jiochat_access_tokens()
+        refresh_wechat_access_tokens()
 
         self.assertEqual(ChannelLog.objects.all().count(), 1)
         self.assertTrue(ChannelLog.objects.filter(is_error=True).count(), 1)
 
         self.assertEqual(mock_post.call_count, 1)
 
-        channel_client = JiochatClient.from_channel(channel)
+        channel_client = WeChatClient.from_channel(channel)
 
         self.assertIsNone(channel_client.get_access_token())
 
         mock_post.reset_mock()
         mock_post.return_value = MockResponse(200, '{ "access_token":"ABC1234" }')
 
-        refresh_jiochat_access_tokens()
+        refresh_wechat_access_tokens()
 
         self.assertEqual(ChannelLog.objects.all().count(), 2)
         self.assertTrue(ChannelLog.objects.filter(is_error=True).count(), 1)

@@ -14,8 +14,8 @@ from temba.utils.http import HttpEvent, http_headers
 class APIClient:
     API_NAME = 'API'
     API_SLUG = 'api'
-    TOKEN_REFRESH_LOCK = '%s_channel_access_token:refresh-lock:%s' % API_SLUG
-    TOKEN_STORE_KEY = '%s_channel_access_token:%s' % API_SLUG
+    TOKEN_REFRESH_LOCK = API_SLUG + '_channel_access_token:refresh-lock:%s'
+    TOKEN_STORE_KEY = API_SLUG + '_channel_access_token:%s'
     TOKEN_URL = None
 
     def __init__(self, channel_uuid, app_id, app_secret):
@@ -27,7 +27,7 @@ class APIClient:
     def from_channel(cls, channel):
         config = channel.config
         app_id = config.get("%s_app_id" % cls.API_SLUG, None)
-        app_secret = config.get("%s_app_secret" % cls.APP_SLUG, None)
+        app_secret = config.get("%s_app_secret" % cls.API_SLUG, None)
         return cls(channel.uuid, app_id, app_secret)
 
     def get_access_token(self):

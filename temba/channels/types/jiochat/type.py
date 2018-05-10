@@ -6,6 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 from temba.contacts.models import JIOCHAT_SCHEME
 from .views import ClaimView
 from ...models import ChannelType
+from temba.utils.jiochat import JiochatClient
 
 
 class JioChatType(ChannelType):
@@ -46,3 +47,9 @@ class JioChatType(ChannelType):
             url="{{ channel.config.secret }}",
         )
     )
+
+    def refresh_access_token(self, channels):
+        for channel in channels:
+            client = JiochatClient.from_channel(channel)
+            if client is not None:
+                client.refresh_access_token(channel.id)

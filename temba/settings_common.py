@@ -994,8 +994,8 @@ CELERYBEAT_SCHEDULE = {
         'task': 'resolve_twitter_ids_task',
         'schedule': timedelta(seconds=900)
     },
-    "refresh-jiochat-access-tokens": {
-        'task': 'refresh_jiochat_access_tokens',
+    "refresh-all-access-tokens": {
+        'task': 'refresh_all_access_tokens',
         'schedule': timedelta(seconds=3600)
     },
     "refresh-whatsapp-tokens": {
@@ -1185,6 +1185,7 @@ CHANNEL_TYPES = [
     'temba.channels.types.twitter_activity.TwitterActivityType',
     'temba.channels.types.verboice.VerboiceType',
     'temba.channels.types.viber_public.ViberPublicType',
+    'temba.channels.types.wechat.WeChatType',
     'temba.channels.types.yo.YoType',
     'temba.channels.types.zenvia.ZenviaType',
 ]

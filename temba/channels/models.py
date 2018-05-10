@@ -188,6 +188,11 @@ class ChannelType(six.with_metaclass(ABCMeta)):
         if IS_PROD setting is True.
         """
 
+    def refresh_access_token(self, channels):
+        """
+        Refresh access tokens for channels
+        """
+
     def send(self, channel, msg, text):  # pragma: no cover
         """
         Sends the given message struct. Note: this will only be called if SEND_MESSAGES setting is True.
@@ -524,17 +529,12 @@ class Channel(TembaModel):
                               address=channel.address, role=Channel.ROLE_CALL, parent=channel)
 
     @classmethod
-    def refresh_all_jiochat_access_token(cls, channel_id=None):
-        from temba.utils.jiochat import JiochatClient
-
-        jiochat_channels = Channel.objects.filter(channel_type='JC', is_active=True)
+    def refresh_all_access_token_for_code(cls, code, channel_id=None):
+        type_channels = Channel.objects.filter(channel_type=code, is_active=True)
         if channel_id:
-            jiochat_channels = jiochat_channels.filter(id=channel_id)
+            type_channels = type_channels.filter(id=channel_id)
 
-        for channel in jiochat_channels:
-            client = JiochatClient.from_channel(channel)
-            if client is not None:
-                client.refresh_access_token(channel.id)
+        cls.get_type_from_code(code).refresh_access_token(type_channels)
 
     @classmethod
     def get_or_create_android(cls, registration_data, status):
