@@ -100,7 +100,7 @@ class WeChatTypeTest(TembaTest):
         mock_post.reset_mock()
         mock_post.return_value = MockResponse(200, '{ "access_token":"ABC1235" }')
 
-        Channel.refresh_all_access_token(channel.id)
+        Channel.refresh_access_token_for_code('WC', channel.id)
 
         self.assertEqual(ChannelLog.objects.all().count(), 3)
         self.assertTrue(ChannelLog.objects.filter(is_error=True).count(), 1)
