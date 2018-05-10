@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from temba.utils.access_token import APIClient
 
 
-class JiochatClient(APIClient):
-    API_NAME = 'JioChat'
-    API_SLUG = 'jiochat'
-    TOKEN_URL = 'https://channels.jiochat.com/auth/token.action'
+class WeChatClient(APIClient):
+    API_NAME = 'WeChat'
+    API_SLUG = 'wechat'
+    TOKEN_URL = 'https://api.weixin.qq.com/cgi-bin/token'
