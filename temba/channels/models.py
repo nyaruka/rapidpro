@@ -529,7 +529,7 @@ class Channel(TembaModel):
                               address=channel.address, role=Channel.ROLE_CALL, parent=channel)
 
     @classmethod
-    def refresh_all_access_token_for_code(cls, code, channel_id=None):
+    def refresh_access_token_for_code(cls, code, channel_id=None):
         type_channels = Channel.objects.filter(channel_type=code, is_active=True)
         if channel_id:
             type_channels = type_channels.filter(id=channel_id)

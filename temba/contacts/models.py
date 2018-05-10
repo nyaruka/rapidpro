@@ -2121,6 +2121,7 @@ class ContactURN(models.Model):
         FACEBOOK_SCHEME: dict(label="Facebook", key=None, id=0, field=None, urn_scheme=FACEBOOK_SCHEME),
         VIBER_SCHEME: dict(label="Viber", key=None, id=0, field=None, urn_scheme=VIBER_SCHEME),
         JIOCHAT_SCHEME: dict(label="Jiochat", key=None, id=0, field=None, urn_scheme=JIOCHAT_SCHEME),
+        WECHAT_SCHEME: dict(label="WeChat", key=None, id=0, field=None, urn_scheme=WECHAT_SCHEME),
         FCM_SCHEME: dict(label="FCM", key=None, id=0, field=None, urn_scheme=FCM_SCHEME),
         LINE_SCHEME: dict(label='Line', key=None, id=0, field=None, urn_scheme=LINE_SCHEME),
         WHATSAPP_SCHEME: dict(label="WhatsApp", key=None, id=0, field=None, urn_scheme=WHATSAPP_SCHEME),
