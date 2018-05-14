@@ -188,9 +188,9 @@ class ChannelType(six.with_metaclass(ABCMeta)):
         if IS_PROD setting is True.
         """
 
-    def refresh_access_token(self, channels):
+    def refresh_access_token(self, Channel_id=None):
         """
-        Refresh access tokens for channels
+        Refresh access tokens for channels of this type
         """
 
     def send(self, channel, msg, text):  # pragma: no cover
@@ -527,14 +527,6 @@ class Channel(TembaModel):
     def add_call_channel(cls, org, user, channel):
         return Channel.create(org, user, channel.country, 'T', name="Twilio Caller",
                               address=channel.address, role=Channel.ROLE_CALL, parent=channel)
-
-    @classmethod
-    def refresh_access_token_for_code(cls, code, channel_id=None):
-        type_channels = Channel.objects.filter(channel_type=code, is_active=True)
-        if channel_id:
-            type_channels = type_channels.filter(id=channel_id)
-
-        cls.get_type_from_code(code).refresh_access_token(type_channels)
 
     @classmethod
     def get_or_create_android(cls, registration_data, status):

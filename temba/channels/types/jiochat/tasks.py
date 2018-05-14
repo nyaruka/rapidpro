@@ -6,4 +6,4 @@ from temba.channels.models import Channel
 
 @task(track_started=True, name='refresh_jiochat_access_tokens')
 def refresh_jiochat_access_tokens():  # pragma: needs cover
-    Channel.refresh_access_token_for_code('JC')
+    Channel.get_type_from_code('JC').refresh_access_token()
