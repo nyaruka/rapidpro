@@ -31,6 +31,8 @@ class WeChatType(ChannelType):
     attachment_support = False
     free_sending = True
 
+    show_public_addresses = True
+
     configuration_blurb = _(
         """
         To finish configuring your WeChat connection, you'll need to enter the following webhook URL and token on WeChat Official Accounts Platform

@@ -2,7 +2,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from django.urls import reverse
+from django.test import override_settings
+
 from mock import patch
+
 from temba.contacts.models import URN
 from temba.tests import TembaTest, MockResponse
 from temba.utils.wechat import WeChatClient
@@ -11,6 +14,8 @@ from temba.channels.types.wechat.tasks import refresh_wechat_access_tokens
 
 
 class WeChatTypeTest(TembaTest):
+
+    @override_settings(IP_ADDRESSES=('10.10.10.10', '172.16.20.30'))
     def test_claim(self):
         url = reverse('channels.types.wechat.claim')
 
@@ -47,6 +52,10 @@ class WeChatTypeTest(TembaTest):
 
         self.assertContains(response, reverse('courier.wc', args=[channel.uuid]))
         self.assertContains(response, channel.config[Channel.CONFIG_SECRET])
+
+        # check we show the IP to whitelist
+        self.assertContains(response, "10.10.10.10")
+        self.assertContains(response, "172.16.20.30")
 
         contact = self.create_contact('WeChat User', urn=URN.from_wechat('1234'))
 
