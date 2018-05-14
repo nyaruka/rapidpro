@@ -188,11 +188,6 @@ class ChannelType(six.with_metaclass(ABCMeta)):
         if IS_PROD setting is True.
         """
 
-    def refresh_access_token(self, Channel_id=None):
-        """
-        Refresh access tokens for channels of this type
-        """
-
     def send(self, channel, msg, text):  # pragma: no cover
         """
         Sends the given message struct. Note: this will only be called if SEND_MESSAGES setting is True.

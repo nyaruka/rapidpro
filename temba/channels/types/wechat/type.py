@@ -5,8 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from temba.contacts.models import WECHAT_SCHEME
 from .views import ClaimView
-from ...models import ChannelType, Channel
-from temba.utils.wechat import WeChatClient
+from ...models import ChannelType
 
 
 class WeChatType(ChannelType):
@@ -49,13 +48,3 @@ class WeChatType(ChannelType):
             url="{{ channel.config.secret }}",
         )
     )
-
-    def refresh_access_token(self, channel_id=None):
-        channels = Channel.objects.filter(channel_type=self.code, is_active=True)
-        if channel_id:
-            channels = channels.filter(id=channel_id)
-
-        for channel in channels:
-            client = WeChatClient.from_channel(channel)
-            if client is not None:
-                client.refresh_access_token(channel.id)
