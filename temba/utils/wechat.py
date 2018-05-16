@@ -16,6 +16,8 @@ from temba.utils.http import HttpEvent
 class WeChatClient(APIClient):
     API_NAME = 'WeChat'
     API_SLUG = 'wechat'
+    TOKEN_REFRESH_LOCK = 'wechat_channel_access_token:refresh-lock:%s'
+    TOKEN_STORE_KEY = 'wechat_channel_access_token:%s'
     TOKEN_URL = 'https://api.weixin.qq.com/cgi-bin/token'
 
     # we use GET for WeChat
@@ -53,5 +55,4 @@ class WeChatClient(APIClient):
                 expires = response_json.get('expires_in', 7200)
                 if access_token:
                     r.set(key, access_token, ex=int(expires))
-
-                return access_token
+                    return access_token

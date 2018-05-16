@@ -12,10 +12,10 @@ from temba.utils.http import HttpEvent, http_headers
 
 
 class APIClient:
-    API_NAME = 'API'
-    API_SLUG = 'api'
-    TOKEN_REFRESH_LOCK = API_SLUG + '_channel_access_token:refresh-lock:%s'
-    TOKEN_STORE_KEY = API_SLUG + '_channel_access_token:%s'
+    API_NAME = None
+    API_SLUG = None
+    TOKEN_REFRESH_LOCK = None
+    TOKEN_STORE_KEY = None
     TOKEN_URL = None
 
     def __init__(self, channel_uuid, app_id, app_secret):

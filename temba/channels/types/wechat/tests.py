@@ -65,46 +65,45 @@ class WeChatTypeTest(TembaTest):
         self.assertIsNotNone(send_channel)
         self.assertEqual(send_channel.channel_type, 'WC')
 
-    @patch('requests.post')
-    def test_refresh_wechat_tokens(self, mock_post):
+    @patch('requests.get')
+    def test_refresh_wechat_tokens(self, mock_get):
+        self.clear_cache()
         channel = Channel.create(self.org, self.user, None, 'WC', None, '1212',
                                  config={'wechat_app_id': 'app-id',
                                          'wechat_app_secret': 'app-secret',
                                          'secret': Channel.generate_secret(32)},
                                  uuid='00000000-0000-0000-0000-000000001234')
 
-        mock_post.return_value = MockResponse(400, '{ "error":"Failed" }')
+        mock_get.return_value = MockResponse(400, '{ "errcode": 40013, "error":"Failed" }')
 
+        channel_client = WeChatClient.from_channel(channel)
+
+        ChannelLog.objects.all().delete()
         self.assertFalse(ChannelLog.objects.all())
         refresh_wechat_access_tokens()
 
         self.assertEqual(ChannelLog.objects.filter(channel_id=channel.pk).count(), 1)
         self.assertTrue(ChannelLog.objects.filter(is_error=True).count(), 1)
 
-        self.assertEqual(mock_post.call_count, 1)
-
-        channel_client = WeChatClient.from_channel(channel)
-
-        self.assertIsNone(channel_client.get_access_token())
-
-        mock_post.reset_mock()
-        mock_post.return_value = MockResponse(200, '{ "access_token":"ABC1234" }')
+        self.assertEqual(mock_get.call_count, 2)
+        mock_get.reset_mock()
+        mock_get.return_value = MockResponse(200, '{ "errcode": 0, "access_token":"ABC1234" }')
 
         refresh_wechat_access_tokens()
 
         self.assertEqual(ChannelLog.objects.filter(channel_id=channel.pk).count(), 2)
         self.assertTrue(ChannelLog.objects.filter(channel_id=channel.pk, is_error=True).count(), 1)
         self.assertTrue(ChannelLog.objects.filter(channel_id=channel.pk, is_error=False).count(), 1)
-        self.assertEqual(mock_post.call_count, 1)
+        self.assertEqual(mock_get.call_count, 2)
 
         self.assertEqual(channel_client.get_access_token(), b'ABC1234')
-        self.assertEqual(mock_post.call_args_list[0][1]['data'], {'client_secret': u'app-secret',
-                                                                  'grant_type': 'client_credentials',
-                                                                  'client_id': u'app-id'})
+        self.assertEqual(mock_get.call_args_list[0][1]['params'], {'secret': u'app-secret',
+                                                                   'grant_type': 'client_credential',
+                                                                   'appid': u'app-id'})
         self.login(self.admin)
         response = self.client.get(reverse("channels.channellog_list") + '?channel=%d&others=1' % channel.id,
                                    follow=True)
         self.assertEqual(len(response.context['object_list']), 2)
 
-        mock_post.reset_mock()
-        mock_post.return_value = MockResponse(200, '{ "access_token":"ABC1235" }')
+        mock_get.reset_mock()
+        mock_get.return_value = MockResponse(200, '{ "access_token":"ABC1235" }')
