@@ -3834,7 +3834,7 @@ class ContactTest(TembaTest):
                                       error_messages=[dict(line=3,
                                                            error="Missing any valid URNs; at least one among phone, "
                                                                  "facebook, twitter, twitterid, viber, line, telegram, mailto, "
-                                                                 "external, jiochat, fcm, whatsapp should be provided or a Contact UUID"),
+                                                                 "external, jiochat, wechat, fcm, whatsapp should be provided or a Contact UUID"),
                                                       dict(line=4, error="Invalid Phone number 12345")]))
 
         # import a spreadsheet with a name and a twitter columns only
@@ -3906,7 +3906,7 @@ class ContactTest(TembaTest):
                                           error_messages=[dict(line=3,
                                                           error="Missing any valid URNs; at least one among phone, "
                                                                 "facebook, twitter, twitterid, viber, line, telegram, mailto, "
-                                                                "external, jiochat, fcm, whatsapp should be provided or a Contact UUID")]))
+                                                                "external, jiochat, wechat, fcm, whatsapp should be provided or a Contact UUID")]))
 
             # lock for creates only
             self.assertEqual(mock_lock.call_count, 1)
@@ -3974,7 +3974,7 @@ class ContactTest(TembaTest):
                                           error_messages=[dict(line=3,
                                                           error="Missing any valid URNs; at least one among phone, "
                                                                 "facebook, twitter, twitterid, viber, line, telegram, mailto, "
-                                                                "external, jiochat, fcm, whatsapp should be provided or a Contact UUID")]))
+                                                                "external, jiochat, wechat, fcm, whatsapp should be provided or a Contact UUID")]))
 
             # only lock for create
             self.assertEqual(mock_lock.call_count, 1)
@@ -4101,7 +4101,7 @@ class ContactTest(TembaTest):
         self.assertFormError(response, 'form', 'csv_file',
                              'The file you provided is missing a required header. At least one of "Phone", "Facebook", '
                              '"Twitter", "Twitterid", "Viber", "Line", "Telegram", "Mailto", "External", '
-                             '"Jiochat", "Fcm", "Whatsapp" or "Contact UUID" should be included.')
+                             '"Jiochat", "Wechat", "Fcm", "Whatsapp" or "Contact UUID" should be included.')
 
         csv_file = open('%s/test_imports/sample_contacts_missing_name_phone_headers.xls' % settings.MEDIA_ROOT, 'rb')
         post_data = dict(csv_file=csv_file)
@@ -4109,7 +4109,7 @@ class ContactTest(TembaTest):
         self.assertFormError(response, 'form', 'csv_file',
                              'The file you provided is missing a required header. At least one of "Phone", "Facebook", '
                              '"Twitter", "Twitterid", "Viber", "Line", "Telegram", "Mailto", "External", '
-                             '"Jiochat", "Fcm", "Whatsapp" or "Contact UUID" should be included.')
+                             '"Jiochat", "Wechat", "Fcm", "Whatsapp" or "Contact UUID" should be included.')
 
         for i in range(ContactGroup.MAX_ORG_CONTACTGROUPS):
             ContactGroup.create_static(self.org, self.admin, 'group%d' % i)
@@ -5292,7 +5292,7 @@ class ContactFieldTest(TembaTest):
             return workbook.worksheets
 
         # no group specified, so will default to 'All Contacts'
-        with self.assertNumQueries(42):
+        with self.assertNumQueries(43):
             export = request_export()
             self.assertExcelSheet(export[0], [
                 ["Contact UUID", "Name", "Language", "Email", "Phone", "Telegram", "Twitter", "Third", "First", "Second"],
@@ -5303,7 +5303,7 @@ class ContactFieldTest(TembaTest):
         # change the order of the fields
         self.contactfield_2.priority = 15
         self.contactfield_2.save()
-        with self.assertNumQueries(42):
+        with self.assertNumQueries(43):
             export = request_export()
             self.assertExcelSheet(export[0], [
                 ["Contact UUID", "Name", "Language", "Email", "Phone", "Telegram", "Twitter", "Third", "Second", "First"],
@@ -5322,7 +5322,7 @@ class ContactFieldTest(TembaTest):
         ContactURN.create(self.org, contact, 'tel:+12062233445')
 
         # but should have additional Twitter and phone columns
-        with self.assertNumQueries(42):
+        with self.assertNumQueries(43):
             export = request_export()
             self.assertExcelSheet(export[0], [
                 ["Contact UUID", "Name", "Language", "Email", "Phone", "Phone", "Telegram", "Twitter", "Third", "Second", "First"],
@@ -5340,7 +5340,7 @@ class ContactFieldTest(TembaTest):
             ])
 
         # export a specified group of contacts (only Ben and Adam are in the group)
-        with self.assertNumQueries(43):
+        with self.assertNumQueries(44):
             self.assertExcelSheet(request_export('?g=%s' % group.uuid)[0], [
                 ["Contact UUID", "Name", "Language", "Email", "Phone", "Phone", "Telegram", "Twitter", "Third", "Second", "First"],
                 [contact2.uuid, "Adam Sumner", "eng", "adam@sumner.com", "+12067799191", "", "1234", "adam", "", "", ""],
@@ -5353,7 +5353,7 @@ class ContactFieldTest(TembaTest):
             {'_type': '_doc', '_index': 'dummy_index', '_source': {'id': contact3.id}}
         ]
         with ESMockWithScroll(data=mock_es_data):
-            with self.assertNumQueries(41):
+            with self.assertNumQueries(42):
                 self.assertExcelSheet(request_export('?s=name+has+adam+or+name+has+deng')[0], [
                     ["Contact UUID", "Name", "Language", "Email", "Phone", "Phone", "Telegram", "Twitter", "Third", "Second", "First"],
                     [contact2.uuid, "Adam Sumner", "eng", "adam@sumner.com", "+12067799191", "", "1234", "adam", "", "", ""],
@@ -5365,7 +5365,7 @@ class ContactFieldTest(TembaTest):
             {'_type': '_doc', '_index': 'dummy_index', '_source': {'id': contact.id}}
         ]
         with ESMockWithScroll(data=mock_es_data):
-            with self.assertNumQueries(42):
+            with self.assertNumQueries(43):
                 self.assertExcelSheet(request_export('?g=%s&s=Hagg' % group.uuid)[0], [
                     ["Contact UUID", "Name", "Language", "Email", "Phone", "Phone", "Telegram", "Twitter", "Third", "Second", "First"],
                     [contact.uuid, "Ben Haggerty", "", "", "+12067799294", "+12062233445", "", "", "20-12-2015 08:30", "", "One"],
@@ -5703,7 +5703,7 @@ class ContactFieldTest(TembaTest):
 
         response_json = response.json()
 
-        self.assertEqual(len(response_json), 46)
+        self.assertEqual(len(response_json), 47)
         self.assertEqual(response_json[0]['label'], 'Full name')
         self.assertEqual(response_json[0]['key'], 'name')
         self.assertEqual(response_json[1]['label'], 'Phone number')
@@ -5726,26 +5726,28 @@ class ContactFieldTest(TembaTest):
         self.assertEqual(response_json[9]['key'], 'ext')
         self.assertEqual(response_json[10]['label'], 'Jiochat identifier')
         self.assertEqual(response_json[10]['key'], 'jiochat')
-        self.assertEqual(response_json[11]['label'], 'Firebase Cloud Messaging identifier')
-        self.assertEqual(response_json[11]['key'], 'fcm')
-        self.assertEqual(response_json[12]['label'], 'WhatsApp identifier')
-        self.assertEqual(response_json[12]['key'], 'whatsapp')
-        self.assertEqual(response_json[13]['label'], 'Groups')
-        self.assertEqual(response_json[13]['key'], 'groups')
-        self.assertEqual(response_json[14]['label'], 'First')
-        self.assertEqual(response_json[14]['key'], 'first')
-        self.assertEqual(response_json[15]['label'], 'label0')
-        self.assertEqual(response_json[15]['key'], 'key0')
+        self.assertEqual(response_json[11]['label'], 'WeChat identifier')
+        self.assertEqual(response_json[11]['key'], 'wechat')
+        self.assertEqual(response_json[12]['label'], 'Firebase Cloud Messaging identifier')
+        self.assertEqual(response_json[12]['key'], 'fcm')
+        self.assertEqual(response_json[13]['label'], 'WhatsApp identifier')
+        self.assertEqual(response_json[13]['key'], 'whatsapp')
+        self.assertEqual(response_json[14]['label'], 'Groups')
+        self.assertEqual(response_json[14]['key'], 'groups')
+        self.assertEqual(response_json[15]['label'], 'First')
+        self.assertEqual(response_json[15]['key'], 'first')
+        self.assertEqual(response_json[16]['label'], 'label0')
+        self.assertEqual(response_json[16]['key'], 'key0')
 
         ContactField.objects.filter(org=self.org, key='key0').update(label='AAAA')
 
         response = self.client.get(contact_field_json_url)
         response_json = response.json()
 
-        self.assertEqual(response_json[14]['label'], 'AAAA')
-        self.assertEqual(response_json[14]['key'], 'key0')
-        self.assertEqual(response_json[15]['label'], 'First')
-        self.assertEqual(response_json[15]['key'], 'first')
+        self.assertEqual(response_json[15]['label'], 'AAAA')
+        self.assertEqual(response_json[15]['key'], 'key0')
+        self.assertEqual(response_json[16]['label'], 'First')
+        self.assertEqual(response_json[16]['key'], 'first')
 
 
 class URNTest(TembaTest):
