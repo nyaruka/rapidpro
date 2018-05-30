@@ -1586,7 +1586,9 @@ class Org(SmartModel):
         if not topup:
             return min(10, max_ttl)
 
-        return min(max_ttl, max(10, min((ORG_CREDITS_CACHE_TTL, int((topup.expires_on - timezone.now()).total_seconds())))))
+        return min(
+            max_ttl, max(10, min((ORG_CREDITS_CACHE_TTL, int((topup.expires_on - timezone.now()).total_seconds()))))
+        )
 
     def _calculate_active_topup(self):
         """
