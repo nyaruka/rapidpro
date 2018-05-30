@@ -1457,7 +1457,7 @@ class Org(SmartModel):
             # we don't cache in this case
             return used_credits_sum, 0
 
-        return used_credits_sum, self.get_credit_ttl()
+        return used_credits_sum, self.get_credit_ttl(max_ttl=7200)
 
     def get_credits_remaining(self):
         """
@@ -1568,22 +1568,27 @@ class Org(SmartModel):
             ORG_ACTIVE_TOPUP_KEY % self.pk, self._calculate_active_topup, force_dirty=force_dirty
         )
 
-    def get_credit_ttl(self):
+    def get_credit_ttl(self, max_ttl=None):
         """
         Credit TTL should be smallest of active topup expiration and ORG_CREDITS_CACHE_TTL
         :return:
         """
-        return self.get_topup_ttl(self.get_active_topup())
+        return self.get_topup_ttl(self.get_active_topup(), max_ttl=max_ttl)
 
-    def get_topup_ttl(self, topup):
+    def get_topup_ttl(self, topup, max_ttl):
         """
         Gets how long metrics based on the given topup should live. Returns the shorter ttl of
         either ORG_CREDITS_CACHE_TTL or time remaining on the expiration
         """
-        if not topup:
-            return 10
+        if not max_ttl:
+            max_ttl = ORG_CREDITS_CACHE_TTL
 
-        return max(10, min((ORG_CREDITS_CACHE_TTL, int((topup.expires_on - timezone.now()).total_seconds()))))
+        if not topup:
+            return min(10, max_ttl)
+
+        return min(
+            max_ttl, max(10, min((ORG_CREDITS_CACHE_TTL, int((topup.expires_on - timezone.now()).total_seconds()))))
+        )
 
     def _calculate_active_topup(self):
         """
@@ -1602,7 +1607,7 @@ class Org(SmartModel):
         if topup:
             # initialize our active topup metrics
             r = get_redis_connection()
-            ttl = self.get_topup_ttl(topup)
+            ttl = self.get_topup_ttl(topup, None)
             r.set(ORG_ACTIVE_TOPUP_REMAINING % (self.id, topup.id), topup.get_remaining(), ttl)
             return topup.id, ttl
 
