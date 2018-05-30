@@ -1030,7 +1030,7 @@ class OrgTest(TembaTest):
         # ttl should never be negative even if expired
         topup.expires_on = timezone.now() - timedelta(days=1)
         topup.save(update_fields=["expires_on"])
-        self.assertEqual(10, self.org.get_topup_ttl(topup))
+        self.assertEqual(10, self.org.get_topup_ttl(topup, None))
 
     def test_topup_expiration(self):
 
