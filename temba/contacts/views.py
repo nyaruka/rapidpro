@@ -572,45 +572,32 @@ class ContactCRUDL(SmartCRUDL):
 
             group = ContactGroup.all_groups.filter(org=org, uuid=group_uuid).first() if group_uuid else None
 
-            # is there already an export taking place?
-            existing = ExportContactsTask.get_recent_unfinished(org)
-            if existing:
+            previous_export = (
+                ExportContactsTask.objects.filter(org=org, created_by=user).order_by("-modified_on").first()
+            )
+            if previous_export and previous_export.created_on < timezone.now() - timedelta(
+                hours=24
+            ):  # pragma: needs cover
+                analytics.track(self.request.user.username, "temba.contact_exported")
+
+            export = ExportContactsTask.create(org, user, group, search, group_membership)
+
+            # schedule the export job
+            on_transaction_commit(lambda: export_contacts_task.delay(export.pk))
+
+            if not getattr(settings, "CELERY_ALWAYS_EAGER", False):  # pragma: no cover
                 messages.info(
                     self.request,
-                    _(
-                        "There is already an export in progress, started by %s. You must wait "
-                        "for that export to complete before starting another." % existing.created_by.username
-                    ),
+                    _("We are preparing your export. We will e-mail you at %s when it is ready.")
+                    % self.request.user.username,
                 )
 
-            # otherwise, off we go
             else:
-                previous_export = (
-                    ExportContactsTask.objects.filter(org=org, created_by=user).order_by("-modified_on").first()
+                dl_url = reverse("assets.download", kwargs=dict(type="contact_export", pk=export.pk))
+                messages.info(
+                    self.request,
+                    _("Export complete, you can find it here: %s (production users will get an email)") % dl_url,
                 )
-                if previous_export and previous_export.created_on < timezone.now() - timedelta(
-                    hours=24
-                ):  # pragma: needs cover
-                    analytics.track(self.request.user.username, "temba.contact_exported")
-
-                export = ExportContactsTask.create(org, user, group, search, group_membership)
-
-                # schedule the export job
-                on_transaction_commit(lambda: export_contacts_task.delay(export.pk))
-
-                if not getattr(settings, "CELERY_ALWAYS_EAGER", False):  # pragma: no cover
-                    messages.info(
-                        self.request,
-                        _("We are preparing your export. We will e-mail you at %s when it is ready.")
-                        % self.request.user.username,
-                    )
-
-                else:
-                    dl_url = reverse("assets.download", kwargs=dict(type="contact_export", pk=export.pk))
-                    messages.info(
-                        self.request,
-                        _("Export complete, you can find it here: %s (production users will get an email)") % dl_url,
-                    )
 
             return HttpResponseRedirect(redirect or reverse("contacts.contact_list"))
 
