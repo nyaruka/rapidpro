@@ -1244,7 +1244,7 @@ class ExportTest(TembaTest):
 
         self.group = self.create_group("New contacts", [])
         self.task = ExportContactsTask.objects.create(
-            org=self.org, group=self.group, created_by=self.admin, modified_by=self.admin
+            org=self.org, group=self.group, created_by=self.admin, modified_by=self.admin, group_membership=True
         )
 
     def test_prepare_value(self):
@@ -1341,6 +1341,41 @@ class ExportTest(TembaTest):
 
         self.assertEqual(200 + 2, len(list(sheet4.rows)))
         self.assertEqual(16, len(list(sheet4.columns)))
+
+        os.unlink(temp_file.name)
+
+        self.task.group_membership = False
+        self.task.save()
+
+        exporter = TableExporter(self.task, "test", "other test", cols, extra_cols)
+
+        # write out 1050000 rows, that'll make two sheets
+        for i in range(test_max_rows + 200):
+            exporter.write_row(values, extra_values)
+
+        temp_file, file_ext = exporter.save_file()
+        workbook = load_workbook(filename=temp_file.name)
+
+        self.assertEqual(2, len(workbook.worksheets))
+
+        # check our sheet 1 values
+        sheet1 = workbook.worksheets[0]
+
+        rows = tuple(sheet1.rows)
+
+        self.assertEqual(cols, [cell.value for cell in rows[0]])
+        self.assertEqual(values, [cell.value for cell in rows[1]])
+
+        self.assertEqual(test_max_rows, len(list(sheet1.rows)))
+        self.assertEqual(32, len(list(sheet1.columns)))
+
+        sheet2 = workbook.worksheets[1]
+        rows = tuple(sheet2.rows)
+        self.assertEqual(cols, [cell.value for cell in rows[0]])
+        self.assertEqual(values, [cell.value for cell in rows[1]])
+
+        self.assertEqual(200 + 2, len(list(sheet2.rows)))
+        self.assertEqual(32, len(list(sheet2.columns)))
 
         os.unlink(temp_file.name)
 

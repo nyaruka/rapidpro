@@ -192,10 +192,12 @@ class TableExporter(object):
 
         # add our sheet
         self.sheet = self.workbook.create_sheet(u"%s %d" % (self.sheet_name, self.sheet_number))
-        self.extra_sheet = self.workbook.create_sheet(u"%s %d" % (self.extra_sheet_name, self.sheet_number))
+        if self.task.group_membership:
+            self.extra_sheet = self.workbook.create_sheet(u"%s %d" % (self.extra_sheet_name, self.sheet_number))
 
         self.task.append_row(self.sheet, self.columns)
-        self.task.append_row(self.extra_sheet, self.extra_columns)
+        if self.task.group_membership:
+            self.task.append_row(self.extra_sheet, self.extra_columns)
 
         self.sheet_row = 2
 
@@ -208,7 +210,8 @@ class TableExporter(object):
             self._add_sheet()
 
         self.task.append_row(self.sheet, values)
-        self.task.append_row(self.extra_sheet, extra_values)
+        if self.task.group_membership:
+            self.task.append_row(self.extra_sheet, extra_values)
 
         self.sheet_row += 1
 

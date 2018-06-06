@@ -13,7 +13,6 @@ from smartmin.views import (
     SmartFormView,
     SmartListView,
     SmartReadView,
-    SmartTemplateView,
     SmartUpdateView,
     smart_url,
 )
@@ -27,6 +26,7 @@ from django.core.urlresolvers import reverse
 from django.db import IntegrityError
 from django.db.models import Q
 from django.db.models.functions import Lower, Upper
+from django.forms import Form
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.http import urlquote_plus
@@ -486,6 +486,16 @@ class UpdateContactForm(ContactForm):
         self.fields["groups"].help_text = _("The groups which this contact belongs to")
 
 
+class ExportForm(Form):
+    GROUP_MEMBERSHIP_CHOICES = ((0, _("No Groups Membership sheet")), (1, _("Include Groups Membership sheet")))
+
+    group_membership = forms.ChoiceField(choices=GROUP_MEMBERSHIP_CHOICES, label=_("Selection"), initial=0)
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+
 class ContactCRUDL(SmartCRUDL):
     model = Contact
     actions = (
@@ -509,15 +519,59 @@ class ContactCRUDL(SmartCRUDL):
         "history",
     )
 
-    class Export(OrgPermsMixin, SmartTemplateView):
+    class Export(ModalMixin, OrgPermsMixin, SmartFormView):
 
-        def render_to_response(self, context, **response_kwargs):
+        form_class = ExportForm
+        submit_button_name = "Export"
+        success_url = "@contacts.contact_list"
+
+        def pre_process(self, request, *args, **kwargs):
             user = self.request.user
             org = user.get_org()
 
+            group_uuid, search, redirect = self.derive_params()
+
+            # is there already an export taking place?
+            existing = ExportContactsTask.get_recent_unfinished(org)
+            if existing:
+                messages.info(
+                    self.request,
+                    _(
+                        "There is already an export in progress, started by %s. You must wait "
+                        "for that export to complete before starting another." % existing.created_by.username
+                    ),
+                )
+                return HttpResponseRedirect(redirect or reverse("contacts.contact_list"))
+
+        def derive_params(self):
             group_uuid = self.request.GET.get("g")
             search = self.request.GET.get("s")
             redirect = self.request.GET.get("redirect")
+
+            return group_uuid, search, redirect
+
+        def get_success_url(self):
+            return self.request.GET.get("redirect") or reverse("contacts.contact_list")
+
+        def get_form_kwargs(self):
+            kwargs = super().get_form_kwargs()
+            kwargs["user"] = self.request.user
+            return kwargs
+
+        def form_invalid(self, form):  # pragma: needs cover
+            if "_format" in self.request.GET and self.request.GET["_format"] == "json":
+                return HttpResponse(
+                    json.dumps(dict(status="error", errors=form.errors)), content_type="application/json", status=400
+                )
+            else:
+                return super().form_invalid(form)
+
+        def form_valid(self, form):
+            user = self.request.user
+            org = user.get_org()
+
+            group_uuid, search, redirect = self.derive_params()
+            group_membership = bool(int(form.cleaned_data["group_membership"]))
 
             group = ContactGroup.all_groups.filter(org=org, uuid=group_uuid).first() if group_uuid else None
 
@@ -542,7 +596,7 @@ class ContactCRUDL(SmartCRUDL):
                 ):  # pragma: needs cover
                     analytics.track(self.request.user.username, "temba.contact_exported")
 
-                export = ExportContactsTask.create(org, user, group, search)
+                export = ExportContactsTask.create(org, user, group, search, group_membership)
 
                 # schedule the export job
                 on_transaction_commit(lambda: export_contacts_task.delay(export.pk))
