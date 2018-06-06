@@ -550,9 +550,6 @@ class ContactCRUDL(SmartCRUDL):
 
             return group_uuid, search, redirect
 
-        def get_success_url(self):
-            return self.request.GET.get("redirect") or reverse("contacts.contact_list")
-
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
             kwargs["user"] = self.request.user

@@ -5933,7 +5933,10 @@ class ContactFieldTest(TembaTest):
         # create a dummy export task so that we won't be able to export
         blocking_export = ExportContactsTask.create(self.org, self.admin)
 
-        response = self.client.get(reverse("contacts.contact_export"), dict(), follow=True)
+        response = self.client.get(reverse("contacts.contact_export"), dict(group_membership=1), follow=True)
+        self.assertContains(response, "already an export in progress")
+
+        response = self.client.post(reverse("contacts.contact_export"), dict(), follow=True)
         self.assertContains(response, "already an export in progress")
 
         # ok, mark that one as finished and try again
