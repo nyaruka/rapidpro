@@ -2940,9 +2940,15 @@ class ExportContactsTask(BaseExportTask):
     )
     search = models.TextField(null=True, blank=True, help_text=_("The search query"))
 
+    group_membership = models.BooleanField(
+        default=False, help_text="Whether this export should include group membership"
+    )
+
     @classmethod
-    def create(cls, org, user, group=None, search=None):
-        return cls.objects.create(org=org, group=group, search=search, created_by=user, modified_by=user)
+    def create(cls, org, user, group=None, search=None, group_membership=False):
+        return cls.objects.create(
+            org=org, group=group, search=search, group_membership=group_membership, created_by=user, modified_by=user
+        )
 
     def get_export_fields_and_schemes(self):
         fields = [
@@ -2993,12 +2999,14 @@ class ExportContactsTask(BaseExportTask):
                 )
             )
 
-        org_groups = ContactGroup.user_groups.filter(
-            org=self.org, is_active=True, status=ContactGroup.STATUS_READY
-        ).order_by(Lower("name"))
-        group_fields = [dict(label="Contact UUID", key=Contact.UUID, group_id=0, group=None)]
-        for group in org_groups:
-            group_fields.append(dict(label=group.name, key=None, group_id=group.id, group=group))
+        group_fields = []
+        if self.group_membership:
+            org_groups = ContactGroup.user_groups.filter(
+                org=self.org, is_active=True, status=ContactGroup.STATUS_READY
+            ).order_by(Lower("name"))
+            group_fields = [dict(label="Contact UUID", key=Contact.UUID, group_id=0, group=None)]
+            for group in org_groups:
+                group_fields.append(dict(label=group.name, key=None, group_id=group.id, group=group))
 
         return fields, scheme_counts, group_fields
 
@@ -3030,9 +3038,10 @@ class ExportContactsTask(BaseExportTask):
         # write out contacts in batches to limit memory usage
         for batch_ids in chunk_list(contact_ids, 1000):
             # fetch all the contacts for our batch
-            batch_contacts = (
-                Contact.objects.filter(id__in=batch_ids).prefetch_related("all_groups").select_related("org")
-            )
+            batch_contacts = Contact.objects.filter(id__in=batch_ids)
+
+            if self.group_membership:
+                batch_contacts = batch_contacts.prefetch_related("all_groups")
 
             # to maintain our sort, we need to lookup by id, create a map of our id->contact to aid in that
             contact_by_id = {c.id: c for c in batch_contacts}
@@ -3079,19 +3088,20 @@ class ExportContactsTask(BaseExportTask):
 
                     values.append(field_value)
 
-                contact_groups_ids = [g.id for g in contact.all_groups.all()]
-                for col in range(len(group_fields)):
-                    field = group_fields[col]
+                if self.group_membership:
+                    contact_groups_ids = [g.id for g in list(contact.all_groups.all())]
+                    for col in range(len(group_fields)):
+                        field = group_fields[col]
 
-                    if field["key"] == Contact.UUID:
-                        field_value = contact.uuid
-                    else:
-                        field_value = "true" if field["group_id"] in contact_groups_ids else "false"
+                        if field["key"] == Contact.UUID:
+                            field_value = contact.uuid
+                        else:
+                            field_value = "true" if field["group_id"] in contact_groups_ids else "false"
 
-                    if field_value:
-                        field_value = str(clean_string(field_value))
+                        if field_value:
+                            field_value = str(clean_string(field_value))
 
-                    group_values.append(field_value)
+                        group_values.append(field_value)
 
                 # write this contact's values
                 exporter.write_row(values, group_values)

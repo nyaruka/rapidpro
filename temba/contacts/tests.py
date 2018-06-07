@@ -5984,21 +5984,24 @@ class ContactFieldTest(TembaTest):
         # create a dummy export task so that we won't be able to export
         blocking_export = ExportContactsTask.create(self.org, self.admin)
 
-        response = self.client.get(reverse("contacts.contact_export"), dict(), follow=True)
+        response = self.client.get(reverse("contacts.contact_export"), dict(group_membership=1), follow=True)
+        self.assertContains(response, "already an export in progress")
+
+        response = self.client.post(reverse("contacts.contact_export"), dict(), follow=True)
         self.assertContains(response, "already an export in progress")
 
         # ok, mark that one as finished and try again
         blocking_export.update_status(ExportContactsTask.STATUS_COMPLETE)
 
         def request_export(query=""):
-            self.client.get(reverse("contacts.contact_export") + query)
+            self.client.post(reverse("contacts.contact_export") + query, dict(group_membership=1))
             task = ExportContactsTask.objects.all().order_by("-id").first()
             filename = "%s/test_orgs/%d/contact_exports/%s.xlsx" % (settings.MEDIA_ROOT, self.org.pk, task.uuid)
             workbook = load_workbook(filename=filename)
             return workbook.worksheets
 
         # no group specified, so will default to 'All Contacts'
-        with self.assertNumQueries(43):
+        with self.assertNumQueries(44):
             export = request_export()
             self.assertExcelSheet(
                 export[0],
@@ -6034,7 +6037,7 @@ class ContactFieldTest(TembaTest):
         # change the order of the fields
         self.contactfield_2.priority = 15
         self.contactfield_2.save()
-        with self.assertNumQueries(43):
+        with self.assertNumQueries(44):
             export = request_export()
             self.assertExcelSheet(
                 export[0],
@@ -6076,7 +6079,7 @@ class ContactFieldTest(TembaTest):
         ContactURN.create(self.org, contact, "tel:+12062233445")
 
         # but should have additional Twitter and phone columns
-        with self.assertNumQueries(43):
+        with self.assertNumQueries(44):
             export = request_export()
             self.assertExcelSheet(
                 export[0],
@@ -6136,7 +6139,7 @@ class ContactFieldTest(TembaTest):
             )
 
         # export a specified group of contacts (only Ben and Adam are in the group)
-        with self.assertNumQueries(44):
+        with self.assertNumQueries(45):
             self.assertExcelSheet(
                 request_export("?g=%s" % group.uuid)[0],
                 [
@@ -6188,7 +6191,7 @@ class ContactFieldTest(TembaTest):
             {"_type": "_doc", "_index": "dummy_index", "_source": {"id": contact3.id}},
         ]
         with ESMockWithScroll(data=mock_es_data):
-            with self.assertNumQueries(42):
+            with self.assertNumQueries(43):
                 self.assertExcelSheet(
                     request_export("?s=name+has+adam+or+name+has+deng")[0],
                     [
@@ -6225,7 +6228,7 @@ class ContactFieldTest(TembaTest):
         # export a search within a specified group of contacts
         mock_es_data = [{"_type": "_doc", "_index": "dummy_index", "_source": {"id": contact.id}}]
         with ESMockWithScroll(data=mock_es_data):
-            with self.assertNumQueries(43):
+            with self.assertNumQueries(44):
                 self.assertExcelSheet(
                     request_export("?g=%s&s=Hagg" % group.uuid)[0],
                     [
