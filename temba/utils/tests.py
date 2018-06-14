@@ -1,7 +1,9 @@
 import copy
 import datetime
+import gzip
 import json
 import os
+import xml.etree.ElementTree as ET
 from decimal import Decimal
 
 import iso8601
@@ -9,7 +11,6 @@ import pycountry
 import pytz
 from django_redis import get_redis_connection
 from mock import PropertyMock, patch
-from openpyxl import load_workbook
 from smartmin.tests import SmartminTestMixin
 from temba_expressions.evaluator import DateStyle, EvaluationContext
 
@@ -1290,44 +1291,50 @@ class ExportTest(TembaTest):
             exporter.write_row(values, extra_values)
 
         temp_file, file_ext = exporter.save_file()
-        workbook = load_workbook(filename=temp_file.name)
+        with gzip.open(temp_file, "rb") as f:
+            file_content = f.read()
 
-        self.assertEqual(4, len(workbook.worksheets))
+        workbook = ET.fromstring(file_content)
+        worksheets = workbook.getchildren()
+
+        self.assertEqual(4, len(worksheets))
 
         # check our sheet 1 values
-        sheet1 = workbook.worksheets[0]
+        sheet1 = worksheets[0]
 
-        rows = tuple(sheet1.rows)
+        rows = sheet1.getchildren()[0].getchildren()[1:]  # first element is a column tag
 
-        self.assertEqual(cols, [cell.value for cell in rows[0]])
-        self.assertEqual(values, [cell.value for cell in rows[1]])
+        self.assertEqual(cols, [cell.getchildren()[0].text for cell in rows[0].getchildren()])
+        self.assertEqual(values, [cell.getchildren()[0].text for cell in rows[1].getchildren()])
 
-        self.assertEqual(test_max_rows, len(list(sheet1.rows)))
-        self.assertEqual(32, len(list(sheet1.columns)))
+        self.assertEqual(test_max_rows, len(list(rows)))
+        self.assertEqual(32, len(list(rows[0].getchildren())))
 
-        sheet2 = workbook.worksheets[1]
-        rows = tuple(sheet2.rows)
-        self.assertEqual(extra_cols, [cell.value for cell in rows[0]])
-        self.assertEqual(extra_values, [cell.value for cell in rows[1]])
+        sheet2 = worksheets[1]
+        rows = sheet2.getchildren()[0].getchildren()[1:]  # first element is a column tag
 
-        self.assertEqual(test_max_rows, len(list(sheet2.rows)))
-        self.assertEqual(16, len(list(sheet2.columns)))
+        self.assertEqual(extra_cols, [cell.getchildren()[0].text for cell in rows[0].getchildren()])
+        self.assertEqual(extra_values, [cell.getchildren()[0].text for cell in rows[1].getchildren()])
 
-        sheet3 = workbook.worksheets[2]
-        rows = tuple(sheet3.rows)
-        self.assertEqual(cols, [cell.value for cell in rows[0]])
-        self.assertEqual(values, [cell.value for cell in rows[1]])
+        self.assertEqual(test_max_rows, len(list(rows)))
+        self.assertEqual(16, len(list(rows[0].getchildren())))
 
-        self.assertEqual(200 + 2, len(list(sheet3.rows)))
-        self.assertEqual(32, len(list(sheet3.columns)))
+        sheet3 = worksheets[2]
+        rows = sheet3.getchildren()[0].getchildren()[1:]  # first element is a column tag
 
-        sheet4 = workbook.worksheets[3]
-        rows = tuple(sheet4.rows)
-        self.assertEqual(extra_cols, [cell.value for cell in rows[0]])
-        self.assertEqual(extra_values, [cell.value for cell in rows[1]])
+        self.assertEqual(cols, [cell.getchildren()[0].text for cell in rows[0].getchildren()])
+        self.assertEqual(values, [cell.getchildren()[0].text for cell in rows[1].getchildren()])
 
-        self.assertEqual(200 + 2, len(list(sheet4.rows)))
-        self.assertEqual(16, len(list(sheet4.columns)))
+        self.assertEqual(200 + 2, len(list(rows)))
+        self.assertEqual(32, len(list(rows[0].getchildren())))
+
+        sheet4 = worksheets[3]
+        rows = sheet4.getchildren()[0].getchildren()[1:]  # first element is a column tag
+        self.assertEqual(extra_cols, [cell.getchildren()[0].text for cell in rows[0].getchildren()])
+        self.assertEqual(extra_values, [cell.getchildren()[0].text for cell in rows[1].getchildren()])
+
+        self.assertEqual(200 + 2, len(list(rows)))
+        self.assertEqual(16, len(list(rows[0].getchildren())))
 
         os.unlink(temp_file.name)
 

@@ -428,6 +428,41 @@ class TembaTestMixin(object):
                 % (len(mock_server.mocked_requests), mock_server.mocked_requests)
             )
 
+    def assertExcelXMLRow(self, sheet, row_num, values, tz=None):
+        """
+        Asserts the cell values in the given worksheet row. Date values are converted using the provided timezone.
+        """
+        expected_values = []
+        for expected in values:
+            # if expected value is datetime, localize and remove microseconds
+            if isinstance(expected, datetime):
+                expected = expected.astimezone(tz).replace(microsecond=0, tzinfo=None)
+
+            expected_values.append(expected)
+
+        rows = sheet.getchildren()[0].getchildren()[1:]
+
+        actual_values = []
+        for cell in rows[row_num].getchildren():
+            actual = cell.getchildren()[0].text
+
+            if actual is None:
+                actual = ""
+
+            if isinstance(actual, datetime):
+                actual = actual
+
+            actual_values.append(actual)
+
+        for index, expected in enumerate(expected_values):
+            actual = actual_values[index]
+
+            if isinstance(expected, datetime):
+                close_enough = abs(expected - actual) < timedelta(seconds=1)
+                self.assertTrue(close_enough, "Datetime value %s doesn't match %s" % (expected, actual))
+            else:
+                self.assertEqual(expected, actual)
+
     def assertExcelRow(self, sheet, row_num, values, tz=None):
         """
         Asserts the cell values in the given worksheet row. Date values are converted using the provided timezone.
@@ -462,6 +497,15 @@ class TembaTestMixin(object):
                 self.assertTrue(close_enough, "Datetime value %s doesn't match %s" % (expected, actual))
             else:
                 self.assertEqual(expected, actual)
+
+    def assertExcelXMLSheet(self, sheet, rows, tz=None):
+        """
+        Asserts the row values in the given worksheet
+        """
+        self.assertEqual(len(list(sheet.getchildren()[0].getchildren()[1:])), len(rows))
+
+        for r, row in enumerate(rows):
+            self.assertExcelXMLRow(sheet, r, row, tz)
 
     def assertExcelSheet(self, sheet, rows, tz=None):
         """

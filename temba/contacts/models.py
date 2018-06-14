@@ -3152,4 +3152,4 @@ class ContactExportAssetStore(BaseExportAssetStore):
     key = "contact_export"
     directory = "contact_exports"
     permission = "contacts.contact_export"
-    extensions = ("xlsx", "csv")
+    extensions = ("xlsx", "csv", "xml", "xml.gz")

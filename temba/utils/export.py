@@ -1,9 +1,11 @@
 import gc
+import gzip
 import os
+import shutil
 import time
+import uuid
 from datetime import datetime, timedelta
 
-from openpyxl import Workbook
 from openpyxl.utils.cell import get_column_letter
 from openpyxl.worksheet.write_only import WriteOnlyCell
 
@@ -137,6 +139,12 @@ class BaseExportTask(TembaModel):
             row.append(cell)
         sheet.append(row)
 
+    def append_xml_row(self, sheet, values):
+        sheet.write("<Row>")
+        for value in values:
+            sheet.write("""<Cell><Data ss:Type="String">%s</Data></Cell>""" % value)
+        sheet.write("</Row>")
+
     def prepare_value(self, value):
         if value is None:
             return ""
@@ -180,35 +188,54 @@ class TableExporter(object):
         self.extra_sheet_name = extra_sheet_name
 
         self.current_sheet = 0
-        self.current_row = 0
 
-        self.file = NamedTemporaryFile(delete=False, suffix=".xlsx", mode="wt+")
-        self.workbook = Workbook(write_only=True)
+        self.workbook = []
         self.sheet_number = 0
         self._add_sheet()
 
     def _add_sheet(self):
         self.sheet_number += 1
+        self.sheet_row = 0
+
+        sheet_name = u"%s %d" % (self.sheet_name, self.sheet_number)
+        extra_sheet_name = u"%s %d" % (self.extra_sheet_name, self.sheet_number)
 
         # add our sheet
-        self.sheet = self.workbook.create_sheet(u"%s %d" % (self.sheet_name, self.sheet_number))
-        self.extra_sheet = self.workbook.create_sheet(u"%s %d" % (self.extra_sheet_name, self.sheet_number))
+        self.sheet = NamedTemporaryFile(delete=False, mode="wt+")
+        self.extra_sheet = NamedTemporaryFile(delete=False, mode="wt+")
 
-        self.task.append_row(self.sheet, self.columns)
-        self.task.append_row(self.extra_sheet, self.extra_columns)
+        self.workbook.append(self.sheet.name)
+        self.workbook.append(self.extra_sheet.name)
 
-        self.sheet_row = 2
+        self.sheet.write(
+            """<Worksheet ss:Name="%s"><Table><Column ss:Index="1" ss:AutoFitWidth="0" ss:Width="110"/>""" % sheet_name
+        )
+
+        self.extra_sheet.write(
+            """<Worksheet ss:Name="%s"><Table><Column ss:Index="1" ss:AutoFitWidth="0" ss:Width="110"/>"""
+            % extra_sheet_name
+        )
+
+        self.task.append_xml_row(self.sheet, self.columns)
+        self.task.append_xml_row(self.extra_sheet, self.extra_columns)
+
+        self.sheet_row += 1
 
     def write_row(self, values, extra_values):
         """
         Writes the passed in row to our exporter, taking care of creating new sheets if necessary
         """
         # time for a new sheet? do it
-        if self.sheet_row > BaseExportTask.MAX_EXCEL_ROWS:
+        if self.sheet_row >= BaseExportTask.MAX_EXCEL_ROWS:
+            self.sheet.write("""</Table></Worksheet>""")
+            self.extra_sheet.write("""</Table></Worksheet>""")
+            self.sheet.close()
+            self.extra_sheet.close()
+
             self._add_sheet()
 
-        self.task.append_row(self.sheet, values)
-        self.task.append_row(self.extra_sheet, extra_values)
+        self.task.append_xml_row(self.sheet, values)
+        self.task.append_xml_row(self.extra_sheet, extra_values)
 
         self.sheet_row += 1
 
@@ -216,13 +243,24 @@ class TableExporter(object):
         """
         Saves our data to a file, returning the file saved to and the extension
         """
-        gc.collect()  # force garbage collection
 
-        self.file.close()
-        self.file = open(self.file.name, "rb+")
+        self.sheet.write("""</Table></Worksheet>""")
+        self.extra_sheet.write("""</Table></Worksheet>""")
+        self.sheet.close()
+        self.extra_sheet.close()
 
         print("Writing Excel workbook...")
-        self.workbook.save(self.file.name)
+        temp_file = gzip.open("%s.xml.gz" % uuid.uuid4(), mode="wt+")
+        temp_file.write(
+            """<?xml version="1.0" encoding="UTF-8"?>\n<?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">"""
+        )
+        for fname in self.workbook:
+            with open(fname) as infile:
+                shutil.copyfileobj(infile, temp_file)
 
-        self.file.flush()
-        return self.file, "xlsx"
+        temp_file.write("</Workbook>")
+        temp_file.close()
+
+        read_f_out = open(temp_file.name, "rb")
+
+        return read_f_out, "xml.gz"
