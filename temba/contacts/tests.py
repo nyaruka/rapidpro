@@ -80,7 +80,7 @@ class ContactCRUDLTest(_CRUDLTest):
         self.user = self.create_user("tito")
         self.org = Org.objects.create(
             name="Nyaruka Ltd.",
-            timezone="Africa/Kigali",
+            timezone=pytz.timezone("Africa/Kigali"),
             country=self.country,
             created_by=self.user,
             modified_by=self.user,
@@ -1542,6 +1542,61 @@ class ContactTest(TembaTest):
             SearchException, evaluate_query, self.org, 'name != ""', contact_json=self.joe.as_search_json()
         )
 
+        # test 'language' attribute
+        self.joe.language = "eng"
+        self.joe.save(update_fields=("language",))
+        self.assertTrue(evaluate_query(self.org, 'language = "eng"', contact_json=self.joe.as_search_json()))
+
+        self.assertFalse(evaluate_query(self.org, 'language = ""', contact_json=self.joe.as_search_json()))
+        self.assertTrue(evaluate_query(self.org, 'language != ""', contact_json=self.joe.as_search_json()))
+
+        # language does not support `has` operator
+        self.assertRaises(
+            SearchException, evaluate_query, self.org, 'language ~ "eng"', contact_json=self.joe.as_search_json()
+        )
+
+        self.joe.language = None
+        self.joe.save(update_fields=("language",))
+
+        self.assertFalse(evaluate_query(self.org, 'language = "eng"', contact_json=self.joe.as_search_json()))
+
+        self.assertTrue(evaluate_query(self.org, 'language = ""', contact_json=self.joe.as_search_json()))
+        self.assertFalse(evaluate_query(self.org, 'language != ""', contact_json=self.joe.as_search_json()))
+
+        # test 'created_on' attribute
+        self.assertRaises(
+            SearchException,
+            evaluate_query,
+            self.org,
+            'created_on = "this-is-not-a-date"',
+            contact_json=self.joe.as_search_json(),
+        )
+        self.assertRaises(
+            SearchException,
+            evaluate_query,
+            self.org,
+            'created_on ~ "2016-01-01"',
+            contact_json=self.joe.as_search_json(),
+        )
+        query_created_on = datetime_to_str(self.joe.created_on, tz=self.org.timezone)
+        self.assertTrue(
+            evaluate_query(self.org, f'created_on = "{query_created_on}"', contact_json=self.joe.as_search_json())
+        )
+        query_created_on = datetime_to_str(self.joe.created_on - timedelta(days=6), tz=self.org.timezone)
+        self.assertTrue(
+            evaluate_query(self.org, f'created_on > "{query_created_on}"', contact_json=self.joe.as_search_json())
+        )
+        self.assertTrue(
+            evaluate_query(self.org, f'created_on >= "{query_created_on}"', contact_json=self.joe.as_search_json())
+        )
+        query_created_on = datetime_to_str(self.joe.created_on + timedelta(days=6), tz=self.org.timezone)
+        self.assertTrue(
+            evaluate_query(self.org, f'created_on < "{query_created_on}"', contact_json=self.joe.as_search_json())
+        )
+        self.assertTrue(
+            evaluate_query(self.org, f'created_on <= "{query_created_on}"', contact_json=self.joe.as_search_json())
+        )
+
         # test TEXT field type
         self.assertFalse(evaluate_query(self.org, 'gender != ""', contact_json=self.joe.as_search_json()))
         self.assertTrue(evaluate_query(self.org, 'gender = ""', contact_json=self.joe.as_search_json()))
@@ -2334,6 +2389,87 @@ class ContactTest(TembaTest):
         expected_search = copy.deepcopy(base_search)
         expected_search["query"]["bool"]["must"] = [{"term": {"name.keyword": "joe blow"}}]
         actual_search, _ = contact_es_search(self.org, 'name = "joe Blow"')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        # test `language` contact attribute
+        expected_search = copy.deepcopy(base_search)
+        expected_search["query"]["bool"]["must"] = [{"term": {"language": "eng"}}]
+        actual_search, _ = contact_es_search(self.org, 'language = "eng"')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        # operator not supported
+        self.assertRaises(SearchException, contact_es_search, self.org, 'language ~ "eng"')
+
+        expected_search = {
+            "query": {
+                "bool": {
+                    "must_not": [{"term": {"language": ""}}],
+                    "must": [{"exists": {"field": "language"}}],
+                    "filter": [
+                        # {'term': {'is_blocked': False}},
+                        # {'term': {'is_stopped': False}},
+                        {"term": {"org_id": self.org.id}},
+                        {"term": {"groups": str(self.org.cached_all_contacts_group.uuid)}},
+                    ],
+                }
+            },
+            "sort": [{"id": {"order": "desc"}}],
+        }
+        actual_search, _ = contact_es_search(self.org, 'language != ""')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        expected_search = {
+            "query": {
+                "bool": {
+                    "should": [
+                        {"bool": {"must_not": [{"exists": {"field": "language"}}]}},
+                        {"term": {"language": ""}},
+                    ],
+                    "filter": [
+                        # {'term': {'is_blocked': False}},
+                        # {'term': {'is_stopped': False}},
+                        {"term": {"org_id": self.org.id}},
+                        {"term": {"groups": str(self.org.cached_all_contacts_group.uuid)}},
+                    ],
+                    "minimum_should_match": 1,
+                }
+            },
+            "sort": [{"id": {"order": "desc"}}],
+        }
+        actual_search, _ = contact_es_search(self.org, 'language = ""')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        # created_on
+        self.assertRaises(SearchException, contact_es_search, self.org, 'created_on != ""')
+        self.assertRaises(SearchException, contact_es_search, self.org, 'created_on = ""')
+        self.assertRaises(SearchException, contact_es_search, self.org, 'created_on ~ "05-07-2018"')
+        self.assertRaises(SearchException, contact_es_search, self.org, 'created_on ~ "this-is-not-a-date"')
+
+        expected_search = copy.deepcopy(base_search)
+        expected_search["query"]["bool"]["must"] = [
+            {"range": {"created_on": {"gte": "2018-07-04T22:00:00+00:00", "lt": "2018-07-05T22:00:00+00:00"}}}
+        ]
+        actual_search, _ = contact_es_search(self.org, 'created_on = "05-07-2018"')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        expected_search = copy.deepcopy(base_search)
+        expected_search["query"]["bool"]["must"] = [{"range": {"created_on": {"gte": "2018-07-05T22:00:00+00:00"}}}]
+        actual_search, _ = contact_es_search(self.org, 'created_on > "05-07-2018"')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        expected_search = copy.deepcopy(base_search)
+        expected_search["query"]["bool"]["must"] = [{"range": {"created_on": {"gte": "2018-07-04T22:00:00+00:00"}}}]
+        actual_search, _ = contact_es_search(self.org, 'created_on >= "05-07-2018"')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        expected_search = copy.deepcopy(base_search)
+        expected_search["query"]["bool"]["must"] = [{"range": {"created_on": {"lt": "2018-07-04T22:00:00+00:00"}}}]
+        actual_search, _ = contact_es_search(self.org, 'created_on < "05-07-2018"')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        expected_search = copy.deepcopy(base_search)
+        expected_search["query"]["bool"]["must"] = [{"range": {"created_on": {"lt": "2018-07-05T22:00:00+00:00"}}}]
+        actual_search, _ = contact_es_search(self.org, 'created_on <= "05-07-2018"')
         self.assertEqual(actual_search.to_dict(), expected_search)
 
         expected_search = copy.deepcopy(base_search)
