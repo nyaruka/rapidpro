@@ -5559,7 +5559,7 @@ class ExportFlowResultsTask(BaseExportTask):
             # generate contact info columns
             contact_values = [
                 contact.uuid,
-                contact.id if self.org.is_anon else contact.get_urn_display(org=self.org, formatted=False),
+                f"{contact.id:010d}" if self.org.is_anon else contact.get_urn_display(org=self.org, formatted=False),
             ]
 
             for extra_urn_column in extra_urn_columns:
@@ -5625,7 +5625,7 @@ class ExportFlowResultsTask(BaseExportTask):
             msg_channel = msg.get("channel")
 
             if self.org.is_anon:
-                msg_urn = contact.id
+                msg_urn = f"{contact.id:010d}"
             elif "urn" in msg:
                 msg_urn = URN.format(msg["urn"], formatted=False)
             else:
