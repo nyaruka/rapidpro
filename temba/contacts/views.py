@@ -1368,8 +1368,17 @@ class ContactCRUDL(SmartCRUDL):
         def get_form(self):
             return super().get_form()
 
+        def form_valid(self, form):
+            # update contact language - reevaluates dynamic groups
+            self.object.set_language(form.cleaned_data.get("language"))
+
+            return super().form_valid(form)
+
         def save(self, obj):
-            fields = [f.name for f in obj._meta.concrete_fields if f.name not in self.exclude]
+            exclude_list = [Contact.LANGUAGE] + list(self.exclude)
+
+            fields = [f.name for f in obj._meta.concrete_fields if f.name not in exclude_list]
+
             obj.save(update_fields=fields)
             self.save_m2m()
 

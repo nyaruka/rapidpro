@@ -4815,6 +4815,11 @@ class ActionTest(TembaTest):
         self.assertEqual(ActionLog.objects.get().text, "Contact not updated, missing connection for contact")
 
     def test_set_language_action(self):
+        with ESMockWithScroll():
+            dyn_group = self.create_group("Dynamic Group", query="language is kli")
+
+        self.assertEqual(self.contact.language, None)
+
         action = SetLanguageAction(str(uuid4()), "kli", "Klingon")
 
         # check to and from JSON
@@ -4829,11 +4834,17 @@ class ActionTest(TembaTest):
         self.execute_action(action, run, None)
         self.assertEqual("kli", Contact.objects.get(pk=self.contact.pk).language)
 
+        # dynamic group have been reevaluated
+        self.assertEqual(list(dyn_group.contacts.all()), [self.contact])
+
         # try setting the language to something thats not three characters
         action_json["lang"] = "base"
         action_json["name"] = "Default"
         action = SetLanguageAction.from_json(self.org, action_json)
         self.execute_action(action, run, None)
+
+        # dynamic group have been reevaluated
+        self.assertEqual(list(dyn_group.contacts.all()), [])
 
         # should clear the contacts language
         self.assertIsNone(Contact.objects.get(pk=self.contact.pk).language)

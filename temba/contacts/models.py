@@ -6,6 +6,7 @@ import time
 import uuid
 from decimal import Decimal
 from itertools import chain
+from typing import Optional
 
 import iso8601
 import phonenumbers
@@ -958,6 +959,18 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         if has_changed and not importing:
             self.handle_update(field=field)
 
+    def set_language(self, language: Optional[str]):
+        old_value = self.language
+
+        if language is None or len(language) != 3:
+            self.language = None
+        else:
+            self.language = language
+
+        if old_value != self.language:
+            self.save(update_fields=["language"])
+            self.handle_update(attrs=("language",))
+
     def handle_update(self, attrs=(), urns=(), field=None, group=None, is_new=False):
         """
         Handles an update to a contact which can be one of
@@ -967,7 +980,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         """
         dynamic_group_change = False
 
-        if field or urns or is_new:
+        if attrs or field or urns or is_new:
             # ensure dynamic groups are up to date
             dynamic_group_change = self.reevaluate_dynamic_groups(field)
 

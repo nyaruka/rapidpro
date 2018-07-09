@@ -347,7 +347,7 @@ class ContactGroupTest(TembaTest):
                 ContactField.get_or_create(self.org, self.admin, key, value_type=Value.TYPE_NUMBER)
                 ContactGroup.create_dynamic(self.org, self.admin, "Group %s" % (key), "(%s > 10)" % key)
 
-        with QueryTracker(assert_query_count=110, stack_count=16, skip_unique_queries=False):
+        with QueryTracker(assert_query_count=126, stack_count=16, skip_unique_queries=False):
             flow.start([], [self.joe])
 
     def test_get_or_create(self):
@@ -4120,6 +4120,23 @@ class ContactTest(TembaTest):
         self.client.post(list_url, post_data)
         self.assertFalse(ChannelEvent.objects.filter(contact=self.frank))
         self.assertFalse(ChannelEvent.objects.filter(id=event.id))
+
+    def test_contact_language_update(self):
+        self.login(self.admin)
+
+        self.client.post(reverse("orgs.org_languages"), dict(primary_lang="eng", languages="fra"))
+
+        with ESMockWithScroll():
+            language_group = self.create_group("English humans", query="language is eng")
+
+        self.assertEqual(language_group.contacts.count(), 0)
+
+        self.client.post(
+            reverse("contacts.contact_update", args=[self.joe.id]),
+            dict(language="eng", name="Joe Blow", urn__tel__0="+250781111111"),
+        )
+
+        self.assertEqual(language_group.contacts.count(), 1)
 
     def test_number_normalized(self):
         self.org.country = None

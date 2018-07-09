@@ -1392,6 +1392,8 @@ class APITest(TembaTest):
 
         with ESMockWithScroll():
             dyn_group = self.create_group("Dynamic Group", query="nickname is jado")
+            lang_group = self.create_group("Language Group", query="language = fra")
+            eng_lang_group = self.create_group("Language Group English", query="language = eng")
 
         # create with all fields
         response = self.postJSON(
@@ -1414,7 +1416,7 @@ class APITest(TembaTest):
         nickname = ContactField.get_by_key(self.org, "nickname")
         jean = Contact.objects.filter(name="Jean", language="fra").order_by("-pk").first()
         self.assertEqual(set(jean.urns.values_list("identity", flat=True)), {"tel:+250783333333", "twitter:jean"})
-        self.assertEqual(set(jean.user_groups.all()), {group, dyn_group})
+        self.assertEqual(set(jean.user_groups.all()), {group, dyn_group, lang_group})
         self.assertEqual(jean.get_field_value(nickname), "Jado")
 
         # create with invalid fields
@@ -1445,7 +1447,7 @@ class APITest(TembaTest):
         self.assertEqual(jean.name, "Jean")
         self.assertEqual(jean.language, "fra")
         self.assertEqual(set(jean.urns.values_list("identity", flat=True)), {"tel:+250783333333", "twitter:jean"})
-        self.assertEqual(set(jean.user_groups.all()), {group, dyn_group})
+        self.assertEqual(set(jean.user_groups.all()), {group, dyn_group, lang_group})
         self.assertEqual(jean.get_field_value(nickname), "Jado")
 
         # update by UUID and change all fields
@@ -1454,7 +1456,7 @@ class APITest(TembaTest):
             "uuid=%s" % jean.uuid,
             {
                 "name": "Jean II",
-                "language": "eng",
+                "language": "ita",
                 "urns": ["tel:+250784444444"],
                 "groups": [],
                 "fields": {"nickname": "John"},
@@ -1464,9 +1466,21 @@ class APITest(TembaTest):
 
         jean = Contact.objects.get(pk=jean.pk)
         self.assertEqual(jean.name, "Jean II")
-        self.assertEqual(jean.language, "eng")
+        self.assertEqual(jean.language, "ita")
         self.assertEqual(set(jean.urns.values_list("identity", flat=True)), {"tel:+250784444444"})
         self.assertEqual(set(jean.user_groups.all()), set())
+        self.assertEqual(jean.get_field_value(nickname), "John")
+
+        # change the language field
+        response = self.postJSON(
+            url, "uuid=%s" % jean.uuid, {"language": "eng", "urns": ["tel:+250784444444"], "groups": [], "fields": {}}
+        )
+        self.assertEqual(response.status_code, 200)
+        jean = Contact.objects.get(pk=jean.pk)
+        self.assertEqual(jean.name, "Jean II")
+        self.assertEqual(jean.language, "eng")
+        self.assertEqual(set(jean.urns.values_list("identity", flat=True)), {"tel:+250784444444"})
+        self.assertEqual(set(jean.user_groups.all()), {eng_lang_group})
         self.assertEqual(jean.get_field_value(nickname), "John")
 
         # update by URN (which should be normalized)
