@@ -1,7 +1,9 @@
 import operator
 from collections import OrderedDict
+from datetime import datetime
 from decimal import Decimal
 from functools import reduce
+from typing import Tuple
 
 import regex
 from antlr4 import CommonTokenStream, InputStream, ParseTreeVisitor
@@ -206,19 +208,12 @@ class Condition(QueryNode):
                     raise SearchException(_(f"Unknown number comparator: '{self.comparator}'"))
 
             elif field.value_type == Value.TYPE_DATETIME:
-                query_value = str_to_datetime(
-                    self.value, field.org.timezone, field.org.get_dayfirst(), fill_time=False
-                )
-                if not query_value:
-                    raise SearchException(_(f"Unable to parse the date '{self.value}'"))
-
                 datetime_value = contact_fields.get(field_uuid).get("datetime")
                 if datetime_value is None:
                     return False
-
                 contact_value = str_to_datetime(datetime_value, field.org.timezone)
 
-                utc_range = date_to_utc_range(query_value.date(), field.org)
+                utc_range = calculate_utc_range(org, self.value)
 
                 if self.comparator == "=":
                     return contact_value >= utc_range[0] and contact_value < utc_range[1]
@@ -299,14 +294,10 @@ class Condition(QueryNode):
                     raise SearchException(_(f"Unknown language comparator: '{self.comparator}'"))
 
             elif field == "created_on":
-                query_value = str_to_datetime(self.value, org.timezone, org.get_dayfirst(), fill_time=False)
-                if not query_value:
-                    raise SearchException(_(f"Unable to parse the date '{self.value}'"))
-
                 datetime_value = contact_json.get("created_on")
                 contact_value = str_to_datetime(datetime_value, org.timezone)
 
-                utc_range = date_to_utc_range(query_value.date(), org)
+                utc_range = calculate_utc_range(org, self.value)
 
                 if self.comparator == "=":
                     return contact_value >= utc_range[0] and contact_value < utc_range[1]
@@ -358,14 +349,7 @@ class Condition(QueryNode):
                     raise SearchException(_(f"Unknown number comparator: '{self.comparator}'"))
 
             elif field.value_type == Value.TYPE_DATETIME:
-                query_value = str_to_datetime(
-                    self.value, field.org.timezone, field.org.get_dayfirst(), fill_time=False
-                )
-
-                if not query_value:
-                    raise SearchException(_(f"Unable to parse the date '{self.value}'"))
-
-                utc_range = date_to_utc_range(query_value.date(), field.org)
+                utc_range = calculate_utc_range(org, self.value)
 
                 if self.comparator == "=":
                     es_query &= es_Q(
@@ -426,12 +410,7 @@ class Condition(QueryNode):
                 else:
                     raise SearchException(_(f"Unknown attribute comparator: '{self.comparator}'"))
             elif field == "created_on":
-                query_value = str_to_datetime(self.value, org.timezone, org.get_dayfirst(), fill_time=False)
-
-                if not query_value:
-                    raise SearchException(_(f"Unable to parse the date '{self.value}'"))
-
-                utc_range = date_to_utc_range(query_value.date(), org)
+                utc_range = calculate_utc_range(org, self.value)
 
                 if self.comparator == "=":
                     es_query = es_Q(
@@ -1000,3 +979,14 @@ def is_phonenumber(text):
         return True, CLEAN_SPECIAL_CHARS_REGEX.sub("", text)
     else:
         return False, None
+
+
+def calculate_utc_range(org, input_value: str) -> Tuple[datetime, datetime]:
+    """
+    Calculates datetime range in UTC, we use it to check date containment
+    """
+    query_value = str_to_datetime(input_value, org.timezone, org.get_dayfirst(), fill_time=False)
+    if not query_value:
+        raise SearchException(_(f"Unable to parse the date '{input_value}'"))
+
+    return date_to_utc_range(query_value.date(), org)
