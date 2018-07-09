@@ -34,7 +34,7 @@ from temba.utils.export import BaseExportAssetStore, BaseExportTask, TableExport
 from temba.utils.languages import _get_language_name_iso6393
 from temba.utils.locks import NonBlockingLock
 from temba.utils.models import RequireUpdateFieldsMixin, SquashableModel, TembaModel, mapEStoDB
-from temba.utils.text import clean_string, truncate
+from temba.utils.text import truncate
 from temba.utils.urns import ParsedURN, parse_urn
 from temba.values.constants import Value
 
@@ -62,6 +62,7 @@ TWITTERID_SCHEME = "twitterid"
 VIBER_SCHEME = "viber"
 FCM_SCHEME = "fcm"
 WHATSAPP_SCHEME = "whatsapp"
+WECHAT_SCHEME = "wechat"
 
 FACEBOOK_PATH_REF_PREFIX = "ref:"
 
@@ -77,6 +78,7 @@ URN_SCHEME_CONFIG = (
     (EMAIL_SCHEME, _("Email address"), EMAIL_SCHEME),
     (EXTERNAL_SCHEME, _("External identifier"), EXTERNAL_SCHEME),
     (JIOCHAT_SCHEME, _("Jiochat identifier"), JIOCHAT_SCHEME),
+    (WECHAT_SCHEME, _("WeChat identifier"), WECHAT_SCHEME),
     (FCM_SCHEME, _("Firebase Cloud Messaging identifier"), FCM_SCHEME),
     (WHATSAPP_SCHEME, _("WhatsApp identifier"), WHATSAPP_SCHEME),
 )
@@ -344,6 +346,10 @@ class URN(object):
     def from_jiochat(cls, path):
         return cls.from_parts(JIOCHAT_SCHEME, path)
 
+    @classmethod
+    def from_wechat(cls, path):
+        return cls.from_parts(WECHAT_SCHEME, path)
+
 
 class ContactField(SmartModel):
     """
@@ -578,6 +584,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
     NAME = "name"
     FIRST_NAME = "first_name"
     LANGUAGE = "language"
+    CREATED_ON = "created_on"
     PHONE = "phone"
     UUID = "uuid"
     CONTACT_UUID = "contact uuid"
@@ -3038,6 +3045,7 @@ class ExportContactsTask(BaseExportTask):
             dict(label="Contact UUID", key=Contact.UUID, id=0, field=None, urn_scheme=None),
             dict(label="Name", key=Contact.NAME, id=0, field=None, urn_scheme=None),
             dict(label="Language", key=Contact.LANGUAGE, id=0, field=None, urn_scheme=None),
+            dict(label="Created On", key=Contact.CREATED_ON, id=0, field=None, urn_scheme=None),
         ]
 
         # anon orgs also get an ID column that is just the PK
@@ -3142,6 +3150,8 @@ class ExportContactsTask(BaseExportTask):
                         field_value = contact.uuid
                     elif field["key"] == Contact.LANGUAGE:
                         field_value = contact.language
+                    elif field["key"] == Contact.CREATED_ON:
+                        field_value = contact.created_on
                     elif field["key"] == Contact.ID:
                         field_value = str(contact.id)
                     elif field["urn_scheme"] is not None:
@@ -3163,7 +3173,7 @@ class ExportContactsTask(BaseExportTask):
                         field_value = ""
 
                     if field_value:
-                        field_value = str(clean_string(field_value))
+                        field_value = self.prepare_value(field_value)
 
                     values.append(field_value)
 
