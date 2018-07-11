@@ -180,6 +180,14 @@
       font-size:16px;
     }
 
+    .use-created-on {
+      display: inline-block;
+      width:200px;
+      color: #666;
+      font-size:16px;
+      float: left;
+    }
+
     #languages {
       float:right;
     }
@@ -211,6 +219,11 @@
     -render_field 'unit'
     -render_field 'direction'
     -render_field 'relative_to'
+
+  #use-created-on
+    .use-created-on
+      Use Created On
+    -render_field 'use_created_on'
 
   #send-at.hide
     .delivered

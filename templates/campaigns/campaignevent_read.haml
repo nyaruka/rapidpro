@@ -8,7 +8,7 @@
     On
   -else
     {{object.abs_offset}} {{object.get_unit_display|slice:"-1"}}{{object.offset|pluralize}} After
-  {{object.relative_to|title}}
+  {{object.get_relative_to_label|title}}
 
 -block title-icon
   .title-icon
@@ -26,7 +26,7 @@
         On
       -else
         {{object.abs_offset}} {{object.get_unit_display|slice:"-1"}}{{object.offset|pluralize}} After
-      {{object.relative_to|title}}
+      {{object.get_relative_to_label|title}}
 
       // Event for {{object.campaign.name}}
 
@@ -64,7 +64,7 @@
                 %a.href{ href: "{% url 'contacts.contact_read' fire.contact.uuid %}" }= fire.contact|name_or_urn:user_org
 
               .relative-to
-                {{object.relative_to}} - {{fire.get_relative_to_value|date:"M d, Y \a\t h:ia"|slice:"-3"}}
+                {{object.get_relative_to_label}} - {{fire.get_relative_to_value|date:"M d, Y \a\t h:ia"|slice:"-3"}}
 
             %td.event_date
               -if fire.is_firing_soon
@@ -102,7 +102,7 @@
                 %a.href{ href: "{% url 'contacts.contact_read' fire.contact.uuid %}" }= fire.contact.name
 
               .relative-to
-                {{object.relative_to}}
+                {{object.get_relative_to_label}}
 
             %td.event_date
               {{fire.fired|naturaltime}}
@@ -219,7 +219,7 @@
     span.strong {
       font-weight:400;
     }
-    
+
     tr.event-fire td {
       margin-bottom: 5px;
     }
@@ -227,9 +227,9 @@
     tr.empty_list td {
       border-bottom: 0px solid #ccc;
       padding:10px;
-    }    
+    }
 
     table .event_date {
       text-align: right;
-    
+
     }

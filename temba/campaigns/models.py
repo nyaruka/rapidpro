@@ -226,7 +226,7 @@ class Campaign(TembaModel):
             if evt.flow.flow_type == Flow.MESSAGE:
                 evt.flow.ensure_current_version()
 
-        return sorted(events, key=lambda e: e.relative_to.pk * 100000 + e.minute_offset())
+        return sorted(events, key=lambda e: (e.relative_to.pk if e.relative_to else e.pk) * 100000 + e.minute_offset())
 
     def __str__(self):
         return self.name
@@ -273,6 +273,8 @@ class CampaignEvent(TembaModel):
         on_delete=models.PROTECT,
         related_name="campaigns",
         help_text="The field our offset is relative to",
+        blank=True,
+        null=True,
     )
 
     flow = models.ForeignKey(
@@ -287,6 +289,10 @@ class CampaignEvent(TembaModel):
     message = TranslatableField(max_length=Msg.MAX_TEXT_LEN, null=True)
 
     delivery_hour = models.IntegerField(default=-1, help_text="The hour to send the message or flow at.")
+
+    use_created_on = models.BooleanField(
+        default=False, blank=True, help_text="Use timestamp when contact was created to trigger the event"
+    )
 
     @classmethod
     def create_message_event(
@@ -344,6 +350,12 @@ class CampaignEvent(TembaModel):
             hours.append((i, "at %s:00 %s" % (hour, period)))
         return hours
 
+    def get_relative_to_label(self):
+        if self.relative_to:
+            return str(self.relative_to)
+        else:
+            return _("Created On")
+
     def get_message(self, contact=None):
         if not self.message:
             return None
@@ -397,7 +409,11 @@ class CampaignEvent(TembaModel):
             return None
 
         # field is no longer active? return
-        if not self.relative_to.is_active:  # pragma: no cover
+        if self.relative_to and not self.relative_to.is_active:  # pragma: no cover
+            return None
+
+        # either use_created_on or relative_to must be set
+        if not self.use_created_on and not self.relative_to:
             return None
 
         # convert to our timezone
@@ -461,7 +477,7 @@ class CampaignEvent(TembaModel):
         return self.calculate_scheduled_fire_for_value(contact.get_field_value(self.relative_to), timezone.now())
 
     def __str__(self):
-        return "%s == %d -> %s" % (self.relative_to, self.offset, self.flow)
+        return "%s == %d -> %s" % (self.get_relative_to_label(), self.offset, self.flow)
 
 
 class EventFire(Model):
@@ -486,7 +502,11 @@ class EventFire(Model):
         return self.scheduled < timezone.now()
 
     def get_relative_to_value(self):
-        value = self.contact.get_field_value(self.event.relative_to)
+        if self.event.relative_to:
+            value = self.contact.get_field_value(self.event.relative_to)
+        else:
+            value = self.contact.created_on
+
         return value.replace(second=0, microsecond=0) if value else None
 
     def fire(self):
@@ -547,15 +567,19 @@ class EventFire(Model):
         # add new ones if this event exists and the campaign is active
         if event.is_active and not event.campaign.is_archived:
             field = event.relative_to
-            field_uuid = str(field.uuid)
+            if field:
+                field_uuid = str(field.uuid)
 
-            contacts = (
-                event.campaign.group.contacts.filter(is_active=True, is_blocked=False)
-                .exclude(is_test=True)
-                .extra(
-                    where=['%s::text[] <@ (extract_jsonb_keys("contacts_contact"."fields"))'], params=[[field_uuid]]
+                contacts = (
+                    event.campaign.group.contacts.filter(is_active=True, is_blocked=False)
+                    .exclude(is_test=True)
+                    .extra(
+                        where=['%s::text[] <@ (extract_jsonb_keys("contacts_contact"."fields"))'],
+                        params=[[field_uuid]],
+                    )
                 )
-            )
+            else:
+                contacts = event.campaign.group.contacts.filter(is_active=True, is_blocked=False).exclude(is_test=True)
 
             now = timezone.now()
             events = []
@@ -563,7 +587,10 @@ class EventFire(Model):
             org = event.campaign.org
             for contact in contacts:
                 contact.org = org
-                scheduled = event.calculate_scheduled_fire_for_value(contact.get_field_value(field), now)
+                if field:
+                    scheduled = event.calculate_scheduled_fire_for_value(contact.get_field_value(field), now)
+                else:
+                    scheduled = event.calculate_scheduled_fire_for_value(contact.created_on, now)
 
                 # and if we have a date, then schedule it
                 if scheduled:
