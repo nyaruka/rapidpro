@@ -247,6 +247,7 @@ class CampaignEventReadSerializer(ReadSerializer):
             "flow",
             "message",
             "created_on",
+            "use_created_on",
         )
 
 
@@ -257,7 +258,8 @@ class CampaignEventWriteSerializer(WriteSerializer):
     offset = serializers.IntegerField(required=True)
     unit = serializers.ChoiceField(required=True, choices=list(UNITS.keys()))
     delivery_hour = serializers.IntegerField(required=True, min_value=-1, max_value=23)
-    relative_to = fields.ContactFieldField(required=True)
+    relative_to = fields.ContactFieldField(required=False)
+    use_created_on = serializers.BooleanField(required=False)
     message = fields.TranslatableField(required=False, max_length=Msg.MAX_TEXT_LEN)
     flow = fields.FlowField(required=False)
 
@@ -277,6 +279,17 @@ class CampaignEventWriteSerializer(WriteSerializer):
         if (message and flow) or (not message and not flow):
             raise serializers.ValidationError("Flow UUID or a message text required.")
 
+        relative_to = data.get("relative_to")
+        use_created_on = data.get("use_created_on")
+
+        if relative_to is None and use_created_on in (None, False):
+            raise serializers.ValidationError(f"Must define Created On or a contact field to continue.")
+
+        if relative_to is not None and use_created_on is True:
+            raise serializers.ValidationError(
+                f'Cannot define Created On and contact field: "{relative_to}" at the same time.'
+            )
+
         return data
 
     def save(self):
@@ -288,6 +301,9 @@ class CampaignEventWriteSerializer(WriteSerializer):
         unit = self.validated_data.get("unit")
         delivery_hour = self.validated_data.get("delivery_hour")
         relative_to = self.validated_data.get("relative_to")
+        use_created_on = self.validated_data.get(
+            "use_created_on", CampaignEvent._meta.get_field("use_created_on").get_default()
+        )
         message = self.validated_data.get("message")
         flow = self.validated_data.get("flow")
 
@@ -320,13 +336,22 @@ class CampaignEventWriteSerializer(WriteSerializer):
             self.instance.unit = unit
             self.instance.delivery_hour = delivery_hour
             self.instance.relative_to = relative_to
+            self.instance.use_created_on = use_created_on
             self.instance.save()
             self.instance.update_flow_name()
 
         else:
             if flow:
                 self.instance = CampaignEvent.create_flow_event(
-                    self.context["org"], self.context["user"], campaign, relative_to, offset, unit, flow, delivery_hour
+                    self.context["org"],
+                    self.context["user"],
+                    campaign,
+                    relative_to,
+                    offset,
+                    unit,
+                    flow,
+                    delivery_hour,
+                    use_created_on=use_created_on,
                 )
             else:
                 translations, base_language = message
@@ -340,6 +365,7 @@ class CampaignEventWriteSerializer(WriteSerializer):
                     translations,
                     delivery_hour,
                     base_language,
+                    use_created_on=use_created_on,
                 )
             self.instance.update_flow_name()
 

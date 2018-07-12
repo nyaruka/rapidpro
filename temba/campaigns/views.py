@@ -225,13 +225,13 @@ class CampaignEventForm(forms.ModelForm):
         field_relative_to = self.cleaned_data.get("relative_to")
         field_use_created_on = self.cleaned_data.get("use_created_on")
 
-        if field_relative_to and field_use_created_on:
+        if field_relative_to is None and field_use_created_on in (None, False):
+            raise ValidationError(_(f"Must choose Created On or a contact field to continue."))
+
+        if field_relative_to is not None and field_use_created_on is True:
             raise ValidationError(
                 _(f'Cannot choose Created On and contact field: "{field_relative_to}" at the same time.')
             )
-
-        if not (field_relative_to or field_use_created_on):
-            raise ValidationError(_(f"Must choose Created On or a contact field when to continue."))
 
         if self.data["event_type"] == CampaignEvent.TYPE_MESSAGE and self.languages:
             language = self.languages[0].language

@@ -7832,7 +7832,15 @@ class FlowsTest(FlowFileTest):
 
         campaign = Campaign.create(self.org, self.admin, Campaign.get_unique_name(self.org, "Favorite Poll"), friends)
         event1 = CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, poll_date, offset=0, unit="D", flow=flow, delivery_hour="13"
+            self.org,
+            self.admin,
+            campaign,
+            poll_date,
+            offset=0,
+            unit="D",
+            flow=flow,
+            delivery_hour="13",
+            use_created_on=False,
         )
 
         # create a trigger that contains this flow
@@ -8209,7 +8217,14 @@ class FlowsTest(FlowFileTest):
         # create a campaign with a single event
         campaign = Campaign.create(self.org, self.admin, "Test Campaign", group)
         CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, relative_to=field, offset=10, unit="W", flow=favorites
+            self.org,
+            self.admin,
+            campaign,
+            relative_to=field,
+            offset=10,
+            unit="W",
+            flow=favorites,
+            use_created_on=False,
         )
 
         self.assertEqual("Added to campaign.", self.send_message(parent, "start", initiate_flow=True))
@@ -10191,7 +10206,15 @@ class ExitTest(FlowFileTest):
             self.org, self.admin, "planting_date", "Planting Date", value_type=Value.TYPE_DATETIME
         )
         event = CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, planting_date, offset=1, unit="W", flow=second_flow, delivery_hour="13"
+            self.org,
+            self.admin,
+            campaign,
+            planting_date,
+            offset=1,
+            unit="W",
+            flow=second_flow,
+            delivery_hour="13",
+            use_created_on=False,
         )
 
         self.contact.set_field(self.user, "planting_date", "05-10-2020 12:30:10")

@@ -107,6 +107,10 @@ class Campaign(TembaModel):
                         value_type="D",
                     )
 
+                    use_created_on = event_spec.get(
+                        "use_created_on", CampaignEvent._meta.get_field("use_created_on").get_default()
+                    )
+
                     # create our message flow for message events
                     if event_spec["event_type"] == CampaignEvent.TYPE_MESSAGE:
 
@@ -131,6 +135,7 @@ class Campaign(TembaModel):
                             message,
                             event_spec["delivery_hour"],
                             base_language=base_language,
+                            use_created_on=use_created_on,
                         )
                         event.update_flow_name()
                     else:
@@ -145,6 +150,7 @@ class Campaign(TembaModel):
                                 event_spec["unit"],
                                 flow,
                                 event_spec["delivery_hour"],
+                                use_created_on=use_created_on,
                             )
 
                 # update our scheduled events for this campaign
@@ -193,6 +199,12 @@ class Campaign(TembaModel):
         events = []
 
         for event in self.events.all().order_by("flow__uuid"):
+            if event.relative_to:
+                relative_to = dict(label=event.relative_to.label, key=event.relative_to.key)
+            else:
+                # if relative_to is not defined, return it as an empty dict
+                relative_to = dict()
+
             event_definition = dict(
                 uuid=event.uuid,
                 offset=event.offset,
@@ -200,7 +212,8 @@ class Campaign(TembaModel):
                 event_type=event.event_type,
                 delivery_hour=event.delivery_hour,
                 message=event.message,
-                relative_to=dict(label=event.relative_to.label, key=event.relative_to.key),
+                relative_to=relative_to,
+                use_created_on=event.use_created_on,
             )
 
             # only include the flow definition for standalone flows
@@ -294,12 +307,33 @@ class CampaignEvent(TembaModel):
         default=False, blank=True, help_text="Use timestamp when contact was created to trigger the event"
     )
 
+    @staticmethod
+    def _check_campaignevent_attributes(relative_to, use_created_on):
+        if relative_to is None and use_created_on in (None, False):
+            raise ValueError(f"Must define Created On or a contact field to continue.")
+
+        if relative_to is not None and use_created_on is True:
+            raise ValueError(f'Cannot define Created On and contact field: "{relative_to}" at the same time.')
+
     @classmethod
     def create_message_event(
-        cls, org, user, campaign, relative_to, offset, unit, message, delivery_hour=-1, base_language=None
+        cls,
+        org,
+        user,
+        campaign,
+        relative_to,
+        offset,
+        unit,
+        message,
+        delivery_hour=-1,
+        base_language=None,
+        *,
+        use_created_on,
     ):
-        if campaign.org != org:  # pragma: no cover
+        if campaign.org != org:
             raise ValueError("Org mismatch")
+
+        CampaignEvent._check_campaignevent_attributes(relative_to, use_created_on)
 
         if isinstance(message, str):
             base_language = org.primary_language.iso_code if org.primary_language else "base"
@@ -318,12 +352,17 @@ class CampaignEvent(TembaModel):
             delivery_hour=delivery_hour,
             created_by=user,
             modified_by=user,
+            use_created_on=use_created_on,
         )
 
     @classmethod
-    def create_flow_event(cls, org, user, campaign, relative_to, offset, unit, flow, delivery_hour=-1):
-        if campaign.org != org:  # pragma: no cover
+    def create_flow_event(
+        cls, org, user, campaign, relative_to, offset, unit, flow, delivery_hour=-1, *, use_created_on
+    ):
+        if campaign.org != org:
             raise ValueError("Org mismatch")
+
+        CampaignEvent._check_campaignevent_attributes(relative_to, use_created_on)
 
         return cls.objects.create(
             campaign=campaign,
@@ -335,6 +374,7 @@ class CampaignEvent(TembaModel):
             delivery_hour=delivery_hour,
             created_by=user,
             modified_by=user,
+            use_created_on=use_created_on,
         )
 
     @classmethod
@@ -413,7 +453,7 @@ class CampaignEvent(TembaModel):
             return None
 
         # either use_created_on or relative_to must be set
-        if not self.use_created_on and not self.relative_to:
+        if self.use_created_on in (None, False) and self.relative_to is None:
             return None
 
         # convert to our timezone

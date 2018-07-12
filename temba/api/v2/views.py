@@ -977,6 +977,7 @@ class CampaignEventsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAP
      * **message** - the message to send to the contact if this is a message event (string or translations object)
      * **flow** - the UUID and name of the flow if this is a flow event (object).
      * **created_on** - when the event was created (datetime).
+     * **use_created_on** - timestamp when contact was created used for base of this event (boolean)
 
     Example:
 
@@ -997,7 +998,8 @@ class CampaignEventsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAP
                 "delivery_hour": 9,
                 "flow": {"uuid": "09d23a05-47fe-11e4-bfe9-b8f6b119e9ab", "name": "Survey"},
                 "message": null,
-                "created_on": "2013-08-19T19:11:21.088Z"
+                "created_on": "2013-08-19T19:11:21.088Z",
+                "use_created_on": False
             },
             ...
         }
@@ -1014,6 +1016,7 @@ class CampaignEventsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAP
     * **delivery_hour** - the hour of the day to deliver the message (integer 0-24, -1 indicates send at the same hour as the field)
     * **message** - the message to send to the contact (string, required if flow is not specified)
     * **flow** - the UUID of the flow to start the contact down (string, required if message is not specified)
+    * **use_created_on** - if specified event will be scheduled relative to the timestamp when contact was first created (boolean)
 
     Example:
 
@@ -1038,7 +1041,8 @@ class CampaignEventsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAP
             "delivery_hour": -1,
             "message": {"eng": "Feeling sick and helpless, lost the compass where self is."},
             "flow": null,
-            "created_on": "2013-08-19T19:11:21.088453Z"
+            "created_on": "2013-08-19T19:11:21.088453Z",
+            "use_created_on": False
         }
 
     ## Updating Campaign Events
