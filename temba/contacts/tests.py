@@ -833,6 +833,7 @@ class ContactTest(TembaTest):
             unit="D",
             flow=self.reminder_flow,
             delivery_hour=17,
+            use_created_on=False,
         )
 
         # and a message event
@@ -844,6 +845,7 @@ class ContactTest(TembaTest):
             offset=7,
             unit="D",
             message="Sent 7 days after planting date",
+            use_created_on=False,
         )
 
     def test_get_or_create(self):
@@ -3199,6 +3201,7 @@ class ContactTest(TembaTest):
             offset=7,
             unit="D",
             message="A message to send",
+            use_created_on=False,
         )
 
         event.unit = "D"
@@ -3218,6 +3221,18 @@ class ContactTest(TembaTest):
 
         event.unit = "M"
         self.assertEqual("1 minute before Planting Date", event_time(event))
+
+        event2 = CampaignEvent.create_message_event(
+            self.org,
+            self.admin,
+            self.campaign,
+            relative_to=None,
+            offset=7,
+            unit="D",
+            message="A message to send",
+            use_created_on=True,
+        )
+        self.assertEqual("7 days after Created On", event_time(event2))
 
     def test_activity_tags(self):
         self.create_campaign()
@@ -3375,6 +3390,7 @@ class ContactTest(TembaTest):
                 offset=i + 10,
                 unit="D",
                 message=msg,
+                use_created_on=False,
             )
 
         now = timezone.now()
@@ -5780,6 +5796,7 @@ class ContactTest(TembaTest):
                 unit="W",
                 flow=joe_flow,
                 delivery_hour=17,
+                use_created_on=False,
             )
             EventFire.update_campaign_events(joes_campaign)
 

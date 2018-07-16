@@ -12,7 +12,7 @@ from temba.campaigns.tasks import check_campaigns_task
 from temba.contacts.models import Contact, ContactField, ContactGroup, ImportTask
 from temba.flows.models import ActionSet, Flow, FlowRevision, FlowRun, FlowStart, RuleSet
 from temba.msgs.models import Msg
-from temba.orgs.models import Language, get_current_export_version
+from temba.orgs.models import Language, Org, get_current_export_version
 from temba.tests import ESMockWithScroll, TembaTest
 from temba.values.constants import Value
 
@@ -68,13 +68,37 @@ class CampaignTest(TembaTest):
         flow = self.create_flow()
 
         event1 = CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, self.planting_date, offset=1, unit="W", flow=flow, delivery_hour="13"
+            self.org,
+            self.admin,
+            campaign,
+            self.planting_date,
+            offset=1,
+            unit="W",
+            flow=flow,
+            delivery_hour="13",
+            use_created_on=False,
         )
         event2 = CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, self.planting_date, offset=1, unit="W", flow=flow, delivery_hour="9"
+            self.org,
+            self.admin,
+            campaign,
+            self.planting_date,
+            offset=1,
+            unit="W",
+            flow=flow,
+            delivery_hour="9",
+            use_created_on=False,
         )
         event3 = CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, self.planting_date, offset=2, unit="W", flow=flow, delivery_hour="1"
+            self.org,
+            self.admin,
+            campaign,
+            self.planting_date,
+            offset=2,
+            unit="W",
+            flow=flow,
+            delivery_hour="1",
+            use_created_on=False,
         )
 
         self.assertEqual(campaign.get_sorted_events(), [event2, event1, event3])
@@ -104,7 +128,15 @@ class CampaignTest(TembaTest):
         )
 
         event4 = CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, self.planting_date, offset=2, unit="W", flow=flow, delivery_hour="5"
+            self.org,
+            self.admin,
+            campaign,
+            self.planting_date,
+            offset=2,
+            unit="W",
+            flow=flow,
+            delivery_hour="5",
+            use_created_on=False,
         )
 
         self.assertEqual(flow.version_number, 3)
@@ -118,7 +150,14 @@ class CampaignTest(TembaTest):
 
         # create a reminder for our first planting event
         event = CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, relative_to=self.planting_date, offset=3, unit="D", flow=self.reminder_flow
+            self.org,
+            self.admin,
+            campaign,
+            relative_to=self.planting_date,
+            offset=3,
+            unit="D",
+            flow=self.reminder_flow,
+            use_created_on=False,
         )
 
         trimDate = timezone.now() - timedelta(days=settings.EVENT_FIRE_TRIM_DAYS + 1)
@@ -141,7 +180,14 @@ class CampaignTest(TembaTest):
 
         # create a reminder for our first planting event
         CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, relative_to=self.planting_date, offset=3, unit="D", flow=self.reminder_flow
+            self.org,
+            self.admin,
+            campaign,
+            relative_to=self.planting_date,
+            offset=3,
+            unit="D",
+            flow=self.reminder_flow,
+            use_created_on=False,
         )
 
         self.assertEqual(0, EventFire.objects.all().count())
@@ -467,6 +513,44 @@ class CampaignTest(TembaTest):
         self.assertTrue(response.context["form"].errors)
         self.assertIn("Please select a flow", response.context["form"].errors["flow_to_start"])
 
+        # test use_created_on, relative_to
+        post_data = dict(
+            relative_to="",
+            use_created_on="",
+            delivery_hour=-1,
+            base="",
+            direction="A",
+            offset=2,
+            unit="D",
+            event_type="F",
+            flow_to_start=self.reminder_flow.pk,
+        )
+        response = self.client.post(
+            reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
+        )
+
+        self.assertFormError(response, "form", None, "Must choose Created On or a contact field to continue.")
+
+        # test use_created_on, relative_to
+        post_data = dict(
+            relative_to=self.planting_date.pk,
+            use_created_on=True,
+            delivery_hour=-1,
+            base="",
+            direction="A",
+            offset=2,
+            unit="D",
+            event_type="F",
+            flow_to_start=self.reminder_flow.pk,
+        )
+        response = self.client.post(
+            reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
+        )
+
+        self.assertFormError(
+            response, "form", None, 'Cannot choose Created On and contact field: "Planting Date" at the same time.'
+        )
+
         post_data = dict(
             relative_to=self.planting_date.pk,
             delivery_hour=-1,
@@ -660,12 +744,99 @@ class CampaignTest(TembaTest):
         response = self.client.get(reverse("campaigns.campaign_read", args=[campaign.pk]))
         self.assertNotContains(response, "Color Flow")
 
+    def test_eventfire_get_relative_to_value(self):
+        campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
+
+        # create a reminder for our first planting event
+        event = CampaignEvent.create_flow_event(
+            self.org,
+            self.admin,
+            campaign,
+            relative_to=self.planting_date,
+            offset=3,
+            unit="D",
+            flow=self.reminder_flow,
+            use_created_on=False,
+        )
+        self.farmer1.set_field(self.admin, "planting_date", timezone.now())
+
+        trimDate = timezone.now() - timedelta(days=settings.EVENT_FIRE_TRIM_DAYS + 1)
+
+        ev = EventFire.objects.create(event=event, contact=self.farmer1, scheduled=trimDate, fired=trimDate)
+        self.assertIsNotNone(ev.get_relative_to_value())
+
+        event2 = CampaignEvent.create_flow_event(
+            self.org,
+            self.admin,
+            campaign,
+            relative_to=None,
+            offset=3,
+            unit="D",
+            flow=self.reminder_flow,
+            use_created_on=True,
+        )
+
+        trimDate = timezone.now() - timedelta(days=settings.EVENT_FIRE_TRIM_DAYS + 1)
+
+        # manually create two event fires
+        ev2 = EventFire.objects.create(event=event2, contact=self.farmer1, scheduled=trimDate, fired=trimDate)
+        self.assertIsNotNone(ev2.get_relative_to_value())
+
+    def test_campaignevent_calculate_scheduled_fire(self):
+        planting_date = timezone.now()
+        self.farmer1.set_field(self.admin, "planting_date", planting_date)
+
+        campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
+
+        # create a reminder for our first planting event
+        event = CampaignEvent.create_flow_event(
+            self.org,
+            self.admin,
+            campaign,
+            relative_to=self.planting_date,
+            offset=3,
+            unit="D",
+            flow=self.reminder_flow,
+            use_created_on=False,
+        )
+
+        expected_result = (
+            (planting_date + timedelta(days=3)).replace(second=0, microsecond=0).astimezone(self.org.timezone)
+        )
+        self.assertEqual(event.calculate_scheduled_fire(self.farmer1), expected_result)
+
+        # create a reminder for our first planting event
+        event = CampaignEvent.create_flow_event(
+            self.org,
+            self.admin,
+            campaign,
+            relative_to=None,
+            offset=5,
+            unit="D",
+            flow=self.reminder_flow,
+            use_created_on=True,
+        )
+
+        expected_result = (
+            (self.farmer1.created_on + timedelta(days=5))
+            .replace(second=0, microsecond=0)
+            .astimezone(self.org.timezone)
+        )
+        self.assertEqual(event.calculate_scheduled_fire(self.farmer1), expected_result)
+
     def test_deleting_reimport_contact_groups(self):
         campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
 
         # create a reminder for our first planting event
         planting_reminder = CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, relative_to=self.planting_date, offset=3, unit="D", flow=self.reminder_flow
+            self.org,
+            self.admin,
+            campaign,
+            relative_to=self.planting_date,
+            offset=3,
+            unit="D",
+            flow=self.reminder_flow,
+            use_created_on=False,
         )
 
         self.assertEqual(0, EventFire.objects.all().count())
@@ -758,7 +929,14 @@ class CampaignTest(TembaTest):
         # create our campaign and event
         campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
         event = CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, relative_to=self.planting_date, offset=2, unit="D", flow=self.reminder_flow
+            self.org,
+            self.admin,
+            campaign,
+            relative_to=self.planting_date,
+            offset=2,
+            unit="D",
+            flow=self.reminder_flow,
+            use_created_on=False,
         )
 
         # set the time to something pre-dst (fall back on November 4th at 2am to 1am)
@@ -822,6 +1000,7 @@ class CampaignTest(TembaTest):
             unit="D",
             flow=self.reminder_flow,
             delivery_hour=17,
+            use_created_on=False,
         )
 
         self.assertEqual("Planting Date == 0 -> Reminder Flow", str(planting_reminder))
@@ -888,6 +1067,7 @@ class CampaignTest(TembaTest):
             offset=1,
             unit="D",
             flow=self.reminder2_flow,
+            use_created_on=False,
         )
 
         self.assertEqual(1, planting_reminder2.abs_offset())
@@ -961,6 +1141,7 @@ class CampaignTest(TembaTest):
             unit="D",
             message={"eng": "hello"},
             base_language="eng",
+            use_created_on=False,
         )
 
         with self.assertRaises(ValidationError):
@@ -982,7 +1163,15 @@ class CampaignTest(TembaTest):
         flow = self.create_flow()
 
         CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, self.planting_date, offset=1, unit="W", flow=flow, delivery_hour="13"
+            self.org,
+            self.admin,
+            campaign,
+            self.planting_date,
+            offset=1,
+            unit="W",
+            flow=flow,
+            delivery_hour="13",
+            use_created_on=False,
         )
         CampaignEvent.create_flow_event(
             self.org,
@@ -993,6 +1182,7 @@ class CampaignTest(TembaTest):
             unit="W",
             flow=self.reminder_flow,
             delivery_hour="9",
+            use_created_on=False,
         )
 
         CampaignEvent.create_message_event(
@@ -1003,6 +1193,7 @@ class CampaignTest(TembaTest):
             1,
             CampaignEvent.UNIT_DAYS,
             "Don't forget to brush your teeth",
+            use_created_on=False,
         )
 
         flow.archive()
@@ -1035,6 +1226,7 @@ class CampaignTest(TembaTest):
             unit="D",
             message={"eng": "hello"},
             base_language="eng",
+            use_created_on=False,
         )
 
         # create a contact not in the group, but with a field value
@@ -1074,3 +1266,251 @@ class CampaignTest(TembaTest):
 
         # check that her event fire is now removed
         self.assertEqual(EventFire.objects.filter(event=event, contact=anna).count(), 1)
+
+    def test_model_as_json(self):
+        campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
+        # create a reminder for our first planting event
+        planting_reminder = CampaignEvent.create_flow_event(
+            self.org,
+            self.admin,
+            campaign,
+            relative_to=self.planting_date,
+            offset=3,
+            unit="D",
+            flow=self.reminder_flow,
+            use_created_on=False,
+        )
+
+        self.assertEqual(
+            campaign.as_json(),
+            {
+                "name": "Planting Reminders",
+                "uuid": campaign.uuid,
+                "group": {"uuid": self.farmers.uuid, "name": "Farmers"},
+                "events": [
+                    {
+                        "uuid": planting_reminder.uuid,
+                        "offset": 3,
+                        "unit": "D",
+                        "event_type": "F",
+                        "delivery_hour": -1,
+                        "message": None,
+                        "relative_to": {"label": "Planting Date", "key": "planting_date"},
+                        "use_created_on": False,
+                        "flow": {"uuid": self.reminder_flow.uuid, "name": "Reminder Flow"},
+                    }
+                ],
+            },
+        )
+
+        campaign2 = Campaign.create(self.org, self.admin, "Planting Reminders 2", self.farmers)
+        planting_reminder2 = CampaignEvent.create_flow_event(
+            self.org,
+            self.admin,
+            campaign2,
+            relative_to=None,
+            offset=2,
+            unit="D",
+            flow=self.reminder_flow,
+            use_created_on=True,
+        )
+
+        self.assertEqual(
+            campaign2.as_json(),
+            {
+                "name": "Planting Reminders 2",
+                "uuid": campaign2.uuid,
+                "group": {"uuid": self.farmers.uuid, "name": "Farmers"},
+                "events": [
+                    {
+                        "uuid": planting_reminder2.uuid,
+                        "offset": 2,
+                        "unit": "D",
+                        "event_type": "F",
+                        "delivery_hour": -1,
+                        "message": None,
+                        "relative_to": {},
+                        "use_created_on": True,
+                        "flow": {"uuid": self.reminder_flow.uuid, "name": "Reminder Flow"},
+                    }
+                ],
+            },
+        )
+
+        campaign3 = Campaign.create(self.org, self.admin, "Planting Reminders 2", self.farmers)
+        planting_reminder3 = CampaignEvent.create_message_event(
+            self.org,
+            self.admin,
+            campaign3,
+            relative_to=None,
+            offset=2,
+            unit="D",
+            message="o' a framer?",
+            use_created_on=True,
+        )
+
+        self.assertEqual(
+            campaign3.as_json(),
+            {
+                "name": "Planting Reminders 2",
+                "uuid": campaign3.uuid,
+                "group": {"uuid": self.farmers.uuid, "name": "Farmers"},
+                "events": [
+                    {
+                        "uuid": planting_reminder3.uuid,
+                        "offset": 2,
+                        "unit": "D",
+                        "event_type": "M",
+                        "delivery_hour": -1,
+                        "message": {"base": "o' a framer?"},
+                        "relative_to": {},
+                        "use_created_on": True,
+                        "base_language": "base",
+                    }
+                ],
+            },
+        )
+
+    def test_campaign_create_flow_event(self):
+        campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
+
+        self.assertRaises(
+            ValueError,
+            CampaignEvent.create_flow_event,
+            self.org,
+            self.admin,
+            campaign,
+            offset=3,
+            unit="D",
+            flow=self.reminder_flow,
+            relative_to=self.planting_date,
+            use_created_on=True,
+        )
+
+        self.assertRaises(
+            ValueError,
+            CampaignEvent.create_flow_event,
+            self.org,
+            self.admin,
+            campaign,
+            offset=3,
+            unit="D",
+            flow=self.reminder_flow,
+            relative_to=None,
+            use_created_on=False,
+        )
+
+        new_org = Org.objects.create(
+            name="Temba New",
+            timezone=pytz.timezone("Africa/Kigali"),
+            country=self.country,
+            brand=settings.DEFAULT_BRAND,
+            created_by=self.user,
+            modified_by=self.user,
+        )
+
+        self.assertRaises(
+            ValueError,
+            CampaignEvent.create_flow_event,
+            new_org,
+            self.admin,
+            campaign,
+            offset=3,
+            unit="D",
+            flow=self.reminder_flow,
+            relative_to=None,
+            use_created_on=True,
+        )
+
+        campaign_event = CampaignEvent.create_flow_event(
+            self.org,
+            self.admin,
+            campaign,
+            offset=3,
+            unit="D",
+            flow=self.reminder_flow,
+            relative_to=self.planting_date,
+            use_created_on=False,
+        )
+
+        self.assertEqual(campaign_event.campaign_id, campaign.id)
+        self.assertEqual(campaign_event.offset, 3)
+        self.assertEqual(campaign_event.unit, "D")
+        self.assertEqual(campaign_event.relative_to_id, self.planting_date.id)
+        self.assertEqual(campaign_event.flow_id, self.reminder_flow.id)
+        self.assertEqual(campaign_event.event_type, "F")
+        self.assertEqual(campaign_event.message, None)
+        self.assertEqual(campaign_event.delivery_hour, -1)
+        self.assertEqual(campaign_event.use_created_on, False)
+
+    def test_campaign_create_message_event(self):
+        campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
+
+        self.assertRaises(
+            ValueError,
+            CampaignEvent.create_message_event,
+            self.org,
+            self.admin,
+            campaign,
+            offset=3,
+            unit="D",
+            message="oy, pancake man, come back",
+            relative_to=self.planting_date,
+            use_created_on=True,
+        )
+
+        self.assertRaises(
+            ValueError,
+            CampaignEvent.create_message_event,
+            self.org,
+            self.admin,
+            campaign,
+            offset=3,
+            unit="D",
+            message="oy, pancake man, come back",
+            relative_to=None,
+            use_created_on=False,
+        )
+
+        new_org = Org.objects.create(
+            name="Temba New",
+            timezone=pytz.timezone("Africa/Kigali"),
+            country=self.country,
+            brand=settings.DEFAULT_BRAND,
+            created_by=self.user,
+            modified_by=self.user,
+        )
+
+        self.assertRaises(
+            ValueError,
+            CampaignEvent.create_message_event,
+            new_org,
+            self.admin,
+            campaign,
+            offset=3,
+            unit="D",
+            message="oy, pancake man, come back",
+            relative_to=None,
+            use_created_on=True,
+        )
+
+        campaign_event = CampaignEvent.create_message_event(
+            self.org,
+            self.admin,
+            campaign,
+            offset=3,
+            unit="D",
+            message="oy, pancake man, come back",
+            relative_to=self.planting_date,
+            use_created_on=False,
+        )
+
+        self.assertEqual(campaign_event.campaign_id, campaign.id)
+        self.assertEqual(campaign_event.offset, 3)
+        self.assertEqual(campaign_event.unit, "D")
+        self.assertEqual(campaign_event.relative_to_id, self.planting_date.id)
+        self.assertIsNotNone(campaign_event.flow_id)
+        self.assertEqual(campaign_event.event_type, "M")
+        self.assertEqual(campaign_event.message, {"base": "oy, pancake man, come back"})
+        self.assertEqual(campaign_event.delivery_hour, -1)
+        self.assertEqual(campaign_event.use_created_on, False)

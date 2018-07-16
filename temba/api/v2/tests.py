@@ -165,7 +165,15 @@ class APITest(TembaTest):
         flow = self.create_flow()
         campaign = Campaign.create(self.org, self.admin, "Reminders #1", group)
         event = CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, field_obj, 6, CampaignEvent.UNIT_HOURS, flow, delivery_hour=12
+            self.org,
+            self.admin,
+            campaign,
+            field_obj,
+            6,
+            CampaignEvent.UNIT_HOURS,
+            flow,
+            delivery_hour=12,
+            use_created_on=False,
         )
 
         field = fields.LimitedListField(child=serializers.IntegerField(), source="test")
@@ -911,11 +919,20 @@ class APITest(TembaTest):
             1,
             CampaignEvent.UNIT_DAYS,
             "Don't forget to brush your teeth",
+            use_created_on=False,
         )
 
         campaign2 = Campaign.create(self.org, self.admin, "Notifications", reporters)
         event2 = CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign2, registration, 6, CampaignEvent.UNIT_HOURS, flow, delivery_hour=12
+            self.org,
+            self.admin,
+            campaign2,
+            registration,
+            6,
+            CampaignEvent.UNIT_HOURS,
+            flow,
+            delivery_hour=12,
+            use_created_on=False,
         )
 
         # create event for another org
@@ -923,7 +940,15 @@ class APITest(TembaTest):
         spammers = ContactGroup.get_or_create(self.org2, self.admin2, "Spammers")
         spam = Campaign.create(self.org2, self.admin2, "Cool stuff", spammers)
         CampaignEvent.create_flow_event(
-            self.org2, self.admin2, spam, joined, 6, CampaignEvent.UNIT_HOURS, flow, delivery_hour=12
+            self.org2,
+            self.admin2,
+            spam,
+            joined,
+            6,
+            CampaignEvent.UNIT_HOURS,
+            flow,
+            delivery_hour=12,
+            use_created_on=False,
         )
 
         # no filtering
@@ -947,6 +972,7 @@ class APITest(TembaTest):
                     "flow": {"uuid": flow.uuid, "name": "Color Flow"},
                     "message": None,
                     "created_on": format_datetime(event2.created_on),
+                    "use_created_on": False,
                 },
                 {
                     "uuid": event1.uuid,
@@ -958,6 +984,7 @@ class APITest(TembaTest):
                     "flow": None,
                     "message": {"base": "Don't forget to brush your teeth"},
                     "created_on": format_datetime(event1.created_on),
+                    "use_created_on": False,
                 },
             ],
         )
@@ -981,7 +1008,6 @@ class APITest(TembaTest):
         # try to create empty campaign event
         response = self.postJSON(url, None, {})
         self.assertResponseError(response, "campaign", "This field is required.")
-        self.assertResponseError(response, "relative_to", "This field is required.")
         self.assertResponseError(response, "offset", "This field is required.")
         self.assertResponseError(response, "unit", "This field is required.")
         self.assertResponseError(response, "delivery_hour", "This field is required.")
@@ -1015,6 +1041,42 @@ class APITest(TembaTest):
         )
         self.assertResponseError(response, "non_field_errors", "Flow UUID or a message text required.")
 
+        # provide valid values for those fields.. but not a message or flow
+        response = self.postJSON(
+            url,
+            None,
+            {
+                "campaign": campaign1.uuid,
+                "offset": 15,
+                "unit": "weeks",
+                "delivery_hour": -1,
+                "message": "Whoa there, hold your hearse!",
+            },
+        )
+        self.assertResponseError(
+            response, "non_field_errors", "Must define Created On or a contact field to continue."
+        )
+
+        # provide valid values for those fields.. but not a message or flow
+        response = self.postJSON(
+            url,
+            None,
+            {
+                "campaign": campaign1.uuid,
+                "offset": 15,
+                "unit": "weeks",
+                "delivery_hour": -1,
+                "message": "Whoa there, hold your hearse!",
+                "relative_to": "registration",
+                "use_created_on": True,
+            },
+        )
+        self.assertResponseError(
+            response,
+            "non_field_errors",
+            'Cannot define Created On and contact field: "Registration" at the same time.',
+        )
+
         # create a message event
         response = self.postJSON(
             url,
@@ -1037,6 +1099,32 @@ class APITest(TembaTest):
         self.assertEqual(event1.unit, "W")
         self.assertEqual(event1.delivery_hour, -1)
         self.assertEqual(event1.message, {"base": "Nice job"})
+        self.assertEqual(event1.use_created_on, False)
+        self.assertIsNotNone(event1.flow)
+
+        # create a message event that uses 'Created On' as
+        response = self.postJSON(
+            url,
+            None,
+            {
+                "campaign": campaign1.uuid,
+                "use_created_on": True,
+                "offset": 15,
+                "unit": "weeks",
+                "delivery_hour": -1,
+                "message": "Nice job",
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+
+        event1 = CampaignEvent.objects.filter(campaign=campaign1).order_by("-id").first()
+        self.assertEqual(event1.event_type, CampaignEvent.TYPE_MESSAGE)
+        self.assertEqual(event1.relative_to, None)
+        self.assertEqual(event1.offset, 15)
+        self.assertEqual(event1.unit, "W")
+        self.assertEqual(event1.delivery_hour, -1)
+        self.assertEqual(event1.message, {"base": "Nice job"})
+        self.assertEqual(event1.use_created_on, True)
         self.assertIsNotNone(event1.flow)
 
         # create a flow event
@@ -1061,6 +1149,7 @@ class APITest(TembaTest):
         self.assertEqual(event2.unit, "W")
         self.assertEqual(event2.delivery_hour, -1)
         self.assertEqual(event2.message, None)
+        self.assertEqual(event2.use_created_on, False)
         self.assertEqual(event2.flow, flow)
 
         # make sure some event fires were created for the contact
@@ -1083,6 +1172,7 @@ class APITest(TembaTest):
 
         event1.refresh_from_db()
         self.assertEqual(event1.event_type, CampaignEvent.TYPE_FLOW)
+        self.assertEqual(event1.use_created_on, False)
         self.assertIsNone(event1.message)
         self.assertEqual(event1.flow, flow)
 
@@ -1103,6 +1193,7 @@ class APITest(TembaTest):
 
         event2.refresh_from_db()
         self.assertEqual(event2.event_type, CampaignEvent.TYPE_MESSAGE)
+        self.assertEqual(event1.use_created_on, False)
         self.assertEqual(event2.message, {"base": "OK", "fra": "D'accord"})
 
         # and update update it's message again
@@ -1122,6 +1213,7 @@ class APITest(TembaTest):
 
         event2.refresh_from_db()
         self.assertEqual(event2.event_type, CampaignEvent.TYPE_MESSAGE)
+        self.assertEqual(event1.use_created_on, False)
         self.assertEqual(event2.message, {"base": "OK", "fra": "D'accord", "kin": "Sawa"})
 
         # try to change an existing event's campaign

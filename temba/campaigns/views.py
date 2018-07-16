@@ -204,7 +204,7 @@ class CampaignCRUDL(SmartCRUDL):
             return qs
 
 
-class EventForm(forms.ModelForm):
+class CampaignEventForm(forms.ModelForm):
 
     event_type = forms.ChoiceField(
         choices=((CampaignEvent.TYPE_MESSAGE, "Send a message"), (CampaignEvent.TYPE_FLOW, "Start a flow")),
@@ -221,6 +221,18 @@ class EventForm(forms.ModelForm):
 
     def clean(self):
         data = super().clean()
+
+        field_relative_to = self.cleaned_data.get("relative_to")
+        field_use_created_on = self.cleaned_data.get("use_created_on")
+
+        if field_relative_to is None and field_use_created_on in (None, False):
+            raise ValidationError(_(f"Must choose Created On or a contact field to continue."))
+
+        if field_relative_to is not None and field_use_created_on is True:
+            raise ValidationError(
+                _(f'Cannot choose Created On and contact field: "{field_relative_to}" at the same time.')
+            )
+
         if self.data["event_type"] == CampaignEvent.TYPE_MESSAGE and self.languages:
             language = self.languages[0].language
             iso_code = language["iso_code"]
@@ -418,9 +430,18 @@ class CampaignEventCRUDL(SmartCRUDL):
 
     class Update(OrgPermsMixin, ModalMixin, SmartUpdateView):
         success_message = ""
-        form_class = EventForm
+        form_class = CampaignEventForm
 
-        default_fields = ["event_type", "flow_to_start", "offset", "unit", "direction", "relative_to", "delivery_hour"]
+        default_fields = [
+            "event_type",
+            "flow_to_start",
+            "offset",
+            "unit",
+            "direction",
+            "relative_to",
+            "delivery_hour",
+            "use_created_on",
+        ]
 
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
@@ -487,8 +508,17 @@ class CampaignEventCRUDL(SmartCRUDL):
 
     class Create(OrgPermsMixin, ModalMixin, SmartCreateView):
 
-        default_fields = ["event_type", "flow_to_start", "offset", "unit", "direction", "relative_to", "delivery_hour"]
-        form_class = EventForm
+        default_fields = [
+            "event_type",
+            "flow_to_start",
+            "offset",
+            "unit",
+            "direction",
+            "relative_to",
+            "delivery_hour",
+            "use_created_on",
+        ]
+        form_class = CampaignEventForm
         success_message = ""
         template_name = "campaigns/campaignevent_update.haml"
 

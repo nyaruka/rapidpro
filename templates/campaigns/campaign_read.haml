@@ -35,7 +35,7 @@
           %tr
             %td{colspan:2}
               %h3
-                {{event.relative_to}}
+                {{event.get_relative_to_label}}
 
         %tr.campaign-event{valign:'center', data-event-id:'{{event.pk}}'}
 
@@ -54,7 +54,7 @@
                   -else
                     AFTER
             .date
-              {{ event.relative_to }}
+              {{ event.get_relative_to_label }}
 
           %td.details
             -if event.event_type == 'M'
