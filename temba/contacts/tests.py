@@ -3222,6 +3222,18 @@ class ContactTest(TembaTest):
         event.unit = "M"
         self.assertEqual("1 minute before Planting Date", event_time(event))
 
+        event2 = CampaignEvent.create_message_event(
+            self.org,
+            self.admin,
+            self.campaign,
+            relative_to=None,
+            offset=7,
+            unit="D",
+            message="A message to send",
+            use_created_on=True,
+        )
+        self.assertEqual("7 days after Created On", event_time(event2))
+
     def test_activity_tags(self):
         self.create_campaign()
 

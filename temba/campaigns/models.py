@@ -453,7 +453,7 @@ class CampaignEvent(TembaModel):
             return None
 
         # either use_created_on or relative_to must be set
-        if self.use_created_on in (None, False) and self.relative_to is None:
+        if self.use_created_on in (None, False) and self.relative_to is None:  # pragma: no cover
             return None
 
         # convert to our timezone
@@ -514,7 +514,10 @@ class CampaignEvent(TembaModel):
         self.delete()
 
     def calculate_scheduled_fire(self, contact):
-        return self.calculate_scheduled_fire_for_value(contact.get_field_value(self.relative_to), timezone.now())
+        if self.relative_to:
+            return self.calculate_scheduled_fire_for_value(contact.get_field_value(self.relative_to), timezone.now())
+        else:
+            return self.calculate_scheduled_fire_for_value(contact.created_on, timezone.now())
 
     def __str__(self):
         return "%s == %d -> %s" % (self.get_relative_to_label(), self.offset, self.flow)
