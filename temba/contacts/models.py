@@ -2123,7 +2123,11 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         if isinstance(schemes, str):
             schemes = (schemes,)
 
-        urns = self.get_urns()
+        # specific URN prefetch - set by omnibox search when searching for contacts
+        if hasattr(self, "_prefetched_urns"):
+            urns = self._prefetched_urns
+        else:
+            urns = self.get_urns()
 
         if schemes is not None:
             for urn in urns:
