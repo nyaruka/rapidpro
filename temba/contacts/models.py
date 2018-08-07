@@ -6,6 +6,7 @@ import time
 import uuid
 from decimal import Decimal
 from itertools import chain
+from typing import Optional
 
 import iso8601
 import phonenumbers
@@ -29,7 +30,7 @@ from temba.locations.models import AdminBoundary
 from temba.orgs.models import Org, OrgLock
 from temba.utils import analytics, chunk_list, format_number, get_anonymous_user, on_transaction_commit
 from temba.utils.cache import get_cacheable_attr
-from temba.utils.dates import str_to_datetime
+from temba.utils.dates import datetime_to_str, str_to_datetime
 from temba.utils.export import BaseExportAssetStore, BaseExportTask, TableExporter
 from temba.utils.languages import _get_language_name_iso6393
 from temba.utils.locks import NonBlockingLock
@@ -699,6 +700,8 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             obj["urns"] = [dict(scheme=urn.scheme, path=urn.path) for urn in self.urns.all()]
 
         obj["fields"] = self.fields if self.fields else {}
+        obj["language"] = self.language
+        obj["created_on"] = datetime_to_str(self.created_on, tz=self.org.timezone)
 
         return obj
 
@@ -1024,6 +1027,18 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         if has_changed and not importing:
             self.handle_update(field=field)
 
+    def set_language(self, language: Optional[str]):
+        old_value = self.language
+
+        if language is None or len(language) != 3:
+            self.language = None
+        else:
+            self.language = language
+
+        if old_value != self.language:
+            self.save(update_fields=["language"])
+            self.handle_update(attrs=("language",))
+
     def handle_update(self, attrs=(), urns=(), field=None, group=None, is_new=False):
         """
         Handles an update to a contact which can be one of
@@ -1033,7 +1048,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         """
         dynamic_group_change = False
 
-        if field or urns or is_new:
+        if attrs or field or urns or is_new:
             # ensure dynamic groups are up to date
             dynamic_group_change = self.reevaluate_dynamic_groups(field)
 

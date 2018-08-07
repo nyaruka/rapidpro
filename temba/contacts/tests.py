@@ -80,7 +80,7 @@ class ContactCRUDLTest(_CRUDLTest):
         self.user = self.create_user("tito")
         self.org = Org.objects.create(
             name="Nyaruka Ltd.",
-            timezone="Africa/Kigali",
+            timezone=pytz.timezone("Africa/Kigali"),
             country=self.country,
             created_by=self.user,
             modified_by=self.user,
@@ -347,7 +347,7 @@ class ContactGroupTest(TembaTest):
                 ContactField.get_or_create(self.org, self.admin, key, value_type=Value.TYPE_NUMBER)
                 ContactGroup.create_dynamic(self.org, self.admin, "Group %s" % (key), "(%s > 10)" % key)
 
-        with QueryTracker(assert_query_count=110, stack_count=16, skip_unique_queries=False):
+        with QueryTracker(assert_query_count=126, stack_count=16, skip_unique_queries=False):
             flow.start([], [self.joe])
 
     def test_get_or_create(self):
@@ -1542,6 +1542,61 @@ class ContactTest(TembaTest):
             SearchException, evaluate_query, self.org, 'name != ""', contact_json=self.joe.as_search_json()
         )
 
+        # test 'language' attribute
+        self.joe.language = "eng"
+        self.joe.save(update_fields=("language",))
+        self.assertTrue(evaluate_query(self.org, 'language = "eng"', contact_json=self.joe.as_search_json()))
+
+        self.assertFalse(evaluate_query(self.org, 'language = ""', contact_json=self.joe.as_search_json()))
+        self.assertTrue(evaluate_query(self.org, 'language != ""', contact_json=self.joe.as_search_json()))
+
+        # language does not support `has` operator
+        self.assertRaises(
+            SearchException, evaluate_query, self.org, 'language ~ "eng"', contact_json=self.joe.as_search_json()
+        )
+
+        self.joe.language = None
+        self.joe.save(update_fields=("language",))
+
+        self.assertFalse(evaluate_query(self.org, 'language = "eng"', contact_json=self.joe.as_search_json()))
+
+        self.assertTrue(evaluate_query(self.org, 'language = ""', contact_json=self.joe.as_search_json()))
+        self.assertFalse(evaluate_query(self.org, 'language != ""', contact_json=self.joe.as_search_json()))
+
+        # test 'created_on' attribute
+        self.assertRaises(
+            SearchException,
+            evaluate_query,
+            self.org,
+            'created_on = "this-is-not-a-date"',
+            contact_json=self.joe.as_search_json(),
+        )
+        self.assertRaises(
+            SearchException,
+            evaluate_query,
+            self.org,
+            'created_on ~ "2016-01-01"',
+            contact_json=self.joe.as_search_json(),
+        )
+        query_created_on = datetime_to_str(self.joe.created_on, tz=self.org.timezone)
+        self.assertTrue(
+            evaluate_query(self.org, f'created_on = "{query_created_on}"', contact_json=self.joe.as_search_json())
+        )
+        query_created_on = datetime_to_str(self.joe.created_on - timedelta(days=6), tz=self.org.timezone)
+        self.assertTrue(
+            evaluate_query(self.org, f'created_on > "{query_created_on}"', contact_json=self.joe.as_search_json())
+        )
+        self.assertTrue(
+            evaluate_query(self.org, f'created_on >= "{query_created_on}"', contact_json=self.joe.as_search_json())
+        )
+        query_created_on = datetime_to_str(self.joe.created_on + timedelta(days=6), tz=self.org.timezone)
+        self.assertTrue(
+            evaluate_query(self.org, f'created_on < "{query_created_on}"', contact_json=self.joe.as_search_json())
+        )
+        self.assertTrue(
+            evaluate_query(self.org, f'created_on <= "{query_created_on}"', contact_json=self.joe.as_search_json())
+        )
+
         # test TEXT field type
         self.assertFalse(evaluate_query(self.org, 'gender != ""', contact_json=self.joe.as_search_json()))
         self.assertTrue(evaluate_query(self.org, 'gender = ""', contact_json=self.joe.as_search_json()))
@@ -2334,6 +2389,87 @@ class ContactTest(TembaTest):
         expected_search = copy.deepcopy(base_search)
         expected_search["query"]["bool"]["must"] = [{"term": {"name.keyword": "joe blow"}}]
         actual_search, _ = contact_es_search(self.org, 'name = "joe Blow"')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        # test `language` contact attribute
+        expected_search = copy.deepcopy(base_search)
+        expected_search["query"]["bool"]["must"] = [{"term": {"language": "eng"}}]
+        actual_search, _ = contact_es_search(self.org, 'language = "eng"')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        # operator not supported
+        self.assertRaises(SearchException, contact_es_search, self.org, 'language ~ "eng"')
+
+        expected_search = {
+            "query": {
+                "bool": {
+                    "must_not": [{"term": {"language": ""}}],
+                    "must": [{"exists": {"field": "language"}}],
+                    "filter": [
+                        # {'term': {'is_blocked': False}},
+                        # {'term': {'is_stopped': False}},
+                        {"term": {"org_id": self.org.id}},
+                        {"term": {"groups": str(self.org.cached_all_contacts_group.uuid)}},
+                    ],
+                }
+            },
+            "sort": [{"id": {"order": "desc"}}],
+        }
+        actual_search, _ = contact_es_search(self.org, 'language != ""')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        expected_search = {
+            "query": {
+                "bool": {
+                    "should": [
+                        {"bool": {"must_not": [{"exists": {"field": "language"}}]}},
+                        {"term": {"language": ""}},
+                    ],
+                    "filter": [
+                        # {'term': {'is_blocked': False}},
+                        # {'term': {'is_stopped': False}},
+                        {"term": {"org_id": self.org.id}},
+                        {"term": {"groups": str(self.org.cached_all_contacts_group.uuid)}},
+                    ],
+                    "minimum_should_match": 1,
+                }
+            },
+            "sort": [{"id": {"order": "desc"}}],
+        }
+        actual_search, _ = contact_es_search(self.org, 'language = ""')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        # created_on
+        self.assertRaises(SearchException, contact_es_search, self.org, 'created_on != ""')
+        self.assertRaises(SearchException, contact_es_search, self.org, 'created_on = ""')
+        self.assertRaises(SearchException, contact_es_search, self.org, 'created_on ~ "05-07-2018"')
+        self.assertRaises(SearchException, contact_es_search, self.org, 'created_on ~ "this-is-not-a-date"')
+
+        expected_search = copy.deepcopy(base_search)
+        expected_search["query"]["bool"]["must"] = [
+            {"range": {"created_on": {"gte": "2018-07-04T22:00:00+00:00", "lt": "2018-07-05T22:00:00+00:00"}}}
+        ]
+        actual_search, _ = contact_es_search(self.org, 'created_on = "05-07-2018"')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        expected_search = copy.deepcopy(base_search)
+        expected_search["query"]["bool"]["must"] = [{"range": {"created_on": {"gte": "2018-07-05T22:00:00+00:00"}}}]
+        actual_search, _ = contact_es_search(self.org, 'created_on > "05-07-2018"')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        expected_search = copy.deepcopy(base_search)
+        expected_search["query"]["bool"]["must"] = [{"range": {"created_on": {"gte": "2018-07-04T22:00:00+00:00"}}}]
+        actual_search, _ = contact_es_search(self.org, 'created_on >= "05-07-2018"')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        expected_search = copy.deepcopy(base_search)
+        expected_search["query"]["bool"]["must"] = [{"range": {"created_on": {"lt": "2018-07-04T22:00:00+00:00"}}}]
+        actual_search, _ = contact_es_search(self.org, 'created_on < "05-07-2018"')
+        self.assertEqual(actual_search.to_dict(), expected_search)
+
+        expected_search = copy.deepcopy(base_search)
+        expected_search["query"]["bool"]["must"] = [{"range": {"created_on": {"lt": "2018-07-05T22:00:00+00:00"}}}]
+        actual_search, _ = contact_es_search(self.org, 'created_on <= "05-07-2018"')
         self.assertEqual(actual_search.to_dict(), expected_search)
 
         expected_search = copy.deepcopy(base_search)
@@ -4138,6 +4274,23 @@ class ContactTest(TembaTest):
         self.client.post(list_url, post_data)
         self.assertFalse(ChannelEvent.objects.filter(contact=self.frank))
         self.assertFalse(ChannelEvent.objects.filter(id=event.id))
+
+    def test_contact_language_update(self):
+        self.login(self.admin)
+
+        self.client.post(reverse("orgs.org_languages"), dict(primary_lang="eng", languages="fra"))
+
+        with ESMockWithScroll():
+            language_group = self.create_group("English humans", query="language is eng")
+
+        self.assertEqual(language_group.contacts.count(), 0)
+
+        self.client.post(
+            reverse("contacts.contact_update", args=[self.joe.id]),
+            dict(language="eng", name="Joe Blow", urn__tel__0="+250781111111"),
+        )
+
+        self.assertEqual(language_group.contacts.count(), 1)
 
     def test_number_normalized(self):
         self.org.country = None

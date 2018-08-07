@@ -458,6 +458,12 @@ class ContactWriteSerializer(WriteSerializer):
 
         return value
 
+    def validate_language(self, value):
+        if value is None or len(value) != 3:
+            return None
+        else:
+            return value
+
     def validate_urns(self, value):
         org = self.context["org"]
 
@@ -503,10 +509,11 @@ class ContactWriteSerializer(WriteSerializer):
             if "name" in self.validated_data and name != self.instance.name:
                 self.instance.name = name
                 changed.append("name")
-            if "language" in self.validated_data and language != self.instance.language:
-                self.instance.language = language
-                changed.append("language")
 
+            if "language" in self.validated_data and language != self.instance.language:
+                self.instance.set_language(language)
+
+            # TODO: urns cannot be None because it is required field, so this will be always called and consequently reevalute dynamic groups
             if "urns" in self.validated_data and urns is not None:
                 self.instance.update_urns(self.context["user"], urns)
 

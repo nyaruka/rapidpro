@@ -6992,13 +6992,8 @@ class SetLanguageAction(Action):
         return dict(type=self.TYPE, uuid=self.uuid, lang=self.lang, name=self.name)
 
     def execute(self, run, context, actionset_uuid, msg, offline_on=None):
+        run.contact.set_language(self.lang)
 
-        if len(self.lang) != 3:
-            run.contact.language = None
-        else:
-            run.contact.language = self.lang
-
-        run.contact.save(update_fields=["language"])
         self.logger(run)
         return []
 
