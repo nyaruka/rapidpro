@@ -119,7 +119,6 @@ class ClientTest(TembaTest):
         )
         self.contact.set_preferred_channel(twitter)
         self.contact.urns.filter(scheme="twitterid").update(channel=twitter)
-        self.contact.clear_urn_cache()
 
         with patch("django.utils.timezone.now", return_value=datetime(2018, 1, 18, 14, 24, 30, 0, tzinfo=pytz.UTC)):
             self.contact.set_field(self.admin, "gender", "M")

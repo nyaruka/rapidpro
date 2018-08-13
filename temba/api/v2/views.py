@@ -1528,13 +1528,17 @@ class ContactsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAPIView)
                 to_attr="prefetched_user_groups",
             )
         )
+        queryset = queryset.prefetch_related(
+            Prefetch(
+                "urns",
+                queryset=ContactURN.objects.filter(contact__in=queryset).order_by("-priority", "id"),
+                to_attr="_prefetched_urns",
+            )
+        )
+
+        queryset = queryset.select_related("org")
 
         return self.filter_before_after(queryset, "modified_on")
-
-    def prepare_for_serialization(self, object_list):
-        # initialize caches of all contact fields and URNs
-        org = self.request.user.get_org()
-        Contact.bulk_cache_initialize(org, object_list)
 
     def get_serializer_context(self):
         """

@@ -277,7 +277,7 @@ class ContactListView(ContactListPaginationMixin, OrgPermsMixin, SmartListView):
 
         # resolve the paginated object list so we can initialize a cache of URNs and fields
         contacts = list(context["object_list"])
-        Contact.bulk_cache_initialize(org, contacts, for_show_only=True)
+        # Contact.bulk_cache_initialize(org, contacts, for_show_only=True)
 
         context["contacts"] = contacts
         context["groups"] = self.get_user_groups(org)
@@ -1035,9 +1035,6 @@ class ContactCRUDL(SmartCRUDL):
 
             context["contact_urns"] = urns
             context["has_sendable_urn"] = has_sendable_urn
-
-            # load our contacts values
-            Contact.bulk_cache_initialize(contact.org, [contact])
 
             # lookup all of our contact fields
             contact_fields = []
