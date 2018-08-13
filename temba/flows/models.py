@@ -192,8 +192,6 @@ class FlowSession(models.Model):
         """
         cls.interrupt_waiting(contacts)
 
-        Contact.bulk_cache_initialize(flow.org, contacts)
-
         client = server.get_client()
 
         runs = []
@@ -2013,7 +2011,18 @@ class Flow(TembaModel):
 
         # only use flowserver if flow supports it, message is an actual message, and parent wasn't run in old engine
         if self.use_flow_server() and not (start_msg and not start_msg.contact_urn) and not parent_run:
-            contacts = Contact.objects.filter(id__in=all_contact_ids).order_by("id")
+
+            prefetch_urns = Prefetch(
+                "urns",
+                queryset=ContactURN.objects.filter(contact_id__in=all_contact_ids).order_by("-priority", "id"),
+                to_attr="_prefetched_urns",
+            )
+            contacts = (
+                Contact.objects.filter(id__in=all_contact_ids)
+                .order_by("id")
+                .prefetch_related(prefetch_urns)
+                .select_related("org")
+            )
             runs = FlowSession.bulk_start(
                 contacts, self, msg_in=start_msg, campaign_event=campaign_event, params=extra
             )
@@ -2117,8 +2126,15 @@ class Flow(TembaModel):
         parent_context=None,
     ):
 
-        batch_contacts = Contact.objects.filter(id__in=batch_contact_ids)
-        Contact.bulk_cache_initialize(self.org, batch_contacts)
+        prefetch_urns = Prefetch(
+            "urns",
+            queryset=ContactURN.objects.filter(contact_id__in=batch_contact_ids).order_by("-priority", "id"),
+            to_attr="_prefetched_urns",
+        )
+
+        batch_contacts = (
+            Contact.objects.filter(id__in=batch_contact_ids).prefetch_related(prefetch_urns).select_related("org")
+        )
         contact_map = {c.id: c for c in batch_contacts}
 
         simulation = len(batch_contacts) == 1 and batch_contacts[0].is_test

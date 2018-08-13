@@ -441,10 +441,16 @@ class Broadcast(models.Model):
         # if we are passed URNs, map them to contacts
         if urns is not None:
             # build our list of contacts that map to our URNs
-            contact_map = {c.id: c for c in Contact.objects.filter(urns__in=urns)}
+            prefetch_urns = Prefetch(
+                "urns",
+                queryset=ContactURN.objects.filter(id__in=[urn.id for urn in urns]).order_by("-priority", "id"),
+                to_attr="_prefetched_urns",
+            )
 
-            # bulk initialize them
-            Contact.bulk_cache_initialize(self.org, contact_map.values())
+            contact_map = {
+                c.id: c
+                for c in Contact.objects.filter(urns__in=urns).prefetch_related(prefetch_urns).select_related("org")
+            }
 
         # otherwise build our list of URNs we are sending to from our contacts
         else:

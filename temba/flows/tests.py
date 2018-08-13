@@ -873,7 +873,7 @@ class FlowTest(TembaTest):
         for run in (contact1_run1, contact2_run1, contact3_run1, contact1_run2, contact2_run2):
             run.refresh_from_db()
 
-        with self.assertNumQueries(43):
+        with self.assertNumQueries(45):
             workbook = self.export_flow_results(flow)
 
         tz = self.org.timezone
@@ -1183,7 +1183,7 @@ class FlowTest(TembaTest):
         for run in (contact1_run1, contact2_run1, contact3_run1, contact1_run2, contact2_run2):
             run.refresh_from_db()
 
-        with self.assertNumQueries(44):
+        with self.assertNumQueries(46):
             workbook = self.export_flow_results(self.flow, group_memberships=[devs])
 
         tz = self.org.timezone
@@ -1399,7 +1399,7 @@ class FlowTest(TembaTest):
         )
 
         # test without msgs or unresponded
-        with self.assertNumQueries(43):
+        with self.assertNumQueries(44):
             workbook = self.export_flow_results(
                 self.flow, include_msgs=False, responded_only=True, group_memberships=(devs,)
             )
@@ -1467,7 +1467,7 @@ class FlowTest(TembaTest):
         age = ContactField.get_or_create(self.org, self.admin, "age", "Age")
         self.contact.set_field(self.admin, "age", 36)
 
-        with self.assertNumQueries(44):
+        with self.assertNumQueries(51):
             workbook = self.export_flow_results(
                 self.flow,
                 include_msgs=False,
@@ -5173,11 +5173,9 @@ class ActionTest(TembaTest):
         self.assertEqual(resolved_urn, fb_urn)
 
         # but if we set our channel to tel, will override that
-        run.contact.clear_urn_cache()
         action = SetChannelAction(str(uuid4()), tel1_channel)
         self.execute_action(action, run, None)
 
-        contact.clear_urn_cache()
         contact, resolved_urn = Msg.resolve_recipient(self.org, self.admin, self.contact, None)
         self.assertEqual(resolved_urn, urn)
         self.assertEqual(resolved_urn.channel, tel1_channel)
@@ -5198,7 +5196,6 @@ class ActionTest(TembaTest):
 
         # make sure that switch will work across schemes as well
         Msg.create_incoming(fb_channel, str(fb_urn), "Incoming FB message")
-        self.contact.clear_urn_cache()
         contact, resolved_urn = Msg.resolve_recipient(self.org, self.admin, self.contact, None)
         self.assertEqual(resolved_urn, fb_urn)
 

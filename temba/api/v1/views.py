@@ -14,7 +14,7 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from temba.api.models import APIToken
-from temba.contacts.models import TEL_SCHEME, Contact, ContactField, ContactGroup
+from temba.contacts.models import TEL_SCHEME, Contact, ContactField, ContactGroup, ContactURN
 from temba.flows.models import Flow, FlowRun
 from temba.locations.models import AdminBoundary, BoundaryAlias
 from temba.utils import splitting_getlist, str_to_bool
@@ -324,13 +324,15 @@ class ContactEndpoint(ListAPIMixin, CreateAPIMixin, BaseAPIView):
         user_groups_prefetch = Prefetch(
             "all_groups", queryset=ContactGroup.user_groups.all(), to_attr="prefetched_user_groups"
         )
+        queryset = queryset.prefetch_related(
+            Prefetch(
+                "urns",
+                queryset=ContactURN.objects.filter(contact__in=queryset).order_by("-priority", "id"),
+                to_attr="_prefetched_urns",
+            )
+        )
 
         return queryset.select_related("org").prefetch_related(user_groups_prefetch).order_by("-modified_on", "pk")
-
-    def prepare_for_serialization(self, object_list):
-        # initialize caches of all contact fields and URNs
-        org = self.request.user.get_org()
-        Contact.bulk_cache_initialize(org, object_list)
 
     def get_serializer_context(self):
         """

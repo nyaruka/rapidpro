@@ -347,7 +347,7 @@ class ContactGroupTest(TembaTest):
                 ContactField.get_or_create(self.org, self.admin, key, value_type=Value.TYPE_NUMBER)
                 ContactGroup.create_dynamic(self.org, self.admin, "Group %s" % (key), "(%s > 10)" % key)
 
-        with QueryTracker(assert_query_count=110, stack_count=16, skip_unique_queries=False):
+        with QueryTracker(assert_query_count=111, stack_count=16, skip_unique_queries=False):
             flow.start([], [self.joe])
 
     def test_get_or_create(self):
@@ -1491,40 +1491,6 @@ class ContactTest(TembaTest):
             self.assertEqual("%010d" % self.voldemort.pk, str(self.voldemort))
             self.assertEqual("Wolfeschlegelsteinhausenbergerdorff", str(mr_long_name))
             self.assertEqual("Billy Nophone", str(self.billy))
-
-    def test_bulk_cache_initialize(self):
-        age = ContactField.get_or_create(self.org, self.admin, "age", "Age", value_type="N", show_in_table=True)
-        nick = ContactField.get_or_create(
-            self.org, self.admin, "nick", "Nickname", value_type="T", show_in_table=False
-        )
-
-        self.joe.set_field(self.user, "age", 32)
-        self.joe.set_field(self.user, "nick", "Joey")
-        self.joe = Contact.objects.get(pk=self.joe.pk)
-
-        self.billy = Contact.objects.get(pk=self.billy.pk)
-
-        all = (self.joe, self.frank, self.billy)
-        Contact.bulk_cache_initialize(self.org, all, for_show_only=True)
-
-        self.assertEqual([u.scheme for u in getattr(self.joe, "__urns")], [TWITTER_SCHEME, TEL_SCHEME])
-        self.assertEqual([u.scheme for u in getattr(self.frank, "__urns")], [TEL_SCHEME])
-        self.assertEqual(getattr(self.billy, "__urns"), list())
-
-        with self.assertNumQueries(0):
-            self.assertEqual(self.joe.get_field_value(age), 32)
-            self.assertIsNone(self.frank.get_field_value(age))
-            self.assertIsNone(self.billy.get_field_value(age))
-
-        Contact.bulk_cache_initialize(self.org, all)
-
-        with self.assertNumQueries(0):
-            self.assertEqual(self.joe.get_field_value(age), 32)
-            self.assertIsNone(self.frank.get_field_value(age))
-            self.assertIsNone(self.billy.get_field_value(age))
-            self.assertEqual(self.joe.get_field_value(nick), "Joey")
-            self.assertIsNone(self.frank.get_field_value(nick))
-            self.assertIsNone(self.billy.get_field_value(nick))
 
     def test_contact_search_evaluation(self):
         ContactField.get_or_create(self.org, self.admin, "gender", "Gender", value_type=Value.TYPE_TEXT)
@@ -6319,7 +6285,7 @@ class ContactFieldTest(TembaTest):
             return workbook.worksheets
 
         # no group specified, so will default to 'All Contacts'
-        with self.assertNumQueries(48):
+        with self.assertNumQueries(47):
             export = request_export()
             self.assertExcelSheet(
                 export[0],
@@ -6370,7 +6336,7 @@ class ContactFieldTest(TembaTest):
         # change the order of the fields
         self.contactfield_2.priority = 15
         self.contactfield_2.save()
-        with self.assertNumQueries(48):
+        with self.assertNumQueries(47):
             export = request_export()
             self.assertExcelSheet(
                 export[0],
@@ -6427,7 +6393,7 @@ class ContactFieldTest(TembaTest):
         ContactURN.create(self.org, contact, "tel:+12062233445")
 
         # but should have additional Twitter and phone columns
-        with self.assertNumQueries(48):
+        with self.assertNumQueries(47):
             export = request_export()
             self.assertExcelSheet(
                 export[0],
@@ -6511,7 +6477,7 @@ class ContactFieldTest(TembaTest):
             )
 
         # export a specified group of contacts (only Ben and Adam are in the group)
-        with self.assertNumQueries(49):
+        with self.assertNumQueries(48):
             self.assertExcelSheet(
                 request_export("?g=%s" % group.uuid)[0],
                 [
@@ -6567,7 +6533,7 @@ class ContactFieldTest(TembaTest):
             {"_type": "_doc", "_index": "dummy_index", "_source": {"id": contact3.id}},
         ]
         with ESMockWithScroll(data=mock_es_data):
-            with self.assertNumQueries(47):
+            with self.assertNumQueries(46):
                 self.assertExcelSheet(
                     request_export("?s=name+has+adam+or+name+has+deng")[0],
                     [
@@ -6620,7 +6586,7 @@ class ContactFieldTest(TembaTest):
         # export a search within a specified group of contacts
         mock_es_data = [{"_type": "_doc", "_index": "dummy_index", "_source": {"id": contact.id}}]
         with ESMockWithScroll(data=mock_es_data):
-            with self.assertNumQueries(48):
+            with self.assertNumQueries(47):
                 self.assertExcelSheet(
                     request_export("?g=%s&s=Hagg" % group.uuid)[0],
                     [

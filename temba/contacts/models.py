@@ -19,7 +19,7 @@ from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import IntegrityError, connection, models, transaction
-from django.db.models import Count, Max, Q, Sum
+from django.db.models import Count, Max, Prefetch, Q, Sum
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -1973,46 +1973,10 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
 
         return channel
 
-    def initialize_cache(self):
-        if getattr(self, "__cache_initialized", False):
-            return
-
-        Contact.bulk_cache_initialize(self.org, [self])
-
-    @classmethod
-    def bulk_cache_initialize(cls, org, contacts, for_show_only=False):
-        """
-        Performs optimizations on our contacts to prepare them to send. This includes loading all our contact fields for
-        variable substitution.
-        """
-        if not contacts:
-            return
-
-        fields = org.cached_contact_fields.values()
-        if for_show_only:
-            fields = [f for f in fields if f.show_in_table]
-
-        contact_map = dict()
-        for contact in contacts:
-            contact_map[contact.id] = contact
-            setattr(contact, "__urns", list())  # initialize URN list cache (setattr avoids name mangling or __urns)
-
-        # cache all URN values (a priority ordered list on each contact)
-        urns = ContactURN.objects.filter(contact__in=contact_map.keys()).order_by("contact", "-priority", "pk")
-        for urn in urns:
-            contact = contact_map[urn.contact_id]
-            getattr(contact, "__urns").append(urn)
-
-        # set the cache initialize as correct
-        for contact in contacts:
-            contact.org = org
-            setattr(contact, "__cache_initialized", True)
-
     def build_expressions_context(self):
         """
         Builds a dictionary suitable for use in variable substitution in messages.
         """
-        self.initialize_cache()
 
         org = self.org
         context = {
@@ -2090,8 +2054,6 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
                     urn.priority = urns[0].priority + 1
                     urn.save(update_fields=["priority"])
 
-                    # clear our URN cache, order is different now
-                    self.clear_urn_cache()
                     break
 
     def get_urns_for_scheme(self, scheme):  # pragma: needs cover
@@ -2100,21 +2062,14 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         """
         return self.urns.filter(scheme=scheme).order_by("-priority", "pk")
 
-    def clear_urn_cache(self):
-        if hasattr(self, "__urns"):
-            delattr(self, "__urns")
-
     def get_urns(self):
         """
         Gets all URNs ordered by priority
         """
-        cache_attr = "__urns"
-        if hasattr(self, cache_attr):
-            return getattr(self, cache_attr)
-
-        urns = self.urns.order_by("-priority", "pk")
-        setattr(self, cache_attr, urns)
-        return urns
+        if hasattr(self, "_prefetched_urns"):
+            return self._prefetched_urns
+        else:
+            return self.urns.order_by("-priority", "pk")
 
     def get_urn(self, schemes=None):
         """
@@ -2123,11 +2078,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         if isinstance(schemes, str):
             schemes = (schemes,)
 
-        # specific URN prefetch - set by omnibox search when searching for contacts
-        if hasattr(self, "_prefetched_urns"):
-            urns = self._prefetched_urns
-        else:
-            urns = self.get_urns()
+        urns = self.get_urns()
 
         if schemes is not None:
             for urn in urns:
@@ -2202,10 +2153,6 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         # update modified on any other modified contacts
         if modified_contacts:
             Contact.objects.filter(id__in=modified_contacts).update(modified_on=timezone.now())
-
-        # clear URN cache
-        if hasattr(self, "__urns"):
-            delattr(self, "__urns")
 
     def update_static_groups(self, user, groups):
         """
@@ -2487,8 +2434,6 @@ class ContactURN(models.Model):
             try:
                 with transaction.atomic():
                     urn = cls.create(org, contact, urn_as_string, channel=channel, auth=auth)
-                if contact:
-                    contact.clear_urn_cache()
             except IntegrityError:
                 urn = cls.lookup(org, urn_as_string)
 
@@ -3199,15 +3144,21 @@ class ExportContactsTask(BaseExportTask):
         # write out contacts in batches to limit memory usage
         for batch_ids in chunk_list(contact_ids, 1000):
             # fetch all the contacts for our batch
+            contact_urns = Prefetch(
+                "urns",
+                queryset=ContactURN.objects.filter(contact_id__in=batch_ids).order_by("-priority", "id"),
+                to_attr="_prefetched_urns",
+            )
+
             batch_contacts = (
-                Contact.objects.filter(id__in=batch_ids).prefetch_related("all_groups").select_related("org")
+                Contact.objects.filter(id__in=batch_ids)
+                .prefetch_related("all_groups")
+                .prefetch_related(contact_urns)
+                .select_related("org")
             )
 
             # to maintain our sort, we need to lookup by id, create a map of our id->contact to aid in that
             contact_by_id = {c.id: c for c in batch_contacts}
-
-            # bulk initialize them
-            Contact.bulk_cache_initialize(self.org, batch_contacts)
 
             for contact_id in batch_ids:
                 contact = contact_by_id[contact_id]
