@@ -48,7 +48,6 @@ elasticsearch==6.3.1
 enum34==1.1.6             # via django-hamlpy
 et-xmlfile==1.0.1         # via openpyxl
 first==2.0.1              # via pip-tools
-<<<<<<< HEAD
 flake8-deprecated==1.3
 flake8-print==3.1.0
 flake8==3.5.0
@@ -58,17 +57,6 @@ google==2.0.1
 gunicorn==19.9.0
 httplib2==0.11.3          # via twilio
 idna==2.7                 # via cryptography, requests
-=======
-flake8-deprecated==1.2.1
-flake8-print==2.0.2
-flake8==3.3.0
-future==0.16.0            # via django-hamlpy, python-telegram-bot
-geojson==1.3.5
-google==1.9.3
-gunicorn==19.7.1
-httplib2==0.10.3          # via twilio
-idna==2.5                 # via cryptography, requests
->>>>>>> 4111d3877f0560dcdbdea45750be39d98e3a6d61
 inflection==0.3.1         # via python-intercom
 ipaddress==1.0.22         # via elasticsearch-dsl
 iptools==0.6.1
@@ -112,7 +100,6 @@ python-dateutil==2.7.3
 python-gcm==0.4
 python-intercom==3.1.0
 python-magic==0.4.15
-<<<<<<< HEAD
 python-telegram-bot==10.1.0
 pytz==2018.5
 rapidpro-expressions==1.6
@@ -121,16 +108,6 @@ rcssmin==1.0.6            # via django-compressor
 redis==2.10.6
 regex==2018.7.11          # via django-hamlpy, rapidpro-expressions
 requests-oauthlib==1.0.0  # via twython
-=======
-python-telegram-bot==6.1.0
-pytz==2017.2
-rapidpro-expressions==1.6
-raven==6.9.0
-rcssmin==1.0.6            # via django-compressor
-redis==2.10.5
-regex==2017.6.7           # via django-hamlpy, rapidpro-expressions
-requests-oauthlib==0.8.0  # via twython
->>>>>>> 4111d3877f0560dcdbdea45750be39d98e3a6d61
 requests-toolbelt==0.8.0  # via pyfcm
 requests==2.19.1
 responses==0.9.0
@@ -145,19 +122,11 @@ stripe==2.5.0
 texttable==1.4.0          # via pyexcel
 toml==0.9.4               # via black
 twilio==3.6.15
-<<<<<<< HEAD
 twython==3.7.0
 unidecode==1.0.22
 urllib3==1.23             # via elasticsearch, requests, selenium
 vine==1.1.4               # via amqp
 xlrd==1.1.0               # via pyexcel-xls, smartmin, xlutils
-=======
-twython==3.5.0
-unidecode==0.4.20
-urllib3==1.21.1           # via elasticsearch, requests
-vine==1.1.3               # via amqp
-xlrd==1.0.0               # via pyexcel-xls, smartmin, xlutils
->>>>>>> 4111d3877f0560dcdbdea45750be39d98e3a6d61
 xlsxlite==0.2.0
 xlutils==2.0.0
 xlwt==1.3.0               # via pyexcel-xls, smartmin, xlutils
