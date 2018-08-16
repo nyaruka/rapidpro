@@ -56,7 +56,7 @@ jsondiff
 phonenumbers
 pycountry
 pycrypto
-python-dateutil==2.2
+python-dateutil
 pytz
 psycopg2-binary
 rapidpro-expressions
