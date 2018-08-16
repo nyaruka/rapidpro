@@ -41,7 +41,7 @@ django-select2==6.1.2
 django-storages==1.6.6
 django-timezone-field==2.1
 django==2.0.8
-djangorestframework==3.5.1
+djangorestframework==3.8.2
 docutils==0.14            # via botocore
 elasticsearch-dsl==6.2.1
 elasticsearch==6.3.1
@@ -118,7 +118,7 @@ six==1.11.0               # via analytics-python, cryptography, django-extension
 smartmin==2.0.0
 sqlparse==0.2.4           # via django-debug-toolbar, smartmin
 stop-words==2018.7.23
-stripe==2.4.0
+stripe==2.5.0
 texttable==1.4.0          # via pyexcel
 toml==0.9.4               # via black
 twilio==3.6.15
