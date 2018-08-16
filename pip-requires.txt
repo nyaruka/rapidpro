@@ -30,7 +30,6 @@ raven
 stripe
 twilio==3.6.15
 twython
-uservoice
 elasticsearch
 elasticsearch_dsl
 

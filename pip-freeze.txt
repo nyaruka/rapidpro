@@ -41,17 +41,17 @@ django-select2==6.1.2
 django-storages==1.6.6
 django-timezone-field==2.1
 django==2.0.8
-djangorestframework==3.8.2
-docutils==0.13.1          # via botocore
-elasticsearch-dsl==6.1.0
-elasticsearch==6.2.0
+djangorestframework==3.5.1
+docutils==0.14            # via botocore
+elasticsearch-dsl==6.2.1
+elasticsearch==6.3.1
 enum34==1.1.6             # via django-hamlpy
 et-xmlfile==1.0.1         # via openpyxl
 first==2.0.1              # via pip-tools
 flake8-deprecated==1.3
 flake8-print==3.1.0
 flake8==3.5.0
-future==0.16.0            # via django-hamlpy, python-telegram-bot, uservoice
+future==0.16.0            # via django-hamlpy, python-telegram-bot
 geojson==2.4.0
 google==2.0.1
 gunicorn==19.9.0
@@ -102,13 +102,12 @@ python-intercom==3.1.0
 python-magic==0.4.15
 python-telegram-bot==10.1.0
 pytz==2018.5
-pyyaml==3.13              # via uservoice
 rapidpro-expressions==1.6
 raven==6.9.0
 rcssmin==1.0.6            # via django-compressor
 redis==2.10.6
 regex==2018.7.11          # via django-hamlpy, rapidpro-expressions
-requests-oauthlib==1.0.0  # via twython, uservoice
+requests-oauthlib==1.0.0  # via twython
 requests-toolbelt==0.8.0  # via pyfcm
 requests==2.19.1
 responses==0.9.0
@@ -126,7 +125,6 @@ twilio==3.6.15
 twython==3.7.0
 unidecode==1.0.22
 urllib3==1.23             # via elasticsearch, requests, selenium
-uservoice==0.0.23
 vine==1.1.4               # via amqp
 xlrd==1.1.0               # via pyexcel-xls, smartmin, xlutils
 xlsxlite==0.2.0
