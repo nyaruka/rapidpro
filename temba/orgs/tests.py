@@ -3918,7 +3918,7 @@ class StripeCreditsTest(TembaTest):
 
             def create(self, card):
                 if self.throw:
-                    raise stripe.CardError("Card declined", None, 400)
+                    raise stripe.error.CardError("Card declined", None, 400)
                 else:
                     return MockCard()
 
