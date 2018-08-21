@@ -2070,7 +2070,7 @@ class OrgTest(TembaTest):
 
     @patch("nexmo.Client.create_application")
     def test_connect_nexmo(self, mock_create_application):
-        mock_create_application.return_value = dict(id="app-id", keys=dict(private_key="private-key"))
+        mock_create_application.return_value = dict(id="app-id", keys=dict(private_key="private-key\n"))
         self.login(self.admin)
 
         # connect nexmo
@@ -2187,7 +2187,7 @@ class OrgTest(TembaTest):
 
     @patch("nexmo.Client.create_application")
     def test_nexmo_configuration(self, mock_create_application):
-        mock_create_application.return_value = dict(id="app-id", keys=dict(private_key="private-key"))
+        mock_create_application.return_value = dict(id="app-id", keys=dict(private_key="private-key\n"))
 
         self.login(self.admin)
 
@@ -3918,7 +3918,7 @@ class StripeCreditsTest(TembaTest):
 
             def create(self, card):
                 if self.throw:
-                    raise stripe.CardError("Card declined", None, 400)
+                    raise stripe.error.CardError("Card declined", None, 400)
                 else:
                     return MockCard()
 

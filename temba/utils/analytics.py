@@ -133,7 +133,7 @@ def identify(email, name, attributes, orgs=[]):  # pragma: no cover
             ]
 
             _intercom.users.save(intercom_user)
-        except:
+        except Exception:
             logger.error("error posting to intercom", exc_info=True)
 
 
@@ -188,7 +188,7 @@ def change_consent(email, consent):  # pragma: no cover
                     # this archives a user on intercom so they are no longer processed
                     _intercom.users.delete(user)
 
-        except:
+        except Exception:
             logger.error("error posting to intercom", exc_info=True)
 
 
@@ -229,5 +229,5 @@ def track(email, event, properties=None, context=None):  # pragma: no cover
                 email=email,
                 metadata=properties if properties else {},
             )
-        except:
+        except Exception:
             logger.error("error posting to intercom", exc_info=True)
