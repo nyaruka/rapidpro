@@ -913,7 +913,11 @@ class Channel(TembaModel):
             tel = ""
             tel_e164 = ""
 
-        return dict(__default__=default, name=self.get_name(), address=address, tel=tel, tel_e164=tel_e164)
+        channel_type = self.get_type()
+        type_dict = dict(__default__=channel_type.code, code=channel_type.code, name=channel_type.name)
+        return dict(
+            __default__=default, name=self.get_name(), address=address, tel=tel, tel_e164=tel_e164, type=type_dict
+        )
 
     @classmethod
     def get_cached_channel(cls, channel_id):

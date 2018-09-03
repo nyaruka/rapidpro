@@ -135,6 +135,9 @@ class ChannelTest(TembaTest):
         self.assertEqual(context["address"], "+250 785 551 212")
         self.assertEqual(context["tel"], "+250 785 551 212")
         self.assertEqual(context["tel_e164"], "+250785551212")
+        self.assertEqual(context["type"]["__default__"], "A")
+        self.assertEqual(context["type"]["code"], "A")
+        self.assertEqual(context["type"]["name"], "Android")
 
         context = self.twitter_channel.build_expressions_context()
         self.assertEqual(context["__default__"], "@billy_bob")
@@ -142,6 +145,9 @@ class ChannelTest(TembaTest):
         self.assertEqual(context["address"], "@billy_bob")
         self.assertEqual(context["tel"], "")
         self.assertEqual(context["tel_e164"], "")
+        self.assertEqual(context["type"]["__default__"], "TWT")
+        self.assertEqual(context["type"]["code"], "TWT")
+        self.assertEqual(context["type"]["name"], "Twitter")
 
         context = self.unclaimed_channel.build_expressions_context()
         self.assertEqual(context["__default__"], "Unclaimed Channel")
@@ -149,6 +155,9 @@ class ChannelTest(TembaTest):
         self.assertEqual(context["address"], "")
         self.assertEqual(context["tel"], "")
         self.assertEqual(context["tel_e164"], "")
+        self.assertEqual(context["type"]["__default__"], "NX")
+        self.assertEqual(context["type"]["code"], "NX")
+        self.assertEqual(context["type"]["name"], "Nexmo")
 
     def test_deactivate(self):
         self.login(self.admin)
