@@ -2051,6 +2051,12 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             field_value = self.get_field_serialized(field)
             context[field.key] = field_value if field_value is not None else ""
 
+        urn_values = []
+        for u in self.urns.order_by("-priority", "id"):
+            urn_ctx = self.get_urn_context(org, scheme=u.scheme)
+            urn_values.append(urn_ctx)
+        context["urns"] = urn_values
+
         return context
 
     def first_name(self, org):
@@ -2301,7 +2307,13 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             return ""
 
         if org.is_anon:
-            return ContactURN.ANON_MASK
+            return {
+                "__default__": ContactURN.ANON_MASK,
+                "scheme": scheme,
+                "path": ContactURN.ANON_MASK,
+                "display": ContactURN.ANON_MASK,
+                "urn": ContactURN.ANON_MASK,
+            }
 
         display = urn.get_display(org=org, formatted=True, international=False)
 

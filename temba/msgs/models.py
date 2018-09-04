@@ -1408,6 +1408,7 @@ class Msg(models.Model):
             "__default__": value,
             "value": value,
             "text": self.text,
+            "urn": self.contact.get_urn_context(self.org, scheme=self.contact_urn.scheme) if self.contact_urn else "",
             "attachments": attachments,
             "time": datetime_to_str(self.created_on, format=date_format, tz=self.org.timezone),
         }

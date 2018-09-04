@@ -5992,6 +5992,13 @@ class ContactTest(TembaTest):
         self.assertEqual("12345", context["twitterid"]["path"])
         self.assertEqual("twitterid:12345#therealjoe", context["twitterid"]["urn"])
 
+        self.assertEqual("twitterid", context["urns"][0]["scheme"])
+        self.assertEqual("12345", context["urns"][0]["path"])
+        self.assertEqual("therealjoe", context["urns"][0]["__default__"])
+        self.assertEqual("tel", context["urns"][1]["scheme"])
+        self.assertEqual("+250781111111", context["urns"][1]["path"])
+        self.assertEqual("0781 111 111", context["urns"][1]["__default__"])
+
         # add him to a group
         self.create_group("Reporters", [self.joe])
 
@@ -6024,7 +6031,7 @@ class ContactTest(TembaTest):
             self.joe.org.refresh_from_db()
 
             context = self.joe.build_expressions_context()
-            self.assertEqual("********", context["tel"])
+            self.assertEqual("********", context["tel"]["__default__"])
             self.assertEqual(self.joe.id, context["id"])
 
     def test_urn_priority(self):
