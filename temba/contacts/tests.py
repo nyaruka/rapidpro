@@ -5499,6 +5499,18 @@ class ContactTest(TembaTest):
         start_date = ContactField.get_by_key(self.org, "startdate")
         self.assertEqual(contact1.get_field_serialized(start_date), "2014-12-31T10:00:00+02:00")
 
+        # should not allow labels longer than 36 chars
+        post_data = dict(column_joined_include="on", column_joined_type="D", column_joined_label="a" * 37)
+        response = self.client.post(customize_url, post_data, follow=True)
+        self.assertFormError(
+            response, "form", "column_joined_label", ["Ensure this value has at most 36 characters (it has 37)."]
+        )
+        self.assertFormError(response, "form", None, ["Field names can only contain letters, numbers, hypens"])
+
+        contact1 = Contact.objects.all().order_by("name")[0]
+        start_date = ContactField.get_by_key(self.org, "startdate")
+        self.assertEqual(contact1.get_field_serialized(start_date), "2014-12-31T10:00:00+02:00")
+
     def test_contact_import_handle_update_contact(self):
         self.login(self.admin)
         self.create_campaign()
@@ -7245,6 +7257,11 @@ class ContactFieldTest(TembaTest):
         post_data["label_2"] = "@name"
         response = self.client.post(manage_fields_url, post_data, follow=True)
         self.assertFormError(response, "form", None, "Field names can only contain letters, numbers and hypens")
+
+        # check that a field name which contains disallowed characters, gives an error
+        post_data["label_2"] = "a" * 37
+        response = self.client.post(manage_fields_url, post_data, follow=True)
+        self.assertFormError(response, "form", "label_2", "Ensure this value has at most 36 characters (it has 37).")
 
         post_data["label_2"] = "Name"
         response = self.client.post(manage_fields_url, post_data, follow=True)

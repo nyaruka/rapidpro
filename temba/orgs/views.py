@@ -48,10 +48,12 @@ from temba.campaigns.models import Campaign
 from temba.channels.models import Channel
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin
+from temba.orgs.forms import OrgNameField, UserEmailField, UserFirstNameField, UserLastNameField
 from temba.utils import analytics, get_anonymous_user, json, languages
 from temba.utils.email import is_valid_address
 from temba.utils.http import http_headers
 from temba.utils.timezones import TimeZoneFormField
+from temba.utils.validators import validate_full_domain
 
 from .models import (
     ACCOUNT_SID,
@@ -253,14 +255,12 @@ class OrgSignupForm(forms.ModelForm):
     Signup for new organizations
     """
 
-    first_name = forms.CharField(
-        help_text=_("Your first name"), max_length=User._meta.get_field("first_name").max_length
-    )
-    last_name = forms.CharField(help_text=_("Your last name"), max_length=User._meta.get_field("last_name").max_length)
+    first_name = UserFirstNameField(help_text=_("Your first name"))
+    last_name = UserLastNameField(help_text=_("Your last name"))
     email = forms.EmailField(help_text=_("Your email address"), max_length=User._meta.get_field("username").max_length)
     timezone = TimeZoneFormField(help_text=_("The timezone your organization is in"))
     password = forms.CharField(widget=forms.PasswordInput, help_text=_("Your password, at least eight letters please"))
-    name = forms.CharField(label=_("Organization"), help_text=_("The name of your organization"))
+    name = OrgNameField(label=_("Organization"), help_text=_("The name of your organization"))
 
     def __init__(self, *args, **kwargs):
         if "branding" in kwargs:
@@ -289,24 +289,16 @@ class OrgSignupForm(forms.ModelForm):
 
 
 class OrgGrantForm(forms.ModelForm):
-    first_name = forms.CharField(
-        help_text=_("The first name of the organization administrator"),
-        max_length=User._meta.get_field("first_name").max_length,
-    )
-    last_name = forms.CharField(
-        help_text=_("Your last name of the organization administrator"),
-        max_length=User._meta.get_field("last_name").max_length,
-    )
-    email = forms.EmailField(
-        help_text=_("Their email address"), max_length=User._meta.get_field("username").max_length
-    )
+    first_name = UserFirstNameField(help_text=_("The first name of the organization administrator"))
+    last_name = UserLastNameField(help_text=_("Your last name of the organization administrator"))
+    email = UserEmailField(help_text=_("Their email address"))
     timezone = TimeZoneFormField(help_text=_("The timezone the organization is in"))
     password = forms.CharField(
         widget=forms.PasswordInput,
         required=False,
         help_text=_("Their password, at least eight letters please. (leave blank for existing users)"),
     )
-    name = forms.CharField(label=_("Organization"), help_text=_("The name of the new organization"))
+    name = OrgNameField(label=_("Organization"), help_text=_("The name of the new organization"))
     credits = forms.ChoiceField(choices=(), help_text=_("The initial number of credits granted to this organization."))
 
     def __init__(self, *args, **kwargs):
@@ -398,9 +390,9 @@ class UserCRUDL(SmartCRUDL):
 
     class Edit(SmartUpdateView):
         class EditForm(forms.ModelForm):
-            first_name = forms.CharField(label=_("Your First Name (required)"))
-            last_name = forms.CharField(label=_("Your Last Name (required)"))
-            email = forms.EmailField(required=True, label=_("Email"))
+            first_name = UserFirstNameField(label=_("Your First Name (required)"))
+            last_name = UserLastNameField(label=_("Your Last Name (required)"))
+            email = UserEmailField(required=True, label=_("Email"))
             current_password = forms.CharField(label=_("Current Password (required)"), widget=forms.PasswordInput)
             new_password = forms.CharField(
                 required=False, label=_("New Password (optional)"), widget=forms.PasswordInput
@@ -972,7 +964,9 @@ class OrgCRUDL(SmartCRUDL):
                 required=False,
                 help_text=_("The from email address, can contain a name: ex: Jane Doe <jane@example.org>"),
             )
-            smtp_host = forms.CharField(max_length=128, label=_("SMTP Host"), required=False)
+            smtp_host = forms.CharField(
+                max_length=128, label=_("SMTP Host"), required=False, validators=[validate_full_domain]
+            )
             smtp_username = forms.CharField(max_length=128, label=_("Username"), required=False)
             smtp_password = forms.CharField(
                 max_length=128,
@@ -981,7 +975,7 @@ class OrgCRUDL(SmartCRUDL):
                 help_text=_("Leave blank to keep the existing set password if one exists"),
                 widget=forms.PasswordInput,
             )
-            smtp_port = forms.CharField(max_length=128, label=_("Port"), required=False)
+            smtp_port = forms.IntegerField(label=_("Port"), required=False)
             smtp_encryption = forms.ChoiceField(
                 choices=(("", _("No encryption")), ("T", _("Use TLS"))), required=False, label=_("Encryption")
             )
@@ -1552,7 +1546,7 @@ class OrgCRUDL(SmartCRUDL):
 
     class CreateSubOrg(MultiOrgMixin, ModalMixin, InferOrgMixin, SmartCreateView):
         class CreateOrgForm(forms.ModelForm):
-            name = forms.CharField(label=_("Organization"), help_text=_("The name of your organization"))
+            name = OrgNameField(label=_("Organization"), help_text=_("The name of your organization"))
 
             timezone = TimeZoneFormField(help_text=_("The timezone your organization is in"))
 
@@ -1832,13 +1826,13 @@ class OrgCRUDL(SmartCRUDL):
 
         class RegisterForm(PasswordForm):
             surveyor_password = forms.CharField(widget=forms.HiddenInput())
-            first_name = forms.CharField(
+            first_name = UserFirstNameField(
                 help_text=_("Your first name"), widget=forms.TextInput(attrs={"placeholder": "First Name"})
             )
-            last_name = forms.CharField(
+            last_name = UserLastNameField(
                 help_text=_("Your last name"), widget=forms.TextInput(attrs={"placeholder": "Last Name"})
             )
-            email = forms.EmailField(
+            email = UserEmailField(
                 help_text=_("Your email address"), widget=forms.TextInput(attrs={"placeholder": "Email"})
             )
             password = forms.CharField(
@@ -2528,7 +2522,7 @@ class OrgCRUDL(SmartCRUDL):
 
     class Edit(InferOrgMixin, OrgPermsMixin, SmartUpdateView):
         class OrgForm(forms.ModelForm):
-            name = forms.CharField(max_length=128, label=_("The name of your organization"), help_text="")
+            name = OrgNameField(label=_("The name of your organization"), help_text="")
             timezone = TimeZoneFormField(label=_("Your organization's timezone"), help_text="")
             slug = forms.SlugField(
                 max_length=255, label=_("The slug, or short name for your organization"), help_text=""

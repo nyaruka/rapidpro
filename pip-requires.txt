@@ -68,6 +68,7 @@ unidecode
 python-intercom
 pysocks; python_version >= "3.0"
 pip-tools
+bleach
 
 ########################## testing ##########################
 black

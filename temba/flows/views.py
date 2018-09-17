@@ -38,8 +38,9 @@ from django.views.generic import FormView
 
 from temba.archives.models import Archive
 from temba.channels.models import Channel
-from temba.contacts.fields import OmniboxField
+from temba.contacts.forms import OmniboxField
 from temba.contacts.models import TEL_SCHEME, Contact, ContactField, ContactGroup, ContactURN
+from temba.flows.forms import FlowKeywordTriggerField
 from temba.flows.models import Flow, FlowRevision, FlowRun, FlowRunCount
 from temba.flows.server import get_client
 from temba.flows.server.assets import get_asset_type
@@ -55,6 +56,7 @@ from temba.utils import analytics, chunk_list, json, on_transaction_commit, str_
 from temba.utils.dates import datetime_to_ms
 from temba.utils.expressions import get_function_listing
 from temba.utils.s3 import public_file_storage
+from temba.utils.validators import validate_without_html_tags
 from temba.utils.views import BaseActionForm
 
 from .models import (
@@ -324,11 +326,7 @@ class FlowCRUDL(SmartCRUDL):
 
     class Create(ModalMixin, OrgPermsMixin, SmartCreateView):
         class FlowCreateForm(BaseFlowForm):
-            keyword_triggers = forms.CharField(
-                required=False,
-                label=_("Global keyword triggers"),
-                help_text=_("When a user sends any of these keywords they will begin this flow"),
-            )
+            keyword_triggers = FlowKeywordTriggerField(required=False)
 
             flow_type = forms.ChoiceField(
                 label=_("Run flow over"),
@@ -520,11 +518,7 @@ class FlowCRUDL(SmartCRUDL):
                 initial=5,
                 choices=IVR_EXPIRES_CHOICES,
             )
-            keyword_triggers = forms.CharField(
-                required=False,
-                label=_("Global keyword triggers"),
-                help_text=_("When a user sends any of these keywords they will begin this flow"),
-            )
+            keyword_triggers = FlowKeywordTriggerField(required=False)
 
             def __init__(self, user, *args, **kwargs):
                 super().__init__(*args, **kwargs)
@@ -552,11 +546,7 @@ class FlowCRUDL(SmartCRUDL):
                 fields = ("name", "keyword_triggers", "expires_after_minutes", "ignore_triggers", "ivr_retry")
 
         class FlowUpdateForm(BaseUpdateFlowFormMixin, BaseFlowForm):
-            keyword_triggers = forms.CharField(
-                required=False,
-                label=_("Global keyword triggers"),
-                help_text=_("When a user sends any of these keywords they will begin this flow"),
-            )
+            keyword_triggers = FlowKeywordTriggerField(required=False)
 
             expires_after_minutes = forms.ChoiceField(
                 label=_("Expire inactive contacts"),
@@ -1874,7 +1864,7 @@ class PreprocessTest(FormView):  # pragma: no cover
 
 
 class FlowLabelForm(forms.ModelForm):
-    name = forms.CharField(required=True)
+    name = forms.CharField(required=True, validators=[validate_without_html_tags])
     parent = forms.ModelChoiceField(FlowLabel.objects.all(), required=False, label=_("Parent"))
     flows = forms.CharField(required=False, widget=forms.HiddenInput)
 

@@ -456,11 +456,15 @@ class OrgTest(TembaTest):
         response = self.client.get(reverse("orgs.org_edit"))
         self.assertEqual(200, response.status_code)
 
-        # update the name and slug of the organization
-        data = dict(name="Temba", timezone="Africa/Kigali", date_format=DAYFIRST, slug="nice temba")
+        # org name should not include html tags
+        data = dict(name="Temba is <b>Bold</b> &", timezone="Africa/Kigali", date_format=DAYFIRST, slug="nice temba")
         response = self.client.post(reverse("orgs.org_edit"), data)
-        self.assertIn("slug", response.context["form"].errors)
+        self.assertFormError(response, "form", "name", ["Input must not contain HTML tags."])
+        self.assertFormError(
+            response, "form", "slug", ["Enter a valid 'slug' consisting of letters, numbers, underscores or hyphens."]
+        )
 
+        # update the name and slug of the organization
         data = dict(name="Temba", timezone="Africa/Kigali", date_format=MONTHFIRST, slug="nice-temba")
         response = self.client.post(reverse("orgs.org_edit"), data)
         self.assertEqual(302, response.status_code)
@@ -550,6 +554,19 @@ class OrgTest(TembaTest):
         self.assertRedirect(response, login_url)
 
         self.login(self.admin)
+
+        # change the user language
+        post_data = dict(
+            language="pt-br",
+            first_name="Admin <div>Giant</div>",
+            last_name="User & Useress",
+            email="not_a_valid_email",
+            current_password="Administrator",
+        )
+        response = self.client.post(update_url, post_data)
+        self.assertFormError(response, "form", "email", ["Enter a valid email address."])
+        self.assertFormError(response, "form", "first_name", ["Input must not contain HTML tags."])
+        self.assertFormError(response, "form", "last_name", ["Input must not contain HTML tags."])
 
         # change the user language
         post_data = dict(
@@ -1962,6 +1979,16 @@ class OrgTest(TembaTest):
 
         response = self.client.post(
             smtp_server_url,
+            dict(smtp_from_email="foo@bar.com", disconnect="false", smtp_host="-not-valid.host.com"),
+            follow=True,
+        )
+        self.assertEqual(
+            '[{"message": "You must enter the SMTP host", "code": ""}]',
+            response.context["form"].errors["__all__"].as_json(),
+        )
+
+        response = self.client.post(
+            smtp_server_url,
             dict(smtp_from_email="foo@bar.com", smtp_host="smtp.example.com", disconnect="false"),
             follow=True,
         )
@@ -2021,7 +2048,7 @@ class OrgTest(TembaTest):
         self.assertEqual(self.org.config["SMTP_HOST"], "smtp.example.com")
         self.assertEqual(self.org.config["SMTP_USERNAME"], "support@example.com")
         self.assertEqual(self.org.config["SMTP_PASSWORD"], "secret")
-        self.assertEqual(self.org.config["SMTP_PORT"], "465")
+        self.assertEqual(self.org.config["SMTP_PORT"], 465)
         self.assertEqual(self.org.config["SMTP_ENCRYPTION"], "")
 
         response = self.client.get(smtp_server_url)
@@ -2111,7 +2138,7 @@ class OrgTest(TembaTest):
         self.assertEqual(self.org.config["SMTP_HOST"], "smtp.example.com")
         self.assertEqual(self.org.config["SMTP_USERNAME"], "support@example.com")
         self.assertEqual(self.org.config["SMTP_PASSWORD"], "secret")
-        self.assertEqual(self.org.config["SMTP_PORT"], "465")
+        self.assertEqual(self.org.config["SMTP_PORT"], 465)
         self.assertEqual(self.org.config["SMTP_ENCRYPTION"], "T")
 
     @patch("nexmo.Client.create_application")
@@ -2505,6 +2532,11 @@ class OrgTest(TembaTest):
         response = self.client.post(reverse("orgs.org_create_sub_org"), new_org)
         self.assertEqual(302, response.status_code)
 
+        # sub org name should not contain html tags
+        new_org = dict(name="A <b>third</b> Org &", timezone=self.org.timezone, date_format=self.org.date_format)
+        response = self.client.post(reverse("orgs.org_create_sub_org"), new_org)
+        self.assertFormError(response, "form", "name", ["Input must not contain HTML tags."])
+
         # load the transfer credit page
         response = self.client.get(reverse("orgs.org_transfer_credits"))
 
@@ -2647,6 +2679,22 @@ class OrgCRUDLTest(TembaTest):
 
         response = self.client.get(grant_url)
         self.assertEqual(200, response.status_code)
+
+        # fill out the form
+        post_data = dict(
+            email="not_a_valid_email",
+            first_name="John <img>Imagine</img>",
+            last_name="Carmack <li>List</li>",
+            name="Oculus <pre>product</pre>",
+            timezone="Africa/Kigali",
+            credits="100000",
+            password="nopass",
+        )
+        response = self.client.post(grant_url, post_data, follow=True)
+        self.assertFormError(response, "form", "email", ["Enter a valid email address."])
+        self.assertFormError(response, "form", "first_name", ["Input must not contain HTML tags."])
+        self.assertFormError(response, "form", "last_name", ["Input must not contain HTML tags."])
+        self.assertFormError(response, "form", "name", ["Input must not contain HTML tags."])
 
         # fill out the form
         post_data = dict(
@@ -2834,16 +2882,19 @@ class OrgCRUDLTest(TembaTest):
 
         # submit with invalid password and email
         post_data = dict(
-            first_name="Eugene",
-            last_name="Rwagasore",
+            first_name="Eugene<strong>",
+            last_name="Rwagasore & Stube",
             email="bad_email",
             password="badpass",
-            name="Your Face",
+            name="<b>Bold</b> Orgaznization",
             timezone="Africa/Kigali",
         )
         response = self.client.post(signup_url, post_data)
-        self.assertFormError(response, "form", "email", "Enter a valid email address.")
-        self.assertFormError(response, "form", "password", "Passwords must contain at least 8 letters.")
+        self.assertFormError(response, "form", "email", ["Enter a valid email address."])
+        self.assertFormError(response, "form", "password", ["Passwords must contain at least 8 letters."])
+        self.assertFormError(response, "form", "first_name", ["Input must not contain HTML tags."])
+        self.assertFormError(response, "form", "last_name", ["Input must not contain HTML tags."])
+        self.assertFormError(response, "form", "name", ["Input must not contain HTML tags."])
 
         # submit with valid data (long email)
         post_data = dict(

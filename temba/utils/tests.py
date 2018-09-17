@@ -20,6 +20,7 @@ from temba_expressions.evaluator import DateStyle, EvaluationContext
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import checks
+from django.core.exceptions import ValidationError
 from django.core.management import CommandError, call_command
 from django.db import connection, models
 from django.test import TestCase, TransactionTestCase, override_settings
@@ -33,6 +34,7 @@ from temba.contacts.models import Contact, ContactField, ContactGroup, ContactGr
 from temba.orgs.models import Org, UserSettings
 from temba.tests import ESMockWithScroll, TembaTest, matchers
 from temba.utils import json
+from temba.utils.validators import validate_full_domain, validate_without_html_tags
 
 from . import (
     chunk_list,
@@ -405,7 +407,7 @@ class TimezonesTest(TembaTest):
     def test_field(self):
         field = TimeZoneFormField(help_text="Test field")
 
-        self.assertEqual(field.choices[0], ("Pacific/Midway", u"(GMT-1100) Pacific/Midway"))
+        self.assertEqual(field.choices[0], ("Pacific/Midway", "(GMT-1100) Pacific/Midway"))
         self.assertEqual(field.coerce("Africa/Kigali"), pytz.timezone("Africa/Kigali"))
 
     def test_timezone_country_code(self):
@@ -2320,3 +2322,34 @@ class AnalyticsTest(TestCase):
             industry="Mining",
             monthly_spend="a lot",
         )
+
+
+class InputValidatorsTest(TestCase):
+    def test_validate_without_html_tags(self):
+
+        self.assertRaises(ValidationError, validate_without_html_tags, "it is <b>bold</b>")
+        self.assertRaises(ValidationError, validate_without_html_tags, "less than/greater than are invalid, 1 < 2 > 0")
+        self.assertRaises(ValidationError, validate_without_html_tags, "& is sanitized as &amp;")
+
+        self.assertIsNone(validate_without_html_tags("a unicode text ? 📬"))
+        self.assertIsNone(validate_without_html_tags("other special chars !@#$%^*()_-+=,.?\"'[]{}:;|\\"))
+        self.assertIsNone(validate_without_html_tags(None))
+        self.assertIsNone(validate_without_html_tags(""))
+
+    def test_validate_hostname(self):
+        self.assertIsNone(validate_full_domain(""))
+        self.assertIsNone(validate_full_domain(None))
+
+        self.assertIsNone(validate_full_domain("localhost"))
+        self.assertIsNone(validate_full_domain("app.rapidpro.io"))
+        self.assertIsNone(validate_full_domain("ec2-50-19-32-235.compute-1.amazonaws.com."))
+        self.assertIsNone(validate_full_domain("127.0.0.1"))
+
+        # domain can't be longer than 255 chars
+        self.assertRaises(ValidationError, validate_full_domain, "x" * 256)
+
+        # 64 chars per domain part is invalid
+        self.assertRaises(ValidationError, validate_full_domain, f"{'x' * 63}.{'x' * 64}")
+
+        # can't start with '-'
+        self.assertRaises(ValidationError, validate_full_domain, f"-not-allowed.com")

@@ -24,12 +24,13 @@ from django.views.decorators.csrf import csrf_exempt
 
 from temba.archives.models import Archive
 from temba.channels.models import Channel
-from temba.contacts.fields import OmniboxField
+from temba.contacts.forms import OmniboxField
 from temba.contacts.models import TEL_SCHEME, URN, ContactGroup, ContactURN
 from temba.formax import FormaxMixin
 from temba.orgs.views import ModalMixin, OrgObjPermsMixin, OrgPermsMixin
 from temba.utils import analytics, json, on_transaction_commit
 from temba.utils.expressions import get_function_listing
+from temba.utils.validators import validate_without_html_tags
 from temba.utils.views import BaseActionForm
 
 from .models import INITIALIZING, QUEUED, Broadcast, ExportMessagesTask, Label, Msg, Schedule, SystemLabel
@@ -77,7 +78,7 @@ def send_message_auto_complete_processor(request):
 
 class SendMessageForm(Form):
     omnibox = OmniboxField()
-    text = forms.CharField(widget=forms.Textarea, max_length=640)
+    text = forms.CharField(widget=forms.Textarea, max_length=640, validators=[validate_without_html_tags])
     schedule = forms.BooleanField(widget=forms.HiddenInput, required=False)
     step_node = forms.CharField(widget=forms.HiddenInput, max_length=36, required=False)
 
@@ -200,7 +201,9 @@ class InboxView(OrgPermsMixin, SmartListView):
 
 
 class BroadcastForm(forms.ModelForm):
-    message = forms.CharField(required=True, widget=forms.Textarea, max_length=160)
+    message = forms.CharField(
+        required=True, widget=forms.Textarea, max_length=160, validators=[validate_without_html_tags]
+    )
     omnibox = OmniboxField()
 
     def __init__(self, user, *args, **kwargs):
@@ -460,7 +463,12 @@ class TestMessageForm(forms.Form):
         Channel.objects.filter(id__lt=0), help_text=_("Which channel will deliver the message")
     )
     urn = forms.CharField(max_length=14, help_text=_("The URN of the contact delivering this message"))
-    text = forms.CharField(max_length=160, widget=forms.Textarea, help_text=_("The message that is being delivered"))
+    text = forms.CharField(
+        max_length=160,
+        widget=forms.Textarea,
+        help_text=_("The message that is being delivered"),
+        validators=[validate_without_html_tags],
+    )
 
     def __init__(self, *args, **kwargs):  # pragma: needs cover
         org = kwargs["org"]
@@ -809,7 +817,9 @@ class LabelForm(BaseLabelForm):
 
 
 class FolderForm(BaseLabelForm):
-    name = forms.CharField(label=_("Name"), help_text=_("The name of this folder"))
+    name = forms.CharField(
+        label=_("Name"), help_text=_("The name of this folder"), validators=[validate_without_html_tags]
+    )
 
     def __init__(self, *args, **kwargs):
         self.org = kwargs.pop("org")

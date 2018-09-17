@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
+from temba.campaigns.forms import CampaignMessageField
 from temba.contacts.models import ContactField, ContactGroup
 from temba.flows.models import Flow
 from temba.msgs.models import Msg
@@ -324,7 +325,7 @@ class CampaignEventForm(forms.ModelForm):
                 # otherwise, its just a normal language
                 initial = message.get(language.iso_code)
 
-            field = forms.CharField(widget=forms.Textarea, required=False, label=language.name, initial=initial)
+            field = CampaignMessageField(widget=forms.Textarea, required=False, label=language.name, initial=initial)
             self.fields[language.iso_code] = field
             field.language = dict(name=language.name, iso_code=language.iso_code)
 
@@ -345,7 +346,7 @@ class CampaignEventForm(forms.ModelForm):
 
         # add our default language, we'll insert it at the front of the list
         if base_language and base_language not in self.fields:
-            field = forms.CharField(
+            field = CampaignMessageField(
                 widget=forms.Textarea, required=False, label=_("Default"), initial=message.get(base_language)
             )
 

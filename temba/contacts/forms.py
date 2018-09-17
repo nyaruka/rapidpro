@@ -1,10 +1,19 @@
-
 from django import forms
 from django.forms import widgets
 
+from temba.contacts.models import URN, Contact, ContactGroup, ContactURN
 from temba.utils import json
 
-from .models import URN, Contact, ContactGroup, ContactURN
+from temba.utils.validators import validate_without_html_tags
+
+
+class ContactFieldLabelField(forms.CharField):
+    default_validators = [validate_without_html_tags]
+
+    def __init__(self, **kwargs):
+        max_length = kwargs.pop("max_length", 36)
+
+        super().__init__(max_length=max_length, **kwargs)
 
 
 class OmniboxWidget(widgets.TextInput):

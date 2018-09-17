@@ -13,7 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from temba.channels.models import Channel, ChannelType
-from temba.contacts.fields import OmniboxField
+from temba.contacts.forms import OmniboxField
 from temba.contacts.models import ContactGroup, ContactURN
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin
@@ -22,6 +22,7 @@ from temba.orgs.views import OrgPermsMixin
 from temba.schedules.models import Schedule
 from temba.schedules.views import BaseScheduleForm
 from temba.utils import analytics, json, on_transaction_commit
+from temba.utils.validators import validate_without_html_tags
 from temba.utils.views import BaseActionForm
 
 from .models import Trigger
@@ -200,6 +201,7 @@ class RegisterTriggerForm(BaseTriggerForm):
         required=False,
         label=_("Response"),
         help_text=_("The message to send in response after they join the group (optional)"),
+        validators=[validate_without_html_tags],
     )
 
     def __init__(self, user, *args, **kwargs):

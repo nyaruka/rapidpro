@@ -2893,6 +2893,18 @@ class FlowTest(TembaTest):
             "letter and numbers",
         )
 
+        response = self.client.post(
+            reverse("flows.flow_create"),
+            {
+                "name": "Flow #1",
+                "keyword_triggers": "<b>actnow</b>,test,lock&load",
+                "flow_type": Flow.TYPE_MESSAGE,
+                "expires_after_minutes": 60 * 12,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response, "form", "keyword_triggers", ["Input must not contain HTML tags."])
+
         # submit with valid keywords
         response = self.client.post(
             reverse("flows.flow_create"),
@@ -5550,9 +5562,15 @@ class FlowLabelTest(FlowFileTest):
     def test_create(self):
         create_url = reverse("flows.flowlabel_create")
 
+        self.login(self.admin)
+
+        # label name does not allow html tags
+        response = self.client.post(create_url, dict(name="<b>Label One<b> &"))
+
+        self.assertFormError(response, "form", "name", ["Input must not contain HTML tags."])
+
         post_data = dict(name="label_one")
 
-        self.login(self.admin)
         response = self.client.post(create_url, post_data, follow=True)
         self.assertEqual(FlowLabel.objects.all().count(), 1)
         self.assertEqual(FlowLabel.objects.all()[0].parent, None)
@@ -5603,6 +5621,14 @@ class FlowLabelTest(FlowFileTest):
         # login
         self.login(self.admin)
         response = self.client.get(update_url)
+
+        # label name does not allow html tags
+        data = response.context["form"].initial
+        data["name"] = "<b>Label One<b> &"
+        data["parent"] = ""
+        error_response = self.client.post(update_url, data)
+
+        self.assertFormError(error_response, "form", "name", ["Input must not contain HTML tags."])
 
         # change our name
         data = response.context["form"].initial

@@ -2448,6 +2448,11 @@ class BroadcastTest(TembaTest):
         self.assertEqual(broadcast.contacts.count(), 1)
         self.assertTrue(test_contact in broadcast.contacts.all())
 
+        # should fail, cannot send broadcast message that contains errors
+        post_data = dict(text="<pre>a message</pre>", omnibox="c-%s" % self.kevin.uuid)
+        response = self.client.post(send_url, post_data)
+        self.assertFormError(response, "form", "text", ["Input must not contain HTML tags."])
+
     def test_unreachable(self):
         no_urns = Contact.get_or_create_by_urns(self.org, self.admin, name="Ben Haggerty", urns=[])
         tel_contact = self.create_contact("Ryan Lewis", number="+12067771234")
@@ -3052,9 +3057,22 @@ class LabelCRUDLTest(TembaTest):
         response = self.client.post(create_label_url, dict(name="label_one"))
         self.assertFormError(response, "form", "name", "Name must be unique")
 
+        # should not create a folder with html tags in the name
+        error_response = self.client.post(create_folder_url, dict(name="<strong>Folder</strong>&"), follow=True)
+        self.assertFormError(error_response, "form", "name", ["Input must not contain HTML tags."])
+
         # create a folder
         self.client.post(create_folder_url, dict(name="Folder"), follow=True)
         folder = Label.folder_objects.get(name="Folder")
+
+        # update the folder
+        self.client.post(reverse("msgs.label_update", args=[folder.pk]), dict(name="New Folder"))
+
+        # should not update a folder with html tags in the name
+        error_response = self.client.post(
+            reverse("msgs.label_update", args=[folder.pk]), dict(name="<strong>New Folder</strong>&")
+        )
+        self.assertFormError(error_response, "form", "name", ["Input must not contain HTML tags."])
 
         # and a label in it
         self.client.post(create_label_url, dict(name="label_two", folder=folder.pk), follow=True)

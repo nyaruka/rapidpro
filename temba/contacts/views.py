@@ -34,6 +34,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from temba.archives.models import Archive
 from temba.channels.models import Channel
+from temba.contacts.forms import ContactFieldLabelField
 from temba.msgs.views import SendMessageForm
 from temba.orgs.views import ModalMixin, OrgObjPermsMixin, OrgPermsMixin
 from temba.utils import analytics, json, languages, on_transaction_commit
@@ -717,7 +718,7 @@ class ContactCRUDL(SmartCRUDL):
                 if label_initial:
                     label_field_initial = label_initial.label
 
-                label_field = forms.CharField(initial=label_field_initial, required=False, label=" ")
+                label_field = ContactFieldLabelField(initial=label_field_initial, required=False, label=" ")
 
                 label_field_name = "column_%s_label" % header_key
 
@@ -1636,8 +1637,13 @@ class ManageFieldsForm(forms.Form):
         used_labels = set()
         for key in sorted(key for key in self.cleaned_data.keys() if key.startswith("field_")):
             idx = key[6:]
+
+            # skip this field because label has errors so it's not in cleaned data
+            if f"label_{idx}" not in self.cleaned_data:
+                continue
+
             field = self.cleaned_data[key]
-            label = self.cleaned_data["label_%s" % idx]
+            label = self.cleaned_data[f"label_{idx}"]
 
             if label:
                 if not ContactField.is_valid_label(label):
@@ -1765,12 +1771,8 @@ class ContactFieldCRUDL(SmartCRUDL):
                 added_fields.append(
                     (
                         "label_%d" % i,
-                        forms.CharField(
-                            label=" ",
-                            max_length=36,
-                            help_text=form_field_label,
-                            initial=contact_field.label,
-                            required=False,
+                        ContactFieldLabelField(
+                            label=" ", help_text=form_field_label, initial=contact_field.label, required=False
                         ),
                     )
                 )
@@ -1790,7 +1792,7 @@ class ContactFieldCRUDL(SmartCRUDL):
             added_fields.append(
                 ("type_%d" % i, forms.ChoiceField(choices=Value.TYPE_CHOICES, initial=Value.TYPE_TEXT, required=True))
             )
-            added_fields.append(("label_%d" % i, forms.CharField(max_length=36, required=False)))
+            added_fields.append(("label_%d" % i, ContactFieldLabelField(required=False)))
             added_fields.append(("field_%d" % i, forms.CharField(widget=forms.HiddenInput(), initial="__new_field")))
             added_fields.append(("priority_%d" % i, forms.IntegerField(widget=forms.HiddenInput(), initial=0)))
 

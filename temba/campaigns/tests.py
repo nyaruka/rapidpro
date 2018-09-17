@@ -550,6 +550,23 @@ class CampaignTest(TembaTest):
         self.assertTrue(response.context["form"].errors)
         self.assertIn("A message is required", str(response.context["form"].errors["__all__"]))
 
+        # should not create a campaign event, message contains invalid characters
+        post_data = dict(
+            relative_to=self.planting_date.pk,
+            delivery_hour=-1,
+            base="<b>hello</b> & goodbye",
+            direction="A",
+            offset=2,
+            unit="D",
+            event_type="F",
+            flow_to_start=self.reminder_flow.pk,
+        )
+        response = self.client.post(
+            reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
+        )
+
+        self.assertFormError(response, "form", "base", ["Input must not contain HTML tags."])
+
         post_data = dict(
             relative_to=self.planting_date.pk,
             delivery_hour=-1,
@@ -659,6 +676,21 @@ class CampaignTest(TembaTest):
         self.assertEqual(10, fire.scheduled.month)
         self.assertEqual(2020, fire.scheduled.year)
         self.assertEqual(event, fire.event)
+
+        # should not update a campaign event, message contains invalid characters
+        post_data = dict(
+            relative_to=self.planting_date.pk,
+            delivery_hour=15,
+            eng="<b>hello</b> & goodbye",
+            direction="A",
+            offset=1,
+            unit="D",
+            event_type="F",
+            flow_to_start=self.reminder_flow.pk,
+        )
+        response = self.client.post(reverse("campaigns.campaignevent_update", args=[event.pk]), post_data)
+
+        self.assertFormError(response, "form", "eng", ["Input must not contain HTML tags."])
 
         post_data = dict(
             relative_to=self.planting_date.pk,
