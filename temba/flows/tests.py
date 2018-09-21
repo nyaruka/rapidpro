@@ -501,6 +501,7 @@ class FlowTest(TembaTest):
         self.login(self.admin)
         response = self.client.get(reverse("flows.flow_editor", args=[self.flow.uuid]))
         self.assertTrue(response.context["mutable"])
+        self.assertEqual(response.context["flow_export_version"], Flow.VERSIONS[-1])
         self.assertFalse(response.context["has_airtime_service"])
         self.assertFalse(response.context["is_starting"])
         self.assertFalse(response.context["has_ussd_channel"])

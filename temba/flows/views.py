@@ -47,7 +47,7 @@ from temba.flows.server.serialize import serialize_environment, serialize_langua
 from temba.flows.tasks import export_flow_results_task
 from temba.ivr.models import IVRCall
 from temba.msgs.models import PENDING, Msg
-from temba.orgs.models import Org
+from temba.orgs.models import Org, get_current_export_version
 from temba.orgs.views import ModalMixin, OrgObjPermsMixin, OrgPermsMixin
 from temba.triggers.models import Trigger
 from temba.ussd.models import USSDSession
@@ -977,6 +977,7 @@ class FlowCRUDL(SmartCRUDL):
             context["has_ussd_channel"] = bool(org and org.get_ussd_channel())
             context["media_url"] = "%s://%s/" % ("http" if settings.DEBUG else "https", settings.AWS_BUCKET_DOMAIN)
             context["is_starting"] = flow.is_starting()
+            context["flow_export_version"] = get_current_export_version()
             context["mutable"] = self.has_org_perm("flows.flow_update") and not self.request.user.is_superuser
             context["has_airtime_service"] = bool(flow.org.is_connected_to_transferto())
             context["can_start"] = flow.flow_type != Flow.TYPE_VOICE or flow.org.supports_ivr()
