@@ -15,6 +15,23 @@
     #pjax
       .row{style:"height:250px;"}
         .span9
+          .warning.versions
+            .attn
+              -trans "Supported flow import versions"
+
+            -for ver in supported_flow_versions
+              - if forloop.first
+                %b
+                  -trans "Latest version:"
+                  "{{ver}}"
+                  %br
+                -if not forloop.last
+                  -trans "Older versions:"
+              -else
+                  "{{ver}}"
+              - if not forloop.last and not forloop.first
+                ,
+
           %p
             -trans "If you have an export file with flows and or campaigns, select it below to import it into your account."
 
@@ -64,6 +81,11 @@
     padding: 15px;
     background: #fff6c0;
     border: 1px solid #EFE7B4;
+  }
+
+  .versions {
+    background: #BBBBBB;
+    border: 1px solid #888888;
   }
 
   .warning .attn {

@@ -60,6 +60,7 @@ from .models import (
     CHATBASE_AGENT_NAME,
     CHATBASE_API_KEY,
     CHATBASE_VERSION,
+    EARLIEST_IMPORT_VERSION,
     MO_CALL_EVENTS,
     MO_SMS_EVENTS,
     MT_CALL_EVENTS,
@@ -594,8 +595,6 @@ class OrgCRUDL(SmartCRUDL):
                 super().__init__(*args, **kwargs)
 
             def clean_import_file(self):
-                from temba.orgs.models import EARLIEST_IMPORT_VERSION
-
                 # make sure they are in the proper tier
                 if not self.org.is_import_flows_tier():
                     raise ValidationError(_("Sorry, import is a premium feature"))
@@ -624,6 +623,13 @@ class OrgCRUDL(SmartCRUDL):
             kwargs = super().get_form_kwargs()
             kwargs["org"] = self.request.user.get_org()
             return kwargs
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            context["supported_flow_versions"] = reversed(
+                [ver for ver in Flow.VERSIONS if not Flow.is_before_version(ver, EARLIEST_IMPORT_VERSION)]
+            )
+            return context
 
         def form_valid(self, form):
             try:
