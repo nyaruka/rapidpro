@@ -1764,6 +1764,10 @@ class Flow(TembaModel):
                 channel_context = msg.channel.build_expressions_context()
         else:
             message_context = dict(__default__="")
+            if contact:
+                urn = contact.get_urn()
+                if urn:
+                    message_context["urn"] = urn.build_expressions_context(self.org)
 
         # If we still don't know our channel and have a contact, derive the right channel to use
         if not channel_context and contact:
