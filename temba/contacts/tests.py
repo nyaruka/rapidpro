@@ -584,6 +584,25 @@ class ContactGroupTest(TembaTest):
         response = self.client.post(delete_url, dict(), HTTP_X_PJAX=True)
         self.assertIsNone(ContactGroup.user_groups.filter(id=cats.id).first())
 
+    def test_delete_with_campaign_dependencies(self):
+        block_group = self.create_group("one that blocks")
+
+        self.login(self.admin)
+
+        post_data = dict(name="Don't forget to ...", group=block_group.pk)
+        self.client.post(reverse("campaigns.campaign_create"), post_data)
+
+        delete_url = reverse("contacts.contactgroup_delete", args=[block_group.pk])
+
+        # users are notified that a group cannot be deleted
+        response = self.client.get(delete_url, dict(), HTTP_X_PJAX=True)
+        self.assertContains(response, "There is an active campaign using this group")
+
+        # can't delete if it is a dependency
+        response = self.client.post(delete_url, dict())
+        self.assertRedirect(response, f"/contact/filter/{block_group.uuid}/")
+        self.assertTrue(ContactGroup.user_groups.get(id=block_group.id).is_active)
+
 
 class ElasticSearchLagTest(TembaTest):
     def test_lag(self):

@@ -1016,6 +1016,224 @@ class CampaignTest(TembaTest):
         response = self.client.get(reverse("campaigns.campaign_read", args=[campaign.pk]))
         self.assertNotContains(response, "Color Flow")
 
+    def test_view_campaign_cant_modify_inactive_or_archive(self):
+        self.login(self.admin)
+
+        campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
+
+        response = self.client.get(reverse("campaigns.campaign_update", args=[campaign.pk]))
+
+        # sanity check, form is available in the response
+        self.assertContains(response, "Planting Reminders")
+        self.assertListEqual(list(response.context["form"].fields.keys()), ["name", "group", "loc"])
+
+        # archive the campaign
+        campaign.is_archived = True
+        campaign.save()
+
+        response = self.client.get(reverse("campaigns.campaign_update", args=[campaign.pk]))
+
+        # we should get 404 for the archived campaign
+        self.assertEqual(response.status_code, 404)
+
+        # deactivate the campaign
+        campaign.is_archived = False
+        campaign.is_active = False
+        campaign.save()
+
+        response = self.client.get(reverse("campaigns.campaign_update", args=[campaign.pk]))
+
+        # we should get 404 for the inactive campaign
+        self.assertEqual(response.status_code, 404)
+
+    def test_view_campaign_read_archived(self):
+        self.login(self.admin)
+
+        campaign = Campaign.create(self.org, self.admin, "Perform the rain dance", self.farmers)
+
+        response = self.client.get(reverse("campaigns.campaign_read", args=[campaign.pk]))
+
+        # page title and main content title should NOT contain (Archived)
+        self.assertContains(response, "Perform the rain dance", count=2)
+        self.assertContains(response, "(Archived)", count=0)
+
+        gear_links = response.context["view"].get_gear_links()
+        self.assertListEqual([gl["title"] for gl in gear_links], ["Add Event", "Edit", "Archive"])
+
+        # archive the campaign
+        campaign.is_archived = True
+        campaign.save()
+
+        response = self.client.get(reverse("campaigns.campaign_read", args=[campaign.pk]))
+
+        # page title and main content title should contain (Archived)
+        self.assertContains(response, "Perform the rain dance", count=2)
+        self.assertContains(response, "(Archived)", count=2)
+
+        gear_links = response.context["view"].get_gear_links()
+        self.assertListEqual([gl["title"] for gl in gear_links], ["Activate"])
+
+    def test_view_campaign_archive(self):
+        self.login(self.admin)
+
+        post_data = dict(name="Planting Reminders", group=self.farmers.pk)
+        self.client.post(reverse("campaigns.campaign_create"), post_data)
+
+        campaign = Campaign.objects.filter(is_active=True).first()
+
+        # archive the campaign
+        response = self.client.post(reverse("campaigns.campaign_archive", args=[campaign.pk]))
+
+        self.assertRedirect(response, f"/campaign/read/{campaign.pk}/")
+
+        campaign.refresh_from_db()
+        self.assertTrue(campaign.is_archived)
+
+    def test_view_campaign_activate(self):
+        self.login(self.admin)
+
+        post_data = dict(name="Planting Reminders", group=self.farmers.pk)
+        self.client.post(reverse("campaigns.campaign_create"), post_data)
+
+        campaign = Campaign.objects.filter(is_active=True).first()
+
+        # activate the campaign
+        response = self.client.post(reverse("campaigns.campaign_activate", args=[campaign.pk]))
+
+        self.assertRedirect(response, f"/campaign/read/{campaign.pk}/")
+
+        campaign.refresh_from_db()
+        self.assertFalse(campaign.is_archived)
+
+    def test_view_campaignevent_read_on_archived_campaign(self):
+        self.login(self.admin)
+
+        campaign = Campaign.create(self.org, self.admin, "Perform the rain dance", self.farmers)
+
+        # create a reminder for our first planting event
+        event = CampaignEvent.create_flow_event(
+            self.org, self.admin, campaign, relative_to=self.planting_date, offset=3, unit="D", flow=self.reminder_flow
+        )
+
+        response = self.client.get(reverse("campaigns.campaignevent_read", args=[event.pk]))
+
+        # page title and main content title should NOT contain (Archived)
+        self.assertContains(response, "Perform the rain dance", count=2)
+        self.assertContains(response, "(Archived)", count=0)
+
+        gear_links = response.context["view"].get_gear_links()
+        self.assertListEqual([gl["title"] for gl in gear_links], ["Edit", "Delete"])
+
+        # archive the campaign
+        campaign.is_archived = True
+        campaign.save()
+
+        response = self.client.get(reverse("campaigns.campaignevent_read", args=[event.pk]))
+
+        # page title and main content title should contain (Archived)
+        self.assertContains(response, "Perform the rain dance", count=2)
+        self.assertContains(response, "(Archived)", count=1)
+
+        gear_links = response.context["view"].get_gear_links()
+        self.assertListEqual([gl["title"] for gl in gear_links], ["Delete"])
+
+    def test_view_campaignevent_update_on_archived_campaign(self):
+        self.login(self.admin)
+
+        campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
+
+        # create a reminder for our first planting event
+        event = CampaignEvent.create_flow_event(
+            self.org, self.admin, campaign, relative_to=self.planting_date, offset=3, unit="D", flow=self.reminder_flow
+        )
+
+        response = self.client.get(reverse("campaigns.campaignevent_update", args=[event.pk]))
+
+        # sanity check, form is available in the response
+        self.assertContains(response, "Planting Reminder")
+        self.assertListEqual(
+            list(response.context["form"].fields.keys()),
+            [
+                "offset",
+                "unit",
+                "relative_to",
+                "event_type",
+                "delivery_hour",
+                "direction",
+                "flow_to_start",
+                "flow_start_mode",
+                "message_start_mode",
+                "eng",
+                "loc",
+            ],
+        )
+
+        # archive the campaign
+        campaign.is_archived = True
+        campaign.save()
+
+        response = self.client.get(reverse("campaigns.campaignevent_update", args=[campaign.pk]))
+
+        # we should get 404 for the archived campaign
+        self.assertEqual(response.status_code, 404)
+
+        # deactivate the campaign
+        campaign.is_archived = False
+        campaign.is_active = False
+        campaign.save()
+
+        response = self.client.get(reverse("campaigns.campaign_update", args=[campaign.pk]))
+
+        # we should get 404 for the inactive campaign
+        self.assertEqual(response.status_code, 404)
+
+    def test_view_campaignevent_create_on_archived_campaign(self):
+        self.login(self.admin)
+
+        campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
+
+        post_data = dict(
+            relative_to=self.planting_date.pk,
+            event_type="M",
+            base="This is my message",
+            spa="hola",
+            direction="B",
+            offset=1,
+            unit="W",
+            flow_to_start="",
+            delivery_hour=13,
+            message_start_mode="I",
+        )
+
+        response = self.client.post(
+            reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
+        )
+
+        self.assertRedirect(response, reverse("campaigns.campaign_read", args=[campaign.pk]))
+
+        # archive the campaign
+        campaign.is_archived = True
+        campaign.save()
+
+        response = self.client.post(
+            reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
+        )
+
+        # we should get 404 for the archived campaign
+        self.assertEqual(response.status_code, 404)
+
+        # deactivate the campaign
+        campaign.is_archived = False
+        campaign.is_active = False
+        campaign.save()
+
+        response = self.client.post(
+            reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
+        )
+
+        # we should get 404 for the inactive campaign
+        self.assertEqual(response.status_code, 404)
+
     def test_eventfire_get_relative_to_value(self):
         campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
         field_created_on = self.org.contactfields.get(key="created_on")
