@@ -2671,6 +2671,12 @@ class BroadcastTest(TembaTest):
         self.assertEqual(context["urn"]["scheme"], "tel")
         self.assertEqual(context["urn"]["path"], "123")
 
+        msg = Msg(org=self.org, contact=self.joe, text="", id=0)
+        context = msg.build_expressions_context()
+        self.assertEqual(context["text"], "")
+        self.assertEqual(context["urn"]["scheme"], "tel")
+        self.assertEqual(context["urn"]["path"], "123")
+
     def test_variables_substitution(self):
         ContactField.get_or_create(self.org, self.admin, "sector", "sector")
         ContactField.get_or_create(self.org, self.admin, "team", "team")
