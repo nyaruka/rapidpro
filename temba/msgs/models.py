@@ -1412,6 +1412,10 @@ class Msg(models.Model):
 
         if self.contact_urn:
             context["urn"] = self.contact_urn.build_expressions_context(self.org)
+        elif self.id == 0:
+            urn = self.contact.get_urn()
+            if urn:
+                context["urn"] = urn.build_expressions_context(self.org)
 
         return context
 

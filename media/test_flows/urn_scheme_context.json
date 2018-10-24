@@ -1,0 +1,213 @@
+{
+  "version": "11.6",
+  "site": "https://app.rapidpro.io",
+  "flows": [
+    {
+      "entry": "a7e77c89-4ac8-43d4-8891-e1fa889e43e7",
+      "action_sets": [
+        {
+          "uuid": "055fffe0-48db-493f-84db-560f4d250d15",
+          "x": 44,
+          "y": 181,
+          "destination": "6db3e336-974c-4210-b478-e0ebf9a4fcde",
+          "actions": [
+            {
+              "type": "del_group",
+              "uuid": "b6e5ccbc-0017-462c-93f9-d85db5f0c367",
+              "groups": []
+            }
+          ],
+          "exit_uuid": "b2b9e4fd-1494-455b-96a4-ec2038b924a7"
+        },
+        {
+          "uuid": "6db3e336-974c-4210-b478-e0ebf9a4fcde",
+          "x": 34,
+          "y": 279,
+          "destination": null,
+          "actions": [
+            {
+              "type": "add_group",
+              "uuid": "360191ad-7683-46f1-8e12-acf76010581b",
+              "groups": [
+                {
+                  "uuid": "eb155605-0cce-42f2-ad6a-5593b58be033",
+                  "name": "SMS"
+                }
+              ]
+            }
+          ],
+          "exit_uuid": "94a58cfa-de73-4823-8383-973f04af0f07"
+        },
+        {
+          "uuid": "2e7e8333-75d1-46b3-af3a-f17d08d8eddb",
+          "x": 323,
+          "y": 230,
+          "destination": "58f651c9-f58a-4333-8cc8-a0e66e6e265f",
+          "actions": [
+            {
+              "type": "del_group",
+              "uuid": "117be1ae-85d8-41d2-8e3f-1bdf72514637",
+              "groups": []
+            }
+          ],
+          "exit_uuid": "9ac59597-2b0e-40b7-aa91-ab874931d159"
+        },
+        {
+          "uuid": "4ea51cfc-01ca-47b1-a45f-79c3e966ae4a",
+          "x": 597,
+          "y": 216,
+          "destination": "f404d979-b3b8-409d-b23a-c71f5228d222",
+          "actions": [
+            {
+              "type": "del_group",
+              "uuid": "2946533d-9dc0-4387-aa5a-460b2ddb8547",
+              "groups": []
+            }
+          ],
+          "exit_uuid": "86ac7774-e878-40ab-8f35-a87d6a5b5aac"
+        },
+        {
+          "uuid": "f404d979-b3b8-409d-b23a-c71f5228d222",
+          "x": 597,
+          "y": 345,
+          "destination": null,
+          "actions": [
+            {
+              "type": "add_group",
+              "uuid": "d69cf7e5-8de2-4cec-a0d9-d092e0fdf48d",
+              "groups": [
+                {
+                  "uuid": "db255fa7-9875-4321-9d6f-d78767bcb7c9",
+                  "name": "Twitter"
+                }
+              ]
+            }
+          ],
+          "exit_uuid": "e1a812ba-5dda-460c-880e-a0d9edc9ffc1"
+        },
+        {
+          "uuid": "58f651c9-f58a-4333-8cc8-a0e66e6e265f",
+          "x": 314,
+          "y": 342,
+          "destination": null,
+          "actions": [
+            {
+              "type": "add_group",
+              "uuid": "8750c1d4-09c7-40ce-a361-3acb3eaa36e9",
+              "groups": [
+                {
+                  "uuid": "cce9d065-e33b-46de-9151-4ed263504646",
+                  "name": "Viber"
+                }
+              ]
+            }
+          ],
+          "exit_uuid": "8e02bb48-6d04-40d5-805f-9bf5586f4425"
+        },
+        {
+          "uuid": "a7e77c89-4ac8-43d4-8891-e1fa889e43e7",
+          "x": 812,
+          "y": 0,
+          "destination": "2c7764d4-0654-4a01-ab5b-07753049cbbc",
+          "actions": [
+            {
+              "type": "add_group",
+              "uuid": "19b8de27-6d81-4623-bee7-75629402c268",
+              "groups": [
+                {
+                  "uuid": "3725162c-10b9-48a8-a916-7fb7ad2ef767",
+                  "name": "Polled"
+                }
+              ]
+            }
+          ],
+          "exit_uuid": "940b6c5d-8476-4ddf-aaca-c1a5264e9026"
+        }
+      ],
+      "rule_sets": [
+        {
+          "uuid": "2c7764d4-0654-4a01-ab5b-07753049cbbc",
+          "x": 339,
+          "y": 72,
+          "label": "Response 1",
+          "rules": [
+            {
+              "uuid": "4b3019c6-9375-4133-9a5f-d6df55479c04",
+              "category": {
+                "eng": "Tel"
+              },
+              "destination": "055fffe0-48db-493f-84db-560f4d250d15",
+              "destination_type": "A",
+              "test": {
+                "type": "contains_any",
+                "test": {
+                  "eng": "Tel"
+                }
+              },
+              "label": null
+            },
+            {
+              "uuid": "a1a6ce86-b860-409e-9f86-67e09e32a56f",
+              "category": {
+                "eng": "Viber"
+              },
+              "destination": "2e7e8333-75d1-46b3-af3a-f17d08d8eddb",
+              "destination_type": "A",
+              "test": {
+                "type": "contains_any",
+                "test": {
+                  "eng": "Viber"
+                }
+              },
+              "label": null
+            },
+            {
+              "uuid": "8bfeb74e-0b30-48ae-9f55-919363b8ab95",
+              "category": {
+                "eng": "Twitter"
+              },
+              "destination": "4ea51cfc-01ca-47b1-a45f-79c3e966ae4a",
+              "destination_type": "A",
+              "test": {
+                "type": "contains_any",
+                "test": {
+                  "eng": "Twitterid"
+                }
+              },
+              "label": null
+            },
+            {
+              "uuid": "1582d425-f29e-4f4d-b825-318476e21cc1",
+              "category": {
+                "eng": "Other"
+              },
+              "destination": null,
+              "destination_type": null,
+              "test": {
+                "type": "true"
+              },
+              "label": null
+            }
+          ],
+          "finished_key": null,
+          "ruleset_type": "expression",
+          "response_type": "",
+          "operand": "@step.urn.scheme",
+          "config": {}
+        }
+      ],
+      "base_language": "eng",
+      "flow_type": "M",
+      "version": "11.6",
+      "metadata": {
+        "name": "URN SCHEME CONTEXT",
+        "saved_on": "2018-10-24T12:13:50.428519Z",
+        "revision": 28,
+        "uuid": "193ff4f4-b776-4442-b1f3-d2fa19d2a6e3",
+        "expires": 10080
+      }
+    }
+  ],
+  "campaigns": [],
+  "triggers": []
+}

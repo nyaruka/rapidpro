@@ -513,6 +513,27 @@ class FlowTest(TembaTest):
         self.assertContains(response, msg.name)
         self.assertNotContains(response, survey.name)
 
+    def test_urn_context_without_message(self):
+        self.login(self.admin)
+        flow = self.get_flow("urn_scheme_context")
+
+        self.assertFalse(self.contact.user_groups.all())
+        flow.start([], [self.contact])
+
+        self.assertTrue(self.contact.user_groups.all())
+        self.assertTrue(self.contact.user_groups.filter(name="SMS"))
+        self.assertFalse(self.contact.user_groups.filter(name="Polled"))
+
+        self.contact.clear_urn_cache()
+
+        ContactURN.create(self.contact.org, self.contact, "twitterid:12345#therealone", priority=100)
+        flow.start([], [self.contact], restart_participants=True)
+
+        self.assertTrue(self.contact.user_groups.all())
+        self.assertTrue(self.contact.user_groups.filter(name="Twitter"))
+        self.assertFalse(self.contact.user_groups.filter(name="Polled"))
+        self.assertFalse(self.contact.user_groups.filter(name="SMS"))
+
     def test_flow_editor_next(self):
         self.login(self.admin)
         response = self.client.get(reverse("flows.flow_editor_next", args=[self.flow.uuid]))
