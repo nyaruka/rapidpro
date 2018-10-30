@@ -2373,7 +2373,7 @@ class OrgCRUDL(SmartCRUDL):
                     )
 
             if self.has_org_perm("orgs.org_webhook"):
-                formax.add_section("webhook", reverse("orgs.org_webhook"), icon="icon-cloud-upload")
+                formax.add_section("webhook", reverse("orgs.org_webhook"), icon="icon-cloud-upload", nobutton=True)
 
             if self.has_org_perm("orgs.org_resthooks"):
                 formax.add_section(
