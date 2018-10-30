@@ -827,7 +827,6 @@ CELERYBEAT_SCHEDULE = {
     "check-flow-timeouts": {"task": "check_flow_timeouts_task", "schedule": timedelta(seconds=20)},
     "check-credits": {"task": "check_credits_task", "schedule": timedelta(seconds=900)},
     "check-messages-task": {"task": "check_messages_task", "schedule": timedelta(seconds=300)},
-    "check-calls-task": {"task": "check_calls_task", "schedule": timedelta(seconds=300)},
     "check_failed_calls_task": {"task": "check_failed_calls_task", "schedule": timedelta(seconds=300)},
     "task_enqueue_call_events": {"task": "task_enqueue_call_events", "schedule": timedelta(seconds=300)},
     "check-elasticsearch-lag": {"task": "check_elasticsearch_lag", "schedule": timedelta(seconds=300)},

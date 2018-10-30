@@ -22,7 +22,7 @@ from celery import current_app
 from temba.channels.models import Channel, ChannelLog, ChannelSession
 from temba.contacts.models import Contact
 from temba.flows.models import ActionLog, Flow, FlowRevision, FlowRun
-from temba.ivr.tasks import check_calls_task, start_call_task
+from temba.ivr.tasks import check_failed_calls_task, start_call_task
 from temba.msgs.models import IVR, OUTGOING, PENDING, Msg
 from temba.orgs.models import get_current_export_version
 from temba.tests import FlowFileTest, MockResponse
@@ -2069,7 +2069,9 @@ class IVRTests(FlowFileTest):
         )
 
         # expect only two new tasks, third one is over MAX_RETRY_ATTEMPTS
-        check_calls_task()
+        with self.assertNumQueries(10):
+            check_failed_calls_task()
+
         self.assertEqual(2, mock_start_call.call_count)
 
         call1.refresh_from_db()
@@ -2402,6 +2404,7 @@ class IVRTests(FlowFileTest):
         eric = self.create_contact("Eric Newcomer", number="+13603621737")
         not_eric = self.create_contact("Not Eric Newcomer", number="+13603621738")
         also_not_eric = self.create_contact("Also Not Eric Newcomer", number="+13603621739")
+        still_not_eric = self.create_contact("Still Not Eric Newcomer", number="+13603621736")
         Contact.set_simulation(False)
 
         channel_key = Channel.redis_active_events_key(channel.id)
@@ -2410,7 +2413,7 @@ class IVRTests(FlowFileTest):
         self.assertIsNone(tracked_active_calls)
 
         # start the flow
-        flow.start([], [eric, not_eric, also_not_eric])
+        flow.start([], [eric, not_eric, also_not_eric, still_not_eric])
 
         started_calls = IVRCall.objects.filter(direction=IVRCall.OUTGOING, status=ChannelSession.WIRED)
         pending_calls = IVRCall.objects.filter(direction=IVRCall.OUTGOING, status=ChannelSession.PENDING)
@@ -2418,7 +2421,7 @@ class IVRTests(FlowFileTest):
         # we should have an wired ivr call now
         self.assertEqual(started_calls.count(), 1)
         # and, we should have two calls in pending state
-        self.assertEqual(pending_calls.count(), 2)
+        self.assertEqual(pending_calls.count(), 3)
 
         tracked_active_calls = r.get(channel_key)
         self.assertEqual(int(tracked_active_calls), 1)
@@ -2431,14 +2434,15 @@ class IVRTests(FlowFileTest):
         self.assertEqual(int(tracked_active_calls), 0)
 
         # simulate task_enqueue_call_events
-        current_app.send_task("task_enqueue_call_events", args=[], kwargs={})
+        with self.assertNumQueries(8):
+            current_app.send_task("task_enqueue_call_events", args=[], kwargs={})
 
         started_calls = IVRCall.objects.filter(direction=IVRCall.OUTGOING, status=ChannelSession.WIRED)
         pending_calls = IVRCall.objects.filter(direction=IVRCall.OUTGOING, status=ChannelSession.PENDING)
 
         # one of the calls terminated, so we can enqueue another call
         self.assertEqual(started_calls.count(), 1)
-        self.assertEqual(pending_calls.count(), 1)
+        self.assertEqual(pending_calls.count(), 2)
 
         tracked_active_calls = r.get(channel_key)
         self.assertEqual(int(tracked_active_calls), 1)
@@ -2455,12 +2459,34 @@ class IVRTests(FlowFileTest):
 
         # call is still in progress so we can't enqueue a new call
         self.assertEqual(started_calls.count(), 0)
+        self.assertEqual(pending_calls.count(), 2)
+
+        tracked_active_calls = int(r.get(channel_key))
+        self.assertEqual(tracked_active_calls, 1)
+
+        # call was not answered
+        self.client.post(reverse("ivr.ivrcall_handle", args=[started_call.pk]), dict(CallStatus="no-answer"))
+
+        tracked_active_calls = int(r.get(channel_key))
+        self.assertEqual(tracked_active_calls, 0)
+
+        started_call.refresh_from_db()
+        self.assertTrue(started_call.next_attempt > timezone.now())
+
+        # simulate task_enqueue_call_events
+        current_app.send_task("task_enqueue_call_events", args=[], kwargs={})
+
+        started_calls = IVRCall.objects.filter(direction=IVRCall.OUTGOING, status=ChannelSession.WIRED)
+        pending_calls = IVRCall.objects.filter(direction=IVRCall.OUTGOING, status=ChannelSession.PENDING)
+
+        self.assertEqual(started_calls.count(), 1)
         self.assertEqual(pending_calls.count(), 1)
 
         tracked_active_calls = int(r.get(channel_key))
         self.assertEqual(tracked_active_calls, 1)
 
         # close active call (interrupt)
+        started_call = started_calls.first()
         started_call.close()
 
         tracked_active_calls = int(r.get(channel_key))
@@ -2475,9 +2501,6 @@ class IVRTests(FlowFileTest):
         # enqueue a new call
         self.assertEqual(started_calls.count(), 1)
         self.assertEqual(pending_calls.count(), 0)
-
-        tracked_active_calls = int(r.get(channel_key))
-        self.assertEqual(tracked_active_calls, 1)
 
         # release the channel, removes active calls
         with self.settings(IS_PROD=True):

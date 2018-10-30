@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django_redis import get_redis_connection
 
+from django.db.models import Q
 from django.utils import timezone
 
 from celery.task import task
@@ -30,61 +31,55 @@ def start_call_task(self, call_pk):
         self.retry(countdown=180)
 
 
-@nonoverlapping_task(track_started=True, name="check_calls_task", time_limit=900)
-def check_calls_task():
-    from .models import IVRCall
-
-    now = timezone.now()
-
-    calls_to_retry = (
-        IVRCall.objects.filter(next_attempt__lte=now, retry_count__lte=IVRCall.MAX_RETRY_ATTEMPTS)
-        .filter(status__in=IVRCall.RETRY_CALL)
-        .filter(modified_on__gt=now - timedelta(days=IVRCall.IGNORE_PENDING_CALLS_OLDER_THAN_DAYS))
-        .filter(direction=IVRCall.OUTGOING, is_active=True)
-    )
-
-    for call in calls_to_retry:
-
-        ChannelLog.log_ivr_interaction(call, "Retrying call", HttpEvent(method="INTERNAL", url=None))
-
-        call.status = IVRCall.PENDING
-        call.next_attempt = None
-        # reset the call
-        call.started_on = None
-        call.ended_on = None
-        call.duration = 0
-        call.modified_on = timezone.now()
-        call.save(update_fields=("status", "next_attempt", "started_on", "ended_on", "duration", "modified_on"))
-
-    if calls_to_retry:
-        task_enqueue_call_events.apply_async()
-
-
 @nonoverlapping_task(track_started=True, name="check_failed_calls_task", time_limit=900)
 def check_failed_calls_task():
     from .models import IVRCall
 
-    # calls that have failed and have a `error_count` value are going to be retried
+    now = timezone.now()
+    calls_have_been_updated = False
+
+    failed_statuses = set()
+    failed_statuses.update(IVRCall.FAILED, IVRCall.RETRY_CALL)
+
+    # calls that have failed and have a `error_count` value, and calls that were busy are reset to PENDING state
+    # cap to 1000 calls, because we don't want to block for too long here
     failed_calls_to_retry = (
-        IVRCall.objects.filter(error_count__gte=1, error_count__lte=IVRCall.MAX_ERROR_COUNT)
-        .filter(status__in=IVRCall.FAILED)
+        IVRCall.objects.filter(
+            Q(error_count__gte=1, error_count__lte=IVRCall.MAX_ERROR_COUNT)
+            | Q(next_attempt__lte=now, retry_count__lte=IVRCall.MAX_RETRY_ATTEMPTS)
+        )
+        .filter(status__in=failed_statuses)
         .filter(modified_on__gt=timezone.now() - timedelta(days=IVRCall.IGNORE_PENDING_CALLS_OLDER_THAN_DAYS))
         .filter(direction=IVRCall.OUTGOING, is_active=True)
+        .only("status", "channel_id")
+        .order_by("modified_on")[:1000]
     )
 
-    for call in failed_calls_to_retry:
+    for call in failed_calls_to_retry.iterator():
 
-        ChannelLog.log_ivr_interaction(call, "Retrying failed call", HttpEvent(method="INTERNAL", url=None))
+        if call.status == IVRCall.FAILED:
+            ChannelLog.log_ivr_interaction(call, "Retrying failed call", HttpEvent(method="INTERNAL", url=None))
 
-        call.status = IVRCall.PENDING
+        elif call.status in IVRCall.RETRY_CALL:
+            ChannelLog.log_ivr_interaction(call, "Retrying busy call", HttpEvent(method="INTERNAL", url=None))
+
+            call.next_attempt = None
+
+        else:  # pragma: no cover
+            raise ValueError(f'Unexpected call status for call rescheduling: "{call.status}"')
+
         # reset the call
+        call.status = IVRCall.PENDING
         call.started_on = None
         call.ended_on = None
         call.duration = 0
         call.modified_on = timezone.now()
         call.save(update_fields=("status", "next_attempt", "started_on", "ended_on", "duration", "modified_on"))
 
-    if failed_calls_to_retry:
+        calls_have_been_updated = True
+
+    # at least one call was updated, we need to trigger call enqueue task
+    if calls_have_been_updated:
         task_enqueue_call_events.apply_async()
 
 
@@ -94,12 +89,14 @@ def task_enqueue_call_events():
 
     r = get_redis_connection()
 
+    # cap to 1000 calls, because we don't want to block for too long here
     pending_call_events = (
         IVRCall.objects.filter(status=IVRCall.PENDING)
         .filter(direction=IVRCall.OUTGOING, is_active=True)
         .filter(channel__is_active=True)
         .filter(modified_on__gt=timezone.now() - timedelta(days=IVRCall.IGNORE_PENDING_CALLS_OLDER_THAN_DAYS))
         .select_related("channel")
+        .only("channel__config", "channel_id")
         .order_by("modified_on")[:1000]
     )
 
