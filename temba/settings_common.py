@@ -255,12 +255,17 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": True,
     "root": {"level": "WARNING", "handlers": ["console"]},
-    "formatters": {"verbose": {"format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"}},
+    "formatters": {
+        "verbose": {"format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"},
+        "simple": {"format": "%(levelname)s %(asctime)s %(module)s => %(message)s"},
+    },
     "handlers": {
         "console": {"level": "DEBUG", "class": "logging.StreamHandler", "formatter": "verbose"},
+        "console_simple": {"level": "DEBUG", "class": "logging.StreamHandler", "formatter": "simple"},
         "null": {"class": "logging.NullHandler"},
     },
     "loggers": {
+        "temba": {"level": "DEBUG", "handlers": ["console_simple"], "propagate": False},
         "pycountry": {"level": "ERROR", "handlers": ["console"], "propagate": False},
         "django.security.DisallowedHost": {"handlers": ["null"], "propagate": False},
         "django.db.backends": {"level": "ERROR", "handlers": ["console"], "propagate": False},
