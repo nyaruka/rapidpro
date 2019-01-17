@@ -149,7 +149,7 @@ window.renderSimEvent = (event) ->
       if (event.fatal)
         $('#simulator').addClass('disabled')
 
-    when "flow_entered"
+    when "flow_entered", "flow_triggered"
       window.addMessage("Entering the flow \"" + event.flow.name + "\"", "log")
 
     when "input_labels_added"

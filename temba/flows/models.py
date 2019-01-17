@@ -34,7 +34,7 @@ from celery import current_app
 from temba import mailroom
 from temba.airtime.models import AirtimeTransfer
 from temba.assets.models import register_asset_store
-from temba.channels.models import Channel, ChannelSession
+from temba.channels.models import Channel, ChannelConnection
 from temba.contacts.models import (
     NEW_CONTACT_VARIABLE,
     TEL_SCHEME,
@@ -189,7 +189,7 @@ class FlowSession(models.Model):
     )
 
     connection = models.OneToOneField(
-        "channels.ChannelSession",
+        "channels.ChannelConnection",
         on_delete=models.PROTECT,
         null=True,
         related_name="session",
@@ -3032,7 +3032,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
     )
 
     connection = models.ForeignKey(
-        "channels.ChannelSession",
+        "channels.ChannelConnection",
         on_delete=models.PROTECT,
         related_name="runs",
         null=True,
@@ -3333,7 +3333,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
 
     @property
     def connection_interrupted(self):
-        return self.connection and self.connection.status == ChannelSession.INTERRUPTED
+        return self.connection and self.connection.status == ChannelConnection.INTERRUPTED
 
     @classmethod
     def normalize_field_key(cls, key):
@@ -5305,12 +5305,32 @@ class FlowStart(SmartModel):
 
     contact_count = models.IntegerField(default=0, help_text=_("How many unique contacts were started down the flow"))
 
+    connections = models.ManyToManyField(
+        ChannelConnection, related_name="starts", help_text="The channel connections created for this start"
+    )
+
     status = models.CharField(
         max_length=1, default=STATUS_PENDING, choices=STATUS_CHOICES, help_text=_("The status of this flow start")
     )
 
     extra = JSONAsTextField(
         null=True, default=dict, help_text=_("Any extra parameters to pass to the flow start (json)")
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="%(app_label)s_%(class)s_creations",
+        help_text="The user which originally created this item",
+    )
+
+    modified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="%(app_label)s_%(class)s_modifications",
+        help_text="The user which last modified this item",
     )
 
     @classmethod
@@ -5406,6 +5426,7 @@ class FlowStart(SmartModel):
             start_id=self.id,
             org_id=org_id,
             flow_id=self.flow_id,
+            flow_type=self.flow.flow_type,
             group_ids=[g.id for g in self.groups.all()],
             contact_ids=[c.id for c in self.contacts.all()],
             restart_participants=self.restart_participants,
@@ -7952,6 +7973,6 @@ class InterruptTest(Test):
     def evaluate(self, run, msg, context, text):
         return (
             (True, self.TYPE)
-            if run.connection and run.connection.status == ChannelSession.INTERRUPTED
+            if run.connection and run.connection.status == ChannelConnection.INTERRUPTED
             else (False, None)
         )
