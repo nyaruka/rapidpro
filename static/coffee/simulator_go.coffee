@@ -14,7 +14,8 @@ getStartRequest = ->
       urns: ["tel:+12065551212"],
       created_on: new Date(),
     }
-    flow: {uuid: scope.flow.metadata.uuid, name: scope.flow.metadata.name}
+    flow: {uuid: scope.flow.metadata.uuid, name: scope.flow.metadata.name},
+    connection: {},
     triggered_on: new Date()
   }
   return request
