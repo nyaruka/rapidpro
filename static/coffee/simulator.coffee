@@ -321,15 +321,7 @@ $("#show-simulator").hover ->
     $(this).stop().animate { width: '40px'}, 200, "easeOutBack", ->
 
 verifyNumberSimulator = ->
-  if window.ivr
-    modal = new Modax(gettext("Start Test Call"), '/usersettings/phone/')
-    modal.setIcon("icon-phone")
-    modal.setListeners
-      onSuccess: ->
-        showSimulator(true)
-    modal.show()
-
-  else if window.ussd and not window.has_ussd_channel
+  if window.ussd and not window.has_ussd_channel
     modal = new Modal(gettext("Missing USSD Channel"), gettext("There is no channel that supports USSD connected. Please connect a USSD channel first."))
     modal.setIcon("icon-phone")
     modal.setListeners

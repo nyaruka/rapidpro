@@ -7,14 +7,6 @@ window.getSimulateURL = ->
 window.simStartLegacy = ->
   $.post(getSimulateURL(), JSON.stringify({ has_refresh:true, version:"1" })).done (results) ->
     window.updateResultsLegacy(results)
-    if window.ivr and window.simulation
-      setTimeout(window.refreshIVRSimulator, 2000)
-
-window.refreshIVRSimulator = ->
-  $.post(getSimulateURL(), JSON.stringify({ has_refresh:false, version:"1" })).done (results) ->
-    window.updateResultsLegacy(results)
-    if window.ivr and window.simulation
-      setTimeout(window.refreshIVRSimulator, 2000)
 
 window.sendUpdateLegacy = (postData) ->
   postData['version'] = "1"
