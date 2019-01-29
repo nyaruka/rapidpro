@@ -200,7 +200,7 @@ class WebHookEvent(SmartModel):
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
-        related_name="connections",
+        related_name="%(app_label)s_%(class)s_creations",
         null=True,
         help_text=_("The user which created this item"),
     )
