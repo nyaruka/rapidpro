@@ -197,6 +197,22 @@ class WebHookEvent(SmartModel):
         (STATUS_FAILED, "Failed"),
     )
 
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="connections",
+        null=True,
+        help_text=_("The user which created this item"),
+    )
+
+    modified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="%(app_label)s_%(class)s_modifications",
+        null=True,
+        help_text=_("The user which last modified this item"),
+    )
+
     org = models.ForeignKey(
         Org, on_delete=models.PROTECT, help_text="The organization that this event was triggered for"
     )
