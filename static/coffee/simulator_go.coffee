@@ -18,6 +18,7 @@ getStartRequest = ->
     connection: {},
     triggered_on: new Date()
   }
+  request['flow'] = scope.flow
   return request
 
 window.simStart = ->
