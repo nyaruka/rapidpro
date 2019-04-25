@@ -14,7 +14,7 @@ from celery.task import task
 from temba.channels.courier import handle_new_contact, handle_new_message
 from temba.channels.models import CHANNEL_EVENT, ChannelEvent
 from temba.contacts.models import STOP_CONTACT_EVENT, Contact
-from temba.utils import analytics, chunk_list, json
+from temba.utils import analytics, json
 from temba.utils.queues import Queue, complete_task, nonoverlapping_task, start_task
 
 from .models import (
@@ -394,17 +394,23 @@ def squash_msgcounts():
     BroadcastMsgCount.squash()
 
 
-@nonoverlapping_task(track_started=True, name="clear_old_msg_external_ids", time_limit=60 * 60 * 36)
-def clear_old_msg_external_ids():
+@nonoverlapping_task(track_started=True, name="trim_broadcasts", time_limit=60 * 60 * 24)
+def trim_broadcasts():
     """
-    Clears external_id on older messages to reduce the size of the index on that column. External ids aren't surfaced
-    anywhere and are only used for debugging channel issues, so are of limited usefulness on older messages.
+    Trims broadcasts that are older than 91 days and which have no messages
     """
-    threshold = timezone.now() - timedelta(days=30)  # 30 days ago
+    start = timezone.now()
 
-    msg_ids = list(Msg.objects.filter(created_on__lt=threshold).exclude(external_id=None).values_list("id", flat=True))
+    old = timezone.now() - timedelta(days=91)
+    count = 0
 
-    for msg_id_batch in chunk_list(msg_ids, 1000):
-        Msg.objects.filter(id__in=msg_id_batch).update(external_id=None)
+    for bcast in Broadcast.objects.filter(created_on__lt=old).order_by("created_on").iterator():
+        # only release a broadcast if it has no messages on it anymore (archiver should have deleted them at 90 days)
+        if not Msg.objects.filter(broadcast=bcast):
+            bcast.release()
+            count += 1
 
-    print("Cleared external ids on %d messages" % len(msg_ids))
+        if timezone.now() - start > timedelta(hours=20):  # pragma: no cover
+            break
+
+    print(f"Trimmed {count} broadcasts in {timezone.now() - start}")
