@@ -752,7 +752,7 @@ def sync(request, channel_id):
     # update our last seen on our channel if we haven't seen this channel in a bit
     if not channel.last_seen or timezone.now() - channel.last_seen > timedelta(minutes=5):
         channel.last_seen = timezone.now()
-        channel.save(update_fields=["last_seen"])
+        channel.save(update_fields=("last_seen", "modified_on"))
 
     sync_event = None
 
@@ -829,7 +829,7 @@ def sync(request, channel_id):
                         config.update({Channel.CONFIG_FCM_ID: cmd["fcm_id"]})
                         channel.config = config
                         channel.uuid = cmd.get("uuid", None)
-                        channel.save(update_fields=["uuid", "config"])
+                        channel.save(update_fields=("uuid", "config", "modified_on"))
 
                         # no acking the fcm
                         handled = False
@@ -1722,7 +1722,7 @@ class ChannelCRUDL(SmartCRUDL):
                 for channel in obj.get_delegate_channels():  # pragma: needs cover
                     channel.address = obj.address
                     channel.bod = e164_phone_number
-                    channel.save(update_fields=("address", "bod"))
+                    channel.save(update_fields=("address", "bod", "modified_on"))
 
             return obj
 

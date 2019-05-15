@@ -76,7 +76,7 @@ class IVRCall(ChannelConnection):
             # mark us as interrupted
             self.status = ChannelConnection.INTERRUPTED
             self.ended_on = timezone.now()
-            self.save(update_fields=("status", "ended_on"))
+            self.save(update_fields=("status", "ended_on", "modified_on"))
 
             self.unregister_active_event()
 
@@ -115,7 +115,7 @@ class IVRCall(ChannelConnection):
                 )
 
                 self.status = self.FAILED
-                self.save(update_fields=("status",))
+                self.save(update_fields=("status", "modified_on"))
 
         # client or domain are not known
         else:
@@ -126,7 +126,7 @@ class IVRCall(ChannelConnection):
             )
 
             self.status = self.FAILED
-            self.save(update_fields=("status",))
+            self.save(update_fields=("status", "modified_on"))
 
     def schedule_call_retry(self, backoff_minutes: int):
         # retry the call if it has not been retried maximum number of times

@@ -231,7 +231,8 @@ class CampaignWriteSerializer(WriteSerializer):
         if self.instance:
             self.instance.name = name
             self.instance.group = group
-            self.instance.save(update_fields=("name", "group"))
+            self.modified_by = self.context["request"].user
+            self.instance.save(update_fields=("name", "group", "modified_on", "modified_by"))
         else:
             self.instance = Campaign.create(self.context["org"], self.context["user"], name, group)
 
@@ -540,6 +541,8 @@ class ContactWriteSerializer(WriteSerializer):
                 changed.append("language")
 
             if changed:
+                changed.extend(("modified_on", "modified_by"))
+                self.instance.modified_by = self.context["request"].user
                 self.instance.save(update_fields=changed, handle_update=True)
 
             if "urns" in self.validated_data and urns is not None:
@@ -666,7 +669,8 @@ class ContactGroupWriteSerializer(WriteSerializer):
 
         if self.instance:
             self.instance.name = name
-            self.instance.save(update_fields=("name",))
+            self.instance.modified_by = self.context["request"].user
+            self.instance.save(update_fields=("name", "modified_on", "modified_by"))
             return self.instance
         else:
             return ContactGroup.get_or_create(self.context["org"], self.context["user"], name)
@@ -964,7 +968,8 @@ class LabelWriteSerializer(WriteSerializer):
 
         if self.instance:
             self.instance.name = name
-            self.instance.save(update_fields=("name",))
+            self.instance.modified_by = self.context["request"].user
+            self.instance.save(update_fields=("name", "modified_on", "modified_by"))
             return self.instance
         else:
             return Label.get_or_create(self.context["org"], self.context["user"], name)

@@ -368,7 +368,7 @@ class Broadcast(models.Model):
 
         # set an estimate of our number of recipients, we calculate this more carefully when actually sent
         self.recipient_count = recipient_count
-        self.save(update_fields=["recipient_count"])
+        self.save(update_fields=("recipient_count", "modified_on"))
 
     def _get_preferred_languages(self, contact=None, org=None):
         """
@@ -684,7 +684,7 @@ class Msg(models.Model):
                     if not settings.SEND_MESSAGES:
                         msg.status = WIRED
                         msg.sent_on = timezone.now()
-                        msg.save(update_fields=("status", "sent_on"))
+                        msg.save(update_fields=("status", "sent_on", "modified_on"))
                         logger.debug(f"FAKED SEND for [{msg.id}]")
                         continue
 
@@ -907,7 +907,7 @@ class Msg(models.Model):
             handled = True
 
         self.save(
-            update_fields=["status", "sent_on"]
+            update_fields=["status", "sent_on", "modified_on"]
         )  # first save message status before updating the broadcast status
 
         return handled
@@ -1419,7 +1419,7 @@ class Msg(models.Model):
 
         if delete_reason:
             self.delete_reason = delete_reason
-            self.save(update_fields=["delete_reason"])
+            self.save(update_fields=("delete_reason", "modified_on"))
 
         # delete this object
         self.delete()

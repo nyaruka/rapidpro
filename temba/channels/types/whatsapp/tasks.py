@@ -84,7 +84,7 @@ def refresh_whatsapp_tokens():
                 continue
 
             channel.config["auth_token"] = resp.json()["users"][0]["token"]
-            channel.save(update_fields=["config"])
+            channel.save(update_fields=("config", "modified_on"))
 
 
 VARIABLE_RE = re.compile(r"{{(\d+)}}")

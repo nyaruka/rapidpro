@@ -2875,7 +2875,7 @@ class ContactGroup(TembaModel):
 
         self.query = parsed_query.as_text()
         self.status = ContactGroup.STATUS_INITIALIZING
-        self.save(update_fields=("query", "status"))
+        self.save(update_fields=("query", "status", "modified_on"))
 
         # update the set of contact fields that this query depends on
         self.query_fields.clear()
@@ -2902,7 +2902,7 @@ class ContactGroup(TembaModel):
                 raise ValueError("Cannot re-evaluate a group which is currently re-evaluating")
 
             self.status = ContactGroup.STATUS_EVALUATING
-            self.save(update_fields=("status",))
+            self.save(update_fields=("status", "modified_on"))
 
             new_group_members = set(self._get_dynamic_members())
             existing_member_ids = set(self.contacts.values_list("id", flat=True))
@@ -3023,7 +3023,7 @@ class ContactGroup(TembaModel):
         # if group is still active, deactivate it
         if self.is_active is True:
             self.is_active = False
-            self.save(update_fields=("is_active",))
+            self.save(update_fields=("is_active", "modified_on"))
 
         # delete all counts for this group
         self.counts.all().delete()

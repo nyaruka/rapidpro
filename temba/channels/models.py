@@ -701,14 +701,14 @@ class Channel(TembaModel):
             existing.secret = cls.generate_secret()
             existing.country = country
             existing.device = device
-            existing.save(update_fields=("config", "secret", "claim_code", "country", "device"))
+            existing.save(update_fields=("config", "secret", "claim_code", "country", "device", "modified_on"))
 
             return existing
 
         # if any inactive channel has this UUID, we can steal it
         for ch in Channel.objects.filter(uuid=uuid, is_active=False):
             ch.uuid = generate_uuid()
-            ch.save(update_fields=("uuid",))
+            ch.save(update_fields=("uuid", "modified_on"))
 
         # generate random secret and claim code
         claim_code = cls.generate_claim_code()
@@ -906,12 +906,12 @@ class Channel(TembaModel):
         # create a claim code if we don't have one
         if not self.claim_code:
             self.claim_code = self.generate_claim_code()
-            self.save(update_fields=("claim_code",))
+            self.save(update_fields=("claim_code", "modified_on"))
 
         # create a secret if we don't have one
         if not self.secret:
             self.secret = self.generate_secret()
-            self.save(update_fields=("secret",))
+            self.save(update_fields=("secret", "modified_on"))
 
         # return our command
         return dict(cmd="reg", relayer_claim_code=self.claim_code, relayer_secret=self.secret, relayer_id=self.id)
@@ -1087,7 +1087,7 @@ class Channel(TembaModel):
         # and any triggers associated with our channel get archived
         for trigger in Trigger.objects.filter(org=self.org, channel=self).all():
             trigger.channel = None
-            trigger.save(update_fields=("channel",))
+            trigger.save(update_fields=("channel", "modified_on"))
             trigger.archive(self.modified_by)
 
     def trigger_sync(self, registration_id=None):  # pragma: no cover
@@ -1127,7 +1127,7 @@ class Channel(TembaModel):
             if registration_id not in valid_registration_ids:
                 # this fcm id is invalid now, clear it out
                 channel.config.pop(Channel.CONFIG_FCM_ID, None)
-                channel.save(update_fields=["config"])
+                channel.save(update_fields=("config", "modified_on"))
 
     @classmethod
     def replace_variables(cls, text, variables, content_type=CONTENT_TYPE_URLENCODED):
@@ -1596,7 +1596,7 @@ class SyncEvent(SmartModel):
         if channel.device != device or channel.os != os:  # pragma: no cover
             channel.device = device
             channel.os = os
-            channel.save(update_fields=["device", "os"])
+            channel.save(update_fields=("device", "os", "modified_on"))
 
         args = dict()
 

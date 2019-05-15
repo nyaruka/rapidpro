@@ -412,7 +412,7 @@ class CampaignEvent(TembaModel):
             return
 
         self.flow.name = "Single Message (%d)" % self.pk
-        self.flow.save(update_fields=["name"])
+        self.flow.save(update_fields=("name", "modified_on"))
 
     def single_unit_display(self):
         return self.get_unit_display()[:-1]
@@ -529,7 +529,7 @@ class CampaignEvent(TembaModel):
 
         # we need to be inactive so our fires are noops
         self.is_active = False
-        self.save(update_fields=("is_active",))
+        self.save(update_fields=("is_active", "modified_on"))
 
         # detach any associated flow starts
         self.flow_starts.all().update(campaign_event=None)

@@ -380,7 +380,7 @@ class Org(SmartModel):
         config = self.config
         config[ORG_STATUS] = status
         self.config = config
-        self.save(update_fields=["config"])
+        self.save(update_fields=("config", "modified_on"))
 
     def set_suspended(self):
         self.set_status(SUSPENDED)
@@ -1067,12 +1067,12 @@ class Org(SmartModel):
 
             if iso_code == primary:
                 self.primary_language = language
-                self.save(update_fields=("primary_language",))
+                self.save(update_fields=("primary_language", "modified_on"))
 
         # unset the primary language if not in the new list of codes
         if self.primary_language and self.primary_language.iso_code not in iso_codes:
             self.primary_language = None
-            self.save(update_fields=("primary_language",))
+            self.save(update_fields=("primary_language", "modified_on"))
 
         # remove any languages that are not in the new list
         self.languages.exclude(iso_code__in=iso_codes).delete()

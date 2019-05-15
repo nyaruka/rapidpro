@@ -57,7 +57,7 @@ class TwitterActivityType(ChannelType):
 
             resp = client.register_webhook(config["env_name"], callback_url)
             channel.config["webhook_id"] = resp["id"]
-            channel.save(update_fields=["config"])
+            channel.save(update_fields=("config", "modified_on"))
             client.subscribe_to_webhook(config["env_name"])
         except Exception as e:  # pragma: no cover
             logger.error(f"Unable to activate TwitterActivity: {str(e)}", exc_info=True)
