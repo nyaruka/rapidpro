@@ -115,7 +115,7 @@ class IVRCall(ChannelConnection):
                 )
 
                 self.status = self.FAILED
-                self.save(update_fields=("status", "modified_on"))
+                self.save(update_fields=("status",))
 
         # client or domain are not known
         else:

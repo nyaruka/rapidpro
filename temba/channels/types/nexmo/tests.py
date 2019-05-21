@@ -34,7 +34,7 @@ class NexmoTypeTest(TembaTest):
             NEXMO_APP_PRIVATE_KEY="nexmo-app-private-key\n",
         )
         self.org.config = nexmo_config
-        self.org.save()
+        self.org.save(update_fields=("config",))
 
         # hit the claim page, should now have a claim nexmo link
         response = self.client.get(reverse("channels.channel_claim"))

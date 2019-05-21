@@ -41,7 +41,14 @@ from temba.orgs.models import (
 from temba.utils import get_anonymous_user, json, on_transaction_commit
 from temba.utils.email import send_template_email
 from temba.utils.gsm7 import calculate_num_segments
-from temba.utils.models import JSONAsTextField, SquashableModel, TembaModel, generate_uuid
+from temba.utils.models import (
+    AddModifiedOnMixin,
+    JSONAsTextField,
+    RequireUpdateFieldsMixin,
+    SquashableModel,
+    TembaModel,
+    generate_uuid,
+)
 from temba.utils.nexmo import NCCOResponse
 from temba.utils.text import random_string
 
@@ -268,7 +275,7 @@ class UnsupportedAndroidChannelError(Exception):
         self.message = message
 
 
-class Channel(TembaModel):
+class Channel(RequireUpdateFieldsMixin, AddModifiedOnMixin, TembaModel):
     """
     Notes:
         - we want to reuse keys as much as possible (2018-10-11)
@@ -701,14 +708,14 @@ class Channel(TembaModel):
             existing.secret = cls.generate_secret()
             existing.country = country
             existing.device = device
-            existing.save(update_fields=("config", "secret", "claim_code", "country", "device", "modified_on"))
+            existing.save(update_fields=("config", "secret", "claim_code", "country", "device"))
 
             return existing
 
         # if any inactive channel has this UUID, we can steal it
         for ch in Channel.objects.filter(uuid=uuid, is_active=False):
             ch.uuid = generate_uuid()
-            ch.save(update_fields=("uuid", "modified_on"))
+            ch.save(update_fields=("uuid",))
 
         # generate random secret and claim code
         claim_code = cls.generate_claim_code()
@@ -906,12 +913,12 @@ class Channel(TembaModel):
         # create a claim code if we don't have one
         if not self.claim_code:
             self.claim_code = self.generate_claim_code()
-            self.save(update_fields=("claim_code", "modified_on"))
+            self.save(update_fields=("claim_code",))
 
         # create a secret if we don't have one
         if not self.secret:
             self.secret = self.generate_secret()
-            self.save(update_fields=("secret", "modified_on"))
+            self.save(update_fields=("secret",))
 
         # return our command
         return dict(cmd="reg", relayer_claim_code=self.claim_code, relayer_secret=self.secret, relayer_id=self.id)
@@ -1019,7 +1026,7 @@ class Channel(TembaModel):
         self.is_active = True
         self.claim_code = None
         self.address = phone
-        self.save()
+        self.save(update_fields=("alert_email", "org", "is_active", "claim_code", "address"))
 
         org.normalize_contact_tels()
 
@@ -1064,7 +1071,7 @@ class Channel(TembaModel):
         # make the channel inactive
         self.config.pop(Channel.CONFIG_FCM_ID, None)
         self.is_active = False
-        self.save(update_fields=["is_active", "config", "modified_on"])
+        self.save(update_fields=("is_active", "config"))
 
         # mark any messages in sending mode as failed for this channel
         from temba.msgs.models import Msg, OUTGOING, PENDING, QUEUED, ERRORED, FAILED
@@ -1127,7 +1134,7 @@ class Channel(TembaModel):
             if registration_id not in valid_registration_ids:
                 # this fcm id is invalid now, clear it out
                 channel.config.pop(Channel.CONFIG_FCM_ID, None)
-                channel.save(update_fields=("config", "modified_on"))
+                channel.save(update_fields=("config",))
 
     @classmethod
     def replace_variables(cls, text, variables, content_type=CONTENT_TYPE_URLENCODED):
@@ -1596,7 +1603,7 @@ class SyncEvent(SmartModel):
         if channel.device != device or channel.os != os:  # pragma: no cover
             channel.device = device
             channel.os = os
-            channel.save(update_fields=("device", "os", "modified_on"))
+            channel.save(update_fields=("device", "os"))
 
         args = dict()
 
@@ -1871,7 +1878,7 @@ def get_alert_user():
         return user
 
 
-class ChannelConnection(models.Model):
+class ChannelConnection(RequireUpdateFieldsMixin, AddModifiedOnMixin, models.Model):
     """
     Base for IVR sessions which require a connection to specific channel
     """

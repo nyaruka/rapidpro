@@ -235,7 +235,7 @@ class CampaignTest(TembaTest):
         )
 
         self.org.primary_language = ace
-        self.org.save()
+        self.org.save(update_fields=("primary_language",))
 
         # now we should have ace as our primary
         response = self.client.get(url)
@@ -256,7 +256,7 @@ class CampaignTest(TembaTest):
         self.assertContains(response, "show_language")
 
         self.org.primary_language = None
-        self.org.save()
+        self.org.save(update_fields=("primary_language",))
 
         response = self.client.get(url)
         self.assertIn("base", response.context["form"].fields)
@@ -314,7 +314,7 @@ class CampaignTest(TembaTest):
 
         # promote spanish to our primary language
         self.org.primary_language = spa
-        self.org.save()
+        self.org.save(update_fields=("primary_language",))
 
         # the base language needs to stay present since it's the true backdown
         response = self.client.get(url)
@@ -345,7 +345,7 @@ class CampaignTest(TembaTest):
 
         # now we can remove our primary language
         self.org.primary_language = None
-        self.org.save()
+        self.org.save(update_fields=("primary_language",))
 
         # and still get the same settings, (it should use the base of the flow instead of just base here)
         event = CampaignEvent.objects.all().order_by("-pk").first()
@@ -752,7 +752,7 @@ class CampaignTest(TembaTest):
 
         # archive the campaign
         campaign.is_archived = True
-        campaign.save()
+        campaign.save(update_fields=("is_archived",))
 
         response = self.client.get(reverse("campaigns.campaign_update", args=[campaign.pk]))
 
@@ -762,7 +762,7 @@ class CampaignTest(TembaTest):
         # deactivate the campaign
         campaign.is_archived = False
         campaign.is_active = False
-        campaign.save()
+        campaign.save(update_fields=("is_archived", "is_active"))
 
         response = self.client.get(reverse("campaigns.campaign_update", args=[campaign.pk]))
 
@@ -802,7 +802,7 @@ class CampaignTest(TembaTest):
 
         # archive the campaign
         campaign.is_archived = True
-        campaign.save()
+        campaign.save(update_fields=("is_archived",))
 
         response = self.client.get(reverse("campaigns.campaign_read", args=[campaign.pk]))
 
@@ -866,7 +866,7 @@ class CampaignTest(TembaTest):
 
         # archive the campaign
         campaign.is_archived = True
-        campaign.save()
+        campaign.save(update_fields=("is_archived",))
 
         response = self.client.get(reverse("campaigns.campaignevent_read", args=[event.pk]))
 
@@ -910,7 +910,7 @@ class CampaignTest(TembaTest):
 
         # archive the campaign
         campaign.is_archived = True
-        campaign.save()
+        campaign.save(update_fields=("is_archived",))
 
         response = self.client.get(reverse("campaigns.campaignevent_update", args=[campaign.pk]))
 
@@ -920,7 +920,7 @@ class CampaignTest(TembaTest):
         # deactivate the campaign
         campaign.is_archived = False
         campaign.is_active = False
-        campaign.save()
+        campaign.save(update_fields=("is_archived", "is_active"))
 
         response = self.client.get(reverse("campaigns.campaign_update", args=[campaign.pk]))
 
@@ -953,7 +953,7 @@ class CampaignTest(TembaTest):
 
         # archive the campaign
         campaign.is_archived = True
-        campaign.save()
+        campaign.save(update_fields=("is_archived",))
 
         response = self.client.post(
             reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
@@ -965,7 +965,7 @@ class CampaignTest(TembaTest):
         # deactivate the campaign
         campaign.is_archived = False
         campaign.is_active = False
-        campaign.save()
+        campaign.save(update_fields=("is_archived", "is_active"))
 
         response = self.client.post(
             reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
@@ -1156,7 +1156,7 @@ class CampaignTest(TembaTest):
         # set our timezone to something that honors DST
         eastern = pytz.timezone("US/Eastern")
         self.org.timezone = eastern
-        self.org.save()
+        self.org.save(update_fields=("timezone",))
 
         # create our campaign and event
         campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
@@ -1394,7 +1394,7 @@ class CampaignTest(TembaTest):
 
         flow.archive()
         campaign.is_archived = True
-        campaign.save()
+        campaign.save(update_fields=("is_archived",))
 
         self.assertTrue(campaign.is_archived)
         self.assertTrue(Flow.objects.filter(is_archived=True))

@@ -109,7 +109,7 @@ class TemplateTranslation(models.Model):
                 )
             else:
                 template.modified_on = timezone.now()
-                template.save(update_fields=["modified_on"])
+                template.save(update_fields=("modified_on",))
 
             existing = TemplateTranslation.objects.create(
                 template=template,
@@ -130,10 +130,10 @@ class TemplateTranslation(models.Model):
                 existing.content = content
                 existing.variable_count = variable_count
                 existing.is_active = True
-                existing.save(update_fields=["status", "content", "is_active", "variable_count"])
+                existing.save(update_fields=("status", "content", "is_active", "variable_count"))
 
                 existing.template.modified_on = timezone.now()
-                existing.template.save(update_fields=["modified_on"])
+                existing.template.save(update_fields=("modified_on",))
 
         return existing
 

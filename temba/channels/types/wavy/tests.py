@@ -17,7 +17,7 @@ class WavyTypeTest(TembaTest):
         self.assertNotContains(response, url)
 
         self.org.timezone = "America/Sao_Paulo"
-        self.org.save()
+        self.org.save(update_fields=("timezone",))
 
         # check that claim page URL appears on claim list page
         response = self.client.get(reverse("channels.channel_claim"))

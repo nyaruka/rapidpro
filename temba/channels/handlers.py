@@ -128,7 +128,17 @@ class TWIMLCallHandler(BaseChannelHandler):
                     call.update_status(
                         request.POST.get("CallStatus", None), request.POST.get("CallDuration", None), "T"
                     )
-                    call.save()
+                    call.save(
+                        update_fields=(
+                            "status",
+                            "duration",
+                            "error_count",
+                            "next_attempt",
+                            "retry_count",
+                            "ended_on",
+                            "started_on",
+                        )
+                    )
 
                     FlowRun.create(flow, contact, session=session, connection=call)
                     response = Flow.handle_call(call)
@@ -161,7 +171,17 @@ class TWIMLCallHandler(BaseChannelHandler):
                     call.update_status(
                         request.POST.get("CallStatus", None), request.POST.get("CallDuration", None), "TW"
                     )
-                    call.save()
+                    call.save(
+                        update_fields=(
+                            "status",
+                            "duration",
+                            "error_count",
+                            "next_attempt",
+                            "retry_count",
+                            "ended_on",
+                            "started_on",
+                        )
+                    )
                     return HttpResponse("Call status updated")
             return HttpResponse("No call found")
 
@@ -234,7 +254,7 @@ class NexmoCallHandler(BaseChannelHandler):
                 call = IVRCall.objects.filter(external_id=conversation_uuid).first()
                 if call:
                     call.external_id = call_uuid
-                    call.save()
+                    call.save(update_fields=("external_id",))
                 else:
                     response = dict(message="Call not found for %s" % call_uuid)
                     return JsonResponse(response)
@@ -242,7 +262,17 @@ class NexmoCallHandler(BaseChannelHandler):
             channel = call.channel
             channel_type = channel.channel_type
             call.update_status(status, duration, channel_type)
-            call.save()
+            call.save(
+                update_fields=(
+                    "status",
+                    "duration",
+                    "error_count",
+                    "next_attempt",
+                    "retry_count",
+                    "ended_on",
+                    "started_on",
+                )
+            )
 
             response = dict(
                 description="Updated call status", call=dict(status=call.get_status_display(), duration=call.duration)
@@ -297,6 +327,17 @@ class NexmoCallHandler(BaseChannelHandler):
                 response = Flow.handle_call(call)
                 channel_type = channel.channel_type
                 call.update_status("answered", None, channel_type)
+                call.save(
+                    update_fields=(
+                        "status",
+                        "duration",
+                        "error_count",
+                        "next_attempt",
+                        "retry_count",
+                        "ended_on",
+                        "started_on",
+                    )
+                )
 
                 event = HttpEvent(request_method, request_path, request_body, 200, str(response))
                 ChannelLog.log_ivr_interaction(call, "Incoming request for call", event)

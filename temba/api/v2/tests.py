@@ -198,7 +198,7 @@ class APITest(TembaTest):
 
         self.assertEqual(field.to_internal_value(self.channel.uuid), self.channel)
         self.channel.is_active = False
-        self.channel.save()
+        self.channel.save(update_fields=("is_active",))
         self.assertRaises(serializers.ValidationError, field.to_internal_value, self.channel.uuid)
 
         field = fields.ContactField(source="test")
@@ -247,7 +247,7 @@ class APITest(TembaTest):
         self.assertEqual(field.to_internal_value({"base": "Hello"}), ({"base": "Hello"}, "base"))
 
         self.org.primary_language = Language.create(self.org, self.user, "Kinyarwanda", "kin")
-        self.org.save()
+        self.org.save(update_fields=("primary_language",))
 
         self.assertEqual(field.to_internal_value("Hello"), ({"kin": "Hello"}, "kin"))
         self.assertEqual(
@@ -584,7 +584,7 @@ class APITest(TembaTest):
 
         # if org doesn't have a country, just return no results
         self.org.country = None
-        self.org.save()
+        self.org.save(update_fields=("country",))
 
         response = self.fetchJSON(url)
         self.assertEqual(response.json()["results"], [])
@@ -2482,7 +2482,7 @@ class APITest(TembaTest):
 
         # inactive flows are never returned
         archived.is_active = False
-        archived.save()
+        archived.save(update_fields=("is_active",))
 
         response = self.fetchJSON(url)
         self.assertResultsByUUID(response, [color, survey])
@@ -3211,14 +3211,14 @@ class APITest(TembaTest):
 
         # doesn't work if flow is inactive
         flow1.is_active = False
-        flow1.save()
+        flow1.save(update_fields=("is_active",))
 
         response = self.fetchJSON(url, "flow=%s" % flow1.uuid)
         self.assertResultsById(response, [])
 
         # restore to active
         flow1.is_active = True
-        flow1.save()
+        flow1.save(update_fields=("is_active",))
 
         # filter by invalid flow
         response = self.fetchJSON(url, "flow=invalid")

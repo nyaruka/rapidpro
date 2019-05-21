@@ -50,6 +50,7 @@ from temba.utils.email import is_valid_address
 from temba.utils.export import BaseExportAssetStore, BaseExportTask
 from temba.utils.http import HttpEvent
 from temba.utils.models import (
+    AddModifiedOnMixin,
     JSONAsTextField,
     JSONField,
     RequireUpdateFieldsMixin,
@@ -137,7 +138,7 @@ class FlowPropsCache(Enum):
     category_nodes = 2
 
 
-class Flow(TembaModel):
+class Flow(RequireUpdateFieldsMixin, AddModifiedOnMixin, TembaModel):
     UUID = "uuid"
     ENTRY = "entry"
     RULE_SETS = "rule_sets"
@@ -393,7 +394,7 @@ class Flow(TembaModel):
         name = Flow.get_unique_name(org, "Join %s" % group.name)
         flow = Flow.create(org, user, name, base_language=base_language)
         flow.version_number = "11.2"
-        flow.save(update_fields=("version_number", "modified_on"))
+        flow.save(update_fields=("version_number",))
 
         entry_uuid = str(uuid4())
         definition = {
@@ -556,7 +557,7 @@ class Flow(TembaModel):
 
         # copy our expiration as well
         copy.expires_after_minutes = flow.expires_after_minutes
-        copy.save()
+        copy.save(update_fields=("expires_after_minutes",))
 
         return copy
 
@@ -926,14 +927,14 @@ class Flow(TembaModel):
                         started_flows.remove(flow.id)
 
                         run.child_context = child_run.build_expressions_context(contact_context=str(run.contact.uuid))
-                        run.save(update_fields=("child_context", "modified_on"))
+                        run.save(update_fields=("child_context",))
                     else:
                         return dict(handled=True, destination=None, destination_type=None, msgs=msgs_out)
 
             else:
                 child_run = FlowRun.objects.filter(parent=run, contact=run.contact).order_by("created_on").last()
                 run.child_context = child_run.build_expressions_context(contact_context=str(run.contact.uuid))
-                run.save(update_fields=("child_context", "modified_on"))
+                run.save(update_fields=("child_context",))
 
         # find a matching rule
         result_rule, result_value, result_input = ruleset.find_matching_rule(run, msg_in)
@@ -1018,7 +1019,7 @@ class Flow(TembaModel):
         from .tasks import interrupt_flow_runs_task
 
         self.is_active = False
-        self.save()
+        self.save(update_fields=("is_active",))
 
         # release any campaign events that depend on this flow
         from temba.campaigns.models import CampaignEvent
@@ -1399,7 +1400,7 @@ class Flow(TembaModel):
 
     def archive(self):
         self.is_archived = True
-        self.save(update_fields=("is_archived", "modified_on"))
+        self.save(update_fields=("is_archived",))
 
         from .tasks import interrupt_flow_runs_task
 
@@ -1416,7 +1417,7 @@ class Flow(TembaModel):
                 raise FlowException("%s requires a Twilio number")
 
         self.is_archived = False
-        self.save(update_fields=("is_archived", "modified_on"))
+        self.save(update_fields=("is_archived",))
 
     def update_single_message_flow(self, translations, base_language):
         if base_language not in translations:  # pragma: no cover
@@ -1598,7 +1599,7 @@ class Flow(TembaModel):
 
         if start_msg and start_msg.id:
             start_msg.msg_type = FLOW
-            start_msg.save(update_fields=("msg_type", "modified_on"))
+            start_msg.save(update_fields=("msg_type",))
 
         all_contact_ids = list(
             Contact.objects.filter(Q(all_groups__in=group_qs) | Q(id__in=contact_qs))
@@ -1648,7 +1649,7 @@ class Flow(TembaModel):
         # update our total flow count on our flow start so we can keep track of when it is finished
         if flow_start:
             flow_start.contact_count = contact_count
-            flow_start.save(update_fields=("contact_count", "modified_on"))
+            flow_start.save(update_fields=("contact_count",))
 
         # if there are no contacts to start this flow, then update our status and exit this flow
         if contact_count == 0:
@@ -1705,7 +1706,7 @@ class Flow(TembaModel):
             # save away our created call
             run.session = session
             run.connection = call
-            run.save(update_fields=("connection", "modified_on"))
+            run.save(update_fields=("connection", "session"))
 
             # update our expiration date on our run initially to 7 days for IVR, that will be adjusted when the call is answered
             next_week = timezone.now() + timedelta(days=IVRCall.DEFAULT_MAX_IVR_EXPIRATION_WINDOW_DAYS)
@@ -1946,7 +1947,7 @@ class Flow(TembaModel):
         if len(run.path) > FlowRun.PATH_MAX_STEPS:
             run.path = run.path[len(run.path) - FlowRun.PATH_MAX_STEPS :]
 
-        update_fields = ["path", "current_node_uuid", "modified_on"]
+        update_fields = ["path", "current_node_uuid"]
 
         if msgs:
             run.add_messages(msgs, do_save=False)
@@ -2265,9 +2266,7 @@ class Flow(TembaModel):
             self.saved_by = user
             self.saved_on = timezone.now()
             self.version_number = Flow.GOFLOW_VERSION
-            self.save(
-                update_fields=("metadata", "version_number", "base_language", "saved_by", "saved_on", "modified_on")
-            )
+            self.save(update_fields=("metadata", "version_number", "base_language", "saved_by", "saved_on"))
 
             # create our new revision
             revision = self.revisions.create(
@@ -2344,7 +2343,16 @@ class Flow(TembaModel):
                     self.saved_on = timezone.now()
 
                 self.version_number = Flow.FINAL_LEGACY_VERSION
-                self.save()
+                self.save(
+                    update_fields=(
+                        "base_language",
+                        "metadata",
+                        "saved_by",
+                        "saved_on",
+                        "version_number",
+                        "entry_uuid",
+                        "entry_type",
+                    ))
 
                 # clear property cache
                 self.clear_props_cache()
@@ -2743,7 +2751,7 @@ class FlowSession(models.Model):
         return str(self.contact)
 
 
-class FlowRun(RequireUpdateFieldsMixin, models.Model):
+class FlowRun(RequireUpdateFieldsMixin, AddModifiedOnMixin, models.Model):
     STATE_ACTIVE = "A"
 
     EXIT_TYPE_COMPLETED = "C"
@@ -3094,7 +3102,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             # incoming non-IVR messages won't have a type yet so update that
             if not msg.msg_type or msg.msg_type == INBOX:
                 msg.msg_type = FLOW
-                msg.save(update_fields=("msg_type", "modified_on"))
+                msg.save(update_fields=("msg_type",))
 
             # if message is from contact, mark run as responded
             if msg.direction == INCOMING:
@@ -3102,7 +3110,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
                     self.responded = True
 
         if needs_update and do_save:
-            self.save(update_fields=("responded", "events", "modified_on"))
+            self.save(update_fields=("responded", "events"))
 
     def get_events_of_type(self, event_types):
         """
@@ -3167,7 +3175,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
         # TODO: Remove this in favor of responded on session
         if run.responded and not run.parent.responded:
             run.parent.responded = True
-            run.parent.save(update_fields=("responded", "modified_on"))
+            run.parent.save(update_fields=("responded",))
 
         # if our child was interrupted, so shall we be
         if run.exit_type == FlowRun.EXIT_TYPE_INTERRUPTED and run.contact.id == run.parent.contact_id:
@@ -3204,7 +3212,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             msg.contact = run.contact
 
         run.parent.child_context = run.build_expressions_context(contact_context=str(run.contact.uuid))
-        run.parent.save(update_fields=("child_context", "modified_on"))
+        run.parent.save(update_fields=("child_context",))
 
         # finally, trigger our parent flow
         (handled, msgs) = Flow.find_and_handle(
@@ -3250,7 +3258,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
         with transaction.atomic():
             if delete_reason:
                 self.delete_reason = delete_reason
-                self.save(update_fields=("delete_reason", "modified_on"))
+                self.save(update_fields=("delete_reason",))
 
             # delete any action logs associated with us
             ActionLog.objects.filter(run=self).delete()
@@ -3333,7 +3341,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             self.expires_on = point_in_time + timedelta(minutes=self.flow.expires_after_minutes)
 
             # save our updated fields
-            self.save(update_fields=["expires_on", "modified_on"])
+            self.save(update_fields=("expires_on", "modified_on"))
 
         # parent should always have a later expiration than the children
         if self.parent:
@@ -3358,7 +3366,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             self.fields = existing_map
 
         if do_save:
-            self.save(update_fields=("fields", "modified_on"))
+            self.save(update_fields=("fields",))
 
     def is_completed(self):
         return self.exit_type == FlowRun.EXIT_TYPE_COMPLETED
@@ -3435,7 +3443,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
 
         self.results = results
         self.modified_on = timezone.now()
-        self.save(update_fields=["results", "modified_on"])
+        self.save(update_fields=("results", "modified_on"))
 
     def as_archive_json(self):
         def convert_step(step):
@@ -4847,7 +4855,7 @@ class FlowStart(SmartModel):
 
     def start(self):
         self.status = FlowStart.STATUS_STARTING
-        self.save(update_fields=("status", "modified_on"))
+        self.save(update_fields=("status",))
 
         try:
             groups = list(self.groups.all())
@@ -4870,14 +4878,14 @@ class FlowStart(SmartModel):
             logger.error(f"Unable to start Flow: {str(e)}", exc_info=True)
 
             self.status = FlowStart.STATUS_FAILED
-            self.save(update_fields=("status", "modified_on"))
+            self.save(update_fields=("status",))
             raise e
 
     def update_status(self):
         # only update our status to complete if we have started as many runs as our total contact count
         if FlowStartCount.get_count(self) == self.contact_count:
             self.status = FlowStart.STATUS_COMPLETE
-            self.save(update_fields=("status", "modified_on"))
+            self.save(update_fields=("status",))
 
     def __str__(self):  # pragma: no cover
         return "FlowStart %d (Flow %d)" % (self.id, self.flow_id)
@@ -5614,9 +5622,9 @@ class VariableContactAction(Action):
                 contact = Contact.get_or_create_by_urns(org, org.created_by, name=None, urns=urns)
 
                 # if they don't have a name use the one in our action
-                if name and not contact.name:  # pragma: needs cover
+                if name and not contact.name:
                     contact.name = name
-                    contact.save(update_fields=("name", "modified_on"), handle_update=True)
+                    contact.save(update_fields=("name",), handle_update=True)
 
             if contact:
                 contacts.append(contact)
@@ -5760,7 +5768,7 @@ class SetLanguageAction(Action):
 
         if old_value != new_lang:
             run.contact.language = new_lang
-            run.contact.save(update_fields=("language", "modified_on"), handle_update=True)
+            run.contact.save(update_fields=("language",), handle_update=True)
 
         return []
 

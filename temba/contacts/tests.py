@@ -435,7 +435,7 @@ class ContactGroupTest(TembaTest):
         static = ContactGroup.create_static(self.org, self.admin, "Static")
         deleted = ContactGroup.create_static(self.org, self.admin, "Deleted")
         deleted.is_active = False
-        deleted.save()
+        deleted.save(update_fields=("is_active",))
 
         with ESMockWithScroll():
             dynamic = ContactGroup.create_dynamic(self.org, self.admin, "Dynamic", "gender=M")
@@ -1135,7 +1135,7 @@ class ContactTest(TembaTest):
 
         # configure our org for ivr
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
+
         config = {
             Channel.CONFIG_SEND_URL: "https://api.twilio.com",
             Channel.CONFIG_ACCOUNT_SID: "TEST_SID",
@@ -3601,7 +3601,7 @@ class ContactTest(TembaTest):
             # mark an outgoing message as failed
             failed = Msg.objects.get(direction="O", contact=self.joe)
             failed.status = "F"
-            failed.save()
+            failed.save(update_fields=("status",))
             log = ChannelLog.objects.create(
                 channel=failed.channel, msg=failed, is_error=True, description="It didn't send!!"
             )
@@ -4596,7 +4596,7 @@ class ContactTest(TembaTest):
 
         # check updating when org is anon
         self.org.is_anon = True
-        self.org.save()
+        self.org.save(update_fields=("is_anon",))
 
         post_data = dict(name="Joe X", groups=[self.just_joe.id])
         self.client.post(reverse("contacts.contact_update", args=[self.joe.id]), post_data, follow=True)
@@ -4747,7 +4747,7 @@ class ContactTest(TembaTest):
 
         contact3 = self.create_contact(name=None, number="0788111222")
         self.channel.country = "RW"
-        self.channel.save()
+        self.channel.save(update_fields=("country",))
 
         normalized = contact3.get_urn(TEL_SCHEME).ensure_number_normalization(self.channel)
         self.assertEqual(normalized.path, "+250788111222")
@@ -5900,7 +5900,7 @@ class ContactTest(TembaTest):
         ballers = self.create_group("Ballers")
 
         self.campaign.group = ballers
-        self.campaign.save()
+        self.campaign.save(update_fields=("group",))
 
         field_created_on = self.org.contactfields.get(key="created_on")
 
@@ -5940,7 +5940,7 @@ class ContactTest(TembaTest):
             ballers = self.create_group("Ballers", query="team = ballers")
 
         self.campaign.group = ballers
-        self.campaign.save()
+        self.campaign.save(update_fields=("group",))
 
         self.assertEqual(self.campaign.group, ballers)
 
@@ -6874,7 +6874,7 @@ class ContactFieldTest(TembaTest):
         with ESMockWithScroll():
             group2 = self.create_group("Dynamic", query="tel is 1234")
         group2.status = ContactGroup.STATUS_EVALUATING
-        group2.save()
+        group2.save(update_fields=("status",))
 
         # create a dummy export task so that we won't be able to export
         blocking_export = ExportContactsTask.create(self.org, self.admin)
@@ -7743,11 +7743,11 @@ class ContactFieldTest(TembaTest):
     def test_view_featured(self):
         featured1 = ContactField.user_fields.get(key="first")
         featured1.show_in_table = True
-        featured1.save(update_fields=["show_in_table"])
+        featured1.save(update_fields=("show_in_table",))
 
         featured2 = ContactField.user_fields.get(key="second")
         featured2.show_in_table = True
-        featured2.save(update_fields=["show_in_table"])
+        featured2.save(update_fields=("show_in_table",))
 
         self.login(self.admin)
 

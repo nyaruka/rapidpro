@@ -32,7 +32,14 @@ from temba.utils.dates import str_to_datetime
 from temba.utils.export import BaseExportAssetStore, BaseExportTask, TableExporter
 from temba.utils.languages import _get_language_name_iso6393
 from temba.utils.locks import NonBlockingLock
-from temba.utils.models import JSONField, RequireUpdateFieldsMixin, SquashableModel, TembaModel, mapEStoDB
+from temba.utils.models import (
+    AddModifiedOnMixin,
+    JSONField,
+    RequireUpdateFieldsMixin,
+    SquashableModel,
+    TembaModel,
+    mapEStoDB,
+)
 from temba.utils.text import truncate
 from temba.utils.urns import ParsedURN, parse_urn
 from temba.values.constants import Value
@@ -646,7 +653,7 @@ NEW_CONTACT_VARIABLE = "@new_contact"
 MAX_HISTORY = 50
 
 
-class Contact(RequireUpdateFieldsMixin, TembaModel):
+class Contact(RequireUpdateFieldsMixin, AddModifiedOnMixin, TembaModel):
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="contacts")
 
     name = models.CharField(
@@ -1907,7 +1914,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         from temba.triggers.models import Trigger
 
         self.is_stopped = True
-        self.save(update_fields=["is_stopped", "modified_on"], handle_update=False)
+        self.save(update_fields=("is_stopped", "modified_on"), handle_update=False)
 
         self.clear_all_groups(user)
 
@@ -1918,7 +1925,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         Unstops this contact, re-adding them to any dynamic groups they belong to
         """
         self.is_stopped = False
-        self.save(update_fields=["is_stopped", "modified_on"], handle_update=False)
+        self.save(update_fields=("is_stopped", "modified_on"), handle_update=False)
 
         # re-add them to any dynamic groups they would belong to
         self.reevaluate_dynamic_groups()
@@ -2109,7 +2116,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             for urn in urns:
                 if urn.scheme in channel.schemes and urn.channel_id != channel.id:
                     urn.channel = channel
-                    urn.save(update_fields=["channel"])
+                    urn.save(update_fields=("channel",))
 
         # if our scheme isn't the highest priority
         if urns and urns[0].scheme not in channel.schemes:
@@ -2117,7 +2124,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             for urn in urns[1:]:
                 if urn.scheme in channel.schemes:
                     urn.priority = urns[0].priority + 1
-                    urn.save(update_fields=["priority"])
+                    urn.save(update_fields=("priority",))
 
                     # clear our URN cache, order is different now
                     self.clear_urn_cache()
@@ -2545,7 +2552,7 @@ class ContactURN(models.Model):
     def update_auth(self, auth):
         if auth and auth != self.auth:
             self.auth = auth
-            self.save(update_fields=["auth"])
+            self.save(update_fields=("auth",))
 
     def update_affinity(self, channel):
         """
@@ -2553,7 +2560,7 @@ class ContactURN(models.Model):
         """
         if channel and self.channel != channel:
             self.channel = channel
-            self.save(update_fields=["channel"])
+            self.save(update_fields=("channel",))
 
     def ensure_number_normalization(self, country_code):
         """
@@ -2570,7 +2577,7 @@ class ContactURN(models.Model):
             if not ContactURN.objects.filter(identity=norm_urn, org_id=self.org_id).exclude(id=self.id):
                 self.identity = norm_urn
                 self.path = norm_number
-                self.save(update_fields=["identity", "path"])
+                self.save(update_fields=("identity", "path"))
 
         return self
 
@@ -2622,11 +2629,10 @@ class UserContactGroupManager(models.Manager):
         return super().get_queryset().filter(group_type=ContactGroup.TYPE_USER_DEFINED, is_active=True)
 
 
-class ContactGroup(TembaModel):
+class ContactGroup(RequireUpdateFieldsMixin, AddModifiedOnMixin, TembaModel):
     """
     A static or dynamic group of contacts
     """
-
     MAX_NAME_LEN = 64
     MAX_ORG_CONTACTGROUPS = 250
 
@@ -2875,7 +2881,7 @@ class ContactGroup(TembaModel):
 
         self.query = parsed_query.as_text()
         self.status = ContactGroup.STATUS_INITIALIZING
-        self.save(update_fields=("query", "status", "modified_on"))
+        self.save(update_fields=("query", "status"))
 
         # update the set of contact fields that this query depends on
         self.query_fields.clear()
@@ -2902,7 +2908,7 @@ class ContactGroup(TembaModel):
                 raise ValueError("Cannot re-evaluate a group which is currently re-evaluating")
 
             self.status = ContactGroup.STATUS_EVALUATING
-            self.save(update_fields=("status", "modified_on"))
+            self.save(update_fields=("status",))
 
             new_group_members = set(self._get_dynamic_members())
             existing_member_ids = set(self.contacts.values_list("id", flat=True))
@@ -2949,7 +2955,7 @@ class ContactGroup(TembaModel):
                 lock.extend(additional_time=lock_timeout)
 
             self.status = ContactGroup.STATUS_READY
-            self.save(update_fields=("status", "modified_on"))
+            self.save(update_fields=("status",))
 
     def _get_dynamic_members(self):
         """
@@ -3023,7 +3029,7 @@ class ContactGroup(TembaModel):
         # if group is still active, deactivate it
         if self.is_active is True:
             self.is_active = False
-            self.save(update_fields=("is_active", "modified_on"))
+            self.save(update_fields=("is_active",))
 
         # delete all counts for this group
         self.counts.all().delete()

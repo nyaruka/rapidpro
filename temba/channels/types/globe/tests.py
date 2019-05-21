@@ -17,7 +17,7 @@ class GlobeTypeTest(TembaTest):
         self.assertNotContains(response, claim_url)
 
         self.org.timezone = "Asia/Manila"
-        self.org.save()
+        self.org.save(update_fields=("timezone",))
 
         # check that claim page URL appears on claim list page
         response = self.client.get(reverse("channels.channel_claim"))

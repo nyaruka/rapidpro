@@ -100,7 +100,7 @@ class Resthook(SmartModel):
     def add_subscriber(self, url, user):
         subscriber = self.subscribers.create(target_url=url, created_by=user, modified_by=user)
         self.modified_by = user
-        self.save(update_fields=["modified_on", "modified_by"])
+        self.save(update_fields=("modified_on", "modified_by"))
         return subscriber
 
     def remove_subscriber(self, url, user):
@@ -109,7 +109,7 @@ class Resthook(SmartModel):
             is_active=False, modified_on=now, modified_by=user
         )
         self.modified_by = user
-        self.save(update_fields=["modified_on", "modified_by"])
+        self.save(update_fields=("modified_on", "modified_by"))
 
     def release(self, user):
         # release any active subscribers
@@ -119,7 +119,7 @@ class Resthook(SmartModel):
         # then ourselves
         self.is_active = False
         self.modified_by = user
-        self.save(update_fields=["is_active", "modified_on", "modified_by"])
+        self.save(update_fields=("is_active", "modified_on", "modified_by"))
 
     def as_select2(self):
         return dict(text=self.slug, id=self.slug)
@@ -145,11 +145,11 @@ class ResthookSubscriber(SmartModel):
     def release(self, user):
         self.is_active = False
         self.modified_by = user
-        self.save(update_fields=["is_active", "modified_on", "modified_by"])
+        self.save(update_fields=("is_active", "modified_on", "modified_by"))
 
         # update our parent as well
         self.resthook.modified_by = user
-        self.resthook.save(update_fields=["modified_on", "modified_by"])
+        self.resthook.save(update_fields=("modified_on", "modified_by"))
 
 
 class WebHookEvent(models.Model):

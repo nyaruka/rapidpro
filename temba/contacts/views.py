@@ -44,7 +44,7 @@ from temba.utils import analytics, json, languages, on_transaction_commit
 from temba.utils.dates import datetime_to_ms, ms_to_datetime
 from temba.utils.fields import Select2Field
 from temba.utils.text import slugify_with
-from temba.utils.views import BaseActionForm, ContactListPaginationMixin
+from temba.utils.views import BaseActionForm, ContactListPaginationMixin, UpdateFieldsSaveMixin
 from temba.values.constants import Value
 
 from .models import (
@@ -1586,7 +1586,7 @@ class ContactGroupCRUDL(SmartCRUDL):
             kwargs["user"] = self.request.user
             return kwargs
 
-    class Update(ModalMixin, OrgObjPermsMixin, SmartUpdateView):
+    class Update(UpdateFieldsSaveMixin, ModalMixin, OrgObjPermsMixin, SmartUpdateView):
         form_class = ContactGroupForm
         fields = ("name",)
         success_url = "uuid@contacts.contact_filter"
@@ -1651,7 +1651,7 @@ class ContactGroupCRUDL(SmartCRUDL):
 
             # deactivate the group, this makes it 'invisible'
             group.is_active = False
-            group.save()
+            group.save(update_fields=("is_active",))
 
             # release the group in a background task
             on_transaction_commit(lambda: release_group_task.delay(group.id))

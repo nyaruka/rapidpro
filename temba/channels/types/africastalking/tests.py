@@ -13,13 +13,13 @@ class AfricastalkingTypeTest(TembaTest):
         self.login(self.admin)
 
         self.org.timezone = "Africa/Cairo"  # not supported
-        self.org.save()
+        self.org.save(update_fields=("timezone",))
 
         response = self.client.get(reverse("channels.channel_claim"))
         self.assertNotContains(response, url)
 
         self.org.timezone = "Africa/Nairobi"
-        self.org.save()
+        self.org.save(update_fields=("timezone",))
 
         # check that claim page URL appears on claim list page
         response = self.client.get(reverse("channels.channel_claim"))

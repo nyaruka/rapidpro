@@ -223,7 +223,7 @@ class OrgDeleteTest(TembaTest):
         self.child_org.administrators.add(self.user)
         self.child_org.initialize(topup_size=0)
         self.child_org.parent = self.parent_org
-        self.child_org.save()
+        self.child_org.save(update_fields=("parent",))
 
         # now allocate some credits to our child org
         self.org.allocate_credits(self.admin, self.child_org, 300)
@@ -378,7 +378,7 @@ class OrgTest(TembaTest):
 
     def test_get_unique_slug(self):
         self.org.slug = "allo"
-        self.org.save()
+        self.org.save(update_fields=("slug",))
 
         self.assertEqual(Org.get_unique_slug("foo"), "foo")
         self.assertEqual(Org.get_unique_slug("Which part?"), "which-part")
@@ -1175,7 +1175,7 @@ class OrgTest(TembaTest):
         # put a space in the org name to test URL encoding and set a surveyor password
         self.org.name = "Temba Org"
         self.org.surveyor_password = "nyaruka"
-        self.org.save()
+        self.org.save(update_fields=("name", "surveyor_password"))
 
         # now lets try again
         post_data = dict(surveyor_password="nyaruka")
@@ -1266,7 +1266,7 @@ class OrgTest(TembaTest):
 
         # make org2 inactive
         self.org2.is_active = False
-        self.org2.save(update_fields=["is_active"])
+        self.org2.save(update_fields=("is_active",))
 
         # go back to our choose url, should only show Nyaruka
         response = self.client.get(choose_url, follow=True)
@@ -1334,7 +1334,7 @@ class OrgTest(TembaTest):
 
         # ttl should never be negative even if expired
         topup.expires_on = timezone.now() - timedelta(days=1)
-        topup.save(update_fields=["expires_on"])
+        topup.save(update_fields=("expires_on",))
         self.assertEqual(10, self.org.get_topup_ttl(topup))
 
     def test_topup_expiration(self):
@@ -1491,7 +1491,7 @@ class OrgTest(TembaTest):
         # but now it expires
         yesterday = timezone.now() - relativedelta(days=1)
         mega_topup.expires_on = yesterday
-        mega_topup.save(update_fields=["expires_on"])
+        mega_topup.save(update_fields=("expires_on",))
         self.org.clear_credit_cache()
 
         # new incoming messages should not be assigned a topup
@@ -1514,7 +1514,7 @@ class OrgTest(TembaTest):
         gift_topup = TopUp.create(self.admin, price=0, credits=100)
         next_week = timezone.now() + relativedelta(days=7)
         gift_topup.expires_on = next_week
-        gift_topup.save(update_fields=["expires_on"])
+        gift_topup.save(update_fields=("expires_on",))
         self.org.apply_topups()
 
         with self.assertNumQueries(2):
@@ -1531,7 +1531,7 @@ class OrgTest(TembaTest):
         later_active_topup = TopUp.create(self.admin, price=0, credits=200)
         five_week_ahead = timezone.now() + relativedelta(days=35)
         later_active_topup.expires_on = five_week_ahead
-        later_active_topup.save(update_fields=["expires_on"])
+        later_active_topup.save(update_fields=("expires_on",))
         self.org.apply_topups()
 
         with self.assertNumQueries(1):
@@ -1546,7 +1546,7 @@ class OrgTest(TembaTest):
 
         # no expiring credits
         gift_topup.expires_on = five_week_ahead
-        gift_topup.save(update_fields=["expires_on"])
+        gift_topup.save(update_fields=("expires_on",))
         self.org.clear_credit_cache()
 
         with self.assertNumQueries(1):
@@ -1561,7 +1561,7 @@ class OrgTest(TembaTest):
 
         # do not consider expired topup
         gift_topup.expires_on = yesterday
-        gift_topup.save(update_fields=["expires_on"])
+        gift_topup.save(update_fields=("expires_on",))
         self.org.clear_credit_cache()
 
         with self.assertNumQueries(1):
@@ -2604,7 +2604,7 @@ class AnonOrgTest(TembaTest):
         super().setUp()
 
         self.org.is_anon = True
-        self.org.save()
+        self.org.save(update_fields=("is_anon",))
 
     def test_contacts(self):
         # are there real phone numbers on the contact list page?
@@ -3030,7 +3030,7 @@ class OrgCRUDLTest(TembaTest):
 
         # change the org timezone to "Africa/Nairobi"
         self.org.timezone = pytz.timezone("Africa/Nairobi")
-        self.org.save()
+        self.org.save(update_fields=("timezone",))
 
         response = self.client.get(reverse("msgs.msg_inbox"), follow=True)
 
@@ -3039,7 +3039,7 @@ class OrgCRUDLTest(TembaTest):
         self.assertContains(response, created_on.strftime("%H:%M").lower())
 
         self.org.date_format = "M"
-        self.org.save()
+        self.org.save(update_fields=("date_format",))
         response = self.client.get(reverse("msgs.msg_inbox"), follow=True)
 
         created_on = response.context["object_list"][0].created_on.astimezone(self.org.timezone)
@@ -3456,7 +3456,7 @@ class BulkExportTest(TembaTest):
 
         # fake our version number back to 8
         flow.version_number = 8
-        flow.save()
+        flow.save(update_fields=("version_number",))
 
         # now make sure a call to get dependencies succeeds and shows our flow
         triggeree = Flow.objects.filter(name="Triggeree").first()
@@ -3898,7 +3898,7 @@ class BulkExportTest(TembaTest):
         # let's update some stuff
         confirm_appointment = Flow.objects.get(name="Confirm Appointment")
         confirm_appointment.expires_after_minutes = 60
-        confirm_appointment.save()
+        confirm_appointment.save(update_fields=("expires_after_minutes",))
 
         action_set = confirm_appointment.action_sets.order_by("-y").first()
         actions = action_set.actions
@@ -4063,7 +4063,7 @@ class BulkExportTest(TembaTest):
         # now archive a flow
         register = Flow.objects.filter(name="Register Patient").first()
         register.is_archived = True
-        register.save()
+        register.save(update_fields=("is_archived",))
 
         # default view shouldn't show archived flows
         response = self.client.get(reverse("orgs.org_export"))
@@ -4084,7 +4084,7 @@ class BulkExportTest(TembaTest):
         # now delete a flow
         register = Flow.objects.filter(name="Register Patient").first()
         register.is_active = False
-        register.save()
+        register.save(update_fields=("is_active",))
 
         # default view shouldn't show deleted flows
         response = self.client.get(reverse("orgs.org_export"))
@@ -4366,7 +4366,7 @@ class StripeCreditsTest(TembaTest):
         self.org.administrators.add(self.admin2)
 
         self.org.stripe_customer = "stripe-cust-1"
-        self.org.save()
+        self.org.save(update_fields=("stripe_customer",))
 
         class MockCard(object):
             def __init__(self):

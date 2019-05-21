@@ -31,7 +31,15 @@ from temba.utils import analytics, chunk_list, extract_constants, get_anonymous_
 from temba.utils.dates import datetime_to_str, get_datetime_format
 from temba.utils.export import BaseExportAssetStore, BaseExportTask
 from temba.utils.expressions import evaluate_template
-from temba.utils.models import JSONAsTextField, SquashableModel, TembaModel, TranslatableField
+from temba.utils.models import (
+    AddModifiedOnMixin,
+    JSONAsTextField,
+    RequireUpdateFieldsMixin,
+    SquashableModel,
+    TembaModel,
+    TranslatableField,
+)
+from temba.utils.queues import HIGH_PRIORITY, Queue, push_task
 from temba.utils.text import clean_string
 
 from . import legacy
@@ -368,7 +376,7 @@ class Broadcast(models.Model):
 
         # set an estimate of our number of recipients, we calculate this more carefully when actually sent
         self.recipient_count = recipient_count
-        self.save(update_fields=("recipient_count", "modified_on"))
+        self.save(update_fields=("recipient_count",))
 
     def _get_preferred_languages(self, contact=None, org=None):
         """
@@ -416,7 +424,7 @@ class Attachment(object):
         return self.content_type == other.content_type and self.url == other.url
 
 
-class Msg(models.Model):
+class Msg(RequireUpdateFieldsMixin, AddModifiedOnMixin, models.Model):
     """
     Messages are the main building blocks of a RapidPro application. Channels send and receive
     these, Triggers and Flows handle them when appropriate.
@@ -684,7 +692,7 @@ class Msg(models.Model):
                     if not settings.SEND_MESSAGES:
                         msg.status = WIRED
                         msg.sent_on = timezone.now()
-                        msg.save(update_fields=("status", "sent_on", "modified_on"))
+                        msg.save(update_fields=("status", "sent_on"))
                         logger.debug(f"FAKED SEND for [{msg.id}]")
                         continue
 
@@ -907,7 +915,7 @@ class Msg(models.Model):
             handled = True
 
         self.save(
-            update_fields=["status", "sent_on", "modified_on"]
+            update_fields=("status", "sent_on")
         )  # first save message status before updating the broadcast status
 
         return handled
@@ -969,7 +977,7 @@ class Msg(models.Model):
         # mark ourselves as resent
         self.status = RESENT
         self.topup = None
-        self.save()
+        self.save(update_fields=("status", "topup"))
 
         # send our message
         self.org.trigger_send([cloned])
@@ -1419,7 +1427,7 @@ class Msg(models.Model):
 
         if delete_reason:
             self.delete_reason = delete_reason
-            self.save(update_fields=("delete_reason", "modified_on"))
+            self.save(update_fields=("delete_reason",))
 
         # delete this object
         self.delete()

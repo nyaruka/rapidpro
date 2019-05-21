@@ -80,6 +80,7 @@ class CampaignCRUDL(SmartCRUDL):
         fields = ("name", "group")
         success_message = ""
         form_class = UpdateCampaignForm
+        exclude = ("id",)
 
         def pre_process(self, request, *args, **kwargs):
             campaign_id = kwargs.get("pk")
@@ -103,7 +104,10 @@ class CampaignCRUDL(SmartCRUDL):
 
             # save our campaign
             self.object = form.save(commit=False)
-            self.save(self.object)
+
+            fields = [f.name for f in self.object._meta.concrete_fields if f.name not in self.exclude]
+            self.object.save(update_fields=fields)
+            self.save_m2m()
 
             # if our group changed, create our new fires
             if new_group != previous_group:

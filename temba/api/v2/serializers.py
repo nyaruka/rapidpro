@@ -232,7 +232,7 @@ class CampaignWriteSerializer(WriteSerializer):
             self.instance.name = name
             self.instance.group = group
             self.modified_by = self.context["request"].user
-            self.instance.save(update_fields=("name", "group", "modified_on", "modified_by"))
+            self.instance.save(update_fields=("name", "group", "modified_by"))
         else:
             self.instance = Campaign.create(self.context["org"], self.context["user"], name, group)
 
@@ -541,7 +541,7 @@ class ContactWriteSerializer(WriteSerializer):
                 changed.append("language")
 
             if changed:
-                changed.extend(("modified_on", "modified_by"))
+                changed.append("modified_by")
                 self.instance.modified_by = self.context["request"].user
                 self.instance.save(update_fields=changed, handle_update=True)
 
@@ -670,7 +670,7 @@ class ContactGroupWriteSerializer(WriteSerializer):
         if self.instance:
             self.instance.name = name
             self.instance.modified_by = self.context["request"].user
-            self.instance.save(update_fields=("name", "modified_on", "modified_by"))
+            self.instance.save(update_fields=("name", "modified_by"))
             return self.instance
         else:
             return ContactGroup.get_or_create(self.context["org"], self.context["user"], name)

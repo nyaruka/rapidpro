@@ -13,6 +13,20 @@ from temba.utils.es import ModelESSearch
 from temba.utils.models import ProxyQuerySet, mapEStoDB
 
 
+class UpdateFieldsSaveMixin:
+    exclude_default = ("id",)
+
+    def _calc_update_fields(self, obj):
+        excludes = set(self.exclude_default) | set(getattr(self, "exclude", []))
+
+        return [f.name for f in obj._meta.concrete_fields if f.name not in excludes]
+
+    def save(self, obj):
+        obj.save(update_fields=self._calc_update_fields(obj))
+
+        self.save_m2m()
+
+
 class PostOnlyMixin(View):
     """
     Utility mixin to make a class based view be POST only

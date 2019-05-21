@@ -7,14 +7,14 @@ from django.utils.translation import ugettext_lazy as _
 from temba.contacts.models import URN
 from temba.orgs.views import OrgPermsMixin
 from temba.templates.models import TemplateTranslation
-from temba.utils.views import PostOnlyMixin
+from temba.utils.views import PostOnlyMixin, UpdateFieldsSaveMixin
 
 from ...models import Channel
 from ...views import ALL_COUNTRIES, ClaimViewMixin
 from .tasks import refresh_whatsapp_contacts
 
 
-class RefreshView(PostOnlyMixin, OrgPermsMixin, SmartUpdateView):
+class RefreshView(UpdateFieldsSaveMixin, PostOnlyMixin, OrgPermsMixin, SmartUpdateView):
     """
     Responsible for firing off our contact refresh task
     """

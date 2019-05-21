@@ -79,7 +79,17 @@ class CallHandler(View):
             # nexmo does not set status for some callbacks
             if status is not None:
                 call.update_status(status, duration, channel_type)  # update any calls we have spawned with the same
-                call.save()
+                call.save(
+                    update_fields=(
+                        "status",
+                        "duration",
+                        "error_count",
+                        "next_attempt",
+                        "retry_count",
+                        "ended_on",
+                        "started_on",
+                    )
+                )
 
             resume = request.GET.get("resume", 0)
             user_response = request.POST.copy()

@@ -37,7 +37,7 @@ class TwilioMessagingServiceTypeTest(TembaTest):
         twilio_config[APPLICATION_SID] = "TwilioTestSid"
 
         self.org.config = twilio_config
-        self.org.save()
+        self.org.save(update_fields=("config",))
 
         response = self.client.get(reverse("channels.channel_claim"))
         self.assertContains(response, claim_twilio_ms)

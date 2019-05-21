@@ -75,7 +75,7 @@ class NexmoClient(NexmoCli):
 
             # the call was successfully sent to the IVR provider
             call.status = IVRCall.WIRED
-            call.save()
+            call.save(update_fields=("external_id", "status"))
 
             for event in self.events:
                 ChannelLog.log_ivr_interaction(call, "Started call", event)
@@ -85,7 +85,7 @@ class NexmoClient(NexmoCli):
             ChannelLog.log_ivr_interaction(call, "Call start failed", event, is_error=True)
 
             call.status = IVRCall.FAILED
-            call.save()
+            call.save(update_fields=("status",))
 
             raise IVRException(_("Nexmo call failed, with error %s") % str(e))
 
@@ -147,7 +147,7 @@ class TwilioClient(TembaTwilioRestClient):
 
             # the call was successfully sent to the IVR provider
             call.status = IVRCall.WIRED
-            call.save()
+            call.save(update_fields=("external_id", "status"))
 
             for event in self.events:
                 ChannelLog.log_ivr_interaction(call, "Started call", event)
@@ -161,7 +161,7 @@ class TwilioClient(TembaTwilioRestClient):
             ChannelLog.log_ivr_interaction(call, "Call start failed", event, is_error=True)
 
             call.status = IVRCall.FAILED
-            call.save()
+            call.save(update_fields=("status",))
 
             raise IVRException(message)
 
@@ -234,7 +234,7 @@ class VerboiceClient:  # pragma: needs cover
 
         if "call_id" not in response:
             call.status = IVRCall.FAILED
-            call.save()
+            call.save(update_fields=("status",))
 
             raise IVRException(_("Verboice connection failed."))
 
@@ -243,4 +243,4 @@ class VerboiceClient:  # pragma: needs cover
 
         # the call was successfully sent to the IVR provider
         call.status = IVRCall.WIRED
-        call.save()
+        call.save(update_fields=("status", "external_id"))

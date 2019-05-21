@@ -389,7 +389,7 @@ class ScheduleTest(TembaTest):
     def test_calculating_next_fire(self):
 
         self.org.timezone = pytz.timezone("US/Eastern")
-        self.org.save()
+        self.org.save(update_fields=("timezone",))
 
         tz = self.org.timezone
         eleven_fifteen_est = tz.localize(datetime(2013, 1, 3, hour=23, minute=15, second=0, microsecond=0))
@@ -410,7 +410,7 @@ class ScheduleTest(TembaTest):
     def test_update_near_day_boundary(self):
 
         self.org.timezone = pytz.timezone("US/Eastern")
-        self.org.save()
+        self.org.save(update_fields=("timezone",))
         tz = self.org.timezone
 
         sched = create_schedule(self.admin, "D")

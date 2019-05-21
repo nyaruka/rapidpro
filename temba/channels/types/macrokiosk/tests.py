@@ -17,7 +17,7 @@ class MacrokioskTypeTest(TembaTest):
         self.assertNotContains(response, url)
 
         self.org.timezone = "Asia/Kuala_Lumpur"
-        self.org.save()
+        self.org.save(update_fields=("timezone",))
 
         response = self.client.get(reverse("channels.channel_claim"))
         self.assertContains(response, url)

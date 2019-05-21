@@ -21,7 +21,7 @@ class LocationTest(TembaTest):
 
         # clear our country on our org
         self.org.country = None
-        self.org.save()
+        self.org.save(update_fields=("country",))
 
         # try stripping path on our country, will fail
         with self.assertRaises(Exception):
@@ -38,7 +38,7 @@ class LocationTest(TembaTest):
 
         # now set it to rwanda
         self.org.country = self.country
-        self.org.save()
+        self.org.save(update_fields=("country",))
 
         # our country is set to rwanda, we should get it as the main object
         response = self.client.get(reverse("locations.adminboundary_alias"))

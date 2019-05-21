@@ -277,7 +277,7 @@ class WhatsAppTypeTest(TembaTest):
 
         # clear our FB ids, should cause refresh to be noop (but not fail)
         del channel.config[CONFIG_FB_BUSINESS_ID]
-        channel.save(update_fields=["config", "modified_on"])
+        channel.save(update_fields=("config", "modified_on"))
         refresh_whatsapp_templates()
 
         # deactivate our channel

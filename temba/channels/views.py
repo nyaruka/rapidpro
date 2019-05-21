@@ -46,6 +46,7 @@ from temba.orgs.models import Org
 from temba.orgs.views import AnonMixin, ModalMixin, OrgObjPermsMixin, OrgPermsMixin
 from temba.utils import analytics, json
 from temba.utils.http import http_headers
+from temba.utils.views import UpdateFieldsSaveMixin
 
 from .models import (
     Alert,
@@ -752,7 +753,7 @@ def sync(request, channel_id):
     # update our last seen on our channel if we haven't seen this channel in a bit
     if not channel.last_seen or timezone.now() - channel.last_seen > timedelta(minutes=5):
         channel.last_seen = timezone.now()
-        channel.save(update_fields=("last_seen", "modified_on"))
+        channel.save(update_fields=("last_seen",))
 
     sync_event = None
 
@@ -829,7 +830,7 @@ def sync(request, channel_id):
                         config.update({Channel.CONFIG_FCM_ID: cmd["fcm_id"]})
                         channel.config = config
                         channel.uuid = cmd.get("uuid", None)
-                        channel.save(update_fields=("uuid", "config", "modified_on"))
+                        channel.save(update_fields=("uuid", "config"))
 
                         # no acking the fcm
                         handled = False
@@ -837,7 +838,7 @@ def sync(request, channel_id):
                     elif keyword == "reset":
                         # release this channel
                         channel.release(False)
-                        channel.save()
+                        # channel.save()
 
                         # ack that things got handled
                         handled = True
@@ -1671,7 +1672,7 @@ class ChannelCRUDL(SmartCRUDL):
                 messages.error(request, _("We encountered an error removing your channel, please try again later."))
                 return HttpResponseRedirect(reverse("channels.channel_read", args=[channel.uuid]))
 
-    class Update(OrgObjPermsMixin, SmartUpdateView):
+    class Update(UpdateFieldsSaveMixin, OrgObjPermsMixin, SmartUpdateView):
         success_message = ""
         submit_button_name = _("Save Changes")
 
@@ -1722,7 +1723,7 @@ class ChannelCRUDL(SmartCRUDL):
                 for channel in obj.get_delegate_channels():  # pragma: needs cover
                     channel.address = obj.address
                     channel.bod = e164_phone_number
-                    channel.save(update_fields=("address", "bod", "modified_on"))
+                    channel.save(update_fields=("address", "bod"))
 
             return obj
 
@@ -1904,7 +1905,7 @@ class ChannelCRUDL(SmartCRUDL):
             analytics.track(self.request.user.username, "temba.channel_create")
 
             self.object.claim(org, self.request.user, self.form.cleaned_data["phone_number"])
-            self.object.save()
+            self.object.save(update_fields=("country",))
 
             # trigger a sync
             self.object.trigger_sync()

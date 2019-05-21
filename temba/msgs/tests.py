@@ -478,7 +478,7 @@ class MsgTest(TembaTest):
         eng = Language.create(self.org, self.admin, "English", "eng")
         Language.create(self.org, self.admin, "French", "fra")
         self.org.primary_language = eng
-        self.org.save()
+        self.org.save(update_fields=("primary_language",))
 
         broadcast = Broadcast.create(
             self.org,
@@ -540,7 +540,7 @@ class MsgTest(TembaTest):
         )
 
         broadcast4.schedule = Schedule.create_schedule(timezone.now(), "D", self.admin)
-        broadcast4.save(update_fields=["schedule"])
+        broadcast4.save(update_fields=("schedule",))
 
         with self.assertNumQueries(39):
             response = self.client.get(reverse("msgs.msg_outbox"))
@@ -590,7 +590,7 @@ class MsgTest(TembaTest):
         # msg6 is still pending
         msg6.status = PENDING
         msg6.msg_type = None
-        msg6.save()
+        msg6.save(update_fields=("msg_type",))
 
         # visit inbox page  as a user not in the organization
         self.login(self.non_org_user)
@@ -772,7 +772,7 @@ class MsgTest(TembaTest):
 
         msg1 = Msg.create_outgoing(self.org, self.admin, self.joe, "message number 1")
         msg1.status = "F"
-        msg1.save()
+        msg1.save(update_fields=("status",))
 
         # create a log for it
         log = ChannelLog.objects.create(channel=msg1.channel, msg=msg1, is_error=True, description="Failed")
@@ -792,7 +792,7 @@ class MsgTest(TembaTest):
         # message without a broadcast
         msg3 = Msg.create_outgoing(self.org, self.admin, self.joe, "messsage number 3")
         msg3.status = "F"
-        msg3.save()
+        msg3.save(update_fields=("status",))
 
         # visit fail page  as a user not in the organization
         self.login(self.non_org_user)
@@ -840,7 +840,7 @@ class MsgTest(TembaTest):
         self.joe.save(update_fields=("name",), handle_update=False)
 
         self.org.created_on = datetime(2017, 1, 1, 9, tzinfo=pytz.UTC)
-        self.org.save()
+        self.org.save(update_fields=("created_on",))
 
         msg1 = self.create_msg(
             contact=self.joe,
@@ -929,7 +929,7 @@ class MsgTest(TembaTest):
 
         # archive last message
         msg3.visibility = Msg.VISIBILITY_ARCHIVED
-        msg3.save()
+        msg3.save(update_fields=("visibility",))
 
         # archive 5 msgs
         Archive.objects.create(
@@ -1461,7 +1461,7 @@ class MsgTest(TembaTest):
 
         # archive last message
         msg3.visibility = Msg.VISIBILITY_ARCHIVED
-        msg3.save()
+        msg3.save(update_fields=("visibility",))
 
         # create a dummy export task so that we won't be able to export
         blocking_export = ExportMessagesTask.create(self.org, self.admin, SystemLabel.TYPE_INBOX)
@@ -2500,7 +2500,7 @@ class BroadcastTest(TembaTest):
 
         # add some attachments to this message
         msg.attachments = ["image/jpeg:http://e.com/test.jpg", "audio/mp3:http://e.com/test.mp3"]
-        msg.save()
+        msg.save(update_fields=("attachments",))
         context = msg.build_expressions_context()
 
         self.assertEqual(
@@ -2512,7 +2512,7 @@ class BroadcastTest(TembaTest):
 
         # clear the text of the message
         msg.text = ""
-        msg.save()
+        msg.save(update_fields=("text",))
         context = msg.build_expressions_context()
 
         self.assertEqual(context["__default__"], "http://e.com/test.jpg\nhttp://e.com/test.mp3")
@@ -3060,7 +3060,7 @@ class BroadcastLanguageTest(TembaTest):
         eng = Language.create(self.org, self.admin, "English", "eng")
         Language.create(self.org, self.admin, "French", "fra")
         self.org.primary_language = eng
-        self.org.save()
+        self.org.save(update_fields=("primary_language",))
 
         eng_msg = "This is my message"
         fra_msg = "Ceci est mon message"

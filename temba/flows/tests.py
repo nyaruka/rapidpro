@@ -427,7 +427,7 @@ class FlowTest(TembaTest):
 
         # flow language used regardless of whether it's an org language
         self.flow.base_language = "eng"
-        self.flow.save(update_fields=["base_language"])
+        self.flow.save(update_fields=("base_language",))
         self.flow.org.set_languages(self.admin, ["eng"], "eng")
         self.assertEqual(self.flow.get_localized_text(text_translations, self.contact), "Hello")
 
@@ -457,7 +457,7 @@ class FlowTest(TembaTest):
 
         # and archive it right off the bat
         flow2.is_archived = True
-        flow2.save()
+        flow2.save(update_fields=("is_archived",))
 
         flow3 = Flow.create(self.org, self.admin, "Flow 3", base_language="base")
 
@@ -605,19 +605,19 @@ class FlowTest(TembaTest):
 
         # change our channel to use a whatsapp scheme
         self.channel.schemes = [WHATSAPP_SCHEME]
-        self.channel.save()
+        self.channel.save(update_fields=("schemes",))
 
         # clear dependencies, this will cause our flow to look like it isn't using templates
         metadata = flow.metadata
         flow.metadata = {}
-        flow.save(update_fields=["metadata"])
+        flow.save(update_fields=("metadata",))
 
         response = self.client.get(reverse("flows.flow_broadcast", args=[flow.id]))
         self.assertContains(response, "does not use message")
 
         # restore our dependency
         flow.metadata = metadata
-        flow.save(update_fields=["metadata"])
+        flow.save(update_fields=("metadata",))
 
         # template doesn't exit, will be warned
         response = self.client.get(reverse("flows.flow_broadcast", args=[flow.id]))
@@ -664,7 +664,7 @@ class FlowTest(TembaTest):
         self.assertFalse(flow.is_archived)
 
         campaign.is_archived = True
-        campaign.save()
+        campaign.save(update_fields=("is_archived",))
 
         # can archive if the campaign is archived
         changed = Flow.apply_action_archive(self.admin, Flow.objects.filter(pk=flow.pk))
@@ -675,10 +675,10 @@ class FlowTest(TembaTest):
         self.assertTrue(flow.is_archived)
 
         campaign.is_archived = False
-        campaign.save()
+        campaign.save(update_fields=("is_archived",))
 
         flow.is_archived = False
-        flow.save()
+        flow.save(update_fields=("is_archived",))
 
         campaign_event.is_active = False
         campaign_event.save()
@@ -771,7 +771,7 @@ class FlowTest(TembaTest):
         # viewing flows that are archived can't be started
         self.login(self.admin)
         self.flow.is_archived = True
-        self.flow.save()
+        self.flow.save(update_fields=("is_archived",))
 
         response = self.client.get(reverse("flows.flow_editor_next", args=[self.flow.uuid]))
         self.assertFalse(response.context["mutable"])
@@ -936,7 +936,7 @@ class FlowTest(TembaTest):
 
         # set the flow as inactive, shouldn't react to replies
         self.flow.is_archived = True
-        self.flow.save()
+        self.flow.save(update_fields=("is_archived",))
 
         # create and send a reply
         incoming = self.create_msg(direction=INCOMING, contact=self.contact, text="Orange")
@@ -951,7 +951,7 @@ class FlowTest(TembaTest):
 
         # ok, make our flow active again
         self.flow.is_archived = False
-        self.flow.save()
+        self.flow.save(update_fields=("is_archived",))
 
         # simulate a response from contact #1
         incoming = self.create_msg(direction=INCOMING, contact=self.contact, text="orange")
@@ -1116,7 +1116,7 @@ class FlowTest(TembaTest):
 
     def test_anon_export_results(self):
         self.org.is_anon = True
-        self.org.save()
+        self.org.save(update_fields=("is_anon",))
 
         (run1,) = self.flow.start([], [self.contact])
 
@@ -2133,7 +2133,7 @@ class FlowTest(TembaTest):
 
         # test we can export archived flows
         self.flow.is_archived = True
-        self.flow.save()
+        self.flow.save(update_fields=("is_archived",))
 
         workbook = self.export_flow_results(self.flow)
 
@@ -2402,7 +2402,7 @@ class FlowTest(TembaTest):
 
     def test_export_results_with_surveyor_msgs(self):
         self.flow.flow_type = Flow.TYPE_SURVEY
-        self.flow.save()
+        self.flow.save(update_fields=("flow_type",))
         run = self.flow.start([], [self.contact])[0]
 
         # no urn or channel
@@ -2497,7 +2497,7 @@ class FlowTest(TembaTest):
         # pick a really long name so we have to concatenate
         self.flow.name = "Color Flow is a long name to use for something like this"
         self.flow.expires_after_minutes = 60
-        self.flow.save()
+        self.flow.save(update_fields=("name", "expires_after_minutes"))
 
         # make sure our metadata got saved
         metadata = self.flow.metadata
@@ -2813,7 +2813,7 @@ class FlowTest(TembaTest):
 
         # remove our org country, should no longer match things
         self.org.country = None
-        self.org.save()
+        self.org.save(update_fields=("country",))
 
         sms.text = "Kigali City"
         self.assertTest(False, None, state_test)
@@ -3400,7 +3400,7 @@ class FlowTest(TembaTest):
         results = run.results
         del results["color"]["category"]
         results["color"]["created_on"] = timezone.now()
-        run.save(update_fields=["results", "modified_on"])
+        run.save(update_fields=("results", "modified_on"))
 
         # should have added a negative one now
         self.assertEqual(2, FlowCategoryCount.objects.filter(category_name="Blue", result_name="color").count())
@@ -3529,7 +3529,7 @@ class FlowTest(TembaTest):
         self.login(self.admin)
         flow = Flow.create(self.org, self.admin, "Flow")
         flow.flow_type = Flow.TYPE_SURVEY
-        flow.save()
+        flow.save(update_fields=("flow_type",))
 
         # keywords aren't an option for survey flows
         response = self.client.get(reverse("flows.flow_update", args=[flow.pk]))
@@ -3661,7 +3661,7 @@ class FlowTest(TembaTest):
         actions[0]["groups"] = [dict(uuid=group.uuid, name=group.name)]
         actions[0]["contacts"] = []
         actionset.actions = actions
-        actionset.save(update_fields=["actions"])
+        actionset.save(update_fields=("actions",))
 
         # we should allow copy of flows with group sends
         response = self.client.post(reverse("flows.flow_copy", args=[self.flow.id]))
@@ -3898,7 +3898,7 @@ class FlowTest(TembaTest):
 
         # make us a survey flow
         flow3.flow_type = Flow.TYPE_SURVEY
-        flow3.save()
+        flow3.save(update_fields=("flow_type",))
 
         # we should get the contact creation option, and test if form has expected fields
         response = self.client.get(reverse("flows.flow_update", args=[flow3.pk]))
@@ -4064,7 +4064,7 @@ class FlowTest(TembaTest):
 
         # test ivr flow creation
         self.channel.role = "SRCA"
-        self.channel.save()
+        self.channel.save(update_fields=("role",))
 
         post_data = dict(name="Message flow", expires_after_minutes=5, flow_type=Flow.TYPE_MESSAGE)
         response = self.client.post(reverse("flows.flow_create"), post_data, follow=True)
@@ -4086,7 +4086,7 @@ class FlowTest(TembaTest):
         # create the language for our org
         language = Language.create(self.org, self.flow.created_by, "English", "eng")
         self.org.primary_language = language
-        self.org.save()
+        self.org.save(update_fields=("primary_language",))
 
         post_data = dict(
             name="Language Flow", expires_after_minutes=5, base_language=language.iso_code, flow_type=Flow.TYPE_MESSAGE
@@ -4199,7 +4199,7 @@ class FlowTest(TembaTest):
         self.assertEqual(302, response.status_code)
 
         self.flow.is_archived = True
-        self.flow.save()
+        self.flow.save(update_fields=("is_archived",))
 
         response = self.client.get(flow_list_url)
         self.assertEqual(0, len(response.context["object_list"]))
@@ -4357,7 +4357,7 @@ class FlowTest(TembaTest):
         self.assertTrue(FlowRun.objects.filter(flow=self.flow2, contact=self.contact))
 
         self.flow.ignore_triggers = True
-        self.flow.save()
+        self.flow.save(update_fields=("ignore_triggers",))
         self.flow.start([], [self.contact], restart_participants=True)
 
         other_incoming = self.create_msg(direction=INCOMING, contact=self.contact, text="kiva")
@@ -4464,7 +4464,7 @@ class ActionPackedTest(FlowFileTest):
         # adding to inactive group
         customers = ContactGroup.user_groups.filter(name="Customers").first()
         customers.is_active = False
-        customers.save()
+        customers.save(update_fields=("is_active",))
         self.assertIsNone(ContactGroup.user_groups.filter(name="Customers", is_active=True).first())
 
     def test_labeling(self):
@@ -4900,7 +4900,7 @@ class ActionTest(TembaTest):
         Channel.create(self.org, self.admin, "US", "EX", schemes=["tel"])
         delattr(self.org, "_country_code")
         self.org.country = None
-        self.org.save()
+        self.org.save(update_fields=("country",))
 
         # set a contact field with another phone number
         self.contact.set_field(self.admin, "other_contact_tel", "+12065551212", "Other Contact Tel")
@@ -4933,7 +4933,7 @@ class ActionTest(TembaTest):
 
         # delete the group
         self.other_group.is_active = False
-        self.other_group.save()
+        self.other_group.save(update_fields=("is_active",))
 
         self.assertTrue(action.groups)
         self.assertTrue(self.other_group.pk in [g.pk for g in action.groups])
@@ -5252,7 +5252,7 @@ class ActionTest(TembaTest):
 
     def test_start_flow_action(self):
         self.flow.name = "Parent"
-        self.flow.save()
+        self.flow.save(update_fields=("name",))
 
         self.flow.start([], [self.contact])
 
@@ -5316,7 +5316,7 @@ class ActionTest(TembaTest):
         # try when group is inactive
         action = DeleteFromGroupAction(str(uuid4()), [group])
         group.is_active = False
-        group.save()
+        group.save(update_fields=("is_active",))
         self.org.clear_cached_groups()
 
         self.assertIn(group, action.groups)
@@ -5677,7 +5677,7 @@ class FlowLabelTest(FlowFileTest):
         self.assertContains(response, "Edit")
 
         favorites.is_active = False
-        favorites.save()
+        favorites.save(update_fields=("is_active",))
 
         response = self.client.get(reverse("flows.flow_filter", args=[label.pk]))
         self.assertFalse(response.context["object_list"])
@@ -6564,7 +6564,7 @@ class FlowsTest(FlowFileTest):
     def test_start_flow_queueing(self):
         self.get_flow("start_flow_queued")
         self.channel.channel_type = "EX"
-        self.channel.save()
+        self.channel.save(update_fields=("channel_type",))
 
         # trigger Flow A
         self.send("flowa")
@@ -7323,7 +7323,7 @@ class FlowsTest(FlowFileTest):
         first = FlowRun.objects.filter(is_active=True).first()
         session = FlowSession.objects.create(org=self.org, contact=first.contact, status=FlowSession.STATUS_WAITING)
         first.session = session
-        first.save(update_fields=["session"])
+        first.save(update_fields=("session",))
 
         # stop them all
         FlowRun.bulk_exit(FlowRun.objects.filter(is_active=True), FlowRun.EXIT_TYPE_INTERRUPTED)
@@ -8276,7 +8276,7 @@ class FlowsTest(FlowFileTest):
         # create an inactive group with the same name, to test that this doesn't blow up our import
         group = ContactGroup.get_or_create(self.org, self.admin, "Survey Audience")
         group.is_active = False
-        group.save()
+        group.save(update_fields=("is_active",))
 
         # and create another as well
         ContactGroup.get_or_create(self.org, self.admin, "Survey Audience")
@@ -8567,7 +8567,7 @@ class FlowsTest(FlowFileTest):
 
         # now add a primary language to our org
         self.org.primary_language = spanish
-        self.org.save()
+        self.org.save(update_fields=("primary_language",))
 
         flow = Flow.objects.get(pk=flow.pk)
 
@@ -8578,7 +8578,7 @@ class FlowsTest(FlowFileTest):
         )
 
         self.org.primary_language = None
-        self.org.save()
+        self.org.save(update_fields=("primary_language",))
         flow = Flow.objects.get(pk=flow.pk)
 
         # no longer spanish on our org
@@ -8589,7 +8589,7 @@ class FlowsTest(FlowFileTest):
 
         # back to spanish
         self.org.primary_language = spanish
-        self.org.save()
+        self.org.save(update_fields=("primary_language",))
         flow = Flow.objects.get(pk=flow.pk)
 
         # but set our contact's language explicitly should keep us at english
@@ -8676,7 +8676,7 @@ class FlowsTest(FlowFileTest):
 
         # now let's expire them out of the flow prematurely
         flow.expires_after_minutes = 5
-        flow.save()
+        flow.save(update_fields=("expires_after_minutes",))
 
         # this normally gets run on FlowCRUDL.Update
         update_run_expirations_task(flow.id)
@@ -9038,7 +9038,7 @@ class FlowsTest(FlowFileTest):
         # create the language for our org
         language = Language.create(self.org, flow.created_by, "English", "eng")
         self.org.primary_language = language
-        self.org.save()
+        self.org.save(update_fields=("primary_language",))
 
         # start our flow without a message (simulating it being fired by a trigger or the simulator)
         # this will evaluate requires_step() to make sure it handles localized flows
@@ -9669,7 +9669,7 @@ class FlowMigrationTest(FlowFileTest):
 
     def test_migrate_to_11_12_with_valid_channels(self):
         self.channel.name = "1234"
-        self.channel.save()
+        self.channel.save(update_fields=("name",))
 
         self.org = self.channel.org
         flow = self.get_flow("migrate_to_11_12")
@@ -9785,11 +9785,11 @@ class FlowMigrationTest(FlowFileTest):
 
         invalid1 = Flow.objects.get(name="Invalid1")
         invalid1.is_archived = True
-        invalid1.save()
+        invalid1.save(update_fields=("is_archived",))
 
         invalid2 = Flow.objects.get(name="Invalid2")
         invalid2.is_active = False
-        invalid2.save()
+        invalid2.save(update_fields=("is_active",))
 
         flow = Flow.objects.get(name="Master")
         flow_json = flow.as_json()
@@ -10676,7 +10676,7 @@ class ChannelSplitTest(FlowFileTest):
 
         # update our channel to have a 206 address
         self.channel.address = "+12065551212"
-        self.channel.save()
+        self.channel.save(update_fields=("address",))
 
     def test_initial_channel_split(self):
         flow = self.get_flow("channel_split")
@@ -10840,7 +10840,7 @@ class SendActionTest(FlowFileTest):
             modified_by=self.admin,
         )
         flow.version_number = "8"
-        flow.save()
+        flow.save(update_fields=("version_number",))
 
         migrated = revision.get_definition_json()
 

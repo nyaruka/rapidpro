@@ -37,7 +37,7 @@ class TriggerTest(TembaTest):
         voice_flow = self.create_flow()
         voice_flow.flow_type = "V"
         voice_flow.name = "IVR Flow"
-        voice_flow.save()
+        voice_flow.save(update_fields=("flow_type", "name"))
 
         # flow options should show sms and voice flows
         response = self.client.get(reverse("triggers.trigger_keyword"))
@@ -168,7 +168,7 @@ class TriggerTest(TembaTest):
 
         # make our channel support ivr
         self.channel.role += Channel.ROLE_CALL + Channel.ROLE_ANSWER
-        self.channel.save()
+        self.channel.save(update_fields=("role",))
 
         # flow is required
         response = self.client.post(reverse("triggers.trigger_inbound_call"), dict())
@@ -183,7 +183,7 @@ class TriggerTest(TembaTest):
         # now lets create our first valid inbound call trigger
         guitarist_flow = self.create_flow()
         guitarist_flow.flow_type = Flow.TYPE_VOICE
-        guitarist_flow.save()
+        guitarist_flow.save(update_fields=("flow_type",))
 
         post_data = dict(flow=guitarist_flow.pk)
         response = self.client.post(reverse("triggers.trigger_inbound_call"), post_data)
@@ -201,7 +201,7 @@ class TriggerTest(TembaTest):
         # flow specific to our group
         bassist_flow = self.create_flow()
         bassist_flow.flow_type = Flow.TYPE_VOICE
-        bassist_flow.save()
+        bassist_flow.save(update_fields=("flow_type",))
 
         post_data = dict(flow=bassist_flow.pk, groups=[bassists.pk])
         response = self.client.post(reverse("triggers.trigger_inbound_call"), post_data)
@@ -313,13 +313,13 @@ class TriggerTest(TembaTest):
 
         # survey flows should not be an option
         flow.flow_type = Flow.TYPE_SURVEY
-        flow.save()
+        flow.save(update_fields=("flow_type",))
         response = self.client.get(reverse("triggers.trigger_schedule"))
         self.assertEqual(0, response.context["form"].fields["flow"].queryset.all().count())
 
         # back to normal flow type
         flow.flow_type = Flow.TYPE_MESSAGE
-        flow.save()
+        flow.save(update_fields=("flow_type",))
         self.assertEqual(1, response.context["form"].fields["flow"].queryset.all().count())
 
         post_data = dict()
@@ -502,7 +502,7 @@ class TriggerTest(TembaTest):
         # try creating a join group on an org with a language
         language = Language.create(self.org, self.admin, "Klingon", "kli")
         self.org.primary_language = language
-        self.org.save()
+        self.org.save(update_fields=("primary_language",))
 
         # now create another group trigger
         group = self.create_group(name="Lang Group", contacts=[])
@@ -529,7 +529,7 @@ class TriggerTest(TembaTest):
 
             # now change to a system flow
             pick.is_system = True
-            pick.save()
+            pick.save(update_fields=("is_system",))
 
             # our flow should no longer be an option
             trigger_form = form(self.admin)

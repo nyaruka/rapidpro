@@ -11,7 +11,7 @@ class KannelTypeTest(TembaTest):
 
         # override the ORG brand
         self.org.brand = "custom-brand.io"
-        self.org.save()
+        self.org.save(update_fields=("brand",))
 
         self.login(self.admin)
 

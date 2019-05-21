@@ -318,7 +318,7 @@ class TembaTestMixin:
             }
 
         flow.version_number = definition["version"]
-        flow.save()
+        flow.save(update_fields=("version_number",))
 
         json_flow = FlowRevision.migrate_definition(definition, flow)
         flow.update(json_flow)

@@ -10,11 +10,11 @@ from temba.flows.models import Flow
 from temba.msgs.models import Msg
 from temba.orgs.models import Org
 from temba.utils import json, on_transaction_commit
-from temba.utils.models import TembaModel, TranslatableField
+from temba.utils.models import AddModifiedOnMixin, RequireUpdateFieldsMixin, TembaModel, TranslatableField
 from temba.values.constants import Value
 
 
-class Campaign(TembaModel):
+class Campaign(RequireUpdateFieldsMixin, AddModifiedOnMixin, TembaModel):
     MAX_NAME_LEN = 255
 
     EXPORT_UUID = "uuid"
@@ -70,12 +70,12 @@ class Campaign(TembaModel):
                 ).first()
                 if group:  # pragma: needs cover
                     group.name = campaign_def[Campaign.EXPORT_GROUP]["name"]
-                    group.save()
+                    group.save(update_fields=("name",))
 
                 campaign = Campaign.objects.filter(org=org, uuid=campaign_def[Campaign.EXPORT_UUID]).first()
                 if campaign:  # pragma: needs cover
                     campaign.name = Campaign.get_unique_name(org, name, ignore=campaign)
-                    campaign.save()
+                    campaign.save(update_fields=("name",))
 
             # fall back to lookups by name
             if not group:
@@ -93,7 +93,7 @@ class Campaign(TembaModel):
                 campaign = Campaign.create(org, user, campaign_name, group)
             else:
                 campaign.group = group
-                campaign.save()
+                campaign.save(update_fields=("group",))
 
             # deactivate all of our events, we'll recreate these
             for event in campaign.events.all():
@@ -412,7 +412,7 @@ class CampaignEvent(TembaModel):
             return
 
         self.flow.name = "Single Message (%d)" % self.pk
-        self.flow.save(update_fields=("name", "modified_on"))
+        self.flow.save(update_fields=("name",))
 
     def single_unit_display(self):
         return self.get_unit_display()[:-1]
@@ -529,7 +529,7 @@ class CampaignEvent(TembaModel):
 
         # we need to be inactive so our fires are noops
         self.is_active = False
-        self.save(update_fields=("is_active", "modified_on"))
+        self.save(update_fields=("is_active",))
 
         # detach any associated flow starts
         self.flow_starts.all().update(campaign_event=None)

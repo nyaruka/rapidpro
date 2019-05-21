@@ -44,7 +44,7 @@ from temba.utils.cache import get_cacheable_attr, get_cacheable_result, incrby_e
 from temba.utils.currencies import currency_for_country
 from temba.utils.dates import datetime_to_str, get_datetime_format, str_to_datetime
 from temba.utils.email import send_custom_smtp_email, send_simple_email, send_template_email
-from temba.utils.models import JSONAsTextField, SquashableModel
+from temba.utils.models import AddModifiedOnMixin, JSONAsTextField, RequireUpdateFieldsMixin, SquashableModel
 from temba.utils.s3 import public_file_storage
 from temba.utils.text import random_string
 from temba.values.constants import Value
@@ -146,7 +146,7 @@ class OrgCache(Enum):
     credits = 2
 
 
-class Org(SmartModel):
+class Org(RequireUpdateFieldsMixin, AddModifiedOnMixin, SmartModel):
     """
     An Org can have several users and is the main component that holds all Flows, Messages, Contacts, etc. Orgs
     know their country so they can deal with locally formatted numbers (numbers provided without a country code). As such,
@@ -787,13 +787,13 @@ class Org(SmartModel):
         config.update({SMTP_SERVER: f"smtp://{quote(username)}:{quote(password, safe='')}@{host}:{port}/?{query}"})
         self.config = config
         self.modified_by = user
-        self.save()
+        self.save(update_fields=("config", "modified_by"))
 
     def remove_smtp_config(self, user):
         if self.config:
             self.config.pop(SMTP_SERVER)
             self.modified_by = user
-            self.save()
+            self.save(update_fields=("config", "modified_by"))
 
     def has_smtp_config(self):
         if self.config:
@@ -836,7 +836,7 @@ class Org(SmartModel):
         config.update(transferto_config)
         self.config = config
         self.modified_by = user
-        self.save()
+        self.save(update_fields=("config", "modified_by"))
 
     def refresh_transferto_account_currency(self):
         config = self.config
@@ -852,7 +852,7 @@ class Org(SmartModel):
         account_currency = parsed_response.get("currency", "")
         config.update({TRANSFERTO_ACCOUNT_CURRENCY: account_currency})
         self.config = config
-        self.save()
+        self.save(update_fields=("config",))
 
     def is_connected_to_transferto(self):
         if self.config:
@@ -869,7 +869,7 @@ class Org(SmartModel):
             self.config[TRANSFERTO_AIRTIME_API_TOKEN] = ""
             self.config[TRANSFERTO_ACCOUNT_CURRENCY] = ""
             self.modified_by = user
-            self.save()
+            self.save(update_fields=("config", "modified_by"))
 
     def connect_nexmo(self, api_key, api_secret, user):
         from nexmo import Client as NexmoClient
@@ -905,7 +905,7 @@ class Org(SmartModel):
         config.update(nexmo_config)
         self.config = config
         self.modified_by = user
-        self.save()
+        self.save(update_fields=("config", "modified_by"))
 
     def nexmo_uuid(self):
         config = self.config
@@ -918,7 +918,7 @@ class Org(SmartModel):
         config.update(twilio_config)
         self.config = config
         self.modified_by = user
-        self.save()
+        self.save(update_fields=("config", "modified_by"))
 
     def is_connected_to_nexmo(self):
         if self.config:
@@ -947,7 +947,7 @@ class Org(SmartModel):
             self.config[NEXMO_KEY] = ""
             self.config[NEXMO_SECRET] = ""
             self.modified_by = user
-            self.save()
+            self.save(update_fields=("modified_by", "config"))
 
     def remove_twilio_account(self, user):
         if self.config:
@@ -959,7 +959,7 @@ class Org(SmartModel):
             self.config[ACCOUNT_TOKEN] = ""
             self.config[APPLICATION_SID] = ""
             self.modified_by = user
-            self.save()
+            self.save(update_fields=("modified_by", "config"))
 
     def connect_chatbase(self, agent_name, api_key, version, user):
         chatbase_config = {CHATBASE_AGENT_NAME: agent_name, CHATBASE_API_KEY: api_key, CHATBASE_VERSION: version}
@@ -968,7 +968,7 @@ class Org(SmartModel):
         config.update(chatbase_config)
         self.config = config
         self.modified_by = user
-        self.save()
+        self.save(update_fields=("config", "modified_by"))
 
     def remove_chatbase_account(self, user):
         config = self.config
@@ -984,7 +984,7 @@ class Org(SmartModel):
 
         self.config = config
         self.modified_by = user
-        self.save()
+        self.save(update_fields=("config", "modified_by"))
 
     def get_chatbase_credentials(self):
         if self.config:
@@ -1782,7 +1782,7 @@ class Org(SmartModel):
 
                 stripe_customer = customer.id
                 self.stripe_customer = stripe_customer
-                self.save()
+                self.save(update_fields=("stripe_customer",))
 
             # update the stripe card to the one they just entered
             else:

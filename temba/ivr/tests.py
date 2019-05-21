@@ -34,7 +34,7 @@ class IVRTests(FlowFileTest):
         # configure our account to be IVR enabled
         self.channel.channel_type = "T"
         self.channel.role = Channel.ROLE_CALL + Channel.ROLE_ANSWER + Channel.ROLE_SEND
-        self.channel.save()
+        self.channel.save(update_fields=("channel_type", "role"))
         self.admin.groups.add(Group.objects.get(name="Beta"))
         self.login(self.admin)
 
@@ -54,7 +54,6 @@ class IVRTests(FlowFileTest):
 
         # connect it and check our client is configured
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         flow = self.get_flow("call_me_maybe")
 
@@ -70,7 +69,6 @@ class IVRTests(FlowFileTest):
 
         # connect Nexmo instead
         self.org.connect_nexmo("123", "456", self.admin)
-        self.org.save()
 
         # manually create a Nexmo channel
         nexmo = Channel.create(
@@ -132,7 +130,6 @@ class IVRTests(FlowFileTest):
     def test_call_logging(self):
         # create our ivr setup
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         with patch("twilio.rest.Client.request") as mock:
             mock.return_value = MockResponse(200, '{"sid": "CAa346467ca321c71dbd5e12f627deb854"}')
@@ -168,7 +165,6 @@ class IVRTests(FlowFileTest):
     def test_disable_calls_twilio(self):
         with self.settings(SEND_CALLS=False):
             self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-            self.org.save()
 
             with patch("twilio.rest.api.v2010.account.call.CallList.create") as mock:
                 self.import_file("call_me_maybe")
@@ -190,10 +186,9 @@ class IVRTests(FlowFileTest):
 
         with self.settings(SEND_CALLS=False):
             self.org.connect_nexmo("123", "456", self.admin)
-            self.org.save()
 
             self.channel.channel_type = "NX"
-            self.channel.save()
+            self.channel.save(update_fields=("channel_type",))
 
             # import an ivr flow
             self.import_file("gather_digits")
@@ -214,7 +209,6 @@ class IVRTests(FlowFileTest):
     def test_bogus_call(self):
         # create our ivr setup
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
         self.import_file("capture_recording")
 
         # post to a bogus call id
@@ -239,7 +233,7 @@ class IVRTests(FlowFileTest):
 
         # create our ivr setup
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
+
         self.import_file("capture_recording")
         flow = Flow.objects.filter(name="Capture Recording").first()
 
@@ -341,10 +335,9 @@ class IVRTests(FlowFileTest):
 
         # connect Nexmo
         self.org.connect_nexmo("123", "456", self.admin)
-        self.org.save()
 
         self.channel.channel_type = "NX"
-        self.channel.save()
+        self.channel.save(update_fields=("channel_type",))
 
         self.import_file("capture_recording")
         flow = Flow.objects.filter(name="Capture Recording").first()
@@ -583,7 +576,6 @@ class IVRTests(FlowFileTest):
     @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
     def test_ivr_start_flow(self):
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         msg_flow = self.get_flow("ivr_child_flow")
         ivr_flow = Flow.objects.get(name="Voice Flow")
@@ -613,7 +605,6 @@ class IVRTests(FlowFileTest):
     @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
     def test_ivr_call_redirect(self):
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         # import our flows
         self.get_flow("ivr_call_redirect")
@@ -646,7 +637,6 @@ class IVRTests(FlowFileTest):
     @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
     def test_text_trigger_ivr(self):
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         # import our flows
         self.get_flow("text_trigger_ivr")
@@ -679,7 +669,6 @@ class IVRTests(FlowFileTest):
     def test_non_blocking_rule_ivr(self):
 
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         # flow goes: passive -> recording -> msg
         flow = self.get_flow("non_blocking_rule_ivr")
@@ -730,7 +719,6 @@ class IVRTests(FlowFileTest):
     def test_ivr_digit_gather(self):
 
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         # import an ivr flow
         self.import_file("gather_digits")
@@ -788,10 +776,9 @@ class IVRTests(FlowFileTest):
         mock_create_call.return_value = dict(uuid="12345")
 
         self.org.connect_nexmo("123", "456", self.admin)
-        self.org.save()
 
         self.channel.channel_type = "NX"
-        self.channel.save()
+        self.channel.save(update_fields=("channel_type",))
 
         # import an ivr flow
         self.import_file("gather_digits")
@@ -840,10 +827,9 @@ class IVRTests(FlowFileTest):
         request.method = "PUT"
 
         self.org.connect_nexmo("123", "456", self.admin)
-        self.org.save()
 
         self.channel.channel_type = "NX"
-        self.channel.save()
+        self.channel.save(update_fields=("channel_type",))
 
         # import an ivr flow
         self.import_file("gather_digits")
@@ -896,10 +882,9 @@ class IVRTests(FlowFileTest):
         mock_create_call.return_value = dict(uuid="12345")
 
         self.org.connect_nexmo("123", "456", self.admin)
-        self.org.save()
 
         self.channel.channel_type = "NX"
-        self.channel.save()
+        self.channel.save(update_fields=("channel_type",))
 
         # import an ivr flow
         self.import_file("ivr_subflow")
@@ -990,7 +975,7 @@ class IVRTests(FlowFileTest):
 
         # connect it and check our client is configured
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
+
         self.assertTrue(self.org.is_connected_to_twilio())
         self.assertIsNotNone(self.org.get_twilio_client())
 
@@ -1128,14 +1113,34 @@ class IVRTests(FlowFileTest):
         flow.start([], [eric])
         call = IVRCall.objects.filter(direction=IVRCall.OUTGOING).order_by("-pk").first()
         call.update_status("completed", 30, "T")
-        call.save()
+        call.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
         call.refresh_from_db()
 
         self.assertEqual(call.duration, 30)
 
         # now look at implied duration
         call.update_status("in-progress", None, "T")
-        call.save()
+        call.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
         call.refresh_from_db()
         self.assertIsNotNone(call.get_duration())
         self.assertEqual(timedelta(seconds=30), call.get_duration())
@@ -1143,7 +1148,7 @@ class IVRTests(FlowFileTest):
         # even if no duration is set with started_on
         call.duration = None
         call.started_on = timezone.now() - timedelta(seconds=23)
-        call.save()
+        call.save(update_fields=("duration", "started_on"))
         call.refresh_from_db()
         self.assertIsNotNone(call.get_duration())
         self.assertEqual(timedelta(seconds=23), call.get_duration())
@@ -1154,7 +1159,17 @@ class IVRTests(FlowFileTest):
         def test_status_update(call_to_update, twilio_status, temba_status, channel_type):
             call_to_update.ended_on = None
             call_to_update.update_status(twilio_status, 0, channel_type)
-            call_to_update.save()
+            call_to_update.save(
+                update_fields=(
+                    "status",
+                    "duration",
+                    "error_count",
+                    "next_attempt",
+                    "retry_count",
+                    "ended_on",
+                    "started_on",
+                )
+            )
             call_to_update.refresh_from_db()
             self.assertEqual(temba_status, IVRCall.objects.get(pk=call_to_update.pk).status)
 
@@ -1165,7 +1180,6 @@ class IVRTests(FlowFileTest):
 
         # connect it and check our client is configured
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         # twiml api config
         config = {
@@ -1218,7 +1232,6 @@ class IVRTests(FlowFileTest):
     def test_rule_first_ivr_flow(self):
         # connect it and check our client is configured
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         # import an ivr flow
         flow = self.get_flow("rule_first_ivr")
@@ -1254,12 +1267,11 @@ class IVRTests(FlowFileTest):
 
         # connect it and check our client is configured
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         # import an ivr flow
         flow = self.get_flow("call_me_maybe")
         flow.version_number = 3
-        flow.save()
+        flow.save(update_fields=("version_number",))
 
         # go back to our original version
         flow_json = self.get_flow_json("call_me_maybe")["definition"]
@@ -1312,7 +1324,7 @@ class IVRTests(FlowFileTest):
 
         # now try an inbound call after remove our channel
         self.channel.is_active = False
-        self.channel.save()
+        self.channel.save(update_fields=("is_active",))
         response = self.client.post(reverse("handlers.twilio_handler", args=["voice", self.channel.uuid]), post_data)
         self.assertContains(response, "no channel configured to take this call")
         self.assertEqual(200, response.status_code)
@@ -1325,7 +1337,6 @@ class IVRTests(FlowFileTest):
     @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
     def test_incoming_start(self):
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         self.get_flow("call_me_start")
 
@@ -1349,10 +1360,9 @@ class IVRTests(FlowFileTest):
         mock_update_call.return_value = dict(uuid="12345")
 
         self.org.connect_nexmo("123", "456", self.admin)
-        self.org.save()
 
         self.channel.channel_type = "NX"
-        self.channel.save()
+        self.channel.save(update_fields=("channel_type",))
 
         nexmo_uuid = self.org.config["NEXMO_UUID"]
 
@@ -1397,17 +1407,16 @@ class IVRTests(FlowFileTest):
         mock_create_application.return_value = dict(id="app-id", keys=dict(private_key="private-key\n"))
 
         self.org.connect_nexmo("123", "456", self.admin)
-        self.org.save()
 
         self.channel.channel_type = "NX"
-        self.channel.save()
+        self.channel.save(update_fields=("channel_type",))
 
         nexmo_uuid = self.org.config["NEXMO_UUID"]
 
         # import an ivr flow
         flow = self.get_flow("call_me_maybe")
         flow.version_number = 3
-        flow.save()
+        flow.save(update_fields=("version_number",))
 
         # go back to our original version
         flow_json = self.get_flow_json("call_me_maybe")["definition"]
@@ -1518,7 +1527,6 @@ class IVRTests(FlowFileTest):
         mock_create_application.return_value = dict(id="app-id", keys=dict(private_key="private-key\n"))
 
         self.org.connect_nexmo("123", "456", self.admin)
-        self.org.save()
 
         nexmo_uuid = self.org.config["NEXMO_UUID"]
 
@@ -1551,7 +1559,6 @@ class IVRTests(FlowFileTest):
         mock_create_application.return_value = dict(id="app-id", keys=dict(private_key="private-key\n"))
 
         self.org.connect_nexmo("123", "456", self.admin)
-        self.org.save()
 
         nexmo_uuid = self.org.config["NEXMO_UUID"]
 
@@ -1580,10 +1587,9 @@ class IVRTests(FlowFileTest):
         mock_create_application.return_value = dict(id="app-id", keys=dict(private_key="private-key\n"))
 
         self.org.connect_nexmo("123", "456", self.admin)
-        self.org.save()
 
         self.channel.channel_type = "NX"
-        self.channel.save()
+        self.channel.save(update_fields=("channel_type",))
 
         nexmo_uuid = self.org.config["NEXMO_UUID"]
 
@@ -1611,7 +1617,6 @@ class IVRTests(FlowFileTest):
     @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
     def test_no_channel_for_call(self):
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         # remove our channel
         self.channel.release()
@@ -1632,7 +1637,6 @@ class IVRTests(FlowFileTest):
     @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
     def test_no_flow_for_incoming(self):
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         flow = self.get_flow("missed_call_flow")
 
@@ -1664,7 +1668,6 @@ class IVRTests(FlowFileTest):
     @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
     def test_download_media_twilio(self):
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         with patch("requests.get") as response:
             mock1 = MockResponse(404, "No such file")
@@ -1705,10 +1708,9 @@ class IVRTests(FlowFileTest):
         ]
 
         self.org.connect_nexmo("123", "456", self.admin)
-        self.org.save()
 
         self.channel.channel_type = "NX"
-        self.channel.save()
+        self.channel.save(update_fields=("channel_type",))
 
         # import an ivr flow
         self.import_file("gather_digits")
@@ -1721,7 +1723,7 @@ class IVRTests(FlowFileTest):
         flow.start([], [eric])
         call = IVRCall.objects.filter(direction=IVRCall.OUTGOING).first()
         call.external_id = "ext-id"
-        call.save()
+        call.save(update_fields=("external_id",))
 
         nexmo_client = self.org.get_nexmo_client()
 
@@ -1761,10 +1763,9 @@ class IVRTests(FlowFileTest):
         mock_jwt_encode.return_value = b"TOKEN"
 
         self.org.connect_nexmo("123", "456", self.admin)
-        self.org.save()
 
         self.channel.channel_type = "NX"
-        self.channel.save()
+        self.channel.save(update_fields=("channel_type",))
 
         # import an ivr flow
         self.import_file("gather_digits")
@@ -1779,7 +1780,7 @@ class IVRTests(FlowFileTest):
             flow.start([], [eric])
         call = IVRCall.objects.filter(direction=IVRCall.OUTGOING).first()
         call.external_id = "ext-id"
-        call.save()
+        call.save(update_fields=("external_id",))
 
         nexmo_client = self.org.get_nexmo_client()
 
@@ -1820,7 +1821,7 @@ class IVRTests(FlowFileTest):
         # call should not be retried if we are over IVRCall.MAX_RETRY_ATTEMPTS
         total_retries = IVRCall.MAX_RETRY_ATTEMPTS + 33
         call1.retry_count = total_retries
-        call1.save()
+        call1.save(update_fields=("retry_count", "next_attempt"))
 
         call1.schedule_call_retry(60)
         self.assertIsNone(call1.next_attempt)
@@ -1843,31 +1844,91 @@ class IVRTests(FlowFileTest):
 
         # twilio
         call1.update_status("busy", 0, "T")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
         self.assertTrue(call1.next_attempt > timezone.now())
 
         call1.next_attempt = None
         call1.retry_count = 0
         call1.update_status("in-progress", 0, "T")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
 
         call1.update_status("no-answer", 0, "T")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
         self.assertTrue(call1.next_attempt > timezone.now())
 
         call1.next_attempt = None
         call1.retry_count = 0
         call1.update_status("in-progress", 0, "T")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
 
         # we should not change call_retry if we got the same status
         call1.update_status("busy", 0, "T")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
         self.assertTrue(call1.next_attempt > timezone.now())
         self.assertEqual(call1.retry_count, 1)
 
         call1.update_status("no-answer", 0, "T")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
         self.assertEqual(call1.retry_count, 1)
 
     def test_update_status_for_call_retry_nexmo(self):
@@ -1887,58 +1948,178 @@ class IVRTests(FlowFileTest):
 
         # nexmo
         call1.update_status("busy", 0, "NX")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
         self.assertTrue(call1.next_attempt > timezone.now())
 
         call1.next_attempt = None
         call1.retry_count = 0
         call1.update_status("answered", 0, "NX")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
 
         call1.update_status("rejected", 0, "NX")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
         self.assertTrue(call1.next_attempt > timezone.now())
 
         call1.next_attempt = None
         call1.retry_count = 0
         call1.update_status("answered", 0, "NX")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
 
         call1.update_status("unanswered", 0, "NX")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
         self.assertTrue(call1.next_attempt > timezone.now())
 
         call1.next_attempt = None
         call1.retry_count = 0
         call1.update_status("answered", 0, "NX")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
 
         call1.update_status("timeout", 0, "NX")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
         self.assertTrue(call1.next_attempt > timezone.now())
 
         call1.next_attempt = None
         call1.retry_count = 0
         call1.update_status("answered", 0, "NX")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
 
         call1.update_status("cancelled", 0, "NX")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
         self.assertTrue(call1.next_attempt > timezone.now())
 
         call1.next_attempt = None
         call1.retry_count = 0
         call1.update_status("answered", 0, "NX")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
 
         # we should not change call_retry if we got the same status
         call1.update_status("cancelled", 0, "NX")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
         self.assertTrue(call1.next_attempt > timezone.now())
         self.assertEqual(call1.retry_count, 1)
 
         call1.update_status("cancelled", 0, "NX")
-        call1.save()
+        call1.save(
+            update_fields=(
+                "status",
+                "duration",
+                "error_count",
+                "next_attempt",
+                "retry_count",
+                "ended_on",
+                "started_on",
+            )
+        )
         self.assertEqual(call1.retry_count, 1)
 
     def test_IVR_view_request_handler(self):
@@ -2020,7 +2201,6 @@ class IVRTests(FlowFileTest):
 
         # connect it and check our client is configured
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         # twiml api config
         config = {
@@ -2120,7 +2300,6 @@ class IVRTests(FlowFileTest):
     def test_unknown_domain(self):
         # connect it and check our client is configured
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         # import an ivr flow
         self.import_file("call_me_maybe")

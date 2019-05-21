@@ -480,7 +480,7 @@ class TemplateTagTest(TembaTest):
 
         with patch.object(timezone, "now", return_value=datetime.datetime(2015, 9, 15, 0, 0, 0, 0, pytz.UTC)):
             self.org.date_format = "D"
-            self.org.save()
+            self.org.save(update_fields=("date_format",))
 
             context = dict(user_org=self.org)
 
@@ -493,7 +493,7 @@ class TemplateTagTest(TembaTest):
 
             # the org has month first configured
             self.org.date_format = "M"
-            self.org.save()
+            self.org.save(update_fields=("date_format",))
 
             # date without timezone
             test_date = datetime.datetime(2012, 7, 20, 17, 5, 0, 0)
@@ -505,7 +505,7 @@ class TemplateTagTest(TembaTest):
     def test_short_datetime(self):
         with patch.object(timezone, "now", return_value=datetime.datetime(2015, 9, 15, 0, 0, 0, 0, pytz.UTC)):
             self.org.date_format = "D"
-            self.org.save()
+            self.org.save(update_fields=("date_format",))
 
             context = dict(user_org=self.org)
 
@@ -533,7 +533,7 @@ class TemplateTagTest(TembaTest):
 
             # the org has month first configured
             self.org.date_format = "M"
-            self.org.save()
+            self.org.save(update_fields=("date_format",))
 
             # given the time as now, should display "Hour:Minutes AM|PM" eg. "5:05 pm"
             now = timezone.now()

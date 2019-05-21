@@ -209,7 +209,28 @@ class TembaModel(SmartModel):
         abstract = True
 
 
+class AddModifiedOnMixin(object):
+    """
+    Add field `modified_on` to the set of model fields that will be updated
+    """
+
+    def save(self, *args, **kwargs):
+        if self.id:
+            update_fields = kwargs.get("update_fields")
+
+            if "modified_on" not in update_fields:
+                update_fields += ("modified_on",)
+
+            kwargs["update_fields"] = update_fields
+
+        super().save(*args, **kwargs)
+
+
 class RequireUpdateFieldsMixin(object):
+    """
+    Require developers to define `update_fields` when updating a model
+    """
+
     def save(self, *args, **kwargs):
         if self.id and "update_fields" not in kwargs:
             raise ValueError("Updating without specifying update_fields is disabled for this model")

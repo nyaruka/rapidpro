@@ -153,7 +153,7 @@ class ChannelTest(TembaTest):
     def test_deactivate(self):
         self.login(self.admin)
         self.tel_channel.is_active = False
-        self.tel_channel.save()
+        self.tel_channel.save(update_fields=("is_active",))
         response = self.client.get(reverse("channels.channel_read", args=[self.tel_channel.uuid]))
         self.assertEqual(404, response.status_code)
 
@@ -180,7 +180,7 @@ class ChannelTest(TembaTest):
 
         # pretend we are connected to twiliko
         self.org.config = dict(ACCOUNT_SID="AccountSid", ACCOUNT_TOKEN="AccountToken", APPLICATION_SID="AppSid")
-        self.org.save()
+        self.org.save(update_fields=("config",))
 
         # add a delegate caller
         post_data = dict(channel=self.tel_channel.pk, connection="T")
@@ -233,7 +233,7 @@ class ChannelTest(TembaTest):
         # make our default tel channel MTN
         mtn = self.tel_channel
         mtn.name = "MTN"
-        mtn.save()
+        mtn.save(update_fields=("name",))
 
         # create a channel for Tigo too
         tigo = Channel.create(
@@ -280,9 +280,9 @@ class ChannelTest(TembaTest):
 
         # change channel numbers to be shortcodes, i.e. no overlap with contact numbers
         mtn.address = "1234"
-        mtn.save()
+        mtn.save(update_fields=("address",))
         tigo.address = "1235"
-        tigo.save()
+        tigo.save(update_fields=("address",))
 
         self.org.clear_cached_channels()
 
@@ -293,7 +293,7 @@ class ChannelTest(TembaTest):
 
         # if we have prefixes matching set should honor those
         mtn.config = {Channel.CONFIG_SHORTCODE_MATCHING_PREFIXES: ["25078", "25072"]}
-        mtn.save()
+        mtn.save(update_fields=("config",))
 
         self.org.clear_cached_channels()
 
@@ -314,7 +314,7 @@ class ChannelTest(TembaTest):
 
     def test_ensure_normalization(self):
         self.tel_channel.country = "RW"
-        self.tel_channel.save()
+        self.tel_channel.save(update_fields=("country",))
 
         contact1 = self.create_contact("contact1", "0788111222")
         contact2 = self.create_contact("contact2", "+250788333444")
@@ -523,7 +523,7 @@ class ChannelTest(TembaTest):
 
         # re-activate one of the channels so org has a single channel
         self.tel_channel.is_active = True
-        self.tel_channel.save()
+        self.tel_channel.save(update_fields=("is_active",))
 
         # list page now redirects to channel read page
         self.login(self.user)
@@ -538,7 +538,7 @@ class ChannelTest(TembaTest):
 
         # re-activate other channel so org now has two channels
         self.twitter_channel.is_active = True
-        self.twitter_channel.save()
+        self.twitter_channel.save(update_fields=("is_active",))
 
         # no-more redirection for anyone
         self.login(self.user)
@@ -549,7 +549,7 @@ class ChannelTest(TembaTest):
         # clear out the phone and name for the Android channel
         self.tel_channel.name = None
         self.tel_channel.address = None
-        self.tel_channel.save()
+        self.tel_channel.save(update_fields=("name", "address"))
         response = self.client.get(reverse("channels.channel_list"))
         self.assertContains(response, "Unknown")
         self.assertContains(response, "Android Phone")
@@ -631,7 +631,7 @@ class ChannelTest(TembaTest):
 
         success_msg.sent_on = timezone.now() - timedelta(hours=2)
         success_msg.status = "S"
-        success_msg.save()
+        success_msg.save(update_fields=("sent_on", "status"))
         response = self.client.get("/", Follow=True)
         self.assertIn("delayed_syncevents", response.context)
         self.assertNotIn("unsent_msgs", response.context, msg="Found unsent_msgs in context")
@@ -713,14 +713,14 @@ class ChannelTest(TembaTest):
 
         # if we change the channel to a twilio type, shouldn't be able to edit our address
         channel.channel_type = "T"
-        channel.save()
+        channel.save(update_fields=("channel_type",))
 
         response = self.client.get(update_url)
         self.assertNotIn("address", response.context["form"].fields)
 
         # bring it back to android
         channel.channel_type = Channel.TYPE_ANDROID
-        channel.save()
+        channel.save(update_fields=("channel_type",))
 
         # visit the channel's update page as administrator
         self.org.administrators.add(self.user)
@@ -768,9 +768,8 @@ class ChannelTest(TembaTest):
         channel.channel_type = "TWT"
         channel.schemes = [TWITTER_SCHEME]
         channel.address = "billy_bob"
-        channel.scheme = "twitter"
         channel.config = {"handle_id": 12345, "oauth_token": "abcdef", "oauth_token_secret": "23456"}
-        channel.save()
+        channel.save(update_fields=("channel_type", "schemes", "address", "config", "address"))
 
         self.assertEqual("@billy_bob", channel.get_address_display())
         self.assertEqual("@billy_bob", channel.get_address_display(e164=True))
@@ -850,7 +849,7 @@ class ChannelTest(TembaTest):
         config = self.org.config
         config.update(twilio_config)
         self.org.config = config
-        self.org.save(update_fields=["config"])
+        self.org.save(update_fields=("config",))
 
         response = self.fetch_protected(reverse("orgs.org_home"), self.admin)
         self.assertTrue(self.org.is_connected_to_twilio())
@@ -860,7 +859,7 @@ class ChannelTest(TembaTest):
 
         # make sure our channel is old enough to trigger alerts
         self.tel_channel.created_on = two_hours_ago
-        self.tel_channel.save()
+        self.tel_channel.save(update_fields=("created_on",))
 
         # delayed sync status
         for sync in SyncEvent.objects.all():
@@ -918,7 +917,7 @@ class ChannelTest(TembaTest):
 
         # test cases for IVR messaging, make our relayer accept calls
         self.tel_channel.role = "SCAR"
-        self.tel_channel.save()
+        self.tel_channel.save(update_fields=("role",))
 
         # now let's create an ivr interaction
         Msg.create_incoming(self.tel_channel, str(joe.get_urn()), "incoming ivr", msg_type=IVR)
@@ -989,7 +988,7 @@ class ChannelTest(TembaTest):
         self.assertEqual(response.context["channel_types"]["PHONE"][4].code, "EX")
 
         self.org.timezone = "Canada/Central"
-        self.org.save()
+        self.org.save(update_fields=("timezone",))
 
         response = self.client.get(reverse("channels.channel_claim"))
         self.assertEqual(200, response.status_code)
@@ -1007,7 +1006,7 @@ class ChannelTest(TembaTest):
     def test_register_unsupported_android(self):
         # remove our explicit country so it needs to be derived from channels
         self.org.country = None
-        self.org.save()
+        self.org.save(update_fields=("country",))
 
         Channel.objects.all().delete()
 
@@ -1037,7 +1036,7 @@ class ChannelTest(TembaTest):
     def test_register_and_claim_android(self):
         # remove our explicit country so it needs to be derived from channels
         self.org.country = None
-        self.org.save()
+        self.org.save(update_fields=("country",))
 
         Channel.objects.all().delete()
 
@@ -1239,7 +1238,7 @@ class ChannelTest(TembaTest):
             with patch("nexmo.Client.create_application") as create_app:
                 create_app.return_value = dict(id="app-id", keys=dict(private_key="private-key\n"))
                 self.org.connect_nexmo("123", "456", self.admin)
-                self.org.save()
+
         self.assertTrue(self.org.is_connected_to_nexmo())
 
         # now adding Nexmo bulk sender should work
@@ -1284,7 +1283,7 @@ class ChannelTest(TembaTest):
 
         # set back to RW...
         android2.country = "RW"
-        android2.save()
+        android2.save(update_fields=("country",))
 
         # our country is RW
         self.assertEqual(self.org.get_country_code(), "RW")
@@ -1389,7 +1388,7 @@ class ChannelTest(TembaTest):
         config = org.config
         config.update(nexmo_config)
         org.config = config
-        org.save()
+        org.save(update_fields=("config",))
 
         search_nexmo_url = reverse("channels.channel_search_nexmo")
 
@@ -1488,7 +1487,6 @@ class ChannelTest(TembaTest):
             with patch("nexmo.Client.create_application") as create_app:
                 create_app.return_value = dict(id="app-id", keys=dict(private_key="private-key\n"))
                 self.org.connect_nexmo("123", "456", self.admin)
-                self.org.save()
 
         claim_nexmo_url = reverse("channels.channel_create_bulk_sender") + "?connection=NX&channel=%d" % android.pk
         self.client.post(claim_nexmo_url, dict(connection="NX", channel=android.pk))
@@ -1515,7 +1513,7 @@ class ChannelTest(TembaTest):
         android.refresh_from_db()
         # simulate no FCM ID
         android.config.pop(Channel.CONFIG_FCM_ID, None)
-        android.save()
+        android.save(update_fields=("config",))
 
         android.release()
 
@@ -1561,7 +1559,7 @@ class ChannelTest(TembaTest):
 
         # try syncing against the unclaimed channel that has a secret
         self.unclaimed_channel.secret = "999"
-        self.unclaimed_channel.save()
+        self.unclaimed_channel.save(update_fields=("secret",))
 
         response = self.sync(self.unclaimed_channel, post_data=post_data)
         response = response.json()
@@ -1571,7 +1569,7 @@ class ChannelTest(TembaTest):
 
         # claim the channel on the site
         self.unclaimed_channel.org = self.org
-        self.unclaimed_channel.save()
+        self.unclaimed_channel.save(update_fields=("org",))
 
         post_data = dict(
             cmds=[
@@ -1607,7 +1605,7 @@ class ChannelTest(TembaTest):
     def test_quota_exceeded(self):
         # set our org to be on the trial plan
         self.org.plan = FREE_PLAN
-        self.org.save()
+        self.org.save(update_fields=("plan",))
         self.org.topups.all().update(credits=10)
 
         self.assertEqual(10, self.org.get_credits_remaining())
@@ -1703,7 +1701,7 @@ class ChannelTest(TembaTest):
         # an incoming message that should not be included even if it is still pending
         incoming_message = Msg.create_incoming(self.tel_channel, "tel:+250788382382", "hey")
         incoming_message.status = PENDING
-        incoming_message.save()
+        incoming_message.save(update_fields=("status",))
 
         self.org.administrators.add(self.user)
         self.user.set_org(self.org)
@@ -1739,7 +1737,7 @@ class ChannelTest(TembaTest):
         six_mins_ago = timezone.now() - timedelta(minutes=6)
         self.tel_channel.last_seen = six_mins_ago
         self.tel_channel.config["FCM_ID"] = "old_fcm_id"
-        self.tel_channel.save(update_fields=["last_seen", "config"])
+        self.tel_channel.save(update_fields=("last_seen", "config"))
 
         post_data = dict(
             cmds=[
@@ -1827,7 +1825,7 @@ class ChannelTest(TembaTest):
 
         # set an email on our channel
         self.tel_channel.alert_email = "fred@worldrelif.org"
-        self.tel_channel.save()
+        self.tel_channel.save(update_fields=("alert_email",))
 
         # We should not have an alert this time
         self.assertEqual(0, Alert.objects.all().count())
@@ -2109,10 +2107,9 @@ class ChannelTest(TembaTest):
         self.assertIsNone(channel.get_ivr_client())
 
         self.org.connect_nexmo("123", "456", self.admin)
-        self.org.save()
 
         channel.channel_type = "NX"
-        channel.save()
+        channel.save(update_fields=("channel_type",))
 
         self.assertIsNotNone(channel.get_ivr_client())
 
@@ -2235,7 +2232,7 @@ class ChannelAlertTest(TembaTest):
     def test_no_alert_email(self):
         # set our last seen to a while ago
         self.channel.last_seen = timezone.now() - timedelta(minutes=40)
-        self.channel.save()
+        self.channel.save(update_fields=("last_seen",))
 
         check_channels_task()
         self.assertTrue(len(mail.outbox) == 0)
@@ -2244,7 +2241,7 @@ class ChannelAlertTest(TembaTest):
         self.channel.alert_email = "fred@unicef.org"
         self.channel.org = None
         self.channel.last_seen = timezone.now()
-        self.channel.save()
+        self.channel.save(update_fields=("org", "last_seen", "alert_email"))
         check_channels_task()
 
         self.assertTrue(len(mail.outbox) == 0)
@@ -2252,21 +2249,21 @@ class ChannelAlertTest(TembaTest):
 
 class ChannelSyncTest(TembaTest):
     @patch("temba.channels.models.Channel.trigger_sync")
-    def test_sync_old_seen_chaanels(self, mock_trigger_sync):
+    def test_sync_old_seen_channels(self, mock_trigger_sync):
         self.channel.last_seen = timezone.now() - timedelta(days=40)
-        self.channel.save()
+        self.channel.save(update_fields=("last_seen",))
 
         sync_old_seen_channels_task()
         self.assertFalse(mock_trigger_sync.called)
 
         self.channel.last_seen = timezone.now() - timedelta(minutes=5)
-        self.channel.save()
+        self.channel.save(update_fields=("last_seen",))
 
         sync_old_seen_channels_task()
         self.assertFalse(mock_trigger_sync.called)
 
         self.channel.last_seen = timezone.now() - timedelta(hours=3)
-        self.channel.save()
+        self.channel.save(update_fields=("last_seen",))
 
         sync_old_seen_channels_task()
         self.assertTrue(mock_trigger_sync.called)
@@ -2278,7 +2275,7 @@ class ChannelClaimTest(TembaTest):
         # set our last seen to a while ago
         self.channel.alert_email = "fred@unicef.org"
         self.channel.last_seen = timezone.now() - timedelta(minutes=40)
-        self.channel.save()
+        self.channel.save(update_fields=("alert_email", "last_seen"))
 
         branding = copy.deepcopy(settings.BRANDING)
         branding["rapidpro.io"]["from_email"] = "support@mybrand.com"
@@ -2317,7 +2314,7 @@ class ChannelClaimTest(TembaTest):
 
         # ok, let's have the channel show up again
         self.channel.last_seen = timezone.now() + timedelta(minutes=5)
-        self.channel.save()
+        self.channel.save(update_fields=("last_seen",))
 
         check_channels_task()
 
@@ -2358,7 +2355,7 @@ class ChannelClaimTest(TembaTest):
         self.channel.last_seen = timezone.now()
         self.channel.alert_email = "fred@unicef.org"
         self.channel.org = self.org
-        self.channel.save()
+        self.channel.save(update_fields=("last_seen", "alert_email", "org"))
 
         # ok check on our channel
         check_channels_task()
@@ -2392,7 +2389,7 @@ class ChannelClaimTest(TembaTest):
 
         # consider the sent message was sent before our queued msg
         sent_msg.sent_on = three_hours_ago
-        sent_msg.save()
+        sent_msg.save(update_fields=("sent_on",))
 
         msg1.delete()
         msg1 = self.create_msg(text="Message One", contact=contact, created_on=two_hours_ago, status="Q")
@@ -2404,7 +2401,7 @@ class ChannelClaimTest(TembaTest):
         self.assertEqual(Alert.objects.all().count(), 1)
 
         sent_msg.sent_on = six_hours_ago
-        sent_msg.save()
+        sent_msg.save(update_fields=("sent_on",))
 
         alert = Alert.objects.all()[0]
         alert.created_on = six_hours_ago
@@ -2432,7 +2429,7 @@ class ChannelClaimTest(TembaTest):
 
         # fix our message
         msg1.status = "D"
-        msg1.save()
+        msg1.save(update_fields=("status",))
 
         # run again, our alert should end
         check_channels_task()
@@ -2543,14 +2540,14 @@ class ChannelLogTest(TembaTest):
         )
         success_log.response = ""
         success_log.request = "POST https://foo.bar/send?msg=failed+message"
-        success_log.save(update_fields=["request", "response"])
+        success_log.save(update_fields=("request", "response"))
 
         failed_msg = Msg.create_outgoing(self.org, self.admin, self.contact, "failed message", channel=self.channel)
         failed_log = ChannelLog.log_error(dict_to_struct("MockMsg", failed_msg.as_task_json()), "Error Sending")
 
         failed_log.response = json.dumps(dict(error="invalid credentials"))
         failed_log.request = "POST https://foo.bar/send?msg=failed+message"
-        failed_log.save(update_fields=["request", "response"])
+        failed_log.save(update_fields=("request", "response"))
 
         # can't see the view without logging in
         list_url = reverse("channels.channellog_list", args=[self.channel.uuid])
@@ -2590,7 +2587,7 @@ class ChannelLogTest(TembaTest):
 
         # disconnect our msg
         failed_log.msg = None
-        failed_log.save(update_fields=["msg"])
+        failed_log.save(update_fields=("msg",))
         response = self.client.get(read_url)
         self.assertContains(response, "failed+message")
         self.assertContains(response, "invalid credentials")
@@ -2604,7 +2601,7 @@ class ChannelLogTest(TembaTest):
 
         # change our org to anonymous
         self.org.is_anon = True
-        self.org.save()
+        self.org.save(update_fields=("is_anon",))
 
         # should no longer be able to see read page
         response = self.client.get(read_url)
@@ -2669,7 +2666,7 @@ class CourierTest(TembaTest):
     @override_settings(SEND_MESSAGES=True)
     def test_queue_to_courier(self):
         self.channel.channel_type = "T"
-        self.channel.save()
+        self.channel.save(update_fields=("channel_type",))
 
         bob = self.create_contact("Bob", urn="tel:+12065551111")
         incoming = self.create_msg(contact=bob, text="Hello", direction="I", external_id="external-id")

@@ -2008,7 +2008,7 @@ class GroupsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAPIView):
     def perform_destroy(self, instance):
         instance.is_active = False
         instance.modified_by = self.request.user
-        instance.save(update_fields=("is_active", "modified_on", "modified_by"))
+        instance.save(update_fields=("is_active", "modified_by"))
 
         # release the group in a background task
         on_transaction_commit(lambda: release_group_task.delay(instance.id))

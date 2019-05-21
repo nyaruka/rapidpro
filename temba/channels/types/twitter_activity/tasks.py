@@ -59,7 +59,7 @@ def resolve_twitter_ids():
                             and new_urn.contact.created_on > old_urn.contact.created_on
                         ):
                             new_urn.contact = old_urn.contact
-                            new_urn.save(update_fields=["contact"])
+                            new_urn.save(update_fields=("contact",))
 
                         # get rid of our old URN
                         ContactURN.objects.filter(id=old_urn.id).update(contact=None)

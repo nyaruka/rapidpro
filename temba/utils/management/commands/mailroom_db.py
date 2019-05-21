@@ -342,7 +342,7 @@ class Command(BaseCommand):
                 modified_by=user,
             )
             field.uuid = f["uuid"]
-            field.save(update_fields=["uuid"])
+            field.save(update_fields=("uuid",))
 
         self._log(self.style.SUCCESS("OK") + "\n")
 
@@ -355,7 +355,7 @@ class Command(BaseCommand):
             else:
                 group = ContactGroup.create_static(org, user, g["name"])
             group.uuid = g["uuid"]
-            group.save(update_fields=["uuid"])
+            group.save(update_fields=("uuid",))
 
         self._log(self.style.SUCCESS("OK") + "\n")
 
@@ -451,7 +451,7 @@ class Command(BaseCommand):
         for c in spec["contacts"]:
             contact = Contact.get_or_create_by_urns(org, user, c["name"], c["urns"])
             contact.uuid = c["uuid"]
-            contact.save(update_fields=["uuid"], handle_update=False)
+            contact.save(update_fields=("uuid",), handle_update=False)
 
             # add to any groups we belong to
             for g in c.get("groups", []):
