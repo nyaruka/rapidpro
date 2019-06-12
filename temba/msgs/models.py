@@ -39,7 +39,6 @@ from temba.utils.models import (
     TembaModel,
     TranslatableField,
 )
-from temba.utils.queues import HIGH_PRIORITY, Queue, push_task
 from temba.utils.text import clean_string
 
 from . import legacy

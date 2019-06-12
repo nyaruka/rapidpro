@@ -2633,6 +2633,7 @@ class ContactGroup(RequireUpdateFieldsMixin, AddModifiedOnMixin, TembaModel):
     """
     A static or dynamic group of contacts
     """
+
     MAX_NAME_LEN = 64
     MAX_ORG_CONTACTGROUPS = 250
 

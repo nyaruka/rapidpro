@@ -8033,7 +8033,7 @@ class FlowsTest(FlowFileTest):
 
     def test_channel_dependencies(self):
         self.channel.name = "1234"
-        self.channel.save()
+        self.channel.save(update_fields=("name",))
 
         self.get_flow("migrate_to_11_12_one_node")
         flow = Flow.objects.filter(name="channel").first()

@@ -216,12 +216,12 @@ class AddModifiedOnMixin(object):
 
     def save(self, *args, **kwargs):
         if self.id:
-            update_fields = kwargs.get("update_fields")
+            update_fields = kwargs.get("update_fields", None)
 
-            if "modified_on" not in update_fields:
+            if update_fields is not None and "modified_on" not in update_fields:
                 update_fields += ("modified_on",)
 
-            kwargs["update_fields"] = update_fields
+                kwargs["update_fields"] = update_fields
 
         super().save(*args, **kwargs)
 
