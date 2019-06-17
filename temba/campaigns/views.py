@@ -12,7 +12,7 @@ from temba.contacts.models import ContactField, ContactGroup
 from temba.flows.models import Flow
 from temba.msgs.models import Msg
 from temba.orgs.views import ModalMixin, OrgObjPermsMixin, OrgPermsMixin
-from temba.utils.views import BaseActionForm
+from temba.utils.views import BaseActionForm, UpdateFieldsSaveMixin
 from temba.values.constants import Value
 
 from .models import Campaign, CampaignEvent, EventFire
@@ -76,11 +76,12 @@ class CampaignCRUDL(SmartCRUDL):
             else:
                 return queryset.filter(org=self.request.user.get_org())
 
-    class Update(OrgMixin, ModalMixin, SmartUpdateView):
+    class Update(UpdateFieldsSaveMixin, OrgMixin, ModalMixin, SmartUpdateView):
         fields = ("name", "group")
         success_message = ""
         form_class = UpdateCampaignForm
-        exclude = ("id",)
+
+        trigger_update_campaign_events = False
 
         def pre_process(self, request, *args, **kwargs):
             campaign_id = kwargs.get("pk")
@@ -98,28 +99,24 @@ class CampaignCRUDL(SmartCRUDL):
             form_kwargs["user"] = self.request.user
             return form_kwargs
 
-        def form_valid(self, form):
+        def pre_save(self, obj):
+            obj = super().pre_save(obj)
+
             previous_group = self.get_object().group
-            new_group = form.cleaned_data["group"]
+            new_group = self.form.cleaned_data["group"]
 
-            # save our campaign
-            self.object = form.save(commit=False)
+            self.trigger_update_campaign_events = new_group != previous_group
 
-            fields = [f.name for f in self.object._meta.concrete_fields if f.name not in self.exclude]
-            self.object.save(update_fields=fields)
-            self.save_m2m()
+            return obj
+
+        def post_save(self, obj):
+            obj = super().post_save(obj)
 
             # if our group changed, create our new fires
-            if new_group != previous_group:
-                EventFire.update_campaign_events(self.object)
+            if self.trigger_update_campaign_events:
+                EventFire.update_campaign_events(obj)
 
-            response = self.render_to_response(
-                self.get_context_data(
-                    form=form, success_url=self.get_success_url(), success_script=getattr(self, "success_script", None)
-                )
-            )
-            response["Temba-Success"] = self.get_success_url()
-            return response
+            return obj
 
     class Read(OrgObjPermsMixin, SmartReadView):
         def get_gear_links(self):

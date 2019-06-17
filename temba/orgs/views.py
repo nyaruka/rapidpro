@@ -1161,7 +1161,7 @@ class OrgCRUDL(SmartCRUDL):
         def get_created_by(self, obj):  # pragma: needs cover
             return "%s %s - %s" % (obj.created_by.first_name, obj.created_by.last_name, obj.created_by.email)
 
-    class Update(SmartUpdateView):
+    class Update(UpdateFieldsSaveMixin, SmartUpdateView):
         fields = ("name", "brand", "parent", "is_anon")
 
         class OrgUpdateForm(forms.ModelForm):
@@ -1242,7 +1242,7 @@ class OrgCRUDL(SmartCRUDL):
                 return HttpResponseRedirect(self.get_success_url())
             return super().post(request, *args, **kwargs)
 
-    class Accounts(InferOrgMixin, OrgPermsMixin, SmartUpdateView):
+    class Accounts(UpdateFieldsSaveMixin, InferOrgMixin, OrgPermsMixin, SmartUpdateView):
         class PasswordForm(forms.ModelForm):
             surveyor_password = forms.CharField(max_length=128)
 

@@ -838,7 +838,6 @@ def sync(request, channel_id):
                     elif keyword == "reset":
                         # release this channel
                         channel.release(False)
-                        # channel.save()
 
                         # ack that things got handled
                         handled = True
