@@ -12,7 +12,6 @@ import stripe
 import stripe.error
 from bs4 import BeautifulSoup
 from dateutil.relativedelta import relativedelta
-from smartmin.tests import SmartminTest
 
 from django.conf import settings
 from django.contrib.auth.models import Group, User
@@ -23,6 +22,7 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from smartmin.tests import SmartminTest
 from temba import mailroom
 from temba.airtime.models import AirtimeTransfer
 from temba.api.models import APIToken, Resthook, WebHookEvent, WebHookResult
@@ -726,7 +726,7 @@ class OrgTest(TembaTest):
             "editors": [self.editor.id],
             "administrators": [self.admin.id],
             "surveyors": [self.surveyor.id],
-            "surveyor_password": None,
+            "surveyor_password": "",
         }
 
         response = self.client.post(update_url, post_data)

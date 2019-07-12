@@ -134,4 +134,4 @@ class WebHookCRUDLTest(TembaTest):
 
         response = self.fetch_protected(url, self.admin)
 
-        self.assertEqual(response.context["object_list"].count(), 4)
+        self.assertEqual(len(response.context["object_list"]), 4)

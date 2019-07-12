@@ -605,7 +605,7 @@ class MsgTest(TembaTest):
         self.assertContains(response, "function refresh")
 
         self.assertEqual(response.context["refresh"], 20000)
-        self.assertEqual(response.context["object_list"].count(), 5)
+        self.assertEqual(len(response.context["object_list"]), 5)
         self.assertEqual(response.context["folders"][0]["url"], "/msg/inbox/")
         self.assertEqual(response.context["folders"][0]["count"], 5)
         self.assertEqual(response.context["actions"], ["archive", "label"])
@@ -613,7 +613,7 @@ class MsgTest(TembaTest):
         # visit inbox page as administrator
         response = self.fetch_protected(inbox_url, self.admin)
 
-        self.assertEqual(response.context["object_list"].count(), 5)
+        self.assertEqual(len(response.context["object_list"]), 5)
         self.assertEqual(response.context["actions"], ["archive", "label"])
 
         # let's add some labels
@@ -682,7 +682,7 @@ class MsgTest(TembaTest):
         with self.assertNumQueries(54):
             response = self.fetch_protected(archive_url, self.admin)
 
-        self.assertEqual(response.context["object_list"].count(), 1)
+        self.assertEqual(len(response.context["object_list"]), 1)
         self.assertEqual(response.context["actions"], ["restore", "label", "delete"])
 
         # check that the inbox does not contains archived messages
@@ -695,7 +695,7 @@ class MsgTest(TembaTest):
         # visit inbox page as an admin of the organization
         response = self.fetch_protected(inbox_url, self.admin)
 
-        self.assertEqual(response.context["object_list"].count(), 4)
+        self.assertEqual(len(response.context["object_list"]), 4)
         self.assertEqual(response.context["actions"], ["archive", "label"])
 
         # test restoring an archived message back to inbox
@@ -705,25 +705,25 @@ class MsgTest(TembaTest):
 
         response = self.client.get(inbox_url)
         self.assertEqual(Msg.objects.all().count(), 6)
-        self.assertEqual(response.context["object_list"].count(), 5)
+        self.assertEqual(len(response.context["object_list"]), 5)
 
         # archiving a message removes it from the inbox
         Msg.apply_action_archive(self.user, [msg1])
 
         response = self.client.get(inbox_url)
-        self.assertEqual(response.context["object_list"].count(), 4)
+        self.assertEqual(len(response.context["object_list"]), 4)
 
         # and moves it to the Archived page
         response = self.client.get(archive_url)
-        self.assertEqual(response.context["object_list"].count(), 1)
+        self.assertEqual(len(response.context["object_list"]), 1)
 
         # deleting it removes it from the Archived page
         response = self.client.post(archive_url, dict(action="delete", objects=[msg1.pk]), follow=True)
-        self.assertEqual(response.context["object_list"].count(), 0)
+        self.assertEqual(len(response.context["object_list"]), 0)
 
         # now check inbox as viewer user
         response = self.fetch_protected(inbox_url, self.user)
-        self.assertEqual(response.context["object_list"].count(), 4)
+        self.assertEqual(len(response.context["object_list"]), 4)
 
         # check that viewer user cannot label messages
         post_data = dict(action="label", objects=[msg5.pk], label=label1.pk, add=True)
@@ -803,7 +803,7 @@ class MsgTest(TembaTest):
         with self.assertNumQueries(65):
             response = self.fetch_protected(failed_url, self.admin)
 
-        self.assertEqual(response.context["object_list"].count(), 3)
+        self.assertEqual(len(response.context["object_list"]), 3)
         self.assertEqual(response.context["actions"], ["resend"])
         self.assertContains(response, "Export")
 

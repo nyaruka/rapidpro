@@ -12,16 +12,6 @@ import pytz
 import requests
 import twilio.base.exceptions
 from django_countries.data import COUNTRIES
-from smartmin.views import (
-    SmartCRUDL,
-    SmartDeleteView,
-    SmartFormView,
-    SmartListView,
-    SmartModelActionView,
-    SmartReadView,
-    SmartTemplateView,
-    SmartUpdateView,
-)
 from twilio.base.exceptions import TwilioException, TwilioRestException
 
 from django import forms
@@ -38,6 +28,16 @@ from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
+from smartmin.views import (
+    SmartCRUDL,
+    SmartDeleteView,
+    SmartFormView,
+    SmartListView,
+    SmartModelActionView,
+    SmartReadView,
+    SmartTemplateView,
+    SmartUpdateView,
+)
 from temba.apks.models import Apk
 from temba.contacts.models import TEL_SCHEME, URN, ContactURN
 from temba.msgs.models import OUTGOING, PENDING, QUEUED, WIRED, Msg, SystemLabel
@@ -2156,6 +2156,17 @@ class ChannelLogCRUDL(SmartCRUDL):
         link_fields = ("channel", "description", "created_on")
         paginate_by = 50
 
+        def get_paginator(self, queryset, per_page, orphans=0, allow_empty_first_page=True, **kwargs):
+            paginator_class = self.paginator_class(
+                queryset, per_page, orphans=orphans, allow_empty_first_page=allow_empty_first_page, **kwargs
+            )
+            channel = self.derive_channel()
+
+            if not (self.request.GET.get("connections") or self.request.GET.get("others")):
+                paginator_class.count = channel.get_non_ivr_log_count()
+
+            return paginator_class
+
         @classmethod
         def derive_url_pattern(cls, path, action):
             return r"^%s/(?P<channel_uuid>[^/]+)/$" % path
@@ -2191,7 +2202,6 @@ class ChannelLogCRUDL(SmartCRUDL):
                     .order_by("-created_on")
                     .select_related("msg__contact", "msg")
                 )
-                events.count = lambda: channel.get_non_ivr_log_count()
 
             return events
 

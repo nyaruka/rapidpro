@@ -1,5 +1,18 @@
 from datetime import date, timedelta
 
+from django import forms
+from django.conf import settings
+from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.forms import Form
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.functional import cached_property
+from django.utils.http import urlquote_plus
+from django.utils.translation import ugettext_lazy as _
+from django.views.decorators.csrf import csrf_exempt
+
 from smartmin.views import (
     SmartCreateView,
     SmartCRUDL,
@@ -9,19 +22,6 @@ from smartmin.views import (
     SmartReadView,
     SmartUpdateView,
 )
-
-from django import forms
-from django.conf import settings
-from django.contrib import messages
-from django.core.exceptions import ValidationError
-from django.forms import Form
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
-from django.urls import reverse
-from django.utils import timezone
-from django.utils.http import urlquote_plus
-from django.utils.translation import ugettext_lazy as _
-from django.views.decorators.csrf import csrf_exempt
-
 from temba.archives.models import Archive
 from temba.channels.models import Channel
 from temba.contacts.fields import OmniboxField
@@ -144,40 +144,60 @@ class InboxView(OrgPermsMixin, SmartListView):
 
         return queryset.order_by("-created_on", "-id").distinct("created_on", "id")
 
-    def get_context_data(self, **kwargs):
-        org = self.request.user.get_org()
-        counts = SystemLabel.get_counts(org)
+    def get_paginator(self, queryset, per_page, orphans=0, allow_empty_first_page=True, **kwargs):
+        paginator_class = self.paginator_class(
+            queryset, per_page, orphans=orphans, allow_empty_first_page=allow_empty_first_page, **kwargs
+        )
 
+        # org = self.request.user.get_org()
         label = self.derive_label()
+        # counts = SystemLabel.get_counts(org)
 
         # if there isn't a search filtering the queryset, we can replace the count function with a pre-calculated value
         if "search" not in self.request.GET:
             if isinstance(label, Label) and not label.is_folder():
-                self.object_list.count = lambda: label.get_visible_count()
+                paginator_class.count = label.get_visible_count()
             elif isinstance(label, str):
-                self.object_list.count = lambda: counts[label]
+                paginator_class.count = self._counts[label]
+
+        return paginator_class
+
+    @cached_property
+    def _counts(self):
+        org = self.request.user.get_org()
+        counts = SystemLabel.get_counts(org)
+        return counts
+
+    def get_context_data(self, **kwargs):
+        org = self.request.user.get_org()
+
+        label = self.derive_label()
 
         context = super().get_context_data(**kwargs)
 
         folders = [
-            dict(count=counts[SystemLabel.TYPE_INBOX], label=_("Inbox"), url=reverse("msgs.msg_inbox")),
-            dict(count=counts[SystemLabel.TYPE_FLOWS], label=_("Flows"), url=reverse("msgs.msg_flow")),
-            dict(count=counts[SystemLabel.TYPE_ARCHIVED], label=_("Archived"), url=reverse("msgs.msg_archived")),
-            dict(count=counts[SystemLabel.TYPE_OUTBOX], label=_("Outbox"), url=reverse("msgs.msg_outbox")),
-            dict(count=counts[SystemLabel.TYPE_SENT], label=_("Sent"), url=reverse("msgs.msg_sent")),
-            dict(count=counts[SystemLabel.TYPE_CALLS], label=_("Calls"), url=reverse("channels.channelevent_calls")),
+            dict(count=self._counts[SystemLabel.TYPE_INBOX], label=_("Inbox"), url=reverse("msgs.msg_inbox")),
+            dict(count=self._counts[SystemLabel.TYPE_FLOWS], label=_("Flows"), url=reverse("msgs.msg_flow")),
+            dict(count=self._counts[SystemLabel.TYPE_ARCHIVED], label=_("Archived"), url=reverse("msgs.msg_archived")),
+            dict(count=self._counts[SystemLabel.TYPE_OUTBOX], label=_("Outbox"), url=reverse("msgs.msg_outbox")),
+            dict(count=self._counts[SystemLabel.TYPE_SENT], label=_("Sent"), url=reverse("msgs.msg_sent")),
             dict(
-                count=counts[SystemLabel.TYPE_SCHEDULED],
+                count=self._counts[SystemLabel.TYPE_CALLS],
+                label=_("Calls"),
+                url=reverse("channels.channelevent_calls"),
+            ),
+            dict(
+                count=self._counts[SystemLabel.TYPE_SCHEDULED],
                 label=_("Schedules"),
                 url=reverse("msgs.broadcast_schedule_list"),
             ),
-            dict(count=counts[SystemLabel.TYPE_FAILED], label=_("Failed"), url=reverse("msgs.msg_failed")),
+            dict(count=self._counts[SystemLabel.TYPE_FAILED], label=_("Failed"), url=reverse("msgs.msg_failed")),
         ]
 
         context["org"] = org
         context["folders"] = folders
         context["labels"] = Label.get_hierarchy(org)
-        context["has_messages"] = any(counts.values())
+        context["has_messages"] = any(self._counts.values())
         context["send_form"] = SendMessageForm(self.request.user)
         context["actions"] = self.actions
         context["current_label"] = label
