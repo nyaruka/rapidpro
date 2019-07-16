@@ -7,9 +7,6 @@ from unittest.mock import PropertyMock, patch
 
 import pytz
 from openpyxl import load_workbook
-from smartmin.csv_imports.models import ImportTask
-from smartmin.models import SmartImportRowError
-from smartmin.tests import SmartminTestMixin, _CRUDLTest
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -21,6 +18,9 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from smartmin.csv_imports.models import ImportTask
+from smartmin.models import SmartImportRowError
+from smartmin.tests import SmartminTestMixin, _CRUDLTest
 from temba.api.models import WebHookResult
 from temba.campaigns.models import Campaign, CampaignEvent, EventFire
 from temba.channels.models import Channel, ChannelEvent, ChannelLog
@@ -1156,14 +1156,12 @@ class ContactTest(TembaTest):
             )
             Flow.find_and_handle(msg)
 
-        ivr_flow = self.get_flow("call_me_maybe")
         msg_flow = self.get_flow("favorites")
 
         # create a contact with a message
         old_contact = self.create_contact("Jose", "+12065552000")
         send("hola mundo", old_contact)
         urn = old_contact.get_urn()
-        ivr_flow.start([], [old_contact])
 
         # steal his urn into a new contact
         contact = self.create_contact("Joe", "tweettweet")
@@ -1181,13 +1179,10 @@ class ContactTest(TembaTest):
         send("red", contact)
         send("primus", contact)
 
-        ivr_flow.start([], [contact])
-
         self.assertEqual(1, group.contacts.all().count())
-        self.assertEqual(1, contact.connections.all().count())
         self.assertEqual(1, contact.addressed_broadcasts.all().count())
         self.assertEqual(2, contact.urns.all().count())
-        self.assertEqual(2, contact.runs.all().count())
+        self.assertEqual(1, contact.runs.all().count())
         self.assertEqual(6, contact.msgs.all().count())
         self.assertEqual(2, len(contact.fields))
 
@@ -1223,7 +1218,6 @@ class ContactTest(TembaTest):
         # nope, we aren't paranoid or anything
         Org.objects.get(id=self.org.id)
         Flow.objects.get(id=msg_flow.id)
-        Flow.objects.get(id=ivr_flow.id)
 
     def test_stop_contact_clear_triggers(self):
         flow = self.get_flow("favorites")

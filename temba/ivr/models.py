@@ -5,12 +5,14 @@ from django_redis import get_redis_connection
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
-from django.urls import reverse
+
+# from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from temba.channels.models import Channel, ChannelConnection, ChannelLog, ChannelType
-from temba.utils.http import HttpEvent
+
+# from temba.utils.http import HttpEvent
 
 logger = logging.getLogger(__name__)
 
@@ -88,45 +90,46 @@ class IVRCall(ChannelConnection):
                 client.hangup(self)
 
     def do_start_call(self, qs=None):
-        client = self.channel.get_ivr_client()
-        domain = self.channel.callback_domain
-
-        from temba.ivr.clients import IVRException
-
-        if client and domain:
-            try:
-                url = "https://%s%s" % (domain, reverse("ivr.ivrcall_handle", args=[self.pk]))
-                if qs:  # pragma: no cover
-                    url = "%s?%s" % (url, qs)
-
-                tel_urn = self.contact_urn
-                tel = tel_urn.path
-
-                client.start_call(self, to=tel, from_=self.channel.address, status_callback=url)
-
-            except IVRException as e:  # pragma: no cover
-                logger.error(f"Could not start IVR call: {str(e)}", exc_info=True)
-
-            except Exception as e:  # pragma: no cover
-                logger.error(f"Could not start IVR call: {str(e)}", exc_info=True)
-
-                ChannelLog.log_ivr_interaction(
-                    self, "Call failed unexpectedly", HttpEvent(method="INTERNAL", url=None, response_body=str(e))
-                )
-
-                self.status = self.FAILED
-                self.save(update_fields=("status",))
-
-        # client or domain are not known
-        else:
-            ChannelLog.log_ivr_interaction(
-                self,
-                "Unknown client or domain",
-                HttpEvent(method="INTERNAL", url=None, response_body=f"client={client} domain={domain}"),
-            )
-
-            self.status = self.FAILED
-            self.save(update_fields=("status",))
+        raise Exception
+        # client = self.channel.get_ivr_client()
+        # domain = self.channel.callback_domain
+        #
+        # from temba.ivr.clients import IVRException
+        #
+        # if client and domain:
+        #     try:
+        #         url = "https://%s%s" % (domain, reverse("ivr.ivrcall_handle", args=[self.pk]))
+        #         if qs:  # pragma: no cover
+        #             url = "%s?%s" % (url, qs)
+        #
+        #         tel_urn = self.contact_urn
+        #         tel = tel_urn.path
+        #
+        #         client.start_call(self, to=tel, from_=self.channel.address, status_callback=url)
+        #
+        #     except IVRException as e:  # pragma: no cover
+        #         logger.error(f"Could not start IVR call: {str(e)}", exc_info=True)
+        #
+        #     except Exception as e:  # pragma: no cover
+        #         logger.error(f"Could not start IVR call: {str(e)}", exc_info=True)
+        #
+        #         ChannelLog.log_ivr_interaction(
+        #             self, "Call failed unexpectedly", HttpEvent(method="INTERNAL", url=None, response_body=str(e))
+        #         )
+        #
+        #         self.status = self.FAILED
+        #         self.save(update_fields=("status",))
+        #
+        # # client or domain are not known
+        # else:
+        #     ChannelLog.log_ivr_interaction(
+        #         self,
+        #         "Unknown client or domain",
+        #         HttpEvent(method="INTERNAL", url=None, response_body=f"client={client} domain={domain}"),
+        #     )
+        #
+        #     self.status = self.FAILED
+        #     self.save(update_fields=("status",))
 
     def schedule_call_retry(self, backoff_minutes: int):
         # retry the call if it has not been retried maximum number of times

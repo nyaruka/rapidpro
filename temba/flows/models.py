@@ -14,7 +14,6 @@ import phonenumbers
 import regex
 from django_redis import get_redis_connection
 from packaging.version import Version
-from smartmin.models import SmartModel
 from temba_expressions.utils import tokenize
 from xlsxlite.writer import XLSXBook
 
@@ -28,13 +27,15 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from smartmin.models import SmartModel
 from temba import mailroom
 from temba.airtime.models import AirtimeTransfer
 from temba.assets.models import register_asset_store
-from temba.channels.models import Channel, ChannelConnection, ChannelLog
-from temba.contacts.models import (
+
+# from temba.channels.models import Channel, ChannelConnection, ChannelLog
+from temba.channels.models import Channel, ChannelConnection
+from temba.contacts.models import (  # TEL_SCHEME,
     NEW_CONTACT_VARIABLE,
-    TEL_SCHEME,
     URN,
     Contact,
     ContactField,
@@ -48,7 +49,8 @@ from temba.utils import analytics, chunk_list, json, on_transaction_commit
 from temba.utils.dates import str_to_datetime
 from temba.utils.email import is_valid_address
 from temba.utils.export import BaseExportAssetStore, BaseExportTask
-from temba.utils.http import HttpEvent
+
+# from temba.utils.http import HttpEvent
 from temba.utils.models import (
     JSONAsTextField,
     JSONField,
@@ -577,124 +579,125 @@ class Flow(TembaModel):
 
     @classmethod
     def handle_call(cls, call, text=None, saved_media_url=None, hangup=False, resume=False):
-        run = (
-            FlowRun.objects.filter(connection=call, is_active=True)
-            .select_related("org")
-            .order_by("-created_on")
-            .first()
-        )
+        raise Exception
+        # run = (
+        #     FlowRun.objects.filter(connection=call, is_active=True)
+        #     .select_related("org")
+        #     .order_by("-created_on")
+        #     .first()
+        # )
+        #
+        # # what we will send back
+        # voice_response = call.channel.generate_ivr_response()
+        #
+        # if run is None:  # pragma: no cover
+        #     voice_response.hangup()
+        #     return voice_response
+        #
+        # flow = run.flow
+        #
+        # # make sure we have the latest version
+        # flow.ensure_current_version()
+        #
+        # run.voice_response = voice_response
+        #
+        # # create a message to hold our inbound message
+        # from temba.msgs.models import IVR
+        #
+        # if text or saved_media_url:
+        #
+        #     # we don't have text for media, so lets use the media value there too
+        #     if saved_media_url and ":" in saved_media_url:
+        #         text = saved_media_url.partition(":")[2]
+        #
+        #     msg = Msg.create_incoming(
+        #         call.channel,
+        #         str(call.contact_urn),
+        #         text,
+        #         status=PENDING,
+        #         msg_type=IVR,
+        #         attachments=[saved_media_url] if saved_media_url else None,
+        #         connection=run.connection,
+        #     )
+        # else:
+        #     msg = Msg(org=call.org, contact=call.contact, text="", id=0)
+        #
+        # # find out where we last left off
+        # last_step = run.path[-1] if run.path else None
+        #
+        # # if we are just starting the flow, create our first step
+        # if not last_step:
+        #     # lookup our entry node
+        #     destination = ActionSet.objects.filter(flow=run.flow, uuid=flow.entry_uuid).first()
+        #     if not destination:
+        #         destination = RuleSet.objects.filter(flow=run.flow, uuid=flow.entry_uuid).first()
+        #
+        #     # and add our first step for our run
+        #     if destination:
+        #         flow.add_step(run, destination, [])
+        # else:
+        #     destination = Flow.get_node(run.flow, last_step[FlowRun.PATH_NODE_UUID], Flow.NODE_TYPE_RULESET)
+        #
+        # if not destination:  # pragma: no cover
+        #     voice_response.hangup()
+        #     run.set_completed(exit_uuid=None)
+        #     return voice_response
+        #
+        # # go and actually handle wherever we are in the flow
+        # (handled, msgs) = Flow.handle_destination(
+        #     destination, run, msg, user_input=text is not None, resume_parent_run=resume
+        # )
+        #
+        # # if we stopped needing user input (likely), then wrap our response accordingly
+        # voice_response = Flow.wrap_voice_response_with_input(call, run, voice_response)
+        #
+        # # if we handled it, mark it so
+        # if handled and msg.id:
+        #     from temba.msgs import legacy
+        #
+        #     legacy.mark_handled(msg)
+        #
+        # # if we didn't handle it, this is a good time to hangup
+        # if not handled or hangup:
+        #     voice_response.hangup()
+        #     run.set_completed(exit_uuid=None)
+        #
+        # return voice_response
 
-        # what we will send back
-        voice_response = call.channel.generate_ivr_response()
-
-        if run is None:  # pragma: no cover
-            voice_response.hangup()
-            return voice_response
-
-        flow = run.flow
-
-        # make sure we have the latest version
-        flow.ensure_current_version()
-
-        run.voice_response = voice_response
-
-        # create a message to hold our inbound message
-        from temba.msgs.models import IVR
-
-        if text or saved_media_url:
-
-            # we don't have text for media, so lets use the media value there too
-            if saved_media_url and ":" in saved_media_url:
-                text = saved_media_url.partition(":")[2]
-
-            msg = Msg.create_incoming(
-                call.channel,
-                str(call.contact_urn),
-                text,
-                status=PENDING,
-                msg_type=IVR,
-                attachments=[saved_media_url] if saved_media_url else None,
-                connection=run.connection,
-            )
-        else:
-            msg = Msg(org=call.org, contact=call.contact, text="", id=0)
-
-        # find out where we last left off
-        last_step = run.path[-1] if run.path else None
-
-        # if we are just starting the flow, create our first step
-        if not last_step:
-            # lookup our entry node
-            destination = ActionSet.objects.filter(flow=run.flow, uuid=flow.entry_uuid).first()
-            if not destination:
-                destination = RuleSet.objects.filter(flow=run.flow, uuid=flow.entry_uuid).first()
-
-            # and add our first step for our run
-            if destination:
-                flow.add_step(run, destination, [])
-        else:
-            destination = Flow.get_node(run.flow, last_step[FlowRun.PATH_NODE_UUID], Flow.NODE_TYPE_RULESET)
-
-        if not destination:  # pragma: no cover
-            voice_response.hangup()
-            run.set_completed(exit_uuid=None)
-            return voice_response
-
-        # go and actually handle wherever we are in the flow
-        (handled, msgs) = Flow.handle_destination(
-            destination, run, msg, user_input=text is not None, resume_parent_run=resume
-        )
-
-        # if we stopped needing user input (likely), then wrap our response accordingly
-        voice_response = Flow.wrap_voice_response_with_input(call, run, voice_response)
-
-        # if we handled it, mark it so
-        if handled and msg.id:
-            from temba.msgs import legacy
-
-            legacy.mark_handled(msg)
-
-        # if we didn't handle it, this is a good time to hangup
-        if not handled or hangup:
-            voice_response.hangup()
-            run.set_completed(exit_uuid=None)
-
-        return voice_response
-
-    @classmethod
-    def wrap_voice_response_with_input(cls, call, run, voice_response):
-        """ Finds where we are in the flow and wraps our voice_response with whatever comes next """
-        last_step = run.path[-1]
-        destination = Flow.get_node(run.flow, last_step[FlowRun.PATH_NODE_UUID], Flow.NODE_TYPE_RULESET)
-
-        if isinstance(destination, RuleSet):
-            response = call.channel.generate_ivr_response()
-            callback = "https://%s%s" % (run.org.get_brand_domain(), reverse("ivr.ivrcall_handle", args=[call.pk]))
-            gather = destination.get_voice_input(response, action=callback)
-
-            # recordings have to be tacked on last
-            if destination.ruleset_type == RuleSet.TYPE_WAIT_RECORDING:
-                voice_response.record(action=callback)
-
-            elif destination.ruleset_type == RuleSet.TYPE_SUBFLOW:
-                voice_response.redirect(url=callback)
-
-            elif gather and hasattr(gather, "document"):  # voicexml case
-                gather.join(voice_response)
-
-                voice_response = response
-
-            elif gather:  # TwiML case
-                # nest all of our previous verbs in our gather
-                for verb in voice_response.verbs:
-                    gather.append(verb)
-
-                voice_response = response
-
-                # append a redirect at the end in case the user sends #
-                voice_response.redirect(url=callback + "?empty=1")
-
-        return voice_response
+    # @classmethod
+    # def wrap_voice_response_with_input(cls, call, run, voice_response):
+    #     """ Finds where we are in the flow and wraps our voice_response with whatever comes next """
+    #     last_step = run.path[-1]
+    #     destination = Flow.get_node(run.flow, last_step[FlowRun.PATH_NODE_UUID], Flow.NODE_TYPE_RULESET)
+    #
+    #     if isinstance(destination, RuleSet):
+    #         response = call.channel.generate_ivr_response()
+    #         callback = "https://%s%s" % (run.org.get_brand_domain(), reverse("ivr.ivrcall_handle", args=[call.pk]))
+    #         gather = destination.get_voice_input(response, action=callback)
+    #
+    #         # recordings have to be tacked on last
+    #         if destination.ruleset_type == RuleSet.TYPE_WAIT_RECORDING:
+    #             voice_response.record(action=callback)
+    #
+    #         elif destination.ruleset_type == RuleSet.TYPE_SUBFLOW:
+    #             voice_response.redirect(url=callback)
+    #
+    #         elif gather and hasattr(gather, "document"):  # voicexml case
+    #             gather.join(voice_response)
+    #
+    #             voice_response = response
+    #
+    #         elif gather:  # TwiML case
+    #             # nest all of our previous verbs in our gather
+    #             for verb in voice_response.verbs:
+    #                 gather.append(verb)
+    #
+    #             voice_response = response
+    #
+    #             # append a redirect at the end in case the user sends #
+    #             voice_response.redirect(url=callback + "?empty=1")
+    #
+    #     return voice_response
 
     @classmethod
     def get_unique_name(cls, org, base_name, ignore=None):
@@ -1657,9 +1660,7 @@ class Flow(TembaModel):
             return []
 
         if self.flow_type == Flow.TYPE_VOICE:
-            return self.start_call_flow(
-                all_contact_ids, start_msg=start_msg, extra=extra, flow_start=flow_start, parent_run=parent_run
-            )
+            pass
         else:
             return self.start_msg_flow(
                 all_contact_ids,
@@ -1671,97 +1672,99 @@ class Flow(TembaModel):
             )
 
     def start_call_flow(self, all_contact_ids, start_msg=None, extra=None, flow_start=None, parent_run=None):
-        from temba.ivr.models import IVRCall
+        raise Exception
 
-        there_are_calls_to_start = False
-
-        runs = []
-        channel = self.org.get_call_channel()
-
-        if not channel or Channel.ROLE_CALL not in channel.role:  # pragma: needs cover
-            return runs
-
-        for contact_id in all_contact_ids:
-            contact = Contact.objects.filter(pk=contact_id, org=channel.org).first()
-            contact_urn = contact.get_urn(TEL_SCHEME)
-            channel = self.org.get_call_channel(contact_urn=contact_urn)
-
-            # can't reach this contact, move on
-            if not contact or not contact_urn or not channel:  # pragma: no cover
-                continue
-
-            run = FlowRun.create(self, contact, start=flow_start, parent=parent_run)
-            if extra:  # pragma: needs cover
-                run.update_fields(extra)
-
-            # create our call objects
-            if parent_run and parent_run.connection:
-                call = parent_run.connection
-                session = parent_run.session
-            else:
-                call = IVRCall.create_outgoing(channel, contact, contact_urn)
-                session = FlowSession.create(contact, connection=call)
-
-            # save away our created call
-            run.session = session
-            run.connection = call
-            run.save(update_fields=["connection"])
-
-            # update our expiration date on our run initially to 7 days for IVR, that will be adjusted when the call is answered
-            next_week = timezone.now() + timedelta(days=IVRCall.DEFAULT_MAX_IVR_EXPIRATION_WINDOW_DAYS)
-            run.update_expiration(next_week)
-
-            if not parent_run or not parent_run.connection:
-                # trigger the call to start (in the background)
-                there_are_calls_to_start = True
-
-            # no start msgs in call flows but we want the variable there
-            run.start_msgs = []
-
-            runs.append(run)
-
-        if flow_start:  # pragma: needs cover
-            flow_start.update_status()
-
-        # eagerly enqueue calls
-        if there_are_calls_to_start:
-
-            r = get_redis_connection()
-
-            pending_call_events = (
-                IVRCall.objects.filter(status=IVRCall.PENDING)
-                .filter(direction=IVRCall.OUTGOING)
-                .filter(channel__is_active=True)
-                .filter(modified_on__gt=timezone.now() - timedelta(days=IVRCall.IGNORE_PENDING_CALLS_OLDER_THAN_DAYS))
-                .select_related("channel")
-                .order_by("modified_on")[:1000]
-            )
-
-            for call in pending_call_events:
-
-                # are we handling a call on a throttled channel ?
-                max_concurrent_events = call.channel.config.get(Channel.CONFIG_MAX_CONCURRENT_EVENTS)
-
-                if max_concurrent_events:
-                    channel_key = Channel.redis_active_events_key(call.channel_id)
-                    current_active_events = r.get(channel_key)
-
-                    # skip this call if are on the limit
-                    if current_active_events and int(current_active_events) >= max_concurrent_events:
-                        continue
-                    else:
-                        # we can start a new call event
-                        call.register_active_event()
-
-                # enqueue the call
-                ChannelLog.log_ivr_interaction(call, "Call queued internally", HttpEvent(method="INTERNAL", url=None))
-
-                call.status = IVRCall.QUEUED
-                call.save(update_fields=("status",))
-
-                call.do_start_call()
-
-        return runs
+        # from temba.ivr.models import IVRCall
+        #
+        # there_are_calls_to_start = False
+        #
+        # runs = []
+        # channel = self.org.get_call_channel()
+        #
+        # if not channel or Channel.ROLE_CALL not in channel.role:  # pragma: needs cover
+        #     return runs
+        #
+        # for contact_id in all_contact_ids:
+        #     contact = Contact.objects.filter(pk=contact_id, org=channel.org).first()
+        #     contact_urn = contact.get_urn(TEL_SCHEME)
+        #     channel = self.org.get_call_channel(contact_urn=contact_urn)
+        #
+        #     # can't reach this contact, move on
+        #     if not contact or not contact_urn or not channel:  # pragma: no cover
+        #         continue
+        #
+        #     run = FlowRun.create(self, contact, start=flow_start, parent=parent_run)
+        #     if extra:  # pragma: needs cover
+        #         run.update_fields(extra)
+        #
+        #     # create our call objects
+        #     if parent_run and parent_run.connection:
+        #         call = parent_run.connection
+        #         session = parent_run.session
+        #     else:
+        #         call = IVRCall.create_outgoing(channel, contact, contact_urn)
+        #         session = FlowSession.create(contact, connection=call)
+        #
+        #     # save away our created call
+        #     run.session = session
+        #     run.connection = call
+        #     run.save(update_fields=["connection"])
+        #
+        #     # update our expiration date on our run initially to 7 days for IVR, that will be adjusted when the call is answered
+        #     next_week = timezone.now() + timedelta(days=IVRCall.DEFAULT_MAX_IVR_EXPIRATION_WINDOW_DAYS)
+        #     run.update_expiration(next_week)
+        #
+        #     if not parent_run or not parent_run.connection:
+        #         # trigger the call to start (in the background)
+        #         there_are_calls_to_start = True
+        #
+        #     # no start msgs in call flows but we want the variable there
+        #     run.start_msgs = []
+        #
+        #     runs.append(run)
+        #
+        # if flow_start:  # pragma: needs cover
+        #     flow_start.update_status()
+        #
+        # # eagerly enqueue calls
+        # if there_are_calls_to_start:
+        #
+        #     r = get_redis_connection()
+        #
+        #     pending_call_events = (
+        #         IVRCall.objects.filter(status=IVRCall.PENDING)
+        #         .filter(direction=IVRCall.OUTGOING)
+        #         .filter(channel__is_active=True)
+        #         .filter(modified_on__gt=timezone.now() - timedelta(days=IVRCall.IGNORE_PENDING_CALLS_OLDER_THAN_DAYS))
+        #         .select_related("channel")
+        #         .order_by("modified_on")[:1000]
+        #     )
+        #
+        #     for call in pending_call_events:
+        #
+        #         # are we handling a call on a throttled channel ?
+        #         max_concurrent_events = call.channel.config.get(Channel.CONFIG_MAX_CONCURRENT_EVENTS)
+        #
+        #         if max_concurrent_events:
+        #             channel_key = Channel.redis_active_events_key(call.channel_id)
+        #             current_active_events = r.get(channel_key)
+        #
+        #             # skip this call if are on the limit
+        #             if current_active_events and int(current_active_events) >= max_concurrent_events:
+        #                 continue
+        #             else:
+        #                 # we can start a new call event
+        #                 call.register_active_event()
+        #
+        #         # enqueue the call
+        #         ChannelLog.log_ivr_interaction(call, "Call queued internally", HttpEvent(method="INTERNAL", url=None))
+        #
+        #         call.status = IVRCall.QUEUED
+        #         call.save(update_fields=("status",))
+        #
+        #         call.do_start_call()
+        #
+        # return runs
 
     def start_msg_flow(
         self, contact_ids, started_flows=None, start_msg=None, extra=None, flow_start=None, parent_run=None
