@@ -513,7 +513,6 @@ class IVRTests(FlowFileTest):
     def test_ivr_subflow(self):
 
         self.org.connect_twilio("TEST_SID", "TEST_TOKEN", self.admin)
-        self.org.save()
 
         self.get_flow("ivr_subflow")
         parent_flow = Flow.objects.filter(name="Parent Flow").first()

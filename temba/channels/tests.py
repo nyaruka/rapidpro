@@ -9,7 +9,6 @@ from unittest.mock import patch
 from urllib.parse import quote
 
 from django_redis import get_redis_connection
-from smartmin.tests import SmartminTest
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -21,6 +20,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 
+from smartmin.tests import SmartminTest
 from temba.channels.views import channel_status_processor
 from temba.contacts.models import TEL_SCHEME, TWITTER_SCHEME, URN, Contact, ContactGroup, ContactURN
 from temba.ivr.models import IVRCall
@@ -271,7 +271,7 @@ class ChannelTest(TembaTest):
         # add a voice caller
         self.org.config["ACCOUNT_SID"] = "accountSID"
         self.org.config["ACCOUNT_TOKEN"] = "accountToken"
-        self.org.save()
+        self.org.save(update_fields=("config",))
         caller = Channel.add_call_channel(self.org, self.user, self.tel_channel)
 
         # set our affinity to the caller (ie, they were on an ivr call)
