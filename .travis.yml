@@ -10,6 +10,7 @@ services:
   - redis-server
 
 env:
+  - PGDB=11
   - PGDB=10
   - PGDB=9.6
 
