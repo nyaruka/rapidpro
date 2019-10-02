@@ -1045,10 +1045,11 @@ class FlowTest(TembaTest):
 
         # now mark run has expired and make sure it is removed from our activity
         run = tupac.runs.get()
-        run.exit_type = FlowRun.EXIT_TYPE_EXPIRED
         run.exited_on = timezone.now()
+        run.status = FlowRun.STATUS_EXPIRED
+        run.exit_type = FlowRun.EXIT_TYPE_EXPIRED
         run.is_active = False
-        run.save(update_fields=("exit_type", "exited_on", "is_active"))
+        run.save(update_fields=("exit_type", "status", "exited_on", "is_active"))
 
         (active, visited) = flow.get_activity()
 
@@ -1096,10 +1097,11 @@ class FlowTest(TembaTest):
         )
 
         run = jimmy.runs.get()
-        run.exit_type = FlowRun.EXIT_TYPE_INTERRUPTED
         run.exited_on = timezone.now()
+        run.status = FlowRun.STATUS_INTERRUPTED
+        run.exit_type = FlowRun.EXIT_TYPE_INTERRUPTED
         run.is_active = False
-        run.save(update_fields=("exit_type", "exited_on", "is_active"))
+        run.save(update_fields=("exit_type", "status", "exited_on", "is_active"))
 
         (active, visited) = flow.get_activity()
 
