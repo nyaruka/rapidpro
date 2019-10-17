@@ -13,6 +13,7 @@
       -render_field 'omnibox'
 
 -block extra-script
+  {{block.super}}
   :javascript
     prepareOmnibox();
     $("#id_message").trigger('keyup');

@@ -17,6 +17,7 @@
     -trans "Download Now"
 
 -block extra-script
+  {{block.super}}
   :javascript
     $(document).ready(function() {
       window.location.href += "?download=1";

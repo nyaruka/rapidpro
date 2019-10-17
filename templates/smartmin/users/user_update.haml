@@ -45,6 +45,7 @@
     %a#delete-form.posterize{href:'{% url "orgs.user_delete" user.id %}?delete=true'}
 
 - block extra-script
+  {{block.super}}
   :javascript
 
     $(document).ready(()=>{

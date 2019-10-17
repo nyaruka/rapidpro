@@ -82,6 +82,7 @@
     %a#delete-form.posterize{href:'{% url "orgs.org_update" org.id %}?status=delete'}
 
 -block extra-script
+  {{block.super}}
   <script>
     $(".org-delete-button").live('click', function() {
       $(".gear-menu").removeClass("open");

@@ -23,6 +23,7 @@
     }
 
 {% block extra-script %}
+{{block.super}}
 :javascript
   (function($) {
     // change the value of the first option to be empty so that select2 placeholder works

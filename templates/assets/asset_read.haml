@@ -21,6 +21,7 @@
       {{ file_error }}
 
 -block extra-script
+  {{block.super}}
   :javascript
     {% if not file_error %}
     $(document).ready(function() {
