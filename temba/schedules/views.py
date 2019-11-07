@@ -6,6 +6,7 @@ from django import forms
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.timezone import get_current_timezone_name
+from django.utils.translation import ugettext_lazy as _
 
 from temba.orgs.views import OrgPermsMixin
 
@@ -22,6 +23,24 @@ class BaseScheduleForm(object):
                 return start_datetime
 
         return None
+
+    def clean_repeat_days_of_week(self):
+        data = self.cleaned_data["repeat_days_of_week"]
+
+        # validate days of the week for weekly schedules
+        if data:
+            for c in data:
+                if c not in Schedule.DAYS_OF_WEEK_OFFSET:
+                    raise forms.ValidationError(_("%(day)s is not a valid day of the week"), params={"day": c})
+
+        return data
+
+    def clean(self):
+        data = self.cleaned_data
+        if data["repeat_period"] == Schedule.REPEAT_WEEKLY and not data.get("repeat_days_of_week"):
+            raise forms.ValidationError(_("Must specify at least one day of the week"))
+
+        return data
 
 
 class ScheduleForm(BaseScheduleForm, forms.ModelForm):
@@ -58,7 +77,7 @@ class ScheduleCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             org = self.get_object().org
             context = super().get_context_data(**kwargs)
-            context["days"] = self.get_object().repeat_days_of_week
+            context["days"] = self.get_object().repeat_days_of_week or ""
             context["user_tz"] = get_current_timezone_name()
             context["user_tz_offset"] = int(timezone.now().astimezone(org.timezone).utcoffset().total_seconds() // 60)
             return context

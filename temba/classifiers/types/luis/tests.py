@@ -4,7 +4,6 @@ from django.urls import reverse
 
 from temba.classifiers.models import Classifier
 from temba.tests import MockResponse, TembaTest
-from django.contrib.auth.models import Group
 
 from .type import LuisType
 
@@ -59,9 +58,6 @@ class LuisTypeTest(TembaTest):
             self.assertEqual("b1a3c0ad-e912-4b55-a62e-6fcb77751bc5", car.external_id)
 
     def test_connect(self):
-        # add admin to beta group
-        self.admin.groups.add(Group.objects.get(name="Beta"))
-
         url = reverse("classifiers.classifier_connect")
         response = self.client.get(url)
         self.assertRedirect(response, "/users/login/")
@@ -98,7 +94,7 @@ class LuisTypeTest(TembaTest):
 
         # all good
         with patch("requests.get") as mock_get:
-            mock_get.return_value = MockResponse(200, '{ "error": "false" }')
+            mock_get.side_effect = [MockResponse(200, '{ "error": "false" }'), MockResponse(200, INTENT_RESPONSE)]
             response = self.client.post(url, post_data)
             self.assertEqual(302, response.status_code)
 
@@ -108,3 +104,5 @@ class LuisTypeTest(TembaTest):
             self.assertEqual("sesame", c.config[LuisType.CONFIG_PRIMARY_KEY])
             self.assertEqual("http://foo.bar/luis", c.config[LuisType.CONFIG_ENDPOINT_URL])
             self.assertEqual("0.1", c.config[LuisType.CONFIG_VERSION])
+
+            self.assertEqual(2, c.intents.all().count())

@@ -304,54 +304,88 @@ class ScheduleTest(TembaTest):
         tommorrow = now + timedelta(days=1)
         tommorrow_stamp = time.mktime(tommorrow.timetuple())
 
-        post_data = dict()
-        post_data["start"] = "never"
-        post_data["repeat_period"] = "O"
-
-        response = self.client.post(update_url, post_data)
+        self.client.post(update_url, {"start": "never", "repeat_period": "O"})
 
         schedule = Schedule.objects.get(pk=sched.pk)
         self.assertIsNone(schedule.next_fire)
 
-        post_data = dict()
-        post_data["start"] = "stop"
-        post_data["repeat_period"] = "O"
+        self.client.post(update_url, {"start": "stop", "repeat_period": "O"})
 
-        response = self.client.post(update_url, post_data)
-
-        schedule = Schedule.objects.get(pk=sched.pk)
+        schedule.refresh_from_db()
         self.assertIsNone(schedule.next_fire)
 
-        post_data = dict()
-        post_data["start"] = "now"
-        post_data["repeat_period"] = "O"
-        post_data["start_datetime_value"] = "%d" % now_stamp
+        post_data = {"start": "now", "repeat_period": "O", "start_datetime_value": "%d" % now_stamp}
 
         response = self.client.post(update_url, post_data)
 
-        schedule = Schedule.objects.get(pk=sched.pk)
+        schedule.refresh_from_db()
         self.assertEqual(schedule.repeat_period, "O")
         self.assertFalse(schedule.next_fire)
 
-        post_data = dict()
-        post_data["repeat_period"] = "D"
-        post_data["start"] = "later"
-        post_data["start_datetime_value"] = "%d" % tommorrow_stamp
+        post_data = {"repeat_period": "D", "start": "later", "start_datetime_value": "%d" % tommorrow_stamp}
 
         response = self.client.post(update_url, post_data)
 
-        schedule = Schedule.objects.get(pk=sched.pk)
+        schedule.refresh_from_db()
         self.assertEqual(schedule.repeat_period, "D")
 
-        post_data = dict()
-        post_data["repeat_period"] = "D"
-        post_data["start"] = "later"
-        post_data["start_datetime_value"] = "%d" % tommorrow_stamp
+        post_data = {"repeat_period": "D", "start": "later", "start_datetime_value": "%d" % tommorrow_stamp}
 
         response = self.client.post(update_url, post_data)
 
-        schedule = Schedule.objects.get(pk=sched.pk)
+        schedule.refresh_from_db()
         self.assertEqual(schedule.repeat_period, "D")
+
+        # can't omit repeat_days_of_week for weekly
+        response = self.client.post(
+            update_url,
+            {
+                "repeat_period": "W",
+                "start": "later",
+                "repeat_days_of_week": "",
+                "start_datetime_value": str(now_stamp),
+            },
+        )
+
+        self.assertFormError(response, "form", "__all__", "Must specify at least one day of the week")
+
+        schedule.refresh_from_db()
+        self.assertEqual(schedule.repeat_period, "D")  # unchanged
+        self.assertEqual(schedule.repeat_days_of_week, "")
+
+        # can't set repeat_days_of_week to invalid day
+        response = self.client.post(
+            update_url,
+            {
+                "repeat_period": "W",
+                "start": "later",
+                "repeat_days_of_week": "X",
+                "start_datetime_value": str(now_stamp),
+            },
+        )
+
+        self.assertFormError(response, "form", "repeat_days_of_week", "X is not a valid day of the week")
+
+        schedule.refresh_from_db()
+        self.assertEqual(schedule.repeat_period, "D")  # unchanged
+        self.assertEqual(schedule.repeat_days_of_week, "")
+
+        # can set to valid days
+        response = self.client.post(
+            update_url,
+            {
+                "repeat_period": "W",
+                "start": "later",
+                "repeat_days_of_week": "MF",
+                "start_datetime_value": str(now_stamp),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        schedule.refresh_from_db()
+        self.assertEqual(schedule.repeat_period, "W")
+        self.assertEqual(schedule.repeat_days_of_week, "MF")
 
     def test_update_near_day_boundary(self):
         self.org.timezone = pytz.timezone("US/Eastern")

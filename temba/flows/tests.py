@@ -16,9 +16,11 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_text
 
+from temba.api.models import Resthook
 from temba.archives.models import Archive
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.channels.models import Channel
+from temba.classifiers.models import Classifier
 from temba.contacts.models import WHATSAPP_SCHEME, Contact, ContactField, ContactGroup
 from temba.mailroom import FlowValidationException
 from temba.msgs.models import Label
@@ -352,6 +354,36 @@ class FlowTest(TembaTest):
 
         response = self.client.get(reverse("flows.flow_editor_next", args=[self.flow.uuid]))
         self.assertFalse(response.context["mutable"])
+
+    def test_feature_filters(self):
+        self.login(self.admin)
+
+        # empty feature set
+        response = self.client.get(reverse("flows.flow_editor_next", args=[self.flow.uuid]))
+        self.assertEqual([], json.loads(response.context["feature_filters"]))
+
+        # with zapier
+        Resthook.objects.create(org=self.flow.org, created_by=self.admin, modified_by=self.admin)
+        response = self.client.get(reverse("flows.flow_editor_next", args=[self.flow.uuid]))
+        self.assertEqual(["resthook"], json.loads(response.context["feature_filters"]))
+
+        # add in a classifier
+        Classifier.objects.create(org=self.flow.org, config="", created_by=self.admin, modified_by=self.admin)
+        response = self.client.get(reverse("flows.flow_editor_next", args=[self.flow.uuid]))
+        self.assertEqual(["classifier", "resthook"], json.loads(response.context["feature_filters"]))
+
+        # add in an airtime connection
+        self.flow.org.connect_dtone("login", "token", self.admin)
+        response = self.client.get(reverse("flows.flow_editor_next", args=[self.flow.uuid]))
+        self.assertEqual(["airtime", "classifier", "resthook"], json.loads(response.context["feature_filters"]))
+
+        # change our channel to use a whatsapp scheme
+        self.channel.schemes = [WHATSAPP_SCHEME]
+        self.channel.save()
+        response = self.client.get(reverse("flows.flow_editor_next", args=[self.flow.uuid]))
+        self.assertEqual(
+            ["whatsapp", "airtime", "classifier", "resthook"], json.loads(response.context["feature_filters"])
+        )
 
     def test_flow_editor(self):
         self.login(self.admin)
@@ -1655,6 +1687,38 @@ class FlowTest(TembaTest):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_flow_results_with_hidden_results(self):
+        flow = self.get_flow("color_v13")
+        flow_nodes = flow.as_json()["nodes"]
+        color_split = flow_nodes[4]
+
+        # add a spec for a hidden result to this flow.. which should not be included below
+        flow.metadata[Flow.METADATA_RESULTS].append(
+            {
+                "key": "_color_classification",
+                "name": "_Color Classification",
+                "categories": ["Success", "Skipped", "Failure"],
+                "node_uuids": [color_split["uuid"]],
+            }
+        )
+
+        self.login(self.admin)
+        response = self.client.get(reverse("flows.flow_results", args=[flow.uuid]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context["result_fields"],
+            [
+                {
+                    "key": "color",
+                    "name": "Color",
+                    "categories": ["Orange", "Blue", "Other", "Nothing"],
+                    "node_uuids": [color_split["uuid"]],
+                    "has_categories": "true",
+                }
+            ],
+        )
+
     def test_views_viewers(self):
         # create a viewer
         self.viewer = self.create_user("Viewer")
@@ -2884,14 +2948,66 @@ class FlowCRUDLTest(TembaTest):
         response = self.client.get(reverse("flows.flow_broadcast", args=[flow.id]))
 
         self.assertEqual(
-            ["omnibox", "restart_participants", "include_active", "loc"], list(response.context["form"].fields.keys())
+            ["omnibox", "restart_participants", "include_active", "start_type", "contact_query", "loc"],
+            list(response.context["form"].fields.keys()),
         )
+
+        # create flow start with a query
+        with patch("temba.mailroom.queue_flow_start") as mock_queue_flow_start:
+
+            self.client.post(
+                reverse("flows.flow_broadcast", args=[flow.id]),
+                {
+                    "contact_query": "frank",
+                    "start_type": "query",
+                    "restart_participants": "on",
+                    "include_active": "on",
+                },
+                follow=True,
+            )
+
+            start = FlowStart.objects.get()
+            self.assertEqual(flow, start.flow)
+            self.assertEqual(FlowStart.STATUS_PENDING, start.status)
+            self.assertTrue(start.restart_participants)
+            self.assertTrue(start.include_active)
+            self.assertEqual("frank", start.query)
+
+            mock_queue_flow_start.assert_called_once_with(start)
+
+        FlowStart.objects.all().delete()
+
+        # create flow start with a bogus query
+        response = self.client.post(
+            reverse("flows.flow_broadcast", args=[flow.id]),
+            {
+                "contact_query": 'name = "frank',
+                "start_type": "query",
+                "restart_participants": "on",
+                "include_active": "on",
+            },
+            follow=True,
+        )
+
+        self.assertFormError(response, "form", "contact_query", "Please enter a valid contact query")
+
+        # create flow start with an empty query
+        response = self.client.post(
+            reverse("flows.flow_broadcast", args=[flow.id]),
+            {"contact_query": "", "start_type": "query", "restart_participants": "on", "include_active": "on"},
+            follow=True,
+        )
+
+        self.assertFormError(response, "form", "contact_query", "Contact query is required")
 
         # create flow start with restart_participants and include_active both enabled
         with patch("temba.mailroom.queue_flow_start") as mock_queue_flow_start:
+
+            selection = json.dumps({"id": contact.uuid, "name": contact.name, "type": "contact"})
+
             self.client.post(
                 reverse("flows.flow_broadcast", args=[flow.id]),
-                {"omnibox": "c-%s" % contact.uuid, "restart_participants": "on", "include_active": "on"},
+                {"omnibox": selection, "start_type": "select", "restart_participants": "on", "include_active": "on"},
                 follow=True,
             )
 
@@ -2909,7 +3025,9 @@ class FlowCRUDLTest(TembaTest):
         # create flow start with restart_participants and include_active both enabled
         with patch("temba.mailroom.queue_flow_start") as mock_queue_flow_start:
             self.client.post(
-                reverse("flows.flow_broadcast", args=[flow.id]), {"omnibox": "c-%s" % contact.uuid}, follow=True
+                reverse("flows.flow_broadcast", args=[flow.id]),
+                {"omnibox": selection, "start_type": "select"},
+                follow=True,
             )
 
             start = FlowStart.objects.get()
@@ -2924,7 +3042,9 @@ class FlowCRUDLTest(TembaTest):
         # trying to start again should fail because there is already a pending start for this flow
         with patch("temba.mailroom.queue_flow_start") as mock_queue_flow_start:
             response = self.client.post(
-                reverse("flows.flow_broadcast", args=[flow.id]), {"omnibox": "c-%s" % contact.uuid}, follow=True
+                reverse("flows.flow_broadcast", args=[flow.id]),
+                {"omnibox": selection, "start_type": "select"},
+                follow=True,
             )
 
             # should have an error now
@@ -3830,6 +3950,16 @@ class ExportFlowResultsTest(TembaTest):
         color_other = flow_nodes[3]
         orange_reply = flow_nodes[1]
 
+        # add a spec for a hidden result to this flow
+        flow.metadata[Flow.METADATA_RESULTS].append(
+            {
+                "key": "_color_classification",
+                "name": "_Color Classification",
+                "categories": ["Success", "Skipped", "Failure"],
+                "node_uuids": [color_split["uuid"]],
+            }
+        )
+
         self.contact.update_urns(self.admin, ["tel:+250788382382", "twitter:erictweets"])
         devs = self.create_group("Devs", [self.contact])
 
@@ -3862,6 +3992,7 @@ class ExportFlowResultsTest(TembaTest):
             .wait()
             .resume(msg=contact1_in2)
             .set_result("Color", "orange", "Orange", "orange")
+            .set_result("_Color Classification", "orange", "Success", "color_selection")  # hidden result
             .visit(orange_reply)
             .send_msg(
                 "I love orange too! You said: orange which is category: Orange You are: 0788 382 382 SMS: orange Flow: color: orange",
@@ -4073,6 +4204,12 @@ class ExportFlowResultsTest(TembaTest):
         contact1_out3 = contact1_run1.get_messages().get(text__startswith="I love orange too")
         contact3_out1 = contact3_run1.get_messages().get(text="What is your favorite color?")
 
+        def msg_event_time(run, text):
+            for evt in run.get_msg_events():
+                if evt["msg"]["text"] == text:
+                    return iso8601.parse_date(evt["created_on"])
+            raise self.fail(f"no such message on run with text '{text}'")
+
         self.assertExcelRow(
             sheet_msgs,
             1,
@@ -4091,7 +4228,7 @@ class ExportFlowResultsTest(TembaTest):
             sheet_msgs,
             2,
             [
-                contact1_out1.contact.uuid,
+                self.contact.uuid,
                 "+250788382382",
                 "Eric",
                 contact1_out1.created_on,
@@ -4105,10 +4242,10 @@ class ExportFlowResultsTest(TembaTest):
             sheet_msgs,
             3,
             [
-                contact1_in1.contact.uuid,
+                self.contact.uuid,
                 "+250788382382",
                 "Eric",
-                contact1_in1.created_on,
+                msg_event_time(contact1_run1, "light beige"),
                 "IN",
                 "light beige",
                 "Test Channel",
@@ -4119,7 +4256,7 @@ class ExportFlowResultsTest(TembaTest):
             sheet_msgs,
             4,
             [
-                contact1_out2.contact.uuid,
+                self.contact.uuid,
                 "+250788382382",
                 "Eric",
                 contact1_out2.created_on,
@@ -4133,10 +4270,10 @@ class ExportFlowResultsTest(TembaTest):
             sheet_msgs,
             5,
             [
-                contact1_in2.contact.uuid,
+                self.contact.uuid,
                 "+250788382382",
                 "Eric",
-                contact1_in2.created_on,
+                msg_event_time(contact1_run1, "orange"),
                 "IN",
                 "orange",
                 "Test Channel",
@@ -4147,7 +4284,7 @@ class ExportFlowResultsTest(TembaTest):
             sheet_msgs,
             6,
             [
-                contact1_out3.contact.uuid,
+                self.contact.uuid,
                 "+250788382382",
                 "Eric",
                 contact1_out3.created_on,
@@ -4964,12 +5101,11 @@ class ExportFlowResultsTest(TembaTest):
                 contact1_in1.contact.uuid,
                 "+250788382382",
                 "Eric",
-                contact1_in1.created_on,
+                matchers.Datetime(),
                 "IN",
                 "light beige",
                 "Test Channel",
             ],
-            tz,
         )
         self.assertExcelRow(
             sheet_msgs,
@@ -4988,8 +5124,7 @@ class ExportFlowResultsTest(TembaTest):
         self.assertExcelRow(
             sheet_msgs,
             5,
-            [contact1_in2.contact.uuid, "+250788382382", "Eric", contact1_in2.created_on, "IN", "red", "Test Channel"],
-            tz,
+            [contact1_in2.contact.uuid, "+250788382382", "Eric", matchers.Datetime(), "IN", "red", "Test Channel"],
         )
         self.assertExcelRow(
             sheet_msgs,
@@ -5286,7 +5421,7 @@ class ExportFlowResultsTest(TembaTest):
         )
 
         # no channel or phone
-        self.assertExcelRow(sheet_msgs, 2, [run.contact.uuid, "", "Eric", in1.created_on, "IN", "blue", ""], tz)
+        self.assertExcelRow(sheet_msgs, 2, [run.contact.uuid, "", "Eric", matchers.Datetime(), "IN", "blue", ""])
 
         # now try setting a submitted by on our run
         run.submitted_by = self.admin
