@@ -1,5 +1,6 @@
 import datetime
 import io
+import smtplib
 from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import Mock, patch
@@ -453,7 +454,7 @@ class OrgTest(TembaTest):
     def test_get_channel_countries(self):
         self.assertEqual(self.org.get_channel_countries(), [])
 
-        self.org.connect_transferto("mylogin", "api_token", self.admin)
+        self.org.connect_dtone("mylogin", "api_token", self.admin)
 
         self.assertEqual(
             self.org.get_channel_countries(),
@@ -647,9 +648,10 @@ class OrgTest(TembaTest):
 
         # we also can't start flows
         flow = self.create_flow()
+        omni_mark = json.dumps({"id": mark.uuid, "name": mark.name, "type": "contact"})
         self.client.post(
             reverse("flows.flow_broadcast", args=[flow.id]),
-            {"omnibox": f"c-{mark.uuid}", "restart_participants": "on"},
+            {"start_type": "select", "omnibox": omni_mark, "restart_participants": "on"},
             follow=True,
         )
 
@@ -692,7 +694,7 @@ class OrgTest(TembaTest):
 
         self.client.post(
             reverse("flows.flow_broadcast", args=[flow.id]),
-            {"omnibox": f"c-{mark.uuid}", "restart_participants": "on"},
+            {"start_type": "select", "omnibox": omni_mark, "restart_participants": "on"},
             follow=True,
         )
 
@@ -1723,64 +1725,64 @@ class OrgTest(TembaTest):
 
         AirtimeTransfer.objects.create(
             org=self.org,
-            recipient="+250788123123",
-            amount="100",
             contact=contact,
-            created_by=self.admin,
-            modified_by=self.admin,
+            status=AirtimeTransfer.STATUS_SUCCESS,
+            recipient="+250788123123",
+            desired_amount=Decimal("100"),
+            actual_amount=Decimal("0"),
         )
 
         self.assertTrue(self.org.has_airtime_transfers())
 
-    def test_transferto_model_methods(self):
+    def test_dtone_model_methods(self):
         org = self.org
 
         org.refresh_from_db()
-        self.assertFalse(org.is_connected_to_transferto())
-        self.assertIsNone(org.get_transferto_client())
+        self.assertFalse(org.is_connected_to_dtone())
+        self.assertIsNone(org.get_dtone_client())
 
-        org.connect_transferto("login", "token", self.admin)
+        org.connect_dtone("login", "token", self.admin)
         org.refresh_from_db()
 
-        self.assertTrue(org.is_connected_to_transferto())
-        self.assertIsNotNone(org.get_transferto_client())
+        self.assertTrue(org.is_connected_to_dtone())
+        self.assertIsNotNone(org.get_dtone_client())
         self.assertEqual(org.modified_by, self.admin)
 
-        org.remove_transferto_account(self.admin)
+        org.remove_dtone_account(self.admin)
         org.refresh_from_db()
 
-        self.assertFalse(org.is_connected_to_transferto())
-        self.assertIsNone(org.get_transferto_client())
+        self.assertFalse(org.is_connected_to_dtone())
+        self.assertIsNone(org.get_dtone_client())
         self.assertEqual(org.modified_by, self.admin)
 
-    def test_transferto_account(self):
+    def test_dtone_account(self):
         self.login(self.admin)
 
-        # connect transferTo
-        transferto_account_url = reverse("orgs.org_transfer_to_account")
+        # connect DT One
+        dtone_account_url = reverse("orgs.org_dtone_account")
 
         with patch("requests.post") as mock_post:
             mock_post.return_value = MockResponse(200, "Unexpected content")
             response = self.client.post(
-                transferto_account_url, dict(account_login="login", airtime_api_token="token", disconnect="false")
+                dtone_account_url, dict(account_login="login", airtime_api_token="token", disconnect="false")
             )
 
-            self.assertContains(response, "Your TransferTo API key and secret seem invalid.")
-            self.assertFalse(self.org.is_connected_to_transferto())
+            self.assertContains(response, "Your DT One API key and secret seem invalid.")
+            self.assertFalse(self.org.is_connected_to_dtone())
 
             mock_post.return_value = MockResponse(
                 200, "authentication_key=123\r\nerror_code=400\r\nerror_txt=Failed Authentication\r\n"
             )
 
             response = self.client.post(
-                transferto_account_url, dict(account_login="login", airtime_api_token="token", disconnect="false")
+                dtone_account_url, dict(account_login="login", airtime_api_token="token", disconnect="false")
             )
 
             self.assertContains(
-                response, "Connecting to your TransferTo account failed with error text: Failed Authentication"
+                response, "Connecting to your DT One account failed with error text: Failed Authentication"
             )
 
-            self.assertFalse(self.org.is_connected_to_transferto())
+            self.assertFalse(self.org.is_connected_to_dtone())
 
             mock_post.return_value = MockResponse(
                 200,
@@ -1791,56 +1793,56 @@ class OrgTest(TembaTest):
             )
 
             response = self.client.post(
-                transferto_account_url, dict(account_login="login", airtime_api_token="token", disconnect="false")
+                dtone_account_url, dict(account_login="login", airtime_api_token="token", disconnect="false")
             )
             self.assertNoFormErrors(response)
-            # transferTo should be connected
+            # DT One should be connected
             self.org = Org.objects.get(pk=self.org.pk)
-            self.assertTrue(self.org.is_connected_to_transferto())
+            self.assertTrue(self.org.is_connected_to_dtone())
             self.assertEqual(self.org.config["TRANSFERTO_ACCOUNT_LOGIN"], "login")
             self.assertEqual(self.org.config["TRANSFERTO_AIRTIME_API_TOKEN"], "token")
 
-            response = self.client.get(transferto_account_url)
-            self.assertEqual(response.context["transferto_account_login"], "login")
+            response = self.client.get(dtone_account_url)
+            self.assertEqual(response.context["dtone_account_login"], "login")
 
             # and disconnect
             response = self.client.post(
-                transferto_account_url, dict(account_login="login", airtime_api_token="token", disconnect="true")
+                dtone_account_url, dict(account_login="login", airtime_api_token="token", disconnect="true")
             )
 
             self.assertNoFormErrors(response)
             self.org = Org.objects.get(pk=self.org.pk)
-            self.assertFalse(self.org.is_connected_to_transferto())
+            self.assertFalse(self.org.is_connected_to_dtone())
             self.assertNotIn("TRANSFERTO_ACCOUNT_LOGIN", self.org.config)
             self.assertNotIn("TRANSFERTO_AIRTIME_API_TOKEN", self.org.config)
 
             mock_post.side_effect = Exception("foo")
             response = self.client.post(
-                transferto_account_url, dict(account_login="login", airtime_api_token="token", disconnect="false")
+                dtone_account_url, dict(account_login="login", airtime_api_token="token", disconnect="false")
             )
-            self.assertContains(response, "Your TransferTo API key and secret seem invalid.")
-            self.assertFalse(self.org.is_connected_to_transferto())
+            self.assertContains(response, "Your DT One API key and secret seem invalid.")
+            self.assertFalse(self.org.is_connected_to_dtone())
 
         # no account connected, do not show the button to Transfer logs
-        response = self.client.get(transferto_account_url, HTTP_X_FORMAX=True)
+        response = self.client.get(dtone_account_url, HTTP_X_FORMAX=True)
         self.assertNotContains(response, reverse("airtime.airtimetransfer_list"))
-        self.assertNotContains(response, "%s?disconnect=true" % reverse("orgs.org_transfer_to_account"))
+        self.assertNotContains(response, "%s?disconnect=true" % reverse("orgs.org_dtone_account"))
 
-        response = self.client.get(transferto_account_url)
+        response = self.client.get(dtone_account_url)
         self.assertNotContains(response, reverse("airtime.airtimetransfer_list"))
-        self.assertNotContains(response, "%s?disconnect=true" % reverse("orgs.org_transfer_to_account"))
+        self.assertNotContains(response, "%s?disconnect=true" % reverse("orgs.org_dtone_account"))
 
-        self.org.connect_transferto("login", "token", self.admin)
+        self.org.connect_dtone("login", "token", self.admin)
 
         # links not show if request is not from formax
-        response = self.client.get(transferto_account_url)
+        response = self.client.get(dtone_account_url)
         self.assertNotContains(response, reverse("airtime.airtimetransfer_list"))
-        self.assertNotContains(response, "%s?disconnect=true" % reverse("orgs.org_transfer_to_account"))
+        self.assertNotContains(response, "%s?disconnect=true" % reverse("orgs.org_dtone_account"))
 
         # link show for formax requests
-        response = self.client.get(transferto_account_url, HTTP_X_FORMAX=True)
+        response = self.client.get(dtone_account_url, HTTP_X_FORMAX=True)
         self.assertContains(response, reverse("airtime.airtimetransfer_list"))
-        self.assertContains(response, "%s?disconnect=true" % reverse("orgs.org_transfer_to_account"))
+        self.assertContains(response, "%s?disconnect=true" % reverse("orgs.org_dtone_account"))
 
     def test_chatbase_account(self):
         self.login(self.admin)
@@ -1934,6 +1936,7 @@ class OrgTest(TembaTest):
         response = self.client.get(resthook_url)
         self.assertFalse(response.context["current_resthooks"])
 
+    @override_settings(HOSTNAME="rapidpro.io", SEND_EMAILS=True)
     def test_smtp_server(self):
         self.login(self.admin)
 
@@ -1947,6 +1950,7 @@ class OrgTest(TembaTest):
             '[{"message": "You must enter a from email", "code": ""}]',
             response.context["form"].errors["__all__"].as_json(),
         )
+        self.assertEqual(len(mail.outbox), 0)
 
         response = self.client.post(
             smtp_server_url, {"smtp_from_email": "foobar.com", "disconnect": "false"}, follow=True
@@ -1955,6 +1959,7 @@ class OrgTest(TembaTest):
             '[{"message": "Please enter a valid email address", "code": ""}]',
             response.context["form"].errors["__all__"].as_json(),
         )
+        self.assertEqual(len(mail.outbox), 0)
 
         response = self.client.post(
             smtp_server_url, {"smtp_from_email": "foo@bar.com", "disconnect": "false"}, follow=True
@@ -1963,6 +1968,7 @@ class OrgTest(TembaTest):
             '[{"message": "You must enter the SMTP host", "code": ""}]',
             response.context["form"].errors["__all__"].as_json(),
         )
+        self.assertEqual(len(mail.outbox), 0)
 
         response = self.client.post(
             smtp_server_url,
@@ -1973,6 +1979,7 @@ class OrgTest(TembaTest):
             '[{"message": "You must enter the SMTP username", "code": ""}]',
             response.context["form"].errors["__all__"].as_json(),
         )
+        self.assertEqual(len(mail.outbox), 0)
 
         response = self.client.post(
             smtp_server_url,
@@ -1988,6 +1995,7 @@ class OrgTest(TembaTest):
             '[{"message": "You must enter the SMTP password", "code": ""}]',
             response.context["form"].errors["__all__"].as_json(),
         )
+        self.assertEqual(len(mail.outbox), 0)
 
         response = self.client.post(
             smtp_server_url,
@@ -2004,6 +2012,46 @@ class OrgTest(TembaTest):
             '[{"message": "You must enter the SMTP port", "code": ""}]',
             response.context["form"].errors["__all__"].as_json(),
         )
+        self.assertEqual(len(mail.outbox), 0)
+
+        with patch("temba.utils.email.send_custom_smtp_email") as mock_send_smtp_email:
+            mock_send_smtp_email.side_effect = smtplib.SMTPException("SMTP Error")
+            response = self.client.post(
+                smtp_server_url,
+                {
+                    "smtp_from_email": "foo@bar.com",
+                    "smtp_host": "smtp.example.com",
+                    "smtp_username": "support@example.com",
+                    "smtp_password": "secret",
+                    "smtp_port": "465",
+                    "disconnect": "false",
+                },
+                follow=True,
+            )
+            self.assertEqual(
+                '[{"message": "Failed to send email with STMP server configuration with error \'SMTP Error\'", "code": ""}]',
+                response.context["form"].errors["__all__"].as_json(),
+            )
+            self.assertEqual(len(mail.outbox), 0)
+
+            mock_send_smtp_email.side_effect = Exception("Unexpected Error")
+            response = self.client.post(
+                smtp_server_url,
+                {
+                    "smtp_from_email": "foo@bar.com",
+                    "smtp_host": "smtp.example.com",
+                    "smtp_username": "support@example.com",
+                    "smtp_password": "secret",
+                    "smtp_port": "465",
+                    "disconnect": "false",
+                },
+                follow=True,
+            )
+            self.assertEqual(
+                '[{"message": "Failed to send email with STMP server configuration", "code": ""}]',
+                response.context["form"].errors["__all__"].as_json(),
+            )
+            self.assertEqual(len(mail.outbox), 0)
 
         response = self.client.post(
             smtp_server_url,
@@ -2017,6 +2065,7 @@ class OrgTest(TembaTest):
             },
             follow=True,
         )
+        self.assertEqual(len(mail.outbox), 1)
 
         self.org.refresh_from_db()
         self.assertTrue(self.org.has_smtp_config())

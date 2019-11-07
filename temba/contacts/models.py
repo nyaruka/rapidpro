@@ -415,7 +415,6 @@ class ContactField(SmartModel):
 
     MAX_KEY_LEN = 36
     MAX_LABEL_LEN = 36
-    MAX_ORG_CONTACTFIELDS = 200
 
     # fields that cannot be updated by user
     IMMUTABLE_FIELDS = ("id", "created_on")
@@ -783,6 +782,16 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         return obj
 
     @classmethod
+    def query_summary(cls, org, query, max_results=10):
+        from .search import contact_es_search
+        from temba.utils.es import ES
+
+        search_object, parsed_query = contact_es_search(org, query)
+        results = search_object.source(include=["id"]).using(ES)[0:max_results].execute()
+        contact_sample = list(mapEStoDB(Contact, results))
+        return {"total": results.hits.total, "sample": contact_sample, "query": parsed_query}
+
+    @classmethod
     def query_elasticsearch_for_ids(cls, org, query, group=None):
         from .search import contact_es_search, SearchException
         from temba.utils.es import ES
@@ -868,6 +877,10 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             .select_related("channel")[:MAX_HISTORY]
         )
 
+        transfers = self.airtime_transfers.filter(created_on__gte=after, created_on__lt=before).order_by(
+            "-created_on"
+        )[:MAX_HISTORY]
+
         session_events = self.get_session_events(after, before, HISTORY_INCLUDE_EVENTS)
 
         # wrap items, chain and sort by time
@@ -880,6 +893,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             [{"type": "campaign_fired", "created_on": f.fired, "obj": f} for f in campaign_events],
             [{"type": "webhook_called", "created_on": r.created_on, "obj": r} for r in webhook_results],
             [{"type": "call_started", "created_on": c.created_on, "obj": c} for c in calls],
+            [{"type": "airtime_transferred", "created_on": t.created_on, "obj": t} for t in transfers],
             session_events,
         )
 

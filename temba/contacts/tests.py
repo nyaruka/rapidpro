@@ -3,6 +3,7 @@ import subprocess
 import time
 import uuid
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 from unittest.mock import PropertyMock, patch
 
 import pytz
@@ -21,6 +22,7 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from temba.airtime.models import AirtimeTransfer
 from temba.api.models import WebHookResult
 from temba.campaigns.models import Campaign, CampaignEvent, EventFire
 from temba.channels.models import Channel, ChannelEvent, ChannelLog
@@ -1870,6 +1872,12 @@ class ContactTest(TembaTest):
             )
         )
 
+        # values can contain quotes
+        self.joe.set_field(self.admin, "gender", 'M"F')
+        self.assertTrue(evaluate_query(self.org, r'gender = "M\"F"', contact_json=self.joe.as_search_json()))
+        self.assertFalse(evaluate_query(self.org, r'gender != "M\"F"', contact_json=self.joe.as_search_json()))
+        self.joe.set_field(self.admin, "gender", "male")
+
         # non-existent field or attribute
         self.assertRaises(
             SearchException, evaluate_query, self.org, "credits > 10", contact_json=self.joe.as_search_json()
@@ -2121,6 +2129,10 @@ class ContactTest(TembaTest):
 
         query = parse_query("email ~ user@example.com")
         self.assertEqual(query.as_text(), 'email ~ "user@example.com"')
+
+        # escaped quotes
+        query = parse_query(r'name ~ "O\"Learly"')
+        self.assertEqual(query.as_text(), r'name ~ "O"Learly"')
 
     def test_contact_elastic_search(self):
         gender = ContactField.get_or_create(self.org, self.admin, "gender", "Gender", value_type=Value.TYPE_TEXT)
@@ -3539,7 +3551,7 @@ class ContactTest(TembaTest):
             )
 
             # create some messages
-            for i in range(96):
+            for i in range(95):
                 self.create_incoming_msg(
                     self.joe, "Inbound message %d" % i, created_on=timezone.now() - timedelta(days=(100 - i))
                 )
@@ -3582,6 +3594,16 @@ class ContactTest(TembaTest):
                 channel=failed.channel, msg=failed, is_error=True, description="It didn't send!!"
             )
 
+            # create an airtime transfer
+            AirtimeTransfer.objects.create(
+                org=self.org,
+                status="S",
+                contact=self.joe,
+                currency="RWF",
+                desired_amount=Decimal("100"),
+                actual_amount=Decimal("100"),
+            )
+
             # create an event from the past
             scheduled = timezone.now() - timedelta(days=5)
             EventFire.objects.create(
@@ -3616,7 +3638,7 @@ class ContactTest(TembaTest):
             )
 
             # fetch our contact history
-            with self.assertNumQueries(68):
+            with self.assertNumQueries(69):
                 response = self.fetch_protected(url, self.admin)
 
             # activity should include all messages in the last 90 days, the channel event, the call, and the flow run
@@ -3635,12 +3657,13 @@ class ContactTest(TembaTest):
             assertHistoryEvent(history[1], "channel_event", ChannelEvent)
             assertHistoryEvent(history[2], "channel_event", ChannelEvent)
             assertHistoryEvent(history[3], "channel_event", ChannelEvent)
-            assertHistoryEvent(history[4], "webhook_called", WebHookResult)
-            assertHistoryEvent(history[5], "run_result_changed")
-            assertHistoryEvent(history[6], "msg_created", Msg)
-            assertHistoryEvent(history[7], "flow_entered", FlowRun)
-            assertHistoryEvent(history[8], "msg_received", Msg)
-            assertHistoryEvent(history[9], "campaign_fired", EventFire)
+            assertHistoryEvent(history[4], "airtime_transferred", AirtimeTransfer)
+            assertHistoryEvent(history[5], "webhook_called", WebHookResult)
+            assertHistoryEvent(history[6], "run_result_changed")
+            assertHistoryEvent(history[7], "msg_created", Msg)
+            assertHistoryEvent(history[8], "flow_entered", FlowRun)
+            assertHistoryEvent(history[9], "msg_received", Msg)
+            assertHistoryEvent(history[10], "campaign_fired", EventFire)
             assertHistoryEvent(history[-1], "msg_received", Msg, msg_text="Inbound message 11")
 
             self.assertContains(response, "<audio ")
@@ -3673,7 +3696,7 @@ class ContactTest(TembaTest):
             history = response.context["history"]
 
             self.assertEqual(95, len(history))
-            assertHistoryEvent(history[6], "msg_created", Msg, msg_text="What is your favorite color?")
+            assertHistoryEvent(history[7], "msg_created", Msg, msg_text="What is your favorite color?")
 
             # if a new message comes in
             self.create_incoming_msg(self.joe, "Newer message")
@@ -3689,7 +3712,7 @@ class ContactTest(TembaTest):
 
             # with our recent flag on, should not see the older messages
             history = response.context["history"]
-            self.assertEqual(10, len(history))
+            self.assertEqual(11, len(history))
             self.assertContains(response, "file.mp4")
 
             # can't view history of contact in another org
@@ -3736,10 +3759,11 @@ class ContactTest(TembaTest):
             assertHistoryEvent(history[5], "channel_event", ChannelEvent)
             assertHistoryEvent(history[6], "channel_event", ChannelEvent)
             assertHistoryEvent(history[7], "channel_event", ChannelEvent)
-            assertHistoryEvent(history[8], "webhook_called", WebHookResult)
-            assertHistoryEvent(history[9], "run_result_changed")
-            assertHistoryEvent(history[10], "msg_created", Msg, msg_text="What is your favorite color?")
-            assertHistoryEvent(history[11], "flow_entered", FlowRun)
+            assertHistoryEvent(history[8], "airtime_transferred", AirtimeTransfer)
+            assertHistoryEvent(history[9], "webhook_called", WebHookResult)
+            assertHistoryEvent(history[10], "run_result_changed")
+            assertHistoryEvent(history[11], "msg_created", Msg, msg_text="What is your favorite color?")
+            assertHistoryEvent(history[12], "flow_entered", FlowRun)
 
         # with a max history of one, we should see this event first
         with patch("temba.contacts.models.MAX_HISTORY", 1):
@@ -3963,6 +3987,20 @@ class ContactTest(TembaTest):
         event_fire.fired_result = EventFire.RESULT_SKIPPED
         self.assertEqual(history_icon(item), '<span class="glyph icon-clock"></span>')
         self.assertEqual(history_class(item), "non-msg skipped")
+
+        # airtime transfer
+        transfer = AirtimeTransfer.objects.create(
+            org=self.org,
+            status="S",
+            contact=contact,
+            currency="RWF",
+            desired_amount=Decimal("100"),
+            actual_amount=Decimal("100"),
+            created_on=pastDate,
+        )
+        item = {"type": "airtime_transferred", "obj": transfer}
+        self.assertEqual(history_icon(item), '<span class="glyph icon-cash"></span>')
+        self.assertEqual(history_class(item), "non-msg")
 
     def test_get_scheduled_messages(self):
         self.just_joe = self.create_group("Just Joe", [self.joe])
@@ -4223,6 +4261,53 @@ class ContactTest(TembaTest):
             reverse("contacts.contactgroup_create"), dict(name="First Group", group_query="firsts")
         )
         self.assertFormError(response, "form", "name", "Name is used by another group")
+
+    def test_contacts_search(self):
+        search_url = reverse("contacts.contact_search")
+        self.login(self.admin)
+        with patch("temba.utils.es.ES") as mock_ES:
+
+            from elasticsearch_dsl.utils import AttrList
+
+            hits = AttrList([{"id": self.frank.id}])
+            hits.total = 1
+            mock_ES.search.return_value = {"_hits": hits}
+
+            response = self.client.get(search_url + "?search=Frank")
+            self.assertEqual(200, response.status_code)
+            results = response.json()
+
+            # check that we get a total and a sample
+            self.assertEqual(1, results["total"])
+            self.assertEqual(1, len(results["sample"]))
+            self.assertEqual("+250 782 222 222", results["sample"][0]["primary_urn_formatted"])
+
+            # our query should get expanded into a proper query
+            self.assertEqual('name ~ "Frank"', results["query"])
+
+            # check no primary urn
+            self.frank.urns.all().delete()
+            response = self.client.get(search_url + "?search=Frank")
+            self.assertEqual(200, response.status_code)
+            results = response.json()
+            self.assertEqual("--", results["sample"][0]["primary_urn_formatted"])
+
+            # no query, no results
+            response = self.client.get(search_url)
+            results = response.json()
+            self.assertEqual(0, results["total"])
+
+            # bogus query
+            response = self.client.get(search_url + '?search=name="notclosed')
+            results = response.json()
+            self.assertEqual('Search query contains an error at: "', results["error"])
+            self.assertEqual(0, results["total"])
+
+            # if we query a field, it should show up in our field dict
+            age = self.create_field("age", "Age", Value.TYPE_NUMBER)
+            response = self.client.get(search_url + "?search=age>32")
+            results = response.json()
+            self.assertEqual("Age", results["fields"][str(age.uuid)]["label"])
 
     def test_update_and_list(self):
         self.setUpLocations()

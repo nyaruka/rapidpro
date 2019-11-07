@@ -341,6 +341,7 @@ PERMISSIONS = {
         "history",
         "import",
         "omnibox",
+        "search",
         "unblock",
         "unstop",
         "update_fields",
@@ -362,6 +363,7 @@ PERMISSIONS = {
         "create_sub_org",
         "dashboard",
         "download",
+        "dtone_account",
         "edit",
         "edit_sub_org",
         "export",
@@ -383,7 +385,6 @@ PERMISSIONS = {
         "sub_orgs",
         "surveyor",
         "transfer_credits",
-        "transfer_to_account",
         "trial",
         "twilio_account",
         "twilio_connect",
@@ -470,7 +471,7 @@ PERMISSIONS = {
 GROUP_PERMISSIONS = {
     "Service Users": ("flows.flow_assets", "msgs.msg_create"),  # internal Temba services have limited permissions
     "Alpha": (),
-    "Beta": ("classifiers.classifier_connect",),
+    "Beta": (),
     "Dashboard": ("orgs.org_dashboard",),
     "Surveyors": (
         "contacts.contact_api",
@@ -528,6 +529,7 @@ GROUP_PERMISSIONS = {
         "campaigns.campaign.*",
         "campaigns.campaignevent.*",
         "classifiers.classifier_api",
+        "classifiers.classifier_connect",
         "classifiers.classifier_read",
         "classifiers.classifier_delete",
         "classifiers.classifier_list",
@@ -545,6 +547,7 @@ GROUP_PERMISSIONS = {
         "contacts.contact_list",
         "contacts.contact_omnibox",
         "contacts.contact_read",
+        "contacts.contact_search",
         "contacts.contact_stopped",
         "contacts.contact_unblock",
         "contacts.contact_unstop",
@@ -562,11 +565,12 @@ GROUP_PERMISSIONS = {
         "orgs.org_accounts",
         "orgs.org_smtp_server",
         "orgs.org_api",
-        "orgs.org_dashboard",
         "orgs.org_country",
         "orgs.org_chatbase",
         "orgs.org_create_sub_org",
+        "orgs.org_dashboard",
         "orgs.org_download",
+        "orgs.org_dtone_account",
         "orgs.org_edit",
         "orgs.org_edit_sub_org",
         "orgs.org_export",
@@ -582,7 +586,6 @@ GROUP_PERMISSIONS = {
         "orgs.org_resthooks",
         "orgs.org_sub_orgs",
         "orgs.org_transfer_credits",
-        "orgs.org_transfer_to_account",
         "orgs.org_twilio_account",
         "orgs.org_twilio_connect",
         "orgs.org_token",
@@ -668,6 +671,7 @@ GROUP_PERMISSIONS = {
         "contacts.contact_list",
         "contacts.contact_omnibox",
         "contacts.contact_read",
+        "contacts.contact_search",
         "contacts.contact_stopped",
         "contacts.contact_unblock",
         "contacts.contact_unstop",
@@ -861,6 +865,7 @@ CELERYBEAT_SCHEDULE = {
     "fail-old-messages": {"task": "fail_old_messages", "schedule": crontab(hour=0, minute=0)},
     "trim-sync-events": {"task": "trim_sync_events_task", "schedule": crontab(hour=3, minute=0)},
     "trim-channel-log": {"task": "trim_channel_log_task", "schedule": crontab(hour=3, minute=0)},
+    "trim-http-logs": {"task": "trim_http_logs_task", "schedule": crontab(hour=3, minute=0)},
     "trim-webhook-event": {"task": "trim_webhook_event_task", "schedule": crontab(hour=3, minute=0)},
     "trim-event-fires": {"task": "trim_event_fires_task", "schedule": timedelta(seconds=900)},
     "trim-flow-sessions": {"task": "trim_flow_sessions", "schedule": crontab(hour=0, minute=0)},
@@ -980,7 +985,11 @@ SEND_MESSAGES = False
 #         could cause emails to be sent in test environment
 SEND_EMAILS = False
 
-CLASSIFIER_TYPES = ["temba.classifiers.types.wit.WitType", "temba.classifiers.types.luis.LuisType"]
+CLASSIFIER_TYPES = [
+    "temba.classifiers.types.wit.WitType",
+    "temba.classifiers.types.luis.LuisType",
+    "temba.classifiers.types.bothub.BotHubType",
+]
 
 CHANNEL_TYPES = [
     "temba.channels.types.arabiacell.ArabiaCellType",

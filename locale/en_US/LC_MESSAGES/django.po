@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-14 17:15+0000\n"
+"POT-Creation-Date: 2019-11-06 08:43+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -489,8 +489,8 @@ msgstr ""
 
 msgid ""
 "\n"
-"                You can set the callback URL on your Africa's Talking account by visiting the SMS Dashboard page, then clicking on\n"
-"                <a href=\"http://www.africastalking.com/account/sms/smscallback\" target=\"africastalking\">Callback URL</a>.\n"
+"                You can set the callback URL on your Africa's Talking account by visiting the SMS Dashboard page,\n"
+"                then clicking on Callback URL.\n"
 "                "
 msgstr ""
 
@@ -499,8 +499,8 @@ msgstr ""
 
 msgid ""
 "\n"
-"                You can set the delivery URL on your Africa's Talking account by visiting the SMS Dashboard page, then clicking on\n"
-"                <a href=\"http://www.africastalking.com/account/sms/dlrcallback\" target=\"africastalking\">Delivery Reports</a>.\n"
+"                You can set the delivery URL on your Africa's Talking account by visiting the SMS Dashboard page,\n"
+"                then clicking on Delivery Reports.\n"
 "                "
 msgstr ""
 
@@ -2018,6 +2018,15 @@ msgstr ""
 msgid "Calls"
 msgstr ""
 
+msgid "The name of your bot"
+msgstr ""
+
+msgid "Access token for your bot, leave out leading Bearer"
+msgstr ""
+
+msgid "Unable to access bothub with credentials, please check and try again"
+msgstr ""
+
 msgid "The name of your LUIS app"
 msgstr ""
 
@@ -2859,6 +2868,9 @@ msgstr ""
 msgid "These contacts will be added to the flow, sending the first message if appropriate."
 msgstr ""
 
+msgid "Recipients, enter contacts or groups"
+msgstr ""
+
 msgid "Restart Participants"
 msgstr ""
 
@@ -2869,6 +2881,24 @@ msgid "Include Active Contacts"
 msgstr ""
 
 msgid "Include contacts currently active in a flow"
+msgstr ""
+
+msgid "Select contacts or groups to start in the flow"
+msgstr ""
+
+msgid "Enter contacts and groups to start below"
+msgstr ""
+
+msgid "Search for contacts to start"
+msgstr ""
+
+msgid "Enter contact query"
+msgstr ""
+
+msgid "Contact query is required"
+msgstr ""
+
+msgid "Please enter a valid contact query"
 msgstr ""
 
 msgid "You must specify at least one contact or one group to start a flow."
@@ -2883,7 +2913,7 @@ msgstr ""
 msgid "Add Contacts to Flow"
 msgstr ""
 
-msgid "This flow does not use message templates."
+msgid "This flow does not use message templates. You may still start this flow but WhatsApp contacts who have not sent an incoming message in the last 24 hours may not receive it."
 msgstr ""
 
 msgid "The message template {ref['name']} does not exist on your account and cannot be sent."
@@ -3691,6 +3721,21 @@ msgstr ""
 msgid "You must enter the SMTP port"
 msgstr ""
 
+#, python-format
+msgid "%(name)s SMTP configuration test"
+msgstr ""
+
+#, python-format
+msgid "This email is a test to confirm the custom SMTP server configuration added to your %(name)s account."
+msgstr ""
+
+#, python-format
+msgid "Failed to send email with STMP server configuration with error '%s'"
+msgstr ""
+
+msgid "Failed to send email with STMP server configuration"
+msgstr ""
+
 msgid "Topups"
 msgstr ""
 
@@ -3782,11 +3827,11 @@ msgstr ""
 msgid "API Token"
 msgstr ""
 
-msgid "Your TransferTo API key and secret seem invalid. Please check them again and retry."
+msgid "Your DT One API key and secret seem invalid. Please check them again and retry."
 msgstr ""
 
 #, python-format
-msgid "Connecting to your TransferTo account failed with error text: %s"
+msgid "Connecting to your DT One account failed with error text: %s"
 msgstr ""
 
 msgid "Account SID"
@@ -3894,6 +3939,9 @@ msgstr ""
 msgid "Classifier Called"
 msgstr ""
 
+msgid "Airtime Transferred"
+msgstr ""
+
 msgid "Never"
 msgstr ""
 
@@ -3904,6 +3952,13 @@ msgid "Weekly"
 msgstr ""
 
 msgid "Monthly"
+msgstr ""
+
+#, python-format
+msgid "%(day)s is not a valid day of the week"
+msgstr ""
+
+msgid "Must specify at least one day of the week"
 msgstr ""
 
 msgid "English"
@@ -4017,6 +4072,9 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "The message to send in response after they join the group (optional)"
+msgstr ""
+
+msgid "Select a flow"
 msgstr ""
 
 msgid "The groups and contacts the flow will be broadcast to"
@@ -4151,16 +4209,10 @@ msgstr ""
 msgid "Ward"
 msgstr ""
 
-msgid "Data posted Log"
+msgid "HTTP Logs"
 msgstr ""
 
 msgid "No Data"
-msgstr ""
-
-msgid "Responses Log"
-msgstr ""
-
-msgid "No Response"
 msgstr ""
 
 #, python-format
@@ -5165,9 +5217,7 @@ msgstr ""
 msgid ""
 "\n"
 "    To finish configuring your Facebook connection, you'll need to enter the following webhook URL and token on your application's\n"
-"    Messenger settings page. Make sure to check all boxes within the 'Webhooks' section to subscribe to all incoming Facebook events\n"
-"    and referral parameters (<code>messaging_referrals</code>), within the same section, select the page whose events you'd like the\n"
-"    webhook to subscribe to.\n"
+"    Messenger settings page. Make sure to check all boxes within the 'Webhooks' section to subscribe to incoming Facebook events and referral parameters in the following list.\n"
 "\n"
 "  "
 msgstr ""
@@ -5667,6 +5717,16 @@ msgid "Dynamic group based on:"
 msgstr ""
 
 msgid "Update Contact Group"
+msgstr ""
+
+#, python-format
+msgid ""
+"\n"
+"              Transferred <b>%(amount)s</b> <b>%(currency)s</b> of airtime\n"
+"            "
+msgstr ""
+
+msgid "Airtime transfer failed"
 msgstr ""
 
 msgid "Call Started"
@@ -6321,9 +6381,6 @@ msgstr ""
 msgid "Interrupt contacts currently active in flows"
 msgstr ""
 
-msgid "You may still start this flow but WhatsApp contacts who have not sent an incoming message in the last 24 hours may not receive it."
-msgstr ""
-
 msgid "This flow has never been started."
 msgstr ""
 
@@ -6520,6 +6577,9 @@ msgid "Remove Label"
 msgstr ""
 
 msgid "Are you sure you want to remove this label?"
+msgstr ""
+
+msgid "You cannot remove a label which has child labels. Please remove all children first."
 msgstr ""
 
 msgid "Unlabel"
@@ -7252,6 +7312,50 @@ msgid ""
 "    "
 msgstr ""
 
+msgid "DT One Account"
+msgstr ""
+
+#, python-format
+msgid ""
+"\n"
+"      Connected to DT One account <b>%(login)s</b>.\n"
+"    "
+msgstr ""
+
+msgid "No DT One account connected."
+msgstr ""
+
+msgid ""
+"\n"
+"      Adding a DT One account will allow you to send airtime credit for 400+ operators in over 100 countries. Once connected\n"
+"      you can transfer airtime credit within your Flows. To signup for an account, visit\n"
+"    "
+msgstr ""
+
+msgid "Transfer Log"
+msgstr ""
+
+msgid "Your account is connected to a DT One account"
+msgstr ""
+
+msgid "your DT One account. Doing so will cause the payment actions in your flows to no longer be processed."
+msgstr ""
+
+msgid "Disconnect DT One"
+msgstr ""
+
+msgid ""
+"\n"
+"          This will disconnect your DT One account. Payment actions will no longer be processed. Are you sure you want to proceed?\n"
+"        "
+msgstr ""
+
+msgid "You can find your API Token by clicking on "
+msgstr ""
+
+msgid " on the DT One site."
+msgstr ""
+
 #, python-format
 msgid ""
 "\n"
@@ -7560,46 +7664,6 @@ msgid ""
 "\n"
 "    Your API Token is <span class=\"attn\">%(token)s</span>.\n"
 "  "
-msgstr ""
-
-msgid "TransferTo Account"
-msgstr ""
-
-msgid "Connected to TransferTo Account"
-msgstr ""
-
-msgid "No TransferTo account connected."
-msgstr ""
-
-msgid ""
-"\n"
-"      Adding a TransferTo account will allow you to send airtime credit for 400+ operators in over 100 countries. Once connected\n"
-"      you can transfer airtime credit within your Flows. To signup for an account, visit\n"
-"    "
-msgstr ""
-
-msgid "Transfer Log"
-msgstr ""
-
-msgid "Your account is connected to the TransferTo account"
-msgstr ""
-
-msgid "your TransferTo account. Doing so will cause the payment actions in your flows to no longer be processed."
-msgstr ""
-
-msgid "Disconnect TransferTo"
-msgstr ""
-
-msgid ""
-"\n"
-"          This will disconnect your TransferTo account. Payment actions will no longer be processed. Are you sure you want to proceed?\n"
-"        "
-msgstr ""
-
-msgid "You can find your API Token by clicking on "
-msgstr ""
-
-msgid " on the TransferTo site."
 msgstr ""
 
 msgid "Disconnect Twilio"
@@ -8778,4 +8842,11 @@ msgid "Choose when you would like the flow to start."
 msgstr ""
 
 msgid "Facebook Channel"
+msgstr ""
+
+msgid "Enter a query"
+msgstr ""
+
+#, python-brace-format
+msgid "Found ${count} for ${query}"
 msgstr ""

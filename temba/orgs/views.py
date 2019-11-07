@@ -1,5 +1,6 @@
 import itertools
 import logging
+import smtplib
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -46,8 +47,8 @@ from django.views.generic import View
 
 from temba.api.models import APIToken
 from temba.campaigns.models import Campaign
-from temba.classifiers.models import Classifier
 from temba.channels.models import Channel
+from temba.classifiers.models import Classifier
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin
 from temba.utils import analytics, get_anonymous_user, json, languages
@@ -549,7 +550,7 @@ class OrgCRUDL(SmartCRUDL):
         "service",
         "surveyor",
         "transfer_credits",
-        "transfer_to_account",
+        "dtone_account",
         "smtp_server",
     )
 
@@ -951,6 +952,40 @@ class OrgCRUDL(SmartCRUDL):
                         raise ValidationError(_("You must enter the SMTP port"))
 
                     self.cleaned_data["smtp_password"] = smtp_password
+
+                    try:
+                        from temba.utils.email import send_custom_smtp_email
+
+                        admin_emails = [admin.email for admin in self.instance.get_org_admins().order_by("email")]
+
+                        branding = self.instance.get_branding()
+                        subject = _("%(name)s SMTP configuration test") % branding
+                        body = (
+                            _(
+                                "This email is a test to confirm the custom SMTP server configuration added to your %(name)s account."
+                            )
+                            % branding
+                        )
+
+                        send_custom_smtp_email(
+                            admin_emails,
+                            subject,
+                            body,
+                            smtp_from_email,
+                            smtp_host,
+                            smtp_port,
+                            smtp_username,
+                            smtp_password,
+                            True,
+                        )
+
+                    except smtplib.SMTPException as e:
+                        raise ValidationError(
+                            _("Failed to send email with STMP server configuration with error '%s'") % str(e)
+                        )
+                    except Exception:
+                        raise ValidationError(_("Failed to send email with STMP server configuration"))
+
                 return self.cleaned_data
 
             class Meta:
@@ -1919,7 +1954,7 @@ class OrgCRUDL(SmartCRUDL):
 
             slug = Org.get_unique_slug(self.form.cleaned_data["name"])
             obj.slug = slug
-            obj.brand = self.request.branding.get("host", settings.DEFAULT_BRAND)
+            obj.brand = self.request.branding.get("brand", settings.DEFAULT_BRAND)
 
             if obj.timezone.zone in pytz.country_timezones("US"):
                 obj.date_format = Org.DATE_FORMAT_MONTH_FIRST
@@ -2224,22 +2259,18 @@ class OrgCRUDL(SmartCRUDL):
             if self.has_org_perm("orgs.org_smtp_server"):
                 formax.add_section("email", reverse("orgs.org_smtp_server"), icon="icon-envelop")
 
-            if self.has_org_perm("orgs.org_transfer_to_account"):
-                if not self.object.is_connected_to_transferto():
+            if self.has_org_perm("orgs.org_dtone_account"):
+                if not self.object.is_connected_to_dtone():
                     formax.add_section(
-                        "transferto",
-                        reverse("orgs.org_transfer_to_account"),
-                        icon="icon-transferto",
+                        "dtone",
+                        reverse("orgs.org_dtone_account"),
+                        icon="icon-dtone",
                         action="redirect",
                         button=_("Connect"),
                     )
                 else:  # pragma: needs cover
                     formax.add_section(
-                        "transferto",
-                        reverse("orgs.org_transfer_to_account"),
-                        icon="icon-transferto",
-                        action="redirect",
-                        nobutton=True,
+                        "dtone", reverse("orgs.org_dtone_account"), icon="icon-dtone", action="redirect", nobutton=True
                     )
 
             if self.has_org_perm("orgs.org_chatbase"):
@@ -2272,11 +2303,11 @@ class OrgCRUDL(SmartCRUDL):
             # show archives
             formax.add_section("archives", reverse("archives.archive_message"), icon="icon-box", action="link")
 
-    class TransferToAccount(InferOrgMixin, OrgPermsMixin, SmartUpdateView):
+    class DtoneAccount(InferOrgMixin, OrgPermsMixin, SmartUpdateView):
 
         success_message = ""
 
-        class TransferToAccountForm(forms.ModelForm):
+        class DTOneAccountForm(forms.ModelForm):
             account_login = forms.CharField(label=_("Login"), required=False)
             airtime_api_token = forms.CharField(label=_("API Token"), required=False)
             disconnect = forms.CharField(widget=forms.HiddenInput, max_length=6, required=True)
@@ -2288,9 +2319,9 @@ class OrgCRUDL(SmartCRUDL):
                     airtime_api_token = self.cleaned_data.get("airtime_api_token", None)
 
                     try:
-                        from temba.airtime.transferto import TransferToClient
+                        from temba.airtime.dtone import DTOneClient
 
-                        client = TransferToClient(account_login, airtime_api_token)
+                        client = DTOneClient(account_login, airtime_api_token)
                         response = client.ping()
 
                         error_code = int(response.get("error_code", None))
@@ -2299,12 +2330,12 @@ class OrgCRUDL(SmartCRUDL):
 
                     except Exception:
                         raise ValidationError(
-                            _("Your TransferTo API key and secret seem invalid. " "Please check them again and retry.")
+                            _("Your DT One API key and secret seem invalid. Please check them again and retry.")
                         )
 
                     if error_code != 0 and info_txt != "pong":
                         raise ValidationError(
-                            _("Connecting to your TransferTo account " "failed with error text: %s") % error_txt
+                            _("Connecting to your DT One account failed with error text: %s") % error_txt
                         )
 
                 return self.cleaned_data
@@ -2313,24 +2344,24 @@ class OrgCRUDL(SmartCRUDL):
                 model = Org
                 fields = ("account_login", "airtime_api_token", "disconnect")
 
-        form_class = TransferToAccountForm
+        form_class = DTOneAccountForm
         submit_button_name = "Save"
         success_url = "@orgs.org_home"
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
-            if self.object.is_connected_to_transferto():
+            if self.object.is_connected_to_dtone():
                 config = self.object.config
-                account_login = config.get(Org.CONFIG_TRANSFERTO_LOGIN)
-                context["transferto_account_login"] = account_login
+                account_login = config.get(Org.CONFIG_DTONE_LOGIN)
+                context["dtone_account_login"] = account_login
 
             return context
 
         def derive_initial(self):
             initial = super().derive_initial()
             config = self.object.config
-            initial["account_login"] = config.get(Org.CONFIG_TRANSFERTO_LOGIN)
-            initial["airtime_api_token"] = config.get(Org.CONFIG_TRANSFERTO_API_TOKEN)
+            initial["account_login"] = config.get(Org.CONFIG_DTONE_LOGIN)
+            initial["airtime_api_token"] = config.get(Org.CONFIG_DTONE_API_TOKEN)
             initial["disconnect"] = "false"
             return initial
 
@@ -2339,14 +2370,14 @@ class OrgCRUDL(SmartCRUDL):
             org = user.get_org()
             disconnect = form.cleaned_data.get("disconnect", "false") == "true"
             if disconnect:
-                org.remove_transferto_account(user)
+                org.remove_dtone_account(user)
                 return HttpResponseRedirect(reverse("orgs.org_home"))
             else:
                 account_login = form.cleaned_data["account_login"]
                 airtime_api_token = form.cleaned_data["airtime_api_token"]
 
-                org.connect_transferto(account_login, airtime_api_token, user)
-                org.refresh_transferto_account_currency()
+                org.connect_dtone(account_login, airtime_api_token, user)
+                org.refresh_dtone_account_currency()
                 return super().form_valid(form)
 
     class TwilioAccount(InferOrgMixin, OrgPermsMixin, SmartUpdateView):
