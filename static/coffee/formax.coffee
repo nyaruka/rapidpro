@@ -150,6 +150,15 @@ _bindToggle = (bindTo) ->
     bindTo.off("click").on "click", ->
       document.location.href = section.data('href')
 
+_makeUniquePosterizerIds = (section) ->
+  sectionId = section.attr('id') + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  section.find("form#posterizer").attr('id', "posterizer-" + sectionId).css("display", "none")
+  section.find("a.posterize").each ->
+    $(this).removeClass('posterize').addClass('posterize-' + sectionId)
+
+  section.find("script").each ->
+    $(this).text($(this)[0].innerText.split("#posterizer").join("#posterizer-" + sectionId).split("a.posterize").join("a.posterize-" + sectionId))
+
 $ ->
   $('li .formax-summary').each ->
     section = $(this)
@@ -157,6 +166,7 @@ $ ->
 
   $('.formax li').each ->
     section = $(this)
+    _makeUniquePosterizerIds(section)
     _initializeForm(section)
 
   $('li .formax-icon').each ->
