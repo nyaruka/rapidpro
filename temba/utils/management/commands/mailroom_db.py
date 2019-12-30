@@ -54,7 +54,7 @@ ORG1 = dict(
         dict(
             uuid="859b436d-3005-4e43-9ad5-3de5f26ede4c",
             classifier_type="bothub",
-            name="BotHub",
+            name="Bothub",
             config=dict(access_token="access_token"),
             intents=(dict(name="intent", external_id="intent"),),
         ),
