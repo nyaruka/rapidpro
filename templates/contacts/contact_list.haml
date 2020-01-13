@@ -405,6 +405,17 @@
     $("#add-contact").live('click', function() { showCreateContactModal(); });
     {% endif %}
 
+    {% if org_perms.msgs.broadcast_send %}
+    $(".send-button").click(function(){
+      var contactsUuids = getCheckedUuids();
+      if (contactsUuids.length > 0) {
+        showComposeInitialized("c=" + contactsUuids);
+      } else {
+        showCompose();
+      }
+    });
+    {% endif %}
+
     {% if org_perms.contacts.contact_delete %}
     $(".contacts-btn-delete").live('click', function() {
       modal = new ConfirmationModal($('.contact-deletion > .title').html(), $('.contact-deletion > .body').html());
