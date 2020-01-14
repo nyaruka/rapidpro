@@ -237,6 +237,6 @@ DROP FUNCTION temba_insert_flowruncount(_flow_id INT, _exit_type CHAR(1), _count
 
 class Migration(migrations.Migration):
 
-    dependencies = [("flows", "0219_flow_classifier_dependencies"), ("sql", "0001_initial")]
+    dependencies = [("flows", "0222_auto_20200108_2214"), ("sql", "0001_initial")]
 
     operations = [migrations.RunSQL(SQL)]
