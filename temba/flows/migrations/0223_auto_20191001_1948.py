@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
     atomic = False
 
-    dependencies = [("sql", "0001_initial"), ("flows", "0219_flow_classifier_dependencies")]
+    dependencies = [("sql", "0001_initial"), ("flows", "0222_auto_20200108_2214")]
 
     operations = [
         migrations.RunSQL("DROP INDEX flows_flowrun_timeout_active;"),
