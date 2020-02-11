@@ -56,6 +56,8 @@
       -trans "You can always test your flow using the simulator, click"
         %span.glyph.icon-mobile{style:"padding-top:2px;"}
       -trans "on the right to open it."
+    :javascript
+      $(".loader").hide();
 
   -elif object.flow_type == 'V' and not call_channel
     %p
