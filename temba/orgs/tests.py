@@ -2660,6 +2660,11 @@ class OrgTest(TembaTest):
         mock_export_flow_results_task.return_value = None
         mock_export_messages_task.return_value = None
 
+        now = timezone.now()
+        two_hours_ago = now - timedelta(hours=2)
+        three_days_ago = now - timedelta(days=3)
+        a_week_ago = now - timedelta(days=7)
+
         filename = "sample_contacts.xls"
         import_params = dict(
             org_id=self.org.id, timezone=str(self.org.timezone), extra_fields=[], original_filename=filename
@@ -2697,6 +2702,28 @@ class OrgTest(TembaTest):
             task_id="B",
         )
 
+        ImportTask.objects.create(
+            created_by=self.admin,
+            modified_by=self.admin,
+            csv_file="test_imports/" + filename,
+            model_class="Contact",
+            import_params=json.dumps(import_params),
+            import_log="",
+            task_id="B",
+            created_on=three_days_ago,
+        )
+
+        old_import = ImportTask.objects.create(
+            created_by=self.admin,
+            modified_by=self.admin,
+            csv_file="test_imports/" + filename,
+            model_class="Contact",
+            import_params=json.dumps(import_params),
+            import_log="",
+            task_id="B",
+            created_on=a_week_ago,
+        )
+
         ExportMessagesTask.objects.create(
             org=self.org, created_by=self.admin, modified_by=self.admin, status=ExportMessagesTask.STATUS_FAILED
         )
@@ -2704,6 +2731,13 @@ class OrgTest(TembaTest):
             org=self.org, created_by=self.admin, modified_by=self.admin, status=ExportMessagesTask.STATUS_COMPLETE
         )
         ExportMessagesTask.objects.create(org=self.org, created_by=self.admin, modified_by=self.admin)
+
+        ExportMessagesTask.objects.create(
+            org=self.org, created_by=self.admin, modified_by=self.admin, created_on=three_days_ago
+        )
+        old_message_export = ExportMessagesTask.objects.create(
+            org=self.org, created_by=self.admin, modified_by=self.admin, created_on=a_week_ago
+        )
 
         ExportFlowResultsTask.objects.create(
             org=self.org, created_by=self.admin, modified_by=self.admin, status=ExportFlowResultsTask.STATUS_FAILED
@@ -2713,6 +2747,13 @@ class OrgTest(TembaTest):
         )
         ExportFlowResultsTask.objects.create(org=self.org, created_by=self.admin, modified_by=self.admin)
 
+        ExportFlowResultsTask.objects.create(
+            org=self.org, created_by=self.admin, modified_by=self.admin, created_on=three_days_ago
+        )
+        old_results_export = ExportFlowResultsTask.objects.create(
+            org=self.org, created_by=self.admin, modified_by=self.admin, created_on=a_week_ago
+        )
+
         ExportContactsTask.objects.create(
             org=self.org, created_by=self.admin, modified_by=self.admin, status=ExportContactsTask.STATUS_FAILED
         )
@@ -2721,7 +2762,13 @@ class OrgTest(TembaTest):
         )
         ExportContactsTask.objects.create(org=self.org, created_by=self.admin, modified_by=self.admin)
 
-        two_hours_ago = timezone.now() - timedelta(hours=2)
+        ExportContactsTask.objects.create(
+            org=self.org, created_by=self.admin, modified_by=self.admin, created_on=three_days_ago
+        )
+        old_contact_export = ExportContactsTask.objects.create(
+            org=self.org, created_by=self.admin, modified_by=self.admin, created_on=a_week_ago
+        )
+
         ImportTask.objects.all().update(modified_on=two_hours_ago)
         ExportMessagesTask.objects.all().update(modified_on=two_hours_ago)
         ExportFlowResultsTask.objects.all().update(modified_on=two_hours_ago)
@@ -2732,6 +2779,17 @@ class OrgTest(TembaTest):
         mock_export_contacts_task.assert_called_once()
         mock_export_flow_results_task.assert_called_once()
         mock_export_messages_task.assert_called_once()
+
+        self.assertEqual(ImportTask.objects.get(pk=old_import.pk).task_status, ImportTask.FAILURE)
+        self.assertEqual(
+            ExportContactsTask.objects.get(pk=old_contact_export.pk).status, ExportContactsTask.STATUS_FAILED
+        )
+        self.assertEqual(
+            ExportFlowResultsTask.objects.get(pk=old_results_export.pk).status, ExportFlowResultsTask.STATUS_FAILED
+        )
+        self.assertEqual(
+            ExportMessagesTask.objects.get(pk=old_message_export.pk).status, ExportMessagesTask.STATUS_FAILED
+        )
 
 
 class AnonOrgTest(TembaTest):
