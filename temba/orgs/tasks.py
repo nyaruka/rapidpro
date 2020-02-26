@@ -58,41 +58,49 @@ def resume_failed_tasks():
     oldest_retry_time = now - timedelta(days=2)
     permanent_failed_time = now - timedelta(days=5)
 
-    import_tasks = ImportTask.objects.filter(modified_on__lte=window, created_on__gte=oldest_retry_time).exclude(
+    import_tasks = list(ImportTask.objects.filter(modified_on__lte=window, created_on__gte=oldest_retry_time).exclude(
         task_status__in=[ImportTask.SUCCESS, ImportTask.FAILURE]
-    )
+    ))
     for import_task in import_tasks:
         import_task.start()
+
+    ImportTask.objects.filter(pk__in=[elt.id for elt in import_tasks]).update(modified_on=now)
 
     ImportTask.objects.filter(created_on__lt=permanent_failed_time).exclude(
         task_status__in=[ImportTask.SUCCESS, ImportTask.FAILURE]
     ).update(task_status=ImportTask.FAILURE)
 
-    contact_exports = ExportContactsTask.objects.filter(
+    contact_exports = list(ExportContactsTask.objects.filter(
         modified_on__lte=window, created_on__gte=oldest_retry_time
-    ).exclude(status__in=[ExportContactsTask.STATUS_COMPLETE, ExportContactsTask.STATUS_FAILED])
+    ).exclude(status__in=[ExportContactsTask.STATUS_COMPLETE, ExportContactsTask.STATUS_FAILED]))
     for contact_export in contact_exports:
         export_contacts_task.delay(contact_export.pk)
+
+    ExportContactsTask.objects.filter(pk__in=[elt.id for elt in contact_exports]).update(modified_on=now)
 
     ExportContactsTask.objects.filter(created_on__lt=permanent_failed_time).exclude(
         status__in=[ExportContactsTask.STATUS_COMPLETE, ExportContactsTask.STATUS_FAILED]
     ).update(status=ExportContactsTask.STATUS_FAILED)
 
-    flow_results_exports = ExportFlowResultsTask.objects.filter(
+    flow_results_exports = list(ExportFlowResultsTask.objects.filter(
         modified_on__lte=window, created_on__gte=oldest_retry_time
-    ).exclude(status__in=[ExportFlowResultsTask.STATUS_COMPLETE, ExportFlowResultsTask.STATUS_FAILED])
+    ).exclude(status__in=[ExportFlowResultsTask.STATUS_COMPLETE, ExportFlowResultsTask.STATUS_FAILED]))
     for flow_results_export in flow_results_exports:
         export_flow_results_task.delay(flow_results_export.pk)
+
+    ExportFlowResultsTask.objects.filter(pk__in=[elt.id for elt in flow_results_exports]).update(modified_on=now)
 
     ExportFlowResultsTask.objects.filter(created_on__lt=permanent_failed_time).exclude(
         status__in=[ExportFlowResultsTask.STATUS_COMPLETE, ExportFlowResultsTask.STATUS_FAILED]
     ).update(status=ExportFlowResultsTask.STATUS_FAILED)
 
-    msg_exports = ExportMessagesTask.objects.filter(
+    msg_exports = list(ExportMessagesTask.objects.filter(
         modified_on__lte=window, created_on__gte=oldest_retry_time
-    ).exclude(status__in=[ExportMessagesTask.STATUS_COMPLETE, ExportMessagesTask.STATUS_FAILED])
+    ).exclude(status__in=[ExportMessagesTask.STATUS_COMPLETE, ExportMessagesTask.STATUS_FAILED]))
     for msg_export in msg_exports:
         export_messages_task.delay(msg_export.pk)
+
+    ExportMessagesTask.objects.filter(pk__in=[elt.id for elt in msg_exports]).update(modified_on=now)
 
     ExportMessagesTask.objects.filter(created_on__lt=permanent_failed_time).exclude(
         status__in=[ExportMessagesTask.STATUS_COMPLETE, ExportMessagesTask.STATUS_FAILED]
