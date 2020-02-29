@@ -13,4 +13,4 @@ class Migration(migrations.Migration):
 
     dependencies = [("channels", "0122_populate_allow_international")]
 
-    operations = [migrations.RunSQL(INDEX_SQL_SYNC_EVENT_CREATED_ON)]
+    operations = [migrations.RunSQL(INDEX_SQL_SYNC_EVENT_CREATED_ON, "")]
