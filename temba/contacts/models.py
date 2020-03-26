@@ -21,6 +21,7 @@ from django.db.models import Count, Max, Q, Sum
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from temba import mailroom
 from temba.assets.models import register_asset_store
 from temba.channels.models import Channel, ChannelEvent
 from temba.locations.models import AdminBoundary
@@ -2690,6 +2691,33 @@ class ContactGroup(TembaModel):
             raise ValueError("Can't add or remove contacts from system or dynamic groups")
 
         return self._update_contacts(user, contacts, add)
+
+    def update_contacts_by_mailroom(self, user, contacts, add):
+        if self.group_type != self.TYPE_USER_DEFINED or self.is_dynamic:  # pragma: no cover
+            raise ValueError("Can't add or remove contacts from system or dynamic groups")
+
+        changed = 0
+        try:
+            client = mailroom.get_client()
+            contact_ids = [c.id for c in contacts]
+            modifiers = [
+                {
+                    "type": "groups",
+                    "modification": "add" if add else "remove",
+                    "groups": [{
+                        "uuid": self.uuid,
+                        "name": self.name
+                    }]
+                }
+            ]
+
+            response = client.contact_modify(self.org_id, contact_ids, modifiers)
+            changed = len(response)
+
+        except mailroom.MailroomException as e:
+            raise SearchException(e.response["error"])
+
+        return changed
 
     def remove_contacts(self, user, contacts):
         """
