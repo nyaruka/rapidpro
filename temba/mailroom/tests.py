@@ -41,9 +41,9 @@ class MailroomClientTest(TembaTest):
     def test_contact_modify(self):
         with patch("requests.post") as mock_post:
             mock_post.return_value = MockResponse(
-                200, 
+                200,
                 """{
-                    "1": { 
+                    "1": {
                         "contact": {
                             "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
                             "id": 1,
@@ -65,32 +65,30 @@ class MailroomClientTest(TembaTest):
                         ]
                     }
                 }
-                """
+                """,
             )
-            
-            response = get_client().contact_modify(1, [1], {
+
+            response = get_client().contact_modify(
+                1,
+                [1],
+                {
                     "type": "groups",
                     "modification": "add",
-                    "groups": [{
-                        "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
-                        "name": "Doctors"
-                    }]
-                })
-            self.assertEqual('6393abc0-283d-4c9b-a1b3-641a035c34bf', response["1"]["contact"]["uuid"])
+                    "groups": [{"uuid": "c153e265-f7c9-4539-9dbc-9b358714b638", "name": "Doctors"}],
+                },
+            )
+            self.assertEqual("6393abc0-283d-4c9b-a1b3-641a035c34bf", response["1"]["contact"]["uuid"])
             mock_post.assert_called_once_with(
                 "http://localhost:8090/mr/contact/modify",
                 headers={"User-Agent": "Temba"},
                 json={
-                    "org_id": 1, 
-                    "contact_ids": [1], 
+                    "org_id": 1,
+                    "contact_ids": [1],
                     "modifiers": {
                         "type": "groups",
                         "modification": "add",
-                        "groups": [{
-                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
-                            "name": "Doctors"
-                        }]
-                    }
+                        "groups": [{"uuid": "c153e265-f7c9-4539-9dbc-9b358714b638", "name": "Doctors"}],
+                    },
                 },
             )
 

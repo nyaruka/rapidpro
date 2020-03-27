@@ -2704,10 +2704,7 @@ class ContactGroup(TembaModel):
                 {
                     "type": "groups",
                     "modification": "add" if add else "remove",
-                    "groups": [{
-                        "uuid": self.uuid,
-                        "name": self.name
-                    }]
+                    "groups": [{"uuid": self.uuid, "name": self.name}],
                 }
             ]
 
@@ -2715,7 +2712,7 @@ class ContactGroup(TembaModel):
             changed = len(response)
 
         except mailroom.MailroomException as e:
-            raise SearchException(e.response["error"])
+            raise ValueError(e.response["error"])
 
         return changed
 
