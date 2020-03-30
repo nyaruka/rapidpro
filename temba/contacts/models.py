@@ -1092,6 +1092,23 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
 
         return field_dict
 
+    def set_field_by_mailroom(self, user, key, value, label=None):
+        # make sure this field exists
+        field = ContactField.get_or_create(self.org, user, key, label)
+        if value is None or value == "":
+            value_dict = None
+        else:
+            value_dict = self.serialize_field(field, value)
+
+        try:
+            client = mailroom.get_client()
+            contact_ids = [self.id]
+            modifiers = [{"type": "field", "field": {"key": field.key, "name": field.label}, "value": value_dict}]
+
+            client.contact_modify(self.org_id, contact_ids, modifiers)
+        except mailroom.MailroomException as e:
+            raise e
+
     def set_field(self, user, key, value, label=None):
         # make sure this field exists
         field = ContactField.get_or_create(self.org, user, key, label)
