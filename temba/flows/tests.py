@@ -4567,7 +4567,7 @@ class ExportFlowResultsTest(TembaTest):
 
         # test export with a contact field
         age = ContactField.get_or_create(self.org, self.admin, "age", "Age")
-        self.contact.set_field(self.admin, "age", "36")
+        self.set_field(self.contact, self.admin, "age", "36")
 
         with self.assertNumQueries(43):
             workbook = self._export(
@@ -4580,7 +4580,7 @@ class ExportFlowResultsTest(TembaTest):
             )
 
         # try setting the field again
-        self.contact.set_field(self.admin, "age", "36")
+        self.set_field(self.contact, self.admin, "age", "36")
 
         tz = self.org.timezone
         (sheet_runs,) = workbook.worksheets

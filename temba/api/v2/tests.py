@@ -1015,7 +1015,7 @@ class APITest(TembaTest):
         # create our contact and set a registration date
         contact = self.create_contact("Joe", "+12065551515")
         reporters.contacts.add(contact)
-        contact.set_field(self.admin, "registration", self.org.format_datetime(timezone.now()))
+        self.set_field(contact, self.admin, "registration", self.org.format_datetime(timezone.now()))
 
         campaign1 = Campaign.create(self.org, self.admin, "Reminders", reporters)
         event1 = CampaignEvent.create_message_event(
@@ -1585,10 +1585,10 @@ class APITest(TembaTest):
         contact3 = self.create_contact("Cat", "0788000003")
         contact4 = self.create_contact("Don", "0788000004", language="fra")
 
-        contact1.set_field(self.user, "nickname", "Annie", label="Nick name")
-        contact1.set_field(self.user, "gender", "female", label="Gender")
-        contact4.set_field(self.user, "nickname", "Donnie", label="Nick name")
-        contact4.set_field(self.user, "gender", "male", label="Gender")
+        self.set_field(contact1, self.user, "nickname", "Annie", label="Nick name")
+        self.set_field(contact1, self.user, "gender", "female", label="Gender")
+        self.set_field(contact4, self.user, "nickname", "Donnie", label="Nick name")
+        self.set_field(contact4, self.user, "gender", "male", label="Gender")
 
         contact1.stop(self.user)
         contact2.block(self.user)
