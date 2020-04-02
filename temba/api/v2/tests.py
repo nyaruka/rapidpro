@@ -32,6 +32,7 @@ from temba.contacts.search.tests import MockParseQuery
 from temba.flows.models import Flow, FlowLabel, FlowRun, FlowStart
 from temba.globals.models import Global
 from temba.locations.models import BoundaryAlias
+from temba.mailroom.tests import MockMailroomClient
 from temba.msgs.models import Broadcast, Label, Msg
 from temba.orgs.models import Language
 from temba.templates.models import TemplateTranslation
@@ -1574,7 +1575,10 @@ class APITest(TembaTest):
         response = self.fetchJSON(url, "after=%s" % format_datetime(call2.created_on))
         self.assertResultsById(response, [call4, call3, call2])
 
-    def test_contacts(self):
+    @patch("temba.mailroom.client.MailroomClient")
+    def test_contacts(self, mock_mr):
+        mock_mr.return_value = MockMailroomClient(self, settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN)
+
         url = reverse("api.v2.contacts")
 
         self.assertEndpointAccess(url)
@@ -1790,7 +1794,7 @@ class APITest(TembaTest):
         self.assertEqual(jean.get_field_value(nickname), "Jado")
 
         # update by UUID and change all fields
-        with self.assertNumQueries(67):
+        with self.assertNumQueries(67 + 8):
             response = self.postJSON(
                 url,
                 "uuid=%s" % jean.uuid,
@@ -1827,7 +1831,7 @@ class APITest(TembaTest):
         self.assertEqual(jean.get_field_value(nickname), "Žan")
 
         # update by uuid and remove all fields
-        with self.assertNumQueries(29):
+        with self.assertNumQueries(29 + 8):
             response = self.postJSON(
                 url,
                 "uuid=%s" % jean.uuid,
@@ -1846,7 +1850,7 @@ class APITest(TembaTest):
         self.assertEqual(jean.get_field_value(gender), None)
 
         # update by uuid and update/remove fields
-        with self.assertNumQueries(34):
+        with self.assertNumQueries(34 + 3):
             response = self.postJSON(
                 url,
                 "uuid=%s" % jean.uuid,
@@ -2006,55 +2010,106 @@ class APITest(TembaTest):
 
         self.assertEndpointAccess(url)
 
-        self.create_field("tag_activated_at", "Tag activation", Value.TYPE_DATETIME)
+        field = self.create_field("tag_activated_at", "Tag activation", Value.TYPE_DATETIME)
 
-        # update contact with valid date format for the org - DD-MM-YYYY
-        response = self.postJSON(url, "uuid=%s" % self.joe.uuid, {"fields": {"tag_activated_at": "31-12-2017"}})
-        self.assertEqual(response.status_code, 200)
-        resp_json = response.json()
+        with patch("temba.mailroom.client.MailroomClient") as mock_mr:
+            instance = mock_mr.return_value
+            instance.contact_modify.return_value = {"1": {"contact": {}, "events": []}}
 
-        self.assertIsNotNone(resp_json["fields"]["tag_activated_at"])
+            # update contact with valid date format for the org - DD-MM-YYYY
+            response = self.postJSON(url, "uuid=%s" % self.joe.uuid, {"fields": {"tag_activated_at": "31-12-2017"}})
+            self.assertEqual(response.status_code, 200)
 
-        # update contact with valid ISO8601 timestamp value with timezone
-        response = self.postJSON(
-            url, "uuid=%s" % self.joe.uuid, {"fields": {"tag_activated_at": "2017-11-11T11:12:13Z"}}
-        )
-        self.assertEqual(response.status_code, 200)
-        resp_json = response.json()
+            instance.contact_modify.assert_called_once_with(
+                self.joe.org.id,
+                [self.joe.id],
+                [
+                    {
+                        "type": "field",
+                        "field": {"key": field.key, "name": field.label},
+                        "value": {"text": "31-12-2017", "datetime": matchers.ISODate()},
+                    }
+                ],
+            )
+            instance.contact_modify.reset_mock()
 
-        self.assertEqual(resp_json["fields"]["tag_activated_at"], "2017-11-11T13:12:13+02:00")
+            # update contact with valid ISO8601 timestamp value with timezone
+            response = self.postJSON(
+                url, "uuid=%s" % self.joe.uuid, {"fields": {"tag_activated_at": "2017-11-11T11:12:13Z"}}
+            )
 
-        # update contact with valid ISO8601 timestamp value, 'T' replaced with space
-        response = self.postJSON(
-            url, "uuid=%s" % self.joe.uuid, {"fields": {"tag_activated_at": "2017-11-11 11:12:13Z"}}
-        )
-        self.assertEqual(response.status_code, 200)
-        resp_json = response.json()
+            self.assertEqual(response.status_code, 200)
+            instance.contact_modify.assert_called_once_with(
+                self.joe.org.id,
+                [self.joe.id],
+                [
+                    {
+                        "type": "field",
+                        "field": {"key": field.key, "name": field.label},
+                        "value": {"text": "2017-11-11T11:12:13Z", "datetime": "2017-11-11T13:12:13+02:00"},
+                    }
+                ],
+            )
+            instance.contact_modify.reset_mock()
 
-        self.assertEqual(resp_json["fields"]["tag_activated_at"], "2017-11-11T13:12:13+02:00")
+            # update contact with valid ISO8601 timestamp value, 'T' replaced with space
+            response = self.postJSON(
+                url, "uuid=%s" % self.joe.uuid, {"fields": {"tag_activated_at": "2017-11-11 11:12:13Z"}}
+            )
+            self.assertEqual(response.status_code, 200)
+            instance.contact_modify.assert_called_once_with(
+                self.joe.org.id,
+                [self.joe.id],
+                [
+                    {
+                        "type": "field",
+                        "field": {"key": field.key, "name": field.label},
+                        "value": {"text": "2017-11-11 11:12:13Z", "datetime": "2017-11-11T13:12:13+02:00"},
+                    }
+                ],
+            )
+            instance.contact_modify.reset_mock()
 
-        # update contact with invalid ISO8601 timestamp value without timezone
-        response = self.postJSON(
-            url, "uuid=%s" % self.joe.uuid, {"fields": {"tag_activated_at": "2017-11-11T11:12:13"}}
-        )
-        self.assertEqual(response.status_code, 200)
-        resp_json = response.json()
+            # update contact with invalid ISO8601 timestamp value without timezone
+            response = self.postJSON(
+                url, "uuid=%s" % self.joe.uuid, {"fields": {"tag_activated_at": "2017-11-11T11:12:13"}}
+            )
+            self.assertEqual(response.status_code, 200)
 
-        self.assertIsNone(resp_json["fields"]["tag_activated_at"])
+            instance.contact_modify.assert_called_once_with(
+                self.joe.org.id,
+                [self.joe.id],
+                [
+                    {
+                        "type": "field",
+                        "field": {"key": field.key, "name": field.label},
+                        "value": {"text": "2017-11-11T11:12:13"},
+                    }
+                ],
+            )
+            instance.contact_modify.reset_mock()
 
-        # update contact with invalid date format for the org - MM-DD-YYYY
-        response = self.postJSON(url, "uuid=%s" % self.joe.uuid, {"fields": {"tag_activated_at": "12-31-2017"}})
-        self.assertEqual(response.status_code, 200)
-        resp_json = response.json()
+            # update contact with invalid date format for the org - MM-DD-YYYY
+            response = self.postJSON(url, "uuid=%s" % self.joe.uuid, {"fields": {"tag_activated_at": "12-31-2017"}})
+            self.assertEqual(response.status_code, 200)
 
-        self.assertIsNone(resp_json["fields"]["tag_activated_at"])
+            instance.contact_modify.assert_called_once_with(
+                self.joe.org.id,
+                [self.joe.id],
+                [{"type": "field", "field": {"key": field.key, "name": field.label}, "value": {"text": "12-31-2017"}}],
+            )
+            instance.contact_modify.reset_mock()
 
-        # update contact with invalid timestamp value
-        response = self.postJSON(url, "uuid=%s" % self.joe.uuid, {"fields": {"tag_activated_at": "el123a41"}})
-        self.assertEqual(response.status_code, 200)
-        resp_json = response.json()
+            # update contact with invalid timestamp value
+            response = self.postJSON(url, "uuid=%s" % self.joe.uuid, {"fields": {"tag_activated_at": "el123a41"}})
+            self.assertEqual(response.status_code, 200)
 
-        self.assertIsNone(resp_json["fields"]["tag_activated_at"])
+            instance.contact_modify.assert_called_once_with(
+                self.joe.org.id,
+                [self.joe.id],
+                [{"type": "field", "field": {"key": field.key, "name": field.label}, "value": {"text": "el123a41"}}],
+            )
+            instance.contact_modify.reset_mock()
 
     def test_contact_actions_if_org_is_anonymous(self):
         url = reverse("api.v2.contacts")

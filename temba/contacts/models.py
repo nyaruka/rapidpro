@@ -21,6 +21,7 @@ from django.db.models import Count, Max, Q, Sum
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from temba import mailroom
 from temba.assets.models import register_asset_store
 from temba.channels.models import Channel, ChannelEvent
 from temba.locations.models import AdminBoundary
@@ -1154,18 +1155,25 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         changed_field_keys = set()
         all_fields = {}
 
+        modifiers = []
+
         for key, value in fields.items():
             field = ContactField.get_or_create(self.org, user, key)
+            has_changed = False
 
             field_uuid = str(field.uuid)
 
             # parse into the appropriate value types
             if value is None or value == "":
+
+                field_dict = None
                 # value being cleared, remove our key
                 if field_uuid in self.fields:
                     fields_for_delete.add(field_uuid)
 
                     changed_field_keys.add(key)
+
+                    has_changed = True
 
             else:
                 field_dict = self.serialize_field(field, value)
@@ -1176,37 +1184,21 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
                     all_fields.update({field_uuid: field_dict})
 
                     changed_field_keys.add(key)
+                    has_changed = True
 
-        modified_on = timezone.now()
-
-        # if there was a change, update our JSONB on our contact
-        if fields_for_delete:
-            with connection.cursor() as cursor:
-                # prepare expression for multiple field delete
-                remove_fields = " - ".join(f"%s" for _ in range(len(fields_for_delete)))
-                cursor.execute(
-                    f"UPDATE contacts_contact SET fields = fields - {remove_fields}, modified_on = %s WHERE id = %s",
-                    [*fields_for_delete, modified_on, self.id],
+            if has_changed:
+                modifiers.append(
+                    {"type": "field", "field": {"key": field.key, "name": field.label}, "value": field_dict}
                 )
 
-        if fields_for_update:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "UPDATE contacts_contact SET fields = COALESCE(fields,'{}'::jsonb) || %s::jsonb, modified_on = %s WHERE id = %s",
-                    [json.dumps(all_fields), modified_on, self.id],
-                )
+        if modifiers:
+            try:
+                client = mailroom.get_client()
+                contact_ids = [self.id]
 
-        # update local contact cache
-        self.fields.update(all_fields)
-
-        # remove deleted fields
-        for field_uuid in fields_for_delete:
-            self.fields.pop(field_uuid, None)
-
-        self.modified_on = modified_on
-
-        if changed_field_keys:
-            self.handle_update(fields=list(fields.keys()))
+                client.contact_modify(self.org_id, contact_ids, modifiers)
+            except mailroom.MailroomException as e:
+                raise e
 
     def handle_update(self, urns=(), fields=None, group=None, is_new=False):
         """

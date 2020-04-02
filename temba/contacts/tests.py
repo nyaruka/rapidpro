@@ -32,6 +32,7 @@ from temba.flows.models import Flow, FlowRun
 from temba.ivr.models import IVRCall
 from temba.locations.models import AdminBoundary
 from temba.mailroom import MailroomException
+from temba.mailroom.tests import MockMailroomClient
 from temba.msgs.models import Broadcast, Label, Msg, SystemLabel
 from temba.orgs.models import Org
 from temba.schedules.models import Schedule
@@ -4146,7 +4147,10 @@ class ContactTest(TembaTest):
         return response
 
     @patch.object(ContactGroup, "MAX_ORG_CONTACTGROUPS", new=10)
-    def test_contact_import(self):
+    @patch("temba.mailroom.client.MailroomClient")
+    def test_contact_import(self, mock_mr):
+        mock_mr.return_value = MockMailroomClient(self, settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN) 
+
         self.releaseContacts(delete=True)
         self.bulk_release(ContactGroup.user_groups.all())
         Channel.create(self.org, self.admin, None, "TT", "Twitter", "nyaruka", schemes=["twitter", "twitterid"])
@@ -5134,7 +5138,10 @@ class ContactTest(TembaTest):
         contact_created_on = contact.created_on.replace(second=0, microsecond=0)
         self.assertEqual(event_fire.scheduled, contact_created_on + timedelta(minutes=5))
 
-    def test_contact_import_handle_update_contact(self):
+    @patch("temba.mailroom.client.MailroomClient")
+    def test_contact_import_handle_update_contact(self, mock_mr):
+        mock_mr.return_value = MockMailroomClient(self, settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN) 
+
         self.login(self.admin)
         self.create_campaign()
 

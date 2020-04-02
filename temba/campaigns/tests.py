@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytz
 
@@ -10,6 +11,7 @@ from django.utils import timezone
 from temba.contacts.models import Contact, ContactField, ContactGroup, ImportTask
 from temba.contacts.search.tests import MockParseQuery
 from temba.flows.models import Flow, FlowRevision
+from temba.mailroom.tests import MockMailroomClient
 from temba.msgs.models import Msg
 from temba.orgs.models import Language, Org
 from temba.tests import TembaTest, matchers
@@ -1115,7 +1117,11 @@ class CampaignTest(TembaTest):
             import_log="",
             task_id="A",
         )
-        Contact.import_csv(task, log=None)
+
+        with patch("temba.mailroom.client.MailroomClient") as mock_mr:
+            mock_mr.return_value = MockMailroomClient(self, settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN)
+
+            Contact.import_csv(task, log=None)
 
         # check that we have new planting dates
         self.farmer1 = Contact.objects.get(pk=self.farmer1.pk)
