@@ -484,5 +484,4 @@ class MockMailroomClient(MailroomClient):
 
             self.test_obj.set_field(contact, self.test_obj.admin, field_key, value)
 
-        contact.refresh_from_db()
         return {"1": {"contact": {}, "events": []}}
