@@ -4149,7 +4149,7 @@ class ContactTest(TembaTest):
     @patch.object(ContactGroup, "MAX_ORG_CONTACTGROUPS", new=10)
     @patch("temba.mailroom.client.MailroomClient")
     def test_contact_import(self, mock_mr):
-        mock_mr.return_value = MockMailroomClient(self, settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN) 
+        mock_mr.return_value = MockMailroomClient(self, settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN)
 
         self.releaseContacts(delete=True)
         self.bulk_release(ContactGroup.user_groups.all())
@@ -5140,7 +5140,7 @@ class ContactTest(TembaTest):
 
     @patch("temba.mailroom.client.MailroomClient")
     def test_contact_import_handle_update_contact(self, mock_mr):
-        mock_mr.return_value = MockMailroomClient(self, settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN) 
+        mock_mr.return_value = MockMailroomClient(self, settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN)
 
         self.login(self.admin)
         self.create_campaign()

@@ -14,7 +14,7 @@ from temba.tests import MockResponse, TembaTest, matchers
 from temba.tests.engine import MockSessionWriter
 from temba.utils import json
 
-from . import queue_interrupt, MailroomClient
+from . import MailroomClient, queue_interrupt
 
 
 class MailroomClientTest(TembaTest):
@@ -465,7 +465,6 @@ class MailroomQueueTest(TembaTest):
 
 
 class MockMailroomClient(MailroomClient):
-
     def __init__(self, test_obj, base_url, auth_token):
         self.test_obj = test_obj
         super().__init__(base_url, auth_token)
@@ -473,14 +472,15 @@ class MockMailroomClient(MailroomClient):
     def contact_modify(self, org_id, contact_ids, modifiers):
 
         from temba.contacts.models import Contact
+
         contact = Contact.objects.get(id=contact_ids[0])
 
         for mod in modifiers:
-            field_key = mod['field']['key']
-            value_dict = mod['value']
+            field_key = mod["field"]["key"]
+            value_dict = mod["value"]
             value = None
             if value_dict:
-                value = value_dict['text']
+                value = value_dict["text"]
 
             self.test_obj.set_field(contact, self.test_obj.admin, field_key, value)
 
