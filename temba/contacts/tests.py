@@ -5466,6 +5466,15 @@ class ContactTest(TembaTest):
         with self.assertRaises(ValueError):
             self.joe.get_field_value(bad_field)
 
+    def test_contact_set_field(self):
+        # set a field on joe
+        self.joe.set_field(self.user, "abc_1234", "Joe", label="Name")
+        abc = ContactField.get_by_key(self.org, "abc_1234")
+        self.assertEqual("Joe", self.joe.get_field_serialized(abc))
+
+        self.joe.set_field(self.user, "abc_1234", None)
+        self.assertEqual(None, self.joe.get_field_serialized(abc))
+
     def test_fields(self):
         # set a field on joe
         self.set_field(self.joe, self.user, "abc_1234", "Joe", label="Name")
