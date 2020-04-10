@@ -3336,7 +3336,7 @@ class ContactTest(TembaTest):
             response = self.client.get(search_url + "?search=age>32")
             results = response.json()
             self.assertEqual("Age", results["fields"][str(age.uuid)]["label"])
-    
+
     @patch("temba.mailroom.client.MailroomClient")
     def test_update_and_list(self, mock_mr):
         mock_mr.return_value = MockMailroomClient(self, settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN)
@@ -5502,13 +5502,7 @@ class ContactTest(TembaTest):
                 self.joe.org.id,
                 self.user.id,
                 [self.joe.id],
-                [
-                    {
-                        "type": "field",
-                        "field": {"key": abc.key, "name": abc.label},
-                        "value": {"text": "Joe"},
-                    }
-                ],
+                [{"type": "field", "field": {"key": abc.key, "name": abc.label}, "value": {"text": "Joe"}}],
             )
             instance.contact_modify.reset_mock()
             self.set_field(self.joe, self.user, "abc_1234", "Joe", label="Name")
@@ -5518,13 +5512,7 @@ class ContactTest(TembaTest):
                 self.joe.org.id,
                 self.user.id,
                 [self.joe.id],
-                [
-                    {
-                        "type": "field",
-                        "field": {"key": abc.key, "name": abc.label},
-                        "value": None,
-                    }
-                ],
+                [{"type": "field", "field": {"key": abc.key, "name": abc.label}, "value": None}],
             )
 
     def test_fields(self):

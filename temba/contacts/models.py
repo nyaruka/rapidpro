@@ -16,7 +16,7 @@ from smartmin.models import SmartImportRowError, SmartModel
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.db import IntegrityError, connection, models, transaction
+from django.db import IntegrityError, models, transaction
 from django.db.models import Count, Max, Q, Sum
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _

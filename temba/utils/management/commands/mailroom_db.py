@@ -547,7 +547,7 @@ class Command(BaseCommand):
 
     def _set_field(self, contact, user, key, value):
         # make sure this field exists
-        field = ContactField.get_or_create(contact.org, user, key, label)
+        field = ContactField.get_or_create(contact.org, user, key)
 
         has_changed = False
 
