@@ -3336,8 +3336,11 @@ class ContactTest(TembaTest):
             response = self.client.get(search_url + "?search=age>32")
             results = response.json()
             self.assertEqual("Age", results["fields"][str(age.uuid)]["label"])
+    
+    @patch("temba.mailroom.client.MailroomClient")
+    def test_update_and_list(self, mock_mr):
+        mock_mr.return_value = MockMailroomClient(self, settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN)
 
-    def test_update_and_list(self):
         self.setUpLocations()
 
         list_url = reverse("contacts.contact_list")
@@ -5487,13 +5490,42 @@ class ContactTest(TembaTest):
             self.joe.get_field_value(bad_field)
 
     def test_contact_set_field(self):
-        # set a field on joe
-        self.joe.set_field(self.user, "abc_1234", "Joe", label="Name")
-        abc = ContactField.get_by_key(self.org, "abc_1234")
-        self.assertEqual("Joe", self.joe.get_field_serialized(abc))
+        with patch("temba.mailroom.client.MailroomClient") as mock_mr:
+            instance = mock_mr.return_value
+            instance.contact_modify.return_value = {"1": {"contact": {}, "events": []}}
 
-        self.joe.set_field(self.user, "abc_1234", None)
-        self.assertEqual(None, self.joe.get_field_serialized(abc))
+            # set a field on joe
+            self.joe.set_field(self.user, "abc_1234", "Joe", label="Name")
+            abc = ContactField.get_by_key(self.org, "abc_1234")
+
+            instance.contact_modify.assert_called_once_with(
+                self.joe.org.id,
+                self.user.id,
+                [self.joe.id],
+                [
+                    {
+                        "type": "field",
+                        "field": {"key": abc.key, "name": abc.label},
+                        "value": {"text": "Joe"},
+                    }
+                ],
+            )
+            instance.contact_modify.reset_mock()
+            self.set_field(self.joe, self.user, "abc_1234", "Joe", label="Name")
+
+            self.joe.set_field(self.user, "abc_1234", None)
+            instance.contact_modify.assert_called_once_with(
+                self.joe.org.id,
+                self.user.id,
+                [self.joe.id],
+                [
+                    {
+                        "type": "field",
+                        "field": {"key": abc.key, "name": abc.label},
+                        "value": None,
+                    }
+                ],
+            )
 
     def test_fields(self):
         # set a field on joe
