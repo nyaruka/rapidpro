@@ -386,7 +386,10 @@ class CampaignTest(TembaTest):
         # our single message flow should be released and take its dependencies with it
         self.assertEqual(event.flow.field_dependencies.count(), 0)
 
-    def test_views(self):
+    @patch("temba.mailroom.client.MailroomClient")
+    def test_views(self, mock_mr):
+        mock_mr.return_value = MockMailroomClient(self, settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN)
+
         # update the planting date for our contacts
         self.set_field(self.farmer1, self.user, "planting_date", "1/10/2020")
 
