@@ -2022,6 +2022,7 @@ class APITest(TembaTest):
 
             instance.contact_modify.assert_called_once_with(
                 self.joe.org.id,
+                self.admin.id,
                 [self.joe.id],
                 [
                     {
@@ -2041,6 +2042,7 @@ class APITest(TembaTest):
             self.assertEqual(response.status_code, 200)
             instance.contact_modify.assert_called_once_with(
                 self.joe.org.id,
+                self.admin.id,
                 [self.joe.id],
                 [
                     {
@@ -2059,6 +2061,7 @@ class APITest(TembaTest):
             self.assertEqual(response.status_code, 200)
             instance.contact_modify.assert_called_once_with(
                 self.joe.org.id,
+                self.admin.id,
                 [self.joe.id],
                 [
                     {
@@ -2078,6 +2081,7 @@ class APITest(TembaTest):
 
             instance.contact_modify.assert_called_once_with(
                 self.joe.org.id,
+                self.admin.id,
                 [self.joe.id],
                 [
                     {
@@ -2095,6 +2099,7 @@ class APITest(TembaTest):
 
             instance.contact_modify.assert_called_once_with(
                 self.joe.org.id,
+                self.admin.id,
                 [self.joe.id],
                 [{"type": "field", "field": {"key": field.key, "name": field.label}, "value": {"text": "12-31-2017"}}],
             )
@@ -2106,6 +2111,7 @@ class APITest(TembaTest):
 
             instance.contact_modify.assert_called_once_with(
                 self.joe.org.id,
+                self.admin.id,
                 [self.joe.id],
                 [{"type": "field", "field": {"key": field.key, "name": field.label}, "value": {"text": "el123a41"}}],
             )

@@ -1196,7 +1196,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
                 client = mailroom.get_client()
                 contact_ids = [self.id]
 
-                client.contact_modify(self.org_id, contact_ids, modifiers)
+                client.contact_modify(self.org_id, user.id, contact_ids, modifiers)
             except mailroom.MailroomException as e:
                 raise e
 

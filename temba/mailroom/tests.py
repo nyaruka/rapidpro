@@ -498,7 +498,7 @@ class MockMailroomClient(MailroomClient):
         self.test_obj = test_obj
         super().__init__(base_url, auth_token)
 
-    def contact_modify(self, org_id, contact_ids, modifiers):
+    def contact_modify(self, org_id, user_id, contact_ids, modifiers):
 
         from temba.contacts.models import Contact
 
@@ -511,6 +511,6 @@ class MockMailroomClient(MailroomClient):
             if value_dict:
                 value = value_dict["text"]
 
-            self.test_obj.set_field(contact, self.test_obj.admin, field_key, value)
+            self.test_obj.set_field(contact, user_id, field_key, value)
 
         return {"1": {"contact": {}, "events": []}}
