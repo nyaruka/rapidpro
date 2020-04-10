@@ -3630,7 +3630,7 @@ class ContactTest(TembaTest):
             response = self.client.post(reverse("contacts.contact_update", args=[self.joe.id]), post_data, follow=True)
 
             instance.contact_modify.assert_called_once_with(
-                self.joe.org.id, [self.joe.id], [{"type": "name", "name": "Joe Gashyantare"}]
+                self.joe.org.id, self.admin.id, [self.joe.id], [{"type": "name", "name": "Joe Gashyantare"}]
             )
 
         self.assertEqual(set(self.joe.user_groups.all()), {self.just_joe})
@@ -3667,7 +3667,7 @@ class ContactTest(TembaTest):
             self.client.post(reverse("contacts.contact_update", args=[self.joe.id]), post_data, follow=True)
 
             instance.contact_modify.assert_called_once_with(
-                self.joe.org.id, [self.joe.id], [{"type": "name", "name": "Joe Bloggs"}]
+                self.joe.org.id, self.admin.id, [self.joe.id], [{"type": "name", "name": "Joe Bloggs"}]
             )
 
             self.joe = Contact.objects.get(pk=self.joe.pk)
@@ -3777,7 +3777,7 @@ class ContactTest(TembaTest):
             self.client.post(reverse("contacts.contact_update", args=[self.joe.id]), post_data, follow=True)
 
             instance.contact_modify.assert_called_once_with(
-                self.joe.org.id, [self.joe.id], [{"type": "name", "name": "Joe X"}]
+                self.joe.org.id, self.admin.id, [self.joe.id], [{"type": "name", "name": "Joe X"}]
             )
 
         self.joe.refresh_from_db()
@@ -3862,7 +3862,7 @@ class ContactTest(TembaTest):
             )
 
             instance.contact_modify.assert_called_once_with(
-                self.joe.org.id, [self.joe.id], [{"type": "language", "language": "eng"}]
+                self.joe.org.id, self.admin.id, [self.joe.id], [{"type": "language", "language": "eng"}]
             )
 
             instance.contact_modify.reset_mock()
@@ -3878,7 +3878,7 @@ class ContactTest(TembaTest):
             )
 
             instance.contact_modify.assert_called_once_with(
-                self.joe.org.id, [self.joe.id], [{"type": "name", "name": "Muller Awesome"}]
+                self.joe.org.id, self.admin.id, [self.joe.id], [{"type": "name", "name": "Muller Awesome"}]
             )
 
             instance.contact_modify.reset_mock()
@@ -3890,6 +3890,7 @@ class ContactTest(TembaTest):
 
             instance.contact_modify.assert_called_once_with(
                 self.joe.org.id,
+                self.admin.id,
                 [self.joe.id],
                 [{"type": "name", "name": "Muller Awesome"}, {"type": "language", "language": "fra"}],
             )
@@ -3904,6 +3905,25 @@ class ContactTest(TembaTest):
 
             self.assertFormError(
                 response, "form", None, "An error occurred updating your contact. Please try again later."
+            )
+
+    def test_contact_model_update(self):
+        self.login(self.admin)
+
+        self.client.post(reverse("orgs.org_languages"), dict(primary_lang="eng", languages="fra"))
+        self.assertIsNone(self.joe.language)
+
+        with patch("temba.mailroom.client.MailroomClient") as mock_mr:
+            instance = mock_mr.return_value
+            instance.contact_modify.return_value = {"1": {"contact": {}, "events": []}}
+
+            self.joe.update(self.admin.id, "Muller", "eng")
+
+            instance.contact_modify.assert_called_once_with(
+                self.joe.org.id,
+                self.admin.id,
+                [self.joe.id],
+                [{"type": "name", "name": "Muller"}, {"type": "language", "language": "eng"}],
             )
 
     def test_number_normalized(self):
@@ -3930,7 +3950,7 @@ class ContactTest(TembaTest):
             )
 
             instance.contact_modify.assert_called_once_with(
-                self.org.id, [contact.id], [{"type": "name", "name": "Marshal Mathers"}]
+                self.org.id, self.admin.id, [contact.id], [{"type": "name", "name": "Marshal Mathers"}]
             )
 
             contact_updated = Contact.from_urn(self.org, "tel:+447531669966")
