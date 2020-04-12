@@ -13,6 +13,7 @@ env:
   global:
     - DJANGO_SETTINGS_MODULE=temba.settings_travis
   jobs:
+    - PGDB=12 PGIS=3
     - PGDB=11 PGIS=2.5
     - PGDB=10 PGIS=2.4
 
