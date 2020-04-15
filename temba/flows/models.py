@@ -5,7 +5,6 @@ from collections import OrderedDict, defaultdict
 from datetime import date, timedelta
 from enum import Enum
 from urllib.request import urlopen
-from uuid import uuid4
 
 import iso8601
 import regex
@@ -45,6 +44,7 @@ from temba.utils.models import (
     generate_uuid,
 )
 from temba.utils.s3 import public_file_storage
+from temba.utils.uuid import uuid4
 from temba.values.constants import Value
 
 from . import legacy
@@ -129,17 +129,20 @@ class Flow(TembaModel):
     FLOW_TYPE = "flow_type"
     ID = "id"
 
-    # items in Flow.metadata
+    # items in metadata
     METADATA = "metadata"
-    METADATA_SAVED_ON = "saved_on"
-    METADATA_NAME = "name"
-    METADATA_REVISION = "revision"
-    METADATA_EXPIRES = "expires"
     METADATA_RESULTS = "results"
     METADATA_DEPENDENCIES = "dependencies"
     METADATA_WAITING_EXIT_UUIDS = "waiting_exit_uuids"
     METADATA_PARENT_REFS = "parent_refs"
     METADATA_ISSUES = "issues"
+    METADATA_IVR_RETRY = "ivr_retry"
+
+    # items in legacy metadata
+    METADATA_SAVED_ON = "saved_on"
+    METADATA_NAME = "name"
+    METADATA_REVISION = "revision"
+    METADATA_EXPIRES = "expires"
 
     # items in the response from mailroom flow inspection
     INSPECT_RESULTS = "results"
@@ -925,11 +928,11 @@ class Flow(TembaModel):
         """
 
         flow_start = FlowStart.objects.create(
+            org=self.org,
             flow=self,
             restart_participants=restart_participants,
             include_active=include_active,
             created_by=user,
-            modified_by=user,
             query=query,
         )
 
@@ -938,8 +941,7 @@ class Flow(TembaModel):
 
         group_ids = [g.id for g in groups]
         flow_start.groups.add(*group_ids)
-
-        on_transaction_commit(lambda: flow_start.async_start())
+        flow_start.async_start()
 
     def get_export_dependencies(self):
         """
@@ -1107,14 +1109,20 @@ class Flow(TembaModel):
         return metadata
 
     @classmethod
-    def get_metadata(cls, flow_info):
-        return {
+    def get_metadata(cls, flow_info, previous=None):
+        data = {
             Flow.METADATA_RESULTS: flow_info[Flow.INSPECT_RESULTS],
             Flow.METADATA_DEPENDENCIES: flow_info[Flow.INSPECT_DEPENDENCIES],
             Flow.METADATA_WAITING_EXIT_UUIDS: flow_info[Flow.INSPECT_WAITING_EXITS],
             Flow.METADATA_PARENT_REFS: flow_info[Flow.INSPECT_PARENT_REFS],
             Flow.METADATA_ISSUES: flow_info[Flow.INSPECT_ISSUES],
         }
+
+        # IVR retry is the only value in metadata that doesn't come from flow inspection
+        if previous and Flow.METADATA_IVR_RETRY in previous:
+            data[Flow.METADATA_IVR_RETRY] = previous[Flow.METADATA_IVR_RETRY]
+
+        return data
 
     @classmethod
     def detect_invalid_cycles(cls, json_dict):
@@ -1265,7 +1273,7 @@ class Flow(TembaModel):
         with transaction.atomic():
             # update our flow fields
             self.base_language = definition.get(Flow.DEFINITION_LANGUAGE, None)
-            self.metadata = Flow.get_metadata(flow_info)
+            self.metadata = Flow.get_metadata(flow_info, self.metadata)
             self.saved_by = user
             self.saved_on = timezone.now()
             self.version_number = Flow.CURRENT_SPEC_VERSION
@@ -1990,6 +1998,7 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
 
         return {
             "id": self.id,
+            "uuid": str(self.uuid),
             "flow": {"uuid": str(self.flow.uuid), "name": self.flow.name},
             "contact": {"uuid": str(self.contact.uuid), "name": self.contact.name},
             "responded": self.responded,
@@ -2788,6 +2797,7 @@ class ExportFlowResultsTask(BaseExportTask):
         columns.append("Started")
         columns.append("Modified")
         columns.append("Exited")
+        columns.append("Run UUID")
 
         for result_field in result_fields:
             field_name, flow_name = result_field["name"], result_field["flow_name"]
@@ -3033,6 +3043,7 @@ class ExportFlowResultsTask(BaseExportTask):
                 iso8601.parse_date(run["created_on"]),
                 iso8601.parse_date(run["modified_on"]),
                 iso8601.parse_date(run["exited_on"]) if run["exited_on"] else None,
+                run["uuid"],
             ]
             runs_sheet_row += result_values
 
@@ -3099,14 +3110,17 @@ class FlowStart(models.Model):
     STATUS_FAILED = "F"
 
     STATUS_CHOICES = (
-        (STATUS_PENDING, "Pending"),
-        (STATUS_STARTING, "Starting"),
-        (STATUS_COMPLETE, "Complete"),
-        (STATUS_FAILED, "Failed"),
+        (STATUS_PENDING, _("Pending")),
+        (STATUS_STARTING, _("Starting")),
+        (STATUS_COMPLETE, _("Complete")),
+        (STATUS_FAILED, _("Failed")),
     )
 
     # the uuid of this start
     uuid = models.UUIDField(unique=True, default=uuid4)
+
+    # the org the flow belongs to
+    org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="flow_starts")
 
     # the flow that should be started
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="starts")
@@ -3145,19 +3159,16 @@ class FlowStart(models.Model):
 
     # who created this flow start
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, related_name="%(app_label)s_%(class)s_creations"
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, related_name="flow_starts"
     )
 
     # when this flow start was created
     created_on = models.DateTimeField(default=timezone.now, editable=False)
 
-    # deprecated fields
-    is_active = models.BooleanField(default=True, null=True)
+    # when this flow start was last modified
+    modified_on = models.DateTimeField(default=timezone.now, editable=False)
 
-    modified_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True)
-
-    modified_on = models.DateTimeField(default=timezone.now, editable=False, null=True)
-
+    # the number of de-duped contacts that might be started, depending on options above
     contact_count = models.IntegerField(default=0, null=True)
 
     @classmethod
@@ -3167,6 +3178,7 @@ class FlowStart(models.Model):
         user,
         groups=None,
         contacts=None,
+        query=None,
         restart_participants=True,
         extra=None,
         include_active=True,
@@ -3179,13 +3191,14 @@ class FlowStart(models.Model):
             groups = []
 
         start = FlowStart.objects.create(
+            org=flow.org,
             flow=flow,
             restart_participants=restart_participants,
             include_active=include_active,
             campaign_event=campaign_event,
+            query=query,
             extra=extra,
             created_by=user,
-            created_on=timezone.now(),
         )
 
         for contact in contacts:
@@ -3197,7 +3210,7 @@ class FlowStart(models.Model):
         return start
 
     def async_start(self):
-        mailroom.queue_flow_start(self)
+        on_transaction_commit(lambda: mailroom.queue_flow_start(self))
 
     def release(self):
         with transaction.atomic():
@@ -3210,6 +3223,15 @@ class FlowStart(models.Model):
 
     def __str__(self):  # pragma: no cover
         return f"FlowStart[id={self.id}, flow={self.flow.uuid}]"
+
+    class Meta:
+        indexes = [
+            models.Index(
+                name="flows_flowstarts_org_created",
+                fields=["org", "-created_on"],
+                condition=Q(created_by__isnull=False),
+            )
+        ]
 
 
 class FlowStartCount(SquashableModel):
@@ -3247,7 +3269,7 @@ class FlowStartCount(SquashableModel):
         return FlowStartCount.objects.create(start=start, count=start.runs.count())
 
     def __str__(self):  # pragma: needs cover
-        return "FlowStartCount[%d:%d]" % (self.start_id, self.count)
+        return f"FlowStartCount[start={self.start_id}, count={self.count}]"
 
 
 class FlowLabel(models.Model):

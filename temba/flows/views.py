@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
-from uuid import uuid4
 
 import iso8601
 import regex
@@ -41,7 +40,7 @@ from temba.classifiers.models import Classifier
 from temba.contacts.models import FACEBOOK_SCHEME, TEL_SCHEME, WHATSAPP_SCHEME, ContactField, ContactGroup, ContactURN
 from temba.contacts.omnibox import omnibox_deserialize
 from temba.flows.legacy.expressions import get_function_listing
-from temba.flows.models import Flow, FlowRevision, FlowRun, FlowRunCount, FlowSession
+from temba.flows.models import Flow, FlowRevision, FlowRun, FlowRunCount, FlowSession, FlowStart
 from temba.flows.tasks import export_flow_results_task
 from temba.ivr.models import IVRCall
 from temba.mailroom import FlowValidationException
@@ -53,6 +52,7 @@ from temba.utils import analytics, gettext, json, on_transaction_commit, str_to_
 from temba.utils.fields import ContactSearchWidget, JSONField, OmniboxChoice, SelectWidget
 from temba.utils.s3 import public_file_storage
 from temba.utils.text import slugify_with
+from temba.utils.uuid import uuid4
 from temba.utils.views import BaseActionForm, NonAtomicMixin
 
 from .models import (
@@ -84,6 +84,15 @@ EXPIRES_CHOICES = (
     (60 * 24 * 14, _("After 2 weeks")),
     (60 * 24 * 30, _("After 30 days")),
 )
+
+
+class OrgQuerysetMixin:
+    def derive_queryset(self, *args, **kwargs):
+        queryset = super().derive_queryset(*args, **kwargs)
+        if not self.request.user.is_authenticated:  # pragma: needs cover
+            return queryset.exclude(pk__gt=0)
+        else:
+            return queryset.filter(org=self.request.user.get_org())
 
 
 class BaseFlowForm(forms.ModelForm):
@@ -405,14 +414,6 @@ class FlowCRUDL(SmartCRUDL):
 
             return JsonResponse({"status": "failure", "description": error, "detail": detail}, status=400)
 
-    class OrgQuerysetMixin(object):
-        def derive_queryset(self, *args, **kwargs):
-            queryset = super().derive_queryset(*args, **kwargs)
-            if not self.request.user.is_authenticated:  # pragma: needs cover
-                return queryset.exclude(pk__gt=0)
-            else:
-                return queryset.filter(org=self.request.user.get_org())
-
     class Create(ModalMixin, OrgPermsMixin, SmartCreateView):
         class FlowCreateForm(BaseFlowForm):
             keyword_triggers = forms.CharField(
@@ -699,7 +700,7 @@ class FlowCRUDL(SmartCRUDL):
                 metadata[Flow.CONTACT_CREATION] = self.form.cleaned_data[Flow.CONTACT_CREATION]
 
             if "ivr_retry" in self.form.cleaned_data:
-                metadata["ivr_retry"] = int(self.form.cleaned_data["ivr_retry"])
+                metadata[Flow.METADATA_IVR_RETRY] = int(self.form.cleaned_data["ivr_retry"])
 
             obj.metadata = metadata
             return obj
@@ -2330,3 +2331,15 @@ class FlowLabelCRUDL(SmartCRUDL):
                 obj.toggle_label(flows, add=True)
 
             return obj
+
+
+class FlowStartCRUDL(SmartCRUDL):
+    model = FlowStart
+    actions = ("list",)
+
+    class List(OrgQuerysetMixin, OrgPermsMixin, SmartListView):
+        title = _("Flow Start Log")
+        ordering = ("-created_on",)
+
+        def derive_queryset(self, *args, **kwargs):
+            return super().derive_queryset(*args, **kwargs).exclude(created_by=None)

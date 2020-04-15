@@ -33,6 +33,7 @@ from temba.utils.languages import _get_language_name_iso6393
 from temba.utils.models import JSONField, RequireUpdateFieldsMixin, SquashableModel, TembaModel
 from temba.utils.text import truncate, unsnakify
 from temba.utils.urns import ParsedURN, parse_urn
+from temba.utils.uuid import uuid4
 from temba.values.constants import Value
 
 logger = logging.getLogger(__name__)
@@ -1173,7 +1174,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             # ensure our campaigns are up to date
             EventFire.update_events_for_contact_groups(self, changed_groups)
 
-    def update(self, user_id, name, language):
+    def update(self, user, name, language):
         org = self.org
         existing = Contact.objects.filter(id=self.id, org=self.org).first()
 
@@ -1189,7 +1190,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             contact_ids = [self.id]
 
             if modifiers:
-                client.contact_modify(org.id, user_id, contact_ids, modifiers)
+                client.contact_modify(org.id, user.id, contact_ids, modifiers)
 
         except mailroom.MailroomException as e:
             logger.error(f"Contact update failed: {str(e)}", exc_info=True)
@@ -1782,9 +1783,6 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
                 logger.error("Failed to parse JSON for contact import #d" % task.pk, exc_info=True)
 
         # this file isn't good enough, lets write it to local disk
-        from django.conf import settings
-        from uuid import uuid4
-
         # make sure our tmp directory is present (throws if already present)
         try:
             os.makedirs(os.path.join(settings.MEDIA_ROOT, "tmp"))
