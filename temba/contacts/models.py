@@ -1142,15 +1142,8 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
                 modifiers.append(
                     {"type": "field", "field": {"key": field.key, "name": field.label}, "value": field_dict}
                 )
-
-        if modifiers:
-            try:
-                client = mailroom.get_client()
-                contact_ids = [self.id]
-
-                client.contact_modify(self.org_id, user.id, contact_ids, modifiers)
-            except mailroom.MailroomException as e:
-                raise e
+        contact_ids = [self.id]
+        Contact._forward_mailroom_contact_modify(self.org, user, contact_ids, modifiers)
 
     def handle_update(self, urns=(), fields=None, group=None, is_new=False):
         """
@@ -1174,27 +1167,32 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             # ensure our campaigns are up to date
             EventFire.update_events_for_contact_groups(self, changed_groups)
 
-    def update(self, user, name, language):
-        org = self.org
-        existing = Contact.objects.filter(id=self.id, org=self.org).first()
+    @classmethod
+    def _forward_mailroom_contact_modify(cls, org, user, contact_ids, modifiers):
+        if not modifiers:
+            return
 
         try:
-            modifiers = []
-            if (existing.name or "") != (name or ""):
-                modifiers.append({"type": "name", "name": name or ""})
-
-            if (existing.language or "") != (language or ""):
-                modifiers.append({"type": "language", "language": language or ""})
-
             client = mailroom.get_client()
-            contact_ids = [self.id]
-
-            if modifiers:
-                client.contact_modify(org.id, user.id, contact_ids, modifiers)
+            client.contact_modify(org.id, user.id, contact_ids, modifiers)
 
         except mailroom.MailroomException as e:
             logger.error(f"Contact update failed: {str(e)}", exc_info=True)
             raise ValidationError(_("An error occurred updating your contact. Please try again later."))
+
+    def update(self, user, name, language):
+        org = self.org
+        existing = Contact.objects.filter(id=self.id, org=self.org).first()
+
+        modifiers = []
+        if (existing.name or "") != (name or ""):
+            modifiers.append({"type": "name", "name": name or ""})
+
+        if (existing.language or "") != (language or ""):
+            modifiers.append({"type": "language", "language": language or ""})
+
+        contact_ids = [self.id]
+        Contact._forward_mailroom_contact_modify(org, user, contact_ids, modifiers)
 
     @classmethod
     def from_urn(cls, org, urn_as_string, country=None):
