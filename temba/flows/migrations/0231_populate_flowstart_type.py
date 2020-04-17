@@ -2,7 +2,8 @@
 
 from collections import defaultdict
 
-from django.db import migrations
+from django.db import migrations, transaction
+from django.db.models import BooleanField, ExpressionWrapper, F, TextField, Transform
 
 BATCH_SIZE = 5000
 
@@ -10,6 +11,56 @@ TYPE_MANUAL = "M"
 TYPE_API = "A"
 TYPE_FLOW_ACTION = "F"
 TYPE_TRIGGER = "T"
+
+
+SQL = """
+CREATE FUNCTION temba_is_valid_json(val TEXT) returns BOOLEAN AS
+$$
+BEGIN
+  RETURN (val::json IS NOT NULL);
+EXCEPTION
+  WHEN others THEN return FALSE;
+END;
+$$
+language plpgsql immutable;
+"""
+
+REVERSE_SQL = "DROP FUNCTION IF EXISTS temba_is_valid_json(val TEXT);"
+
+
+class IsValidJSON(Transform):
+    function = "TEMBA_IS_VALID_JSON"
+    lookup_name = "temba_is_valid_json"
+    output_field = BooleanField()
+
+
+def fix_flowstart_extra(apps, schema_editor):  # pragma: no cover
+    FlowStart = apps.get_model("flows", "FlowStart")
+
+    starts = (
+        FlowStart.objects.exclude(extra=None)
+        .annotate(extra_raw=ExpressionWrapper(F("extra"), output_field=TextField()))
+        .annotate(extra_is_valid=IsValidJSON("extra"))
+        .filter(extra_is_valid=False)
+        .only("id")
+    )
+
+    num_updated = 0
+    max_id = -1
+    while True:
+        batch = list(starts.filter(id__gt=max_id).order_by("id")[:BATCH_SIZE])
+        if not batch:
+            break
+
+        with transaction.atomic():
+            for start in batch:
+                start.extra = {"value": start.extra_raw}
+                start.save(update_fields=("extra",))
+
+        num_updated += len(batch)
+        print(f" > Fixed {num_updated} flow starts with invalid extra")
+
+        max_id = batch[-1].id
 
 
 def populate_flowstart_type(apps, schema_editor):  # pragma: no cover
@@ -57,4 +108,8 @@ class Migration(migrations.Migration):
 
     dependencies = [("flows", "0230_flowstart_start_type")]
 
-    operations = [migrations.RunPython(populate_flowstart_type, reverse)]
+    operations = [
+        migrations.RunSQL(SQL, REVERSE_SQL),
+        migrations.RunPython(fix_flowstart_extra, reverse),
+        migrations.RunPython(populate_flowstart_type, reverse),
+    ]

@@ -11,6 +11,7 @@ from openpyxl import load_workbook
 
 from django.conf import settings
 from django.contrib.auth.models import Group
+from django.db import connection
 from django.db.models.functions import TruncDate
 from django.test.utils import override_settings
 from django.urls import reverse
@@ -6370,19 +6371,29 @@ class PopulateFlowStartTypeTest(MigrationTest):
         # only API calls can have extra
         self.start2 = FlowStart.create(flow2, self.admin, contacts=[contact], extra={"foo": "bar"})
 
+        # and sometimes they have extra which isn't valid JSON
+        self.start3 = FlowStart.create(flow2, self.admin, contacts=[contact])
+
+        c = connection.cursor()
+        c.execute("UPDATE flows_flowstart SET extra = 'XXXX' WHERE id = %s", [self.start3.id])
+
+        # verify that this start can no longer be fetched
+        with self.assertRaises(ValueError):
+            self.start3.refresh_from_db()
+
         # starts from mailroom session_triggered event handling have no user but do have parent_summary
-        self.start3 = FlowStart.create(flow2, None, contacts=[contact])
-        self.start3.parent_summary = {"foo": "bar"}
-        self.start3.save(update_fields=("parent_summary",))
+        self.start4 = FlowStart.create(flow2, None, contacts=[contact])
+        self.start4.parent_summary = {"foo": "bar"}
+        self.start4.save(update_fields=("parent_summary",))
 
         # starts from mailroom IVR/schedule trigger handling have no user and no parent_summary
-        self.start4 = FlowStart.create(flow2, None, contacts=[contact])
+        self.start5 = FlowStart.create(flow2, None, contacts=[contact])
 
         # clear type so migration sets it
         FlowStart.objects.all().update(start_type=None)
 
         # create a new one which will have type already set
-        self.start5 = FlowStart.create(flow1, self.admin, contacts=[contact])
+        self.start6 = FlowStart.create(flow1, self.admin, contacts=[contact])
 
     def test_migration(self):
         def assert_type(start, type_code):
@@ -6391,6 +6402,12 @@ class PopulateFlowStartTypeTest(MigrationTest):
 
         assert_type(self.start1, "M")
         assert_type(self.start2, "A")
-        assert_type(self.start3, "F")
-        assert_type(self.start4, "T")
-        assert_type(self.start5, "M")
+        assert_type(self.start3, "A")
+        assert_type(self.start4, "F")
+        assert_type(self.start5, "T")
+        assert_type(self.start6, "M")
+
+        # check that extra on start 3 was converted to something valid
+        self.assertEqual({}, self.start1.extra)
+        self.assertEqual({"foo": "bar"}, self.start2.extra)
+        self.assertEqual({"value": "XXXX"}, self.start3.extra)
