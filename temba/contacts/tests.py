@@ -1352,7 +1352,7 @@ class ContactTest(TembaTest):
         self.joe.stop(self.user)
 
         # check that joe is now stopped
-        self.joe = Contact.objects.get(pk=self.joe.pk)
+        self.joe.refresh_from_db()
         self.assertTrue(self.joe.is_stopped)
         self.assertFalse(self.joe.is_blocked)
         self.assertTrue(self.joe.is_active)
@@ -1367,16 +1367,16 @@ class ContactTest(TembaTest):
 
         self.joe.block(self.user)
 
-        # check that joe is now blocked and stopped
-        self.joe = Contact.objects.get(pk=self.joe.pk)
-        self.assertTrue(self.joe.is_stopped)
+        # check that joe is now blocked rather than stopped
+        self.joe.refresh_from_db()
+        self.assertFalse(self.joe.is_stopped)
         self.assertTrue(self.joe.is_blocked)
         self.assertTrue(self.joe.is_active)
 
         # and that he's been removed from the all and failed groups, and added to the blocked group
         contact_counts = ContactGroup.get_system_group_counts(self.org)
         self.assertEqual(
-            contact_counts, {ContactGroup.TYPE_ALL: 3, ContactGroup.TYPE_BLOCKED: 1, ContactGroup.TYPE_STOPPED: 1}
+            contact_counts, {ContactGroup.TYPE_ALL: 3, ContactGroup.TYPE_BLOCKED: 1, ContactGroup.TYPE_STOPPED: 0}
         )
 
         # and removed from all groups
@@ -1392,26 +1392,31 @@ class ContactTest(TembaTest):
 
         self.joe.unblock(self.user)
 
-        # check that joe is now unblocked but still stopped
-        self.joe = Contact.objects.get(pk=self.joe.pk)
-        self.assertTrue(self.joe.is_stopped)
+        # check that joe is now unblocked
+        self.joe.refresh_from_db()
+        self.assertFalse(self.joe.is_stopped)
         self.assertFalse(self.joe.is_blocked)
         self.assertTrue(self.joe.is_active)
 
-        # and that he's been removed from the blocked group, and put back in the all and failed groups
+        # and that he's been removed from the blocked group, and put back in the all group
         contact_counts = ContactGroup.get_system_group_counts(self.org)
         self.assertEqual(
-            contact_counts, {ContactGroup.TYPE_ALL: 3, ContactGroup.TYPE_BLOCKED: 0, ContactGroup.TYPE_STOPPED: 1}
+            contact_counts, {ContactGroup.TYPE_ALL: 4, ContactGroup.TYPE_BLOCKED: 0, ContactGroup.TYPE_STOPPED: 0}
         )
 
         # he should be back in the dynamic group
         self.assertEqual(set(static_group.contacts.all()), set())
-        self.assertEqual(set(dynamic_group.contacts.all()), set())
+        self.assertEqual(set(dynamic_group.contacts.all()), {self.joe})
 
+        # stop joe again...
+        self.joe.stop(self.user)
+        self.assertTrue(self.joe.is_stopped)
+
+        # and now unstop him
         self.joe.unstop(self.user)
 
         # check that joe is now no longer failed
-        self.joe = Contact.objects.get(pk=self.joe.pk)
+        self.joe.refresh_from_db()
         self.assertFalse(self.joe.is_stopped)
         self.assertFalse(self.joe.is_blocked)
         self.assertTrue(self.joe.is_active)
@@ -1472,7 +1477,7 @@ class ContactTest(TembaTest):
         # check joe goes into the appropriate groups
         contact_counts = ContactGroup.get_system_group_counts(self.org)
         self.assertEqual(
-            contact_counts, {ContactGroup.TYPE_ALL: 3, ContactGroup.TYPE_BLOCKED: 1, ContactGroup.TYPE_STOPPED: 1}
+            contact_counts, {ContactGroup.TYPE_ALL: 3, ContactGroup.TYPE_BLOCKED: 0, ContactGroup.TYPE_STOPPED: 1}
         )
 
     def test_user_groups(self):
