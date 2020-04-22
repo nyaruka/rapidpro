@@ -682,11 +682,11 @@ MAX_HISTORY = 50
 class Contact(RequireUpdateFieldsMixin, TembaModel):
     PAUSE_TYPE_BLOCKED = "B"
     PAUSE_TYPE_STOPPED = "S"
-    PAUSE_TYPE_TICKET = "T"
+    PAUSE_TYPE_PAUSED = "P"
     PAUSE_TYPE_CHOICES = (
         (PAUSE_TYPE_BLOCKED, "Blocked"),
         (PAUSE_TYPE_STOPPED, "Stopped"),
-        (PAUSE_TYPE_TICKET, "Ticket"),
+        (PAUSE_TYPE_PAUSED, "Paused"),
     )
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="contacts")
@@ -709,14 +709,14 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
     # whether contact has opted out of receiving messages
     is_stopped = models.BooleanField(default=False)
 
-    # TODO remove
-    is_paused = models.BooleanField(null=True)
-
     # if the contact is currently paused, why that happened
     pause_type = models.CharField(max_length=1, choices=PAUSE_TYPE_CHOICES, null=True)
 
     # if the contact is currently paused, when that happened
     paused_on = models.DateTimeField(null=True)
+
+    # TODO remove field
+    is_paused = models.BooleanField(null=True)
 
     # custom field values for this contact, keyed by field UUID
     fields = JSONField(null=True)
@@ -2002,7 +2002,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         self.is_blocked = pause_type == Contact.PAUSE_TYPE_BLOCKED
         self.is_stopped = pause_type == Contact.PAUSE_TYPE_STOPPED
 
-        self.pause_type = Contact.PAUSE_TYPE_BLOCKED
+        self.pause_type = pause_type
         self.paused_on = timezone.now()
         self.modified_by = user
         self.save(
