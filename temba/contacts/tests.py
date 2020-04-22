@@ -3559,6 +3559,7 @@ class ContactTest(TembaTest):
             response = self.client.get(
                 "%s?field=%s" % (reverse("contacts.contact_update_fields", args=[self.joe.id]), contact_field.id)
             )
+            self.assertEqual(["contact_field", "field_value", "loc"], list(response.context["form"].fields.keys()))
             self.assertEqual("Home state", response.context["contact_field"].label)
 
         # grab our input field which is loaded async

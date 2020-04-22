@@ -381,7 +381,7 @@ class ContactFieldForm(forms.ModelForm):
 
     class Meta:
         model = Contact
-        fields = "__all__"
+        fields = ()
 
 
 class ContactForm(forms.ModelForm):
@@ -1507,20 +1507,6 @@ class ContactCRUDL(SmartCRUDL):
 
     class UpdateFields(ModalMixin, OrgObjPermsMixin, SmartUpdateView):
         form_class = ContactFieldForm
-        exclude = (
-            "is_active",
-            "uuid",
-            "org",
-            "fields",
-            "is_blocked",
-            "is_stopped",
-            "created_by",
-            "modified_by",
-            "is_test",
-            "channel",
-            "name",
-            "language",
-        )
         success_url = "uuid@contacts.contact_read"
         success_message = ""
         submit_button_name = _("Save Changes")
