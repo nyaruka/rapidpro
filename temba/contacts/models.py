@@ -680,6 +680,15 @@ MAX_HISTORY = 50
 
 
 class Contact(RequireUpdateFieldsMixin, TembaModel):
+    PAUSE_TYPE_BLOCKED = "B"
+    PAUSE_TYPE_STOPPED = "S"
+    PAUSE_TYPE_TICKET = "T"
+    PAUSE_TYPE_CHOICES = (
+        (PAUSE_TYPE_BLOCKED, "Blocked"),
+        (PAUSE_TYPE_STOPPED, "Stopped"),
+        (PAUSE_TYPE_TICKET, "Ticket"),
+    )
+
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="contacts")
 
     name = models.CharField(
@@ -700,8 +709,14 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
     # whether contact has opted out of receiving messages
     is_stopped = models.BooleanField(default=False)
 
-    # whether contact is being temporarily by an external system
-    is_paused = models.BooleanField(default=False, null=True)
+    # TODO remove
+    is_paused = models.BooleanField(null=True)
+
+    # if the contact is currently paused, why that happened
+    pause_type = models.CharField(max_length=1, choices=PAUSE_TYPE_CHOICES, null=True)
+
+    # if the contact is currently paused, when that happened
+    paused_on = models.DateTimeField(null=True)
 
     # custom field values for this contact, keyed by field UUID
     fields = JSONField(null=True)
@@ -1989,14 +2004,24 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         Trigger.archive_triggers_for_contact(self, user)
 
         self.is_blocked = True
-        self.save(update_fields=("is_blocked", "modified_on"), handle_update=False)
+        self.pause_type = Contact.PAUSE_TYPE_BLOCKED
+        self.paused_on = timezone.now()
+        self.modified_by = user
+        self.save(
+            update_fields=("is_blocked", "pause_type", "paused_on", "modified_by", "modified_on"), handle_update=False
+        )
 
     def unblock(self, user):
         """
         Unlocks this contact and marking it as not archived
         """
         self.is_blocked = False
-        self.save(update_fields=("is_blocked", "modified_on"), handle_update=False)
+        self.pause_type = None
+        self.paused_on = None
+        self.modified_by = user
+        self.save(
+            update_fields=("is_blocked", "pause_type", "paused_on", "modified_by", "modified_on"), handle_update=False
+        )
 
         self.reevaluate_dynamic_groups()
 
@@ -2007,7 +2032,12 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         from temba.triggers.models import Trigger
 
         self.is_stopped = True
-        self.save(update_fields=["is_stopped", "modified_on"], handle_update=False)
+        self.pause_type = Contact.PAUSE_TYPE_STOPPED
+        self.paused_on = timezone.now()
+        self.modified_by = user
+        self.save(
+            update_fields=("is_stopped", "pause_type", "paused_on", "modified_by", "modified_on"), handle_update=False
+        )
 
         self.clear_all_groups(user)
 
@@ -2018,8 +2048,12 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         Unstops this contact, re-adding them to any dynamic groups they belong to
         """
         self.is_stopped = False
+        self.pause_type = None
+        self.paused_on = None
         self.modified_by = user
-        self.save(update_fields=("is_stopped", "modified_by", "modified_on"), handle_update=False)
+        self.save(
+            update_fields=("is_stopped", "pause_type", "paused_on", "modified_by", "modified_on"), handle_update=False
+        )
 
         # re-add them to any dynamic groups they would belong to
         self.reevaluate_dynamic_groups()
