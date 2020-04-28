@@ -304,6 +304,7 @@ BRANDING = {
         "logo": "brands/rapidpro/logo.png",
         "allow_signups": True,
         "flow_types": ["M", "V", "S"],  # see Flow.TYPE_MESSAGE, Flow.TYPE_VOICE, Flow.TYPE_SURVEY
+        "default_plan": "topup",
         "tiers": dict(import_flows=0, multi_user=0, multi_org=0),
         "bundles": [],
         "welcome_packs": [dict(size=5000, name="Demo Account"), dict(size=100000, name="UNICEF Account")],

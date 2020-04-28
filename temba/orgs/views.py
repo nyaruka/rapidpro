@@ -1136,7 +1136,7 @@ class OrgCRUDL(SmartCRUDL):
             return "%s %s - %s" % (obj.created_by.first_name, obj.created_by.last_name, obj.created_by.email)
 
     class Update(SmartUpdateView):
-        fields = ("name", "brand", "parent", "is_anon")
+        fields = ("name", "brand", "parent", "is_anon", "plan")
 
         class OrgUpdateForm(forms.ModelForm):
             parent = forms.IntegerField(required=False)
@@ -1148,7 +1148,7 @@ class OrgCRUDL(SmartCRUDL):
 
             class Meta:
                 model = Org
-                fields = ("name", "slug", "stripe_customer", "is_active", "is_anon", "brand", "parent")
+                fields = ("name", "slug", "stripe_customer", "is_active", "is_anon", "brand", "parent", "plan")
 
         form_class = OrgUpdateForm
 

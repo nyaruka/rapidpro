@@ -1,9 +1,8 @@
-import calendar
 import itertools
 import logging
 import os
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import timedelta
 from decimal import Decimal
 from enum import Enum
 from urllib.parse import quote, urlencode, urlparse
@@ -12,7 +11,6 @@ import pycountry
 import regex
 import stripe
 import stripe.error
-from dateutil.relativedelta import relativedelta
 from django_redis import get_redis_connection
 from packaging.version import Version
 from requests import Session
@@ -36,7 +34,7 @@ from temba import mailroom
 from temba.archives.models import Archive
 from temba.bundles import get_brand_bundles, get_bundle_map
 from temba.locations.models import AdminBoundary, BoundaryAlias
-from temba.utils import analytics, chunk_list, json, languages
+from temba.utils import chunk_list, json, languages
 from temba.utils.cache import get_cacheable_attr, get_cacheable_result, incrby_existing
 from temba.utils.currencies import currency_for_country
 from temba.utils.dates import datetime_to_str, str_to_datetime
@@ -86,9 +84,8 @@ class Org(SmartModel):
     """
     An Org can have several users and is the main component that holds all Flows, Messages, Contacts, etc. Orgs
     know their country so they can deal with locally formatted numbers (numbers provided without a country code).
-    As such, each org can only add phone channels from one country.
 
-    Users will create new Org for Flows that should be kept separate (say for distinct projects), or for
+    Users will create new Orgs for Flows that should be kept separate (say for distinct projects), or for
     each country where they are deploying messaging applications.
     """
 
@@ -96,24 +93,7 @@ class Org(SmartModel):
     DATE_FORMAT_MONTH_FIRST = "M"
     DATE_FORMATS = ((DATE_FORMAT_DAY_FIRST, "DD-MM-YYYY"), (DATE_FORMAT_MONTH_FIRST, "MM-DD-YYYY"))
 
-    PLAN_FREE = "FREE"
-    PLAN_TRIAL = "TRIAL"
-    PLAN_TIER1 = "TIER1"
-    PLAN_TIER2 = "TIER2"
-    PLAN_TIER3 = "TIER3"
-    PLAN_TIER_39 = "TIER_39"
-    PLAN_TIER_249 = "TIER_249"
-    PLAN_TIER_449 = "TIER_449"
-    PLANS = (
-        (PLAN_FREE, _("Free Plan")),
-        (PLAN_TRIAL, _("Trial")),
-        (PLAN_TIER_39, _("Bronze")),
-        (PLAN_TIER1, _("Silver")),
-        (PLAN_TIER2, _("Gold (Legacy)")),
-        (PLAN_TIER3, _("Platinum (Legacy)")),
-        (PLAN_TIER_249, _("Gold")),
-        (PLAN_TIER_449, _("Platinum")),
-    )
+    PLAN_TOPUP = "topup"
 
     STATUS_SUSPENDED = "suspended"
     STATUS_RESTORED = "restored"
@@ -147,16 +127,7 @@ class Org(SmartModel):
     uuid = models.UUIDField(unique=True, default=uuid4)
 
     name = models.CharField(verbose_name=_("Name"), max_length=128)
-    plan = models.CharField(
-        verbose_name=_("Plan"),
-        max_length=16,
-        choices=PLANS,
-        default=PLAN_FREE,
-        help_text=_("What plan your organization is on"),
-    )
-    plan_start = models.DateTimeField(
-        verbose_name=_("Plan Start"), auto_now_add=True, help_text=_("When the user switched to this plan")
-    )
+    plan = models.CharField(verbose_name=_("Plan"), max_length=16, null=True)
 
     stripe_customer = models.CharField(
         verbose_name=_("Stripe Customer"),
@@ -290,6 +261,7 @@ class Org(SmartModel):
 
             # generate a unique slug
             slug = Org.get_unique_slug(name)
+            branding = self.get_branding()
 
             org = Org.objects.create(
                 name=name,
@@ -304,7 +276,7 @@ class Org(SmartModel):
             org.administrators.add(created_by)
 
             # initialize our org, but without any credits
-            org.initialize(branding=org.get_branding(), topup_size=0)
+            org.initialize(branding=branding, topup_size=0)
 
             return org
 
@@ -1067,9 +1039,6 @@ class Org(SmartModel):
 
         return admin
 
-    def is_free_plan(self):  # pragma: needs cover
-        return self.plan == Org.PLAN_FREE or self.plan == Org.PLAN_TRIAL
-
     def is_import_flows_tier(self):
         return self.get_purchased_credits() >= self.get_branding().get("tiers", {}).get("import_flows", 0)
 
@@ -1483,22 +1452,6 @@ class Org(SmartModel):
         # any time we've reapplied topups, lets invalidate our credit cache too
         self.clear_credit_cache()
 
-    def current_plan_start(self):
-        today = timezone.now().date()
-
-        # move it to the same day our plan started (taking into account short months)
-        plan_start = today.replace(day=min(self.plan_start.day, calendar.monthrange(today.year, today.month)[1]))
-
-        if plan_start > today:  # pragma: needs cover
-            plan_start -= relativedelta(months=1)
-
-        return plan_start
-
-    def current_plan_end(self):
-        plan_start = self.current_plan_start()
-        plan_end = plan_start + relativedelta(months=1)
-        return plan_end
-
     def get_stripe_customer(self):  # pragma: no cover
         # We can't test stripe in unit tests since it requires javascript tokens to be generated
         if not self.stripe_customer:
@@ -1636,82 +1589,6 @@ class Org(SmartModel):
             paid = 0
         return paid / 100
 
-    def update_plan(self, new_plan, token, user):  # pragma: no cover
-        # We can't test stripe in unit tests since it requires javascript tokens to be generated
-        stripe.api_key = get_stripe_credentials()[1]
-
-        # no plan change?  do nothing
-        if new_plan == self.plan:
-            return None
-
-        # this is our stripe customer id
-        stripe_customer = None
-
-        # our actual customer object
-        customer = self.get_stripe_customer()
-        if customer:
-            stripe_customer = customer.id
-
-        # cancel our plan on our stripe customer
-        if new_plan == Org.PLAN_FREE:
-            if customer:
-                analytics.track(user.username, "temba.plan_cancelled", dict(cancelledPlan=self.plan))
-
-                try:
-                    subscription = customer.cancel_subscription(at_period_end=True)
-                except Exception as e:
-                    logger.error(f"Unable to cancel customer plan: {str(e)}", exc_info=True)
-                    raise ValidationError(
-                        _("Sorry, we are unable to cancel your plan at this time.  Please contact us.")
-                    )
-            else:
-                raise ValidationError(_("Sorry, we are unable to cancel your plan at this time.  Please contact us."))
-
-        else:
-            # we have a customer, try to upgrade them
-            if customer:
-                try:
-                    subscription = customer.update_subscription(plan=new_plan)
-
-                    analytics.track(user.username, "temba.plan_upgraded", dict(previousPlan=self.plan, plan=new_plan))
-
-                except Exception as e:
-                    # can't load it, oh well, we'll try to create one dynamically below
-                    logger.error(f"Unable to update Stripe customer subscription: {str(e)}", exc_info=True)
-                    customer = None
-
-            # if we don't have a customer, go create one
-            if not customer:
-                try:
-                    # then go create a customer object for this user
-                    customer = stripe.Customer.create(
-                        card=token, plan=new_plan, email=user, description="{ org: %d }" % self.pk
-                    )
-
-                    stripe_customer = customer.id
-                    subscription = customer["subscription"]
-
-                    analytics.track(user.username, "temba.plan_upgraded", dict(previousPlan=self.plan, plan=new_plan))
-
-                except Exception as e:
-                    logger.error(f"Unable to create Stripe customer: {str(e)}", exc_info=True)
-                    raise ValidationError(
-                        _("Sorry, we were unable to charge your card, please try again later or contact us.")
-                    )
-
-        # update our org
-        self.stripe_customer = stripe_customer
-
-        if subscription["status"] != "active":
-            self.plan = Org.PLAN_FREE
-        else:
-            self.plan = new_plan
-
-        self.plan_start = datetime.fromtimestamp(subscription["start"])
-        self.save()
-
-        return subscription
-
     def generate_dependency_graph(self, include_campaigns=True, include_triggers=False, include_archived=False):
         """
         Generates a dict of all exportable flows and campaigns for this org with each object's immediate dependencies
@@ -1822,6 +1699,10 @@ class Org(SmartModel):
             self.create_system_groups()
             self.create_system_contact_fields()
             self.create_welcome_topup(topup_size)
+
+            # set our default plan
+            self.plan = branding.get("default_plan")
+            self.save(update_fields=["plan"])
 
         # outside of the transaction as it's going to call out to mailroom for flow validation
         self.create_sample_flows(branding.get("api_link", ""))

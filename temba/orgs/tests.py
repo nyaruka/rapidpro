@@ -670,37 +670,6 @@ class OrgTest(TembaTest):
         # now really don't have a clue of our country code
         self.assertIsNone(org.get_country_code())
 
-    def test_plans(self):
-        self.contact = self.create_contact("Joe", "+250788123123")
-
-        self.create_incoming_msg(self.contact, "Orange")
-
-        # check start and end date for this plan
-        self.assertEqual(timezone.now().date(), self.org.current_plan_start())
-        self.assertEqual(timezone.now().date() + relativedelta(months=1), self.org.current_plan_end())
-
-        # check our credits
-        self.login(self.admin)
-        response = self.client.get(reverse("orgs.org_home"))
-        self.assertContains(response, "<span class='attn'>999</span>")
-
-        # view our topups
-        response = self.client.get(reverse("orgs.topup_list"))
-
-        # and that we have 999 credits left on our topup
-        self.assertContains(response, "999\n")
-
-        # should say we have a 1,000 credits too
-        self.assertContains(response, "1 of 1,000 Credits Used")
-
-        # our receipt should show that the topup was free
-        with patch("stripe.Charge.retrieve") as stripe:
-            stripe.return_value = ""
-            response = self.client.get(
-                reverse("orgs.topup_read", args=[TopUp.objects.filter(org=self.org).first().pk])
-            )
-            self.assertContains(response, "1000 Credits")
-
     def test_user_update(self):
         update_url = reverse("orgs.user_edit")
         login_url = reverse("users.user_login")
@@ -2554,6 +2523,7 @@ class OrgTest(TembaTest):
         # lower the tier and try again
         settings.BRANDING[settings.DEFAULT_BRAND]["tiers"] = dict(multi_org=0)
         sub_org = self.org.create_sub_org("Sub Org")
+        self.assertEqual(sub_org.plan, Org.PLAN_TOPUP)
 
         # send a message as sub_org
         Channel.create(
@@ -3080,6 +3050,7 @@ class OrgCRUDLTest(TembaTest):
         # should have a new org
         org = Org.objects.get(name="AlexCom")
         self.assertEqual(org.timezone, pytz.timezone("Africa/Kigali"))
+        self.assertEqual(org.plan, Org.PLAN_TOPUP)
 
         # of which our user is an administrator
         self.assertTrue(org.get_org_admins().filter(pk=user.pk))
@@ -3149,6 +3120,7 @@ class OrgCRUDLTest(TembaTest):
         self.assertEqual(org.timezone, pytz.timezone("Africa/Kigali"))
         self.assertEqual(str(org), "Relieves World")
         self.assertEqual(org.slug, "relieves-world")
+        self.assertEqual(org.plan, Org.PLAN_TOPUP)
 
         # of which our user is an administrator
         self.assertTrue(org.get_org_admins().filter(pk=user.pk))
