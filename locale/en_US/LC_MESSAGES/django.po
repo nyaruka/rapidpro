@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-04-27 21:09+0000\n"
+"POT-Creation-Date: 2020-04-28 19:15+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3508,40 +3508,7 @@ msgstr ""
 msgid "Update Label"
 msgstr ""
 
-msgid "Free Plan"
-msgstr ""
-
-msgid "Trial"
-msgstr ""
-
-msgid "Bronze"
-msgstr ""
-
-msgid "Silver"
-msgstr ""
-
-msgid "Gold (Legacy)"
-msgstr ""
-
-msgid "Platinum (Legacy)"
-msgstr ""
-
-msgid "Gold"
-msgstr ""
-
-msgid "Platinum"
-msgstr ""
-
 msgid "Plan"
-msgstr ""
-
-msgid "What plan your organization is on"
-msgstr ""
-
-msgid "Plan Start"
-msgstr ""
-
-msgid "When the user switched to this plan"
 msgstr ""
 
 msgid "Stripe Customer"
@@ -3628,12 +3595,6 @@ msgid "Sorry, your card was declined, please contact your provider or try anothe
 msgstr ""
 
 msgid "Sorry, we were unable to process your payment, please try again later or contact us."
-msgstr ""
-
-msgid "Sorry, we are unable to cancel your plan at this time.  Please contact us."
-msgstr ""
-
-msgid "Sorry, we were unable to charge your card, please try again later or contact us."
 msgstr ""
 
 msgid "Viewer"
@@ -3981,6 +3942,9 @@ msgid "Invalid MFA token. Please try again."
 msgstr ""
 
 msgid "Activate"
+msgstr ""
+
+msgid "Two Factor Authentication"
 msgstr ""
 
 msgid "Select your Organization"
@@ -7789,9 +7753,6 @@ msgid "Generate Backup Tokens"
 msgstr ""
 
 msgid "Disable Two Factor"
-msgstr ""
-
-msgid "Two Factor Authentication"
 msgstr ""
 
 msgid "This organization has been suspended"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-04-27 21:09+0000\n"
+"POT-Creation-Date: 2020-04-28 19:15+0000\n"
 "PO-Revision-Date: 2014-09-24 19:56+0000\n"
 "Last-Translator: TextIt <info@textit.in>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/textit/language/es/)\n"
@@ -5002,41 +5002,8 @@ msgstr "Actualizar campos"
 msgid "Update Label"
 msgstr "Actualizar etiqueta"
 
-msgid "Free Plan"
-msgstr "Plan libre"
-
-msgid "Trial"
-msgstr "Prueba"
-
-msgid "Bronze"
-msgstr "Bronce"
-
-msgid "Silver"
-msgstr "Plata"
-
-msgid "Gold (Legacy)"
-msgstr "Oro (Legado)"
-
-msgid "Platinum (Legacy)"
-msgstr "Platino (Legado)"
-
-msgid "Gold"
-msgstr "Oro"
-
-msgid "Platinum"
-msgstr "Platino"
-
 msgid "Plan"
 msgstr "Plan"
-
-msgid "What plan your organization is on"
-msgstr "En qué plan está su organización"
-
-msgid "Plan Start"
-msgstr "Inicio de plan"
-
-msgid "When the user switched to this plan"
-msgstr "Cuándo el usuario se cambió a este plan"
 
 msgid "Stripe Customer"
 msgstr "Stripe Customer"
@@ -5130,14 +5097,6 @@ msgstr ""
 
 #, fuzzy
 msgid "Sorry, we were unable to process your payment, please try again later or contact us."
-msgstr "Lo sentimos, no podemos recargar su tarjeta, por favor, inténtelo nuevamente más tarde o contáctenos a feedback@textit.in"
-
-#, fuzzy
-msgid "Sorry, we are unable to cancel your plan at this time.  Please contact us."
-msgstr "Lo sentimos, no podemos cancelar su plan en este momento. Por favor, contáctenos a feedback@textit.in."
-
-#, fuzzy
-msgid "Sorry, we were unable to charge your card, please try again later or contact us."
 msgstr "Lo sentimos, no podemos recargar su tarjeta, por favor, inténtelo nuevamente más tarde o contáctenos a feedback@textit.in"
 
 msgid "Viewer"
@@ -5533,6 +5492,9 @@ msgstr "Número de teléfono inválido, inténtelo nuevamente."
 
 msgid "Activate"
 msgstr "Activar"
+
+msgid "Two Factor Authentication"
+msgstr ""
 
 msgid "Select your Organization"
 msgstr "Elija su Organización"
@@ -10921,9 +10883,6 @@ msgstr ""
 msgid "Disable Two Factor"
 msgstr ""
 
-msgid "Two Factor Authentication"
-msgstr ""
-
 #, fuzzy
 msgid "This organization has been suspended"
 msgstr "La Organización del usuario."
@@ -12503,6 +12462,47 @@ msgstr "Ingrese el código de pedido"
 #, python-brace-format
 msgid "Found ${count} for ${query}"
 msgstr ""
+
+#~ msgid "Free Plan"
+#~ msgstr "Plan libre"
+
+#~ msgid "Trial"
+#~ msgstr "Prueba"
+
+#~ msgid "Bronze"
+#~ msgstr "Bronce"
+
+#~ msgid "Silver"
+#~ msgstr "Plata"
+
+#~ msgid "Gold (Legacy)"
+#~ msgstr "Oro (Legado)"
+
+#~ msgid "Platinum (Legacy)"
+#~ msgstr "Platino (Legado)"
+
+#~ msgid "Gold"
+#~ msgstr "Oro"
+
+#~ msgid "Platinum"
+#~ msgstr "Platino"
+
+#~ msgid "What plan your organization is on"
+#~ msgstr "En qué plan está su organización"
+
+#~ msgid "Plan Start"
+#~ msgstr "Inicio de plan"
+
+#~ msgid "When the user switched to this plan"
+#~ msgstr "Cuándo el usuario se cambió a este plan"
+
+#, fuzzy
+#~ msgid "Sorry, we are unable to cancel your plan at this time.  Please contact us."
+#~ msgstr "Lo sentimos, no podemos cancelar su plan en este momento. Por favor, contáctenos a feedback@textit.in."
+
+#, fuzzy
+#~ msgid "Sorry, we were unable to charge your card, please try again later or contact us."
+#~ msgstr "Lo sentimos, no podemos recargar su tarjeta, por favor, inténtelo nuevamente más tarde o contáctenos a feedback@textit.in"
 
 #, fuzzy
 #~| msgid "Start Flow"

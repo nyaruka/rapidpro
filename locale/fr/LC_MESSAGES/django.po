@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-04-27 21:09+0000\n"
+"POT-Creation-Date: 2020-04-28 19:15+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Nyaruka <info@textit.in>, 2020\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -3842,41 +3842,8 @@ msgstr "Mettre à jour le dossier"
 msgid "Update Label"
 msgstr "Mise à jour du libellé"
 
-msgid "Free Plan"
-msgstr "Plan Free"
-
-msgid "Trial"
-msgstr "Test"
-
-msgid "Bronze"
-msgstr "Bronze"
-
-msgid "Silver"
-msgstr "Argent"
-
-msgid "Gold (Legacy)"
-msgstr "Or(Legacy)"
-
-msgid "Platinum (Legacy)"
-msgstr "Platinum(Legacy)"
-
-msgid "Gold"
-msgstr "Or"
-
-msgid "Platinum"
-msgstr "Platinum"
-
 msgid "Plan"
 msgstr "Plan"
-
-msgid "What plan your organization is on"
-msgstr "Sur quel plan votre organisation est"
-
-msgid "Plan Start"
-msgstr "Démarrer le plan"
-
-msgid "When the user switched to this plan"
-msgstr "Lorsque l'utilisateur passe à ce plan"
 
 msgid "Stripe Customer"
 msgstr "Bande consommateur"
@@ -3963,12 +3930,6 @@ msgstr "Désolé, votre carte a été refusée. Veuillez contacter votre fournis
 
 msgid "Sorry, we were unable to process your payment, please try again later or contact us."
 msgstr "Désolé, nous n'avons pas pu traiter votre paiement. Veuillez réessayer ultérieurement ou contactez-nous."
-
-msgid "Sorry, we are unable to cancel your plan at this time.  Please contact us."
-msgstr "Désolé, nous ne pouvons pas annuler votre plan pour le moment. Contactez nous s'il vous plait."
-
-msgid "Sorry, we were unable to charge your card, please try again later or contact us."
-msgstr "Désolé, nous n'avons pas pu charger votre carte. Veuillez réessayer ultérieurement ou contactez-nous."
 
 msgid "Viewer"
 msgstr "Spectateur"
@@ -4320,6 +4281,11 @@ msgstr "Numéro de téléphone incorrect, essayez à nouveau."
 
 msgid "Activate"
 msgstr "activer"
+
+#, fuzzy
+#| msgid "Authentication Token"
+msgid "Two Factor Authentication"
+msgstr "Jeton d'authentification"
 
 msgid "Select your Organization"
 msgstr "Choisissez votre Organisation"
@@ -9136,11 +9102,6 @@ msgstr ""
 msgid "Disable Two Factor"
 msgstr ""
 
-#, fuzzy
-#| msgid "Authentication Token"
-msgid "Two Factor Authentication"
-msgstr "Jeton d'authentification"
-
 msgid "This organization has been suspended"
 msgstr "Cette organisation a été suspendue"
 
@@ -10616,6 +10577,45 @@ msgstr "Entrez une requête"
 #, python-brace-format
 msgid "Found ${count} for ${query}"
 msgstr "${count} trouvé pour ${query}"
+
+#~ msgid "Free Plan"
+#~ msgstr "Plan Free"
+
+#~ msgid "Trial"
+#~ msgstr "Test"
+
+#~ msgid "Bronze"
+#~ msgstr "Bronze"
+
+#~ msgid "Silver"
+#~ msgstr "Argent"
+
+#~ msgid "Gold (Legacy)"
+#~ msgstr "Or(Legacy)"
+
+#~ msgid "Platinum (Legacy)"
+#~ msgstr "Platinum(Legacy)"
+
+#~ msgid "Gold"
+#~ msgstr "Or"
+
+#~ msgid "Platinum"
+#~ msgstr "Platinum"
+
+#~ msgid "What plan your organization is on"
+#~ msgstr "Sur quel plan votre organisation est"
+
+#~ msgid "Plan Start"
+#~ msgstr "Démarrer le plan"
+
+#~ msgid "When the user switched to this plan"
+#~ msgstr "Lorsque l'utilisateur passe à ce plan"
+
+#~ msgid "Sorry, we are unable to cancel your plan at this time.  Please contact us."
+#~ msgstr "Désolé, nous ne pouvons pas annuler votre plan pour le moment. Contactez nous s'il vous plait."
+
+#~ msgid "Sorry, we were unable to charge your card, please try again later or contact us."
+#~ msgstr "Désolé, nous n'avons pas pu charger votre carte. Veuillez réessayer ultérieurement ou contactez-nous."
 
 #, fuzzy
 #~| msgid "Start Flow"
