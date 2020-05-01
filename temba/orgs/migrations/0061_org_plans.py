@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(update_orgs_to_topup_plan),
         migrations.AlterField(
-            model_name="org", name="plan", field=models.CharField(max_length=16, null=True, verbose_name="Plan")
+            model_name="org", name="plan", field=models.CharField(max_length=16, verbose_name="Plan")
         ),
         migrations.RemoveField(model_name="org", name="plan_start"),
     ]

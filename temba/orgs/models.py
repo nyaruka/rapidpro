@@ -127,7 +127,7 @@ class Org(SmartModel):
     uuid = models.UUIDField(unique=True, default=uuid4)
 
     name = models.CharField(verbose_name=_("Name"), max_length=128)
-    plan = models.CharField(verbose_name=_("Plan"), max_length=16, null=True)
+    plan = models.CharField(verbose_name=_("Plan"), max_length=16)
 
     stripe_customer = models.CharField(
         verbose_name=_("Stripe Customer"),
@@ -1701,7 +1701,7 @@ class Org(SmartModel):
             self.create_welcome_topup(topup_size)
 
             # set our default plan
-            self.plan = branding.get("default_plan")
+            self.plan = branding.get("default_plan", Org.PLAN_TOPUP)
             self.save(update_fields=["plan"])
 
         # outside of the transaction as it's going to call out to mailroom for flow validation
