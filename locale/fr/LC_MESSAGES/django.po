@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-05-06 20:49+0000\n"
+"POT-Creation-Date: 2020-05-14 11:09+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Nyaruka <info@textit.in>, 2020\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -6924,24 +6924,6 @@ msgstr "Êtes-vous sûr de vouloir supprimer ces contacts?"
 msgid "Once they are deleted, they will be gone forever. There is no way to undo this operation."
 msgstr "Une fois qu'ils sont supprimés, ils seront partis pour toujours. Il n'y a aucun moyen d'annuler cette opération."
 
-msgid "Create Contact Group"
-msgstr "Créer un groupe de contact"
-
-msgid "Save Search as Group"
-msgstr "Enregistrer la recherche en tant que groupe"
-
-msgid "Unable to create a dynamic group"
-msgstr "Impossible de créer un groupe dynamique"
-
-msgid "You cannot create a dynamic group based on <strong>id</strong> or <strong>group</strong>."
-msgstr "Vous ne pouvez pas créer un groupe dynamique basé sur <strong>id</strong> ou <strong>group</strong>."
-
-msgid "Export Contacts"
-msgstr "Exporter des contacts"
-
-msgid "Start Export"
-msgstr "Lancer l'exportation"
-
 msgid "blocked"
 msgstr "bloqué"
 
@@ -10695,6 +10677,24 @@ msgstr "Entrez une requête"
 #, python-brace-format
 msgid "Found ${count} for ${query}"
 msgstr "${count} trouvé pour ${query}"
+
+#~ msgid "Create Contact Group"
+#~ msgstr "Créer un groupe de contact"
+
+#~ msgid "Save Search as Group"
+#~ msgstr "Enregistrer la recherche en tant que groupe"
+
+#~ msgid "Unable to create a dynamic group"
+#~ msgstr "Impossible de créer un groupe dynamique"
+
+#~ msgid "You cannot create a dynamic group based on <strong>id</strong> or <strong>group</strong>."
+#~ msgstr "Vous ne pouvez pas créer un groupe dynamique basé sur <strong>id</strong> ou <strong>group</strong>."
+
+#~ msgid "Export Contacts"
+#~ msgstr "Exporter des contacts"
+
+#~ msgid "Start Export"
+#~ msgstr "Lancer l'exportation"
 
 #, fuzzy
 #~| msgid "Start Flow"

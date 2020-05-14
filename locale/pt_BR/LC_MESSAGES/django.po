@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-05-06 20:49+0000\n"
+"POT-Creation-Date: 2020-05-14 11:09+0000\n"
 "PO-Revision-Date: 2014-04-14 20:37+0000\n"
 "Last-Translator: produtos <produtos.ti@takenet.com.br>\n"
 "Language-Team: Portuguese (Brazil) (http://www.transifex.com/projects/p/textit/language/pt_BR/)\n"
@@ -8079,29 +8079,6 @@ msgstr "Você tem certeza que deseja remover este Grupo de Contato?"
 msgid "Once they are deleted, they will be gone forever. There is no way to undo this operation."
 msgstr "Uma vez que for removido, ele irá desaparecer para sempre. Não há maneira de desfazer esta operação."
 
-msgid "Create Contact Group"
-msgstr "Criar grupo de contatos"
-
-#, fuzzy
-msgid "Save Search as Group"
-msgstr "Criar grupos"
-
-msgid "Unable to create a dynamic group"
-msgstr ""
-
-msgid "You cannot create a dynamic group based on <strong>id</strong> or <strong>group</strong>."
-msgstr ""
-
-#, fuzzy
-#| msgid "Import Contacts"
-msgid "Export Contacts"
-msgstr "Importar contatos"
-
-#, fuzzy
-#| msgid "Export"
-msgid "Start Export"
-msgstr "Exportar"
-
 #, fuzzy
 msgid "blocked"
 msgstr "Telefone do contato"
@@ -11628,6 +11605,23 @@ msgstr "Insira o seu código de requisição"
 #, python-brace-format
 msgid "Found ${count} for ${query}"
 msgstr ""
+
+#~ msgid "Create Contact Group"
+#~ msgstr "Criar grupo de contatos"
+
+#, fuzzy
+#~ msgid "Save Search as Group"
+#~ msgstr "Criar grupos"
+
+#, fuzzy
+#~| msgid "Import Contacts"
+#~ msgid "Export Contacts"
+#~ msgstr "Importar contatos"
+
+#, fuzzy
+#~| msgid "Export"
+#~ msgid "Start Export"
+#~ msgstr "Exportar"
 
 #, fuzzy
 #~ msgid "Start Log"

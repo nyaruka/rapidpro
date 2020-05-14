@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-05-06 20:49+0000\n"
+"POT-Creation-Date: 2020-05-14 11:09+0000\n"
 "PO-Revision-Date: 2014-09-24 19:56+0000\n"
 "Last-Translator: TextIt <info@textit.in>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/textit/language/es/)\n"
@@ -8747,28 +8747,6 @@ msgstr "¿Está seguro de que desea borrar estos contactos?"
 msgid "Once they are deleted, they will be gone forever. There is no way to undo this operation."
 msgstr "Una vez borrados, no podrá recuperarlos. No puede deshacer esta operación. "
 
-msgid "Create Contact Group"
-msgstr "Crear Grupo de Contactos"
-
-msgid "Save Search as Group"
-msgstr "Guardar Búsqueda como Grupo"
-
-msgid "Unable to create a dynamic group"
-msgstr ""
-
-msgid "You cannot create a dynamic group based on <strong>id</strong> or <strong>group</strong>."
-msgstr ""
-
-#, fuzzy
-#| msgid "Import Contacts"
-msgid "Export Contacts"
-msgstr "Importar contactos"
-
-#, fuzzy
-#| msgid "Export"
-msgid "Start Export"
-msgstr "Exportar"
-
 #, fuzzy
 #| msgid "Blocked"
 msgid "blocked"
@@ -12550,6 +12528,22 @@ msgstr "Ingrese el código de pedido"
 #, python-brace-format
 msgid "Found ${count} for ${query}"
 msgstr ""
+
+#~ msgid "Create Contact Group"
+#~ msgstr "Crear Grupo de Contactos"
+
+#~ msgid "Save Search as Group"
+#~ msgstr "Guardar Búsqueda como Grupo"
+
+#, fuzzy
+#~| msgid "Import Contacts"
+#~ msgid "Export Contacts"
+#~ msgstr "Importar contactos"
+
+#, fuzzy
+#~| msgid "Export"
+#~ msgid "Start Export"
+#~ msgstr "Exportar"
 
 #, fuzzy
 #~| msgid "Start Flow"

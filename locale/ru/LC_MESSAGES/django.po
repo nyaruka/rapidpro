@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-05-06 20:49+0000\n"
+"POT-Creation-Date: 2020-05-14 11:09+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -6083,24 +6083,6 @@ msgid "Are you sure you want to delete these contacts?"
 msgstr ""
 
 msgid "Once they are deleted, they will be gone forever. There is no way to undo this operation."
-msgstr ""
-
-msgid "Create Contact Group"
-msgstr ""
-
-msgid "Save Search as Group"
-msgstr ""
-
-msgid "Unable to create a dynamic group"
-msgstr ""
-
-msgid "You cannot create a dynamic group based on <strong>id</strong> or <strong>group</strong>."
-msgstr ""
-
-msgid "Export Contacts"
-msgstr ""
-
-msgid "Start Export"
 msgstr ""
 
 msgid "blocked"
