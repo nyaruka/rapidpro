@@ -23,6 +23,7 @@ from twilio.rest import Client as TwilioClient
 
 from django.conf import settings
 from django.contrib.auth.models import Group, User
+from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ValidationError
 from django.core.files import File
 from django.core.files.temp import NamedTemporaryFile
@@ -83,6 +84,27 @@ class OrgCache(Enum):
     credits = 2
 
 
+class Plan(SmartModel):
+    """
+    A plan determines what an org can do and may be used by deployments to manage billing.
+    """
+
+    name = models.CharField(verbose_name=_("Name"), max_length=128)
+
+    num_contacts = models.IntegerField(verbose_name=_("Number of contacts allowed"))
+
+    num_child_orgs = models.IntegerField(verbose_name=_("Number of child orgs allowed"))
+
+    price = models.IntegerField(default=0)
+
+    uses_topups = models.BooleanField(default=False, help_text=_("Whether this is a topup-based plan"))
+
+    is_custom = models.BooleanField(default=False, help_text=_("Whether this is a customized plan for a single org"))
+
+    # deployment specific or billing configuration
+    config = JSONField()
+
+
 class Org(SmartModel):
     """
     An Org can have several users and is the main component that holds all Flows, Messages, Contacts, etc. Orgs
@@ -129,6 +151,10 @@ class Org(SmartModel):
     uuid = models.UUIDField(unique=True, default=uuid4)
 
     name = models.CharField(verbose_name=_("Name"), max_length=128)
+
+    plan = models.ForeignKey(
+        Plan, null=True, blank=True, on_delete=models.PROTECT, help_text=_("The current usage plan")
+    )
 
     stripe_customer = models.CharField(
         verbose_name=_("Stripe Customer"),
