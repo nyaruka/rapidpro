@@ -97,25 +97,6 @@ class Org(SmartModel):
     DATE_FORMAT_MONTH_FIRST = "M"
     DATE_FORMATS = ((DATE_FORMAT_DAY_FIRST, "DD-MM-YYYY"), (DATE_FORMAT_MONTH_FIRST, "MM-DD-YYYY"))
 
-    PLAN_FREE = "FREE"
-    PLAN_TRIAL = "TRIAL"
-    PLAN_TIER1 = "TIER1"
-    PLAN_TIER2 = "TIER2"
-    PLAN_TIER3 = "TIER3"
-    PLAN_TIER_39 = "TIER_39"
-    PLAN_TIER_249 = "TIER_249"
-    PLAN_TIER_449 = "TIER_449"
-    PLANS = (
-        (PLAN_FREE, _("Free Plan")),
-        (PLAN_TRIAL, _("Trial")),
-        (PLAN_TIER_39, _("Bronze")),
-        (PLAN_TIER1, _("Silver")),
-        (PLAN_TIER2, _("Gold (Legacy)")),
-        (PLAN_TIER3, _("Platinum (Legacy)")),
-        (PLAN_TIER_249, _("Gold")),
-        (PLAN_TIER_449, _("Platinum")),
-    )
-
     STATUS_SUSPENDED = "suspended"
     STATUS_RESTORED = "restored"
     STATUS_WHITELISTED = "whitelisted"
@@ -148,16 +129,6 @@ class Org(SmartModel):
     uuid = models.UUIDField(unique=True, default=uuid4)
 
     name = models.CharField(verbose_name=_("Name"), max_length=128)
-    plan = models.CharField(
-        verbose_name=_("Plan"),
-        max_length=16,
-        choices=PLANS,
-        default=PLAN_FREE,
-        help_text=_("What plan your organization is on"),
-    )
-    plan_start = models.DateTimeField(
-        verbose_name=_("Plan Start"), auto_now_add=True, help_text=_("When the user switched to this plan")
-    )
 
     stripe_customer = models.CharField(
         verbose_name=_("Stripe Customer"),
