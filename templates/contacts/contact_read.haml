@@ -390,6 +390,15 @@
                 color: rgba(0, 0, 0, 0.20);
               }
             }
+
+            &:hover {
+              td.remove-cell {
+                .icon-close {
+                  visibility: visible;
+                }
+              }
+            }
+
           }
 
           &.summary-events-only {
@@ -404,11 +413,23 @@
             vertical-align:middle;
             padding: 2px 20px;
 
+            &.remove-cell {
+              border: 0px solid;
+              width: 30px;
+              padding: 2px 0px;
+              text-align: center;
+
+              .icon-close {
+                visibility: hidden;
+                font-size: 16px;
+              }
+            }
+
             &.icon {
               border: 0px solid;
               width: 30px;
               padding: 2px 0px;
-              padding-left: 10px;
+              padding-left: 0px;
               text-align: center;
 
               .glyph {
@@ -565,6 +586,25 @@
         $(this).children('.long').hide();
       });
     });
+
+    function deleteRun(id) {
+
+      var modal = new ConfirmationModal("Delete Run", "Deleting this run will remove it from your flow's results. While the messages for the contact will remain, any record of this flow run will be gone forever.");
+      modal.addClass('alert');
+      modal.setListeners({
+        onPrimary: function(){
+          $(".remove-run-" + id).parent('td').parent('tr').fadeOut();
+
+          $.post('/flowrun/delete/' + id + '/').fail(function() {
+            // in the off chance we failed, bring it back
+            $(".remove-run-" + id).parent('td').parent('tr').fadeIn();
+          });
+
+          modal.dismiss();
+        }}, false);
+      modal.setPrimaryButton("Delete Run");
+      modal.show();
+    }
 
     function refreshRecents(){
       Intercooler.triggerRequest($('tr.poll'));
