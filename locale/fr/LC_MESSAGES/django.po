@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-07-20 18:24+0000\n"
+"POT-Creation-Date: 2020-07-24 17:35+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Jesus EKIE <jesus@fehudigital.com>, 2020\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -6979,6 +6979,14 @@ msgstr "Supprimer le contact"
 
 msgid "Are you sure you want to delete this contact?"
 msgstr "Êtes-vous sûr de vouloir supprimer ce contact?"
+
+#, fuzzy
+#| msgid "Delete "
+msgid "Delete Run"
+msgstr "Supprimer"
+
+msgid "Deleting this run will remove it from your flow's results. While the messages for the contact will remain, any record of this flow run will be gone forever."
+msgstr ""
 
 msgid "Update Contact"
 msgstr "Mise à jour contacts"

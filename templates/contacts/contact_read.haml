@@ -589,7 +589,7 @@
 
     function deleteRun(id) {
 
-      var modal = new ConfirmationModal("Delete Run", "Deleting this run will remove it from your flow's results. While the messages for the contact will remain, any record of this flow run will be gone forever.");
+      var modal = new ConfirmationModal('{{ _("Delete Run")|escapejs }}', '{{ _("Deleting this run will remove it from your flow\'s results. While the messages for the contact will remain, any record of this flow run will be gone forever.")|escapejs }}');
       modal.addClass('alert');
       modal.setListeners({
         onPrimary: function(){
@@ -602,7 +602,7 @@
 
           modal.dismiss();
         }}, false);
-      modal.setPrimaryButton("Delete Run");
+      modal.setPrimaryButton('{{ _("Delete Run")|escapejs }}');
       modal.show();
     }
 
