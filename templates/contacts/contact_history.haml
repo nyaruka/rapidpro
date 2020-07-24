@@ -2,6 +2,10 @@
 
 -for event in history
   %tr(class="{{event|history_class}}")
+    %td.remove-cell
+      -if event.type == 'flow_entered' or event.type == 'flow_exited'
+        .remove.glyph.icon-close(onclick='deleteRun({{event.obj.id}});' class="remove-run-{{event.obj.id}}")
+
     %td.icon
       %span.det(title='{% if event.obj.channel %}{{event.obj.channel.get_channel_type_name}} {{event.obj.channel.get_name}}{% endif %}')
         {{ event|history_icon }}
