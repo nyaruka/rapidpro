@@ -1,10 +1,10 @@
 @font-face {
   font-family: 'temba';
-  src:  url('fonts/temba.eot?stsf70');
-  src:  url('fonts/temba.eot?stsf70#iefix') format('embedded-opentype'),
-    url('fonts/temba.ttf?stsf70') format('truetype'),
-    url('fonts/temba.woff?stsf70') format('woff'),
-    url('fonts/temba.svg?stsf70#temba') format('svg');
+  src:  url('fonts/temba.eot?8anzoe');
+  src:  url('fonts/temba.eot?8anzoe#iefix') format('embedded-opentype'),
+    url('fonts/temba.ttf?8anzoe') format('truetype'),
+    url('fonts/temba.woff?8anzoe') format('woff'),
+    url('fonts/temba.svg?8anzoe#temba') format('svg');
   font-weight: normal;
   font-style: normal;
   font-display: block;
@@ -25,18 +25,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-.icon-two-factor:before {
-  content: "\e91c";
-}
-.icon-campaign:before {
-  content: "\e919";
-}
-.icon-contact:before {
-  content: "\e91a";
-}
-.icon-flow:before {
-  content: "\e91b";
-}
 .icon-email-tickets:before {
   content: "\ea35";
 }
@@ -741,4 +729,19 @@
 }
 .icon-shopping-bag:before {
   content: "\e917";
+}
+.icon-campaign:before {
+  content: "\e919";
+}
+.icon-contact:before {
+  content: "\e91a";
+}
+.icon-flow:before {
+  content: "\e91b";
+}
+.icon-two-factor:before {
+  content: "\e91c";
+}
+.icon-pushpin:before {
+  content: "\e946";
 }
