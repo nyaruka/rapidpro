@@ -77,22 +77,21 @@
                         .w-full
                           -if org_perms.contacts.contactfield_update
                             .hover-linked.update{onclick:"showUpdateContactFieldModal({{obj.id}})"}
-                              {{ obj.label }}                          
+                              {{ obj.label }}
+                              -if obj.show_in_table
+                                .ml-2.inline.text-xs.py-1.px-2.font-medium.text-black.tracking-wide.p-1.bg-gray-200.rounded-lg
+                                  -trans "Featured"
                               .key{ style:"font-family: monospace; font-size: 12px;" }
                                 @fields.{{ obj.key }}
                           -else
-                            {{ obj.label }}                          
+                            {{ obj.label }}
+                            -if obj.show_in_table
+                              .ml-2.inline.text-xs.py-1.px-2.font-medium.text-black.tracking-wide.p-1.bg-gray-200.rounded-lg
+                                -trans "Featured"
                             .key{ style:"font-family: monospace; font-size: 12px;" }
                               @fields.{{ obj.key }}
 
-
-                      %td
-                        .text-center
-                          -if obj.show_in_table
-                            .lbl
-                              -trans "Featured"
-
-                      %td
+                      %td.w-12
                         .flex.text-center
                           -if obj.flow_count or obj.campaign_count or obj.contactgroup_count
                             .uses{onclick:"event.stopPropagation(); showDetailContactFieldModal({{ obj.id }}, \"{{ obj.label }}\");"}
@@ -102,7 +101,7 @@
                                 {% plural %}
                                   {{counter}} Uses
                                 {% endblocktrans %}
-                      %td
+                      %td.w-32
                         .text-right
                           {{ obj.get_value_type_display }}
                       
