@@ -484,9 +484,7 @@ class ContactField(SmartModel):
     value_type = models.CharField(
         choices=Value.TYPE_CHOICES, max_length=1, default=Value.TYPE_TEXT, verbose_name="Field Type"
     )
-    show_in_table = models.BooleanField(
-        verbose_name=_("Shown in Tables"), default=False, help_text=_("Pinned field")
-    )
+    show_in_table = models.BooleanField(verbose_name=_("Shown in Tables"), default=False, help_text=_("Pinned field"))
 
     priority = models.PositiveIntegerField(default=0)
 

@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-08-27 13:11+0000\n"
+"POT-Creation-Date: 2020-08-27 23:01+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Hudson Brendon <hudson.brendon@ilhasoft.com.br>, 2020\n"
 "Language-Team: Russian (https://www.transifex.com/rapidpro/teams/226/ru/)\n"
@@ -2650,7 +2650,9 @@ msgstr "Ключ"
 msgid "Shown in Tables"
 msgstr "Указано в Таблицах"
 
-msgid "Featured field"
+#, fuzzy
+#| msgid "Featured field"
+msgid "Pinned field"
 msgstr "Рекомендованное поле"
 
 msgid "The name of this contact"
@@ -2945,8 +2947,8 @@ msgstr "Поле:Команда"
 msgid "Manage Contact Fields"
 msgstr "Управление Полями Контактов"
 
-msgid "Featured"
-msgstr "Рекомендованный"
+msgid "Pinned"
+msgstr ""
 
 msgid "Update"
 msgstr "Обновить"
@@ -7674,11 +7676,11 @@ msgid "Create Field"
 msgstr "Создать Поле"
 
 #, fuzzy
-#| msgid "Featured field"
-msgid "Featured Fields"
-msgstr "Рекомендованное поле"
+#| msgid "Manage Fields"
+msgid "Pinned Fields"
+msgstr "Управление Полями"
 
-msgid "Featured fields are shown prominently on contact pages. Drag to reorder the fields that you would most like to see at glance."
+msgid "Pinned fields are shown prominently on contact pages. Drag to reorder the fields that you would most like to see at glance."
 msgstr ""
 
 #, fuzzy
@@ -11920,6 +11922,14 @@ msgstr "Ввести запрос"
 #, python-brace-format
 msgid "Found ${count} for ${query}"
 msgstr "Найдено ${count} по ${query}"
+
+#~ msgid "Featured"
+#~ msgstr "Рекомендованный"
+
+#, fuzzy
+#~| msgid "Featured field"
+#~ msgid "Featured Fields"
+#~ msgstr "Рекомендованное поле"
 
 #~ msgid "Unblock"
 #~ msgstr "Разблокировать"

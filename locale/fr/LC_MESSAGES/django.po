@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-08-27 13:11+0000\n"
+"POT-Creation-Date: 2020-08-27 23:01+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Jesus EKIE <jesus@fehudigital.com>, 2020\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -2696,7 +2696,9 @@ msgstr "Clé"
 msgid "Shown in Tables"
 msgstr "Indiqué dans les tableaux"
 
-msgid "Featured field"
+#, fuzzy
+#| msgid "Featured field"
+msgid "Pinned field"
 msgstr "Champ en vedette"
 
 msgid "The name of this contact"
@@ -2991,8 +2993,8 @@ msgstr "Field:Team"
 msgid "Manage Contact Fields"
 msgstr "Gérer les champs de contact"
 
-msgid "Featured"
-msgstr "En vedette"
+msgid "Pinned"
+msgstr ""
 
 msgid "Update"
 msgstr "Mettre à jour"
@@ -7671,11 +7673,11 @@ msgid "Create Field"
 msgstr "Créer un champ"
 
 #, fuzzy
-#| msgid "Featured field"
-msgid "Featured Fields"
-msgstr "Champ en vedette"
+#| msgid "Manage Fields"
+msgid "Pinned Fields"
+msgstr "Gérer les champs"
 
-msgid "Featured fields are shown prominently on contact pages. Drag to reorder the fields that you would most like to see at glance."
+msgid "Pinned fields are shown prominently on contact pages. Drag to reorder the fields that you would most like to see at glance."
 msgstr ""
 
 #, fuzzy
@@ -11770,6 +11772,14 @@ msgstr "Entrez une requête"
 #, python-brace-format
 msgid "Found ${count} for ${query}"
 msgstr "${count} trouvé pour ${query}"
+
+#~ msgid "Featured"
+#~ msgstr "En vedette"
+
+#, fuzzy
+#~| msgid "Featured field"
+#~ msgid "Featured Fields"
+#~ msgstr "Champ en vedette"
 
 #~ msgid "Unblock"
 #~ msgstr "Débloquer"

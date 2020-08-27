@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-08-27 13:11+0000\n"
+"POT-Creation-Date: 2020-08-27 23:01+0000\n"
 "PO-Revision-Date: 2014-04-14 20:37+0000\n"
 "Last-Translator: produtos <produtos.ti@takenet.com.br>\n"
 "Language-Team: Portuguese (Brazil) (http://www.transifex.com/projects/p/textit/language/pt_BR/)\n"
@@ -3401,8 +3401,10 @@ msgstr "Chave"
 msgid "Shown in Tables"
 msgstr ""
 
-msgid "Featured field"
-msgstr ""
+#, fuzzy
+#| msgid "1 field"
+msgid "Pinned field"
+msgstr "1 campo"
 
 msgid "The name of this contact"
 msgstr "O nome deste contato"
@@ -3720,7 +3722,7 @@ msgstr "Gerenciar campos"
 msgid "Manage Contact Fields"
 msgstr "Configurar campo de contatos"
 
-msgid "Featured"
+msgid "Pinned"
 msgstr ""
 
 #, fuzzy
@@ -8532,11 +8534,11 @@ msgid "Create Field"
 msgstr "Criar fluxo"
 
 #, fuzzy
-#| msgid "Create Flow"
-msgid "Featured Fields"
-msgstr "Criar fluxo"
+#| msgid "Manage Fields"
+msgid "Pinned Fields"
+msgstr "Gerenciar campos"
 
-msgid "Featured fields are shown prominently on contact pages. Drag to reorder the fields that you would most like to see at glance."
+msgid "Pinned fields are shown prominently on contact pages. Drag to reorder the fields that you would most like to see at glance."
 msgstr ""
 
 #, fuzzy
@@ -12070,6 +12072,11 @@ msgid "Found ${count} for ${query}"
 msgstr ""
 
 #, fuzzy
+#~| msgid "Create Flow"
+#~ msgid "Featured Fields"
+#~ msgstr "Criar fluxo"
+
+#, fuzzy
 #~ msgid "Contact blocked"
 #~ msgstr "Telefone do contato"
 
@@ -14053,9 +14060,6 @@ msgstr ""
 #~| msgid "Sun"
 #~ msgid "run"
 #~ msgstr "Domingo"
-
-#~ msgid "1 field"
-#~ msgstr "1 campo"
 
 #~ msgid "{} fields"
 #~ msgstr "{} campos"
