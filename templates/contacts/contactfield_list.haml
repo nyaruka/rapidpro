@@ -79,15 +79,15 @@
                             .hover-linked.update{onclick:"showUpdateContactFieldModal({{obj.id}})"}
                               {{ obj.label }}
                               -if obj.show_in_table
-                                .ml-2.inline.text-xs.py-1.px-2.font-medium.text-black.tracking-wide.p-1.bg-gray-200.rounded-lg
-                                  -trans "Featured"
+                                .inline.text-xs.ml-4
+                                  .icon.icon-list.inline-block
                               .key{ style:"font-family: monospace; font-size: 12px;" }
                                 @fields.{{ obj.key }}
                           -else
                             {{ obj.label }}
                             -if obj.show_in_table
-                              .ml-2.inline.text-xs.py-1.px-2.font-medium.text-black.tracking-wide.p-1.bg-gray-200.rounded-lg
-                                -trans "Featured"
+                              .inline.text-xs.ml-4
+                                .icon.icon-list.inline-block
                             .key{ style:"font-family: monospace; font-size: 12px;" }
                               @fields.{{ obj.key }}
 
