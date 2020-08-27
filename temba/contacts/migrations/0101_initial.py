@@ -163,7 +163,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "show_in_table",
-                    models.BooleanField(default=False, help_text="Featured field", verbose_name="Shown in Tables"),
+                    models.BooleanField(default=False, help_text="Pinned field", verbose_name="Shown in Tables"),
                 ),
                 ("priority", models.PositiveIntegerField(default=0)),
                 ("field_type", models.CharField(choices=[("S", "System"), ("U", "User")], default="U", max_length=1)),

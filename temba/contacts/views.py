@@ -1851,7 +1851,7 @@ class ContactFieldListView(OrgPermsMixin, SmartListView):
 
         active_user_fields = self.queryset.filter(org=self.request.user.get_org(), is_active=True)
         all_count = active_user_fields.count()
-        featured_count = active_user_fields.filter(show_in_table=True).count()
+        pinned_count = active_user_fields.filter(show_in_table=True).count()
 
         type_counts = (
             active_user_fields.values("value_type")
@@ -1874,7 +1874,7 @@ class ContactFieldListView(OrgPermsMixin, SmartListView):
             "total_limit": settings.MAX_ACTIVE_CONTACTFIELDS_PER_ORG,
             "cf_categories": [
                 {"label": "All", "count": all_count, "url": reverse("contacts.contactfield_list")},
-                {"label": "Featured", "count": featured_count, "url": reverse("contacts.contactfield_featured")},
+                {"label": "Pinned", "count": pinned_count, "url": reverse("contacts.contactfield_pinned")},
             ],
             "cf_types": types,
         }
@@ -1895,14 +1895,14 @@ class ContactFieldListView(OrgPermsMixin, SmartListView):
 
 class ContactFieldCRUDL(SmartCRUDL):
     model = ContactField
-    actions = ("list", "json", "create", "update", "update_priority", "delete", "featured", "filter_by_type", "detail")
+    actions = ("list", "json", "create", "update", "update_priority", "delete", "pinned", "filter_by_type", "detail")
 
     class Create(ModalMixin, OrgPermsMixin, SmartCreateView):
         queryset = ContactField.user_fields
         form_class = CreateContactFieldForm
         success_message = ""
         submit_button_name = _("Create")
-        field_config = {"show_in_table": {"label": _("Featured")}}
+        field_config = {"show_in_table": {"label": _("Pinned")}}
 
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
@@ -1932,7 +1932,7 @@ class ContactFieldCRUDL(SmartCRUDL):
         form_class = UpdateContactFieldForm
         success_message = ""
         submit_button_name = _("Update")
-        field_config = {"show_in_table": {"label": _("Featured")}}
+        field_config = {"show_in_table": {"label": _("Pinned")}}
 
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
@@ -2024,7 +2024,7 @@ class ContactFieldCRUDL(SmartCRUDL):
     class List(ContactFieldListView):
         pass
 
-    class Featured(ContactFieldListView):
+    class Pinned(ContactFieldListView):
         search_fields = None  # search and reordering do not work together
         default_order = ("-priority", "label")
 
@@ -2037,7 +2037,7 @@ class ContactFieldCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
 
-            context["is_featured_category"] = True
+            context["is_pinned_category"] = True
 
             return context
 

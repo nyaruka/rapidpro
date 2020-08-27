@@ -3728,12 +3728,12 @@ class ContactTest(TembaTest):
         # there should be one 'normal' field
         self.assertEqual(len(response.context_data["all_contact_fields"]), 1)
 
-        # make 'third' field a featured field, but don't assign a value (it should still be visible on the page)
+        # make 'third' field a pinned field, but don't assign a value (it should still be visible on the page)
         ContactField.get_or_create(self.org, self.admin, "third", "Third", priority=20, show_in_table=True)
 
         response = self.client.get(reverse("contacts.contact_read", args=[self.joe.uuid]))
 
-        # there should be one 'normal' field and one 'featured' contact field
+        # there should be one 'normal' field and one 'pinned' contact field
         self.assertEqual(len(response.context_data["all_contact_fields"]), 2)
 
         # assign a value to the 'third' field
@@ -3741,7 +3741,7 @@ class ContactTest(TembaTest):
 
         response = self.client.get(reverse("contacts.contact_read", args=[self.joe.uuid]))
 
-        # there should be one 'normal' field and one 'featured' contact field
+        # there should be one 'normal' field and one 'pinned' contact field
         self.assertEqual(len(response.context_data["all_contact_fields"]), 2)
 
     def test_update(self):
@@ -6397,7 +6397,7 @@ class ContactFieldTest(TembaTest):
     def test_view_create_valid(self):
         # we have three fields
         self.assertEqual(ContactField.user_fields.filter(org=self.org).count(), 3)
-        # there are not featured fields
+        # there are not pinned fields
         self.assertEqual(ContactField.user_fields.filter(org=self.org, show_in_table=True).count(), 0)
 
         self.login(self.admin)
@@ -6422,7 +6422,7 @@ class ContactFieldTest(TembaTest):
 
         # after creating a field there should be 4
         self.assertEqual(ContactField.user_fields.filter(org=self.org).count(), 4)
-        # newly created field is featured
+        # newly created field is pinned
         self.assertEqual(ContactField.user_fields.filter(org=self.org, show_in_table=True).count(), 1)
 
     def test_view_create_field_with_same_name_as_deleted_field(self):
@@ -6659,46 +6659,46 @@ class ContactFieldTest(TembaTest):
         self.other_org_field.refresh_from_db()
         self.assertTrue(self.other_org_field.is_active)
 
-    def test_view_featured(self):
-        featured1 = ContactField.user_fields.get(key="first")
-        featured1.show_in_table = True
-        featured1.save(update_fields=["show_in_table"])
+    def test_view_pinned(self):
+        pinned1 = ContactField.user_fields.get(key="first")
+        pinned1.show_in_table = True
+        pinned1.save(update_fields=["show_in_table"])
 
-        featured2 = ContactField.user_fields.get(key="second")
-        featured2.show_in_table = True
-        featured2.save(update_fields=["show_in_table"])
+        pinned2 = ContactField.user_fields.get(key="second")
+        pinned2.show_in_table = True
+        pinned2.save(update_fields=["show_in_table"])
 
         self.login(self.admin)
 
-        featured_cf_url = reverse("contacts.contactfield_featured")
+        pinned_cf_url = reverse("contacts.contactfield_pinned")
 
-        response = self.client.get(featured_cf_url)
+        response = self.client.get(pinned_cf_url)
         self.assertEqual(response.status_code, 200)
 
-        # there are 2 featured fields
+        # there are 2 pinned fields
         self.assertEqual(len(response.context_data["object_list"]), 2)
 
         self.assertEqual(len(response.context_data["cf_categories"]), 2)
         self.assertEqual(len(response.context_data["cf_types"]), 1)
 
-        self.assertTrue(response.context_data["is_featured_category"])
+        self.assertTrue(response.context_data["is_pinned_category"])
 
     def test_view_filter_by_type(self):
         self.login(self.admin)
 
         # an invalid type
-        featured_cf_url = reverse("contacts.contactfield_filter_by_type", args=("xXx",))
+        pinned_cf_url = reverse("contacts.contactfield_filter_by_type", args=("xXx",))
 
-        response = self.client.get(featured_cf_url)
+        response = self.client.get(pinned_cf_url)
         self.assertEqual(response.status_code, 200)
 
         # there are no contact fields
         self.assertEqual(len(response.context_data["object_list"]), 0)
 
         # a type that is valid
-        featured_cf_url = reverse("contacts.contactfield_filter_by_type", args=("T"))
+        pinned_cf_url = reverse("contacts.contactfield_filter_by_type", args=("T"))
 
-        response = self.client.get(featured_cf_url)
+        response = self.client.get(pinned_cf_url)
         self.assertEqual(response.status_code, 200)
 
         # there are some contact fields of type text
