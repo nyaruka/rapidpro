@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-08-27 20:38+0000\n"
+"POT-Creation-Date: 2020-08-28 21:19+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2474,9 +2474,6 @@ msgstr ""
 msgid "You cannot update the query of a group that is evaluating."
 msgstr ""
 
-msgid "Restore"
-msgstr ""
-
 msgid "Active"
 msgstr ""
 
@@ -2557,6 +2554,9 @@ msgstr ""
 msgid "Custom Fields"
 msgstr ""
 
+msgid "Restore"
+msgstr ""
+
 msgid "Block"
 msgstr ""
 
@@ -2569,13 +2569,10 @@ msgstr ""
 msgid "Blocked Contacts"
 msgstr ""
 
-msgid "Unblock"
-msgstr ""
-
 msgid "Stopped Contacts"
 msgstr ""
 
-msgid "Unstop"
+msgid "Archive All"
 msgstr ""
 
 msgid "Archived Contacts"
@@ -6194,6 +6191,13 @@ msgid "No matching contacts."
 msgstr ""
 
 msgid "Search browsing is limited to 10k results. If you want to browse through all of the results, please save this search as a group."
+msgstr ""
+
+msgid "Archive All Contacts"
+msgstr ""
+
+#, python-format
+msgid "Are you sure you want to archive all %(count)s contacts?"
 msgstr ""
 
 msgid "Create Contact Group"

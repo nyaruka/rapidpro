@@ -165,8 +165,6 @@ class ContactListView(OrgPermsMixin, BulkActionMixin, SmartListView):
 
     search_error = None
 
-    restore_label = _("Restore")
-
     def pre_process(self, request, *args, **kwargs):
         """
         Don't allow pagination past 200th page
@@ -312,7 +310,6 @@ class ContactListView(OrgPermsMixin, BulkActionMixin, SmartListView):
         context["has_contacts"] = contacts or org.has_contacts()
         context["search_error"] = self.search_error
         context["send_form"] = SendMessageForm(self.request.user)
-        context["restore_label"] = self.restore_label
         context["folder_count"] = counts[self.system_group] if self.system_group else None
 
         context["sort_direction"] = self.sort_direction
@@ -1277,6 +1274,7 @@ class ContactCRUDL(SmartCRUDL):
 
             if self.has_org_perm("contacts.contact_export"):
                 links.append(dict(title=_("Export"), js_class="export-contacts", href="#"))
+
             return links
 
         def get_context_data(self, *args, **kwargs):
@@ -1291,8 +1289,9 @@ class ContactCRUDL(SmartCRUDL):
         title = _("Blocked Contacts")
         template_name = "contacts/contact_list.haml"
         system_group = ContactGroup.TYPE_BLOCKED
-        bulk_actions = ("restore", "archive")
-        restore_label = _("Unblock")
+
+        def get_bulk_actions(self):
+            return ("restore", "archive") if self.has_org_perm("contacts.contact_update") else ()
 
         def get_context_data(self, *args, **kwargs):
             context = super().get_context_data(*args, **kwargs)
@@ -1303,8 +1302,17 @@ class ContactCRUDL(SmartCRUDL):
         title = _("Stopped Contacts")
         template_name = "contacts/contact_stopped.haml"
         system_group = ContactGroup.TYPE_STOPPED
-        bulk_actions = ("restore", "archive")
-        restore_label = _("Unstop")
+
+        def get_bulk_actions(self):
+            return ("restore", "archive") if self.has_org_perm("contacts.contact_update") else ()
+
+        def get_gear_links(self):
+            links = []
+            if self.has_org_perm("contacts.contact_update"):
+                links.append(
+                    dict(title=_("Archive All"), style="btn-default", js_class="contacts-btn-archive-all", href="#")
+                )
+            return links
 
         def get_context_data(self, *args, **kwargs):
             context = super().get_context_data(*args, **kwargs)
@@ -1318,7 +1326,9 @@ class ContactCRUDL(SmartCRUDL):
         bulk_action_permissions = {"delete": "contacts.contact_delete"}
 
         def get_bulk_actions(self):
-            actions = ["restore"]
+            actions = []
+            if self.has_org_perm("contacts.contact_update"):
+                actions.append("restore")
             if self.has_org_perm("contacts.contact_delete"):
                 actions.append("delete")
             return actions

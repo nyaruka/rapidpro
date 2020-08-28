@@ -3689,39 +3689,103 @@ class ContactTest(TembaTest):
         self.assertFalse(ChannelEvent.objects.filter(id=event.id))
 
     @mock_mailroom
+    def test_stopped_view(self, mr_mocks):
+        self.joe.stop(self.admin)
+        self.frank.stop(self.admin)
+        self.billy.stop(self.admin)
+        self.voldemort.stop(self.admin)
+
+        self.login(self.user)
+
+        stopped_url = reverse("contacts.contact_stopped")
+
+        response = self.client.get(stopped_url)
+        self.assertEqual([self.voldemort, self.billy, self.frank, self.joe], list(response.context["object_list"]))
+        self.assertEqual([], list(response.context["actions"]))
+        self.assertNotContains(response, "Archive All")
+
+        self.login(self.admin)
+
+        # admin users see archive option
+        response = self.client.get(stopped_url)
+        self.assertEqual(["restore", "archive"], list(response.context["actions"]))
+        self.assertContains(response, "Archive All")
+
+        # try restore bulk action
+        self.client.post(stopped_url, {"action": "restore", "objects": self.voldemort.id})
+
+        response = self.client.get(stopped_url)
+        self.assertEqual([self.billy, self.frank, self.joe], list(response.context["object_list"]))
+
+        self.voldemort.refresh_from_db()
+        self.assertEqual(Contact.STATUS_ACTIVE, self.voldemort.status)
+
+        # try archive bulk action
+        self.client.post(stopped_url, {"action": "archive", "objects": self.frank.id})
+
+        response = self.client.get(stopped_url)
+        self.assertEqual([self.billy, self.joe], list(response.context["object_list"]))
+
+        self.frank.refresh_from_db()
+        self.assertEqual(Contact.STATUS_ARCHIVED, self.frank.status)
+
+        # the stopped view also supports archive all
+        self.client.post(stopped_url, {"action": "archive", "all": "true"})
+
+        response = self.client.get(stopped_url)
+        self.assertEqual([], list(response.context["object_list"]))
+
+        # only archived contacts affected
+        self.assertEqual(3, Contact.objects.filter(status=Contact.STATUS_ACTIVE).count())
+        self.assertEqual(0, Contact.objects.filter(status=Contact.STATUS_STOPPED).count())
+        self.assertEqual(3, Contact.objects.filter(status=Contact.STATUS_ARCHIVED).count())
+
+    @mock_mailroom
     def test_archived_view(self, mr_mocks):
         self.joe.archive(self.admin)
         self.frank.archive(self.admin)
         self.billy.archive(self.admin)
+        self.voldemort.archive(self.admin)
 
         self.login(self.user)
 
         archived_url = reverse("contacts.contact_archived")
 
         response = self.client.get(archived_url)
-        self.assertEqual([self.billy, self.frank, self.joe], list(response.context["object_list"]))
-        self.assertEqual(["restore"], response.context["actions"])
+        self.assertEqual([self.voldemort, self.billy, self.frank, self.joe], list(response.context["object_list"]))
+        self.assertEqual([], list(response.context["actions"]))
         self.assertNotContains(response, "Delete All")
 
         self.login(self.admin)
 
         # admin users see delete option
         response = self.client.get(archived_url)
-        self.assertEqual(list(response.context["object_list"]), [self.billy, self.frank, self.joe])
-        self.assertEqual(["restore", "delete"], response.context["actions"])
+        self.assertEqual(["restore", "delete"], list(response.context["actions"]))
         self.assertContains(response, "Delete All")
+
+        # try restore bulk action
+        self.client.post(archived_url, {"action": "restore", "objects": self.voldemort.id})
+
+        response = self.client.get(archived_url)
+        self.assertEqual([self.billy, self.frank, self.joe], list(response.context["object_list"]))
+
+        self.voldemort.refresh_from_db()
+        self.assertEqual(Contact.STATUS_ACTIVE, self.voldemort.status)
 
         # try delete bulk action
         self.client.post(archived_url, {"action": "delete", "objects": self.frank.id})
 
         response = self.client.get(archived_url)
-        self.assertEqual(list(response.context["object_list"]), [self.billy, self.joe])
+        self.assertEqual([self.billy, self.joe], list(response.context["object_list"]))
+
+        self.frank.refresh_from_db()
+        self.assertFalse(self.frank.is_active)
 
         # the archived view also supports deleting all
         self.client.post(archived_url, {"action": "delete", "all": "true"})
 
         response = self.client.get(archived_url)
-        self.assertEqual(list(response.context["object_list"]), [])
+        self.assertEqual([], list(response.context["object_list"]))
 
         # only archived contacts affected
         self.assertEqual(4, Contact.objects.filter(is_active=False).count())

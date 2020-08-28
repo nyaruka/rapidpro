@@ -10,6 +10,8 @@
 
 
 -block post-content
+  {{ block.super }}
+
   -if org_perms.contacts.contact_delete
     .contact-delete-selected.hide
       .title
@@ -24,8 +26,8 @@
         -trans "Delete All Contacts"
       .body
         %p
-          -blocktrans trimmed with count=folder_count
-            Are you sure you want to delete all {{ count}} archived contacts?
+          -blocktrans trimmed with count=paginator.count
+            Are you sure you want to delete all {{ count }} archived contacts?
         %p
           -trans "Once they are deleted, they will be gone forever. There is no way to undo this operation."
 

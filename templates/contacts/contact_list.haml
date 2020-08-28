@@ -95,7 +95,7 @@
                           %a.object-btn-restore{'href':'#'}
                             %button.btn
                               .glyph.icon-user
-                              {{ restore_label }}
+                              -trans "Activate"
 
                       - if 'delete' in actions
                         %span.btn-group
@@ -256,6 +256,15 @@
 -block post-content
   - if org_perms.msgs.broadcast_send and not reply_disabled
     - include "msgs/msg_send_modal.haml"
+
+  -if org_perms.contacts.contact_update
+    .contact-archive-all.hide
+      .title
+        -trans "Archive All Contacts"
+      .body
+        %p
+          -blocktrans trimmed with count=paginator.count
+            Are you sure you want to archive all {{ count }} contacts?
 
 -block extra-style
   :css
@@ -487,3 +496,22 @@
       modal.show();
     });
     {% endif %}
+
+    $(".contacts-btn-archive-all").live('click', function() {
+      modal = new ConfirmationModal($('.contact-archive-all > .title').html(), $('.contact-archive-all > .body').html());
+      modal.addClass('alert');
+      modal.setListeners({onPrimary: function(){
+        archiveAllContacts();
+        modal.dismiss();
+      }}, false);
+      modal.setPrimaryButton('{{ _("Archive")|escapejs }}');
+      modal.show();
+    });
+
+    function archiveAllContacts() {
+      jQuery.ajaxSettings.traditional = true;
+      fetchPJAXContent('', '#pjax', {
+          postData: { action: "archive", all: 'true', pjax: 'true' },
+          forceReload: true
+      });
+    }
