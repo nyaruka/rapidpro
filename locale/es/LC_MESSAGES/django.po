@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-09-02 14:49+0000\n"
+"POT-Creation-Date: 2020-09-04 21:42+0000\n"
 "PO-Revision-Date: 2014-09-24 19:56+0000\n"
 "Last-Translator: TextIt <info@textit.in>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/textit/language/es/)\n"
@@ -5976,6 +5976,11 @@ msgstr "Evento del transmisor"
 
 msgid "Ticketing Service Called"
 msgstr ""
+
+#, fuzzy
+#| msgid "Recent Channel Events"
+msgid "Ticketing Service Incoming"
+msgstr "Eventos recientes del transmisor"
 
 msgid "Airtime Transferred"
 msgstr ""

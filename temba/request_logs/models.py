@@ -26,6 +26,7 @@ class HTTPLog(models.Model):
     INTENTS_SYNCED = "intents_synced"
     CLASSIFIER_CALLED = "classifier_called"
     TICKETER_CALLED = "ticketer_called"
+    TICKETER_INCOMING = "ticketer_incoming"
     AIRTIME_TRANSFERRED = "airtime_transferred"
     WHATSAPP_TEMPLATES_SYNCED = "whatsapp_templates_synced"
     WHATSAPP_TOKENS_SYNCED = "whatsapp_tokens_synced"
@@ -36,6 +37,7 @@ class HTTPLog(models.Model):
         (INTENTS_SYNCED, _("Intents Synced")),
         (CLASSIFIER_CALLED, _("Classifier Called")),
         (TICKETER_CALLED, _("Ticketing Service Called")),
+        (TICKETER_INCOMING, _("Ticketing Service Incoming")),
         (AIRTIME_TRANSFERRED, _("Airtime Transferred")),
         (WHATSAPP_TEMPLATES_SYNCED, _("WhatsApp Templates Synced")),
         (WHATSAPP_TOKENS_SYNCED, _("WhatsApp Tokens Synced")),

@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-09-02 14:49+0000\n"
+"POT-Creation-Date: 2020-09-04 21:42+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Jesus EKIE <jesus@fehudigital.com>, 2020\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -4734,6 +4734,11 @@ msgid "Classifier Called"
 msgstr "Classificateur appelé"
 
 msgid "Ticketing Service Called"
+msgstr "Service de billetterie appelé"
+
+#, fuzzy
+#| msgid "Ticketing Service Called"
+msgid "Ticketing Service Incoming"
 msgstr "Service de billetterie appelé"
 
 msgid "Airtime Transferred"
