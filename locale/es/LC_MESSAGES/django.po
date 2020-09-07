@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-09-04 21:42+0000\n"
+"POT-Creation-Date: 2020-09-07 15:15+0000\n"
 "PO-Revision-Date: 2014-09-24 19:56+0000\n"
 "Last-Translator: TextIt <info@textit.in>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/textit/language/es/)\n"
@@ -9058,6 +9058,12 @@ msgstr ""
 msgid "IGNORED"
 msgstr ""
 
+msgid "One moment.."
+msgstr ""
+
+msgid "All done!"
+msgstr ""
+
 #, fuzzy, python-format
 #| msgid "Create Contact"
 msgid "Created %(create_count)s new contact"
@@ -9109,6 +9115,11 @@ msgstr[1] ""
 "\n"
 "                              %(completed_percentage)s%% completion\n"
 "                            "
+
+#, fuzzy
+#| msgid "Group"
+msgid "Grouping.."
+msgstr "Grupo"
 
 #, fuzzy
 #| msgid ""
