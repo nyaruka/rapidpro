@@ -872,6 +872,9 @@ GROUP_PERMISSIONS = {
     "Prometheus": (),
 }
 
+# Owners have the same right as Administrators, plus the ability to delete an org
+GROUP_PERMISSIONS["Owners"] = list(GROUP_PERMISSIONS["Administrators"]) + ["orgs.org_delete"]
+
 # -----------------------------------------------------------------------------------
 # Login / Logout
 # -----------------------------------------------------------------------------------

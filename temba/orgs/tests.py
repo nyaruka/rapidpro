@@ -3076,7 +3076,8 @@ class OrgCRUDLTest(TembaTest):
         self.assertEqual(org.date_format, Org.DATE_FORMAT_DAY_FIRST)
 
         # check user exists and is admin
-        User.objects.get(username="john@carmack.com")
+        user = User.objects.get(username="john@carmack.com")
+        self.assertEqual(org.owner, user)
         self.assertTrue(org.administrators.filter(username="john@carmack.com"))
         self.assertTrue(org.administrators.filter(username="tito"))
 
@@ -3295,6 +3296,7 @@ class OrgCRUDLTest(TembaTest):
 
         # should have a new org
         org = Org.objects.get(name="Relieves World")
+        self.assertEqual(org.owner, user)
         self.assertEqual(org.timezone, pytz.timezone("Africa/Kigali"))
         self.assertEqual(str(org), "Relieves World")
 

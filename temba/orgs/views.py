@@ -2207,6 +2207,7 @@ class OrgCRUDL(SmartCRUDL):
 
             obj.created_by = self.user
             obj.modified_by = self.user
+            obj.owner = self.user
             obj.brand = self.request.branding.get("brand", settings.DEFAULT_BRAND)
             obj.plan = self.request.branding.get("default_plan", settings.DEFAULT_PLAN)
 

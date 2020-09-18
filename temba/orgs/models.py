@@ -139,6 +139,8 @@ class Org(SmartModel):
         help_text=_("Our Stripe customer id for your organization"),
     )
 
+    owner = models.ForeignKey(User, null=True, on_delete=models.PROTECT)
+
     administrators = models.ManyToManyField(
         User,
         verbose_name=_("Administrators"),
@@ -289,6 +291,7 @@ class Org(SmartModel):
                 plan=brand.get("default_plan", settings.DEFAULT_PLAN),
                 is_multi_user=self.is_multi_user,
                 is_multi_org=self.is_multi_org,
+                owner=created_by,
             )
 
             org.administrators.add(created_by)
@@ -1072,6 +1075,8 @@ class Org(SmartModel):
         return admin
 
     def get_user_org_group(self, user):
+        if user == self.owner:
+            user._org_group = Group.objects.get(name="Owners")
         if user in self.get_org_admins():
             user._org_group = Group.objects.get(name="Administrators")
         elif user in self.get_org_editors():
