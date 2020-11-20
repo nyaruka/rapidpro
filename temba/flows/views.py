@@ -2211,6 +2211,7 @@ class FlowStartCRUDL(SmartCRUDL):
             "created_by__username__icontains",
             "created_by__email__icontains",
         )
+        paginate_by = 25
 
         def get_gear_links(self):
             return [dict(title=_("Flows"), style="button-light", href=reverse("flows.flow_list"),)]
