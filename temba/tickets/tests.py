@@ -4,7 +4,7 @@ from django.contrib.auth.models import Group
 from django.test.utils import override_settings
 from django.urls import reverse
 
-from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
+from temba.tests import CRUDLTestMixin, MigrationTest, TembaTest, mock_mailroom
 
 from .models import Ticket, Ticketer
 from .types import reload_ticketer_types
@@ -260,3 +260,16 @@ class TicketerCRUDLTest(TembaTest, CRUDLTestMixin):
 
         ticketer.refresh_from_db()
         self.assertTrue(ticketer.is_active)
+
+
+class AddInternalMigrationTest(MigrationTest):
+    app = "tickets"
+    migrate_from = "0004_squashed"
+    migrate_to = "0005_add_internal"
+
+    def setUpBeforeMigration(self, apps):
+        self.org2.ticketers.all().delete()
+
+    def test_migration(self):
+        self.assertEqual(1, self.org.ticketers.filter(ticketer_type="internal", name="Internal").count())
+        self.assertEqual(1, self.org2.ticketers.filter(ticketer_type="internal", name="Internal").count())
