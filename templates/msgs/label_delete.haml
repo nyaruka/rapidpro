@@ -10,9 +10,14 @@
       .message
         {{error}}
 
-  -blocktrans trimmed with name=object.name
-    Are you sure you want to delete <b>{{name}}</b>? This cannot be undone.
+  -if object.children.all
+    -blocktrans trimmed with name=object.name
+      <b>{{name}}</b> cannot be deleted since it is a parent to other labels.
 
-  .hidden
-    %form(method="POST")
-      %input(type="submit" value="{{submit_button_name}}")
+  -else
+    -blocktrans trimmed with name=object.name
+      Are you sure you want to delete <b>{{name}}</b>? This cannot be undone.
+
+    .hidden
+      %form(method="POST")
+        %input(type="submit" value="{{submit_button_name}}")
