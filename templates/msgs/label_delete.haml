@@ -10,14 +10,20 @@
       .message
         {{error}}
 
-  -if object.has_active_children_labels
-    -blocktrans trimmed with name=object.name
-      <b>{{name}}</b> cannot be deleted since it is a parent to other labels.
+  -blocktrans trimmed with name=object.name
+    Are you sure you want to delete <b>{{name}}</b>?
+    The labels listed below will be permanently removed.
+  %ul.mt-4
+    -if object.is_folder
+      %li
+        <b>[{{object.name}}]<b>
+    - else
+      %li.ml-4
+        <b>{{object.name}}<b>
+    - for child in object.get_active_children_labels
+      %li.ml-4
+        <b>{{child.name}}<b>
 
-  -else
-    -blocktrans trimmed with name=object.name
-      Are you sure you want to delete <b>{{name}}</b>? This cannot be undone.
-
-    .hidden
-      %form(method="POST")
-        %input(type="submit" value="{{submit_button_name}}")
+  .hidden
+    %form(method="POST")
+      %input(type="submit" value="{{submit_button_name}}")
