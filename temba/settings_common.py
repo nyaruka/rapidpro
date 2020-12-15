@@ -861,6 +861,7 @@ GROUP_PERMISSIONS = {
         "triggers.trigger_archived",
         "triggers.trigger_list",
     ),
+    "Agents": (),
     "Prometheus": (),
 }
 
@@ -1059,6 +1060,7 @@ CLASSIFIER_TYPES = [
 ]
 
 TICKETER_TYPES = [
+    "temba.tickets.types.internal.InternalType",
     "temba.tickets.types.mailgun.MailgunType",
     "temba.tickets.types.zendesk.ZendeskType",
     "temba.tickets.types.rocketchat.RocketChatType",
