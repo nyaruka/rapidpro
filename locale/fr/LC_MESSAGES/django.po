@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-10 20:04+0000\n"
+"POT-Creation-Date: 2020-12-15 15:53+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Jesus EKIE <jesus@fehudigital.com>, 2020\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -6158,6 +6158,11 @@ msgstr "%(name)s garde également une trace des appels reçus sur votre canal af
 #, python-format
 msgid "Uh oh, we couldn't delete %(name)s."
 msgstr "Uh oh, nous n'avons pas pu supprimer %(name)s."
+
+#, fuzzy, python-format
+#| msgid "Are you sure you want to delete <b>%(name)s</b>? This cannot be undone."
+msgid "Are you sure you want to delete <b>%(name)s</b>? The labels listed below will be permanently removed."
+msgstr "Voulez-vous vraiment supprimer <b>%(name)s</b>? Ça ne peut pas être annulé."
 
 msgid "Numeric Value:"
 msgstr "Valeur numérique:"

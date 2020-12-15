@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-10 20:04+0000\n"
+"POT-Creation-Date: 2020-12-15 15:53+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -5989,6 +5989,10 @@ msgstr ""
 
 #, python-format
 msgid "Uh oh, we couldn't delete %(name)s."
+msgstr ""
+
+#, python-format
+msgid "Are you sure you want to delete <b>%(name)s</b>? The labels listed below will be permanently removed."
 msgstr ""
 
 msgid "Numeric Value:"
