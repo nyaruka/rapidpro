@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-10 20:04+0000\n"
+"POT-Creation-Date: 2020-12-16 14:48+0000\n"
 "PO-Revision-Date: 2014-09-24 19:56+0000\n"
 "Last-Translator: TextIt <info@textit.in>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/textit/language/es/)\n"
@@ -3721,6 +3721,29 @@ msgstr ""
 
 msgid "Failed"
 msgstr "Error"
+
+msgid "Manual"
+msgstr ""
+
+#, fuzzy
+#| msgid "API Docs"
+msgid "API"
+msgstr "Docs API"
+
+#, fuzzy
+#| msgid "Call Type"
+msgid "Zapier"
+msgstr "Tipo de llamada"
+
+#, fuzzy
+#| msgid "Remove Action?"
+msgid "Flow Action"
+msgstr "¿Retirar Acción?"
+
+#, fuzzy
+#| msgid "Triggers"
+msgid "Trigger"
+msgstr "Activadores"
 
 msgid "The name of this flow label"
 msgstr "El nombre de la etiqueta de este flujo"
@@ -12032,11 +12055,6 @@ msgstr ""
 #~ msgstr "Llamar Webhook"
 
 #, fuzzy
-#~| msgid "Call Type"
-#~ msgid "Call Zapier"
-#~ msgstr "Tipo de llamada"
-
-#, fuzzy
 #~| msgid "Transport Name"
 #~ msgid "Transfer Airtime"
 #~ msgstr "Nombre de transporte"
@@ -14853,11 +14871,6 @@ msgstr ""
 #~ msgstr "Retiró %s de %s"
 
 #, fuzzy
-#~| msgid "API Docs"
-#~ msgid "API ID"
-#~ msgstr "Docs API"
-
-#, fuzzy
 #~ msgid "Your phone number has been removed."
 #~ msgstr "Su flujo ha sido retirado."
 
@@ -16347,9 +16360,6 @@ msgstr ""
 
 #~ msgid "Remove Rules?"
 #~ msgstr "¿Retirar las reglas?"
-
-#~ msgid "Remove Action?"
-#~ msgstr "¿Retirar Acción?"
 
 #~ msgid "Play Message"
 #~ msgstr "Mostrar mensaje"

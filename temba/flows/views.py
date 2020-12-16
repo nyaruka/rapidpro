@@ -2198,7 +2198,7 @@ class FlowLabelCRUDL(SmartCRUDL):
 
 class FlowStartCRUDL(SmartCRUDL):
     model = FlowStart
-    actions = ("list",)
+    actions = ("list", "filtered")
 
     class List(OrgQuerysetMixin, OrgPermsMixin, SmartListView):
         title = _("Flow Start Log")
@@ -2217,9 +2217,58 @@ class FlowStartCRUDL(SmartCRUDL):
                 .prefetch_related("contacts", "groups")
             )
 
+        def _get_static_context_data(self, **kwargs):
+
+            org = self.request.user.get_org()
+            flow_starts = self.get_queryset().filter(org=org)
+            all_count = flow_starts.count()
+
+            type_counts = (
+                FlowStart.objects.filter(org=org)
+                .values("start_type")
+                .annotate(type_count=Count("start_type"))
+                .order_by("-type_count", "start_type")
+            )
+
+            start_type_map = {vt[0]: vt[1] for vt in FlowStart.TYPE_CHOICES}
+            types = [
+                {
+                    "label": start_type_map[type_cnt["start_type"]],
+                    "count": type_cnt["type_count"],
+                    "url": reverse("flows.flowstart_filtered", args=type_cnt["start_type"].lower()),
+                    "start_type": type_cnt["start_type"].lower(),
+                }
+                for type_cnt in type_counts
+            ]
+
+            return {
+                "fs_categories": [{"label": "All", "count": all_count, "url": reverse("flows.flowstart_list")}],
+                "fs_types": types,
+            }
+
         def get_context_data(self, *args, **kwargs):
             context = super().get_context_data(*args, **kwargs)
+            context.update(self._get_static_context_data(**kwargs))
 
             FlowStartCount.bulk_annotate(context["object_list"])
 
             return context
+
+    class Filtered(List):
+        def get_queryset(self, **kwargs):
+            qs = super().get_queryset(**kwargs)
+
+            qs = qs.filter(start_type=self.kwargs["start_type"].upper())
+
+            return qs
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+
+            context["selected_start_type"] = self.kwargs["start_type"].lower()
+
+            return context
+
+        @classmethod
+        def derive_url_pattern(cls, path, action):
+            return r"^%s/%s/(?P<start_type>[^/]+)/$" % (path, action)

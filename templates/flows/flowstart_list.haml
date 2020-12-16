@@ -11,55 +11,75 @@
 
 
 -block content
+  .lp-frame.mt-0
+    .left
+      .flex.flex-col
+        .lp-nav.upper
+          -for category in fs_categories
+            .lp-nav-item{'class': '{% if request.path == category.url %}font-normal{% endif %}' }
+              .name{onclick:"goto(event)", href:'{{category.url}}'}
+                {{category.label}}
+              .count{onclick:"goto(event)", href:'{{category.url}}'}
+                {{category.count|intcomma}}
 
-  %table.list.lined
-    %tbody
-        -for obj in object_list
-          %tr
-            %td(width="16px")
-              -if obj.status == "P" or obj.status == "S"
-                %span.spin.icon-loop(title="{{ obj.get_status_display }}")
-              -elif obj.status == "C"
-                %span.icon-checkmark.text-success(title="{{ obj.get_status_display }}")
-              -elif obj.status == "F"
-                %span.icon-warning(title="{{ obj.get_status_display }}")
-            %td
-              %a(href="{% url 'flows.flow_editor' obj.flow.uuid %}")
-                {{ obj.flow.name }}
 
-              -if obj.start_type == "M"
-                -blocktrans trimmed with user=obj.created_by
-                  was started by {{ user }} for
-              -elif obj.start_type == "Z"
-                -trans "was started by Zapier for"
-              -else
-                -trans "was started by an API call for"
+        .lp-nav.lower
+          -for category in fs_types
+            .lp-nav-item{'class': '{% if selected_start_type == category.start_type %}font-normal{% endif %}' }
+              .name{onclick:"goto(event)", href:'{{category.url}}'}
+                {{category.label}}
+              .count{onclick:"goto(event)", href:'{{category.url}}'}
+                {{category.count|intcomma}}
 
-              -if obj.restart_participants and obj.include_active
-                -trans "all contacts"
-              -elif obj.restart_participants and not obj.include_active
-                -trans "contacts not in other flows"
-              -elif not obj.restart_participants and not obj.include_active
-                -trans "contacts not in other flows who haven't already been through this flow"
-              -else
-                -trans "contacts who haven't already been through this flow"
+    .right
+      %table.list.lined
+        %tbody
+            -for obj in object_list
+              %tr
+                %td(width="16px")
+                  -if obj.status == "P" or obj.status == "S"
+                    %span.spin.icon-loop(title="{{ obj.get_status_display }}")
+                  -elif obj.status == "C"
+                    %span.icon-checkmark.text-success(title="{{ obj.get_status_display }}")
+                  -elif obj.status == "F"
+                    %span.icon-warning(title="{{ obj.get_status_display }}")
+                %td
+                  %a(href="{% url 'flows.flow_editor' obj.flow.uuid %}")
+                    {{ obj.flow.name }}
 
-              .flex(style="padding-top: 10px;")
-                -include "includes/recipients.haml" with groups=obj.groups.all contacts=obj.contacts.all query=obj.query
+                  -if obj.start_type == "M"
+                    -blocktrans trimmed with user=obj.created_by
+                      was started by {{ user }} for
+                  -elif obj.start_type == "Z"
+                    -trans "was started by Zapier for"
+                  -else
+                    -trans "was started by an API call for"
 
-            %td(style="text-align: right")
-              .flex.flex-col.w-32
-                .
-                  {% short_datetime obj.created_on %}
-                .(style="padding-top: 10px; font-size: 11px")
-                  -blocktrans trimmed with count=obj.run_count|intcomma count counter=obj.run_count
-                    <b>{{ count }}</b> run
-                    -plural
-                      <b>{{ count }}</b> runs
-        - empty
-          %tr.empty_list
-            %td(colspan='99')
-              -trans "No flow starts"
+                  -if obj.restart_participants and obj.include_active
+                    -trans "all contacts"
+                  -elif obj.restart_participants and not obj.include_active
+                    -trans "contacts not in other flows"
+                  -elif not obj.restart_participants and not obj.include_active
+                    -trans "contacts not in other flows who haven't already been through this flow"
+                  -else
+                    -trans "contacts who haven't already been through this flow"
 
-  -block paginator
-    -include "includes/pagination.haml"
+                  .flex(style="padding-top: 10px;")
+                    -include "includes/recipients.haml" with groups=obj.groups.all contacts=obj.contacts.all query=obj.query
+
+                %td(style="text-align: right")
+                  .flex.flex-col.w-32
+                    .
+                      {% short_datetime obj.created_on %}
+                    .(style="padding-top: 10px; font-size: 11px")
+                      -blocktrans trimmed with count=obj.run_count|intcomma count counter=obj.run_count
+                        <b>{{ count }}</b> run
+                        -plural
+                          <b>{{ count }}</b> runs
+            - empty
+              %tr.empty_list
+                %td(colspan='99')
+                  -trans "No flow starts"
+
+      -block paginator
+        -include "includes/pagination.haml"

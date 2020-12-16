@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-10 20:04+0000\n"
+"POT-Creation-Date: 2020-12-16 14:48+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Hudson Brendon <hudson.brendon@ilhasoft.com.br>, 2020\n"
 "Language-Team: Russian (https://www.transifex.com/rapidpro/teams/226/ru/)\n"
@@ -3139,6 +3139,29 @@ msgstr "Выполнено"
 
 msgid "Failed"
 msgstr "Не выполнено"
+
+msgid "Manual"
+msgstr ""
+
+#, fuzzy
+#| msgid "API Key"
+msgid "API"
+msgstr "Ключ API"
+
+#, fuzzy
+#| msgid "Call Zapier"
+msgid "Zapier"
+msgstr "Вызвать Zapier"
+
+#, fuzzy
+#| msgid "Selection"
+msgid "Flow Action"
+msgstr "Выбор"
+
+#, fuzzy
+#| msgid "Triggers"
+msgid "Trigger"
+msgstr "Триггеры"
 
 msgid "The name of this flow label"
 msgstr "Название метки данного потока"
@@ -11659,9 +11682,6 @@ msgstr "Найдено ${count} по ${query}"
 
 #~ msgid "Call Webhook"
 #~ msgstr "Вызвать Вебхук"
-
-#~ msgid "Call Zapier"
-#~ msgstr "Вызвать Zapier"
 
 #~ msgid "Split by Expression"
 #~ msgstr "Разделить по Выражению"

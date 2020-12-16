@@ -2119,11 +2119,11 @@ class FlowStart(models.Model):
     TYPE_TRIGGER = "T"
 
     TYPE_CHOICES = (
-        (TYPE_MANUAL, "Manual"),
-        (TYPE_API, "API"),
-        (TYPE_API_ZAPIER, "Zapier"),
-        (TYPE_FLOW_ACTION, "Flow Action"),
-        (TYPE_TRIGGER, "Trigger"),
+        (TYPE_MANUAL, _("Manual")),
+        (TYPE_API, _("API")),
+        (TYPE_API_ZAPIER, _("Zapier")),
+        (TYPE_FLOW_ACTION, _("Flow Action")),
+        (TYPE_TRIGGER, _("Trigger")),
     )
 
     # the uuid of this start

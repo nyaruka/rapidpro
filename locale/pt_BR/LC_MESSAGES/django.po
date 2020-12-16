@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-10 20:04+0000\n"
+"POT-Creation-Date: 2020-12-16 14:48+0000\n"
 "PO-Revision-Date: 2014-04-14 20:37+0000\n"
 "Last-Translator: produtos <produtos.ti@takenet.com.br>\n"
 "Language-Team: Portuguese (Brazil) (http://www.transifex.com/projects/p/textit/language/pt_BR/)\n"
@@ -3436,6 +3436,29 @@ msgstr ""
 
 msgid "Failed"
 msgstr "Falha"
+
+msgid "Manual"
+msgstr ""
+
+#, fuzzy
+#| msgid "API Docs"
+msgid "API"
+msgstr "Documentos da API"
+
+#, fuzzy
+#| msgid "Call Type"
+msgid "Zapier"
+msgstr "Tipo de chamada"
+
+#, fuzzy
+#| msgid "Remove Action?"
+msgid "Flow Action"
+msgstr "Remover ação?"
+
+#, fuzzy
+#| msgid "Triggers"
+msgid "Trigger"
+msgstr "Disparadores"
 
 #, fuzzy
 msgid "The name of this flow label"
@@ -11131,11 +11154,6 @@ msgstr ""
 #~ msgstr "Chamar Webhook"
 
 #, fuzzy
-#~| msgid "Call Type"
-#~ msgid "Call Zapier"
-#~ msgstr "Tipo de chamada"
-
-#, fuzzy
 #~ msgid "Transfer Airtime"
 #~ msgstr "Último nome"
 
@@ -13819,11 +13837,6 @@ msgstr ""
 #~ msgid "Removed %s from %s"
 #~ msgstr "%s foram removido de %s"
 
-#, fuzzy
-#~| msgid "API Docs"
-#~ msgid "API ID"
-#~ msgstr "Documentos da API"
-
 #~ msgid "Your api code on Zenvia for authentication"
 #~ msgstr "Seu código da api na Take.net para autenticação"
 
@@ -15307,9 +15320,6 @@ msgstr ""
 
 #~ msgid "Remove Rules?"
 #~ msgstr "Remover regras?"
-
-#~ msgid "Remove Action?"
-#~ msgstr "Remover ação?"
 
 #~ msgid "Play Message"
 #~ msgstr "Reproduzir mensagem"

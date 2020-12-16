@@ -5460,6 +5460,11 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_list(self):
         list_url = reverse("flows.flowstart_list")
 
+        filtered_manual_start_url = reverse("flows.flowstart_filtered", args=["M"])
+        filtered_api_start_url = reverse("flows.flowstart_filtered", args=["A"])
+        filtered_zapier_start_url = reverse("flows.flowstart_filtered", args=["Z"])
+        filtered_trigger_start_url = reverse("flows.flowstart_filtered", args=["T"])
+
         flow = self.get_flow("color_v13")
         contact = self.create_contact("Bob", phone="+1234567890")
         group = self.create_group("Testers", contacts=[contact])
@@ -5482,6 +5487,25 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "all contacts")
         self.assertContains(response, "contacts who haven't already been through this flow")
         self.assertContains(response, "<b>1,234</b> runs")
+
+        self.assertTrue("fs_categories" in response.context)
+        self.assertTrue("fs_types" in response.context)
+
+        response = self.assertListFetch(
+            filtered_manual_start_url, allow_viewers=True, allow_editors=True, context_objects=[start1]
+        )
+
+        response = self.assertListFetch(
+            filtered_api_start_url, allow_viewers=True, allow_editors=True, context_objects=[start2]
+        )
+
+        response = self.assertListFetch(
+            filtered_zapier_start_url, allow_viewers=True, allow_editors=True, context_objects=[start3]
+        )
+
+        response = self.assertListFetch(
+            filtered_trigger_start_url, allow_viewers=True, allow_editors=True, context_objects=[]
+        )
 
 
 class AssetServerTest(TembaTest):

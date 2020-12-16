@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-10 20:04+0000\n"
+"POT-Creation-Date: 2020-12-16 14:48+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2420,6 +2420,21 @@ msgid "Complete"
 msgstr ""
 
 msgid "Failed"
+msgstr ""
+
+msgid "Manual"
+msgstr ""
+
+msgid "API"
+msgstr ""
+
+msgid "Zapier"
+msgstr ""
+
+msgid "Flow Action"
+msgstr ""
+
+msgid "Trigger"
 msgstr ""
 
 msgid "The name of this flow label"
