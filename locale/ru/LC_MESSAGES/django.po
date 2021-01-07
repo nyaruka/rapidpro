@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-06 15:43+0000\n"
+"POT-Creation-Date: 2021-01-07 15:09+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Hudson Brendon <hudson.brendon@ilhasoft.com.br>, 2020\n"
 "Language-Team: Russian (https://www.transifex.com/rapidpro/teams/226/ru/)\n"
@@ -10311,6 +10311,11 @@ msgstr "Ввести запрос"
 #, python-brace-format
 msgid "Found ${count} for ${query}"
 msgstr "Найдено ${count} по ${query}"
+
+#, fuzzy, python-format
+#~| msgid "There is already an export in progress, started by %s. You must wait for that export to complete before starting another."
+#~ msgid "There is already an export in progress, started by %(name)s. You must wait for that export to complete before starting another."
+#~ msgstr "Экспортирование уже осуществляется и был начат %s. Вы должны дождаться завершения указанного экспорта, прежде чем начинать другой."
 
 #, fuzzy
 #~| msgid "Select Group"
