@@ -33,7 +33,7 @@ from temba.contacts.models import Contact, ContactField, ContactGroup, ContactGr
 from temba.flows.models import FlowRun
 from temba.orgs.models import Org, UserSettings
 from temba.tests import ESMockWithScroll, TembaTest, matchers
-from temba.utils import json, uuid
+from temba.utils import json, rcache,  uuid
 from temba.utils.json import TembaJsonAdapter
 
 from . import (
@@ -472,6 +472,38 @@ class TimezonesTest(TembaTest):
         # GMT and UTC give empty
         self.assertEqual("", timezone_to_country_code(pytz.timezone("GMT")))
         self.assertEqual("", timezone_to_country_code(pytz.timezone("UTC")))
+
+
+class RCacheTest(TembaTest):
+    def test_rcache(self):
+        redis_conn = get_redis_connection()
+
+        tcs = [
+            ("clear", "wa", "", None),
+            ("clear", "tel", "", None),
+            ("get", "wa", "foo", None),
+            ("set", "wa", "foo", "bar"),
+            ("get", "wa", "foo", "bar"),
+            ("get", "tel", "foo", None),
+            ("set", "tel", "foo", "baz"),
+            ("get", "tel", "foo", "baz"),
+            ("delete", "wa", "foo", None),
+            ("get", "wa", "foo", None),
+            ("get", "tel", "foo", "baz"),
+            ("clear", "tel", "", None),
+            ("get", "tel", "foo", None),
+        ]
+
+        for tc in tcs:
+            if tc[0] == "set":
+                rcache.set(redis_conn, tc[1], tc[2], tc[3])
+            if tc[0] == "get":
+                value = rcache.get(redis_conn, tc[1], tc[2])
+                self.assertEqual(value, tc[3])
+            if tc[0] == "delete":
+                rcache.delete(redis_conn, tc[1], tc[2])
+            if tc[0] == "clear":
+                rcache.clear(redis_conn, tc[1])
 
 
 class TemplateTagTest(TembaTest):
