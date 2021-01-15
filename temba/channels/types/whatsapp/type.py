@@ -1,4 +1,8 @@
+import json
+import mimetypes
+
 import requests
+from django_redis import get_redis_connection
 
 from django.conf.urls import url
 from django.forms import ValidationError
@@ -6,9 +10,19 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from temba.channels.models import Channel
-from temba.channels.types.whatsapp.views import ClaimView, RefreshView, SyncLogsView, TemplatesView
+from temba.channels.types.whatsapp.views import (
+    ClaimView,
+    DetailsView,
+    RefreshView,
+    SyncLogsView,
+    TemplatesView,
+    UpdateAboutView,
+    UpdateBusinessProfileView,
+    UpdateProfilePhotoView,
+)
 from temba.contacts.models import URN
 from temba.templates.models import TemplateTranslation
+from temba.utils import rcache
 
 from ...models import ChannelType
 
@@ -98,13 +112,20 @@ CONFIG_FB_TEMPLATE_LIST_DOMAIN = "fb_template_list_domain"
 
 TEMPLATE_LIST_URL = "https://%s/v3.3/%s/message_templates"
 
+DOCKER_PROFILE_ABOUT_GROUP = "docker_profile_about"
+DOCKER_BUSINESS_PROFILE_GROUP = "docker_business_profile"
+DOCKER_PROFILE_PHOTO_GROUP = "docker_profile_photo"
+
 
 class WhatsAppType(ChannelType):
     """
     A WhatsApp Channel Type
     """
 
-    extra_links = [dict(name=_("Message Templates"), link="channels.types.whatsapp.templates")]
+    extra_links = [
+        dict(name=_("Message Templates"), link="channels.types.whatsapp.templates"),
+        dict(name=_("WhatsApp Details"), link="channels.types.whatsapp.details"),
+    ]
 
     code = "WA"
     category = ChannelType.Category.SOCIAL_MEDIA
@@ -130,6 +151,14 @@ class WhatsAppType(ChannelType):
             url(r"^(?P<uuid>[a-z0-9\-]+)/refresh$", RefreshView.as_view(), name="refresh"),
             url(r"^(?P<uuid>[a-z0-9\-]+)/templates$", TemplatesView.as_view(), name="templates"),
             url(r"^(?P<uuid>[a-z0-9\-]+)/sync_logs$", SyncLogsView.as_view(), name="sync_logs"),
+            url(r"^(?P<uuid>[a-z0-9\-]+)/details$", DetailsView.as_view(), name="details"),
+            url(r"^(?P<uuid>[a-z0-9\-]+)/about$", UpdateAboutView.as_view(), name="about"),
+            url(r"^(?P<uuid>[a-z0-9\-]+)/photo$", UpdateProfilePhotoView.as_view(), name="photo"),
+            url(
+                r"^(?P<uuid>[a-z0-9\-]+)/business_profile$",
+                UpdateBusinessProfileView.as_view(),
+                name="business_profile",
+            ),
         ]
 
     def deactivate(self, channel):
@@ -161,3 +190,145 @@ class WhatsAppType(ChannelType):
 
         if resp.status_code != 200:
             raise ValidationError(_("Unable to configure channel: %s", resp.content))
+
+    def profile_about(self, channel):
+        redis_conn = get_redis_connection()
+        cache_key = str(channel.uuid)
+
+        cached = rcache.get(redis_conn, DOCKER_PROFILE_ABOUT_GROUP, cache_key)
+        if cached is not None:
+            return cached
+
+        return self.fetch_profile_about(channel)
+
+    def fetch_profile_about(self, channel):
+        headers = {"Authorization": "Bearer %s" % channel.config[Channel.CONFIG_AUTH_TOKEN]}
+        try:
+            response = requests.get(
+                channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/profile/about", headers=headers
+            )
+        except Exception as e:
+            raise Exception("error reaching server") from e
+
+        about = response.json().get("settings", {}).get("profile", {}).get("about", {}).get("text")
+        if about:
+            redis_conn = get_redis_connection()
+            cache_key = str(channel.uuid)
+            rcache.set(redis_conn, DOCKER_PROFILE_ABOUT_GROUP, cache_key, about)
+        return about
+
+    def set_profile_about(self, channel, about):
+        headers = {"Authorization": "Bearer %s" % channel.config[Channel.CONFIG_AUTH_TOKEN]}
+        payload = {"text": about}
+
+        try:
+            response = requests.patch(
+                channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/profile/about", json=payload, headers=headers
+            )
+        except Exception as e:
+            raise Exception("error reaching server") from e
+
+        if response.status_code != 200:
+            try:
+                raise Exception(response.json()["errors"][0]["title"])
+            except KeyError as e:
+                raise Exception("error parsing response") from e
+
+        self.fetch_profile_about(channel)
+
+    def profile_photo_url(self, channel):
+        redis_conn = get_redis_connection()
+        cache_key = str(channel.uuid)
+
+        cached = rcache.get(redis_conn, DOCKER_PROFILE_PHOTO_GROUP, cache_key)
+        if cached is not None:
+            return cached
+
+        return self.fetch_profile_photo_url(channel)
+
+    def fetch_profile_photo_url(self, channel):
+        headers = {"Authorization": "Bearer %s" % channel.config[Channel.CONFIG_AUTH_TOKEN]}
+        try:
+            response = requests.get(
+                channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/profile/photo?format=link", headers=headers
+            )
+        except Exception as e:
+            raise Exception("error reaching server") from e
+
+        photo_link = response.json().get("settings", {}).get("profile", {}).get("photo", {}).get("link")
+        if photo_link:
+            redis_conn = get_redis_connection()
+            cache_key = str(channel.uuid)
+            rcache.set(redis_conn, DOCKER_PROFILE_PHOTO_GROUP, cache_key, photo_link)
+        return photo_link
+
+    def set_profile_photo(self, channel, uploaded_image):
+        mime_type = mimetypes.guess_type(uploaded_image.name)[0]
+
+        headers = {"Authorization": "Bearer %s" % channel.config[Channel.CONFIG_AUTH_TOKEN]}
+        headers["Content-Type"] = mime_type
+
+        try:
+            response = requests.post(
+                channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/profile/photo",
+                data=uploaded_image.file,
+                headers=headers,
+            )
+        except Exception as e:
+            raise Exception("error reaching server") from e
+
+        if response.status_code not in [200, 201]:
+            try:
+                raise Exception(response.json()["errors"][0]["title"])
+            except KeyError as e:
+                raise Exception("error parsing response") from e
+
+        self.fetch_profile_photo_url()
+
+    def business_profile(self, channel):
+        redis_conn = get_redis_connection()
+        cache_key = str(channel.uuid)
+
+        cached = rcache.get(redis_conn, DOCKER_BUSINESS_PROFILE_GROUP, cache_key)
+        if cached is not None:
+            return json.loads(cached)
+
+        return self.fetch_business_profile(channel)
+
+    def fetch_business_profile(self, channel):
+        headers = {"Authorization": "Bearer %s" % channel.config[Channel.CONFIG_AUTH_TOKEN]}
+        try:
+            response = requests.get(
+                channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/business/profile", headers=headers
+            )
+        except Exception as e:
+            raise Exception("error reaching server") from e
+
+        business_profile = response.json().get("settings", {}).get("business", {}).get("profile", {})
+        if business_profile:
+            redis_conn = get_redis_connection()
+            cache_key = str(channel.uuid)
+            rcache.set(redis_conn, DOCKER_BUSINESS_PROFILE_GROUP, cache_key, json.dumps(business_profile))
+        return business_profile
+
+    def set_business_profile(self, channel, business_profile):
+
+        headers = {"Authorization": "Bearer %s" % channel.config[Channel.CONFIG_AUTH_TOKEN]}
+        payload = business_profile
+
+        try:
+            response = requests.patch(
+                channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/business/profile",
+                json=payload,
+                headers=headers,
+            )
+        except Exception as e:
+            raise Exception("error reaching server") from e
+
+        if response.status_code != 200:
+            try:
+                raise Exception(response.json()["errors"][0]["title"])
+            except KeyError as e:
+                raise Exception("error parsing response") from e
+
+        self.fetch_business_profile(channel)

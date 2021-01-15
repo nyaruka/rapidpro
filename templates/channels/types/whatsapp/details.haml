@@ -1,0 +1,74 @@
+-extends "channels/channel_read.html"
+
+-load smartmin temba compress humanize channels
+-load i18n tz
+
+-block fields
+
+-block title
+  {{ object.name }}
+
+-block subtitle
+  -trans "WhatsApp Settings Details"
+
+-block content
+  
+  .flex
+    .mr-4.flex-1
+      .flex.mt-6.border-b
+        .flex-1.subtitle
+          Profile photo
+
+      -if photo_url
+        .mt-2
+          .text-left
+            %img.inline(src="{{photo_url}}" width=256)
+  .flex
+    .mr-4.flex-1
+      .flex.mt-6.border-b
+        .flex-1.subtitle
+          About
+
+      .mt-2.font-mono
+        {{about}}
+
+  .flex.mt-6
+    .flex-1
+      .flex.mt-6.border-b
+        .flex-1.subtitle
+          Business Profile
+
+      .block
+        -if business_profile
+          %table.list.lined.mt-2
+            %tr
+              %td.border-r
+                Address
+              %td
+                {{business_profile.address}}
+            %tr
+              %td.border-r
+                Description
+  
+              %td
+                {{business_profile.description}}
+            %tr
+              %td.border-r
+                Email
+              %td
+                {{business_profile.email}}
+  
+            %tr
+              %td.border-r
+                Vertical
+  
+              %td
+                {{business_profile.vertical}}
+            %tr
+              %td.border-r
+                Websites
+              %td
+                -for site in business_profile.websites
+                  %a(href="{{site}}")
+                    {{site}}
+                  %br

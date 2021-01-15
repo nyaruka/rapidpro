@@ -549,3 +549,101 @@ class WhatsAppTypeTest(TembaTest):
         self.login(self.admin2)
         response = self.client.get(reverse("channels.types.whatsapp.sync_logs", args=[channel.uuid]))
         self.assertEqual(404, response.status_code)
+
+    @patch("temba.channels.types.whatsapp.WhatsAppType.business_profile")
+    @patch("temba.channels.types.whatsapp.WhatsAppType.profile_photo_url")
+    @patch("temba.channels.types.whatsapp.WhatsAppType.profile_about")
+    @patch("temba.channels.types.whatsapp.WhatsAppType.set_profile_about")
+    @patch("requests.post")
+    def test_whatsapp_update_about(
+        self, mock_post, mock_set_profile_about, mock_profile_about, mock_profile_photo_url, mock_business_profile
+    ):
+        mock_post.return_value = MockResponse(200, "{}")
+        mock_profile_about.return_value = ""
+        mock_profile_photo_url.return_value = ""
+        mock_business_profile.return_value = dict()
+        mock_set_profile_about.side_effect = [Exception("error"), "success"]
+
+        Channel.objects.all().delete()
+
+        channel = Channel.create(
+            self.org,
+            self.admin,
+            "US",
+            "WA",
+            name="WhatsApp: 1234",
+            address="1234",
+            config={
+                Channel.CONFIG_BASE_URL: "https://nyaruka.com/whatsapp",
+                Channel.CONFIG_USERNAME: "temba",
+                Channel.CONFIG_PASSWORD: "tembapasswd",
+                Channel.CONFIG_AUTH_TOKEN: "authtoken123",
+                CONFIG_FB_BUSINESS_ID: "1234",
+                CONFIG_FB_ACCESS_TOKEN: "token123",
+                CONFIG_FB_NAMESPACE: "my-custom-app",
+                CONFIG_FB_TEMPLATE_LIST_DOMAIN: "graph.facebook.com",
+            },
+            tps=45,
+        )
+
+        about_url = reverse("channels.types.whatsapp.about", args=[channel.uuid])
+        self.login(self.admin)
+
+        response = self.client.get(about_url)
+        self.assertEqual(200, response.status_code)
+
+        post_data = dict(about="About us text.")
+        response = self.client.post(about_url, post_data, follow=True)
+        self.assertFormError(response, "form", "about", "Error setting about: error")
+
+        response = self.client.post(about_url, post_data, follow=True)
+        self.assertRedirects(response, reverse("channels.types.whatsapp.details", args=[channel.uuid]))
+
+    @patch("temba.channels.types.whatsapp.WhatsAppType.profile_photo_url")
+    @patch("temba.channels.types.whatsapp.WhatsAppType.profile_about")
+    @patch("temba.channels.types.whatsapp.WhatsAppType.business_profile")
+    @patch("temba.channels.types.whatsapp.WhatsAppType.set_business_profile")
+    @patch("requests.patch")
+    def test_whatsapp_business_profile(
+        self, mock_patch, mock_set_business_profile, mock_business_profile, mock_profile_about, mock_profile_photo_url
+    ):
+        mock_patch.return_value = MockResponse(200, "{}")
+        mock_profile_about.return_value = ""
+        mock_profile_photo_url.return_value = ""
+        mock_business_profile.return_value = dict()
+        mock_set_business_profile.side_effect = [Exception("error"), "success"]
+
+        Channel.objects.all().delete()
+
+        channel = Channel.create(
+            self.org,
+            self.admin,
+            "US",
+            "WA",
+            name="WhatsApp: 1234",
+            address="1234",
+            config={
+                Channel.CONFIG_BASE_URL: "https://nyaruka.com/whatsapp",
+                Channel.CONFIG_USERNAME: "temba",
+                Channel.CONFIG_PASSWORD: "tembapasswd",
+                Channel.CONFIG_AUTH_TOKEN: "authtoken123",
+                CONFIG_FB_BUSINESS_ID: "1234",
+                CONFIG_FB_ACCESS_TOKEN: "token123",
+                CONFIG_FB_NAMESPACE: "my-custom-app",
+                CONFIG_FB_TEMPLATE_LIST_DOMAIN: "graph.facebook.com",
+            },
+            tps=45,
+        )
+
+        business_profile_url = reverse("channels.types.whatsapp.business_profile", args=[channel.uuid])
+        self.login(self.admin)
+
+        response = self.client.get(business_profile_url)
+        self.assertEqual(200, response.status_code)
+
+        post_data = dict(address="foo", description="bar", email="admin@example.com", website1="https://example.com")
+        response = self.client.post(business_profile_url, post_data, follow=True)
+        self.assertFormError(response, "form", None, "Error setting business profile: error")
+
+        response = self.client.post(business_profile_url, post_data, follow=True)
+        self.assertRedirects(response, reverse("channels.types.whatsapp.details", args=[channel.uuid]))

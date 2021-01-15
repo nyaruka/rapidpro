@@ -33,7 +33,7 @@ from temba.contacts.models import Contact, ContactField, ContactGroup, ContactGr
 from temba.flows.models import FlowRun
 from temba.orgs.models import Org, UserSettings
 from temba.tests import ESMockWithScroll, TembaTest, matchers
-from temba.utils import json, rcache,  uuid
+from temba.utils import json, rcache, uuid
 from temba.utils.json import TembaJsonAdapter
 
 from . import (

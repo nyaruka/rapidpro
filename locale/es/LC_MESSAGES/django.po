@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-12 14:27+0000\n"
+"POT-Creation-Date: 2021-01-15 17:45+0000\n"
 "PO-Revision-Date: 2014-09-24 19:56+0000\n"
 "Last-Translator: TextIt <info@textit.in>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/textit/language/es/)\n"
@@ -2726,6 +2726,11 @@ msgstr ""
 msgid "Message Templates"
 msgstr "Mensaje"
 
+#, fuzzy
+#| msgid "External ID"
+msgid "WhatsApp Details"
+msgstr "ID externo"
+
 msgid "If you have an enterprise WhatsApp account, you can connect it to communicate with your contacts"
 msgstr ""
 
@@ -2739,6 +2744,32 @@ msgid "Unable to configure channel: %s"
 msgstr "ID del grupo o contacto inválido "
 
 msgid "Contacts refresh begun, it may take a few minutes to complete."
+msgstr ""
+
+#, fuzzy
+msgid "Channel Page"
+msgstr "Alarmas del transmisor"
+
+#, fuzzy
+#| msgid "Update value for"
+msgid "Update Profile About"
+msgstr "Actualizar valor para"
+
+#, fuzzy
+#| msgid "Update value for"
+msgid "Update Profile Photo"
+msgstr "Actualizar valor para"
+
+msgid "Update Business Profile"
+msgstr ""
+
+msgid "Profile about updated successfully."
+msgstr ""
+
+msgid "Profile photo updated successfully."
+msgstr ""
+
+msgid "Business profile update successfully."
 msgstr ""
 
 #, fuzzy
@@ -7626,11 +7657,25 @@ msgstr ""
 msgid "<div class='code mt-4'> Manage > API Usage > Callback API > Server Settings </div> <div class='mt-2'> Enter the Webhook URL below for the <div class='code inline py-1'>URL</div> field and the Verify Token in the <div class='code inline py-1'>Secret Key</div> field. </div> <div class='code mt-6'> Manage > API Usage > Callback API > Event Types </div> <div class='mt-2'> Check the option %(option)s </div>"
 msgstr ""
 
+msgid "Update WhatsApp Profile About"
+msgstr ""
+
+msgid "Update WhatsApp Business Profile"
+msgstr ""
+
+#, fuzzy
+#| msgid "Has Template Error"
+msgid "WhatsApp Settings Details"
+msgstr "Tiene un error en la plantilla"
+
 #, fuzzy
 msgid "Your WhatsApp channel is now connected, you should be able to send and receive messages as normal."
 msgstr "TextIt usa su teléfono Android para enviar y recibir mensajes."
 
 msgid "In the case of a new WhatsApp install or replacement of an existing WhatsApp channel you may need to refresh the contacts on the WhatsApp application. This may take a few minutes."
+msgstr ""
+
+msgid "Update WhatsApp Profile Photo"
 msgstr ""
 
 #, fuzzy
@@ -16374,9 +16419,6 @@ msgstr ""
 
 #~ msgid "Send E-mail"
 #~ msgstr "Enviar correo electrónico"
-
-#~ msgid "Update value for"
-#~ msgstr "Actualizar valor para"
 
 #~ msgid "Start Another Flow"
 #~ msgstr "Empezar otro flujo"
