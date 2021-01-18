@@ -18,7 +18,7 @@ def get(redis_conn, group, key):
     if value is not None:
         return str(value, "utf-8")
     value = redis_conn.hget(yesterday_key, key)
-    if value is not None:
+    if value is not None:  # pragma: no cover
         return str(value, "utf-8")
     return value
 

@@ -196,7 +196,7 @@ class WhatsAppType(ChannelType):
         cache_key = str(channel.uuid)
 
         cached = rcache.get(redis_conn, DOCKER_PROFILE_ABOUT_GROUP, cache_key)
-        if cached is not None:
+        if cached is not None:  # pragma: no cover
             return cached
 
         return self.fetch_profile_about(channel)
@@ -240,7 +240,7 @@ class WhatsAppType(ChannelType):
         cache_key = str(channel.uuid)
 
         cached = rcache.get(redis_conn, DOCKER_PROFILE_PHOTO_GROUP, cache_key)
-        if cached is not None:
+        if cached is not None:  # pragma: no cover
             return cached
 
         return self.fetch_profile_photo_url(channel)
@@ -289,7 +289,7 @@ class WhatsAppType(ChannelType):
         cache_key = str(channel.uuid)
 
         cached = rcache.get(redis_conn, DOCKER_BUSINESS_PROFILE_GROUP, cache_key)
-        if cached is not None:
+        if cached is not None:  # pragma: no cover
             return json.loads(cached)
 
         return self.fetch_business_profile(channel)
