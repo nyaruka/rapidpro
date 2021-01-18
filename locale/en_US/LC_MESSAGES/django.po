@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-15 17:45+0000\n"
+"POT-Creation-Date: 2021-01-18 17:24+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1684,7 +1684,13 @@ msgstr ""
 msgid "Profile about updated successfully."
 msgstr ""
 
+msgid "Error setting about, please try again later"
+msgstr ""
+
 msgid "Profile photo updated successfully."
+msgstr ""
+
+msgid "Error setting photo, please try again later "
 msgstr ""
 
 msgid "Business profile update successfully."
@@ -5124,6 +5130,9 @@ msgid "In the case of a new WhatsApp install or replacement of an existing Whats
 msgstr ""
 
 msgid "Update WhatsApp Profile Photo"
+msgstr ""
+
+msgid "Choose Photo"
 msgstr ""
 
 msgid "WhatsApp Templates Events"

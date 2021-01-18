@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-15 17:45+0000\n"
+"POT-Creation-Date: 2021-01-18 17:24+0000\n"
 "PO-Revision-Date: 2014-04-14 20:37+0000\n"
 "Last-Translator: produtos <produtos.ti@takenet.com.br>\n"
 "Language-Team: Portuguese (Brazil) (http://www.transifex.com/projects/p/textit/language/pt_BR/)\n"
@@ -2506,8 +2506,18 @@ msgstr ""
 msgid "Profile about updated successfully."
 msgstr ""
 
+#, fuzzy
+#| msgid "We encountered an error removing your channel, please try again later."
+msgid "Error setting about, please try again later"
+msgstr "Encontramos um erro ao remover o seu transmissor, por favor, tente novamente mais tarde."
+
 msgid "Profile photo updated successfully."
 msgstr ""
+
+#, fuzzy
+#| msgid "We encountered an error removing your channel, please try again later."
+msgid "Error setting photo, please try again later "
+msgstr "Encontramos um erro ao remover o seu transmissor, por favor, tente novamente mais tarde."
 
 msgid "Business profile update successfully."
 msgstr ""
@@ -7071,6 +7081,11 @@ msgstr ""
 
 msgid "Update WhatsApp Profile Photo"
 msgstr ""
+
+#, fuzzy
+#| msgid "Choose"
+msgid "Choose Photo"
+msgstr "Escolha"
 
 #, fuzzy
 #| msgid "Has Template Error"
@@ -16221,9 +16236,6 @@ msgstr ""
 
 #~ msgid "Welcome to %(name)s"
 #~ msgstr "Bem vindo a %(name)s"
-
-#~ msgid "Choose"
-#~ msgstr "Escolha"
 
 #~ msgid "Choose the Organization to visit"
 #~ msgstr "Escolha a Organização para visitar"

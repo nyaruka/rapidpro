@@ -1,3 +1,5 @@
+import logging
+
 import requests
 from smartmin.views import SmartFormView, SmartReadView, SmartUpdateView
 
@@ -17,6 +19,8 @@ from temba.utils.views import PostOnlyMixin
 from ...models import Channel
 from ...views import ALL_COUNTRIES, ClaimViewMixin
 from .tasks import refresh_whatsapp_contacts
+
+logger = logging.getLogger(__name__)
 
 
 class RefreshView(PostOnlyMixin, OrgPermsMixin, SmartUpdateView):
@@ -109,7 +113,11 @@ class UpdateAboutView(OrgPermsMixin, SmartUpdateView):
             self.object.get_type().set_profile_about(self.object, form.cleaned_data["about"])
             return super().form_valid(form)
         except Exception as e:
-            self.form.add_error("about", forms.ValidationError(f"Error setting about: {e}", code="about"))
+            self.form.add_error(
+                "about", forms.ValidationError(_("Error setting about, please try again later"), code="about")
+            )
+            # ensure exception still goes to Sentry
+            logger.error("Error setting about: %s" % str(e), exc_info=True)
             return self.form_invalid(form)
 
 
@@ -138,7 +146,11 @@ class UpdateProfilePhotoView(OrgPermsMixin, SmartUpdateView):
             self.object.get_type().set_profile_photo(self.object, form.cleaned_data["photo"])
             return HttpResponseRedirect(self.get_success_url())
         except Exception as e:
-            self.form.add_error("photo", forms.ValidationError(f"Error setting photo: {e}", code="photo"))
+            self.form.add_error(
+                "photo", forms.ValidationError(_("Error setting photo, please try again later "), code="photo")
+            )
+            # ensure exception still goes to Sentry
+            logger.error("Error setting photo: %s" % str(e), exc_info=True)
             return self.form_invalid(form)
 
 
@@ -197,8 +209,13 @@ class UpdateBusinessProfileView(OrgPermsMixin, SmartUpdateView):
             return HttpResponseRedirect(self.get_success_url())
         except Exception as e:
             self.form.add_error(
-                None, forms.ValidationError(f"Error setting business profile: {e}", code="business_profile")
+                None,
+                forms.ValidationError(
+                    f"Error setting business profile, please try again later", code="business_profile"
+                ),
             )
+            # ensure exception still goes to Sentry
+            logger.error("Error setting business profile: %s" % str(e), exc_info=True)
             return self.form_invalid(form)
 
 
