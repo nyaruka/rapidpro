@@ -152,6 +152,8 @@ pathspec==0.8.1
     # via black
 phonenumbers==8.12.16
     # via -r pip-requires.txt
+pillow==8.1.0
+    # via -r pip-requires.txt
 pip-tools==5.5.0
     # via -r pip-requires.txt
 polib==1.1.0
