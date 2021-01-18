@@ -114,7 +114,7 @@ class UpdateAboutView(OrgPermsMixin, SmartUpdateView):
             return super().form_valid(form)
         except Exception as e:
             self.form.add_error(
-                "about", forms.ValidationError(_("Error setting about, please try again later"), code="about")
+                "about", forms.ValidationError(_("Error setting about, please try again later."), code="about")
             )
             # ensure exception still goes to Sentry
             logger.error("Error setting about: %s" % str(e), exc_info=True)
@@ -147,7 +147,7 @@ class UpdateProfilePhotoView(OrgPermsMixin, SmartUpdateView):
             return HttpResponseRedirect(self.get_success_url())
         except Exception as e:
             self.form.add_error(
-                "photo", forms.ValidationError(_("Error setting photo, please try again later "), code="photo")
+                "photo", forms.ValidationError(_("Error setting photo, please try again later."), code="photo")
             )
             # ensure exception still goes to Sentry
             logger.error("Error setting photo: %s" % str(e), exc_info=True)
@@ -211,7 +211,7 @@ class UpdateBusinessProfileView(OrgPermsMixin, SmartUpdateView):
             self.form.add_error(
                 None,
                 forms.ValidationError(
-                    f"Error setting business profile, please try again later", code="business_profile"
+                    f"Error setting business profile, please try again later.", code="business_profile"
                 ),
             )
             # ensure exception still goes to Sentry

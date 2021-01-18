@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-18 17:24+0000\n"
+"POT-Creation-Date: 2021-01-18 17:50+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Jesus EKIE <jesus@fehudigital.com>, 2020\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -1706,7 +1706,7 @@ msgstr ""
 
 #, fuzzy
 #| msgid "An error occurred updating your contact. Please try again later."
-msgid "Error setting about, please try again later"
+msgid "Error setting about, please try again later."
 msgstr "Une erreur s'est produite lors de la mise à jour de votre contact. Veuillez réessayer plus tard."
 
 msgid "Profile photo updated successfully."
@@ -1714,7 +1714,7 @@ msgstr ""
 
 #, fuzzy
 #| msgid "An error occurred updating your contact. Please try again later."
-msgid "Error setting photo, please try again later "
+msgid "Error setting photo, please try again later."
 msgstr "Une erreur s'est produite lors de la mise à jour de votre contact. Veuillez réessayer plus tard."
 
 msgid "Business profile update successfully."

@@ -598,7 +598,7 @@ class WhatsAppTypeTest(TembaTest):
 
         post_data = dict(about="About us text.")
         response = self.client.post(about_url, post_data, follow=True)
-        self.assertFormError(response, "form", "about", "Error setting about: error")
+        self.assertFormError(response, "form", "about", "Error setting about, please try again later.")
 
         response = self.client.post(about_url, post_data, follow=True)
         self.assertRedirects(response, reverse("channels.types.whatsapp.details", args=[channel.uuid]))
@@ -646,7 +646,7 @@ class WhatsAppTypeTest(TembaTest):
         with open(f"{settings.MEDIA_ROOT}/test_media/steve.marten.jpg", "rb") as data:
             post_data = dict(photo=data)
             response = self.client.post(photo_url, post_data)
-            self.assertFormError(response, "form", "photo", "Error setting photo: error")
+            self.assertFormError(response, "form", "photo", "Error setting photo, please try again later.")
 
         with open(f"{settings.MEDIA_ROOT}/test_media/steve.marten.jpg", "rb") as data:
             post_data = dict(photo=data)
@@ -697,7 +697,7 @@ class WhatsAppTypeTest(TembaTest):
 
         post_data = dict(address="foo", description="bar", email="admin@example.com", website1="https://example.com")
         response = self.client.post(business_profile_url, post_data, follow=True)
-        self.assertFormError(response, "form", None, "Error setting business profile: error")
+        self.assertFormError(response, "form", None, "Error setting business profile, please try again later.")
 
         response = self.client.post(business_profile_url, post_data, follow=True)
         self.assertRedirects(response, reverse("channels.types.whatsapp.details", args=[channel.uuid]))
