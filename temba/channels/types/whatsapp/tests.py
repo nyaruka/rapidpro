@@ -706,8 +706,16 @@ class WhatsAppTypeTest(TembaTest):
     @patch("requests.post")
     @patch("requests.get")
     def test_type_methods(self, mock_get, mock_post, mock_patch):
-        mock_post.return_value = MockResponse(200, "{}")
-        mock_patch.return_value = MockResponse(200, "{}")
+        mock_post.side_effect = [
+            Exception("error"),
+            MockResponse(400, json.dumps(dict(errors=[dict(title="Failed")]))),
+            MockResponse(200, "{}"),
+        ]
+        mock_patch.side_effect = [
+            Exception("error"),
+            MockResponse(400, json.dumps(dict(errors=[dict(title="Failed")]))),
+            MockResponse(200, "{}"),
+        ]
         mock_get.side_effect = [
             Exception("error"),
             MockResponse(200, json.dumps(dict(settings=dict(profile=dict(about=dict(text="Foo")))))),
@@ -750,15 +758,33 @@ class WhatsAppTypeTest(TembaTest):
             channel.get_type().profile_about(channel)
         self.assertEqual("Foo", channel.get_type().profile_about(channel))
 
+        with self.assertRaises(Exception):
+            channel.get_type().set_profile_about(channel, "bar")
+
+        with self.assertRaises(Exception):
+            channel.get_type().set_profile_about(channel, "bar")
+
         channel.get_type().set_profile_about(channel, "bar")
         self.assertEqual("https://nyaruka.com/whatsapp/v1/settings/profile/about", mock_patch.call_args_list[0][0][0])
         self.assertEqual({"text": "bar"}, mock_patch.call_args_list[0][1]["json"])
         self.assertEqual({"Authorization": "Bearer authtoken123"}, mock_patch.call_args_list[0][1]["headers"])
         mock_patch.reset_mock()
 
+        mock_patch.side_effect = [
+            Exception("error"),
+            MockResponse(400, json.dumps(dict(errors=[dict(title="Failed")]))),
+            MockResponse(200, "{}"),
+        ]
+
         with self.assertRaises(Exception):
             channel.get_type().business_profile(channel)
         self.assertEqual(dict(description="Foo bar"), channel.get_type().business_profile(channel))
+
+        with self.assertRaises(Exception):
+            channel.get_type().set_business_profile(channel, dict(description="Baz"))
+
+        with self.assertRaises(Exception):
+            channel.get_type().set_business_profile(channel, dict(description="Baz"))
 
         channel.get_type().set_business_profile(channel, dict(description="Baz"))
         self.assertEqual(
@@ -771,6 +797,16 @@ class WhatsAppTypeTest(TembaTest):
         with self.assertRaises(Exception):
             channel.get_type().profile_photo_url(channel)
         self.assertEqual("https://example.com/Foo", channel.get_type().profile_photo_url(channel))
+
+        with open(f"{settings.MEDIA_ROOT}/test_media/steve.marten.jpg", "rb") as f:
+            upload_image = SimpleUploadedFile(f.name, f.read())
+            with self.assertRaises(Exception):
+                channel.get_type().set_profile_photo(channel, upload_image)
+
+        with open(f"{settings.MEDIA_ROOT}/test_media/steve.marten.jpg", "rb") as f:
+            upload_image = SimpleUploadedFile(f.name, f.read())
+            with self.assertRaises(Exception):
+                channel.get_type().set_profile_photo(channel, upload_image)
 
         with open(f"{settings.MEDIA_ROOT}/test_media/steve.marten.jpg", "rb") as f:
             upload_image = SimpleUploadedFile(f.name, f.read())
