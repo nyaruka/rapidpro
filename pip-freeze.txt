@@ -37,7 +37,7 @@ cffi==1.14.0
     # via cryptography
 chardet==3.0.4
     # via requests
-click==6.7
+click==7.1.2
     # via
     #   black
     #   pip-tools
@@ -152,9 +152,7 @@ pathspec==0.8.1
     # via black
 phonenumbers==8.12.16
     # via -r pip-requires.txt
-pillow==8.1.0
-    # via -r pip-requires.txt
-pip-tools==4.0.0
+pip-tools==5.5.0
     # via -r pip-requires.txt
 polib==1.1.0
     # via -r pip-requires.txt
@@ -267,7 +265,6 @@ six==1.10.0
     #   librato-bg
     #   librato-metrics
     #   packaging
-    #   pip-tools
     #   python-dateutil
     #   python-intercom
     #   responses
@@ -309,3 +306,6 @@ xlwt==1.2.0
     # via
     #   pyexcel-xls
     #   smartmin
+
+# The following packages are considered to be unsafe in a requirements file:
+# pip

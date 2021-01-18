@@ -192,6 +192,7 @@ class WhatsAppType(ChannelType):
             raise ValidationError(_("Unable to configure channel: %s", resp.content))
 
     def profile_about(self, channel):
+        return "BAR"
         redis_conn = get_redis_connection()
         cache_key = str(channel.uuid)
 
@@ -236,6 +237,7 @@ class WhatsAppType(ChannelType):
         self.fetch_profile_about(channel)
 
     def profile_photo_url(self, channel):
+        return "https://ureport.in/sitestatic/img/u-report-global-logo-white.png"
         redis_conn = get_redis_connection()
         cache_key = str(channel.uuid)
 
@@ -285,6 +287,8 @@ class WhatsAppType(ChannelType):
         self.fetch_profile_photo_url(channel)
 
     def business_profile(self, channel):
+        return dict(description="Foo")
+
         redis_conn = get_redis_connection()
         cache_key = str(channel.uuid)
 
