@@ -209,7 +209,6 @@ class WhatsAppType(ChannelType):
             )
         except Exception as e:
             raise Exception("error reaching server") from e
-
         about = response.json().get("settings", {}).get("profile", {}).get("about", {}).get("text")
         if about:
             redis_conn = get_redis_connection()
@@ -283,7 +282,7 @@ class WhatsAppType(ChannelType):
             except KeyError as e:
                 raise Exception("error parsing response") from e
 
-        self.fetch_profile_photo_url()
+        self.fetch_profile_photo_url(channel)
 
     def business_profile(self, channel):
         redis_conn = get_redis_connection()
