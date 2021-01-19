@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-16 13:36+0000\n"
+"POT-Creation-Date: 2021-01-12 14:27+0000\n"
 "PO-Revision-Date: 2014-09-24 19:56+0000\n"
 "Last-Translator: TextIt <info@textit.in>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/textit/language/es/)\n"
@@ -3617,19 +3617,12 @@ msgid "Field name '%(name)s' is repeated."
 msgstr ""
 
 #, fuzzy
-msgid "Message flow"
-msgstr "Mensaje"
-
-msgid "Phone call flow"
+#| msgid "Phone call flow"
+msgid "Phone Call"
 msgstr "Flujo de llamadas telefónicas"
 
-msgid "Surveyor flow"
+msgid "Background"
 msgstr ""
-
-#, fuzzy
-#| msgid "SMS flow"
-msgid "USSD flow"
-msgstr "Flujo de mensajes de texto"
 
 msgid "The name for this flow"
 msgstr "El nombre para este flujo"
@@ -3647,9 +3640,6 @@ msgstr "Si este flujo se archiva"
 #| msgid "Whether this report is currently published"
 msgid "Whether this is a system created flow"
 msgstr "Si este informe está publicado actualmente"
-
-msgid "The type of this flow"
-msgstr "El tipo de este flujo"
 
 msgid "Minutes of inactivity that will cause expiration from flow"
 msgstr "Minutos de inactividad que harán que el flujo expire"
@@ -4558,21 +4548,6 @@ msgstr "Lo sentimos, no podemos recargar su tarjeta, por favor, inténtelo nueva
 msgid "Org"
 msgstr "Org"
 
-msgid "The organization to which the account is invited to view"
-msgstr "La organización a la que esta cuenta está invitada a visitar"
-
-msgid "Email"
-msgstr "Correo electrónico"
-
-msgid "The email to which we send the invitation of the viewer"
-msgstr "El correo electrónico al que enviamos la invitación del visitante"
-
-msgid "a unique code associated with this invitation"
-msgstr "un código único asociado con esta invitación"
-
-msgid "User Role"
-msgstr "Rol del usuario"
-
 #, python-format
 msgid "%(name)s Invitation"
 msgstr "Invitación de %(name)s"
@@ -4776,6 +4751,9 @@ msgstr "AVISO requerido"
 msgid "Last Name"
 msgstr "Apellido"
 
+msgid "Email"
+msgstr "Correo electrónico"
+
 #, fuzzy
 #| msgid "Current Password (required)"
 msgid "Current Password"
@@ -4950,6 +4928,16 @@ msgstr "No se pudieron guardar sus cambios. Por favor, actualice la página e in
 
 msgid "One of the emails you entered is invalid."
 msgstr "Uno de los correos electrónicos que ingresó es inválido."
+
+#, fuzzy
+#| msgid "You must have at least one administator"
+msgid "A workspace must have at least one administrator."
+msgstr "Debe tener al menos un administrador"
+
+#, fuzzy
+#| msgid "Manage %(name)s Accounts"
+msgid "Manage Logins"
+msgstr "Manejar las cuentas de %(name)s "
 
 msgid "Enter the code from your authentication application"
 msgstr ""
@@ -7704,6 +7692,30 @@ msgstr ""
 "\n"
 "        "
 
+msgid "Unable to delete classifier still being used by"
+msgstr ""
+
+#, fuzzy, python-format
+#| msgid ""
+#| "\n"
+#| "            Instead of using your Android phone to send messages, you can use your\n"
+#| "            <a class='nexmo-account' href='#'>\n"
+#| "              Nexmo Account\n"
+#| "            </a>\n"
+#| "            to send messages to over 200 countries.\n"
+#| "\n"
+#| "          "
+msgid "You are about to delete <span class='font-normal'> %(name)s. </span> There is no way to undo this. Are you sure?"
+msgstr ""
+"\n"
+"            En lugar de usar su teléfono Android para enviar mensajes, puede usar su\n"
+"            <a class='nexmo-account' href='#'>\n"
+"              Cuenta Nexmo\n"
+"            </a>\n"
+"            para enviar mensajes a más de 200 países.\n"
+"\n"
+"          "
+
 #, fuzzy
 #| msgid "Channel Event"
 msgid "Classifier"
@@ -7725,28 +7737,6 @@ msgstr ""
 
 msgid "Intents are synced automatically every 5 minutes"
 msgstr ""
-
-#, fuzzy
-msgid "Are you sure you want to remove this classifier from your account?"
-msgstr "¿Está seguro de que desea borrar este número de su cuenta?"
-
-msgid "This classifier cannot be removed because it in use."
-msgstr ""
-
-msgid "Once it is removed, it will be gone forever. There is no way to undo this operation."
-msgstr "Una vez que la borre, no la podrá recuperar. Esta operación no se puede deshacer."
-
-#, fuzzy, python-format
-msgid "Used by %(num_flows)s flow:"
-msgid_plural "Used by %(num_flows)s flows:"
-msgstr[0] ""
-"\n"
-"                Llamada saliente (%(duration)s seconds)\n"
-"              "
-msgstr[1] ""
-"\n"
-"                Llamada saliente (%(duration)s seconds)\n"
-"              "
 
 msgid "Ok"
 msgstr ""
@@ -7797,11 +7787,6 @@ msgstr ""
 "            para enviar mensajes a más de 200 países.\n"
 "\n"
 "          "
-
-#, fuzzy
-#| msgid "Select Group"
-msgid "Smart Group"
-msgstr "Elegir Grupo"
 
 #, fuzzy, python-format
 msgid "Transferred <b>%(amount)s</b> <b>%(currency)s</b> of airtime"
@@ -8487,30 +8472,6 @@ msgstr ""
 "          Para empezar tiene que agregar un número de teléfono a su cuenta. Puede elegir usar un teléfono Android y su propio plan de telefonía celular o podemos conectarlo con un proveedor de servicios en su país directamente.\n"
 "        "
 
-#, fuzzy
-#| msgid "The flow that is being started"
-msgid "This flow has never been started."
-msgstr "El flujo que se ha empezado"
-
-#, fuzzy
-#| msgid "The flow that is being started"
-msgid "This flow has been started once."
-msgstr "El flujo que se ha empezado"
-
-#, fuzzy
-#| msgid "The flow that is being started"
-msgid "This flow has been started {{ run_count }} times."
-msgstr "El flujo que se ha empezado"
-
-msgid "It has been completed"
-msgstr "Se ha completado"
-
-msgid "Once."
-msgstr "Una vez."
-
-msgid "{{ complete_count }} times."
-msgstr "{{ complete_count }} veces."
-
 #, python-format
 msgid ""
 "\n"
@@ -8592,6 +8553,9 @@ msgstr "Borrar etiqueta"
 
 msgid "Are you sure you want to remove this label?"
 msgstr "¿Está seguro de que desea retirar esta etiqueta?"
+
+msgid "Once it is removed, it will be gone forever. There is no way to undo this operation."
+msgstr "Una vez que la borre, no la podrá recuperar. Esta operación no se puede deshacer."
 
 msgid "You cannot remove a label which has child labels. Please remove all children first."
 msgstr ""
@@ -8884,6 +8848,24 @@ msgid "Your phone is having difficulty relaying messages"
 msgstr "Su teléfono no puede enviar mensajes"
 
 #, fuzzy, python-format
+msgid "%(count)s result"
+msgid_plural "%(count)s results"
+msgstr[0] ""
+"\n"
+"                    %(sms_failed)s Error\n"
+"\n"
+"         "
+msgstr[1] ""
+"\n"
+"                    %(sms_failed)s Error\n"
+"\n"
+"         "
+
+#, python-format
+msgid "Results %(start)s - %(end)s of %(total)s"
+msgstr ""
+
+#, fuzzy, python-format
 #| msgid ""
 #| "\n"
 #| "          Install the %(name)s app\n"
@@ -9098,6 +9080,18 @@ msgstr "¿Está seguro de que desea retirar las llamadas de voz para este númer
 
 msgid "This label cannot be removed because it in use."
 msgstr ""
+
+#, fuzzy, python-format
+msgid "Used by %(num_flows)s flow:"
+msgid_plural "Used by %(num_flows)s flows:"
+msgstr[0] ""
+"\n"
+"                Llamada saliente (%(duration)s seconds)\n"
+"              "
+msgstr[1] ""
+"\n"
+"                Llamada saliente (%(duration)s seconds)\n"
+"              "
 
 #, fuzzy, python-format
 msgid ""
@@ -9385,11 +9379,6 @@ msgstr ""
 
 msgid "Your workspace can have logins with various roles. You can use the Manage Logins page to view all existing logins or to add new logins to your workspace."
 msgstr ""
-
-#, fuzzy
-#| msgid "Manage %(name)s Accounts"
-msgid "Manage Logins"
-msgstr "Manejar las cuentas de %(name)s "
 
 #, python-format
 msgid "If you use the %(brand)s Surveyor application to run flows offline, we recommend enabling users to create accounts from within the Android application. Setting a Surveyor password will allow anybody with that password to join your workspace as a surveyor."
@@ -9699,17 +9688,8 @@ msgstr ""
 msgid "Your workspace is configured to use a single language."
 msgstr "Su organización está configurada para usar solo un idioma."
 
-msgid "Logins"
-msgstr ""
-
-msgid "Admins"
-msgstr "Administradores"
-
 msgid "Remove"
 msgstr "Retirar"
-
-msgid "You must have at least one administator"
-msgstr "Debe tener al menos un administrador"
 
 #, fuzzy
 #| msgid "%(name)s Invitation"
@@ -10677,27 +10657,6 @@ msgstr ""
 msgid "Unable to delete service still being used by"
 msgstr ""
 
-#, fuzzy, python-format
-#| msgid ""
-#| "\n"
-#| "            Instead of using your Android phone to send messages, you can use your\n"
-#| "            <a class='nexmo-account' href='#'>\n"
-#| "              Nexmo Account\n"
-#| "            </a>\n"
-#| "            to send messages to over 200 countries.\n"
-#| "\n"
-#| "          "
-msgid "You are about to delete <span class='font-normal'> %(name)s. </span> There is no way to undo this. Are you sure?"
-msgstr ""
-"\n"
-"            En lugar de usar su teléfono Android para enviar mensajes, puede usar su\n"
-"            <a class='nexmo-account' href='#'>\n"
-"              Cuenta Nexmo\n"
-"            </a>\n"
-"            para enviar mensajes a más de 200 países.\n"
-"\n"
-"          "
-
 #, python-format
 msgid "Your verification code is <b>%(code)s</b> to continue adding an email-based ticketing service."
 msgstr ""
@@ -10826,6 +10785,54 @@ msgstr "Ingrese el código de pedido"
 msgid "Found ${count} for ${query}"
 msgstr ""
 
+#, fuzzy
+#~ msgid "Message flow"
+#~ msgstr "Mensaje"
+
+#~ msgid "Phone call flow"
+#~ msgstr "Flujo de llamadas telefónicas"
+
+#, fuzzy
+#~| msgid "SMS flow"
+#~ msgid "USSD flow"
+#~ msgstr "Flujo de mensajes de texto"
+
+#~ msgid "The type of this flow"
+#~ msgstr "El tipo de este flujo"
+
+#, fuzzy
+#~| msgid "The flow that is being started"
+#~ msgid "This flow has never been started."
+#~ msgstr "El flujo que se ha empezado"
+
+#, fuzzy
+#~| msgid "The flow that is being started"
+#~ msgid "This flow has been started once."
+#~ msgstr "El flujo que se ha empezado"
+
+#, fuzzy
+#~| msgid "The flow that is being started"
+#~ msgid "This flow has been started {{ run_count }} times."
+#~ msgstr "El flujo que se ha empezado"
+
+#~ msgid "It has been completed"
+#~ msgstr "Se ha completado"
+
+#~ msgid "Once."
+#~ msgstr "Una vez."
+
+#~ msgid "{{ complete_count }} times."
+#~ msgstr "{{ complete_count }} veces."
+
+#, fuzzy
+#~ msgid "Are you sure you want to remove this classifier from your account?"
+#~ msgstr "¿Está seguro de que desea borrar este número de su cuenta?"
+
+#, fuzzy
+#~| msgid "Select Group"
+#~ msgid "Smart Group"
+#~ msgstr "Elegir Grupo"
+
 #~ msgid "has"
 #~ msgstr "tiene"
 
@@ -10835,6 +10842,21 @@ msgstr ""
 #~ msgid_plural "%(accounts)s Administrators,"
 #~ msgstr[0] "Sin Administrador"
 #~ msgstr[1] "Sin Administrador"
+
+#~ msgid "The organization to which the account is invited to view"
+#~ msgstr "La organización a la que esta cuenta está invitada a visitar"
+
+#~ msgid "The email to which we send the invitation of the viewer"
+#~ msgstr "El correo electrónico al que enviamos la invitación del visitante"
+
+#~ msgid "a unique code associated with this invitation"
+#~ msgstr "un código único asociado con esta invitación"
+
+#~ msgid "User Role"
+#~ msgstr "Rol del usuario"
+
+#~ msgid "Admins"
+#~ msgstr "Administradores"
 
 #~ msgid "The administrators in your organization"
 #~ msgstr "Los administradores en su organización"
@@ -14703,11 +14725,6 @@ msgstr ""
 #~| msgid "missed call"
 #~ msgid "Missed call"
 #~ msgstr "llamada perdida"
-
-#, fuzzy
-#~| msgid "Phone call flow"
-#~ msgid "Phone call"
-#~ msgstr "Flujo de llamadas telefónicas"
 
 #, fuzzy
 #~ msgid ""
