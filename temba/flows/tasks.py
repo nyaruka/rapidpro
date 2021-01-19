@@ -26,6 +26,7 @@ from .models import (
     FlowSession,
     FlowStart,
     FlowStartCount,
+    FlowStartTypeCount,
 )
 
 FLOW_TIMEOUT_KEY = "flow_timeouts_%y_%m_%d"
@@ -58,6 +59,7 @@ def squash_flowcounts():
     FlowCategoryCount.squash()
     FlowPathRecentRun.prune()
     FlowStartCount.squash()
+    FlowStartTypeCount.squash()
     FlowPathCount.squash()
 
 

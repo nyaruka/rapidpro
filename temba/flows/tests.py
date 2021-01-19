@@ -50,6 +50,7 @@ from .models import (
     FlowSession,
     FlowStart,
     FlowStartCount,
+    FlowStartTypeCount,
     FlowUserConflictException,
     FlowVersionConflictException,
     get_flow_user,
@@ -1123,7 +1124,7 @@ class FlowTest(TembaTest):
         flow = self.get_flow("color")
 
         # create start for 10 contacts
-        start = FlowStart.objects.create(org=self.org, flow=flow, created_by=self.admin)
+        start = FlowStart.objects.create(org=self.org, start_type="M", flow=flow, created_by=self.admin)
         for i in range(10):
             contact = self.create_contact("Bob", urns=[f"twitter:bobby{i}"])
             start.contacts.add(contact)
@@ -1134,6 +1135,9 @@ class FlowTest(TembaTest):
 
         # check our count
         self.assertEqual(FlowStartCount.get_count(start), 5)
+
+        # check count by start type
+        self.assertEqual(FlowStartTypeCount.get_totals(self.org), {"M": 1, "Z": 0, "A": 0, "T": 0, "F": 0})
 
         # create runs for last 5
         for contact in start.contacts.order_by("id")[5:]:
@@ -3516,20 +3520,30 @@ class FlowStartTest(TembaTest):
         create_start(self.admin, FlowStart.TYPE_MANUAL, FlowStart.STATUS_COMPLETE, date1, groups=[group])
         create_start(self.admin, FlowStart.TYPE_MANUAL, FlowStart.STATUS_FAILED, date1, query="name ~ Ben")
 
+        self.assertEqual(FlowStartTypeCount.get_totals(self.org), {"M": 2, "Z": 0, "A": 1, "T": 0, "F": 0})
+
         # some starts that are mailroom created and will be deleted
         create_start(None, FlowStart.TYPE_FLOW_ACTION, FlowStart.STATUS_COMPLETE, date1, contacts=[contact])
         create_start(None, FlowStart.TYPE_TRIGGER, FlowStart.STATUS_FAILED, date1, groups=[group])
+
+        self.assertEqual(FlowStartTypeCount.get_totals(self.org), {"M": 2, "Z": 0, "A": 1, "T": 1, "F": 1})
 
         # some starts that are mailroom created but not completed so won't be deleted
         create_start(None, FlowStart.TYPE_FLOW_ACTION, FlowStart.STATUS_STARTING, date1, contacts=[contact])
         create_start(None, FlowStart.TYPE_TRIGGER, FlowStart.STATUS_PENDING, date1, groups=[group])
         create_start(None, FlowStart.TYPE_TRIGGER, FlowStart.STATUS_PENDING, date1, groups=[group])
 
+        self.assertEqual(FlowStartTypeCount.get_totals(self.org), {"M": 2, "Z": 0, "A": 1, "T": 3, "F": 2})
+
         # some starts that are mailroom created but too new so won't be deleted
         create_start(None, FlowStart.TYPE_FLOW_ACTION, FlowStart.STATUS_COMPLETE, date2, contacts=[contact])
         create_start(None, FlowStart.TYPE_TRIGGER, FlowStart.STATUS_FAILED, date2, groups=[group])
 
+        self.assertEqual(FlowStartTypeCount.get_totals(self.org), {"M": 2, "Z": 0, "A": 1, "T": 4, "F": 3})
+
         trim_flow_sessions_and_starts()
+
+        self.assertEqual(FlowStartTypeCount.get_totals(self.org), {"M": 2, "Z": 0, "A": 1, "T": 3, "F": 2})
 
         # check that related objects still exist!
         contact.refresh_from_db()
@@ -3550,6 +3564,27 @@ class FlowStartTest(TembaTest):
 
         # and the 2 that are too new
         self.assertEqual(2, FlowStart.objects.filter(created_by=None, modified_on=date2).count())
+
+    def test_squash_counts(self):
+        FlowStartTypeCount.objects.create(org=self.org, count=2, start_type=FlowStart.TYPE_MANUAL)
+        FlowStartTypeCount.objects.create(org=self.org, count=1, start_type=FlowStart.TYPE_MANUAL)
+        FlowStartTypeCount.objects.create(org=self.org, count=-1, start_type=FlowStart.TYPE_MANUAL)
+        FlowStartTypeCount.objects.create(org=self.org, count=3, start_type=FlowStart.TYPE_TRIGGER)
+        FlowStartTypeCount.objects.create(org=self.org, count=10, start_type=FlowStart.TYPE_API_ZAPIER)
+        FlowStartTypeCount.objects.create(org=self.org, count=1, start_type=FlowStart.TYPE_MANUAL)
+        FlowStartTypeCount.objects.create(org=self.org, count=1, start_type=FlowStart.TYPE_API)
+        FlowStartTypeCount.objects.create(org=self.org, count=2, start_type=FlowStart.TYPE_FLOW_ACTION)
+
+        self.assertEqual(FlowStartTypeCount.get_totals(self.org), {"M": 3, "Z": 10, "A": 1, "T": 3, "F": 2})
+
+        squash_flowcounts()
+        self.assertEqual(FlowStartTypeCount.get_totals(self.org), {"M": 3, "Z": 10, "A": 1, "T": 3, "F": 2})
+
+        max_id = FlowStartTypeCount.objects.all().order_by("-id").first().id
+
+        # no-op this time
+        squash_flowcounts()
+        self.assertEqual(max_id, FlowStartTypeCount.objects.all().order_by("-id").first().id)
 
 
 class ExportFlowResultsTest(TembaTest):

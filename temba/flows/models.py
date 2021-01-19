@@ -2125,11 +2125,11 @@ class FlowStart(models.Model):
     TYPE_TRIGGER = "T"
 
     TYPE_CHOICES = (
-        (TYPE_MANUAL, "Manual"),
-        (TYPE_API, "API"),
-        (TYPE_API_ZAPIER, "Zapier"),
-        (TYPE_FLOW_ACTION, "Flow Action"),
-        (TYPE_TRIGGER, "Trigger"),
+        (TYPE_MANUAL, _("Manual")),
+        (TYPE_API, _("API")),
+        (TYPE_API_ZAPIER, _("Zapier")),
+        (TYPE_FLOW_ACTION, _("Flow Action")),
+        (TYPE_TRIGGER, _("Trigger")),
     )
 
     # the uuid of this start
@@ -2264,6 +2264,47 @@ class FlowStart(models.Model):
             # used by the flow_starts type filters page
             models.Index(name="flows_flowstart_org_start_type", fields=["org", "start_type", "-created_on"]),
         ]
+
+
+class FlowStartTypeCount(SquashableModel):
+    """
+    Maintains count of how many flowstarts by start type have been created.
+    """
+
+    SQUASH_OVER = ("org_id", "start_type")
+
+    org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="flow_starts_type_counts")
+
+    start_type = models.CharField(max_length=1, choices=FlowStart.TYPE_CHOICES)
+
+    count = models.IntegerField(default=0)
+
+    @classmethod
+    def get_squash_query(cls, distinct_set):
+        sql = """
+        WITH deleted as (
+            DELETE FROM %(table)s WHERE "org_id" = %%s AND "start_type" = %%s RETURNING "count"
+        )
+        INSERT INTO %(table)s("org_id", "start_type", "count", "is_squashed")
+        VALUES (%%s, %%s, GREATEST(0, (SELECT SUM("count") FROM deleted)), TRUE);
+        """ % {
+            "table": cls._meta.db_table
+        }
+
+        return sql, (distinct_set.org_id, distinct_set.start_type) * 2
+
+    @classmethod
+    def get_totals(cls, org):
+        """
+        Gets all flow starts counts by start type for the given org
+        """
+        counts = cls.objects.filter(org=org).values_list("start_type").annotate(count_sum=Sum("count"))
+        counts_by_type = {c[0]: c[1] for c in counts}
+
+        return {s_type: counts_by_type.get(s_type, 0) for s_type, s_label in FlowStart.TYPE_CHOICES}
+
+    class Meta:
+        index_together = ("org", "start_type")
 
 
 class FlowStartCount(SquashableModel):

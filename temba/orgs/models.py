@@ -1952,6 +1952,9 @@ class Org(SmartModel):
         self.tickets.all().delete()
         self.airtime_transfers.all().delete()
 
+        # delete all flow start counts
+        self.flow_starts_type_counts.all().delete()
+
         # delete our contacts
         for contact in self.contacts.all():
             contact.release(contact.modified_by, full=True, immediately=True)

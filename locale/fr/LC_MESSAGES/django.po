@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-12 14:27+0000\n"
+"POT-Creation-Date: 2021-01-19 17:39+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Jesus EKIE <jesus@fehudigital.com>, 2020\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -2426,6 +2426,27 @@ msgstr "Terminé"
 
 msgid "Failed"
 msgstr "manqué"
+
+msgid "Manual"
+msgstr ""
+
+#, fuzzy
+#| msgid "API Key"
+msgid "API"
+msgstr "Clé API"
+
+msgid "Zapier"
+msgstr ""
+
+#, fuzzy
+#| msgid "Selection"
+msgid "Flow Action"
+msgstr "Sélection"
+
+#, fuzzy
+#| msgid "Triggers"
+msgid "Trigger"
+msgstr "Déclencheurs"
 
 msgid "The name of this flow label"
 msgstr "Le nom de ce label de flux"
