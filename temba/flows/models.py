@@ -2266,6 +2266,48 @@ class FlowStart(models.Model):
         ]
 
 
+class FlowStartFilterCount(SquashableModel):
+    """
+    Maintains count of how many flow starts by start type were created.
+    """
+
+    SQUASH_OVER = ("org_id", "start_type")
+
+    org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="flow_start_filter_counts")
+
+    start_type = models.CharField(max_length=1, choices=FlowStart.TYPE_CHOICES)
+
+    count = models.IntegerField(default=0)
+
+    @classmethod
+    def get_squash_query(cls, distinct_set):
+        sql = """
+        WITH deleted as (
+            DELETE FROM %(table)s WHERE "org_id" = %%s AND "start_type" = %%s RETURNING "count"
+        )
+        INSERT INTO %(table)s("org_id", "start_type", "count", "is_squashed")
+        VALUES (%%s, %%s, GREATEST(0, (SELECT SUM("count") FROM deleted)), TRUE);
+        """ % {
+            "table": cls._meta.db_table
+        }
+
+        return sql, (distinct_set.org_id, distinct_set.start_type) * 2
+
+    @classmethod
+    def get_totals(cls, org):
+        """
+        Gets all flow start filter counts by type for the given org
+        """
+        counts = cls.objects.filter(org=org)
+        counts = counts.values_list("start_type").annotate(count_sum=Sum("count"))
+        counts_by_type = {c[0]: c[1] for c in counts}
+
+        return {s: counts_by_type.get(s, 0) for s, n in FlowStart.TYPE_CHOICES}
+
+    class Meta:
+        index_together = ("org", "start_type")
+
+
 class FlowStartCount(SquashableModel):
     """
     Maintains count of how many runs a FlowStart has created.
