@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-22 12:28+0000\n"
+"POT-Creation-Date: 2021-01-22 16:09+0000\n"
 "PO-Revision-Date: 2014-09-24 19:56+0000\n"
 "Last-Translator: TextIt <info@textit.in>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/textit/language/es/)\n"
@@ -2752,12 +2752,7 @@ msgstr "Alarmas del transmisor"
 
 #, fuzzy
 #| msgid "Update value for"
-msgid "Update Profile About"
-msgstr "Actualizar valor para"
-
-#, fuzzy
-#| msgid "Update value for"
-msgid "Update Profile Photo"
+msgid "Update Profile"
 msgstr "Actualizar valor para"
 
 msgid "Update Business Profile"
@@ -2771,13 +2766,13 @@ msgstr ""
 msgid "Error setting about, please try again later."
 msgstr "Encontramos un error para retirar su transmisor, por favor, inténtelo nuevamente más tarde."
 
-msgid "Profile photo updated successfully."
-msgstr ""
-
 #, fuzzy
 #| msgid "We encountered an error removing your channel, please try again later."
 msgid "Error setting photo, please try again later."
 msgstr "Encontramos un error para retirar su transmisor, por favor, inténtelo nuevamente más tarde."
+
+msgid "Address to display on WhatsApp business profile"
+msgstr ""
 
 msgid "Business profile update successfully."
 msgstr ""
@@ -10807,6 +10802,11 @@ msgstr "Ingrese el código de pedido"
 #, python-brace-format
 msgid "Found ${count} for ${query}"
 msgstr ""
+
+#, fuzzy
+#~| msgid "Update value for"
+#~ msgid "Update Profile Photo"
+#~ msgstr "Actualizar valor para"
 
 #, fuzzy
 #~| msgid "Choose File"

@@ -18,7 +18,6 @@ from temba.channels.types.whatsapp.views import (
     TemplatesView,
     UpdateAboutView,
     UpdateBusinessProfileView,
-    UpdateProfilePhotoView,
 )
 from temba.contacts.models import URN
 from temba.templates.models import TemplateTranslation
@@ -153,7 +152,6 @@ class WhatsAppType(ChannelType):
             url(r"^(?P<uuid>[a-z0-9\-]+)/sync_logs$", SyncLogsView.as_view(), name="sync_logs"),
             url(r"^(?P<uuid>[a-z0-9\-]+)/details$", DetailsView.as_view(), name="details"),
             url(r"^(?P<uuid>[a-z0-9\-]+)/about$", UpdateAboutView.as_view(), name="about"),
-            url(r"^(?P<uuid>[a-z0-9\-]+)/photo$", UpdateProfilePhotoView.as_view(), name="photo"),
             url(
                 r"^(?P<uuid>[a-z0-9\-]+)/business_profile$",
                 UpdateBusinessProfileView.as_view(),
@@ -192,6 +190,7 @@ class WhatsAppType(ChannelType):
             raise ValidationError(_("Unable to configure channel: %s", resp.content))
 
     def profile_about(self, channel):
+        return "Lorem ipsum is placeholder text"
         redis_conn = get_redis_connection()
         cache_key = str(channel.uuid)
 
@@ -236,6 +235,7 @@ class WhatsAppType(ChannelType):
         self.fetch_profile_about(channel)
 
     def profile_photo_url(self, channel):
+        return "https://ureport.in/sitestatic/img/u-report-global-logo-white.png"
         redis_conn = get_redis_connection()
         cache_key = str(channel.uuid)
 
@@ -285,6 +285,9 @@ class WhatsAppType(ChannelType):
         self.fetch_profile_photo_url(channel)
 
     def business_profile(self, channel):
+        return dict(
+            description="Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+        )
         redis_conn = get_redis_connection()
         cache_key = str(channel.uuid)
 

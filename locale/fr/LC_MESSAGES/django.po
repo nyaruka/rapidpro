@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-22 12:28+0000\n"
+"POT-Creation-Date: 2021-01-22 16:09+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Jesus EKIE <jesus@fehudigital.com>, 2020\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -1690,12 +1690,7 @@ msgstr "Nom du canal"
 
 #, fuzzy
 #| msgid "Update Policy"
-msgid "Update Profile About"
-msgstr "Mettre à jour la politique"
-
-#, fuzzy
-#| msgid "Update Policy"
-msgid "Update Profile Photo"
+msgid "Update Profile"
 msgstr "Mettre à jour la politique"
 
 msgid "Update Business Profile"
@@ -1709,13 +1704,13 @@ msgstr ""
 msgid "Error setting about, please try again later."
 msgstr "Une erreur s'est produite lors de la mise à jour de votre contact. Veuillez réessayer plus tard."
 
-msgid "Profile photo updated successfully."
-msgstr ""
-
 #, fuzzy
 #| msgid "An error occurred updating your contact. Please try again later."
 msgid "Error setting photo, please try again later."
 msgstr "Une erreur s'est produite lors de la mise à jour de votre contact. Veuillez réessayer plus tard."
+
+msgid "Address to display on WhatsApp business profile"
+msgstr ""
 
 msgid "Business profile update successfully."
 msgstr ""
@@ -7772,6 +7767,11 @@ msgstr "Entrez une requête"
 #, python-brace-format
 msgid "Found ${count} for ${query}"
 msgstr "${count} trouvé pour ${query}"
+
+#, fuzzy
+#~| msgid "Update Policy"
+#~ msgid "Update Profile Photo"
+#~ msgstr "Mettre à jour la politique"
 
 #, fuzzy
 #~| msgid "Choose File"

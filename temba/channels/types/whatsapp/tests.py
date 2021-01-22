@@ -558,15 +558,23 @@ class WhatsAppTypeTest(TembaTest):
     @patch("temba.channels.types.whatsapp.WhatsAppType.profile_photo_url")
     @patch("temba.channels.types.whatsapp.WhatsAppType.profile_about")
     @patch("temba.channels.types.whatsapp.WhatsAppType.set_profile_about")
+    @patch("temba.channels.types.whatsapp.WhatsAppType.set_profile_photo")
     @patch("requests.post")
     def test_whatsapp_update_about(
-        self, mock_post, mock_set_profile_about, mock_profile_about, mock_profile_photo_url, mock_business_profile
+        self,
+        mock_post,
+        mock_set_profile_photo,
+        mock_set_profile_about,
+        mock_profile_about,
+        mock_profile_photo_url,
+        mock_business_profile,
     ):
         mock_post.return_value = MockResponse(200, "{}")
         mock_profile_about.return_value = "foo"
         mock_profile_photo_url.return_value = ""
         mock_business_profile.return_value = dict()
-        mock_set_profile_about.side_effect = [Exception("error"), "success"]
+        mock_set_profile_about.side_effect = [Exception("error"), "success", "success"]
+        mock_set_profile_photo.side_effect = [Exception("error"), "success"]
 
         Channel.objects.all().delete()
 
@@ -600,57 +608,14 @@ class WhatsAppTypeTest(TembaTest):
         response = self.client.post(about_url, post_data, follow=True)
         self.assertFormError(response, "form", "about", "Error setting about, please try again later.")
 
-        response = self.client.post(about_url, post_data, follow=True)
-        self.assertRedirects(response, reverse("channels.types.whatsapp.details", args=[channel.uuid]))
-
-    @patch("temba.channels.types.whatsapp.WhatsAppType.business_profile")
-    @patch("temba.channels.types.whatsapp.WhatsAppType.profile_photo_url")
-    @patch("temba.channels.types.whatsapp.WhatsAppType.profile_about")
-    @patch("temba.channels.types.whatsapp.WhatsAppType.set_profile_photo")
-    def test_whatsapp_profile_photo(
-        self, mock_set_profile_photo, mock_profile_about, mock_profile_photo_url, mock_business_profile
-    ):
-        mock_profile_about.return_value = "foo"
-        mock_profile_photo_url.return_value = "https://exaple.com/foo"
-        mock_business_profile.return_value = dict()
-        mock_set_profile_photo.side_effect = [Exception("error"), "success"]
-
-        Channel.objects.all().delete()
-
-        channel = Channel.create(
-            self.org,
-            self.admin,
-            "US",
-            "WA",
-            name="WhatsApp: 1234",
-            address="1234",
-            config={
-                Channel.CONFIG_BASE_URL: "https://nyaruka.com/whatsapp",
-                Channel.CONFIG_USERNAME: "temba",
-                Channel.CONFIG_PASSWORD: "tembapasswd",
-                Channel.CONFIG_AUTH_TOKEN: "authtoken123",
-                CONFIG_FB_BUSINESS_ID: "1234",
-                CONFIG_FB_ACCESS_TOKEN: "token123",
-                CONFIG_FB_NAMESPACE: "my-custom-app",
-                CONFIG_FB_TEMPLATE_LIST_DOMAIN: "graph.facebook.com",
-            },
-            tps=45,
-        )
-
-        photo_url = reverse("channels.types.whatsapp.photo", args=[channel.uuid])
-        self.login(self.admin)
-
-        response = self.client.get(photo_url)
-        self.assertEqual(200, response.status_code)
-
         with open(f"{settings.MEDIA_ROOT}/test_media/steve.marten.jpg", "rb") as data:
-            post_data = dict(photo=data)
-            response = self.client.post(photo_url, post_data)
+            post_data = dict(photo=data, about="About us text.")
+            response = self.client.post(about_url, post_data)
             self.assertFormError(response, "form", "photo", "Error setting photo, please try again later.")
 
         with open(f"{settings.MEDIA_ROOT}/test_media/steve.marten.jpg", "rb") as data:
-            post_data = dict(photo=data)
-            response = self.client.post(photo_url, post_data, follow=True)
+            post_data = dict(photo=data, about="About us text.")
+            response = self.client.post(about_url, post_data, follow=True)
             self.assertRedirects(response, reverse("channels.types.whatsapp.details", args=[channel.uuid]))
 
     @patch("temba.channels.types.whatsapp.WhatsAppType.profile_photo_url")

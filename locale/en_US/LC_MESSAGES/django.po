@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-22 12:28+0000\n"
+"POT-Creation-Date: 2021-01-22 16:09+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1672,10 +1672,7 @@ msgstr ""
 msgid "Channel Page"
 msgstr ""
 
-msgid "Update Profile About"
-msgstr ""
-
-msgid "Update Profile Photo"
+msgid "Update Profile"
 msgstr ""
 
 msgid "Update Business Profile"
@@ -1687,10 +1684,10 @@ msgstr ""
 msgid "Error setting about, please try again later."
 msgstr ""
 
-msgid "Profile photo updated successfully."
+msgid "Error setting photo, please try again later."
 msgstr ""
 
-msgid "Error setting photo, please try again later."
+msgid "Address to display on WhatsApp business profile"
 msgstr ""
 
 msgid "Business profile update successfully."

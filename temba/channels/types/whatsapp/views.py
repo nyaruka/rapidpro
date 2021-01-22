@@ -56,15 +56,9 @@ class DetailsView(OrgPermsMixin, SmartReadView):
             dict(title=_("Channel Page"), href=reverse("channels.channel_read", args=[self.object.uuid])),
             dict(
                 id="update-profie-about",
-                title=_("Update Profile About"),
+                title=_("Update Profile"),
                 href=reverse("channels.types.whatsapp.about", args=[self.object.uuid]),
-                modax=_("Update Profile About"),
-            ),
-            dict(
-                id="update-profie-photo",
-                title=_("Update Profile Photo"),
-                href=reverse("channels.types.whatsapp.photo", args=[self.object.uuid]),
-                modax=_("Update Profile Photo"),
+                modax=_("Update Profile"),
             ),
             dict(
                 id="update-business-profie",
@@ -91,9 +85,10 @@ class DetailsView(OrgPermsMixin, SmartReadView):
 class UpdateAboutView(OrgPermsMixin, ComponentFormMixin, ModalMixin, SmartUpdateView):
     class AboutForm(forms.ModelForm):
         about = forms.CharField(required=False, max_length=139, widget=InputWidget())
+        photo = forms.ImageField(required=False, validators=[validate_image_file_extension])
 
         class Meta:
-            fields = ("about",)
+            fields = ("about", "photo")
             model = Channel
 
     model = Channel
@@ -119,7 +114,6 @@ class UpdateAboutView(OrgPermsMixin, ComponentFormMixin, ModalMixin, SmartUpdate
     def form_valid(self, form):
         try:
             self.object.get_type().set_profile_about(self.object, form.cleaned_data["about"])
-            return super().form_valid(form)
         except Exception as e:
             self.form.add_error(
                 "about", forms.ValidationError(_("Error setting about, please try again later."), code="about")
@@ -128,31 +122,8 @@ class UpdateAboutView(OrgPermsMixin, ComponentFormMixin, ModalMixin, SmartUpdate
             logger.error("Error setting about: %s" % str(e), exc_info=True)
             return self.form_invalid(form)
 
-
-class UpdateProfilePhotoView(OrgPermsMixin, ComponentFormMixin, ModalMixin, SmartUpdateView):
-    class PhotoForm(forms.ModelForm):
-        photo = forms.ImageField(required=False, validators=[validate_image_file_extension])
-
-        class Meta:
-            fields = ("photo",)
-            model = Channel
-
-    model = Channel
-    form_class = PhotoForm
-    success_message = _("Profile photo updated successfully.")
-    success_url = "uuid@channels.types.whatsapp.details"
-    permission = "channels.channel_claim"
-    slug_url_kwarg = "uuid"
-    template_name = "channels/types/whatsapp/photo.html"
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        return queryset.filter(org=self.get_user().get_org())
-
-    def form_valid(self, form):
         try:
             self.object.get_type().set_profile_photo(self.object, form.cleaned_data["photo"])
-            return HttpResponseRedirect(self.get_success_url())
         except Exception as e:
             self.form.add_error(
                 "photo", forms.ValidationError(_("Error setting photo, please try again later."), code="photo")
@@ -161,10 +132,17 @@ class UpdateProfilePhotoView(OrgPermsMixin, ComponentFormMixin, ModalMixin, Smar
             logger.error("Error setting photo: %s" % str(e), exc_info=True)
             return self.form_invalid(form)
 
+        return super().form_valid(form)
+
 
 class UpdateBusinessProfileView(OrgPermsMixin, ComponentFormMixin, ModalMixin, SmartUpdateView):
     class BusinessProfileForm(forms.ModelForm):
-        address = forms.CharField(required=False, max_length=256, widget=InputWidget())
+        address = forms.CharField(
+            required=False,
+            max_length=256,
+            widget=InputWidget(),
+            help_text=_("Address to display on WhatsApp business profile"),
+        )
         description = forms.CharField(required=False, max_length=256, widget=forms.Textarea)
         email = forms.EmailField(required=False, max_length=128, widget=InputWidget())
         vertical = forms.CharField(required=False, max_length=128, widget=InputWidget())
