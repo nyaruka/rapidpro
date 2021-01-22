@@ -10,11 +10,11 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from temba.contacts.models import URN
-from temba.orgs.views import OrgPermsMixin
+from temba.orgs.views import ModalMixin, OrgPermsMixin
 from temba.request_logs.models import HTTPLog
 from temba.templates.models import TemplateTranslation
 from temba.utils.fields import ExternalURLField, InputWidget, SelectWidget
-from temba.utils.views import PostOnlyMixin
+from temba.utils.views import ComponentFormMixin, PostOnlyMixin
 
 from ...models import Channel
 from ...views import ALL_COUNTRIES, ClaimViewMixin
@@ -55,14 +55,22 @@ class DetailsView(OrgPermsMixin, SmartReadView):
         return [
             dict(title=_("Channel Page"), href=reverse("channels.channel_read", args=[self.object.uuid])),
             dict(
-                title=_("Update Profile About"), href=reverse("channels.types.whatsapp.about", args=[self.object.uuid])
+                id="update-profie-about",
+                title=_("Update Profile About"),
+                href=reverse("channels.types.whatsapp.about", args=[self.object.uuid]),
+                modax=_("Update Profile About"),
             ),
             dict(
-                title=_("Update Profile Photo"), href=reverse("channels.types.whatsapp.photo", args=[self.object.uuid])
+                id="update-profie-photo",
+                title=_("Update Profile Photo"),
+                href=reverse("channels.types.whatsapp.photo", args=[self.object.uuid]),
+                modax=_("Update Profile Photo"),
             ),
             dict(
+                id="update-business-profie",
                 title=_("Update Business Profile"),
                 href=reverse("channels.types.whatsapp.business_profile", args=[self.object.uuid]),
+                modax=_("Update Business Profile"),
             ),
         ]
 
@@ -80,7 +88,7 @@ class DetailsView(OrgPermsMixin, SmartReadView):
         return context
 
 
-class UpdateAboutView(OrgPermsMixin, SmartUpdateView):
+class UpdateAboutView(OrgPermsMixin, ComponentFormMixin, ModalMixin, SmartUpdateView):
     class AboutForm(forms.ModelForm):
         about = forms.CharField(required=False, max_length=139, widget=InputWidget())
 
@@ -121,7 +129,7 @@ class UpdateAboutView(OrgPermsMixin, SmartUpdateView):
             return self.form_invalid(form)
 
 
-class UpdateProfilePhotoView(OrgPermsMixin, SmartUpdateView):
+class UpdateProfilePhotoView(OrgPermsMixin, ComponentFormMixin, ModalMixin, SmartUpdateView):
     class PhotoForm(forms.ModelForm):
         photo = forms.ImageField(required=False, validators=[validate_image_file_extension])
 
@@ -154,7 +162,7 @@ class UpdateProfilePhotoView(OrgPermsMixin, SmartUpdateView):
             return self.form_invalid(form)
 
 
-class UpdateBusinessProfileView(OrgPermsMixin, SmartUpdateView):
+class UpdateBusinessProfileView(OrgPermsMixin, ComponentFormMixin, ModalMixin, SmartUpdateView):
     class BusinessProfileForm(forms.ModelForm):
         address = forms.CharField(required=False, max_length=256, widget=InputWidget())
         description = forms.CharField(required=False, max_length=256, widget=forms.Textarea)

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-18 17:50+0000\n"
+"POT-Creation-Date: 2021-01-22 12:28+0000\n"
 "PO-Revision-Date: 2014-09-24 19:56+0000\n"
 "Last-Translator: TextIt <info@textit.in>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/textit/language/es/)\n"
@@ -7667,17 +7667,6 @@ msgstr ""
 msgid "<div class='code mt-4'> Manage > API Usage > Callback API > Server Settings </div> <div class='mt-2'> Enter the Webhook URL below for the <div class='code inline py-1'>URL</div> field and the Verify Token in the <div class='code inline py-1'>Secret Key</div> field. </div> <div class='code mt-6'> Manage > API Usage > Callback API > Event Types </div> <div class='mt-2'> Check the option %(option)s </div>"
 msgstr ""
 
-msgid "Update WhatsApp Profile About"
-msgstr ""
-
-msgid "Update WhatsApp Business Profile"
-msgstr ""
-
-#, fuzzy
-#| msgid "Has Template Error"
-msgid "WhatsApp Settings Details"
-msgstr "Tiene un error en la plantilla"
-
 #, fuzzy
 msgid "Your WhatsApp channel is now connected, you should be able to send and receive messages as normal."
 msgstr "TextIt usa su teléfono Android para enviar y recibir mensajes."
@@ -7685,13 +7674,10 @@ msgstr "TextIt usa su teléfono Android para enviar y recibir mensajes."
 msgid "In the case of a new WhatsApp install or replacement of an existing WhatsApp channel you may need to refresh the contacts on the WhatsApp application. This may take a few minutes."
 msgstr ""
 
-msgid "Update WhatsApp Profile Photo"
-msgstr ""
-
 #, fuzzy
-#| msgid "Choose File"
-msgid "Choose Photo"
-msgstr "Elegir archivo"
+#| msgid "Has Template Error"
+msgid "WhatsApp Settings Details"
+msgstr "Tiene un error en la plantilla"
 
 #, fuzzy
 #| msgid "Has Template Error"
@@ -10821,6 +10807,11 @@ msgstr "Ingrese el código de pedido"
 #, python-brace-format
 msgid "Found ${count} for ${query}"
 msgstr ""
+
+#, fuzzy
+#~| msgid "Choose File"
+#~ msgid "Choose Photo"
+#~ msgstr "Elegir archivo"
 
 #, fuzzy
 #~ msgid "Message flow"

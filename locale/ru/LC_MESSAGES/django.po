@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-18 17:50+0000\n"
+"POT-Creation-Date: 2021-01-22 12:28+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Hudson Brendon <hudson.brendon@ilhasoft.com.br>, 2020\n"
 "Language-Team: Russian (https://www.transifex.com/rapidpro/teams/226/ru/)\n"
@@ -6783,17 +6783,6 @@ msgstr ""
 msgid "<div class='code mt-4'> Manage > API Usage > Callback API > Server Settings </div> <div class='mt-2'> Enter the Webhook URL below for the <div class='code inline py-1'>URL</div> field and the Verify Token in the <div class='code inline py-1'>Secret Key</div> field. </div> <div class='code mt-6'> Manage > API Usage > Callback API > Event Types </div> <div class='mt-2'> Check the option %(option)s </div>"
 msgstr ""
 
-msgid "Update WhatsApp Profile About"
-msgstr ""
-
-msgid "Update WhatsApp Business Profile"
-msgstr ""
-
-#, fuzzy
-#| msgid "WhatsApp Templates Events"
-msgid "WhatsApp Settings Details"
-msgstr "События Шаблонов WhatsApp "
-
 #, fuzzy
 #| msgid ""
 #| "\n"
@@ -6822,13 +6811,10 @@ msgstr ""
 "\n"
 "  "
 
-msgid "Update WhatsApp Profile Photo"
-msgstr ""
-
 #, fuzzy
-#| msgid "Choose File"
-msgid "Choose Photo"
-msgstr "Выбрать Файл"
+#| msgid "WhatsApp Templates Events"
+msgid "WhatsApp Settings Details"
+msgstr "События Шаблонов WhatsApp "
 
 msgid "WhatsApp Templates Events"
 msgstr "События Шаблонов WhatsApp "
@@ -10344,6 +10330,11 @@ msgstr "Ввести запрос"
 #, python-brace-format
 msgid "Found ${count} for ${query}"
 msgstr "Найдено ${count} по ${query}"
+
+#, fuzzy
+#~| msgid "Choose File"
+#~ msgid "Choose Photo"
+#~ msgstr "Выбрать Файл"
 
 #~ msgid "Message flow"
 #~ msgstr "Поток сообщений"
