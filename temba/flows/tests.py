@@ -3451,7 +3451,6 @@ class FlowSessionTest(TembaTest):
         session = FlowSession.objects.create(uuid=uuid4(), org=self.org, contact=contact)
 
         tests_data = [
-            dict(session_output_trigger="", trigger_description=""),
             dict(
                 session_output_trigger={
                     "type": "manual",

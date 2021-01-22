@@ -789,7 +789,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             self.runs.filter(created_on__gte=after, created_on__lt=before)
             .exclude(flow__is_system=True)
             .order_by("-created_on")
-            .select_related("flow")[:limit]
+            .select_related("flow", "session")[:limit]
         )
 
         exited_runs = (
