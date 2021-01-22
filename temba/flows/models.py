@@ -1034,6 +1034,29 @@ class FlowSession(models.Model):
     # the flow of the waiting run
     current_flow = models.ForeignKey("flows.Flow", related_name="sessions", null=True, on_delete=models.PROTECT)
 
+    def show_trigger_description(self):
+        description = ""
+        try:
+            if self.output["trigger"]["type"] == "manual":
+                username = self.output["trigger"]["user"]
+                description = _(f"by {username}")
+            if self.output["trigger"]["type"] == "channel":
+                channel_name = self.output["trigger"]["event"]["channel"]["name"]
+                description = _(f"by new conversation to {channel_name} channel")
+            if self.output["trigger"]["type"] == "flow_action":
+                flow_name = self.output["trigger"]["run_summary"]["flow"]["name"]
+                description = _(f"by {flow_name} flow")
+            if self.output["trigger"]["type"] == "campaign":
+                campaign_name = self.output["trigger"]["event"]["campaign"]["name"]
+                description = _(f"by {campaign_name} campaign")
+            if self.output["trigger"]["type"] == "msg":
+                keyword = self.output["trigger"]["keyword_match"]["keyword"]
+                description = _(f"by keyword trigger {keyword}")
+        except Exception:
+            pass
+
+        return description
+
     def release(self):
         self.delete()
 

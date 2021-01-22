@@ -3446,6 +3446,126 @@ class FlowRunTest(TembaTest):
 
 
 class FlowSessionTest(TembaTest):
+    def test_show_trigger_description(self):
+        contact = self.create_contact("Ben Haggerty", phone="+250788123123")
+        session = FlowSession.objects.create(uuid=uuid4(), org=self.org, contact=contact)
+
+        tests_data = [
+            dict(session_output_trigger="", trigger_description=""),
+            dict(
+                session_output_trigger={
+                    "type": "manual",
+                    "flow": {"uuid": "50c3706e-fedb-42c0-8eab-dda3335714b7", "name": "Registration"},
+                    "contact": {
+                        "uuid": "9f7ede93-4b16-4692-80ad-b7dc54a1cd81",
+                        "name": "Bob",
+                        "status": "active",
+                        "created_on": "2018-01-01T12:00:00Z",
+                    },
+                    "triggered_on": "2000-01-01T00:00:00Z",
+                    "user": "bob@nyaruka.com",
+                    "origin": "ui",
+                },
+                trigger_description="by bob@nyaruka.com",
+            ),
+            dict(
+                session_output_trigger={
+                    "type": "channel",
+                    "flow": {"uuid": "50c3706e-fedb-42c0-8eab-dda3335714b7", "name": "Registration"},
+                    "contact": {
+                        "uuid": "9f7ede93-4b16-4692-80ad-b7dc54a1cd81",
+                        "name": "Bob",
+                        "status": "active",
+                        "created_on": "2018-01-01T12:00:00Z",
+                    },
+                    "triggered_on": "2000-01-01T00:00:00Z",
+                    "event": {
+                        "type": "new_conversation",
+                        "channel": {"uuid": "58e9b092-fe42-4173-876c-ff45a14a24fe", "name": "Facebook"},
+                    },
+                },
+                trigger_description="by new conversation to Facebook channel",
+            ),
+            dict(
+                session_output_trigger={
+                    "type": "flow_action",
+                    "flow": {"uuid": "b7cf0d83-f1c9-411c-96fd-c511a4cfa86d", "name": "Collect Age"},
+                    "history": {
+                        "parent_uuid": "a5b25fb0-75fd-4898-a34f-5ff14fc19078",
+                        "ancestors": 3,
+                        "ancestors_since_input": 1,
+                    },
+                    "triggered_on": "2000-01-01T00:00:00Z",
+                    "run_summary": {
+                        "uuid": "b7cf0d83-f1c9-411c-96fd-c511a4cfa86d",
+                        "flow": {"uuid": "50c3706e-fedb-42c0-8eab-dda3335714b7", "name": "Registration"},
+                        "contact": {
+                            "uuid": "c59b0033-e748-4240-9d4c-e85eb6800151",
+                            "name": "Bob",
+                            "fields": {"gender": {"text": "Male"}},
+                            "created_on": "2018-01-01T12:00:00.000000000-00:00",
+                        },
+                        "status": "active",
+                        "results": {
+                            "age": {
+                                "result_name": "Age",
+                                "value": "33",
+                                "node": "cd2be8c4-59bc-453c-8777-dec9a80043b8",
+                                "created_on": "2018-01-01T12:00:00.000000000-00:00",
+                            }
+                        },
+                    },
+                },
+                trigger_description="by Registration flow",
+            ),
+            dict(
+                session_output_trigger={
+                    "type": "campaign",
+                    "flow": {"uuid": "50c3706e-fedb-42c0-8eab-dda3335714b7", "name": "Registration"},
+                    "contact": {
+                        "uuid": "9f7ede93-4b16-4692-80ad-b7dc54a1cd81",
+                        "name": "Bob",
+                        "status": "active",
+                        "created_on": "2018-01-01T12:00:00Z",
+                    },
+                    "triggered_on": "2000-01-01T00:00:00Z",
+                    "event": {
+                        "uuid": "34d16dbd-476d-4b77-bac3-9f3d597848cc",
+                        "campaign": {"uuid": "58e9b092-fe42-4173-876c-ff45a14a24fe", "name": "New Mothers"},
+                    },
+                },
+                trigger_description="by New Mothers campaign",
+            ),
+            dict(
+                session_output_trigger={
+                    "type": "msg",
+                    "flow": {"uuid": "50c3706e-fedb-42c0-8eab-dda3335714b7", "name": "Registration"},
+                    "contact": {
+                        "uuid": "9f7ede93-4b16-4692-80ad-b7dc54a1cd81",
+                        "name": "Bob",
+                        "status": "active",
+                        "created_on": "2018-01-01T12:00:00Z",
+                    },
+                    "triggered_on": "2000-01-01T00:00:00Z",
+                    "msg": {
+                        "uuid": "2d611e17-fb22-457f-b802-b8f7ec5cda5b",
+                        "urn": "tel:+12065551212",
+                        "channel": {"uuid": "61602f3e-f603-4c70-8a8f-c477505bf4bf", "name": "Twilio"},
+                        "text": "hi there",
+                        "attachments": ["https://s3.amazon.com/mybucket/attachment.jpg"],
+                    },
+                    "keyword_match": {"type": "first_word", "keyword": "start"},
+                },
+                trigger_description="by keyword trigger start",
+            ),
+        ]
+
+        for t_dict in tests_data:
+            session.output = dict(trigger=t_dict["session_output_trigger"])
+            session.save()
+
+            self.assertEqual(t_dict["trigger_description"], session.show_trigger_description())
+
     def test_trim(self):
         contact = self.create_contact("Ben Haggerty", phone="+250788123123")
         flow = self.get_flow("color")

@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-12 14:27+0000\n"
+"POT-Creation-Date: 2021-01-22 14:22+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Jesus EKIE <jesus@fehudigital.com>, 2020\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -2387,6 +2387,28 @@ msgstr "La langue de création, des langues supplémentaires peuvent être ajout
 
 msgid "The flow version this definition is in"
 msgstr "La version de flux dans laquelle cette définition se trouve"
+
+#, fuzzy, python-brace-format
+#| msgid "Username"
+msgid "by {username}"
+msgstr "Nom d'utilisateur"
+
+#, python-brace-format
+msgid "by new conversation to {channel_name} channel"
+msgstr ""
+
+#, python-brace-format
+msgid "by {flow_name} flow"
+msgstr ""
+
+#, python-brace-format
+msgid "by {campaign_name} campaign"
+msgstr ""
+
+#, fuzzy, python-brace-format
+#| msgid "Global keyword triggers"
+msgid "by keyword trigger {keyword}"
+msgstr "Mots-clé général du déclencheur"
 
 msgid "Completed"
 msgstr "Terminé"

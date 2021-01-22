@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-12 14:27+0000\n"
+"POT-Creation-Date: 2021-01-22 14:22+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2372,6 +2372,26 @@ msgid "The authoring language, additional languages can be added later"
 msgstr ""
 
 msgid "The flow version this definition is in"
+msgstr ""
+
+#, python-brace-format
+msgid "by {username}"
+msgstr ""
+
+#, python-brace-format
+msgid "by new conversation to {channel_name} channel"
+msgstr ""
+
+#, python-brace-format
+msgid "by {flow_name} flow"
+msgstr ""
+
+#, python-brace-format
+msgid "by {campaign_name} campaign"
+msgstr ""
+
+#, python-brace-format
+msgid "by keyword trigger {keyword}"
 msgstr ""
 
 msgid "Completed"

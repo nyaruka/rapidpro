@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-12 14:27+0000\n"
+"POT-Creation-Date: 2021-01-22 14:22+0000\n"
 "PO-Revision-Date: 2014-04-14 20:37+0000\n"
 "Last-Translator: produtos <produtos.ti@takenet.com.br>\n"
 "Language-Team: Portuguese (Brazil) (http://www.transifex.com/projects/p/textit/language/pt_BR/)\n"
@@ -3375,6 +3375,27 @@ msgstr ""
 #, fuzzy
 msgid "The flow version this definition is in"
 msgstr "Fuso horário em que sua Organização está"
+
+#, fuzzy, python-brace-format
+#| msgid "Username"
+msgid "by {username}"
+msgstr "Nome de usuário"
+
+#, python-brace-format
+msgid "by new conversation to {channel_name} channel"
+msgstr ""
+
+#, python-brace-format
+msgid "by {flow_name} flow"
+msgstr ""
+
+#, python-brace-format
+msgid "by {campaign_name} campaign"
+msgstr ""
+
+#, fuzzy, python-brace-format
+msgid "by keyword trigger {keyword}"
+msgstr "Disparador palavra-chave"
 
 #, fuzzy
 #| msgid "Deleted"
