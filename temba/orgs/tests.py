@@ -71,17 +71,33 @@ class OrgContextProcessorTest(TembaTest):
         editors = Group.objects.get(name="Editors")
         viewers = Group.objects.get(name="Viewers")
 
-        administrators_wrapper = GroupPermWrapper(administrators)
-        self.assertTrue(administrators_wrapper["msgs"]["msg_api"])
-        self.assertTrue(administrators_wrapper["msgs"]["msg_inbox"])
+        perms = GroupPermWrapper(administrators)
 
-        editors_wrapper = GroupPermWrapper(editors)
-        self.assertFalse(editors_wrapper["msgs"]["org_plan"])
-        self.assertTrue(editors_wrapper["msgs"]["msg_inbox"])
+        self.assertTrue(perms["msgs"]["msg_inbox"])
+        self.assertTrue(perms["contacts"]["contact_update"])
+        self.assertTrue(perms["orgs"]["org_country"])
+        self.assertTrue(perms["orgs"]["org_manage_accounts"])
+        self.assertFalse(perms["orgs"]["org_delete"])
 
-        viewers_wrapper = GroupPermWrapper(viewers)
-        self.assertFalse(viewers_wrapper["msgs"]["msg_api"])
-        self.assertTrue(viewers_wrapper["msgs"]["msg_inbox"])
+        perms = GroupPermWrapper(editors)
+
+        self.assertTrue(perms["msgs"]["msg_inbox"])
+        self.assertTrue(perms["contacts"]["contact_update"])
+        self.assertFalse(perms["orgs"]["org_manage_accounts"])
+        self.assertFalse(perms["orgs"]["org_delete"])
+
+        perms = GroupPermWrapper(viewers)
+
+        self.assertTrue(perms["msgs"]["msg_inbox"])
+        self.assertFalse(perms["contacts"]["contact_update"])
+        self.assertFalse(perms["orgs"]["org_manage_accounts"])
+        self.assertFalse(perms["orgs"]["org_delete"])
+
+        self.assertFalse(perms["msgs"]["foo"])  # no blow up if perm doesn't exist
+        self.assertFalse(perms["chickens"]["foo"])  # or app doesn't exist
+
+        with self.assertRaises(TypeError):
+            list(perms)
 
 
 class UserTest(TembaTest):
@@ -2770,6 +2786,15 @@ class OrgTest(TembaTest):
         self.assertIsNotNone(self.org.create_sub_org("Sub Org B"))
         self.assertTrue(self.org.is_multi_user)
         self.assertTrue(self.org.is_multi_org)
+
+        with override_settings(DEFAULT_PLAN="other"):
+            settings.BRANDING[settings.DEFAULT_BRAND]["default_plan"] = "other"
+            self.org.plan = settings.TOPUP_PLAN
+            self.org.save()
+            self.org.reset_capabilities()
+            sub_org_c = self.org.create_sub_org("Sub Org C")
+            self.assertIsNotNone(sub_org_c)
+            self.assertEqual(sub_org_c.plan, settings.TOPUP_PLAN)
 
     def test_org_get_limit(self):
         self.assertEqual(self.org.get_limit(Org.LIMIT_FIELDS), 250)
