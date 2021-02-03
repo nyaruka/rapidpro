@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("orgs", "0074_auto_20201214_1714"),
-        ("flows", "0246_auto_20210119_1717"),
+        ("flows", "0247_auto_20210126_1834"),
     ]
 
     operations = [

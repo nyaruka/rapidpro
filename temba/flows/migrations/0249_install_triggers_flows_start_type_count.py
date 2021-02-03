@@ -73,7 +73,7 @@ CREATE TRIGGER temba_when_flowstart_changed_then_update_flowstarttypecount_trg
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("flows", "0247_flowstarttypecount"),
+        ("flows", "0248_flowstarttypecount"),
     ]
 
     operations = [migrations.RunPython(populate_flow_start_filter_counts, noop), migrations.RunSQL(TRIGGER_SQL, "")]
