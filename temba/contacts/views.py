@@ -3,6 +3,7 @@ from collections import OrderedDict
 from datetime import timedelta
 from typing import Dict, List
 
+import iso8601
 from smartmin.views import (
     SmartCreateView,
     SmartCRUDL,
@@ -35,12 +36,13 @@ from django.views import View
 from temba.archives.models import Archive
 from temba.channels.models import Channel
 from temba.contacts.templatetags.contacts import MISSING_VALUE
+from temba.mailroom.events import Event
 from temba.msgs.views import SendMessageForm
 from temba.orgs.models import Org
 from temba.orgs.views import ModalMixin, OrgObjPermsMixin, OrgPermsMixin
 from temba.tickets.models import Ticket
 from temba.utils import analytics, json, languages, on_transaction_commit
-from temba.utils.dates import datetime_to_ms, ms_to_datetime
+from temba.utils.dates import datetime_to_timestamp, timestamp_to_datetime
 from temba.utils.fields import CheckboxWidget, InputWidget, SelectMultipleWidget, SelectWidget
 from temba.utils.models import IDSliceQuerySet, patch_queryset_count
 from temba.utils.views import BulkActionMixin, ComponentFormMixin, NonAtomicMixin
@@ -60,6 +62,21 @@ from .search.omnibox import omnibox_query, omnibox_results_to_dict
 from .tasks import export_contacts_task, release_group_task
 
 logger = logging.getLogger(__name__)
+
+# events from sessions to include in contact history
+HISTORY_INCLUDE_EVENTS = {
+    Event.TYPE_CONTACT_LANGUAGE_CHANGED,
+    Event.TYPE_CONTACT_FIELD_CHANGED,
+    Event.TYPE_CONTACT_GROUPS_CHANGED,
+    Event.TYPE_CONTACT_NAME_CHANGED,
+    Event.TYPE_CONTACT_URNS_CHANGED,
+    Event.TYPE_EMAIL_SENT,
+    Event.TYPE_ERROR,
+    Event.TYPE_FAILURE,
+    Event.TYPE_INPUT_LABELS_ADDED,
+    Event.TYPE_RUN_RESULT_CHANGED,
+    Event.TYPE_TICKET_OPENED,
+}
 
 
 class RemoveFromGroupForm(forms.Form):
@@ -397,7 +414,7 @@ class ContactForm(forms.ModelForm):
 
                 # get all the urns for this scheme
                 ctrl = forms.CharField(
-                    required=False, label=label, initial=urn.path, help_text=help_text, widget=InputWidget(),
+                    required=False, label=label, initial=urn.path, help_text=help_text, widget=InputWidget()
                 )
                 extra_fields.append(("urn__%s__%d" % (scheme, idx), ctrl))
                 idx += 1
@@ -492,7 +509,7 @@ class ExportForm(Form):
     group_memberships = forms.ModelMultipleChoiceField(
         queryset=ContactGroup.user_groups.none(),
         required=False,
-        label=_("Group Memberships for",),
+        label=_("Group Memberships for"),
         widget=SelectMultipleWidget(
             attrs={"widget_only": True, "placeholder": _("Optional: Choose groups to show in your export")}
         ),
@@ -751,7 +768,7 @@ class ContactCRUDL(SmartCRUDL):
 
             # calculate time after which timeline should be repeatedly refreshed - five minutes ago lets us pick up
             # status changes on new messages
-            context["recent_start"] = datetime_to_ms(timezone.now() - timedelta(minutes=5))
+            context["recent_start"] = datetime_to_timestamp(timezone.now() - timedelta(minutes=5))
             return context
 
         def post(self, request, *args, **kwargs):
@@ -860,6 +877,7 @@ class ContactCRUDL(SmartCRUDL):
 
             before = int(self.request.GET.get("before", 0))
             after = int(self.request.GET.get("after", 0))
+            limit = int(self.request.GET.get("limit", 50))
 
             # if we want an expanding window, or just all the recent activity
             recent_only = False
@@ -867,35 +885,51 @@ class ContactCRUDL(SmartCRUDL):
                 recent_only = True
                 before = timezone.now()
             else:
-                before = ms_to_datetime(before)
+                before = timestamp_to_datetime(before)
 
             if not after:
                 after = before - timedelta(days=90)
             else:
-                after = ms_to_datetime(after)
+                after = timestamp_to_datetime(after)
 
             # keep looking further back until we get at least 20 items
+            history = []
+            fetch_before = before
             while True:
-                history = contact.get_history(after, before)
+                history += contact.get_history(after, fetch_before, HISTORY_INCLUDE_EVENTS, limit)
                 if recent_only or len(history) >= 20 or after == contact_creation:
                     break
                 else:
+                    fetch_before = after
                     after = max(after - timedelta(days=90), contact_creation)
 
-            if len(history) >= Contact.MAX_HISTORY:
-                after = history[-1]["created_on"]
+            # render as events
+            events = [Event.from_history_item(contact.org, self.request.user, i) for i in history]
+
+            if len(events) >= limit:
+                after = iso8601.parse_date(events[-1]["created_on"])
 
             # check if there are more pages to fetch
             context["has_older"] = False
             if not recent_only and before > contact.created_on:
-                context["has_older"] = bool(contact.get_history(contact_creation, after))
+                context["has_older"] = bool(contact.get_history(contact_creation, after, HISTORY_INCLUDE_EVENTS, 1))
 
             context["recent_only"] = recent_only
-            context["before"] = datetime_to_ms(after)
-            context["after"] = datetime_to_ms(max(after - timedelta(days=90), contact_creation))
-            context["history"] = history
+            context["next_before"] = datetime_to_timestamp(after)
+            context["next_after"] = datetime_to_timestamp(max(after - timedelta(days=90), contact_creation))
             context["start_date"] = contact.org.get_delete_date(archive_type=Archive.TYPE_MSG)
+            context["events"] = events
             return context
+
+        def as_json(self, context):
+            return {
+                "has_older": context["has_older"],
+                "recent_only": context["recent_only"],
+                "next_before": context["next_before"],
+                "next_after": context["next_after"],
+                "start_date": context["start_date"],
+                "events": context["events"],
+            }
 
     class Search(ContactListView):
         template_name = "contacts/contact_list.haml"
@@ -1493,7 +1527,7 @@ class CreateContactFieldForm(ContactFieldFormMixin, forms.ModelForm):
         field_count = ContactField.user_fields.count_active_for_org(org=self.org)
         if field_count >= org_active_fields_limit:
             raise forms.ValidationError(
-                _(f"Cannot create a new field as limit is %(limit)s."), params={"limit": org_active_fields_limit},
+                _(f"Cannot create a new field as limit is %(limit)s."), params={"limit": org_active_fields_limit}
             )
 
     class Meta:
@@ -1856,7 +1890,7 @@ class ContactImportCRUDL(SmartCRUDL):
                             label=" ", required=False, initial=True, widget=CheckboxWidget(attrs={"widget_only": True})
                         )
                         name_field = forms.CharField(
-                            label=" ", initial=mapping["name"], required=False, widget=InputWidget(),
+                            label=" ", initial=mapping["name"], required=False, widget=InputWidget()
                         )
                         value_type_field = forms.ChoiceField(
                             label=" ",

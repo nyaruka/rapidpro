@@ -3,7 +3,6 @@ import time
 from array import array
 from collections import defaultdict
 from datetime import timedelta
-from enum import Enum
 from typing import Dict
 
 import iso8601
@@ -49,32 +48,6 @@ from temba.utils.uuid import uuid4
 from . import legacy
 
 logger = logging.getLogger(__name__)
-
-
-class Events(Enum):
-    broadcast_created = 1
-    contact_channel_changed = 2
-    contact_field_changed = 3
-    contact_groups_changed = 4
-    contact_language_changed = 5
-    contact_name_changed = 6
-    contact_refreshed = 7
-    contact_timezone_changed = 8
-    contact_urns_changed = 9
-    email_created = 10
-    environment_refreshed = 11
-    error = 12
-    flow_entered = 13
-    input_labels_added = 14
-    ivr_created = 15
-    msg_created = 16
-    msg_received = 17
-    msg_wait = 18
-    run_expired = 19
-    run_result_changed = 20
-    session_triggered = 21
-    wait_timed_out = 22
-    webhook_called = 23
 
 
 class FlowException(Exception):
@@ -333,14 +306,12 @@ class Flow(TembaModel):
         return flow
 
     @classmethod
-    def get_triggerable_flows(cls, org):
-        return Flow.objects.filter(
-            org=org,
-            is_active=True,
-            is_archived=False,
-            flow_type__in=(Flow.TYPE_MESSAGE, Flow.TYPE_VOICE),
-            is_system=False,
-        )
+    def get_triggerable_flows(cls, org, *, by_schedule: bool):
+        flow_types = [Flow.TYPE_MESSAGE, Flow.TYPE_VOICE]
+        if by_schedule:
+            flow_types.append(Flow.TYPE_BACKGROUND)
+
+        return org.flows.filter(flow_type__in=flow_types, is_active=True, is_archived=False, is_system=False)
 
     @classmethod
     def import_flows(cls, org, user, export_json, dependency_mapping, same_site=False):
@@ -1194,14 +1165,15 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
         if not self.events:  # pragma: no cover
             return []
 
-        type_names = [t.name for t in event_types]
-        return [e for e in self.events if e[FlowRun.EVENT_TYPE] in type_names]
+        return [e for e in self.events if e[FlowRun.EVENT_TYPE] in event_types]
 
     def get_msg_events(self):
         """
         Gets all the messages associated with this run
         """
-        return self.get_events_of_type((Events.msg_received, Events.msg_created))
+        from temba.mailroom.events import Event
+
+        return self.get_events_of_type((Event.TYPE_MSG_RECEIVED, Event.TYPE_MSG_CREATED))
 
     def get_events_by_step(self, msg_only=False):
         """
@@ -1298,6 +1270,16 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
 
     def __str__(self):  # pragma: no cover
         return f"FlowRun[uuid={self.uuid}, flow={self.flow.uuid}]"
+
+
+class FlowExit:
+    """
+    A helper class used for building contact histories which simply wraps a run which may occur more than once in the
+    same history as both a flow run start and an exit.
+    """
+
+    def __init__(self, run):
+        self.run = run
 
 
 class FlowRevision(SmartModel):
@@ -1554,7 +1536,7 @@ class FlowPathRecentRun(models.Model):
     PRUNE_TO = 5
     LAST_PRUNED_KEY = "last_recentrun_pruned"
 
-    id = models.BigAutoField(auto_created=True, primary_key=True, verbose_name="ID")
+    id = models.BigAutoField(primary_key=True)
 
     # the node and step UUIDs of the start of the path segment
     from_uuid = models.UUIDField()
@@ -2061,10 +2043,12 @@ class ExportFlowResultsTask(BaseExportTask):
         """
         Writes out any messages associated with the given run
         """
+        from temba.mailroom.events import Event
+
         for event in run["events"] or []:
-            if event["type"] == Events.msg_received.name:
+            if event["type"] == Event.TYPE_MSG_RECEIVED:
                 msg_direction = "IN"
-            elif event["type"] == Events.msg_created.name:
+            elif event["type"] == Event.TYPE_MSG_CREATED:
                 msg_direction = "OUT"
             else:  # pragma: no cover
                 continue
@@ -2263,6 +2247,8 @@ class FlowStart(models.Model):
                 fields=["org", "-modified_on"],
                 condition=Q(created_by__isnull=False),
             ),
+            # used by the flow_starts type filters page
+            models.Index(name="flows_flowstart_org_start_type", fields=["org", "start_type", "-created_on"]),
         ]
 
 

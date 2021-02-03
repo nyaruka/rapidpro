@@ -633,24 +633,6 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         (STATUS_ARCHIVED, "Archived"),
     )
 
-    MAX_HISTORY = 50
-
-    # events from sessions to include in contact history
-    HISTORY_INCLUDE_EVENTS = {
-        "contact_language_changed",
-        "contact_field_changed",
-        "contact_groups_changed",
-        "contact_name_changed",
-        "contact_urns_changed",
-        "email_created",  # no longer generated but exists in old sessions
-        "email_sent",
-        "error",
-        "failure",
-        "input_labels_added",
-        "run_result_changed",
-        "ticket_opened",
-    }
-
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="contacts")
 
     name = models.CharField(
@@ -767,40 +749,35 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
 
         return scheduled_broadcasts.order_by("schedule__next_fire")
 
-    def get_history(self, after, before):
+    def get_history(self, after: datetime, before: datetime, include_event_types: set, limit: int) -> list:
         """
         Gets this contact's history of messages, calls, runs etc in the given time window
         """
+        from temba.flows.models import FlowExit
         from temba.ivr.models import IVRCall
-        from temba.msgs.models import Msg, INCOMING, OUTGOING
+        from temba.mailroom.events import get_event_time
+        from temba.msgs.models import Msg
 
-        limit = Contact.MAX_HISTORY
-
-        msgs = list(
+        msgs = (
             self.msgs.filter(created_on__gte=after, created_on__lt=before)
             .exclude(visibility=Msg.VISIBILITY_DELETED)
             .order_by("-created_on")
-            .select_related("channel")
+            .select_related("channel", "contact_urn", "broadcast")
             .prefetch_related("channel_logs")[:limit]
         )
-        msgs_in = filter(lambda m: m.direction == INCOMING, msgs)
-        msgs_out = filter(lambda m: m.direction == OUTGOING, msgs)
 
-        # and all of this contact's runs, channel events such as missed calls, scheduled events
-        started_runs = (
-            self.runs.filter(created_on__gte=after, created_on__lt=before)
+        # get all runs start started or ended in this period
+        runs = (
+            self.runs.filter(
+                Q(created_on__gte=after, created_on__lt=before)
+                | Q(exited_on__isnull=False, exited_on__gte=after, exited_on__lt=before)
+            )
             .exclude(flow__is_system=True)
             .order_by("-created_on")
             .select_related("flow")[:limit]
         )
-
-        exited_runs = (
-            self.runs.filter(exited_on__gte=after, exited_on__lt=before)
-            .exclude(flow__is_system=True)
-            .exclude(exit_type=None)
-            .order_by("-created_on")
-            .select_related("flow")[:limit]
-        )
+        started_runs = [r for r in runs if after <= r.created_on < before]
+        exited_runs = [FlowExit(r) for r in runs if r.exited_on and after <= r.exited_on < before]
 
         channel_events = (
             self.channel_events.filter(created_on__gte=after, created_on__lt=before)
@@ -812,7 +789,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             self.campaign_fires.filter(fired__gte=after, fired__lt=before)
             .exclude(fired=None)
             .order_by("-fired")
-            .select_related("event__campaign")[:limit]
+            .select_related("event__campaign", "event__relative_to")[:limit]
         )
 
         webhook_results = self.webhook_results.filter(created_on__gte=after, created_on__lt=before).order_by(
@@ -830,25 +807,25 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             "-created_on"
         )[:limit]
 
-        session_events = self.get_session_events(after, before, Contact.HISTORY_INCLUDE_EVENTS)
+        session_events = self.get_session_events(after, before, include_event_types)
 
-        # wrap items, chain and sort by time
-        events = chain(
-            [{"type": "msg_created", "created_on": m.created_on, "obj": m} for m in msgs_out],
-            [{"type": "msg_received", "created_on": m.created_on, "obj": m} for m in msgs_in],
-            [{"type": "flow_entered", "created_on": r.created_on, "obj": r} for r in started_runs],
-            [{"type": "flow_exited", "created_on": r.exited_on, "obj": r} for r in exited_runs],
-            [{"type": "channel_event", "created_on": e.created_on, "obj": e} for e in channel_events],
-            [{"type": "campaign_fired", "created_on": f.fired, "obj": f} for f in campaign_events],
-            [{"type": "webhook_called", "created_on": r.created_on, "obj": r} for r in webhook_results],
-            [{"type": "call_started", "created_on": c.created_on, "obj": c} for c in calls],
-            [{"type": "airtime_transferred", "created_on": t.created_on, "obj": t} for t in transfers],
+        # chain all items together, sort by their event time, and slice
+        items = chain(
+            msgs,
+            started_runs,
+            exited_runs,
+            channel_events,
+            campaign_events,
+            webhook_results,
+            calls,
+            transfers,
             session_events,
         )
 
-        return sorted(events, key=lambda i: i["created_on"], reverse=True)[:limit]
+        # sort and slice
+        return sorted(items, key=get_event_time, reverse=True)[:limit]
 
-    def get_session_events(self, after, before, types):
+    def get_session_events(self, after: datetime, before: datetime, types: set) -> list:
         """
         Extracts events from this contacts sessions that overlap with the given time window
         """
@@ -860,9 +837,9 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             for run in session.output.get("runs", []):
                 for event in run.get("events", []):
                     event["session_uuid"] = str(session.uuid)
-                    event["created_on"] = iso8601.parse_date(event["created_on"])
+                    event_time = iso8601.parse_date(event["created_on"])
 
-                    if event["type"] in types and after <= event["created_on"] < before:
+                    if event["type"] in types and after <= event_time < before:
                         events.append(event)
 
         return events
@@ -1435,7 +1412,7 @@ class ContactURN(models.Model):
         constraints = [
             models.CheckConstraint(check=~(Q(scheme="") | Q(path="")), name="non_empty_scheme_and_path"),
             models.CheckConstraint(
-                check=Q(identity=Concat(F("scheme"), Value(":"), F("path"))), name="identity_matches_scheme_and_path",
+                check=Q(identity=Concat(F("scheme"), Value(":"), F("path"))), name="identity_matches_scheme_and_path"
             ),
         ]
 
@@ -1517,7 +1494,10 @@ class ContactGroup(TembaModel):
         Creates our system groups for the given organization so that we can keep track of counts etc..
         """
         org.all_groups.create(
-            name="Active", group_type=ContactGroup.TYPE_ACTIVE, created_by=org.created_by, modified_by=org.modified_by,
+            name="Active",
+            group_type=ContactGroup.TYPE_ACTIVE,
+            created_by=org.created_by,
+            modified_by=org.modified_by,
         )
         org.all_groups.create(
             name="Blocked",
@@ -1614,7 +1594,7 @@ class ContactGroup(TembaModel):
             count += 1
 
         return cls.user_groups.create(
-            org=org, name=full_group_name, query=query, status=status, created_by=user, modified_by=user,
+            org=org, name=full_group_name, query=query, status=status, created_by=user, modified_by=user
         )
 
     @classmethod
@@ -2234,7 +2214,7 @@ class ContactImport(SmartModel):
             mapping = item["mapping"]
             if mapping["type"] == "new_field":
                 ContactField.get_or_create(
-                    self.org, self.created_by, mapping["key"], label=mapping["name"], value_type=mapping["value_type"],
+                    self.org, self.created_by, mapping["key"], label=mapping["name"], value_type=mapping["value_type"]
                 )
 
         # create the destination group

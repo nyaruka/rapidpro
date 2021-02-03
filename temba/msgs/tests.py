@@ -1663,6 +1663,25 @@ class MsgTest(TembaTest):
         self.assertEqual(302, response.status_code)
         self.assertEqual("/msg/inbox/", response.url)
 
+    def test_big_ids(self):
+        # create an incoming message with big id
+        msg = Msg.objects.create(
+            id=3_000_000_000,
+            org=self.org,
+            direction="I",
+            contact=self.joe,
+            contact_urn=self.joe.urns.first(),
+            text="Hi there",
+            channel=self.channel,
+            status="H",
+            msg_type="I",
+            visibility="V",
+            created_on=timezone.now(),
+        )
+        ChannelLog.objects.create(id=3_000_000_000, channel=msg.channel, msg=msg, is_error=True, description="Boom")
+        spam = Label.get_or_create(self.org, self.admin, "Spam")
+        msg.labels.add(spam)
+
 
 class MsgCRUDLTest(TembaTest):
     def setUp(self):
@@ -2524,7 +2543,12 @@ class LabelTest(TembaTest):
         label3.toggle_label([msg3], add=True)
 
         ExportMessagesTask.create(self.org, self.admin, label=label1)
+        with self.assertRaises(ValueError):
+            folder1.release(self.admin)
 
+        # can only release a folder once all its children are released
+        label1.release(self.admin)
+        label2.release(self.admin)
         folder1.release(self.admin)
         folder1.refresh_from_db()
 

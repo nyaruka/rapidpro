@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-22 16:09+0000\n"
+"POT-Creation-Date: 2021-01-28 16:13+0000\n"
 "PO-Revision-Date: 2014-09-24 19:56+0000\n"
 "Last-Translator: TextIt <info@textit.in>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/textit/language/es/)\n"
@@ -104,6 +104,62 @@ msgstr ""
 #| msgid "Weekly"
 msgid "Weeks"
 msgstr "Semanalmente"
+
+#, fuzzy, python-format
+#| msgid "has a date before"
+msgid "%d minute before"
+msgid_plural "%d minutes before"
+msgstr[0] "tiene una fecha anterior a"
+msgstr[1] "tiene una fecha anterior a"
+
+#, python-format
+msgid "%d hour before"
+msgid_plural "%d hours before"
+msgstr[0] ""
+msgstr[1] ""
+
+#, fuzzy, python-format
+#| msgid "has a date before"
+msgid "%d day before"
+msgid_plural "%d days before"
+msgstr[0] "tiene una fecha anterior a"
+msgstr[1] "tiene una fecha anterior a"
+
+#, python-format
+msgid "%d week before"
+msgid_plural "%d weeks before"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%d minute after"
+msgid_plural "%d minutes after"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%d hour after"
+msgid_plural "%d hours after"
+msgstr[0] ""
+msgstr[1] ""
+
+#, fuzzy, python-format
+#| msgid "has a date after"
+msgid "%d day after"
+msgid_plural "%d days after"
+msgstr[0] "tiene una fecha posterior a"
+msgstr[1] "tiene una fecha posterior a"
+
+#, python-format
+msgid "%d week after"
+msgid_plural "%d weeks after"
+msgstr[0] ""
+msgstr[1] ""
+
+#, fuzzy
+#| msgid "Mon"
+msgid "on"
+msgstr "Lunes"
 
 #, fuzzy
 #| msgid "The groups to send the message to"
@@ -3413,28 +3469,6 @@ msgid "Can't query on URNs in an anonymous workspace"
 msgstr ""
 
 #, fuzzy
-#| msgid "days"
-msgid "day"
-msgstr "días"
-
-msgid "minute"
-msgstr ""
-
-msgid "hour"
-msgstr ""
-
-msgid "days"
-msgstr "días"
-
-#, fuzzy
-#| msgid "After 5 minutes"
-msgid "minutes"
-msgstr "Después de 5 minutos"
-
-msgid "hours"
-msgstr ""
-
-#, fuzzy
 msgid "Name is used by another group"
 msgstr "Enviar un mensaje de texto al contacto"
 
@@ -4400,40 +4434,6 @@ msgstr "Actualizar campos"
 msgid "Update Label"
 msgstr "Actualizar etiqueta"
 
-#, fuzzy
-#| msgid "campaigns"
-msgid "Campaigns"
-msgstr "campañas"
-
-msgid "Triggers"
-msgstr "Activadores"
-
-#, fuzzy
-#| msgid "users"
-msgid "Users"
-msgstr "usuarios"
-
-msgid "Orgs"
-msgstr ""
-
-#, fuzzy
-#| msgid "dashboard"
-msgid "Dashboard"
-msgstr "Panel"
-
-#, fuzzy
-#| msgid "Android"
-msgid "Android"
-msgstr "Android"
-
-msgid "Sign in"
-msgstr "Registrarse"
-
-#, fuzzy
-#| msgid "Sign Up"
-msgid "Sign out"
-msgstr "Registrarse"
-
 msgid "Administrators"
 msgstr "Administradores"
 
@@ -4962,6 +4962,11 @@ msgstr "Número de teléfono inválido, inténtelo nuevamente."
 
 msgid "Two Factor Authentication"
 msgstr ""
+
+#, fuzzy
+#| msgid "dashboard"
+msgid "Dashboard"
+msgstr "Panel"
 
 #, fuzzy
 #| msgid "Select your Organization"
@@ -5599,6 +5604,9 @@ msgstr "El tipo de este activador"
 msgid "Create Trigger"
 msgstr "Crear activadores"
 
+msgid "Triggers"
+msgstr "Activadores"
+
 msgid "Join Keyword"
 msgstr "Palabra clave para participar"
 
@@ -5826,6 +5834,11 @@ msgid "Download Now"
 msgstr "Descargar Resultados"
 
 #, fuzzy
+#| msgid "campaigns"
+msgid "Campaigns"
+msgstr "campañas"
+
+#, fuzzy
 #| msgid "Update Campaign"
 msgid "Create Campaign"
 msgstr "Campaña de actualización"
@@ -5852,12 +5865,6 @@ msgstr "El nombre de este contacto"
 #| msgid "The name of this contact"
 msgid "No events in this campaign yet."
 msgstr "El nombre de este contacto"
-
-msgid "before"
-msgstr ""
-
-msgid "after"
-msgstr ""
 
 #, fuzzy
 #| msgid "Once they are deleted, they will be gone forever. There is no way to undo this operation."
@@ -7938,19 +7945,6 @@ msgstr "Nombre ya utilizado"
 msgid "URNs updated to"
 msgstr "Actualizar campos"
 
-#, fuzzy, python-format
-#| msgid ""
-#| "\n"
-#| "          Install the %(name)s app\n"
-#| "\n"
-#| "        "
-msgid "Email sent with subject <b>%(subject)s</b>"
-msgstr ""
-"\n"
-"          Instalar el %(name)s app\n"
-"\n"
-"        "
-
 #, fuzzy
 #| msgid "Sent to"
 msgid "Email sent to"
@@ -9483,6 +9477,9 @@ msgstr "Elija un país para recibir ayuda sobre la ubicación en sus flujos."
 msgid "Create new login"
 msgstr "Crear cuenta nueva"
 
+msgid "Sign in"
+msgstr "Registrarse"
+
 msgid "Add Credits"
 msgstr "Agregar créditos"
 
@@ -10746,11 +10743,6 @@ msgid "A new conversation"
 msgstr "Clave de conversación"
 
 #, fuzzy
-#| msgid "Mon"
-msgid "on"
-msgstr "Lunes"
-
-#, fuzzy
 #| msgid "The type of this trigger"
 msgid "The referrer id"
 msgstr "El tipo de este activador"
@@ -10804,14 +10796,45 @@ msgid "Found ${count} for ${query}"
 msgstr ""
 
 #, fuzzy
-#~| msgid "Update value for"
-#~ msgid "Update Profile Photo"
-#~ msgstr "Actualizar valor para"
+#~| msgid "users"
+#~ msgid "Users"
+#~ msgstr "usuarios"
 
 #, fuzzy
-#~| msgid "Choose File"
-#~ msgid "Choose Photo"
-#~ msgstr "Elegir archivo"
+#~| msgid "Android"
+#~ msgid "Android"
+#~ msgstr "Android"
+
+#, fuzzy
+#~| msgid "Sign Up"
+#~ msgid "Sign out"
+#~ msgstr "Registrarse"
+
+#, fuzzy
+#~| msgid "days"
+#~ msgid "day"
+#~ msgstr "días"
+
+#~ msgid "days"
+#~ msgstr "días"
+
+#, fuzzy
+#~| msgid "After 5 minutes"
+#~ msgid "minutes"
+#~ msgstr "Después de 5 minutos"
+
+#, fuzzy, python-format
+#~| msgid ""
+#~| "\n"
+#~| "          Install the %(name)s app\n"
+#~| "\n"
+#~| "        "
+#~ msgid "Email sent with subject <b>%(subject)s</b>"
+#~ msgstr ""
+#~ "\n"
+#~ "          Instalar el %(name)s app\n"
+#~ "\n"
+#~ "        "
 
 #, fuzzy
 #~ msgid "Message flow"
@@ -16456,14 +16479,8 @@ msgstr ""
 #~ msgid "has a date"
 #~ msgstr "tiene una fecha"
 
-#~ msgid "has a date before"
-#~ msgstr "tiene una fecha anterior a"
-
 #~ msgid "has a date equal to"
 #~ msgstr "tiene una fecha igual a"
-
-#~ msgid "has a date after"
-#~ msgstr "tiene una fecha posterior a"
 
 #~ msgid "has a phone number"
 #~ msgstr "tiene un número de teléfono"
