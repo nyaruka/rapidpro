@@ -308,7 +308,7 @@ class MsgTest(TembaTest):
 
         (msg1,) = tuple(Msg.objects.filter(broadcast=broadcast1))
 
-        with self.assertNumQueries(40):
+        with self.assertNumQueries(39):
             response = self.client.get(reverse("msgs.msg_outbox"))
 
         self.assertEqual(1, response.context_data["folders"][3]["count"])  # Outbox
@@ -382,8 +382,9 @@ class MsgTest(TembaTest):
         self.assertEqual(302, response.status_code)
 
         # visit inbox page as a manager of the organization
-        with self.assertNumQueries(57):
-            response = self.fetch_protected(inbox_url + "?refresh=10000", self.admin)
+        self.login(self.admin)
+        with self.assertNumQueries(36):
+            response = self.client.get(inbox_url + "?refresh=10000")
 
         # make sure that we embed refresh script if View.refresh is set
         self.assertContains(response, "function refresh")
@@ -466,8 +467,9 @@ class MsgTest(TembaTest):
         self.assertEqual(302, response.status_code)
 
         # visit archived page as a manager of the organization
-        with self.assertNumQueries(49):
-            response = self.fetch_protected(archive_url, self.admin)
+        self.login(self.admin)
+        with self.assertNumQueries(29):
+            response = self.client.get(archive_url)
 
         self.assertEqual(response.context["object_list"].count(), 1)
         self.assertEqual(response.context["actions"], ("restore", "label", "delete"))
@@ -548,7 +550,7 @@ class MsgTest(TembaTest):
         # org viewer can
         self.login(self.admin)
 
-        with self.assertNumQueries(37):
+        with self.assertNumQueries(36):
             response = self.client.get(url)
 
         self.assertEqual(set(response.context["object_list"]), {msg3, msg2, msg1})
@@ -613,8 +615,9 @@ class MsgTest(TembaTest):
         self.assertEqual(302, response.status_code)
 
         # visit failed page as an administrator
-        with self.assertNumQueries(60):
-            response = self.fetch_protected(failed_url, self.admin)
+        self.login(self.admin)
+        with self.assertNumQueries(39):
+            response = self.client.get(failed_url)
 
         self.assertEqual(response.context["object_list"].count(), 3)
         self.assertEqual(response.context["actions"], ("resend",))
@@ -754,7 +757,7 @@ class MsgTest(TembaTest):
             return load_workbook(filename=filename)
 
         # export all visible messages (i.e. not msg3) using export_all param
-        with self.assertNumQueries(30):
+        with self.assertNumQueries(29):
             with patch("temba.archives.models.Archive.s3_client", return_value=mock_s3):
                 workbook = request_export("?l=I", {"export_all": 1})
 
@@ -1662,6 +1665,25 @@ class MsgTest(TembaTest):
         response = self.client.post(reverse("msgs.msg_export") + "?l=I&redirect=http://foo.me", {"export_all": 1})
         self.assertEqual(302, response.status_code)
         self.assertEqual("/msg/inbox/", response.url)
+
+    def test_big_ids(self):
+        # create an incoming message with big id
+        msg = Msg.objects.create(
+            id=3_000_000_000,
+            org=self.org,
+            direction="I",
+            contact=self.joe,
+            contact_urn=self.joe.urns.first(),
+            text="Hi there",
+            channel=self.channel,
+            status="H",
+            msg_type="I",
+            visibility="V",
+            created_on=timezone.now(),
+        )
+        ChannelLog.objects.create(id=3_000_000_000, channel=msg.channel, msg=msg, is_error=True, description="Boom")
+        spam = Label.get_or_create(self.org, self.admin, "Spam")
+        msg.labels.add(spam)
 
 
 class MsgCRUDLTest(TembaTest):

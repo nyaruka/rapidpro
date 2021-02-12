@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-22 14:22+0000\n"
+"POT-Creation-Date: 2021-02-11 17:00+0000\n"
 "PO-Revision-Date: 2014-04-14 20:37+0000\n"
 "Last-Translator: produtos <produtos.ti@takenet.com.br>\n"
 "Language-Team: Portuguese (Brazil) (http://www.transifex.com/projects/p/textit/language/pt_BR/)\n"
@@ -110,6 +110,62 @@ msgstr ""
 msgid "Weeks"
 msgstr "Semanalmente"
 
+#, fuzzy, python-format
+#| msgid "has a date before"
+msgid "%d minute before"
+msgid_plural "%d minutes before"
+msgstr[0] "tiver uma data anterior"
+msgstr[1] "tiver uma data anterior"
+
+#, python-format
+msgid "%d hour before"
+msgid_plural "%d hours before"
+msgstr[0] ""
+msgstr[1] ""
+
+#, fuzzy, python-format
+#| msgid "has a date before"
+msgid "%d day before"
+msgid_plural "%d days before"
+msgstr[0] "tiver uma data anterior"
+msgstr[1] "tiver uma data anterior"
+
+#, python-format
+msgid "%d week before"
+msgid_plural "%d weeks before"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%d minute after"
+msgid_plural "%d minutes after"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%d hour after"
+msgid_plural "%d hours after"
+msgstr[0] ""
+msgstr[1] ""
+
+#, fuzzy, python-format
+#| msgid "has a date after"
+msgid "%d day after"
+msgid_plural "%d days after"
+msgstr[0] "tiver uma data após"
+msgstr[1] "tiver uma data após"
+
+#, python-format
+msgid "%d week after"
+msgid_plural "%d weeks after"
+msgstr[0] ""
+msgstr[1] ""
+
+#, fuzzy
+#| msgid "Mon"
+msgid "on"
+msgstr "Segunda-feira"
+
 #, fuzzy
 #| msgid "The groups to send the message to"
 msgid "Select a group to base the campaign on"
@@ -183,6 +239,11 @@ msgstr "O grupo enviará a mensagem para"
 #| msgid "Send this message"
 msgid "Skip this message"
 msgstr "Enviar essa mensagem"
+
+#, fuzzy
+#| msgid "Send Message"
+msgid "Send the message"
+msgstr "Enviar mensagem"
 
 #, fuzzy
 msgid "Message sending rules"
@@ -1556,6 +1617,37 @@ msgstr ""
 #| msgid "The token the user will us to claim this channel"
 msgid "The token Junebug should use to authenticate"
 msgstr "O token que será usado para requisitar este transmissor"
+
+msgid "Activate your own enterprise WhatsApp account in Kaleyra to communicate with your contacts. <a href=\"https://www.kaleyra.com/whatsapp/\">Learn more about Kaleyra WhatsApp"
+msgstr ""
+
+#, fuzzy
+#| msgid "To finish configuring your Zenvia connection you'll need to set the following callback URLs on your Zenvia account."
+msgid "To finish configuring your Kaleyra connection you'll need to set the following callback URL on your Kaleyra account."
+msgstr "Para finalizar a configuração de sua conexão com a Take.net você precisa definir as seguintes URLs de retorno de chamada em sua conta Take.net."
+
+#, fuzzy
+#| msgid "To receive incoming messages, you need to set the receive URL for your Zenvia account."
+msgid "To receive incoming messages, you need to set the receive URL for your Kaleyra account."
+msgstr "Para receber mensagens, você precisa definir a URL de recebimento para a sua conta Take.net"
+
+#, fuzzy
+#| msgid "Account:"
+msgid "Account SID"
+msgstr "Conta:"
+
+#, fuzzy
+#| msgid "Your Twilio Account SID"
+msgid "Your Kaleyra Account SID"
+msgstr "Seu SID da conta Twilio"
+
+#, fuzzy
+#| msgid "Your Nexmo API key"
+msgid "Your Kaleyra API Key"
+msgstr "Sua chave da API Nexmo"
+
+msgid "No org for this user, cannot claim"
+msgstr "Nenhuma organização para este usuário, não pode requisitar"
 
 #, python-format
 msgid "Connect your %(link)s instance, we'll walk you through the steps necessary to get your SMSC connection working in a few minutes."
@@ -3100,26 +3192,6 @@ msgid "Can't query on URNs in an anonymous workspace"
 msgstr ""
 
 #, fuzzy
-#| msgid "days"
-msgid "day"
-msgstr "dias"
-
-msgid "minute"
-msgstr ""
-
-msgid "hour"
-msgstr ""
-
-msgid "days"
-msgstr "dias"
-
-msgid "minutes"
-msgstr ""
-
-msgid "hours"
-msgstr ""
-
-#, fuzzy
 msgid "Name is used by another group"
 msgstr "Enviar um SMS para o contato"
 
@@ -4082,40 +4154,6 @@ msgstr "Atualizar campos"
 msgid "Update Label"
 msgstr "Atualizar rótulo"
 
-#, fuzzy
-#| msgid "campaigns"
-msgid "Campaigns"
-msgstr "campanhas"
-
-msgid "Triggers"
-msgstr "Disparadores"
-
-#, fuzzy
-#| msgid "users"
-msgid "Users"
-msgstr "usuários"
-
-msgid "Orgs"
-msgstr ""
-
-#, fuzzy
-#| msgid "dashboard"
-msgid "Dashboard"
-msgstr "Painel de controle"
-
-#, fuzzy
-#| msgid "Android"
-msgid "Android"
-msgstr "Android"
-
-msgid "Sign in"
-msgstr "Entrar"
-
-#, fuzzy
-#| msgid "Sign Up"
-msgid "Sign out"
-msgstr "Cadastrar-se"
-
 msgid "Administrators"
 msgstr "Administradores"
 
@@ -4243,23 +4281,6 @@ msgstr "Organização"
 msgid "%(name)s Invitation"
 msgstr ""
 
-msgid "Your preferred language"
-msgstr "Seu idioma preferido"
-
-msgid "Phone Number"
-msgstr "Número do telefone"
-
-msgid "Phone number for testing and recording voice flows"
-msgstr "Número do telefone para testar e gravar fluxos de voz"
-
-#, fuzzy
-#| msgid "API Secret:"
-msgid "OTP Secret"
-msgstr "Segredo da API:"
-
-msgid "Two Factor Enabled"
-msgstr ""
-
 msgid "Price Paid"
 msgstr "Preço Pago"
 
@@ -4354,9 +4375,6 @@ msgstr "créditos restantes."
 msgid "%(name)s Credits Alert"
 msgstr ""
 
-msgid "Used"
-msgstr ""
-
 #, fuzzy
 #| msgid "First Name"
 msgid "First name"
@@ -4427,6 +4445,16 @@ msgstr ""
 msgid "Password required for new login."
 msgstr ""
 
+#, fuzzy
+#| msgid "Invalid phone number, try again."
+msgid "Incorrect OTP. Please try again."
+msgstr "Número de telefone inválido, tente novamente."
+
+#, fuzzy
+#| msgid "Invalid phone number, try again."
+msgid "Invalid backup token. Please try again."
+msgstr "Número de telefone inválido, tente novamente."
+
 #, python-brace-format
 msgid "Deleted user {username}"
 msgstr ""
@@ -4471,9 +4499,6 @@ msgstr "Por favor, insira sua senha para salvar as alterações"
 
 msgid "Sorry, that email address is already taken."
 msgstr "Desculpe, este endereço de e-mail já está sendo usado"
-
-msgid "Start Call"
-msgstr "Iniciar chamada"
 
 msgid "The import file"
 msgstr ""
@@ -4630,16 +4655,19 @@ msgstr "Você deve ter pelo menos um administator"
 msgid "Manage Logins"
 msgstr "Gerenciar contas de %(name)s"
 
-msgid "Enter the code from your authentication application"
+msgid "One-time Password (OTP)"
 msgstr ""
 
-#, fuzzy
-#| msgid "Invalid phone number, try again."
-msgid "Invalid MFA token. Please try again."
-msgstr "Número de telefone inválido, tente novamente."
+msgid "Enter the one-time password from your authentication application."
+msgstr ""
 
 msgid "Two Factor Authentication"
 msgstr ""
+
+#, fuzzy
+#| msgid "dashboard"
+msgid "Dashboard"
+msgstr "Painel de controle"
 
 #, fuzzy
 msgid "New Workspace"
@@ -4766,11 +4794,6 @@ msgstr "Sua chave e segredo da API Nexmo estão inválidos. Por favor verifique-
 #, python-format
 msgid "Connecting to your DT One account failed with error text: %s"
 msgstr ""
-
-#, fuzzy
-#| msgid "Account:"
-msgid "Account SID"
-msgstr "Conta:"
 
 #, fuzzy
 msgid "Account Token"
@@ -5267,6 +5290,9 @@ msgstr "O tipo desse disparo"
 msgid "Create Trigger"
 msgstr "Criar disparador"
 
+msgid "Triggers"
+msgstr "Disparadores"
+
 msgid "Join Keyword"
 msgstr "Juntar palavra-chave"
 
@@ -5289,16 +5315,13 @@ msgstr ""
 msgid "The organization of the user."
 msgstr "A organização utilizando esse transmissor"
 
-#, python-format
-msgid "%(value)s must be http or https scheme"
+msgid "Must use HTTP or HTTPS."
 msgstr ""
 
-#, python-format
-msgid "%(value)s host cannot be resolved"
+msgid "Unable to resolve host."
 msgstr ""
 
-#, python-format
-msgid "%(value)s cannot be localhost"
+msgid "Cannot be a local or private host."
 msgstr ""
 
 msgid "Unique Identifier"
@@ -5486,6 +5509,11 @@ msgid "Download Now"
 msgstr "Resultados ao vivo"
 
 #, fuzzy
+#| msgid "campaigns"
+msgid "Campaigns"
+msgstr "campanhas"
+
+#, fuzzy
 msgid "Create Campaign"
 msgstr "Atualizar campanha"
 
@@ -5511,12 +5539,6 @@ msgstr "O nome deste contato"
 #| msgid "The name of this contact"
 msgid "No events in this campaign yet."
 msgstr "O nome deste contato"
-
-msgid "before"
-msgstr ""
-
-msgid "after"
-msgstr ""
 
 #, fuzzy
 msgid "You are about to delete this event. There is no way to undo this. Are you sure?"
@@ -7276,17 +7298,6 @@ msgstr "Esse endereço de e-mail já está sendo usado"
 msgid "URNs updated to"
 msgstr "Atualizar campos"
 
-#, fuzzy, python-format
-#| msgid ""
-#| "\n"
-#| "          Install the %(name)s app\n"
-#| "\n"
-#| "        "
-msgid "Email sent with subject <b>%(subject)s</b>"
-msgstr ""
-"\n"
-"Instalar o %(name)s app"
-
 #, fuzzy
 msgid "Email sent to"
 msgstr "Enviado"
@@ -7984,6 +7995,9 @@ msgstr "Fazer uma série de perguntas para coletar informações de seus contato
 msgid "<b>%(name)s</b> cannot be deleted since it is a parent to other labels."
 msgstr ""
 
+msgid "Manual"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "was started by %(user)s for"
 msgstr "iniciou este fluxo"
@@ -8628,6 +8642,54 @@ msgid ""
 "\n"
 msgstr ""
 
+#, fuzzy
+#| msgid "Flow Message"
+msgid "Welcome Back"
+msgstr "Fluxo de mensagens"
+
+msgid ""
+"\n"
+"    Please sign in with your email address and password.\n"
+"\n"
+"  "
+msgstr ""
+
+#, fuzzy
+#| msgid "Sign in"
+msgid "Sign In"
+msgstr "Entrar"
+
+msgid "Don't have an account yet?"
+msgstr ""
+
+#, fuzzy
+#| msgid "Sign Up"
+msgid "Sign up"
+msgstr "Cadastrar-se"
+
+msgid "Two-factor Authentication"
+msgstr ""
+
+msgid "If you no longer have access to the device with which you setup two-factor authentication on your login, you can enter one of your backup tokens below."
+msgstr ""
+
+msgid "8-character token"
+msgstr ""
+
+#, fuzzy
+#| msgid "Device"
+msgid "Use Device"
+msgstr "Dispositivo"
+
+msgid "Open the one-time password application with which you setup two-factor authentication on your account and enter the code below to verify your identity."
+msgstr ""
+
+msgid "6-digit code"
+msgstr ""
+
+msgid "Use Backup Token"
+msgstr ""
+
 msgid "Your workspace can have logins with various roles. You can use the Manage Logins page to view all existing logins or to add new logins to your workspace."
 msgstr ""
 
@@ -8707,6 +8769,9 @@ msgstr ""
 #| msgid "Create new account"
 msgid "Create new login"
 msgstr "Criar nova conta"
+
+msgid "Sign in"
+msgstr "Entrar"
 
 msgid "Add Credits"
 msgstr "Adicionar créditos"
@@ -8997,11 +9062,6 @@ msgid "Creating a %(brand)s account is free and only takes a minute."
 msgstr ""
 
 #, fuzzy
-#| msgid "Sign in"
-msgid "Sign In"
-msgstr "Entrar"
-
-#, fuzzy
 #| msgid "Configuration"
 msgid "Remove SMTP configuration"
 msgstr "Configuração"
@@ -9063,7 +9123,8 @@ msgstr "Desconectar Twilio "
 msgid "Disconnecting your Twilio account will also remove any Twilio channels connected to it. Are you sure you want to proceed?"
 msgstr ""
 
-msgid "To enable two factor authentication, use a one time password application such as"
+#, python-format
+msgid "To enable two factor authentication, use a one-time password (OTP) application such as <a href=\"%(ga_url)s\">Google Authenticator</a> or <a href=\"%(authy_url)s\">Authy</a> to scan the QR code below and generate an OTP."
 msgstr ""
 
 msgid "Backup tokens can be used if you no longer have access to the authentication application configured for your account."
@@ -9072,10 +9133,16 @@ msgstr ""
 msgid "Any tokens you may have previously generated are invalid."
 msgstr ""
 
-msgid "Generate Backup Tokens"
+msgid "Disable"
 msgstr ""
 
-msgid "Disable Two Factor"
+msgid "Regenerate Backup Tokens"
+msgstr ""
+
+msgid "Two Factor Authentication is <b>enabled</b>."
+msgstr ""
+
+msgid "Two Factor Authentication is <b>disabled</b>."
 msgstr ""
 
 #, fuzzy
@@ -9618,26 +9685,6 @@ msgstr "Não agendado"
 msgid "Not scheduled"
 msgstr "Não agendado"
 
-#, fuzzy
-#| msgid "Flow Message"
-msgid "Welcome Back"
-msgstr "Fluxo de mensagens"
-
-msgid ""
-"\n"
-"    Please sign in with your email address and password.\n"
-"\n"
-"  "
-msgstr ""
-
-msgid "Don't have an account yet?"
-msgstr ""
-
-#, fuzzy
-#| msgid "Sign Up"
-msgid "Sign up"
-msgstr "Cadastrar-se"
-
 msgid "Login Failure"
 msgstr ""
 
@@ -9861,11 +9908,6 @@ msgid "A new conversation"
 msgstr "Configuração"
 
 #, fuzzy
-#| msgid "Mon"
-msgid "on"
-msgstr "Segunda-feira"
-
-#, fuzzy
 #| msgid "The type of this trigger"
 msgid "The referrer id"
 msgstr "O tipo desse disparo"
@@ -9917,6 +9959,57 @@ msgstr "Insira o seu código de requisição"
 #, python-brace-format
 msgid "Found ${count} for ${query}"
 msgstr ""
+
+#~ msgid "Your preferred language"
+#~ msgstr "Seu idioma preferido"
+
+#~ msgid "Phone Number"
+#~ msgstr "Número do telefone"
+
+#~ msgid "Phone number for testing and recording voice flows"
+#~ msgstr "Número do telefone para testar e gravar fluxos de voz"
+
+#~ msgid "Start Call"
+#~ msgstr "Iniciar chamada"
+
+#, fuzzy
+#~| msgid "API Secret:"
+#~ msgid "OTP Secret"
+#~ msgstr "Segredo da API:"
+
+#, fuzzy
+#~| msgid "users"
+#~ msgid "Users"
+#~ msgstr "usuários"
+
+#, fuzzy
+#~| msgid "Android"
+#~ msgid "Android"
+#~ msgstr "Android"
+
+#, fuzzy
+#~| msgid "Sign Up"
+#~ msgid "Sign out"
+#~ msgstr "Cadastrar-se"
+
+#, fuzzy
+#~| msgid "days"
+#~ msgid "day"
+#~ msgstr "dias"
+
+#~ msgid "days"
+#~ msgstr "dias"
+
+#, fuzzy, python-format
+#~| msgid ""
+#~| "\n"
+#~| "          Install the %(name)s app\n"
+#~| "\n"
+#~| "        "
+#~ msgid "Email sent with subject <b>%(subject)s</b>"
+#~ msgstr ""
+#~ "\n"
+#~ "Instalar o %(name)s app"
 
 #, fuzzy
 #~ msgid "Message flow"
@@ -10289,9 +10382,6 @@ msgstr ""
 #~ "\n"
 #~ "Você pode definir a URL de retorno de chamada em sua conta Africa's Talking, visitando a página do Painel de SMS e em seguida, clicando em \n"
 #~ "<a href=\"http://www.africastalking.com/account/sms/smscallback\" target=\"africastalking\"> Callback URL </ a>. "
-
-#~ msgid "No org for this user, cannot claim"
-#~ msgstr "Nenhuma organização para este usuário, não pode requisitar"
 
 #, fuzzy
 #~| msgid ""
@@ -15384,14 +15474,8 @@ msgstr ""
 #~ msgid "has a date"
 #~ msgstr "tiver uma data"
 
-#~ msgid "has a date before"
-#~ msgstr "tiver uma data anterior"
-
 #~ msgid "has a date equal to"
 #~ msgstr "tiver uma data igual a"
-
-#~ msgid "has a date after"
-#~ msgstr "tiver uma data após"
 
 #~ msgid "has a phone number"
 #~ msgstr "tiver um número de telefone"

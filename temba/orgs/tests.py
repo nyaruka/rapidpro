@@ -6,7 +6,6 @@ from decimal import Decimal
 from unittest.mock import Mock, patch
 from urllib.parse import urlencode
 
-import pyotp
 import pytz
 import stripe
 import stripe.error
@@ -71,20 +70,151 @@ class OrgContextProcessorTest(TembaTest):
         editors = Group.objects.get(name="Editors")
         viewers = Group.objects.get(name="Viewers")
 
-        administrators_wrapper = GroupPermWrapper(administrators)
-        self.assertTrue(administrators_wrapper["msgs"]["msg_api"])
-        self.assertTrue(administrators_wrapper["msgs"]["msg_inbox"])
+        perms = GroupPermWrapper(administrators)
 
-        editors_wrapper = GroupPermWrapper(editors)
-        self.assertFalse(editors_wrapper["msgs"]["org_plan"])
-        self.assertTrue(editors_wrapper["msgs"]["msg_inbox"])
+        self.assertTrue(perms["msgs"]["msg_inbox"])
+        self.assertTrue(perms["contacts"]["contact_update"])
+        self.assertTrue(perms["orgs"]["org_country"])
+        self.assertTrue(perms["orgs"]["org_manage_accounts"])
+        self.assertFalse(perms["orgs"]["org_delete"])
 
-        viewers_wrapper = GroupPermWrapper(viewers)
-        self.assertFalse(viewers_wrapper["msgs"]["msg_api"])
-        self.assertTrue(viewers_wrapper["msgs"]["msg_inbox"])
+        perms = GroupPermWrapper(editors)
+
+        self.assertTrue(perms["msgs"]["msg_inbox"])
+        self.assertTrue(perms["contacts"]["contact_update"])
+        self.assertFalse(perms["orgs"]["org_manage_accounts"])
+        self.assertFalse(perms["orgs"]["org_delete"])
+
+        perms = GroupPermWrapper(viewers)
+
+        self.assertTrue(perms["msgs"]["msg_inbox"])
+        self.assertFalse(perms["contacts"]["contact_update"])
+        self.assertFalse(perms["orgs"]["org_manage_accounts"])
+        self.assertFalse(perms["orgs"]["org_delete"])
+
+        self.assertFalse(perms["msgs"]["foo"])  # no blow up if perm doesn't exist
+        self.assertFalse(perms["chickens"]["foo"])  # or app doesn't exist
+
+        with self.assertRaises(TypeError):
+            list(perms)
 
 
 class UserTest(TembaTest):
+    def test_login(self):
+        login_url = reverse("users.user_login")
+        verify_url = reverse("users.two_factor_verify")
+        backup_url = reverse("users.two_factor_backup")
+
+        user_settings = self.admin.get_settings()
+        self.assertIsNone(user_settings.last_auth_on)
+
+        # try to access a non-public page
+        response = self.client.get(reverse("msgs.msg_inbox"))
+        self.assertLoginRedirect(response)
+        self.assertTrue(response.url.endswith("?next=/msg/inbox/"))
+
+        # view login page
+        response = self.client.get(login_url)
+        self.assertEqual(200, response.status_code)
+
+        # submit incorrect username and password
+        response = self.client.post(login_url, {"username": "jim", "password": "pass123"})
+        self.assertEqual(200, response.status_code)
+        self.assertFormError(
+            response,
+            "form",
+            "__all__",
+            "Please enter a correct username and password. Note that both fields may be case-sensitive.",
+        )
+
+        # submit correct username and password
+        response = self.client.post(login_url, {"username": "Administrator", "password": "Administrator"})
+        self.assertRedirect(response, reverse("orgs.org_choose"))
+
+        user_settings = self.admin.get_settings()
+        self.assertIsNotNone(user_settings.last_auth_on)
+
+        # logout and enable 2FA
+        self.client.logout()
+        self.admin.enable_2fa()
+
+        # can't access two-factor verify page yet
+        response = self.client.get(verify_url)
+        self.assertLoginRedirect(response)
+
+        # login via login page again
+        response = self.client.post(
+            login_url + "?next=/msg/inbox/", {"username": "Administrator", "password": "Administrator"}
+        )
+        self.assertRedirect(response, verify_url)
+        self.assertTrue(response.url.endswith("?next=/msg/inbox/"))
+
+        # view two-factor verify page
+        response = self.client.get(verify_url)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(["otp"], list(response.context["form"].fields.keys()))
+        self.assertContains(response, backup_url)
+
+        # enter invalid OTP
+        response = self.client.post(verify_url, {"otp": "nope"})
+        self.assertFormError(response, "form", "otp", "Incorrect OTP. Please try again.")
+
+        # enter valid OTP
+        with patch("pyotp.TOTP.verify", return_value=True):
+            response = self.client.post(verify_url, {"otp": "123456"})
+        self.assertRedirect(response, reverse("orgs.org_choose"))
+
+        self.client.logout()
+
+        # login via login page again
+        response = self.client.post(login_url, {"username": "Administrator", "password": "Administrator"})
+        self.assertRedirect(response, verify_url)
+
+        # but this time we've lost our phone so go to the page for backup tokens
+        response = self.client.get(backup_url)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(["token"], list(response.context["form"].fields.keys()))
+
+        # enter invalid backup token
+        response = self.client.post(backup_url, {"token": "nope"})
+        self.assertFormError(response, "form", "token", "Invalid backup token. Please try again.")
+
+        # enter valid backup token
+        response = self.client.post(backup_url, {"token": self.admin.backup_tokens.first()})
+        self.assertRedirect(response, reverse("orgs.org_choose"))
+
+        self.assertEqual(9, len(self.admin.backup_tokens.filter(is_used=False)))
+
+    def test_two_factor(self):
+        self.assertFalse(self.admin.get_settings().two_factor_enabled)
+
+        self.admin.enable_2fa()
+
+        self.assertTrue(self.admin.get_settings().two_factor_enabled)
+        self.assertEqual(10, len(self.admin.backup_tokens.filter(is_used=False)))
+
+        # try to verify with.. nothing
+        self.assertFalse(self.admin.verify_2fa())
+
+        # try to verify with an invalid OTP
+        self.assertFalse(self.admin.verify_2fa(otp="nope"))
+
+        # try to verify with a valid OTP
+        with patch("pyotp.TOTP.verify", return_value=True):
+            self.assertTrue(self.admin.verify_2fa(otp="123456"))
+
+        # try to verify with an invalid backup token
+        self.assertFalse(self.admin.verify_2fa(backup_token="nope"))
+
+        # try to verify with a valid backup token
+        self.assertTrue(self.admin.verify_2fa(backup_token=self.admin.backup_tokens.first()))
+
+        self.assertEqual(9, len(self.admin.backup_tokens.filter(is_used=False)))
+
+        self.admin.disable_2fa()
+
+        self.assertFalse(self.admin.get_settings().two_factor_enabled)
+
     def test_ui_permissions(self):
         # non-logged in users can't go here
         response = self.client.get(reverse("orgs.user_list"))
@@ -630,60 +760,48 @@ class OrgTest(TembaTest):
         Group.objects.get(name="Beta").user_set.add(self.admin)
         self.login(self.admin)
 
-        # create profile
+        # viewing the form lazy creates user settings with a generated OTP secret
         response = self.client.get(reverse("orgs.org_two_factor"))
         self.assertEqual(200, response.status_code)
-        self.assertEqual(UserSettings.objects.count(), 1)
-        self.assertEqual(UserSettings.objects.first().user, self.admin)
 
-        # validate token error
-        data = dict(token="12345")
-        response = self.client.post(reverse("orgs.org_two_factor"), data)
-        self.assertIn("token", response.context["form"].errors)
-        self.assertIn("Invalid MFA token. Please try again.", response.context["form"].errors["token"])
-
-        self.assertEqual(BackupToken.objects.filter(settings__user=self.admin).count(), 0)
-        data = dict(generate_backup_tokens=True)
-        response = self.client.post(reverse("orgs.org_two_factor"), data)
-        self.assertEqual(BackupToken.objects.filter(settings__user=self.admin).count(), 10)
-
-        # disable two factor
-        data = dict(disable_two_factor_auth=True)
-        user_settings = UserSettings.objects.get(user=self.admin)
-        response = self.client.post(reverse("orgs.org_two_factor"), data)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(BackupToken.objects.filter(settings__user=self.admin).count(), 0)
+        user_settings = UserSettings.objects.get()
+        self.assertEqual(self.admin, user_settings.user)
+        self.assertEqual(16, len(user_settings.otp_secret))
         self.assertFalse(user_settings.two_factor_enabled)
 
-        # get backup tokens without backup tokens
-        data = dict(get_backup_tokens=True)
-        response = self.client.post(reverse("orgs.org_two_factor"), data)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"tokens": []})
+        # try submitting with an incorrect OTP
+        response = self.client.post(reverse("orgs.org_two_factor"), {"otp": "12345"})
+        self.assertFormError(response, "form", "otp", "Incorrect OTP. Please try again.")
 
-        # get backup tokens with backup tokens
-        backup_token = BackupToken.objects.create(
-            settings=self.admin.get_settings(), created_by=self.admin, modified_by=self.admin
-        )
-        data = dict(get_backup_tokens=True)
-        response = self.client.post(reverse("orgs.org_two_factor"), data)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"tokens": [f"{backup_token.token}"]})
+        # won't have created any backup tokens
+        self.assertEqual(0, self.admin.backup_tokens.count())
 
-        # test form is valid
-        user_settings = UserSettings.objects.get(user=self.admin)
-        user_settings.two_factor_enabled = False
-        user_settings.save()
-        totp = pyotp.TOTP(self.admin.get_settings().otp_secret)
-        data = dict(token=totp.now())
-        response = self.client.post(reverse("orgs.org_two_factor"), data)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(BackupToken.objects.count(), 10)
-        self.assertEqual(self.admin.get_settings().two_factor_enabled, True)
+        # try submitting with correct OTP
+        with patch("pyotp.TOTP.verify", return_value=True):
+            response = self.client.post(reverse("orgs.org_two_factor"), {"otp": "12345"})
+            self.assertEqual(200, response.status_code)
+
+        # 2FA should now be enabled and user should have backup tokens
+        self.assertTrue(self.admin.get_settings().two_factor_enabled)
+        self.assertEqual(10, self.admin.backup_tokens.count())
 
         # check backup tokens now listed on account home page
         response = self.client.get(reverse("orgs.org_home"))
         self.assertContains(response, "Backup tokens can be used")
+
+        current_tokens = [t.token for t in self.admin.backup_tokens.all()]
+
+        # try regenerating those tokens
+        self.client.post(reverse("orgs.org_two_factor"), {"action": "regenerate_backup_tokens"})
+        self.assertEqual(10, self.admin.backup_tokens.count())
+        self.assertNotEqual([t.token for t in self.admin.backup_tokens.all()], current_tokens)
+
+        # disable 2FA
+        response = self.client.post(reverse("orgs.org_two_factor"), {"action": "disable"})
+        self.assertEqual(200, response.status_code)
+
+        self.assertFalse(self.admin.get_settings().two_factor_enabled)
+        self.assertEqual(0, BackupToken.objects.filter(user=self.admin).count())
 
     def test_country_view(self):
         self.setUpLocations()
@@ -759,19 +877,8 @@ class OrgTest(TembaTest):
         self.assertRedirect(response, reverse("orgs.org_home"))
 
         # check that our user settings have changed
-        settings = self.admin.get_settings()
-        self.assertEqual("pt-br", settings.language)
-
-    def test_usersettings(self):
-        self.login(self.admin)
-
-        post_data = dict(tel="+250788382382")
-        self.client.post(reverse("orgs.usersettings_phone"), post_data)
-        self.assertEqual("+250 788 382 382", UserSettings.objects.get(user=self.admin).get_tel_formatted())
-
-        post_data = dict(tel="bad number")
-        response = self.client.post(reverse("orgs.usersettings_phone"), post_data)
-        self.assertEqual(response.context["form"].errors["tel"][0], "Invalid phone number, try again.")
+        user_settings = self.admin.get_settings()
+        self.assertEqual("pt-br", user_settings.language)
 
     @patch("temba.flows.models.FlowStart.async_start")
     def test_org_flagging_and_suspending(self, mock_async_start):
@@ -2771,6 +2878,15 @@ class OrgTest(TembaTest):
         self.assertTrue(self.org.is_multi_user)
         self.assertTrue(self.org.is_multi_org)
 
+        with override_settings(DEFAULT_PLAN="other"):
+            settings.BRANDING[settings.DEFAULT_BRAND]["default_plan"] = "other"
+            self.org.plan = settings.TOPUP_PLAN
+            self.org.save()
+            self.org.reset_capabilities()
+            sub_org_c = self.org.create_sub_org("Sub Org C")
+            self.assertIsNotNone(sub_org_c)
+            self.assertEqual(sub_org_c.plan, settings.TOPUP_PLAN)
+
     def test_org_get_limit(self):
         self.assertEqual(self.org.get_limit(Org.LIMIT_FIELDS), 250)
         self.assertEqual(self.org.get_limit(Org.LIMIT_GROUPS), 250)
@@ -4374,7 +4490,7 @@ class BulkExportTest(TembaTest):
             self.assertEqual(
                 2,
                 Flow.objects.filter(
-                    org=self.org, is_active=True, is_archived=False, flow_type="M", is_system=True
+                    org=self.org, is_active=True, is_archived=False, flow_type="B", is_system=True
                 ).count(),
             )
             self.assertEqual(1, Campaign.objects.filter(org=self.org, is_archived=False).count())
@@ -4411,7 +4527,7 @@ class BulkExportTest(TembaTest):
         trigger.save()
 
         message_flow = (
-            Flow.objects.filter(flow_type="M", is_system=True, campaign_events__offset=-1).order_by("id").first()
+            Flow.objects.filter(flow_type="B", is_system=True, campaign_events__offset=-1).order_by("id").first()
         )
         message_flow.update_single_message_flow(self.admin, {"base": "No reminders for you!"}, base_language="base")
 
@@ -4431,7 +4547,7 @@ class BulkExportTest(TembaTest):
 
         # find our new message flow, and see that the original message is there
         message_flow = (
-            Flow.objects.filter(flow_type="M", is_system=True, campaign_events__offset=-1, is_active=True)
+            Flow.objects.filter(flow_type="B", is_system=True, campaign_events__offset=-1, is_active=True)
             .order_by("id")
             .first()
         )
@@ -4503,7 +4619,7 @@ class BulkExportTest(TembaTest):
         assert_object_counts()
 
         message_flow = (
-            Flow.objects.filter(flow_type="M", is_system=True, campaign_events__offset=-1, is_active=True)
+            Flow.objects.filter(flow_type="B", is_system=True, campaign_events__offset=-1, is_active=True)
             .order_by("id")
             .first()
         )
@@ -5102,3 +5218,20 @@ class OrgActivityTest(TembaTest):
         self.assertEqual(2, activity.incoming_count)
         self.assertEqual(1, activity.outgoing_count)
         self.assertEqual(1, activity.plan_active_contact_count)
+
+
+class BackupTokenTest(TembaTest):
+    def test_model(self):
+        admin_tokens = BackupToken.generate_for_user(self.admin)
+        BackupToken.generate_for_user(self.editor)
+
+        self.assertEqual(10, len(admin_tokens))
+        self.assertEqual(10, self.admin.backup_tokens.count())
+        self.assertEqual(10, self.editor.backup_tokens.count())
+        self.assertEqual(str(admin_tokens[0].token), str(admin_tokens[0]))
+
+        # regenerate tokens for admin user
+        new_admin_tokens = BackupToken.generate_for_user(self.admin)
+        self.assertEqual(10, len(new_admin_tokens))
+        self.assertNotEqual([t.token for t in admin_tokens], [t.token for t in new_admin_tokens])
+        self.assertEqual(10, self.admin.backup_tokens.count())

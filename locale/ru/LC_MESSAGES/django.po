@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-22 14:22+0000\n"
+"POT-Creation-Date: 2021-02-11 17:00+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Hudson Brendon <hudson.brendon@ilhasoft.com.br>, 2020\n"
 "Language-Team: Russian (https://www.transifex.com/rapidpro/teams/226/ru/)\n"
@@ -96,6 +96,91 @@ msgstr "Дни"
 msgid "Weeks"
 msgstr "Недели"
 
+#, fuzzy, python-format
+#| msgid "%d minute"
+#| msgid_plural "%d minutes"
+msgid "%d minute before"
+msgid_plural "%d minutes before"
+msgstr[0] "%d минута"
+msgstr[1] "%d минут"
+msgstr[2] "%d минут"
+msgstr[3] "%d минут"
+
+#, fuzzy, python-format
+#| msgid "%d hour"
+#| msgid_plural "%d hours"
+msgid "%d hour before"
+msgid_plural "%d hours before"
+msgstr[0] "%d час"
+msgstr[1] "%d часов"
+msgstr[2] "%d часов"
+msgstr[3] "%d часов"
+
+#, fuzzy, python-format
+#| msgid "%d day"
+#| msgid_plural "%d days"
+msgid "%d day before"
+msgid_plural "%d days before"
+msgstr[0] "%d день"
+msgstr[1] "%d дней"
+msgstr[2] "%d дней"
+msgstr[3] "%d дней"
+
+#, fuzzy, python-format
+#| msgid "%d week"
+#| msgid_plural "%d weeks"
+msgid "%d week before"
+msgid_plural "%d weeks before"
+msgstr[0] "%d неделя"
+msgstr[1] "%d недель"
+msgstr[2] "%d недель"
+msgstr[3] "%d недель"
+
+#, fuzzy, python-format
+#| msgid "%d minute"
+#| msgid_plural "%d minutes"
+msgid "%d minute after"
+msgid_plural "%d minutes after"
+msgstr[0] "%d минута"
+msgstr[1] "%d минут"
+msgstr[2] "%d минут"
+msgstr[3] "%d минут"
+
+#, fuzzy, python-format
+#| msgid "%d hour"
+#| msgid_plural "%d hours"
+msgid "%d hour after"
+msgid_plural "%d hours after"
+msgstr[0] "%d час"
+msgstr[1] "%d часов"
+msgstr[2] "%d часов"
+msgstr[3] "%d часов"
+
+#, fuzzy, python-format
+#| msgid "%d day"
+#| msgid_plural "%d days"
+msgid "%d day after"
+msgid_plural "%d days after"
+msgstr[0] "%d день"
+msgstr[1] "%d дней"
+msgstr[2] "%d дней"
+msgstr[3] "%d дней"
+
+#, fuzzy, python-format
+#| msgid "%d week"
+#| msgid_plural "%d weeks"
+msgid "%d week after"
+msgid_plural "%d weeks after"
+msgstr[0] "%d неделя"
+msgstr[1] "%d недель"
+msgstr[2] "%d недель"
+msgstr[3] "%d недель"
+
+#, fuzzy
+#| msgid "Mon"
+msgid "on"
+msgstr "Пн"
+
 msgid "Select a group to base the campaign on"
 msgstr "Выберите группу, на которой будет основана кампания"
 
@@ -149,6 +234,11 @@ msgstr "Остановить это и отправить сообщение"
 
 msgid "Skip this message"
 msgstr "Пропустить данное сообщение"
+
+#, fuzzy
+#| msgid "Send Message"
+msgid "Send the message"
+msgstr "Отправить Сообщение"
 
 msgid "Message sending rules"
 msgstr "Правила отправки сообщения"
@@ -1458,6 +1548,42 @@ msgstr "Пароль, который будет использоваться д�
 
 msgid "The token Junebug should use to authenticate"
 msgstr "Токен, который Junebug должен использовать для аутентификации"
+
+#, fuzzy
+#| msgid "If you have a Twilio for WhatsApp number, you can connect it to communicate with your WhatsApp contacts. <a href=\"https://www.twilio.com/whatsapp/\">Learn more about Twilio WhatsApp</a>"
+msgid "Activate your own enterprise WhatsApp account in Kaleyra to communicate with your contacts. <a href=\"https://www.kaleyra.com/whatsapp/\">Learn more about Kaleyra WhatsApp"
+msgstr "Если у Вас имеется Twilio для номера WhatsApp, Вы можете его подключить для общения с Вашими контактами WhatsApp. <a href=\"https://www.twilio.com/whatsapp/\">Узнайте подробнее о Twilio WhatsApp</a>"
+
+#, fuzzy
+#| msgid ""
+#| "\n"
+#| "        To finish configuring your Zenvia connection you'll need to set the following callback URLs on your Zenvia account.\n"
+#| "        "
+msgid "To finish configuring your Kaleyra connection you'll need to set the following callback URL on your Kaleyra account."
+msgstr ""
+"\n"
+"        Для завершения настройки Вашего соединения Zenvia Вам потребуется установить следующие адреса URL обратного вызова в Вашей учетной записи Zenvia."
+
+#, fuzzy
+#| msgid "To receive incoming messages, you need to set the receive URL for your Zenvia account."
+msgid "To receive incoming messages, you need to set the receive URL for your Kaleyra account."
+msgstr "Для получения входящих сообщений Вам потребуется установить адрес URL получения в Вашей учетной записи Zenvia."
+
+msgid "Account SID"
+msgstr "SID Учетной записи"
+
+#, fuzzy
+#| msgid "Your Twilio Account SID"
+msgid "Your Kaleyra Account SID"
+msgstr "SID Вашей учетной записи Twilio "
+
+#, fuzzy
+#| msgid "Your Nexmo API key"
+msgid "Your Kaleyra API Key"
+msgstr "Ваш ключ API Nexmo "
+
+msgid "No org for this user, cannot claim"
+msgstr "Нет организации для этого пользователя, невозможно запросить"
 
 #, fuzzy, python-format
 #| msgid ""
@@ -2840,24 +2966,6 @@ msgstr ""
 msgid "Can't query on URNs in an anonymous workspace"
 msgstr ""
 
-msgid "day"
-msgstr "день"
-
-msgid "minute"
-msgstr "минута"
-
-msgid "hour"
-msgstr "час"
-
-msgid "days"
-msgstr "дни"
-
-msgid "minutes"
-msgstr "минуты"
-
-msgid "hours"
-msgstr "часы"
-
 msgid "Name is used by another group"
 msgstr "Название используется другой группой"
 
@@ -3733,36 +3841,6 @@ msgstr "Обновить Папку"
 msgid "Update Label"
 msgstr "Обновить Метку"
 
-msgid "Campaigns"
-msgstr "Кампании"
-
-msgid "Triggers"
-msgstr "Триггеры"
-
-#, fuzzy
-#| msgid "users"
-msgid "Users"
-msgstr "пользователи"
-
-msgid "Orgs"
-msgstr ""
-
-msgid "Dashboard"
-msgstr "Информационная панель"
-
-#, fuzzy
-#| msgid "android"
-msgid "Android"
-msgstr "android"
-
-msgid "Sign in"
-msgstr "Войти"
-
-#, fuzzy
-#| msgid "Sign Up"
-msgid "Sign out"
-msgstr "Зарегистрироваться"
-
 msgid "Administrators"
 msgstr "Администраторы"
 
@@ -3888,21 +3966,6 @@ msgstr "Организация"
 msgid "%(name)s Invitation"
 msgstr "Приглашение %(name)s"
 
-msgid "Your preferred language"
-msgstr "Предпочитаемый Вами язык"
-
-msgid "Phone Number"
-msgstr "Номер телефона"
-
-msgid "Phone number for testing and recording voice flows"
-msgstr "Номер телефона для тестирования и записи голосовых потоков"
-
-msgid "OTP Secret"
-msgstr "Секретный ключ OTP"
-
-msgid "Two Factor Enabled"
-msgstr "Включена двухфакторная"
-
 msgid "Price Paid"
 msgstr "Уплаченная цена"
 
@@ -3981,9 +4044,6 @@ msgstr "Кредиты с истекающим сроком действия"
 msgid "%(name)s Credits Alert"
 msgstr "Оповещение по Кредитам %(name)s "
 
-msgid "Used"
-msgstr "Использовано"
-
 #, fuzzy
 #| msgid "First Name"
 msgid "First name"
@@ -4060,6 +4120,16 @@ msgstr "Пользователь уже существует, пожалуйст
 msgid "Password required for new login."
 msgstr ""
 
+#, fuzzy
+#| msgid "Invalid MFA token. Please try again."
+msgid "Incorrect OTP. Please try again."
+msgstr "Неверный токен МФА. Пожалуйста, попробуйте еще раз."
+
+#, fuzzy
+#| msgid "Invalid MFA token. Please try again."
+msgid "Invalid backup token. Please try again."
+msgstr "Неверный токен МФА. Пожалуйста, попробуйте еще раз."
+
 #, python-brace-format
 msgid "Deleted user {username}"
 msgstr "Удаленный пользователь {username}"
@@ -4104,9 +4174,6 @@ msgstr "Пожалуйста, введите свой пароль для сох
 
 msgid "Sorry, that email address is already taken."
 msgstr "Извините, такой адрес электронной почты уже занят"
-
-msgid "Start Call"
-msgstr "Начать Вызов"
 
 msgid "The import file"
 msgstr "Импортированный файл"
@@ -4248,14 +4315,19 @@ msgstr "У Вас должен быть хотя бы один админист�
 msgid "Manage Logins"
 msgstr "Управление учетными записями"
 
-msgid "Enter the code from your authentication application"
-msgstr "Введите код из Вашего приложения по аутентификации"
+msgid "One-time Password (OTP)"
+msgstr ""
 
-msgid "Invalid MFA token. Please try again."
-msgstr "Неверный токен МФА. Пожалуйста, попробуйте еще раз."
+#, fuzzy
+#| msgid "Enter the code from your authentication application"
+msgid "Enter the one-time password from your authentication application."
+msgstr "Введите код из Вашего приложения по аутентификации"
 
 msgid "Two Factor Authentication"
 msgstr "Двухфакторная аутентификация"
+
+msgid "Dashboard"
+msgstr "Информационная панель"
 
 #, fuzzy
 #| msgid "Select your Organization"
@@ -4370,9 +4442,6 @@ msgstr "Ключ и секрет API Вашей учетной записи DT O
 #, python-format
 msgid "Connecting to your DT One account failed with error text: %s"
 msgstr "Подключение к Вашей учетной записи DT On не удалось. Текст ошибки: %s"
-
-msgid "Account SID"
-msgstr "SID Учетной записи"
 
 msgid "Account Token"
 msgstr "Токен Учетной записи"
@@ -4834,6 +4903,9 @@ msgstr "Id источника ссылки, который запустит на
 msgid "Create Trigger"
 msgstr "Создать Триггер"
 
+msgid "Triggers"
+msgstr "Триггеры"
+
 msgid "Join Keyword"
 msgstr "Присоединить ключевое слово"
 
@@ -4852,17 +4924,14 @@ msgstr "Обработка"
 msgid "The organization of the user."
 msgstr "Организация пользователя."
 
-#, python-format
-msgid "%(value)s must be http or https scheme"
-msgstr "%(value)s должны быть по схеме http или https "
+msgid "Must use HTTP or HTTPS."
+msgstr ""
 
-#, python-format
-msgid "%(value)s host cannot be resolved"
-msgstr "Хост %(value)s не может быть разрешен"
+msgid "Unable to resolve host."
+msgstr ""
 
-#, python-format
-msgid "%(value)s cannot be localhost"
-msgstr "%(value)s не может быть локальным хостом"
+msgid "Cannot be a local or private host."
+msgstr ""
 
 msgid "Unique Identifier"
 msgstr "Уникальный Идентификатор"
@@ -5050,6 +5119,9 @@ msgstr "Ваша загрузка должна начаться автомати
 msgid "Download Now"
 msgstr "Скачать сейчас"
 
+msgid "Campaigns"
+msgstr "Кампании"
+
 #, fuzzy
 #| msgid "Update Campaign"
 msgid "Create Campaign"
@@ -5071,12 +5143,6 @@ msgstr "Ни одна из групп не привязана к этой кам
 
 msgid "No events in this campaign yet."
 msgstr "События в этой компании пока отсутствуют."
-
-msgid "before"
-msgstr ""
-
-msgid "after"
-msgstr ""
 
 #, fuzzy
 #| msgid "Once they are deleted, they will be gone forever. There is no way to undo this operation."
@@ -7005,19 +7071,6 @@ msgstr "Название очищено"
 msgid "URNs updated to"
 msgstr "URN обновлены на "
 
-#, fuzzy, python-format
-#| msgid ""
-#| "\n"
-#| "          Email sent with subject <b>%(subject)s</b>\n"
-#| "\n"
-#| "        "
-msgid "Email sent with subject <b>%(subject)s</b>"
-msgstr ""
-"\n"
-"          Отправлено электронное письмо с темой <b>%(subject)s</b>\n"
-"\n"
-"        "
-
 msgid "Email sent to"
 msgstr "Отправлено электронное письмо по адресу"
 
@@ -7793,6 +7846,9 @@ msgstr "Задайте ряд вопросов, чтобы собрать дан
 #| msgid "cannot be deleted because it is in use. Usage summary:"
 msgid "<b>%(name)s</b> cannot be deleted since it is a parent to other labels."
 msgstr "невозможно удалить, потому что используется. Сводная информация по использованию:"
+
+msgid "Manual"
+msgstr ""
 
 #, python-format
 msgid "was started by %(user)s for"
@@ -8750,6 +8806,58 @@ msgstr ""
 "\n"
 
 #, fuzzy
+#| msgid "Welcome!"
+msgid "Welcome Back"
+msgstr "Добро пожаловать!"
+
+msgid ""
+"\n"
+"    Please sign in with your email address and password.\n"
+"\n"
+"  "
+msgstr ""
+
+#, fuzzy
+#| msgid "Sign in"
+msgid "Sign In"
+msgstr "Войти"
+
+msgid "Don't have an account yet?"
+msgstr ""
+
+#, fuzzy
+#| msgid "Sign Up"
+msgid "Sign up"
+msgstr "Зарегистрироваться"
+
+#, fuzzy
+#| msgid "Two Factor Authentication"
+msgid "Two-factor Authentication"
+msgstr "Двухфакторная аутентификация"
+
+msgid "If you no longer have access to the device with which you setup two-factor authentication on your login, you can enter one of your backup tokens below."
+msgstr ""
+
+msgid "8-character token"
+msgstr ""
+
+#, fuzzy
+#| msgid "Device"
+msgid "Use Device"
+msgstr "Устройство"
+
+msgid "Open the one-time password application with which you setup two-factor authentication on your account and enter the code below to verify your identity."
+msgstr ""
+
+msgid "6-digit code"
+msgstr ""
+
+#, fuzzy
+#| msgid "Generate Backup Tokens"
+msgid "Use Backup Token"
+msgstr "Генерировать Резервные Токены"
+
+#, fuzzy
 #| msgid ""
 #| "\n"
 #| "    Your organization can have user accounts with various roles. You can use the Manage Accounts page\n"
@@ -8869,6 +8977,9 @@ msgstr "Выберите страну для включения поддержк
 #| msgid "Create new account"
 msgid "Create new login"
 msgstr "Создать новую учетную запись"
+
+msgid "Sign in"
+msgstr "Войти"
 
 msgid "Add Credits"
 msgstr "Добавить Кредиты"
@@ -9229,11 +9340,6 @@ msgstr "Создать Учетную запись"
 msgid "Creating a %(brand)s account is free and only takes a minute."
 msgstr ""
 
-#, fuzzy
-#| msgid "Sign in"
-msgid "Sign In"
-msgstr "Войти"
-
 msgid "Remove SMTP configuration"
 msgstr "Удалить настройки SMTP"
 
@@ -9374,8 +9480,9 @@ msgstr ""
 "\n"
 "          Отключение Вашей учетной записи Twilio также удалит все каналы Twilio, подключенные к ней. Вы уверены, что хотите продолжить?"
 
-msgid "To enable two factor authentication, use a one time password application such as"
-msgstr "Для включения двухфакторной аутентификации используйте приложение для одноразового пароля, такое как"
+#, python-format
+msgid "To enable two factor authentication, use a one-time password (OTP) application such as <a href=\"%(ga_url)s\">Google Authenticator</a> or <a href=\"%(authy_url)s\">Authy</a> to scan the QR code below and generate an OTP."
+msgstr ""
 
 msgid "Backup tokens can be used if you no longer have access to the authentication application configured for your account."
 msgstr "Резервные токены можно использовать, если у Вас больше нет доступа к приложению аутентификации, настроенному для Вашей учетной записи."
@@ -9383,11 +9490,23 @@ msgstr "Резервные токены можно использовать, е�
 msgid "Any tokens you may have previously generated are invalid."
 msgstr ""
 
-msgid "Generate Backup Tokens"
+msgid "Disable"
+msgstr ""
+
+#, fuzzy
+#| msgid "Generate Backup Tokens"
+msgid "Regenerate Backup Tokens"
 msgstr "Генерировать Резервные Токены"
 
-msgid "Disable Two Factor"
-msgstr "Отключить двухфакторную"
+#, fuzzy
+#| msgid "Two Factor Authentication"
+msgid "Two Factor Authentication is <b>enabled</b>."
+msgstr "Двухфакторная аутентификация"
+
+#, fuzzy
+#| msgid "Two Factor Authentication"
+msgid "Two Factor Authentication is <b>disabled</b>."
+msgstr "Двухфакторная аутентификация"
 
 #, fuzzy
 #| msgid "This organization has been suspended"
@@ -10005,26 +10124,6 @@ msgstr "не запланировано"
 msgid "Not scheduled"
 msgstr "Не запланировано"
 
-#, fuzzy
-#| msgid "Welcome!"
-msgid "Welcome Back"
-msgstr "Добро пожаловать!"
-
-msgid ""
-"\n"
-"    Please sign in with your email address and password.\n"
-"\n"
-"  "
-msgstr ""
-
-msgid "Don't have an account yet?"
-msgstr ""
-
-#, fuzzy
-#| msgid "Sign Up"
-msgid "Sign up"
-msgstr "Зарегистрироваться"
-
 msgid "Login Failure"
 msgstr ""
 
@@ -10254,11 +10353,6 @@ msgid "A new conversation"
 msgstr "Новый Разговор"
 
 #, fuzzy
-#| msgid "Mon"
-msgid "on"
-msgstr "Пн"
-
-#, fuzzy
 #| msgid "Referrer Id"
 msgid "The referrer id"
 msgstr "Id Источника ссылки"
@@ -10305,6 +10399,91 @@ msgstr "Ввести запрос"
 #, python-brace-format
 msgid "Found ${count} for ${query}"
 msgstr "Найдено ${count} по ${query}"
+
+#~ msgid "Your preferred language"
+#~ msgstr "Предпочитаемый Вами язык"
+
+#~ msgid "Phone Number"
+#~ msgstr "Номер телефона"
+
+#~ msgid "Phone number for testing and recording voice flows"
+#~ msgstr "Номер телефона для тестирования и записи голосовых потоков"
+
+#~ msgid "Two Factor Enabled"
+#~ msgstr "Включена двухфакторная"
+
+#~ msgid "Start Call"
+#~ msgstr "Начать Вызов"
+
+#~ msgid "Disable Two Factor"
+#~ msgstr "Отключить двухфакторную"
+
+#~ msgid "OTP Secret"
+#~ msgstr "Секретный ключ OTP"
+
+#~ msgid "To enable two factor authentication, use a one time password application such as"
+#~ msgstr "Для включения двухфакторной аутентификации используйте приложение для одноразового пароля, такое как"
+
+#~ msgid "Used"
+#~ msgstr "Использовано"
+
+#, python-format
+#~ msgid "%(value)s must be http or https scheme"
+#~ msgstr "%(value)s должны быть по схеме http или https "
+
+#, python-format
+#~ msgid "%(value)s host cannot be resolved"
+#~ msgstr "Хост %(value)s не может быть разрешен"
+
+#, python-format
+#~ msgid "%(value)s cannot be localhost"
+#~ msgstr "%(value)s не может быть локальным хостом"
+
+#, fuzzy
+#~| msgid "users"
+#~ msgid "Users"
+#~ msgstr "пользователи"
+
+#, fuzzy
+#~| msgid "android"
+#~ msgid "Android"
+#~ msgstr "android"
+
+#, fuzzy
+#~| msgid "Sign Up"
+#~ msgid "Sign out"
+#~ msgstr "Зарегистрироваться"
+
+#~ msgid "day"
+#~ msgstr "день"
+
+#~ msgid "minute"
+#~ msgstr "минута"
+
+#~ msgid "hour"
+#~ msgstr "час"
+
+#~ msgid "days"
+#~ msgstr "дни"
+
+#~ msgid "minutes"
+#~ msgstr "минуты"
+
+#~ msgid "hours"
+#~ msgstr "часы"
+
+#, fuzzy, python-format
+#~| msgid ""
+#~| "\n"
+#~| "          Email sent with subject <b>%(subject)s</b>\n"
+#~| "\n"
+#~| "        "
+#~ msgid "Email sent with subject <b>%(subject)s</b>"
+#~ msgstr ""
+#~ "\n"
+#~ "          Отправлено электронное письмо с темой <b>%(subject)s</b>\n"
+#~ "\n"
+#~ "        "
 
 #~ msgid "Message flow"
 #~ msgstr "Поток сообщений"
@@ -10737,9 +10916,6 @@ msgstr "Найдено ${count} по ${query}"
 #~ "        и подключить его, выполнив несколько простых шагов.\n"
 #~ "        "
 
-#~ msgid "No org for this user, cannot claim"
-#~ msgstr "Нет организации для этого пользователя, невозможно запросить"
-
 #~ msgid ""
 #~ "\n"
 #~ "        If you have an <a href=\"https://www.arabiacell.com/\">ArabiaCell</a> number,\n"
@@ -10864,9 +11040,6 @@ msgstr "Найдено ${count} по ${query}"
 
 #~ msgid "Easily add a two way number you have configured with <a href=\"https://www.twilio.com/\">Twilio</a> using their APIs."
 #~ msgstr "Легко добавьте двухсторонний номер, который Вы настроили с <a href=\"https://www.twilio.com/\">Twilio</a>, используя их API."
-
-#~ msgid "If you have a Twilio for WhatsApp number, you can connect it to communicate with your WhatsApp contacts. <a href=\"https://www.twilio.com/whatsapp/\">Learn more about Twilio WhatsApp</a>"
-#~ msgstr "Если у Вас имеется Twilio для номера WhatsApp, Вы можете его подключить для общения с Вашими контактами WhatsApp. <a href=\"https://www.twilio.com/whatsapp/\">Узнайте подробнее о Twilio WhatsApp</a>"
 
 #~ msgid ""
 #~ "\n"

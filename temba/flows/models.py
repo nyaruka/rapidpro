@@ -29,7 +29,6 @@ from temba.channels.models import Channel, ChannelConnection
 from temba.classifiers.models import Classifier
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup
 from temba.globals.models import Global
-from temba.mailroom.events import Event
 from temba.msgs.models import Attachment, Label, Msg
 from temba.orgs.models import Org
 from temba.templates.models import Template
@@ -235,7 +234,7 @@ class Flow(TembaModel):
         Creates a special 'single message' flow
         """
         name = "Single Message (%s)" % str(uuid4())
-        flow = Flow.create(org, user, name, flow_type=Flow.TYPE_MESSAGE, is_system=True)
+        flow = Flow.create(org, user, name, flow_type=Flow.TYPE_BACKGROUND, is_system=True)
         flow.update_single_message_flow(user, message, base_language)
         return flow
 
@@ -643,7 +642,7 @@ class Flow(TembaModel):
             "name": self.name,
             "spec_version": self.version_number,
             "language": base_language,
-            "type": "messaging",
+            "type": "messaging_background",
             "localization": localization,
             "nodes": [
                 {
@@ -1192,6 +1191,8 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
         """
         Gets all the messages associated with this run
         """
+        from temba.mailroom.events import Event
+
         return self.get_events_of_type((Event.TYPE_MSG_RECEIVED, Event.TYPE_MSG_CREATED))
 
     def get_events_by_step(self, msg_only=False):
@@ -1289,6 +1290,16 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
 
     def __str__(self):  # pragma: no cover
         return f"FlowRun[uuid={self.uuid}, flow={self.flow.uuid}]"
+
+
+class FlowExit:
+    """
+    A helper class used for building contact histories which simply wraps a run which may occur more than once in the
+    same history as both a flow run start and an exit.
+    """
+
+    def __init__(self, run):
+        self.run = run
 
 
 class FlowRevision(SmartModel):
@@ -1545,7 +1556,7 @@ class FlowPathRecentRun(models.Model):
     PRUNE_TO = 5
     LAST_PRUNED_KEY = "last_recentrun_pruned"
 
-    id = models.BigAutoField(auto_created=True, primary_key=True, verbose_name="ID")
+    id = models.BigAutoField(primary_key=True)
 
     # the node and step UUIDs of the start of the path segment
     from_uuid = models.UUIDField()
@@ -2052,6 +2063,8 @@ class ExportFlowResultsTask(BaseExportTask):
         """
         Writes out any messages associated with the given run
         """
+        from temba.mailroom.events import Event
+
         for event in run["events"] or []:
             if event["type"] == Event.TYPE_MSG_RECEIVED:
                 msg_direction = "IN"
