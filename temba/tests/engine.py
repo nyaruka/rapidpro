@@ -57,6 +57,7 @@ class MockSessionWriter:
                 "flow": flow.as_export_ref(),
                 "contact": contact_def,
                 "triggered_on": self._now(),
+                "user": "foo@example.com",
             },
             "contact": contact_def,
             "runs": [

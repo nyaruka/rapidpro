@@ -112,12 +112,15 @@ class Event:
     def from_flow_run(cls, org: Org, user: User, obj: FlowRun) -> dict:
         session = obj.session
         logs_url = _url_for_user(org, user, "flows.flowsession_json", args=[session.uuid]) if session else None
+        trigger_description = session.show_trigger_description() if session else None
 
         return {
             "type": cls.TYPE_FLOW_ENTERED,
             "created_on": get_event_time(obj).isoformat(),
             "flow": {"uuid": str(obj.flow.uuid), "name": obj.flow.name},
             "logs_url": logs_url,
+            # additional properties
+            "trigger_description": trigger_description,
         }
 
     @classmethod
