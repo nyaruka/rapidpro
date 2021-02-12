@@ -221,9 +221,9 @@ MIDDLEWARE = (
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "temba.middleware.ConsentMiddleware",
     "temba.middleware.BrandingMiddleware",
-    "temba.middleware.OrgTimezoneMiddleware",
-    "temba.middleware.ActivateLanguageMiddleware",
-    "temba.middleware.OrgHeaderMiddleware",
+    "temba.middleware.OrgMiddleware",
+    "temba.middleware.LanguageMiddleware",
+    "temba.middleware.TimezoneMiddleware",
 )
 
 # security middleware configuration
@@ -438,7 +438,6 @@ PERMISSIONS = {
         "two_factor",
         "token",
     ),
-    "orgs.usersettings": ("phone",),
     "channels.channel": (
         "api",
         "bulk_sender_options",
@@ -651,8 +650,6 @@ GROUP_PERMISSIONS = {
         "orgs.org_token",
         "orgs.topup_list",
         "orgs.topup_read",
-        "orgs.usersettings_phone",
-        "orgs.usersettings_update",
         "channels.channel_api",
         "channels.channel_bulk_sender_options",
         "channels.channel_claim",
@@ -762,8 +759,6 @@ GROUP_PERMISSIONS = {
         "orgs.org_token",
         "orgs.topup_list",
         "orgs.topup_read",
-        "orgs.usersettings_phone",
-        "orgs.usersettings_update",
         "channels.channel_api",
         "channels.channel_bulk_sender_options",
         "channels.channel_claim",
@@ -1122,6 +1117,7 @@ CHANNEL_TYPES = [
     "temba.channels.types.jasmin.JasminType",
     "temba.channels.types.jiochat.JioChatType",
     "temba.channels.types.junebug.JunebugType",
+    "temba.channels.types.kaleyra.KaleyraType",
     "temba.channels.types.kannel.KannelType",
     "temba.channels.types.line.LineType",
     "temba.channels.types.m3tech.M3TechType",
