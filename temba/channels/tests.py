@@ -568,7 +568,11 @@ class ChannelTest(TembaTest):
         response = self.client.get("/", follow=True)
         # self.assertIn('channel_type', response.context)
 
-    def sync(self, channel, *, cmds, signature=None):
+    def sync(self, channel, *, cmds, signature=None, auto_add_fcm=True):
+        # prepend FCM command if not included
+        if auto_add_fcm and (not cmds or cmds[0]["cmd"] != "fcm"):
+            cmds = [{"cmd": "fcm", "fcm_id": "3256262", "uuid": str(channel.uuid), "p_id": 1}] + cmds
+
         post_data = json.dumps({"cmds": cmds})
         ts = int(time.time())
         if not signature:
@@ -816,14 +820,13 @@ class ChannelTest(TembaTest):
         self.assertEqual(1, response.context["message_stats_table"][0]["outgoing_ivr_count"])
 
     def test_invalid(self):
-
-        # Must be POST
+        # must be a POST
         response = self.client.get(
             "%s?signature=sig&ts=123" % (reverse("sync", args=[100])), content_type="application/json"
         )
         self.assertEqual(500, response.status_code)
 
-        # Unknown channel
+        # unknown channel
         response = self.client.post(
             "%s?signature=sig&ts=123" % (reverse("sync", args=[999])), content_type="application/json"
         )
@@ -838,6 +841,11 @@ class ChannelTest(TembaTest):
         )
         self.assertEqual(401, response.status_code)
         self.assertEqual(3, response.json()["error_id"])
+
+        # missing initial FCM command
+        response = self.sync(self.tel_channel, cmds=[], auto_add_fcm=False)
+        self.assertEqual(401, response.status_code)
+        self.assertEqual(4, response.json()["error_id"])
 
     def test_claim(self):
         # no access for regular users

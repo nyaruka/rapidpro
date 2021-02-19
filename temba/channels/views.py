@@ -768,7 +768,7 @@ def sync(request, channel_id):
         body_parsed = json.loads(request.body)
 
         # all valid requests have to begin with a FCM command
-        if "cmds" not in body_parsed:  # or len(body_parsed["cmds"]) < 1 or body_parsed["cmds"][0]["cmd"] != "fcm":
+        if "cmds" not in body_parsed or len(body_parsed["cmds"]) < 1 or body_parsed["cmds"][0]["cmd"] != "fcm":
             return JsonResponse({"error_id": 4, "error": "Missing FCM command", "cmds": []}, status=401)
 
         cmds = body_parsed["cmds"]
