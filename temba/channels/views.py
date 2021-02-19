@@ -737,10 +737,6 @@ def sync(request, channel_id):
     if not channel.secret or not channel.org:
         return JsonResponse(dict(cmds=[channel.build_registration_command()]))
 
-    # print "\n\nSECRET: '%s'" % channel.secret
-    # print "TS: %s" % request_time
-    # print "BODY: '%s'\n\n" % request.body
-
     # check that the request isn't too old (15 mins)
     now = time.time()
     if abs(now - int(request_time)) > 60 * 15:
@@ -767,114 +763,112 @@ def sync(request, channel_id):
 
     sync_event = None
 
-    # Take the update from the client
+    # handle commands from client
     if request.body:
+        body_parsed = json.loads(request.body)
 
-        client_updates = json.loads(request.body)
+        # all valid requests have to begin with a FCM command
+        if "cmds" not in body_parsed:  # or len(body_parsed["cmds"]) < 1 or body_parsed["cmds"][0]["cmd"] != "fcm":
+            return JsonResponse({"error_id": 4, "error": "Missing FCM command", "cmds": []}, status=401)
 
-        print("==GOT SYNC")
-        print(json.dumps(client_updates, indent=2))
+        cmds = body_parsed["cmds"]
+        unique_calls = set()
 
-        if "cmds" in client_updates:
-            cmds = client_updates["cmds"]
+        for cmd in cmds:
+            handled = False
+            extra = None
 
-            unique_calls = set()
+            if "cmd" in cmd:
+                keyword = cmd["cmd"]
 
-            for cmd in cmds:
-                handled = False
-                extra = None
+                # catchall for commands that deal with a single message
+                if "msg_id" in cmd:
+                    msg = Msg.objects.filter(id=cmd["msg_id"], org=channel.org).first()
+                    if msg:
+                        if msg.direction == OUTGOING:
+                            handled = msg.update(cmd)
+                        else:
+                            handled = True
 
-                if "cmd" in cmd:
-                    keyword = cmd["cmd"]
+                # creating a new message
+                elif keyword == "mo_sms":
+                    date = datetime.fromtimestamp(int(cmd["ts"]) // 1000).replace(tzinfo=pytz.utc)
 
-                    # catchall for commands that deal with a single message
-                    if "msg_id" in cmd:
-                        msg = Msg.objects.filter(id=cmd["msg_id"], org=channel.org).first()
-                        if msg:
-                            if msg.direction == OUTGOING:
-                                handled = msg.update(cmd)
-                            else:
-                                handled = True
+                    # it is possible to receive spam SMS messages from no number on some carriers
+                    tel = cmd["phone"] if cmd["phone"] else "empty"
+                    try:
+                        urn = URN.normalize(URN.from_tel(tel), channel.country.code)
 
-                    # creating a new message
-                    elif keyword == "mo_sms":
-                        date = datetime.fromtimestamp(int(cmd["ts"]) // 1000).replace(tzinfo=pytz.utc)
+                        if "msg" in cmd:
+                            msg = Msg.create_relayer_incoming(channel.org, channel, urn, cmd["msg"], date)
+                            extra = dict(msg_id=msg.id)
+                    except ValueError:
+                        pass
 
-                        # it is possible to receive spam SMS messages from no number on some carriers
-                        tel = cmd["phone"] if cmd["phone"] else "empty"
+                    handled = True
+
+                # phone event
+                elif keyword == "call":
+                    call_tuple = (cmd["ts"], cmd["type"], cmd["phone"])
+                    date = datetime.fromtimestamp(int(cmd["ts"]) // 1000).replace(tzinfo=pytz.utc)
+
+                    duration = 0
+                    if cmd["type"] != "miss":
+                        duration = cmd["dur"]
+
+                    # Android sometimes will pass us a call from an 'unknown number', which is null
+                    # ignore these events on our side as they have no purpose and break a lot of our
+                    # assumptions
+                    if cmd["phone"] and call_tuple not in unique_calls:
+                        urn = URN.from_tel(cmd["phone"])
                         try:
-                            urn = URN.normalize(URN.from_tel(tel), channel.country.code)
-
-                            if "msg" in cmd:
-                                msg = Msg.create_relayer_incoming(channel.org, channel, urn, cmd["msg"], date)
-                                extra = dict(msg_id=msg.id)
+                            ChannelEvent.create_relayer_event(
+                                channel, urn, cmd["type"], date, extra=dict(duration=duration)
+                            )
                         except ValueError:
+                            # in some cases Android passes us invalid URNs, in those cases just ignore them
                             pass
+                        unique_calls.add(call_tuple)
+                    handled = True
 
-                        handled = True
+                elif keyword == "fcm":
+                    # update our fcm and uuid
 
-                    # phone event
-                    elif keyword == "call":
-                        call_tuple = (cmd["ts"], cmd["type"], cmd["phone"])
-                        date = datetime.fromtimestamp(int(cmd["ts"]) // 1000).replace(tzinfo=pytz.utc)
+                    config = channel.config
+                    config.update({Channel.CONFIG_FCM_ID: cmd["fcm_id"]})
+                    channel.config = config
+                    channel.uuid = cmd.get("uuid", None)
+                    channel.save(update_fields=["uuid", "config"])
 
-                        duration = 0
-                        if cmd["type"] != "miss":
-                            duration = cmd["dur"]
+                    # no acking the fcm
+                    handled = False
 
-                        # Android sometimes will pass us a call from an 'unknown number', which is null
-                        # ignore these events on our side as they have no purpose and break a lot of our
-                        # assumptions
-                        if cmd["phone"] and call_tuple not in unique_calls:
-                            urn = URN.from_tel(cmd["phone"])
-                            try:
-                                ChannelEvent.create_relayer_event(
-                                    channel, urn, cmd["type"], date, extra=dict(duration=duration)
-                                )
-                            except ValueError:
-                                # in some cases Android passes us invalid URNs, in those cases just ignore them
-                                pass
-                            unique_calls.add(call_tuple)
-                        handled = True
+                elif keyword == "reset":
+                    # release this channel
+                    channel.release(False)
+                    channel.save()
 
-                    elif keyword == "fcm":
-                        # update our fcm and uuid
+                    # ack that things got handled
+                    handled = True
 
-                        config = channel.config
-                        config.update({Channel.CONFIG_FCM_ID: cmd["fcm_id"]})
-                        channel.config = config
-                        channel.uuid = cmd.get("uuid", None)
-                        channel.save(update_fields=["uuid", "config"])
+                elif keyword == "status":
+                    sync_event = SyncEvent.create(channel, cmd, cmds)
+                    Alert.check_power_alert(sync_event)
 
-                        # no acking the fcm
-                        handled = False
+                    # tell the channel to update its org if this channel got moved
+                    if channel.org and "org_id" in cmd and channel.org.pk != cmd["org_id"]:
+                        commands.append(dict(cmd="claim", org_id=channel.org.pk))
 
-                    elif keyword == "reset":
-                        # release this channel
-                        channel.release(False)
-                        channel.save()
+                    # we don't ack status messages since they are always included
+                    handled = False
 
-                        # ack that things got handled
-                        handled = True
+            # is this something we can ack?
+            if "p_id" in cmd and handled:
+                ack = dict(p_id=cmd["p_id"], cmd="ack")
+                if extra:
+                    ack["extra"] = extra
 
-                    elif keyword == "status":
-                        sync_event = SyncEvent.create(channel, cmd, cmds)
-                        Alert.check_power_alert(sync_event)
-
-                        # tell the channel to update its org if this channel got moved
-                        if channel.org and "org_id" in cmd and channel.org.pk != cmd["org_id"]:
-                            commands.append(dict(cmd="claim", org_id=channel.org.pk))
-
-                        # we don't ack status messages since they are always included
-                        handled = False
-
-                # is this something we can ack?
-                if "p_id" in cmd and handled:
-                    ack = dict(p_id=cmd["p_id"], cmd="ack")
-                    if extra:
-                        ack["extra"] = extra
-
-                    commands.append(ack)
+                commands.append(ack)
 
     outgoing_cmds = get_commands(channel, commands, sync_event)
     result = dict(cmds=outgoing_cmds)
@@ -882,9 +876,6 @@ def sync(request, channel_id):
     if sync_event:
         sync_event.outgoing_command_count = len([_ for _ in outgoing_cmds if _["cmd"] != "ack"])
         sync_event.save()
-
-    print("==RESPONDING WITH:")
-    print(json.dumps(result, indent=2))
 
     # keep track of how long a sync takes
     analytics.gauge("temba.relayer_sync", time.time() - start)
