@@ -1767,6 +1767,11 @@ msgstr "Le secret de l'application WeChat"
 msgid "Message Templates"
 msgstr "Modèles de message"
 
+#, fuzzy
+#| msgid "WhatsApp identifier"
+msgid "WhatsApp Details"
+msgstr "Identifiant WhatsApp"
+
 msgid "If you have an enterprise WhatsApp account, you can connect it to communicate with your contacts"
 msgstr "Si vous avez un compte d'entreprise WhatsApp, vous pouvez le connecter pour communiquer avec vos contacts."
 
@@ -1780,6 +1785,38 @@ msgstr "Impossible de configurer le canal: %s"
 
 msgid "Contacts refresh begun, it may take a few minutes to complete."
 msgstr "L’actualisation des contacts est en cours, cela peut prendre quelques minutes."
+
+#, fuzzy
+#| msgid "Channel Name"
+msgid "Channel Page"
+msgstr "Nom du canal"
+
+#, fuzzy
+#| msgid "Update Policy"
+msgid "Update Profile"
+msgstr "Mettre à jour la politique"
+
+msgid "Update Business Profile"
+msgstr ""
+
+msgid "Profile about updated successfully."
+msgstr ""
+
+#, fuzzy
+#| msgid "An error occurred updating your contact. Please try again later."
+msgid "Error setting about, please try again later."
+msgstr "Une erreur s'est produite lors de la mise à jour de votre contact. Veuillez réessayer plus tard."
+
+#, fuzzy
+#| msgid "An error occurred updating your contact. Please try again later."
+msgid "Error setting photo, please try again later."
+msgstr "Une erreur s'est produite lors de la mise à jour de votre contact. Veuillez réessayer plus tard."
+
+msgid "Address to display on WhatsApp business profile"
+msgstr ""
+
+msgid "Business profile update successfully."
+msgstr ""
 
 msgid "Sync Logs"
 msgstr "Journaux de synchronisation"
@@ -5311,6 +5348,11 @@ msgstr "Votre chaîne WhatsApp est maintenant connectée, vous devriez pouvoir e
 
 msgid "In the case of a new WhatsApp install or replacement of an existing WhatsApp channel you may need to refresh the contacts on the WhatsApp application. This may take a few minutes."
 msgstr "Dans le cas d'une nouvelle installation de WhatsApp ou du remplacement d'un canal WhatsApp existant, vous devrez peut-être actualiser les contacts sur l'application WhatsApp. Cela peut prendre quelques minutes."
+
+#, fuzzy
+#| msgid "WhatsApp Templates Events"
+msgid "WhatsApp Settings Details"
+msgstr "Événements des modèles WhatsApp"
 
 msgid "WhatsApp Templates Events"
 msgstr "Événements des modèles WhatsApp"

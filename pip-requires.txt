@@ -30,6 +30,7 @@ elasticsearch_dsl
 ########################## file types ##########################
 geojson
 markdown
+Pillow
 polib
 pyexcel
 pyexcel-xls

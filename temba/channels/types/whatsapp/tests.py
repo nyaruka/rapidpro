@@ -1,7 +1,11 @@
+import io
+import json
 from unittest.mock import patch
 
 from requests import RequestException
 
+from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.forms import ValidationError
 from django.urls import reverse
 
@@ -549,3 +553,248 @@ class WhatsAppTypeTest(TembaTest):
         self.login(self.admin2)
         response = self.client.get(reverse("channels.types.whatsapp.sync_logs", args=[channel.uuid]))
         self.assertEqual(404, response.status_code)
+
+    @patch("temba.channels.types.whatsapp.WhatsAppType.business_profile")
+    @patch("temba.channels.types.whatsapp.WhatsAppType.profile_photo_url")
+    @patch("temba.channels.types.whatsapp.WhatsAppType.profile_about")
+    @patch("temba.channels.types.whatsapp.WhatsAppType.set_profile_about")
+    @patch("temba.channels.types.whatsapp.WhatsAppType.set_profile_photo")
+    @patch("requests.post")
+    def test_whatsapp_update_about(
+        self,
+        mock_post,
+        mock_set_profile_photo,
+        mock_set_profile_about,
+        mock_profile_about,
+        mock_profile_photo_url,
+        mock_business_profile,
+    ):
+        mock_post.return_value = MockResponse(200, "{}")
+        mock_profile_about.return_value = "foo"
+        mock_profile_photo_url.return_value = ""
+        mock_business_profile.return_value = dict()
+        mock_set_profile_about.side_effect = [Exception("error"), "success", "success"]
+        mock_set_profile_photo.side_effect = [Exception("error"), "success"]
+
+        Channel.objects.all().delete()
+
+        channel = Channel.create(
+            self.org,
+            self.admin,
+            "US",
+            "WA",
+            name="WhatsApp: 1234",
+            address="1234",
+            config={
+                Channel.CONFIG_BASE_URL: "https://nyaruka.com/whatsapp",
+                Channel.CONFIG_USERNAME: "temba",
+                Channel.CONFIG_PASSWORD: "tembapasswd",
+                Channel.CONFIG_AUTH_TOKEN: "authtoken123",
+                CONFIG_FB_BUSINESS_ID: "1234",
+                CONFIG_FB_ACCESS_TOKEN: "token123",
+                CONFIG_FB_NAMESPACE: "my-custom-app",
+                CONFIG_FB_TEMPLATE_LIST_DOMAIN: "graph.facebook.com",
+            },
+            tps=45,
+        )
+
+        about_url = reverse("channels.types.whatsapp.about", args=[channel.uuid])
+        self.login(self.admin)
+
+        response = self.client.get(about_url)
+        self.assertEqual(200, response.status_code)
+
+        post_data = dict(about="About us text.")
+        response = self.client.post(about_url, post_data, follow=True)
+        self.assertFormError(response, "form", "about", "Error setting about, please try again later.")
+
+        with open(f"{settings.MEDIA_ROOT}/test_media/steve.marten.jpg", "rb") as data:
+            post_data = dict(photo=data, about="About us text.")
+            response = self.client.post(about_url, post_data)
+            self.assertFormError(response, "form", "photo", "Error setting photo, please try again later.")
+
+        with open(f"{settings.MEDIA_ROOT}/test_media/steve.marten.jpg", "rb") as data:
+            post_data = dict(photo=data, about="About us text.")
+            response = self.client.post(about_url, post_data, follow=True)
+            self.assertRedirects(response, reverse("channels.types.whatsapp.details", args=[channel.uuid]))
+
+    @patch("temba.channels.types.whatsapp.WhatsAppType.profile_photo_url")
+    @patch("temba.channels.types.whatsapp.WhatsAppType.profile_about")
+    @patch("temba.channels.types.whatsapp.WhatsAppType.business_profile")
+    @patch("temba.channels.types.whatsapp.WhatsAppType.set_business_profile")
+    @patch("requests.patch")
+    def test_whatsapp_business_profile(
+        self, mock_patch, mock_set_business_profile, mock_business_profile, mock_profile_about, mock_profile_photo_url
+    ):
+        mock_patch.return_value = MockResponse(200, "{}")
+        mock_profile_about.return_value = ""
+        mock_profile_photo_url.return_value = ""
+        mock_business_profile.return_value = dict(description="foo")
+        mock_set_business_profile.side_effect = [Exception("error"), "success"]
+
+        Channel.objects.all().delete()
+
+        channel = Channel.create(
+            self.org,
+            self.admin,
+            "US",
+            "WA",
+            name="WhatsApp: 1234",
+            address="1234",
+            config={
+                Channel.CONFIG_BASE_URL: "https://nyaruka.com/whatsapp",
+                Channel.CONFIG_USERNAME: "temba",
+                Channel.CONFIG_PASSWORD: "tembapasswd",
+                Channel.CONFIG_AUTH_TOKEN: "authtoken123",
+                CONFIG_FB_BUSINESS_ID: "1234",
+                CONFIG_FB_ACCESS_TOKEN: "token123",
+                CONFIG_FB_NAMESPACE: "my-custom-app",
+                CONFIG_FB_TEMPLATE_LIST_DOMAIN: "graph.facebook.com",
+            },
+            tps=45,
+        )
+
+        business_profile_url = reverse("channels.types.whatsapp.business_profile", args=[channel.uuid])
+        self.login(self.admin)
+
+        response = self.client.get(business_profile_url)
+        self.assertEqual(200, response.status_code)
+
+        post_data = dict(address="foo", description="bar", email="admin@example.com", website1="https://example.com")
+        response = self.client.post(business_profile_url, post_data, follow=True)
+        self.assertFormError(response, "form", None, "Error setting business profile, please try again later.")
+
+        response = self.client.post(business_profile_url, post_data, follow=True)
+        self.assertRedirects(response, reverse("channels.types.whatsapp.details", args=[channel.uuid]))
+
+    @patch("requests.patch")
+    @patch("requests.post")
+    @patch("requests.get")
+    def test_type_methods(self, mock_get, mock_post, mock_patch):
+        mock_post.side_effect = [
+            Exception("error"),
+            MockResponse(500, json.dumps(dict(errors=[dict()]))),
+            MockResponse(400, json.dumps(dict(errors=[dict(title="Failed")]))),
+            MockResponse(200, "{}"),
+        ]
+        mock_patch.side_effect = [
+            Exception("error"),
+            MockResponse(500, json.dumps(dict(errors=[dict()]))),
+            MockResponse(400, json.dumps(dict(errors=[dict(title="Failed")]))),
+            MockResponse(200, "{}"),
+        ]
+        mock_get.side_effect = [
+            Exception("error"),
+            MockResponse(200, json.dumps(dict(settings=dict(profile=dict(about=dict(text="Foo")))))),
+            MockResponse(200, json.dumps(dict(settings=dict(profile=dict(about=dict(text="Foo")))))),
+            Exception("error"),
+            MockResponse(200, json.dumps(dict(settings=dict(business=dict(profile=dict(description="Foo bar")))))),
+            MockResponse(200, json.dumps(dict(settings=dict(business=dict(profile=dict(description="Foo bar")))))),
+            Exception("error"),
+            MockResponse(
+                200, json.dumps(dict(settings=dict(profile=dict(photo=dict(link="https://example.com/Foo")))))
+            ),
+            MockResponse(
+                200, json.dumps(dict(settings=dict(profile=dict(photo=dict(link="https://example.com/Foo")))))
+            ),
+        ]
+
+        Channel.objects.all().delete()
+
+        channel = Channel.create(
+            self.org,
+            self.admin,
+            "US",
+            "WA",
+            name="WhatsApp: 1234",
+            address="1234",
+            config={
+                Channel.CONFIG_BASE_URL: "https://nyaruka.com/whatsapp",
+                Channel.CONFIG_USERNAME: "temba",
+                Channel.CONFIG_PASSWORD: "tembapasswd",
+                Channel.CONFIG_AUTH_TOKEN: "authtoken123",
+                CONFIG_FB_BUSINESS_ID: "1234",
+                CONFIG_FB_ACCESS_TOKEN: "token123",
+                CONFIG_FB_NAMESPACE: "my-custom-app",
+                CONFIG_FB_TEMPLATE_LIST_DOMAIN: "graph.facebook.com",
+            },
+            tps=45,
+        )
+
+        with self.assertRaises(Exception):
+            channel.get_type().profile_about(channel)
+        self.assertEqual("Foo", channel.get_type().profile_about(channel))
+
+        with self.assertRaises(Exception):
+            channel.get_type().set_profile_about(channel, "bar")
+
+        with self.assertRaises(Exception):
+            channel.get_type().set_profile_about(channel, "bar")
+
+        with self.assertRaises(Exception):
+            channel.get_type().set_profile_about(channel, "bar")
+
+        channel.get_type().set_profile_about(channel, "bar")
+        self.assertEqual("https://nyaruka.com/whatsapp/v1/settings/profile/about", mock_patch.call_args_list[0][0][0])
+        self.assertEqual({"text": "bar"}, mock_patch.call_args_list[0][1]["json"])
+        self.assertEqual({"Authorization": "Bearer authtoken123"}, mock_patch.call_args_list[0][1]["headers"])
+        mock_patch.reset_mock()
+
+        mock_patch.side_effect = [
+            Exception("error"),
+            MockResponse(500, json.dumps(dict(errors=[dict()]))),
+            MockResponse(400, json.dumps(dict(errors=[dict(title="Failed")]))),
+            MockResponse(200, "{}"),
+        ]
+
+        with self.assertRaises(Exception):
+            channel.get_type().business_profile(channel)
+        self.assertEqual(dict(description="Foo bar"), channel.get_type().business_profile(channel))
+
+        with self.assertRaises(Exception):
+            channel.get_type().set_business_profile(channel, dict(description="Baz"))
+
+        with self.assertRaises(Exception):
+            channel.get_type().set_business_profile(channel, dict(description="Baz"))
+
+        with self.assertRaises(Exception):
+            channel.get_type().set_business_profile(channel, dict(description="Baz"))
+
+        channel.get_type().set_business_profile(channel, dict(description="Baz"))
+        self.assertEqual(
+            "https://nyaruka.com/whatsapp/v1/settings/business/profile", mock_patch.call_args_list[0][0][0]
+        )
+        self.assertEqual({"description": "Baz"}, mock_patch.call_args_list[0][1]["json"])
+        self.assertEqual({"Authorization": "Bearer authtoken123"}, mock_patch.call_args_list[0][1]["headers"])
+        mock_patch.reset_mock()
+
+        with self.assertRaises(Exception):
+            channel.get_type().profile_photo_url(channel)
+        self.assertEqual("https://example.com/Foo", channel.get_type().profile_photo_url(channel))
+
+        with open(f"{settings.MEDIA_ROOT}/test_media/steve.marten.jpg", "rb") as f:
+            upload_image = SimpleUploadedFile(f.name, f.read())
+            with self.assertRaises(Exception):
+                channel.get_type().set_profile_photo(channel, upload_image)
+
+        with open(f"{settings.MEDIA_ROOT}/test_media/steve.marten.jpg", "rb") as f:
+            upload_image = SimpleUploadedFile(f.name, f.read())
+            with self.assertRaises(Exception):
+                channel.get_type().set_profile_photo(channel, upload_image)
+
+        with open(f"{settings.MEDIA_ROOT}/test_media/steve.marten.jpg", "rb") as f:
+            upload_image = SimpleUploadedFile(f.name, f.read())
+            with self.assertRaises(Exception):
+                channel.get_type().set_profile_photo(channel, upload_image)
+
+        with open(f"{settings.MEDIA_ROOT}/test_media/steve.marten.jpg", "rb") as f:
+            upload_image = SimpleUploadedFile(f.name, f.read())
+            channel.get_type().set_profile_photo(channel, upload_image)
+            self.assertEqual(
+                "https://nyaruka.com/whatsapp/v1/settings/profile/photo", mock_post.call_args_list[0][0][0]
+            )
+            self.assertEqual(
+                {"Authorization": "Bearer authtoken123", "Content-Type": "image/jpeg"},
+                mock_post.call_args_list[0][1]["headers"],
+            )
+            self.assertIsInstance(mock_post.call_args_list[0][1]["data"], io.BytesIO)

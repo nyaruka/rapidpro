@@ -1727,6 +1727,9 @@ msgstr ""
 msgid "Message Templates"
 msgstr ""
 
+msgid "WhatsApp Details"
+msgstr ""
+
 msgid "If you have an enterprise WhatsApp account, you can connect it to communicate with your contacts"
 msgstr ""
 
@@ -1739,6 +1742,30 @@ msgid "Unable to configure channel: %s"
 msgstr ""
 
 msgid "Contacts refresh begun, it may take a few minutes to complete."
+msgstr ""
+
+msgid "Channel Page"
+msgstr ""
+
+msgid "Update Profile"
+msgstr ""
+
+msgid "Update Business Profile"
+msgstr ""
+
+msgid "Profile about updated successfully."
+msgstr ""
+
+msgid "Error setting about, please try again later."
+msgstr ""
+
+msgid "Error setting photo, please try again later."
+msgstr ""
+
+msgid "Address to display on WhatsApp business profile"
+msgstr ""
+
+msgid "Business profile update successfully."
 msgstr ""
 
 msgid "Sync Logs"
@@ -5136,6 +5163,9 @@ msgid "Your WhatsApp channel is now connected, you should be able to send and re
 msgstr ""
 
 msgid "In the case of a new WhatsApp install or replacement of an existing WhatsApp channel you may need to refresh the contacts on the WhatsApp application. This may take a few minutes."
+msgstr ""
+
+msgid "WhatsApp Settings Details"
 msgstr ""
 
 msgid "WhatsApp Templates Events"

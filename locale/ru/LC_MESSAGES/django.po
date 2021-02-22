@@ -2445,6 +2445,11 @@ msgstr "Секрет приложения WeChat "
 msgid "Message Templates"
 msgstr "Шаблоны сообщения"
 
+#, fuzzy
+#| msgid "WhatsApp identifier"
+msgid "WhatsApp Details"
+msgstr "Идентификатор WhatsApp"
+
 msgid "If you have an enterprise WhatsApp account, you can connect it to communicate with your contacts"
 msgstr "Если у Вас есть корпоративная учетная запись WhatsApp, Вы можете подключить ее для общения с Вашими контактами"
 
@@ -2458,6 +2463,38 @@ msgstr "Невозможно настроить канал: %s"
 
 msgid "Contacts refresh begun, it may take a few minutes to complete."
 msgstr "Обновление контактов началось, может потребоваться несколько минут для завершения процесса."
+
+#, fuzzy
+#| msgid "Channel Name"
+msgid "Channel Page"
+msgstr "Название Канала"
+
+#, fuzzy
+#| msgid "New Policy"
+msgid "Update Profile"
+msgstr "Новая Политика"
+
+msgid "Update Business Profile"
+msgstr ""
+
+msgid "Profile about updated successfully."
+msgstr ""
+
+#, fuzzy
+#| msgid "An error occurred updating your contact. Please try again later."
+msgid "Error setting about, please try again later."
+msgstr "При обновлении Вашего контакта произошла ошибка. Пожалуйста, попробуйте позже."
+
+#, fuzzy
+#| msgid "An error occurred updating your contact. Please try again later."
+msgid "Error setting photo, please try again later."
+msgstr "При обновлении Вашего контакта произошла ошибка. Пожалуйста, попробуйте позже."
+
+msgid "Address to display on WhatsApp business profile"
+msgstr ""
+
+msgid "Business profile update successfully."
+msgstr ""
 
 msgid "Sync Logs"
 msgstr "Журналы синхронизации"
@@ -6887,6 +6924,11 @@ msgstr ""
 "    контакты в приложении WhatsApp. Это может занять несколько минут.\n"
 "\n"
 "  "
+
+#, fuzzy
+#| msgid "WhatsApp Templates Events"
+msgid "WhatsApp Settings Details"
+msgstr "События Шаблонов WhatsApp "
 
 msgid "WhatsApp Templates Events"
 msgstr "События Шаблонов WhatsApp "

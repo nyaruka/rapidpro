@@ -1,20 +1,26 @@
+import logging
+
 import requests
 from smartmin.views import SmartFormView, SmartReadView, SmartUpdateView
 
 from django import forms
+from django.core.validators import validate_image_file_extension
+from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from temba.contacts.models import URN
-from temba.orgs.views import OrgPermsMixin
+from temba.orgs.views import ModalMixin, OrgPermsMixin
 from temba.request_logs.models import HTTPLog
 from temba.templates.models import TemplateTranslation
-from temba.utils.fields import ExternalURLField, SelectWidget
-from temba.utils.views import PostOnlyMixin
+from temba.utils.fields import ExternalURLField, InputWidget, SelectWidget
+from temba.utils.views import ComponentFormMixin, PostOnlyMixin
 
 from ...models import Channel
 from ...views import ALL_COUNTRIES, ClaimViewMixin
 from .tasks import refresh_whatsapp_contacts
+
+logger = logging.getLogger(__name__)
 
 
 class RefreshView(PostOnlyMixin, OrgPermsMixin, SmartUpdateView):
@@ -36,6 +42,167 @@ class RefreshView(PostOnlyMixin, OrgPermsMixin, SmartUpdateView):
     def post_save(self, obj):
         refresh_whatsapp_contacts.delay(obj.id)
         return obj
+
+
+class DetailsView(OrgPermsMixin, SmartReadView):
+    model = Channel
+    fields = None
+    permission = "channels.channel_read"
+    slug_url_kwarg = "uuid"
+    template_name = "channels/types/whatsapp/details.html"
+
+    def get_gear_links(self):
+        return [
+            dict(title=_("Channel Page"), href=reverse("channels.channel_read", args=[self.object.uuid])),
+            dict(
+                id="update-profie-about",
+                title=_("Update Profile"),
+                href=reverse("channels.types.whatsapp.about", args=[self.object.uuid]),
+                modax=_("Update Profile"),
+            ),
+            dict(
+                id="update-business-profie",
+                title=_("Update Business Profile"),
+                href=reverse("channels.types.whatsapp.business_profile", args=[self.object.uuid]),
+                modax=_("Update Business Profile"),
+            ),
+        ]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(org=self.get_user().get_org())
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context["about"] = self.object.get_type().profile_about(self.object)
+        context["photo_url"] = self.object.get_type().profile_photo_url(self.object)
+        context["business_profile"] = self.object.get_type().business_profile(self.object)
+
+        return context
+
+
+class UpdateAboutView(OrgPermsMixin, ComponentFormMixin, ModalMixin, SmartUpdateView):
+    class AboutForm(forms.ModelForm):
+        about = forms.CharField(required=False, max_length=139, widget=InputWidget())
+        photo = forms.ImageField(required=False, validators=[validate_image_file_extension])
+
+        class Meta:
+            fields = ("about", "photo")
+            model = Channel
+
+    model = Channel
+    form_class = AboutForm
+    success_message = _("Profile about updated successfully.")
+    success_url = "uuid@channels.types.whatsapp.details"
+    permission = "channels.channel_claim"
+    slug_url_kwarg = "uuid"
+    template_name = "channels/types/whatsapp/about.html"
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(org=self.get_user().get_org())
+
+    def derive_initial(self):
+        initial = super().derive_initial()
+        about = self.object.get_type().profile_about(self.object)
+        if about:
+            initial["about"] = about
+
+        return initial
+
+    def form_valid(self, form):
+        try:
+            self.object.get_type().set_profile_about(self.object, form.cleaned_data["about"])
+        except Exception as e:
+            self.form.add_error(
+                "about", forms.ValidationError(_("Error setting about, please try again later."), code="about")
+            )
+            # ensure exception still goes to Sentry
+            logger.error("Error setting about: %s" % str(e), exc_info=True)
+            return self.form_invalid(form)
+
+        try:
+            self.object.get_type().set_profile_photo(self.object, form.cleaned_data["photo"])
+        except Exception as e:
+            self.form.add_error(
+                "photo", forms.ValidationError(_("Error setting photo, please try again later."), code="photo")
+            )
+            # ensure exception still goes to Sentry
+            logger.error("Error setting photo: %s" % str(e), exc_info=True)
+            return self.form_invalid(form)
+
+        return super().form_valid(form)
+
+
+class UpdateBusinessProfileView(OrgPermsMixin, ComponentFormMixin, ModalMixin, SmartUpdateView):
+    class BusinessProfileForm(forms.ModelForm):
+        address = forms.CharField(
+            required=False,
+            max_length=256,
+            widget=InputWidget(),
+            help_text=_("Address to display on WhatsApp business profile"),
+        )
+        description = forms.CharField(required=False, max_length=256, widget=forms.Textarea)
+        email = forms.EmailField(required=False, max_length=128, widget=InputWidget())
+        vertical = forms.CharField(required=False, max_length=128, widget=InputWidget())
+        website1 = forms.URLField(required=False, max_length=256, widget=InputWidget())
+        website2 = forms.URLField(required=False, max_length=256, widget=InputWidget())
+
+        class Meta:
+            fields = ("address", "description", "email", "vertical", "website1", "website2")
+            model = Channel
+
+    model = Channel
+    form_class = BusinessProfileForm
+    success_message = _("Business profile update successfully.")
+    success_url = "uuid@channels.types.whatsapp.details"
+    permission = "channels.channel_claim"
+    slug_url_kwarg = "uuid"
+    template_name = "channels/types/whatsapp/business_profile.html"
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(org=self.get_user().get_org())
+
+    def derive_initial(self):
+        initial = super().derive_initial()
+        business_profile = self.object.get_type().business_profile(self.object)
+
+        if business_profile:
+            initial["address"] = business_profile.get("address", "")
+            initial["description"] = business_profile.get("description", "")
+            initial["email"] = business_profile.get("email", "")
+            initial["vertical"] = business_profile.get("vertical", "")
+            initial["website1"] = business_profile.get("websites", ["", ""])[0]
+            initial["website2"] = business_profile.get("websites", ["", ""])[1]
+        return initial
+
+    def form_valid(self, form):
+        try:
+            existing_business_profile = self.object.get_type().business_profile(self.object) or dict()
+
+            updates = dict(websites=[])
+            for key in form.cleaned_data.keys():
+                if key in ("address", "description", "email", "vertical") and existing_business_profile.get(
+                    key, ""
+                ) != form.cleaned_data.get(key, ""):
+                    updates[key] = form.cleaned_data.get(key, "")
+                elif key in ("website1", "website2") and form.cleaned_data.get(key, ""):
+                    updates["websites"].append(form.cleaned_data.get(key))
+
+            self.object.get_type().set_business_profile(self.object, updates)
+            return HttpResponseRedirect(self.get_success_url())
+        except Exception as e:
+            self.form.add_error(
+                None,
+                forms.ValidationError(
+                    f"Error setting business profile, please try again later.", code="business_profile"
+                ),
+            )
+            # ensure exception still goes to Sentry
+            logger.error("Error setting business profile: %s" % str(e), exc_info=True)
+            return self.form_invalid(form)
 
 
 class TemplatesView(OrgPermsMixin, SmartReadView):
