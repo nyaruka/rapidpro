@@ -2224,7 +2224,7 @@ def _user_verify_2fa(user, *, otp: str = None, backup_token: str = None) -> bool
         secret = user.get_settings().otp_secret
         return pyotp.TOTP(secret).verify(otp, valid_window=2)
     elif backup_token:
-        token = user.backup_tokens.filter(token=backup_token).first()
+        token = user.backup_tokens.filter(token=backup_token, is_used=False).first()
         if token:
             token.is_used = True
             token.save(update_fields=("is_used",))
@@ -2329,20 +2329,7 @@ class Invitation(SmartModel):
     @classmethod
     def bulk_create_or_update(cls, org, user, emails: list, role: OrgRole):
         for email in emails:
-            # if they already have an invite, update it
-            invites = org.invitations.filter(email=email).order_by("-id")
-            invitation = invites.first()
-
-            if invitation:
-                invites.exclude(id=invitation.id).delete()  # remove any old invites
-
-                invitation.user_group = role.code
-                invitation.secret = random_string(64)  # generate new secret for this invitation
-                invitation.is_active = True
-                invitation.save(update_fields=("user_group", "secret", "is_active"))
-            else:
-                invitation = cls.create(org, user, email, role)
-
+            invitation = cls.create(org, user, email, role)
             invitation.send()
 
     def save(self, *args, **kwargs):

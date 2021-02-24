@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-02-11 17:00+0000\n"
+"POT-Creation-Date: 2021-02-23 15:08+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3310,6 +3310,42 @@ msgstr ""
 msgid "Sorry, that email address is already taken."
 msgstr ""
 
+msgid "6-digit code"
+msgstr ""
+
+msgid "Current password"
+msgstr ""
+
+msgid "OTP incorrect. Please try again."
+msgstr ""
+
+msgid "Password incorrect."
+msgstr ""
+
+msgid "Two-factor authentication enabled"
+msgstr ""
+
+msgid "Enable"
+msgstr ""
+
+msgid "Enable Two-factor Authentication"
+msgstr ""
+
+msgid "Two-factor authentication disabled"
+msgstr ""
+
+msgid "Disable"
+msgstr ""
+
+msgid "Disable Two-factor Authentication"
+msgstr ""
+
+msgid "Two-factor Authentication"
+msgstr ""
+
+msgid "Two-factor authentication backup tokens changed."
+msgstr ""
+
 msgid "The import file"
 msgstr ""
 
@@ -3436,19 +3472,16 @@ msgstr ""
 msgid "One of the emails you entered is invalid."
 msgstr ""
 
+msgid "One of the emails you entered has an existing user on the workspace."
+msgstr ""
+
+msgid "One of the emails you entered is duplicated."
+msgstr ""
+
 msgid "A workspace must have at least one administrator."
 msgstr ""
 
 msgid "Manage Logins"
-msgstr ""
-
-msgid "One-time Password (OTP)"
-msgstr ""
-
-msgid "Enter the one-time password from your authentication application."
-msgstr ""
-
-msgid "Two Factor Authentication"
 msgstr ""
 
 msgid "Dashboard"
@@ -3476,10 +3509,13 @@ msgstr ""
 msgid "Join %(name)s"
 msgstr ""
 
-msgid "Join"
+msgid "Sign in with your account to accept the invitation"
 msgstr ""
 
 msgid "Your invitation link has expired. Please contact your workspace administrator."
+msgstr ""
+
+msgid "Join"
 msgstr ""
 
 msgid "Invalid surveyor password, please check with your project leader and try again."
@@ -6327,9 +6363,6 @@ msgstr ""
 msgid "Sign up"
 msgstr ""
 
-msgid "Two-factor Authentication"
-msgstr ""
-
 msgid "If you no longer have access to the device with which you setup two-factor authentication on your login, you can enter one of your backup tokens below."
 msgstr ""
 
@@ -6340,9 +6373,6 @@ msgid "Use Device"
 msgstr ""
 
 msgid "Open the one-time password application with which you setup two-factor authentication on your account and enter the code below to verify your identity."
-msgstr ""
-
-msgid "6-digit code"
 msgstr ""
 
 msgid "Use Backup Token"
@@ -6402,12 +6432,6 @@ msgid "Edit Aliases"
 msgstr ""
 
 msgid "Choose a country to enable location support in your flows."
-msgstr ""
-
-msgid "Create new login"
-msgstr ""
-
-msgid "Sign in"
 msgstr ""
 
 msgid "Add Credits"
@@ -6534,6 +6558,9 @@ msgid "If you have flows or campaigns with the same names or UUIDs as the ones y
 msgstr ""
 
 msgid "Do not proceed unless you are willing to replace your existing flows and campaigns."
+msgstr ""
+
+msgid "Sign in"
 msgstr ""
 
 #, python-format
@@ -6684,28 +6711,6 @@ msgstr ""
 msgid "Disconnecting your Twilio account will also remove any Twilio channels connected to it. Are you sure you want to proceed?"
 msgstr ""
 
-#, python-format
-msgid "To enable two factor authentication, use a one-time password (OTP) application such as <a href=\"%(ga_url)s\">Google Authenticator</a> or <a href=\"%(authy_url)s\">Authy</a> to scan the QR code below and generate an OTP."
-msgstr ""
-
-msgid "Backup tokens can be used if you no longer have access to the authentication application configured for your account."
-msgstr ""
-
-msgid "Any tokens you may have previously generated are invalid."
-msgstr ""
-
-msgid "Disable"
-msgstr ""
-
-msgid "Regenerate Backup Tokens"
-msgstr ""
-
-msgid "Two Factor Authentication is <b>enabled</b>."
-msgstr ""
-
-msgid "Two Factor Authentication is <b>disabled</b>."
-msgstr ""
-
 msgid "This workspace has been suspended"
 msgstr ""
 
@@ -6761,6 +6766,28 @@ msgid ""
 "\n"
 "    Your email address is <b>%(email)s</b>.\n"
 "  "
+msgstr ""
+
+msgid "To disable two-factor authentication for your login, enter your current password."
+msgstr ""
+
+#, python-format
+msgid "To enable two-factor authentication on your login, use a one-time password (OTP) application such as <a href=\"%(ga_url)s\">Google Authenticator</a> or <a href=\"%(authy_url)s\">Authy</a> to scan the QR code below."
+msgstr ""
+
+msgid "Two-factor authentication is <b>disabled</b>."
+msgstr ""
+
+msgid "Two-factor authentication is currently enabled for your login. Below are your backup tokens which you can use if you lose access to the device with which you setup two-factor authentication. Each token can only be used once and tokens which have already been used are showed with a line through them. You should record these tokens in a secure place."
+msgstr ""
+
+msgid "You can generate new backup tokens but remember that the current tokens will be no longer be usable if you do this."
+msgstr ""
+
+msgid "Regenerate Tokens"
+msgstr ""
+
+msgid "Two-factor authentication is <b>enabled</b>."
 msgstr ""
 
 msgid "Policies"

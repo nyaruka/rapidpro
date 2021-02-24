@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TextIt\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-02-11 17:00+0000\n"
+"POT-Creation-Date: 2021-02-23 15:08+0000\n"
 "PO-Revision-Date: 2014-09-24 19:56+0000\n"
 "Last-Translator: TextIt <info@textit.in>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/textit/language/es/)\n"
@@ -4804,6 +4804,50 @@ msgstr "Por favor, ingrese su contraseña para guardar los cambios."
 msgid "Sorry, that email address is already taken."
 msgstr "Lo sentimos, esta dirección de correo electrónico ya ha sido elegida."
 
+msgid "6-digit code"
+msgstr ""
+
+#, fuzzy
+#| msgid "Current Password (required)"
+msgid "Current password"
+msgstr "Contraseña actual (requerida)"
+
+#, fuzzy
+#| msgid "Invalid phone number, try again."
+msgid "OTP incorrect. Please try again."
+msgstr "Número de teléfono inválido, inténtelo nuevamente."
+
+msgid "Password incorrect."
+msgstr ""
+
+msgid "Two-factor authentication enabled"
+msgstr ""
+
+#, fuzzy
+#| msgid "Enable Voice"
+msgid "Enable"
+msgstr "Permitir voz"
+
+msgid "Enable Two-factor Authentication"
+msgstr ""
+
+msgid "Two-factor authentication disabled"
+msgstr ""
+
+msgid "Disable"
+msgstr ""
+
+msgid "Disable Two-factor Authentication"
+msgstr ""
+
+msgid "Two-factor Authentication"
+msgstr ""
+
+#, fuzzy
+#| msgid "Invalid claim code, please check and try again."
+msgid "Two-factor authentication backup tokens changed."
+msgstr "Código de pedido inválido, por favor, verifique e inténtelo nuevamente."
+
 msgid "The import file"
 msgstr "El archivo de importación"
 
@@ -4952,6 +4996,16 @@ msgid "One of the emails you entered is invalid."
 msgstr "Uno de los correos electrónicos que ingresó es inválido."
 
 #, fuzzy
+#| msgid "One of the emails you entered is invalid."
+msgid "One of the emails you entered has an existing user on the workspace."
+msgstr "Uno de los correos electrónicos que ingresó es inválido."
+
+#, fuzzy
+#| msgid "One of the emails you entered is invalid."
+msgid "One of the emails you entered is duplicated."
+msgstr "Uno de los correos electrónicos que ingresó es inválido."
+
+#, fuzzy
 #| msgid "You must have at least one administator"
 msgid "A workspace must have at least one administrator."
 msgstr "Debe tener al menos un administrador"
@@ -4960,15 +5014,6 @@ msgstr "Debe tener al menos un administrador"
 #| msgid "Manage %(name)s Accounts"
 msgid "Manage Logins"
 msgstr "Manejar las cuentas de %(name)s "
-
-msgid "One-time Password (OTP)"
-msgstr ""
-
-msgid "Enter the one-time password from your authentication application."
-msgstr ""
-
-msgid "Two Factor Authentication"
-msgstr ""
 
 #, fuzzy
 #| msgid "dashboard"
@@ -5009,13 +5054,18 @@ msgstr "El enlace de su invitación es inválido. Por favor, contacte al adminis
 msgid "Join %(name)s"
 msgstr "Participar en %(name)s"
 
-msgid "Join"
-msgstr "Participar"
+#, fuzzy
+#| msgid "Please click Join to accept the invitation."
+msgid "Sign in with your account to accept the invitation"
+msgstr "Por favor, haga clic en Participar para aceptar la invitación."
 
 #, fuzzy
 #| msgid "Your invitation link has expired. Please contact your organization administrator."
 msgid "Your invitation link has expired. Please contact your workspace administrator."
 msgstr "El enlace de su invitación ha vencido. Por favor, contacte al administrador de su organización."
+
+msgid "Join"
+msgstr "Participar"
 
 #, fuzzy
 #| msgid "Invalid claim code, please check and try again."
@@ -9411,9 +9461,6 @@ msgstr ""
 msgid "Sign up"
 msgstr "Registrarse"
 
-msgid "Two-factor Authentication"
-msgstr ""
-
 msgid "If you no longer have access to the device with which you setup two-factor authentication on your login, you can enter one of your backup tokens below."
 msgstr ""
 
@@ -9426,9 +9473,6 @@ msgid "Use Device"
 msgstr "Dispositivo"
 
 msgid "Open the one-time password application with which you setup two-factor authentication on your account and enter the code below to verify your identity."
-msgstr ""
-
-msgid "6-digit code"
 msgstr ""
 
 msgid "Use Backup Token"
@@ -9516,14 +9560,6 @@ msgstr "Editar apelativos"
 
 msgid "Choose a country to enable location support in your flows."
 msgstr "Elija un país para recibir ayuda sobre la ubicación en sus flujos."
-
-#, fuzzy
-#| msgid "Create new account"
-msgid "Create new login"
-msgstr "Crear cuenta nueva"
-
-msgid "Sign in"
-msgstr "Registrarse"
 
 msgid "Add Credits"
 msgstr "Agregar créditos"
@@ -9708,6 +9744,9 @@ msgstr "Si tiene flujos o campañas cuyo nombre es igual al de los que está imp
 
 msgid "Do not proceed unless you are willing to replace your existing flows and campaigns."
 msgstr "No continúe, a no ser que desee reemplazar sus flujos y campañas actuales."
+
+msgid "Sign in"
+msgstr "Registrarse"
 
 #, fuzzy, python-format
 #| msgid "You have been invited to join"
@@ -9927,28 +9966,6 @@ msgstr "Desconectar Twilio"
 msgid "Disconnecting your Twilio account will also remove any Twilio channels connected to it. Are you sure you want to proceed?"
 msgstr ""
 
-#, python-format
-msgid "To enable two factor authentication, use a one-time password (OTP) application such as <a href=\"%(ga_url)s\">Google Authenticator</a> or <a href=\"%(authy_url)s\">Authy</a> to scan the QR code below and generate an OTP."
-msgstr ""
-
-msgid "Backup tokens can be used if you no longer have access to the authentication application configured for your account."
-msgstr ""
-
-msgid "Any tokens you may have previously generated are invalid."
-msgstr ""
-
-msgid "Disable"
-msgstr ""
-
-msgid "Regenerate Backup Tokens"
-msgstr ""
-
-msgid "Two Factor Authentication is <b>enabled</b>."
-msgstr ""
-
-msgid "Two Factor Authentication is <b>disabled</b>."
-msgstr ""
-
 #, fuzzy
 msgid "This workspace has been suspended"
 msgstr "La Organización del usuario."
@@ -10031,6 +10048,28 @@ msgstr ""
 "    Su dirección de correo electrónico es <span class='attn'>%(email)s</span>.\n"
 "\n"
 "  "
+
+msgid "To disable two-factor authentication for your login, enter your current password."
+msgstr ""
+
+#, python-format
+msgid "To enable two-factor authentication on your login, use a one-time password (OTP) application such as <a href=\"%(ga_url)s\">Google Authenticator</a> or <a href=\"%(authy_url)s\">Authy</a> to scan the QR code below."
+msgstr ""
+
+msgid "Two-factor authentication is <b>disabled</b>."
+msgstr ""
+
+msgid "Two-factor authentication is currently enabled for your login. Below are your backup tokens which you can use if you lose access to the device with which you setup two-factor authentication. Each token can only be used once and tokens which have already been used are showed with a line through them. You should record these tokens in a secure place."
+msgstr ""
+
+msgid "You can generate new backup tokens but remember that the current tokens will be no longer be usable if you do this."
+msgstr ""
+
+msgid "Regenerate Tokens"
+msgstr ""
+
+msgid "Two-factor authentication is <b>enabled</b>."
+msgstr ""
 
 #, fuzzy
 #| msgid "No Editors"
@@ -10822,6 +10861,11 @@ msgstr "Ingrese el código de pedido"
 msgid "Found ${count} for ${query}"
 msgstr ""
 
+#, fuzzy
+#~| msgid "Your invitation link has expired. Please contact your organization administrator."
+#~ msgid "You are the only administrator on this workspace. Please add other workspace administrators first."
+#~ msgstr "El enlace de su invitación ha vencido. Por favor, contacte al administrador de su organización."
+
 #~ msgid "Your preferred language"
 #~ msgstr "Su idioma preferido"
 
@@ -10831,13 +10875,18 @@ msgstr ""
 #~ msgid "Phone number for testing and recording voice flows"
 #~ msgstr "Número de teléfono para probar y grabar los flujos de voz"
 
-#~ msgid "Start Call"
-#~ msgstr "Empezar llamada"
-
 #, fuzzy
 #~| msgid "API Secret:"
 #~ msgid "OTP Secret"
 #~ msgstr "Código secreto API:"
+
+#~ msgid "Start Call"
+#~ msgstr "Empezar llamada"
+
+#, fuzzy
+#~| msgid "Create new account"
+#~ msgid "Create new login"
+#~ msgstr "Crear cuenta nueva"
 
 #, fuzzy
 #~| msgid "users"
@@ -10867,7 +10916,7 @@ msgstr ""
 #~ msgid "minutes"
 #~ msgstr "Después de 5 minutos"
 
-#, fuzzy, python-format
+#, fuzzy
 #~| msgid ""
 #~| "\n"
 #~| "          Install the %(name)s app\n"
@@ -10931,7 +10980,7 @@ msgstr ""
 #~ msgid "has"
 #~ msgstr "tiene"
 
-#, fuzzy, python-format
+#, fuzzy
 #~| msgid "No Administrator"
 #~ msgid "%(accounts)s Administrator,"
 #~ msgid_plural "%(accounts)s Administrators,"
@@ -11521,7 +11570,7 @@ msgstr ""
 #~ "\n"
 #~ "                "
 
-#, fuzzy, python-format
+#, fuzzy
 #~ msgid ""
 #~ "\n"
 #~ "      After connecting your service we will provide URLs for the endpoints for InfoBip to call when they want\n"
@@ -11585,7 +11634,7 @@ msgstr ""
 #~ msgid "Create a message keyword to allow people to join a group."
 #~ msgstr "Crear una palabre clave de mensajería para que las personas participen en un grupo."
 
-#, fuzzy, python-format
+#, fuzzy
 #~ msgid ""
 #~ "\n"
 #~ "                    %(group_count)s groups, %(contact_count)s contacts, %(urn_count)s urns\n"
@@ -11597,7 +11646,7 @@ msgstr ""
 #~ "\n"
 #~ "         "
 
-#, fuzzy, python-format
+#, fuzzy
 #~ msgid ""
 #~ "\n"
 #~ "                    %(group_count)s groups, %(contact_count)s contacts, %(urn_count)s urns\n"
@@ -11608,7 +11657,7 @@ msgstr ""
 #~ "\n"
 #~ "         "
 
-#, fuzzy, python-format
+#, fuzzy
 #~ msgid ""
 #~ "\n"
 #~ "              Used by %(num_flows)s flow:\n"
@@ -11626,7 +11675,7 @@ msgstr ""
 #~ "                Llamada saliente (%(duration)s seconds)\n"
 #~ "              "
 
-#, fuzzy, python-format
+#, fuzzy
 #~ msgid ""
 #~ "\n"
 #~ "        To get started you need to add a channel to your workspace. A channel is a phone number or social network\n"
@@ -13123,9 +13172,6 @@ msgstr ""
 
 #~ msgid "Remove Phone"
 #~ msgstr "Borrar teléfono"
-
-#~ msgid "Enable Voice"
-#~ msgstr "Permitir voz"
 
 #, fuzzy
 #~| msgid "Resent message"
@@ -15855,11 +15901,6 @@ msgstr ""
 #, fuzzy
 #~ msgid "Type of this channel, whether Android, Twilio or SMSC"
 #~ msgstr "El tipo de este transmisor, ya sea Android, Twilio o SMSC"
-
-#, fuzzy
-#~| msgid "Invalid claim code, please check and try again."
-#~ msgid "Invalid authentication token, please check."
-#~ msgstr "Código de pedido inválido, por favor, verifique e inténtelo nuevamente."
 
 #~ msgid "Unknown channel type: %(channel)s"
 #~ msgstr "Tipo de transmisor desconocido: %(channel)s"

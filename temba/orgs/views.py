@@ -8,10 +8,12 @@ from email.utils import parseaddr
 from functools import cmp_to_key
 from urllib.parse import parse_qs, unquote, urlparse
 
+import iso8601
 import pyotp
 import pytz
 import requests
 from packaging.version import Version
+from smartmin.users.models import FailedLogin
 from smartmin.users.views import Login
 from smartmin.views import (
     SmartCreateView,
@@ -75,6 +77,8 @@ from .tasks import apply_topups_task
 
 # session key for storing a two-factor enabled user's id once we've checked their password
 TWO_FACTOR_USER_SESSION_KEY = "_two_factor_user_id"
+TWO_FACTOR_STARTED_SESSION_KEY = "_two_factor_started_on"
+TWO_FACTOR_LIMIT_SECONDS = 5 * 60
 
 
 def check_login(request):
@@ -360,6 +364,7 @@ class LoginView(Login):
         user = form.get_user()
         if user.get_settings().two_factor_enabled:
             self.request.session[TWO_FACTOR_USER_SESSION_KEY] = str(user.id)
+            self.request.session[TWO_FACTOR_STARTED_SESSION_KEY] = timezone.now().isoformat()
 
             verify_url = reverse("users.two_factor_verify")
             redirect_url = self.get_redirect_url()
@@ -382,8 +387,12 @@ class BaseTwoFactorView(AuthLoginView):
 
     def get_user(self):
         user_id = self.request.session.get(TWO_FACTOR_USER_SESSION_KEY)
-        if user_id:
-            return User.objects.filter(id=user_id, is_active=True).first()
+        started_on = self.request.session.get(TWO_FACTOR_STARTED_SESSION_KEY)
+        if user_id and started_on:
+            # only return user if two factor process was started recently
+            started_on = iso8601.parse_date(started_on)
+            if started_on >= timezone.now() - timedelta(seconds=TWO_FACTOR_LIMIT_SECONDS):
+                return User.objects.filter(id=user_id, is_active=True).first()
         return None
 
     def get_form_kwargs(self):
@@ -391,14 +400,45 @@ class BaseTwoFactorView(AuthLoginView):
         kwargs["user"] = self.get_user()
         return kwargs
 
+    def form_invalid(self, form):
+        user = self.get_user()
+
+        # apply the same limits on failed attempts that smartmin uses for regular logins
+        lockout_timeout = getattr(settings, "USER_LOCKOUT_TIMEOUT", 10)
+        failed_login_limit = getattr(settings, "USER_FAILED_LOGIN_LIMIT", 5)
+
+        FailedLogin.objects.create(user=user)
+
+        bad_interval = timezone.now() - timedelta(minutes=lockout_timeout)
+        failures = FailedLogin.objects.filter(user=user)
+
+        # if the failures reset after a period of time, then limit our query to that interval
+        if lockout_timeout > 0:
+            failures = failures.filter(failed_on__gt=bad_interval)
+
+        # if there are too many failed logins, take them to the failed page
+        if failures.count() >= failed_login_limit:
+            self.reset_user()
+
+            return HttpResponseRedirect(reverse("users.user_failed"))
+
+        return super().form_invalid(form)
+
     def form_valid(self, form):
         # set the user as actually authenticated now
         login(self.request, self.get_user())
 
         # remove our session key so if the user comes back this page they'll get directed to the login view
-        self.request.session.pop(TWO_FACTOR_USER_SESSION_KEY, None)
+        self.reset_user()
+
+        # cleanup any failed logins
+        FailedLogin.objects.filter(user=self.get_user()).delete()
 
         return HttpResponseRedirect(self.get_success_url())
+
+    def reset_user(self):
+        self.request.session.pop(TWO_FACTOR_USER_SESSION_KEY, None)
+        self.request.session.pop(TWO_FACTOR_STARTED_SESSION_KEY, None)
 
 
 class TwoFactorVerifyView(BaseTwoFactorView):
@@ -445,9 +485,18 @@ class TwoFactorBackupView(BaseTwoFactorView):
     template_name = "orgs/login/two_factor_backup.haml"
 
 
+class InferOrgMixin:
+    @classmethod
+    def derive_url_pattern(cls, path, action):
+        return r"^%s/%s/$" % (path, action)
+
+    def get_object(self, *args, **kwargs):
+        return self.request.user.get_org()
+
+
 class UserCRUDL(SmartCRUDL):
     model = User
-    actions = ("list", "edit", "delete")
+    actions = ("list", "edit", "delete", "two_factor_enable", "two_factor_disable", "two_factor_tokens")
 
     class List(SmartListView):
         fields = ("username", "orgs", "date_joined")
@@ -594,14 +643,127 @@ class UserCRUDL(SmartCRUDL):
 
             return False  # pragma: needs cover
 
+    class TwoFactorEnable(ComponentFormMixin, InferOrgMixin, OrgPermsMixin, SmartFormView):
+        class Form(forms.Form):
+            otp = forms.CharField(
+                label="The generated OTP",
+                widget=InputWidget(attrs={"placeholder": _("6-digit code")}),
+                max_length=6,
+                required=True,
+            )
+            password = forms.CharField(
+                label="Your current login password",
+                widget=InputWidget(attrs={"placeholder": _("Current password"), "password": True}),
+                required=True,
+            )
 
-class InferOrgMixin(object):
-    @classmethod
-    def derive_url_pattern(cls, path, action):
-        return r"^%s/%s/$" % (path, action)
+            def __init__(self, user, *args, **kwargs):
+                super().__init__(*args, **kwargs)
 
-    def get_object(self, *args, **kwargs):
-        return self.request.user.get_org()
+                self.user = user
+
+            def clean_otp(self):
+                data = self.cleaned_data["otp"]
+                if not self.user.verify_2fa(otp=data):
+                    raise forms.ValidationError(_("OTP incorrect. Please try again."))
+                return data
+
+            def clean_password(self):
+                data = self.cleaned_data["password"]
+                if not self.user.check_password(data):
+                    raise forms.ValidationError(_("Password incorrect."))
+                return data
+
+        form_class = Form
+        success_url = "@orgs.user_two_factor_tokens"
+        success_message = _("Two-factor authentication enabled")
+        submit_button_name = _("Enable")
+        permission = "orgs.org_two_factor"
+        title = _("Enable Two-factor Authentication")
+
+        def get_form_kwargs(self):
+            kwargs = super().get_form_kwargs()
+            kwargs["user"] = self.request.user
+            return kwargs
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+
+            brand = self.request.branding["name"]
+            user = self.get_user()
+            user_settings = user.get_settings()
+            secret_url = pyotp.TOTP(user_settings.otp_secret).provisioning_uri(user.username, issuer_name=brand)
+            context["secret_url"] = secret_url
+            return context
+
+        def form_valid(self, form):
+            self.request.user.enable_2fa()
+
+            return super().form_valid(form)
+
+    class TwoFactorDisable(ComponentFormMixin, InferOrgMixin, OrgPermsMixin, SmartFormView):
+        class Form(forms.Form):
+            password = forms.CharField(
+                label=" ",
+                widget=InputWidget(attrs={"placeholder": _("Current password"), "password": True}),
+                required=True,
+            )
+
+            def __init__(self, user, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+                self.user = user
+
+            def clean_password(self):
+                data = self.cleaned_data["password"]
+                if not self.user.check_password(data):
+                    raise forms.ValidationError(_("Password incorrect."))
+                return data
+
+        form_class = Form
+        success_url = "@orgs.org_home"
+        success_message = _("Two-factor authentication disabled")
+        submit_button_name = _("Disable")
+        permission = "orgs.org_two_factor"
+        title = _("Disable Two-factor Authentication")
+
+        def get_form_kwargs(self):
+            kwargs = super().get_form_kwargs()
+            kwargs["user"] = self.request.user
+            return kwargs
+
+        def form_valid(self, form):
+            self.request.user.disable_2fa()
+
+            return super().form_valid(form)
+
+    class TwoFactorTokens(InferOrgMixin, OrgPermsMixin, SmartTemplateView):
+        permission = "orgs.org_two_factor"
+        title = _("Two-factor Authentication")
+
+        def pre_process(self, request, *args, **kwargs):
+            # if 2FA isn't enabled for this user, take them to the enable view instead
+            if not self.request.user.get_settings().two_factor_enabled:
+                return HttpResponseRedirect(reverse("orgs.user_two_factor_enable"))
+
+            return super().pre_process(request, *args, **kwargs)
+
+        def post(self, request, *args, **kwargs):
+            BackupToken.generate_for_user(self.request.user)
+            messages.info(request, _("Two-factor authentication backup tokens changed."))
+
+            return super().get(request, *args, **kwargs)
+
+        def get_gear_links(self):
+            return [
+                dict(title=_("Home"), style="button-light", href=reverse("orgs.org_home")),
+                dict(title=_("Disable"), style="button-light", href=reverse("orgs.user_two_factor_disable")),
+            ]
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            context["backup_tokens"] = self.get_user().backup_tokens.order_by("id")
+            return context
 
 
 class OrgCRUDL(SmartCRUDL):
@@ -612,6 +774,7 @@ class OrgCRUDL(SmartCRUDL):
         "edit",
         "edit_sub_org",
         "join",
+        "join_accept",
         "grant",
         "accounts",
         "create_login",
@@ -627,7 +790,6 @@ class OrgCRUDL(SmartCRUDL):
         "clear_cache",
         "twilio_connect",
         "twilio_account",
-        "two_factor",
         "nexmo_account",
         "nexmo_connect",
         "plan",
@@ -1434,6 +1596,7 @@ class OrgCRUDL(SmartCRUDL):
 
                 self.fields["invite_role"].choices = role_choices
 
+                self.org = org
                 self.user_rows = []
                 self.invite_rows = []
                 self.add_per_user_fields(org, role_choices)
@@ -1488,14 +1651,31 @@ class OrgCRUDL(SmartCRUDL):
 
             def clean_invite_emails(self):
                 emails = self.cleaned_data["invite_emails"].lower().strip()
+                existing_users_emails = set(
+                    list(self.org.get_users().values_list("username", flat=True))
+                    + list(self.org.invitations.filter(is_active=True).values_list("email", flat=True))
+                )
+                cleaned_emails = []
                 if emails:
                     email_list = emails.split(",")
                     for email in email_list:
+                        email = email.strip()
                         try:
                             validate_email(email)
                         except ValidationError:
                             raise forms.ValidationError(_("One of the emails you entered is invalid."))
-                return emails
+
+                        if email in existing_users_emails:
+                            raise forms.ValidationError(
+                                _("One of the emails you entered has an existing user on the workspace.")
+                            )
+
+                        if email in cleaned_emails:
+                            raise forms.ValidationError(_("One of the emails you entered is duplicated."))
+
+                        cleaned_emails.append(email)
+
+                return ",".join(cleaned_emails)
 
             def get_submitted_roles(self) -> dict:
                 """
@@ -1620,70 +1800,6 @@ class OrgCRUDL(SmartCRUDL):
         def get_success_url(self):  # pragma: needs cover
             org_id = self.request.GET.get("org")
             return "%s?org=%s" % (reverse("orgs.org_manage_accounts_sub_org"), org_id)
-
-    class TwoFactor(ComponentFormMixin, InferOrgMixin, OrgPermsMixin, SmartFormView):
-        class TwoFactorForm(forms.Form):
-            otp = forms.CharField(
-                label=_("One-time Password (OTP)"),
-                help_text=_("Enter the one-time password from your authentication application."),
-                strip=True,
-                required=True,
-            )
-
-            def __init__(self, user, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-
-                self.user = user
-
-            def clean_otp(self):
-                otp = self.cleaned_data["otp"]
-                if not self.user.verify_2fa(otp=otp):
-                    raise forms.ValidationError(_("Incorrect OTP. Please try again."))
-                return otp
-
-        form_class = TwoFactorForm
-        fields = ("otp",)
-        success_url = "@orgs.org_two_factor"
-        success_message = ""
-        submit_button_name = _("Activate")
-        title = _("Two Factor Authentication")
-
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["user"] = self.request.user
-            return kwargs
-
-        def post(self, request, *args, **kwargs):
-            user = self.get_user()
-            form = self.get_form()
-            action = request.POST.get("action", "")
-
-            if action == "disable":
-                user.disable_2fa()
-            elif action == "regenerate_backup_tokens":
-                BackupToken.generate_for_user(user)
-                return JsonResponse({"tokens": self.get_backup_tokens(user)})
-            elif form.is_valid():
-                user.enable_2fa()
-
-            return self.render_to_response(self.get_context_data(form=form))
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-
-            brand = self.request.branding["name"]
-            user = self.get_user()
-            user_settings = user.get_settings()
-            otp_secret = user_settings.otp_secret
-            secret_url = pyotp.TOTP(otp_secret).provisioning_uri(user.username, issuer_name=brand)
-
-            context["two_factor_enabled"] = user_settings.two_factor_enabled
-            context["secret_url"] = secret_url
-            context["backup_tokens"] = self.get_backup_tokens(user)
-            return context
-
-        def get_backup_tokens(self, user):
-            return [{"token": t.token, "is_used": t.is_used} for t in user.backup_tokens.all()]
 
     class Service(SmartFormView):
         class ServiceForm(forms.Form):
@@ -1906,7 +2022,7 @@ class OrgCRUDL(SmartCRUDL):
     class CreateLogin(SmartUpdateView):
         title = ""
         form_class = OrgSignupForm
-        fields = ("first_name", "last_name", "email", "password")
+        fields = ("first_name", "last_name", "password")
         success_message = ""
         success_url = "@msgs.msg_inbox"
         submit_button_name = _("Create")
@@ -1914,23 +2030,30 @@ class OrgCRUDL(SmartCRUDL):
 
         def pre_process(self, request, *args, **kwargs):
             org = self.get_object()
-            if not org:  # pragma: needs cover
+            if not org:
                 messages.info(
                     request, _("Your invitation link is invalid. Please contact your workspace administrator.")
                 )
                 return HttpResponseRedirect(reverse("public.public_index"))
+
+            invite = self.get_invitation()
+            secret = self.kwargs.get("secret")
+            has_user = User.objects.filter(username=invite.email).exists()
+            if has_user:
+                return HttpResponseRedirect(reverse("orgs.org_join_accept", args=[secret]))
+
             return None
 
         def pre_save(self, obj):
             obj = super().pre_save(obj)
+            self.invitation = self.get_invitation()
+            email = self.invitation.email
 
-            user = Org.create_user(self.form.cleaned_data["email"], self.form.cleaned_data["password"])
+            user = Org.create_user(email, self.form.cleaned_data["password"])
 
             user.first_name = self.form.cleaned_data["first_name"]
             user.last_name = self.form.cleaned_data["last_name"]
             user.save()
-
-            self.invitation = self.get_invitation()
 
             # log the user in
             user = authenticate(username=user.username, password=self.form.cleaned_data["password"])
@@ -1955,12 +2078,8 @@ class OrgCRUDL(SmartCRUDL):
             return r"^%s/%s/(?P<secret>\w+)/$" % (path, action)
 
         def get_invitation(self, **kwargs):
-            invitation = None
             secret = self.kwargs.get("secret")
-            invitations = Invitation.objects.filter(secret=secret, is_active=True)
-            if invitations:
-                invitation = invitations[0]
-            return invitation
+            return Invitation.objects.filter(secret=secret, is_active=True).first()
 
         def get_object(self, **kwargs):
             invitation = self.get_invitation()
@@ -1977,33 +2096,83 @@ class OrgCRUDL(SmartCRUDL):
 
             context["secret"] = self.kwargs.get("secret")
             context["org"] = self.get_object()
+            invitation = self.get_invitation()
+            context["email"] = invitation.email
 
             return context
 
-    class Join(SmartUpdateView):
-        class JoinForm(forms.ModelForm):
+    class Join(SmartTemplateView):
+        title = _("Sign in with your account to accept the invitation")
+        permission = False
+
+        def pre_process(self, request, *args, **kwargs):
+            secret = self.kwargs.get("secret")
+
+            invite = self.get_invitation()
+            if invite:
+                has_user = User.objects.filter(username=invite.email).exists()
+                if has_user and invite.email == request.user.username:
+                    return HttpResponseRedirect(reverse("orgs.org_join_accept", args=[secret]))
+
+                logout(request)
+                if not has_user:
+                    return HttpResponseRedirect(reverse("orgs.org_create_login", args=[secret]))
+
+            else:
+                messages.info(
+                    request, _("Your invitation link has expired. Please contact your workspace administrator.")
+                )
+                return HttpResponseRedirect(reverse("users.user_login"))
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+
+            context["secret"] = self.kwargs.get("secret")
+            invitation = self.get_invitation()
+            context["email"] = invitation.email
+
+            return context
+
+        def get_invitation(self, **kwargs):  # pragma: needs cover
+            secret = self.kwargs.get("secret")
+            return Invitation.objects.filter(secret=secret, is_active=True).first()
+
+        @classmethod
+        def derive_url_pattern(cls, path, action):
+            return r"^%s/%s/(?P<secret>\w+)/$" % (path, action)
+
+    class JoinAccept(SmartUpdateView):
+        class JoinAcceptForm(forms.ModelForm):
             class Meta:
                 model = Org
                 fields = ()
 
         success_message = ""
-        form_class = JoinForm
+        title = ""
+        form_class = JoinAcceptForm
         success_url = "@msgs.msg_inbox"
         submit_button_name = _("Join")
-        permission = False
 
-        def pre_process(self, request, *args, **kwargs):  # pragma: needs cover
-            secret = self.kwargs.get("secret")
+        def has_permission(self, request, *args, **kwargs):
+            return request.user.is_authenticated
 
+        def pre_process(self, request, *args, **kwargs):
             org = self.get_object()
-            if not org:
+            invitation = self.get_invitation()
+            if not (invitation and org):
                 messages.info(
                     request, _("Your invitation link has expired. Please contact your workspace administrator.")
                 )
                 return HttpResponseRedirect(reverse("public.public_index"))
 
-            if not request.user.is_authenticated:
-                return HttpResponseRedirect(reverse("orgs.org_create_login", args=[secret]))
+            secret = self.kwargs.get("secret")
+
+            invitation_email = invitation.email
+            has_user = User.objects.filter(username=invitation_email).exists()
+            if has_user and invitation_email != request.user.username:
+                logout(request)
+                return HttpResponseRedirect(reverse("orgs.org_join", args=[secret]))
+
             return None
 
         def derive_title(self):  # pragma: needs cover
@@ -2036,12 +2205,8 @@ class OrgCRUDL(SmartCRUDL):
             return r"^%s/%s/(?P<secret>\w+)/$" % (path, action)
 
         def get_invitation(self, **kwargs):  # pragma: needs cover
-            invitation = None
             secret = self.kwargs.get("secret")
-            invitations = Invitation.objects.filter(secret=secret, is_active=True)
-            if invitations:
-                invitation = invitations[0]
-            return invitation
+            return Invitation.objects.filter(secret=secret, is_active=True).first()
 
         def get_object(self, **kwargs):  # pragma: needs cover
             invitation = self.get_invitation()
@@ -2604,21 +2769,22 @@ class OrgCRUDL(SmartCRUDL):
             if self.has_org_perm("orgs.org_profile"):
                 formax.add_section("user", reverse("orgs.user_edit"), icon="icon-user", action="redirect")
 
+            if self.has_org_perm("orgs.org_two_factor"):
+                if user.get_settings().two_factor_enabled:
+                    formax.add_section(
+                        "two_factor", reverse("orgs.user_two_factor_tokens"), icon="icon-two-factor", action="link"
+                    )
+                else:
+                    formax.add_section(
+                        "two_factor", reverse("orgs.user_two_factor_enable"), icon="icon-two-factor", action="link"
+                    )
+
             if self.has_org_perm("orgs.org_edit"):
                 formax.add_section("org", reverse("orgs.org_edit"), icon="icon-office")
 
             # only pro orgs get multiple users
             if self.has_org_perm("orgs.org_manage_accounts") and org.is_multi_user:
                 formax.add_section("accounts", reverse("orgs.org_accounts"), icon="icon-users", action="redirect")
-
-            if self.has_org_perm("orgs.org_two_factor"):
-                formax.add_section(
-                    "two_factor",
-                    reverse("orgs.org_two_factor"),
-                    icon="icon-two-factor",
-                    action="redirect",
-                    nobutton=True,
-                )
 
             if self.has_org_perm("orgs.org_languages"):
                 formax.add_section("languages", reverse("orgs.org_languages"), icon="icon-language")
