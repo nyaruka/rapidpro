@@ -2030,6 +2030,8 @@ class ContactTest(TembaTest):
         assertHistoryEvent(history[10], "campaign_fired")
         assertHistoryEvent(history[-1], "msg_received", msg_text="Inbound message 11")
 
+        self.assertEqual(history[8]["trigger_description"], "by foo@example.com")
+
         self.assertContains(response, "<audio ")
         self.assertContains(response, '<source type="audio/mp3" src="http://blah/file.mp3" />')
         self.assertContains(response, "<video ")

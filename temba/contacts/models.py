@@ -1,5 +1,6 @@
 import logging
 import time
+from copy import deepcopy
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from itertools import chain
@@ -776,7 +777,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             .order_by("-created_on")
             .select_related("flow")[:limit]
         )
-        started_runs = [r for r in runs if after <= r.created_on < before]
+        started_runs = [r for r in runs if not r.session and after <= r.created_on < before]
         exited_runs = [FlowExit(r) for r in runs if r.exited_on and after <= r.exited_on < before]
 
         channel_events = (
@@ -829,12 +830,35 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         """
         Extracts events from this contacts sessions that overlap with the given time window
         """
+        from temba.flows.models import FlowEntered
+        from temba.mailroom.events import Event
+
         sessions = self.sessions.filter(
             Q(created_on__gte=after, created_on__lt=before) | Q(ended_on__gte=after, ended_on__lt=before)
         )
         events = []
         for session in sessions:
-            for run in session.output.get("runs", []):
+            for index, run in enumerate(session.output.get("runs", [])):
+
+                flow_entered_time = iso8601.parse_date(run["created_on"])
+                if after <= flow_entered_time < before:
+                    trigger = None
+                    if index == 0:
+                        trigger = deepcopy(session.output["trigger"])
+
+                    events.append(
+                        FlowEntered(
+                            {
+                                "type": Event.TYPE_FLOW_ENTERED,
+                                "created_on": run["created_on"],
+                                "session_uuid": str(session.uuid),
+                                "flow_uuid": run["flow"]["uuid"],
+                                "flow_name": run["flow"]["name"],
+                            },
+                            trigger,
+                        )
+                    )
+
                 for event in run.get("events", []):
                     event["session_uuid"] = str(session.uuid)
                     event_time = iso8601.parse_date(event["created_on"])

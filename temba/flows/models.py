@@ -1033,26 +1033,6 @@ class FlowSession(models.Model):
     # the flow of the waiting run
     current_flow = models.ForeignKey("flows.Flow", related_name="sessions", null=True, on_delete=models.PROTECT)
 
-    def show_trigger_description(self):
-        description = ""
-        if self.output["trigger"]["type"] == "manual":
-            username = self.output["trigger"]["user"]
-            description = _(f"by {username}")
-        elif self.output["trigger"]["type"] == "channel":
-            channel_name = self.output["trigger"]["event"]["channel"]["name"]
-            description = _(f"by new conversation to {channel_name} channel")
-        elif self.output["trigger"]["type"] == "flow_action":
-            flow_name = self.output["trigger"]["run_summary"]["flow"]["name"]
-            description = _(f"by {flow_name} flow")
-        elif self.output["trigger"]["type"] == "campaign":
-            campaign_name = self.output["trigger"]["event"]["campaign"]["name"]
-            description = _(f"by {campaign_name} campaign")
-        elif self.output["trigger"]["type"] == "msg":
-            keyword = self.output["trigger"]["keyword_match"]["keyword"]
-            description = _(f"by keyword trigger {keyword}")
-
-        return description
-
     def release(self):
         self.delete()
 
@@ -1300,6 +1280,36 @@ class FlowExit:
 
     def __init__(self, run):
         self.run = run
+
+
+class FlowEntered:
+    """
+    A helper class used for building contact histories which adds `flow_entered` events and includes a trigger description
+    for them on runs that still have a session
+    """
+
+    def __init__(self, summary, trigger):
+        self.summary = summary
+
+        trigger_description = None
+        if trigger:
+            if trigger["type"] == "manual":
+                username = trigger["user"]
+                trigger_description = _(f"by {username}")
+            elif trigger["type"] == "channel":
+                channel_name = trigger["event"]["channel"]["name"]
+                trigger_description = _(f"by new conversation to {channel_name} channel")
+            elif trigger["type"] == "flow_action":
+                flow_name = trigger["run_summary"]["flow"]["name"]
+                trigger_description = _(f"by {flow_name} flow")
+            elif trigger["type"] == "campaign":
+                campaign_name = trigger["event"]["campaign"]["name"]
+                trigger_description = _(f"by {campaign_name} campaign")
+            elif trigger["type"] == "msg":
+                keyword = trigger["keyword_match"]["keyword"]
+                trigger_description = _(f"by keyword trigger {keyword}")
+
+        self.trigger_description = trigger_description
 
 
 class FlowRevision(SmartModel):
