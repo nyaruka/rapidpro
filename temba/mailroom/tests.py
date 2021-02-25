@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from temba.campaigns.models import Campaign, CampaignEvent, EventFire
 from temba.channels.models import ChannelEvent, ChannelLog
-from temba.flows.models import FlowRun, FlowStart
+from temba.flows.models import FlowEntered, FlowRun, FlowStart
 from temba.mailroom.client import ContactSpec, MailroomException, get_client
 from temba.msgs.models import Broadcast, Msg
 from temba.tests import MockResponse, TembaTest, matchers, mock_mailroom
@@ -760,9 +760,47 @@ class EventTest(TembaTest):
                 "created_on": matchers.ISODate(),
                 "flow": {"uuid": str(flow.uuid), "name": "Colors"},
                 "logs_url": None,
-                "trigger_description": "by foo@example.com",
+                "trigger_description": None,
             },
             Event.from_flow_run(self.org, self.admin, run),
+        )
+
+        self.assertEqual(
+            {
+                "type": "flow_entered",
+                "created_on": matchers.ISODate(),
+                "flow": {"uuid": str(flow.uuid), "name": "Colors"},
+                "logs_url": f"/flowsession/json/{run.session.uuid}/",
+                "trigger_description": None,
+            },
+            Event.from_flow_run(self.org, self.customer_support, run),
+        )
+
+    def test_from_flow_entered(self):
+
+        flow_entered = FlowEntered(
+            {
+                "type": Event.TYPE_FLOW_ENTERED,
+                "created_on": "2000-01-01T00:00:00Z",
+                "session_uuid": "34d16dbd-476d-4b77-bac3-9f3d597848cc",
+                "flow_uuid": "50c3706e-fedb-42c0-8eab-dda3335714b7",
+                "flow_name": "Colors",
+            },
+            {
+                "type": "manual",
+                "user": "foo@example.com",
+            },
+        )
+
+        self.assertEqual(
+            {
+                "type": "flow_entered",
+                "created_on": matchers.ISODate(),
+                "flow": {"uuid": "50c3706e-fedb-42c0-8eab-dda3335714b7", "name": "Colors"},
+                "logs_url": None,
+                "trigger_description": "by foo@example.com",
+            },
+            Event.from_flow_entered(self.org, self.admin, flow_entered),
         )
 
         # customer support get access to logs
@@ -770,11 +808,11 @@ class EventTest(TembaTest):
             {
                 "type": "flow_entered",
                 "created_on": matchers.ISODate(),
-                "flow": {"uuid": str(flow.uuid), "name": "Colors"},
-                "logs_url": f"/flowsession/json/{run.session.uuid}/",
+                "flow": {"uuid": "50c3706e-fedb-42c0-8eab-dda3335714b7", "name": "Colors"},
+                "logs_url": f"/flowsession/json/34d16dbd-476d-4b77-bac3-9f3d597848cc/",
                 "trigger_description": "by foo@example.com",
             },
-            Event.from_flow_run(self.org, self.customer_support, run),
+            Event.from_flow_entered(self.org, self.customer_support, flow_entered),
         )
 
     def test_from_event_fire(self):
