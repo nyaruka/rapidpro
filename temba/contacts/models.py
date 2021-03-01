@@ -1,6 +1,5 @@
 import logging
 import time
-from copy import deepcopy
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from itertools import chain
@@ -831,7 +830,6 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         Extracts events from this contacts sessions that overlap with the given time window
         """
         from temba.flows.models import FlowEntered
-        from temba.mailroom.events import Event
 
         sessions = self.sessions.filter(
             Q(created_on__gte=after, created_on__lt=before) | Q(ended_on__gte=after, ended_on__lt=before)
@@ -844,17 +842,12 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
                 if after <= flow_entered_time < before:
                     trigger = None
                     if index == 0:
-                        trigger = deepcopy(session.output["trigger"])
+                        trigger = session.output["trigger"]
 
+                    run["session_uuid"] = str(session.uuid)
                     events.append(
                         FlowEntered(
-                            {
-                                "type": Event.TYPE_FLOW_ENTERED,
-                                "created_on": run["created_on"],
-                                "session_uuid": str(session.uuid),
-                                "flow_uuid": run["flow"]["uuid"],
-                                "flow_name": run["flow"]["name"],
-                            },
+                            run,
                             trigger,
                         )
                     )

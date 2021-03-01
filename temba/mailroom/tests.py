@@ -777,15 +777,14 @@ class EventTest(TembaTest):
         )
 
     def test_from_flow_entered(self):
+        run_dict = {
+            "created_on": "2000-01-01T00:00:00Z",
+            "session_uuid": "34d16dbd-476d-4b77-bac3-9f3d597848cc",
+            "flow": {"uuid": "50c3706e-fedb-42c0-8eab-dda3335714b7", "name": "Colors"},
+        }
 
         flow_entered = FlowEntered(
-            {
-                "type": Event.TYPE_FLOW_ENTERED,
-                "created_on": "2000-01-01T00:00:00Z",
-                "session_uuid": "34d16dbd-476d-4b77-bac3-9f3d597848cc",
-                "flow_uuid": "50c3706e-fedb-42c0-8eab-dda3335714b7",
-                "flow_name": "Colors",
-            },
+            run_dict,
             {
                 "type": "manual",
                 "user": "foo@example.com",

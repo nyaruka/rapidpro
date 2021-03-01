@@ -1288,8 +1288,8 @@ class FlowEntered:
     for them on runs that still have a session
     """
 
-    def __init__(self, summary, trigger):
-        self.summary = summary
+    def __init__(self, run, trigger):
+        self.run = run
 
         trigger_description = None
         if trigger:

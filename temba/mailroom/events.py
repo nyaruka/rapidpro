@@ -124,12 +124,12 @@ class Event:
 
     @classmethod
     def from_flow_entered(cls, org: Org, user: User, obj: FlowEntered) -> dict:
-        logs_url = _url_for_user(org, user, "flows.flowsession_json", args=[obj.summary["session_uuid"]])
+        logs_url = _url_for_user(org, user, "flows.flowsession_json", args=[obj.run["session_uuid"]])
 
         return {
             "type": cls.TYPE_FLOW_ENTERED,
             "created_on": get_event_time(obj).isoformat(),
-            "flow": {"uuid": str(obj.summary["flow_uuid"]), "name": obj.summary["flow_name"]},
+            "flow": {"uuid": str(obj.run["flow"]["uuid"]), "name": obj.run["flow"]["name"]},
             "logs_url": logs_url,
             # additional properties
             "trigger_description": obj.trigger_description,
@@ -274,7 +274,7 @@ event_time.update(
         dict: lambda e: iso8601.parse_date(e["created_on"]),
         EventFire: lambda e: e.fired,
         FlowExit: lambda e: e.run.exited_on,
-        FlowEntered: lambda e: iso8601.parse_date(e.summary["created_on"]),
+        FlowEntered: lambda e: iso8601.parse_date(e.run["created_on"]),
     },
 )
 
