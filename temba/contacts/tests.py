@@ -2004,7 +2004,7 @@ class ContactTest(TembaTest):
 
         # fetch our contact history
         self.login(self.admin)
-        with self.assertNumQueries(49):
+        with self.assertNumQueries(48):
             response = self.client.get(url + "?limit=100")
 
         # history should include all messages in the last 90 days, the channel event, the call, and the flow run

@@ -777,7 +777,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
             .order_by("-created_on")
             .select_related("flow")[:limit]
         )
-        started_runs = [r for r in runs if not r.session and after <= r.created_on < before]
+        started_runs = [r for r in runs if not r.session_id and after <= r.created_on < before]
         exited_runs = [FlowExit(r) for r in runs if r.exited_on and after <= r.exited_on < before]
 
         channel_events = (
