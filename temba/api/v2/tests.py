@@ -1,7 +1,7 @@
 import base64
 import time
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 from urllib.parse import quote_plus
@@ -2158,9 +2158,10 @@ class APITest(TembaTest):
 
         # create some "active" runs for some of the contacts
         flow = self.get_flow("favorites_v13")
-        FlowRun.objects.create(org=self.org, flow=flow, contact=contact1)
-        FlowRun.objects.create(org=self.org, flow=flow, contact=contact2)
-        FlowRun.objects.create(org=self.org, flow=flow, contact=contact3)
+        tomorrow = timezone.now() + timedelta(days=1)
+        FlowRun.objects.create(org=self.org, flow=flow, contact=contact1, expires_on=tomorrow)
+        FlowRun.objects.create(org=self.org, flow=flow, contact=contact2, expires_on=tomorrow)
+        FlowRun.objects.create(org=self.org, flow=flow, contact=contact3, expires_on=tomorrow)
 
         self.create_incoming_msg(contact1, "Hello")
         self.create_incoming_msg(contact2, "Hello")
@@ -2505,7 +2506,7 @@ class APITest(TembaTest):
         color.labels.add(reporting)
 
         # make it look like joe completed a the color flow
-        run = FlowRun.objects.create(org=self.org, flow=color, contact=self.joe)
+        run = FlowRun.objects.create(org=self.org, flow=color, contact=self.joe, expires_on=timezone.now())
         run.exit_type = FlowRun.EXIT_TYPE_COMPLETED
         run.exited_on = timezone.now()
         run.is_active = False
@@ -3608,7 +3609,7 @@ class APITest(TembaTest):
         self.assertEndpointAccess(url)
 
         flow = self.get_flow("color")
-        run = FlowRun.objects.create(org=self.org, flow=flow, contact=self.frank)
+        run = FlowRun.objects.create(org=self.org, flow=flow, contact=self.frank, expires_on=timezone.now())
         run.results = {
             "manual": {
                 "created_on": "2019-06-28T06:37:02.628152471Z",

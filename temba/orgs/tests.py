@@ -688,7 +688,9 @@ class OrgDeleteTest(TembaNonAtomicTest):
         self.org = self.child_org
         child_flow = self.get_flow("color")
 
-        FlowRun.objects.create(org=self.org, flow=child_flow, contact=child_contact, expires_on=timezone.now())
+        FlowRun.objects.create(
+            org=self.org, flow=child_flow, contact=child_contact, expires_on=timezone.now() + timedelta(days=1)
+        )
 
         # labels for our flows
         flow_label1 = FlowLabel.create(self.parent_org, "Cool Parent Flows")
