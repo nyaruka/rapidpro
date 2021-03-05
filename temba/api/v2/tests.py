@@ -458,7 +458,10 @@ class APITest(TembaTest):
 
         # create 1255 test runs (5 full pages of 250 items + 1 partial with 5 items)
         flow = self.create_flow()
-        FlowRun.objects.bulk_create([FlowRun(org=self.org, flow=flow, contact=self.joe) for r in range(1255)])
+        tomorrow = timezone.now() + timedelta(days=1)
+        FlowRun.objects.bulk_create(
+            [FlowRun(org=self.org, flow=flow, contact=self.joe, expires_on=tomorrow) for r in range(1255)]
+        )
         actual_ids = list(FlowRun.objects.order_by("-pk").values_list("pk", flat=True))
 
         # give them all the same modified_on
