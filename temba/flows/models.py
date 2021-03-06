@@ -1271,6 +1271,14 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
     def __str__(self):  # pragma: no cover
         return f"FlowRun[uuid={self.uuid}, flow={self.flow.uuid}]"
 
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                name="flows_flowrun_active_runs_have_expirations",
+                check=Q(is_active=False) | Q(expires_on__isnull=False),
+            )
+        ]
+
 
 class FlowExit:
     """

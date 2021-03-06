@@ -3,6 +3,7 @@ import datetime
 import io
 import os
 from collections import OrderedDict
+from datetime import timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest import mock
@@ -959,7 +960,9 @@ class ModelsTest(TembaTest):
     def test_require_update_fields(self):
         contact = self.create_contact("Bob", urns=["twitter:bobby"])
         flow = self.get_flow("color")
-        run = FlowRun.objects.create(org=self.org, flow=flow, contact=contact)
+        run = FlowRun.objects.create(
+            org=self.org, flow=flow, contact=contact, expires_on=timezone.now() + timedelta(days=1)
+        )
 
         # we can save if we specify update_fields
         run.modified_on = timezone.now()

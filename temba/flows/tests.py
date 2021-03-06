@@ -1121,6 +1121,7 @@ class FlowTest(TembaTest):
 
     def test_flow_start_counts(self):
         flow = self.get_flow("color")
+        tomorrow = timezone.now() + timedelta(days=1)
 
         # create start for 10 contacts
         start = FlowStart.objects.create(org=self.org, flow=flow, created_by=self.admin)
@@ -1130,14 +1131,14 @@ class FlowTest(TembaTest):
 
         # create runs for first 5
         for contact in start.contacts.order_by("id")[:5]:
-            FlowRun.objects.create(org=self.org, flow=flow, contact=contact, start=start)
+            FlowRun.objects.create(org=self.org, flow=flow, contact=contact, start=start, expires_on=tomorrow)
 
         # check our count
         self.assertEqual(FlowStartCount.get_count(start), 5)
 
         # create runs for last 5
         for contact in start.contacts.order_by("id")[5:]:
-            FlowRun.objects.create(org=self.org, flow=flow, contact=contact, start=start)
+            FlowRun.objects.create(org=self.org, flow=flow, contact=contact, start=start, expires_on=tomorrow)
 
         # check our count
         self.assertEqual(FlowStartCount.get_count(start), 10)
@@ -1808,6 +1809,7 @@ class FlowTest(TembaTest):
     def test_update_expiration(self):
         flow1 = self.get_flow("favorites")
         flow2 = Flow.copy(flow1, self.admin)
+        tomorrow = timezone.now() + timedelta(days=1)
 
         parent = FlowRun.objects.create(
             org=self.org,
@@ -1820,6 +1822,7 @@ class FlowTest(TembaTest):
                     FlowRun.PATH_ARRIVED_ON: datetime.datetime(2019, 1, 1, 0, 0, 0, 0, pytz.UTC),
                 }
             ],
+            expires_on=tomorrow,
         )
         child = FlowRun.objects.create(
             org=self.org,
@@ -1833,6 +1836,7 @@ class FlowTest(TembaTest):
                 }
             ],
             parent=parent,
+            expires_on=tomorrow,
         )
 
         update_run_expirations_task(flow2.id)
@@ -2878,7 +2882,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         with patch("temba.flows.views.FlowCRUDL.RunTable.paginate_by", 1):
             # create one empty run
-            FlowRun.objects.create(org=self.org, flow=flow, contact=pete, responded=True)
+            FlowRun.objects.create(org=self.org, flow=flow, contact=pete, responded=True, expires_on=timezone.now())
 
             # fetch our intercooler rows for the run table
             response = self.client.get(reverse("flows.flow_run_table", args=[flow.id]))
@@ -2887,7 +2891,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         with patch("temba.flows.views.FlowCRUDL.RunTable.paginate_by", 1):
             # create one empty run
-            FlowRun.objects.create(org=self.org, flow=flow, contact=pete, responded=False)
+            FlowRun.objects.create(org=self.org, flow=flow, contact=pete, responded=False, expires_on=timezone.now())
 
             # fetch our intercooler rows for the run table
             response = self.client.get("%s?responded=bla" % reverse("flows.flow_run_table", args=[flow.id]))
@@ -3449,14 +3453,15 @@ class FlowSessionTest(TembaTest):
     def test_trim(self):
         contact = self.create_contact("Ben Haggerty", phone="+250788123123")
         flow = self.get_flow("color")
+        tomorrow = timezone.now() + timedelta(days=1)
 
         # create some runs that have sessions
         session1 = FlowSession.objects.create(uuid=uuid4(), org=self.org, contact=contact)
         session2 = FlowSession.objects.create(uuid=uuid4(), org=self.org, contact=contact)
         session3 = FlowSession.objects.create(uuid=uuid4(), org=self.org, contact=contact)
-        run1 = FlowRun.objects.create(org=self.org, flow=flow, contact=contact, session=session1)
-        run2 = FlowRun.objects.create(org=self.org, flow=flow, contact=contact, session=session2)
-        run3 = FlowRun.objects.create(org=self.org, flow=flow, contact=contact, session=session3)
+        run1 = FlowRun.objects.create(org=self.org, flow=flow, contact=contact, session=session1, expires_on=tomorrow)
+        run2 = FlowRun.objects.create(org=self.org, flow=flow, contact=contact, session=session2, expires_on=tomorrow)
+        run3 = FlowRun.objects.create(org=self.org, flow=flow, contact=contact, session=session3, expires_on=tomorrow)
 
         # create an IVR call with session
         call = self.create_incoming_call(flow, contact)
@@ -3496,6 +3501,7 @@ class FlowStartTest(TembaTest):
         contact = self.create_contact("Ben Haggerty", phone="+250788123123")
         group = self.create_group("Testers", contacts=[contact])
         flow = self.get_flow("color")
+        tomorrow = timezone.now() + timedelta(days=1)
 
         def create_start(user, start_type, status, modified_on, **kwargs):
             start = FlowStart.create(flow, user, start_type, **kwargs)
@@ -3504,7 +3510,9 @@ class FlowStartTest(TembaTest):
             start.save(update_fields=("status", "modified_on"))
 
             session = FlowSession.objects.create(uuid=uuid4(), org=self.org, contact=contact)
-            FlowRun.objects.create(org=self.org, contact=contact, flow=flow, session=session, start=start)
+            FlowRun.objects.create(
+                org=self.org, contact=contact, flow=flow, session=session, start=start, expires_on=tomorrow
+            )
 
             FlowStartCount.objects.create(start=start, count=1, is_squashed=False)
 

@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.utils import timezone
 
 from temba.api.models import WebHookResult
@@ -267,6 +269,7 @@ class MockSessionWriter:
                     contact=self.contact,
                     session=self.session,
                     created_on=run["created_on"],
+                    expires_on=timezone.now() + timedelta(days=1),
                 )
 
             FlowRun.objects.filter(id=run_obj.id).update(
