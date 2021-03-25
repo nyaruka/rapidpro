@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-02-24 22:07+0000\n"
+"POT-Creation-Date: 2021-03-25 08:00+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Hudson Brendon <hudson.brendon@ilhasoft.com.br>, 2020\n"
 "Language-Team: Russian (https://www.transifex.com/rapidpro/teams/226/ru/)\n"
@@ -998,6 +998,37 @@ msgstr ""
 msgid "Please enter a valid phone number"
 msgstr "Пожалуйста, введите действительный номер телефона"
 
+#, python-format
+msgid "Add a %(link)s bot to send messages to Discord users for free. Your users will need a Discord account and a compatible device to send/recieve messages. This channel type is only available if your instance has been configured with the Discord proxy application, available %(proxy_link)s."
+msgstr ""
+
+msgid "Authentication Token"
+msgstr "Токен Аутентификации"
+
+msgid "The discord bot token"
+msgstr ""
+
+msgid "Proxy URL"
+msgstr ""
+
+msgid "The URL on which the discord proxy is running"
+msgstr ""
+
+#, fuzzy
+#| msgid "A telegram channel for this bot already exists on your account."
+msgid "A Discord channel for this bot already exists on your account."
+msgstr "Канал Telegram для этого бота существует в Вашей учетной записи."
+
+#, fuzzy
+#| msgid "Your authentication token is invalid, please check and try again"
+msgid "Couldn't log in using that bot token. Please check and try again"
+msgstr "Ваш токен аутентификации недействителен, пожалуйста, проверьте и попробуйте снова"
+
+#, fuzzy
+#| msgid "An error occurred updating your contact. Please try again later."
+msgid "An error occurred accessing the Discord API. Please try again"
+msgstr "При обновлении Вашего контакта произошла ошибка. Пожалуйста, попробуйте позже."
+
 #, fuzzy, python-format
 #| msgid "If you are based in Jamaica, you can purchase a short code from <a href=\"http://www.messangi.com/\">Messangi</a> and connect it in a few simple steps."
 msgid "If you are based in Uganda or DRC you can purchase a short code from %(link)s and connect it in a few simple steps."
@@ -1037,12 +1068,6 @@ msgstr "Тип URN, которые обрабатываются данным к�
 
 msgid "The phone number or that this channel will send from"
 msgstr "Номер телефона или того, с чего будет происходить отправка этим каналом"
-
-msgid "Handle"
-msgstr "Дескриптор"
-
-msgid "The Twitter handle that this channel will send from"
-msgstr "Дескриптор Twitter, с которого будет происходить отправка этим каналом"
 
 msgid "The external address that this channel will send from"
 msgstr "Внешний адрес, с которого будет происходить отправка этим каналом"
@@ -1085,6 +1110,9 @@ msgstr "Проверка Ответа MT"
 
 msgid "The content that must be in the response to consider the request successful"
 msgstr "Контент, который должен присутствовать в ответе для того, чтобы запрос считался успешным"
+
+msgid "This field is required."
+msgstr ""
 
 msgid "The URL we will POST to when sending messages, with variable substitutions"
 msgstr "URL, который мы будем выполнять POST при отправке сообщений, с подстановкой переменных"
@@ -2045,9 +2073,6 @@ msgstr ""
 "                Вашим пользователям потребуется устройство Android, Windows или iOS и учетная запись Telegram для отправки и получения\n"
 "    сообщений."
 
-msgid "Authentication Token"
-msgstr "Токен Аутентификации"
-
 msgid "The Authentication token for your Telegram Bot"
 msgstr "Токен аутентификации для Вашего бота Telegram "
 
@@ -2304,6 +2329,9 @@ msgstr "Название среды"
 msgid "The provided Twitter credentials do not appear to be valid."
 msgstr "Предоставленные идентификационные данные Twitter не являются действительными."
 
+msgid "Handle"
+msgstr "Дескриптор"
+
 msgid "Twitter handle of this channel"
 msgstr "Дескриптор Twitter данного канала"
 
@@ -2554,6 +2582,24 @@ msgstr "Имя пользователя учетной записи, предо�
 
 msgid "The account password provided by Zenvia"
 msgstr "Пароль учетной записи, предоставленный Zenvia"
+
+#, fuzzy, python-format
+#| msgid "Unable to register callbacks: %s"
+msgid "Unable to register webhook subscriptions: %(resp)s"
+msgstr "Невозможно зарегистрировать обратные вызовы: %s"
+
+#, fuzzy, python-format
+#| msgid "Unable to register callbacks: %s"
+msgid "Unable to remove webhook subscriptions: %(resp)s"
+msgstr "Невозможно зарегистрировать обратные вызовы: %s"
+
+msgid "API Token"
+msgstr "Токен API"
+
+#, fuzzy
+#| msgid "The API key for your integration as provided by Clickatell"
+msgid "The API token for your integration as provided by Zenvia"
+msgstr "Ключ API для Вашей интеграции, предоставленный Clickatell"
 
 msgid "United Kingdom"
 msgstr "Великобритания"
@@ -2827,6 +2873,11 @@ msgstr "Идентификатор VK"
 msgid "RocketChat identifier"
 msgstr "Идентификатор WeChat"
 
+#, fuzzy
+#| msgid "Viber identifier"
+msgid "Discord Identifier"
+msgstr "Идентификатор Viber"
+
 msgid "Text"
 msgstr "Текст"
 
@@ -3054,6 +3105,11 @@ msgid "Send Message"
 msgstr "Отправить Сообщение"
 
 #, fuzzy
+#| msgid "Start Flow"
+msgid "Start In Flow"
+msgstr "Начать поток"
+
+#, fuzzy
 #| msgid "Update Contact"
 msgid "Edit Contact"
 msgstr "Обновить Контакт"
@@ -3111,6 +3167,9 @@ msgstr "При обновлении Вашего контакта произош
 #| msgid "Select a flow to start"
 msgid "Select a field to update"
 msgstr "Выберите поток для запуска"
+
+msgid "Start"
+msgstr "Начать"
 
 msgid "Can only contain letters, numbers and hypens."
 msgstr "Может содержать только буквы, числа и дефисы."
@@ -3204,6 +3263,12 @@ msgstr ""
 msgid "The flow version this definition is in"
 msgstr "Версия потока, в которой находится это определение"
 
+msgid "Archive delete"
+msgstr "Удалить архив"
+
+msgid "User delete"
+msgstr "Удалить пользователя"
+
 #, fuzzy, python-brace-format
 #| msgid "Username"
 msgid "by {username}"
@@ -3225,21 +3290,6 @@ msgstr ""
 #| msgid "Global keyword triggers"
 msgid "by keyword trigger {keyword}"
 msgstr "Глобальные триггеры ключевых слов"
-
-msgid "Completed"
-msgstr "Завершено"
-
-msgid "Interrupted"
-msgstr "Прервано"
-
-msgid "Expired"
-msgstr "Истекло."
-
-msgid "Archive delete"
-msgstr "Удалить архив"
-
-msgid "User delete"
-msgstr "Удалить пользователя"
 
 msgid "The JSON flow definition"
 msgstr "Определение потока JSON"
@@ -4132,6 +4182,9 @@ msgstr "Неверный токен МФА. Пожалуйста, попробу
 msgid "Invalid backup token. Please try again."
 msgstr "Неверный токен МФА. Пожалуйста, попробуйте еще раз."
 
+msgid "Password incorrect."
+msgstr ""
+
 #, python-brace-format
 msgid "Deleted user {username}"
 msgstr "Удаленный пользователь {username}"
@@ -4189,9 +4242,6 @@ msgstr "Текущий пароль (обязательно)"
 #| msgid "Invalid MFA token. Please try again."
 msgid "OTP incorrect. Please try again."
 msgstr "Неверный токен МФА. Пожалуйста, попробуйте еще раз."
-
-msgid "Password incorrect."
-msgstr ""
 
 #, fuzzy
 #| msgid "Two Factor Authentication"
@@ -4493,9 +4543,6 @@ msgstr "Зарегистрироваться"
 msgid "Login"
 msgstr "Логин"
 
-msgid "API Token"
-msgstr "Токен API"
-
 msgid "Your DT One API key and secret seem invalid. Please check them again and retry."
 msgstr "Ключ и секрет API Вашей учетной записи DT On являются недействительными. Пожалуйста, проверьте их и попробуйте снова."
 
@@ -4771,7 +4818,7 @@ msgid "Verify your email address for tickets"
 msgstr ""
 
 #, python-format
-msgid "%(link)s is a free open source solution for team communications which can be connected as a ticket servicethrough its omnichannel feature."
+msgid "%(link)s is a free open source solution for team communications which can be connected as a ticket service through its omnichannel feature."
 msgstr ""
 
 #, fuzzy
@@ -5057,9 +5104,6 @@ msgstr[0] "%d секунда"
 msgstr[1] "%d секунд"
 msgstr[2] "%d секунд"
 msgstr[3] "%d секунд"
-
-msgid ", and "
-msgstr ", и"
 
 msgid "0 seconds"
 msgstr "0 секунд"
@@ -5712,12 +5756,18 @@ msgstr "Мы заметили, что аккумулятор телефона An
 msgid "This email is to announce that your android phone battery low reported last time was resolved. Now the battery is charging."
 msgstr "Это электронное письмо уведомляет Вас о том, что проблема низкого заряда аккумулятора Вашего телефона Android, о которой сообщалось в прошлый раз, решена. Теперь аккумулятор заряжается."
 
-#, python-format
+#, fuzzy, python-format
+#| msgid ""
+#| "\n"
+#| "Hi %(org_name)s,\n"
+#| "\n"
+#| "We've noticed that the Android phone for %(org.name)s is now charging the battery.\n"
+#| "This email is to announce that your android phone battery low reported last time was resolved. Now the battery is charging.\n"
 msgid ""
 "\n"
 "Hi %(org_name)s,\n"
 "\n"
-"We've noticed that the Android phone for %(org.name)s is now charging the battery.\n"
+"We've noticed that the Android phone for %(org_name)s is now charging the battery.\n"
 "This email is to announce that your android phone battery low reported last time was resolved. Now the battery is charging.\n"
 msgstr ""
 "\n"
@@ -7146,6 +7196,15 @@ msgstr "Отправлено электронное письмо по адрес
 msgid "with subject"
 msgstr "с темой"
 
+msgid "Interrupted"
+msgstr "Прервано"
+
+msgid "Expired"
+msgstr "Истекло."
+
+msgid "Completed"
+msgstr "Завершено"
+
 msgid "Started"
 msgstr "Начато"
 
@@ -7265,9 +7324,6 @@ msgstr "Контакт"
 
 msgid "Upcoming"
 msgstr "Ожидается"
-
-msgid "Start"
-msgstr "Начать"
 
 msgid "repeats daily"
 msgstr "повторяется ежедневно"
@@ -7660,6 +7716,9 @@ msgstr "День недели"
 
 msgid "Time of Day"
 msgstr "Время суток"
+
+msgid "Interrupted, Expired and Failed"
+msgstr ""
 
 #, fuzzy, python-format
 #| msgid ""
@@ -8106,47 +8165,6 @@ msgstr ""
 "\n"
 "        "
 
-#, fuzzy, python-format
-#| msgid ""
-#| "\n"
-#| "                  %(count_comma)s recipient\n"
-#| "                  "
-#| msgid_plural ""
-#| "\n"
-#| "                    %(count_comma)s recipients\n"
-#| "                "
-msgid "%(count_comma)s recipient"
-msgid_plural "%(count_comma)s recipients"
-msgstr[0] ""
-"\n"
-"                  %(count_comma)s получатель\n"
-"                  "
-msgstr[1] ""
-"\n"
-"                    %(count_comma)s получателей\n"
-"                "
-msgstr[2] ""
-"\n"
-"                    %(count_comma)s получателей\n"
-"                "
-msgstr[3] ""
-"\n"
-"                    %(count_comma)s получателей\n"
-"                "
-
-#, fuzzy, python-format
-#| msgid ""
-#| "\n"
-#| "                  %(group_count)s groups, %(contact_count)s contacts, %(urn_count)s urns\n"
-#| "\n"
-#| "                "
-msgid "%(group_count)s groups, %(contact_count)s contacts, %(urn_count)s urns"
-msgstr ""
-"\n"
-"                  %(group_count)s групп, %(contact_count)s контактов, %(urn_count)s urn\n"
-"\n"
-"                "
-
 msgid "No Matching schedules"
 msgstr "Нет соответствующих расписаний"
 
@@ -8162,14 +8180,8 @@ msgstr "Отправить историю"
 #| "\n"
 #| "                    %(count_comma)s recipients\n"
 #| "                "
-msgid ""
-"\n"
-"                    %(count_comma)s recipient\n"
-"                    "
-msgid_plural ""
-"\n"
-"                      %(count_comma)s recipients\n"
-"                  "
+msgid "%(count_comma)s recipient"
+msgid_plural "%(count_comma)s recipients"
 msgstr[0] ""
 "\n"
 "                  %(count_comma)s получатель\n"
@@ -8199,40 +8211,6 @@ msgstr[3] "%(recipients)s получатели в настоящее время 
 #| msgid "Messages"
 msgid "Message Details"
 msgstr "Сообщения "
-
-#, fuzzy, python-format
-#| msgid ""
-#| "\n"
-#| "                  %(count_comma)s recipient\n"
-#| "                  "
-#| msgid_plural ""
-#| "\n"
-#| "                    %(count_comma)s recipients\n"
-#| "                "
-msgid ""
-"\n"
-"        %(count_comma)s recipients\n"
-"        "
-msgid_plural ""
-"\n"
-"          %(count_comma)s recipients\n"
-"      "
-msgstr[0] ""
-"\n"
-"                  %(count_comma)s получатель\n"
-"                  "
-msgstr[1] ""
-"\n"
-"                    %(count_comma)s получателей\n"
-"                "
-msgstr[2] ""
-"\n"
-"                    %(count_comma)s получателей\n"
-"                "
-msgstr[3] ""
-"\n"
-"                    %(count_comma)s получателей\n"
-"                "
 
 msgid "Your message export is ready."
 msgstr "Ваш экспорт сообщений готов."
@@ -8351,46 +8329,6 @@ msgstr[0] "Используется %(num_flows)s потоком:"
 msgstr[1] "Используется %(num_flows)s потоками:"
 msgstr[2] "Используется %(num_flows)s потоками:"
 msgstr[3] "Используется %(num_flows)s потоками:"
-
-#, python-format
-msgid ""
-"\n"
-"                    1 recipient\n"
-"                    "
-msgid_plural ""
-"\n"
-"                      %(counter)s recipients\n"
-"                  "
-msgstr[0] ""
-"\n"
-"                    1 получатель\n"
-"                    "
-msgstr[1] ""
-"\n"
-"                      %(counter)s получателей\n"
-"                  "
-msgstr[2] ""
-"\n"
-"                      %(counter)s получателей\n"
-"                  "
-msgstr[3] ""
-"\n"
-"                      %(counter)s получателей\n"
-"                  "
-
-#, fuzzy, python-format
-#| msgid ""
-#| "\n"
-#| "                    %(recipient_counts.groups)s groups, %(recipient_counts.contacts)s contacts, %(recipient_counts.urns)s urns\n"
-#| "\n"
-#| "                  "
-msgid "%(recipient_counts.groups)s groups, %(recipient_counts.contacts)s contacts, %(recipient_counts.urns)s urns"
-msgstr ""
-"\n"
-"                    %(recipient_counts.groups)s групп, %(recipient_counts.contacts)s контактов, %(recipient_counts.urns)s urn"
-
-msgid "(sending)"
-msgstr "(отправляется)"
 
 msgid "No matching messages."
 msgstr "Нет соответствующих сообщений."
@@ -8875,15 +8813,24 @@ msgstr ""
 "\n"
 
 #, fuzzy
+#| msgid "Password"
+msgid "Confirm Access"
+msgstr "Пароль"
+
+msgid "To access this page please confirm your current password."
+msgstr ""
+
+#, fuzzy
+#| msgid "Config"
+msgid "Confirm"
+msgstr "Конфигурация"
+
+#, fuzzy
 #| msgid "Welcome!"
 msgid "Welcome Back"
 msgstr "Добро пожаловать!"
 
-msgid ""
-"\n"
-"    Please sign in with your email address and password.\n"
-"\n"
-"  "
+msgid "Please sign in with your email address and password."
 msgstr ""
 
 #, fuzzy
@@ -9377,17 +9324,21 @@ msgstr ""
 "\n"
 "  "
 
-msgid "no flow events"
-msgstr "нет событий потока"
+#, fuzzy
+#| msgid "You have <b>%(counter)s global</b> configured"
+#| msgid_plural "You have <b>%(counter)s globals</b> configured"
+msgid "You have <b>no flow events</b> configured."
+msgstr "У Вас есть настроенный <b>%(counter)s глобальный объект</b> "
 
-msgid "one flow event"
-msgstr "одно событие потока"
-
-msgid "flow events"
-msgstr "события потока"
-
-msgid "configured."
-msgstr "настроено."
+#, fuzzy, python-format
+#| msgid "You have <b>%(counter)s global</b> configured"
+#| msgid_plural "You have <b>%(counter)s globals</b> configured"
+msgid "You have <b>1 flow event</b> configured."
+msgid_plural "You have <b>%(counter)s flow events</b> configured."
+msgstr[0] "У Вас есть настроенный <b>%(counter)s глобальный объект</b> "
+msgstr[1] "У Вас есть настроенные <b>%(counter)s глобальные объекты</b> "
+msgstr[2] "У Вас есть настроенные <b>%(counter)s глобальные объекты</b> "
+msgstr[3] "У Вас есть настроенные <b>%(counter)s глобальные объекты</b> "
 
 msgid "Create Account"
 msgstr "Создать Учетную запись"
@@ -10458,6 +10409,145 @@ msgstr "Ввести запрос"
 msgid "Found ${count} for ${query}"
 msgstr "Найдено ${count} по ${query}"
 
+#~ msgid "The Twitter handle that this channel will send from"
+#~ msgstr "Дескриптор Twitter, с которого будет происходить отправка этим каналом"
+
+#~ msgid ", and "
+#~ msgstr ", и"
+
+#, fuzzy, python-format
+#~| msgid ""
+#~| "\n"
+#~| "                  %(group_count)s groups, %(contact_count)s contacts, %(urn_count)s urns\n"
+#~| "\n"
+#~| "                "
+#~ msgid "%(group_count)s groups, %(contact_count)s contacts, %(urn_count)s urns"
+#~ msgstr ""
+#~ "\n"
+#~ "                  %(group_count)s групп, %(contact_count)s контактов, %(urn_count)s urn\n"
+#~ "\n"
+#~ "                "
+
+#, fuzzy, python-format
+#~| msgid ""
+#~| "\n"
+#~| "                  %(count_comma)s recipient\n"
+#~| "                  "
+#~| msgid_plural ""
+#~| "\n"
+#~| "                    %(count_comma)s recipients\n"
+#~| "                "
+#~ msgid ""
+#~ "\n"
+#~ "                    %(count_comma)s recipient\n"
+#~ "                    "
+#~ msgid_plural ""
+#~ "\n"
+#~ "                      %(count_comma)s recipients\n"
+#~ "                  "
+#~ msgstr[0] ""
+#~ "\n"
+#~ "                  %(count_comma)s получатель\n"
+#~ "                  "
+#~ msgstr[1] ""
+#~ "\n"
+#~ "                    %(count_comma)s получателей\n"
+#~ "                "
+#~ msgstr[2] ""
+#~ "\n"
+#~ "                    %(count_comma)s получателей\n"
+#~ "                "
+#~ msgstr[3] ""
+#~ "\n"
+#~ "                    %(count_comma)s получателей\n"
+#~ "                "
+
+#, fuzzy, python-format
+#~| msgid ""
+#~| "\n"
+#~| "                  %(count_comma)s recipient\n"
+#~| "                  "
+#~| msgid_plural ""
+#~| "\n"
+#~| "                    %(count_comma)s recipients\n"
+#~| "                "
+#~ msgid ""
+#~ "\n"
+#~ "        %(count_comma)s recipients\n"
+#~ "        "
+#~ msgid_plural ""
+#~ "\n"
+#~ "          %(count_comma)s recipients\n"
+#~ "      "
+#~ msgstr[0] ""
+#~ "\n"
+#~ "                  %(count_comma)s получатель\n"
+#~ "                  "
+#~ msgstr[1] ""
+#~ "\n"
+#~ "                    %(count_comma)s получателей\n"
+#~ "                "
+#~ msgstr[2] ""
+#~ "\n"
+#~ "                    %(count_comma)s получателей\n"
+#~ "                "
+#~ msgstr[3] ""
+#~ "\n"
+#~ "                    %(count_comma)s получателей\n"
+#~ "                "
+
+#, python-format
+#~ msgid ""
+#~ "\n"
+#~ "                    1 recipient\n"
+#~ "                    "
+#~ msgid_plural ""
+#~ "\n"
+#~ "                      %(counter)s recipients\n"
+#~ "                  "
+#~ msgstr[0] ""
+#~ "\n"
+#~ "                    1 получатель\n"
+#~ "                    "
+#~ msgstr[1] ""
+#~ "\n"
+#~ "                      %(counter)s получателей\n"
+#~ "                  "
+#~ msgstr[2] ""
+#~ "\n"
+#~ "                      %(counter)s получателей\n"
+#~ "                  "
+#~ msgstr[3] ""
+#~ "\n"
+#~ "                      %(counter)s получателей\n"
+#~ "                  "
+
+#, fuzzy, python-format
+#~| msgid ""
+#~| "\n"
+#~| "                    %(recipient_counts.groups)s groups, %(recipient_counts.contacts)s contacts, %(recipient_counts.urns)s urns\n"
+#~| "\n"
+#~| "                  "
+#~ msgid "%(recipient_counts.groups)s groups, %(recipient_counts.contacts)s contacts, %(recipient_counts.urns)s urns"
+#~ msgstr ""
+#~ "\n"
+#~ "                    %(recipient_counts.groups)s групп, %(recipient_counts.contacts)s контактов, %(recipient_counts.urns)s urn"
+
+#~ msgid "(sending)"
+#~ msgstr "(отправляется)"
+
+#~ msgid "no flow events"
+#~ msgstr "нет событий потока"
+
+#~ msgid "one flow event"
+#~ msgstr "одно событие потока"
+
+#~ msgid "flow events"
+#~ msgstr "события потока"
+
+#~ msgid "configured."
+#~ msgstr "настроено."
+
 #, fuzzy
 #~| msgid "Your invitation link has expired. Please contact your organization administrator."
 #~ msgid "You are the only administrator on this workspace. Please add other workspace administrators first."
@@ -10828,9 +10918,6 @@ msgstr "Найдено ${count} по ${query}"
 
 #~ msgid "Organization using this channel"
 #~ msgstr "Организация, использующая данный канал"
-
-#~ msgid "Config"
-#~ msgstr "Конфигурация"
 
 #~ msgid "Any channel specific configuration, used for the various aggregators"
 #~ msgstr "Любая специфическая для канала конфигурация, используемая для различных агрегаторов"

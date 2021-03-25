@@ -496,7 +496,7 @@ class FlowTest(TembaTest):
             visited,
         )
         self.assertEqual(
-            {"total": 1, "active": 1, "completed": 0, "expired": 0, "interrupted": 0, "completion": 0},
+            {"total": 1, "active": 1, "completed": 0, "expired": 0, "interrupted": 0, "failed": 0, "completion": 0},
             flow.get_run_stats(),
         )
 
@@ -604,7 +604,7 @@ class FlowTest(TembaTest):
             visited,
         )
         self.assertEqual(
-            {"total": 2, "active": 2, "completed": 0, "expired": 0, "interrupted": 0, "completion": 0},
+            {"total": 2, "active": 2, "completed": 0, "expired": 0, "interrupted": 0, "failed": 0, "completion": 0},
             flow.get_run_stats(),
         )
 
@@ -654,7 +654,7 @@ class FlowTest(TembaTest):
 
         # half of our flows are now complete
         self.assertEqual(
-            {"total": 2, "active": 1, "completed": 1, "expired": 0, "interrupted": 0, "completion": 50},
+            {"total": 2, "active": 1, "completed": 1, "expired": 0, "interrupted": 0, "failed": 0, "completion": 50},
             flow.get_run_stats(),
         )
 
@@ -678,7 +678,7 @@ class FlowTest(TembaTest):
             visited,
         )
         self.assertEqual(
-            {"total": 2, "active": 1, "completed": 1, "expired": 0, "interrupted": 0, "completion": 50},
+            {"total": 2, "active": 1, "completed": 1, "expired": 0, "interrupted": 0, "failed": 0, "completion": 50},
             flow.get_run_stats(),
         )
 
@@ -705,7 +705,7 @@ class FlowTest(TembaTest):
 
         # he was also accounting for our completion rate, back to nothing
         self.assertEqual(
-            {"total": 1, "active": 1, "completed": 0, "expired": 0, "interrupted": 0, "completion": 0},
+            {"total": 1, "active": 1, "completed": 0, "expired": 0, "interrupted": 0, "failed": 0, "completion": 0},
             flow.get_run_stats(),
         )
 
@@ -739,7 +739,7 @@ class FlowTest(TembaTest):
             visited,
         )
         self.assertEqual(
-            {"total": 1, "active": 0, "completed": 1, "expired": 0, "interrupted": 0, "completion": 100},
+            {"total": 1, "active": 0, "completed": 1, "expired": 0, "interrupted": 0, "failed": 0, "completion": 100},
             flow.get_run_stats(),
         )
 
@@ -767,7 +767,7 @@ class FlowTest(TembaTest):
             visited,
         )
         self.assertEqual(
-            {"total": 0, "active": 0, "completed": 0, "expired": 0, "interrupted": 0, "completion": 0},
+            {"total": 0, "active": 0, "completed": 0, "expired": 0, "interrupted": 0, "failed": 0, "completion": 0},
             flow.get_run_stats(),
         )
 
@@ -807,7 +807,7 @@ class FlowTest(TembaTest):
             visited,
         )
         self.assertEqual(
-            {"total": 1, "active": 1, "completed": 0, "expired": 0, "interrupted": 0, "completion": 0},
+            {"total": 1, "active": 1, "completed": 0, "expired": 0, "interrupted": 0, "failed": 0, "completion": 0},
             flow.get_run_stats(),
         )
 
@@ -835,7 +835,7 @@ class FlowTest(TembaTest):
             visited,
         )
         self.assertEqual(
-            {"total": 1, "active": 0, "completed": 0, "expired": 1, "interrupted": 0, "completion": 0},
+            {"total": 1, "active": 0, "completed": 0, "expired": 1, "interrupted": 0, "failed": 0, "completion": 0},
             flow.get_run_stats(),
         )
 
@@ -859,7 +859,7 @@ class FlowTest(TembaTest):
 
         self.assertEqual({color_split["uuid"]: 1}, active)
         self.assertEqual(
-            {"total": 2, "active": 1, "completed": 0, "expired": 1, "interrupted": 0, "completion": 0},
+            {"total": 2, "active": 1, "completed": 0, "expired": 1, "interrupted": 0, "failed": 0, "completion": 0},
             flow.get_run_stats(),
         )
 
@@ -873,7 +873,7 @@ class FlowTest(TembaTest):
 
         self.assertEqual({}, active)
         self.assertEqual(
-            {"total": 2, "active": 0, "completed": 0, "expired": 1, "interrupted": 1, "completion": 0},
+            {"total": 2, "active": 0, "completed": 0, "expired": 1, "interrupted": 1, "failed": 0, "completion": 0},
             flow.get_run_stats(),
         )
 
@@ -889,8 +889,8 @@ class FlowTest(TembaTest):
 
         squash_flowcounts()
         self.assertEqual(FlowRunCount.objects.all().count(), 3)
-        self.assertEqual(FlowRunCount.get_totals(flow2), {"A": 0, "C": 0, "E": 0, "I": 9})
-        self.assertEqual(FlowRunCount.get_totals(flow), {"A": 3, "C": 0, "E": 3, "I": 0})
+        self.assertEqual(FlowRunCount.get_totals(flow2), {"I": 9})
+        self.assertEqual(FlowRunCount.get_totals(flow), {None: 3, "E": 3})
 
         max_id = FlowRunCount.objects.all().order_by("-id").first().id
 
@@ -2763,6 +2763,17 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             .save()
         )
 
+        john = self.create_contact("John", phone="+12065553028")
+        (
+            MockSessionWriter(john, flow)
+            .visit(color_prompt)
+            .send_msg("What is your favorite color?", self.channel)
+            .visit(color_split)
+            .wait()
+            .fail("some error")
+            .save()
+        )
+
         self.login(self.admin)
 
         with patch("temba.flows.views.FlowCRUDL.RunTable.paginate_by", 1):
@@ -2804,8 +2815,12 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             # and some charts
             response = self.client.get(reverse("flows.flow_activity_chart", args=[flow.id]))
 
-            # we have two active runs
-            self.assertContains(response, "name: 'Active', y: 2")
+            # we have two active runs, one failed run
+            self.assertEqual(response.context["failed"], 1)
+            self.assertEqual(response.context["active"], 2)
+            self.assertEqual(response.context["completed"], 0)
+            self.assertEqual(response.context["expired"], 0)
+            self.assertEqual(response.context["interrupted"], 0)
             self.assertContains(response, "3 Responses")
 
             # now complete the flow for Pete
@@ -2837,10 +2852,14 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertEqual(1, len(response.context["runs"]))
             self.assertContains(response, "Jimmy")
 
-            # now only one active, one completed, and 5 total responses
+            # now only one active, one completed, one failed and 5 total responses
             response = self.client.get(reverse("flows.flow_activity_chart", args=[flow.id]))
-            self.assertContains(response, "name: 'Active', y: 1")
-            self.assertContains(response, "name: 'Completed', y: 1")
+
+            self.assertEqual(response.context["failed"], 1)
+            self.assertEqual(response.context["active"], 1)
+            self.assertEqual(response.context["completed"], 1)
+            self.assertEqual(response.context["expired"], 0)
+            self.assertEqual(response.context["interrupted"], 0)
             self.assertContains(response, "5 Responses")
 
             # they all happened on the same day
@@ -3528,21 +3547,49 @@ class FlowRunTest(TembaTest):
         self.assertEqual(expected["primus_count"], cat_counts["color"]["categories"][0]["count"])
 
         self.assertEqual(expected["start_count"], FlowStartCount.get_count(start))
-        self.assertEqual(expected["run_count"], FlowRunCount.get_totals(flow))
+        self.assertEqual(expected["run_count"], flow.get_run_stats())
 
         self.assertFalse(FlowRun.objects.filter(id=run.id).exists())
 
     @patch("temba.mailroom.queue_interrupt")
     def test_deletion(self, mock_queue_interrupt):
         self._check_deletion(
-            None, {"red_count": 0, "primus_count": 0, "start_count": 0, "run_count": {"C": 0, "E": 0, "I": 0, "A": 0}}
+            None,
+            {
+                "red_count": 0,
+                "primus_count": 0,
+                "start_count": 0,
+                "run_count": {
+                    "total": 0,
+                    "active": 0,
+                    "completed": 0,
+                    "expired": 0,
+                    "interrupted": 0,
+                    "failed": 0,
+                    "completion": 0,
+                },
+            },
         )
         self.assertFalse(mock_queue_interrupt.called)
 
     @patch("temba.mailroom.queue_interrupt")
     def test_user_deletion_with_complete_session(self, mock_queue_interrupt):
         self._check_deletion(
-            "U", {"red_count": 0, "primus_count": 0, "start_count": 0, "run_count": {"C": 0, "E": 0, "I": 0, "A": 0}}
+            "U",
+            {
+                "red_count": 0,
+                "primus_count": 0,
+                "start_count": 0,
+                "run_count": {
+                    "total": 0,
+                    "active": 0,
+                    "completed": 0,
+                    "expired": 0,
+                    "interrupted": 0,
+                    "failed": 0,
+                    "completion": 0,
+                },
+            },
         )
         self.assertFalse(mock_queue_interrupt.called)
 
@@ -3550,7 +3597,20 @@ class FlowRunTest(TembaTest):
     def test_user_deletion_without_complete_session(self, mock_queue_interrupt):
         self._check_deletion(
             "U",
-            {"red_count": 0, "primus_count": 0, "start_count": 0, "run_count": {"C": 0, "E": 0, "I": 0, "A": 0}},
+            {
+                "red_count": 0,
+                "primus_count": 0,
+                "start_count": 0,
+                "run_count": {
+                    "total": 0,
+                    "active": 0,
+                    "completed": 0,
+                    "expired": 0,
+                    "interrupted": 0,
+                    "failed": 0,
+                    "completion": 0,
+                },
+            },
             False,
         )
         mock_queue_interrupt.assert_called_once()
@@ -3558,7 +3618,21 @@ class FlowRunTest(TembaTest):
     @patch("temba.mailroom.queue_interrupt")
     def test_archiving(self, mock_queue_interrupt):
         self._check_deletion(
-            "A", {"red_count": 1, "primus_count": 1, "start_count": 1, "run_count": {"C": 1, "E": 0, "I": 0, "A": 0}}
+            "A",
+            {
+                "red_count": 1,
+                "primus_count": 1,
+                "start_count": 1,
+                "run_count": {
+                    "total": 1,
+                    "active": 0,
+                    "completed": 1,
+                    "expired": 0,
+                    "interrupted": 0,
+                    "failed": 0,
+                    "completion": 100,
+                },
+            },
         )
         self.assertFalse(mock_queue_interrupt.called)
 

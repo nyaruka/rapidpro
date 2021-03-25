@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-02-24 22:07+0000\n"
+"POT-Creation-Date: 2021-03-25 08:00+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -769,6 +769,31 @@ msgid "Please enter a valid phone number"
 msgstr ""
 
 #, python-format
+msgid "Add a %(link)s bot to send messages to Discord users for free. Your users will need a Discord account and a compatible device to send/recieve messages. This channel type is only available if your instance has been configured with the Discord proxy application, available %(proxy_link)s."
+msgstr ""
+
+msgid "Authentication Token"
+msgstr ""
+
+msgid "The discord bot token"
+msgstr ""
+
+msgid "Proxy URL"
+msgstr ""
+
+msgid "The URL on which the discord proxy is running"
+msgstr ""
+
+msgid "A Discord channel for this bot already exists on your account."
+msgstr ""
+
+msgid "Couldn't log in using that bot token. Please check and try again"
+msgstr ""
+
+msgid "An error occurred accessing the Discord API. Please try again"
+msgstr ""
+
+#, python-format
 msgid "If you are based in Uganda or DRC you can purchase a short code from %(link)s and connect it in a few simple steps."
 msgstr ""
 
@@ -797,12 +822,6 @@ msgid "The type of URNs handled by this channel"
 msgstr ""
 
 msgid "The phone number or that this channel will send from"
-msgstr ""
-
-msgid "Handle"
-msgstr ""
-
-msgid "The Twitter handle that this channel will send from"
 msgstr ""
 
 msgid "The external address that this channel will send from"
@@ -845,6 +864,9 @@ msgid "MT Response check"
 msgstr ""
 
 msgid "The content that must be in the response to consider the request successful"
+msgstr ""
+
+msgid "This field is required."
 msgstr ""
 
 msgid "The URL we will POST to when sending messages, with variable substitutions"
@@ -1469,9 +1491,6 @@ msgstr ""
 msgid "Add a %(link)s bot to send and receive messages to Telegram users for free. Your users will need an Android, Windows or iOS device and a Telegram account to send and receive messages."
 msgstr ""
 
-msgid "Authentication Token"
-msgstr ""
-
 msgid "The Authentication token for your Telegram Bot"
 msgstr ""
 
@@ -1637,6 +1656,9 @@ msgid "Environment Name"
 msgstr ""
 
 msgid "The provided Twitter credentials do not appear to be valid."
+msgstr ""
+
+msgid "Handle"
 msgstr ""
 
 msgid "Twitter handle of this channel"
@@ -1819,6 +1841,20 @@ msgid "The account username provided by Zenvia"
 msgstr ""
 
 msgid "The account password provided by Zenvia"
+msgstr ""
+
+#, python-format
+msgid "Unable to register webhook subscriptions: %(resp)s"
+msgstr ""
+
+#, python-format
+msgid "Unable to remove webhook subscriptions: %(resp)s"
+msgstr ""
+
+msgid "API Token"
+msgstr ""
+
+msgid "The API token for your integration as provided by Zenvia"
 msgstr ""
 
 msgid "United Kingdom"
@@ -2077,6 +2113,9 @@ msgstr ""
 msgid "RocketChat identifier"
 msgstr ""
 
+msgid "Discord Identifier"
+msgstr ""
+
 msgid "Text"
 msgstr ""
 
@@ -2293,6 +2332,9 @@ msgstr ""
 msgid "Send Message"
 msgstr ""
 
+msgid "Start In Flow"
+msgstr ""
+
 msgid "Edit Contact"
 msgstr ""
 
@@ -2342,6 +2384,9 @@ msgid "An error occurred updating your contact. Please try again later."
 msgstr ""
 
 msgid "Select a field to update"
+msgstr ""
+
+msgid "Start"
 msgstr ""
 
 msgid "Can only contain letters, numbers and hypens."
@@ -2431,6 +2476,12 @@ msgstr ""
 msgid "The flow version this definition is in"
 msgstr ""
 
+msgid "Archive delete"
+msgstr ""
+
+msgid "User delete"
+msgstr ""
+
 #, python-brace-format
 msgid "by {username}"
 msgstr ""
@@ -2449,21 +2500,6 @@ msgstr ""
 
 #, python-brace-format
 msgid "by keyword trigger {keyword}"
-msgstr ""
-
-msgid "Completed"
-msgstr ""
-
-msgid "Interrupted"
-msgstr ""
-
-msgid "Expired"
-msgstr ""
-
-msgid "Archive delete"
-msgstr ""
-
-msgid "User delete"
 msgstr ""
 
 msgid "The JSON flow definition"
@@ -3273,6 +3309,9 @@ msgstr ""
 msgid "Invalid backup token. Please try again."
 msgstr ""
 
+msgid "Password incorrect."
+msgstr ""
+
 #, python-brace-format
 msgid "Deleted user {username}"
 msgstr ""
@@ -3317,9 +3356,6 @@ msgid "Current password"
 msgstr ""
 
 msgid "OTP incorrect. Please try again."
-msgstr ""
-
-msgid "Password incorrect."
 msgstr ""
 
 msgid "Two-factor authentication enabled"
@@ -3578,9 +3614,6 @@ msgstr ""
 msgid "Login"
 msgstr ""
 
-msgid "API Token"
-msgstr ""
-
 msgid "Your DT One API key and secret seem invalid. Please check them again and retry."
 msgstr ""
 
@@ -3831,7 +3864,7 @@ msgid "Verify your email address for tickets"
 msgstr ""
 
 #, python-format
-msgid "%(link)s is a free open source solution for team communications which can be connected as a ticket servicethrough its omnichannel feature."
+msgid "%(link)s is a free open source solution for team communications which can be connected as a ticket service through its omnichannel feature."
 msgstr ""
 
 msgid "URL of the Rocket.Chat Tickets app"
@@ -4095,9 +4128,6 @@ msgid "%d second"
 msgid_plural "%d seconds"
 msgstr[0] ""
 msgstr[1] ""
-
-msgid ", and "
-msgstr ""
 
 msgid "0 seconds"
 msgstr ""
@@ -4617,7 +4647,7 @@ msgid ""
 "\n"
 "Hi %(org_name)s,\n"
 "\n"
-"We've noticed that the Android phone for %(org.name)s is now charging the battery.\n"
+"We've noticed that the Android phone for %(org_name)s is now charging the battery.\n"
 "This email is to announce that your android phone battery low reported last time was resolved. Now the battery is charging.\n"
 msgstr ""
 
@@ -5317,6 +5347,15 @@ msgstr ""
 msgid "with subject"
 msgstr ""
 
+msgid "Interrupted"
+msgstr ""
+
+msgid "Expired"
+msgstr ""
+
+msgid "Completed"
+msgstr ""
+
 msgid "Started"
 msgstr ""
 
@@ -5394,9 +5433,6 @@ msgid "Contact Id"
 msgstr ""
 
 msgid "Upcoming"
-msgstr ""
-
-msgid "Start"
 msgstr ""
 
 msgid "repeats daily"
@@ -5669,6 +5705,9 @@ msgid "Day of Week"
 msgstr ""
 
 msgid "Time of Day"
+msgstr ""
+
+msgid "Interrupted, Expired and Failed"
 msgstr ""
 
 #, python-format
@@ -5973,16 +6012,6 @@ msgstr ""
 msgid "Often certain regions are known by more than one name. In %(brand)s, we call these alternate names for regions, aliases."
 msgstr ""
 
-#, python-format
-msgid "%(count_comma)s recipient"
-msgid_plural "%(count_comma)s recipients"
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid "%(group_count)s groups, %(contact_count)s contacts, %(urn_count)s urns"
-msgstr ""
-
 msgid "No Matching schedules"
 msgstr ""
 
@@ -5990,14 +6019,8 @@ msgid "Send History"
 msgstr ""
 
 #, python-format
-msgid ""
-"\n"
-"                    %(count_comma)s recipient\n"
-"                    "
-msgid_plural ""
-"\n"
-"                      %(count_comma)s recipients\n"
-"                  "
+msgid "%(count_comma)s recipient"
+msgid_plural "%(count_comma)s recipients"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -6009,18 +6032,6 @@ msgstr[1] ""
 
 msgid "Message Details"
 msgstr ""
-
-#, python-format
-msgid ""
-"\n"
-"        %(count_comma)s recipients\n"
-"        "
-msgid_plural ""
-"\n"
-"          %(count_comma)s recipients\n"
-"      "
-msgstr[0] ""
-msgstr[1] ""
 
 msgid "Your message export is ready."
 msgstr ""
@@ -6096,25 +6107,6 @@ msgid "Used by %(num_flows)s flow:"
 msgid_plural "Used by %(num_flows)s flows:"
 msgstr[0] ""
 msgstr[1] ""
-
-#, python-format
-msgid ""
-"\n"
-"                    1 recipient\n"
-"                    "
-msgid_plural ""
-"\n"
-"                      %(counter)s recipients\n"
-"                  "
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid "%(recipient_counts.groups)s groups, %(recipient_counts.contacts)s contacts, %(recipient_counts.urns)s urns"
-msgstr ""
-
-msgid "(sending)"
-msgstr ""
 
 msgid "No matching messages."
 msgstr ""
@@ -6351,14 +6343,19 @@ msgid ""
 "\n"
 msgstr ""
 
+msgid "Confirm Access"
+msgstr ""
+
+msgid "To access this page please confirm your current password."
+msgstr ""
+
+msgid "Confirm"
+msgstr ""
+
 msgid "Welcome Back"
 msgstr ""
 
-msgid ""
-"\n"
-"    Please sign in with your email address and password.\n"
-"\n"
-"  "
+msgid "Please sign in with your email address and password."
 msgstr ""
 
 msgid "Sign In"
@@ -6651,17 +6648,14 @@ msgstr ""
 msgid "You can create flow events which external services can subscribe to. For example, Zapier can subscribe to flow events you create and trigger any number of Zapier integrations when they occur in your flows."
 msgstr ""
 
-msgid "no flow events"
+msgid "You have <b>no flow events</b> configured."
 msgstr ""
 
-msgid "one flow event"
-msgstr ""
-
-msgid "flow events"
-msgstr ""
-
-msgid "configured."
-msgstr ""
+#, python-format
+msgid "You have <b>1 flow event</b> configured."
+msgid_plural "You have <b>%(counter)s flow events</b> configured."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Create Account"
 msgstr ""

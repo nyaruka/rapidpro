@@ -1561,6 +1561,7 @@ class FlowCRUDL(SmartCRUDL):
             FlowRun.EXIT_TYPE_COMPLETED: "completed",
             FlowRun.EXIT_TYPE_INTERRUPTED: "interrupted",
             FlowRun.EXIT_TYPE_EXPIRED: "expired",
+            FlowRun.EXIT_TYPE_FAILED: "failed",
         }
 
         def get_context_data(self, *args, **kwargs):
@@ -1653,7 +1654,7 @@ class FlowCRUDL(SmartCRUDL):
                 total_runs += count["count__sum"]
 
             # make sure we have a value for each one
-            for state in ("expired", "interrupted", "completed", "active"):
+            for state in ("expired", "interrupted", "completed", "active", "failed"):
                 if state not in context:
                     context[state] = 0
 
