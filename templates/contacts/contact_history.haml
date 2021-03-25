@@ -122,6 +122,9 @@
               -trans "Started"
             %a(href="{% url 'flows.flow_editor' event.flow.uuid %}")
               {{ event.flow.name }}
+            -if event.type == 'flow_entered'
+              -if event.trigger_description
+                {{ event.trigger_description }}
 
       -elif event.type == 'input_labels_added'
         -trans "Message labelled as"

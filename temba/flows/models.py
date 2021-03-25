@@ -1284,6 +1284,36 @@ class FlowExit:
         self.run = run
 
 
+class FlowEntered:
+    """
+    A helper class used for building contact histories which adds `flow_entered` events and includes a trigger description
+    for them on runs that still have a session
+    """
+
+    def __init__(self, run, trigger):
+        self.run = run
+
+        trigger_description = None
+        if trigger:
+            if trigger["type"] == "manual":
+                username = trigger["user"]
+                trigger_description = _(f"by {username}")
+            elif trigger["type"] == "channel":
+                channel_name = trigger["event"]["channel"]["name"]
+                trigger_description = _(f"by new conversation to {channel_name} channel")
+            elif trigger["type"] == "flow_action":
+                flow_name = trigger["run_summary"]["flow"]["name"]
+                trigger_description = _(f"by {flow_name} flow")
+            elif trigger["type"] == "campaign":
+                campaign_name = trigger["event"]["campaign"]["name"]
+                trigger_description = _(f"by {campaign_name} campaign")
+            elif trigger["type"] == "msg":
+                keyword = trigger["keyword_match"]["keyword"]
+                trigger_description = _(f"by keyword trigger {keyword}")
+
+        self.trigger_description = trigger_description
+
+
 class FlowRevision(SmartModel):
     """
     JSON definitions for previous flow revisions

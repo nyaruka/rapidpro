@@ -2037,7 +2037,7 @@ class ContactTest(TembaTest):
 
         # fetch our contact history
         self.login(self.admin)
-        with self.assertNumQueries(49):
+        with self.assertNumQueries(48):
             response = self.client.get(url + "?limit=100")
 
         # history should include all messages in the last 90 days, the channel event, the call, and the flow run
@@ -2062,6 +2062,8 @@ class ContactTest(TembaTest):
         assertHistoryEvent(history[9], "msg_received")
         assertHistoryEvent(history[10], "campaign_fired")
         assertHistoryEvent(history[-1], "msg_received", msg_text="Inbound message 11")
+
+        self.assertEqual(history[8]["trigger_description"], "by foo@example.com")
 
         self.assertContains(response, "<audio ")
         self.assertContains(response, '<source type="audio/mp3" src="http://blah/file.mp3" />')

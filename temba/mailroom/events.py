@@ -10,7 +10,7 @@ from temba.airtime.models import AirtimeTransfer
 from temba.api.models import WebHookResult
 from temba.campaigns.models import EventFire
 from temba.channels.models import ChannelEvent
-from temba.flows.models import FlowExit, FlowRun
+from temba.flows.models import FlowEntered, FlowExit, FlowRun
 from temba.ivr.models import IVRCall
 from temba.msgs.models import Msg
 from temba.orgs.models import Org
@@ -118,6 +118,21 @@ class Event:
             "created_on": get_event_time(obj).isoformat(),
             "flow": {"uuid": str(obj.flow.uuid), "name": obj.flow.name},
             "logs_url": logs_url,
+            # additional properties
+            "trigger_description": None,
+        }
+
+    @classmethod
+    def from_flow_entered(cls, org: Org, user: User, obj: FlowEntered) -> dict:
+        logs_url = _url_for_user(org, user, "flows.flowsession_json", args=[obj.run["session_uuid"]])
+
+        return {
+            "type": cls.TYPE_FLOW_ENTERED,
+            "created_on": get_event_time(obj).isoformat(),
+            "flow": {"uuid": str(obj.run["flow"]["uuid"]), "name": obj.run["flow"]["name"]},
+            "logs_url": logs_url,
+            # additional properties
+            "trigger_description": obj.trigger_description,
         }
 
     @classmethod
@@ -244,6 +259,7 @@ event_renderers = {
     AirtimeTransfer: Event.from_airtime_transfer,
     ChannelEvent: Event.from_channel_event,
     EventFire: Event.from_event_fire,
+    FlowEntered: Event.from_flow_entered,
     FlowExit: Event.from_flow_exit,
     FlowRun: Event.from_flow_run,
     IVRCall: Event.from_ivr_call,
@@ -258,6 +274,7 @@ event_time.update(
         dict: lambda e: iso8601.parse_date(e["created_on"]),
         EventFire: lambda e: e.fired,
         FlowExit: lambda e: e.run.exited_on,
+        FlowEntered: lambda e: iso8601.parse_date(e.run["created_on"]),
     },
 )
 

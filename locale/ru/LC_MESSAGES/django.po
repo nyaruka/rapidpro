@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-03-24 17:23+0000\n"
+"POT-Creation-Date: 2021-03-25 08:00+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Hudson Brendon <hudson.brendon@ilhasoft.com.br>, 2020\n"
 "Language-Team: Russian (https://www.transifex.com/rapidpro/teams/226/ru/)\n"
@@ -3268,6 +3268,28 @@ msgstr "Удалить архив"
 
 msgid "User delete"
 msgstr "Удалить пользователя"
+
+#, fuzzy, python-brace-format
+#| msgid "Username"
+msgid "by {username}"
+msgstr "Имя пользователя"
+
+#, python-brace-format
+msgid "by new conversation to {channel_name} channel"
+msgstr ""
+
+#, python-brace-format
+msgid "by {flow_name} flow"
+msgstr ""
+
+#, python-brace-format
+msgid "by {campaign_name} campaign"
+msgstr ""
+
+#, fuzzy, python-brace-format
+#| msgid "Global keyword triggers"
+msgid "by keyword trigger {keyword}"
+msgstr "Глобальные триггеры ключевых слов"
 
 msgid "The JSON flow definition"
 msgstr "Определение потока JSON"
@@ -10387,10 +10409,11 @@ msgstr "Ввести запрос"
 msgid "Found ${count} for ${query}"
 msgstr "Найдено ${count} по ${query}"
 
-#, fuzzy, python-format
-#~| msgid "Interrupt contacts currently active in flows"
-#~ msgid "Your contact has been started in %(flow)s."
-#~ msgstr "Прервать контакты, в настоящее время активные в потоках"
+#~ msgid "The Twitter handle that this channel will send from"
+#~ msgstr "Дескриптор Twitter, с которого будет происходить отправка этим каналом"
+
+#~ msgid ", and "
+#~ msgstr ", и"
 
 #, fuzzy, python-format
 #~| msgid ""
@@ -10499,12 +10522,6 @@ msgstr "Найдено ${count} по ${query}"
 #~ "                      %(counter)s получателей\n"
 #~ "                  "
 
-#~ msgid ", and "
-#~ msgstr ", и"
-
-#~ msgid "The Twitter handle that this channel will send from"
-#~ msgstr "Дескриптор Twitter, с которого будет происходить отправка этим каналом"
-
 #, fuzzy, python-format
 #~| msgid ""
 #~| "\n"
@@ -10530,11 +10547,6 @@ msgstr "Найдено ${count} по ${query}"
 
 #~ msgid "configured."
 #~ msgstr "настроено."
-
-#, fuzzy
-#~| msgid "Password"
-#~ msgid "Confirm Password"
-#~ msgstr "Пароль"
 
 #, fuzzy
 #~| msgid "Your invitation link has expired. Please contact your organization administrator."
@@ -13213,6 +13225,9 @@ msgstr "Найдено ${count} по ${query}"
 
 #~ msgid "Restart contacts who have already entered this flow"
 #~ msgstr "Перезапустить контакты, которые уже вошли в этот поток"
+
+#~ msgid "Interrupt contacts currently active in flows"
+#~ msgstr "Прервать контакты, в настоящее время активные в потоках"
 
 #~ msgid "Unlabel"
 #~ msgstr "Снять метку"
