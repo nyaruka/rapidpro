@@ -43,7 +43,7 @@ from temba.utils.cache import get_cacheable_attr, get_cacheable_result, incrby_e
 from temba.utils.currencies import currency_for_country
 from temba.utils.dates import datetime_to_str
 from temba.utils.email import send_template_email
-from temba.utils.models import JSONAsTextField, JSONField, SquashableModel
+from temba.utils.models import JSONField, SquashableModel
 from temba.utils.s3 import public_file_storage
 from temba.utils.text import generate_token, random_string
 from temba.utils.timezones import timezone_to_country_code
@@ -246,12 +246,7 @@ class Org(SmartModel):
         help_text="The country this organization should map results for.",
     )
 
-    config = JSONAsTextField(
-        null=True,
-        default=dict,
-        verbose_name=_("Configuration"),
-        help_text=_("More Organization specific configuration"),
-    )
+    config = JSONField(null=True, default=dict)  # additional config such as 3rd party integration keys
 
     slug = models.SlugField(
         verbose_name=_("Slug"),
