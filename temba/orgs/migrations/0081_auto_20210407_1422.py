@@ -16,6 +16,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="org",
             name="config",
-            field=temba.utils.models.JSONField(default=dict, encoder=temba.utils.json.TembaEncoder, null=True),
+            field=temba.utils.models.JSONField(default=dict, encoder=temba.utils.json.TembaEncoder),
         ),
     ]
