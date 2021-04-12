@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-04-05 16:46+0000\n"
+"POT-Creation-Date: 2021-04-12 14:38+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Jesus EKIE <jesus@fehudigital.com>, 2020\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -1858,6 +1858,11 @@ msgstr "Le nom d'utilisateur du compte fourni par Zenvia"
 msgid "The account password provided by Zenvia"
 msgstr "Le mot de passe du compte fourni par Zenvia"
 
+#, fuzzy, python-format
+#| msgid "If you have a %(link)s number, you can connect it to communicate with your WhatsApp contacts."
+msgid "If you have a %(link)s number, you can connect it to communicate with your contacts."
+msgstr "Si vous possédez un numéro %(link)s , vous pouvez le connecter pour communiquer avec vos contacts WhatsApp."
+
 #, python-format
 msgid "Unable to register webhook subscriptions: %(resp)s"
 msgstr ""
@@ -2434,9 +2439,20 @@ msgstr "Mettre à jour"
 msgid "Contact field uses"
 msgstr "Utilisation du champ de contact"
 
-#, python-format
-msgid "This workspace has reached the limit of %(count)d groups. You must delete existing ones before you can perform an import."
-msgstr "Cet espace de travail a atteint la limite de %(count)d groupes. Vous devez supprimer les fichiers existants avant de pouvoir effectuer une importation."
+#, fuzzy
+#| msgid "New Group..."
+msgid "new group"
+msgstr "Nouveau groupe..."
+
+#, fuzzy
+#| msgid "Existing Numbers"
+msgid "existing group"
+msgstr "Numéros existants"
+
+#, fuzzy
+#| msgid "Select Group"
+msgid "Select a group"
+msgstr "Sélectionner un groupe"
 
 #, python-format
 msgid "Field name for '%(header)s' can't be empty."
@@ -2453,6 +2469,24 @@ msgstr "Le nom de champ pour '%(header)s' est invalide ou un mot réservé."
 #, python-format
 msgid "Field name '%(name)s' is repeated."
 msgstr "Le nom de champ '%(name)s' est répété."
+
+#, fuzzy
+#| msgid "Required"
+msgid "Required."
+msgstr "Obligatoire"
+
+#, fuzzy
+#| msgid "Isn't a valid name"
+msgid "Invalid group name."
+msgstr "N'est pas un nom valide"
+
+msgid "Already exists."
+msgstr ""
+
+#, fuzzy, python-format
+#| msgid "This workspace has reached the limit of %(count)d groups. You must delete existing ones before you can perform an import."
+msgid "This workspace has reached the limit of %(count)d groups."
+msgstr "Cet espace de travail a atteint la limite de %(count)d groupes. Vous devez supprimer les fichiers existants avant de pouvoir effectuer une importation."
 
 msgid "Phone Call"
 msgstr ""
@@ -2620,12 +2654,6 @@ msgstr "Choisir la méthode pour votre flux"
 msgid "Choose a name to describe this flow, e.g. Demographic Survey"
 msgstr "Choisir un nom pour décrire ce flux, par exemple Enquête démographique"
 
-msgid "Expire inactive contacts"
-msgstr "Expiration des contacts inactifs"
-
-msgid "When inactive contacts should be removed from the flow"
-msgstr "Lorsque les contacts inactifs doivent être retirés du flux"
-
 msgid "Create a contact "
 msgstr "Créer un contact"
 
@@ -2643,6 +2671,12 @@ msgstr "Relancez l'appel si vous ne parvenez pas à vous connecter"
 
 msgid "Retries call three times for the chosen interval"
 msgstr "Relance l'appel trois fois pour l'intervalle choisi"
+
+msgid "Expire inactive contacts"
+msgstr "Expiration des contacts inactifs"
+
+msgid "When inactive contacts should be removed from the flow"
+msgstr "Lorsque les contacts inactifs doivent être retirés du flux"
 
 msgid "Keywords"
 msgstr "Mots clés"
@@ -3054,6 +3088,26 @@ msgstr "Mettre à jour le dossier"
 msgid "Update Label"
 msgstr "Mise à jour du libellé"
 
+msgid "Agent Name"
+msgstr "Nom d'agent"
+
+#, fuzzy
+#| msgid "Your last name"
+msgid "Your Chatbase agent's name."
+msgstr "Votre nom"
+
+msgid "The chatbase agent's API Key."
+msgstr ""
+
+msgid "Version"
+msgstr "Version"
+
+msgid "Missing agent name or API key."
+msgstr ""
+
+msgid "Your DT One API key and secret seem invalid. Please check them again and retry."
+msgstr "Votre clé API et votre secret DT One semblent invalides. Veuillez les vérifier à nouveau et réessayer."
+
 msgid "Administrators"
 msgstr "Administrateurs"
 
@@ -3087,8 +3141,13 @@ msgstr "Bande consommateur"
 msgid "Our Stripe customer id for your organization"
 msgstr "Notre bande d'identification pour votre organisation"
 
-msgid "The main language used by this organization"
-msgstr "La langue principale utilisée par cette organisation"
+#, fuzzy
+#| msgid "Base Language"
+msgid "Default Language"
+msgstr "Langue de base"
+
+msgid "The default website language for new users."
+msgstr ""
 
 msgid "Timezone"
 msgstr "Fuseau horaire"
@@ -3588,15 +3647,6 @@ msgstr "sauver"
 msgid "New Event"
 msgstr "Nouvel évènement"
 
-msgid "Agent Name"
-msgstr "Nom d'agent"
-
-msgid "Version"
-msgstr "Version"
-
-msgid "Missing data: Agent Name or API Key.Please check them again and retry."
-msgstr "Données manquantes: nom de l'agent ou clé de l'API. Veuillez les vérifier à nouveau et réessayer."
-
 msgid "Your Account"
 msgstr "Votre compte"
 
@@ -3614,9 +3664,6 @@ msgstr "Aide"
 
 msgid "Sign Out"
 msgstr "Déconnexion"
-
-msgid "Your DT One API key and secret seem invalid. Please check them again and retry."
-msgstr "Votre clé API et votre secret DT One semblent invalides. Veuillez les vérifier à nouveau et réessayer."
 
 msgid "Account Token"
 msgstr "Jeton de compte"
@@ -5675,6 +5722,16 @@ msgstr "champ"
 msgid "a <strong>%(scheme)s</strong> URN"
 msgstr "un <strong>%(scheme)s</strong> URN"
 
+#, fuzzy
+#| msgid "contacts"
+msgid "Add contacts to"
+msgstr "contacts"
+
+#, fuzzy
+#| msgid "Billed"
+msgid "called"
+msgstr "Facturé"
+
 msgid "Contact Import"
 msgstr "Importation de contacts"
 
@@ -6573,6 +6630,67 @@ msgstr ""
 "Carte de crédit: %(cc_type)s X%(cc_last4)s\n"
 "\n"
 
+#, fuzzy, python-format
+#| msgid "A connection to a Twilio account is required"
+msgid "Connected to your Chatbase account as agent <b>%(agent)s</b>."
+msgstr "Une connexion à un compte Twilio est requise"
+
+msgid "Connect your Chatbase account."
+msgstr ""
+
+msgid "Connecting your Chatbase account will allow you to monitor your bot, fix broken experiences and better understand your users. To signup for an account, visit"
+msgstr "La connexion de votre compte Chatbase vous permettra de surveiller votre bot, de corriger les expériences interrompues et de mieux comprendre vos utilisateurs. Pour vous inscrire à un compte, visitez"
+
+msgid "Your Chatbase account is connected to the Agent"
+msgstr "Votre compte Chatbase est connecté à l'agent."
+
+msgid "If you no longer want it connected, you can"
+msgstr "Si vous ne voulez plus le connecter, vous pouvez"
+
+msgid "disconnect"
+msgstr "déconnecter"
+
+msgid "your Chatbase account. Doing so will interrupt the data sent to your Chatbase console."
+msgstr "votre compte Chatbase. Cela interromprait les données envoyées à votre console Chatbase."
+
+msgid "Disconnect Chatbase"
+msgstr "Déconnecter Chatbase"
+
+msgid "This will disconnect your Chatbase account. Are you sure you want to proceed?"
+msgstr "Cela déconnectera votre compte Chatbase. Êtes-vous sur de vouloir continuer?"
+
+#, fuzzy
+#| msgid "Connected to Chatbase Account"
+msgid "Connected to your DT One account."
+msgstr "Connecté au compte Chatbase"
+
+msgid "Transfer Log"
+msgstr "Journal Transfert"
+
+msgid "Connect your DT One account."
+msgstr ""
+
+#, python-format
+msgid "Adding a DT One account will allow you to send airtime credit over 400+ operators in over 100 countries. Once connected you can transfer airtime credit within your flows. To signup for an account, visit %(link)s."
+msgstr ""
+
+#, python-format
+msgid "You can find your credentials on the Developer tab on your %(link)s page."
+msgstr ""
+
+msgid "Your account is connected to a DT One account."
+msgstr ""
+
+#, python-format
+msgid "If you no longer want it connected, you can <a href=\"%(disconnect_url)s\">disconnect</a> it. Doing so will cause the payment actions in your flows to no longer be processed."
+msgstr ""
+
+msgid "Disconnect DT One"
+msgstr "Déconnectez DT One"
+
+msgid "This will disconnect your DT One account. Payment actions will no longer be processed. Are you sure you want to proceed?"
+msgstr "Cela déconnectera votre compte DT One. Les actions de paiement ne seront plus traitées. Êtes-vous sur de vouloir continuer?"
+
 msgid "Confirm Access"
 msgstr ""
 
@@ -6622,33 +6740,6 @@ msgstr ""
 msgid "Your workspace has"
 msgstr ""
 
-msgid "Connected to Chatbase Account"
-msgstr "Connecté au compte Chatbase"
-
-msgid "Connect your Chatbase account."
-msgstr ""
-
-msgid "Connecting your Chatbase account will allow you to monitor your bot, fix broken experiences and better understand your users. To signup for an account, visit"
-msgstr "La connexion de votre compte Chatbase vous permettra de surveiller votre bot, de corriger les expériences interrompues et de mieux comprendre vos utilisateurs. Pour vous inscrire à un compte, visitez"
-
-msgid "Your Chatbase account is connected to the Agent"
-msgstr "Votre compte Chatbase est connecté à l'agent."
-
-msgid "If you no longer want it connected, you can"
-msgstr "Si vous ne voulez plus le connecter, vous pouvez"
-
-msgid "disconnect"
-msgstr "déconnecter"
-
-msgid "your Chatbase account. Doing so will interrupt the data sent to your Chatbase console."
-msgstr "votre compte Chatbase. Cela interromprait les données envoyées à votre console Chatbase."
-
-msgid "Disconnect Chatbase"
-msgstr "Déconnecter Chatbase"
-
-msgid "This will disconnect your Chatbase account. Are you sure you want to proceed?"
-msgstr "Cela déconnectera votre compte Chatbase. Êtes-vous sur de vouloir continuer?"
-
 msgid "Choose Workspace"
 msgstr "Choisissez l'espace de travail"
 
@@ -6685,36 +6776,6 @@ msgstr "Vous êtes sur le point de supprimer"
 
 msgid "Are you sure you want to delete everything for this org? This cannot be undone. Any logins which only belong to this workspace will also be deleted."
 msgstr "Voulez-vous vraiment tout supprimer pour cette organisation? Ça ne peut pas être annulé. Toutes les connexions n'appartenant qu'à cet espace de travail seront également supprimées."
-
-msgid "Connected to your <b>DT One</b> account."
-msgstr ""
-
-msgid "Transfer Log"
-msgstr "Journal Transfert"
-
-msgid "Connect your DT One account."
-msgstr ""
-
-#, python-format
-msgid "Adding a DT One account will allow you to send airtime credit over 400+ operators in over 100 countries. Once connected you can transfer airtime credit within your flows. To signup for an account, visit %(link)s."
-msgstr ""
-
-#, python-format
-msgid "You can find your credentials on the Developer tab on your %(link)s page."
-msgstr ""
-
-msgid "Your account is connected to a DT One account."
-msgstr ""
-
-#, python-format
-msgid "If you no longer want it connected, you can <a href=\"%(disconnect_url)s\">disconnect</a> it. Doing so will cause the payment actions in your flows to no longer be processed."
-msgstr ""
-
-msgid "Disconnect DT One"
-msgstr "Déconnectez DT One"
-
-msgid "This will disconnect your DT One account. Payment actions will no longer be processed. Are you sure you want to proceed?"
-msgstr "Cela déconnectera votre compte DT One. Les actions de paiement ne seront plus traitées. Êtes-vous sur de vouloir continuer?"
 
 #, python-format
 msgid "Your workspace is <b>%(org)s</b>"
@@ -6826,30 +6887,6 @@ msgstr "Invitations en attente"
 
 msgid "Invite New Users"
 msgstr "Inviter de nouveaux utilisateurs"
-
-#, fuzzy, python-format
-#| msgid "A connection to a Twilio account is required"
-msgid "Connected to Vonage account with API key %(api_key)s."
-msgstr "Une connexion à un compte Twilio est requise"
-
-#, fuzzy, python-format
-#| msgid "If you no longer want it connected, you can"
-msgid "If you no longer want it connected, you can <a href=\"%(url)s\">disconnect your Vonage account</a>."
-msgstr "Si vous ne voulez plus le connecter, vous pouvez"
-
-#, fuzzy
-#| msgid "Disconnect DT One"
-msgid "Disconnect Vonage"
-msgstr "Déconnectez DT One"
-
-#, fuzzy
-#| msgid "Disconnecting your Nexmo account will also remove any Nexmo channels connected to it. Are you sure you want to proceed?"
-msgid "Disconnecting your Vonage account will also remove any Vonage channels connected to it. Are you sure you want to proceed?"
-msgstr "La déconnexion de votre compte Nexmo supprimera également tous les canaux Nexmo qui y sont connectés. Êtes-vous sur de vouloir continuer?"
-
-#, python-format
-msgid "To connect your Vonage Account you will need to provide us your API key and secret. Both values can be found on your <a target=\"vonage\" href=\"%(settings_url)s\">Vonage settings</a> page in the API Settings section."
-msgstr ""
 
 msgid "You are currently on the {{org.plan}} plan."
 msgstr "Vous êtes actuellement sur le plan {{org.plan}}."
@@ -6990,6 +7027,30 @@ msgstr "Cet espace de travail a été vérifié"
 
 msgid "This workspace has been scheduled for deletion"
 msgstr "Cet espace de travail a été programmé pour la suppression"
+
+#, fuzzy, python-format
+#| msgid "A connection to a Twilio account is required"
+msgid "Connected to Vonage account with API key %(api_key)s."
+msgstr "Une connexion à un compte Twilio est requise"
+
+#, fuzzy, python-format
+#| msgid "If you no longer want it connected, you can"
+msgid "If you no longer want it connected, you can <a href=\"%(url)s\">disconnect your Vonage account</a>."
+msgstr "Si vous ne voulez plus le connecter, vous pouvez"
+
+#, fuzzy
+#| msgid "Disconnect DT One"
+msgid "Disconnect Vonage"
+msgstr "Déconnectez DT One"
+
+#, fuzzy
+#| msgid "Disconnecting your Nexmo account will also remove any Nexmo channels connected to it. Are you sure you want to proceed?"
+msgid "Disconnecting your Vonage account will also remove any Vonage channels connected to it. Are you sure you want to proceed?"
+msgstr "La déconnexion de votre compte Nexmo supprimera également tous les canaux Nexmo qui y sont connectés. Êtes-vous sur de vouloir continuer?"
+
+#, python-format
+msgid "To connect your Vonage Account you will need to provide us your API key and secret. Both values can be found on your <a target=\"vonage\" href=\"%(settings_url)s\">Vonage settings</a> page in the API Settings section."
+msgstr ""
 
 msgid "Top Ups"
 msgstr "Top Ups"
@@ -7747,6 +7808,12 @@ msgstr "Entrez une requête"
 #, python-brace-format
 msgid "Found ${count} for ${query}"
 msgstr "${count} trouvé pour ${query}"
+
+#~ msgid "The main language used by this organization"
+#~ msgstr "La langue principale utilisée par cette organisation"
+
+#~ msgid "Missing data: Agent Name or API Key.Please check them again and retry."
+#~ msgstr "Données manquantes: nom de l'agent ou clé de l'API. Veuillez les vérifier à nouveau et réessayer."
 
 #~ msgid "Disconnect Nexmo"
 #~ msgstr "Déconnectez Nexmo"
