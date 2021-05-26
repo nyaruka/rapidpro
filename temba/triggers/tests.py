@@ -906,9 +906,10 @@ class TriggerTest(TembaTest):
         self.assertEqual(trigger.channel, self.channel)
         self.assertEqual(list(trigger.groups.all()), [group])
 
-    def test_release(self):
+    @patch("temba.channels.types.facebook.FacebookType.deactivate_trigger")
+    def test_delete(self, mock_deactivate_trigger):
         flow = self.create_flow()
-        group = self.create_group("Trigger Group", [])
+        group = self.create_group("Trigger Group", contacts=[])
 
         trigger = Trigger.objects.create(
             org=self.org,
@@ -920,10 +921,34 @@ class TriggerTest(TembaTest):
         )
         trigger.groups.add(group)
 
-        trigger.release()
+        trigger.delete()
 
         # schedule should also have been deleted but obviously not group or flow
         self.assertEqual(Trigger.objects.count(), 0)
         self.assertEqual(Schedule.objects.count(), 0)
         self.assertEqual(ContactGroup.user_groups.count(), 1)
         self.assertEqual(Flow.objects.count(), 1)
+
+        # trying to delete a trigger with a channel can throw an exception if channel type can't deactivate it
+        channel = self.create_channel("FB", "Facebook", "346363")
+        trigger = Trigger.objects.create(
+            org=self.org,
+            flow=flow,
+            trigger_type=Trigger.TYPE_NEW_CONVERSATION,
+            created_by=self.admin,
+            modified_by=self.admin,
+            channel=channel,
+        )
+
+        mock_deactivate_trigger.side_effect = ValueError("BOOM")
+
+        with self.assertRaises(ValueError):
+            trigger.delete()
+
+        # trigger won't have been deleted
+        self.assertTrue(Trigger.objects.filter(id=trigger.id).exists())
+
+        # but passing force=True ignores exception
+        trigger.delete(force=True)
+
+        self.assertFalse(Trigger.objects.filter(id=trigger.id).exists())

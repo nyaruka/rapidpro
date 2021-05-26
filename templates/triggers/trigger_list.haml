@@ -44,15 +44,10 @@
                 -if org_perms.triggers.trigger_update
                   .action-buttons.list-buttons-container.h-full.mr-2.flex-grow
                     .list-buttons.flex.items-center.-mx-2.h-full
-                        -if 'restore' in actions
-                          .button-action.object-btn-restore
-                            .-mt-1.mr-2.glyph.icon-checkmark
-                            -trans "Activate"
-
-                        -if 'archive' in actions
-                          .button-action.object-btn-archive
-                            .-mt-1.mr-2.glyph.icon-box
-                            -trans "Archive"
+                      -if 'delete' in actions
+                        .button-action.object-btn-archive
+                          .-mt-1.mr-2.glyph.icon-trash
+                          -trans "Delete"
               .flex-grow.ml-2.items-center
                 -block title-text
                   .page-title.leading-tight

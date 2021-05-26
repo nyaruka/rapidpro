@@ -22,6 +22,7 @@ class Trigger(SmartModel):
     TYPE_MISSED_CALL = "M"
     TYPE_NEW_CONVERSATION = "N"
     TYPE_REFERRAL = "R"
+    TYPE_CLOSED_TICKET = "T"
     TYPE_CATCH_ALL = "C"
 
     TRIGGER_TYPES = (
@@ -31,6 +32,7 @@ class Trigger(SmartModel):
         (TYPE_MISSED_CALL, "Missed Call Trigger"),
         (TYPE_NEW_CONVERSATION, "New Conversation Trigger"),
         (TYPE_REFERRAL, "Referral Trigger"),
+        (TYPE_CLOSED_TICKET, "Closed Ticket"),
         (TYPE_CATCH_ALL, "Catch All Trigger"),
     )
 
@@ -50,7 +52,7 @@ class Trigger(SmartModel):
     EXPORT_GROUPS = "groups"
     EXPORT_CHANNEL = "channel"
 
-    org = models.ForeignKey(Org, on_delete=models.PROTECT)
+    org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="triggers")
 
     trigger_type = models.CharField(max_length=1, choices=TRIGGER_TYPES, default=TYPE_KEYWORD)
 
@@ -81,7 +83,10 @@ class Trigger(SmartModel):
     )
 
     groups = models.ManyToManyField(
-        ContactGroup, verbose_name=_("Groups"), help_text=_("The groups to broadcast the flow to")
+        ContactGroup,
+        verbose_name=_("Groups"),
+        help_text=_("The groups to broadcast the flow to"),
+        related_name="triggers",
     )
 
     contacts = models.ManyToManyField(
@@ -139,14 +144,6 @@ class Trigger(SmartModel):
             "%s_%s_%s_%s" % (self.trigger_type, str(self.channel_id), group, str(self.keyword)) for group in groups
         ]
 
-    def archive(self, user):
-        self.modified_by = user
-        self.is_archived = True
-        self.save()
-
-        if self.channel:
-            self.channel.get_type().deactivate_trigger(self)
-
     def restore(self, user):
         self.modified_by = user
         self.is_archived = False
@@ -162,33 +159,34 @@ class Trigger(SmartModel):
         """
         Archives any triggers that conflict with this one
         """
-        now = timezone.now()
 
-        if not self.trigger_type == Trigger.TYPE_SCHEDULE:
-            matches = Trigger.objects.filter(
-                org=self.org, is_active=True, is_archived=False, trigger_type=self.trigger_type
-            )
+        if self.trigger_type == Trigger.TYPE_SCHEDULE:
+            return
 
-            # if this trigger has a keyword, only archive others with the same keyword
-            if self.keyword:
-                matches = matches.filter(keyword=self.keyword)
+        conflicts = self.org.triggers.filter(
+            is_active=True, is_archived=False, trigger_type=self.trigger_type
+        ).exclude(id=self.id)
 
-            # if this trigger has a group, only archive others with the same group
-            if self.groups.all():  # pragma: needs cover
-                matches = matches.filter(groups__in=self.groups.all())
-            else:
-                matches = matches.filter(groups=None)
+        # if this trigger has a keyword, only archive others with the same keyword
+        if self.keyword:
+            conflicts = conflicts.filter(keyword=self.keyword)
 
-            # if this trigger has a referrer_id, only archive others with the same referrer_id
-            if self.referrer_id is not None:
-                matches = matches.filter(referrer_id__iexact=self.referrer_id)
+        # if this trigger has a group, only archive others with the same group
+        if self.groups.all():  # pragma: needs cover
+            conflicts = conflicts.filter(groups__in=self.groups.all())
+        else:
+            conflicts = conflicts.filter(groups=None)
 
-            # if this trigger has a channel, only archive others with the same channel
-            if self.channel:
-                matches = matches.filter(channel=self.channel)
+        # if this trigger has a referrer_id, only archive others with the same referrer_id
+        if self.referrer_id:
+            conflicts = conflicts.filter(referrer_id__iexact=self.referrer_id)
 
-            # archive any conflicting triggers
-            matches.exclude(id=self.id).update(is_archived=True, modified_on=now, modified_by=user)
+        # if this trigger has a channel, only archive others with the same channel
+        if self.channel:
+            conflicts = conflicts.filter(channel=self.channel)
+
+        # archive any conflicting triggers
+        conflicts.update(is_archived=True, modified_on=timezone.now(), modified_by=user)
 
     @classmethod
     def import_triggers(cls, org, user, trigger_defs, same_site=False):
@@ -197,27 +195,7 @@ class Trigger(SmartModel):
         """
 
         for trigger_def in trigger_defs:
-
-            # resolve our groups
-            groups = []
-            for group_spec in trigger_def[Trigger.EXPORT_GROUPS]:
-
-                group = None
-
-                if same_site:  # pragma: needs cover
-                    group = ContactGroup.user_groups.filter(org=org, uuid=group_spec["uuid"]).first()
-
-                if not group:
-                    group = ContactGroup.get_user_group_by_name(org, group_spec["name"])
-
-                if not group:
-                    group = ContactGroup.create_static(org, user, group_spec["name"])  # pragma: needs cover
-
-                if not group.is_active:  # pragma: needs cover
-                    group.is_active = True
-                    group.save()
-
-                groups.append(group)
+            groups = cls._resolve_import_groups(org, user, trigger_def["groups"], same_site)
 
             flow = Flow.objects.get(org=org, uuid=trigger_def[Trigger.EXPORT_FLOW]["uuid"], is_active=True)
 
@@ -258,24 +236,21 @@ class Trigger(SmartModel):
                 for group in groups:
                     trigger.groups.add(group)
 
-    @classmethod
-    def apply_action_archive(cls, user, triggers):
-        for trigger in triggers:
-            trigger.archive(user)
+    @staticmethod
+    def _resolve_import_groups(org, user, specs: list, same_site: bool) -> list:
+        groups = []
+        for group_spec in specs:
+            group = None
+            if same_site:
+                group = ContactGroup.user_groups.filter(org=org, uuid=group_spec["uuid"], is_active=True).first()
+            if not group:
+                group = ContactGroup.get_user_group_by_name(org, group_spec["name"])
+            if not group:
+                group = ContactGroup.create_static(org, user, group_spec["name"])
 
-    @classmethod
-    def apply_action_restore(cls, user, triggers):
-        restore_priority = triggers.order_by("-modified_on")
-        trigger_scopes = set()
+            groups.append(group)
 
-        # work through all the restored triggers in order of most recent used
-        for trigger in restore_priority:
-            trigger_scope = set(trigger.trigger_scopes())
-
-            # if we haven't already restored a trigger with this scope
-            if not trigger_scopes.intersection(trigger_scope):
-                trigger.restore(user)
-                trigger_scopes = trigger_scopes | trigger_scope
+        return groups
 
     def as_export_def(self):
         """
@@ -289,12 +264,24 @@ class Trigger(SmartModel):
             Trigger.EXPORT_CHANNEL: self.channel.uuid if self.channel else None,
         }
 
-    def release(self):
+    @classmethod
+    def apply_action_delete(cls, user, triggers):
+        for trigger in triggers:
+            trigger.delete(user)
+
+    def delete(self, *, force: bool = False):
         """
-        Releases this trigger
+        Deletes this trigger
         """
 
-        self.delete()
+        if self.channel:
+            try:
+                self.channel.get_type().deactivate_trigger(self)
+            except Exception as e:
+                if not force:
+                    raise e
+
+        super().delete()
 
         if self.schedule:
             self.schedule.delete()

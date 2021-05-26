@@ -382,18 +382,18 @@ class ReferralTriggerForm(BaseTriggerForm):
 class TriggerCRUDL(SmartCRUDL):
     model = Trigger
     actions = (
-        "list",
         "create",
         "update",
-        "archived",
-        "keyword",
-        "register",
-        "schedule",
-        "inbound_call",
-        "missed_call",
-        "catchall",
-        "new_conversation",
-        "referral",
+        "create_keyword",
+        "create_register",
+        "create_schedule",
+        "create_inbound_call",
+        "create_missed_call",
+        "create_new_conversation",
+        "create_referral",
+        "create_catchall",
+        "list",
+        "folder",
     )
 
     class Create(FormaxMixin, OrgFilterMixin, OrgPermsMixin, SmartTemplateView):
@@ -502,73 +502,8 @@ class TriggerCRUDL(SmartCRUDL):
             response["REDIRECT"] = self.get_success_url()
             return response
 
-    class BaseList(OrgFilterMixin, OrgPermsMixin, BulkActionMixin, SmartListView):
-        fields = ("name", "modified_on")
-        default_template = "triggers/trigger_list.html"
-        default_order = ("-modified_on",)
-        search_fields = ("keyword__icontains", "flow__name__icontains", "channel__name__icontains")
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-            context["org_has_triggers"] = Trigger.objects.filter(org=self.request.user.get_org()).count()
-            context["folders"] = self.get_folders()
-            context["request_url"] = self.request.path
-            return context
-
-        def get_folders(self):
-            org = self.request.user.get_org()
-            folders = []
-            folders.append(
-                dict(
-                    label=_("Active"),
-                    url=reverse("triggers.trigger_list"),
-                    count=Trigger.objects.filter(is_active=True, is_archived=False, org=org).count(),
-                )
-            )
-            folders.append(
-                dict(
-                    label=_("Archived"),
-                    url=reverse("triggers.trigger_archived"),
-                    count=Trigger.objects.filter(is_active=True, is_archived=True, org=org).count(),
-                )
-            )
-            return folders
-
-    class List(BaseList):
-        fields = ("keyword", "flow")
-        link_fields = ("keyword", "flow")
-        bulk_actions = ("archive",)
-        title = _("Triggers")
-
-        def pre_process(self, request, *args, **kwargs):
-            # if they have no triggers and no search performed, send them to create page
-            obj_count = super().get_queryset(*args, **kwargs).count()
-            if obj_count == 0 and not request.GET.get("search", ""):
-                return HttpResponseRedirect(reverse("triggers.trigger_create"))
-            return super().pre_process(request, *args, **kwargs)
-
-        def lookup_field_link(self, context, field, obj):  # pragma: needs cover
-            if field == "flow" and obj.flow:
-                return reverse("flows.flow_editor", args=[obj.flow.uuid])
-            return super().lookup_field_link(context, field, obj)
-
-        def get_queryset(self, *args, **kwargs):
-            qs = super().get_queryset(*args, **kwargs)
-            qs = (
-                qs.filter(is_active=True, is_archived=False)
-                .annotate(earliest_group=Min("groups__name"))
-                .order_by("keyword", "earliest_group")
-            )
-            return qs
-
-    class Archived(BaseList):
-        bulk_actions = ("restore",)
-        fields = ("keyword", "flow")
-
-        def get_queryset(self, *args, **kwargs):
-            return super().get_queryset(*args, **kwargs).filter(is_active=True, is_archived=True)
-
-    class CreateTrigger(OrgPermsMixin, ComponentFormMixin, SmartCreateView):
+    class BaseCreate(OrgPermsMixin, ComponentFormMixin, SmartCreateView):
+        permission = "triggers.trigger_create"
         success_url = "@triggers.trigger_list"
         success_message = ""
 
@@ -577,7 +512,7 @@ class TriggerCRUDL(SmartCRUDL):
             kwargs["user"] = self.request.user
             return kwargs
 
-    class Keyword(CreateTrigger):
+    class CreateKeyword(BaseCreate):
         form_class = KeywordTriggerForm
 
         def pre_save(self, obj, *args, **kwargs):
@@ -594,7 +529,7 @@ class TriggerCRUDL(SmartCRUDL):
             kwargs["auto_id"] = "id_keyword_%s"
             return kwargs
 
-    class Register(CreateTrigger):
+    class CreateRegister(BaseCreate):
         form_class = RegisterTriggerForm
         field_config = dict(keyword=dict(label=_("Join Keyword"), help=_("The first word of the message")))
 
@@ -627,7 +562,7 @@ class TriggerCRUDL(SmartCRUDL):
             kwargs["auto_id"] = "id_register_%s"
             return kwargs
 
-    class Referral(CreateTrigger):
+    class CreateReferral(BaseCreate):
         form_class = ReferralTriggerForm
         title = _("Create Referral Trigger")
 
@@ -655,7 +590,7 @@ class TriggerCRUDL(SmartCRUDL):
             response["REDIRECT"] = self.get_success_url()
             return response
 
-    class Schedule(CreateTrigger):
+    class CreateSchedule(BaseCreate):
         form_class = ScheduleTriggerForm
         title = _("Create Schedule")
 
@@ -712,7 +647,7 @@ class TriggerCRUDL(SmartCRUDL):
             kwargs["auto_id"] = "id_schedule_%s"
             return kwargs
 
-    class InboundCall(CreateTrigger):
+    class CreateInboundCall(BaseCreate):
         form_class = InboundCallTriggerForm
         fields = ("flow", "groups")
 
@@ -727,7 +662,7 @@ class TriggerCRUDL(SmartCRUDL):
             kwargs["auto_id"] = "id_inbound_call_%s"
             return kwargs
 
-    class MissedCall(CreateTrigger):
+    class CreateMissedCall(BaseCreate):
         form_class = DefaultTriggerForm
 
         def get_form_kwargs(self):
@@ -760,7 +695,7 @@ class TriggerCRUDL(SmartCRUDL):
             response["REDIRECT"] = self.get_success_url()
             return response
 
-    class Catchall(CreateTrigger):
+    class CreateCatchall(BaseCreate):
         form_class = CatchAllTriggerForm
 
         def get_form_kwargs(self):
@@ -798,7 +733,7 @@ class TriggerCRUDL(SmartCRUDL):
             response["REDIRECT"] = self.get_success_url()
             return response
 
-    class NewConversation(CreateTrigger):
+    class CreateNewConversation(BaseCreate):
         form_class = NewConversationTriggerForm
 
         def get_form_kwargs(self):
@@ -819,3 +754,56 @@ class TriggerCRUDL(SmartCRUDL):
             response = self.render_to_response(self.get_context_data(form=form))
             response["REDIRECT"] = self.get_success_url()
             return response
+
+    class BaseList(OrgFilterMixin, OrgPermsMixin, BulkActionMixin, SmartListView):
+        bulk_actions = ("delete",)
+        fields = ("name",)
+        default_template = "triggers/trigger_list.html"
+        default_order = ("-modified_on",)
+        search_fields = ("keyword__icontains", "flow__name__icontains", "channel__name__icontains")
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+
+            org = self.request.user.get_org()
+            context["org_has_triggers"] = org.triggers.count()
+            context["folders"] = self.get_folders()
+            context["request_url"] = self.request.path
+            return context
+
+        def get_queryset(self, *args, **kwargs):
+            qs = super().get_queryset(*args, **kwargs)
+            qs = (
+                qs.filter(is_active=True, is_archived=False)
+                .annotate(earliest_group=Min("groups__name"))
+                .order_by("keyword", "earliest_group")
+            )
+            return qs
+
+        def get_folders(self):
+            org = self.request.user.get_org()
+            folders = [
+                dict(
+                    label=_("All"),
+                    url=reverse("triggers.trigger_list"),
+                    count=Trigger.objects.filter(is_active=True, is_archived=False, org=org).count(),
+                )
+            ]
+            return folders
+
+    class List(BaseList):
+        title = _("Triggers")
+
+        def pre_process(self, request, *args, **kwargs):
+            # if they have no triggers and no search performed, send them to create page
+            obj_count = super().get_queryset(*args, **kwargs).count()
+            if obj_count == 0 and not request.GET.get("search", ""):
+                return HttpResponseRedirect(reverse("triggers.trigger_create"))
+            return super().pre_process(request, *args, **kwargs)
+
+    class Folder(BaseList):
+        title = _("Triggers")
+
+        def get_queryset(self, *args, **kwargs):
+            qs = super().get_queryset(*args, **kwargs)
+            return qs.filter(trigger_type=Trigger.TYPE_KEYWORD)

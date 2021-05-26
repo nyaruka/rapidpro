@@ -1522,7 +1522,7 @@ class Org(SmartModel):
                         deps.update(campaigns_by_group[d])
 
         if include_triggers:
-            all_triggers = self.trigger_set.filter(is_archived=False, is_active=True).select_related("flow")
+            all_triggers = self.triggers.filter(is_archived=False, is_active=True).select_related("flow")
             for trigger in all_triggers:
                 dependencies[trigger] = {trigger.flow}
 
@@ -1705,7 +1705,7 @@ class Org(SmartModel):
         # delete everything associated with our flows
         for flow in self.flows.all():
             # we want to manually release runs so we don't fire a mailroom task to do it
-            flow.release(interrupt_sessions=False)
+            flow.release(interrupt_sessions=False, force=True)
             flow.delete()
 
         # delete our flow labels (deleting a label deletes its children)

@@ -905,7 +905,7 @@ class Flow(TembaModel):
             m2m.clear()
             m2m.add(*objects)
 
-    def release(self, interrupt_sessions=True):
+    def release(self, *, interrupt_sessions=True, force: bool = False):
         """
         Releases this flow, marking it inactive. We interrupt all flow runs in a background process.
         We keep FlowRevisions and FlowStarts however.
@@ -920,9 +920,9 @@ class Flow(TembaModel):
         for event in CampaignEvent.objects.filter(flow=self, is_active=True):
             event.release()
 
-        # release any triggers that depend on this flow
+        # delete any triggers that are attached to this flow
         for trigger in self.triggers.all():
-            trigger.release()
+            trigger.delete(force=force)
 
         # release any starts
         for start in self.starts.all():
