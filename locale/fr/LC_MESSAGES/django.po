@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-24 20:43+0000\n"
+"POT-Creation-Date: 2021-05-26 16:43+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Jesus EKIE <jesus@fehudigital.com>, 2020\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -3946,30 +3946,6 @@ msgstr "Journal HTTP"
 msgid "Your ticketing service has been deleted."
 msgstr "Votre service de billetterie a été supprimé."
 
-msgid "Keyword Trigger"
-msgstr "Mot-clé du declencheur"
-
-msgid "Schedule Trigger"
-msgstr "Planning de declencheur"
-
-msgid "Inbound Call Trigger"
-msgstr "Déclencheur d'appel entrant"
-
-msgid "Missed Call Trigger"
-msgstr "Déclencheur d'appel manqué"
-
-msgid "Catch All Trigger"
-msgstr "Déclencheur attrape-tout"
-
-msgid "New Conversation Trigger"
-msgstr "Nouveau déclencheur de conversation"
-
-msgid "USSD Pull Session Trigger"
-msgstr "Déclencheur de session de Pull USSD"
-
-msgid "Referral Trigger"
-msgstr "Déclencheur de référence"
-
 msgid "Message starts with the keyword"
 msgstr "Le message commence par le mot clé"
 
@@ -7792,6 +7768,30 @@ msgstr "Les modèles sont synchronisés à partir de votre compte WhatsApp toute
 
 msgid "No synced templates at this time."
 msgstr "Aucun modèle synchronisé pour le moment."
+
+#~ msgid "Keyword Trigger"
+#~ msgstr "Mot-clé du declencheur"
+
+#~ msgid "Schedule Trigger"
+#~ msgstr "Planning de declencheur"
+
+#~ msgid "Inbound Call Trigger"
+#~ msgstr "Déclencheur d'appel entrant"
+
+#~ msgid "Missed Call Trigger"
+#~ msgstr "Déclencheur d'appel manqué"
+
+#~ msgid "Catch All Trigger"
+#~ msgstr "Déclencheur attrape-tout"
+
+#~ msgid "New Conversation Trigger"
+#~ msgstr "Nouveau déclencheur de conversation"
+
+#~ msgid "USSD Pull Session Trigger"
+#~ msgstr "Déclencheur de session de Pull USSD"
+
+#~ msgid "Referral Trigger"
+#~ msgstr "Déclencheur de référence"
 
 #, fuzzy
 #~| msgid "This workspace has been scheduled for deletion"

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-24 20:43+0000\n"
+"POT-Creation-Date: 2021-05-26 16:43+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3885,30 +3885,6 @@ msgid "HTTP Log"
 msgstr ""
 
 msgid "Your ticketing service has been deleted."
-msgstr ""
-
-msgid "Keyword Trigger"
-msgstr ""
-
-msgid "Schedule Trigger"
-msgstr ""
-
-msgid "Inbound Call Trigger"
-msgstr ""
-
-msgid "Missed Call Trigger"
-msgstr ""
-
-msgid "Catch All Trigger"
-msgstr ""
-
-msgid "New Conversation Trigger"
-msgstr ""
-
-msgid "USSD Pull Session Trigger"
-msgstr ""
-
-msgid "Referral Trigger"
 msgstr ""
 
 msgid "Message starts with the keyword"

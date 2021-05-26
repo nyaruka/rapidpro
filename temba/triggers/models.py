@@ -16,24 +16,22 @@ class Trigger(SmartModel):
     inbound messages starting with a keyword, or on a repeating schedule.
     """
 
-    TYPE_CATCH_ALL = "C"
     TYPE_KEYWORD = "K"
+    TYPE_SCHEDULE = "S"
+    TYPE_INBOUND_CALL = "V"
     TYPE_MISSED_CALL = "M"
     TYPE_NEW_CONVERSATION = "N"
     TYPE_REFERRAL = "R"
-    TYPE_SCHEDULE = "S"
-    TYPE_USSD_PULL = "U"
-    TYPE_INBOUND_CALL = "V"
+    TYPE_CATCH_ALL = "C"
 
     TRIGGER_TYPES = (
-        (TYPE_KEYWORD, _("Keyword Trigger")),
-        (TYPE_SCHEDULE, _("Schedule Trigger")),
-        (TYPE_INBOUND_CALL, _("Inbound Call Trigger")),
-        (TYPE_MISSED_CALL, _("Missed Call Trigger")),
-        (TYPE_CATCH_ALL, _("Catch All Trigger")),
-        (TYPE_NEW_CONVERSATION, _("New Conversation Trigger")),
-        (TYPE_USSD_PULL, _("USSD Pull Session Trigger")),
-        (TYPE_REFERRAL, _("Referral Trigger")),
+        (TYPE_KEYWORD, "Keyword Trigger"),
+        (TYPE_SCHEDULE, "Schedule Trigger"),
+        (TYPE_INBOUND_CALL, "Inbound Call Trigger"),
+        (TYPE_MISSED_CALL, "Missed Call Trigger"),
+        (TYPE_NEW_CONVERSATION, "New Conversation Trigger"),
+        (TYPE_REFERRAL, "Referral Trigger"),
+        (TYPE_CATCH_ALL, "Catch All Trigger"),
     )
 
     KEYWORD_MAX_LEN = 16
