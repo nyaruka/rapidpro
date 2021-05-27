@@ -393,7 +393,7 @@ class TriggerCRUDL(SmartCRUDL):
         "create_referral",
         "create_catchall",
         "list",
-        "folder",
+        "type",
     )
 
     class Create(FormaxMixin, OrgFilterMixin, OrgPermsMixin, SmartTemplateView):
@@ -404,19 +404,19 @@ class TriggerCRUDL(SmartCRUDL):
                 formax.add_section(name, reverse(url), icon=icon, action="redirect", button=_("Create Trigger"))
 
             org_schemes = self.org.get_schemes(Channel.ROLE_RECEIVE)
-            add_section("trigger-keyword", "triggers.trigger_keyword", "icon-tree")
-            add_section("trigger-register", "triggers.trigger_register", "icon-users-2")
-            add_section("trigger-schedule", "triggers.trigger_schedule", "icon-clock")
-            add_section("trigger-inboundcall", "triggers.trigger_inbound_call", "icon-phone2")
-            add_section("trigger-missedcall", "triggers.trigger_missed_call", "icon-phone")
+            add_section("trigger-keyword", "triggers.trigger_create_keyword", "icon-tree")
+            add_section("trigger-register", "triggers.trigger_create_register", "icon-users-2")
+            add_section("trigger-schedule", "triggers.trigger_create_schedule", "icon-clock")
+            add_section("trigger-inboundcall", "triggers.trigger_create_inbound_call", "icon-phone2")
+            add_section("trigger-missedcall", "triggers.trigger_create_missed_call", "icon-phone")
 
             if ContactURN.SCHEMES_SUPPORTING_NEW_CONVERSATION.intersection(org_schemes):
-                add_section("trigger-new-conversation", "triggers.trigger_new_conversation", "icon-bubbles-2")
+                add_section("trigger-new-conversation", "triggers.trigger_create_new_conversation", "icon-bubbles-2")
 
             if ContactURN.SCHEMES_SUPPORTING_REFERRALS.intersection(org_schemes):
-                add_section("trigger-referral", "triggers.trigger_referral", "icon-exit")
+                add_section("trigger-referral", "triggers.trigger_create_referral", "icon-exit")
 
-            add_section("trigger-catchall", "triggers.trigger_catchall", "icon-bubble")
+            add_section("trigger-catchall", "triggers.trigger_create_catchall", "icon-bubble")
 
     class Update(ModalMixin, ComponentFormMixin, OrgFilterMixin, OrgPermsMixin, SmartUpdateView):
         success_message = ""
@@ -766,8 +766,8 @@ class TriggerCRUDL(SmartCRUDL):
             context = super().get_context_data(**kwargs)
 
             org = self.request.user.get_org()
-            context["org_has_triggers"] = org.triggers.count()
-            context["folders"] = self.get_folders()
+            context["main_folders"] = self.get_main_folders(org)
+            context["type_folders"] = self.get_type_folders(org)
             context["request_url"] = self.request.path
             return context
 
@@ -777,18 +777,25 @@ class TriggerCRUDL(SmartCRUDL):
                 qs.filter(is_active=True, is_archived=False)
                 .annotate(earliest_group=Min("groups__name"))
                 .order_by("keyword", "earliest_group")
+                .select_related("flow", "channel")
+                .prefetch_related("contacts", "groups")
             )
             return qs
 
-        def get_folders(self):
-            org = self.request.user.get_org()
-            folders = [
+        def get_main_folders(self, org):
+            return [
                 dict(
                     label=_("All"),
                     url=reverse("triggers.trigger_list"),
-                    count=Trigger.objects.filter(is_active=True, is_archived=False, org=org).count(),
+                    count=org.triggers.filter(is_active=True, is_archived=False).count(),
                 )
             ]
+
+        def get_type_folders(self, org):
+            folders = []
+            for key, folder in Trigger.FOLDERS.items():
+                folder_url = reverse("triggers.trigger_type", kwargs={"folder": key})
+                folders.append(dict(label=folder.label, url=folder_url, count=Trigger.get_folder(org, key).count()))
             return folders
 
     class List(BaseList):
@@ -801,9 +808,14 @@ class TriggerCRUDL(SmartCRUDL):
                 return HttpResponseRedirect(reverse("triggers.trigger_create"))
             return super().pre_process(request, *args, **kwargs)
 
-    class Folder(BaseList):
-        title = _("Triggers")
+    class Type(BaseList):
+        @classmethod
+        def derive_url_pattern(cls, path, action):
+            return rf"^%s/%s/(?P<folder>{'|'.join(Trigger.FOLDERS.keys())}+)/$" % (path, action)
+
+        def derive_title(self):
+            return Trigger.FOLDERS[self.kwargs["folder"]].title
 
         def get_queryset(self, *args, **kwargs):
             qs = super().get_queryset(*args, **kwargs)
-            return qs.filter(trigger_type=Trigger.TYPE_KEYWORD)
+            return Trigger.filter_folder(qs, self.kwargs["folder"])
