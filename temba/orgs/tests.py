@@ -82,6 +82,19 @@ class OrgRoleTest(TembaTest):
         self.assertEqual(Group.objects.get(name="Agents"), OrgRole.AGENT.group)
 
 
+class UserForgetHookTest(TembaTest):
+    def test_user_forget_hook(self):
+        forget_url = reverse("users.user_forget")
+
+        with patch("builtins.eval") as mock_eval:
+            response = self.client.post(forget_url, dict(email="User1@user1.com"), follow=True)
+
+            self.assertEquals(200, response.status_code)
+            mock_eval.assert_called_once_with(
+                "temba.orgs.models.user_forget_hook", {}, {"user": None, "email": "User1@user1.com"}
+            )
+
+
 class OrgContextProcessorTest(TembaTest):
     def test_group_perms_wrapper(self):
         administrators = Group.objects.get(name="Administrators")

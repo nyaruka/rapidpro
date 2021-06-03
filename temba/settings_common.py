@@ -65,6 +65,10 @@ EMAIL_TIMEOUT = 10
 # their own SMTP server.
 FLOW_FROM_EMAIL = "Temba <no-reply@temba.io>"
 
+# User forget hook
+USER_FORGET_HOOK_FUNCTION = "temba.orgs.models.user_forget_hook"
+
+
 # HTTP Headers using for outgoing requests to other services
 OUTGOING_REQUEST_HEADERS = {"User-agent": "RapidPro"}
 

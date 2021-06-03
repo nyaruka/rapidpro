@@ -2145,6 +2145,15 @@ class Invitation(SmartModel):
         send_template_email(to_email, subject, template, context, branding)
 
 
+def user_forget_hook(user, email):
+    if user is not None:
+        return
+
+    existing_invite = Invitation.objects.filter(is_active=True, email__iexact=email).first()
+    if existing_invite:
+        existing_invite.send()
+
+
 class UserSettings(models.Model):
     """
     User specific configuration
