@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-16 21:12+0000\n"
+"POT-Creation-Date: 2021-06-16 22:12+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Ilhasoft <contato@ilhasoft.com.br>, 2021\n"
 "Language-Team: Portuguese (Brazil) (https://www.transifex.com/rapidpro/teams/226/pt_BR/)\n"
@@ -5577,14 +5577,6 @@ msgstr "Cheio"
 msgid "These contacts have opted out and you can no longer send them messages, they have been removed from all groups."
 msgstr "Esses contatos foram excluídos e você não pode mais enviar mensagens, eles foram removidos de todos os grupos."
 
-#, python-format
-msgid "<b>%(name)s</b> cannot be deleted since it is currently in use."
-msgstr "<b>%(name)s</b> não pode ser deletado já que ainda está em uso."
-
-#, python-format
-msgid "Are you sure you want to delete <b>%(name)s</b>? This cannot be undone."
-msgstr "Você tem certeza que quer deletar <b>%(name)s</b>? Isso não pode ser desfeito."
-
 msgid "Used in the flow"
 msgid_plural "Used in the flows"
 msgstr[0] "Utilizado no fluxo"
@@ -6050,6 +6042,10 @@ msgstr "Fazer uma série de perguntas para coletar informações de seus contato
 #, python-format
 msgid "<b>%(name)s</b> cannot be deleted since it is a parent to other labels."
 msgstr "<b>%(name)s</b> não pode ser deletado já que é um pai para outros rótulos."
+
+#, python-format
+msgid "Are you sure you want to delete <b>%(name)s</b>? This cannot be undone."
+msgstr "Você tem certeza que quer deletar <b>%(name)s</b>? Isso não pode ser desfeito."
 
 msgid "Manual"
 msgstr "Manual"
@@ -7901,6 +7897,10 @@ msgstr "Templates são sincronizados da sua conta do WhatsApp a cada 15 minutos.
 
 msgid "No synced templates at this time."
 msgstr "Sem templates sincronizados neste momento."
+
+#, python-format
+#~ msgid "<b>%(name)s</b> cannot be deleted since it is currently in use."
+#~ msgstr "<b>%(name)s</b> não pode ser deletado já que ainda está em uso."
 
 #~ msgid "Primary Language"
 #~ msgstr "Idioma primário"

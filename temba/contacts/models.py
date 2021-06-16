@@ -318,7 +318,9 @@ class UserContactFieldsQuerySet(models.QuerySet):
             .annotate(
                 campaign_count=Count("campaign_events", distinct=True, filter=Q(campaign_events__is_active=True))
             )
-            .annotate(contactgroup_count=Count("contactgroup", distinct=True, filter=Q(contactgroup__is_active=True)))
+            .annotate(
+                contactgroup_count=Count("dependent_groups", distinct=True, filter=Q(dependent_groups__is_active=True))
+            )
         )
 
     def active_for_org(self, org):
@@ -469,23 +471,6 @@ class ContactField(SmartModel, DependencyMixin):
         return regex.match(r"^[A-Za-z0-9\- ]+$", label, regex.V0) and len(label) <= cls.MAX_LABEL_LEN
 
     @classmethod
-    def hide_field(cls, org, user, key):
-        existing = ContactField.user_fields.collect_usage().active_for_org(org=org).filter(key=key).first()
-
-        if existing:
-
-            if any([existing.flow_count, existing.campaign_count, existing.contactgroup_count]):
-                formatted_field_use = (
-                    f"F: {existing.flow_count} C: {existing.campaign_count} G: {existing.contactgroup_count}"
-                )
-                raise ValueError(f"Cannot delete field '{key}', it's used by: {formatted_field_use}")
-
-            existing.is_active = False
-            existing.show_in_table = False
-            existing.modified_by = user
-            existing.save(update_fields=("is_active", "show_in_table", "modified_by", "modified_on"))
-
-    @classmethod
     def get_or_create(cls, org, user, key, label=None, show_in_table=None, value_type=None, priority=None):
         """
         Gets the existing contact field or creates a new field if it doesn't exist
@@ -614,6 +599,10 @@ class ContactField(SmartModel, DependencyMixin):
             field_type = field_def.get(ContactField.EXPORT_TYPE)
             ContactField.get_or_create(org, user, key=field_key, label=field_name, value_type=db_types[field_type])
 
+    @property
+    def name(self):
+        return self.label
+
     def as_export_def(self):
         return {
             ContactField.EXPORT_KEY: self.key,
@@ -624,7 +613,7 @@ class ContactField(SmartModel, DependencyMixin):
     def get_dependents(self):
         dependents = super().get_dependents()
         dependents["group"] = self.dependent_groups.filter(is_active=True)
-        dependents["campaign_event"] = self.campaign_events.filter(is_active=True)
+        dependents["campaign_event"] = self.campaign_events.filter(is_active=True).select_related("campaign")
         return dependents
 
     def release(self, user):

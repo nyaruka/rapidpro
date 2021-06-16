@@ -4282,33 +4282,6 @@ class ContactFieldTest(TembaTest):
         self.assertEqual(response.context["sort_direction"], "desc")
         self.assertIn("search", response.context)
 
-    def test_delete_with_flow_dependency(self):
-        self.login(self.admin)
-        self.get_flow("dependencies")
-
-        dependant_field = ContactField.user_fields.filter(is_active=True, org=self.org, key="favorite_cat").get()
-        delete_contactfield_url = reverse("contacts.contactfield_delete", args=[dependant_field.id])
-
-        response = self.client.get(delete_contactfield_url)
-
-        # there is a flow that is using this field
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.context_data["has_uses"])
-
-        with self.assertRaises(ValueError):
-            # try to delete the contactfield, though there is a dependency
-            self.client.post(delete_contactfield_url)
-
-        # delete method is not allowed on the Delete ContactField view
-        response = self.client.delete(delete_contactfield_url)
-        self.assertEqual(response.status_code, 405)
-
-    def test_hide_field_with_flow_dependency(self):
-        self.get_flow("dependencies")
-
-        with self.assertRaises(ValueError):
-            ContactField.hide_field(self.org, self.admin, key="favorite_cat")
-
     def test_list(self):
         manage_fields_url = reverse("contacts.contactfield_list")
 
@@ -4378,8 +4351,8 @@ class ContactFieldTest(TembaTest):
         # field cannot be created because there is an active field 'First'
         self.assertFormError(response, "form", None, "Must be unique.")
 
-        # then we hide the field
-        ContactField.hide_field(self.org, self.admin, key="first")
+        # then we delete the field
+        old_first.release(self.admin)
 
         # and try to create a new field
         response = self.client.post(create_url, post_data)
@@ -4565,37 +4538,6 @@ class ContactFieldTest(TembaTest):
         self.assertFormError(
             response, "form", "value_type", "Select a valid choice. J is not one of the available choices."
         )
-
-    def test_view_delete(self):
-        cf_to_delete = ContactField.user_fields.get(key="first")
-        self.assertTrue(cf_to_delete.is_active)
-
-        self.login(self.admin)
-
-        delete_url = reverse("contacts.contactfield_delete", args=(cf_to_delete.id,))
-
-        response = self.client.get(delete_url)
-        self.assertEqual(response.status_code, 200)
-
-        # we got a form with expected form fields
-        self.assertFalse(response.context_data["has_uses"])
-
-        # delete the field
-        response = self.client.post(delete_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.context_data["has_uses"])
-
-        cf_to_delete.refresh_from_db()
-
-        self.assertFalse(cf_to_delete.is_active)
-
-        # can't delete field from other org
-        response = self.client.post(reverse("contacts.contactfield_delete", args=[self.other_org_field.id]))
-        self.assertLoginRedirect(response)
-
-        # field should be unchanged
-        self.other_org_field.refresh_from_db()
-        self.assertTrue(self.other_org_field.is_active)
 
     def test_view_featured(self):
         featured1 = ContactField.user_fields.get(key="first")
@@ -4791,6 +4733,65 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
                 response = self.requestView(list_url, self.admin)
 
                 self.assertContains(response, "You have reached the limit")
+
+    @mock_mailroom
+    def test_delete(self, mr_mocks):
+        field1 = self.create_field("age", "Age", value_type=ContactField.TYPE_NUMBER)
+        field2 = self.create_field("gender", "Gender")
+        field3 = self.create_field("lang", "Language")
+        field4 = self.create_field("joined", "Joined On", value_type=ContactField.TYPE_DATETIME)
+
+        # fields 2, 3, 4 are used by our flow
+        flow = self.create_flow()
+        flow.field_dependencies.add(field2, field3, field4)
+
+        # field 3 is used by our group
+        mr_mocks.parse_query('lang != ""', fields=(field3,))
+        group = self.create_group("Has Language", query='lang != ""')
+        self.assertEqual({group}, set(field3.dependent_groups.all()))
+
+        campaign = Campaign.create(self.org, self.admin, "Reminders", group)
+        CampaignEvent.create_message_event(self.org, self.admin, campaign, field4, offset="1", unit="D", message="Hi")
+
+        delete_url = reverse("contacts.contactfield_delete", args=[field1.uuid])
+
+        # fetch delete modal
+        response = self.assertDeleteFetch(delete_url, allow_editors=True)
+        self.assertContains(response, "You are about to delete")
+        self.assertContains(response, "There is no way to undo this. Are you sure?")
+
+        response = self.assertDeleteSubmit(delete_url, object_deactivated=field1, success_status=200)
+        self.assertEqual("/contactfield/", response["Temba-Success"])
+
+        # should see warning if field is being used in a flow
+        delete_url = reverse("contacts.contactfield_delete", args=[field2.uuid])
+
+        self.assertFalse(flow.has_issues)
+
+        response = self.assertDeleteFetch(delete_url, allow_editors=True)
+        self.assertContains(response, "is used by the following flows")
+        self.assertContains(response, "There is no way to undo this. Are you sure?")
+
+        response = self.assertDeleteSubmit(delete_url, object_deactivated=field2, success_status=200)
+        self.assertEqual("/contactfield/", response["Temba-Success"])
+
+        flow.refresh_from_db()
+        self.assertTrue(flow.has_issues)
+        self.assertNotIn(field2, flow.field_dependencies.all())
+
+        # should be prevented from deleting if field is being used in a group
+        delete_url = reverse("contacts.contactfield_delete", args=[field3.uuid])
+
+        response = self.assertDeleteFetch(delete_url, allow_editors=True)
+        self.assertContains(response, "the following smart groups which must be updated or deleted first")
+        self.assertNotContains(response, "There is no way to undo this. Are you sure?")
+
+        # likewise if deleting a field being used by a campaign
+        delete_url = reverse("contacts.contactfield_delete", args=[field4.uuid])
+
+        response = self.assertDeleteFetch(delete_url, allow_editors=True)
+        self.assertContains(response, "the following campaign events which must be updated or deleted first")
+        self.assertNotContains(response, "There is no way to undo this. Are you sure?")
 
 
 class URNTest(TembaTest):

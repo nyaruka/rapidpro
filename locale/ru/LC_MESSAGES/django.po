@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-16 21:12+0000\n"
+"POT-Creation-Date: 2021-06-16 22:12+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Hudson Brendon <hudson.brendon@ilhasoft.com.br>, 2020\n"
 "Language-Team: Russian (https://www.transifex.com/rapidpro/teams/226/ru/)\n"
@@ -5599,14 +5599,6 @@ msgstr "Полностью"
 msgid "These contacts have opted out and you can no longer send them messages, they have been removed from all groups."
 msgstr "Эти контакты были исключены, и Вы больше не можете отправлять им сообщения, они были удалены из всех групп."
 
-#, python-format
-msgid "<b>%(name)s</b> cannot be deleted since it is currently in use."
-msgstr ""
-
-#, python-format
-msgid "Are you sure you want to delete <b>%(name)s</b>? This cannot be undone."
-msgstr ""
-
 msgid "Used in the flow"
 msgid_plural "Used in the flows"
 msgstr[0] ""
@@ -6073,6 +6065,10 @@ msgstr "Задайте ряд вопросов, чтобы собрать дан
 
 #, python-format
 msgid "<b>%(name)s</b> cannot be deleted since it is a parent to other labels."
+msgstr ""
+
+#, python-format
+msgid "Are you sure you want to delete <b>%(name)s</b>? This cannot be undone."
 msgstr ""
 
 msgid "Manual"

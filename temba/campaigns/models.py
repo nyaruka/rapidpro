@@ -412,6 +412,10 @@ class CampaignEvent(TembaModel):
             hours.append((i, "at %s:00 %s" % (hour, period)))
         return hours
 
+    @property
+    def name(self):
+        return f"{self.campaign.name} ({self.offset_display} {self.relative_to.name})"
+
     def get_message(self, contact=None):
         if not self.message:
             return None

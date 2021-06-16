@@ -4,20 +4,21 @@
 -block modal
   -if dependents
     -for dep_type in dependents
-      %span.font-normal
-        {{ object.name }}
-      {{ dep_type.blurb }}:
+      .dependent-type.mb-2
+        %span.font-normal
+          {{ object.name }}
+        {{ dep_type.blurb }}:
 
-      %ul.mt-2.ml-4
-        -for item in dep_type.sample
-          %li
-            %a(href="{{ item.url }}")
-              {{ item.name }}
-        -if dep_type.num_more
-          %li
-            %i
-              -blocktrans trimmed with count=dep_type.num_more
-                and {{ count }} more
+        %ul.mt-2.ml-4
+          -for item in dep_type.sample
+            %li
+              %a(href="{{ item.url }}")
+                {{ item.name }}
+          -if dep_type.num_more
+            %li
+              %i
+                -blocktrans trimmed with count=dep_type.num_more
+                  and {{ count }} more
   -else
     -trans "You are about to delete"
     %span.font-normal

@@ -336,7 +336,7 @@ class DependencyDeleteModal(ModalMixin, OrgObjPermsMixin, SmartDeleteView):
             dep_config = self.type_configs[dep_type]
             dep_count = dep_qs.count()
             if dep_count:
-                sample = dep_qs.order_by("name")[:5]
+                sample = dep_qs[:5]
                 dependents.append(
                     {
                         "blurb": dep_config["blurb"],

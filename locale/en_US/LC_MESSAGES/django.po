@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-16 21:12+0000\n"
+"POT-Creation-Date: 2021-06-16 22:12+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -5396,14 +5396,6 @@ msgstr ""
 msgid "These contacts have opted out and you can no longer send them messages, they have been removed from all groups."
 msgstr ""
 
-#, python-format
-msgid "<b>%(name)s</b> cannot be deleted since it is currently in use."
-msgstr ""
-
-#, python-format
-msgid "Are you sure you want to delete <b>%(name)s</b>? This cannot be undone."
-msgstr ""
-
 msgid "Used in the flow"
 msgid_plural "Used in the flows"
 msgstr[0] ""
@@ -5828,6 +5820,10 @@ msgstr ""
 
 #, python-format
 msgid "<b>%(name)s</b> cannot be deleted since it is a parent to other labels."
+msgstr ""
+
+#, python-format
+msgid "Are you sure you want to delete <b>%(name)s</b>? This cannot be undone."
 msgstr ""
 
 msgid "Manual"
