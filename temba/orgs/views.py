@@ -307,16 +307,48 @@ class DependencyDeleteModal(ModalMixin, OrgObjPermsMixin, SmartDeleteView):
     submit_button_name = _("Delete")
     template_name = "orgs/dependency_delete_modal.haml"
 
+    type_configs = {
+        "flow": {
+            "blurb": _("is used by the following flows which may not work as expected if you delete it"),
+            "url": lambda f: reverse("flows.flow_editor", args=[f.uuid]),
+            "hard": False,
+        },
+        "group": {
+            "blurb": _("is used in the query of the following smart groups which must be updated or deleted first"),
+            "url": lambda g: reverse("contacts.contact_filter", args=[g.uuid]),
+            "hard": True,
+        },
+        "campaign_event": {
+            "blurb": _("is used by the following campaign events which must be updated or deleted first"),
+            "url": lambda e: reverse("campaigns.campaignevent_read", args=[e.id]),
+            "hard": True,
+        },
+    }
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        obj = self.get_object()
 
-        # lookup dependent flows for this object
-        dependent_flows = self.get_object().dependent_flows.only("uuid", "name")
-        used_by_flows = list(dependent_flows.order_by("name")[:5])  # display first 5
+        dependents = []
+        can_delete = True
 
-        context["used_by_flows"] = used_by_flows
-        context["used_by_more"] = dependent_flows.count() - len(used_by_flows)
+        for dep_type, dep_qs in obj.get_dependents().items():
+            dep_config = self.type_configs[dep_type]
+            dep_count = dep_qs.count()
+            if dep_count:
+                sample = dep_qs.order_by("name")[:5]
+                dependents.append(
+                    {
+                        "blurb": dep_config["blurb"],
+                        "sample": [{"name": d.name, "url": dep_config["url"](d)} for d in sample],
+                        "num_more": max(dep_count - 5, 0),
+                    }
+                )
+                if dep_config["hard"]:
+                    can_delete = False
 
+        context["dependents"] = dependents
+        context["can_delete"] = can_delete
         return context
 
     def post(self, request, *args, **kwargs):

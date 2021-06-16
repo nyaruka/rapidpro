@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-16 15:59+0000\n"
+"POT-Creation-Date: 2021-06-16 19:18+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Jesus EKIE <jesus@fehudigital.com>, 2020\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -3271,6 +3271,15 @@ msgstr "Crédits expirant bientôt"
 msgid "%(name)s Credits Alert"
 msgstr "%(name)s Alerte Crédits"
 
+msgid "is used by the following flows which may not work as expected if you delete it"
+msgstr ""
+
+msgid "is used in the query of the following smart groups which must be updated or deleted first"
+msgstr ""
+
+msgid "is used by the following campaign events which must be updated or deleted first"
+msgstr ""
+
 msgid "First name"
 msgstr "Prénom"
 
@@ -6279,9 +6288,6 @@ msgstr "Aucun message correspondant."
 
 msgid "Your workspace is suspended and no longer processing messages."
 msgstr "Votre espace de travail est suspendu et ne traite plus les messages."
-
-msgid "is used by the following flows which may not work as expected if you delete it:"
-msgstr ""
 
 #, fuzzy, python-format
 #| msgid "%(counter)s Use"

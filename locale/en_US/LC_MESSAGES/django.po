@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-16 15:59+0000\n"
+"POT-Creation-Date: 2021-06-16 19:18+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3230,6 +3230,15 @@ msgstr ""
 msgid "%(name)s Credits Alert"
 msgstr ""
 
+msgid "is used by the following flows which may not work as expected if you delete it"
+msgstr ""
+
+msgid "is used in the query of the following smart groups which must be updated or deleted first"
+msgstr ""
+
+msgid "is used by the following campaign events which must be updated or deleted first"
+msgstr ""
+
 msgid "First name"
 msgstr ""
 
@@ -6066,9 +6075,6 @@ msgid "No matching messages."
 msgstr ""
 
 msgid "Your workspace is suspended and no longer processing messages."
-msgstr ""
-
-msgid "is used by the following flows which may not work as expected if you delete it:"
 msgstr ""
 
 #, python-format
