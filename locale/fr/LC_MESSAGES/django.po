@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-16 19:18+0000\n"
+"POT-Creation-Date: 2021-06-16 21:12+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Jesus EKIE <jesus@fehudigital.com>, 2020\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -1875,6 +1875,9 @@ msgid "API Token"
 msgstr "Signal API"
 
 msgid "The API token for your integration as provided by Zenvia"
+msgstr ""
+
+msgid "Invalid token. Please check your Zenvia account settings."
 msgstr ""
 
 msgid "POST Required"
