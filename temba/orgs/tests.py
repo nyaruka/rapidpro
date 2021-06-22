@@ -68,7 +68,7 @@ from temba.utils import dict_to_struct, json, languages
 from temba.utils.email import link_components
 
 from .context_processors import GroupPermWrapper
-from .models import CreditAlert, Invitation, Language, Org, OrgRole, TopUp, TopUpCredits
+from .models import CreditAlert, Invitation, Org, OrgRole, TopUp, TopUpCredits
 from .tasks import delete_orgs_task, resume_failed_tasks, squash_topupcredits
 
 
@@ -985,18 +985,18 @@ class OrgTest(TembaTest):
     def test_set_flow_languages(self):
         self.assertEqual([], self.org.flow_languages)
 
-        self.org.set_flow_languages(self.admin, ["eng", "fra"], "eng")
+        self.org.set_flow_languages(self.admin, ["eng", "fra"])
         self.org.refresh_from_db()
         self.assertEqual(["eng", "fra"], self.org.flow_languages)
 
-        self.org.set_flow_languages(self.admin, ["eng", "kin"], "kin")
+        self.org.set_flow_languages(self.admin, ["kin", "eng"])
         self.org.refresh_from_db()
         self.assertEqual(["kin", "eng"], self.org.flow_languages)
 
         with self.assertRaises(AssertionError):
-            self.org.set_flow_languages(self.admin, ["eng", "xyz"], "eng")
+            self.org.set_flow_languages(self.admin, ["eng", "xyz"])
         with self.assertRaises(AssertionError):
-            self.org.set_flow_languages(self.admin, ["eng", "fra"], "xyz")
+            self.org.set_flow_languages(self.admin, ["eng", "eng"])
 
     def test_country_view(self):
         self.setUpLocations()
@@ -1068,8 +1068,8 @@ class OrgTest(TembaTest):
             email="administrator@temba.com",
             current_password="Administrator",
         )
-        response = self.client.post(update_url, post_data)
-        self.assertRedirect(response, reverse("orgs.org_home"))
+        response = self.client.post(update_url, post_data, HTTP_X_FORMAX=True)
+        self.assertEqual(200, response.status_code)
 
         # check that our user settings have changed
         user_settings = self.admin.get_settings()
@@ -3707,8 +3707,8 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             language="en-us",
             current_password="HelloWorld1",
         )
-        response = self.client.post(reverse("orgs.user_edit"), post_data)
-        self.assertRedirect(response, reverse("orgs.org_home"))
+        response = self.client.post(reverse("orgs.user_edit"), post_data, HTTP_X_FORMAX=True)
+        self.assertEqual(200, response.status_code)
 
         self.assertTrue(User.objects.get(username="myal@wr.org"))
         self.assertTrue(User.objects.get(email="myal@wr.org"))
@@ -3717,8 +3717,8 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         post_data["current_password"] = "HelloWorld1"
         post_data["new_password"] = "Password123"
-        response = self.client.post(reverse("orgs.user_edit"), post_data)
-        self.assertRedirect(response, reverse("orgs.org_home"))
+        response = self.client.post(reverse("orgs.user_edit"), post_data, HTTP_X_FORMAX=True)
+        self.assertEqual(200, response.status_code)
 
         user = User.objects.get(username="myal@wr.org")
         self.assertTrue(user.check_password("Password123"))
@@ -4099,7 +4099,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         home_url = reverse("orgs.org_home")
         langs_url = reverse("orgs.org_languages")
 
-        self.org.set_flow_languages(self.admin, [], primary="")  # remove any languages
+        self.org.set_flow_languages(self.admin, [])
 
         # check summary on home page
         response = self.requestView(home_url, self.admin)
@@ -4181,23 +4181,6 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             )
 
         languages.reload()
-
-
-class LanguageTest(TembaTest):
-    def test_get_localized_text(self):
-        text_translations = dict(eng="Hello", spa="Hola")
-
-        # null case
-        self.assertEqual(Language.get_localized_text(None, None), "")
-
-        # simple dictionary case
-        self.assertEqual(Language.get_localized_text(text_translations, ["eng"]), "Hello")
-
-        # missing language case
-        self.assertEqual(Language.get_localized_text(text_translations, ["fra"]), "")
-
-        # secondary option
-        self.assertEqual(Language.get_localized_text(text_translations, ["fra", "spa"]), "Hola")
 
 
 class BulkExportTest(TembaTest):
@@ -4692,7 +4675,7 @@ class BulkExportTest(TembaTest):
         )
 
         # set our default flow language to english
-        self.org.set_flow_languages(self.admin, ["eng", "fra"], "eng")
+        self.org.set_flow_languages(self.admin, ["eng", "fra"])
 
         # finally let's try importing our exported file
         self.org.import_app(exported, self.admin, site="http://app.rapidpro.io")

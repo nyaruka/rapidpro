@@ -384,16 +384,6 @@ class Org(SmartModel):
     released_on = models.DateTimeField(null=True)
     deleted_on = models.DateTimeField(null=True)
 
-    # deprecated, to be replaced as the first item in flow_languages
-    primary_language = models.ForeignKey(
-        "orgs.Language",
-        null=True,
-        blank=True,
-        related_name="orgs",
-        help_text=_("The primary language will be used for contacts with no language preference."),
-        on_delete=models.PROTECT,
-    )
-
     @classmethod
     def get_unique_slug(cls, name):
         slug = slugify(name)
@@ -883,39 +873,15 @@ class Org(SmartModel):
 
         return None
 
-    def set_flow_languages(self, user, iso_codes, primary):
+    def set_flow_languages(self, user, codes):
         """
         Sets languages used in flows for this org, creating and deleting language objects as necessary
         """
 
-        assert all([languages.get_name(c) for c in iso_codes]), "not a valid or allowed language"
-        assert not primary or languages.get_name(primary), "not a valid or allowed language"
+        assert all([languages.get_name(c) for c in codes]), "not a valid or allowed language"
+        assert len(set(codes)) == len(codes), "language code list contains duplicates"
 
-        for iso_code in iso_codes:
-            name = languages.get_name(iso_code)
-            language = self.languages.filter(iso_code=iso_code).first()
-
-            # if it's valid and doesn't exist yet, create it
-            if name and not language:
-                language = self.languages.create(iso_code=iso_code, name=name, created_by=user, modified_by=user)
-
-            if iso_code == primary:
-                self.primary_language = language
-                self.save(update_fields=("primary_language",))
-
-        # remove any languages that are not in the new list
-        self.languages.exclude(iso_code__in=iso_codes).delete()
-
-        # TODO replace primary language and language list in the UI with a single list that users can order as the want
-        # and then that is what we set as Org.flow_languages. For now just make sure primary is first in the list.
-
-        flow_languages = list(iso_codes) if iso_codes else []
-        if primary:
-            if primary in flow_languages:
-                flow_languages.remove(primary)
-            flow_languages = [primary] + flow_languages
-
-        self.flow_languages = flow_languages
+        self.flow_languages = codes
         self.modified_by = user
         self.save(update_fields=("flow_languages", "modified_by", "modified_on"))
 
@@ -1799,10 +1765,6 @@ class Org(SmartModel):
                 sub.delete()
             resthook.delete()
 
-        # delete org languages
-        Org.objects.filter(id=self.id).update(primary_language=None)
-        self.languages.all().delete()
-
         # release our broadcasts
         for bcast in self.broadcast_set.filter(parent=None):
             bcast.release()
@@ -1823,7 +1785,6 @@ class Org(SmartModel):
         self.deleted_on = timezone.now()
         self.config = {}
         self.surveyor_password = None
-        self.primary_language = None
         self.save()
 
     @classmethod
@@ -2049,54 +2010,6 @@ def get_stripe_credentials():
         "STRIPE_PRIVATE_KEY", getattr(settings, "STRIPE_PRIVATE_KEY", "MISSING_STRIPE_PRIVATE_KEY")
     )
     return (public_key, private_key)
-
-
-class Language(SmartModel):
-    """
-    A Language that has been added to the org. In the end and language is just an iso_code and name
-    and it is not really restricted to real-world languages at this level. Instead we restrict the
-    language selection options to real-world languages.
-    """
-
-    name = models.CharField(max_length=128)
-
-    iso_code = models.CharField(max_length=4)
-
-    org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="languages")
-
-    @classmethod
-    def create(cls, org, user, name, iso_code):
-        return cls.objects.create(org=org, name=name, iso_code=iso_code, created_by=user, modified_by=user)
-
-    def as_json(self):  # pragma: needs cover
-        return dict(name=self.name, iso_code=self.iso_code)
-
-    @classmethod
-    def get_localized_text(cls, text_translations, preferred_languages, default_text=""):
-        """
-        Returns the appropriate translation to use.
-        :param text_translations: A dictionary (or plain text) which contains our message indexed by language iso code
-        :param preferred_languages: The prioritized list of language preferences (list of iso codes)
-        :param default_text: default text to use if no match is found
-        """
-        # No translations, return our default text
-        if not text_translations:
-            return default_text
-
-        # If we are handed raw text without translations, just return that
-        if not isinstance(text_translations, dict):  # pragma: no cover
-            return text_translations
-
-        # otherwise, find the first preferred language
-        for lang in preferred_languages:
-            localized = text_translations.get(lang)
-            if localized is not None:
-                return localized
-
-        return default_text
-
-    def __str__(self):  # pragma: needs cover
-        return "%s" % self.name
 
 
 class Invitation(SmartModel):

@@ -261,7 +261,7 @@ class APITest(TembaTest):
         self.assertEqual(field.to_internal_value("Hello"), ({"base": "Hello"}, "base"))
         self.assertEqual(field.to_internal_value({"base": "Hello"}), ({"base": "Hello"}, "base"))
 
-        self.org.set_flow_languages(self.admin, ["kin"], primary="kin")
+        self.org.set_flow_languages(self.admin, ["kin"])
         self.org.save()
 
         self.assertEqual(field.to_internal_value("Hello"), ({"kin": "Hello"}, "kin"))
@@ -652,6 +652,8 @@ class APITest(TembaTest):
         self.assertEndpointAccess(url)
 
         reporters = self.create_group("Reporters", [self.joe, self.frank])
+        ticketer = Ticketer.create(self.org, self.admin, "mailgun", "Support Tickets", {})
+        ticket = self.create_ticket(ticketer, self.joe, "Help!")
 
         bcast1 = Broadcast.create(self.org, self.admin, "Hello 1", urns=["twitter:franky"])
         bcast2 = Broadcast.create(self.org, self.admin, "Hello 2", contacts=[self.joe])
@@ -664,6 +666,7 @@ class APITest(TembaTest):
             contacts=[self.joe],
             groups=[reporters],
             status="F",
+            ticket=ticket,
         )
         Broadcast.create(self.org2, self.admin2, "Different org...", contacts=[self.hans])
 
@@ -734,6 +737,7 @@ class APITest(TembaTest):
                 "urns": ["twitter:franky"],
                 "contacts": [self.joe.uuid, self.frank.uuid],
                 "groups": [reporters.uuid],
+                "ticket": str(ticket.uuid),
             },
         )
 
@@ -742,6 +746,7 @@ class APITest(TembaTest):
         self.assertEqual(["twitter:franky"], broadcast.raw_urns)
         self.assertEqual({self.joe, self.frank}, set(broadcast.contacts.all()))
         self.assertEqual({reporters}, set(broadcast.groups.all()))
+        self.assertEqual(ticket, broadcast.ticket)
 
         mock_queue_broadcast.assert_called_once_with(broadcast)
 
@@ -1626,6 +1631,15 @@ class APITest(TembaTest):
                 "last_seen_on": "2020-08-12T13:30:45.123456Z",
             },
         )
+
+        # reversed
+        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 4):
+            response = self.fetchJSON(url, "reverse=true")
+
+        resp_json = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(resp_json["next"], None)
+        self.assertResultsByUUID(response, [self.frank, contact1, contact2, self.joe, contact4])
 
         # filter by UUID
         response = self.fetchJSON(url, "uuid=%s" % contact2.uuid)
@@ -3298,7 +3312,7 @@ class APITest(TembaTest):
             },
         )
 
-        self.org.set_flow_languages(self.admin, ["eng", "fra"], "eng")
+        self.org.set_flow_languages(self.admin, ["eng", "fra"])
 
         response = self.fetchJSON(url)
         self.assertEqual(
@@ -3476,6 +3490,14 @@ class APITest(TembaTest):
             },
             resp_json["results"][4],
         )
+
+        # reversed
+        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 5):
+            response = self.fetchJSON(url, "reverse=true")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(None, response.json()["next"])
+        self.assertResultsById(response, [joe_run1, frank_run1, frank_run2, joe_run2, joe_run3])
 
         # filter by id
         response = self.fetchJSON(url, "id=%d" % frank_run2.pk)

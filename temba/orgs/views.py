@@ -763,7 +763,6 @@ class UserCRUDL(SmartCRUDL):
 
         form_class = EditForm
         permission = "orgs.org_profile"
-        success_url = "@orgs.org_home"
         success_message = ""
 
         @classmethod
@@ -775,7 +774,8 @@ class UserCRUDL(SmartCRUDL):
 
         def derive_initial(self):
             initial = super().derive_initial()
-            initial["language"] = self.get_object().get_settings().language
+            user_settings = self.get_object().get_settings()
+            initial["language"] = user_settings.language
             return initial
 
         def pre_save(self, obj):
@@ -3234,14 +3234,13 @@ class OrgCRUDL(SmartCRUDL):
 
         def form_valid(self, form):
             user = self.request.user
-            primary = form.cleaned_data["primary_lang"]["value"]
+            codes = [form.cleaned_data["primary_lang"]["value"]]
 
-            # remove empty codes and ensure primary is included in list
-            iso_codes = [d["value"] for d in form.cleaned_data["other_langs"] if d["value"]]
-            if primary and primary not in iso_codes:
-                iso_codes.append(primary)
+            for lang in form.cleaned_data["other_langs"]:
+                if lang["value"] and lang["value"] not in codes:
+                    codes.append(lang["value"])
 
-            self.object.set_flow_languages(user, iso_codes, primary)
+            self.object.set_flow_languages(user, codes)
 
             return super().form_valid(form)
 
