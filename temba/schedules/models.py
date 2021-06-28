@@ -223,6 +223,7 @@ class Schedule(SmartModel):
 
     class Meta:
         indexes = [
+            # used by mailroom for fetching schedules that need to be fired
             Index(
                 name="schedules_next_fire_active",
                 fields=["next_fire"],

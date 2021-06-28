@@ -284,9 +284,7 @@ class ChannelTest(TembaTest):
 
         # add channel trigger
         flow = self.get_flow("color")
-        Trigger.objects.create(
-            org=self.org, flow=flow, channel=channel1, modified_by=self.admin, created_by=self.admin
-        )
+        trigger1 = Trigger.create(self.org, self.admin, Trigger.TYPE_NEW_CONVERSATION, flow, channel=channel1)
 
         # create some activity on this channel
         contact = self.create_contact("Bob", phone="+593979123456")
@@ -325,7 +323,12 @@ class ChannelTest(TembaTest):
 
         channel1.release(self.admin)
 
+        channel1.refresh_from_db()
+        trigger1.refresh_from_db()
         flow.refresh_from_db()
+
+        self.assertFalse(channel1.is_active)
+        self.assertFalse(trigger1.is_active)
         self.assertTrue(flow.has_issues)
         self.assertNotIn(channel1, flow.channel_dependencies.all())
 
@@ -334,7 +337,6 @@ class ChannelTest(TembaTest):
 
         self.assertEqual(0, channel1.alerts.count())
         self.assertEqual(0, channel1.sync_events.count())
-        self.assertEqual(0, channel1.triggers.count())
 
         # check that we queued a task to interrupt sessions tied to this channel
         self.assertEqual(
