@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-25 16:07+0000\n"
+"POT-Creation-Date: 2021-06-28 19:47+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Jesus EKIE <jesus@fehudigital.com>, 2020\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -4154,11 +4154,6 @@ msgstr "Créer des declencheurs"
 msgid "Triggers"
 msgstr "Déclencheurs"
 
-#, fuzzy
-#| msgid "Schedule Trigger"
-msgid "Archived Triggers"
-msgstr "Planning de declencheur"
-
 msgid "United Kingdom"
 msgstr "Royaume-Uni"
 
@@ -7909,6 +7904,11 @@ msgstr "Les modèles sont synchronisés à partir de votre compte WhatsApp toute
 
 msgid "No synced templates at this time."
 msgstr "Aucun modèle synchronisé pour le moment."
+
+#, fuzzy
+#~| msgid "Schedule Trigger"
+#~ msgid "Archived Triggers"
+#~ msgstr "Planning de declencheur"
 
 #~ msgid "The first word of the message text"
 #~ msgstr "Le premier mot du texte du message"

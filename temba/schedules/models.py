@@ -222,4 +222,10 @@ class Schedule(SmartModel):
         return f'Schedule[id={self.id} repeat="{self.get_display()}" next={str(self.next_fire)}]'
 
     class Meta:
-        indexes = [Index(name="schedules_next_fire_active", fields=["next_fire"], condition=Q(is_active=True))]
+        indexes = [
+            Index(
+                name="schedules_next_fire_active",
+                fields=["next_fire"],
+                condition=Q(is_active=True, next_fire__isnull=False),
+            )
+        ]

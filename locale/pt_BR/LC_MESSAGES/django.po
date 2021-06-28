@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-25 16:07+0000\n"
+"POT-Creation-Date: 2021-06-28 19:47+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Ilhasoft <contato@ilhasoft.com.br>, 2021\n"
 "Language-Team: Portuguese (Brazil) (https://www.transifex.com/rapidpro/teams/226/pt_BR/)\n"
@@ -4163,11 +4163,6 @@ msgstr "Criar disparador"
 msgid "Triggers"
 msgstr "Disparadores"
 
-#, fuzzy
-#| msgid "Schedule Trigger"
-msgid "Archived Triggers"
-msgstr "Disparador agendamento"
-
 msgid "United Kingdom"
 msgstr "Reino Unido"
 
@@ -7912,6 +7907,11 @@ msgstr "Templates são sincronizados da sua conta do WhatsApp a cada 15 minutos.
 
 msgid "No synced templates at this time."
 msgstr "Sem templates sincronizados neste momento."
+
+#, fuzzy
+#~| msgid "Schedule Trigger"
+#~ msgid "Archived Triggers"
+#~ msgstr "Disparador agendamento"
 
 #~ msgid "The first word of the message text"
 #~ msgstr "A primeira palavra do texto de mensagem"

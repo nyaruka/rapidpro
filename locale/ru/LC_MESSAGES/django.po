@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-25 16:07+0000\n"
+"POT-Creation-Date: 2021-06-28 19:47+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Hudson Brendon <hudson.brendon@ilhasoft.com.br>, 2020\n"
 "Language-Team: Russian (https://www.transifex.com/rapidpro/teams/226/ru/)\n"
@@ -4165,11 +4165,6 @@ msgstr "Создать Триггер"
 msgid "Triggers"
 msgstr "Триггеры"
 
-#, fuzzy
-#| msgid "Schedule Trigger"
-msgid "Archived Triggers"
-msgstr "Триггер Расписания"
-
 msgid "United Kingdom"
 msgstr "Великобритания"
 
@@ -7768,6 +7763,11 @@ msgstr "Шаблоны синхронизируются с Вашей учетн
 
 msgid "No synced templates at this time."
 msgstr "На данный момент синхронизированные шаблоны отсутствуют."
+
+#, fuzzy
+#~| msgid "Schedule Trigger"
+#~ msgid "Archived Triggers"
+#~ msgstr "Триггер Расписания"
 
 #~ msgid "The first word of the message text"
 #~ msgstr "Первое слово текста сообщения"

@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-25 16:07+0000\n"
+"POT-Creation-Date: 2021-06-28 19:47+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Moy Moussan <moymoussan@gmail.com>, 2021\n"
 "Language-Team: Spanish (https://www.transifex.com/rapidpro/teams/226/es/)\n"
@@ -4157,11 +4157,6 @@ msgstr "Crear Activador"
 msgid "Triggers"
 msgstr "Activadores"
 
-#, fuzzy
-#| msgid "Schedule Trigger"
-msgid "Archived Triggers"
-msgstr "Activador de programa"
-
 msgid "United Kingdom"
 msgstr "Reino Unido"
 
@@ -7925,6 +7920,11 @@ msgstr "Las plantillas se sincronizan desde su cuenta de WhatsApp cada 15 minuto
 
 msgid "No synced templates at this time."
 msgstr "No hay plantillas sincronizadas en este momento."
+
+#, fuzzy
+#~| msgid "Schedule Trigger"
+#~ msgid "Archived Triggers"
+#~ msgstr "Activador de programa"
 
 #~ msgid "The first word of the message text"
 #~ msgstr "La primera palabra del texto del mensaje."

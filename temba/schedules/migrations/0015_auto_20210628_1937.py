@@ -13,7 +13,9 @@ class Migration(migrations.Migration):
         migrations.AddIndex(
             model_name="schedule",
             index=models.Index(
-                condition=models.Q(is_active=True), fields=["next_fire"], name="schedules_next_fire_active"
+                condition=models.Q(is_active=True, next_fire__isnull=False),
+                fields=["next_fire"],
+                name="schedules_next_fire_active",
             ),
         ),
     ]
