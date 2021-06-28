@@ -23,59 +23,66 @@ class TriggerTest(TembaTest):
 
         self.assertEqual('Trigger[type=K, flow="Test Flow"]', str(trigger))
 
-    def test_archive_conflicts(self):
+    def test_release_conflicts(self):
         flow = self.create_flow()
         group1 = self.create_group("Group 1", contacts=[])
         group2 = self.create_group("Group 1", contacts=[])
         channel1 = self.create_channel("FB", "FB Channel 1", "12345")
         channel2 = self.create_channel("FB", "FB Channel 2", "23456")
 
-        def assert_conflict_resolution(archived, not_archived):
-            archived.refresh_from_db()
-            not_archived.refresh_from_db()
+        def create_trigger(trigger_type, **kwargs):
+            return Trigger.create(self.org, self.admin, trigger_type, flow, **kwargs)
 
-            self.assertTrue(archived.is_archived)
-            self.assertFalse(not_archived.is_archived)
+        def assert_conflict_resolution(*, released: list, unchanged: list):
+            for trigger in released:
+                trigger.refresh_from_db()
+                self.assertTrue(trigger.is_archived)
+                self.assertFalse(trigger.is_active)
+
+            for trigger in unchanged:
+                self.assertFalse(trigger.is_archived)
+                self.assertTrue(trigger.is_active)
 
         # keyword triggers conflict if keyword and groups match
-        trigger1 = Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keyword="join")
-        trigger2 = Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keyword="start")
-        Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keyword="join")
+        trigger1 = create_trigger(Trigger.TYPE_KEYWORD, keyword="join", match_type="O")
+        trigger2 = create_trigger(Trigger.TYPE_KEYWORD, keyword="join", match_type="S")
+        trigger3 = create_trigger(Trigger.TYPE_KEYWORD, keyword="start")
+        create_trigger(Trigger.TYPE_KEYWORD, keyword="join")
 
-        assert_conflict_resolution(archived=trigger1, not_archived=trigger2)
+        assert_conflict_resolution(released=[trigger1, trigger2], unchanged=[trigger3])
 
-        trigger1 = Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, groups=(group1,), keyword="join")
-        trigger2 = Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, groups=(group2,), keyword="join")
-        Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, groups=(group1,), keyword="join")
+        trigger1 = create_trigger(Trigger.TYPE_KEYWORD, groups=(group1,), keyword="join")
+        trigger2 = create_trigger(Trigger.TYPE_KEYWORD, groups=(group2,), keyword="join")
+        create_trigger(Trigger.TYPE_KEYWORD, groups=(group1,), keyword="join")
 
-        assert_conflict_resolution(archived=trigger1, not_archived=trigger2)
+        assert_conflict_resolution(released=[trigger1], unchanged=[trigger2])
 
         # incoming call triggers conflict if groups match
-        trigger1 = Trigger.create(self.org, self.admin, Trigger.TYPE_INBOUND_CALL, flow, groups=(group1,))
-        trigger2 = Trigger.create(self.org, self.admin, Trigger.TYPE_INBOUND_CALL, flow, groups=(group2,))
-        Trigger.create(self.org, self.admin, Trigger.TYPE_INBOUND_CALL, flow, groups=(group1,))
+        trigger1 = create_trigger(Trigger.TYPE_INBOUND_CALL, groups=(group1,))
+        trigger2 = create_trigger(Trigger.TYPE_INBOUND_CALL, groups=(group2,))
+        create_trigger(Trigger.TYPE_INBOUND_CALL, groups=(group1,))
 
-        assert_conflict_resolution(archived=trigger1, not_archived=trigger2)
+        assert_conflict_resolution(released=[trigger1], unchanged=[trigger2])
 
         # missed call triggers always conflict
-        trigger1 = Trigger.create(self.org, self.admin, Trigger.TYPE_MISSED_CALL, flow)
-        trigger2 = Trigger.create(self.org, self.admin, Trigger.TYPE_MISSED_CALL, flow)
+        trigger1 = create_trigger(Trigger.TYPE_MISSED_CALL)
+        trigger2 = create_trigger(Trigger.TYPE_MISSED_CALL)
 
-        assert_conflict_resolution(archived=trigger1, not_archived=trigger2)
+        assert_conflict_resolution(released=[trigger1], unchanged=[trigger2])
 
         # new conversation triggers conflict if channels match
-        trigger1 = Trigger.create(self.org, self.admin, Trigger.TYPE_REFERRAL, flow, channel=channel1)
-        trigger2 = Trigger.create(self.org, self.admin, Trigger.TYPE_REFERRAL, flow, channel=channel2)
-        Trigger.create(self.org, self.admin, Trigger.TYPE_REFERRAL, flow, channel=channel1)
+        trigger1 = create_trigger(Trigger.TYPE_REFERRAL, channel=channel1)
+        trigger2 = create_trigger(Trigger.TYPE_REFERRAL, channel=channel2)
+        create_trigger(Trigger.TYPE_REFERRAL, channel=channel1)
 
-        assert_conflict_resolution(archived=trigger1, not_archived=trigger2)
+        assert_conflict_resolution(released=[trigger1], unchanged=[trigger2])
 
         # referral triggers conflict if referral ids match
-        trigger1 = Trigger.create(self.org, self.admin, Trigger.TYPE_REFERRAL, flow, referrer_id="12345")
-        trigger2 = Trigger.create(self.org, self.admin, Trigger.TYPE_REFERRAL, flow, referrer_id="23456")
-        Trigger.create(self.org, self.admin, Trigger.TYPE_REFERRAL, flow, referrer_id="12345")
+        trigger1 = create_trigger(Trigger.TYPE_REFERRAL, referrer_id="12345")
+        trigger2 = create_trigger(Trigger.TYPE_REFERRAL, referrer_id="23456")
+        create_trigger(Trigger.TYPE_REFERRAL, referrer_id="12345")
 
-        assert_conflict_resolution(archived=trigger1, not_archived=trigger2)
+        assert_conflict_resolution(released=[trigger1], unchanged=[trigger2])
 
     def _export_trigger(self, trigger: Trigger) -> dict:
         components = self.org.resolve_dependencies([trigger.flow], [], include_triggers=True)
@@ -165,14 +172,6 @@ class TriggerTest(TembaTest):
         self.assertEqual(self.channel, trigger.channel)
         self.assertEqual({doctors, farmers}, set(trigger.groups.all()))
         self.assertEqual({testers}, set(trigger.exclude_groups.all()))
-
-        trigger.archive(self.admin)
-
-        # reimporting again over the top of an archived exact match should restore it
-        self.org.import_app(export, self.admin)
-
-        trigger = Trigger.objects.get()
-        self.assertFalse(trigger.is_archived)
 
         trigger.flow = self.create_flow("Another Flow")
         trigger.save(update_fields=("flow",))
@@ -363,9 +362,22 @@ class TriggerTest(TembaTest):
         )
         trigger.groups.add(group)
 
-        trigger.release()
+        trigger.release(self.admin)
 
-        # schedule should also have been deleted but obviously not group or flow
+        trigger.refresh_from_db()
+        self.assertFalse(trigger.is_active)
+        self.assertTrue(trigger.is_archived)
+
+        trigger.schedule.refresh_from_db()
+        self.assertFalse(trigger.schedule.is_active)
+
+        # group or flow obvious won't have been deleted
+        self.assertEqual(ContactGroup.user_groups.count(), 1)
+        self.assertEqual(Flow.objects.count(), 1)
+
+        # now do real delete
+        trigger.delete()
+
         self.assertEqual(Trigger.objects.count(), 0)
         self.assertEqual(Schedule.objects.count(), 0)
         self.assertEqual(ContactGroup.user_groups.count(), 1)
@@ -1139,7 +1151,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertListFetch(
             list_url, allow_viewers=True, allow_editors=True, context_objects=[trigger2, trigger3, trigger1]
         )
-        self.assertEqual(("archive",), response.context["actions"])
+        self.assertEqual(("delete",), response.context["actions"])
 
         # can search by keyword
         self.assertListFetch(
@@ -1151,8 +1163,8 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
             list_url + "?search=VEY", allow_viewers=True, allow_editors=True, context_objects=[trigger2]
         )
 
-        # can archive it
-        self.client.post(list_url, {"action": "archive", "objects": trigger3.id})
+        # can delete it
+        self.client.post(list_url, {"action": "delete", "objects": trigger3.id})
 
         trigger3.refresh_from_db()
         self.assertTrue(trigger3.is_archived)
@@ -1167,89 +1179,6 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(reverse("triggers.trigger_list"))
         self.assertEqual(response.status_code, 302)
         self.assertRedirect(response, reverse("triggers.trigger_create"))
-
-    def test_archived(self):
-        flow = self.create_flow()
-        trigger1 = Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keyword="start", is_archived=True)
-        trigger2 = Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keyword="join", is_archived=True)
-
-        # triggers that shouldn't appear
-        Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keyword="active", is_archived=False)
-        Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keyword="inactive", is_active=False)
-        Trigger.create(self.org2, self.admin, Trigger.TYPE_KEYWORD, self.create_flow(org=self.org2), keyword="other")
-
-        archived_url = reverse("triggers.trigger_archived")
-
-        response = self.assertListFetch(
-            archived_url, allow_viewers=True, allow_editors=True, context_objects=[trigger2, trigger1]
-        )
-        self.assertEqual(("restore",), response.context["actions"])
-
-        # can restore it
-        self.client.post(reverse("triggers.trigger_archived"), {"action": "restore", "objects": trigger1.id})
-
-        response = self.client.get(reverse("triggers.trigger_archived"))
-
-        self.assertNotContains(response, "startkeyword")
-
-        response = self.client.get(reverse("triggers.trigger_list"))
-
-        # should be back in the main trigger list
-        self.assertContains(response, "start")
-
-        # once archived we can duplicate it but with one active at a time
-        trigger = Trigger.objects.get(keyword="start")
-        trigger.is_archived = True
-        trigger.save(update_fields=("is_archived",))
-
-        post_data = dict(keyword="start", flow=flow.id, match_type="F")
-        response = self.client.post(reverse("triggers.trigger_create_keyword"), data=post_data)
-        self.assertEqual(Trigger.objects.filter(keyword="start").count(), 2)
-        self.assertEqual(1, Trigger.objects.filter(keyword="start", is_archived=False).count())
-        other_trigger = Trigger.objects.filter(keyword="start", is_archived=False)[0]
-        self.assertFalse(trigger.pk == other_trigger.pk)
-
-        # try archiving it we have one archived and the other active
-        response = self.client.get(reverse("triggers.trigger_archived"), post_data)
-        self.assertContains(response, "start")
-        post_data = dict(action="restore", objects=trigger.pk)
-        self.client.post(reverse("triggers.trigger_archived"), post_data)
-        response = self.client.get(reverse("triggers.trigger_archived"), post_data)
-        self.assertContains(response, "start")
-        response = self.client.get(reverse("triggers.trigger_list"), post_data)
-        self.assertContains(response, "start")
-        self.assertEqual(1, Trigger.objects.filter(keyword="start", is_archived=False).count())
-        self.assertNotEqual(other_trigger, Trigger.objects.filter(keyword="start", is_archived=False)[0])
-
-        self.contact = self.create_contact("Eric", phone="+250788382382")
-        self.contact2 = self.create_contact("Nic", phone="+250788383383")
-        group1 = self.create_group("first", [self.contact2])
-        group2 = self.create_group("second", [self.contact])
-        group3 = self.create_group("third", [self.contact, self.contact2])
-
-        self.assertEqual(Trigger.objects.filter(keyword="start").count(), 2)
-        self.assertEqual(Trigger.objects.filter(keyword="start", is_archived=False).count(), 1)
-
-        # update trigger with 2 groups
-        post_data = dict(keyword="start", flow=flow.id, match_type="F", groups=[group1.pk, group2.pk])
-        response = self.client.post(reverse("triggers.trigger_create_keyword"), data=post_data)
-        self.assertEqual(Trigger.objects.filter(keyword="start").count(), 3)
-        self.assertEqual(Trigger.objects.filter(keyword="start", is_archived=False).count(), 2)
-
-        # get error when groups overlap
-        post_data = dict(keyword="start", flow=flow.id, match_type="F")
-        post_data["groups"] = [group2.pk, group3.pk]
-        response = self.client.post(reverse("triggers.trigger_create_keyword"), data=post_data)
-        self.assertEqual(1, len(response.context["form"].errors))
-        self.assertEqual(Trigger.objects.filter(keyword="start").count(), 3)
-        self.assertEqual(Trigger.objects.filter(keyword="start", is_archived=False).count(), 2)
-
-        # allow new creation when groups do not overlap
-        post_data = dict(keyword="start", flow=flow.id, match_type="F")
-        post_data["groups"] = [group3.pk]
-        self.client.post(reverse("triggers.trigger_create_keyword"), data=post_data)
-        self.assertEqual(Trigger.objects.filter(keyword="start").count(), 4)
-        self.assertEqual(Trigger.objects.filter(keyword="start", is_archived=False).count(), 3)
 
     def test_type_lists(self):
         flow1 = self.create_flow("Flow 1")
@@ -1268,7 +1197,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertListFetch(
             keywords_url, allow_viewers=True, allow_editors=True, context_objects=[trigger2, trigger1]
         )
-        self.assertEqual(("archive",), response.context["actions"])
+        self.assertEqual(("delete",), response.context["actions"])
 
         # can search by keyword
         self.assertListFetch(

@@ -4,7 +4,6 @@ from smartmin.models import SmartModel
 
 from django.db import models
 from django.db.models import Q
-from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from temba.channels.models import Channel
@@ -195,52 +194,24 @@ class Trigger(SmartModel):
         for contact in contacts:
             trigger.contacts.add(contact)
 
-        # archive any conflicts
-        trigger.archive_conflicts(user)
+        trigger.release_conflicts(user)
 
         if trigger.channel:
             trigger.channel.get_type().activate_trigger(trigger)
 
         return trigger
 
-    def trigger_scopes(self):
+    def release_conflicts(self, user):
         """
-        Returns keys that represents the scopes that this trigger can operate against (and might conflict with other triggers with)
-        """
-        groups = ["**"] if not self.groups else [str(g.id) for g in self.groups.all().order_by("id")]
-        return [
-            "%s_%s_%s_%s" % (self.trigger_type, str(self.channel_id), group, str(self.keyword)) for group in groups
-        ]
-
-    def archive(self, user):
-        self.modified_by = user
-        self.is_archived = True
-        self.save(update_fields=("modified_by", "modified_on", "is_archived"))
-
-        if self.channel:
-            self.channel.get_type().deactivate_trigger(self)
-
-    def restore(self, user):
-        self.modified_by = user
-        self.is_archived = False
-        self.save(update_fields=("modified_by", "modified_on", "is_archived"))
-
-        # archive any conflicts
-        self.archive_conflicts(user)
-
-        if self.channel:
-            self.channel.get_type().activate_trigger(self)
-
-    def archive_conflicts(self, user):
-        """
-        Archives any triggers that conflict with this one
+        Releases any triggers that conflict with this one
         """
 
         conflicts = self.get_conflicts(
             self.org, self.trigger_type, self.channel, self.groups.all(), self.keyword, self.referrer_id
         ).exclude(id=self.id)
 
-        conflicts.update(is_archived=True, modified_on=timezone.now(), modified_by=user)
+        for conflict in conflicts:
+            conflict.release(user)
 
     @classmethod
     def get_conflicts(
@@ -377,23 +348,9 @@ class Trigger(SmartModel):
         return groups
 
     @classmethod
-    def apply_action_archive(cls, user, triggers):
+    def apply_action_delete(cls, user, triggers):
         for trigger in triggers:
-            trigger.archive(user)
-
-    @classmethod
-    def apply_action_restore(cls, user, triggers):
-        restore_priority = triggers.order_by("-modified_on")
-        trigger_scopes = set()
-
-        # work through all the restored triggers in order of most recent used
-        for trigger in restore_priority:
-            trigger_scope = set(trigger.trigger_scopes())
-
-            # if we haven't already restored a trigger with this scope
-            if not trigger_scopes.intersection(trigger_scope):
-                trigger.restore(user)
-                trigger_scopes = trigger_scopes | trigger_scope
+            trigger.release(user)
 
     @classmethod
     def get_folder(cls, org, key: str):
@@ -427,12 +384,28 @@ class Trigger(SmartModel):
     def type(self):
         return self.get_type(self.trigger_type)
 
-    def release(self):
+    def release(self, user, *, force: bool = False):
         """
         Releases this trigger
         """
 
-        self.delete()
+        if self.channel:
+            try:
+                self.channel.get_type().deactivate_trigger(self)
+            except Exception as e:
+                if not force:
+                    raise e
+
+        self.is_active = False
+        self.is_archived = True
+        self.modified_by = user
+        self.save(update_fields=("is_active", "is_archived", "modified_by", "modified_on"))
+
+        if self.schedule:
+            self.schedule.release(user)
+
+    def delete(self):
+        super().delete()
 
         if self.schedule:
             self.schedule.delete()

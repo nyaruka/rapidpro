@@ -875,7 +875,6 @@ GROUP_PERMISSIONS = {
         "tickets.ticket_open",
         "tickets.ticket_list",
         "tickets.ticketer_api",
-        "triggers.trigger_archived",
         "triggers.trigger_list",
         "triggers.trigger_type",
     ),

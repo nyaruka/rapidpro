@@ -4519,9 +4519,6 @@ class BulkExportTest(TembaTest):
         with ESMockWithScroll():
             self.org.import_app(data, self.admin, site="http://rapidpro.io")
 
-        # trigger1.refresh_from_db()
-        # self.assertFalse(trigger1.is_archived)
-
         flow = Flow.objects.get(name="Rate us")
         self.assertEqual(1, Trigger.objects.filter(keyword="rating", is_archived=False).count())
         self.assertEqual(1, Trigger.objects.filter(flow=flow).count())
@@ -4760,7 +4757,7 @@ class BulkExportTest(TembaTest):
         self.assertContains(response, "Register Patient")
 
         # delete our flow, and reimport
-        confirm_appointment.release()
+        confirm_appointment.release(self.admin)
         self.org.import_app(exported, self.admin, site="https://app.rapidpro.io")
 
         # make sure we have the previously exported expiration

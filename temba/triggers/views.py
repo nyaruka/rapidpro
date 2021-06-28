@@ -191,7 +191,6 @@ class TriggerCRUDL(SmartCRUDL):
         "create_closed_ticket",
         "update",
         "list",
-        "archived",
         "type",
     )
 
@@ -371,6 +370,7 @@ class TriggerCRUDL(SmartCRUDL):
         """
 
         fields = ("name",)
+        bulk_actions = ("delete",)
         default_template = "triggers/trigger_list.html"
         search_fields = ("keyword__icontains", "flow__name__icontains", "channel__name__icontains")
 
@@ -386,7 +386,7 @@ class TriggerCRUDL(SmartCRUDL):
         def get_queryset(self, *args, **kwargs):
             qs = super().get_queryset(*args, **kwargs)
             qs = (
-                qs.filter(is_active=True)
+                qs.filter(is_active=True, is_archived=False)
                 .annotate(earliest_group=Min("groups__name"))
                 .order_by("keyword", "earliest_group", "id")
                 .select_related("flow", "channel")
@@ -400,11 +400,6 @@ class TriggerCRUDL(SmartCRUDL):
                     label=_("All"),
                     url=reverse("triggers.trigger_list"),
                     count=org.triggers.filter(is_active=True, is_archived=False).count(),
-                ),
-                dict(
-                    label=_("Archived"),
-                    url=reverse("triggers.trigger_archived"),
-                    count=org.triggers.filter(is_active=True, is_archived=True).count(),
                 ),
             ]
 
@@ -421,7 +416,6 @@ class TriggerCRUDL(SmartCRUDL):
         Non-archived triggers of all types
         """
 
-        bulk_actions = ("archive",)
         title = _("Triggers")
 
         def pre_process(self, request, *args, **kwargs):
@@ -431,26 +425,10 @@ class TriggerCRUDL(SmartCRUDL):
                 return HttpResponseRedirect(reverse("triggers.trigger_create"))
             return super().pre_process(request, *args, **kwargs)
 
-        def get_queryset(self, *args, **kwargs):
-            return super().get_queryset(*args, **kwargs).filter(is_archived=False)
-
-    class Archived(BaseList):
-        """
-        Archived triggers of all types
-        """
-
-        bulk_actions = ("restore",)
-        title = _("Archived Triggers")
-
-        def get_queryset(self, *args, **kwargs):
-            return super().get_queryset(*args, **kwargs).filter(is_archived=True)
-
     class Type(BaseList):
         """
         Folders of related trigger types
         """
-
-        bulk_actions = ("archive",)
 
         @classmethod
         def derive_url_pattern(cls, path, action):
