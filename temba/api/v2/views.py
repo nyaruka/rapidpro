@@ -906,6 +906,9 @@ class CampaignEventsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAP
 
         return queryset
 
+    def perform_destroy(self, instance):
+        instance.release(self.request.user)
+
     @classmethod
     def get_read_explorer(cls):
         return {
@@ -1904,6 +1907,9 @@ class FlowsEndpoint(ListAPIMixin, BaseAPIView):
         queryset = queryset.prefetch_related("labels")
 
         return self.filter_before_after(queryset, "modified_on")
+
+    def perform_destroy(self, instance):
+        instance.release(self.request.user)
 
     @classmethod
     def get_read_explorer(cls):

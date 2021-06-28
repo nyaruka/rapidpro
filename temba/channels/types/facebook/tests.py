@@ -86,25 +86,11 @@ class FacebookTypeTest(TembaTest):
             )
             mock_post.reset_mock()
 
-            trigger.archive(self.admin)
+            trigger.release(self.admin)
 
             mock_post.assert_called_once_with(
                 "https://graph.facebook.com/v3.3/12345/thread_settings",
                 json={"setting_type": "call_to_actions", "thread_state": "new_thread", "call_to_actions": []},
-                headers={"Content-Type": "application/json"},
-                params={"access_token": "09876543"},
-            )
-            mock_post.reset_mock()
-
-            trigger.restore(self.admin)
-
-            mock_post.assert_called_once_with(
-                "https://graph.facebook.com/v3.3/12345/thread_settings",
-                json={
-                    "setting_type": "call_to_actions",
-                    "thread_state": "new_thread",
-                    "call_to_actions": [{"payload": "get_started"}],
-                },
                 headers={"Content-Type": "application/json"},
                 params={"access_token": "09876543"},
             )
