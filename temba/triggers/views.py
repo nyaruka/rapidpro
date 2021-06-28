@@ -404,11 +404,13 @@ class TriggerCRUDL(SmartCRUDL):
             ]
 
         def get_type_folders(self, org):
+            from .types import TYPES
+
             folders = []
-            for key, folder in Trigger.FOLDERS.items():
-                folder_url = reverse("triggers.trigger_type", kwargs={"folder": key})
-                folder_count = Trigger.get_folder(org, key).count()
-                folders.append(dict(label=folder.label, url=folder_url, count=folder_count))
+            for trigger_type in TYPES.values():
+                type_url = reverse("triggers.trigger_type", kwargs={"type": trigger_type.slug})
+                type_count = trigger_type.get_count(org)
+                folders.append(dict(label=trigger_type.name, url=type_url, count=type_count))
             return folders
 
     class List(BaseList):
@@ -427,16 +429,28 @@ class TriggerCRUDL(SmartCRUDL):
 
     class Type(BaseList):
         """
-        Folders of related trigger types
+        List of triggers of a specific type
         """
 
         @classmethod
         def derive_url_pattern(cls, path, action):
-            return rf"^%s/%s/(?P<folder>{'|'.join(Trigger.FOLDERS.keys())}+)/$" % (path, action)
+            from .types import TYPES_BY_SLUG
+
+            return rf"^%s/%s/(?P<type>{'|'.join(TYPES_BY_SLUG.keys())}+)/$" % (path, action)
+
+        @property
+        def trigger_type(self):
+            from .types import TYPES_BY_SLUG
+
+            return TYPES_BY_SLUG[self.kwargs["type"]]
 
         def derive_title(self):
-            return Trigger.FOLDERS[self.kwargs["folder"]].title
+            return _(f"%(type)s Triggers") % {"type": self.trigger_type.name}
 
         def get_queryset(self, *args, **kwargs):
-            qs = super().get_queryset(*args, **kwargs)
-            return Trigger.filter_folder(qs, self.kwargs["folder"]).filter(is_archived=False)
+            return super().get_queryset(*args, **kwargs).filter(is_archived=False, trigger_type=self.trigger_type.code)
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            context["type_blurb"] = self.trigger_type.list_blurb
+            return context

@@ -20,6 +20,15 @@ class TriggerType:
     # single char code used for database model
     code = None
 
+    # e.g. Keyword
+    name = None
+
+    # e.g. keyword, used for URLs
+    slug = None
+
+    # used on type specific list pages
+    list_blurb = None
+
     # flow types allowed for this type
     allowed_flow_types = ()
 
@@ -34,6 +43,9 @@ class TriggerType:
 
     # form class used for creation and updating
     form = None
+
+    def get_count(self, org) -> int:
+        return org.triggers.filter(is_active=True, is_archived=False, trigger_type=self.code).count()
 
     def export_def(self, trigger) -> dict:
         all_fields = {
@@ -75,25 +87,6 @@ class Trigger(SmartModel):
     TYPE_REFERRAL = "R"
     TYPE_CLOSED_TICKET = "T"
     TYPE_CATCH_ALL = "C"
-
-    FOLDER_KEYWORDS = "keywords"
-    FOLDER_SCHEDULED = "scheduled"
-    FOLDER_CALLS = "calls"
-    FOLDER_SOCIAL_MEDIA = "social"
-    FOLDER_TICKETS = "tickets"
-    FOLDER_CATCHALL = "catchall"
-    FOLDERS = {
-        FOLDER_KEYWORDS: Folder(_("Keywords"), _("Keyword Triggers"), (TYPE_KEYWORD,)),
-        FOLDER_SCHEDULED: Folder(_("Scheduled"), _("Scheduled Triggers"), (TYPE_SCHEDULE,)),
-        FOLDER_CALLS: Folder(_("Calls"), _("Call Triggers"), (TYPE_INBOUND_CALL, TYPE_MISSED_CALL)),
-        FOLDER_SOCIAL_MEDIA: Folder(
-            _("Social Media"),
-            _("Social Media Triggers"),
-            (TYPE_NEW_CONVERSATION, TYPE_REFERRAL),
-        ),
-        FOLDER_TICKETS: Folder(_("Tickets"), _("Ticket Triggers"), (TYPE_CLOSED_TICKET,)),
-        FOLDER_CATCHALL: Folder(_("Catch All"), _("Catch All Triggers"), (TYPE_CATCH_ALL,)),
-    }
 
     KEYWORD_MAX_LEN = 16
 
@@ -347,16 +340,6 @@ class Trigger(SmartModel):
     def apply_action_delete(cls, user, triggers):
         for trigger in triggers:
             trigger.release(user)
-
-    @classmethod
-    def get_folder(cls, org, key: str):
-        return cls.filter_folder(org.triggers.filter(is_active=True, is_archived=False), key)
-
-    @classmethod
-    def filter_folder(cls, qs, key: str):
-        assert key in cls.FOLDERS, f"{key} is not a valid trigger folder"
-
-        return qs.filter(trigger_type__in=cls.FOLDERS[key].types)
 
     def as_export_def(self) -> dict:
         """

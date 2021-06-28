@@ -35,6 +35,9 @@ class KeywordTriggerType(TriggerType):
             widgets = {"keyword": InputWidget(), "match_type": SelectWidget()}
 
     code = Trigger.TYPE_KEYWORD
+    slug = "keyword"
+    name = _("Keyword")
+    list_blurb = _("Start flows when incoming messages contain certain words.")
     allowed_flow_types = (Flow.TYPE_MESSAGE, Flow.TYPE_VOICE)
     export_fields = TriggerType.export_fields + ("keyword",)
     required_fields = TriggerType.required_fields + ("keyword",)
@@ -66,6 +69,11 @@ class CatchallTriggerType(TriggerType):
             super().__init__(user, Trigger.TYPE_CATCH_ALL, *args, **kwargs)
 
     code = Trigger.TYPE_CATCH_ALL
+    slug = "catchall"
+    name = _("Catch All")
+    list_blurb = _(
+        "Start flows when incoming messages don't match any keyword triggers and contacts aren't already in a flow."
+    )
     allowed_flow_types = (Flow.TYPE_MESSAGE, Flow.TYPE_VOICE)
     form = Form
 
@@ -106,6 +114,9 @@ class ScheduledTriggerType(TriggerType):
             fields = ScheduleFormMixin.Meta.fields + BaseTriggerForm.Meta.fields + ("contacts",)
 
     code = Trigger.TYPE_SCHEDULE
+    slug = "scheduled"
+    name = _("Scheduled")
+    list_blurb = _("Start flows on a time-based schedule.")
     allowed_flow_types = (Flow.TYPE_MESSAGE, Flow.TYPE_VOICE, Flow.TYPE_BACKGROUND)
     exportable = False
     form = Form
@@ -121,6 +132,9 @@ class InboundCallTriggerType(TriggerType):
             super().__init__(user, Trigger.TYPE_INBOUND_CALL, *args, **kwargs)
 
     code = Trigger.TYPE_INBOUND_CALL
+    slug = "inbound_call"
+    name = _("Inbound Call")
+    list_blurb = _("Start flows in response to inbound voice calls.")
     allowed_flow_types = (Flow.TYPE_VOICE,)
     form = Form
 
@@ -135,6 +149,9 @@ class MissedCallTriggerType(TriggerType):
             super().__init__(user, Trigger.TYPE_MISSED_CALL, *args, **kwargs)
 
     code = Trigger.TYPE_MISSED_CALL
+    slug = "missed_call"
+    name = _("Missed Call")
+    list_blurb = _("Start flows in response to missed inbound voice calls.")
     allowed_flow_types = (Flow.TYPE_MESSAGE, Flow.TYPE_VOICE)
     form = Form
 
@@ -161,6 +178,9 @@ class NewConversationTriggerType(TriggerType):
             fields = ("channel",) + BaseTriggerForm.Meta.fields
 
     code = Trigger.TYPE_NEW_CONVERSATION
+    slug = "new_conversation"
+    name = _("New Conversation")
+    list_blurb = _("Start flows when users start new conversations on supported channels.")
     allowed_flow_types = (Flow.TYPE_MESSAGE,)
     export_fields = TriggerType.export_fields + ("channel",)
     required_fields = TriggerType.required_fields + ("channel",)
@@ -198,6 +218,9 @@ class ReferralTriggerType(TriggerType):
             fields = ("channel", "referrer_id") + BaseTriggerForm.Meta.fields
 
     code = Trigger.TYPE_REFERRAL
+    slug = "referral"
+    name = _("Referral")
+    list_blurb = _("Start flows when users click referral links on supported channels.")
     allowed_flow_types = (Flow.TYPE_MESSAGE,)
     export_fields = TriggerType.export_fields + ("channel",)
     form = Form
@@ -213,8 +236,12 @@ class ClosedTicketTriggerType(TriggerType):
             super().__init__(user, Trigger.TYPE_CLOSED_TICKET, *args, **kwargs)
 
     code = Trigger.TYPE_CLOSED_TICKET
+    slug = "closed_ticket"
+    name = _("Closed Ticket")
+    list_blurb = _("Start flows when tickets are closed.")
     allowed_flow_types = (Flow.TYPE_MESSAGE, Flow.TYPE_VOICE, Flow.TYPE_BACKGROUND)
     form = Form
 
 
 TYPES = {tc.code: tc() for tc in TriggerType.__subclasses__()}
+TYPES_BY_SLUG = {t.slug: t for t in TYPES.values()}

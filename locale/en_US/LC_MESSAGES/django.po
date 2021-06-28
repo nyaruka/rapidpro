@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-28 19:47+0000\n"
+"POT-Creation-Date: 2021-06-28 22:13+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3907,33 +3907,6 @@ msgstr ""
 msgid "Your ticketing service has been deleted."
 msgstr ""
 
-msgid "Keyword Triggers"
-msgstr ""
-
-msgid "Scheduled"
-msgstr ""
-
-msgid "Scheduled Triggers"
-msgstr ""
-
-msgid "Call Triggers"
-msgstr ""
-
-msgid "Social Media"
-msgstr ""
-
-msgid "Social Media Triggers"
-msgstr ""
-
-msgid "Ticket Triggers"
-msgstr ""
-
-msgid "Catch All"
-msgstr ""
-
-msgid "Catch All Triggers"
-msgstr ""
-
 msgid "Message starts with the keyword"
 msgstr ""
 
@@ -3961,6 +3934,15 @@ msgstr ""
 msgid "The associated channel."
 msgstr ""
 
+msgid "Start flows when incoming messages contain certain words."
+msgstr ""
+
+msgid "Catch All"
+msgstr ""
+
+msgid "Start flows when incoming messages don't match any keyword triggers and contacts aren't already in a flow."
+msgstr ""
+
 msgid "Contacts To Include"
 msgstr ""
 
@@ -3973,6 +3955,27 @@ msgstr ""
 msgid "Must provide at least one group or contact to include."
 msgstr ""
 
+msgid "Scheduled"
+msgstr ""
+
+msgid "Start flows on a time-based schedule."
+msgstr ""
+
+msgid "Inbound Call"
+msgstr ""
+
+msgid "Start flows in response to inbound voice calls."
+msgstr ""
+
+msgid "Missed Call"
+msgstr ""
+
+msgid "Start flows in response to missed inbound voice calls."
+msgstr ""
+
+msgid "Start flows when users start new conversations on supported channels."
+msgstr ""
+
 msgid "The channel to apply this trigger to, leave blank for all Facebook channels"
 msgstr ""
 
@@ -3980,6 +3983,15 @@ msgid "Referrer Id"
 msgstr ""
 
 msgid "The referrer id that will trigger us"
+msgstr ""
+
+msgid "Start flows when users click referral links on supported channels."
+msgstr ""
+
+msgid "Closed Ticket"
+msgstr ""
+
+msgid "Start flows when tickets are closed."
 msgstr ""
 
 msgid "Select a flow"
@@ -4033,6 +4045,10 @@ msgid "Create Trigger"
 msgstr ""
 
 msgid "Triggers"
+msgstr ""
+
+#, python-format
+msgid "%(type)s Triggers"
 msgstr ""
 
 msgid "United Kingdom"

@@ -6,14 +6,6 @@
 
 -block page-top
 
--block top-form
-  -if view.search_fields
-    -block search-form
-      %form
-        %input.input-medium.search-query{type:'text', placeholder:'{% trans "Search" %}', name:"search", value:"{{search}}"}
-        -if request.REQUEST.status
-          %input{type:'hidden', name:'status', value:'{{request.REQUEST.status}}'}
-
 -block content
   #pjax
     -block pjax
@@ -53,9 +45,11 @@
                         .-mt-1.mr-2.glyph.icon-remove
                         -trans "Delete"
             .flex-grow.ml-2.items-center
-              -block title-text
+              -block title
                 .page-title.leading-tight
-                  {{title}}
+                  {{ title }}
+                .subtitle.mt-3.text-base
+                  {{ type_blurb }}
             .gear-links
               -include "gear_links_include.haml"
 
