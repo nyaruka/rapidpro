@@ -349,20 +349,30 @@ class TriggerTest(TembaTest):
             },
         )
 
-    def test_release(self):
+    @patch("temba.channels.types.facebook.FacebookType.deactivate_trigger")
+    def test_release(self, mock_deactivate_trigger):
+        channel = self.create_channel("FB", "Facebook", "234567")
         flow = self.create_flow()
         group = self.create_group("Trigger Group", [])
         trigger = Trigger.objects.create(
             org=self.org,
             flow=flow,
-            trigger_type=Trigger.TYPE_SCHEDULE,
+            trigger_type=Trigger.TYPE_NEW_CONVERSATION,
             created_by=self.admin,
             modified_by=self.admin,
+            channel=channel,
             schedule=Schedule.create_schedule(self.org, self.admin, timezone.now(), Schedule.REPEAT_MONTHLY),
         )
         trigger.groups.add(group)
 
-        trigger.release(self.admin)
+        # simulate deactivating failing on Facebook side
+        mock_deactivate_trigger.side_effect = ValueError("BOOM")
+
+        with self.assertRaises(ValueError):
+            trigger.release(self.admin)
+
+        # force lets use release anyway
+        trigger.release(self.admin, force=True)
 
         trigger.refresh_from_db()
         self.assertFalse(trigger.is_active)
@@ -371,9 +381,16 @@ class TriggerTest(TembaTest):
         trigger.schedule.refresh_from_db()
         self.assertFalse(trigger.schedule.is_active)
 
-        # group or flow obvious won't have been deleted
-        self.assertEqual(ContactGroup.user_groups.count(), 1)
-        self.assertEqual(Flow.objects.count(), 1)
+        # flow, channel and group are unaffected
+        flow.refresh_from_db()
+        self.assertTrue(flow.is_active)
+        self.assertFalse(flow.is_archived)
+
+        group.refresh_from_db()
+        self.assertTrue(group.is_active)
+
+        channel.refresh_from_db()
+        self.assertTrue(channel.is_active)
 
         # now do real delete
         trigger.delete()
