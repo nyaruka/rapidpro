@@ -1768,6 +1768,20 @@ class ChannelConnection(models.Model):
         verbose_name=_("Next Attempt"), help_text="When we should next attempt to make this call", null=True
     )
 
+    class Meta:
+        indexes = [
+            models.Index(
+                name="channels_conn_ch_id_status_idx",
+                fields=("channel", "status"),
+                condition=Q(status__in=["W", "R", "I"]),
+            ),
+            models.Index(
+                name="channels_conn_external_id_idx",
+                fields=("channel", "external_id"),
+                condition=Q(connection_type="V"),
+            ),
+        ]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
