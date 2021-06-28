@@ -306,11 +306,7 @@ class Trigger(SmartModel):
             if exact_match and set(exact_match.exclude_groups.all()) != set(exclude_groups):
                 exact_match = None
 
-            if exact_match:
-                # tho maybe it needs restored...
-                if exact_match.is_archived:
-                    exact_match.restore(user)
-            else:
+            if not exact_match:
                 cls.create(
                     org,
                     user,

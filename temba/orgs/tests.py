@@ -4536,35 +4536,20 @@ class BulkExportTest(TembaTest):
             self.org.import_app(data, self.admin, site="http://rapidpro.io")
 
         flow = Flow.objects.get(name="Rate us")
-        self.assertEqual(1, Trigger.objects.filter(keyword="rating", is_archived=False).count())
-        self.assertEqual(1, Trigger.objects.filter(flow=flow).count())
+        new_trigger = Trigger.objects.exclude(id__in=(trigger1.id, trigger2.id)).get()
 
-        # shoud have archived the existing
-        self.assertFalse(Trigger.objects.filter(id=trigger1.id, is_archived=False).first())
-        self.assertFalse(Trigger.objects.filter(id=trigger2.id, is_archived=False).first())
+        self.assertEqual("rating", new_trigger.keyword)
+        self.assertEqual(flow, new_trigger.flow)
 
-        # Archive trigger
-        flow_trigger = (
-            Trigger.objects.filter(flow=flow, keyword="rating", is_archived=False).order_by("-created_on").first()
-        )
-        flow_trigger.archive(self.admin)
+        # trigger 1 is already archived so remains unchanged
+        trigger1.refresh_from_db()
+        self.assertTrue(trigger1.is_archived)
+        self.assertTrue(trigger1.is_active)
 
-        # re import again will restore the trigger
-        data = self.get_import_json("rating_10")
-        with ESMockWithScroll():
-            self.org.import_app(data, self.admin, site="http://rapidpro.io")
-
-        flow_trigger.refresh_from_db()
-
-        self.assertEqual(1, Trigger.objects.filter(keyword="rating", is_archived=False).count())
-        self.assertEqual(1, Trigger.objects.filter(flow=flow).count())
-        self.assertFalse(Trigger.objects.filter(pk=trigger1.pk, is_archived=False).first())
-        self.assertFalse(Trigger.objects.filter(pk=trigger2.pk, is_archived=False).first())
-
-        restored_trigger = (
-            Trigger.objects.filter(flow=flow, keyword="rating", is_archived=False).order_by("-created_on").first()
-        )
-        self.assertEqual(restored_trigger.pk, flow_trigger.pk)
+        # trigger 2 is released
+        trigger2.refresh_from_db()
+        self.assertTrue(trigger2.is_archived)
+        self.assertFalse(trigger2.is_active)
 
     def test_export_import(self):
         def assert_object_counts():
