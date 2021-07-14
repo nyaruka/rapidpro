@@ -106,13 +106,12 @@
                       
                       %td.w-10
                         -if org_perms.contacts.contactfield_delete
-                          .pl-2.pt-1.delete-link.linked.text-gray-400{style:"visibility:hidden", onclick:"showDeleteContactFieldModal({{obj.id}})"}
+                          .pl-2.pt-1.delete-link.linked.text-gray-400(style="visibility:hidden" onclick='showDeleteContactFieldModal("{{obj.uuid}}")')
                             %span.icon-close
 
-                            
-                  - empty
+                  -empty
                     %tr.empty_list
-                      %td{ colspan:'99' }
+                      %td(colspan='99')
                         -trans "No fields"
 
             - block extra-rows
@@ -181,9 +180,9 @@
     modax.open = true;
   }
 
-  function showDeleteContactFieldModal(id) {
+  function showDeleteContactFieldModal(uuid) {
     var modax = document.querySelector('#delete-field');
-    modax.endpoint = `/contactfield/delete/${id}/`;
+    modax.endpoint = `/contactfield/delete/${uuid}/`;
     modax.open = true;
   }
 
