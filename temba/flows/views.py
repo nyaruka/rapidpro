@@ -480,7 +480,7 @@ class FlowCRUDL(SmartCRUDL):
                 return HttpResponseRedirect(smart_url(self.cancel_url, flow))
 
             # do the actual deletion
-            flow.release()
+            flow.release(self.request.user)
 
             # we can't just redirect so as to make our modal do the right thing
             return self.render_modal_response()
@@ -1782,6 +1782,7 @@ class FlowCRUDL(SmartCRUDL):
                     }
 
                 payload["trigger"]["environment"] = flow.org.as_environment_def()
+                payload["trigger"]["user"] = self.request.user.as_engine_ref()
 
                 try:
                     return JsonResponse(client.sim_start(payload))
@@ -1981,6 +1982,7 @@ class FlowCRUDL(SmartCRUDL):
         def save(self, *args, **kwargs):
             form = self.form
             flow = self.object
+            include_active = form.cleaned_data["include_active"] or flow.flow_type == Flow.TYPE_BACKGROUND
 
             recipients_mode = form.cleaned_data["recipients_mode"]
 
@@ -2009,7 +2011,7 @@ class FlowCRUDL(SmartCRUDL):
                 contacts,
                 contact_query,
                 restart_participants=form.cleaned_data["restart_participants"],
-                include_active=form.cleaned_data["include_active"],
+                include_active=include_active,
             )
             return flow
 
@@ -2052,12 +2054,13 @@ class PreprocessTest(FormView):  # pragma: no cover
 
 
 class FlowLabelForm(forms.ModelForm):
-    name = forms.CharField(required=True, widget=InputWidget())
+    name = forms.CharField(required=True, widget=InputWidget(), label=_("Name"))
     parent = forms.ModelChoiceField(
         FlowLabel.objects.all(),
         required=False,
         label=_("Parent"),
-        widget=SelectWidget(attrs={"widget_only": True, "placeholder": _("Optional: Select parent label")}),
+        widget=SelectWidget(attrs={"placeholder": _("Select label")}),
+        help_text=_("Optional parent label which can be used to group related labels."),
     )
     flows = forms.CharField(required=False, widget=forms.HiddenInput)
 

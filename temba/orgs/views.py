@@ -1,6 +1,8 @@
 import itertools
 import logging
+import random
 import smtplib
+import string
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -13,7 +15,7 @@ import pyotp
 import pytz
 import requests
 from packaging.version import Version
-from smartmin.users.models import FailedLogin
+from smartmin.users.models import FailedLogin, RecoveryToken
 from smartmin.users.views import Login
 from smartmin.views import (
     SmartCreateView,
@@ -61,7 +63,7 @@ from temba.contacts.models import ContactGroupCount
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin
 from temba.utils import analytics, get_anonymous_user, json, languages, str_to_bool
-from temba.utils.email import is_valid_address
+from temba.utils.email import is_valid_address, send_template_email
 from temba.utils.fields import (
     ArbitraryJsonChoiceField,
     CheckboxWidget,
@@ -663,7 +665,7 @@ class InferOrgMixin:
 
 class UserCRUDL(SmartCRUDL):
     model = User
-    actions = ("list", "edit", "delete", "two_factor_enable", "two_factor_disable", "two_factor_tokens")
+    actions = ("list", "edit", "delete", "forget", "two_factor_enable", "two_factor_disable", "two_factor_tokens")
 
     class List(SmartListView):
         fields = ("username", "orgs", "date_joined")
@@ -709,6 +711,45 @@ class UserCRUDL(SmartCRUDL):
 
             messages.success(self.request, _(f"Deleted user {username}"))
             return HttpResponseRedirect(reverse("orgs.user_list", args=()))
+
+    class Forget(SmartFormView):
+        class ForgetForm(forms.Form):
+            email = forms.EmailField(required=True, label=_("Your Email"), widget=InputWidget())
+
+            def clean_email(self):
+                email = self.cleaned_data["email"].lower().strip()
+                return email
+
+        title = _("Password Recovery")
+        form_class = ForgetForm
+        permission = None
+        success_message = _("An Email has been sent to your account with further instructions.")
+        success_url = "@users.user_login"
+        fields = ("email",)
+
+        def form_valid(self, form):
+
+            email = form.cleaned_data["email"]
+            user = User.objects.filter(email__iexact=email).first()
+
+            if user:
+                subject = _("Password Recovery Request")
+                template = "orgs/email/user_forget"
+
+                token = "".join(random.choice(string.ascii_uppercase + string.digits) for x in range(32))
+                RecoveryToken.objects.create(token=token, user=user)
+                FailedLogin.objects.filter(username__iexact=user.username).delete()
+
+                context = dict(user=user, path=f'{reverse("users.user_recover", args=[token])}')
+                send_template_email(email, subject, template, context, self.request.branding)
+
+            else:
+                # No user, check if we have an invite for the email and resend that
+                existing_invite = Invitation.objects.filter(is_active=True, email__iexact=email).first()
+                if existing_invite:
+                    existing_invite.send()
+
+            return super().form_valid(form)
 
     class Edit(SmartUpdateView):
         class EditForm(forms.ModelForm):
@@ -1536,7 +1577,7 @@ class OrgCRUDL(SmartCRUDL):
             owner = obj.get_owner()
 
             return mark_safe(
-                f"<div class='owner-name'>{escape(owner.first_name)} {escape(owner.last_name)}</div><div class='owner-email'>{owner}</div>"
+                f"<div class='owner-name'>{escape(owner.first_name)} {escape(owner.last_name)}</div><div class='owner-email'>{escape(owner.username)}</div>"
             )
 
         def get_service(self, obj):
@@ -1812,7 +1853,7 @@ class OrgCRUDL(SmartCRUDL):
                 self.add_per_invite_fields(org)
 
             def add_per_user_fields(self, org: Org, role_choices: list):
-                for user in org.get_users():
+                for user in org.get_users().order_by("email"):
                     role_field = forms.ChoiceField(
                         choices=role_choices,
                         required=True,
@@ -2158,16 +2199,31 @@ class OrgCRUDL(SmartCRUDL):
                 return self.render_modal_response()
 
     class Choose(SmartFormView):
-        class ChooseForm(forms.Form):
-            organization = forms.ModelChoiceField(queryset=Org.objects.all(), empty_label=None)
+        class Form(forms.Form):
+            organization = forms.ModelChoiceField(queryset=Org.objects.none(), empty_label=None)
 
-        form_class = ChooseForm
-        success_url = "@msgs.msg_inbox"
+            def __init__(self, orgs, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+                self.fields["organization"].queryset = orgs
+
+        form_class = Form
         fields = ("organization",)
         title = _("Select your Workspace")
+        success_urls = {
+            OrgRole.ADMINISTRATOR: "msgs.msg_inbox",
+            OrgRole.EDITOR: "msgs.msg_inbox",
+            OrgRole.VIEWER: "msgs.msg_inbox",
+            OrgRole.AGENT: "tickets.ticket_list",
+            OrgRole.SURVEYOR: "orgs.org_surveyor",
+        }
 
         def get_user_orgs(self):
             return self.request.user.get_user_orgs(self.request.branding.get("keys"))
+
+        def get_success_url(self):
+            role = self.request.org.get_user_role(self.request.user)
+            return reverse(self.success_urls[role])
 
         def pre_process(self, request, *args, **kwargs):
             user = self.request.user
@@ -2178,13 +2234,12 @@ class OrgCRUDL(SmartCRUDL):
 
                 elif user_orgs.count() == 1:
                     org = user_orgs[0]
-                    self.request.session["org_id"] = org.pk
-                    if org.get_user_role(user) == OrgRole.SURVEYOR:
-                        return HttpResponseRedirect(reverse("orgs.org_surveyor"))
+                    self.request.session["org_id"] = org.id
+                    self.request.org = org
 
-                    return HttpResponseRedirect(self.get_success_url())  # pragma: needs cover
+                    return HttpResponseRedirect(self.get_success_url())
 
-                elif user_orgs.count() == 0:  # pragma: needs cover
+                elif user_orgs.count() == 0:
                     if user.is_support():
                         return HttpResponseRedirect(reverse("orgs.org_manage"))
 
@@ -2192,32 +2247,26 @@ class OrgCRUDL(SmartCRUDL):
                     messages.info(request, _("No organizations for this account, please contact your administrator."))
                     logout(request)
                     return HttpResponseRedirect(reverse("users.user_login"))
-            return None  # pragma: needs cover
+            return None
 
-        def get_context_data(self, **kwargs):  # pragma: needs cover
+        def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             context["orgs"] = self.get_user_orgs()
             return context
 
+        def get_form_kwargs(self):
+            kwargs = super().get_form_kwargs()
+            kwargs["orgs"] = self.get_user_orgs()
+            return kwargs
+
         def has_permission(self, request, *args, **kwargs):
             return self.request.user.is_authenticated
 
-        def customize_form_field(self, name, field):  # pragma: needs cover
-            if name == "organization":
-                field.widget.choices.queryset = self.get_user_orgs()
-            return field
-
-        def form_valid(self, form):  # pragma: needs cover
+        def form_valid(self, form):
             org = form.cleaned_data["organization"]
 
-            if org in self.get_user_orgs():
-                self.request.session["org_id"] = org.pk
-            else:
-                return HttpResponseRedirect(reverse("orgs.org_choose"))
-
-            if org.get_user_role(self.request.user) == OrgRole.SURVEYOR:
-                return HttpResponseRedirect(reverse("orgs.org_surveyor"))
-
+            self.request.session["org_id"] = org.id
+            self.request.org = org
             return HttpResponseRedirect(self.get_success_url())
 
     class CreateLogin(SmartUpdateView):
@@ -2834,16 +2883,6 @@ class OrgCRUDL(SmartCRUDL):
                     action="link",
                 )
 
-        def add_ticketer_section(self, formax, ticketer):
-
-            if self.has_org_perm("tickets.ticket_filter"):
-                formax.add_section(
-                    "tickets",
-                    reverse("tickets.ticket_filter", args=[ticketer.uuid]),
-                    icon=ticketer.get_type().icon,
-                    action="link",
-                )
-
         def derive_formax_sections(self, formax, context):
 
             # add the channel option if we have one
@@ -2878,7 +2917,7 @@ class OrgCRUDL(SmartCRUDL):
                 for classifier in classifiers:
                     self.add_classifier_section(formax, classifier)
 
-            if self.has_org_perm("tickets.ticket_filter"):
+            if self.has_org_perm("tickets.ticketer_read"):
                 from temba.tickets.types.internal import InternalType
 
                 ext_ticketers = (
@@ -2887,7 +2926,11 @@ class OrgCRUDL(SmartCRUDL):
                     .order_by("created_on")
                 )
                 for ticketer in ext_ticketers:
-                    self.add_ticketer_section(formax, ticketer)
+                    formax.add_section(
+                        "tickets",
+                        reverse("tickets.ticketer_read", args=[ticketer.uuid]),
+                        icon=ticketer.get_type().icon,
+                    )
 
             if self.has_org_perm("orgs.org_profile"):
                 formax.add_section("user", reverse("orgs.user_edit"), icon="icon-user", action="redirect")

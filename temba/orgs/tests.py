@@ -2,7 +2,7 @@ import io
 import smtplib
 from datetime import timedelta
 from decimal import Decimal
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 import pytz
@@ -10,13 +10,12 @@ import stripe
 import stripe.error
 from bs4 import BeautifulSoup
 from dateutil.relativedelta import relativedelta
-from smartmin.users.models import FailedLogin
+from smartmin.users.models import FailedLogin, RecoveryToken
 
 from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.core import mail
 from django.core.exceptions import ValidationError
-from django.http import HttpRequest, HttpResponse
 from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -43,7 +42,6 @@ from temba.contacts.search.omnibox import omnibox_serialize
 from temba.flows.models import ExportFlowResultsTask, Flow, FlowLabel, FlowRun, FlowStart
 from temba.globals.models import Global
 from temba.locations.models import AdminBoundary
-from temba.middleware import BrandingMiddleware
 from temba.msgs.models import Broadcast, ExportMessagesTask, Label, Msg
 from temba.orgs.models import BackupToken, Debit, OrgActivity
 from temba.orgs.tasks import suspend_topup_orgs_task
@@ -65,7 +63,6 @@ from temba.tickets.models import Ticketer
 from temba.tickets.types.mailgun import MailgunType
 from temba.triggers.models import Trigger
 from temba.utils import dict_to_struct, json, languages
-from temba.utils.email import link_components
 
 from .context_processors import GroupPermWrapper
 from .models import CreditAlert, Invitation, Org, OrgRole, TopUp, TopUpCredits
@@ -76,6 +73,10 @@ class OrgRoleTest(TembaTest):
     def test_from_code(self):
         self.assertEqual(OrgRole.EDITOR, OrgRole.from_code("E"))
         self.assertIsNone(OrgRole.from_code("X"))
+
+    def test_from_group(self):
+        self.assertEqual(OrgRole.EDITOR, OrgRole.from_group(Group.objects.get(name="Editors")))
+        self.assertIsNone(OrgRole.from_group(Group.objects.get(name="Beta")))
 
     def test_group(self):
         self.assertEqual(Group.objects.get(name="Editors"), OrgRole.EDITOR.group)
@@ -118,6 +119,22 @@ class OrgContextProcessorTest(TembaTest):
 
 
 class UserTest(TembaTest):
+    def test_model(self):
+        user = User.objects.create(
+            username="jim@rapidpro.io", email="jim@rapidpro.io", password="super", first_name="Jim", last_name="McFlow"
+        )
+
+        self.assertFalse(user.is_beta())
+        self.assertFalse(user.is_support())
+        self.assertEqual("Jim McFlow", user.name)
+        self.assertEqual({"email": "jim@rapidpro.io", "name": "Jim McFlow"}, user.as_engine_ref())
+
+        user.last_name = ""
+        user.save(update_fields=("last_name",))
+
+        self.assertEqual("Jim", user.name)
+        self.assertEqual({"email": "jim@rapidpro.io", "name": "Jim"}, user.as_engine_ref())
+
     def test_login(self):
         login_url = reverse("users.user_login")
         verify_url = reverse("users.two_factor_verify")
@@ -805,7 +822,7 @@ class OrgDeleteTest(TembaNonAtomicTest):
         # add a ticketer and ticket
         ticketer = Ticketer.create(self.org, self.admin, MailgunType.slug, "Email (bob)", {})
         ticket = self.create_ticket(ticketer, self.org.contacts.first(), "Need help")
-        ticket.add_note(self.admin, note="This is interesting!")
+        ticket.events.create(org=self.org, contact=ticket.contact, event_type="N", note="spam", created_by=self.admin)
 
     def release_org(self, org, child_org=None, delete=False, expected_files=3):
 
@@ -954,8 +971,16 @@ class OrgDeleteTest(TembaNonAtomicTest):
 
 class OrgTest(TembaTest):
     def test_get_users(self):
-        # should return all org users ordered by email
-        self.assertEqual([self.admin, self.agent, self.editor, self.surveyor, self.user], list(self.org.get_users()))
+        # should return all org users
+        self.assertEqual({self.admin, self.editor, self.user, self.agent, self.surveyor}, set(self.org.get_users()))
+
+        # can filter by roles
+        self.assertEqual({self.agent, self.editor}, set(self.org.get_users(roles=[OrgRole.EDITOR, OrgRole.AGENT])))
+
+        # can get users with a specific permission
+        self.assertEqual(
+            {self.admin, self.agent, self.editor}, set(self.org.get_users_with_perm("tickets.ticket_assignee"))
+        )
 
     def test_get_owner(self):
         # admins take priority
@@ -1049,6 +1074,62 @@ class OrgTest(TembaTest):
         self.org.channels.all().delete()
 
         self.assertIsNone(self.org.default_country)
+
+    @patch("temba.utils.email.send_temba_email")
+    def test_user_forget(self, mock_send_temba_email):
+
+        invitation = Invitation.objects.create(
+            org=self.org,
+            user_group="A",
+            email="invited@nyaruka.com",
+            created_by=self.admin,
+            modified_by=self.admin,
+        )
+
+        user = User.objects.create_user("existing@nyaruka.com", "existing@nyaruka.com")
+        user.set_password("existing@nyaruka.com")
+        user.save()
+
+        forget_url = reverse("orgs.user_forget")
+        smartmin_forget_url = reverse("users.user_forget")
+
+        # make sure smartmin forget view is redirecting to our forget view
+        response = self.client.get(smartmin_forget_url)
+        self.assertEqual(301, response.status_code)
+        self.assertEqual(response.url, forget_url)
+
+        response = self.client.get(forget_url)
+        self.assertEqual(200, response.status_code)
+
+        post_data = dict(email="invited@nyaruka.com")
+
+        response = self.client.post(forget_url, post_data, follow=True)
+        self.assertEqual(200, response.status_code)
+
+        email_args = mock_send_temba_email.call_args[0]  # all positional args
+
+        self.assertEqual(email_args[0], "RapidPro Invitation")
+        self.assertIn(f"https://app.rapidpro.io/org/join/{invitation.secret}/", email_args[1])
+        self.assertNotIn("{{", email_args[1])
+        self.assertIn(f"https://app.rapidpro.io/org/join/{invitation.secret}/", email_args[2])
+        self.assertNotIn("{{", email_args[2])
+        self.assertEqual(email_args[4], ["invited@nyaruka.com"])
+
+        mock_send_temba_email.reset_mock()
+        post_data = dict(email="existing@nyaruka.com")
+
+        response = self.client.post(forget_url, post_data, follow=True)
+        self.assertEqual(200, response.status_code)
+
+        token_obj = RecoveryToken.objects.filter(user=user).first()
+
+        email_args = mock_send_temba_email.call_args[0]  # all positional args
+        self.assertEqual(email_args[0], "Password Recovery Request")
+        self.assertIn(f"app.rapidpro.io/users/user/recover/{token_obj.token}/", email_args[1])
+        self.assertNotIn("{{", email_args[1])
+        self.assertIn(f"app.rapidpro.io/users/user/recover/{token_obj.token}/", email_args[2])
+        self.assertNotIn("{{", email_args[2])
+        self.assertEqual(email_args[4], ["existing@nyaruka.com"])
 
     def test_user_update(self):
         update_url = reverse("orgs.user_edit")
@@ -1884,53 +1965,6 @@ class OrgTest(TembaTest):
         self.assertIsNone(self.org.administrators.filter(username="beastmode@seahawks.com").first())
         self.assertIsNone(self.org.editors.filter(username="beastmode@seahawks.com").first())
         self.assertIsNone(self.org.viewers.filter(username="beastmode@seahawks.com").first())
-
-    def test_choose(self):
-        self.client.logout()
-
-        choose_url = reverse("orgs.org_choose")
-
-        self.login(self.admin)
-
-        response = self.client.get(reverse("orgs.org_home"))
-        self.assertEqual(response.context["org"], self.org)
-
-        # add self.manager to self.org2 viewers
-        self.org2.viewers.add(self.admin)
-
-        response = self.client.get(choose_url)
-        self.assertEqual(200, response.status_code)
-
-        self.assertIn("organization", response.context["form"].fields)
-
-        post_data = dict()
-        post_data["organization"] = self.org2.pk
-
-        response = self.client.post(choose_url, post_data, follow=True)
-        self.assertEqual(200, response.status_code)
-        response = self.client.get(reverse("orgs.org_home"))
-        self.assertEqual(response.context_data["org"], self.org2)
-        self.assertContains(response, "Nyaruka")
-        self.assertContains(response, "Trileet Inc")
-
-        # make org2 inactive
-        self.org2.is_active = False
-        self.org2.save(update_fields=["is_active"])
-
-        # go back to our choose url, should only show Nyaruka
-        response = self.client.get(choose_url, follow=True)
-        self.assertNotContains(response, "Trileet Inc")
-        self.assertContains(response, "Nyaruka")
-
-        # a non org user get's logged out
-        self.login(self.non_org_user)
-        response = self.client.get(choose_url)
-        self.assertRedirect(response, reverse("users.user_login"))
-
-        # superuser gets redirected to user management page
-        self.login(self.superuser)
-        response = self.client.get(choose_url, follow=True)
-        self.assertEqual(reverse("orgs.org_manage"), response.request["PATH_INFO"])
 
     def test_topup_admin(self):
         self.login(self.admin)
@@ -3723,6 +3757,66 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         user = User.objects.get(username="myal@wr.org")
         self.assertTrue(user.check_password("Password123"))
 
+    def test_choose(self):
+        choose_url = reverse("orgs.org_choose")
+
+        # create an inactive org which should never appear as an option
+        org3 = Org.objects.create(
+            name="Deactivated",
+            timezone=pytz.UTC,
+            brand=settings.DEFAULT_BRAND,
+            created_by=self.user,
+            modified_by=self.user,
+            is_active=False,
+        )
+        org3.editors.add(self.editor)
+
+        # and another org that none of our users belong to
+        org4 = Org.objects.create(
+            name="Other", timezone=pytz.UTC, brand=settings.DEFAULT_BRAND, created_by=self.user, modified_by=self.user
+        )
+
+        self.assertLoginRedirect(self.client.get(choose_url))
+
+        # users with a single org are always redirected right away to a page in that org that they have access to
+        self.assertRedirect(self.requestView(choose_url, self.admin), "/msg/inbox/")
+        self.assertRedirect(self.requestView(choose_url, self.editor), "/msg/inbox/")
+        self.assertRedirect(self.requestView(choose_url, self.user), "/msg/inbox/")
+        self.assertRedirect(self.requestView(choose_url, self.agent), "/ticket/")
+        self.assertRedirect(self.requestView(choose_url, self.surveyor), "/org/surveyor/")
+
+        # users with no org are redirected back to the login page
+        response = self.requestView(choose_url, self.non_org_user)
+        self.assertLoginRedirect(response)
+        response = self.client.get("/users/login/")
+        self.assertContains(response, "No organizations for this account, please contact your administrator.")
+
+        # unless they are Customer Support
+        Group.objects.get(name="Customer Support").user_set.add(self.non_org_user)
+        self.assertRedirect(self.requestView(choose_url, self.non_org_user), "/org/manage/")
+
+        # superusers are sent to the manage orgs page
+        self.assertRedirect(self.requestView(choose_url, self.superuser), "/org/manage/")
+
+        # turn editor into a multi-org user
+        self.org2.editors.add(self.editor)
+
+        # now we see a page to choose one of the two orgs
+        response = self.requestView(choose_url, self.editor)
+        self.assertEqual(["organization", "loc"], list(response.context["form"].fields.keys()))
+        self.assertEqual({self.org, self.org2}, set(response.context["form"].fields["organization"].queryset))
+        self.assertEqual({self.org, self.org2}, set(response.context["orgs"]))
+
+        # try to submit for an org we don't belong to
+        response = self.client.post(choose_url, {"organization": org4.id})
+        self.assertFormError(
+            response, "form", "organization", "Select a valid choice. That choice is not one of the available choices."
+        )
+
+        # user clicks org 2...
+        response = self.client.post(choose_url, {"organization": self.org2.id})
+        self.assertRedirect(response, "/msg/inbox/")
+
     def test_edit(self):
         edit_url = reverse("orgs.org_edit")
 
@@ -4747,7 +4841,7 @@ class BulkExportTest(TembaTest):
         self.assertContains(response, "Register Patient")
 
         # delete our flow, and reimport
-        confirm_appointment.release()
+        confirm_appointment.release(self.admin)
         self.org.import_app(exported, self.admin, site="https://app.rapidpro.io")
 
         # make sure we have the previously exported expiration
@@ -4972,35 +5066,6 @@ class CreditAlertTest(TembaTest):
                     self.assertEqual(4, len(mail.outbox))
 
                     mock_has_low_credits.return_value = False
-
-
-class EmailContextProcessorsTest(TembaTest):
-    def setUp(self):
-        super().setUp()
-
-        self.middleware = BrandingMiddleware(get_response=HttpResponse)
-
-    def test_link_components(self):
-        self.request = Mock(spec=HttpRequest)
-        self.request.get_host.return_value = "rapidpro.io"
-
-        self.middleware(self.request)
-
-        self.assertEqual(link_components(self.request, self.admin), dict(protocol="https", hostname="app.rapidpro.io"))
-
-        with self.settings(HOSTNAME="rapidpro.io"):
-            forget_url = reverse("users.user_forget")
-
-            response = self.client.post(forget_url, {"email": "Administrator@nyaruka.com"})
-            self.assertLoginRedirect(response)
-            self.assertEqual(1, len(mail.outbox))
-
-            sent_email = mail.outbox[0]
-            self.assertEqual(len(sent_email.to), 1)
-            self.assertEqual(sent_email.to[0], "Administrator@nyaruka.com")
-
-            # we have the domain of rapipro.io brand
-            self.assertIn("app.rapidpro.io", sent_email.body)
 
 
 class StripeCreditsTest(TembaTest):

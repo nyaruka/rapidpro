@@ -5,7 +5,6 @@ from decimal import Decimal
 from itertools import chain
 from pathlib import Path
 from typing import Any, Dict, List, Set, Tuple
-from uuid import uuid4
 
 import iso8601
 import phonenumbers
@@ -36,6 +35,7 @@ from temba.utils.export import BaseExportAssetStore, BaseExportTask, TableExport
 from temba.utils.models import JSONField as TembaJSONField, RequireUpdateFieldsMixin, SquashableModel, TembaModel
 from temba.utils.text import decode_stream, truncate, unsnakify
 from temba.utils.urns import ParsedURN, parse_number, parse_urn
+from temba.utils.uuid import uuid4
 
 from .search import SearchException, elastic, parse_query
 
@@ -419,13 +419,13 @@ class ContactField(SmartModel, DependencyMixin):
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="contactfields")
 
-    label = models.CharField(verbose_name=_("Label"), max_length=MAX_LABEL_LEN)
+    label = models.CharField(max_length=MAX_LABEL_LEN)
 
     key = models.CharField(max_length=MAX_KEY_LEN)
 
     field_type = models.CharField(max_length=1, choices=FIELD_TYPE_CHOICES, default=FIELD_TYPE_USER)
 
-    value_type = models.CharField(choices=TYPE_CHOICES, max_length=1, default=TYPE_TEXT, verbose_name=_("Field Type"))
+    value_type = models.CharField(choices=TYPE_CHOICES, max_length=1, default=TYPE_TEXT)
 
     # how field is displayed in the UI
     show_in_table = models.BooleanField(default=False)
@@ -759,7 +759,7 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
 
         return scheduled_broadcasts.select_related("org").order_by("schedule__next_fire")
 
-    def get_history(self, after: datetime, before: datetime, include_event_types: set, limit: int) -> list:
+    def get_history(self, after: datetime, before: datetime, include_event_types: set, ticket, limit: int) -> list:
         """
         Gets this contact's history of messages, calls, runs etc in the given time window
         """
@@ -767,7 +767,6 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         from temba.ivr.models import IVRCall
         from temba.mailroom.events import get_event_time
         from temba.msgs.models import Msg
-        from temba.tickets.models import TicketEvent
 
         msgs = (
             self.msgs.filter(created_on__gte=after, created_on__lt=before)
@@ -815,10 +814,16 @@ class Contact(RequireUpdateFieldsMixin, TembaModel):
         )
 
         ticket_events = (
-            TicketEvent.objects.filter(created_on__gte=after, created_on__lt=before, contact=self)
+            self.ticket_events.filter(created_on__gte=after, created_on__lt=before)
             .select_related("ticket__ticketer")
-            .order_by("-created_on")[:limit]
+            .order_by("-created_on")
         )
+
+        # can limit to single ticket when viewing a specific ticket rather than the contact read page
+        if ticket:
+            ticket_events = ticket_events.filter(ticket=ticket)
+
+        ticket_events = ticket_events[:limit]
 
         transfers = self.airtime_transfers.filter(created_on__gte=after, created_on__lt=before).order_by(
             "-created_on"
@@ -1481,9 +1486,7 @@ class ContactGroup(TembaModel):
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="all_groups")
 
-    name = models.CharField(
-        verbose_name=_("Name"), max_length=MAX_NAME_LEN, help_text=_("The name of this contact group")
-    )
+    name = models.CharField(max_length=MAX_NAME_LEN)
 
     group_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_USER_DEFINED)
 
@@ -1492,7 +1495,7 @@ class ContactGroup(TembaModel):
     contacts = models.ManyToManyField(Contact, related_name="all_groups")
 
     # fields used by smart groups
-    query = models.TextField(null=True, verbose_name=_("Query"), help_text=_("The membership query for this group"))
+    query = models.TextField(null=True)
     query_fields = models.ManyToManyField(ContactField, related_name="dependent_groups")
 
     # define some custom managers to do the filtering of user / system groups for us

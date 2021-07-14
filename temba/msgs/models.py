@@ -123,8 +123,6 @@ class Broadcast(models.Model):
     # used for repeating scheduled broadcasts
     parent = models.ForeignKey("Broadcast", on_delete=models.PROTECT, null=True, related_name="children")
 
-    is_active = models.BooleanField(default=True)  # TODO not used and could be removed
-
     created_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name="broadcast_creations")
     created_on = models.DateTimeField(default=timezone.now, db_index=True)  # TODO remove index
     modified_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name="broadcast_modifications")
@@ -277,6 +275,12 @@ class Broadcast(models.Model):
 
     def __str__(self):  # pragma: no cover
         return f"Broadcast[id={self.id}, text={self.text}]"
+
+    class Meta:
+        indexes = [
+            # used by the broadcasts API endpoint
+            models.Index(name="msgs_broadcasts_org_created_id", fields=["org", "-created_on", "-id"]),
+        ]
 
 
 class Attachment(object):
@@ -1029,15 +1033,8 @@ class Label(TembaModel, DependencyMixin):
     TYPE_CHOICES = ((TYPE_FOLDER, "Folder of labels"), (TYPE_LABEL, "Regular label"))
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="msgs_labels")
-
-    name = models.CharField(
-        max_length=MAX_NAME_LEN, verbose_name=_("Name"), help_text=_("Choose a name for your label")
-    )
-
-    folder = models.ForeignKey(
-        "Label", on_delete=models.PROTECT, verbose_name=_("Folder"), null=True, related_name="children"
-    )
-
+    name = models.CharField(max_length=MAX_NAME_LEN)
+    folder = models.ForeignKey("Label", on_delete=models.PROTECT, null=True, related_name="children")
     label_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_LABEL)
 
     # define some custom managers to do the filtering of label types for us

@@ -262,7 +262,7 @@ class CampaignTest(TembaTest):
 
         # create an unfired fire and release its event
         EventFire.objects.create(event=second_event, contact=self.farmer1, scheduled=trim_date)
-        second_event.release()
+        second_event.release(self.admin)
 
         # trim our events, one fired and one inactive onfired
         trim_event_fires_task()
@@ -556,7 +556,7 @@ class CampaignTest(TembaTest):
         )
 
         for e in CampaignEvent.objects.filter(flow=self.reminder2_flow.pk):
-            e.release()
+            e.release(self.admin)
 
         # archive the campaign
         post_data = dict(action="archive", objects=campaign.pk)
@@ -917,7 +917,7 @@ class CampaignTest(TembaTest):
             ContactField.get_or_create(self.org, self.admin, "planting_date", value_type=ContactField.TYPE_TEXT)
 
         # release our campaign event
-        event.release()
+        event.release(self.admin)
 
         # should be able to change our field type now
         ContactField.get_or_create(self.org, self.admin, "planting_date", value_type=ContactField.TYPE_TEXT)
@@ -978,7 +978,7 @@ class CampaignTest(TembaTest):
             "Don't forget to brush your teeth",
         )
 
-        flow.archive()
+        flow.archive(self.admin)
         campaign.is_archived = True
         campaign.save()
 
@@ -1226,6 +1226,25 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
             org, user, campaign, registered, offset=1, unit="W", flow=flow, delivery_hour="13"
         )
         return campaign
+
+    def test_create(self):
+        group = self.create_group("Reporters", contacts=[])
+
+        create_url = reverse("campaigns.campaign_create")
+
+        self.assertCreateFetch(create_url, allow_viewers=False, allow_editors=True, form_fields=["name", "group"])
+
+        # try to submit with no data
+        self.assertCreateSubmit(
+            create_url, {}, form_errors={"name": "This field is required.", "group": "This field is required."}
+        )
+
+        # submit with valid data
+        self.assertCreateSubmit(
+            create_url,
+            {"name": "Reminders", "group": group.id},
+            new_obj_query=Campaign.objects.filter(name="Reminders", group=group),
+        )
 
     def test_read(self):
         group = self.create_group("Reporters", contacts=[])

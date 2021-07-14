@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 18:57+0000\n"
+"POT-Creation-Date: 2021-07-13 16:47+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -69,12 +69,6 @@ msgid "File not found"
 msgstr ""
 
 msgid "You do not have permission to access this file"
-msgstr ""
-
-msgid "The name of this campaign"
-msgstr ""
-
-msgid "The group this campaign operates on"
 msgstr ""
 
 msgid "Minutes"
@@ -140,7 +134,16 @@ msgstr[1] ""
 msgid "on"
 msgstr ""
 
-msgid "Select a group to base the campaign on"
+msgid "Select group"
+msgstr ""
+
+msgid "Group"
+msgstr ""
+
+msgid "Only contacts in this group will be included in this campaign's events."
+msgstr ""
+
+msgid "Name"
 msgstr ""
 
 msgid "Export"
@@ -239,9 +242,6 @@ msgid "JSON - application/json"
 msgstr ""
 
 msgid "XML - text/xml; charset=utf-8"
-msgstr ""
-
-msgid "Name"
 msgstr ""
 
 msgid "Descriptive label for this channel"
@@ -2111,12 +2111,6 @@ msgstr ""
 msgid "Ward"
 msgstr ""
 
-msgid "Label"
-msgstr ""
-
-msgid "Field Type"
-msgstr ""
-
 msgid "The name of this contact"
 msgstr ""
 
@@ -2133,15 +2127,6 @@ msgid "Evaluating"
 msgstr ""
 
 msgid "Ready"
-msgstr ""
-
-msgid "The name of this contact group"
-msgstr ""
-
-msgid "Query"
-msgstr ""
-
-msgid "The membership query for this group"
 msgstr ""
 
 msgid "The unique group to export"
@@ -2245,6 +2230,12 @@ msgid "You cannot create a smart group based on \"id\" or \"group\"."
 msgstr ""
 
 msgid "You cannot update the query of a group that is evaluating."
+msgstr ""
+
+msgid "Query"
+msgstr ""
+
+msgid "Only contacts matching this query will belong to this group."
 msgstr ""
 
 msgid "Active"
@@ -2372,23 +2363,26 @@ msgstr ""
 msgid "Can only contain letters, numbers and hypens."
 msgstr ""
 
+msgid "Can't be a reserved word."
+msgstr ""
+
 msgid "Must be unique."
 msgstr ""
 
-msgid "Can't be a reserved word"
+msgid "Data Type"
 msgstr ""
 
-#, python-format
-msgid "Cannot create a new field as limit is %(limit)s."
+msgid "Featured"
 msgstr ""
 
-msgid "Field Name"
+msgid "The type of the values that will be stored in this field."
 msgstr ""
 
 msgid "Manage Contact Fields"
 msgstr ""
 
-msgid "Featured"
+#, python-format
+msgid "Cannot create a new field as limit is %(limit)s."
 msgstr ""
 
 msgid "Update"
@@ -2484,12 +2478,6 @@ msgid "Complete"
 msgstr ""
 
 msgid "Failed"
-msgstr ""
-
-msgid "The name of this flow label"
-msgstr ""
-
-msgid "Parent"
 msgstr ""
 
 msgid "After 5 minutes"
@@ -2796,7 +2784,13 @@ msgstr ""
 msgid "Your message template {template.name} is not approved and cannot be sent."
 msgstr ""
 
-msgid "Optional: Select parent label"
+msgid "Parent"
+msgstr ""
+
+msgid "Select label"
+msgstr ""
+
+msgid "Optional parent label which can be used to group related labels."
 msgstr ""
 
 msgid "Name already used"
@@ -2873,12 +2867,6 @@ msgid "Whether this count is for archived messages"
 msgstr ""
 
 msgid "Number of items with this system label"
-msgstr ""
-
-msgid "Choose a name for your label"
-msgstr ""
-
-msgid "Folder"
 msgstr ""
 
 msgid "The date for the oldest message to export"
@@ -3005,10 +2993,13 @@ msgstr ""
 msgid "This org has %(count)d labels and the limit is %(limit)d. You must delete existing ones before you can create new ones."
 msgstr ""
 
-msgid "Optional: Parent Folder"
+msgid "Folder"
 msgstr ""
 
-msgid "Choose a name for your folder"
+msgid "Select folder"
+msgstr ""
+
+msgid "Optional folder which can be used to group related labels."
 msgstr ""
 
 msgid "Update Folder"
@@ -3227,15 +3218,6 @@ msgstr ""
 msgid "%(name)s Credits Alert"
 msgstr ""
 
-msgid "is used by the following flows which may not work as expected if you delete it"
-msgstr ""
-
-msgid "is used in the query of the following smart groups which must be updated or deleted first"
-msgstr ""
-
-msgid "is used by the following campaign events which must be updated or deleted first"
-msgstr ""
-
 msgid "First name"
 msgstr ""
 
@@ -3301,6 +3283,18 @@ msgstr ""
 
 #, python-brace-format
 msgid "Deleted user {username}"
+msgstr ""
+
+msgid "Your Email"
+msgstr ""
+
+msgid "Password Recovery"
+msgstr ""
+
+msgid "An Email has been sent to your account with further instructions."
+msgstr ""
+
+msgid "Password Recovery Request"
 msgstr ""
 
 msgid "First Name"
@@ -3809,7 +3803,13 @@ msgstr ""
 msgid "Closed"
 msgstr ""
 
-msgid "Enabling this will allow you to handle tickets within this application."
+msgid "My Tickets"
+msgstr ""
+
+msgid "Unassigned"
+msgstr ""
+
+msgid "Enabling this will allow you to handle tickets within {{brand.name}}."
 msgstr ""
 
 #, python-format
@@ -3895,22 +3895,7 @@ msgstr ""
 msgid "Connect %(ticketer)s"
 msgstr ""
 
-msgid "Open Tickets"
-msgstr ""
-
-msgid "Closed Tickets"
-msgstr ""
-
-msgid "Delete Ticket Service"
-msgstr ""
-
-msgid "HTTP Log"
-msgstr ""
-
 msgid "Notes can only be seen by the support team"
-msgstr ""
-
-msgid "Add Note"
 msgstr ""
 
 msgid "Your ticketing service has been deleted."
@@ -3970,6 +3955,33 @@ msgstr ""
 msgid "The associated channel."
 msgstr ""
 
+msgid "Contacts To Include"
+msgstr ""
+
+msgid "Additional specific contacts that will be started in the flow."
+msgstr ""
+
+msgid "Optional: Select contacts"
+msgstr ""
+
+msgid "Must provide at least one group or contact to include."
+msgstr ""
+
+msgid "The groups that will be started in the flow."
+msgstr ""
+
+msgid "Any contacts in these groups will not be started in the flow."
+msgstr ""
+
+msgid "The channel to apply this trigger to, leave blank for all Facebook channels"
+msgstr ""
+
+msgid "Referrer Id"
+msgstr ""
+
+msgid "The referrer id that will trigger us"
+msgstr ""
+
 msgid "Select a flow"
 msgstr ""
 
@@ -3997,7 +4009,10 @@ msgstr ""
 msgid "There already exists a trigger of this type with these options."
 msgstr ""
 
-msgid "The first word of the message text"
+msgid "Join Keyword"
+msgstr ""
+
+msgid "The first word of the message"
 msgstr ""
 
 msgid "Group to Join"
@@ -4014,37 +4029,7 @@ msgstr[1] ""
 msgid "The message to send in response after they join the group (optional)"
 msgstr ""
 
-msgid "Contacts To Include"
-msgstr ""
-
-msgid "Additional specific contacts to include."
-msgstr ""
-
-msgid "Optional: Select contacts"
-msgstr ""
-
-msgid "Must provide at least one group or contact to include."
-msgstr ""
-
-msgid "The channel to apply this trigger to, leave blank for all Facebook channels"
-msgstr ""
-
-msgid "Referrer Id"
-msgstr ""
-
-msgid "The referrer id that will trigger us"
-msgstr ""
-
 msgid "Create Trigger"
-msgstr ""
-
-msgid "Join Keyword"
-msgstr ""
-
-msgid "The first word of the message"
-msgstr ""
-
-msgid "Create Referral Trigger"
 msgstr ""
 
 msgid "Triggers"
@@ -5314,11 +5299,23 @@ msgid "Run result <b>%(name)s</b> updated to <b>%(value)s</b> with category <b>%
 msgstr ""
 
 #, python-format
-msgid "Opened ticket on <a href=\"%(ticketer_url)s\">%(ticketer)s</a> with subject <b>%(subject)s</b>"
+msgid "<b>%(assigner)s</b> took <b>%(subject)s</b>"
 msgstr ""
 
 #, python-format
-msgid "Closed ticket on <a href=\"%(ticketer_url)s\">%(ticketer)s</a> with subject <b>%(subject)s</b>"
+msgid "<b>%(assigner)s</b> assigned <b>%(subject)s</b> to <b>%(assignee)s</b>"
+msgstr ""
+
+#, python-format
+msgid "Opened ticket <b>%(subject)s</b>"
+msgstr ""
+
+#, python-format
+msgid "Reopened ticket <b>%(subject)s</b>"
+msgstr ""
+
+#, python-format
+msgid "Closed ticket <b>%(subject)s</b>"
 msgstr ""
 
 msgid "Successfully called"
@@ -5383,6 +5380,9 @@ msgstr ""
 msgid "Contact Id"
 msgstr ""
 
+msgid "Open Tickets"
+msgstr ""
+
 msgid "Upcoming"
 msgstr ""
 
@@ -5399,6 +5399,20 @@ msgid "Full"
 msgstr ""
 
 msgid "These contacts have opted out and you can no longer send them messages, they have been removed from all groups."
+msgstr ""
+
+msgid "Add Connection"
+msgstr ""
+
+msgid "Add a new way connect with this contact"
+msgstr ""
+
+#, python-format
+msgid "<b>%(name)s</b> cannot be deleted since it is currently in use."
+msgstr ""
+
+#, python-format
+msgid "Are you sure you want to delete <b>%(name)s</b>? This cannot be undone."
 msgstr ""
 
 msgid "Used in the flow"
@@ -5783,6 +5797,9 @@ msgstr ""
 msgid "Webhook Call Log"
 msgstr ""
 
+msgid "Label"
+msgstr ""
+
 msgid "New Label"
 msgstr ""
 
@@ -5825,10 +5842,6 @@ msgstr ""
 
 #, python-format
 msgid "<b>%(name)s</b> cannot be deleted since it is a parent to other labels."
-msgstr ""
-
-#, python-format
-msgid "Are you sure you want to delete <b>%(name)s</b>? This cannot be undone."
 msgstr ""
 
 msgid "Manual"
@@ -6081,6 +6094,9 @@ msgstr ""
 msgid "Your workspace is suspended and no longer processing messages."
 msgstr ""
 
+msgid "is used by the following flows which may not work as expected if you delete it:"
+msgstr ""
+
 #, python-format
 msgid "and %(count)s more"
 msgstr ""
@@ -6321,6 +6337,52 @@ msgid ""
 msgstr ""
 
 #, python-format
+msgid ""
+"\n"
+"\n"
+"<br/>\n"
+"Hi from %(hostname)s,\n"
+"<br/>\n"
+"<br/>\n"
+"Someone has requested that the password for this email address be reset.\n"
+"<br/>\n"
+"<br/>\n"
+"Clicking on the following link will allow you to reset the password for the account %(account_name)s:\n"
+"<br/>\n"
+"<a href='%(brand_link)s%(path)s'>Reset password</a>.\n"
+"<br/>\n"
+"<br/>\n"
+"If you did not request this, don't worry, this email has only been sent to you and your account remains secure.\n"
+"<br/>\n"
+"Thank you.\n"
+"<br/>\n"
+"<br/>\n"
+"Please do not reply to this email.\n"
+"<br/>\n"
+"<br/>\n"
+msgstr ""
+
+#, python-format
+msgid ""
+"\n"
+"\n"
+"Hi from %(hostname)s,\n"
+"\n"
+"Someone has requested that the password for this email address be reset.\n"
+"\n"
+"Clicking on the following link will allow you to reset the password for the account %(account_name)s:\n"
+"\n"
+"%(brand_link)s%(path)s\n"
+"\n"
+"If you did not request this, don't worry, this email has only been sent to you and your account remains secure.\n"
+"\n"
+"Thank you.\n"
+"\n"
+"Please do not reply to this email.\n"
+"\n"
+msgstr ""
+
+#, python-format
 msgid "Connected to your Chatbase account as agent <b>%(agent)s</b>."
 msgstr ""
 
@@ -6498,9 +6560,6 @@ msgid "Hide Archived"
 msgstr ""
 
 msgid "Select all of the items below that you would like to include in your export. We've grouped them together based on which flows and campaigns work with each other. Any related triggers will automatically be included in the export."
-msgstr ""
-
-msgid "Group"
 msgstr ""
 
 msgid "Select Group"
@@ -6761,6 +6820,17 @@ msgstr ""
 msgid ""
 "\n"
 "    Your email address is <b>%(email)s</b>.\n"
+"\n"
+"  "
+msgstr ""
+
+msgid "Reset Password"
+msgstr ""
+
+msgid ""
+"\n"
+"    Enter the email address you used to sign up. We will\n"
+"    send you an email with details on how to reset your password.\n"
 "\n"
 "  "
 msgstr ""
@@ -7138,17 +7208,6 @@ msgstr ""
 msgid "Reset"
 msgstr ""
 
-msgid "Reset Password"
-msgstr ""
-
-msgid ""
-"\n"
-"    Enter the email address you used to sign up. We will\n"
-"    send you an email with details on how to reset your password.\n"
-"\n"
-"  "
-msgstr ""
-
 msgid "Pick a new password and enter it below. A good password will be at least eight characters long and have a mixture of upper and lower case letters."
 msgstr ""
 
@@ -7185,37 +7244,17 @@ msgid ""
 "            "
 msgstr ""
 
-msgid "Ticketing Service"
+msgid "All done!"
 msgstr ""
 
-msgid "Ticketing Service over"
+msgid "Nice work, there aren't any more tickets here that need your attention."
 msgstr ""
 
-msgid "Services"
+#, python-format
+msgid "%(name)s Tickets makes it easy to chat directly with your contacts."
 msgstr ""
 
-msgid "Close"
-msgstr ""
-
-msgid "Reopen"
-msgstr ""
-
-msgid "No tickets."
-msgstr ""
-
-msgid "Through"
-msgstr ""
-
-msgid "Body"
-msgstr ""
-
-msgid "Opened On"
-msgstr ""
-
-msgid "Close Ticket"
-msgstr ""
-
-msgid "Are you sure you want to close this ticket?"
+msgid "Sometimes an automated chatbot isn't enough. When your contacts need to chat with a real person, you can use the Open Ticket action to open a new ticket."
 msgstr ""
 
 msgid "Connect a Ticketing Service"
@@ -7227,7 +7266,25 @@ msgstr ""
 msgid "Select the ticketing service you want to connect below to get started."
 msgstr ""
 
+#, python-format
+msgid "%(brand)s Tickets"
+msgstr ""
+
 msgid "No ticketing services are available."
+msgstr ""
+
+#, python-format
+msgid "%(type_name)s ticketing service over <b>%(name)s</b>. Contacts who have open tickets with this service will have their messages forwarded to the service, and replies made using the service will be sent back to the contact."
+msgstr ""
+
+msgid "HTTP Log"
+msgstr ""
+
+msgid "Delete Ticket Service"
+msgstr ""
+
+#, python-format
+msgid "%(type_name)s ticketing service over <b>%(name)s</b>."
 msgstr ""
 
 #, python-format
@@ -7247,6 +7304,9 @@ msgid "Open the app details at <i>Administration</i> &gt; <i>Apps</i> &gt; <i>%(
 msgstr ""
 
 msgid "This will connect your account to Zendesk allowing you to open tickets in flows."
+msgstr ""
+
+msgid "Ticketing Service"
 msgstr ""
 
 msgid "To complete connecting your account here to your Zendesk account you need to complete the following steps."

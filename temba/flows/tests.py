@@ -88,7 +88,7 @@ class FlowTest(TembaTest):
     @patch("temba.mailroom.queue_interrupt")
     def test_archive(self, mock_queue_interrupt):
         flow = self.get_flow("color")
-        flow.archive()
+        flow.archive(self.admin)
 
         mock_queue_interrupt.assert_called_once_with(self.org, flow=flow)
 
@@ -102,7 +102,7 @@ class FlowTest(TembaTest):
         flow = self.get_flow("color")
         flow.global_dependencies.add(global1)
 
-        flow.release()
+        flow.release(self.admin)
 
         mock_queue_interrupt.assert_called_once_with(self.org, flow=flow)
 
@@ -1326,8 +1326,7 @@ class FlowTest(TembaTest):
 
     def test_flow_update_of_inactive_flow(self):
         flow = self.get_flow("favorites")
-        # release the flow
-        flow.release()
+        flow.release(self.admin)
 
         post_data = {"name": "Flow that does not exist"}
 
@@ -1339,8 +1338,7 @@ class FlowTest(TembaTest):
 
     def test_flow_results_of_inactive_flow(self):
         flow = self.get_flow("favorites")
-        # release the flow
-        flow.release()
+        flow.release(self.admin)
 
         self.login(self.admin)
         response = self.client.get(reverse("flows.flow_results", args=[flow.uuid]))
@@ -1581,9 +1579,7 @@ class FlowTest(TembaTest):
 
     def test_flow_delete_of_inactive_flow(self):
         flow = self.get_flow("favorites")
-
-        # release the flow
-        flow.release()
+        flow.release(self.admin)
 
         self.login(self.admin)
         response = self.client.post(reverse("flows.flow_delete", args=[flow.pk]))
@@ -1665,11 +1661,12 @@ class FlowTest(TembaTest):
         # runs should not be deleted
         self.assertEqual(flow.runs.count(), 2)
 
-        # our campaign event should no longer be active
-        self.assertFalse(CampaignEvent.objects.filter(id=event1.id, is_active=True).exists())
+        # our campaign event and trigger should no longer be active
+        event1.refresh_from_db()
+        self.assertFalse(event1.is_active)
 
-        # nor should our trigger
-        self.assertFalse(Trigger.objects.filter(id=trigger.id).exists())
+        trigger.refresh_from_db()
+        self.assertFalse(trigger.is_active)
 
     def test_flow_delete_with_dependencies(self):
         self.login(self.admin)
@@ -2513,7 +2510,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_inactive_flow(self):
         flow = self.get_flow("color_v13")
-        flow.release()
+        flow.release(self.admin)
 
         self.login(self.admin)
 
@@ -2528,29 +2525,28 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
     @mock_mailroom
     def test_broadcast(self, mr_mocks):
         contact = self.create_contact("Bob", phone="+593979099111")
-        flow = self.get_flow("color")
+        flow = self.create_flow()
 
-        self.login(self.admin)
+        broadcast_url = reverse("flows.flow_broadcast", args=[flow.id])
 
-        response = self.client.get(reverse("flows.flow_broadcast", args=[flow.id]))
-
-        self.assertEqual(
-            ["omnibox", "restart_participants", "include_active", "recipients_mode", "contact_query", "loc"],
-            list(response.context["form"].fields.keys()),
+        self.assertUpdateFetch(
+            broadcast_url,
+            allow_viewers=False,
+            allow_editors=True,
+            form_fields=["omnibox", "restart_participants", "include_active", "recipients_mode", "contact_query"],
         )
 
         # create flow start with a query
         mr_mocks.parse_query("frank", cleaned='name ~ "frank"', fields=[])
 
-        self.client.post(
-            reverse("flows.flow_broadcast", args=[flow.id]),
+        self.assertUpdateSubmit(
+            broadcast_url,
             {
                 "contact_query": "frank",
                 "recipients_mode": "query",
                 "restart_participants": "on",
                 "include_active": "on",
             },
-            follow=True,
         )
 
         start = FlowStart.objects.get()
@@ -2568,35 +2564,32 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # create flow start with a bogus query
         mr_mocks.error("query contains an error")
 
-        response = self.client.post(
-            reverse("flows.flow_broadcast", args=[flow.id]),
+        self.assertUpdateSubmit(
+            broadcast_url,
             {
                 "contact_query": 'name = "frank',
                 "recipients_mode": "query",
                 "restart_participants": "on",
                 "include_active": "on",
             },
-            follow=True,
+            form_errors={"contact_query": "query contains an error"},
+            object_unchanged=flow,
         )
-
-        self.assertFormError(response, "form", "contact_query", "query contains an error")
 
         # create flow start with an empty query
-        response = self.client.post(
-            reverse("flows.flow_broadcast", args=[flow.id]),
+        self.assertUpdateSubmit(
+            broadcast_url,
             {"contact_query": "", "recipients_mode": "query", "restart_participants": "on", "include_active": "on"},
-            follow=True,
+            form_errors={"contact_query": "Contact query is required"},
+            object_unchanged=flow,
         )
-
-        self.assertFormError(response, "form", "contact_query", "Contact query is required")
 
         # create flow start with restart_participants and include_active both enabled
         selection = json.dumps({"id": contact.uuid, "name": contact.name, "type": "contact"})
 
-        self.client.post(
-            reverse("flows.flow_broadcast", args=[flow.id]),
+        self.assertUpdateSubmit(
+            broadcast_url,
             {"omnibox": selection, "recipients_mode": "select", "restart_participants": "on", "include_active": "on"},
-            follow=True,
         )
 
         start = FlowStart.objects.get()
@@ -2613,11 +2606,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         FlowStart.objects.all().delete()
 
         # create flow start with restart_participants and include_active both enabled
-        self.client.post(
-            reverse("flows.flow_broadcast", args=[flow.id]),
-            {"omnibox": selection, "recipients_mode": "select"},
-            follow=True,
-        )
+        self.assertUpdateSubmit(broadcast_url, {"omnibox": selection, "recipients_mode": "select"})
 
         start = FlowStart.objects.get()
         self.assertEqual({contact}, set(start.contacts.all()))
@@ -2629,20 +2618,51 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(3, len(mr_mocks.queued_batch_tasks))
 
         # trying to start again should fail because there is already a pending start for this flow
-        response = self.client.post(
-            reverse("flows.flow_broadcast", args=[flow.id]),
+        self.assertUpdateSubmit(
+            broadcast_url,
             {"omnibox": selection, "recipients_mode": "select"},
-            follow=True,
+            form_errors={
+                "__all__": "This flow is already being started, please wait until that "
+                "process is complete before starting more contacts."
+            },
+            object_unchanged=flow,
         )
-
-        # should have an error now
-        self.assertTrue(response.context["form"].errors)
 
         # shouldn't have a new flow start as validation failed
         self.assertFalse(FlowStart.objects.filter(flow=flow).exclude(id__lte=start.id))
 
         # nothing queued
         self.assertEqual(3, len(mr_mocks.queued_batch_tasks))
+
+    @mock_mailroom
+    def test_broadcast_background_flow(self, mr_mocks):
+        flow = self.create_flow(flow_type=Flow.TYPE_BACKGROUND)
+
+        broadcast_url = reverse("flows.flow_broadcast", args=[flow.id])
+
+        response = self.assertUpdateFetch(
+            broadcast_url,
+            allow_viewers=False,
+            allow_editors=True,
+            form_fields=["omnibox", "restart_participants", "include_active", "recipients_mode", "contact_query"],
+        )
+
+        # include active is hidden
+        self.assertNotContains(response, "Include Active")
+
+        # create flow start with a query
+        mr_mocks.parse_query("frank", cleaned='name ~ "frank"', fields=[])
+
+        self.assertUpdateSubmit(
+            broadcast_url, {"contact_query": "frank", "recipients_mode": "query", "restart_participants": "on"}
+        )
+
+        start = FlowStart.objects.get()
+        self.assertEqual(flow, start.flow)
+        self.assertEqual(FlowStart.STATUS_PENDING, start.status)
+        self.assertTrue(start.restart_participants)  # should default to true
+        self.assertTrue(start.include_active)
+        self.assertEqual('name ~ "frank"', start.query)
 
     @patch("temba.flows.views.uuid4")
     def test_upload_media_action(self, mock_uuid):
@@ -3035,8 +3055,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_activity_chart_of_inactive_flow(self):
         flow = self.get_flow("favorites")
-        # release the flow
-        flow.release()
+        flow.release(self.admin)
 
         self.login(self.admin)
         response = self.client.get(reverse("flows.flow_activity_chart", args=[flow.id]))
@@ -3045,8 +3064,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_run_table_of_inactive_flow(self):
         flow = self.get_flow("favorites")
-        # release the flow
-        flow.release()
+        flow.release(self.admin)
 
         self.login(self.admin)
         response = self.client.get(reverse("flows.flow_run_table", args=[flow.id]))
@@ -3055,8 +3073,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_category_counts_of_inactive_flow(self):
         flow = self.get_flow("favorites")
-        # release the flow
-        flow.release()
+        flow.release(self.admin)
 
         self.login(self.admin)
         response = self.client.get(reverse("flows.flow_category_counts", args=[flow.uuid]))
@@ -5552,6 +5569,7 @@ class SimulationTest(TembaTest):
                             "default_country": "RW",
                             "redaction_policy": "none",
                         },
+                        "user": {"email": "Administrator@nyaruka.com", "name": ""},
                     },
                     json.loads(mock_post.call_args[1]["data"])["trigger"],
                 )
@@ -5668,6 +5686,7 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertListFetch(
             list_url, allow_viewers=True, allow_editors=True, context_objects=[start3, start2, start1]
         )
+
         self.assertContains(response, "was started by Administrator for")
         self.assertContains(response, "was started by an API call for")
         self.assertContains(response, "was started by Zapier for")
