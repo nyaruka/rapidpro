@@ -89,10 +89,11 @@
         var menu = event.target;
         var statusSelect = document.querySelector('temba-select[name="ticket-status"]');
 
-        /* if (!menu || !statusSelect) {
+        // if our menu main page hasn't fully loaded yet, put this off a moment
+        if (!menu || !statusSelect) {
           window.setTimeout(function(){ handleTicketsMenuChanged(event)}, 500);
           return;
-        }*/
+        }
         
         var path = menu.getSelection();
         var section = path[0];
