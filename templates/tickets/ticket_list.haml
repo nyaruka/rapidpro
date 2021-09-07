@@ -85,10 +85,16 @@
       var initialTicket = '{{uuid}}';
       var focusNext;
 
-      function handleTicketsMenuChanged(selection) {
+      function handleTicketsMenuChanged(event) {
         var menu = event.target;
-        var path = menu.getSelection();
+        var statusSelect = document.querySelector('temba-select[name="ticket-status"]');
 
+        /* if (!menu || !statusSelect) {
+          window.setTimeout(function(){ handleTicketsMenuChanged(event)}, 500);
+          return;
+        }*/
+        
+        var path = menu.getSelection();
         var section = path[0];
         var selection = path[1];
 
@@ -97,11 +103,12 @@
           focusNext = null;
           if (folder !== selection) {
             // whenever our menu changes, reset filter
-            var statusSelect = document.querySelector('temba-select[name="ticket-status"]');
-            statusSelect.setValue("open");
-            status = "open";
-            folder = selection;
-            updateTicketList();
+            if (statusSelect) {
+              statusSelect.setValue("open");
+              status = "open";
+              folder = selection;
+              updateTicketList();
+            }
           }                    
         }     
       }

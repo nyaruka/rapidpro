@@ -365,7 +365,7 @@
   .flex-col
     .flex.widget-container(style="height:100vh;")
       .folders       
-        %temba-menu(style="height:100%" endpoint="{% url 'orgs.org_menu' %}" onchange="handleMenuChanged(event)")
+        %temba-menu(style="height:100%" endpoint="{% url 'orgs.org_menu' %}" onchange="handleMenuChanged(event)" wait="true")
       .flex-grow.text-lg.spa-container.p-5
         .spa-content
   
