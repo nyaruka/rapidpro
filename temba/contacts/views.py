@@ -126,7 +126,7 @@ class ContactGroupForm(forms.ModelForm):
         name = self.cleaned_data["name"].strip()
 
         # make sure the name isn't already taken
-        existing = ContactGroup.get_user_group_by_name(self.org, name)
+        existing = ContactGroup.get_by_name(self.org, name)
         if existing and self.instance != existing:
             raise forms.ValidationError(_("Name is used by another group"))
 
@@ -326,13 +326,13 @@ class ContactListView(SpaMixin, OrgPermsMixin, BulkActionMixin, SmartListView):
             return qs
 
     def get_bulk_action_labels(self):
-        return ContactGroup.get_user_groups(org=self.get_user().get_org(), dynamic=False)
+        return ContactGroup.get_groups(org=self.get_user().get_org(), dynamic=False)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
         org = self.request.user.get_org()
-        counts = ContactGroup.get_system_group_counts(org)
+        counts = ContactGroup.get_status_group_counts(org)
 
         folders = [
             dict(count=counts[ContactGroup.TYPE_ACTIVE], label=_("Active"), url=reverse("contacts.contact_list")),
@@ -348,7 +348,7 @@ class ContactListView(SpaMixin, OrgPermsMixin, BulkActionMixin, SmartListView):
         Contact.bulk_cache_initialize(org, contacts)
 
         context["contacts"] = contacts
-        context["groups"] = self.get_user_groups(org)
+        context["groups"] = self.get_groups(org)
         context["folders"] = folders
         context["has_contacts"] = contacts or org.has_contacts()
         context["search_error"] = self.search_error
@@ -364,8 +364,8 @@ class ContactListView(SpaMixin, OrgPermsMixin, BulkActionMixin, SmartListView):
 
         return context
 
-    def get_user_groups(self, org):
-        groups = ContactGroup.get_user_groups(org, ready_only=False).select_related("org").order_by(Upper("name"))
+    def get_groups(self, org):
+        groups = ContactGroup.get_groups(org, ready_only=False).select_related("org").order_by(Upper("name"))
         group_counts = ContactGroupCount.get_totals(groups)
 
         rendered = []
@@ -505,8 +505,8 @@ class UpdateContactForm(ContactForm):
             required=False, label=_("Language"), initial=self.instance.language, choices=choices, widget=SelectWidget()
         )
 
-        self.fields["groups"].initial = self.instance.user_groups.all()
-        self.fields["groups"].queryset = ContactGroup.get_user_groups(self.user.get_org(), dynamic=False)
+        self.fields["groups"].initial = self.instance.groups.all()
+        self.fields["groups"].queryset = ContactGroup.get_groups(self.user.get_org(), dynamic=False)
         self.fields["groups"].help_text = _("The groups which this contact belongs to")
 
     class Meta:
@@ -568,7 +568,7 @@ class ContactCRUDL(SmartCRUDL):
     class Menu(OrgPermsMixin, SmartTemplateView):
         def render_to_response(self, context, **response_kwargs):
             org = self.request.user.get_org()
-            counts = ContactGroup.get_system_group_counts(org)
+            counts = ContactGroup.get_status_group_counts(org)
             menu = [
                 dict(
                     id="active",
@@ -596,7 +596,7 @@ class ContactCRUDL(SmartCRUDL):
                 ),
             ]
 
-            groups = ContactGroup.get_user_groups(org, ready_only=False).select_related("org").order_by(Upper("name"))
+            groups = ContactGroup.get_groups(org, ready_only=False).select_related("org").order_by(Upper("name"))
             menu += [
                 {
                     "id": "smart",
@@ -762,7 +762,7 @@ class ContactCRUDL(SmartCRUDL):
             contact = self.object
 
             # the users group membership
-            context["contact_groups"] = contact.user_groups.order_by(Lower("name"))
+            context["contact_groups"] = contact.groups.order_by(Lower("name"))
 
             # campaign event fires
             event_fires = contact.campaign_fires.filter(
@@ -1576,7 +1576,7 @@ class ContactGroupCRUDL(SmartCRUDL):
             self.group_counts = {}
             org = self.request.user.get_org()
             qs = super().get_queryset(**kwargs)
-            qs = qs.filter(group_type=ContactGroup.TYPE_USER_DEFINED, org=org, is_active=True)
+            qs = qs.filter(group_type=ContactGroup.TYPE_NON_STATUS, org=org, is_active=True)
             return qs
 
     class Create(ComponentFormMixin, ModalMixin, OrgPermsMixin, SmartCreateView):
@@ -2078,7 +2078,7 @@ class ContactImportCRUDL(SmartCRUDL):
                     self.columns.append(column)
 
                     self.fields["new_group_name"].initial = self.instance.get_default_group_name()
-                    self.fields["existing_group"].queryset = ContactGroup.get_user_groups(org, dynamic=False).order_by(
+                    self.fields["existing_group"].queryset = ContactGroup.get_groups(org, dynamic=False).order_by(
                         "name"
                     )
 
@@ -2141,14 +2141,14 @@ class ContactImportCRUDL(SmartCRUDL):
                             self.add_error("new_group_name", _("Required."))
                         elif not ContactGroup.is_valid_name(new_group_name):
                             self.add_error("new_group_name", _("Invalid group name."))
-                        elif ContactGroup.get_user_group_by_name(self.org, new_group_name):
+                        elif ContactGroup.get_by_name(self.org, new_group_name):
                             self.add_error("new_group_name", _("Already exists."))
                     else:
                         existing_group = self.cleaned_data.get("existing_group")
                         if not existing_group:
                             self.add_error("existing_group", _("Required."))
 
-                    groups_count = ContactGroup.get_user_groups(self.org, ready_only=False).count()
+                    groups_count = ContactGroup.get_groups(self.org, ready_only=False).count()
                     groups_limit = self.org.get_limit(Org.LIMIT_GROUPS)
                     if groups_count >= groups_limit:
                         raise forms.ValidationError(

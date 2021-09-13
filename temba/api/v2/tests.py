@@ -1817,7 +1817,7 @@ class APITest(TembaTest):
         self.assertIsNone(jaqen.language)
         self.assertEqual(Contact.STATUS_ACTIVE, jaqen.status)
         self.assertEqual(set(), set(jaqen.urns.all()))
-        self.assertEqual(set(), set(jaqen.user_groups.all()))
+        self.assertEqual(set(), set(jaqen.groups.all()))
         self.assertIsNone(jaqen.fields)
 
         # create a dynamic group
@@ -1846,7 +1846,7 @@ class APITest(TembaTest):
         gender = ContactField.get_by_key(self.org, "gender")
         jean = Contact.objects.filter(name="Jean", language="fra").order_by("-pk").first()
         self.assertEqual(set(jean.urns.values_list("identity", flat=True)), {"tel:+250783333333", "twitter:jean"})
-        self.assertEqual(set(jean.user_groups.all()), {group})
+        self.assertEqual(set(jean.groups.all()), {group})
         self.assertEqual(jean.get_field_value(nickname), "Jado")
 
         # try to create with group from other org
@@ -1882,7 +1882,7 @@ class APITest(TembaTest):
         self.assertEqual(jean.name, "Jean")
         self.assertEqual(jean.language, "fra")
         self.assertEqual(set(jean.urns.values_list("identity", flat=True)), {"tel:+250783333333", "twitter:jean"})
-        self.assertEqual(set(jean.user_groups.all()), {group})
+        self.assertEqual(set(jean.groups.all()), {group})
         self.assertEqual(jean.get_field_value(nickname), "Jado")
 
         # update by UUID and change all fields
@@ -1903,7 +1903,7 @@ class APITest(TembaTest):
         self.assertEqual(jean.name, "Jason Undead")
         self.assertEqual(jean.language, "ita")
         self.assertEqual(set(jean.urns.values_list("identity", flat=True)), {"tel:+250784444444"})
-        self.assertEqual(set(jean.user_groups.all()), set())
+        self.assertEqual(set(jean.groups.all()), set())
         self.assertEqual(jean.get_field_value(nickname), "Žan")
         self.assertEqual(jean.get_field_value(gender), "frog")
 
@@ -1918,7 +1918,7 @@ class APITest(TembaTest):
         self.assertEqual(jean.name, "Jean II")
         self.assertEqual(jean.language, "eng")
         self.assertEqual(set(jean.urns.values_list("identity", flat=True)), {"tel:+250784444444"})
-        self.assertEqual(set(jean.user_groups.all()), set())
+        self.assertEqual(set(jean.groups.all()), set())
         self.assertEqual(jean.get_field_value(nickname), "Žan")
 
         # update by uuid and remove all fields

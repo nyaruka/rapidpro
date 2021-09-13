@@ -70,7 +70,7 @@ class BaseTriggerForm(forms.ModelForm):
 
         self.fields["flow"].queryset = flows.order_by("name")
 
-        groups = ContactGroup.get_user_groups(self.org, ready_only=False)
+        groups = ContactGroup.get_groups(self.org, ready_only=False)
 
         self.fields["groups"].queryset = groups
         self.fields["exclude_groups"].queryset = groups
@@ -130,7 +130,7 @@ class RegisterTriggerForm(BaseTriggerForm):
                 value = value[7:]
 
                 # we must get groups for this org only
-                group = ContactGroup.get_user_group_by_name(self.user.get_org(), value)
+                group = ContactGroup.get_by_name(self.user.get_org(), value)
                 if not group:
                     group = ContactGroup.create_static(self.user.get_org(), self.user, name=value)
                 return group

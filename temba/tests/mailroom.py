@@ -352,7 +352,7 @@ def apply_modifiers(org, user, contacts, modifiers: List):
         contacts.update(modified_by=user, modified_on=timezone.now(), **fields)
         if clear_groups:
             for c in contacts:
-                for g in c.user_groups.all():
+                for g in c.groups.all():
                     g.contacts.remove(c)
 
 
@@ -419,7 +419,7 @@ def update_field_locally(user, contact, key, value, label=None):
             )
 
     # very simplified version of mailroom's campaign event scheduling
-    events = CampaignEvent.objects.filter(relative_to=field, campaign__group__in=contact.user_groups.all())
+    events = CampaignEvent.objects.filter(relative_to=field, campaign__group__in=contact.groups.all())
     for event in events:
         EventFire.objects.filter(contact=contact, event=event).delete()
         date_value = parse_datetime(org, value)

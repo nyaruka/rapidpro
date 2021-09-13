@@ -990,7 +990,7 @@ class MakeTestDBTest(SmartminTestMixin, TransactionTestCase):
         assertOrgCounts(ContactGroup.user_groups.all(), [10, 10, 10])
         assertOrgCounts(Contact.objects.all(), [10, 11, 9])
 
-        org_1_active_contacts = ContactGroup.system_groups.get(org=org1, name="Active")
+        org_1_active_contacts = ContactGroup.status_groups.get(org=org1, name="Active")
 
         self.assertEqual(org_1_active_contacts.contacts.count(), 9)
         self.assertEqual(

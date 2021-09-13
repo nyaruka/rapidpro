@@ -259,7 +259,7 @@ class Command(BaseCommand):
                 "users": [],
                 "fields": {},
                 "groups": [],
-                "system_groups": {g.group_type: g for g in ContactGroup.system_groups.filter(org=org)},
+                "status_groups": {g.group_type: g for g in ContactGroup.status_groups.filter(org=org)},
             }
 
         self._log(self.style.SUCCESS("OK") + "\n")
@@ -564,7 +564,7 @@ class Command(BaseCommand):
                     # work out which groups this contact belongs to
                     if c["is_active"]:
                         if c["status"] == Contact.STATUS_ACTIVE:
-                            c["groups"].append(org.cache["system_groups"][ContactGroup.TYPE_ACTIVE])
+                            c["groups"].append(org.cache["status_groups"][ContactGroup.TYPE_ACTIVE])
 
                             # let each user group decide if it is taking this contact
                             for g in org.cache["groups"]:
@@ -572,9 +572,9 @@ class Command(BaseCommand):
                                     c["groups"].append(g)
 
                         elif c["status"] == Contact.STATUS_BLOCKED:
-                            c["groups"].append(org.cache["system_groups"][ContactGroup.TYPE_BLOCKED])
+                            c["groups"].append(org.cache["status_groups"][ContactGroup.TYPE_BLOCKED])
                         elif c["status"] == Contact.STATUS_STOPPED:
-                            c["groups"].append(org.cache["system_groups"][ContactGroup.TYPE_STOPPED])
+                            c["groups"].append(org.cache["status_groups"][ContactGroup.TYPE_STOPPED])
 
                     # track changes to group counts
                     for g in c["groups"]:

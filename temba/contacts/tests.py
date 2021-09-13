@@ -129,7 +129,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertIsNone(response.context["search_error"])
         self.assertEqual([], list(response.context["actions"]))
 
-        active_contacts = ContactGroup.system_groups.get(org=self.org, group_type="A")
+        active_contacts = ContactGroup.status_groups.get(org=self.org, group_type="A")
         survey_audience = ContactGroup.user_groups.get(org=self.org, name="Survey Audience")
         unsatisfied = ContactGroup.user_groups.get(org=self.org, name="Unsatisfied Customers")
 
@@ -697,7 +697,7 @@ class ContactGroupTest(TembaTest):
         self.assertEqual(group.status, ContactGroup.STATUS_READY)
 
         # can't call update_query on a static group
-        self.assertRaises(ValueError, group.update_query, "gender=M")
+        self.assertRaises(AssertionError, group.update_query, "gender=M")
 
         # exception if group name is blank
         self.assertRaises(ValueError, ContactGroup.create_static, self.org, self.admin, "   ")
@@ -752,7 +752,7 @@ class ContactGroupTest(TembaTest):
         self.assertEqual(group.get_icon(), "atom")
 
         # can't update query again while it is in this state
-        with self.assertRaises(ValueError):
+        with self.assertRaises(AssertionError):
             group.update_query("age = 18")
 
     def test_get_or_create(self):
@@ -770,7 +770,7 @@ class ContactGroupTest(TembaTest):
         self.assertEqual(group.name, "first")
 
     @mock_mailroom
-    def test_get_user_groups(self, mr_mocks):
+    def test_get_groups(self, mr_mocks):
         self.create_field("gender", "Gender")
         static = ContactGroup.create_static(self.org, self.admin, "Static")
         deleted = ContactGroup.create_static(self.org, self.admin, "Deleted")
@@ -780,9 +780,9 @@ class ContactGroupTest(TembaTest):
         dynamic = ContactGroup.create_dynamic(self.org, self.admin, "Dynamic", "gender=M")
         ContactGroup.user_groups.filter(id=dynamic.id).update(status=ContactGroup.STATUS_READY)
 
-        self.assertEqual(set(ContactGroup.get_user_groups(self.org)), {static, dynamic})
-        self.assertEqual(set(ContactGroup.get_user_groups(self.org, dynamic=False)), {static})
-        self.assertEqual(set(ContactGroup.get_user_groups(self.org, dynamic=True)), {dynamic})
+        self.assertEqual(set(ContactGroup.get_groups(self.org)), {static, dynamic})
+        self.assertEqual(set(ContactGroup.get_groups(self.org, dynamic=False)), {static})
+        self.assertEqual(set(ContactGroup.get_groups(self.org, dynamic=True)), {dynamic})
 
     def test_is_valid_name(self):
         self.assertTrue(ContactGroup.is_valid_name("x"))
@@ -829,7 +829,7 @@ class ContactGroupTest(TembaTest):
         # start with none
         self.releaseContacts(delete=True)
 
-        counts = ContactGroup.get_system_group_counts(self.org)
+        counts = ContactGroup.get_status_group_counts(self.org)
         self.assertEqual(
             counts,
             {
@@ -845,7 +845,7 @@ class ContactGroupTest(TembaTest):
         ba = self.create_contact("B.A.", phone="0783835003")
         murdock = self.create_contact("Murdock", phone="0783835004")
 
-        counts = ContactGroup.get_system_group_counts(self.org)
+        counts = ContactGroup.get_status_group_counts(self.org)
         self.assertEqual(
             counts,
             {
@@ -863,7 +863,7 @@ class ContactGroupTest(TembaTest):
         ba.stop(self.user)
         ba.stop(self.user)
 
-        counts = ContactGroup.get_system_group_counts(self.org)
+        counts = ContactGroup.get_status_group_counts(self.org)
         self.assertEqual(
             counts,
             {
@@ -885,7 +885,7 @@ class ContactGroupTest(TembaTest):
         squash_contactgroupcounts()
         self.assertEqual(ContactGroupCount.objects.all().count(), 3)
 
-        counts = ContactGroup.get_system_group_counts(self.org)
+        counts = ContactGroup.get_status_group_counts(self.org)
         self.assertEqual(
             counts,
             {
@@ -1561,7 +1561,7 @@ class ContactTest(TembaTest):
         self.assertEqual(1, msg_counts[SystemLabel.TYPE_ARCHIVED])
 
         self.assertEqual(
-            ContactGroup.get_system_group_counts(self.org),
+            ContactGroup.get_status_group_counts(self.org),
             {
                 ContactGroup.TYPE_ACTIVE: 4,
                 ContactGroup.TYPE_BLOCKED: 0,
@@ -1582,7 +1582,7 @@ class ContactTest(TembaTest):
 
         # and added to stopped group
         self.assertEqual(
-            ContactGroup.get_system_group_counts(self.org),
+            ContactGroup.get_status_group_counts(self.org),
             {
                 ContactGroup.TYPE_ACTIVE: 3,
                 ContactGroup.TYPE_BLOCKED: 0,
@@ -1601,7 +1601,7 @@ class ContactTest(TembaTest):
 
         # and that he's been removed from the all and failed groups, and added to the blocked group
         self.assertEqual(
-            ContactGroup.get_system_group_counts(self.org),
+            ContactGroup.get_status_group_counts(self.org),
             {
                 ContactGroup.TYPE_ACTIVE: 3,
                 ContactGroup.TYPE_BLOCKED: 1,
@@ -1628,7 +1628,7 @@ class ContactTest(TembaTest):
         self.assertTrue(self.joe.is_active)
 
         self.assertEqual(
-            ContactGroup.get_system_group_counts(self.org),
+            ContactGroup.get_status_group_counts(self.org),
             {
                 ContactGroup.TYPE_ACTIVE: 3,
                 ContactGroup.TYPE_BLOCKED: 0,
@@ -1646,7 +1646,7 @@ class ContactTest(TembaTest):
 
         # and that he's been removed from the blocked group, and put back in the all and failed groups
         self.assertEqual(
-            ContactGroup.get_system_group_counts(self.org),
+            ContactGroup.get_status_group_counts(self.org),
             {
                 ContactGroup.TYPE_ACTIVE: 4,
                 ContactGroup.TYPE_BLOCKED: 0,
@@ -1663,7 +1663,7 @@ class ContactTest(TembaTest):
         self.assertFalse(self.joe.is_active)
 
         self.assertEqual(
-            ContactGroup.get_system_group_counts(self.org),
+            ContactGroup.get_status_group_counts(self.org),
             {
                 ContactGroup.TYPE_ACTIVE: 3,
                 ContactGroup.TYPE_BLOCKED: 0,
@@ -1693,7 +1693,7 @@ class ContactTest(TembaTest):
         self.joe.stop(self.user)
 
         self.assertEqual(
-            ContactGroup.get_system_group_counts(self.org),
+            ContactGroup.get_status_group_counts(self.org),
             {
                 ContactGroup.TYPE_ACTIVE: 3,
                 ContactGroup.TYPE_BLOCKED: 0,
@@ -1708,7 +1708,7 @@ class ContactTest(TembaTest):
 
         # check joe goes into the appropriate groups
         self.assertEqual(
-            ContactGroup.get_system_group_counts(self.org),
+            ContactGroup.get_status_group_counts(self.org),
             {
                 ContactGroup.TYPE_ACTIVE: 3,
                 ContactGroup.TYPE_BLOCKED: 0,
@@ -2658,7 +2658,7 @@ class ContactTest(TembaTest):
 
         # this manager cannot operate on this organization
         self.assertEqual(302, response.status_code)
-        self.assertEqual(3, self.joe.user_groups.count())
+        self.assertEqual(3, self.joe.groups.count())
         self.client.logout()
 
         # login as a manager of kLab
@@ -2668,17 +2668,17 @@ class ContactTest(TembaTest):
         response = self.client.post(read_url + "?action=remove_from_group", {"contact": self.joe.id, "group": klab.id})
 
         self.assertEqual(200, response.status_code)
-        self.assertEqual(2, self.joe.user_groups.count())
+        self.assertEqual(2, self.joe.groups.count())
 
         # try removing it again, should noop
         response = self.client.post(read_url + "?action=remove_from_group", {"contact": self.joe.id, "group": klab.id})
         self.assertEqual(200, response.status_code)
-        self.assertEqual(2, self.joe.user_groups.count())
+        self.assertEqual(2, self.joe.groups.count())
 
         # try removing from non-existent group
         response = self.client.post(read_url + "?action=remove_from_group", {"contact": self.joe.id, "group": 2341533})
         self.assertEqual(200, response.status_code)
-        self.assertEqual(2, self.joe.user_groups.count())
+        self.assertEqual(2, self.joe.groups.count())
 
         # try removing from dynamic group (shouldnt happen, UI doesnt allow this)
         with self.assertRaises(AssertionError):
@@ -2897,15 +2897,15 @@ class ContactTest(TembaTest):
         joe_and_frank_filter_url = reverse("contacts.contact_filter", args=[self.joe_and_frank.uuid])
 
         # now test when the action with some data missing
-        self.assertEqual(self.joe.user_groups.filter(is_active=True).count(), 2)
+        self.assertEqual(self.joe.groups.filter(is_active=True).count(), 2)
 
         self.client.post(joe_and_frank_filter_url, {"action": "label", "objects": self.joe.id, "add": True})
 
-        self.assertEqual(self.joe.user_groups.filter(is_active=True).count(), 2)
+        self.assertEqual(self.joe.groups.filter(is_active=True).count(), 2)
 
         self.client.post(joe_and_frank_filter_url, {"action": "label", "objects": self.joe.id, "add": False})
 
-        self.assertEqual(self.joe.user_groups.filter(is_active=True).count(), 2)
+        self.assertEqual(self.joe.groups.filter(is_active=True).count(), 2)
 
         # now block Joe
         self.client.post(list_url, {"action": "block", "objects": self.joe.id}, follow=True)
@@ -3067,7 +3067,7 @@ class ContactTest(TembaTest):
 
         self.client.post(reverse("contacts.contact_update", args=[self.joe.id]), post_data, follow=True)
 
-        self.assertEqual(set(self.joe.user_groups.all()), {self.just_joe})
+        self.assertEqual(set(self.joe.groups.all()), {self.just_joe})
         self.assertTrue(ContactURN.objects.filter(contact=self.joe, path="+250781111111"))
         self.assertTrue(ContactURN.objects.filter(contact=self.joe, path="+250786666666"))
 
@@ -3076,7 +3076,7 @@ class ContactTest(TembaTest):
 
         self.client.post(reverse("contacts.contact_update", args=[self.joe.id]), post_data, follow=True)
 
-        self.assertEqual(set(self.joe.user_groups.all()), set())
+        self.assertEqual(set(self.joe.groups.all()), set())
         self.assertTrue(ContactURN.objects.filter(contact=self.joe, path="+250781111111"))
         self.assertFalse(ContactURN.objects.filter(contact=self.joe, path="+250786666666"))
 

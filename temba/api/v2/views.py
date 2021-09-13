@@ -1421,7 +1421,7 @@ class ContactsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAPIView)
             Prefetch(
                 "all_groups",
                 queryset=ContactGroup.user_groups.only("uuid", "name").order_by("pk"),
-                to_attr="prefetched_user_groups",
+                to_attr="prefetched_groups",
             )
         )
 
