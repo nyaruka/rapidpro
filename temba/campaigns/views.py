@@ -20,7 +20,7 @@ from .models import Campaign, CampaignEvent
 
 class CampaignForm(forms.ModelForm):
     group = TembaChoiceField(
-        queryset=ContactGroup.user_groups.none(),
+        queryset=ContactGroup.groups.none(),
         empty_label=None,
         widget=SelectWidget(attrs={"placeholder": _("Select group"), "searchable": True}),
         label=_("Group"),

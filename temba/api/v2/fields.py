@@ -240,7 +240,7 @@ class ContactFieldField(TembaModelField):
 
 class ContactGroupField(TembaModelField):
     model = ContactGroup
-    model_manager = "user_groups"
+    model_manager = "groups"
     lookup_fields = ("uuid", "name")
     ignore_case_for_fields = ("name",)
 

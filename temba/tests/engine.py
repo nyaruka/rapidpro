@@ -324,10 +324,10 @@ class MockSessionWriter:
 
     def _handle_contact_groups_changed(self, event):
         for group in event.get("groups_added", []):
-            ContactGroup.user_groups.get(uuid=group["uuid"]).contacts.add(self.contact)
+            ContactGroup.groups.get(uuid=group["uuid"]).contacts.add(self.contact)
 
         for group in event.get("groups_removed", []):
-            ContactGroup.user_groups.get(uuid=group["uuid"]).contacts.remove(self.contact)
+            ContactGroup.groups.get(uuid=group["uuid"]).contacts.remove(self.contact)
 
     def _handle_webhook_called(self, event):
         WebHookResult.objects.create(

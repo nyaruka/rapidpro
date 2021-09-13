@@ -901,7 +901,7 @@ class Flow(TembaModel):
             "field": ContactField.user_fields.filter(org=self.org, is_active=True, key__in=identifiers["field"]),
             "flow": self.org.flows.filter(is_active=True, uuid__in=identifiers["flow"]),
             "global": self.org.globals.filter(is_active=True, key__in=identifiers["global"]),
-            "group": ContactGroup.user_groups.filter(org=self.org, is_active=True, uuid__in=identifiers["group"]),
+            "group": ContactGroup.groups.filter(org=self.org, is_active=True, uuid__in=identifiers["group"]),
             "label": Label.label_objects.filter(org=self.org, uuid__in=identifiers["label"]),
             "template": self.org.templates.filter(uuid__in=identifiers["template"]),
             "ticketer": self.org.ticketers.filter(is_active=True, uuid__in=identifiers["ticketer"]),
@@ -1854,7 +1854,7 @@ class ExportFlowResultsTask(BaseExportTask):
 
         contact_fields = ContactField.user_fields.active_for_org(org=self.org).filter(id__in=contact_field_ids)
 
-        groups = ContactGroup.user_groups.filter(
+        groups = ContactGroup.groups.filter(
             org=self.org, id__in=group_memberships, status=ContactGroup.STATUS_READY, is_active=True
         )
 

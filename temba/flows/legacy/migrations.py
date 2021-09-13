@@ -974,7 +974,7 @@ def migrate_export_to_version_9(exported_json, org, same_site=True):
     def remap_group(ele):
         from temba.contacts.models import ContactGroup
 
-        return replace_with_uuid(ele, ContactGroup.user_groups, group_id_map, create_dict=True)
+        return replace_with_uuid(ele, ContactGroup.groups, group_id_map, create_dict=True)
 
     def remap_campaign(ele):
         from temba.campaigns.models import Campaign

@@ -40,7 +40,7 @@ class BaseTriggerForm(forms.ModelForm):
     )
 
     groups = TembaMultipleChoiceField(
-        queryset=ContactGroup.user_groups.none(),
+        queryset=ContactGroup.groups.none(),
         label=_("Groups To Include"),
         help_text=_("Only includes contacts in these groups."),
         required=False,
@@ -49,7 +49,7 @@ class BaseTriggerForm(forms.ModelForm):
         ),
     )
     exclude_groups = TembaMultipleChoiceField(
-        queryset=ContactGroup.user_groups.none(),
+        queryset=ContactGroup.groups.none(),
         label=_("Groups To Exclude"),
         help_text=_("Excludes contacts in these groups."),
         required=False,
@@ -146,7 +146,7 @@ class RegisterTriggerForm(BaseTriggerForm):
     )
 
     action_join_group = AddNewGroupChoiceField(
-        ContactGroup.user_groups.none(),
+        ContactGroup.groups.none(),
         required=True,
         label=_("Group to Join"),
         help_text=_("The group the contact will join when they send the above keyword"),
@@ -166,9 +166,9 @@ class RegisterTriggerForm(BaseTriggerForm):
         # on this form flow becomes the flow to be triggered from the generated flow and is optional
         self.fields["flow"].required = False
 
-        self.fields["action_join_group"].queryset = ContactGroup.user_groups.filter(
-            org=self.org, is_active=True
-        ).order_by("name")
+        self.fields["action_join_group"].queryset = ContactGroup.groups.filter(org=self.org, is_active=True).order_by(
+            "name"
+        )
         self.fields["action_join_group"].user = user
 
     def get_conflicts_kwargs(self, cleaned_data):

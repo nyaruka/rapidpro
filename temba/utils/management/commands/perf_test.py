@@ -32,8 +32,8 @@ ALLOWED_CHANGE_PERCENTAGE = 5
 
 # a org specific context used in URL generation
 URL_CONTEXT_TEMPLATE = {
-    "first-group": lambda org: ContactGroup.user_groups.filter(org=org).order_by("id").first().uuid,
-    "last-group": lambda org: ContactGroup.user_groups.filter(org=org).order_by("-id").first().uuid,
+    "first-group": lambda org: ContactGroup.groups.filter(org=org).order_by("id").first().uuid,
+    "last-group": lambda org: ContactGroup.groups.filter(org=org).order_by("-id").first().uuid,
     "1-year-ago": lambda org: datetime_to_str(now() - timedelta(days=365), org.get_datetime_formats()[0], pytz.UTC),
 }
 

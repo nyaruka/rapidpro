@@ -1458,9 +1458,9 @@ class StatusContactGroupManager(models.Manager):
         return super().get_queryset().exclude(group_type=ContactGroup.TYPE_NON_STATUS)
 
 
-class UserContactGroupManager(models.Manager):
+class NonStatusContactGroupManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().filter(group_type=ContactGroup.TYPE_NON_STATUS, is_active=True)
+        return super().get_queryset().filter(group_type=ContactGroup.TYPE_NON_STATUS)
 
 
 class ContactGroup(TembaModel, DependencyMixin):
@@ -1504,25 +1504,23 @@ class ContactGroup(TembaModel, DependencyMixin):
     EXPORT_QUERY = "query"
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="all_groups")
-
     name = models.CharField(max_length=MAX_NAME_LEN)
-
     group_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_NON_STATUS)
-
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_INITIALIZING)
-
     contacts = models.ManyToManyField(Contact, related_name="all_groups")
 
     # fields used by smart groups
     query = models.TextField(null=True)
     query_fields = models.ManyToManyField(ContactField, related_name="dependent_groups")
+    query_active_only = models.BooleanField(default=True)  # whether not query implicitly excludes non-active contacts
 
-    is_system = models.BooleanField(null=True, default=False)
+    # whether user can edit this group
+    is_system = models.BooleanField(default=False)
 
     # define some custom managers to do the filtering of user / system groups for us
-    all_groups = models.Manager()
+    objects = models.Manager()
     status_groups = StatusContactGroupManager()
-    user_groups = UserContactGroupManager()
+    groups = NonStatusContactGroupManager()
 
     @classmethod
     def create_system_groups(cls, org):
@@ -1530,7 +1528,7 @@ class ContactGroup(TembaModel, DependencyMixin):
         Creates our system groups for the given organization so that we can keep track of counts etc..
         """
 
-        assert not org.all_groups.exists(), "org already has system groups"
+        assert not org.all_groups.filter(is_system=True).exists(), "org already has system groups"
 
         org.all_groups.create(
             name="Active",
@@ -1566,14 +1564,14 @@ class ContactGroup(TembaModel, DependencyMixin):
         """
         Returns the group with the passed in name
         """
-        return cls.user_groups.filter(name__iexact=cls.clean_name(name), org=org, is_active=True).first()
+        return cls.groups.filter(name__iexact=cls.clean_name(name), org=org, is_active=True).first()
 
     @classmethod
     def get_groups(cls, org, dynamic=None, ready_only=True):
         """
         Gets all groups for the given org - optionally filtering by dynamic vs static
         """
-        groups = cls.user_groups.filter(org=org, is_active=True)
+        groups = cls.groups.filter(org=org, is_active=True)
         if dynamic is not None:
             groups = groups.filter(query=None) if dynamic is False else groups.exclude(query=None)
         if ready_only:
@@ -1588,7 +1586,7 @@ class ContactGroup(TembaModel, DependencyMixin):
         existing = None
 
         if uuid:
-            existing = ContactGroup.user_groups.filter(uuid=uuid, org=org, is_active=True).first()
+            existing = ContactGroup.groups.filter(uuid=uuid, org=org, is_active=True).first()
 
         if not existing and name:
             existing = ContactGroup.get_by_name(org, name)
@@ -1632,9 +1630,7 @@ class ContactGroup(TembaModel, DependencyMixin):
         # look for name collision and append count if necessary
         name = cls.get_unique_name(org, base_name=name)
 
-        return cls.user_groups.create(
-            org=org, name=name, query=query, status=status, created_by=user, modified_by=user
-        )
+        return cls.groups.create(org=org, name=name, query=query, status=status, created_by=user, modified_by=user)
 
     @classmethod
     def get_unique_name(cls, org, base_name: str) -> str:
@@ -1979,7 +1975,7 @@ class ExportContactsTask(BaseExportTask):
     def write_export(self):
         fields, scheme_counts, group_fields = self.get_export_fields_and_schemes()
 
-        group = self.group or ContactGroup.all_groups.get(org=self.org, group_type=ContactGroup.TYPE_ACTIVE)
+        group = self.group or self.org.active_contacts_group
 
         include_group_memberships = bool(self.group_memberships.exists())
 

@@ -436,7 +436,7 @@ class Command(BaseCommand):
         for org in orgs:
             user = org.cache["users"][0]
             for c in CAMPAIGNS:
-                group = ContactGroup.all_groups.get(org=org, name=c["group"])
+                group = ContactGroup.groups.get(org=org, name=c["group"])
                 campaign = Campaign.objects.create(
                     name=c["name"], group=group, is_archived=False, org=org, created_by=user, modified_by=user
                 )

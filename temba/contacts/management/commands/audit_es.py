@@ -48,7 +48,7 @@ class Command(BaseCommand):  # pragma: no cover
                 )
 
     def compare_group(self, group_uuid: str):
-        group = ContactGroup.all_groups.filter(uuid=group_uuid, is_active=True).first()
+        group = ContactGroup.objects.filter(uuid=group_uuid, is_active=True).first()
         if not group:
             raise CommandError("No such group")
 

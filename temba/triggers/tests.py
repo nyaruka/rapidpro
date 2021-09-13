@@ -407,7 +407,7 @@ class TriggerTest(TembaTest):
 
         self.assertEqual(Trigger.objects.count(), 0)
         self.assertEqual(Schedule.objects.count(), 0)
-        self.assertEqual(ContactGroup.user_groups.count(), 1)
+        self.assertEqual(ContactGroup.groups.count(), 1)
         self.assertEqual(Flow.objects.count(), 1)
 
 

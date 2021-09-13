@@ -49,7 +49,7 @@ def omnibox_query(org, **kwargs):
 
     # this lookup returns a ContactGroup queryset
     elif group_uuids:
-        return ContactGroup.user_groups.filter(org=org, uuid__in=group_uuids.split(",")).order_by("name")
+        return ContactGroup.groups.filter(org=org, uuid__in=group_uuids.split(",")).order_by("name")
 
     # this lookup returns a ContactURN queryset
     elif urn_ids:
@@ -139,7 +139,7 @@ def omnibox_deserialize(org, omnibox):
     urns = [item["id"] for item in omnibox if item["type"] == "urn"] if not org.is_anon else []
 
     return {
-        "groups": ContactGroup.all_groups.filter(uuid__in=group_ids, org=org, is_active=True),
+        "groups": ContactGroup.groups.filter(uuid__in=group_ids, org=org, is_active=True),
         "contacts": Contact.objects.filter(uuid__in=contact_ids, org=org, is_active=True),
         "urns": urns,
     }

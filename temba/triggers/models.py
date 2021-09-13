@@ -333,7 +333,7 @@ class Trigger(SmartModel):
             group = None
 
             if same_site:  # pragma: needs cover
-                group = ContactGroup.user_groups.filter(org=org, uuid=spec["uuid"]).first()
+                group = ContactGroup.groups.filter(org=org, uuid=spec["uuid"]).first()
 
             if not group:
                 group = ContactGroup.get_by_name(org, spec["name"])

@@ -89,7 +89,7 @@ HISTORY_INCLUDE_EVENTS = {
 
 class RemoveFromGroupForm(forms.Form):
     contact = TembaChoiceField(Contact.objects.all())
-    group = TembaChoiceField(ContactGroup.user_groups.all())
+    group = TembaChoiceField(ContactGroup.groups.all())
 
     def __init__(self, *args, **kwargs):
         org = kwargs.pop("org")
@@ -98,7 +98,7 @@ class RemoveFromGroupForm(forms.Form):
         super().__init__(*args, **kwargs)
 
         self.fields["contact"].queryset = org.contacts.filter(is_active=True)
-        self.fields["group"].queryset = ContactGroup.user_groups.filter(org=org)
+        self.fields["group"].queryset = ContactGroup.groups.filter(org=org)
 
     def execute(self):
         data = self.cleaned_data
@@ -136,11 +136,11 @@ class ContactGroupForm(forms.ModelForm):
 
         org_active_group_limit = self.org.get_limit(Org.LIMIT_GROUPS)
 
-        groups_count = ContactGroup.user_groups.filter(org=self.org).count()
+        groups_count = ContactGroup.groups.filter(org=self.org, is_active=True).count()
         if groups_count >= org_active_group_limit:
             raise forms.ValidationError(
                 _(
-                    "This org has %(count)d groups and the limit is %(limit)d. "
+                    "This workspace has %(count)d groups and the limit is %(limit)d. "
                     "You must delete existing ones before you can "
                     "create new ones." % dict(count=groups_count, limit=org_active_group_limit)
                 )
@@ -204,7 +204,7 @@ class ContactListView(SpaMixin, OrgPermsMixin, BulkActionMixin, SmartListView):
         return self.derive_group()
 
     def derive_group(self):
-        return ContactGroup.all_groups.get(org=self.request.user.get_org(), group_type=self.system_group)
+        return ContactGroup.objects.get(org=self.request.user.get_org(), group_type=self.system_group)
 
     def derive_export_url(self):
         search = urlquote_plus(self.request.GET.get("search", ""))
@@ -481,7 +481,7 @@ class ContactForm(forms.ModelForm):
 
 class UpdateContactForm(ContactForm):
     groups = TembaMultipleChoiceField(
-        queryset=ContactGroup.user_groups.filter(pk__lt=0),
+        queryset=ContactGroup.groups.filter(pk__lt=0),
         required=False,
         label=_("Groups"),
         widget=SelectMultipleWidget(attrs={"placeholder": _("Select groups for this contact"), "searchable": True}),
@@ -519,7 +519,7 @@ class UpdateContactForm(ContactForm):
 
 class ExportForm(Form):
     group_memberships = forms.ModelMultipleChoiceField(
-        queryset=ContactGroup.user_groups.none(),
+        queryset=ContactGroup.groups.none(),
         required=False,
         label=_("Group Memberships for"),
         widget=SelectMultipleWidget(
@@ -531,7 +531,7 @@ class ExportForm(Form):
         super().__init__(*args, **kwargs)
         self.user = user
 
-        self.fields["group_memberships"].queryset = ContactGroup.user_groups.filter(
+        self.fields["group_memberships"].queryset = ContactGroup.groups.filter(
             org=self.user.get_org(), is_active=True, status=ContactGroup.STATUS_READY
         ).order_by(Lower("name"))
 
@@ -686,7 +686,7 @@ class ContactCRUDL(SmartCRUDL):
             else:
                 group_memberships = form.cleaned_data["group_memberships"]
 
-                group = ContactGroup.all_groups.filter(org=org, uuid=group_uuid).first() if group_uuid else None
+                group = ContactGroup.objects.filter(org=org, uuid=group_uuid).first() if group_uuid else None
 
                 previous_export = (
                     ExportContactsTask.objects.filter(org=org, created_by=user).order_by("-modified_on").first()
@@ -1286,7 +1286,7 @@ class ContactCRUDL(SmartCRUDL):
 
         def derive_group(self):
             try:
-                return ContactGroup.user_groups.get(uuid=self.kwargs["group"])
+                return ContactGroup.groups.get(uuid=self.kwargs["group"])
             except ContactGroup.DoesNotExist:
                 raise Http404("Group not found")
 
@@ -2034,7 +2034,7 @@ class ContactImportCRUDL(SmartCRUDL):
             existing_group = TembaChoiceField(
                 label=" ",
                 required=False,
-                queryset=ContactGroup.user_groups.none(),
+                queryset=ContactGroup.groups.none(),
                 widget=SelectWidget(
                     attrs={"placeholder": _("Select a group"), "widget_only": True, "searchable": True}
                 ),

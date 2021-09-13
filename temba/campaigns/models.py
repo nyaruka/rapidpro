@@ -83,9 +83,7 @@ class Campaign(TembaModel):
 
             # first check if we have the objects by UUID
             if same_site:
-                group = ContactGroup.user_groups.filter(
-                    uuid=campaign_def[Campaign.EXPORT_GROUP]["uuid"], org=org
-                ).first()
+                group = ContactGroup.groups.filter(uuid=campaign_def[Campaign.EXPORT_GROUP]["uuid"], org=org).first()
                 if group:  # pragma: needs cover
                     group.name = campaign_def[Campaign.EXPORT_GROUP]["name"]
                     group.save()

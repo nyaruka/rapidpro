@@ -753,7 +753,7 @@ class ContactGroupWriteSerializer(WriteSerializer):
     name = serializers.CharField(
         required=True,
         max_length=ContactGroup.MAX_NAME_LEN,
-        validators=[UniqueForOrgValidator(queryset=ContactGroup.user_groups.filter(is_active=True), ignore_case=True)],
+        validators=[UniqueForOrgValidator(queryset=ContactGroup.groups.filter(is_active=True), ignore_case=True)],
     )
 
     def validate_name(self, value):
@@ -765,7 +765,7 @@ class ContactGroupWriteSerializer(WriteSerializer):
         org = self.context["org"]
         org_active_groups_limit = org.get_limit(Org.LIMIT_GROUPS)
 
-        group_count = ContactGroup.user_groups.filter(org=self.context["org"]).count()
+        group_count = ContactGroup.groups.filter(org=self.context["org"]).count()
         if group_count >= org_active_groups_limit:
             raise serializers.ValidationError(
                 "This org has %s groups and the limit is %s. "

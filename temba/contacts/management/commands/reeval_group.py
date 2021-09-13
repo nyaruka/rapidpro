@@ -13,7 +13,7 @@ class Command(BaseCommand):
         parser.add_argument("group_uuid", help="UUID of contact group to re-evaluate.")
 
     def handle(self, group_uuid: str, *args, **kwargs):
-        group = ContactGroup.user_groups.filter(uuid=group_uuid).first()
+        group = ContactGroup.groups.filter(uuid=group_uuid).first()
         if not group:
             raise CommandError("no such group")
         if not group.is_dynamic:

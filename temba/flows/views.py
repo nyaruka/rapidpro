@@ -1353,7 +1353,7 @@ class FlowCRUDL(SmartCRUDL):
             )
 
             group_memberships = forms.ModelMultipleChoiceField(
-                queryset=ContactGroup.user_groups.none(),
+                queryset=ContactGroup.groups.none(),
                 required=False,
                 label=_("Groups"),
                 widget=SelectMultipleWidget(attrs={"placeholder": _("Optional: Group memberships")}),
@@ -1398,7 +1398,7 @@ class FlowCRUDL(SmartCRUDL):
                     org=self.user.get_org()
                 ).order_by(Lower("label"))
 
-                self.fields[ExportFlowResultsTask.GROUP_MEMBERSHIPS].queryset = ContactGroup.user_groups.filter(
+                self.fields[ExportFlowResultsTask.GROUP_MEMBERSHIPS].queryset = ContactGroup.groups.filter(
                     org=self.user.get_org(), is_active=True, status=ContactGroup.STATUS_READY
                 ).order_by(Lower("name"))
 

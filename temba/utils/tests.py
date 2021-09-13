@@ -987,7 +987,7 @@ class MakeTestDBTest(SmartminTestMixin, TransactionTestCase):
             User.objects.exclude(username__in=["AnonymousUser", "root", "rapidpro_flow", "temba_flow"]).count(), 12
         )
         assertOrgCounts(ContactField.user_fields.all(), [6, 6, 6])
-        assertOrgCounts(ContactGroup.user_groups.all(), [10, 10, 10])
+        assertOrgCounts(ContactGroup.groups.all(), [10, 10, 10])
         assertOrgCounts(Contact.objects.all(), [10, 11, 9])
 
         org_1_active_contacts = ContactGroup.status_groups.get(org=org1, name="Active")
@@ -998,7 +998,7 @@ class MakeTestDBTest(SmartminTestMixin, TransactionTestCase):
         )
 
         # same seed should generate objects with same UUIDs
-        self.assertEqual("f2a3f8c5-e831-4df3-b046-8d8cdb90f178", ContactGroup.user_groups.order_by("id").first().uuid)
+        self.assertEqual("f2a3f8c5-e831-4df3-b046-8d8cdb90f178", ContactGroup.groups.order_by("id").first().uuid)
 
         # check if contact fields are serialized
         self.assertIsNotNone(Contact.objects.first().fields)
