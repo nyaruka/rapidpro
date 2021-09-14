@@ -27,7 +27,7 @@ from temba.channels.models import ChannelEvent
 from temba.classifiers.models import Classifier
 from temba.classifiers.types.luis import LuisType
 from temba.classifiers.types.wit import WitType
-from temba.contacts.models import Contact, ContactField, ContactGroup, ContactURN
+from temba.contacts.models import Contact, ContactField, ContactGroup, ContactGroupCount, ContactURN
 from temba.flows.models import Flow, FlowLabel, FlowRun, FlowStart
 from temba.globals.models import Global
 from temba.locations.models import BoundaryAlias
@@ -3018,6 +3018,7 @@ class APITest(TembaTest):
         response = self.postJSON(url, None, {"name": "Reporters"})
         self.assertEqual(response.status_code, 201)
 
+        ContactGroupCount.objects.all().delete()
         ContactGroup.groups.all().delete()
 
         for i in range(settings.MAX_ACTIVE_CONTACTGROUPS_PER_ORG):

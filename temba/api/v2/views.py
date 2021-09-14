@@ -1419,7 +1419,7 @@ class ContactsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAPIView)
         # use prefetch rather than select_related for foreign keys to avoid joins
         queryset = queryset.prefetch_related(
             Prefetch(
-                "groups",
+                "all_groups",
                 queryset=ContactGroup.groups.only("uuid", "name").order_by("pk"),
                 to_attr="prefetched_groups",
             )
