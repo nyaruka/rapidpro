@@ -98,4 +98,4 @@ class Dialog360Type(ChannelType):
         if response.status_code != 200:
             raise requests.RequestException("Could not check api status", response=response)
 
-        return response
+        return response.json()

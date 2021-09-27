@@ -14,8 +14,7 @@ def update_api_version(channel):
     start = timezone.now()
     try:
         response = channel.get_type().check_health(channel)
-        api_status = response.json()
-        version = api_status["meta"]["version"]
+        version = response["meta"]["version"]
         if not version.startswith("v"):
             version = "v" + version
         channel.config.update(version=version)
