@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "temba"
-version = "6.5.36"
+version = "6.5.65"
 description = "Hosted service for visually building interactive messaging applications"
 authors = ["Nyaruka <code@nyaruka.com>"]
 license = "AGPL-3"
@@ -9,7 +9,7 @@ license = "AGPL-3"
 repository = "http://github.com/rapidpro/rapidpro"
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = "^3.9"
 Django = "^3.2.6"
 django-compressor = "^2.4"
 django-countries = "^7.0"
@@ -21,7 +21,7 @@ django-timezone-field = "^4.1.1"
 djangorestframework = "^3.12.2"
 dj-database-url = "^0.5.0"
 smartmin = "^3.0.1"
-celery = "4.4.6"
+celery = "^5.1.0"
 redis = "^3.5.3"
 elasticsearch = "^7.11.0"
 elasticsearch-dsl = "^7.3.0"
@@ -58,6 +58,7 @@ python-intercom = "^3.1.0"
 packaging = "^20.9"
 requests-toolbelt = "^0.9.1"
 chardet = "^4.0.0"
+openpyxl = "3.0.7"  # https://foss.heptapod.net/openpyxl/openpyxl/-/issues/1740
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"

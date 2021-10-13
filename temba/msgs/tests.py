@@ -33,11 +33,11 @@ from temba.msgs.models import (
     SystemLabel,
     SystemLabelCount,
 )
+from temba.orgs.models import Org
 from temba.schedules.models import Schedule
 from temba.tests import AnonymousOrg, CRUDLTestMixin, TembaTest
 from temba.tests.engine import MockSessionWriter
-from temba.tests.s3 import MockS3Client
-from temba.utils.uuid import uuid4
+from temba.tests.s3 import MockS3Client, jsonlgz_encode
 
 from .tasks import retry_errored_messages, squash_msgcounts
 from .templatetags.sms import as_icon
@@ -326,6 +326,8 @@ class MsgTest(TembaTest):
 
     @patch("temba.utils.email.send_temba_email")
     def test_message_export_from_archives(self, mock_send_temba_email):
+        export_url = reverse("msgs.msg_export")
+
         self.clear_storage()
         self.login(self.admin)
 
@@ -380,29 +382,20 @@ class MsgTest(TembaTest):
         msg3.save()
 
         # archive 5 msgs
+        mock_s3 = MockS3Client()
+        body, md5, size = jsonlgz_encode([m.as_archive_json() for m in (msg1, msg2, msg3, msg4, msg5, msg6)])
+        mock_s3.put_object("test-bucket", "archive1.jsonl.gz", body)
+
         Archive.objects.create(
             org=self.org,
             archive_type=Archive.TYPE_MSG,
-            size=10,
-            hash=uuid4().hex,
+            size=size,
+            hash=md5,
             url="http://test-bucket.aws.com/archive1.jsonl.gz",
             record_count=6,
             start_date=msg5.created_on.date(),
             period="D",
             build_time=23425,
-        )
-        mock_s3 = MockS3Client()
-        mock_s3.put_jsonl(
-            "test-bucket",
-            "archive1.jsonl.gz",
-            [
-                msg1.as_archive_json(),
-                msg2.as_archive_json(),
-                msg3.as_archive_json(),
-                msg4.as_archive_json(),
-                msg5.as_archive_json(),
-                msg6.as_archive_json(),
-            ],
         )
 
         msg2.release()
@@ -412,23 +405,25 @@ class MsgTest(TembaTest):
         msg6.release()
 
         # create an archive earlier than our flow created date so we check that it isn't included
+        body, md5, size = jsonlgz_encode([msg7.as_archive_json()])
         Archive.objects.create(
             org=self.org,
             archive_type=Archive.TYPE_MSG,
-            size=10,
-            hash=uuid4().hex,
+            size=size,
+            hash=md5,
             url="http://test-bucket.aws.com/archive2.jsonl.gz",
             record_count=1,
             start_date=self.org.created_on - timedelta(days=2),
             period="D",
             build_time=5678,
         )
-        mock_s3.put_jsonl("test-bucket", "archive2.jsonl.gz", [msg7.as_archive_json()])
+        mock_s3.put_object("test-bucket", "archive2.jsonl.gz", body)
 
         msg7.release()
 
         def request_export(query, data=None):
-            response = self.client.post(reverse("msgs.msg_export") + query, data)
+            with self.mockReadOnly():
+                response = self.client.post(export_url + query, data)
             self.assertEqual(response.status_code, 302)
             task = ExportMessagesTask.objects.order_by("-id").first()
             filename = "%s/test_orgs/%d/message_exports/%s.xlsx" % (settings.MEDIA_ROOT, self.org.id, task.uuid)
@@ -816,6 +811,8 @@ class MsgTest(TembaTest):
 
     @patch("temba.utils.email.send_temba_email")
     def test_message_export(self, mock_send_temba_email):
+        export_url = reverse("msgs.msg_export")
+
         self.clear_storage()
         self.login(self.admin)
 
@@ -873,14 +870,16 @@ class MsgTest(TembaTest):
         self.assertContains(response, "already an export in progress")
 
         # perform the export manually, assert how many queries
-        self.assertNumQueries(15, lambda: blocking_export.perform())
+        with self.mockReadOnly():
+            self.assertNumQueries(15, lambda: blocking_export.perform())
 
         blocking_export.refresh_from_db()
         # after performing the export `modified_on` should be updated
         self.assertNotEqual(old_modified_on, blocking_export.modified_on)
 
         def request_export(query, data=None):
-            response = self.client.post(reverse("msgs.msg_export") + query, data)
+            with self.mockReadOnly(assert_models={Msg}):
+                response = self.client.post(export_url + query, data)
             self.assertEqual(response.status_code, 302)
             task = ExportMessagesTask.objects.order_by("-id").first()
             filename = "%s/test_orgs/%d/message_exports/%s.xlsx" % (settings.MEDIA_ROOT, self.org.id, task.uuid)
@@ -1028,16 +1027,11 @@ class MsgTest(TembaTest):
         # check that notifications were created
         export = ExportMessagesTask.objects.order_by("id").last()
         self.assertEqual(
-            1, self.admin.notifications.filter(notification_type="export:finished", message_export=export).count()
+            1,
+            self.admin.notifications.filter(
+                notification_type="export:finished", message_export=export, email_status="P"
+            ).count(),
         )
-
-        # check email was sent correctly
-        email_args = mock_send_temba_email.call_args[0]  # all positional args
-        self.assertEqual(email_args[0], "Your messages export from %s is ready" % self.org.name)
-        self.assertIn("https://app.rapidpro.io/assets/download/message_export/%d/" % export.id, email_args[1])
-        self.assertNotIn("{{", email_args[1])
-        self.assertIn("https://app.rapidpro.io/assets/download/message_export/%d/" % export.id, email_args[2])
-        self.assertNotIn("{{", email_args[2])
 
         # export just archived messages
         self.assertExcelSheet(
@@ -2495,14 +2489,14 @@ class LabelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFormError(response, "form", "name", "Name must not be blank or begin with punctuation")
 
         # try creating a new label after reaching the limit on labels
-        current_count = Label.all_objects.filter(org=self.org, is_active=True).count()
-        with patch.object(Label, "MAX_ORG_LABELS", current_count):
+        current_count = Label.label_objects.filter(org=self.org, is_active=True).count()
+        with patch.object(Org, "LIMIT_DEFAULTS", {"labels": current_count}):
             response = self.client.post(create_label_url, {"name": "CoolStuff"})
             self.assertFormError(
                 response,
                 "form",
                 "name",
-                "This org has 3 labels and the limit is 3. "
+                "This workspace has 2 labels and the limit is 2. "
                 "You must delete existing ones before you can create new ones.",
             )
 

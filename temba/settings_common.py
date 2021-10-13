@@ -16,16 +16,12 @@ from celery.schedules import crontab
 SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
 
 
-def traces_sampler(sampling_context):  # pragma: no cover
-    return 0 if ("shell" in sys.argv) else 0.01
-
-
 if SENTRY_DSN:  # pragma: no cover
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         integrations=[DjangoIntegration(), CeleryIntegration(), LoggingIntegration()],
         send_default_pii=True,
-        traces_sampler=traces_sampler,
+        traces_sample_rate=0,
     )
     ignore_logger("django.security.DisallowedHost")
 
@@ -46,6 +42,11 @@ if TESTING:
 
 ADMINS = (("RapidPro", "code@yourdomain.io"),)
 MANAGERS = ADMINS
+
+# -----------------------------------------------------------------------------------
+# Location support
+# -----------------------------------------------------------------------------------
+LOCATION_SUPPORT = True
 
 # hardcode the postgis version so we can do reset db's from a blank database
 POSTGIS_VERSION = (2, 1)
@@ -341,6 +342,7 @@ BRANDING = {
         "logo": "brands/rapidpro/logo.png",
         "allow_signups": True,
         "flow_types": ["M", "V", "B", "S"],  # see Flow.FLOW_TYPES
+        "location_support": True,
         "tiers": dict(multi_user=0, multi_org=0),
         "bundles": [],
         "welcome_packs": [dict(size=5000, name="Demo Account"), dict(size=100000, name="UNICEF Account")],
@@ -501,10 +503,11 @@ PERMISSIONS = {
     "msgs.label": ("api", "create_folder", "delete_folder"),
     "orgs.topup": ("manage",),
     "policies.policy": ("admin", "history", "give_consent"),
-    "request_logs.httplog": ("classifier", "ticketer"),
+    "request_logs.httplog": ("webhooks", "classifier", "ticketer"),
     "templates.template": ("api",),
     "tickets.ticket": ("api", "assign", "assignee", "menu", "note"),
     "tickets.ticketer": ("api", "connect", "configure"),
+    "tickets.topic": ("api",),
     "triggers.trigger": ("archived", "type"),
 }
 
@@ -567,8 +570,6 @@ GROUP_PERMISSIONS = {
         "api.resthook_api",
         "api.resthooksubscriber_api",
         "api.webhookevent_api",
-        "api.webhookresult_list",
-        "api.webhookresult_read",
         "archives.archive.*",
         "campaigns.campaign.*",
         "campaigns.campaignevent.*",
@@ -687,9 +688,11 @@ GROUP_PERMISSIONS = {
         "policies.policy_give_consent",
         "request_logs.httplog_list",
         "request_logs.httplog_read",
+        "request_logs.httplog_webhooks",
         "templates.template_api",
         "tickets.ticket.*",
         "tickets.ticketer.*",
+        "tickets.topic.*",
         "triggers.trigger.*",
     ),
     "Editors": (
@@ -790,9 +793,11 @@ GROUP_PERMISSIONS = {
         "policies.policy_read",
         "policies.policy_list",
         "policies.policy_give_consent",
+        "request_logs.httplog_webhooks",
         "templates.template_api",
         "tickets.ticket.*",
         "tickets.ticketer_api",
+        "tickets.topic_api",
         "triggers.trigger.*",
     ),
     "Viewers": (
@@ -871,6 +876,7 @@ GROUP_PERMISSIONS = {
         "policies.policy_list",
         "policies.policy_give_consent",
         "tickets.ticketer_api",
+        "tickets.topic_api",
         "triggers.trigger_archived",
         "triggers.trigger_list",
         "triggers.trigger_type",
@@ -889,6 +895,7 @@ GROUP_PERMISSIONS = {
         "tickets.ticket_list",
         "tickets.ticket_menu",
         "tickets.ticket_note",
+        "tickets.topic_api",
         "orgs.org_home",
         "orgs.org_menu",
         "orgs.org_profile",
@@ -933,26 +940,47 @@ _default_database_config = {
     "ATOMIC_REQUESTS": True,
     "CONN_MAX_AGE": 60,
     "OPTIONS": {},
+    "DISABLE_SERVER_SIDE_CURSORS": True,
 }
 
-_direct_database_config = _default_database_config.copy()
-_default_database_config["DISABLE_SERVER_SIDE_CURSORS"] = True
-
-DATABASES = {"default": _default_database_config, "direct": _direct_database_config}
+# installs can provide a default connection and an optional read-only connection (e.g. a separate read replica) which
+# will be used for certain fetch operations
+DATABASES = {"default": _default_database_config, "readonly": _default_database_config.copy()}
 
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
-# If we are testing, set both our connections as the same, Django seems to get
-# confused on Python 3.6 with transactional tests otherwise
-if TESTING:
-    DATABASES["default"] = _direct_database_config
-
 INTERNAL_IPS = iptools.IpRangeList("127.0.0.1", "192.168.0.10", "192.168.0.0/24", "0.0.0.0")  # network block
 
+HOSTNAME = "localhost"
+
+# The URL and port of the proxy server to use when needed (if any, in requests format)
+OUTGOING_PROXIES = {}
+
 # -----------------------------------------------------------------------------------
-# Crontab Settings ..
+# Caching using Redis
 # -----------------------------------------------------------------------------------
-CELERYBEAT_SCHEDULE = {
+REDIS_HOST = "localhost"
+REDIS_PORT = 6379
+REDIS_DB = 10 if TESTING else 15  # we use a redis db of 10 for testing so that we maintain caches for dev
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://%s:%s/%s" % (REDIS_HOST, REDIS_PORT, REDIS_DB),
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+    }
+}
+
+# -----------------------------------------------------------------------------------
+# Async tasks using Celery
+# -----------------------------------------------------------------------------------
+CELERY_RESULT_BACKEND = None
+CELERY_BROKER_URL = "redis://%s:%d/%d" % (REDIS_HOST, REDIS_PORT, REDIS_DB)
+
+# by default, celery doesn't have any timeout on our redis connections, this fixes that
+CELERY_BROKER_TRANSPORT_OPTIONS = {"socket_timeout": 5}
+
+CELERY_BEAT_SCHEDULE = {
     "check-channels": {"task": "check_channels_task", "schedule": timedelta(seconds=300)},
     "check-credits": {"task": "check_credits_task", "schedule": timedelta(seconds=900)},
     "check-elasticsearch-lag": {"task": "check_elasticsearch_lag", "schedule": timedelta(seconds=300)},
@@ -963,12 +991,14 @@ CELERYBEAT_SCHEDULE = {
     "retry-errored-messages": {"task": "retry_errored_messages", "schedule": timedelta(seconds=60)},
     "refresh-jiochat-access-tokens": {"task": "refresh_jiochat_access_tokens", "schedule": timedelta(seconds=3600)},
     "refresh-wechat-access-tokens": {"task": "refresh_wechat_access_tokens", "schedule": timedelta(seconds=3600)},
-    "refresh-whatsapp-tokens": {"task": "refresh_whatsapp_tokens", "schedule": timedelta(hours=24)},
+    "refresh-whatsapp-tokens": {"task": "refresh_whatsapp_tokens", "schedule": crontab(hour=6, minute=0)},
     "refresh-whatsapp-templates": {"task": "refresh_whatsapp_templates", "schedule": timedelta(seconds=900)},
+    "send-notification-emails": {"task": "send_notification_emails", "schedule": timedelta(seconds=60)},
     "squash-channelcounts": {"task": "squash_channelcounts", "schedule": timedelta(seconds=60)},
     "squash-contactgroupcounts": {"task": "squash_contactgroupcounts", "schedule": timedelta(seconds=60)},
     "squash-flowcounts": {"task": "squash_flowcounts", "schedule": timedelta(seconds=60)},
     "squash-msgcounts": {"task": "squash_msgcounts", "schedule": timedelta(seconds=60)},
+    "squash-notificationcounts": {"task": "squash_notificationcounts", "schedule": timedelta(seconds=60)},
     "squash-topupcredits": {"task": "squash_topupcredits", "schedule": timedelta(seconds=60)},
     "squash-ticketcounts": {"task": "squash_ticketcounts", "schedule": timedelta(seconds=60)},
     "suspend-topup-orgs": {"task": "suspend_topup_orgs_task", "schedule": timedelta(hours=1)},
@@ -983,43 +1013,6 @@ CELERYBEAT_SCHEDULE = {
     "trim-sync-events": {"task": "trim_sync_events_task", "schedule": crontab(hour=3, minute=0)},
     "trim-webhook-event": {"task": "trim_webhook_event_task", "schedule": crontab(hour=3, minute=0)},
     "update-org-activity": {"task": "update_org_activity_task", "schedule": crontab(hour=3, minute=5)},
-}
-
-# Mapping of task name to task function path, used when CELERY_ALWAYS_EAGER is set to True
-CELERY_TASK_MAP = {"send_msg_task": "temba.channels.tasks.send_msg_task"}
-
-# -----------------------------------------------------------------------------------
-# Async tasks with celery
-# -----------------------------------------------------------------------------------
-REDIS_HOST = "localhost"
-REDIS_PORT = 6379
-
-# we use a redis db of 10 for testing so that we maintain caches for dev
-REDIS_DB = 10 if TESTING else 15
-
-BROKER_URL = "redis://%s:%d/%d" % (REDIS_HOST, REDIS_PORT, REDIS_DB)
-
-# by default, celery doesn't have any timeout on our redis connections, this fixes that
-BROKER_TRANSPORT_OPTIONS = {"socket_timeout": 5}
-
-CELERY_RESULT_BACKEND = None
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-
-HOSTNAME = "localhost"
-
-# The URL and port of the proxy server to use when needed (if any, in requests format)
-OUTGOING_PROXIES = {}
-
-# -----------------------------------------------------------------------------------
-# Cache to Redis
-# -----------------------------------------------------------------------------------
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://%s:%s/%s" % (REDIS_HOST, REDIS_PORT, REDIS_DB),
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
-    }
 }
 
 # -----------------------------------------------------------------------------------
@@ -1244,27 +1237,20 @@ FLOW_START_PARAMS_SIZE = 256  # used for params passed to flow start API endpoin
 GLOBAL_VALUE_SIZE = 10_000  # max length of global values
 
 # -----------------------------------------------------------------------------------
-# Installs may choose how long to keep the channel logs in hours
-# by default we keep success logs for 48 hours and error_logs for 30 days(30 * 24 hours)
-# Falsy values to keep the logs forever
+# Data retention periods - tasks trim away data older than these settings
 # -----------------------------------------------------------------------------------
-SUCCESS_LOGS_TRIM_TIME = 48
-ALL_LOGS_TRIM_TIME = 24 * 30
+RETENTION_PERIODS = {
+    "channellog": timedelta(days=3),
+    "eventfire": timedelta(days=90),  # matches default rp-archiver behavior
+    "flowsession": timedelta(days=7),
+    "flowstart": timedelta(days=7),
+    "httplog": timedelta(days=3),
+    "syncevent": timedelta(days=7),
+    "webhookevent": timedelta(hours=48),
+}
 
 # -----------------------------------------------------------------------------------
-# Installs can also choose how long to keep EventFires around. By default this is
-# 90 days which fits in nicely with the default archiving behavior.
-# -----------------------------------------------------------------------------------
-EVENT_FIRE_TRIM_DAYS = 90
-
-# -----------------------------------------------------------------------------------
-# Installs can also choose how long to keep FlowSessions around. These are
-# potentially big but really helpful for debugging. Default is 7 days.
-# -----------------------------------------------------------------------------------
-FLOW_SESSION_TRIM_DAYS = 7
-
-# -----------------------------------------------------------------------------------
-# Mailroom - disabled by default, but is where simulation happens
+# Mailroom
 # -----------------------------------------------------------------------------------
 MAILROOM_URL = None
 MAILROOM_AUTH_TOKEN = None
