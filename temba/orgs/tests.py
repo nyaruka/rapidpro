@@ -930,11 +930,14 @@ class OrgDeleteTest(TembaNonAtomicTest):
         self.assertEqual(299, self.child_org.get_credits_remaining())
 
         # release our child org
+        self.parent_org.clear_credit_cache()
+        self.child_org.clear_credit_cache()
         self.release_org(self.child_org, delete=True, expected_files=2)
+
+        print(total_credits, self.parent_org.get_credits_remaining())
 
         # our unused credits are returned to the parent
         self.parent_org.clear_credit_cache()
-        self.child_org.clear_credit_cache()
         self.assertEqual(total_credits, self.parent_org.get_credits_remaining())
 
     def test_delete_task(self):
