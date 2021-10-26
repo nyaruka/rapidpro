@@ -925,8 +925,6 @@ class OrgDeleteTest(TembaNonAtomicTest):
 
     def test_release_child_and_delete(self):
         # 300 credits were given to our child org and each used one
-        self.parent_org.clear_credit_cache()
-        self.child_org.clear_credit_cache()
         total_credits = self.parent_org.get_credits_remaining() + self.child_org.get_credits_remaining()
         self.assertEqual(696, self.parent_org.get_credits_remaining())
         self.assertEqual(299, self.child_org.get_credits_remaining())

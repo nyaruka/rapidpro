@@ -1779,6 +1779,7 @@ class Org(SmartModel):
 
         # return any unused credits to our parent
         if self.parent:
+            self.clear_credit_cache()
             self.allocate_credits(user, self.parent, self.get_credits_remaining())
 
         for topup in self.topups.all():
