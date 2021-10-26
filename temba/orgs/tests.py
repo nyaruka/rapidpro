@@ -925,6 +925,9 @@ class OrgDeleteTest(TembaNonAtomicTest):
 
     def test_release_child_and_delete(self):
         # 300 credits were given to our child org and each used one
+        self.parent_org.clear_credit_cache()
+        self.child_org.clear_credit_cache()
+        total_credits = self.parent_org.get_credits_remaining() + self.child_org.get_credits_remaining()
         self.assertEqual(696, self.parent_org.get_credits_remaining())
         self.assertEqual(299, self.child_org.get_credits_remaining())
 
@@ -933,7 +936,8 @@ class OrgDeleteTest(TembaNonAtomicTest):
 
         # our unused credits are returned to the parent
         self.parent_org.clear_credit_cache()
-        self.assertEqual(995, self.parent_org.get_credits_remaining())
+        self.child_org.clear_credit_cache()
+        self.assertEqual(total_credits, self.parent_org.get_credits_remaining())
 
     def test_delete_task(self):
         # can't delete an unreleased org
