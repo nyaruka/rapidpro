@@ -934,9 +934,15 @@ class OrgDeleteTest(TembaNonAtomicTest):
         self.child_org.clear_credit_cache()
         self.release_org(self.child_org, delete=True, expected_files=2)
 
+        self.parent_org.clear_credit_cache()
         print(total_credits, self.parent_org.get_credits_remaining())
 
-        print(self.parent_org.topups.all())
+        topups = self.parent_org.topups.all()
+        for topup in topups:
+            print("--------")
+            print(topup)
+            print(topup.get_remaining(), topup.get_used())
+            print(topup.get_ledger())
 
         # our unused credits are returned to the parent
         self.parent_org.clear_credit_cache()
