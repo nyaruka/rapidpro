@@ -1274,6 +1274,8 @@ class Org(SmartModel):
             msg_uncredited = self.msgs.filter(topup=None).order_by("created_on")
             all_uncredited = list(msg_uncredited)
 
+            print("uncredited", all_uncredited)
+
             # get all topups that haven't expired
             unexpired_topups = list(
                 self.topups.filter(is_active=True, expires_on__gte=timezone.now()).order_by("-expires_on")

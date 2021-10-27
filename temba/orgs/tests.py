@@ -861,6 +861,7 @@ class OrgDeleteTest(TembaNonAtomicTest):
             # release our primary org
             org.release(self.superuser)
             if delete:
+                print("Deleting", org)
                 org.delete()
 
             # all our users not in the other org should be inactive
@@ -942,7 +943,7 @@ class OrgDeleteTest(TembaNonAtomicTest):
             print("--------")
             print(topup)
             print(topup.get_remaining(), topup.get_used())
-            print(topup.get_ledger())
+            # print(topup.get_ledger())
 
         # our unused credits are returned to the parent
         self.parent_org.clear_credit_cache()
