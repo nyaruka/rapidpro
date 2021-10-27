@@ -1159,6 +1159,8 @@ class Org(SmartModel):
         Allocates credits to a sub org of the current org, but only if it
         belongs to us and we have enough credits to do so.
         """
+
+        print("allocate credits", amount)
         if org.parent == self or self.parent == org.parent or self.parent == org:
             if self.get_credits_remaining() >= amount:
 
@@ -1170,6 +1172,7 @@ class Org(SmartModel):
 
                         # remove the credits from ourselves
                         (topup_id, debited) = self.select_most_recent_topup(amount)
+                        print("topup debited", debited)
 
                         if topup_id:
                             topup = TopUp.objects.get(id=topup_id)
@@ -1192,6 +1195,7 @@ class Org(SmartModel):
                             amount -= debited
 
                         else:  # pragma: needs cover
+                            print("no topups left")
                             break
 
                     # apply topups to messages missing them
