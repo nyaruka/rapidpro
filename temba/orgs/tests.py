@@ -936,6 +936,8 @@ class OrgDeleteTest(TembaNonAtomicTest):
 
         print(total_credits, self.parent_org.get_credits_remaining())
 
+        print(self.parent_org.topups.all())
+
         # our unused credits are returned to the parent
         self.parent_org.clear_credit_cache()
         self.assertEqual(total_credits, self.parent_org.get_credits_remaining())
