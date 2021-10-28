@@ -97,7 +97,7 @@ class Broadcast(models.Model):
     parent = models.ForeignKey("Broadcast", on_delete=models.PROTECT, null=True, related_name="children")
 
     created_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name="broadcast_creations")
-    created_on = models.DateTimeField(default=timezone.now, db_index=True)  # TODO remove index
+    created_on = models.DateTimeField(default=timezone.now)
     modified_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name="broadcast_modifications")
     modified_on = models.DateTimeField(default=timezone.now)
 
@@ -369,18 +369,18 @@ class Msg(models.Model):
 
     high_priority = models.BooleanField(null=True)
 
-    created_on = models.DateTimeField(db_index=True)
-    modified_on = models.DateTimeField(null=True, blank=True, auto_now=True)
+    created_on = models.DateTimeField()
+    modified_on = models.DateTimeField(null=True, auto_now=True)
     sent_on = models.DateTimeField(null=True)
     queued_on = models.DateTimeField(null=True)
 
     msg_type = models.CharField(max_length=1, choices=TYPE_CHOICES, null=True)
     direction = models.CharField(max_length=1, choices=DIRECTION_CHOICES)
-    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING, db_index=True)
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING)
     visibility = models.CharField(max_length=1, choices=VISIBILITY_CHOICES, default=VISIBILITY_VISIBLE)
 
     response_to = models.ForeignKey(
-        "Msg", on_delete=models.PROTECT, null=True, blank=True, related_name="responses", db_index=False
+        "Msg", on_delete=models.PROTECT, null=True, related_name="responses", db_index=False
     )
 
     labels = models.ManyToManyField("Label", related_name="msgs")
@@ -395,9 +395,9 @@ class Msg(models.Model):
     next_attempt = models.DateTimeField(null=True)
 
     # the id of this message on the other side of its channel
-    external_id = models.CharField(max_length=255, null=True, blank=True)
+    external_id = models.CharField(max_length=255, null=True)
 
-    topup = models.ForeignKey(TopUp, null=True, blank=True, related_name="msgs", on_delete=models.PROTECT)
+    topup = models.ForeignKey(TopUp, null=True, related_name="msgs", on_delete=models.PROTECT)
 
     # used for IVR sessions on channels
     connection = models.ForeignKey(
