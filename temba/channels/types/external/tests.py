@@ -59,7 +59,7 @@ class ExternalTypeTest(TembaTest):
         self.assertEqual(post_data["method"], channel.config[ExternalType.CONFIG_SEND_METHOD])
         self.assertEqual(post_data["content_type"], channel.config[ExternalType.CONFIG_CONTENT_TYPE])
         self.assertEqual(channel.config[ExternalType.CONFIG_MAX_LENGTH], 180)
-        self.assertEqual(channel.config[ExternalType.CONFIG_SEND_AUTHORIZATION], "Token 123")
+        self.assertEqual(channel.config["headers"][ExternalType.CONFIG_AUTHORIZATION], "Token 123")
         self.assertEqual(channel.channel_type, "EX")
         self.assertEqual(Channel.ENCODING_SMART, channel.config[Channel.CONFIG_ENCODING])
         self.assertEqual("send=true", channel.config[ExternalType.CONFIG_SEND_BODY])

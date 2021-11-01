@@ -208,7 +208,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         }
 
         if "send_authorization" in data:
-            config[ExternalType.CONFIG_SEND_AUTHORIZATION] = data["send_authorization"]
+            config["headers"] = {ExternalType.CONFIG_AUTHORIZATION: data["send_authorization"]}
 
         if "body" in data:
             config[ExternalType.CONFIG_SEND_BODY] = data["body"]

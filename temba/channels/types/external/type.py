@@ -27,7 +27,7 @@ class ExternalType(ChannelType):
     max_length = 160
     attachment_support = False
 
-    CONFIG_SEND_AUTHORIZATION = "send_authorization"
+    CONFIG_AUTHORIZATION = "authorization"
     CONFIG_MAX_LENGTH = "max_length"
     CONFIG_SEND_METHOD = "method"
     CONFIG_SEND_BODY = "body"
