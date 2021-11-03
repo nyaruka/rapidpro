@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def foward(apps, schema_editor):
+def foward(apps, schema_editor):  # pragma: no cover
     Channel = apps.get_model("channels", "Channel")
 
     for channel in Channel.objects.filter(is_active=True, channel_type="EX"):
@@ -18,7 +18,7 @@ def foward(apps, schema_editor):
             channel.save()
 
 
-def reverse(apps, schema_editor):
+def reverse(apps, schema_editor):  # pragma: no cover
     Channel = apps.get_model("channels", "Channel")
 
     for channel in Channel.objects.filter(is_active=True, channel_type="EX"):
