@@ -5,7 +5,7 @@ from django.db import migrations
 
 def foward(apps, schema_editor):  # pragma: no cover
     Channel = apps.get_model("channels", "Channel")
-
+    updated, ignored = 0, 0
     for channel in Channel.objects.filter(is_active=True, channel_type="EX"):
         if "send_authorization" in channel.config:
             send_authorization = channel.config.pop("send_authorization")
@@ -16,6 +16,14 @@ def foward(apps, schema_editor):  # pragma: no cover
             else:
                 channel.config["headers"]["Authorization"] = send_authorization
             channel.save()
+            updated += 1
+        else:
+            ignored += 1
+
+    if updated:
+        print(
+            f"Headers updated for {updated} External API channels, {ignored} don't have authorization headers and were skipped."
+        )
 
 
 def reverse(apps, schema_editor):  # pragma: no cover
