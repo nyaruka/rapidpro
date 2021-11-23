@@ -26,6 +26,7 @@ from temba.ivr.models import IVRCall
 from temba.msgs.models import Msg
 from temba.orgs.models import Org
 from temba.tests import AnonymousOrg, CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom
+from temba.tests.base import MigrationTest
 from temba.triggers.models import Trigger
 from temba.utils import dict_to_struct, json
 from temba.utils.models import generate_uuid
@@ -2790,3 +2791,17 @@ class CourierTest(TembaTest):
         response = self.client.get(reverse("courier.t", args=[self.channel.uuid, "receive"]))
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.content, b"this URL should be mapped to a Courier instance")
+
+
+class ExternalHeadersTest(MigrationTest):
+    app = "channels"
+    migrate_from = "0135_alter_channellog_created_on"
+    migrate_to = "0136_external_headers"
+
+    def setUpBeforeMigration(self, apps):
+        self.channel_1 = self.create_channel("EX", "Test subject", config={"send_authorization": "Bearer 123456"})
+        self.channel_2 = self.create_channel("EX", "Control 1", config={"method": "POST", "max_length": 255})
+
+    def test_migration(self):
+        self.assertDictEqual(self.channel_1.config, {"headers": {"Authorization": "Bearer 123456"}})
+        self.assertDictEqual(self.channel_2.config, {"method": "POST", "max_length": 255})
