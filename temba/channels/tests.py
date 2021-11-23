@@ -2799,8 +2799,12 @@ class ExternalHeadersTest(MigrationTest):
     migrate_to = "0136_external_headers"
 
     def setUpBeforeMigration(self, apps):
-        self.channel_1 = self.create_channel("EX", "Test subject", "test_address", config={"send_authorization": "Bearer 123456"})
-        self.channel_2 = self.create_channel("EX", "Control 1", "control_address", config={"method": "POST", "max_length": 255})
+        self.channel_1 = self.create_channel(
+            "EX", "Test subject", "test_address", config={"send_authorization": "Bearer 123456"}
+        )
+        self.channel_2 = self.create_channel(
+            "EX", "Control 1", "control_address", config={"method": "POST", "max_length": 255}
+        )
 
     def test_migration(self):
         self.assertDictEqual(self.channel_1.config, {"headers": {"Authorization": "Bearer 123456"}})
