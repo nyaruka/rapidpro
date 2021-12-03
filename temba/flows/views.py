@@ -1365,20 +1365,6 @@ class FlowCRUDL(SmartCRUDL):
                 ),
             )
 
-            responded_only = forms.BooleanField(
-                required=False,
-                label=_("Responded Only"),
-                initial=True,
-                help_text=_("Only export results for contacts which responded"),
-                widget=CheckboxWidget(),
-            )
-            include_msgs = forms.BooleanField(
-                required=False,
-                label=_("Include Messages"),
-                help_text=_("Export all messages sent and received in this flow"),
-                widget=CheckboxWidget(),
-            )
-
             def __init__(self, user, *args, **kwargs):
                 super().__init__(*args, **kwargs)
                 self.user = user
@@ -1463,8 +1449,6 @@ class FlowCRUDL(SmartCRUDL):
                     user,
                     form.cleaned_data[ExportFlowResultsTask.FLOWS],
                     contact_fields=form.cleaned_data[ExportFlowResultsTask.CONTACT_FIELDS],
-                    include_msgs=form.cleaned_data[ExportFlowResultsTask.INCLUDE_MSGS],
-                    responded_only=form.cleaned_data[ExportFlowResultsTask.RESPONDED_ONLY],
                     extra_urns=form.cleaned_data[ExportFlowResultsTask.EXTRA_URNS],
                     group_memberships=form.cleaned_data[ExportFlowResultsTask.GROUP_MEMBERSHIPS],
                 )
