@@ -203,8 +203,6 @@ class NotificationTest(TembaTest):
             self.editor,
             flows=[flow1, flow2],
             contact_fields=(),
-            responded_only=True,
-            include_msgs=True,
             extra_urns=(),
             group_memberships=(),
         )

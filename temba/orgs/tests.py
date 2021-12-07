@@ -805,11 +805,9 @@ class OrgDeleteTest(TembaNonAtomicTest):
         self.mock_s3 = MockS3Client()
 
         # make some exports with logs
-        export = ExportFlowResultsTask.create(
-            self.parent_org, self.admin, [parent_flow], [parent_field], True, True, (), ()
-        )
+        export = ExportFlowResultsTask.create(self.parent_org, self.admin, [parent_flow], [parent_field], (), ())
         Notification.export_finished(export)
-        ExportFlowResultsTask.create(self.child_org, self.admin, [child_flow], [child_field], True, True, (), ())
+        ExportFlowResultsTask.create(self.child_org, self.admin, [child_flow], [child_field], (), ())
 
         export = ExportContactsTask.create(self.parent_org, self.admin, group=parent_group)
         Notification.export_finished(export)
