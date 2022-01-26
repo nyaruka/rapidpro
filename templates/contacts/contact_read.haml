@@ -55,7 +55,6 @@
   </style>
   <![endif]-->
 
-
   -if all_contact_fields.0.show_in_table
     .bg-gray-100.rounded-lg.p-3.mb-6
       .flex.flex-wrap
@@ -169,7 +168,7 @@
               %span.glyph.icon-ticket
           %td.details.w-full
             %a(href="{% url 'tickets.ticket_list' %}all/open/{{ticket.uuid}}/")
-              {{ ticket.subject }}
+              {{ ticket.body|default:"empty"|truncatechars:64 }}
           %td.created_on
             .pr-6
               {% short_datetime ticket.opened_on %}

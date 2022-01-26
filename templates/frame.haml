@@ -32,9 +32,8 @@
       }
 
     // ==== JQUERY ====
-    :javascript
-      conditionalLoad('bower/jquery/jquery.js', '//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.js');
-      conditionalLoad('bower/jquery-migrate/jquery-migrate.min.js', null);
+    <script type="text/javascript" src="{{ STATIC_URL }}bower/jquery/jquery.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}bower/jquery-migrate/jquery-migrate.min.js"></script>
 
     -# this view make it possible to process translations from javascript land
     <script src="{% url 'django.views.i18n.javascript_catalog' %}"></script>
@@ -42,6 +41,7 @@
       :javascript
         var static_url = '{{STATIC_URL}}';
 
+      %script{src:"{{ STATIC_URL }}js/libs/jquery.url.js"}
       %script{src:"{{ STATIC_URL }}bower/toastr/toastr.js"}
       %script{src:"{{ STATIC_URL }}bower/bootstrap/js/bootstrap-modal.js"}
       %script{src:"{{ STATIC_URL }}bower/bootstrap/js/bootstrap-dropdown.js"}
@@ -68,7 +68,7 @@
     -compress js
       %script{src:"{{ STATIC_URL }}js/temba.js"}
       %script{src:"{{ STATIC_URL }}js/labels.js"}
-      %script{src:"{{ STATIC_URL }}js/formax.js"}
+      
     
     -include "includes/frame_top.html"
 
@@ -150,36 +150,38 @@
         globals="/api/v2/globals.json")
 
   .flex.flex-col.h-full
-    <!-- Header -->
 
-    -if user_org
-      .org-header.self-end
-        -if user_orgs|length > 1
-          .pull-right.toggle
-            .icon-menu-2
+    -block header
+      <!-- Header -->
 
-        .org
-          {{ user_org.name|truncatechars:30 }}
+      -if user_org
+        .org-header.self-end
+          -if user_orgs|length > 1
+            .pull-right.toggle
+              .icon-menu-2
 
-        .other-orgs.hide
-          -for org in user_orgs
-            -if org != user_org
-              .org
-                %a.posterize{href:'{% url "orgs.org_choose"%}?organization={{org.pk}}'}
-                  {{ org.name }}
+          .org
+            {{ user_org.name }}
 
-
-
-    #header
-      &nbsp;
+          .other-orgs.hide
+            -for org in user_orgs
+              -if org != user_org
+                .org.text-primary
+                  %a.posterize{href:'{% url "orgs.org_choose"%}?organization={{org.pk}}'}
+                    {{ org.name }}
 
 
-    %a#big-logo.logo.icon-logo{href:"{% if user.is_authenticated %}{% url 'msgs.msg_inbox' %}{% else %}/{% endif %}", title:"{{brand.name}}", class:"hover:no-underline"}
-      .name
-        {{brand.name}}
 
-    -block nav
-      -include 'includes/nav.html'
+      #header
+        &nbsp;
+
+
+      %a#big-logo.logo.icon-logo{href:"{% if user.is_authenticated %}{% url 'msgs.msg_inbox' %}{% else %}/{% endif %}", title:"{{brand.name}}", class:"hover:no-underline"}
+        .name
+          {{brand.name}}
+
+      -block nav
+        -include 'includes/nav.html'
 
 
     -if messages
@@ -227,6 +229,10 @@
     -block footer
       .footer.text-center.py-12.bg-gray-200.text-gray-500
         {{ request.branding.credits|safe }}
+        %div
+          %a.p-1.text-gray-500.underline(href="/policy/")
+            -trans "Privacy"
+
 
   -trans 'Delete' as title
   %temba-dialog#general-delete-confirmation.hidden{header:"{{title|escapejs}}", primaryButtonName:"{{title|escapejs}}", destructive: "true"}
@@ -310,6 +316,55 @@
 
     -block extra-script
 
+    -block refresh-fn
+      :javascript
+        function refresh(onSuccess, forceReload){  
+          var url = params;
+          {% if page_obj %}
+            url += "page={{page_obj.number}}";
+          {% endif %}
+
+          if (url == '') {
+            url = '?';
+          }
+
+          url += '&ts=' + new Date().getTime() + "&refresh=" + refreshTimeout;
+
+          document.dispatchEvent(new Event("temba-refresh-begin"));  
+          fetchPJAXContent(url, '#pjax', {
+              onSuccess: function() {
+                if (onSuccess) {
+                  onSuccess();
+                }
+                document.dispatchEvent(new Event("temba-refresh-complete"));
+                refreshTimeout = Math.floor(refreshTimeout * 1.1)
+                scheduleRefresh();
+              },
+              shouldIgnore: function() {
+                if (forceReload) {
+                  return false;
+                }
+                var pjax = document.querySelector("#pjax");
+                if (pjax) {
+                  return eval(document.querySelector("#pjax").dataset.noPjax);
+                }
+                return true;
+              },
+              onIgnore: function() {
+                var pjax = document.querySelector("#pjax");
+                if (pjax) {
+                  scheduleRefresh();
+                }
+              }
+          });
+        }
+
+    -block full-page-script
+      :javascript
+        document.addEventListener("temba-redirected", function(event){
+          document.location.href = event.detail.url;
+        });
+
     <script type="text/javascript" src="{{ STATIC_URL }}js/libs/jquery.url.js"></script>
 
     <form id="posterizer" method="post">
@@ -317,6 +372,14 @@
     </form>
 
     :javascript
+
+      var params = '{{url_params|safe}}';
+      $(document).ready(function(){
+        if (window.scheduleRefresh) {
+          scheduleRefresh();
+        }
+      });
+
       $(document).ready(function() {
         if (navigator.appVersion.indexOf("Win")!=-1) {
           $("html").addClass("windows");
@@ -375,6 +438,5 @@
 
       });
 {% endblock body %}
-
 
 </html>

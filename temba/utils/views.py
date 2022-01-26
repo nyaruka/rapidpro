@@ -1,18 +1,61 @@
 import logging
+from urllib.parse import quote
 
 from django import forms
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.http import urlquote
-from django.utils.translation import ugettext_lazy as _
+from django.utils.functional import cached_property
+from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
 from temba.utils.fields import CheckboxWidget, InputWidget, SelectMultipleWidget, SelectWidget
 
 logger = logging.getLogger(__name__)
+
+
+class SpaMixin(View):
+    """
+    Uses SPA base template if the header is set appropriately
+    """
+
+    @cached_property
+    def spa_path(self) -> tuple:
+        return tuple(s for s in self.request.META.get("HTTP_TEMBA_PATH", "").split("/") if s)
+
+    @cached_property
+    def spa_referrer_path(self) -> tuple:
+        return tuple(s for s in self.request.META.get("HTTP_TEMBA_REFERER_PATH", "").split("/") if s)
+
+    def is_spa(self):
+        is_spa = "HTTP_TEMBA_SPA" in self.request.META
+        return is_spa
+
+    def get_template_names(self):
+        templates = super().get_template_names()
+        spa_templates = []
+
+        if self.is_spa():
+            for template in templates:
+                original = template.split(".")
+                if len(original) == 2:
+                    spa_template = original[0] + "_spa." + original[1]
+                if spa_template:
+                    spa_templates.append(spa_template)
+        return spa_templates + templates
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        if self.is_spa():
+            context["base_template"] = "spa.html"
+            context["is_spa"] = True
+            context["temba_path"] = self.spa_path
+            context["temba_referer"] = self.spa_referrer_path
+
+        return context
 
 
 class ComponentFormMixin(View):
@@ -203,7 +246,7 @@ class RequireRecentAuthMixin:
         if not is_formax or self.recent_auth_includes_formax:
             last_auth_on = request.user.get_settings().last_auth_on
             if not last_auth_on or (timezone.now() - last_auth_on).total_seconds() > self.recent_auth_seconds:
-                return HttpResponseRedirect(reverse("users.confirm_access") + f"?next={urlquote(request.path)}")
+                return HttpResponseRedirect(reverse("users.confirm_access") + f"?next={quote(request.path)}")
 
         return super().pre_process(request, *args, **kwargs)
 

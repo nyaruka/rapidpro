@@ -4,7 +4,7 @@ from django import forms
 from django.db.models import Min
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from django.utils.translation import ngettext_lazy, ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _, ngettext_lazy
 
 from temba.channels.models import Channel
 from temba.contacts.models import ContactGroup, ContactURN
@@ -95,7 +95,9 @@ class BaseTriggerForm(forms.ModelForm):
         keyword = keyword.strip()
 
         if not self.trigger_type.is_valid_keyword(keyword):
-            raise forms.ValidationError(_("Must be a single word containing only letters and numbers."))
+            raise forms.ValidationError(
+                _("Must be a single word containing only letters and numbers, or a single emoji character.")
+            )
 
         return keyword.lower()
 

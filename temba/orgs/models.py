@@ -33,7 +33,7 @@ from django.db.models import Count, F, Prefetch, Q, Sum
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.text import slugify
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from temba import mailroom
 from temba.archives.models import Archive
@@ -260,12 +260,8 @@ class Org(SmartModel):
     LIMIT_FIELDS = "fields"
     LIMIT_GLOBALS = "globals"
     LIMIT_GROUPS = "groups"
-
-    LIMIT_DEFAULTS = {
-        LIMIT_FIELDS: settings.MAX_ACTIVE_CONTACTFIELDS_PER_ORG,
-        LIMIT_GLOBALS: settings.MAX_ACTIVE_GLOBALS_PER_ORG,
-        LIMIT_GROUPS: settings.MAX_ACTIVE_CONTACTGROUPS_PER_ORG,
-    }
+    LIMIT_LABELS = "labels"
+    LIMIT_TOPICS = "topics"
 
     DELETE_DELAY_DAYS = 7  # how many days after releasing that an org is deleted
 
@@ -500,23 +496,39 @@ class Org(SmartModel):
         )
 
     def get_limit(self, limit_type):
-        return int(self.limits.get(limit_type, self.LIMIT_DEFAULTS.get(limit_type)))
+        return int(self.limits.get(limit_type, settings.ORG_LIMIT_DEFAULTS.get(limit_type)))
 
     def flag(self):
+        """
+        Flags this org for suspicious activity
+        """
+        from temba.notifications.models import Incident
+
         self.is_flagged = True
         self.save(update_fields=("is_flagged", "modified_on"))
 
+        Incident.flagged(self)  # create incident which will notify admins
+
     def unflag(self):
-        self.is_flagged = False
-        self.save(update_fields=("is_flagged", "modified_on"))
+        """
+        Unflags this org if they previously were flagged
+        """
+
+        from temba.notifications.models import Incident
+
+        if self.is_flagged:
+            self.is_flagged = False
+            self.save(update_fields=("is_flagged", "modified_on"))
+
+            Incident.flagged(self).end()
 
     def verify(self):
         """
         Unflags org and marks as verified so it won't be flagged automatically in future
         """
-        self.is_flagged = False
+        self.unflag()
         self.config[Org.CONFIG_VERIFIED] = True
-        self.save(update_fields=("is_flagged", "config", "modified_on"))
+        self.save(update_fields=("config", "modified_on"))
 
     def is_verified(self):
         """
@@ -720,10 +732,14 @@ class Org(SmartModel):
         normalize_contact_tels_task.delay(self.pk)
 
     @cached_property
-    def cached_active_contacts_group(self):
+    def active_contacts_group(self):
         from temba.contacts.models import ContactGroup
 
-        return ContactGroup.all_groups.get(org=self, group_type=ContactGroup.TYPE_ACTIVE)
+        return self.all_groups(manager="system_groups").get(group_type=ContactGroup.TYPE_ACTIVE)
+
+    @cached_property
+    def default_ticket_topic(self):
+        return self.topics.get(is_default=True)
 
     def get_resthooks(self):
         """
@@ -734,31 +750,6 @@ class Org(SmartModel):
     @classmethod
     def get_possible_countries(cls):
         return AdminBoundary.objects.filter(level=0).order_by("name")
-
-    def trigger_send(self):
-        """
-        Triggers either our Android channels to sync, or for all our pending messages to be queued
-        to send.
-        """
-
-        from temba.channels.models import Channel
-        from temba.channels.types.android import AndroidType
-        from temba.msgs.models import Msg
-
-        # sync all pending channels
-        for channel in self.channels.filter(is_active=True, channel_type=AndroidType.code):  # pragma: needs cover
-            channel.trigger_sync()
-
-        # otherwise, send any pending messages on our channels
-        r = get_redis_connection()
-
-        key = "trigger_send_%d" % self.pk
-
-        # only try to send all pending messages if nobody is doing so already
-        if not r.get(key):
-            with r.lock(key, timeout=900):
-                pending = Channel.get_pending_messages(self)
-                Msg.send_messages(pending)
 
     def add_smtp_config(self, from_email, host, username, password, port, user):
         username = quote(username)
@@ -897,16 +888,17 @@ class Org(SmartModel):
         self.modified_by = user
         self.save(update_fields=("flow_languages", "modified_by", "modified_on"))
 
-    def get_datetime_formats(self):
-        format_date = Org.DATE_FORMATS_PYTHON.get(self.date_format)
-        format_datetime = format_date + " %H:%M"
-        return format_date, format_datetime
+    def get_datetime_formats(self, *, seconds=False):
+        date_format = Org.DATE_FORMATS_PYTHON.get(self.date_format)
+        time_format = "%H:%M:%S" if seconds else "%H:%M"
+        datetime_format = f"{date_format} {time_format}"
+        return date_format, datetime_format
 
-    def format_datetime(self, d, show_time=True):
+    def format_datetime(self, d, *, show_time=True, seconds=False):
         """
         Formats a datetime with or without time using this org's date format
         """
-        formats = self.get_datetime_formats()
+        formats = self.get_datetime_formats(seconds=seconds)
         format = formats[1] if show_time else formats[0]
         return datetime_to_str(d, format, self.timezone)
 
@@ -1564,13 +1556,13 @@ class Org(SmartModel):
 
         return all_components
 
-    def initialize(self, branding=None, topup_size=None):
+    def initialize(self, branding=None, topup_size=None, sample_flows=True):
         """
         Initializes an organization, creating all the dependent objects we need for it to work properly.
         """
         from temba.middleware import BrandingMiddleware
         from temba.contacts.models import ContactField, ContactGroup
-        from temba.tickets.models import Ticketer
+        from temba.tickets.models import Ticketer, Topic
 
         with transaction.atomic():
             if not branding:
@@ -1579,12 +1571,14 @@ class Org(SmartModel):
             ContactGroup.create_system_groups(self)
             ContactField.create_system_fields(self)
             Ticketer.create_internal_ticketer(self, branding)
+            Topic.create_default_topic(self)
 
             self.init_topups(topup_size)
             self.update_capabilities()
 
         # outside of the transaction as it's going to call out to mailroom for flow validation
-        self.create_sample_flows(branding.get("api_link", ""))
+        if sample_flows:
+            self.create_sample_flows(branding.get("api_link", ""))
 
     def download_and_save_media(self, request, extension=None):  # pragma: needs cover
         """
@@ -1682,7 +1676,9 @@ class Org(SmartModel):
 
         user = self.modified_by
 
-        # delete exports
+        # delete notifications and exports
+        self.incidents.all().delete()
+        self.notifications.all().delete()
         self.exportcontactstasks.all().delete()
         self.exportmessagestasks.all().delete()
         self.exportflowresultstasks.all().delete()
@@ -1716,13 +1712,12 @@ class Org(SmartModel):
             flow_label.delete()
 
         # delete contact-related data
+        self.http_logs.all().delete()
         self.sessions.all().delete()
         self.ticket_events.all().delete()
         self.tickets.all().delete()
+        self.topics.all().delete()
         self.airtime_transfers.all().delete()
-
-        for result in self.webhook_results.all():
-            result.release()
 
         # delete our contacts
         for contact in self.contacts.all():
@@ -1739,7 +1734,7 @@ class Org(SmartModel):
 
         # delete our groups
         for group in self.all_groups.all():
-            group.release()
+            group.release(user, immediate=True)
             group.delete()
 
         # delete our channels
@@ -1749,9 +1744,6 @@ class Org(SmartModel):
             channel.template_translations.all().delete()
 
             channel.delete()
-
-        for log in self.http_logs.all():
-            log.release()
 
         for g in self.globals.all():
             g.release(user)
@@ -1776,8 +1768,7 @@ class Org(SmartModel):
         for topup in self.topups.all():
             topup.release()
 
-        for event in self.webhookevent_set.all():
-            event.release()
+        self.webhookevent_set.all().delete()
 
         for resthook in self.resthooks.all():
             resthook.release(user)
@@ -2124,6 +2115,8 @@ class UserSettings(models.Model):
     otp_secret = models.CharField(max_length=16, default=pyotp.random_base32)
     two_factor_enabled = models.BooleanField(default=False)
     last_auth_on = models.DateTimeField(null=True)
+    external_id = models.CharField(max_length=128, null=True)
+    verification_token = models.CharField(max_length=64, null=True)
 
     @classmethod
     def get_or_create(cls, user):

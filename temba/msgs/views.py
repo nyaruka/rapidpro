@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from urllib.parse import quote_plus
 
 from smartmin.views import (
     SmartCreateView,
@@ -7,18 +8,20 @@ from smartmin.views import (
     SmartFormView,
     SmartListView,
     SmartReadView,
+    SmartTemplateView,
     SmartUpdateView,
 )
 
 from django import forms
 from django.conf import settings
 from django.contrib import messages
+from django.db.models.functions.text import Upper
 from django.forms import Form
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.http import is_safe_url, urlquote_plus
-from django.utils.translation import ugettext_lazy as _
+from django.utils.http import is_safe_url
+from django.utils.translation import gettext_lazy as _
 
 from temba.archives.models import Archive
 from temba.channels.models import Channel
@@ -26,7 +29,14 @@ from temba.contacts.models import ContactGroup
 from temba.contacts.search.omnibox import omnibox_deserialize, omnibox_query, omnibox_results_to_dict
 from temba.formax import FormaxMixin
 from temba.orgs.models import Org
-from temba.orgs.views import DependencyDeleteModal, DependencyUsagesModal, ModalMixin, OrgObjPermsMixin, OrgPermsMixin
+from temba.orgs.views import (
+    DependencyDeleteModal,
+    DependencyUsagesModal,
+    MenuMixin,
+    ModalMixin,
+    OrgObjPermsMixin,
+    OrgPermsMixin,
+)
 from temba.utils import analytics, json, on_transaction_commit
 from temba.utils.fields import (
     CheckboxWidget,
@@ -40,9 +50,9 @@ from temba.utils.fields import (
     TembaChoiceField,
 )
 from temba.utils.models import patch_queryset_count
-from temba.utils.views import BulkActionMixin, ComponentFormMixin
+from temba.utils.views import BulkActionMixin, ComponentFormMixin, SpaMixin
 
-from .models import INITIALIZING, QUEUED, Broadcast, ExportMessagesTask, Label, Msg, Schedule, SystemLabel
+from .models import Broadcast, ExportMessagesTask, Label, LabelCount, Msg, Schedule, SystemLabel
 from .tasks import export_messages_task
 
 
@@ -96,7 +106,7 @@ class SendMessageForm(Form):
         return cleaned
 
 
-class InboxView(OrgPermsMixin, BulkActionMixin, SmartListView):
+class InboxView(SpaMixin, OrgPermsMixin, BulkActionMixin, SmartListView):
     """
     Base class for inbox views with message folders and labels listed by the side
     """
@@ -117,7 +127,7 @@ class InboxView(OrgPermsMixin, BulkActionMixin, SmartListView):
         return self.system_label
 
     def derive_export_url(self):
-        redirect = urlquote_plus(self.request.get_full_path())
+        redirect = quote_plus(self.request.get_full_path())
         label = self.derive_label()
         label_id = label.uuid if isinstance(label, Label) else label
         return "%s?l=%s&redirect=%s" % (reverse("msgs.msg_export"), label_id, redirect)
@@ -248,7 +258,7 @@ class BroadcastCRUDL(SmartCRUDL):
     actions = ("send", "update", "schedule_read", "schedule_list")
     model = Broadcast
 
-    class ScheduleRead(FormaxMixin, OrgObjPermsMixin, SmartReadView):
+    class ScheduleRead(SpaMixin, FormaxMixin, OrgObjPermsMixin, SmartReadView):
         title = _("Schedule Message")
 
         def derive_title(self):
@@ -411,7 +421,7 @@ class BroadcastCRUDL(SmartCRUDL):
                     contacts=contacts,
                     urns=urns,
                     schedule=schedule,
-                    status=QUEUED,
+                    status=Msg.STATUS_QUEUED,
                     template_state=Broadcast.TEMPLATE_STATE_UNEVALUATED,
                 )
 
@@ -511,7 +521,90 @@ class ExportForm(Form):
 
 class MsgCRUDL(SmartCRUDL):
     model = Msg
-    actions = ("inbox", "flow", "archived", "outbox", "sent", "failed", "filter", "export")
+    actions = ("inbox", "flow", "archived", "menu", "outbox", "sent", "failed", "filter", "export")
+
+    class Menu(MenuMixin, OrgPermsMixin, SmartTemplateView):  # pragma: no cover
+        def derive_menu(self):
+            org = self.request.user.get_org()
+            counts = SystemLabel.get_counts(org)
+
+            if self.request.GET.get("labels"):
+                labels = (
+                    Label.all_objects.filter(org=org, is_active=True)
+                    .exclude(label_type=Label.TYPE_FOLDER)
+                    .order_by(Upper("name"))
+                )
+                label_counts = LabelCount.get_totals([l for l in labels])
+
+                menu = []
+                for label in labels:
+                    menu.append(
+                        self.create_menu_item(
+                            menu_id=label.uuid,
+                            name=label.name,
+                            href=reverse("msgs.msg_filter", args=[label.uuid]),
+                            count=label_counts[label],
+                        )
+                    )
+                return menu
+            else:
+                label_count = Label.label_objects.filter(org=org, is_active=True).count()
+
+                return [
+                    self.create_menu_item(
+                        name=_("Inbox"),
+                        href=reverse("msgs.msg_inbox"),
+                        count=counts[SystemLabel.TYPE_INBOX],
+                        icon="inbox",
+                    ),
+                    self.create_menu_item(
+                        name=_("Scheduled"),
+                        href=reverse("msgs.broadcast_schedule_list"),
+                        count=counts[SystemLabel.TYPE_SCHEDULED],
+                        icon="clock",
+                    ),
+                    self.create_divider(),
+                    self.create_menu_item(
+                        name=_("Labels"),
+                        endpoint=f"{reverse('msgs.msg_menu')}?labels=1",
+                        count=label_count,
+                        icon="tag",
+                    ),
+                    self.create_divider(),
+                    self.create_menu_item(
+                        name=_("Outbox"),
+                        href=reverse("msgs.msg_outbox"),
+                        count=counts[SystemLabel.TYPE_OUTBOX],
+                    ),
+                    self.create_menu_item(
+                        name=_("Sent"),
+                        href=reverse("msgs.msg_sent"),
+                        count=counts[SystemLabel.TYPE_SENT],
+                    ),
+                    self.create_menu_item(
+                        name=_("Failed"),
+                        href=reverse("msgs.msg_failed"),
+                        count=counts[SystemLabel.TYPE_FAILED],
+                    ),
+                    self.create_divider(),
+                    self.create_menu_item(
+                        name=_("Flows"),
+                        href=reverse("msgs.msg_flow"),
+                        count=counts[SystemLabel.TYPE_FLOWS],
+                    ),
+                    self.create_menu_item(
+                        name=_("Calls"),
+                        href=reverse("channels.channelevent_calls"),
+                        count=counts[SystemLabel.TYPE_CALLS],
+                    ),
+                    self.create_divider(),
+                    self.create_menu_item(
+                        name=_("Archived"),
+                        href=reverse("msgs.msg_archived"),
+                        count=counts[SystemLabel.TYPE_ARCHIVED],
+                        icon="archive",
+                    ),
+                ]
 
     class Export(ModalMixin, OrgPermsMixin, SmartFormView):
 
@@ -578,7 +671,7 @@ class MsgCRUDL(SmartCRUDL):
 
                 on_transaction_commit(lambda: export_messages_task.delay(export.id))
 
-                if not getattr(settings, "CELERY_ALWAYS_EAGER", False):  # pragma: needs cover
+                if not getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):  # pragma: needs cover
                     messages.info(
                         self.request,
                         _("We are preparing your export. We will e-mail you at %s when " "it is ready.")
@@ -655,7 +748,9 @@ class MsgCRUDL(SmartCRUDL):
             # stuff in any pending broadcasts
             context["pending_broadcasts"] = (
                 Broadcast.objects.filter(
-                    org=self.request.user.get_org(), status__in=[QUEUED, INITIALIZING], schedule=None
+                    org=self.request.user.get_org(),
+                    status__in=[Msg.STATUS_QUEUED, Msg.STATUS_INITIALIZING],
+                    schedule=None,
                 )
                 .select_related("org")
                 .prefetch_related("groups", "contacts", "urns")
@@ -795,13 +890,12 @@ class BaseLabelForm(forms.ModelForm):
         if Label.all_objects.filter(org=self.org, name__iexact=name, is_active=True).exclude(pk=existing_id).exists():
             raise forms.ValidationError(_("Name must be unique"))
 
-        labels_count = Label.all_objects.filter(org=self.org, is_active=True).count()
-        if labels_count >= Label.MAX_ORG_LABELS:
+        count = Label.label_objects.filter(org=self.org, is_active=True).count()
+        if count >= self.org.get_limit(Org.LIMIT_LABELS):
             raise forms.ValidationError(
                 _(
-                    "This org has %(count)d labels and the limit is %(limit)d. "
-                    "You must delete existing ones before you can "
-                    "create new ones." % dict(count=labels_count, limit=Label.MAX_ORG_LABELS)
+                    "This workspace has %d labels and the limit is %s. You must delete existing ones before you can "
+                    "create new ones." % (count, self.org.get_limit(Org.LIMIT_LABELS))
                 )
             )
 

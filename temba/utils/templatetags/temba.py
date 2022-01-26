@@ -12,23 +12,23 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import escapejs
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext, ugettext_lazy as _, ungettext_lazy
+from django.utils.translation import gettext, gettext_lazy as _, ngettext_lazy
 
+from temba.campaigns.models import Campaign, CampaignEvent
+from temba.contacts.models import ContactGroup
+from temba.flows.models import Flow
+from temba.triggers.models import Trigger
+from temba.utils import analytics
 from temba.utils.dates import datetime_to_str
 
-from ...campaigns.models import Campaign, CampaignEvent
-from ...contacts.models import ContactGroup
-from ...flows.models import Flow
-from ...triggers.models import Trigger
-
 TIME_SINCE_CHUNKS = (
-    (60 * 60 * 24 * 365, ungettext_lazy("%d year", "%d years")),
-    (60 * 60 * 24 * 30, ungettext_lazy("%d month", "%d months")),
-    (60 * 60 * 24 * 7, ungettext_lazy("%d week", "%d weeks")),
-    (60 * 60 * 24, ungettext_lazy("%d day", "%d days")),
-    (60 * 60, ungettext_lazy("%d hour", "%d hours")),
-    (60, ungettext_lazy("%d minute", "%d minutes")),
-    (1, ungettext_lazy("%d second", "%d seconds")),
+    (60 * 60 * 24 * 365, ngettext_lazy("%d year", "%d years")),
+    (60 * 60 * 24 * 30, ngettext_lazy("%d month", "%d months")),
+    (60 * 60 * 24 * 7, ngettext_lazy("%d week", "%d weeks")),
+    (60 * 60 * 24, ngettext_lazy("%d day", "%d days")),
+    (60 * 60, ngettext_lazy("%d hour", "%d hours")),
+    (60, ngettext_lazy("%d minute", "%d minutes")),
+    (1, ngettext_lazy("%d second", "%d seconds")),
 )
 
 
@@ -148,7 +148,7 @@ def delta_filter(delta):
         since = delta.days * 24 * 60 * 60 + delta.seconds
         if since <= 0:
             # d is in the future compared to now, stop processing.
-            return ugettext("0 seconds")
+            return gettext("0 seconds")
         for i, (seconds, name) in enumerate(TIME_SINCE_CHUNKS):
             count = since // seconds
             if count != 0:
@@ -159,7 +159,7 @@ def delta_filter(delta):
             seconds2, name2 = TIME_SINCE_CHUNKS[i + 1]
             count2 = (since - (seconds * count)) // seconds2
             if count2 != 0:
-                result += ugettext(", ") + name2 % count2
+                result += ", " + name2 % count2
         return result
 
     except Exception:
@@ -251,20 +251,28 @@ def short_datetime(context, dtime):
 
 
 @register.simple_tag(takes_context=True)
-def format_datetime(context, dtime):
-    if dtime.tzinfo is None:
-        dtime = dtime.replace(tzinfo=pytz.utc)
+def format_datetime(context, dt, seconds: bool = False):
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=pytz.utc)
 
     tz = pytz.UTC
     org = context.get("user_org")
     if org:
         tz = org.timezone
-    dtime = dtime.astimezone(tz)
+    dt = dt.astimezone(tz)
+
     if org:
-        return org.format_datetime(dtime)
-    return datetime_to_str(dtime, "%d-%m-%Y %H:%M", tz)
+        return org.format_datetime(dt, seconds=seconds)
+
+    fmt = "%d-%m-%Y %H:%M:%S" if seconds else "%d-%m-%Y %H:%M"
+    return datetime_to_str(dt, fmt, tz)
 
 
 @register.filter
 def parse_isodate(value):
     return iso8601.parse_date(value)
+
+
+@register.simple_tag(takes_context=True)
+def analytics_hook(context, name: str):
+    return mark_safe(analytics.get_hook_html(name, context))

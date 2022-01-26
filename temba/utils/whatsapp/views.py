@@ -1,7 +1,7 @@
 from smartmin.views import SmartReadView, SmartUpdateView
 
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from temba.channels.models import Channel
 from temba.orgs.views import OrgPermsMixin
@@ -97,6 +97,7 @@ class SyncLogsView(OrgPermsMixin, SmartReadView):
                     HTTPLog.WHATSAPP_TEMPLATES_SYNCED,
                     HTTPLog.WHATSAPP_TOKENS_SYNCED,
                     HTTPLog.WHATSAPP_CONTACTS_REFRESHED,
+                    HTTPLog.WHATSAPP_CHECK_HEALTH,
                 ],
                 channel=self.object,
             )

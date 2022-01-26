@@ -2,7 +2,7 @@ from smartmin.views import SmartCRUDL, SmartUpdateView
 
 from django import forms
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from temba.orgs.views import OrgObjPermsMixin
 from temba.utils.fields import InputWidget, SelectMultipleWidget, SelectWidget
@@ -44,8 +44,9 @@ class ScheduleFormMixin(forms.Form):
     def clean(self):
         cleaned_data = super().clean()
 
-        if cleaned_data["repeat_period"] == Schedule.REPEAT_WEEKLY and not cleaned_data.get("repeat_days_of_week"):
-            raise forms.ValidationError(_("Must specify at least one day of the week."))
+        if self.is_valid():
+            if cleaned_data["repeat_period"] == Schedule.REPEAT_WEEKLY and not cleaned_data.get("repeat_days_of_week"):
+                self.add_error("repeat_days_of_week", _("Must specify at least one day of the week."))
 
         return cleaned_data
 

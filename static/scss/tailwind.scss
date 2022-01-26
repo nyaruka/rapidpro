@@ -95,14 +95,13 @@ a {
 }
 
 .button {
-  @apply px-6 py-3 leading-none text-lg shadow transition duration-300 text-center rounded-lg select-none whitespace-nowrap font-normal inline-block;
+  @apply px-6 py-3 leading-none text-lg shadow transition duration-200 text-center rounded-lg select-none whitespace-nowrap font-normal inline-block;
   margin-top: 1px;
 
   &:active {
     box-shadow:
       0 1px 3px 0 rgba(0, 0, 0, 0.1),
       0 1px 2px 0 rgba(0, 0, 0, 0.06),
-      inset 0 0 20px 20px rgba(0, 0, 0, .15) !important;
   }
 
   &:hover {
@@ -111,7 +110,7 @@ a {
     box-shadow:
       0 1px 3px 0 rgba(0, 0, 0, 0.1),
       0 1px 2px 0 rgba(0, 0, 0, 0.06),
-      inset 0 0 20px 20px rgba(255, 255, 255, .1);
+      
   }
 
 }
@@ -124,7 +123,6 @@ a {
     box-shadow:
       0 1px 3px 0 rgba(0, 0, 0, 0.1),
       0 1px 2px 0 rgba(0, 0, 0, 0.06),
-      inset 0 0 20px 20px rgba(255, 255, 255, .6);
   }
 }
 
@@ -145,7 +143,8 @@ a {
 }
 
 .button-primary {
-  @apply button text-white bg-primary;
+  @apply button text-white;
+  background: var(--color-primary-dark) !important;
 }
 
 .button-white {
@@ -222,7 +221,7 @@ a {
 
 .lbl-group {
   @apply lbl;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   temba-icon {
     --icon-color: rgba(0,0,0,.5);
@@ -314,7 +313,8 @@ a {
 }
 
 .page-title {
-  @apply text-3xl text-gray-700
+  @apply text-3xl text-gray-700;
+  --icon-color: rgb(77,77,77);
 }
 
 .page-subtitle {
@@ -562,7 +562,6 @@ table.list {
 }
 
 .gear-links {
-  @apply ml-4;
   min-height: 34.5px;
 }
 
@@ -678,6 +677,10 @@ code {
   }
 }
 
+.safari-scroll-clip {
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+}
+
 .formax {
   .formax-section {
     transition: all 200ms ease-in-out;
@@ -690,8 +693,23 @@ code {
       box-shadow: var(--widget-box-shadow-focused);
     }
 
+    &.action-summary, &.action-link {
+      @apply border border-gray-400 shadow-none bg-transparent;
+
+      background-color: rgba(0,0,0,.015);
+
+      .formax-summary {
+        @apply py-6 !important;
+        @apply bg-transparent;
+      }
+
+      .formax-icon {
+        @apply bg-transparent;
+      }
+    }
+
     &.action-summary:hover {
-      @apply shadow;
+      @apply shadow-none;
 
       .formax-icon {
         @apply cursor;

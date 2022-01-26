@@ -1,10 +1,9 @@
 import requests
 
-from django.conf.urls import url
 from django.forms import ValidationError
-from django.urls import reverse
+from django.urls import re_path, reverse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from temba.channels.models import Channel
 from temba.channels.types.whatsapp.views import ClaimView
@@ -50,9 +49,9 @@ class WhatsAppType(ChannelType):
     def get_urls(self):
         return [
             self.get_claim_url(),
-            url(r"^(?P<uuid>[a-z0-9\-]+)/refresh$", RefreshView.as_view(), name="refresh"),
-            url(r"^(?P<uuid>[a-z0-9\-]+)/templates$", TemplatesView.as_view(), name="templates"),
-            url(r"^(?P<uuid>[a-z0-9\-]+)/sync_logs$", SyncLogsView.as_view(), name="sync_logs"),
+            re_path(r"^(?P<uuid>[a-z0-9\-]+)/refresh$", RefreshView.as_view(), name="refresh"),
+            re_path(r"^(?P<uuid>[a-z0-9\-]+)/templates$", TemplatesView.as_view(), name="templates"),
+            re_path(r"^(?P<uuid>[a-z0-9\-]+)/sync_logs$", SyncLogsView.as_view(), name="sync_logs"),
         ]
 
     def deactivate(self, channel):
@@ -132,6 +131,6 @@ class WhatsAppType(ChannelType):
             raise Exception(f"Could not establish a connection with the WhatsApp server: {ex}")
 
         if response.status_code >= 400:
-            raise Exception(f"Error checking API health: {response.content}")
+            raise requests.RequestException(f"Error checking API health: {response.content}", response=response)
 
-        return response.json()
+        return response

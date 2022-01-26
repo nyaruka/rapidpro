@@ -5,25 +5,15 @@ import pytz
 from openpyxl import load_workbook
 
 from django.conf import settings
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from temba.archives.models import Archive
-from temba.channels.models import Channel, ChannelCount, ChannelEvent, ChannelLog
+from temba.channels.models import ChannelCount, ChannelEvent, ChannelLog
 from temba.contacts.models import URN, ContactURN
 from temba.contacts.search.omnibox import omnibox_serialize
 from temba.msgs.models import (
-    DELIVERED,
-    ERRORED,
-    FAILED,
-    FLOW,
-    HANDLED,
-    INBOX,
-    INCOMING,
-    OUTGOING,
-    PENDING,
-    QUEUED,
-    SENT,
     Attachment,
     Broadcast,
     ExportMessagesTask,
@@ -36,10 +26,9 @@ from temba.msgs.models import (
 from temba.schedules.models import Schedule
 from temba.tests import AnonymousOrg, CRUDLTestMixin, TembaTest
 from temba.tests.engine import MockSessionWriter
-from temba.tests.s3 import MockS3Client
-from temba.utils.uuid import uuid4
+from temba.tests.s3 import MockS3Client, jsonlgz_encode
 
-from .tasks import retry_errored_messages, squash_msgcounts
+from .tasks import squash_msgcounts
 from .templatetags.sms import as_icon
 
 
@@ -229,7 +218,7 @@ class MsgTest(TembaTest):
         self.assertRaises(ValueError, msg2.archive)
 
     def assertReleaseCount(self, direction, status, visibility, msg_type, label):
-        if direction == OUTGOING:
+        if direction == Msg.DIRECTION_OUT:
             msg = self.create_outgoing_msg(self.joe, "Whattup Joe")
         else:
             msg = self.create_incoming_msg(self.joe, "Hey hey")
@@ -249,14 +238,22 @@ class MsgTest(TembaTest):
 
     def test_release_counts(self):
         # outgoing labels
-        self.assertReleaseCount(OUTGOING, SENT, Msg.VISIBILITY_VISIBLE, INBOX, SystemLabel.TYPE_SENT)
-        self.assertReleaseCount(OUTGOING, QUEUED, Msg.VISIBILITY_VISIBLE, INBOX, SystemLabel.TYPE_OUTBOX)
-        self.assertReleaseCount(OUTGOING, FAILED, Msg.VISIBILITY_VISIBLE, INBOX, SystemLabel.TYPE_FAILED)
+        self.assertReleaseCount("O", Msg.STATUS_SENT, Msg.VISIBILITY_VISIBLE, Msg.TYPE_INBOX, SystemLabel.TYPE_SENT)
+        self.assertReleaseCount(
+            "O", Msg.STATUS_QUEUED, Msg.VISIBILITY_VISIBLE, Msg.TYPE_INBOX, SystemLabel.TYPE_OUTBOX
+        )
+        self.assertReleaseCount(
+            "O", Msg.STATUS_FAILED, Msg.VISIBILITY_VISIBLE, Msg.TYPE_INBOX, SystemLabel.TYPE_FAILED
+        )
 
         # incoming labels
-        self.assertReleaseCount(INCOMING, HANDLED, Msg.VISIBILITY_VISIBLE, INBOX, SystemLabel.TYPE_INBOX)
-        self.assertReleaseCount(INCOMING, HANDLED, Msg.VISIBILITY_ARCHIVED, INBOX, SystemLabel.TYPE_ARCHIVED)
-        self.assertReleaseCount(INCOMING, HANDLED, Msg.VISIBILITY_VISIBLE, FLOW, SystemLabel.TYPE_FLOWS)
+        self.assertReleaseCount(
+            "I", Msg.STATUS_HANDLED, Msg.VISIBILITY_VISIBLE, Msg.TYPE_INBOX, SystemLabel.TYPE_INBOX
+        )
+        self.assertReleaseCount(
+            "I", Msg.STATUS_HANDLED, Msg.VISIBILITY_ARCHIVED, Msg.TYPE_INBOX, SystemLabel.TYPE_ARCHIVED
+        )
+        self.assertReleaseCount("I", Msg.STATUS_HANDLED, Msg.VISIBILITY_VISIBLE, Msg.TYPE_FLOW, SystemLabel.TYPE_FLOWS)
 
     def test_broadcast_metadata(self):
         self.create_channel("TT", "Twitter", "nyaruka")
@@ -290,42 +287,10 @@ class MsgTest(TembaTest):
             {"quick_replies": [{"eng": "Yes", "fra": "Oui"}, {"eng": "No"}], "template_state": "legacy"},
         )
 
-    def test_retry_errored(self):
-        # change our default channel to external
-        self.channel.channel_type = "EX"
-        self.channel.save()
-
-        android_channel = self.create_channel(
-            "A",
-            "Android Channel",
-            "+250785551414",
-            country="RW",
-            secret="12345678",
-            config={Channel.CONFIG_FCM_ID: "123"},
-        )
-
-        msg1 = self.create_outgoing_msg(self.joe, "errored", status="E", channel=self.channel)
-        msg1.next_attempt = timezone.now()
-        msg1.save(update_fields=["next_attempt"])
-
-        msg2 = self.create_outgoing_msg(self.joe, "android", status="E", channel=android_channel)
-        msg2.next_attempt = None
-        msg2.save(update_fields=["next_attempt"])
-
-        msg3 = self.create_outgoing_msg(self.joe, "failed", status="F", channel=self.channel)
-
-        retry_errored_messages()
-
-        msg1.refresh_from_db()
-        msg2.refresh_from_db()
-        msg3.refresh_from_db()
-
-        self.assertEqual("W", msg1.status)
-        self.assertEqual("E", msg2.status)
-        self.assertEqual("F", msg3.status)
-
     @patch("temba.utils.email.send_temba_email")
     def test_message_export_from_archives(self, mock_send_temba_email):
+        export_url = reverse("msgs.msg_export")
+
         self.clear_storage()
         self.login(self.admin)
 
@@ -356,16 +321,16 @@ class MsgTest(TembaTest):
 
         # create some outbound messages with different statuses
         msg6 = self.create_outgoing_msg(
-            self.joe, "Hey out 6", status=SENT, created_on=datetime(2017, 1, 6, 10, tzinfo=pytz.UTC)
+            self.joe, "Hey out 6", status=Msg.STATUS_SENT, created_on=datetime(2017, 1, 6, 10, tzinfo=pytz.UTC)
         )
         msg7 = self.create_outgoing_msg(
-            self.joe, "Hey out 7", status=DELIVERED, created_on=datetime(2017, 1, 7, 10, tzinfo=pytz.UTC)
+            self.joe, "Hey out 7", status=Msg.STATUS_DELIVERED, created_on=datetime(2017, 1, 7, 10, tzinfo=pytz.UTC)
         )
         msg8 = self.create_outgoing_msg(
-            self.joe, "Hey out 8", status=ERRORED, created_on=datetime(2017, 1, 8, 10, tzinfo=pytz.UTC)
+            self.joe, "Hey out 8", status=Msg.STATUS_ERRORED, created_on=datetime(2017, 1, 8, 10, tzinfo=pytz.UTC)
         )
         msg9 = self.create_outgoing_msg(
-            self.joe, "Hey out 9", status=FAILED, created_on=datetime(2017, 1, 9, 10, tzinfo=pytz.UTC)
+            self.joe, "Hey out 9", status=Msg.STATUS_FAILED, created_on=datetime(2017, 1, 9, 10, tzinfo=pytz.UTC)
         )
 
         self.assertEqual(msg5.get_attachments(), [Attachment("audio", "http://rapidpro.io/audio/sound.mp3")])
@@ -380,29 +345,20 @@ class MsgTest(TembaTest):
         msg3.save()
 
         # archive 5 msgs
+        mock_s3 = MockS3Client()
+        body, md5, size = jsonlgz_encode([m.as_archive_json() for m in (msg1, msg2, msg3, msg4, msg5, msg6)])
+        mock_s3.put_object("test-bucket", "archive1.jsonl.gz", body)
+
         Archive.objects.create(
             org=self.org,
             archive_type=Archive.TYPE_MSG,
-            size=10,
-            hash=uuid4().hex,
+            size=size,
+            hash=md5,
             url="http://test-bucket.aws.com/archive1.jsonl.gz",
             record_count=6,
             start_date=msg5.created_on.date(),
             period="D",
             build_time=23425,
-        )
-        mock_s3 = MockS3Client()
-        mock_s3.put_jsonl(
-            "test-bucket",
-            "archive1.jsonl.gz",
-            [
-                msg1.as_archive_json(),
-                msg2.as_archive_json(),
-                msg3.as_archive_json(),
-                msg4.as_archive_json(),
-                msg5.as_archive_json(),
-                msg6.as_archive_json(),
-            ],
         )
 
         msg2.release()
@@ -412,30 +368,32 @@ class MsgTest(TembaTest):
         msg6.release()
 
         # create an archive earlier than our flow created date so we check that it isn't included
+        body, md5, size = jsonlgz_encode([msg7.as_archive_json()])
         Archive.objects.create(
             org=self.org,
             archive_type=Archive.TYPE_MSG,
-            size=10,
-            hash=uuid4().hex,
+            size=size,
+            hash=md5,
             url="http://test-bucket.aws.com/archive2.jsonl.gz",
             record_count=1,
             start_date=self.org.created_on - timedelta(days=2),
             period="D",
             build_time=5678,
         )
-        mock_s3.put_jsonl("test-bucket", "archive2.jsonl.gz", [msg7.as_archive_json()])
+        mock_s3.put_object("test-bucket", "archive2.jsonl.gz", body)
 
         msg7.release()
 
         def request_export(query, data=None):
-            response = self.client.post(reverse("msgs.msg_export") + query, data)
+            with self.mockReadOnly():
+                response = self.client.post(export_url + query, data)
             self.assertEqual(response.status_code, 302)
             task = ExportMessagesTask.objects.order_by("-id").first()
             filename = "%s/test_orgs/%d/message_exports/%s.xlsx" % (settings.MEDIA_ROOT, self.org.id, task.uuid)
             return load_workbook(filename=filename)
 
         # export all visible messages (i.e. not msg3) using export_all param
-        with self.assertNumQueries(29):
+        with self.assertNumQueries(31):
             with patch("temba.utils.s3.client", return_value=mock_s3):
                 workbook = request_export("?l=I", {"export_all": 1})
 
@@ -816,6 +774,8 @@ class MsgTest(TembaTest):
 
     @patch("temba.utils.email.send_temba_email")
     def test_message_export(self, mock_send_temba_email):
+        export_url = reverse("msgs.msg_export")
+
         self.clear_storage()
         self.login(self.admin)
 
@@ -841,16 +801,16 @@ class MsgTest(TembaTest):
 
         # create some outbound messages with different statuses
         msg6 = self.create_outgoing_msg(
-            self.joe, "Hey out 6", status=SENT, created_on=datetime(2017, 1, 6, 10, tzinfo=pytz.UTC)
+            self.joe, "Hey out 6", status=Msg.STATUS_SENT, created_on=datetime(2017, 1, 6, 10, tzinfo=pytz.UTC)
         )
         msg7 = self.create_outgoing_msg(
-            self.joe, "Hey out 7", status=DELIVERED, created_on=datetime(2017, 1, 7, 10, tzinfo=pytz.UTC)
+            self.joe, "Hey out 7", status=Msg.STATUS_DELIVERED, created_on=datetime(2017, 1, 7, 10, tzinfo=pytz.UTC)
         )
         msg8 = self.create_outgoing_msg(
-            self.joe, "Hey out 8", status=ERRORED, created_on=datetime(2017, 1, 8, 10, tzinfo=pytz.UTC)
+            self.joe, "Hey out 8", status=Msg.STATUS_ERRORED, created_on=datetime(2017, 1, 8, 10, tzinfo=pytz.UTC)
         )
         msg9 = self.create_outgoing_msg(
-            self.joe, "Hey out 9", status=FAILED, created_on=datetime(2017, 1, 9, 10, tzinfo=pytz.UTC)
+            self.joe, "Hey out 9", status=Msg.STATUS_FAILED, created_on=datetime(2017, 1, 9, 10, tzinfo=pytz.UTC)
         )
 
         self.assertEqual(msg5.get_attachments(), [Attachment("audio", "http://rapidpro.io/audio/sound.mp3")])
@@ -873,14 +833,16 @@ class MsgTest(TembaTest):
         self.assertContains(response, "already an export in progress")
 
         # perform the export manually, assert how many queries
-        self.assertNumQueries(11, lambda: blocking_export.perform())
+        with self.mockReadOnly():
+            self.assertNumQueries(15, lambda: blocking_export.perform())
 
         blocking_export.refresh_from_db()
         # after performing the export `modified_on` should be updated
         self.assertNotEqual(old_modified_on, blocking_export.modified_on)
 
         def request_export(query, data=None):
-            response = self.client.post(reverse("msgs.msg_export") + query, data)
+            with self.mockReadOnly(assert_models={Msg}):
+                response = self.client.post(export_url + query, data)
             self.assertEqual(response.status_code, 302)
             task = ExportMessagesTask.objects.order_by("-id").first()
             filename = "%s/test_orgs/%d/message_exports/%s.xlsx" % (settings.MEDIA_ROOT, self.org.id, task.uuid)
@@ -895,7 +857,7 @@ class MsgTest(TembaTest):
                 # make sure that we trigger logger
                 log_info_threshold.return_value = 5
 
-                with self.assertNumQueries(29):
+                with self.assertNumQueries(31):
                     self.assertExcelSheet(
                         request_export("?l=I", {"export_all": 1}),
                         [
@@ -1025,14 +987,14 @@ class MsgTest(TembaTest):
                 self.assertTrue("found 8 msgs in database to export" in captured_logger.output[1])
                 self.assertTrue("exported 8 in" in captured_logger.output[2])
 
-        # check email was sent correctly
-        email_args = mock_send_temba_email.call_args[0]  # all positional args
-        export = ExportMessagesTask.objects.order_by("-id").first()
-        self.assertEqual(email_args[0], "Your messages export from %s is ready" % self.org.name)
-        self.assertIn("https://app.rapidpro.io/assets/download/message_export/%d/" % export.id, email_args[1])
-        self.assertNotIn("{{", email_args[1])
-        self.assertIn("https://app.rapidpro.io/assets/download/message_export/%d/" % export.id, email_args[2])
-        self.assertNotIn("{{", email_args[2])
+        # check that notifications were created
+        export = ExportMessagesTask.objects.order_by("id").last()
+        self.assertEqual(
+            1,
+            self.admin.notifications.filter(
+                notification_type="export:finished", message_export=export, email_status="P"
+            ).count(),
+        )
 
         # export just archived messages
         self.assertExcelSheet(
@@ -1373,7 +1335,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         msg3 = self.create_incoming_msg(contact2, "message number 3")
         msg4 = self.create_incoming_msg(contact2, "message number 4")
         msg5 = self.create_incoming_msg(contact2, "message number 5", visibility="A")
-        self.create_incoming_msg(contact2, "message number 6", status=PENDING)
+        self.create_incoming_msg(contact2, "message number 6", status=Msg.STATUS_PENDING)
         ChannelLog.objects.create(channel=self.channel, msg=msg1, description="Success")
         ChannelLog.objects.create(channel=self.channel, msg=msg2, description="Success")
 
@@ -1469,7 +1431,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         msg2 = self.create_incoming_msg(contact1, "message number 2", visibility="A")
         msg3 = self.create_incoming_msg(contact2, "message number 3", visibility="A")
         self.create_incoming_msg(contact2, "message number 4", visibility="D")
-        self.create_incoming_msg(contact2, "message number 5", status=PENDING)
+        self.create_incoming_msg(contact2, "message number 5", status=Msg.STATUS_PENDING)
         ChannelLog.objects.create(channel=self.channel, msg=msg1, description="Success")
         ChannelLog.objects.create(channel=self.channel, msg=msg2, description="Success")
 
@@ -1512,7 +1474,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # create a single message broadcast and put message back into pending state
         broadcast1 = self.create_broadcast(self.admin, "How is it going?", contacts=[contact1])
-        Msg.objects.filter(broadcast=broadcast1).update(status=PENDING)
+        Msg.objects.filter(broadcast=broadcast1).update(status=Msg.STATUS_PENDING)
         msg1 = broadcast1.msgs.get()
 
         outbox_url = reverse("msgs.msg_outbox")
@@ -1532,14 +1494,14 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         contact4 = self.create_contact("Kevin", phone="+250788000003")
         group = self.create_group("Testers", contacts=[contact2, contact3])
         broadcast2 = self.create_broadcast(self.admin, "kLab is awesome", contacts=[contact4], groups=[group])
-        broadcast2.msgs.update(status=PENDING)
+        broadcast2.msgs.update(status=Msg.STATUS_PENDING)
         msg4, msg3, msg2 = broadcast2.msgs.order_by("-id")
 
         broadcast3 = Broadcast.create(
-            self.channel.org, self.admin, "Pending broadcast", contacts=[contact4], status=QUEUED
+            self.channel.org, self.admin, "Pending broadcast", contacts=[contact4], status=Msg.STATUS_QUEUED
         )
         broadcast4 = Broadcast.create(
-            self.channel.org, self.admin, "Scheduled broadcast", contacts=[contact4], status=QUEUED
+            self.channel.org, self.admin, "Scheduled broadcast", contacts=[contact4], status=Msg.STATUS_QUEUED
         )
 
         broadcast4.schedule = Schedule.create_schedule(self.org, self.admin, timezone.now(), Schedule.REPEAT_DAILY)
@@ -1581,7 +1543,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # check query count
         self.login(self.admin)
-        with self.assertNumQueries(38):
+        with self.assertNumQueries(40):
             self.client.get(sent_url)
 
         # messages sorted by sent_on
@@ -1608,7 +1570,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # check query count
         self.login(self.admin)
-        with self.assertNumQueries(38):
+        with self.assertNumQueries(39):
             self.client.get(failed_url)
 
         response = self.assertListFetch(
@@ -1616,12 +1578,12 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         self.assertEqual(("resend",), response.context["actions"])
-        self.assertContains(response, reverse("channels.channellog_read", args=[log.id]))
+        self.assertContains(response, reverse("channels.channellog_read", args=[log.channel.uuid, log.id]))
 
         # make the org anonymous
         with AnonymousOrg(self.org):
             response = self.requestView(failed_url, self.admin)
-            self.assertNotContains(response, reverse("channels.channellog_read", args=[log.id]))
+            self.assertNotContains(response, reverse("channels.channellog_read", args=[log.channel.uuid, log.id]))
 
         # resend some messages
         self.client.post(failed_url, {"action": "resend", "objects": [msg2.id]})
@@ -1730,7 +1692,7 @@ class BroadcastTest(TembaTest):
         self.create_incoming_msg(self.frank, "Bonjour")
 
         # create a broadcast which is a response to an incoming message
-        self.create_broadcast(self.user, "Noted", contacts=[self.joe], response_to=msg_in1)
+        self.create_broadcast(self.user, "Noted", contacts=[self.joe])
 
         # create a broadcast which is to several contacts
         broadcast2 = self.create_broadcast(
@@ -2490,14 +2452,14 @@ class LabelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFormError(response, "form", "name", "Name must not be blank or begin with punctuation")
 
         # try creating a new label after reaching the limit on labels
-        current_count = Label.all_objects.filter(org=self.org, is_active=True).count()
-        with patch.object(Label, "MAX_ORG_LABELS", current_count):
+        current_count = Label.label_objects.filter(org=self.org, is_active=True).count()
+        with override_settings(ORG_LIMIT_DEFAULTS={"labels": current_count}):
             response = self.client.post(create_label_url, {"name": "CoolStuff"})
             self.assertFormError(
                 response,
                 "form",
                 "name",
-                "This org has 3 labels and the limit is 3. "
+                "This workspace has 2 labels and the limit is 2. "
                 "You must delete existing ones before you can create new ones.",
             )
 
@@ -2629,7 +2591,7 @@ class SystemLabelTest(TembaTest):
         msg3 = self.create_incoming_msg(contact1, "Message 3")
         msg4 = self.create_incoming_msg(contact1, "Message 4")
         call1 = self.create_channel_event(self.channel, "tel:0783835001", ChannelEvent.TYPE_CALL_IN, extra={})
-        Broadcast.create(self.org, self.user, "Broadcast 2", contacts=[contact1, contact2], status=QUEUED)
+        Broadcast.create(self.org, self.user, "Broadcast 2", contacts=[contact1, contact2], status=Msg.STATUS_QUEUED)
         Broadcast.create(
             self.org,
             self.user,
@@ -2655,7 +2617,7 @@ class SystemLabelTest(TembaTest):
         msg3.archive()
 
         bcast1 = self.create_broadcast(self.user, "Broadcast 1", contacts=[contact1, contact2])
-        Msg.objects.filter(broadcast=bcast1).update(status=PENDING)
+        Msg.objects.filter(broadcast=bcast1).update(status=Msg.STATUS_PENDING)
 
         msg5, msg6 = tuple(Msg.objects.filter(broadcast=bcast1))
         self.create_channel_event(self.channel, "tel:0783835002", ChannelEvent.TYPE_CALL_IN, extra={})
@@ -2798,7 +2760,7 @@ class TagsTest(TembaTest):
         self.assertTrue(text.find(clazz) >= 0)
 
     def test_as_icon(self):
-        msg = self.create_outgoing_msg(self.joe, "How is it going?", status=QUEUED)
+        msg = self.create_outgoing_msg(self.joe, "How is it going?", status=Msg.STATUS_QUEUED)
         now = timezone.now()
         two_hours_ago = now - timedelta(hours=2)
 

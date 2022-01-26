@@ -1,3 +1,533 @@
+v7.1.46
+----------
+ * Add migration to set wait_resume_on_expire on flow sessions
+ * Update task used to update run expirations to also update them on the session
+
+v7.1.45
+----------
+ * Make FlowSession.status non-null and add constraint to ensure waiting sessions have wait_started_on and wait_expires_on set
+
+v7.1.44
+----------
+ * Fix login via password managers
+ * Change gujarati code language to 'guj'
+ * Add instagram channel type
+ * Add interstitial when inactive contact search meets threshold
+
+v7.1.42
+----------
+ * Add missing migration
+
+v7.1.41
+----------
+ * Add Contact.current_flow
+
+v7.1.40
+----------
+ * Drop FlowRun.events and FlowPathRecentRun
+
+v7.1.39
+----------
+ * Include qrious.js script
+ * Add FlowSession.wait_resume_on_expire
+ * Add Msg.flow
+
+v7.1.38
+----------
+ * Replace uses of deprecated Django functions
+ * Remove crisp and librato analytics backends and add ConsoleBackend as example
+ * Data migration to populate FlowSession.wait_started_on and wait_expires_on
+
+v7.1.37
+----------
+ * Migration to remove recent run creation from db triggers
+ * Remove no longer used recent messages view and functionality on FlowPathRecentRun
+
+v7.1.36
+----------
+ * Add scheme column on contact exports for anon orgs
+ * Remove option to include router arguments in downloaded PO files
+ * Make loading of analytics backends dynamic based on setting of backend class paths
+
+v7.1.35
+----------
+ * Only display crisp support widget if brand supports it
+ * Do crisp chat widget embedding via analytics template hook
+
+v7.1.34
+----------
+ * Update to editor v1.16.1
+
+v7.1.33
+----------
+ * Add management to fix broken flows
+ * Use new recent contacts endpoint for editor
+
+v7.1.32
+----------
+ * Temporarily put crisp_website_id back in context
+
+v7.1.31
+----------
+ * Remove include_msgs option of flow result exports
+
+v7.1.30
+----------
+ * Update to latest flow editor
+
+v7.1.29
+----------
+ * Update to latest floweditor
+ * Add FlowSession.wait_expires_on
+ * Improve validation of flow expires values
+ * Remove segment and intercom integrations and rework librato and crisp into a pluggable analytics framwork
+
+v7.1.28
+----------
+ * Convert FlowRun.id and FlowSession.id to BIGINT
+
+v7.1.27
+----------
+ * Drop no longer used FlowRun.parent
+
+v7.1.26
+----------
+ * Prefer UTF-8 if we're not sure about encoding of CSV import
+
+v7.1.25
+----------
+ * Fix Kaleyra claim blurb
+ * Fix HTTPLog read page showing warning shading for healthy calls
+
+v7.1.24
+----------
+ * Fix crisp identify on signup
+ * Use same event structure for Crisp as others
+
+v7.1.23
+----------
+ * Update help links for the editor
+ * Add failed reason for failed destination such as missing channel or URNs
+ * Add view to fetch recent contacts from Redis
+
+v7.1.22
+----------
+ * Fix join syntax
+
+v7.1.21
+----------
+ * Fix join syntax, argh
+
+v7.1.20
+----------
+ * Arrays not allowed on track events
+
+v7.1.19
+----------
+ * Add missing env to settings_common
+
+v7.1.18
+----------
+ * Implement crisp as an analytics integration
+
+v7.1.17
+----------
+ * Tweak event tracking for results exports
+ * Revert change to hide non-responded runs in UI
+
+v7.1.16
+----------
+ * Drop Msg.response_to
+ * Drop Msg.connection_id
+
+v7.1.15
+----------
+ * Remove path field from API runs endpoint docs
+ * Hide options to include non-responded runs on results download modal and results page
+ * Fix welcome page widths
+ * Update mailroom_db to require pg_dump version 12.*
+ * Update temba-components
+ * Add workspace page to new UI
+
+v7.1.14
+----------
+ * Fix wrap for recipients list on flow start log
+ * Set Msg.delete_from_counts when releasing a msg
+ * Msg.fail_old_messages should set failed_reason
+ * Add new fields to Msg: delete_from_counts, failed_reason, response_to_external_id
+ * Tweak msg_dewire command to only fetch messages which have never errored
+
+v7.1.13
+----------
+ * Add management command to dewire messages based on a file of ids
+ * Render webhook calls which are too slow as errors
+
+v7.1.12
+----------
+ * Remove last of msg sending code
+ * Fix link to webhook log
+
+v7.1.11
+----------
+ * Remove unnecessary conditional load of jquery
+
+v7.1.10
+----------
+ * Make forgot password email look a little nicer and be easier to localize
+
+v7.1.9
+----------
+ * Fix email template for password forgets
+
+v7.1.8
+----------
+ * Remove chatbase as an integration as it no longer exists
+ * Clear keyword triggers when switching to flow type that doesn't support them
+ * Use branded emails for export notifications
+
+v7.1.5
+----------
+ * Remove warning on flow start modal about settings changes
+ * Add privacy policy link
+ * Test with Redis 3.2.4
+ * Updates for label sub menu and internal menu navigation
+
+v7.1.4
+----------
+ * Remove task to retry errored messages which now handled in mailroom
+
+v7.1.2
+----------
+ * Update poetry dependencies
+ * Update to latest editor
+
+v7.1.1
+----------
+ * Remove channel alert notifications as these will become incidents
+ * Add Incident model as well as OrgFlagged and WebhooksUnhealthy types
+
+v7.1.0
+----------
+ * Drop no longer used index on msg UUID
+ * Re-run collect_sql
+ * Use std collection types for typing hints and drop use of object in classes
+
+v7.0.4
+----------
+ * Fix contact stop list page 
+ * Update to latest black to fix errors on Python 3.9.8
+ * Add missing migration
+
+v7.0.3
+----------
+ * Update to latest editor v1.15.1
+ * Update locale files which adds cs and mn
+
+v7.0.2
+----------
+ * Update editor to v1.15 with validation fixes
+ * Fix outbox pagination
+ * Add generic title bar with new dropdown on spa
+
+v7.0.1
+----------
+ * Add missing JS function to delete messages in the archived folder
+ * Update locale files
+
+v7.0.0
+----------
+ * Fix test failing to due bad domain lookup
+
+v6.5.71
+----------
+ * Add migration to remove deleted contacts and groups from scheduled broadcasts
+ * Releasing a contact or group should also remove it from scheduled broadcasts
+
+v6.5.70
+----------
+ * Fix intermittent credit test failure
+ * Tidy up Msg and Broadcast constants
+ * Simplify settings for org limit defaults
+ * Fix rendering of deleted contacts and groups in recipient lists
+
+v6.5.69
+----------
+ * Remove extra labels on contact fields
+
+v6.5.68
+----------
+ * Reenable chat monitoring
+
+v6.5.67
+----------
+ * Make ticket views and components in sync
+
+v6.5.66
+----------
+ * Add channel menu
+ * Add test for dynamic contact group list, remove editor_next redirect
+ * Fix styling on contact list headersa and flow embedding
+ * Add messages to menu, refresh override
+ * Switch contact fields and import to use template inheritance
+ * Use template inheritance for spa work
+ * Add deeplinking support for non-menued destinations
+
+v6.5.65
+----------
+ * Move to Python 3.9
+
+v6.5.64
+----------
+ * Fix export notification email links
+
+v6.5.63
+----------
+ * When a contact is released their tickets should be deleted
+ * Test on PG 12 and 13
+ * Use S3 Select for message exports
+ * Use new notifications system for export emails
+
+v6.5.62
+----------
+ * Use crontab for WA tokens task schedule
+ * Allow keyword triggers to be single emojis
+ * Celery 5.x
+
+v6.5.60
+----------
+ * Add option to audit_archives to check flow run counts
+ * Drop no longer used ticket subject column
+ * Add contact read page based on contact chat component
+
+v6.5.59
+----------
+ * Less progress updates in audit_archives
+ * Tweak tickets API endpoint to accept a uuid URL param
+
+v6.5.58
+----------
+ * Add progress feedback to audit_archives
+ * Update locale files
+
+v6.5.57
+----------
+ * Fix Archive.rewrite
+
+v6.5.56
+----------
+ * Encode content hashes sent to S3 using Base64
+
+v6.5.55
+----------
+ * Trim mailgun ticketer names to <= 64 chars when creating
+ * Management command to audit archives
+ * Use field limiting on omnibox searches
+
+v6.5.54
+----------
+ * Fix S3 select query generation for date fields
+
+v6.5.53
+----------
+ * Disable all sentry transactions
+ * Use S3 select for flow result exports
+ * Add utils for compiling S3 select queries
+
+v6.5.52
+----------
+ * Merge pull request #3555 from nyaruka/ticket-att
+ * Update test to include attachment list for last_msg
+ * Update CHANGELOG.md for v6.5.51
+ * Merge pull request #3553 from nyaruka/httplog_tweaks
+ * Merge pull request #3554 from nyaruka/s3_retries
+ * Add other missing migration
+ * Add retry config to S3 client
+ * Add missing migration to drop WebhookResult model
+ * Update CHANGELOG.md for v6.5.50
+ * Merge pull request #3552 from nyaruka/fix-WA-check-health-logs
+ * Fix tests
+ * Add zero defaults to HTTPLog fields, drop WebHookResult and tweak HTTPLog templates for consistency
+ * Fix response for WA message template to be HTTP response
+ * Update CHANGELOG.md for v6.5.49
+ * Merge pull request #3549 from nyaruka/retention_periods
+ * Merge pull request #3546 from nyaruka/readonly_exports
+ * Merge pull request #3548 from nyaruka/fix-WA-check-health-logs
+ * Merge pull request #3550 from nyaruka/truncate-org
+ * Use single retention period setting for all channel logs
+ * Truncate org name with ellipsis on org chooser
+ * Add new setting for retention periods for different types and make trimming tasks more consistent
+ * Use readonly database connection for contact, message and results exports
+ * Add migration file
+ * Log update WA status error using HTTPLog
+
+v6.5.51
+----------
+ * Add retry config to S3 client
+ * Add zero defaults to HTTPLog fields, drop WebHookResult and tweak HTTPLog templates for consistency
+
+v6.5.50
+----------
+ * Fix response for WA message template to be HTTP response
+
+v6.5.49
+----------
+ * Truncate org name with ellipsis on org chooser
+ * Add new setting for retention periods for different types and make trimming tasks more consistent
+ * Use readonly database connection for contact, message and results exports
+ * Log update WA status error using HTTPLog
+
+v6.5.48
+----------
+ * Fix clear contact field event on ticket history
+
+v6.5.47
+----------
+ * Use readonly database connection for contacts API endpoint
+ * Use webhook_called events from sessions for contact history
+ * Remove unused webhook result views and improve httplog read view
+ * Fix API endpoints not always using readonly database connection and add testing
+
+v6.5.46
+----------
+ * Move list refresh registration out of content block
+
+v6.5.45
+----------
+ * Temporarily disable refresh
+ * Don't use readonly database connection for GETs to contacts endpoint
+ * Add view for webhook calls saved as HTTP logs
+ * Pass location support flag to editor as a feature flag
+
+v6.5.44
+----------
+ * GET requests to API should use readonly database on the view's queryset
+
+v6.5.43
+----------
+ * Tweak how HTTP logs are deleted
+ * Add num_retries field to HTTPLog
+
+v6.5.42
+----------
+ * Pin pyopenxel to 3.0.7 until 3.0.8 release problems resolved
+ * Add new fields to HTTPLog to support saving webhook results
+ * Make TPS for Shaqodoon be 5 by default
+ * Make location support optional via new branding setting
+
+v6.5.41
+----------
+ * Update editor with fix for field creation
+ * Minor tidying of HTTPLog
+ * Fix rendering of tickets on contact read page which now don't have subjects
+
+v6.5.40
+----------
+ * Update to floweditor 1.14.2
+ * Tweak database settings to add new readonly connection and remove no longer used direct connection
+ * Update menu on ticket list update
+
+v6.5.38
+----------
+ * Deprecate subjects on tickets in favor of topics
+ * Tweak ticket bulk action endpoint to allow unassigning
+ * Add API endpoint to read and write ticket topics
+
+v6.5.37
+----------
+ * Add tracking of unseen notification counts for users
+ * Clear ticket notifications when visiting appropriate ticket views
+ * Remove no longer used Log model
+
+v6.5.36
+----------
+ * Revert cryptography update
+
+v6.5.35
+----------
+ * Update to newer pycountry and bump other minor versions
+ * Fix ticketer HTTP logs not being accessible
+ * Add management command to re-eval a smart group
+ * Add comment to event_fires about mailroom issue
+ * Fix indexes on tickets to match new UI
+ * Now that mailroom is setting ContactImport.status, use in reads
+
+v6.5.34
+----------
+ * Update to latest components (fixes overzealous list refresh, non-breaking ticket summary, and display name when created_by is null)
+
+v6.5.33
+----------
+ * Fix Add To Group bulk action on contact list page
+ * Add status field to ContactImport and before starting batches, set redis key mailroom can use to track progress
+ * Delete unused template and minor cleanup
+
+v6.5.32
+----------
+ * Fix template indentation
+ * Pass force=True when closing ticket as part of releasing a ticketer
+ * Add beginings of new nav and SPA based UI (hidden from users for now)
+
+v6.5.31
+----------
+ * Show masked urns for contacts API on anon orgs
+ * Rework notifications, don't use Log model
+
+v6.5.30
+----------
+ * Fix deleting of imports and exports now that they have associated logs
+
+v6.5.29
+----------
+ * Add basic (and unused for now) JSON endpoint for listing notifications
+ * Reduce sentry trace sampling to 0.01
+ * Override kir language name
+ * Add change_topic as action to ticket bulk actions API endpoint
+ * Add Log and Notification model
+
+v6.5.28
+----------
+ * Add new ticket event type for topic changes
+ * Migrations to assign default topic to all existing tickets
+
+v6.5.27
+----------
+ * Add migration to give all existing orgs a default ticket topic
+
+v6.5.26
+----------
+ * Move mailroom_db data to external JSON file
+ * Run CI tests with latest mailroom
+ * Add ticket topic model and initialize orgs with a default topic
+
+v6.5.25
+----------
+ * Improve display of channels logs for calls
+
+v6.5.24
+----------
+ * Add machine detection as config option to channels with call role
+ * Tweak event_fires management command to show timesince for events in the past
+
+v6.5.23
+----------
+ * Drop retry_count, make error_count non-null
+ * Improve channel log templates so that we use consistent date formating, show call error reasons, and show back button for calls
+ * Tweak how we assert form errors and fix where they don't match exactly
+ * Re-add QUEUED status for channel connections
+
+v6.5.22
+----------
+ * Tweak index used for retrying IVR calls to only include statuses Q and E
+ * Dont show ticket events like note added or assignment on contact read page
+ * Include error reason in call_started events in contact history
+ * Remove channel connection statuses that we don't use and add error_reason
+
+v6.5.21
+----------
+ * Prevent saving of campaign events without start_mode
+ * Improve handling of group lookups in contact list views
+ * Add button to see channel error logs
+
 v6.5.20
 ----------
  * Make ChannelConnection.error_count nullable so it can be removed

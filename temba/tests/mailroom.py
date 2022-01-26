@@ -4,7 +4,6 @@ from collections import defaultdict
 from datetime import timedelta
 from decimal import Decimal
 from functools import wraps
-from typing import Dict, List
 from unittest.mock import call, patch
 
 from django_redis import get_redis_connection
@@ -21,7 +20,7 @@ from temba.mailroom.client import ContactSpec, MailroomClient, MailroomException
 from temba.mailroom.modifiers import Modifier
 from temba.orgs.models import Org
 from temba.tests.dates import parse_datetime
-from temba.tickets.models import Ticket, TicketEvent
+from temba.tickets.models import Ticket, TicketEvent, Topic
 from temba.utils import format_number, get_anonymous_user, json
 from temba.utils.cache import incrby_existing
 
@@ -43,7 +42,7 @@ class Mocks:
         self.queued_batch_tasks = []
 
     @staticmethod
-    def _parse_query_response(query: str, elastic: Dict, fields: List, allow_as_group: bool):
+    def _parse_query_response(query: str, elastic: dict, fields: list, allow_as_group: bool):
         def field_ref(f):
             return {"key": f.key, "name": f.label} if isinstance(f, ContactField) else {"key": f}
 
@@ -85,7 +84,7 @@ class Mocks:
 
         self._contact_search[query] = mock
 
-    def error(self, msg: str, code: str = None, extra: Dict = None):
+    def error(self, msg: str, code: str = None, extra: dict = None):
         """
         Queues an error which will become a mailroom exception at the next client call
         """
@@ -131,7 +130,7 @@ class TestClient(MailroomClient):
         return {"contact": {"id": obj.id, "uuid": str(obj.uuid), "name": obj.name}}
 
     @_client_method
-    def contact_modify(self, org_id, user_id, contact_ids, modifiers: List[Modifier]):
+    def contact_modify(self, org_id, user_id, contact_ids, modifiers: list[Modifier]):
         org = Org.objects.get(id=org_id)
         user = User.objects.get(id=user_id)
         contacts = org.contacts.filter(id__in=contact_ids)
@@ -199,7 +198,7 @@ class TestClient(MailroomClient):
         return {"changed_ids": [t.id for t in tickets]}
 
     @_client_method
-    def ticket_note(self, org_id, user_id, ticket_ids, note):
+    def ticket_add_note(self, org_id, user_id, ticket_ids, note):
         now = timezone.now()
         tickets = Ticket.objects.filter(org_id=org_id, id__in=ticket_ids)
         tickets.update(modified_on=now, last_activity_on=now)
@@ -208,7 +207,7 @@ class TestClient(MailroomClient):
             ticket.events.create(
                 org_id=org_id,
                 contact=ticket.contact,
-                event_type=TicketEvent.TYPE_NOTE,
+                event_type=TicketEvent.TYPE_NOTE_ADDED,
                 note=note,
                 created_by_id=user_id,
             )
@@ -216,7 +215,25 @@ class TestClient(MailroomClient):
         return {"changed_ids": [t.id for t in tickets]}
 
     @_client_method
-    def ticket_close(self, org_id, user_id, ticket_ids):
+    def ticket_change_topic(self, org_id, user_id, ticket_ids, topic_id):
+        now = timezone.now()
+        topic = Topic.objects.get(id=topic_id)
+        tickets = Ticket.objects.filter(org_id=org_id, id__in=ticket_ids)
+        tickets.update(topic=topic, modified_on=now, last_activity_on=now)
+
+        for ticket in tickets:
+            ticket.events.create(
+                org_id=org_id,
+                contact=ticket.contact,
+                event_type=TicketEvent.TYPE_TOPIC_CHANGED,
+                topic=topic,
+                created_by_id=user_id,
+            )
+
+        return {"changed_ids": [t.id for t in tickets]}
+
+    @_client_method
+    def ticket_close(self, org_id: int, user_id: int, ticket_ids: list, force: bool):
         tickets = Ticket.objects.filter(org_id=org_id, status=Ticket.STATUS_OPEN, id__in=ticket_ids)
 
         for ticket in tickets:
@@ -288,7 +305,7 @@ def _wrap_test_method(f, mock_client: bool, mock_queue: bool, instance, *args, *
             patch_queue_batch_task.stop()
 
 
-def apply_modifiers(org, user, contacts, modifiers: List):
+def apply_modifiers(org, user, contacts, modifiers: list):
     """
     Approximates mailroom applying modifiers but doesn't do dynamic group re-evaluation.
     """
@@ -411,7 +428,7 @@ def update_field_locally(user, contact, key, value, label=None):
                 EventFire.objects.create(contact=contact, event=event, scheduled=scheduled)
 
 
-def update_urns_locally(contact, urns: List[str]):
+def update_urns_locally(contact, urns: list[str]):
     country = contact.org.default_country_code
     priority = ContactURN.PRIORITY_HIGHEST
 
