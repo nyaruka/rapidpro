@@ -17,7 +17,6 @@ class WeniWebChatType(ChannelType):
     courier_url = r"^wwc/(?P<uuid>[a-z0-9\-]+)/receive"
 
     name = "Weni Web Chat"
-    icon = "icon-weniwebchat"
     show_config_page = False
 
     claim_blurb = _("With Weni Web Chat, you can integrate your Rapidpro organization as a chat on your website.")
