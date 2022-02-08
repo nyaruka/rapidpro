@@ -2089,7 +2089,12 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         # no omnibox...
         self.assertEqual(["text", "step_node", "loc"], list(response.context["form"].fields.keys()))
 
-        response = self.client.post(send_url, {"text": "Hurry up", "step_node": color_split["uuid"]})
+        response = self.client.post(f"{send_url}?step_node={color_split['uuid']}", {"text": "Hurry up"})
+        self.assertFormError(response, "form", None, "At least one recipient is required.")
+
+        response = self.client.post(
+            f"{send_url}?step_node={color_split['uuid']}", {"text": "Hurry up", "step_node": color_split["uuid"]}
+        )
         self.assertRedirect(response, reverse("msgs.msg_inbox"))
 
         broadcast = Broadcast.objects.get()

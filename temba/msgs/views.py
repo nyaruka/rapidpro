@@ -101,7 +101,7 @@ class SendMessageForm(Form):
             step_node = cleaned.get("step_node")
 
             if not step_node and not omnibox:
-                self.add_error("omnibox", _("At least one recipient is required."))
+                self.add_error(None, _("At least one recipient is required."))
 
         return cleaned
 
