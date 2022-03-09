@@ -1,3 +1,26 @@
+v7.2.1
+----------
+ * Update locale files
+
+v7.2.0
+----------
+ * Disallow PO export/import for archived flows because mailroom doesn't know about them
+ * Add campaigns section to new UI
+
+v7.1.82
+----------
+ * Update to latest flake8, black and isort
+
+v7.1.81
+----------
+ * Remove unused collect_metrics_task
+ * Bump dependencies
+
+v7.1.80
+----------
+ * Remove progress bar on facebook claim
+ * Replace old indexes based on flows_flowrun.is_active
+
 v7.1.79
 ----------
  * Remove progress dots for FBA and IG channel claim pages
