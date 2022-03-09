@@ -30,8 +30,11 @@
           -trans "Finally, select the page you want to add as a channel."
 
     #fb-app-connect.flex.mt-4
-      .button-primary.connect-facebook
-        -trans "Add Instagram Business Account"
+      %fb:login-button(scope="instagram_basic,instagram_manage_messages,pages_manage_metadata,pages_show_list" onlogin="checkLoginState();")
+      #status
+
+      -# .button-primary.connect-facebook
+      -#   -trans "Add Instagram Business Account"
 
     %form#claim-form(style="display:none;" method="POST" action="{{ claim_url }}")
       {% csrf_token %}
@@ -78,26 +81,35 @@
         $("#claim-form").submit();
     });
 
+    function statusChangeCallback(response) {
+      console.log('statusChangeCallback');
+      console.log(response);
+      if (response.status === 'connected') {
+        $("#fb-user-id").val(response.authResponse.userID);
+        getFBPages(response.authResponse.accessToken);
+      } else {
+        document.getElementById('status').innerHTML = 'Please log ' +
+        'into this webpage.';
+      }
+    }
+
+    function checkLoginState() {
+      FB.getLoginStatus(function(response) {
+        statusChangeCallback(response);
+      });
+    }
+
     window.fbAsyncInit = function() {
       FB.init({
         appId        : '{{ facebook_app_id }}',
         xfbml        : true,
         version      : 'v12.0'
       });
+
+      FB.getLoginStatus(function(response) {
+        statusChangeCallback(response);
+      });
     };
-
-    $(document).ready(function(){
-      $(".connect-facebook").click(function(evt){
-        FB.login(function(response) {
-          if (response.status === 'connected') {
-            $("#fb-user-id").val(response.authResponse.userID);
-            getFBPages(response.authResponse.accessToken);
-          }
-        }, 
-        {scope: 'instagram_basic,instagram_manage_messages,pages_manage_metadata,pages_show_list'});
-
-      })
-    });
 
     function getFBPages(token) {
       $.ajax({
