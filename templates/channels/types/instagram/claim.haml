@@ -86,6 +86,7 @@
       });
 
       FB.Event.subscribe('auth.statusChange', checkLoginStatus);
+      FB.Event.subscribe('auth.authResponseChange', checkLoginStatus);
 
       FB.getLoginStatus(checkLoginStatus);
     };
@@ -100,6 +101,9 @@
       if (response.status === 'connected') {
         $("#fb-user-id").val(response.authResponse.userID);
         getFBPages(response.authResponse.accessToken);
+      } else {
+        console.log("Not logged in");
+        console.log(response);
       }
     }
 
