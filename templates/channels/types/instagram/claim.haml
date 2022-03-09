@@ -80,9 +80,10 @@
 
     window.fbAsyncInit = function() {
       FB.init({
-        appId      : '{{ facebook_app_id }}',
-        xfbml      : true,
-        version    : 'v12.0'
+        appId        : '{{ facebook_app_id }}',
+        xfbml        : true,
+        localStorage : false,
+        version      : 'v12.0'
       });
     };
 
