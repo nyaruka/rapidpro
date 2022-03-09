@@ -68,6 +68,7 @@
 
 -block extra-script
   {{ block.super }}
+  <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
 
   :javascript
     $("#fb-channel-options").on('click', ".fb-page-channel-option", function(e){
@@ -77,24 +78,13 @@
         $("#claim-form").submit();
     });
 
-
     window.fbAsyncInit = function() {
       FB.init({
         appId        : '{{ facebook_app_id }}',
         xfbml        : true,
-        localStorage : false,
         version      : 'v12.0'
       });
     };
-
-    
-    (function(d, s, id) {
-      var js, fjs = d.getElementsByTagName(s)[0];
-      if (d.getElementById(id)) return;
-      js = d.createElement(s); js.id = id;
-      js.src = "https://connect.facebook.net/en_US/sdk.js";
-      fjs.parentNode.insertBefore(js, fjs);
-    }(document, 'script', 'facebook-jssdk'));
 
     $(document).ready(function(){
       $(".connect-facebook").click(function(evt){
