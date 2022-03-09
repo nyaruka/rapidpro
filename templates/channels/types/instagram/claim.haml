@@ -80,13 +80,13 @@
 
     window.fbAsyncInit = function() {
       FB.init({
-        appId        : '{{ facebook_app_id }}',
-        cookie       : true,
-        status       : true,
-        xfbml        : true,
-        version      : 'v12.0'
+        appId            : '{{ facebook_app_id }}',
+        autoLogAppEvents : true,
+        xfbml            : true,
+        version          : 'v13.0'
       });
 
+      FB.Event.subscribe('auth.login', checkLoginStatus);
       FB.Event.subscribe('auth.statusChange', checkLoginStatus);
       FB.Event.subscribe('auth.authResponseChange', checkLoginStatus);
 
@@ -110,6 +110,7 @@
     }
 
     function getFBPages(token) {
+      $("#fb-channel-options").html("");
       $.ajax({
         type: "GET",
         url: "https://graph.facebook.com/me/accounts?access_token=" + token + "&limit=200",
