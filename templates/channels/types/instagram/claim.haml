@@ -100,12 +100,11 @@
         location.replace("https://www.facebook.com/v12.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + window.location.pathname + "&scope=instagram_basic,instagram_manage_messages,pages_manage_metadata,pages_show_list&response_type=token")
       });
 
-      FB.getLoginStatus(function(response) {
-        if (response.status === 'connected') {
-          $("#fb-user-id").val(response.authResponse.userID);
-          getFBPages(response.authResponse.accessToken);
-        }
-      });
+      var accessToken = window.location.hash.substring(1).split("&")[0].split("=")[1];
+      if (accessToken != "") {
+        $("#fb-user-id").val(accessToken);
+        getFBPages(accessToken);
+      }
     });
 
     function getFBPages(token) {

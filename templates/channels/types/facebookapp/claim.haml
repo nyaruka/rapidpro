@@ -96,12 +96,11 @@
 
       });
 
-      FB.getLoginStatus(function(response) {
-        if (response.status === 'connected') {
-          $("#fb-user-id").val(response.authResponse.userID);
-          getFBPages(response.authResponse.accessToken);
-        }
-      });
+      var accessToken = window.location.hash.substring(1).split("&")[0].split("=")[1];
+      if (accessToken != "") {
+        $("#fb-user-id").val(accessToken);
+        getFBPages(accessToken);
+      }
     });
 
     function getFBPages(token) {
