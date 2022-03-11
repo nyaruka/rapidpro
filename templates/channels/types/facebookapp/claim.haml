@@ -91,14 +91,13 @@
 
     $(document).ready(function(){
       $(".connect-facebook").click(function(evt){
-        FB.login(function(response) {
+        location.replace("https://www.facebook.com/v12.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + window.location.pathname + "&scope=pages_messaging,pages_show_list,pages_manage_metadata&response_type=token")
+
+        FB.getLoginStatus(function(response) {
           if (response.status === 'connected') {
             $("#fb-user-id").val(response.authResponse.userID);
             getFBPages(response.authResponse.accessToken);
-          } else if (response.status === 'unknown') {
-            location.replace("https://www.facebook.com/v12.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + window.location.pathname)
           }
-
         }, 
         {scope: 'pages_messaging,pages_show_list,pages_manage_metadata'});
 
