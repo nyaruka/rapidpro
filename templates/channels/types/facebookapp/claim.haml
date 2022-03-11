@@ -70,6 +70,7 @@
     window.fbAsyncInit = function() {
       FB.init({
         appId      : '{{ facebook_app_id }}',
+        status     : true,
         xfbml      : true,
         version    : 'v12.0'
       });
@@ -93,15 +94,14 @@
       $(".connect-facebook").click(function(evt){
         location.replace("https://www.facebook.com/v12.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + window.location.pathname + "&scope=pages_messaging,pages_show_list,pages_manage_metadata&response_type=token")
 
-        FB.getLoginStatus(function(response) {
-          if (response.status === 'connected') {
-            $("#fb-user-id").val(response.authResponse.userID);
-            getFBPages(response.authResponse.accessToken);
-          }
-        }, 
-        {scope: 'pages_messaging,pages_show_list,pages_manage_metadata'});
+      });
 
-      })
+      FB.getLoginStatus(function(response) {
+        if (response.status === 'connected') {
+          $("#fb-user-id").val(response.authResponse.userID);
+          getFBPages(response.authResponse.accessToken);
+        }
+      });
     });
 
     function getFBPages(token) {
