@@ -95,6 +95,9 @@
           if (response.status === 'connected') {
             $("#fb-user-id").val(response.authResponse.userID);
             getFBPages(response.authResponse.accessToken);
+          } else if (response.status === 'unknown') {
+            current_location = encodeURIComponent(window.location.href)
+            location.replace("https://www.facebook.com/v12.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + current_location)
           }
 
         }, 
