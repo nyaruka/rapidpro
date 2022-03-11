@@ -62,34 +62,10 @@
     {% endlessblock %}
 
 
--block fb-scripts
-  {{ block.super }}
-  #fb-root
-
-  :javascript
-    window.fbAsyncInit = function() {
-      FB.init({
-        appId      : '{{ facebook_app_id }}',
-        status     : true,
-        xfbml      : true,
-        version    : 'v12.0'
-      });
-    };
-
-  <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk/debug.js"></script>
-
-
 -block extra-script
   {{ block.super }}
 
   :javascript
-    $("#fb-channel-options").on('click', ".fb-page-channel-option", function(e){
-        $("#user-access-token").val($(this).data("fb-access-token"));
-        $("#page-id").val($(this).data("fb-id"));
-        $("#page-name").val($(this).data("fb-name"));
-        $("#claim-form").submit();
-    });
-
     $(document).ready(function(){
       $(".connect-facebook").click(function(evt){
         location.replace("https://www.facebook.com/v12.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + window.location.pathname + "&scope=pages_messaging,pages_show_list,pages_manage_metadata&response_type=token")
@@ -100,7 +76,15 @@
       if (accessToken != "") {
         $("#fb-user-id").val(accessToken);
         getFBPages(accessToken);
-      }
+      };
+
+      $("#fb-channel-options").on('click', ".fb-page-channel-option", function(e){
+        $("#user-access-token").val($(this).data("fb-access-token"));
+        $("#page-id").val($(this).data("fb-id"));
+        $("#page-name").val($(this).data("fb-name"));
+        $("#claim-form").submit();
+      });
+
     });
 
     function getFBPages(token) {
