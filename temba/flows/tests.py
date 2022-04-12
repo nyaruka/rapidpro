@@ -1731,6 +1731,19 @@ class FlowTest(TembaTest):
         self.assertEqual(0, parent.flow_dependencies.all().count())
         self.assertEqual(0, parent.group_dependencies.all().count())
 
+    def test_build_start_query(self):
+        ann = self.create_contact("Ann", phone="+597979111111")
+        bob = self.create_contact("Bob", phone="+597979222222")
+        cat = self.create_contact("Cat", phone="+597979333333")
+        testers = self.create_group("Testers", contacts=[ann, bob])
+        farmers = self.create_group("Farmers", contacts=[bob, cat])
+        flow = self.create_flow("Registration")
+
+        self.assertEqual(
+            f'(group = "Testers" OR group = "Farmers" OR uuid = "{cat.uuid}")',
+            flow.build_start_query(groups=[testers, farmers], contacts=[cat]),
+        )
+
     def test_update_expiration_task(self):
         flow1 = self.create_flow()
         flow2 = self.create_flow()

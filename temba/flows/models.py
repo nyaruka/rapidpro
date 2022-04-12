@@ -2,7 +2,7 @@ import logging
 import time
 from array import array
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import iso8601
 import pytz
@@ -25,7 +25,7 @@ from temba import mailroom
 from temba.assets.models import register_asset_store
 from temba.channels.models import Channel, ChannelConnection
 from temba.classifiers.models import Classifier
-from temba.contacts.models import Contact, ContactField, ContactGroup
+from temba.contacts.models import URN, Contact, ContactField, ContactGroup
 from temba.globals.models import Global
 from temba.msgs.models import Label
 from temba.orgs.models import DependencyMixin, Org
@@ -970,6 +970,50 @@ class Flow(TembaModel, DependencyMixin):
         dependents["campaign_event"] = self.campaign_events.filter(is_active=True)
         dependents["trigger"] = self.triggers.filter(is_active=True)
         return dependents
+
+    def build_start_query(
+        self,
+        *,
+        user_query: str = None,
+        groups=(),
+        contacts=(),
+        urns: list = (),
+        exclude_inactive: bool = False,
+        exclude_in_flow: bool = False,
+        exclude_reruns: bool = False,
+    ) -> str:
+        """
+        Builds a contact query for the given start options
+        """
+        inclusions = []
+        if user_query:
+            inclusions.append(f"({user_query})")
+        for group in groups:
+            inclusions.append(f'group = "{group.name}"')
+        for contact in contacts:
+            inclusions.append(f'uuid = "{contact.uuid}"')
+        for urn in urns:
+            scheme, path, _, _ = URN.to_parts(urn)
+            inclusions.append(f'{scheme} = "{path}"')
+
+        exclusions = []
+        if exclude_inactive:
+            seen_since = timezone.now() - timedelta(days=90)
+            exclusions.append(f"last_seen_on > {self.org.format_datetime(seen_since, show_time=False)}")
+        if exclude_in_flow:
+            exclusions.append('flow = ""')
+        if exclude_reruns:
+            exclusions.append(f'history != "{self.name}"')
+
+        conditions = []
+        if len(inclusions) == 1:
+            conditions.append(inclusions[0])
+        elif len(inclusions) > 1:
+            conditions.append(f'({ " OR ".join(inclusions)})')
+        if len(exclusions) > 0:
+            conditions.append(" AND ".join(exclusions))
+
+        return " AND ".join(conditions)
 
     def release(self, user, *, interrupt_sessions: bool = True):
         """
