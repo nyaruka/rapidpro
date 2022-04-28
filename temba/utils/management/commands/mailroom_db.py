@@ -150,6 +150,7 @@ class Command(BaseCommand):
             uuid=spec["uuid"],
             name=spec["name"],
             timezone=pytz.timezone("America/Los_Angeles"),
+            flow_languages=spec["languages"],
             brand="rapidpro.io",
             country=country,
             created_on=timezone.now(),
@@ -264,11 +265,10 @@ class Command(BaseCommand):
         self._log(f"Creating {len(spec['fields'])} fields... ")
 
         for f in spec["fields"]:
-            field = ContactField.user_fields.create(
+            field = ContactField.objects.create(
                 org=org,
                 key=f["key"],
                 name=f["name"],
-                label=f["name"],
                 is_system=False,
                 value_type=f["value_type"],
                 show_in_table=True,
@@ -339,7 +339,7 @@ class Command(BaseCommand):
             )
 
             for e in c.get("events", []):
-                field = ContactField.all_fields.get(org=org, key=e["offset_field"])
+                field = ContactField.objects.get(org=org, key=e["offset_field"])
 
                 if "flow" in e:
                     flow = Flow.objects.get(org=org, name=e["flow"])

@@ -1,3 +1,54 @@
+v7.3.32
+----------
+ * Add DB constraint to enforce flow name uniqueness
+
+v7.3.31
+----------
+ * Update components with resolved locked file
+
+v7.3.29
+----------
+ * Fix for flatpickr issue breaking date picker
+ * ContactField.get_or_create should enforce name uniqeuness and ignore invalid names
+ * Add validation error when changing type of field used by campaign events
+
+v7.3.28
+----------
+ * Tweak flow name uniqueness migration to honor max flow name length
+
+v7.3.27
+----------
+ * Tweak header to be uniform treatment regardless of menu
+ * Data migration to make flow names unique
+ * Add flow.preview_start endpoint which calls mailroom endpoint
+
+v7.3.26
+----------
+ * Fix mailroom_db command to set languages on new orgs
+ * Fix inline menus when they have no children
+ * Fix message exports
+
+v7.3.25
+----------
+ * Fix modals on spa pages
+ * Add service button to org edit page
+ * Update to latest django
+ * Add flow name to message Export if we have it
+
+v7.3.24
+----------
+ * Allow creating channel with same address when schemes do not overlap
+
+v7.3.23
+----------
+ * Add status to list of reserved field keys
+ * Migration to drop ContactField.label and field_type
+
+v7.3.22
+----------
+ * Update contact modified_on when deleting a group they belong to
+ * Add custom name validator and use for groups and flows
+
 v7.3.21
 ----------
  * Fix rendering of field names on contact read page

@@ -17,6 +17,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
 
+from temba import mailroom
 from temba.api.models import Resthook
 from temba.archives.models import Archive
 from temba.campaigns.models import Campaign, CampaignEvent
@@ -25,6 +26,7 @@ from temba.contacts.models import URN, Contact, ContactField, ContactGroup
 from temba.globals.models import Global
 from temba.mailroom import FlowValidationException
 from temba.orgs.integrations.dtone import DTOneType
+from temba.orgs.models import Org
 from temba.templates.models import Template, TemplateTranslation
 from temba.tests import AnonymousOrg, CRUDLTestMixin, MigrationTest, MockResponse, TembaTest, matchers, mock_mailroom
 from temba.tests.engine import MockSessionWriter
@@ -373,7 +375,7 @@ class FlowTest(TembaTest):
         self.assertNotContains(response, reverse("flows.flow_simulate", args=[flow.id]))
 
     def test_editor_feature_filters(self):
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
 
         self.login(self.admin)
 
@@ -1495,8 +1497,8 @@ class FlowTest(TembaTest):
         self.assertTrue(self.org.topics.filter(name="Support").exists())
 
         # fields created with type if exists in export
-        self.assertTrue(self.org.contactfields.filter(key="cat_breed", name="Cat Breed", value_type="T").exists())
-        self.assertTrue(self.org.contactfields.filter(key="french_age", value_type="N").exists())
+        self.assertTrue(self.org.fields.filter(key="cat_breed", name="Cat Breed", value_type="T").exists())
+        self.assertTrue(self.org.fields.filter(key="french_age", value_type="N").exists())
 
         # reference to channel changed to match existing channel by name
         self.assertEqual(
@@ -1557,6 +1559,26 @@ class FlowTest(TembaTest):
         # fetching a flow with a group send shouldn't throw
         self.get_flow("group_send_flow")
 
+    @mock_mailroom
+    def test_preview_start(self, mr_mocks):
+        flow = self.create_flow("Test")
+        contact1 = self.create_contact("Ann", phone="+1234567111")
+        contact2 = self.create_contact("Bob", phone="+1234567222")
+        doctors = self.create_group("Doctors", contacts=[contact1, contact2])
+
+        mr_mocks.flow_preview_start(
+            query='group = "Doctors" AND status = "active"', total=100, sample=[contact1, contact2]
+        )
+
+        query, total, sample, metadata = flow.preview_start(
+            include=mailroom.QueryInclusions(group_uuids=[str(doctors.uuid)]),
+            exclude=mailroom.QueryExclusions(non_active=True),
+        )
+
+        self.assertEqual('group = "Doctors" AND status = "active"', query)
+        self.assertEqual(100, total)
+        self.assertEqual([contact1, contact2], list(sample))
+
     def test_flow_delete_of_inactive_flow(self):
         flow = self.get_flow("favorites")
         flow.release(self.admin)
@@ -1577,9 +1599,7 @@ class FlowTest(TembaTest):
 
         # create a campaign that contains this flow
         friends = self.create_group("Friends", [])
-        poll_date = ContactField.get_or_create(
-            self.org, self.admin, "poll_date", "Poll Date", value_type=ContactField.TYPE_DATETIME
-        )
+        poll_date = self.create_field("poll_date", "Poll Date", value_type=ContactField.TYPE_DATETIME)
 
         campaign = Campaign.create(self.org, self.admin, Campaign.get_unique_name(self.org, "Favorite Poll"), friends)
         event1 = CampaignEvent.create_flow_event(
@@ -1732,8 +1752,8 @@ class FlowTest(TembaTest):
         self.assertEqual(0, parent.group_dependencies.all().count())
 
     def test_update_expiration_task(self):
-        flow1 = self.create_flow()
-        flow2 = self.create_flow()
+        flow1 = self.create_flow("Test 1")
+        flow2 = self.create_flow("Test 2")
 
         # create waiting session and run for flow 1
         session1 = FlowSession.objects.create(
@@ -1795,7 +1815,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.assertListFetch(menu_url, allow_viewers=True, allow_editors=True, allow_agents=False)
         menu = response.json()["results"]
-        self.assertEqual(3, len(menu))
+        self.assertEqual(5, len(menu))
 
     def test_create(self):
         create_url = reverse("flows.flow_create")
@@ -1832,6 +1852,20 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             create_url,
             {"flow_type": "M"},
             form_errors={"name": "This field is required.", "base_language": "This field is required."},
+        )
+
+        # try to submit with a name that contains disallowed characters
+        self.assertCreateSubmit(
+            create_url,
+            {"name": '"Registration"', "flow_type": "M", "base_language": "eng"},
+            form_errors={"name": 'Cannot contain the character: "'},
+        )
+
+        # try to submit with a name that is too long
+        self.assertCreateSubmit(
+            create_url,
+            {"name": "X" * 65, "flow_type": "M", "base_language": "eng"},
+            form_errors={"name": "Ensure this value has at most 64 characters (it has 65)."},
         )
 
         # try to submit with a name that is already used
@@ -2363,17 +2397,17 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertIn("metadata", flow.get_definition())
 
         # if definition is outdated, metadata values are updated from db object
-        flow.name = "Amazing Flow"
+        flow.name = "Amazing Flow 2"
         flow.save(update_fields=("name",))
 
-        self.assertEqual("Amazing Flow", flow.get_definition()["metadata"]["name"])
+        self.assertEqual("Amazing Flow 2", flow.get_definition()["metadata"]["name"])
 
         # metadata section can be missing too
         del original_def["metadata"]
         revision.definition = original_def
         revision.save(update_fields=("definition",))
 
-        self.assertEqual("Amazing Flow", flow.get_definition()["metadata"]["name"])
+        self.assertEqual("Amazing Flow 2", flow.get_definition()["metadata"]["name"])
 
     def test_fetch_revisions(self):
         self.login(self.admin)
@@ -2514,10 +2548,76 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(404, response.status_code)
 
     @mock_mailroom
+    def test_preview_start(self, mr_mocks):
+        flow = self.create_flow("Test")
+        self.create_field("age", "Age")
+        contact1 = self.create_contact("Ann", phone="+16302222222", fields={"age": 40})
+        contact2 = self.create_contact("Bob", phone="+16303333333", fields={"age": 33})
+
+        mr_mocks.flow_preview_start(
+            query='age > 30 AND status = "active" AND history != "Test Flow"', total=100, sample=[contact1, contact2]
+        )
+
+        preview_url = reverse("flows.flow_preview_start", args=[flow.id])
+
+        self.login(self.editor)
+
+        response = self.client.post(
+            preview_url,
+            {
+                "query": "age > 30",
+                "exclusions": {"non_active": True, "started_previously": True},
+            },
+            content_type="application/json",
+        )
+        self.assertEqual(
+            {
+                "query": 'age > 30 AND status = "active" AND history != "Test Flow"',
+                "total": 100,
+                "sample": [
+                    {
+                        "uuid": contact1.uuid,
+                        "name": "Ann",
+                        "primary_urn": "+1 630-222-2222",
+                        "fields": {"age": "40"},
+                        "created_on": contact1.created_on.isoformat(),
+                        "last_seen_on": None,
+                    },
+                    {
+                        "uuid": contact2.uuid,
+                        "name": "Bob",
+                        "primary_urn": "+1 630-333-3333",
+                        "fields": {"age": "33"},
+                        "created_on": contact2.created_on.isoformat(),
+                        "last_seen_on": None,
+                    },
+                ],
+                "fields": [{"key": "age", "name": "Age"}],
+            },
+            response.json(),
+        )
+
+        # try with a bad query
+        mr_mocks.error("mismatched input at (((", code="unexpected_token", extra={"token": "((("})
+
+        response = self.client.post(
+            preview_url,
+            {
+                "query": "(((",
+                "exclusions": {"non_active": True, "started_previously": True},
+            },
+            content_type="application/json",
+        )
+        self.assertEqual(400, response.status_code)
+        self.assertEqual(
+            {"query": "", "total": 0, "sample": [], "error": "Invalid query syntax at '((('"}, response.json()
+        )
+
+    @mock_mailroom
     def test_broadcast(self, mr_mocks):
         contact = self.create_contact("Bob", phone="+593979099111")
-        flow = self.create_flow()
-        ivr_flow = self.create_flow(flow_type=Flow.TYPE_VOICE)
+        flow = self.create_flow("Test")
+        ivr_flow = self.create_flow("IVR Test", flow_type=Flow.TYPE_VOICE)
 
         broadcast_url = reverse("flows.flow_broadcast", args=[flow.id])
 
@@ -2529,7 +2629,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         # create flow start with a query
-        mr_mocks.parse_query("frank", cleaned='name ~ "frank"', fields=[])
+        mr_mocks.parse_query("frank", cleaned='name ~ "frank"')
 
         self.assertUpdateSubmit(
             broadcast_url,
@@ -2567,7 +2667,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         query = f"uuid='{contact.uuid}'"
-        mr_mocks.parse_query(query, cleaned=query, fields=[])
+        mr_mocks.parse_query(query, cleaned=query)
 
         # create flow start with exclude_in_other and exclude_reruns both left unchecked
         self.assertUpdateSubmit(
@@ -2635,7 +2735,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     @mock_mailroom
     def test_broadcast_background_flow(self, mr_mocks):
-        flow = self.create_flow(flow_type=Flow.TYPE_BACKGROUND)
+        flow = self.create_flow("Background", flow_type=Flow.TYPE_BACKGROUND)
 
         broadcast_url = reverse("flows.flow_broadcast", args=[flow.id])
 
@@ -2650,7 +2750,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertNotContains(response, "Exclude contacts currently in a flow")
 
         # create flow start with a query
-        mr_mocks.parse_query("frank", cleaned='name ~ "frank"', fields=[])
+        mr_mocks.parse_query("frank", cleaned='name ~ "frank"')
 
         self.assertUpdateSubmit(broadcast_url, {"query": "frank", "exclude_reruns": False})
 
@@ -2663,8 +2763,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     @patch("temba.flows.views.uuid4")
     def test_upload_media_action(self, mock_uuid):
-        flow = self.create_flow()
-        other_org_flow = self.create_flow(org=self.org2)
+        flow = self.create_flow("Test")
+        other_org_flow = self.create_flow("Test", org=self.org2)
 
         action_url = reverse("flows.flow_upload_media_action", args=[flow.uuid])
 
@@ -2718,7 +2818,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRedirect(response, reverse("flows.flow_editor", args=[flow_copy.uuid]))
 
     def test_recent_contacts(self):
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
         contact1 = self.create_contact("Bob", phone="0979111111")
         contact2 = self.create_contact("", phone="0979222222")
         node1_exit1_uuid = "805f5073-ce96-4b6a-ab9f-e77dd412f83b"
@@ -3505,7 +3605,7 @@ class FlowRunTest(TembaTest):
             uuid=uuid4(),
             org=self.org,
             session=session,
-            flow=self.create_flow(),
+            flow=self.create_flow("Test"),
             contact=self.contact,
             status=FlowRun.STATUS_WAITING,
             created_on=timezone.now(),
@@ -4912,6 +5012,10 @@ class FlowLabelTest(TembaTest):
         response = self.client.get(reverse("flows.flow_filter", args=[cat.uuid]))
         self.assertLoginRedirect(response)
 
+        # in the spa view, labels are flattened
+        response = self.client.get(reverse("flows.flow_filter", args=[label.uuid]), HTTP_TEMBA_SPA="1")
+        self.assertEqual(len(response.context["labels_flat"]), 7)
+
     def test_toggle_label(self):
         label = FlowLabel.create(self.org, "toggle me")
         flow = self.get_flow("favorites")
@@ -5175,7 +5279,7 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
         FlowStartCount.objects.create(start=start3, count=1000)
         FlowStartCount.objects.create(start=start3, count=234)
 
-        other_org_flow = self.create_flow(org=self.org2)
+        other_org_flow = self.create_flow("Test", org=self.org2)
         FlowStart.create(other_org_flow, self.admin2)
 
         response = self.assertListFetch(
@@ -5318,32 +5422,47 @@ class FlowRevisionTest(TembaTest):
         self.assertEqual(31, FlowRevision.objects.filter(flow=color).count())
 
 
-class UpdateDeletedFlowNamesMigrationTest(MigrationTest):
+class UniqueFlowNamesTest(MigrationTest):
     app = "flows"
-    migrate_from = "0280_alter_flowrun_contact_and_more"
-    migrate_to = "0281_update_deleted_flow_names"
+    migrate_from = "0282_alter_flow_name"
+    migrate_to = "0283_unique_flow_names"
+
+    def create_org(self, name: str, flow_names: list):
+        org = Org.objects.create(
+            name=name,
+            timezone=pytz.UTC,
+            brand="rapidpro.io",
+            created_on=timezone.now(),
+            created_by=self.superuser,
+            modified_by=self.superuser,
+        )
+        for name in flow_names:
+            org.flows.create(
+                name=name,
+                saved_by=self.superuser,
+                created_on=timezone.now(),
+                created_by=self.superuser,
+                modified_on=timezone.now(),
+                modified_by=self.superuser,
+            )
 
     def setUpBeforeMigration(self, apps):
-        # create active flow
-        self.flow1 = self.create_flow("Test 1")
-
-        # create deleted flow that needs name update
-        self.flow2 = self.create_flow("Test 2")
-        self.flow2.is_active = False
-        self.flow2.save(update_fields=("is_active",))
-
-        # create deleted flow that doesn't need name update
-        self.flow3 = self.create_flow("deleted-ab2f2562-9696-4b35-8a39-6093051ea20a-Test 3")
-        self.flow3.is_active = False
-        self.flow3.save(update_fields=("is_active",))
+        self.create_org("Test 0", [])
+        self.create_org("Test 1", ["Quiz", "Registration", "Sample"])  # no duplicates
+        self.create_org("Test 2", ["Registration 2", "Sample", "Registration", "Registration"])
+        self.create_org("Test 3", ["QUIZ", "quiz", "Quiz"])
+        self.create_org("Test 4", ["Quiz 1", "Sample", "Quiz", "Quiz 2", "Quiz 3", "Quiz", "Quiz", "Sample"])
+        self.create_org("Test 5", ["abcdefgh" * 8, "abcdefgh" * 8])
 
     def test_migration(self):
-        self.flow1.refresh_from_db()
-        self.assertEqual("Test 1", self.flow1.name)  # unchanged
+        def assert_org(name: str, expected_names: list):
+            org = Org.objects.get(name=name)
+            flows = org.flows.filter(is_active=True).order_by("id")
+            self.assertEqual(expected_names, [f.name for f in flows], f"flow names mismatch for org '{org.name}'")
 
-        self.flow2.refresh_from_db()
-        self.assertTrue(self.flow2.name.startswith("deleted-"))
-        self.assertTrue(self.flow2.name.endswith("-Test 2"))
-
-        self.flow3.refresh_from_db()
-        self.assertEqual("deleted-ab2f2562-9696-4b35-8a39-6093051ea20a-Test 3", self.flow3.name)  # unchanged
+        assert_org("Test 0", [])
+        assert_org("Test 1", ["Quiz", "Registration", "Sample"])
+        assert_org("Test 2", ["Registration 2", "Sample", "Registration", "Registration 3"])
+        assert_org("Test 3", ["QUIZ", "quiz 2", "Quiz 3"])
+        assert_org("Test 4", ["Quiz 1", "Sample", "Quiz", "Quiz 2", "Quiz 3", "Quiz 4", "Quiz 5", "Sample 2"])
+        assert_org("Test 5", ["abcdefgh" * 8, "abcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdef 2"])

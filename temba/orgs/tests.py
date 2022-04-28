@@ -1211,7 +1211,7 @@ class OrgTest(TembaTest):
         self.login(self.admin)
 
         mark = self.create_contact("Mark", phone="+12065551212")
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
 
         def send_broadcast_via_api():
             url = reverse("api.v2.broadcasts")
@@ -3379,7 +3379,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_menu(self):
         self.login(self.admin)
         self.assertMenu(reverse("orgs.org_menu"), 7)
-        self.assertMenu(f"{reverse('orgs.org_menu')}settings/", 14)
+        self.assertMenu(f"{reverse('orgs.org_menu')}settings/", 11)
 
         menu_url = reverse("orgs.org_menu")
         response = self.assertListFetch(menu_url, allow_viewers=True, allow_editors=True, allow_agents=True)
@@ -3417,7 +3417,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "Transfer Credits")
 
         # should have an extra menu option for our child (and section header)
-        self.assertMenu(f"{reverse('orgs.org_menu')}settings/", 16)
+        self.assertMenu(f"{reverse('orgs.org_menu')}settings/", 13)
 
     def test_org_grant(self):
         grant_url = reverse("orgs.org_grant")
@@ -3753,7 +3753,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(topup.price, 0)
 
         # check default org content was created correctly
-        system_fields = set(org.contactfields.filter(is_system=True).values_list("key", flat=True))
+        system_fields = set(org.fields.filter(is_system=True).values_list("key", flat=True))
         system_groups = set(org.groups.filter(is_system=True).values_list("name", flat=True))
         sample_flows = set(org.flows.values_list("name", flat=True))
         internal_ticketer = org.ticketers.get()
@@ -4588,7 +4588,7 @@ class BulkExportTest(TembaTest):
 
         # create child with that UUID and re-import
         child2 = Flow.create(
-            self.org, self.admin, "New Child", Flow.TYPE_MESSAGE, uuid="a925453e-ad31-46bd-858a-e01136732181"
+            self.org, self.admin, "New Child 2", Flow.TYPE_MESSAGE, uuid="a925453e-ad31-46bd-858a-e01136732181"
         )
 
         self.import_file("parent_without_its_child")
@@ -4713,8 +4713,8 @@ class BulkExportTest(TembaTest):
         self.assertEqual(set(cat_blasts.query_fields.all()), {facts_per_day})
 
     def test_import_flow_with_triggers(self):
-        flow1 = self.create_flow()
-        flow2 = self.create_flow()
+        flow1 = self.create_flow("Test 1")
+        flow2 = self.create_flow("Test 2")
 
         trigger1 = Trigger.create(
             self.org, self.admin, Trigger.TYPE_KEYWORD, flow1, keyword="rating", is_archived=True

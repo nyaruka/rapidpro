@@ -192,10 +192,8 @@ class APITest(TembaTest):
                 self.assertEqual(f.to_representation(value), expected, f"to_representation mismatch for '{value}'")
 
         group = self.create_group("Customers")
-        field_obj = ContactField.get_or_create(
-            self.org, self.admin, "registered", "Registered On", value_type=ContactField.TYPE_DATETIME
-        )
-        flow = self.create_flow()
+        field_obj = self.create_field("registered", "Registered On", value_type=ContactField.TYPE_DATETIME)
+        flow = self.create_flow("Test")
         campaign = Campaign.create(self.org, self.admin, "Reminders #1", group)
         event = CampaignEvent.create_flow_event(
             self.org, self.admin, campaign, field_obj, 6, CampaignEvent.UNIT_HOURS, flow, delivery_hour=12
@@ -262,7 +260,7 @@ class APITest(TembaTest):
             representations={group: {"uuid": str(group.uuid), "name": "Customers"}},
         )
 
-        field_created_on = self.org.contactfields.get(key="created_on")
+        field_created_on = self.org.fields.get(key="created_on")
 
         assert_field(
             fields.ContactFieldField(source="test"),
@@ -550,7 +548,7 @@ class APITest(TembaTest):
         self.login(self.admin)
 
         # create 1255 test runs (5 full pages of 250 items + 1 partial with 5 items)
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
         FlowRun.objects.bulk_create([FlowRun(org=self.org, flow=flow, contact=self.joe) for r in range(1255)])
         actual_ids = list(FlowRun.objects.order_by("-pk").values_list("pk", flat=True))
 
@@ -670,7 +668,7 @@ class APITest(TembaTest):
         """
         mock_flowstart_create.side_effect = ValueError("DOH!")
 
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
         self.login(self.admin)
         try:
             self.postJSON(reverse("api.v2.flow_starts"), None, dict(flow=flow.uuid, urns=["tel:+12067791212"]))
@@ -1102,12 +1100,10 @@ class APITest(TembaTest):
 
         self.assertEndpointAccess(url)
 
-        flow = self.create_flow()
+        flow = self.create_flow("Test Flow")
         reporters = self.create_group("Reporters", [self.joe, self.frank])
-        registration = ContactField.get_or_create(
-            self.org, self.admin, "registration", "Registration", value_type=ContactField.TYPE_DATETIME
-        )
-        field_created_on = self.org.contactfields.get(key="created_on")
+        registration = self.create_field("registration", "Registration", value_type=ContactField.TYPE_DATETIME)
+        field_created_on = self.org.fields.get(key="created_on")
 
         # create our contact and set a registration date
         contact = self.create_contact(
@@ -1137,9 +1133,7 @@ class APITest(TembaTest):
         )
 
         # create event for another org
-        joined = ContactField.get_or_create(
-            self.org2, self.admin2, "joined", "Joined On", value_type=ContactField.TYPE_DATETIME
-        )
+        joined = self.create_field("joined", "Joined On", value_type=ContactField.TYPE_DATETIME)
         spammers = ContactGroup.get_or_create(self.org2, self.admin2, "Spammers")
         spam = Campaign.create(self.org2, self.admin2, "Cool stuff", spammers)
         CampaignEvent.create_flow_event(
@@ -1435,10 +1429,7 @@ class APITest(TembaTest):
         self.login(self.admin)
 
         reporters = self.create_group("Reporters", [self.joe, self.frank])
-        registration = ContactField.get_or_create(
-            self.org, self.admin, "registration", "Registration", value_type=ContactField.TYPE_DATETIME
-        )
-
+        registration = self.create_field("registration", "Registration", value_type=ContactField.TYPE_DATETIME)
         campaign1 = Campaign.create(self.org, self.admin, "Reminders", reporters)
         event1 = CampaignEvent.create_message_event(
             self.org,
@@ -1499,10 +1490,7 @@ class APITest(TembaTest):
         self.login(self.admin)
 
         reporters = self.create_group("Reporters", [self.joe, self.frank])
-        registration = ContactField.get_or_create(
-            self.org, self.admin, "registration", "Registration", value_type=ContactField.TYPE_DATETIME
-        )
-
+        registration = self.create_field("registration", "Registration", value_type=ContactField.TYPE_DATETIME)
         campaign1 = Campaign.create(self.org, self.admin, "Reminders", reporters)
         event1 = CampaignEvent.create_message_event(
             self.org,
@@ -1877,8 +1865,8 @@ class APITest(TembaTest):
         self.assertEqual(resp_json["urns"], ["tel:+250783333333", "twitter:jean"])
 
         # URNs will be normalized
-        nickname = ContactField.get_by_key(self.org, "nickname")
-        gender = ContactField.get_by_key(self.org, "gender")
+        nickname = self.org.fields.get(key="nickname")
+        gender = self.org.fields.get(key="gender")
         jean = Contact.objects.filter(name="Jean", language="fra").order_by("-pk").first()
         self.assertEqual(set(jean.urns.values_list("identity", flat=True)), {"tel:+250783333333", "twitter:jean"})
         self.assertEqual(set(jean.get_groups()), {group})
@@ -2102,8 +2090,8 @@ class APITest(TembaTest):
         url = reverse("api.v2.contacts")
         self.assertEndpointAccess(url)
 
-        ContactField.get_or_create(self.org, self.admin, "string_field")
-        ContactField.get_or_create(self.org, self.admin, "number_field", value_type=ContactField.TYPE_NUMBER)
+        self.create_field("string_field", "String")
+        self.create_field("number_field", "Number", value_type=ContactField.TYPE_NUMBER)
 
         # test create with a null chars \u0000
         response = self.postJSON(
@@ -2542,8 +2530,14 @@ class APITest(TembaTest):
         self.assertEndpointAccess(url)
 
         self.create_field("nick_name", "Nick Name")
-        self.create_field("registered", "Registered On", value_type=ContactField.TYPE_DATETIME)
+        registered = self.create_field("registered", "Registered On", value_type=ContactField.TYPE_DATETIME)
         self.create_field("not_ours", "Something Else", org=self.org2)
+
+        # add our date field to a campaign event
+        campaign = Campaign.create(self.org, self.admin, "Reminders", self.create_group("Farmers"))
+        CampaignEvent.create_flow_event(
+            self.org, self.admin, campaign, registered, offset=1, unit="W", flow=self.create_flow("Flow")
+        )
 
         deleted = self.create_field("deleted", "Deleted")
         deleted.release(self.admin)
@@ -2610,10 +2604,17 @@ class APITest(TembaTest):
         response = self.postJSON(url, "key=not_ours", {"label": "Something", "value_type": "text"})
         self.assert404(response)
 
-        ContactField.user_fields.all().delete()
+        # try to change type of date field used by campaign event
+        response = self.postJSON(url, "key=registered", {"label": "Registered", "value_type": "text"})
+        self.assertResponseError(
+            response, "value_type", "Can't change type of date field being used by campaign events."
+        )
+
+        CampaignEvent.objects.all().delete()
+        ContactField.objects.filter(is_system=False).delete()
 
         for i in range(10):
-            ContactField.get_or_create(self.org, self.admin, "field%d" % i, "Field%d" % i)
+            self.create_field("field%d" % i, "Field%d" % i)
 
         response = self.postJSON(url, None, {"label": "Age", "value_type": "numeric"})
         self.assertResponseError(
@@ -2647,7 +2648,7 @@ class APITest(TembaTest):
         run.save(update_fields=("status", "exited_on", "modified_on"))
 
         # flow belong to other org
-        self.create_flow(org=self.org2, name="Other")
+        self.create_flow("Other", org=self.org2)
 
         # no filtering
         with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 5):
@@ -3040,8 +3041,8 @@ class APITest(TembaTest):
         self.assertEqual(response.status_code, 201)
 
         # try to create a group with invalid name
-        response = self.postJSON(url, None, {"name": "!!!#$%^"})
-        self.assertResponseError(response, "name", "Name contains illegal characters.")
+        response = self.postJSON(url, None, {"name": '"People"'})
+        self.assertResponseError(response, "name", 'Cannot contain the character: "')
 
         # try to create a group with name that's too long
         response = self.postJSON(url, None, {"name": "x" * 65})
@@ -3573,7 +3574,7 @@ class APITest(TembaTest):
         joe_run3 = MockSessionWriter(self.joe, flow2).wait().save().session.runs.get()
 
         # add a run for another org
-        flow3 = self.create_flow(org=self.org2)
+        flow3 = self.create_flow("Test", org=self.org2)
         MockSessionWriter(self.hans, flow3).wait().save()
 
         # refresh runs which will have been modified by being interrupted

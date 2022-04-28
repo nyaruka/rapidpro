@@ -27,6 +27,7 @@ from temba.orgs.models import Org, OrgRole
 from temba.templates.models import Template, TemplateTranslation
 from temba.tickets.models import Ticket, Ticketer, Topic
 from temba.utils import extract_constants, json, on_transaction_commit
+from temba.utils.fields import validate_name
 
 from . import fields
 from .validators import UniqueForOrgValidator
@@ -700,9 +701,7 @@ class ContactFieldWriteSerializer(WriteSerializer):
         required=True,
         max_length=ContactField.MAX_NAME_LEN,
         validators=[
-            UniqueForOrgValidator(
-                ContactField.user_fields.filter(is_active=True), ignore_case=True, model_field="name"
-            )
+            UniqueForOrgValidator(ContactField.objects.filter(is_active=True), ignore_case=True, model_field="name")
         ],
     )
     value_type = serializers.ChoiceField(required=True, choices=list(VALUE_TYPES.keys()))
@@ -718,32 +717,37 @@ class ContactFieldWriteSerializer(WriteSerializer):
         return value
 
     def validate_value_type(self, value):
+        if self.instance and self.instance.campaign_events.filter(is_active=True).exists() and value != "datetime":
+            raise serializers.ValidationError("Can't change type of date field being used by campaign events.")
+
         return self.VALUE_TYPES[value]
 
     def validate(self, data):
         org = self.context["org"]
-        org_active_fields_limit = org.get_limit(Org.LIMIT_FIELDS)
 
-        field_count = ContactField.user_fields.count_active_for_org(org=org)
-        if not self.instance and field_count >= org_active_fields_limit:
+        field_limit = org.get_limit(Org.LIMIT_FIELDS)
+        field_count = org.fields.filter(is_active=True, is_system=False).count()
+        if not self.instance and field_count >= field_limit:
             raise serializers.ValidationError(
-                "This org has %s contact fields and the limit is %s. "
-                "You must delete existing ones before you can "
-                "create new ones." % (field_count, org_active_fields_limit)
+                "This org has %d contact fields and the limit is %d. You must delete existing ones before you can "
+                "create new ones." % (field_count, field_limit)
             )
 
         return data
 
     def save(self):
-        name = self.validated_data.get("label")
-        value_type = self.validated_data.get("value_type")
+        org = self.context["org"]
+        user = self.context["user"]
+        name = self.validated_data["label"]
+        value_type = self.validated_data["value_type"]
 
         if self.instance:
-            key = self.instance.key
+            self.instance.name = name
+            self.instance.value_type = value_type
+            self.instance.save(update_fields=("name", "value_type"))
+            return self.instance
         else:
-            key = ContactField.make_key(name)
-
-        return ContactField.get_or_create(self.context["org"], self.context["user"], key, name, value_type=value_type)
+            return ContactField.create(org, user, name, value_type=value_type)
 
 
 class ContactGroupReadSerializer(ReadSerializer):
@@ -773,13 +777,11 @@ class ContactGroupWriteSerializer(WriteSerializer):
     name = serializers.CharField(
         required=True,
         max_length=ContactGroup.MAX_NAME_LEN,
-        validators=[UniqueForOrgValidator(queryset=ContactGroup.objects.filter(is_active=True), ignore_case=True)],
+        validators=[
+            validate_name,
+            UniqueForOrgValidator(queryset=ContactGroup.objects.filter(is_active=True), ignore_case=True),
+        ],
     )
-
-    def validate_name(self, value):
-        if not ContactGroup.is_valid_name(value):
-            raise serializers.ValidationError("Name contains illegal characters.")
-        return value
 
     def validate(self, data):
         org = self.context["org"]

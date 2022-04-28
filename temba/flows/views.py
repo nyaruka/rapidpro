@@ -77,7 +77,7 @@ class BaseFlowForm(forms.ModelForm):
         self.branding = branding
 
     def clean_name(self):
-        name = self.cleaned_data["name"].strip()
+        name = self.cleaned_data["name"]
 
         # make sure the name isn't already taken
         existing = self.org.flows.filter(is_active=True, name__iexact=name).first()
@@ -197,6 +197,7 @@ class FlowCRUDL(SmartCRUDL):
         "results",
         "run_table",
         "category_counts",
+        "preview_start",
         "broadcast",
         "activity",
         "activity_chart",
@@ -222,22 +223,34 @@ class FlowCRUDL(SmartCRUDL):
 
         def derive_menu(self):
 
-            labels = FlowLabel.objects.filter(org=self.request.user.get_org(), parent=None)
+            labels = FlowLabel.objects.filter(org=self.request.user.get_org(), parent=None).order_by("name")
 
             menu = []
             menu.append(self.create_menu_item(name=_("Active"), icon="flow", href="flows.flow_list"))
+            menu.append(self.create_menu_item(name=_("Archived"), icon="archive", href="flows.flow_archived"))
 
+            label_items = []
             for label in labels:
-                menu.append(
+                label_items.append(
                     self.create_menu_item(
                         icon="tag",
                         menu_id=label.uuid,
                         name=label.name,
                         href=reverse("flows.flow_filter", args=[label.uuid]),
+                        count=label.get_flows_count(),
                     )
                 )
 
-            menu.append(self.create_menu_item(name=_("Archived"), icon="archive", href="flows.flow_archived"))
+            if label_items:
+                menu.append(self.create_menu_item(name=_("Labels"), items=label_items, inline=True))
+
+            menu.append(self.create_space())
+            menu.append(
+                self.create_modax_button(
+                    name=_("New Label"), href="flows.flowlabel_create", on_submit="handleCreateLabelModalSubmitted()"
+                )
+            )
+
             return menu
 
     class RecentContacts(OrgObjPermsMixin, SmartReadView):
@@ -719,7 +732,11 @@ class FlowCRUDL(SmartCRUDL):
             context = super().get_context_data(**kwargs)
             context["org_has_flows"] = Flow.objects.filter(org=self.request.user.get_org(), is_active=True).count()
             context["folders"] = self.get_folders()
-            context["labels"] = self.get_flow_labels()
+            if self.is_spa():
+                context["labels_flat"] = self.get_flow_labels_flat()
+            else:
+                context["labels"] = self.get_flow_labels()
+
             context["campaigns"] = self.get_campaigns()
             context["request_url"] = self.request.path
 
@@ -774,6 +791,19 @@ class FlowCRUDL(SmartCRUDL):
                         label=label.name,
                         count=label.get_flows_count(),
                         children=label.children.all(),
+                    )
+                )
+            return labels
+
+        def get_flow_labels_flat(self):
+            labels = []
+            for label in FlowLabel.objects.filter(org=self.request.user.get_org()).order_by("name"):
+                labels.append(
+                    dict(
+                        id=label.pk,
+                        uuid=label.uuid,
+                        name=label.name,
+                        count=label.get_flows_count(),
                     )
                 )
             return labels
@@ -1757,6 +1787,48 @@ class FlowCRUDL(SmartCRUDL):
                 except mailroom.MailroomException:
                     return JsonResponse(dict(status="error", description="mailroom error"), status=500)
 
+    class PreviewStart(OrgObjPermsMixin, SmartReadView):
+        permission = "flows.flow_broadcast"
+
+        def post(self, request, *args, **kwargs):
+            payload = json.loads(request.body)
+            include = mailroom.QueryInclusions(**payload.get("include", {}))
+            exclude = mailroom.QueryExclusions(**payload.get("exclude", {}))
+            flow = self.get_object()
+            org = flow.org
+
+            try:
+                query, total, sample, metadata = flow.preview_start(include=include, exclude=exclude)
+            except SearchException as e:
+                return JsonResponse({"query": "", "total": 0, "sample": [], "error": str(e)}, status=400)
+
+            query_fields = org.fields.filter(key__in=[f["key"] for f in metadata.fields])
+
+            # render sample contacts in a simplified form, including only fields from query
+            contacts = []
+            for contact in sample:
+                primary_urn = contact.get_urn()
+                primary_urn = primary_urn.get_display(org, international=True) if primary_urn else None
+                contacts.append(
+                    {
+                        "uuid": contact.uuid,
+                        "name": contact.name,
+                        "primary_urn": primary_urn,
+                        "fields": {f.key: contact.get_field_display(f) for f in query_fields},
+                        "created_on": contact.created_on.isoformat(),
+                        "last_seen_on": contact.last_seen_on.isoformat() if contact.last_seen_on else None,
+                    }
+                )
+
+            return JsonResponse(
+                {
+                    "query": query,
+                    "total": total,
+                    "sample": contacts,
+                    "fields": [{"key": f.key, "name": f.name} for f in query_fields],
+                }
+            )
+
     class Broadcast(ModalMixin, OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.ModelForm):
 
@@ -2039,7 +2111,7 @@ class FlowLabelCRUDL(SmartCRUDL):
 
     class Update(ModalMixin, OrgObjPermsMixin, SmartUpdateView):
         form_class = FlowLabelForm
-        success_url = "id@flows.flow_filter"
+        success_url = "uuid@flows.flow_filter"
         success_message = ""
 
         def get_form_kwargs(self):

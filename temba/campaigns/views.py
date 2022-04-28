@@ -54,10 +54,7 @@ class CampaignCRUDL(SmartCRUDL):
     class Menu(MenuMixin, SmartTemplateView):
         def derive_menu(self):
 
-            org = self.request.user.get_org()
-            campaigns = Campaign.objects.filter(org=org)
             menu = []
-
             menu.append(
                 self.create_menu_item(
                     name=_("Active"),
@@ -68,35 +65,20 @@ class CampaignCRUDL(SmartCRUDL):
 
             menu.append(
                 self.create_menu_item(
-                    menu_id="archived-campaigns",
                     name=_("Archived"),
                     icon="archive",
                     href="campaigns.campaign_archived",
                 )
             )
 
-            active = campaigns.filter(is_archived=False, is_active=True).order_by("name")
-
             menu.append(self.create_divider())
-
             menu.append(
                 self.create_modax_button(
                     name=_("New Campaign"),
                     href="campaigns.campaign_create",
                 )
             )
-            if active:
-                menu.append(self.create_divider())
 
-            for campaign in active:
-                menu.append(
-                    self.create_menu_item(
-                        name=campaign.name,
-                        menu_id=f"{campaign.uuid}",
-                        count=len(campaign.get_events()),
-                        href=reverse("campaigns.campaign_read", args=[campaign.pk]),
-                    )
-                )
             return menu
 
     class Update(OrgObjPermsMixin, ModalMixin, SmartUpdateView):
@@ -332,7 +314,7 @@ class CampaignEventForm(forms.ModelForm):
     )
 
     relative_to = TembaChoiceField(
-        queryset=ContactField.all_fields.none(),
+        queryset=ContactField.objects.none(),
         required=False,
         empty_label=None,
         widget=SelectWidget(
@@ -447,9 +429,9 @@ class CampaignEventForm(forms.ModelForm):
         org = self.user.get_org()
 
         relative_to = self.fields["relative_to"]
-        relative_to.queryset = org.contactfields.filter(
-            is_active=True, value_type=ContactField.TYPE_DATETIME
-        ).order_by("name")
+        relative_to.queryset = org.fields.filter(is_active=True, value_type=ContactField.TYPE_DATETIME).order_by(
+            "name"
+        )
 
         flow = self.fields["flow_to_start"]
         flow.queryset = org.flows.filter(
@@ -801,8 +783,8 @@ class CampaignEventCRUDL(SmartCRUDL):
             initial["delivery_hour"] = "-1"
 
             # default to our first date field
-            initial["relative_to"] = ContactField.all_fields.filter(
-                org=self.request.user.get_org(), is_active=True, value_type=ContactField.TYPE_DATETIME
+            initial["relative_to"] = self.request.org.fields.filter(
+                is_active=True, value_type=ContactField.TYPE_DATETIME
             ).first()
 
             return initial
@@ -815,7 +797,7 @@ class CampaignEventCRUDL(SmartCRUDL):
 
         def pre_save(self, obj):
             obj = super().pre_save(obj)
-            obj.campaign = Campaign.objects.get(org=self.request.user.get_org(), pk=self.request.GET.get("campaign"))
+            obj.campaign = Campaign.objects.get(org=self.request.org, id=self.request.GET.get("campaign"))
             self.form.pre_save(self.request, obj)
             return obj
 

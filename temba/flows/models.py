@@ -17,7 +17,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.core.files.temp import NamedTemporaryFile
 from django.db import models, transaction
 from django.db.models import Max, Q, Sum
-from django.db.models.functions import TruncDate
+from django.db.models.functions import Lower, TruncDate
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -25,6 +25,7 @@ from temba import mailroom
 from temba.assets.models import register_asset_store
 from temba.channels.models import Channel, ChannelConnection
 from temba.classifiers.models import Classifier
+from temba.contacts import search
 from temba.contacts.models import Contact, ContactField, ContactGroup
 from temba.globals.models import Global
 from temba.msgs.models import Label
@@ -33,6 +34,7 @@ from temba.templates.models import Template
 from temba.tickets.models import Ticketer, Topic
 from temba.utils import analytics, chunk_list, json, on_transaction_commit, s3
 from temba.utils.export import BaseExportAssetStore, BaseExportTask
+from temba.utils.fields import deleted_name, validate_name
 from temba.utils.models import (
     JSONAsTextField,
     JSONField,
@@ -159,7 +161,7 @@ class Flow(TembaModel, DependencyMixin):
         TYPE_SURVEY: 0,
     }
 
-    name = models.CharField(max_length=MAX_NAME_LEN, help_text=_("The name for this flow"))
+    name = models.CharField(max_length=MAX_NAME_LEN, help_text=_("The name of this flow."), validators=[validate_name])
 
     labels = models.ManyToManyField("FlowLabel", related_name="flows")
 
@@ -345,7 +347,7 @@ class Flow(TembaModel, DependencyMixin):
             flow_expires = flow_def.get(Flow.DEFINITION_EXPIRE_AFTER_MINUTES, 0)
 
             flow = None
-            flow_name = flow_name[:64].strip()
+            flow_name = flow_name[:64].strip().replace('"', "'").replace("\0", "")
 
             # ensure expires is valid for the flow type
             if not cls.is_valid_expires(flow_type, flow_expires):
@@ -971,6 +973,24 @@ class Flow(TembaModel, DependencyMixin):
         dependents["trigger"] = self.triggers.filter(is_active=True)
         return dependents
 
+    def preview_start(self, *, include: mailroom.QueryInclusions, exclude: mailroom.QueryExclusions) -> tuple:
+        """
+        Generates a preview of the given start as a tuple of
+            1) query of all recipients
+            2) total contact count
+            3) sample of the contacts (max 3)
+            4) query metadata
+        """
+        preview = search.preview_start(self.org, self, include=include, exclude=exclude, sample_size=3)
+        sample = (
+            self.org.contacts.filter(id__in=preview.sample_ids)
+            .order_by("id")
+            .select_related("org")
+            .prefetch_related("urns")
+        )
+
+        return preview.query, preview.total, sample, preview.metadata
+
     def release(self, user, *, interrupt_sessions: bool = True):
         """
         Releases this flow, marking it inactive. We interrupt all flow runs in a background process.
@@ -979,7 +999,7 @@ class Flow(TembaModel, DependencyMixin):
 
         super().release(user)
 
-        self.name = f"deleted-{uuid4()}-{self.name}"[: self.MAX_NAME_LEN]
+        self.name = deleted_name(self.name, self.MAX_NAME_LEN)
         self.is_active = False
         self.modified_by = user
         self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))
@@ -1054,6 +1074,8 @@ class Flow(TembaModel, DependencyMixin):
         ordering = ("-modified_on",)
         verbose_name = _("Flow")
         verbose_name_plural = _("Flows")
+
+        constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_flow_names")]
 
 
 class FlowSession(models.Model):

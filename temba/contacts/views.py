@@ -57,6 +57,7 @@ from temba.utils.fields import (
     SelectWidget,
     TembaChoiceField,
     TembaMultipleChoiceField,
+    is_valid_name,
 )
 from temba.utils.models import IDSliceQuerySet, patch_queryset_count
 from temba.utils.views import BulkActionMixin, ComponentFormMixin, NonAtomicMixin, SpaMixin
@@ -129,26 +130,21 @@ class ContactGroupForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
     def clean_name(self):
-        name = self.cleaned_data["name"].strip()
+        name = self.cleaned_data["name"]
 
         # make sure the name isn't already taken
         existing = self.org.groups.filter(is_active=True, name__iexact=name).first()
         if existing and self.instance != existing:
             raise forms.ValidationError(_("Already used by another group."))
 
-        # and that the name is valid
-        if not ContactGroup.is_valid_name(name):
-            raise forms.ValidationError(_("Must not be blank or begin with + or -."))
-
-        org_active_group_limit = self.org.get_limit(Org.LIMIT_GROUPS)
+        group_limit = self.org.get_limit(Org.LIMIT_GROUPS)
 
         groups_count = ContactGroup.get_groups(self.org, user_only=True).count()
-        if groups_count >= org_active_group_limit:
+        if groups_count >= group_limit:
             raise forms.ValidationError(
                 _(
-                    "This org has %(count)d groups and the limit is %(limit)d. "
-                    "You must delete existing ones before you can "
-                    "create new ones." % dict(count=groups_count, limit=org_active_group_limit)
+                    "This org has %(count)d groups and the limit is %(limit)d. You must delete existing ones before you"
+                    " can create new ones." % dict(count=groups_count, limit=group_limit)
                 )
             )
 
@@ -589,34 +585,38 @@ class ContactCRUDL(SmartCRUDL):
                     "href": reverse("contacts.contact_list"),
                     "icon": "user",
                 },
-                self.create_divider(),
+                {
+                    "id": "archived",
+                    "icon": "archive",
+                    "count": counts[Contact.STATUS_ARCHIVED],
+                    "name": _("Archived"),
+                    "href": reverse("contacts.contact_archived"),
+                },
                 {
                     "id": "blocked",
                     "count": counts[Contact.STATUS_BLOCKED],
                     "name": _("Blocked"),
                     "href": reverse("contacts.contact_blocked"),
+                    "icon": "slash",
                 },
                 {
                     "id": "stopped",
                     "count": counts[Contact.STATUS_STOPPED],
                     "name": _("Stopped"),
                     "href": reverse("contacts.contact_stopped"),
-                },
-                {
-                    "id": "archived",
-                    "count": counts[Contact.STATUS_ARCHIVED],
-                    "name": _("Archived"),
-                    "href": reverse("contacts.contact_archived"),
-                },
-                self.create_divider(),
-                {
-                    "id": "groups",
-                    "icon": "users",
-                    "name": _("Groups"),
-                    "endpoint": reverse("contacts.contactgroup_menu"),
-                    "count": ContactGroup.get_groups(org).count(),
+                    "icon": "x-octagon",
                 },
             ]
+
+            menu.append(self.create_divider())
+            menu.append(
+                {
+                    "id": "import",
+                    "icon": "publish",
+                    "href": reverse("contacts.contactimport_create"),
+                    "name": _("Import"),
+                }
+            )
 
             if self.has_org_perm("contacts.contactfield_list"):
                 count = len(ContactField.user_fields.active_for_org(org=org))
@@ -630,14 +630,41 @@ class ContactCRUDL(SmartCRUDL):
                     )
                 )
 
-            menu.append(
-                {
-                    "id": "import",
-                    "icon": "upload-cloud",
-                    "href": reverse("contacts.contactimport_create"),
-                    "name": _("Import"),
-                },
+            menu += [
+                self.create_divider(),
+                self.create_modax_button(
+                    name=_("New Contact"),
+                    href="contacts.contact_create",
+                ),
+                self.create_modax_button(
+                    name=_("New Group"),
+                    href="contacts.contactgroup_create",
+                ),
+            ]
+
+            groups = (
+                ContactGroup.get_groups(org, ready_only=False)
+                .select_related("org")
+                .order_by("-group_type", Upper("name"))
             )
+            group_counts = ContactGroupCount.get_totals(groups)
+            group_items = []
+
+            for g in groups:
+                group_items.append(
+                    self.create_menu_item(
+                        menu_id=g.uuid,
+                        name=g.name,
+                        icon=g.icon,
+                        count=group_counts[g],
+                        href=reverse("contacts.contact_filter", args=[g.uuid]),
+                    )
+                )
+
+            if group_items:
+                menu.append(
+                    {"id": "groups", "icon": "users", "name": _("Groups"), "items": group_items, "inline": True}
+                )
 
             return JsonResponse({"results": menu})
 
@@ -1091,7 +1118,7 @@ class ContactCRUDL(SmartCRUDL):
         system_group = ContactGroup.TYPE_DB_ACTIVE
 
         def get_bulk_actions(self):
-            return ("label", "block", "archive") if self.has_org_perm("contacts.contact_update") else ()
+            return ("block", "archive", "send") if self.has_org_perm("contacts.contact_update") else ()
 
         def get_gear_links(self):
             links = []
@@ -1128,26 +1155,6 @@ class ContactCRUDL(SmartCRUDL):
                         title=_("Export"),
                         modax=_("Export Contacts"),
                         href=self.derive_export_url(),
-                    )
-                )
-
-            if is_spa:
-
-                links.append(
-                    dict(
-                        id="create-contact",
-                        title=_("New Contact"),
-                        modax=_("New Contact"),
-                        href=reverse("contacts.contact_create"),
-                    )
-                )
-
-                links.append(
-                    dict(
-                        id="create-group",
-                        title=_("New Group"),
-                        modax=_("New Group"),
-                        href=reverse("contacts.contactgroup_create"),
                     )
                 )
 
@@ -1272,7 +1279,7 @@ class ContactCRUDL(SmartCRUDL):
             return links
 
         def get_bulk_actions(self):
-            return ("block", "archive") if self.group.is_smart else ("block", "label", "unlabel")
+            return ("block", "archive") if self.group.is_smart else ("block", "unlabel")
 
         def get_context_data(self, *args, **kwargs):
             context = super().get_context_data(*args, **kwargs)
@@ -1417,7 +1424,7 @@ class ContactCRUDL(SmartCRUDL):
             def __init__(self, user, instance, *args, **kwargs):
                 super().__init__(*args, **kwargs)
                 org = user.get_org()
-                self.fields["contact_field"].queryset = org.contactfields(manager="user_fields").filter(is_active=True)
+                self.fields["contact_field"].queryset = org.fields.filter(is_system=False, is_active=True)
 
         form_class = Form
         success_url = "uuid@contacts.contact_read"
@@ -1434,7 +1441,7 @@ class ContactCRUDL(SmartCRUDL):
             org = self.request.org
             field_id = self.request.GET.get("field", 0)
             if field_id:
-                context["contact_field"] = org.contactfields(manager="user_fields").get(id=field_id)
+                context["contact_field"] = org.fields.get(is_system=False, id=field_id)
             return context
 
         def save(self, obj):
@@ -1711,7 +1718,7 @@ class ContactFieldForm(forms.ModelForm):
         if not ContactField.is_valid_key(ContactField.make_key(name)):
             raise forms.ValidationError(_("Can't be a reserved word."))
 
-        conflict = ContactField.user_fields.active_for_org(org=self.org).filter(name__iexact=name.lower())
+        conflict = self.org.fields.filter(is_active=True, name__iexact=name.lower())
         if self.instance:
             conflict = conflict.exclude(id=self.instance.id)
 
@@ -1719,6 +1726,15 @@ class ContactFieldForm(forms.ModelForm):
             raise forms.ValidationError(_("Must be unique."))
 
         return name
+
+    def clean_value_type(self):
+        value_type = self.cleaned_data["value_type"]
+
+        if self.instance and self.instance.campaign_events.filter(is_active=True).exists():
+            if value_type != ContactField.TYPE_DATETIME:
+                raise forms.ValidationError(_("Can't change type of date field being used by campaign events."))
+
+        return value_type
 
     class Meta:
         model = ContactField
@@ -1829,13 +1845,11 @@ class ContactFieldCRUDL(SmartCRUDL):
             def clean(self):
                 super().clean()
 
-                org_active_fields_limit = self.org.get_limit(Org.LIMIT_FIELDS)
-
-                field_count = ContactField.user_fields.count_active_for_org(org=self.org)
-                if field_count >= org_active_fields_limit:
+                field_limit = self.org.get_limit(Org.LIMIT_FIELDS)
+                field_count = self.org.fields.filter(is_active=True, is_system=False).count()
+                if field_count >= field_limit:
                     raise forms.ValidationError(
-                        _("Cannot create a new field as limit is %(limit)s."),
-                        params={"limit": org_active_fields_limit},
+                        _("Cannot create a new field as limit is %(limit)s."), params={"limit": field_limit}
                     )
 
         queryset = ContactField.user_fields
@@ -1849,13 +1863,12 @@ class ContactFieldCRUDL(SmartCRUDL):
             return kwargs
 
         def form_valid(self, form):
-            self.object = ContactField.get_or_create(
-                org=self.request.org,
-                user=self.request.user,
-                key=ContactField.make_key(form.cleaned_data["name"]),
+            self.object = ContactField.create(
+                self.request.org,
+                self.request.user,
                 name=form.cleaned_data["name"],
                 value_type=form.cleaned_data["value_type"],
-                show_in_table=form.cleaned_data["show_in_table"],
+                featured=form.cleaned_data["show_in_table"],
             )
             return self.render_modal_response(form)
 
@@ -1871,15 +1884,7 @@ class ContactFieldCRUDL(SmartCRUDL):
             return kwargs
 
         def form_valid(self, form):
-            self.object = ContactField.get_or_create(
-                org=self.request.org,
-                user=self.request.user,
-                key=self.object.key,  # do not replace the key
-                name=form.cleaned_data["name"],
-                value_type=form.cleaned_data["value_type"],
-                show_in_table=form.cleaned_data["show_in_table"],
-                priority=0,  # reset the priority, this will move CF to the bottom of the list
-            )
+            super().form_valid(form)
 
             return self.render_modal_response(form)
 
@@ -2092,7 +2097,7 @@ class ContactImportCRUDL(SmartCRUDL):
                 return data
 
             def clean(self):
-                org_fields = self.org.contactfields(manager="user_fields").filter(is_active=True)
+                org_fields = self.org.fields.filter(is_system=False, is_active=True)
                 existing_field_keys = {f.key for f in org_fields}
                 used_field_keys = set()
                 form_values = self.get_form_values()
@@ -2133,7 +2138,7 @@ class ContactImportCRUDL(SmartCRUDL):
                         new_group_name = self.cleaned_data.get("new_group_name")
                         if not new_group_name:
                             self.add_error("new_group_name", _("Required."))
-                        elif not ContactGroup.is_valid_name(new_group_name):
+                        elif not is_valid_name(new_group_name):
                             self.add_error("new_group_name", _("Invalid group name."))
                         elif ContactGroup.get_group_by_name(self.org, new_group_name):
                             self.add_error("new_group_name", _("Already exists."))
