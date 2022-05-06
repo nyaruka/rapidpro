@@ -1,5 +1,14 @@
 -extends 'smartmin/form.html'
 
+-block modal-extra-script
+  {{ block.super }}
+  :javascript
+    $(function() {
+      $('text[name="name"]').change(function (){
+        console.log("name=" + name);
+      });
+    });
+
 -block modal-extra-style
   {{ block.super }}
 

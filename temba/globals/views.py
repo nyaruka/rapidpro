@@ -3,6 +3,7 @@ from gettext import gettext as _
 from smartmin.views import SmartCreateView, SmartCRUDL, SmartListView, SmartUpdateView
 
 from django import forms
+from django.http import JsonResponse
 from django.urls import reverse
 
 from temba.orgs.models import Org
@@ -12,60 +13,46 @@ from temba.utils.fields import InputWidget
 from .models import Global
 
 
-class CreateGlobalForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        self.org = kwargs["org"]
-        del kwargs["org"]
+class GlobalForm(forms.ModelForm):
+    def __init__(self, org, *args, **kwargs):
+        self.org = org
 
         super().__init__(*args, **kwargs)
-
-    def clean(self):
-        cleaned_data = super().clean()
-
-        org_active_globals_limit = self.org.get_limit(Org.LIMIT_GLOBALS)
-        if self.org.globals.filter(is_active=True).count() >= org_active_globals_limit:
-            raise forms.ValidationError(
-                _("Cannot create a new global as limit is %(limit)s."), params={"limit": org_active_globals_limit}
-            )
-
-        return cleaned_data
 
     def clean_name(self):
         name = self.cleaned_data["name"]
 
-        if not Global.is_valid_name(name):
-            raise forms.ValidationError(_("Can only contain letters, numbers and hypens."))
-
-        exists = self.org.globals.filter(is_active=True, name__iexact=name.lower()).exists()
-
-        if self.instance.name != name and exists:
+        if self.org.globals.filter(is_active=True, name__iexact=name).exists():
             raise forms.ValidationError(_("Must be unique."))
-
-        if not Global.is_valid_key(Global.make_key(name)):
-            raise forms.ValidationError(_("Isn't a valid name"))
 
         return name
 
+    def clean_key(self):
+        key = self.cleaned_data["key"]
+
+        if self.org.globals.filter(is_active=True, key=key).exists():
+            raise forms.ValidationError(_("Must be unique."))
+
+        return key
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        global_limit = self.org.get_limit(Org.LIMIT_GLOBALS)
+        if self.org.globals.filter(is_active=True).count() >= global_limit:
+            raise forms.ValidationError(
+                _("Cannot create a new global as limit is %(limit)s."), params={"limit": global_limit}
+            )
+
+        return cleaned_data
+
     class Meta:
         model = Global
-        fields = ("name", "value")
+        fields = ("name", "key", "value")
+        help_texts = {"key": _("How it will be referred to in flows.")}
         widgets = {
             "name": InputWidget(attrs={"name": _("Name"), "widget_only": False}),
-            "value": InputWidget(attrs={"name": _("Value"), "widget_only": False, "textarea": True}),
-        }
-
-
-class UpdateGlobalForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        self.org = kwargs["org"]
-        del kwargs["org"]
-
-        super().__init__(*args, **kwargs)
-
-    class Meta:
-        model = Global
-        fields = ("value",)
-        widgets = {
+            "key": InputWidget(attrs={"name": _("Key"), "widget_only": False, "disabled": True}),
             "value": InputWidget(attrs={"name": _("Value"), "widget_only": False, "textarea": True}),
         }
 
@@ -75,7 +62,7 @@ class GlobalCRUDL(SmartCRUDL):
     actions = ("create", "update", "delete", "list", "unused", "usages")
 
     class Create(ModalMixin, OrgPermsMixin, SmartCreateView):
-        form_class = CreateGlobalForm
+        form_class = GlobalForm
         success_message = ""
         submit_button_name = _("Create")
 
@@ -84,11 +71,13 @@ class GlobalCRUDL(SmartCRUDL):
             kwargs["org"] = self.derive_org()
             return kwargs
 
+        def derive_initial(self):
+            return {"name": "API Key", "key": "api_key"}
+
         def form_valid(self, form):
-            self.object = Global.get_or_create(
+            self.object = Global.create(
                 self.request.user.get_org(),
                 self.request.user,
-                key=Global.make_key(name=form.cleaned_data["name"]),
                 name=form.cleaned_data["name"],
                 value=form.cleaned_data["value"],
             )
@@ -96,7 +85,7 @@ class GlobalCRUDL(SmartCRUDL):
             return self.render_modal_response(form)
 
     class Update(ModalMixin, OrgObjPermsMixin, SmartUpdateView):
-        form_class = UpdateGlobalForm
+        form_class = GlobalForm
         success_message = ""
         submit_button_name = _("Update")
 
@@ -145,3 +134,7 @@ class GlobalCRUDL(SmartCRUDL):
 
     class Usages(DependencyUsagesModal):
         permission = "globals.global_read"
+
+
+def name_to_key(request):
+    return JsonResponse({"key": Global.name_to_key(request.GET.get("name", ""))})

@@ -1,65 +1,73 @@
-import regex
-from smartmin.models import SmartModel
+import re
+import unicodedata
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Count
-from django.utils.translation import gettext_lazy as _
 
 from temba.orgs.models import DependencyMixin, Org
+from temba.utils.fields import KeyValidator
+from temba.utils.models import TembaModel
 from temba.utils.text import unsnakify
-from temba.utils.uuid import uuid4
 
 
-class Global(SmartModel, DependencyMixin):
+def strip_non_ascii(value: str) -> str:
+    """
+    Strips non-ASCII values (e.g. accents) from the given text
+    """
+    text = unicodedata.normalize("NFD", value)
+    return text.encode("ascii", "ignore").decode("utf-8")
+
+
+class Global(TembaModel, DependencyMixin):
     """
     A global is a constant value that can be used in templates in flows and messages.
     """
 
-    MAX_KEY_LEN = 36
-    MAX_NAME_LEN = 36
+    MAX_KEY_LEN = 64
     MAX_VALUE_LEN = settings.GLOBAL_VALUE_SIZE
 
-    uuid = models.UUIDField(default=uuid4)
-
     org = models.ForeignKey(Org, related_name="globals", on_delete=models.PROTECT)
-
-    key = models.CharField(verbose_name=_("Key"), max_length=MAX_KEY_LEN)
-
-    name = models.CharField(verbose_name=_("Name"), max_length=MAX_NAME_LEN)
-
+    key = models.CharField(max_length=MAX_KEY_LEN, validators=[KeyValidator(MAX_KEY_LEN)])
     value = models.TextField(max_length=MAX_VALUE_LEN)
 
     @classmethod
-    def get_or_create(cls, org, user, key, name, value):
-        existing = org.globals.filter(key__iexact=key, is_active=True).first()
-        if existing:
-            if value:
-                existing.value = value
-                existing.modified_by = user
-                existing.save(update_fields=("value", "modified_by"))
-            return existing
+    def create(cls, org, user, name: str, value: str):
+        assert cls.is_valid_name(name), f"'{name}' is not valid global name"
+        assert not org.globals.filter(name__iexact=name).exists()
 
-        if not name:
-            name = unsnakify(key)
+        key = cls.name_to_key(name)
+
+        assert cls.is_valid_key(key), f"'{name}' is not valid global key"
+        assert not org.globals.filter(key=key).exists()
 
         return cls.objects.create(org=org, key=key, name=name, value=value, created_by=user, modified_by=user)
 
     @classmethod
-    def make_key(cls, name):
-        """
-        Generates a key from a name. There is no guarantee that the key is valid so should be checked with is_valid_key
-        """
-        key = regex.sub(r"([^a-z0-9]+)", " ", name.lower(), regex.V0)
-        return regex.sub(r"([^a-z0-9]+)", "_", key.strip(), regex.V0)
+    def get_or_create(cls, org, user, key: str, name: str):
+        existing = org.globals.filter(key__iexact=key, is_active=True).first()
+        if existing:
+            return existing
+
+        if not name:
+            name = cls.get_unique_name(org, unsnakify(key))
+
+        return cls.objects.create(org=org, key=key, name=name, value="", created_by=user, modified_by=user)
 
     @classmethod
-    def is_valid_key(cls, key):
-        return regex.match(r"^[a-z][a-z0-9_]*$", key, regex.V0) and len(key) <= cls.MAX_KEY_LEN
+    def name_to_key(cls, name: str) -> str:
+        key = strip_non_ascii(name.lower())
+        key = re.sub(r"\s+", "_", key)
+        return re.sub(r"[^0-9a-zA-Z_-]", "", key)
 
     @classmethod
-    def is_valid_name(cls, name):
-        return regex.match(r"^[A-Za-z0-9_\- ]+$", name, regex.V0) and len(name) <= cls.MAX_NAME_LEN
+    def is_valid_key(cls, value: str) -> bool:
+        try:
+            KeyValidator(max_length=cls.MAX_KEY_LEN)(value)
+            return True
+        except ValidationError:
+            return False
 
     @classmethod
     def annotate_usage(cls, queryset):
@@ -68,7 +76,7 @@ class Global(SmartModel, DependencyMixin):
     def release(self, user):
         super().release(user)
 
-        self.delete()
-
-    def __str__(self):
-        return f"global[key={self.key},name={self.name}]"
+        self.is_active = False
+        self.name = self.deleted_name()
+        self.modified_by = user
+        self.save(update_fields=("is_active", "name", "modified_by", "modified_on"))

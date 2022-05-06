@@ -1,5 +1,6 @@
 import ipaddress
 import json
+import re
 import socket
 from urllib import parse
 
@@ -51,6 +52,34 @@ class NameValidator:
 
         if "\0" in value:
             raise ValidationError(_("Cannot contain null characters."))
+
+    def __eq__(self, other):
+        return isinstance(other, NameValidator) and self.max_length == other.max_length
+
+
+@deconstructible
+class KeyValidator:
+    """
+    Validator for keys of fields and globals.
+    """
+
+    def __init__(self, max_length: int, reserved=()):
+        self.max_length = max_length
+        self.reserved = reserved
+
+    def __call__(self, value):
+        # model forms will add their own validator based on max_length but we need this for validating for imports etc
+        if len(value) > self.max_length:
+            raise ValidationError(_("Cannot be longer than %(limit)d characters."), params={"limit": self.max_length})
+
+        if not re.match(r"^[a-z]", value):
+            raise ValidationError(_("Must begin with a letter."))
+
+        if not re.match(r"^[a-z0-9_]+$", value):
+            raise ValidationError(_("Can only contain letters, numbers and underscores."))
+
+        if value in self.reserved:
+            raise ValidationError(_("Is a reserved word."))
 
     def __eq__(self, other):
         return isinstance(other, NameValidator) and self.max_length == other.max_length
