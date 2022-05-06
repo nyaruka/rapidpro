@@ -1,3 +1,18 @@
+v7.3.35
+----------
+ * Tweaks to Topic model to enforce name uniqueness
+ * Add __str__ and __repr__ to TembaModel to replace custom methods and remove several unused ones
+ * Convert FlowLabel to be a TembaModel
+
+v7.3.34
+----------
+ * Fix copying flows to generate a unique name
+ * Rework TembaModel to be a base model class with UUID and name
+
+v7.3.33
+----------
+ * Use model mixin for common name functionality across models
+
 v7.3.32
 ----------
  * Add DB constraint to enforce flow name uniqueness

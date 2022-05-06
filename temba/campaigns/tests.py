@@ -52,7 +52,7 @@ class CampaignTest(TembaTest):
         )
 
         self.assertEqual("Reminders", campaign.name)
-        self.assertEqual(f'Campaign[uuid={campaign.uuid}, name="Reminders"]', str(campaign))
+        self.assertEqual("Reminders", str(campaign))
         self.assertEqual('Event[relative_to=planting_date, offset=1, flow="Test Flow"]', str(event1))
         self.assertEqual([event1, event2], list(campaign.get_events()))
 
@@ -145,9 +145,9 @@ class CampaignTest(TembaTest):
         self.assertEqual("Reminders 3", Campaign.get_unique_name(self.org, "Reminders"))
 
         # ensure we don't exceed the name length limit
-        Campaign.create(self.org, self.admin, "X" * 255, self.farmers)
+        Campaign.create(self.org, self.admin, "X" * 64, self.farmers)
 
-        self.assertEqual(f"{'X' * 253} 2", Campaign.get_unique_name(self.org, "X" * 255))
+        self.assertEqual(f"{'X' * 62} 2", Campaign.get_unique_name(self.org, "X" * 64))
 
     def test_get_sorted_events(self):
         # create a campaign

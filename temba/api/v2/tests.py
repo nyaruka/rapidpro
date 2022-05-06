@@ -1052,8 +1052,8 @@ class APITest(TembaTest):
         self.assertEqual(response.status_code, 201)
 
         # try to create a campaign with name that's too long
-        response = self.postJSON(url, None, {"name": "x" * 256, "group": reporters.uuid})
-        self.assertResponseError(response, "name", "Ensure this field has no more than 255 characters.")
+        response = self.postJSON(url, None, {"name": "x" * 65, "group": reporters.uuid})
+        self.assertResponseError(response, "name", "Ensure this field has no more than 64 characters.")
 
         # update campaign by UUID
         response = self.postJSON(url, "uuid=%s" % campaign3.uuid, {"name": "Reminders III", "group": other_group.uuid})
@@ -2638,7 +2638,7 @@ class APITest(TembaTest):
         Flow.create_single_message(self.org, self.admin, dict(eng="Hello world"), "eng")
 
         # add a flow label
-        reporting = FlowLabel.objects.create(org=self.org, name="Reporting")
+        reporting = FlowLabel.create(self.org, self.admin, "Reporting")
         color.labels.add(reporting)
 
         # make it look like joe completed the color flow
@@ -3236,8 +3236,8 @@ class APITest(TembaTest):
         self.assertEqual(response.status_code, 201)
 
         # try to create a label with invalid name
-        response = self.postJSON(url, None, {"name": "!!!#$%^"})
-        self.assertResponseError(response, "name", "Name contains illegal characters.")
+        response = self.postJSON(url, None, {"name": '""'})
+        self.assertResponseError(response, "name", 'Cannot contain the character: "')
 
         # try to create a label with name that's too long
         response = self.postJSON(url, None, {"name": "x" * 65})
@@ -3530,7 +3530,7 @@ class APITest(TembaTest):
         self.assertEndpointAccess(url)
 
         flow1 = self.get_flow("color_v13")
-        flow2 = Flow.copy(flow1, self.user)
+        flow2 = flow1.clone(self.user)
 
         flow1_nodes = flow1.get_definition()["nodes"]
         color_prompt = flow1_nodes[0]
@@ -3886,8 +3886,8 @@ class APITest(TembaTest):
         self.assertIsNone(Label.all_objects.filter(name="XYZ").first())
 
         # try to use invalid label name
-        response = self.postJSON(url, None, {"messages": [msg1.id, msg2.id], "action": "label", "label_name": "$$$"})
-        self.assertResponseError(response, "label_name", "Name contains illegal characters.")
+        response = self.postJSON(url, None, {"messages": [msg1.id, msg2.id], "action": "label", "label_name": '"Hi"'})
+        self.assertResponseError(response, "label_name", 'Cannot contain the character: "')
 
         # try to label without specifying a label
         response = self.postJSON(url, None, {"messages": [msg1.id, msg2.id], "action": "label"})
@@ -4674,7 +4674,7 @@ class APITest(TembaTest):
 
         # create some tickets
         mailgun = Ticketer.create(self.org, self.admin, MailgunType.slug, "Mailgun", {})
-        sales = Topic.get_or_create(self.org, self.admin, "Sales")
+        sales = Topic.create(self.org, self.admin, "Sales")
         ticket1 = self.create_ticket(
             mailgun,
             self.joe,
@@ -4783,9 +4783,9 @@ class APITest(TembaTest):
         self.assertEndpointAccess(url)
 
         # create some topics
-        support = Topic.get_or_create(self.org, self.admin, "Support")
-        sales = Topic.get_or_create(self.org, self.admin, "Sales")
-        other_org = Topic.get_or_create(self.org2, self.admin, "Bugs")
+        support = Topic.create(self.org, self.admin, "Support")
+        sales = Topic.create(self.org, self.admin, "Sales")
+        other_org = Topic.create(self.org2, self.admin, "Bugs")
 
         # no filtering
         with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 1):
@@ -4835,8 +4835,8 @@ class APITest(TembaTest):
         self.assertEqual(response.status_code, 201)
 
         # try to create a topic with invalid name
-        response = self.postJSON(url, None, {"name": "!!!#$%^"})
-        self.assertResponseError(response, "name", "Contains illegal characters.")
+        response = self.postJSON(url, None, {"name": '"Hi"'})
+        self.assertResponseError(response, "name", 'Cannot contain the character: "')
 
         # try to create a topic with name that's too long
         response = self.postJSON(url, None, {"name": "x" * 65})
