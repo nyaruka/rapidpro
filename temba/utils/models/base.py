@@ -1,7 +1,5 @@
 import logging
-import time
 import types
-from abc import abstractmethod
 from collections import OrderedDict
 
 from smartmin.models import SmartModel
@@ -9,13 +7,13 @@ from smartmin.models import SmartModel
 from django.contrib.postgres.fields import HStoreField
 from django.core import checks
 from django.core.exceptions import ValidationError
-from django.db import connection, models
-from django.db.models import JSONField as DjangoJSONField, Sum
+from django.db import models
+from django.db.models import JSONField as DjangoJSONField
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
-from . import json, uuid
-from .fields import NameValidator
+from temba.utils import json, uuid
+from temba.utils.fields import NameValidator
 
 logger = logging.getLogger(__name__)
 
@@ -270,51 +268,6 @@ class JSONField(DjangoJSONField):
         super().__init__(*args, **kwargs)
 
 
-class SquashableModel(models.Model):
-    """
-    Base class for models which track counts by delta insertions which are then periodically squashed
-    """
-
-    squash_over = ()
-
-    id = models.BigAutoField(auto_created=True, primary_key=True)
-    is_squashed = models.BooleanField(default=False)
-
-    @classmethod
-    def get_unsquashed(cls):
-        return cls.objects.filter(is_squashed=False)
-
-    @classmethod
-    def squash(cls):
-        start = time.time()
-        num_sets = 0
-
-        for distinct_set in cls.get_unsquashed().order_by(*cls.squash_over).distinct(*cls.squash_over)[:5000]:
-            with connection.cursor() as cursor:
-                sql, params = cls.get_squash_query(distinct_set)
-
-                cursor.execute(sql, params)
-
-            num_sets += 1
-
-        time_taken = time.time() - start
-
-        logging.debug("Squashed %d distinct sets of %s in %0.3fs" % (num_sets, cls.__name__, time_taken))
-
-    @classmethod
-    @abstractmethod
-    def get_squash_query(cls, distinct_set) -> tuple:  # pragma: no cover
-        pass
-
-    @classmethod
-    def sum(cls, instances) -> int:
-        count_sum = instances.aggregate(count_sum=Sum("count"))["count_sum"]
-        return count_sum if count_sum else 0
-
-    class Meta:
-        abstract = True
-
-
 class LegacyUUIDMixin(SmartModel):
     """
     Model mixin for things with an old-style VARCHAR(36) UUID
@@ -396,6 +349,8 @@ class TembaModel(TembaUUIDMixin, TembaNameMixin, SmartModel):
     """
     Base for models which have UUID, name and smartmin auditing fields
     """
+
+    is_system = models.BooleanField(default=False)  # not user created, doesn't count against limits
 
     def as_export_ref(self) -> dict:
         return {"uuid": str(self.uuid), "name": self.name}

@@ -156,7 +156,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="flows")
 
     is_archived = models.BooleanField(default=False)
-    is_system = models.BooleanField(default=False)  # e.g. a campaign message event, not user created
 
     flow_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_MESSAGE)
 
@@ -576,7 +575,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         # ensure any topic dependencies exist
         for ref in deps_of_type("topic"):
-            topic = Topic.create(self.org, user, ref["name"])
+            topic = Topic.get_or_create(self.org, user, ref["name"])
             dependency_mapping[ref["uuid"]] = str(topic.uuid)
 
         # for dependencies we can't create, look for them by UUID (this is a clone in same workspace)

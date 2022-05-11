@@ -12,8 +12,8 @@ from django.utils.translation import gettext_lazy as _
 
 from temba import mailroom
 from temba.contacts.models import Contact
-from temba.orgs.models import DependencyMixin, Org
-from temba.utils.models import SquashableModel, TembaModel
+from temba.orgs.models import DependencyMixin, Org, UserSettings
+from temba.utils.models import DailyCountModel, SquashableModel, TembaModel
 from temba.utils.uuid import uuid4
 
 
@@ -93,7 +93,15 @@ class Ticketer(TembaModel, DependencyMixin):
 
         assert not org.ticketers.filter(ticketer_type=InternalType.slug).exists(), "org already has internal tickteter"
 
-        return cls.create(org, org.created_by, InternalType.slug, f"{brand['name']} Tickets", {})
+        return org.ticketers.create(
+            uuid=uuid4(),
+            ticketer_type=InternalType.slug,
+            name=f"{brand['name']} Tickets",
+            is_system=True,
+            config={},
+            created_by=org.created_by,
+            modified_by=org.created_by,
+        )
 
     @classmethod
     def get_types(cls):
@@ -113,18 +121,12 @@ class Ticketer(TembaModel, DependencyMixin):
 
         return TYPES[self.ticketer_type]
 
-    @property
-    def is_internal(self):
-        from .types.internal import InternalType
-
-        return self.type == InternalType
-
     def release(self, user):
         """
         Releases this, closing all associated tickets in the process
         """
 
-        assert not self.is_internal, "can't release internal ticketers"
+        assert not (self.is_system and self.org.is_active), "can't release system ticketers"
 
         super().release(user)
 
@@ -153,7 +155,11 @@ class Topic(TembaModel, DependencyMixin):
         assert not org.topics.filter(is_default=True).exists(), "org already has default topic"
 
         org.topics.create(
-            name=cls.DEFAULT_TOPIC, is_default=True, created_by=org.created_by, modified_by=org.modified_by
+            name=cls.DEFAULT_TOPIC,
+            is_default=True,
+            is_system=True,
+            created_by=org.created_by,
+            modified_by=org.modified_by,
         )
 
     @classmethod
@@ -162,6 +168,14 @@ class Topic(TembaModel, DependencyMixin):
         assert not org.topics.filter(name__iexact=name).exists()
 
         return org.topics.create(name=name, created_by=user, modified_by=user)
+
+    @classmethod
+    def get_or_create(cls, org, user, name):
+        existing = org.topics.filter(name__iexact=name).first()
+        if existing:
+            return existing
+
+        return cls.create(org, user, name)
 
     class Meta:
         constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_topic_names")]
@@ -438,5 +452,68 @@ class TicketCount(SquashableModel):
             # for squashing task
             models.Index(
                 name="ticket_count_unsquashed", fields=("org", "assignee", "status"), condition=Q(is_squashed=False)
+            ),
+        ]
+
+
+class Team(TembaModel):
+    """
+    Every user can be a member of a ticketing team
+    """
+
+    org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="teams")
+    topics = models.ManyToManyField(Topic, related_name="teams")
+
+    @classmethod
+    def create(cls, org, user, name: str):
+        assert cls.is_valid_name(name), f"'{name}' is not a valid team name"
+        assert not org.teams.filter(name__iexact=name, is_active=True).exists()
+
+        return org.teams.create(name=name, created_by=user, modified_by=user)
+
+    def get_users(self):
+        return User.objects.filter(settings__team=self)
+
+    def release(self, user):
+        # remove all users from this team
+        UserSettings.objects.filter(team=self).update(team=None)
+
+        self.name = self.deleted_name()
+        self.is_active = False
+        self.modified_by = user
+        self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))
+
+    class Meta:
+        constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_team_names")]
+
+
+class TicketDailyCount(DailyCountModel):
+    """
+    Ticket activity counts by who did it and when. Mailroom writes these.
+    """
+
+    TYPE_OPENING = "O"
+    TYPE_ASSIGNMENT = "A"  # includes tickets opened with assignment but excludes re-assignments
+    TYPE_REPLY = "R"
+
+    @classmethod
+    def get_by_org(cls, org, count_type: str, since=None, until=None):
+        return cls._get_count_set(count_type, {f"o:{org.id}": org}, since, until)
+
+    @classmethod
+    def get_by_teams(cls, teams, count_type: str, since=None, until=None):
+        return cls._get_count_set(count_type, {f"t:{t.id}": t for t in teams}, since, until)
+
+    @classmethod
+    def get_by_users(cls, org, users, count_type: str, since=None, until=None):
+        return cls._get_count_set(count_type, {f"o:{org.id}:u:{u.id}": u for u in users}, since, until)
+
+    class Meta:
+        indexes = [
+            models.Index(name="tickets_dailycount_type_scope", fields=("count_type", "scope", "day")),
+            models.Index(
+                name="tickets_dailycount_unsquashed",
+                fields=("count_type", "scope", "day"),
+                condition=Q(is_squashed=False),
             ),
         ]

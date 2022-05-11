@@ -37,10 +37,11 @@ from temba.flows.models import Flow, FlowRun, FlowStart
 from temba.globals.models import Global
 from temba.locations.models import AdminBoundary, BoundaryAlias
 from temba.msgs.models import Broadcast, Label, LabelCount, Msg, SystemLabel
-from temba.orgs.models import OrgRole
+from temba.orgs.models import Org, OrgRole
 from temba.templates.models import Template, TemplateTranslation
 from temba.tickets.models import Ticket, Ticketer, Topic
 from temba.utils import splitting_getlist, str_to_bool
+from temba.utils.uuid import is_uuid
 
 from ..models import SSLPermission
 from ..support import InvalidQueryError
@@ -907,7 +908,10 @@ class CampaignEventsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAP
         # filter by campaign name/uuid (optional)
         campaign_ref = params.get("campaign")
         if campaign_ref:
-            campaign = Campaign.objects.filter(org=org).filter(Q(uuid=campaign_ref) | Q(name=campaign_ref)).first()
+            campaign_filter = Q(name=campaign_ref)
+            if is_uuid(campaign_ref):
+                campaign_filter |= Q(uuid=campaign_ref)
+            campaign = org.campaigns.filter(campaign_filter).first()
             if campaign:
                 queryset = queryset.filter(campaign=campaign)
             else:
@@ -1787,6 +1791,7 @@ class FieldsEndpoint(ListAPIMixin, WriteAPIMixin, BaseAPIView):
     write_serializer_class = ContactFieldWriteSerializer
     pagination_class = CreatedOnCursorPagination
     lookup_params = {"key": "key"}
+    org_limit_key = Org.LIMIT_FIELDS
 
     def derive_queryset(self):
         org = self.request.user.get_org()
@@ -1801,6 +1806,9 @@ class FieldsEndpoint(ListAPIMixin, WriteAPIMixin, BaseAPIView):
             queryset = queryset.filter(key=key)
 
         return queryset.filter(is_active=True)
+
+    def get_org_limit_count(self, org):
+        return org.fields.filter(is_active=True, is_system=False).count()
 
     @classmethod
     def get_read_explorer(cls):
@@ -2031,6 +2039,7 @@ class GlobalsEndpoint(ListAPIMixin, WriteAPIMixin, BaseAPIView):
     write_serializer_class = GlobalWriteSerializer
     pagination_class = ModifiedOnCursorPagination
     lookup_params = {"key": "key"}
+    org_limit_key = Org.LIMIT_GLOBALS
 
     def filter_queryset(self, queryset):
         params = self.request.query_params
@@ -2046,6 +2055,9 @@ class GlobalsEndpoint(ListAPIMixin, WriteAPIMixin, BaseAPIView):
             return self.filter_before_after(queryset, "modified_on")
 
         return queryset.filter(is_active=True)
+
+    def get_org_limit_count(self, org) -> int:
+        return Global.objects.filter(org=org, is_active=True).count()
 
     @classmethod
     def get_read_explorer(cls):
@@ -2168,7 +2180,7 @@ class GroupsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAPIView):
     A **DELETE** can be used to delete a contact group if you specify its UUID in the URL.
 
     Notes:
-        - cannot delete groups with associated active campaigns, flows or triggers. You first need to delete related
+        - cannot delete groups with associated active campaigns or triggers. You first need to delete related
           objects through the web interface
 
     Example:
@@ -2184,6 +2196,7 @@ class GroupsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAPIView):
     write_serializer_class = ContactGroupWriteSerializer
     pagination_class = CreatedOnCursorPagination
     exclusive_params = ("uuid", "name")
+    org_limit_key = Org.LIMIT_GROUPS
 
     def derive_queryset(self):
         return ContactGroup.get_groups(self.request.user.get_org())
@@ -2203,44 +2216,25 @@ class GroupsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAPIView):
 
         return queryset.filter(is_active=True).exclude(status=ContactGroup.STATUS_INITIALIZING)
 
+    def get_org_limit_count(self, org):
+        return ContactGroup.get_groups(org, user_only=True).count()
+
     def prepare_for_serialization(self, object_list, using: str):
         group_counts = ContactGroupCount.get_totals(object_list)
         for group in object_list:
             group.count = group_counts[group]
 
-    def delete(self, request, *args, **kwargs):
-        self.lookup_values = self.get_lookup_values()
-        if not self.lookup_values:
-            raise InvalidQueryError(
-                "URL must contain one of the following parameters: " + ", ".join(sorted(self.lookup_params.keys()))
-            )
-
-        instance = self.get_object()
-        if instance.is_system:
-            raise InvalidQueryError("Cannot delete a system group.")
-
+    def perform_destroy(self, instance):
         # if there are still dependencies, give up
         triggers = instance.triggers.filter(is_archived=False)
         if triggers:
-            deps = ", ".join([str(t.id) for t in triggers])
-            raise InvalidQueryError(
-                f"Group is being used by the following triggers which must be archived first: {deps}"
-            )
-
-        flows = Flow.objects.filter(org=instance.org, group_dependencies__in=[instance])
-        if flows:
-            deps = ", ".join([f.uuid for f in flows])
-            raise InvalidQueryError(f"Group is being used by the following flows which must be archived first: {deps}")
+            raise InvalidQueryError("Group is being used by triggers which must be archived first.")
 
         campaigns = instance.campaigns.filter(is_archived=False)
         if campaigns:
-            deps = ", ".join([c.uuid for c in campaigns])
-            raise InvalidQueryError(
-                f"Group is being used by the following campaigns which must be archived first: {deps}"
-            )
+            raise InvalidQueryError("Group is being used by campaigns which must be archived first.")
 
-        self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        instance.release(self.request.user)
 
     @classmethod
     def get_read_explorer(cls):
@@ -2366,6 +2360,7 @@ class LabelsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAPIView):
     write_serializer_class = LabelWriteSerializer
     pagination_class = CreatedOnCursorPagination
     exclusive_params = ("uuid", "name")
+    org_limit_key = Org.LIMIT_LABELS
 
     def filter_queryset(self, queryset):
         params = self.request.query_params
@@ -2381,6 +2376,9 @@ class LabelsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseAPIView):
             queryset = queryset.filter(name__iexact=name)
 
         return queryset.filter(is_active=True)
+
+    def get_org_limit_count(self, org) -> int:
+        return Label.label_objects.filter(org=org, is_active=True).count()
 
     def prepare_for_serialization(self, object_list, using: str):
         label_counts = LabelCount.get_totals(object_list)
@@ -3663,6 +3661,10 @@ class TopicsEndpoint(ListAPIMixin, WriteAPIMixin, BaseAPIView):
     serializer_class = TopicReadSerializer
     write_serializer_class = TopicWriteSerializer
     pagination_class = CreatedOnCursorPagination
+    org_limit_key = Org.LIMIT_TOPICS
+
+    def get_org_limit_count(self, org) -> int:
+        return org.topics.filter(is_active=True).count()
 
     @classmethod
     def get_read_explorer(cls):

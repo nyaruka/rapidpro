@@ -145,7 +145,7 @@ class APITest(TembaTest):
 
     def assertResultsByUUID(self, response, expected):
         self.assertEqual(response.status_code, 200)
-        self.assertEqual([r["uuid"] for r in response.json()["results"]], [o.uuid for o in expected])
+        self.assertEqual([r["uuid"] for r in response.json()["results"]], [str(o.uuid) for o in expected])
 
     def assertResponseError(self, response, field, expected_message, status_code=400):
         self.assertEqual(response.status_code, status_code)
@@ -207,13 +207,13 @@ class APITest(TembaTest):
         field = fields.CampaignField(source="test")
         field._context = {"org": self.org}
 
-        self.assertEqual(field.to_internal_value(campaign.uuid), campaign)
+        self.assertEqual(field.to_internal_value(str(campaign.uuid)), campaign)
         self.assertRaises(serializers.ValidationError, field.to_internal_value, {"id": 3})  # not a string or int
 
         field = fields.CampaignEventField(source="test")
         field._context = {"org": self.org}
 
-        self.assertEqual(field.to_internal_value(event.uuid), event)
+        self.assertEqual(field.to_internal_value(str(event.uuid)), event)
 
         field._context = {"org": self.org2}
 
@@ -1010,7 +1010,7 @@ class APITest(TembaTest):
         self.assertEqual(
             resp_json["results"][0],
             {
-                "uuid": campaign2.uuid,
+                "uuid": str(campaign2.uuid),
                 "name": "Reminders #2",
                 "archived": False,
                 "group": {"uuid": reporters.uuid, "name": "Reporters"},
@@ -1035,7 +1035,7 @@ class APITest(TembaTest):
         self.assertEqual(
             response.json(),
             {
-                "uuid": campaign3.uuid,
+                "uuid": str(campaign3.uuid),
                 "name": "Reminders #3",
                 "archived": False,
                 "group": {"uuid": reporters.uuid, "name": "Reporters"},
@@ -1152,8 +1152,8 @@ class APITest(TembaTest):
             resp_json["results"],
             [
                 {
-                    "uuid": event3.uuid,
-                    "campaign": {"uuid": campaign3.uuid, "name": "Alerts"},
+                    "uuid": str(event3.uuid),
+                    "campaign": {"uuid": str(campaign3.uuid), "name": "Alerts"},
                     "relative_to": {"key": "created_on", "label": "Created On"},
                     "offset": 6,
                     "unit": "hours",
@@ -1163,8 +1163,8 @@ class APITest(TembaTest):
                     "created_on": format_datetime(event3.created_on),
                 },
                 {
-                    "uuid": event2.uuid,
-                    "campaign": {"uuid": campaign2.uuid, "name": "Notifications"},
+                    "uuid": str(event2.uuid),
+                    "campaign": {"uuid": str(campaign2.uuid), "name": "Notifications"},
                     "relative_to": {"key": "registration", "label": "Registration"},
                     "offset": 6,
                     "unit": "hours",
@@ -1174,8 +1174,8 @@ class APITest(TembaTest):
                     "created_on": format_datetime(event2.created_on),
                 },
                 {
-                    "uuid": event1.uuid,
-                    "campaign": {"uuid": campaign1.uuid, "name": "Reminders"},
+                    "uuid": str(event1.uuid),
+                    "campaign": {"uuid": str(campaign1.uuid), "name": "Reminders"},
                     "relative_to": {"key": "registration", "label": "Registration"},
                     "offset": 1,
                     "unit": "days",
@@ -1216,7 +1216,7 @@ class APITest(TembaTest):
             url,
             None,
             {
-                "campaign": campaign1.uuid,
+                "campaign": str(campaign1.uuid),
                 "relative_to": "registration",
                 "offset": 15,
                 "unit": "epocs",
@@ -1231,7 +1231,7 @@ class APITest(TembaTest):
             url,
             None,
             {
-                "campaign": campaign1.uuid,
+                "campaign": str(campaign1.uuid),
                 "relative_to": "registration",
                 "offset": 15,
                 "unit": "weeks",
@@ -1245,7 +1245,7 @@ class APITest(TembaTest):
             url,
             None,
             {
-                "campaign": campaign1.uuid,
+                "campaign": str(campaign1.uuid),
                 "relative_to": "registration",
                 "offset": 15,
                 "unit": "weeks",
@@ -1269,7 +1269,7 @@ class APITest(TembaTest):
             url,
             None,
             {
-                "campaign": campaign1.uuid,
+                "campaign": str(campaign1.uuid),
                 "relative_to": "registration",
                 "offset": 15,
                 "unit": "weeks",
@@ -1285,7 +1285,7 @@ class APITest(TembaTest):
             url,
             None,
             {
-                "campaign": campaign1.uuid,
+                "campaign": str(campaign1.uuid),
                 "relative_to": "created_on",
                 "offset": 15,
                 "unit": "days",
@@ -1309,7 +1309,7 @@ class APITest(TembaTest):
             url,
             None,
             {
-                "campaign": campaign1.uuid,
+                "campaign": str(campaign1.uuid),
                 "relative_to": "registration",
                 "offset": 15,
                 "unit": "weeks",
@@ -1344,12 +1344,12 @@ class APITest(TembaTest):
             url,
             "uuid=%s" % event1.uuid,
             {
-                "campaign": campaign1.uuid,
+                "campaign": str(campaign1.uuid),
                 "relative_to": "registration",
                 "offset": 15,
                 "unit": "weeks",
                 "delivery_hour": -1,
-                "flow": flow.uuid,
+                "flow": str(flow.uuid),
             },
         )
         self.assertEqual(response.status_code, 200)
@@ -1365,7 +1365,7 @@ class APITest(TembaTest):
             url,
             "uuid=%s" % event2.uuid,
             {
-                "campaign": campaign1.uuid,
+                "campaign": str(campaign1.uuid),
                 "relative_to": "registration",
                 "offset": 15,
                 "unit": "weeks",
@@ -1384,7 +1384,7 @@ class APITest(TembaTest):
             url,
             "uuid=%s" % event2.uuid,
             {
-                "campaign": campaign1.uuid,
+                "campaign": str(campaign1.uuid),
                 "relative_to": "registration",
                 "offset": 15,
                 "unit": "weeks",
@@ -1403,7 +1403,7 @@ class APITest(TembaTest):
             url,
             "uuid=%s" % event1.uuid,
             {
-                "campaign": campaign2.uuid,
+                "campaign": str(campaign2.uuid),
                 "relative_to": "registration",
                 "offset": 15,
                 "unit": "weeks",
@@ -1453,7 +1453,7 @@ class APITest(TembaTest):
             url,
             None,
             {
-                "campaign": campaign1.uuid,
+                "campaign": str(campaign1.uuid),
                 "relative_to": "registration",
                 "offset": 15,
                 "unit": "weeks",
@@ -1469,7 +1469,7 @@ class APITest(TembaTest):
             url,
             f"uuid={event1.uuid}",
             {
-                "campaign": campaign1.uuid,
+                "campaign": str(campaign1.uuid),
                 "relative_to": "registration",
                 "offset": 15,
                 "unit": "weeks",
@@ -1481,7 +1481,7 @@ class APITest(TembaTest):
         self.assertEqual(response.json(), {"campaign": [f"No such object: {campaign1.uuid}"]})
 
         # we can delete an event on the inactive campaign
-        response = self.deleteJSON(url, "uuid=%s" % event1.uuid)
+        response = self.deleteJSON(url, f"uuid={event1.uuid}")
         self.assertEqual(response.status_code, 204)
 
     def test_campaignevents_on_archived_campaign(self):
@@ -1511,7 +1511,7 @@ class APITest(TembaTest):
             url,
             None,
             {
-                "campaign": campaign1.uuid,
+                "campaign": str(campaign1.uuid),
                 "relative_to": "registration",
                 "offset": 15,
                 "unit": "weeks",
@@ -1527,7 +1527,7 @@ class APITest(TembaTest):
             url,
             f"uuid={event1.uuid}",
             {
-                "campaign": campaign1.uuid,
+                "campaign": str(campaign1.uuid),
                 "relative_to": "registration",
                 "offset": 15,
                 "unit": "weeks",
@@ -1539,11 +1539,11 @@ class APITest(TembaTest):
         self.assertEqual(response.json(), {"campaign": [f"No such object: {campaign1.uuid}"]})
 
         # fetch campaign event on archived campaign
-        response = self.fetchJSON(url, "uuid=%s" % event1.uuid)
+        response = self.fetchJSON(url, f"uuid={event1.uuid}")
         self.assertEqual(len(response.json()["results"]), 1)
 
         # we can delete an event on the archived campaign
-        response = self.deleteJSON(url, "uuid=%s" % event1.uuid)
+        response = self.deleteJSON(url, f"uuid={event1.uuid}")
         self.assertEqual(response.status_code, 204)
 
     def test_channels(self):
@@ -2618,10 +2618,7 @@ class APITest(TembaTest):
 
         response = self.postJSON(url, None, {"label": "Age", "value_type": "numeric"})
         self.assertResponseError(
-            response,
-            "non_field_errors",
-            "This org has 10 contact fields and the limit is 10. "
-            "You must delete existing ones before you can create new ones.",
+            response, None, "Cannot create object because workspace has reached limit of 10.", status_code=409
         )
 
     def test_flows(self):
@@ -2922,10 +2919,7 @@ class APITest(TembaTest):
         # try again now that we've hit the mocked limit of globals per org
         response = self.postJSON(url, None, {"name": "Website URL", "value": "http://example.com"})
         self.assertResponseError(
-            response,
-            "non_field_errors",
-            "This org has 3 globals and the limit is 3. "
-            "You must delete existing ones before you can create new ones.",
+            response, None, "Cannot create object because workspace has reached limit of 3.", status_code=409
         )
 
     @override_settings(ORG_LIMIT_DEFAULTS={"groups": 10})
@@ -3055,9 +3049,9 @@ class APITest(TembaTest):
         reporters.refresh_from_db()
         self.assertEqual(reporters.name, "U-Reporters")
 
-        # can't update a system group from other org
+        # can't update a system group
         response = self.postJSON(url, "uuid=%s" % open_tickets.uuid, {"name": "Won't work"})
-        self.assertResponseError(response, "non_field_errors", "Cannot update a system group.")
+        self.assertResponseError(response, None, "Cannot modify system object.", status_code=403)
         self.assertTrue(self.org.groups.filter(name="Open Tickets").exists())
 
         # can't update a group from other org
@@ -3077,11 +3071,7 @@ class APITest(TembaTest):
 
         # can't delete a system group
         response = self.deleteJSON(url, "uuid=%s" % open_tickets.uuid)
-        self.assertEqual(400, response.status_code)
-        self.assertEqual(
-            {"detail": "Cannot delete a system group."},
-            response.json(),
-        )
+        self.assertResponseError(response, None, "Cannot delete system object.", status_code=403)
         self.assertTrue(self.org.groups.filter(name="Open Tickets").exists())
 
         # can't delete a group in another org
@@ -3104,10 +3094,7 @@ class APITest(TembaTest):
 
         response = self.postJSON(url, None, {"name": "Reporters"})
         self.assertResponseError(
-            response,
-            "non_field_errors",
-            "This workspace has 10 groups and the limit is 10. "
-            "You must delete existing ones before you can create new ones.",
+            response, None, "Cannot create object because workspace has reached limit of 10.", status_code=409
         )
 
         group1 = ContactGroup.objects.filter(org=self.org, name="group1").first()
@@ -3129,27 +3116,7 @@ class APITest(TembaTest):
         response = self.deleteJSON(url, "uuid=%s" % cats.uuid)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.json(),
-            {"detail": f"Group is being used by the following triggers which must be archived first: {trigger.id}"},
-        )
-
-    def test_api_groups_cant_delete_with_flow_dependency(self):
-        url = reverse("api.v2.groups")
-        self.login(self.admin)
-
-        self.get_flow("dependencies")
-
-        flow = Flow.objects.get(name="Dependencies")
-        cats = ContactGroup.objects.get(name="Cat Facts")
-
-        response = self.deleteJSON(url, "uuid=%s" % cats.uuid)
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.json(),
-            {"detail": f"Group is being used by the following flows which must be archived first: {flow.uuid}"},
-        )
+        self.assertEqual(response.json(), {"detail": "Group is being used by triggers which must be archived first."})
 
     def test_api_groups_cant_delete_with_campaign_dependency(self):
         url = reverse("api.v2.groups")
@@ -3159,17 +3126,10 @@ class APITest(TembaTest):
 
         self.client.post(reverse("campaigns.campaign_create"), {"name": "Don't forget to ...", "group": customers.id})
 
-        campaign = Campaign.objects.get()
-
         response = self.deleteJSON(url, f"uuid={customers.uuid}")
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.json(),
-            {
-                "detail": f"Group is being used by the following campaigns which must be archived first: {campaign.uuid}"
-            },
-        )
+        self.assertEqual(response.json(), {"detail": "Group is being used by campaigns which must be archived first."})
 
     def test_labels(self):
         url = reverse("api.v2.labels")
@@ -3275,10 +3235,7 @@ class APITest(TembaTest):
         with override_settings(ORG_LIMIT_DEFAULTS={"labels": current_count}):
             response = self.postJSON(url, None, {"name": "Interesting"})
             self.assertResponseError(
-                response,
-                "non_field_errors",
-                "This workspace has 3 labels and the limit is 3. "
-                "You must delete existing ones before you can create new ones.",
+                response, None, "Cannot create object because workspace has reached limit of 3.", status_code=409
             )
 
     def assertMsgEqual(self, msg_json, msg, msg_type, msg_status, msg_visibility):
@@ -4800,16 +4757,19 @@ class APITest(TembaTest):
                 {
                     "uuid": str(sales.uuid),
                     "name": "Sales",
+                    "system": False,
                     "created_on": format_datetime(sales.created_on),
                 },
                 {
                     "uuid": str(support.uuid),
                     "name": "Support",
+                    "system": False,
                     "created_on": format_datetime(support.created_on),
                 },
                 {
                     "uuid": str(self.org.default_ticket_topic.uuid),
                     "name": "General",
+                    "system": True,
                     "created_on": format_datetime(self.org.default_ticket_topic.created_on),
                 },
             ],
@@ -4824,7 +4784,10 @@ class APITest(TembaTest):
         self.assertEqual(response.status_code, 201)
 
         food = Topic.objects.get(name="Food")
-        self.assertEqual(response.json(), {"uuid": str(food.uuid), "name": "Food", "created_on": matchers.ISODate()})
+        self.assertEqual(
+            response.json(),
+            {"uuid": str(food.uuid), "name": "Food", "system": False, "created_on": matchers.ISODate()},
+        )
 
         # try to create another topic with same name
         response = self.postJSON(url, None, {"name": "food"})
@@ -4851,7 +4814,7 @@ class APITest(TembaTest):
 
         # can't update default topic for an org
         response = self.postJSON(url, "uuid=%s" % self.org.default_ticket_topic.uuid, {"name": "Won't work"})
-        self.assertResponseError(response, "non_field_errors", "Can't modify default topic for a workspace.")
+        self.assertResponseError(response, None, "Cannot modify system object.", status_code=403)
 
         # can't update topic from other org
         response = self.postJSON(url, "uuid=%s" % other_org.uuid, {"name": "Won't work"})
@@ -4866,10 +4829,7 @@ class APITest(TembaTest):
         with override_settings(ORG_LIMIT_DEFAULTS={"topics": current_count}):
             response = self.postJSON(url, None, {"name": "Interesting"})
             self.assertResponseError(
-                response,
-                "non_field_errors",
-                "This workspace has 5 topics and the limit is 5. "
-                "You must delete existing ones before you can create new ones.",
+                response, None, "Cannot create object because workspace has reached limit of 5.", status_code=409
             )
 
     def test_users(self):

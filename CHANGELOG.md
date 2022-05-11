@@ -1,3 +1,29 @@
+v7.3.39
+----------
+ * Move temba.utils.models to its own package
+ * Queue broadcasts to mailroom with their created_by
+ * Add teams to mailroom test database
+ * Add is_system to TembaModel, downgrade Contact to SmartModel
+
+v7.3.38
+----------
+ * Make sure we request a FB long lived page token using a long lived user token
+ * Convert campaign and campaignevent to use real UUIDs, simplify use of constants in API
+
+v7.3.37
+----------
+ * Don't forget to squash TicketDailyCount
+ * Fix imports of flows with ticket topic dependencies
+
+v7.3.36
+----------
+ * Add migration to update names of deleted labels and add constraint to enforce uniqueness
+ * Move org limit checking from serializers to API views
+ * Generalize preventing deletion of system objects via the API and allow deleting of groups that are used in flows
+ * Serialized topics in the API should include system field
+ * Add name uniqueness constraints to Team and Topic
+ * Add Team and TicketDailyCount models
+
 v7.3.35
 ----------
  * Tweaks to Topic model to enforce name uniqueness
