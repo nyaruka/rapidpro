@@ -135,7 +135,7 @@ class Ticketer(TembaModel, DependencyMixin):
             Ticket.bulk_close(self.org, user, open_tickets, force=True)
 
         self.is_active = False
-        self.name = self.deleted_name()
+        self.name = self._deleted_name()
         self.modified_by = user
         self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))
 
@@ -146,6 +146,7 @@ class Topic(TembaModel, DependencyMixin):
     """
 
     DEFAULT_TOPIC = "General"
+    org_limit_key = Org.LIMIT_TOPICS
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="topics")
     is_default = models.BooleanField(default=False)
@@ -170,12 +171,8 @@ class Topic(TembaModel, DependencyMixin):
         return org.topics.create(name=name, created_by=user, modified_by=user)
 
     @classmethod
-    def get_or_create(cls, org, user, name):
-        existing = org.topics.filter(name__iexact=name).first()
-        if existing:
-            return existing
-
-        return cls.create(org, user, name)
+    def create_from_import_def(cls, org, user, definition: dict):
+        return cls.create(org, user, definition["name"])
 
     class Meta:
         constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_topic_names")]
@@ -478,7 +475,7 @@ class Team(TembaModel):
         # remove all users from this team
         UserSettings.objects.filter(team=self).update(team=None)
 
-        self.name = self.deleted_name()
+        self.name = self._deleted_name()
         self.is_active = False
         self.modified_by = user
         self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))

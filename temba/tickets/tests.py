@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from unittest.mock import patch
 
 from django.test.utils import override_settings
@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from temba.contacts.models import Contact
-from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
+from temba.tests import CRUDLTestMixin, MigrationTest, TembaTest, matchers, mock_mailroom
 from temba.utils.dates import datetime_to_timestamp
 
 from .models import Team, Ticket, TicketCount, TicketDailyCount, Ticketer, TicketEvent, Topic
@@ -593,7 +593,7 @@ class TicketerCRUDLTest(TembaTest, CRUDLTestMixin):
 
 
 class TopicTest(TembaTest):
-    def test_model(self):
+    def test_create(self):
         topic1 = Topic.create(self.org, self.admin, "Sales")
 
         self.assertEqual("Sales", topic1.name)
@@ -608,8 +608,104 @@ class TopicTest(TembaTest):
         with self.assertRaises(AssertionError):
             Topic.create(self.org, self.admin, "Sales")
 
-        topic2 = Topic.get_or_create(self.org, self.admin, "Sales")
+    @override_settings(ORG_LIMIT_DEFAULTS={"topics": 3})
+    def test_import(self):
+        def _import(definition, preview=False):
+            return Topic.import_def(self.org, self.admin, definition, preview=preview)
+
+        # preview import as dependency ref from flow inspection
+        topic1, result = _import({"uuid": "0c81be38-8481-4a20-92ca-67e9a5617e77", "name": "Sales"}, preview=True)
+        self.assertIsNone(topic1)
+        self.assertEqual(Topic.ImportResult.CREATED, result)
+        self.assertEqual(0, Topic.objects.filter(name="Sales").count())
+
+        # import as dependency ref from flow inspection
+        topic1, result = _import({"uuid": "0c81be38-8481-4a20-92ca-67e9a5617e77", "name": "Sales"})
+        self.assertNotEqual("0c81be38-8481-4a20-92ca-67e9a5617e77", str(topic1.uuid))  # UUIDs never trusted
+        self.assertEqual("Sales", topic1.name)
+        self.assertEqual(Topic.ImportResult.CREATED, result)
+
+        # preview import same definition again
+        topic2, result = _import({"uuid": "0c81be38-8481-4a20-92ca-67e9a5617e77", "name": "Sales"}, preview=True)
         self.assertEqual(topic1, topic2)
+        self.assertEqual(Topic.ImportResult.MATCHED, result)
+
+        # import same definition again
+        topic2, result = _import({"uuid": "0c81be38-8481-4a20-92ca-67e9a5617e77", "name": "Sales"})
+        self.assertEqual(topic1, topic2)
+        self.assertEqual("Sales", topic2.name)
+        self.assertEqual(Topic.ImportResult.MATCHED, result)
+
+        # import different UUID but same name
+        topic3, result = _import({"uuid": "89a2265b-0caf-478f-837c-187fc8c32b46", "name": "Sales"})
+        self.assertEqual(topic2, topic3)
+        self.assertEqual(Topic.ImportResult.MATCHED, result)
+
+        topic4 = Topic.create(self.org, self.admin, "Support")
+
+        # import with UUID of existing thing (i.e. importing an export from this workspace)
+        topic5, result = _import({"uuid": str(topic4.uuid), "name": "Support"})
+        self.assertEqual(topic4, topic5)
+        self.assertEqual(Topic.ImportResult.MATCHED, result)
+
+        # preview import with UUID of existing thing with different name
+        topic6, result = _import({"uuid": str(topic4.uuid), "name": "Help"}, preview=True)
+        self.assertEqual(topic5, topic6)
+        self.assertEqual("Support", topic6.name)  # not actually updated
+        self.assertEqual(Topic.ImportResult.UPDATED, result)
+
+        # import with UUID of existing thing with different name
+        topic6, result = _import({"uuid": str(topic4.uuid), "name": "Help"})
+        self.assertEqual(topic5, topic6)
+        self.assertEqual("Help", topic6.name)  # updated
+        self.assertEqual(Topic.ImportResult.UPDATED, result)
+
+        # import with UUID of existing thing and name that conflicts with another existing thing
+        topic7, result = _import({"uuid": str(topic4.uuid), "name": "Sales"})
+        self.assertEqual(topic6, topic7)
+        self.assertEqual("Sales 2", topic7.name)  # updated with suffix to make it unique
+        self.assertEqual(Topic.ImportResult.UPDATED, result)
+
+        # import definition of default topic from other workspace
+        topic8, result = _import({"uuid": "bfacf01f-50d5-4236-9faa-7673bb4a9520", "name": "General"})
+        self.assertEqual(self.org.default_ticket_topic, topic8)
+        self.assertEqual(Topic.ImportResult.MATCHED, result)
+
+        # import definition of default topic from this workspace
+        topic9, result = _import({"uuid": str(self.org.default_ticket_topic.uuid), "name": "General"})
+        self.assertEqual(self.org.default_ticket_topic, topic9)
+        self.assertEqual(Topic.ImportResult.MATCHED, result)
+
+        # import definition of default topic from this workspace... but with different name
+        topic10, result = _import({"uuid": str(self.org.default_ticket_topic.uuid), "name": "Default"})
+        self.assertEqual(self.org.default_ticket_topic, topic10)
+        self.assertEqual("General", topic10.name)  # unchanged
+        self.assertEqual(Topic.ImportResult.MATCHED, result)
+
+        # import definition with name that can be cleaned and then matches existing
+        topic11, result = _import({"uuid": "e694bad8-9cca-4efd-9f07-cb13248ed5e8", "name": " Sales\0 "})
+        self.assertEqual("Sales", topic11.name)
+        self.assertEqual(Topic.ImportResult.MATCHED, result)
+
+        # import definition with name that can be cleaned and created new
+        topic12, result = _import({"uuid": "c537ad58-ab2e-4b3a-8677-2766a2d14efe", "name": ' "Testing" '})
+        self.assertEqual("'Testing'", topic12.name)
+        self.assertEqual(Topic.ImportResult.CREATED, result)
+
+        # try to import with name that can't be cleaned to something valid
+        topic13, result = _import({"uuid": "c537ad58-ab2e-4b3a-8677-2766a2d14efe", "name": "  "})
+        self.assertIsNone(topic13)
+        self.assertEqual(Topic.ImportResult.IGNORED_INVALID, result)
+
+        # import with UUID of existing thing and invalid name which will be ignored
+        topic14, result = _import({"uuid": str(topic4.uuid), "name": "  "})
+        self.assertEqual(topic4, topic14)
+        self.assertEqual(Topic.ImportResult.MATCHED, result)
+
+        # try to import new now that we've reached org limit
+        topic15, result = _import({"uuid": "bef5f64c-0ad5-4ee0-9c9f-b3f471ec3b0c", "name": "Yet More"})
+        self.assertIsNone(topic15)
+        self.assertEqual(Topic.ImportResult.IGNORED_LIMIT_REACHED, result)
 
 
 class TeamTest(TembaTest):
@@ -743,3 +839,145 @@ class TicketDailyCountTest(TembaTest):
 
         assert_counts()
         self.assertEqual(14, TicketDailyCount.objects.count())
+
+
+class BackfillTicketDailyCountsTest(MigrationTest):
+    app = "tickets"
+    migrate_from = "0033_populate_is_system"
+    migrate_to = "0034_backfill_ticket_daily_counts"
+
+    def setUpBeforeMigration(self, apps):
+        ticketer = self.org.ticketers.get()
+        contact = self.create_contact("Bob", phone="+1234567890")
+
+        # ticket opened on May 1 with no assignee
+        ticket1 = self.create_ticket(
+            ticketer, contact, "Help", opened_on=datetime(2022, 5, 1, 10, 30, 0, 0, tzinfo=timezone.utc)
+        )
+        self.create_broadcast(
+            self.admin,
+            "What is the problem?",
+            contacts=[contact],
+            ticket=ticket1,
+            created_on=datetime(2022, 5, 1, 10, 30, 0, 0, tzinfo=timezone.utc),
+        )
+        self.create_broadcast(
+            self.admin,
+            "Still there?",
+            contacts=[contact],
+            ticket=ticket1,
+            created_on=datetime(2022, 5, 2, 10, 30, 0, 0, tzinfo=timezone.utc),
+        )
+
+        # ticket opened on May 1 with an assignee
+        ticket2 = self.create_ticket(
+            ticketer,
+            contact,
+            "Help",
+            opened_on=datetime(2022, 5, 1, 12, 30, 0, 0, tzinfo=timezone.utc),
+            assignee=self.agent,
+        )
+        self.create_broadcast(
+            self.agent,
+            "What is the problem?",
+            contacts=[contact],
+            ticket=ticket2,
+            created_on=datetime(2022, 5, 1, 10, 30, 0, 0, tzinfo=timezone.utc),
+        )
+
+        # ticket opened on May 1, later assigned on May 3
+        ticket3 = self.create_ticket(
+            ticketer, contact, "Help", opened_on=datetime(2022, 5, 1, 13, 30, 0, 0, tzinfo=timezone.utc)
+        )
+        ticket3.assignee = self.agent
+        ticket3.save(update_fields=("assignee",))
+        TicketEvent.objects.create(
+            org=self.org,
+            ticket=ticket3,
+            contact=contact,
+            event_type=TicketEvent.TYPE_ASSIGNED,
+            assignee=self.agent,
+            created_by=self.admin,
+            created_on=datetime(2022, 5, 3, 13, 30, 0, 0, tzinfo=timezone.utc),
+        )
+
+        # ticket open on May 2 (in org timezone) and later re-assigned on May 4 which doesn't count
+        ticket4 = self.create_ticket(
+            ticketer,
+            contact,
+            "Help",
+            opened_on=datetime(2022, 5, 1, 23, 45, 0, 0, tzinfo=timezone.utc),
+            assignee=self.admin,
+        )
+
+        ticket4.assignee = self.editor
+        ticket4.save(update_fields=("assignee",))
+        TicketEvent.objects.create(
+            org=self.org,
+            ticket=ticket4,
+            contact=contact,
+            event_type=TicketEvent.TYPE_ASSIGNED,
+            assignee=self.editor,
+            created_by=self.admin,
+            created_on=datetime(2022, 5, 4, 13, 30, 0, 0, tzinfo=timezone.utc),
+        )
+        self.create_broadcast(
+            self.admin,
+            "What is the problem?",
+            contacts=[contact],
+            ticket=ticket4,
+            created_on=datetime(2022, 5, 4, 10, 30, 0, 0, tzinfo=timezone.utc),
+        )
+
+        # ticket 4 already has counts which should replaced
+        TicketDailyCount.objects.create(
+            count_type=TicketDailyCount.TYPE_OPENING, scope=f"o:{self.org.id}", day=date(2022, 5, 2), count=1
+        )
+        TicketDailyCount.objects.create(
+            count_type=TicketDailyCount.TYPE_ASSIGNMENT,
+            scope=f"o:{self.org.id}:u:{self.admin.id}",
+            day=date(2022, 5, 2),
+            count=1,
+        )
+        TicketDailyCount.objects.create(
+            count_type=TicketDailyCount.TYPE_REPLY, scope=f"o:{self.org.id}", day=date(2022, 5, 4), count=1
+        )
+        TicketDailyCount.objects.create(
+            count_type=TicketDailyCount.TYPE_REPLY,
+            scope=f"o:{self.org.id}:u:{self.admin.id}",
+            day=date(2022, 5, 4),
+            count=1,
+        )
+
+    def test_migration(self):
+        # org opened 3 tickets on May 1, 1 on May 2
+        self.assertEqual(
+            [(date(2022, 5, 1), 3), (date(2022, 5, 2), 1)],
+            TicketDailyCount.get_by_org(self.org, TicketDailyCount.TYPE_OPENING).day_totals(),
+        )
+
+        # agent user assigned a ticket on May 1 and May 3
+        self.assertEqual(
+            [(date(2022, 5, 1), 1), (date(2022, 5, 3), 1)],
+            TicketDailyCount.get_by_users(self.org, [self.agent], TicketDailyCount.TYPE_ASSIGNMENT).day_totals(),
+        )
+        self.assertEqual(
+            [(date(2022, 5, 2), 1)],
+            TicketDailyCount.get_by_users(self.org, [self.admin], TicketDailyCount.TYPE_ASSIGNMENT).day_totals(),
+        )
+        self.assertEqual(
+            [], TicketDailyCount.get_by_users(self.org, [self.editor], TicketDailyCount.TYPE_ASSIGNMENT).day_totals()
+        )
+
+        self.assertEqual(
+            [(date(2022, 5, 1), 2), (date(2022, 5, 2), 1), (date(2022, 5, 4), 1)],
+            TicketDailyCount.get_by_org(self.org, TicketDailyCount.TYPE_REPLY).day_totals(),
+        )
+        self.assertEqual(
+            [(date(2022, 5, 1), 1)],
+            TicketDailyCount.get_by_users(self.org, [self.agent], TicketDailyCount.TYPE_REPLY).day_totals(),
+        )
+        self.assertEqual(
+            [(date(2022, 5, 1), 1), (date(2022, 5, 2), 1), (date(2022, 5, 4), 1)],
+            TicketDailyCount.get_by_users(self.org, [self.admin], TicketDailyCount.TYPE_REPLY).day_totals(),
+        )

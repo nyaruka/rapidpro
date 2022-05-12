@@ -77,6 +77,6 @@ class Global(TembaModel, DependencyMixin):
         super().release(user)
 
         self.is_active = False
-        self.name = self.deleted_name()
+        self.name = self._deleted_name()
         self.modified_by = user
         self.save(update_fields=("is_active", "name", "modified_by", "modified_on"))
