@@ -1,3 +1,20 @@
+v7.3.40
+----------
+ * Add workspace plan, disallow grandchild org creation.
+ * Add support for shared usage tracking
+
+v7.3.39
+----------
+ * Move temba.utils.models to its own package
+ * Queue broadcasts to mailroom with their created_by
+ * Add teams to mailroom test database
+ * Add is_system to TembaModel, downgrade Contact to SmartModel
+
+v7.3.38
+----------
+ * Make sure we request a FB long lived page token using a long lived user token
+ * Convert campaign and campaignevent to use real UUIDs, simplify use of constants in API
+
 v7.3.37
 ----------
  * Don't forget to squash TicketDailyCount
