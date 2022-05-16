@@ -401,7 +401,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         """
         Returns a clone of this flow
         """
-        name = self.get_unique_name(self.org, f"Copy of {self.name}"[: self.MAX_NAME_LEN])
+        name = self.get_unique_name(self.org, f"Copy of {self.name}"[: self.MAX_NAME_LEN].strip())
         copy = Flow.create(
             self.org,
             user,
@@ -555,8 +555,12 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         flow_info = mailroom.get_client().flow_inspect(self.org.id, definition)
         dependencies = flow_info[Flow.INSPECT_DEPENDENCIES]
 
-        def deps_of_type(type_name):
-            return [d for d in dependencies if d["type"] == type_name]
+        # converts a dep ref {uuid|key, name, type, missing} to an importable partial definition {uuid|key, name}
+        def ref_to_def(r: dict) -> dict:
+            return {k: v for k, v in r.items() if k in ("uuid", "name", "key")}
+
+        def deps_of_type(type_name: str):
+            return [ref_to_def(d) for d in dependencies if d["type"] == type_name]
 
         # ensure all field dependencies exist
         for ref in deps_of_type("field"):
@@ -570,12 +574,12 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         # ensure any label dependencies exist
         for ref in deps_of_type("label"):
-            label = Label.get_or_create(self.org, user, ref["name"])
+            label, _ = Label.import_def(self.org, user, ref)
             dependency_mapping[ref["uuid"]] = str(label.uuid)
 
         # ensure any topic dependencies exist
         for ref in deps_of_type("topic"):
-            topic = Topic.get_or_create(self.org, user, ref["name"])
+            topic, _ = Topic.import_def(self.org, user, ref)
             dependency_mapping[ref["uuid"]] = str(topic.uuid)
 
         # for dependencies we can't create, look for them by UUID (this is a clone in same workspace)
@@ -980,7 +984,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         super().release(user)
 
-        self.name = self.deleted_name()
+        self.name = self._deleted_name()
         self.is_active = False
         self.modified_by = user
         self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))

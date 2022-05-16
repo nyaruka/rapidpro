@@ -246,8 +246,8 @@ class TembaTestMixin:
                 group.contacts.add(*contacts)
             return group
 
-    def create_label(self, name, org=None):
-        return Label.get_or_create(org or self.org, self.user, name)
+    def create_label(self, name, *, folder=None, org=None):
+        return Label.create(org or self.org, self.admin, name, folder=folder)
 
     def create_field(self, key, name, value_type=ContactField.TYPE_TEXT, priority=0, show_in_table=False, org=None):
         org = org or self.org
@@ -415,6 +415,8 @@ class TembaTestMixin:
         msg_status=Msg.STATUS_SENT,
         parent=None,
         schedule=None,
+        ticket=None,
+        created_on=None,
     ):
         bcast = Broadcast.create(
             self.org,
@@ -425,6 +427,8 @@ class TembaTestMixin:
             status=Msg.STATUS_SENT,
             parent=parent,
             schedule=schedule,
+            ticket=ticket,
+            created_on=created_on or timezone.now(),
         )
 
         contacts = set(bcast.contacts.all())
@@ -637,16 +641,14 @@ class TembaTestMixin:
             closed_on=closed_on,
         )
         TicketEvent.objects.create(
-            org=ticket.org, contact=contact, ticket=ticket, event_type=TicketEvent.TYPE_OPENED, created_by=opened_by
+            org=ticket.org,
+            contact=contact,
+            ticket=ticket,
+            event_type=TicketEvent.TYPE_OPENED,
+            assignee=assignee,
+            created_by=opened_by,
+            created_on=opened_on,
         )
-        if assignee:
-            TicketEvent.objects.create(
-                org=ticket.org,
-                contact=contact,
-                ticket=ticket,
-                event_type=TicketEvent.TYPE_ASSIGNED,
-                created_by=opened_by,
-            )
         if closed_on:
             TicketEvent.objects.create(
                 org=ticket.org,
@@ -654,6 +656,7 @@ class TembaTestMixin:
                 ticket=ticket,
                 event_type=TicketEvent.TYPE_CLOSED,
                 created_by=closed_by,
+                created_on=closed_on,
             )
 
         return ticket

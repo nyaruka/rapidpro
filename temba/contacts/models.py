@@ -31,7 +31,7 @@ from temba.mailroom import ContactSpec, modifiers, queue_populate_dynamic_group
 from temba.orgs.models import DependencyMixin, Org
 from temba.utils import chunk_list, format_number, on_transaction_commit
 from temba.utils.export import BaseExportAssetStore, BaseExportTask, TableExporter
-from temba.utils.models import JSONField, LegacyUUIDMixin, SquashableModel, TembaModel, TembaNameMixin
+from temba.utils.models import JSONField, LegacyUUIDMixin, SquashableModel, TembaModel
 from temba.utils.text import decode_stream, unsnakify
 from temba.utils.urns import ParsedURN, parse_number, parse_urn
 from temba.utils.uuid import uuid4
@@ -337,7 +337,7 @@ class UserContactFieldsManager(models.Manager):
         return self.get_queryset().active_for_org(org=org)
 
 
-class ContactField(SmartModel, TembaNameMixin, DependencyMixin):
+class ContactField(TembaModel, DependencyMixin):
     """
     A custom user field for contacts.
     """
@@ -415,7 +415,6 @@ class ContactField(SmartModel, TembaNameMixin, DependencyMixin):
         "urns",
     }.union(URN.VALID_SCHEMES)
 
-    uuid = models.UUIDField(unique=True, default=uuid4)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="fields")
 
     key = models.CharField(max_length=MAX_KEY_LEN)
@@ -431,6 +430,7 @@ class ContactField(SmartModel, TembaNameMixin, DependencyMixin):
     objects = models.Manager()
     user_fields = UserContactFieldsManager()
 
+    org_limit_key = Org.LIMIT_FIELDS
     soft_dependent_types = {"flow", "campaign_event"}
 
     @classmethod
@@ -571,13 +571,10 @@ class ContactField(SmartModel, TembaNameMixin, DependencyMixin):
         for event in self.campaign_events.all():
             event.release(user)
 
-        self.name = self.deleted_name()
+        self.name = self._deleted_name()
         self.is_active = False
         self.modified_by = user
         self.save(update_fields=("name", "is_active", "modified_on", "modified_by"))
-
-    def __str__(self):
-        return self.name
 
 
 class Contact(LegacyUUIDMixin, SmartModel):
@@ -1430,6 +1427,7 @@ class ContactGroup(LegacyUUIDMixin, TembaModel, DependencyMixin):
     query = models.TextField(null=True)
     query_fields = models.ManyToManyField(ContactField, related_name="dependent_groups")
 
+    org_limit_key = Org.LIMIT_GROUPS
     soft_dependent_types = {"flow"}
 
     @classmethod
@@ -1483,15 +1481,13 @@ class ContactGroup(LegacyUUIDMixin, TembaModel, DependencyMixin):
         )
 
     @classmethod
-    def get_groups(cls, org: Org, *, manual_only=False, user_only=False, ready_only=False):
+    def get_groups(cls, org: Org, *, manual_only=False, ready_only=False):
         """
         Gets the groups (excluding db trigger based status groups) for the given org
         """
         types = (cls.TYPE_MANUAL,) if manual_only else (cls.TYPE_MANUAL, cls.TYPE_SMART)
         groups = cls.objects.filter(org=org, group_type__in=types, is_active=True)
 
-        if user_only:
-            groups = groups.filter(is_system=False)
         if ready_only:
             groups = groups.filter(status=cls.STATUS_READY)
 
@@ -1637,7 +1633,7 @@ class ContactGroup(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         super().release(user)
 
-        self.name = self.deleted_name()
+        self.name = self._deleted_name()
         self.is_active = False
         self.modified_by = user
         self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))

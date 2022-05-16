@@ -1125,8 +1125,7 @@ class ContactGroupCRUDLTest(TembaTest, CRUDLTestMixin):
             response,
             "form",
             "name",
-            "This org has 10 groups and the limit is 10. "
-            "You must delete existing ones before you can create new ones.",
+            "This workspace has reached its limit of 10 groups. You must delete existing ones before you can create new ones.",
         )
 
     def test_create_disallow_duplicates(self):
@@ -1563,7 +1562,7 @@ class ContactTest(TembaTest):
         msg1 = self.create_incoming_msg(self.joe, "Test 1", msg_type="I")
         msg2 = self.create_incoming_msg(self.joe, "Test 2", msg_type="F")
         msg3 = self.create_incoming_msg(self.joe, "Test 3", msg_type="I", visibility="A")
-        label = Label.get_or_create(self.org, self.user, "Interesting")
+        label = self.create_label("Interesting")
         label.toggle_label([msg1, msg2, msg3], add=True)
         static_group = self.create_group("Just Joe", [self.joe])
 
@@ -2015,7 +2014,7 @@ class ContactTest(TembaTest):
         )
 
         # lookup by label ids
-        label = Label.get_or_create(self.org, self.user, "msg label")
+        label = self.create_label("msg label")
         self.assertEqual([], omnibox_request(f"l={label.id}"))
 
         msg.labels.add(label)
@@ -2157,7 +2156,7 @@ class ContactTest(TembaTest):
 
         # two tickets for joe
         ticketer = Ticketer.create(self.org, self.user, "internal", "Internal", {})
-        self.create_ticket(ticketer, self.joe, "Question 1", closed_on=timezone.now())
+        self.create_ticket(ticketer, self.joe, "Question 1", opened_on=timezone.now(), closed_on=timezone.now())
         ticket = self.create_ticket(ticketer, self.joe, "Question 2")
 
         # create missed incoming and outgoing calls
@@ -4671,7 +4670,9 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertCreateSubmit(
                 create_url,
                 {"name": "Sheep", "value_type": "T", "show_in_table": True},
-                form_errors={"__all__": "Cannot create a new field as limit is 2."},
+                form_errors={
+                    "__all__": "This workspace has reached its limit of 2 fields. You must delete existing ones before you can create new ones."
+                },
             )
 
     def test_update(self):
@@ -6030,7 +6031,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.client.post(
                 preview_url, {"add_to_group": True, "group_mode": "N", "new_group_name": "Import"}
             )
-            self.assertFormError(response, "form", "__all__", "This workspace has reached the limit of 2 groups.")
+            self.assertFormError(response, "form", "__all__", "This workspace has reached its limit of 2 groups.")
 
         # finally create new group...
         response = self.client.post(preview_url, {"add_to_group": True, "group_mode": "N", "new_group_name": "Import"})

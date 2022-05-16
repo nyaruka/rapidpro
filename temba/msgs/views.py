@@ -899,20 +899,26 @@ class MsgCRUDL(SmartCRUDL):
 
 
 class BaseLabelForm(forms.ModelForm):
+    def __init__(self, org, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.org = org
+
     def clean_name(self):
         name = self.cleaned_data["name"]
 
-        existing_id = self.existing.pk if self.existing else None
-        if Label.all_objects.filter(org=self.org, name__iexact=name, is_active=True).exclude(pk=existing_id).exists():
-            raise forms.ValidationError(_("Name must be unique"))
+        existing_id = self.instance.id if self.instance else None
+        if Label.get_active_for_org(self.org).filter(name__iexact=name).exclude(pk=existing_id).exists():
+            raise forms.ValidationError(_("Must be unique."))
 
-        count = Label.label_objects.filter(org=self.org, is_active=True).count()
-        if count >= self.org.get_limit(Org.LIMIT_LABELS):
+        count, limit = Label.get_org_limit_progress(self.org)
+        if limit is not None and count >= limit:
             raise forms.ValidationError(
                 _(
-                    "This workspace has %d labels and the limit is %s. You must delete existing ones before you can "
-                    "create new ones." % (count, self.org.get_limit(Org.LIMIT_LABELS))
-                )
+                    "This workspace has reached its limit of %(limit)d labels. "
+                    "You must delete existing ones before you can create new ones."
+                ),
+                params={"limit": limit},
             )
 
         return name
@@ -935,11 +941,8 @@ class LabelForm(BaseLabelForm):
 
     messages = forms.CharField(required=False, widget=forms.HiddenInput)
 
-    def __init__(self, *args, **kwargs):
-        self.org = kwargs.pop("org")
-        self.existing = kwargs.pop("object", None)
-
-        super().__init__(*args, **kwargs)
+    def __init__(self, org, *args, **kwargs):
+        super().__init__(org, *args, **kwargs)
 
         self.fields["folder"].queryset = Label.folder_objects.filter(org=self.org, is_active=True)
 
@@ -948,11 +951,7 @@ class LabelForm(BaseLabelForm):
 
 
 class FolderForm(BaseLabelForm):
-    def __init__(self, *args, **kwargs):
-        self.org = kwargs.pop("org")
-        self.existing = kwargs.pop("object", None)
-
-        super().__init__(*args, **kwargs)
+    pass
 
 
 class LabelCRUDL(SmartCRUDL):
@@ -979,20 +978,19 @@ class LabelCRUDL(SmartCRUDL):
 
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
-            kwargs["org"] = self.request.user.get_org()
+            kwargs["org"] = self.request.org
             return kwargs
 
         def save(self, obj):
-            user = self.request.user
-            self.object = Label.get_or_create(user.get_org(), user, obj.name, obj.folder)
+            self.object = Label.create(self.request.org, self.request.user, obj.name, obj.folder)
 
         def post_save(self, obj, *args, **kwargs):
             obj = super().post_save(obj, *args, **kwargs)
             if self.form.cleaned_data["messages"]:  # pragma: needs cover
                 msg_ids = [int(m) for m in self.form.cleaned_data["messages"].split(",") if m.isdigit()]
-                messages = Msg.objects.filter(org=obj.org, pk__in=msg_ids)
-                if messages:
-                    obj.toggle_label(messages, add=True)
+                msgs = Msg.objects.filter(org=obj.org, pk__in=msg_ids)
+                if msgs:
+                    obj.toggle_label(msgs, add=True)
 
             return obj
 
@@ -1018,8 +1016,7 @@ class LabelCRUDL(SmartCRUDL):
 
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
-            kwargs["org"] = self.request.user.get_org()
-            kwargs["object"] = self.get_object()
+            kwargs["org"] = self.request.org
             return kwargs
 
         def get_form_class(self):

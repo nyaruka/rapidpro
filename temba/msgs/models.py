@@ -905,16 +905,18 @@ class Label(LegacyUUIDMixin, TembaModel, DependencyMixin):
     folder_objects = UserFolderManager()
     label_objects = UserLabelManager()
 
+    org_limit_key = Org.LIMIT_LABELS
+
     @classmethod
-    def get_or_create(cls, org, user, name: str, folder=None):
+    def create(cls, org, user, name: str, folder=None):
         assert cls.is_valid_name(name), f"'{name}' is not a valid label name"
         assert not folder or folder.is_folder(), "folder must be a folder if provided"
 
-        existing = cls.label_objects.filter(org=org, name__iexact=name, is_active=True).first()
-        if existing:
-            return existing
-
         return cls.label_objects.create(org=org, name=name, folder=folder, created_by=user, modified_by=user)
+
+    @classmethod
+    def create_from_import_def(cls, org, user, definition: dict):
+        return cls.create(org, user, definition["name"])
 
     @classmethod
     def get_or_create_folder(cls, org, user, name: str):
@@ -1019,7 +1021,7 @@ class Label(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         self.counts.all().delete()
 
-        self.name = self.deleted_name()
+        self.name = self._deleted_name()
         self.is_active = False
         self.modified_by = user
         self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))

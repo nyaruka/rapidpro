@@ -3144,7 +3144,7 @@ class APITest(TembaTest):
         deleted.release(self.admin)
 
         # create label for other org
-        spam = Label.get_or_create(self.org2, self.admin2, "Spam")
+        spam = self.create_label("Spam", org=self.org2)
 
         msg = self.create_incoming_msg(self.frank, "Hello")
         important.toggle_label([msg], add=True)
@@ -3792,7 +3792,7 @@ class APITest(TembaTest):
         msg1 = self.create_incoming_msg(self.joe, "Msg #1")
         msg2 = self.create_incoming_msg(self.joe, "Msg #2")
         msg3 = self.create_incoming_msg(self.joe, "Msg #3")
-        label = Label.get_or_create(self.org, self.admin, "Test")
+        label = self.create_label("Test")
 
         # add label by name to messages 1 and 2
         response = self.postJSON(url, None, {"messages": [msg1.id, msg2.id], "action": "label", "label": "Test"})
@@ -4824,12 +4824,12 @@ class APITest(TembaTest):
         response = self.postJSON(url, "uuid=%s" % support.uuid, {"name": "General"})
         self.assertResponseError(response, "name", "This field must be unique.")
 
-        # try creating a new topic after reaching the limit on labels
-        current_count = self.org.topics.filter(is_active=True).count()
+        # try creating a new topic after reaching the limit
+        current_count = self.org.topics.filter(is_system=False, is_active=True).count()
         with override_settings(ORG_LIMIT_DEFAULTS={"topics": current_count}):
             response = self.postJSON(url, None, {"name": "Interesting"})
             self.assertResponseError(
-                response, None, "Cannot create object because workspace has reached limit of 5.", status_code=409
+                response, None, "Cannot create object because workspace has reached limit of 4.", status_code=409
             )
 
     def test_users(self):

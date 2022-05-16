@@ -1,3 +1,25 @@
+v7.3.43
+----------
+ * Fix generating cloned flow names so they can't end with trailing spaces
+ * Deleting of globals should be soft like other types
+ * Simplify checking of workspace limits in UI and API
+
+v7.3.42
+----------
+ * Data migration to backfill ticket daily counts
+
+v7.3.41
+----------
+ * Reorganization of temba.utils.models
+ * Update the approach to the test a token is valid for FBA and IG channels
+ * Promote ContactField and Global to be TembaModels whilst for now retaining their custom name validation logic
+ * Add import support methods to TembaModel and use with Topic
+
+v7.3.40
+----------
+ * Add workspace plan, disallow grandchild org creation.
+ * Add support for shared usage tracking
+
 v7.3.39
 ----------
  * Move temba.utils.models to its own package
