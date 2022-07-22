@@ -70,6 +70,7 @@ class URN:
     WEBCHAT_SCHEME = "webchat"
     WECHAT_SCHEME = "wechat"
     WHATSAPP_SCHEME = "whatsapp"
+    TEAMS_SCHEME = "teams"
 
     SCHEME_CHOICES = (
         (TEL_SCHEME, _("Phone Number")),
@@ -91,6 +92,7 @@ class URN:
         (WECHAT_SCHEME, _("WeChat Identifier")),
         (WEBCHAT_SCHEME, _("Webchat Identifier")),
         (WHATSAPP_SCHEME, _("WhatsApp Identifier")),
+        (TEAMS_SCHEME, _("Teams Identifier")),
     )
 
     VALID_SCHEMES = {s[0] for s in SCHEME_CHOICES}
