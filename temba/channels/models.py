@@ -3,6 +3,7 @@ import time
 from abc import ABCMeta
 from datetime import timedelta
 from enum import Enum
+from urllib.parse import quote_plus
 from xml.sax.saxutils import escape
 
 import phonenumbers
@@ -13,7 +14,6 @@ from smartmin.models import SmartModel
 from twilio.base.exceptions import TwilioRestException
 
 from django.conf import settings
-from django.conf.urls import url
 from django.contrib.auth.models import Group, User
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist
@@ -22,15 +22,15 @@ from django.db.models import Max, Q, Sum
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.template import Context, Engine, TemplateDoesNotExist
+from django.urls import re_path
 from django.utils import timezone
-from django.utils.http import urlquote_plus
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from temba import mailroom
 from temba.orgs.models import DependencyMixin, Org
 from temba.utils import analytics, countries, get_anonymous_user, json, on_transaction_commit, redact
 from temba.utils.email import send_template_email
-from temba.utils.models import JSONAsTextField, SquashableModel, TembaModel, generate_uuid
+from temba.utils.models import JSONAsTextField, LegacyUUIDMixin, SquashableModel, TembaModel, generate_uuid
 from temba.utils.text import random_string
 
 logger = logging.getLogger(__name__)
@@ -90,14 +90,15 @@ class ChannelType(metaclass=ABCMeta):
     # during activation. Channels should make sure their claim view is non-atomic if a callback will be involved
     async_activation = True
 
-    redact_request_keys = set()
-    redact_response_keys = set()
+    redact_request_keys = ()
+    redact_response_keys = ()
+    redact_values = ()
 
     def is_available_to(self, user):
         """
         Determines whether this channel type is available to the given user considering the region and when not considering region, e.g. check timezone
         """
-        region_ignore_visible = (not self.beta_only) or user.is_beta()
+        region_ignore_visible = (not self.beta_only) or user.is_beta
         region_aware_visible = True
 
         if self.available_timezones is not None:
@@ -137,7 +138,7 @@ class ChannelType(metaclass=ABCMeta):
         """
         claim_view_kwargs = self.claim_view_kwargs if self.claim_view_kwargs else {}
         claim_view_kwargs["channel_type"] = self
-        return url(r"^claim$", self.claim_view.as_view(**claim_view_kwargs), name="claim")
+        return re_path(r"^claim$", self.claim_view.as_view(**claim_view_kwargs), name="claim")
 
     def get_update_form(self):
         if self.update_form is None:
@@ -237,7 +238,7 @@ class UnsupportedAndroidChannelError(Exception):
         self.message = message
 
 
-class Channel(TembaModel, DependencyMixin):
+class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     """
     Notes:
         - we want to reuse keys as much as possible (2018-10-11)
@@ -276,6 +277,8 @@ class Channel(TembaModel, DependencyMixin):
     CONFIG_MAX_CONCURRENT_EVENTS = "max_concurrent_events"
     CONFIG_ALLOW_INTERNATIONAL = "allow_international"
     CONFIG_MACHINE_DETECTION = "machine_detection"
+
+    CONFIG_WHATSAPP_CLOUD_USER_TOKEN = "whatsapp_cloud_user_token"
 
     CONFIG_VONAGE_API_KEY = "nexmo_api_key"
     CONFIG_VONAGE_API_SECRET = "nexmo_api_secret"
@@ -332,6 +335,8 @@ class Channel(TembaModel, DependencyMixin):
         "schemes": ["tel"],
         "roles": ["send"],
     }
+
+    org_limit_key = Org.LIMIT_CHANNELS
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="channels", null=True)
     channel_type = models.CharField(max_length=3)
@@ -496,7 +501,8 @@ class Channel(TembaModel, DependencyMixin):
 
         return TYPES.values()
 
-    def get_type(self):
+    @property
+    def type(self) -> ChannelType:
         return self.get_type_from_code(self.channel_type)
 
     @classmethod
@@ -559,20 +565,19 @@ class Channel(TembaModel, DependencyMixin):
         )
 
     @classmethod
-    def add_vonage_bulk_sender(cls, user, channel):
+    def add_vonage_bulk_sender(cls, org, user, channel):
         # vonage ships numbers around as E164 without the leading +
         parsed = phonenumbers.parse(channel.address, None)
         vonage_phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164).strip("+")
 
-        org = user.get_org()
         config = {
             Channel.CONFIG_VONAGE_API_KEY: org.config[Org.CONFIG_VONAGE_KEY],
             Channel.CONFIG_VONAGE_API_SECRET: org.config[Org.CONFIG_VONAGE_SECRET],
             Channel.CONFIG_CALLBACK_DOMAIN: org.get_brand_domain(),
         }
 
-        return Channel.create(
-            user.get_org(),
+        return cls.create(
+            org,
             user,
             channel.country,
             "NX",
@@ -747,7 +752,7 @@ class Channel(TembaModel, DependencyMixin):
             return _("Android Phone")
 
     def get_channel_type_display(self):
-        return self.get_type().name
+        return self.type.name
 
     def get_channel_type_name(self):
         if self.is_android():
@@ -779,6 +784,9 @@ class Channel(TembaModel, DependencyMixin):
 
         elif URN.FACEBOOK_SCHEME in self.schemes:
             return "%s (%s)" % (self.config.get(Channel.CONFIG_PAGE_NAME, self.name), self.address)
+
+        elif self.channel_type == "WAC":
+            return "%s (%s)" % (self.config.get("wa_number", ""), self.config.get("wa_verified_name", self.name))
 
         return self.address
 
@@ -876,11 +884,9 @@ class Channel(TembaModel, DependencyMixin):
 
         super().release(user)
 
-        channel_type = self.get_type()
-
         # ask the channel type to deactivate - as this usually means calling out to external APIs it can fail
         try:
-            channel_type.deactivate(self)
+            self.type.deactivate(self)
         except TwilioRestException as e:
             raise e
         except Exception as e:
@@ -973,7 +979,7 @@ class Channel(TembaModel, DependencyMixin):
 
             # encode based on our content type
             if content_type == Channel.CONTENT_TYPE_URLENCODED:
-                replacement = urlquote_plus(replacement)
+                replacement = quote_plus(replacement)
 
             # if this is JSON, need to wrap in quotes (and escape them)
             elif content_type == Channel.CONTENT_TYPE_JSON:
@@ -1101,9 +1107,6 @@ class ChannelCount(SquashableModel):
 
         return sql, params
 
-    def __str__(self):  # pragma: no cover
-        return "ChannelCount(%d) %s %s count: %d" % (self.channel_id, self.count_type, self.day, self.count)
-
     class Meta:
         index_together = ["channel", "count_type", "day"]
 
@@ -1225,28 +1228,39 @@ class ChannelLog(models.Model):
         """
         Gets the URL as it should be displayed to the given user
         """
-        return self._get_display_value(user, self.url, anon_mask)
+        redact_values = Channel.get_type_from_code(self.channel.channel_type).redact_values
+
+        return self._get_display_value(user, self.url, anon_mask, redact_values=redact_values)
 
     def get_request_display(self, user, anon_mask):
         """
         Gets the request trace as it should be displayed to the given user
         """
         redact_keys = Channel.get_type_from_code(self.channel.channel_type).redact_request_keys
+        redact_values = Channel.get_type_from_code(self.channel.channel_type).redact_values
 
-        return self._get_display_value(user, self.request, anon_mask, redact_keys)
+        return self._get_display_value(
+            user, self.request, anon_mask, redact_keys=redact_keys, redact_values=redact_values
+        )
 
     def get_response_display(self, user, anon_mask):
         """
         Gets the response trace as it should be displayed to the given user
         """
         redact_keys = Channel.get_type_from_code(self.channel.channel_type).redact_response_keys
+        redact_values = Channel.get_type_from_code(self.channel.channel_type).redact_values
 
-        return self._get_display_value(user, self.response, anon_mask, redact_keys)
+        return self._get_display_value(
+            user, self.response, anon_mask, redact_keys=redact_keys, redact_values=redact_values
+        )
 
-    def _get_display_value(self, user, original, mask, redact_keys=()):
+    def _get_display_value(self, user, original, mask, redact_keys=(), redact_values=()):
         """
         Get a part of the log which may or may not have to be redacted to hide sensitive information in anon orgs
         """
+
+        for secret_val in redact_values:
+            original = redact.text(original, secret_val, mask)
 
         if not self.channel.org.is_anon or user.has_org_perm(self.channel.org, "contacts.contact_break_anon"):
             return original
@@ -1717,15 +1731,12 @@ class ChannelConnection(models.Model):
             return None
 
     def release(self):
-        for run in self.runs.all():
-            run.release()
-
         for log in self.channel_logs.all():
             log.release()
 
         session = self.get_session()
         if session:
-            session.release()
+            session.delete()
 
         self.delete()
 

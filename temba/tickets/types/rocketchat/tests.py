@@ -22,6 +22,7 @@ class RocketChatTypeTest(TembaTest):
         self.assertFalse(RocketChatType().is_available_to(self.admin))
 
         Group.objects.get(name="Beta").user_set.add(self.admin)
+        del self.admin.is_beta  # clear cached_property
 
         self.assertTrue(RocketChatType().is_available_to(self.admin))
 
@@ -201,9 +202,9 @@ class RocketChatViewTest(RocketChatMixin):
 
         choices = (c for c in self.secret)
         response = self.client.post(self.connect_url, data={**base, "secret": self.secret, "base_url": "domain.com"})
-        self.assertFormError(response, "form", "base_url", f"Invalid URL: http://domain.com")
+        self.assertFormError(response, "form", "base_url", "Invalid URL: http://domain.com")
 
-        for path in [f"", f"/", f"/path", f"/path{self.app_id}/"]:
+        for path in ["", "/", "/path", f"/path{self.app_id}/"]:
             for scheme in ["", "http", "https"]:
                 choices = (c for c in self.secret)
                 data = {

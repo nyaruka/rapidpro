@@ -153,8 +153,8 @@ class NotificationTest(TembaTest):
         send_notification_emails()
 
         self.assertEqual(1, len(mail.outbox))
-        self.assertEqual("[Temba] Your contact export is ready", mail.outbox[0].subject)
-        self.assertEqual(["Editor@nyaruka.com"], mail.outbox[0].recipients())
+        self.assertEqual("[Nyaruka] Your contact export is ready", mail.outbox[0].subject)
+        self.assertEqual(["editor@nyaruka.com"], mail.outbox[0].recipients())
 
         # calling task again won't send more emails
         send_notification_emails()
@@ -192,8 +192,8 @@ class NotificationTest(TembaTest):
         send_notification_emails()
 
         self.assertEqual(1, len(mail.outbox))
-        self.assertEqual("[Temba] Your message export is ready", mail.outbox[0].subject)
-        self.assertEqual(["Editor@nyaruka.com"], mail.outbox[0].recipients())
+        self.assertEqual("[Nyaruka] Your message export is ready", mail.outbox[0].subject)
+        self.assertEqual(["editor@nyaruka.com"], mail.outbox[0].recipients())
 
     def test_results_export_finished(self):
         flow1 = self.create_flow("Test Flow 1")
@@ -204,7 +204,6 @@ class NotificationTest(TembaTest):
             flows=[flow1, flow2],
             contact_fields=(),
             responded_only=True,
-            include_msgs=True,
             extra_urns=(),
             group_memberships=(),
         )
@@ -231,8 +230,8 @@ class NotificationTest(TembaTest):
         send_notification_emails()
 
         self.assertEqual(1, len(mail.outbox))
-        self.assertEqual("[Temba] Your results export is ready", mail.outbox[0].subject)
-        self.assertEqual(["Editor@nyaruka.com"], mail.outbox[0].recipients())
+        self.assertEqual("[Nyaruka] Your results export is ready", mail.outbox[0].subject)
+        self.assertEqual(["editor@nyaruka.com"], mail.outbox[0].recipients())
         self.assertIn("Test Flow 1", mail.outbox[0].body)
         self.assertIn("Test Flow 2", mail.outbox[0].body)
 
@@ -334,7 +333,7 @@ class NotificationTest(TembaTest):
 
         # if a user visits the incident page, all incident notifications are now read
         self.login(self.editor)
-        self.client.get(f"/incident/")
+        self.client.get("/incident/")
 
         self.assertTrue(self.editor.notifications.get().is_seen)
         self.assertFalse(self.admin.notifications.get().is_seen)

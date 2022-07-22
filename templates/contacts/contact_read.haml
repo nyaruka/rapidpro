@@ -37,11 +37,16 @@
         %temba-icon(name="archive")
         -trans "Archived"
 
+    -if contact.current_flow
+      .lbl-group.linked.inverted.bg-tertiary.mr-2.mb-2(onclick="goto(event)" href="{% url 'flows.flow_editor' contact.current_flow.uuid %}")
+        %temba-icon(name="flow")
+        {{ contact.current_flow.name }}
+
     -for group in contact_groups
-      -if group.is_dynamic
+      -if group.is_smart
         -include "includes/recipients_group.haml" with group=group
     -for group in contact_groups
-      -if not group.is_dynamic
+      -if not group.is_smart
         -include "includes/recipients_group.haml" with group=group
 
 -block read-buttons
@@ -63,10 +68,10 @@
             .flex.flex-col.p-2
               .contact-field{data-id:'{{field.id}}'}
                 .contact-field-value.editable.cursor-pointer.hover-linked.font-bold.text-gray-600
-                  {{field.value|truncatechars:20}}      
+                  {{ field.value|truncatechars:20 }}
               .whitespace-nowrap.pr-12.contact-field{data-id:'{{field.id}}'}
                 .contact-field-value.tracking-wider.font-normal.text-xs
-                  {{field.label|title}}
+                  {{ field.name|title }}
         
       
 
@@ -124,11 +129,11 @@
           %td
             .whitespace-nowrap.pr-12.contact-field{data-id:'{{field.id}}'}
               .contact-field-value.uppercase.tracking-wider.font-normal.text-xs
-                {{field.label|title}}
+                {{ field.name|title }}
           %td.w-full
             .contact-field{data-id:'{{field.id}}'}
               .contact-field-value.editable.cursor-pointer.hover-linked
-                {{field.value}}
+                {{ field.value }}
       
       -for urn in contact_urns
         -if not user_org.is_anon
@@ -188,34 +193,34 @@
         -if forloop.counter0 == upcoming_events|length|add:-3
           %tbody.next_three
 
-        %tr.item{class:"{% if evt.event_type == 'M' %}msg{%else%}non-msg{%endif%}"}
+        %tr.item(class="{% if evt.message %}msg{%else%}non-msg{%endif%}")
           %td.icon
-            -if evt.event_type == 'M'
+            -if evt.message
               %span.glyph.icon-bubble-right
-            -elif evt.event_type == 'F'
+            -elif evt.flow
               %span.glyph.icon-flow
             -else
               %span.glyph.icon-clock
 
           %td.details.w-full
-
             .activity-scheduled
-              -if evt.event_type == 'M'
+              -if evt.message
                 .activity-body
-                  {{evt.message}}
+                  {{ evt.message }}
 
-              -elif evt.event_type == 'F'
+              -elif evt.flow
                 -trans "Start"
-                %a.href{ href: "{% url 'flows.flow_editor' evt.flow_uuid %}" }= evt.flow_name
+                %a.href(href="{% url 'flows.flow_editor' evt.flow.uuid %}")
+                  {{ evt.flow.name }}
           %td.whitespace-nowrap.text-right
             .pr-6
-              {{ evt.scheduled|naturaltime }}
-
-              .repeats
-                -if evt.repeat_period == 'D'
-                  -trans 'repeats daily'
-                -elif evt.repeat_period == 'W'
-                  -trans 'repeats weekly'
+              {{ evt.scheduled|parse_isodate|naturaltime }}{% if evt.repeat_period %}, {% endif %}
+              -if evt.repeat_period == 'D'
+                -trans 'repeats daily'
+              -elif evt.repeat_period == 'W'
+                -trans 'repeats weekly'
+              -elif evt.repeat_period == 'M'
+                -trans 'repeats monthly'
 
     -if upcoming_events|length > 3
       %a.pull-right.show-all.upcoming
@@ -563,7 +568,7 @@
     $('.contact-field-value.editable').live('click', function(evt) {
       var endpoint = '{% url "contacts.contact_update_fields" object.pk %}';
       var field_id = $(this).parent().data('id');
-      var modax = document.querySelector("#update-custom-fields");
+      var modax = document.querySelector("#update-custom-fields, #shared-modax");
       modax.endpoint = endpoint + '?field=' + field_id;
       modax.open = true;
 

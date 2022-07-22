@@ -231,16 +231,11 @@ class ContactFieldField(TembaModelField):
     lookup_fields = ("key",)
 
     def to_representation(self, obj):
-        return {"key": obj.key, "label": obj.label}
-
-    def get_queryset(self):
-        manager = getattr(self.model, "all_fields")
-        return manager.filter(org=self.context["org"], is_active=True)
+        return {"key": obj.key, "label": obj.name}
 
 
 class ContactGroupField(TembaModelField):
     model = ContactGroup
-    model_manager = "user_groups"
     lookup_fields = ("uuid", "name")
     ignore_case_for_fields = ("name",)
 
@@ -251,10 +246,13 @@ class ContactGroupField(TembaModelField):
     def to_internal_value(self, data):
         obj = super().to_internal_value(data)
 
-        if not self.allow_dynamic and obj.is_dynamic:
-            raise serializers.ValidationError("Contact group must not be dynamic: %s" % data)
+        if not self.allow_dynamic and obj.is_smart:
+            raise serializers.ValidationError("Contact group must not be query based: %s" % data)
 
         return obj
+
+    def get_queryset(self):
+        return ContactGroup.get_groups(org=self.context["org"])
 
 
 class FlowField(TembaModelField):
@@ -263,7 +261,6 @@ class FlowField(TembaModelField):
 
 class LabelField(TembaModelField):
     model = Label
-    model_manager = "label_objects"
     lookup_fields = ("uuid", "name")
     ignore_case_for_fields = ("name",)
 
@@ -276,7 +273,9 @@ class MessageField(TembaModelField):
     require_exists = False
 
     def get_queryset(self):
-        return self.model.objects.filter(org=self.context["org"]).exclude(visibility=Msg.VISIBILITY_DELETED)
+        return self.model.objects.filter(
+            org=self.context["org"], visibility__in=(Msg.VISIBILITY_VISIBLE, Msg.VISIBILITY_ARCHIVED)
+        )
 
 
 class TicketerField(TembaModelField):
@@ -306,8 +305,8 @@ class UserField(TembaModelField):
     def get_queryset(self):
         org = self.context["org"]
         if self.assignable_only:
-            qs = org.get_users_with_perm(Ticket.ASSIGNEE_PERMISSION)
+            qs = org.get_users(with_perm=Ticket.ASSIGNEE_PERMISSION)
         else:
             qs = org.get_users()
 
-        return qs.filter(is_active=True)
+        return qs

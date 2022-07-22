@@ -1,7 +1,7 @@
 from twilio.base.exceptions import TwilioRestException
 
-from django.conf.urls import url
-from django.utils.translation import ugettext_lazy as _
+from django.urls import re_path
+from django.utils.translation import gettext_lazy as _
 
 from temba.contacts.models import URN
 from temba.utils.timezones import timezone_to_country_code
@@ -33,7 +33,7 @@ class TwilioType(ChannelType):
 
     ivr_protocol = ChannelType.IVRProtocol.IVR_PROTOCOL_TWIML
 
-    redact_request_keys = {
+    redact_request_keys = (
         "FromCity",
         "FromState",
         "FromZip",
@@ -43,7 +43,7 @@ class TwilioType(ChannelType):
         "CalledCity",
         "CalledState",
         "CalledZip",
-    }
+    )
 
     def is_recommended_to(self, user):
         org = user.get_org()
@@ -84,4 +84,4 @@ class TwilioType(ChannelType):
                 raise e
 
     def get_urls(self):
-        return [self.get_claim_url(), url(r"^search$", SearchView.as_view(), name="search")]
+        return [self.get_claim_url(), re_path(r"^search$", SearchView.as_view(), name="search")]

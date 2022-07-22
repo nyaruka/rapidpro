@@ -19,13 +19,18 @@ from .types import KeywordTriggerType
 
 class TriggerTest(TembaTest):
     def test_model(self):
-        flow = self.create_flow()
-        trigger = Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keyword="join")
+        flow = self.create_flow("Test Flow")
+        keyword = Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keyword="join")
+        catchall = Trigger.create(self.org, self.admin, Trigger.TYPE_CATCH_ALL, flow)
 
-        self.assertEqual('Trigger[type=K, flow="Test Flow"]', str(trigger))
+        self.assertEqual("Keyword[join] → Test Flow", keyword.name)
+        self.assertEqual('Trigger[type=K, flow="Test Flow"]', str(keyword))
+
+        self.assertEqual("Catch All → Test Flow", catchall.name)
+        self.assertEqual('Trigger[type=C, flow="Test Flow"]', str(catchall))
 
     def test_archive_conflicts(self):
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
         group1 = self.create_group("Group 1", contacts=[])
         group2 = self.create_group("Group 1", contacts=[])
         channel1 = self.create_channel("FB", "FB Channel 1", "12345")
@@ -142,7 +147,7 @@ class TriggerTest(TembaTest):
     def test_export_import(self):
         # tweak our current channel to be twitter so we can create a channel-based trigger
         Channel.objects.filter(id=self.channel.id).update(channel_type="TT")
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
 
         doctors = self.create_group("Doctors", contacts=[])
         farmers = self.create_group("Farmers", contacts=[])
@@ -229,8 +234,19 @@ class TriggerTest(TembaTest):
 
         self.assertEqual(3, Trigger.objects.count())  # no new triggers imported
 
+        # and new conversation triggers with no channel
+        self._import_trigger(
+            {
+                "trigger_type": "N",
+                "flow": {"uuid": "8907acb0-4f32-41c2-887d-b5d2ffcc2da9", "name": "Reminder"},
+                "groups": [],
+            }
+        )
+
+        self.assertEqual(3, Trigger.objects.count())  # no new triggers imported
+
     def test_import_invalid(self):
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
         flow_ref = {"uuid": str(flow.uuid), "name": "Test Flow"}
 
         # invalid type
@@ -258,16 +274,6 @@ class TriggerTest(TembaTest):
             "12345678901234567 is not a valid keyword",
         )
 
-        # new conversation without a channel
-        self.assert_import_error(
-            {
-                "trigger_type": "N",
-                "flow": flow_ref,
-                "groups": [],
-            },
-            "Field 'channel' is required.",
-        )
-
         # fields which don't apply to the trigger type are ignored
         self._import_trigger({"trigger_type": "C", "keyword": "this is ignored", "flow": flow_ref, "groups": []})
 
@@ -275,7 +281,7 @@ class TriggerTest(TembaTest):
         self.assertIsNone(trigger.keyword)
 
     def test_export_import_keyword(self):
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
         doctors = self.create_group("Doctors", contacts=[])
         farmers = self.create_group("Farmers", contacts=[])
         testers = self.create_group("Testers", contacts=[])
@@ -293,7 +299,7 @@ class TriggerTest(TembaTest):
             trigger,
             {
                 "trigger_type": "K",
-                "flow": {"uuid": str(flow.uuid), "name": "Test Flow"},
+                "flow": {"uuid": str(flow.uuid), "name": "Test"},
                 "groups": [
                     {"uuid": str(doctors.uuid), "name": "Doctors"},
                     {"uuid": str(farmers.uuid), "name": "Farmers"},
@@ -304,14 +310,14 @@ class TriggerTest(TembaTest):
         )
 
     def test_export_import_inbound_call(self):
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
         trigger = Trigger.create(self.org, self.admin, Trigger.TYPE_INBOUND_CALL, flow)
 
         self.assert_export_import(
             trigger,
             {
                 "trigger_type": "V",
-                "flow": {"uuid": str(flow.uuid), "name": "Test Flow"},
+                "flow": {"uuid": str(flow.uuid), "name": "Test"},
                 "groups": [],
                 "exclude_groups": [],
                 "keyword": None,
@@ -319,14 +325,14 @@ class TriggerTest(TembaTest):
         )
 
     def test_export_import_missed_call(self):
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
         trigger = Trigger.create(self.org, self.admin, Trigger.TYPE_MISSED_CALL, flow)
 
         self.assert_export_import(
             trigger,
             {
                 "trigger_type": "M",
-                "flow": {"uuid": str(flow.uuid), "name": "Test Flow"},
+                "flow": {"uuid": str(flow.uuid), "name": "Test"},
                 "groups": [],
                 "exclude_groups": [],
                 "keyword": None,
@@ -335,7 +341,7 @@ class TriggerTest(TembaTest):
 
     @patch("temba.channels.types.facebook.FacebookType.activate_trigger")
     def test_export_import_new_conversation(self, mock_activate_trigger):
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
         channel = self.create_channel("FB", "Facebook", "1234")
         trigger = Trigger.create(self.org, self.admin, Trigger.TYPE_NEW_CONVERSATION, flow, channel=channel)
 
@@ -343,7 +349,7 @@ class TriggerTest(TembaTest):
             trigger,
             {
                 "trigger_type": "N",
-                "flow": {"uuid": str(flow.uuid), "name": "Test Flow"},
+                "flow": {"uuid": str(flow.uuid), "name": "Test"},
                 "groups": [],
                 "exclude_groups": [],
                 "keyword": None,
@@ -352,7 +358,7 @@ class TriggerTest(TembaTest):
         )
 
     def test_export_import_referral(self):
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
         channel = self.create_channel("FB", "Facebook", "1234")
         trigger = Trigger.create(self.org, self.admin, Trigger.TYPE_REFERRAL, flow, channel=channel)
 
@@ -360,7 +366,7 @@ class TriggerTest(TembaTest):
             trigger,
             {
                 "trigger_type": "R",
-                "flow": {"uuid": str(flow.uuid), "name": "Test Flow"},
+                "flow": {"uuid": str(flow.uuid), "name": "Test"},
                 "groups": [],
                 "exclude_groups": [],
                 "keyword": None,
@@ -387,7 +393,7 @@ class TriggerTest(TembaTest):
     @patch("temba.channels.types.facebook.FacebookType.deactivate_trigger")
     def test_release(self, mock_deactivate_trigger):
         channel = self.create_channel("FB", "Facebook", "234567")
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
         group = self.create_group("Trigger Group", [])
         trigger = Trigger.objects.create(
             org=self.org,
@@ -424,11 +430,36 @@ class TriggerTest(TembaTest):
 
         self.assertEqual(Trigger.objects.count(), 0)
         self.assertEqual(Schedule.objects.count(), 0)
-        self.assertEqual(ContactGroup.user_groups.count(), 1)
+        self.assertEqual(ContactGroup.objects.filter(is_system=False).count(), 1)
         self.assertEqual(Flow.objects.count(), 1)
 
 
 class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
+    def test_menu(self):
+
+        self.login(self.admin)
+        menu_url = reverse("triggers.trigger_menu")
+        response = self.assertListFetch(menu_url, allow_viewers=True, allow_editors=True, allow_agents=False)
+        menu = response.json()["results"]
+        self.assertEqual(4, len(menu))
+
+        # create a trigger with no groups
+        create_url = reverse("triggers.trigger_create_keyword")
+        flow = self.create_flow("My Flow", flow_type=Flow.TYPE_MESSAGE)
+        self.assertCreateSubmit(
+            create_url,
+            {"keyword": "start", "flow": flow.id, "match_type": "F"},
+            new_obj_query=Trigger.objects.filter(keyword="start", flow=flow),
+            success_status=200,
+        )
+
+        menu_url = reverse("triggers.trigger_menu")
+        response = self.assertListFetch(menu_url, allow_viewers=True, allow_editors=True, allow_agents=False)
+        menu = response.json()["results"]
+
+        # our keyword trigger should force a keywords section
+        self.assertEqual(5, len(menu))
+
     def test_create(self):
         create_url = reverse("triggers.trigger_create")
         create_new_convo_url = reverse("triggers.trigger_create_new_conversation")
@@ -458,12 +489,13 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_create_keyword(self):
         create_url = reverse("triggers.trigger_create_keyword")
+        open_tickets = self.org.groups.get(name="Open Tickets")
         flow1 = self.create_flow("Flow 1", flow_type=Flow.TYPE_MESSAGE)
         flow2 = self.create_flow("Flow 2", flow_type=Flow.TYPE_VOICE)
 
         # flows that shouldn't appear as options
-        self.create_flow(flow_type=Flow.TYPE_BACKGROUND)
-        self.create_flow(is_system=True)
+        self.create_flow("Background", flow_type=Flow.TYPE_BACKGROUND)
+        self.create_flow("System", is_system=True)
 
         group1 = self.create_group("Group 1", contacts=[])
         group2 = self.create_group("Group 2", contacts=[])
@@ -479,8 +511,10 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual([flow1, flow2], list(response.context["form"].fields["flow"].queryset))
 
         # group options are any group
-        self.assertEqual([group1, group2], list(response.context["form"].fields["groups"].queryset))
-        self.assertEqual([group1, group2], list(response.context["form"].fields["exclude_groups"].queryset))
+        self.assertEqual([group1, group2, open_tickets], list(response.context["form"].fields["groups"].queryset))
+        self.assertEqual(
+            [group1, group2, open_tickets], list(response.context["form"].fields["exclude_groups"].queryset)
+        )
 
         # try a keyword with spaces
         self.assertCreateSubmit(
@@ -957,12 +991,13 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_create_catchall(self):
         create_url = reverse("triggers.trigger_create_catchall")
+        open_tickets = self.org.groups.get(name="Open Tickets")
         flow1 = self.create_flow("Flow 1", flow_type=Flow.TYPE_MESSAGE)
         flow2 = self.create_flow("Flow 2", flow_type=Flow.TYPE_VOICE)
 
         # flows that shouldn't appear as options
-        self.create_flow(flow_type=Flow.TYPE_BACKGROUND)
-        self.create_flow(is_system=True)
+        self.create_flow("Background", flow_type=Flow.TYPE_BACKGROUND)
+        self.create_flow("System", is_system=True)
 
         group1 = self.create_group("Group 1", contacts=[])
         group2 = self.create_group("Group 2", contacts=[])
@@ -978,7 +1013,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual([flow1, flow2], list(response.context["form"].fields["flow"].queryset))
 
         # group options are any group
-        self.assertEqual([group1, group2], list(response.context["form"].fields["groups"].queryset))
+        self.assertEqual([group1, group2, open_tickets], list(response.context["form"].fields["groups"].queryset))
 
         # create a trigger with no groups
         self.assertCreateSubmit(
@@ -1043,7 +1078,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
     def test_update_keyword(self):
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
         group1 = self.create_group("Chat", contacts=[])
         group2 = self.create_group("Testers", contacts=[])
         group3 = self.create_group("Doctors", contacts=[])
@@ -1088,7 +1123,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
     def test_update_schedule(self):
-        flow1 = self.create_flow()
+        flow1 = self.create_flow("Test")
         group1 = self.create_group("Chat", contacts=[])
         group2 = self.create_group("Testers", contacts=[])
         contact1 = self.create_contact("Jim", phone="+250788987651")
@@ -1191,6 +1226,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_list(self, mock_activate_trigger, mock_deactivate_trigger):
         flow1 = self.create_flow("Report")
         flow2 = self.create_flow("Survey")
+        flow3 = self.create_flow("Test", org=self.org2)
         channel = self.create_channel("FB", "Facebook", "1234567")
         trigger1 = Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow1, keyword="test")
         trigger2 = Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow2, keyword="abc")
@@ -1199,7 +1235,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
 
         Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow1, keyword="archived", is_archived=True)
         Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow1, keyword="inactive", is_active=False)
-        Trigger.create(self.org2, self.admin, Trigger.TYPE_KEYWORD, self.create_flow(org=self.org2), keyword="other")
+        Trigger.create(self.org2, self.admin, Trigger.TYPE_KEYWORD, flow3, keyword="other")
 
         list_url = reverse("triggers.trigger_list")
 
@@ -1244,14 +1280,16 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRedirect(response, reverse("triggers.trigger_create"))
 
     def test_archived(self):
-        flow = self.create_flow()
+        flow = self.create_flow("Test")
+        other_org_flow = self.create_flow("Test", org=self.org2)
+
         trigger1 = Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keyword="start", is_archived=True)
         trigger2 = Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keyword="join", is_archived=True)
 
         # triggers that shouldn't appear
         Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keyword="active", is_archived=False)
         Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keyword="inactive", is_active=False)
-        Trigger.create(self.org2, self.admin, Trigger.TYPE_KEYWORD, self.create_flow(org=self.org2), keyword="other")
+        Trigger.create(self.org2, self.admin, Trigger.TYPE_KEYWORD, other_org_flow, keyword="other")
 
         archived_url = reverse("triggers.trigger_archived")
 
@@ -1329,12 +1367,14 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_type_lists(self):
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
+        flow3 = self.create_flow("Flow 3", org=self.org2)
+
         trigger1 = Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow1, keyword="test")
         trigger2 = Trigger.create(self.org, self.admin, Trigger.TYPE_KEYWORD, flow2, keyword="abc")
         trigger3 = Trigger.create(self.org, self.admin, Trigger.TYPE_REFERRAL, flow1, referrer_id="234")
         trigger4 = Trigger.create(self.org, self.admin, Trigger.TYPE_REFERRAL, flow2, referrer_id="456")
         trigger5 = Trigger.create(self.org, self.admin, Trigger.TYPE_CATCH_ALL, flow1)
-        Trigger.create(self.org2, self.admin, Trigger.TYPE_KEYWORD, self.create_flow(org=self.org2), keyword="other")
+        Trigger.create(self.org2, self.admin, Trigger.TYPE_KEYWORD, flow3, keyword="other")
 
         keyword_url = reverse("triggers.trigger_type", kwargs={"type": "keyword"})
         referral_url = reverse("triggers.trigger_type", kwargs={"type": "referral"})

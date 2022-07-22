@@ -1,40 +1,96 @@
 -extends 'includes/modax.html'
 -load smartmin i18n
 
+
 -block fields
-  -if blockers
-    -for blocker in blockers
-      .mb-2
-        {{ blocker|safe }}
+  .start-form(class='{% if not form.mode.value == "select" %}query-mode{%endif%}')
+    .warnings    
+    .blockers
+    .mb-4
+      -render_field 'flow'
+    .field.recipient-mode.mb-4     
+      %temba-select(name="mode")
+        %temba-option(name='{{_("Enter contacts and groups to start below")|escapejs}}' value='select')
+        %temba-option(name='{{_("Search for contacts to start")|escapejs}}' value='query')
+      
+    .field.recipents.mb-4
+      -render_field 'recipients'        
 
-    -trans "You can still test your flow using the simulator by clicking the phone icon on the right."
-  -else
-    -for warning in warnings
-      %temba-alert.mb-4(level="warning")
-        %div= warning
-
-    .field.recipients-mode
-      -render_field 'mode'
-
-    .field.omnibox(class='{% if not form.mode.value == "select" %}hidden{%endif%}')
-      -render_field 'omnibox'
-
-    .field.query(class='{% if form.mode.value == "select" %}hidden{%endif%}')
+    .field.query.-mb-2
       -render_field 'query'
 
-    .start-options.mt-6.ml-2
-      -if object.flow_type != 'B'
-        -render_field 'exclude_in_other'
-      -render_field 'exclude_reruns'
-
 -block form-buttons
-  -if not blockers 
-    %input.btn.btn-primary(type="submit" value="{{ submit_button_name }}")
+  %input.btn.btn-primary(type="submit" value="{{ submit_button_name }}")
 
+-block modal-extra-style
+    {{ block.super }}  
+    :css
+      .warnings {
+        opacity: 1;
+      }
 
+      .warnings temba-alert, .blockers temba-alert {
+        margin-bottom: 1em;
+      }
+
+      .warnings, .blockers {
+        max-height: 0;
+        transition: max-height 1000ms ease-in-out;
+        overflow: hidden;
+      }
+
+      .warnings.opened, .blockers.opened {
+        max-height: 1000px;
+      }
+
+      .card-option {
+        border-radius: var(--curvature);
+        padding: 14px;
+        background: #fafafa;
+        border: 2px solid transparent;
+      }
+
+      .selected {
+        border-color: var(--color-primary-dark);
+      }
+
+      .card-option:hover {
+        cursor: pointer;
+        background: var(--color-selection);        
+      }
+
+      .field_query.control-group, .start-options .control-group {
+        margin-bottom: 3px;
+      }
+
+      .start-form {
+        --contact-search-query-display: none;
+      }
+
+      .start-form.query-mode {
+        --contact-search-query-display: block;
+      }
+
+      .start-form.query-mode temba-omnibox {
+        display: none;
+      }
+  
 -block modal-script
   {{block.super}}
   :javascript
+
+    function resetWarnings() {
+      var modax = document.querySelector("#start-flow, #shared-modax");
+      var modalBody = modax.shadowRoot;
+  
+      var warnings = modalBody.querySelector(".warnings");
+      warnings.innerHTML = '';
+      warnings.classList.remove("opened");
+
+      var blockers = modalBody.querySelector(".blockers");
+      blockers.innerHTML = '';
+      blockers.classList.remove("opened");
+    }
 
     function addClass(ele, className) {
       ele.classList.add(className);
@@ -44,23 +100,127 @@
       ele.classList.remove(className);
     }
 
-    var modalBody = document.querySelector("#start-flow").shadowRoot;
-    var queryField = modalBody.querySelector('.query');
-    var omniboxField = modalBody.querySelector('.omnibox');
-    var modeSelect = modalBody.querySelector("temba-select[name='mode']");
-
-    {% if not blockers %}
-      modeSelect.addEventListener("change", function(evt) {
-        var selected = evt.target.values[0];
-        if (selected.value === "query") {
-          removeClass(queryField, "hidden");
-          addClass(omniboxField, "hidden");
+    function createQuery(omniValues) {
+      var operands = omniValues.map(function(value) {
+        if (value.type == "group") {
+          return "group = " + JSON.stringify(value.name);
         } else {
-          addClass(queryField, "hidden");
-          removeClass(omniboxField, "hidden");
+          return "uuid = " + JSON.stringify(value.id);
         }
       });
-    {% endif %}
+      return operands.join(" OR ");
+    }
+
+    var modax = document.querySelector("#start-flow, #shared-modax");
+    var modalBody = modax.shadowRoot;
+    var queryField = modalBody.querySelector('.query');
+    var flowSelect = modalBody.querySelector("temba-select[name='flow']");
+    var queryWidget = queryField.querySelector("temba-contact-search");
+
+    var startForm = modalBody.querySelector('.start-form');
+    var omnibox = modalBody.querySelector('temba-omnibox');
+    var modeSelect = modalBody.querySelector("temba-select[name='mode']");
+    modax.disabled = true;
+
+    flowSelect.addEventListener("change", function(evt) {
+      var inFlowCheckbox = modalBody.querySelector("temba-checkbox[name='in_a_flow']");
+
+      var flowType = this.value.type;
+
+      if (flowType == 'B') {
+        inFlowCheckbox.style.display = "none";
+        // uncheck it if we need to
+        if (inFlowCheckbox.checked) {
+          inFlowCheckbox.click();
+        }
+      } else {
+        inFlowCheckbox.style.display = "block";
+      }
+
+      resetWarnings();
+      modax.disabled = true;
+      queryWidget.endpoint = "/flow/preview_start/" + this.value.value + "/";
+    });
+
+    queryWidget.addEventListener("temba-content-changed", function(e) {
+      resetWarnings();
+      
+      modax.disabled = e.detail.total == 0;
+
+      if (e.detail.blockers.length) {
+        var blockers = modalBody.querySelector(".blockers");
+        blockers.classList.add("opened");
+        e.detail.blockers.forEach(function(blocker) {
+          var alert = document.createElement("temba-alert");
+          alert.level = "error"
+          alert.innerHTML = blocker;
+          blockers.appendChild(alert);
+        });
+        modax.disabled = true;
+      } else if (e.detail.warnings.length) {
+        var warnings = modalBody.querySelector(".warnings");
+        warnings.classList.add("opened");
+        e.detail.warnings.forEach(function(warning) {
+          var alert = document.createElement("temba-alert");
+          alert.level = "warning"
+          alert.innerHTML = warning;
+          warnings.appendChild(alert);
+        });
+      }
+
+      modalBody.querySelector("input[name='query']").value = e.detail.query;
+    });
+
+    queryWidget.addEventListener("input", function(){
+      modax.disabled = true;
+    });
+
+    var handleDialogButton = function(event){
+
+      var modax = document.querySelector("#start-flow, #shared-modax");
+      var modalBody = modax.shadowRoot;
+
+      if (modax.suspendSubmit) {
+        event.stopPropagation();
+        event.preventDefault();
+        modax.suspendSubmit = false;
+      }
+    }
+
+    var dialog = modalBody.querySelector("temba-dialog");
+    if (!dialog.registered) {
+      dialog.addEventListener("temba-button-clicked", handleDialogButton);
+      dialog.registered = true;
+    }
+    
+    omnibox.addEventListener("change", function(evt){
+      resetWarnings();
+      if (flowSelect.value && flowSelect.value.value) {
+        queryWidget.endpoint = "/flow/preview_start/" + flowSelect.value.value + "/";
+      }
+
+      var query = createQuery(evt.target.getValues());
+      queryWidget.query = query;
+      if (query.trim().length == 0) {
+        modax.disabled = true;
+      }
+      omnibox.blur();
+    });
+
+    modeSelect.addEventListener("change", function(evt) {
+      var selected = evt.target.values[0];
+      if (selected.value === "query") {
+        addClass(startForm, "query-mode");
+      } else {
+        removeClass(startForm, "query-mode");
+        var query = createQuery(omnibox.getValues());
+        queryWidget.query = query;
+        if (query.trim().length == 0) {
+          modax.disabled = true;
+        }
+        omnibox.blur();
+      }
+    });
 
 
 

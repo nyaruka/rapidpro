@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 
 import iso8601
 import pytz
-import regex
 from xlsxlite.writer import XLSXBook
 
 from django.conf import settings
@@ -14,19 +13,19 @@ from django.contrib.postgres.fields import ArrayField
 from django.core.files.temp import NamedTemporaryFile
 from django.db import models
 from django.db.models import Prefetch, Q, Sum
-from django.db.models.functions import Upper
+from django.db.models.functions import Lower
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from temba import mailroom
 from temba.assets.models import register_asset_store
-from temba.channels.models import Channel, ChannelEvent, ChannelLog
+from temba.channels.models import Channel, ChannelEvent
 from temba.contacts.models import URN, Contact, ContactGroup, ContactURN
 from temba.orgs.models import DependencyMixin, Org, TopUp
 from temba.schedules.models import Schedule
 from temba.utils import chunk_list, on_transaction_commit
 from temba.utils.export import BaseExportAssetStore, BaseExportTask
-from temba.utils.models import JSONAsTextField, SquashableModel, TembaModel, TranslatableField
+from temba.utils.models import JSONAsTextField, LegacyUUIDMixin, SquashableModel, TembaModel, TranslatableField
 from temba.utils.text import clean_string
 from temba.utils.uuid import uuid4
 
@@ -201,7 +200,7 @@ class Broadcast(models.Model):
             child.release()
 
         for msg in self.msgs.all():
-            msg.release()
+            msg.delete()
 
         BroadcastMsgCount.objects.filter(broadcast=self).delete()
 
@@ -320,11 +319,13 @@ class Msg(models.Model):
 
     VISIBILITY_VISIBLE = "V"
     VISIBILITY_ARCHIVED = "A"
-    VISIBILITY_DELETED = "D"
+    VISIBILITY_DELETED_BY_USER = "D"
+    VISIBILITY_DELETED_BY_SENDER = "X"
     VISIBILITY_CHOICES = (
         (VISIBILITY_VISIBLE, "Visible"),
         (VISIBILITY_ARCHIVED, "Archived"),
-        (VISIBILITY_DELETED, "Deleted"),
+        (VISIBILITY_DELETED_BY_USER, "Deleted by user"),
+        (VISIBILITY_DELETED_BY_SENDER, "Deleted by sender"),
     )
 
     DIRECTION_IN = "I"
@@ -342,17 +343,17 @@ class Msg(models.Model):
         (TYPE_USSD, "USSD Message"),
     )
 
-    FAILED_SUSPENDED = "S"  # org was suspended
-    FAILED_LOOPING = "L"  # message looks like it's part of a loop
-    FAILED_ERROR_LIMIT = "E"  # courier tried to send the message but we reached error limit
-    FAILED_TOO_OLD = "O"  # message has been queued for too long and too late to send message
-    FAILED_NO_DESTINATION = "D"  # no compatible channel + URN destination found
+    FAILED_SUSPENDED = "S"
+    FAILED_LOOPING = "L"
+    FAILED_ERROR_LIMIT = "E"
+    FAILED_TOO_OLD = "O"
+    FAILED_NO_DESTINATION = "D"
     FAILED_CHOICES = (
-        (FAILED_SUSPENDED, "Suspended"),
-        (FAILED_LOOPING, "Looping"),
-        (FAILED_ERROR_LIMIT, "Error Limit"),
-        (FAILED_TOO_OLD, "Too Old"),
-        (FAILED_NO_DESTINATION, "No Destination"),
+        (FAILED_SUSPENDED, _("Workspace suspended")),
+        (FAILED_LOOPING, _("Looping detected")),  # mailroom checks for this
+        (FAILED_ERROR_LIMIT, _("Retry limit reached")),  # courier tried to send but it errored too many times
+        (FAILED_TOO_OLD, _("Too old to send")),  # was queued for too long, would be confusing to send now
+        (FAILED_NO_DESTINATION, _("No suitable channel found")),  # no compatible channel + URN destination found
     )
 
     MEDIA_GPS = "geo"
@@ -369,7 +370,8 @@ class Msg(models.Model):
     channel = models.ForeignKey(Channel, on_delete=models.PROTECT, null=True, related_name="msgs")
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT, related_name="msgs", db_index=False)
     contact_urn = models.ForeignKey(ContactURN, on_delete=models.PROTECT, null=True, related_name="msgs")
-    broadcast = models.ForeignKey(Broadcast, on_delete=models.PROTECT, null=True, blank=True, related_name="msgs")
+    broadcast = models.ForeignKey(Broadcast, on_delete=models.PROTECT, null=True, related_name="msgs")
+    flow = models.ForeignKey("flows.Flow", on_delete=models.PROTECT, null=True, db_index=False)
 
     text = models.TextField()
     attachments = ArrayField(models.URLField(max_length=2048), null=True)
@@ -402,15 +404,6 @@ class Msg(models.Model):
     topup = models.ForeignKey(TopUp, null=True, blank=True, related_name="msgs", on_delete=models.PROTECT)
 
     metadata = JSONAsTextField(null=True, default=dict)
-
-    # can be set before deletion to indicate deletion by a user which should decrement from counts
-    delete_from_counts = models.BooleanField(null=True, default=False)
-
-    # TODO deprecated in favor of delete_from_counts
-    DELETE_FOR_ARCHIVE = "A"
-    DELETE_FOR_USER = "U"
-    DELETE_CHOICES = ((DELETE_FOR_ARCHIVE, "Archive delete"), (DELETE_FOR_USER, "User delete"))
-    delete_reason = models.CharField(null=True, max_length=1, choices=DELETE_CHOICES)
 
     @classmethod
     def get_messages(cls, org, is_archived=False, direction=None, msg_type=None):
@@ -454,6 +447,7 @@ class Msg(models.Model):
             "id": self.id,
             "contact": {"uuid": str(self.contact.uuid), "name": self.contact.name},
             "channel": {"uuid": str(self.channel.uuid), "name": self.channel.name} if self.channel else None,
+            "flow": {"uuid": str(self.flow.uuid), "name": self.flow.name} if self.flow else None,
             "urn": self.contact_urn.identity if self.contact_urn else None,
             "direction": "in" if self.direction == Msg.DIRECTION_IN else "out",
             "type": MsgReadSerializer.TYPES.get(self.msg_type),
@@ -461,7 +455,7 @@ class Msg(models.Model):
             "visibility": MsgReadSerializer.VISIBILITIES.get(self.visibility),
             "text": self.text,
             "attachments": [attachment.as_json() for attachment in Attachment.parse_all(self.attachments)],
-            "labels": [{"uuid": l.uuid, "name": l.name} for l in self.labels.all()],
+            "labels": [{"uuid": lb.uuid, "name": lb.name} for lb in self.labels.all()],
             "created_on": self.created_on.isoformat(),
             "sent_on": self.sent_on.isoformat() if self.sent_on else None,
         }
@@ -620,8 +614,7 @@ class Msg(models.Model):
         """
         Archives this message
         """
-        if self.direction != self.DIRECTION_IN:
-            raise ValueError("Can only archive incoming non-test messages")
+        assert self.direction == self.DIRECTION_IN and self.visibility == Msg.VISIBILITY_VISIBLE
 
         self.visibility = self.VISIBILITY_ARCHIVED
         self.save(update_fields=("visibility", "modified_on"))
@@ -643,26 +636,28 @@ class Msg(models.Model):
         """
         Restores (i.e. un-archives) this message
         """
-        if self.direction != self.DIRECTION_IN:  # pragma: needs cover
-            raise ValueError("Can only restore incoming non-test messages")
+        assert self.direction == self.DIRECTION_IN and self.visibility == Msg.VISIBILITY_ARCHIVED
 
         self.visibility = self.VISIBILITY_VISIBLE
         self.save(update_fields=("visibility", "modified_on"))
 
-    def release(self, delete_reason=DELETE_FOR_USER):
+    def delete(self, soft: bool = False):
         """
-        Releases (i.e. deletes) this message
+        Deletes this message. This can be soft if messages are being deleted from the UI, or hard in the case of
+        contact or org removal.
         """
+        if soft:
+            self.labels.clear()
 
-        for log in ChannelLog.objects.filter(msg=self):
-            log.release()
+            self.text = ""
+            self.attachments = []
+            self.visibility = Msg.VISIBILITY_DELETED_BY_USER
+            self.save(update_fields=("text", "attachments", "visibility"))
+        else:
+            for log in self.channel_logs.all():
+                log.release()
 
-        self.delete_reason = delete_reason
-        self.delete_from_counts = delete_reason == self.DELETE_FOR_USER
-        self.save(update_fields=("delete_reason", "delete_from_counts"))
-
-        # delete this object
-        self.delete()
+            super().delete()
 
     @classmethod
     def apply_action_label(cls, user, msgs, label):
@@ -685,7 +680,7 @@ class Msg(models.Model):
     @classmethod
     def apply_action_delete(cls, user, msgs):
         for msg in msgs:
-            msg.release()
+            msg.delete(soft=True)
 
     @classmethod
     def apply_action_resend(cls, user, msgs):
@@ -742,9 +737,6 @@ class BroadcastMsgCount(SquashableModel):
     @classmethod
     def get_count(cls, broadcast):
         return cls.sum(broadcast.counts.all())
-
-    def __str__(self):  # pragma: needs cover
-        return f"BroadcastMsgCount[{self.broadcast_id}:{self.count}]"
 
 
 class SystemLabel:
@@ -867,84 +859,49 @@ class SystemLabelCount(SquashableModel):
         return sql, (distinct_set.org_id, distinct_set.label_type, distinct_set.is_archived) * 2
 
     @classmethod
-    def get_totals(cls, org, is_archived=False):
+    def get_totals(cls, org):
         """
         Gets all system label counts by type for the given org
         """
-        counts = cls.objects.filter(org=org, is_archived=is_archived)
+        counts = cls.objects.filter(org=org, is_archived=False)
         counts = counts.values_list("label_type").annotate(count_sum=Sum("count"))
         counts_by_type = {c[0]: c[1] for c in counts}
 
         # for convenience, include all label types
-        return {l: counts_by_type.get(l, 0) for l, n in SystemLabel.TYPE_CHOICES}
+        return {lb: counts_by_type.get(lb, 0) for lb, n in SystemLabel.TYPE_CHOICES}
 
     class Meta:
         index_together = ("org", "label_type")
 
 
-class UserFolderManager(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset().filter(label_type=Label.TYPE_FOLDER)
-
-
-class UserLabelManager(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset().filter(label_type=Label.TYPE_LABEL)
-
-
-class Label(TembaModel, DependencyMixin):
+class Label(LegacyUUIDMixin, TembaModel, DependencyMixin):
     """
     Labels represent both user defined labels and folders of labels. User defined labels that can be applied to messages
     much the same way labels or tags apply to messages in web-based email services.
     """
 
-    MAX_NAME_LEN = 64
     MAX_ORG_FOLDERS = 250
 
     TYPE_FOLDER = "F"
     TYPE_LABEL = "L"
-
     TYPE_CHOICES = ((TYPE_FOLDER, "Folder of labels"), (TYPE_LABEL, "Regular label"))
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="msgs_labels")
-    name = models.CharField(max_length=MAX_NAME_LEN)
     folder = models.ForeignKey("Label", on_delete=models.PROTECT, null=True, related_name="children")
     label_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_LABEL)
 
-    # define some custom managers to do the filtering of label types for us
-    all_objects = models.Manager()
-    folder_objects = UserFolderManager()
-    label_objects = UserLabelManager()
+    org_limit_key = Org.LIMIT_LABELS
 
     @classmethod
-    def get_or_create(cls, org, user, name, folder=None):
-        assert not folder or folder.is_folder(), "folder must be a folder if provided"
+    def create(cls, org, user, name: str):
+        assert cls.is_valid_name(name), f"'{name}' is not a valid label name"
+        assert not org.msgs_labels.filter(name__iexact=name).exists()
 
-        name = name.strip()
-
-        if not cls.is_valid_name(name):
-            raise ValueError("Invalid label name: %s" % name)
-
-        label = cls.label_objects.filter(org=org, name__iexact=name, is_active=True).first()
-        if label:
-            return label
-
-        return cls.label_objects.create(org=org, name=name, folder=folder, created_by=user, modified_by=user)
+        return cls.objects.create(org=org, name=name, created_by=user, modified_by=user)
 
     @classmethod
-    def get_or_create_folder(cls, org, user, name):
-        name = name.strip()
-
-        if not cls.is_valid_name(name):
-            raise ValueError("Invalid folder name: %s" % name)
-
-        folder = cls.folder_objects.filter(org=org, name__iexact=name, is_active=True).first()
-        if folder:
-            return folder
-
-        return cls.folder_objects.create(
-            org=org, name=name, label_type=Label.TYPE_FOLDER, created_by=user, modified_by=user
-        )
+    def create_from_import_def(cls, org, user, definition: dict):
+        return cls.create(org, user, definition["name"])
 
     @classmethod
     def get_hierarchy(cls, org):
@@ -952,8 +909,8 @@ class Label(TembaModel, DependencyMixin):
         Gets labels and folders organized into their hierarchy and with their message counts
         """
 
-        labels_and_folders = list(Label.all_objects.filter(org=org, is_active=True).order_by(Upper("name")))
-        label_counts = LabelCount.get_totals([l for l in labels_and_folders if not l.is_folder()])
+        labels_and_folders = list(Label.get_active_for_org(org).order_by(Lower("name")))
+        label_counts = LabelCount.get_totals([lb for lb in labels_and_folders if not lb.is_folder()])
 
         folder_nodes = {}
         all_nodes = []
@@ -973,18 +930,6 @@ class Label(TembaModel, DependencyMixin):
 
         return top_nodes
 
-    @classmethod
-    def is_valid_name(cls, name):
-        # don't allow empty strings, blanks, initial or trailing whitespace
-        if not name or name.strip() != name:
-            return False
-
-        if len(name) > cls.MAX_NAME_LEN:
-            return False
-
-        # first character must be a word char
-        return regex.match(r"\w", name[0], flags=regex.UNICODE)
-
     def filter_messages(self, queryset):
         if self.is_folder():
             return queryset.filter(labels__in=self.children.all()).distinct()
@@ -999,8 +944,7 @@ class Label(TembaModel, DependencyMixin):
         """
         Returns the count of visible, non-test message tagged with this label
         """
-        if self.is_folder():
-            raise ValueError("Message counts are not tracked for user folders")
+        assert not self.is_folder()
 
         return LabelCount.get_totals([self])[self]
 
@@ -1014,10 +958,9 @@ class Label(TembaModel, DependencyMixin):
         changed = set()
 
         for msg in msgs:
-            if msg.direction != Msg.DIRECTION_IN:
-                raise ValueError("Can only apply labels to incoming messages")
+            assert msg.direction == Msg.DIRECTION_IN
 
-            # if we are adding the label and this message doesnt have it, add it
+            # if we are adding the label and this message doesn't have it, add it
             if add:
                 if not msg.labels.filter(pk=self.pk):
                     msg.labels.add(self)
@@ -1051,14 +994,18 @@ class Label(TembaModel, DependencyMixin):
 
         self.counts.all().delete()
 
+        self.name = self._deleted_name()
         self.is_active = False
         self.modified_by = user
-        self.save(update_fields=("is_active", "modified_by", "modified_on"))
+        self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))
 
     def __str__(self):
         if self.folder:
             return "%s > %s" % (str(self.folder), self.name)
         return self.name
+
+    class Meta:
+        constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_label_names")]
 
 
 class LabelCount(SquashableModel):
@@ -1087,17 +1034,17 @@ class LabelCount(SquashableModel):
         return sql, (distinct_set.label_id, distinct_set.is_archived) * 2
 
     @classmethod
-    def get_totals(cls, labels, is_archived=False):
+    def get_totals(cls, labels):
         """
         Gets total counts for all the given labels
         """
         counts = (
-            cls.objects.filter(label__in=labels, is_archived=is_archived)
+            cls.objects.filter(label__in=labels, is_archived=False)
             .values_list("label_id")
             .annotate(count_sum=Sum("count"))
         )
         counts_by_label_id = {c[0]: c[1] for c in counts}
-        return {l: counts_by_label_id.get(l.id, 0) for l in labels}
+        return {lb: counts_by_label_id.get(lb.id, 0) for lb in labels}
 
 
 class MsgIterator:
@@ -1193,6 +1140,7 @@ class ExportMessagesTask(BaseExportTask):
             "Name",
             "ID" if self.org.is_anon else "URN",
             "URN Type",
+            "Flow",
             "Direction",
             "Text",
             "Attachments",
@@ -1290,7 +1238,7 @@ class ExportMessagesTask(BaseExportTask):
             messages = messages.filter(created_on__lte=end_date)
 
         if self.groups.all():
-            messages = messages.filter(contact__all_groups__in=self.groups.all())
+            messages = messages.filter(contact__groups__in=self.groups.all())
 
         messages = messages.order_by("created_on").using("readonly")
         if last_created_on:
@@ -1302,11 +1250,11 @@ class ExportMessagesTask(BaseExportTask):
             f"Msgs export #{self.id} for org #{self.org.id}: found {len(all_message_ids)} msgs in database to export"
         )
 
-        prefetch = Prefetch("labels", queryset=Label.label_objects.order_by("name"))
+        prefetch = Prefetch("labels", queryset=Label.objects.order_by("name"))
         for msg_batch in MsgIterator(
             all_message_ids,
             order_by=["" "created_on"],
-            select_related=["contact", "contact_urn", "channel"],
+            select_related=["contact", "contact_urn", "channel", "flow"],
             prefetch_related=[prefetch],
         ):
             # convert this batch of msgs to same format as records in our archives
@@ -1320,6 +1268,7 @@ class ExportMessagesTask(BaseExportTask):
 
         for msg in msgs:
             contact = contacts_by_uuid.get(msg["contact"]["uuid"])
+            flow = msg.get("flow")
 
             urn_scheme = URN.to_parts(msg["urn"])[0] if msg["urn"] else ""
 
@@ -1343,6 +1292,7 @@ class ExportMessagesTask(BaseExportTask):
                     msg["contact"].get("name", ""),
                     urn_path,
                     urn_scheme,
+                    flow["name"] if flow else None,
                     msg["direction"].upper() if msg["direction"] else None,
                     msg["text"],
                     ", ".join(attachment["url"] for attachment in msg["attachments"]),

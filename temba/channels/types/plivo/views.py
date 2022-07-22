@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.utils.http import urlencode
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from temba.channels.models import Channel
 from temba.channels.views import BaseClaimNumberMixin, ClaimViewMixin
@@ -128,7 +128,7 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
 
         plivo_uuid = generate_uuid()
         callback_domain = org.get_brand_domain()
-        app_name = "%s/%s" % (callback_domain.lower(), plivo_uuid)
+        app_name = "%s_%s" % (callback_domain.lower().replace(".", "_"), plivo_uuid)
 
         message_url = f"https://{callback_domain}{reverse('courier.pl', args=[plivo_uuid, 'receive'])}"
         answer_url = f"{settings.STORAGE_URL}/plivo_voice_unavailable.xml"

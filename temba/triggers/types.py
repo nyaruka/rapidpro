@@ -1,7 +1,7 @@
 import regex
 
 from django import forms
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from temba.channels.models import Channel
 from temba.contacts.models import ContactURN
@@ -46,6 +46,9 @@ class KeywordTriggerType(TriggerType):
     export_fields = TriggerType.export_fields + ("keyword",)
     required_fields = TriggerType.required_fields + ("keyword",)
     form = Form
+
+    def get_instance_name(self, trigger):
+        return f"{self.name}[{trigger.keyword}] → {trigger.flow.name}"
 
     def validate_import_def(self, trigger_def: dict):
         super().validate_import_def(trigger_def)

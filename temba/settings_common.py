@@ -9,7 +9,7 @@ from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration, ignore_logger
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from celery.schedules import crontab
 
@@ -42,6 +42,8 @@ if TESTING:
 
 ADMINS = (("RapidPro", "code@yourdomain.io"),)
 MANAGERS = ADMINS
+
+USE_DEPRECATED_PYTZ = True
 
 # -----------------------------------------------------------------------------------
 # Location support
@@ -188,7 +190,6 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.request",
                 "temba.context_processors.branding",
-                "temba.context_processors.analytics",
                 "temba.context_processors.config",
                 "temba.orgs.context_processors.user_group_perms_processor",
                 "temba.channels.views.channel_status_processor",
@@ -316,6 +317,7 @@ LOGGING = {
 
 # the name of our topup plan
 TOPUP_PLAN = "topups"
+WORKSPACE_PLAN = "workspace"
 
 # Default plan for new orgs
 DEFAULT_PLAN = TOPUP_PLAN
@@ -350,7 +352,8 @@ BRANDING = {
         "welcome_packs": [dict(size=5000, name="Demo Account"), dict(size=100000, name="UNICEF Account")],
         "title": _("Visually build nationally scalable mobile applications"),
         "description": _("Visually build nationally scalable mobile applications from anywhere in the world."),
-        "credits": _("Copyright &copy; 2012-2017 UNICEF, Nyaruka. All Rights Reserved."),
+        "credits": "Copyright &copy; 2012-2022 UNICEF, Nyaruka. All Rights Reserved.",
+        "support_widget": False,
     }
 }
 DEFAULT_BRAND = os.environ.get("DEFAULT_BRAND", "rapidpro.io")
@@ -372,7 +375,7 @@ PERMISSIONS = {
     "api.resthook": ("api", "list"),
     "api.webhookevent": ("api",),
     "api.resthooksubscriber": ("api",),
-    "campaigns.campaign": ("api", "archived", "archive", "activate"),
+    "campaigns.campaign": ("api", "archived", "archive", "activate", "menu"),
     "campaigns.campaignevent": ("api",),
     "classifiers.classifier": ("connect", "api", "sync", "menu"),
     "classifiers.intent": ("api",),
@@ -389,6 +392,7 @@ PERMISSIONS = {
         "history",
         "menu",
         "omnibox",
+        "open_ticket",
         "restore",
         "search",
         "start",
@@ -431,6 +435,7 @@ PERMISSIONS = {
         "vonage_connect",
         "plan",
         "plivo_connect",
+        "whatsapp_cloud_connect",
         "profile",
         "prometheus",
         "resthooks",
@@ -481,7 +486,6 @@ PERMISSIONS = {
         "export_results",
         "filter",
         "menu",
-        "recent_messages",
         "recent_contacts",
         "results",
         "revisions",
@@ -507,15 +511,15 @@ PERMISSIONS = {
         "update",
     ),
     "msgs.broadcast": ("api", "detail", "schedule", "schedule_list", "schedule_read", "send"),
-    "msgs.label": ("api", "create_folder", "delete_folder"),
+    "msgs.label": ("api", "delete_folder"),
     "orgs.topup": ("manage",),
     "policies.policy": ("admin", "history", "give_consent"),
     "request_logs.httplog": ("webhooks", "classifier", "ticketer"),
     "templates.template": ("api",),
-    "tickets.ticket": ("api", "assign", "assignee", "menu", "note"),
+    "tickets.ticket": ("api", "assign", "assignee", "menu", "note", "export_stats"),
     "tickets.ticketer": ("api", "connect", "configure"),
     "tickets.topic": ("api",),
-    "triggers.trigger": ("archived", "type"),
+    "triggers.trigger": ("archived", "type", "menu"),
 }
 
 
@@ -523,7 +527,7 @@ PERMISSIONS = {
 GROUP_PERMISSIONS = {
     "Service Users": ("flows.flow_assets", "msgs.msg_create"),  # internal Temba services have limited permissions
     "Alpha": (),
-    "Beta": ("tickets.ticket_list",),
+    "Beta": ("orgs.org_whatsapp_cloud_connect",),
     "Dashboard": ("orgs.org_dashboard",),
     "Surveyors": (
         "contacts.contact_api",
@@ -538,8 +542,6 @@ GROUP_PERMISSIONS = {
     ),
     "Granters": ("orgs.org_grant",),
     "Customer Support": (
-        "auth.user_list",
-        "auth.user_update",
         "apks.apk_create",
         "apks.apk_list",
         "apks.apk_update",
@@ -564,6 +566,8 @@ GROUP_PERMISSIONS = {
         "orgs.topup_create",
         "orgs.topup_manage",
         "orgs.topup_update",
+        "orgs.user_list",
+        "orgs.user_update",
         "policies.policy_create",
         "policies.policy_update",
         "policies.policy_admin",
@@ -600,10 +604,10 @@ GROUP_PERMISSIONS = {
         "contacts.contact_list",
         "contacts.contact_menu",
         "contacts.contact_omnibox",
+        "contacts.contact_open_ticket",
         "contacts.contact_read",
         "contacts.contact_restore",
         "contacts.contact_search",
-        "contacts.contact_start",
         "contacts.contact_stopped",
         "contacts.contact_update",
         "contacts.contact_update_fields",
@@ -737,10 +741,10 @@ GROUP_PERMISSIONS = {
         "contacts.contact_list",
         "contacts.contact_menu",
         "contacts.contact_omnibox",
+        "contacts.contact_open_ticket",
         "contacts.contact_read",
         "contacts.contact_restore",
         "contacts.contact_search",
-        "contacts.contact_start",
         "contacts.contact_stopped",
         "contacts.contact_update",
         "contacts.contact_update_fields",
@@ -820,6 +824,7 @@ GROUP_PERMISSIONS = {
     "Viewers": (
         "campaigns.campaign_archived",
         "campaigns.campaign_list",
+        "campaigns.campaign_menu",
         "campaigns.campaign_read",
         "campaigns.campaignevent_read",
         "classifiers.classifier_api",
@@ -875,7 +880,6 @@ GROUP_PERMISSIONS = {
         "flows.flow_list",
         "flows.flow_menu",
         "flows.flow_editor",
-        "flows.flow_recent_messages",
         "flows.flow_recent_contacts",
         "flows.flow_results",
         "flows.flow_revisions",
@@ -903,6 +907,7 @@ GROUP_PERMISSIONS = {
         "tickets.topic_api",
         "triggers.trigger_archived",
         "triggers.trigger_list",
+        "triggers.trigger_menu",
         "triggers.trigger_type",
     ),
     "Agents": (
@@ -938,7 +943,7 @@ LOGOUT_URL = "/users/logout/"
 LOGIN_REDIRECT_URL = "/org/choose/"
 LOGOUT_REDIRECT_URL = "/"
 
-AUTHENTICATION_BACKENDS = ("smartmin.backends.CaseInsensitiveBackend",)
+AUTHENTICATION_BACKENDS = ("temba.orgs.backend.AuthenticationBackend",)
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
@@ -1056,7 +1061,6 @@ REST_FRAMEWORK = {
         "v2.messages": "2500/hour",
         "v2.broadcasts": "36000/hour",
         "v2.runs": "2500/hour",
-        "v2.api": "2500/hour",
     },
     "PAGE_SIZE": 250,
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
@@ -1121,6 +1125,7 @@ TICKETER_TYPES = [
 CHANNEL_TYPES = [
     "temba.channels.types.arabiacell.ArabiaCellType",
     "temba.channels.types.whatsapp.WhatsAppType",
+    "temba.channels.types.whatsapp_cloud.WhatsAppCloudType",
     "temba.channels.types.dialog360.Dialog360Type",
     "temba.channels.types.zenvia_whatsapp.ZenviaWhatsAppType",
     "temba.channels.types.twilio.TwilioType",
@@ -1184,6 +1189,11 @@ CHANNEL_TYPES = [
     "temba.channels.types.android.AndroidType",
     "temba.channels.types.discord.DiscordType",
     "temba.channels.types.rocketchat.RocketChatType",
+    "temba.channels.types.instagram.InstagramType",
+]
+
+ANALYTICS_TYPES = [
+    "temba.utils.analytics.ConsoleBackend",
 ]
 
 # set of ISO-639-3 codes of languages to allow in addition to all ISO-639-1 languages
@@ -1201,31 +1211,13 @@ SESSION_CACHE_ALIAS = "default"
 TWITTER_API_KEY = os.environ.get("TWITTER_API_KEY", "MISSING_TWITTER_API_KEY")
 TWITTER_API_SECRET = os.environ.get("TWITTER_API_SECRET", "MISSING_TWITTER_API_SECRET")
 
-# Segment.io key for analytics
-SEGMENT_IO_KEY = os.environ.get("SEGMENT_IO_KEY", "")
-
-# Intercom token and app_id for support
-INTERCOM_APP_ID = os.environ.get("INTERCOM_APP_ID", "")
-INTERCOM_TOKEN = os.environ.get("INTERCOM_TOKEN", "")
-
-# Crisp id and key support option
-SUPPORT_SECRET = os.environ.get("SUPPORT_SECRET", "")
-CRISP_IDENTIFIER = os.environ.get("CRISP_IDENTIFIER", "")
-CRISP_KEY = os.environ.get("CRISP_KEY", "")
-CRISP_WEBSITE_ID = os.environ.get("CRISP_WEBSITE_ID", "")
-
 # Google analytics tracking ID
 GOOGLE_TRACKING_ID = os.environ.get("GOOGLE_TRACKING_ID", "")
-
-# Librato for gauge support
-LIBRATO_USER = os.environ.get("LIBRATO_USER", "")
-LIBRATO_TOKEN = os.environ.get("LIBRATO_TOKEN", "")
 
 MAILGUN_API_KEY = os.environ.get("MAILGUN_API_KEY", "")
 
 ZENDESK_CLIENT_ID = os.environ.get("ZENDESK_CLIENT_ID", "")
 ZENDESK_CLIENT_SECRET = os.environ.get("ZENDESK_CLIENT_SECRET", "")
-
 
 # -----------------------------------------------------------------------------------
 #
@@ -1239,9 +1231,23 @@ ZENDESK_CLIENT_SECRET = os.environ.get("ZENDESK_CLIENT_SECRET", "")
 #       on https://developers.facebook.com/docs/messenger-platform/webhook#setup
 #
 # -----------------------------------------------------------------------------------
-FACEBOOK_APPLICATION_ID = os.environ.get("FACEBOOK_APPLICATION_ID", "")
-FACEBOOK_APPLICATION_SECRET = os.environ.get("FACEBOOK_APPLICATION_SECRET", "")
-FACEBOOK_WEBHOOK_SECRET = os.environ.get("FACEBOOK_WEBHOOK_SECRET", "")
+FACEBOOK_APPLICATION_ID = os.environ.get("FACEBOOK_APPLICATION_ID", "MISSING_FACEBOOK_APPLICATION_ID")
+FACEBOOK_APPLICATION_SECRET = os.environ.get("FACEBOOK_APPLICATION_SECRET", "MISSING_FACEBOOK_APPLICATION_SECRET")
+FACEBOOK_WEBHOOK_SECRET = os.environ.get("FACEBOOK_WEBHOOK_SECRET", "MISSING_FACEBOOK_WEBHOOK_SECRET")
+
+WHATSAPP_ADMIN_SYSTEM_USER_ID = os.environ.get(
+    "WHATSAPP_ADMIN_SYSTEM_USER_ID", "MISSING_WHATSAPP_ADMIN_SYSTEM_USER_ID"
+)
+WHATSAPP_ADMIN_SYSTEM_USER_TOKEN = os.environ.get(
+    "WHATSAPP_ADMIN_SYSTEM_USER_TOKEN", "MISSING_WHATSAPP_ADMIN_SYSTEM_USER_TOKEN"
+)
+WHATSAPP_FACEBOOK_BUSINESS_ID = os.environ.get(
+    "WHATSAPP_FACEBOOK_BUSINESS_ID", "MISSING_WHATSAPP_FACEBOOK_BUSINESS_ID"
+)
+
+ALLOWED_WHATSAPP_FACEBOOK_BUSINESS_IDS = [
+    os.environ.get("WHATSAPP_FACEBOOK_BUSINESS_ID", "MISSING_WHATSAPP_FACEBOOK_BUSINESS_ID")
+]
 
 
 # -----------------------------------------------------------------------------------
@@ -1261,10 +1267,12 @@ FLOW_START_PARAMS_SIZE = 256  # used for params passed to flow start API endpoin
 GLOBAL_VALUE_SIZE = 10_000  # max length of global values
 
 ORG_LIMIT_DEFAULTS = {
+    "channels": 10,
     "fields": 250,
     "globals": 250,
     "groups": 250,
     "labels": 250,
+    "teams": 50,
     "topics": 250,
 }
 

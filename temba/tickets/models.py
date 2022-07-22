@@ -1,21 +1,22 @@
 from abc import ABCMeta
+from datetime import date
 
-import regex
-from smartmin.models import SmartModel
+import openpyxl
 
 from django.conf import settings
-from django.conf.urls import url
-from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Q, Sum
+from django.db.models.functions import Lower
 from django.template import Engine
+from django.urls import re_path
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from temba import mailroom
 from temba.contacts.models import Contact
-from temba.orgs.models import DependencyMixin, Org
-from temba.utils.models import SquashableModel
+from temba.orgs.models import DependencyMixin, Org, User, UserSettings
+from temba.utils.dates import date_range
+from temba.utils.models import DailyCountModel, DailyTimingModel, SquashableModel, TembaModel
 from temba.utils.uuid import uuid4
 
 
@@ -61,27 +62,16 @@ class TicketerType(metaclass=ABCMeta):
         """
         Gets the URL/view configuration for this ticketer's connect page
         """
-        return url(r"^connect", self.connect_view.as_view(ticketer_type=self), name="connect")
+        return re_path(r"^connect", self.connect_view.as_view(ticketer_type=self), name="connect")
 
 
-class Ticketer(SmartModel, DependencyMixin):
+class Ticketer(TembaModel, DependencyMixin):
     """
     A service that can open and close tickets
     """
 
-    # our UUID
-    uuid = models.UUIDField(default=uuid4)
-
-    # the type of this ticketer
-    ticketer_type = models.CharField(max_length=16)
-
-    # the org this ticketer is connected to
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="ticketers")
-
-    # a name for this ticketer
-    name = models.CharField(max_length=64)
-
-    # the configuration options
+    ticketer_type = models.CharField(max_length=16)
     config = models.JSONField()
 
     @classmethod
@@ -106,7 +96,15 @@ class Ticketer(SmartModel, DependencyMixin):
 
         assert not org.ticketers.filter(ticketer_type=InternalType.slug).exists(), "org already has internal tickteter"
 
-        return cls.create(org, org.created_by, InternalType.slug, f"{brand['name']} Tickets", {})
+        return org.ticketers.create(
+            uuid=uuid4(),
+            ticketer_type=InternalType.slug,
+            name=f"{brand['name']} Tickets",
+            is_system=True,
+            config={},
+            created_by=org.created_by,
+            modified_by=org.created_by,
+        )
 
     @classmethod
     def get_types(cls):
@@ -126,18 +124,12 @@ class Ticketer(SmartModel, DependencyMixin):
 
         return TYPES[self.ticketer_type]
 
-    @property
-    def is_internal(self):
-        from .types.internal import InternalType
-
-        return self.type == InternalType
-
     def release(self, user):
         """
         Releases this, closing all associated tickets in the process
         """
 
-        assert not self.is_internal, "can't release internal ticketers"
+        assert not (self.is_system and self.org.is_active), "can't release system ticketers"
 
         super().release(user)
 
@@ -146,56 +138,58 @@ class Ticketer(SmartModel, DependencyMixin):
             Ticket.bulk_close(self.org, user, open_tickets, force=True)
 
         self.is_active = False
+        self.name = self._deleted_name()
         self.modified_by = user
-        self.save(update_fields=("is_active", "modified_by", "modified_on"))
-
-    def __str__(self):
-        return f"Ticketer[uuid={self.uuid}, name={self.name}]"
+        self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))
 
 
-class Topic(SmartModel, DependencyMixin):
+class Topic(TembaModel, DependencyMixin):
     """
     The topic of a ticket which controls who can access that ticket.
     """
 
-    MAX_NAME_LEN = 64
     DEFAULT_TOPIC = "General"
 
-    uuid = models.UUIDField(unique=True, default=uuid4)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="topics")
-    name = models.CharField(max_length=MAX_NAME_LEN)
     is_default = models.BooleanField(default=False)
+
+    org_limit_key = Org.LIMIT_TOPICS
 
     @classmethod
     def create_default_topic(cls, org):
         assert not org.topics.filter(is_default=True).exists(), "org already has default topic"
 
         org.topics.create(
-            name=cls.DEFAULT_TOPIC, is_default=True, created_by=org.created_by, modified_by=org.modified_by
+            name=cls.DEFAULT_TOPIC,
+            is_default=True,
+            is_system=True,
+            created_by=org.created_by,
+            modified_by=org.modified_by,
         )
 
     @classmethod
-    def get_or_create(cls, org, user, name):
-        assert cls.is_valid_name(name), f"{name} is not a valid topic name"
+    def create(cls, org, user, name: str):
+        assert cls.is_valid_name(name), f"'{name}' is not a valid topic name"
+        assert not org.topics.filter(name__iexact=name).exists()
 
-        existing = org.topics.filter(name__iexact=name).first()
-        if existing:
-            return existing
         return org.topics.create(name=name, created_by=user, modified_by=user)
 
     @classmethod
-    def is_valid_name(cls, name):
-        # don't allow empty strings, blanks, initial or trailing whitespace
-        if not name or name.strip() != name:
-            return False
+    def create_from_import_def(cls, org, user, definition: dict):
+        return cls.create(org, user, definition["name"])
 
-        if len(name) > cls.MAX_NAME_LEN:
-            return False
+    def release(self, user):
+        assert not (self.is_system and self.org.is_active), "can't release system topics"
 
-        return regex.match(r"\w[\w- ]*", name, flags=regex.UNICODE)
+        super().release(user)
 
-    def __str__(self):
-        return f"Topic[uuid={self.uuid}, topic={self.name}]"
+        self.is_active = False
+        self.name = self._deleted_name()
+        self.modified_by = user
+        self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))
+
+    class Meta:
+        constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_topic_names")]
 
 
 class Ticket(models.Model):
@@ -231,8 +225,12 @@ class Ticket(models.Model):
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
     assignee = models.ForeignKey(User, on_delete=models.PROTECT, null=True, related_name="assigned_tickets")
 
-    # when this ticket was opened, closed, modified
     opened_on = models.DateTimeField(default=timezone.now)
+    opened_in = models.ForeignKey("flows.Flow", null=True, on_delete=models.PROTECT, related_name="opened_tickets")
+    opened_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name="opened_tickets")
+
+    # when this ticket was first replied to, closed, modified
+    replied_on = models.DateTimeField(null=True)
     closed_on = models.DateTimeField(null=True)
     modified_on = models.DateTimeField(default=timezone.now)
 
@@ -273,7 +271,12 @@ class Ticket(models.Model):
 
     @classmethod
     def get_allowed_assignees(cls, org):
-        return org.get_users_with_perm(cls.ASSIGNEE_PERMISSION)
+        return org.get_users(with_perm=cls.ASSIGNEE_PERMISSION)
+
+    def delete(self):
+        self.events.all().delete()
+        self.broadcasts.update(ticket=None)
+        super().delete()
 
     def __str__(self):
         return f"Ticket[uuid={self.uuid}, topic={self.topic.name}]"
@@ -287,10 +290,17 @@ class Ticket(models.Model):
                 name="tickets_org_assignee_status",
                 fields=["org", "assignee", "status", "-last_activity_on", "-id"],
             ),
-            # used by the list of tickets on contact page and also message handling to find open tickets for contact
+            # used by message handling to find open tickets for contact
             models.Index(name="tickets_contact_open", fields=["contact", "-opened_on"], condition=Q(status="O")),
             # used by ticket handlers in mailroom to find tickets from their external IDs
-            models.Index(name="tickets_ticketer_external_id", fields=["ticketer", "external_id"]),
+            models.Index(
+                name="tickets_ticketer_external_id",
+                fields=["ticketer", "external_id"],
+                condition=Q(external_id__isnull=False),
+            ),
+            # used by API tickets endpoint
+            models.Index(name="tickets_modified_on", fields=["-modified_on"]),
+            models.Index(name="tickets_contact_modified_on", fields=["contact", "-modified_on"]),
         ]
 
 
@@ -466,3 +476,152 @@ class TicketCount(SquashableModel):
                 name="ticket_count_unsquashed", fields=("org", "assignee", "status"), condition=Q(is_squashed=False)
             ),
         ]
+
+
+class Team(TembaModel):
+    """
+    Every user can be a member of a ticketing team
+    """
+
+    org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="teams")
+    topics = models.ManyToManyField(Topic, related_name="teams")
+
+    org_limit_key = Org.LIMIT_TEAMS
+
+    @classmethod
+    def create(cls, org, user, name: str):
+        assert cls.is_valid_name(name), f"'{name}' is not a valid team name"
+        assert not org.teams.filter(name__iexact=name, is_active=True).exists()
+
+        return org.teams.create(name=name, created_by=user, modified_by=user)
+
+    def get_users(self):
+        return User.objects.filter(usersettings__team=self)
+
+    def release(self, user):
+        # remove all users from this team
+        UserSettings.objects.filter(team=self).update(team=None)
+
+        self.name = self._deleted_name()
+        self.is_active = False
+        self.modified_by = user
+        self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))
+
+    class Meta:
+        constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_team_names")]
+
+
+class TicketDailyCount(DailyCountModel):
+    """
+    Ticket activity daily counts by who did it and when. Mailroom writes these.
+    """
+
+    TYPE_OPENING = "O"
+    TYPE_ASSIGNMENT = "A"  # includes tickets opened with assignment but excludes re-assignments
+    TYPE_REPLY = "R"
+
+    @classmethod
+    def get_by_org(cls, org, count_type: str, since=None, until=None):
+        return cls._get_count_set(count_type, {f"o:{org.id}": org}, since, until)
+
+    @classmethod
+    def get_by_teams(cls, teams, count_type: str, since=None, until=None):
+        return cls._get_count_set(count_type, {f"t:{t.id}": t for t in teams}, since, until)
+
+    @classmethod
+    def get_by_users(cls, org, users, count_type: str, since=None, until=None):
+        return cls._get_count_set(count_type, {f"o:{org.id}:u:{u.id}": u for u in users}, since, until)
+
+    class Meta:
+        indexes = [
+            models.Index(name="tickets_dailycount_type_scope", fields=("count_type", "scope", "day")),
+            models.Index(
+                name="tickets_dailycount_unsquashed",
+                fields=("count_type", "scope", "day"),
+                condition=Q(is_squashed=False),
+            ),
+        ]
+
+
+class TicketDailyTiming(DailyTimingModel):
+    """
+    Ticket activity daily timings. Mailroom writes these.
+    """
+
+    TYPE_FIRST_REPLY = "R"
+    TYPE_LAST_CLOSE = "C"
+
+    @classmethod
+    def get_by_org(cls, org, count_type: str, since=None, until=None):
+        return cls._get_count_set(count_type, {f"o:{org.id}": org}, since, until)
+
+    class Meta:
+        indexes = [
+            models.Index(name="tickets_dailytiming_type_scope", fields=("count_type", "scope", "day")),
+            models.Index(
+                name="tickets_dailytiming_unsquashed",
+                fields=("count_type", "scope", "day"),
+                condition=Q(is_squashed=False),
+            ),
+        ]
+
+
+def export_ticket_stats(org: Org, since: date, until: date) -> openpyxl.Workbook:
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = "Tickets"
+    sheet.merge_cells("A1:A2")
+    sheet.cell(row=1, column=2, value="Workspace")
+    sheet.merge_cells("B1:D1")
+    sheet.cell(row=2, column=2, value="Opened")
+    sheet.cell(row=2, column=3, value="Replies")
+    sheet.cell(row=2, column=4, value="Reply Time (Secs)")
+
+    users = list(org.users.order_by("email"))
+
+    user_col = 5
+    for user in users:
+        cell = sheet.cell(row=1, column=user_col, value=str(user))
+        cell.hyperlink = f"mailto:{user.email}"
+        cell.style = "Hyperlink"
+        sheet.merge_cells(start_row=1, start_column=user_col, end_row=1, end_column=user_col + 1)
+
+        sheet.cell(row=2, column=user_col, value="Assigned")
+        sheet.cell(row=2, column=user_col + 1, value="Replies")
+        user_col += 2
+
+    def by_day(cs: list) -> dict:
+        return {c[0]: c[1] for c in cs}
+
+    org_openings = by_day(TicketDailyCount.get_by_org(org, TicketDailyCount.TYPE_OPENING, since, until).day_totals())
+    org_replies = by_day(TicketDailyCount.get_by_org(org, TicketDailyCount.TYPE_REPLY, since, until).day_totals())
+    org_avg_reply_time = by_day(
+        TicketDailyTiming.get_by_org(org, TicketDailyTiming.TYPE_FIRST_REPLY, since, until).day_averages(rounded=True)
+    )
+
+    user_assignments = {}
+    user_replies = {}
+    for user in users:
+        user_assignments[user] = by_day(
+            TicketDailyCount.get_by_users(org, [user], TicketDailyCount.TYPE_ASSIGNMENT, since, until).day_totals()
+        )
+        user_replies[user] = by_day(
+            TicketDailyCount.get_by_users(org, [user], TicketDailyCount.TYPE_REPLY, since, until).day_totals()
+        )
+
+    day_row = 3
+    for day in date_range(since, until):
+        sheet.cell(row=day_row, column=1, value=day)
+        sheet.cell(row=day_row, column=2, value=org_openings.get(day, 0))
+        sheet.cell(row=day_row, column=3, value=org_replies.get(day, 0))
+        sheet.cell(row=day_row, column=4, value=org_avg_reply_time.get(day, ""))
+
+        user_col = 5
+        for user in users:
+            sheet.cell(row=day_row, column=user_col, value=user_assignments[user].get(day, 0))
+            sheet.cell(row=day_row, column=user_col + 1, value=user_replies[user].get(day, 0))
+            user_col += 2
+
+        day_row += 1
+
+    return workbook

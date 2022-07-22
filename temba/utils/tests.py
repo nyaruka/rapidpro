@@ -2,49 +2,40 @@ import copy
 import datetime
 import io
 import os
-import random
 from collections import OrderedDict
+from datetime import date
 from decimal import Decimal
-from types import SimpleNamespace
-from unittest import mock
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import PropertyMock, patch
 
-import intercom.errors
 import pytz
 from django_redis import get_redis_connection
 from openpyxl import load_workbook
-from smartmin.tests import SmartminTest, SmartminTestMixin
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser, User
-from django.core import checks
-from django.core.management import CommandError, call_command
-from django.db import connection, models
 from django.forms import ValidationError
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone, translation
 
 from celery.app.task import Task
 
-import temba.utils.analytics
-from temba.contacts.models import Contact, ContactField, ContactGroup, ContactGroupCount, ExportContactsTask
-from temba.flows.models import Flow, FlowRun
-from temba.orgs.models import Org
-from temba.tests import ESMockWithScroll, TembaTest, matchers
+from temba.campaigns.models import Campaign
+from temba.contacts.models import Contact, ExportContactsTask
+from temba.flows.models import Flow
+from temba.tests import TembaTest, matchers
+from temba.triggers.models import Trigger
 from temba.utils import json, uuid
-from temba.utils.templatetags.temba import format_datetime
+from temba.utils.templatetags.temba import format_datetime, icon
 
 from . import chunk_list, countries, format_number, languages, percentage, redact, sizeof_fmt, str_to_bool
-from .cache import get_cacheable_attr, get_cacheable_result, incrby_existing
+from .cache import get_cacheable_result, incrby_existing
 from .celery import nonoverlapping_task
-from .dates import datetime_to_str, datetime_to_timestamp, timestamp_to_datetime
+from .dates import date_range, datetime_to_str, datetime_to_timestamp, timestamp_to_datetime
 from .email import is_valid_address, send_simple_email
 from .export import TableExporter
-from .fields import validate_external_url
+from .fields import NameValidator, validate_external_url
 from .http import http_headers
 from .locks import LockNotAcquiredException, NonBlockingLock
-from .models import IDSliceQuerySet, JSONAsTextField, patch_queryset_count
 from .templatetags.temba import oxford, short_datetime
 from .text import (
     clean_string,
@@ -123,12 +114,12 @@ class InitTest(TembaTest):
     def test_sizeof_fmt(self):
         self.assertEqual("512.0 b", sizeof_fmt(512))
         self.assertEqual("1.0 Kb", sizeof_fmt(1024))
-        self.assertEqual("1.0 Mb", sizeof_fmt(1024 ** 2))
-        self.assertEqual("1.0 Gb", sizeof_fmt(1024 ** 3))
-        self.assertEqual("1.0 Tb", sizeof_fmt(1024 ** 4))
-        self.assertEqual("1.0 Pb", sizeof_fmt(1024 ** 5))
-        self.assertEqual("1.0 Eb", sizeof_fmt(1024 ** 6))
-        self.assertEqual("1.0 Zb", sizeof_fmt(1024 ** 7))
+        self.assertEqual("1.0 Mb", sizeof_fmt(1024**2))
+        self.assertEqual("1.0 Gb", sizeof_fmt(1024**3))
+        self.assertEqual("1.0 Tb", sizeof_fmt(1024**4))
+        self.assertEqual("1.0 Pb", sizeof_fmt(1024**5))
+        self.assertEqual("1.0 Eb", sizeof_fmt(1024**6))
+        self.assertEqual("1.0 Zb", sizeof_fmt(1024**7))
 
     def test_str_to_bool(self):
         self.assertFalse(str_to_bool(None))
@@ -209,6 +200,22 @@ class InitTest(TembaTest):
     def test_generate_token(self):
         self.assertEqual(len(generate_token()), 8)
 
+    def test_chunk_list(self):
+        curr = 0
+        for chunk in chunk_list(range(100), 7):
+            batch_curr = curr
+            for item in chunk:
+                self.assertEqual(item, curr)
+                curr += 1
+
+            # again to make sure things work twice
+            curr = batch_curr
+            for item in chunk:
+                self.assertEqual(item, curr)
+                curr += 1
+
+        self.assertEqual(curr, 100)
+
 
 class DatesTest(TembaTest):
     def test_datetime_to_timestamp(self):
@@ -228,6 +235,13 @@ class DatesTest(TembaTest):
         self.assertIsNone(datetime_to_str(None, "%Y-%m-%d %H:%M", tz=tz))
         self.assertEqual(datetime_to_str(d2, "%Y-%m-%d %H:%M", tz=tz), "2014-01-02 03:04")
         self.assertEqual(datetime_to_str(d2, "%Y/%m/%d %H:%M", tz=pytz.UTC), "2014/01/02 01:04")
+
+    def test_date_range(self):
+        self.assertEqual(
+            [date(2015, 1, 29), date(2015, 1, 30), date(2015, 1, 31), date(2015, 2, 1)],
+            list(date_range(date(2015, 1, 29), date(2015, 2, 2))),
+        )
+        self.assertEqual([], list(date_range(date(2015, 1, 29), date(2015, 1, 29))))
 
 
 class CountriesTest(TembaTest):
@@ -257,11 +271,6 @@ class TimezonesTest(TembaTest):
 
 class TemplateTagTest(TembaTest):
     def test_icon(self):
-        from temba.campaigns.models import Campaign
-        from temba.triggers.models import Trigger
-        from temba.flows.models import Flow
-        from temba.utils.templatetags.temba import icon
-
         campaign = Campaign.create(self.org, self.admin, "Test Campaign", self.create_group("Test group", []))
         flow = Flow.create(self.org, self.admin, "Test Flow")
         trigger = Trigger.objects.create(
@@ -503,14 +512,6 @@ class CacheTest(TembaTest):
         with self.assertNumQueries(0):
             self.assertEqual(get_cacheable_result("test_contact_count", calculate), 2)  # from cache
 
-    def test_get_cacheable_attr(self):
-        def calculate():
-            return "CALCULATED"
-
-        self.assertEqual(get_cacheable_attr(self, "_test_value", calculate), "CALCULATED")
-        self._test_value = "CACHED"
-        self.assertEqual(get_cacheable_attr(self, "_test_value", calculate), "CACHED")
-
     def test_incrby_existing(self):
         r = get_redis_connection()
         r.setex("foo", 100, 10)
@@ -548,7 +549,7 @@ class EmailTest(TembaTest):
 
     def test_is_valid_address(self):
 
-        self.VALID_EMAILS = [
+        valid_emails = [
             # Cases from https://en.wikipedia.org/wiki/Email_address
             "prettyandsimple@example.com",
             "very.common@example.com",
@@ -560,7 +561,8 @@ class EmailTest(TembaTest):
             '"very.(),:;<>[]".VERY."very@\\ "very".unusual"@strange.example.com',
             "example-indeed@strange-example.com",
             "#!$%&'*+-/=?^_`{}|~@example.org",
-            '"()<>[]:,;@\\"!#$%&\'-/=?^_`{}| ~.a"@example.org' '" "@example.org',
+            '"()<>[]:,;@\\"!#$%&\'-/=?^_`{}| ~.a"@example.org',
+            '" "@example.org',
             "example@localhost",
             "example@s.solutions",
             # Cases from Django tests
@@ -582,7 +584,7 @@ class EmailTest(TembaTest):
             "a@%s.us" % ("a" * 63),
         ]
 
-        self.INVALID_EMAILS = [
+        invalid_emails = [
             # Cases from https://en.wikipedia.org/wiki/Email_address
             None,
             "",
@@ -634,10 +636,10 @@ class EmailTest(TembaTest):
             "a@[127.0.0.1]\n",
         ]
 
-        for email in self.VALID_EMAILS:
+        for email in valid_emails:
             self.assertTrue(is_valid_address(email), "FAILED: %s should be a valid email" % email)
 
-        for email in self.INVALID_EMAILS:
+        for email in invalid_emails:
             self.assertFalse(is_valid_address(email), "FAILED: %s should be an invalid email" % email)
 
 
@@ -719,48 +721,6 @@ class CeleryTest(TembaTest):
         mock_redis_get.assert_called_once_with("celery-task-lock:test_task1")
         self.assertEqual(mock_redis_lock.call_count, 0)
         self.assertEqual(task_calls, ["1-11-12", "2-21-22", "3-31-32"])
-
-
-class ModelsTest(TembaTest):
-    def test_require_update_fields(self):
-        contact = self.create_contact("Bob", urns=["twitter:bobby"])
-        flow = self.get_flow("color")
-        run = FlowRun.objects.create(org=self.org, flow=flow, contact=contact)
-
-        # we can save if we specify update_fields
-        run.modified_on = timezone.now()
-        run.save(update_fields=("modified_on",))
-
-        # but not without
-        with self.assertRaises(ValueError):
-            run.modified_on = timezone.now()
-            run.save()
-
-    def test_chunk_list(self):
-        curr = 0
-        for chunk in chunk_list(range(100), 7):
-            batch_curr = curr
-            for item in chunk:
-                self.assertEqual(item, curr)
-                curr += 1
-
-            # again to make sure things work twice
-            curr = batch_curr
-            for item in chunk:
-                self.assertEqual(item, curr)
-                curr += 1
-
-        self.assertEqual(curr, 100)
-
-    def test_patch_queryset_count(self):
-        self.create_contact("Ann", urns=["twitter:ann"])
-        self.create_contact("Bob", urns=["twitter:bob"])
-
-        with self.assertNumQueries(0):
-            qs = Contact.objects.all()
-            patch_queryset_count(qs, lambda: 33)
-
-            self.assertEqual(qs.count(), 33)
 
 
 class ExportTest(TembaTest):
@@ -898,222 +858,10 @@ class MiddlewareTest(TembaTest):
         # if we have an authenticated user, their setting takes priority
         self.login(self.admin)
 
-        user_settings = self.admin.get_settings()
-        user_settings.language = "fr"
-        user_settings.save(update_fields=("language",))
+        self.admin.settings.language = "fr"
+        self.admin.settings.save(update_fields=("language",))
 
         assert_text("Créez visuellement des applications mobiles")
-
-
-class MakeTestDBTest(SmartminTestMixin, TransactionTestCase):
-    def test_command(self):
-        self.create_anonymous_user()
-
-        with ESMockWithScroll():
-            call_command("test_db", num_orgs=3, num_contacts=30, seed=1234)
-
-        org1, org2, org3 = tuple(Org.objects.order_by("id"))
-
-        def assertOrgCounts(qs, counts):
-            self.assertEqual([qs.filter(org=o).count() for o in (org1, org2, org3)], counts)
-
-        self.assertEqual(
-            User.objects.exclude(username__in=["AnonymousUser", "root", "rapidpro_flow", "temba_flow"]).count(), 12
-        )
-        assertOrgCounts(ContactField.user_fields.all(), [6, 6, 6])
-        assertOrgCounts(ContactGroup.user_groups.all(), [10, 10, 10])
-        assertOrgCounts(Contact.objects.all(), [10, 11, 9])
-
-        org_1_active_contacts = ContactGroup.system_groups.get(org=org1, name="Active")
-
-        self.assertEqual(org_1_active_contacts.contacts.count(), 9)
-        self.assertEqual(
-            list(ContactGroupCount.objects.filter(group=org_1_active_contacts).values_list("count")), [(9,)]
-        )
-
-        # same seed should generate objects with same UUIDs
-        self.assertEqual("f2a3f8c5-e831-4df3-b046-8d8cdb90f178", ContactGroup.user_groups.order_by("id").first().uuid)
-
-        # check if contact fields are serialized
-        self.assertIsNotNone(Contact.objects.first().fields)
-
-        # check generate can't be run again on a now non-empty database
-        with self.assertRaises(CommandError):
-            call_command("test_db", num_orgs=3, num_contacts=30, seed=1234)
-
-
-class PreDeployTest(TembaTest):
-    def test_command(self):
-        buffer = io.StringIO()
-        call_command("pre_deploy", stdout=buffer)
-
-        self.assertEqual("", buffer.getvalue())
-
-        ExportContactsTask.create(self.org, self.admin)
-        ExportContactsTask.create(self.org, self.admin)
-
-        buffer = io.StringIO()
-        call_command("pre_deploy", stdout=buffer)
-
-        self.assertEqual(
-            "WARNING: there are 2 unfinished tasks of type contact-export. Last one started 0\xa0minutes ago.\n",
-            buffer.getvalue(),
-        )
-
-
-class JsonModelTestDefaultNull(models.Model):
-    field = JSONAsTextField(default=dict, null=True)
-
-
-class JsonModelTestDefault(models.Model):
-    field = JSONAsTextField(default=dict, null=False)
-
-
-class JsonModelTestNull(models.Model):
-    field = JSONAsTextField(null=True)
-
-
-class TestJSONAsTextField(TestCase):
-    def test_invalid_default(self):
-        class InvalidJsonModel(models.Model):
-            field = JSONAsTextField(default={})
-
-        model = InvalidJsonModel()
-        self.assertEqual(
-            model.check(),
-            [
-                checks.Warning(
-                    msg=(
-                        "JSONAsTextField default should be a callable instead of an instance so that it's not shared "
-                        "between all field instances."
-                    ),
-                    hint="Use a callable instead, e.g., use `dict` instead of `{}`.",
-                    obj=InvalidJsonModel._meta.get_field("field"),
-                    id="postgres.E003",
-                )
-            ],
-        )
-
-    def test_to_python(self):
-        field = JSONAsTextField(default=dict)
-
-        self.assertEqual(field.to_python({}), {})
-
-        self.assertEqual(field.to_python("{}"), {})
-
-    def test_default_with_null(self):
-        model = JsonModelTestDefaultNull()
-        model.save()
-        model.refresh_from_db()
-
-        # the field in the database is null, and we have set the default value so we get the default value
-        self.assertEqual(model.field, {})
-
-        with connection.cursor() as cur:
-            cur.execute("select * from utils_jsonmodeltestdefaultnull")
-
-            data = cur.fetchall()
-        # but in the database the field is saved as null
-        self.assertEqual(data[0][1], None)
-
-    def test_default_without_null(self):
-        model = JsonModelTestDefault()
-        model.save()
-        model.refresh_from_db()
-
-        # the field in the database saves the default value, and we get the default value back
-        self.assertEqual(model.field, {})
-
-        with connection.cursor() as cur:
-            cur.execute("select * from utils_jsonmodeltestdefault")
-
-            data = cur.fetchall()
-        # and in the database the field saved as default value
-        self.assertEqual(data[0][1], "{}")
-
-    def test_invalid_field_values(self):
-        model = JsonModelTestDefault()
-        model.field = "53"
-        self.assertRaises(ValueError, model.save)
-
-        model.field = 34
-        self.assertRaises(ValueError, model.save)
-
-        model.field = ""
-        self.assertRaises(ValueError, model.save)
-
-    def test_invalid_unicode(self):
-        # invalid unicode escape sequences are stripped out
-        model = JsonModelTestDefault()
-        model.field = {"foo": "bar\u0000"}
-        model.save()
-
-        self.assertEqual({"foo": "bar"}, JsonModelTestDefault.objects.first().field)
-
-    def test_write_None_value(self):
-        model = JsonModelTestDefault()
-        # assign None (null) value to the field
-        model.field = None
-
-        self.assertRaises(Exception, model.save)
-
-    def test_read_values_db(self):
-        with connection.cursor() as cur:
-            # read a NULL as None
-            cur.execute("DELETE FROM utils_jsonmodeltestnull")
-            cur.execute("INSERT INTO utils_jsonmodeltestnull (field) VALUES (%s)", (None,))
-            self.assertEqual(JsonModelTestNull.objects.first().field, None)
-
-            # read JSON object as dict
-            cur.execute("DELETE FROM utils_jsonmodeltestdefault")
-            cur.execute("INSERT INTO utils_jsonmodeltestdefault (field) VALUES (%s)", ('{"foo": "bar"}',))
-            self.assertEqual({"foo": "bar"}, JsonModelTestDefault.objects.first().field)
-
-    def test_jsonb_columns(self):
-        with connection.cursor() as cur:
-            # simulate field being converted to actual JSONB
-            cur.execute("DELETE FROM utils_jsonmodeltestdefault")
-            cur.execute("INSERT INTO utils_jsonmodeltestdefault (field) VALUES (%s)", ('{"foo": "bar"}',))
-            cur.execute("ALTER TABLE utils_jsonmodeltestdefault ALTER COLUMN field TYPE jsonb USING field::jsonb;")
-
-            obj = JsonModelTestDefault.objects.first()
-            self.assertEqual({"foo": "bar"}, obj.field)
-
-            obj.field = {"zed": "doh"}
-            obj.save()
-
-            self.assertEqual({"zed": "doh"}, JsonModelTestDefault.objects.first().field)
-
-    def test_invalid_field_values_db(self):
-        with connection.cursor() as cur:
-            cur.execute("DELETE FROM utils_jsonmodeltestdefault")
-            cur.execute("INSERT INTO utils_jsonmodeltestdefault (field) VALUES (%s)", ("53",))
-            self.assertRaises(ValueError, JsonModelTestDefault.objects.first)
-
-            cur.execute("DELETE FROM utils_jsonmodeltestdefault")
-            cur.execute("INSERT INTO utils_jsonmodeltestdefault (field) VALUES (%s)", ("None",))
-            self.assertRaises(ValueError, JsonModelTestDefault.objects.first)
-
-            cur.execute("DELETE FROM utils_jsonmodeltestdefault")
-            cur.execute("INSERT INTO utils_jsonmodeltestdefault (field) VALUES (%s)", ("null",))
-            self.assertRaises(ValueError, JsonModelTestDefault.objects.first)
-
-            # simulate field being something non-JSON at db-level
-            cur.execute("DELETE FROM utils_jsonmodeltestdefault")
-            cur.execute("INSERT INTO utils_jsonmodeltestdefault (field) VALUES (%s)", ("1234",))
-            cur.execute("ALTER TABLE utils_jsonmodeltestdefault ALTER COLUMN field TYPE int USING field::int;")
-            self.assertRaises(ValueError, JsonModelTestDefault.objects.first)
-
-
-class TestJSONField(TembaTest):
-    def test_jsonfield_decimal_encoding(self):
-        contact = self.create_contact("Xavier", phone="+5939790990001")
-
-        contact.fields = {"1eaf5c91-8d56-4ca0-8e00-9b1c0b12e722": {"number": Decimal("123.4567890")}}
-        contact.save(update_fields=("fields",))
-
-        contact.refresh_from_db()
-        self.assertEqual(contact.fields, {"1eaf5c91-8d56-4ca0-8e00-9b1c0b12e722": {"number": Decimal("123.4567890")}})
 
 
 class LanguagesTest(TembaTest):
@@ -1242,423 +990,6 @@ class JSONTest(TestCase):
             '{"dt": "2018-08-27T20:41:28.123Z"}',
             json.dumps({"dt": datetime.datetime(2018, 8, 27, 20, 41, 28, 123000, tzinfo=pytz.UTC)}),
         )
-
-
-class AnalyticsTest(SmartminTest):
-    def setUp(self):
-        super().setUp()
-
-        random.seed(1)
-
-        # create org and user stubs
-        self.org = SimpleNamespace(
-            id=1000, name="Some Org", brand="Some Brand", created_on=timezone.now(), account_value=lambda: 1000
-        )
-
-        self.admin = MagicMock()
-        self.admin.username = "admin@example.com"
-        self.admin.first_name = ""
-        self.admin.last_name = ""
-        self.admin.email = "admin@example.com"
-        self.admin.is_authenticated = True
-
-        self.intercom_mock = MagicMock()
-        temba.utils.analytics._intercom = self.intercom_mock
-
-        self.crisp_mock = MagicMock()
-        temba.utils.analytics._crisp = self.crisp_mock
-
-        temba.utils.analytics.init_analytics()
-
-    def test_identify_intercom_exception(self):
-        self.intercom_mock.users.create.side_effect = Exception("Kimi says bwoah...")
-
-        with patch("temba.utils.analytics.logger") as mocked_logging:
-            temba.utils.analytics.identify(self.admin, {"slug": "test", "host": "rapidpro.io"}, self.org)
-
-        mocked_logging.error.assert_called_with("error posting to intercom", exc_info=True)
-
-    def test_identify(self):
-
-        self.crisp_mock.website.get_people_profile.side_effect = Exception("No Profile")
-        temba.utils.analytics.identify(self.admin, {"slug": "test", "host": "rapidpro.io"}, self.org)
-
-        # assert mocks
-        self.intercom_mock.users.create.assert_called_with(
-            custom_attributes={
-                "brand": "test",
-                "segment": mock.ANY,
-                "org": self.org.name,
-                "paid": self.org.account_value(),
-            },
-            email=self.admin.email,
-            name=" ",
-        )
-
-        self.assertListEqual(
-            self.intercom_mock.users.create.return_value.companies,
-            [
-                {
-                    "company_id": self.org.id,
-                    "name": self.org.name,
-                    "created_at": mock.ANY,
-                    "custom_attributes": {"brand": self.org.brand, "org_id": self.org.id},
-                }
-            ],
-        )
-
-        # did we actually call save?
-        self.intercom_mock.users.save.assert_called_once()
-        self.crisp_mock.website.add_new_people_profile.assert_called_with(
-            self.crisp_mock.website_id,
-            {
-                "person": {"nickname": " "},
-                "company": {
-                    "name": "Some Org",
-                    "url": "https://rapidpro.io/org/update/1000/",
-                    "domain": "rapidpro.io/org/update/1000",
-                },
-                "segments": ["test", "random-3"],
-                "email": "admin@example.com",
-            },
-        )
-
-        # now identify when there is an existing profile
-        self.crisp_mock = MagicMock()
-        temba.utils.analytics._crisp = self.crisp_mock
-        temba.utils.analytics.identify(self.admin, {"slug": "test", "host": "rapidpro.io"}, self.org)
-
-        self.crisp_mock.website.update_people_profile.assert_called_with(
-            self.crisp_mock.website_id,
-            self.admin.email,
-            {
-                "person": {"nickname": " "},
-                "company": {
-                    "name": "Some Org",
-                    "url": "https://rapidpro.io/org/update/1000/",
-                    "domain": "rapidpro.io/org/update/1000",
-                },
-                "segments": mock.ANY,
-            },
-        )
-
-    def test_track(self):
-        temba.utils.analytics.track(self.admin, "temba.flow_created", properties={"name": "My Flow"})
-
-        self.intercom_mock.events.create.assert_called_with(
-            event_name="temba.flow_created",
-            created_at=mock.ANY,
-            email=self.admin.username,
-            metadata={"name": "My Flow"},
-        )
-
-        self.crisp_mock.website.add_people_event.assert_called_with(
-            self.crisp_mock.website_id,
-            self.admin.username,
-            {"color": "blue", "text": "temba.flow_created", "data": {"name": "My Flow"}},
-        )
-
-        # different events get different colors in crisp
-        temba.utils.analytics.track(self.admin, "temba.user_signup")
-        self.crisp_mock.website.add_people_event.assert_called_with(
-            self.crisp_mock.website_id,
-            self.admin.username,
-            {"color": "green", "text": "temba.user_signup", "data": {}},
-        )
-
-        # test None is removed
-        temba.utils.analytics.track(
-            self.admin,
-            "temba.flow_broadcast",
-            dict(contacts=1, groups=0, query=None),
-        )
-
-        self.crisp_mock.website.add_people_event.assert_called_with(
-            self.crisp_mock.website_id,
-            self.admin.username,
-            {"color": "grey", "text": "temba.flow_broadcast", "data": {"contacts": 1, "groups": 0}},
-        )
-
-    def test_track_not_anon_user(self):
-        anon = AnonymousUser()
-        result = temba.utils.analytics.track(anon, "test event", properties={"plan": "free"})
-
-        self.assertIsNone(result)
-
-        self.intercom_mock.events.create.assert_not_called()
-
-    def test_track_intercom_exception(self):
-        self.intercom_mock.events.create.side_effect = Exception("It's raining today")
-
-        with patch("temba.utils.analytics.logger") as mocked_logging:
-            temba.utils.analytics.track(self.admin, "test event", properties={"plan": "free"})
-
-        mocked_logging.error.assert_called_with("error posting to intercom", exc_info=True)
-
-    def test_consent_missing_user(self):
-        self.intercom_mock.users.find.return_value = None
-        temba.utils.analytics.change_consent(self.admin.email, consent=True)
-
-        self.intercom_mock.users.create.assert_called_with(
-            email=self.admin.email, custom_attributes=dict(consent=True, consent_changed=mock.ANY)
-        )
-
-    def test_consent_invalid_user_decline(self):
-        self.intercom_mock.users.find.return_value = None
-        temba.utils.analytics.change_consent(self.admin.email, consent=False)
-
-        self.intercom_mock.users.create.assert_not_called()
-        self.intercom_mock.users.delete.assert_not_called()
-
-    def test_consent_valid_user(self):
-
-        # valid user which did not consent
-        self.intercom_mock.users.find.return_value = MagicMock(custom_attributes={"consent": False})
-        self.crisp_mock.website.get_people_profile.return_value = {"segments": []}
-
-        temba.utils.analytics.change_consent(self.admin.email, consent=True)
-
-        self.intercom_mock.users.create.assert_called_with(
-            email=self.admin.email, custom_attributes=dict(consent=True, consent_changed=mock.ANY)
-        )
-
-        self.crisp_mock.website.update_people_profile.assert_called_with(
-            self.crisp_mock.website_id,
-            "admin@example.com",
-            {"segments": ["consented"]},
-        )
-
-    def test_consent_valid_user_already_consented(self):
-        # valid user which did not consent
-        self.intercom_mock.users.find.return_value = MagicMock(custom_attributes={"consent": True})
-
-        temba.utils.analytics.change_consent(self.admin.email, consent=True)
-
-        self.intercom_mock.users.create.assert_not_called()
-
-    def test_consent_valid_user_decline(self):
-
-        # valid user which did not consent
-        self.intercom_mock.users.find.return_value = MagicMock(custom_attributes={"consent": False})
-        self.crisp_mock.website.get_people_profile.return_value = {"segments": ["random-3", "consented"]}
-        self.crisp_mock.website.get_people_data.return_value = {"data": {}}
-
-        temba.utils.analytics.change_consent(self.admin.email, consent=False)
-
-        self.intercom_mock.users.create.assert_called_with(
-            email=self.admin.email, custom_attributes=dict(consent=False, consent_changed=mock.ANY)
-        )
-        self.intercom_mock.users.delete.assert_called_with(mock.ANY)
-
-        self.crisp_mock.website.save_people_data.assert_called_with(
-            self.crisp_mock.website_id, self.admin.email, {"data": {"consent_changed": mock.ANY}}
-        )
-
-    def test_consent_exception(self):
-        self.intercom_mock.users.find.side_effect = Exception("Kimi says bwoah...")
-
-        with patch("temba.utils.analytics.logger") as mocked_logging:
-            temba.utils.analytics.change_consent(self.admin.email, consent=False)
-
-        mocked_logging.error.assert_called_with("error posting to intercom", exc_info=True)
-
-    def test_get_intercom_user(self):
-        temba.utils.analytics.get_intercom_user(email="an email")
-
-        self.intercom_mock.users.find.assert_called_with(email="an email")
-
-    def test_get_intercom_user_resourcenotfound(self):
-        self.intercom_mock.users.find.side_effect = intercom.errors.ResourceNotFound
-
-        result = temba.utils.analytics.get_intercom_user(email="an email")
-
-        self.assertIsNone(result)
-
-    def test_set_orgs_invalid_user(self):
-        self.intercom_mock.users.find.return_value = None
-
-        temba.utils.analytics.set_orgs(email="an email", all_orgs=[self.org])
-
-        self.intercom_mock.users.find.assert_called_with(email="an email")
-        self.intercom_mock.users.save.assert_not_called()
-
-    def test_set_orgs_valid_user_same_company(self):
-        intercom_user = MagicMock(companies=[MagicMock(company_id=self.org.id)])
-        self.intercom_mock.users.find.return_value = intercom_user
-
-        temba.utils.analytics.set_orgs(email="an email", all_orgs=[self.org])
-
-        self.intercom_mock.users.find.assert_called_with(email="an email")
-
-        self.assertEqual(intercom_user.companies, [{"company_id": self.org.id, "name": self.org.name}])
-
-        self.intercom_mock.users.save.assert_called_with(mock.ANY)
-
-    def test_set_orgs_valid_user_new_company(self):
-        intercom_user = MagicMock(companies=[MagicMock(company_id=-1), MagicMock(company_id=self.org.id)])
-        self.intercom_mock.users.find.return_value = intercom_user
-
-        temba.utils.analytics.set_orgs(email="an email", all_orgs=[self.org])
-
-        self.intercom_mock.users.find.assert_called_with(email="an email")
-
-        self.assertListEqual(
-            intercom_user.companies,
-            [{"company_id": self.org.id, "name": self.org.name}, {"company_id": -1, "remove": True}],
-        )
-
-        self.intercom_mock.users.save.assert_called_with(mock.ANY)
-
-    def test_set_orgs_valid_user_without_a_company(self):
-        intercom_user = MagicMock(companies=[MagicMock(company_id=-1), MagicMock(company_id=self.org.id)])
-        self.intercom_mock.users.find.return_value = intercom_user
-
-        # we are not setting any org for the user
-        temba.utils.analytics.set_orgs(email="an email", all_orgs=[])
-
-        self.intercom_mock.users.find.assert_called_with(email="an email")
-
-        self.assertListEqual(
-            intercom_user.companies, [{"company_id": -1, "remove": True}, {"company_id": self.org.id, "remove": True}]
-        )
-
-        self.intercom_mock.users.save.assert_called_with(mock.ANY)
-
-    def test_identify_org_empty_attributes(self):
-        result = temba.utils.analytics.identify_org(org=self.org, attributes=None)
-
-        self.assertIsNone(result)
-
-        self.intercom_mock.companies.create.assert_called_with(
-            company_id=self.org.id,
-            created_at=mock.ANY,
-            custom_attributes={"brand": self.org.brand, "org_id": self.org.id},
-            name=self.org.name,
-        )
-
-    def test_identify_org_with_attributes(self):
-        attributes = dict(
-            website="https://example.com",
-            industry="Mining",
-            monthly_spend="a lot",
-            this_is_not_an_intercom_attribute="or is it?",
-        )
-
-        result = temba.utils.analytics.identify_org(org=self.org, attributes=attributes)
-
-        self.assertIsNone(result)
-
-        self.intercom_mock.companies.create.assert_called_with(
-            company_id=self.org.id,
-            created_at=mock.ANY,
-            custom_attributes={
-                "brand": self.org.brand,
-                "org_id": self.org.id,
-                "this_is_not_an_intercom_attribute": "or is it?",
-            },
-            name=self.org.name,
-            website="https://example.com",
-            industry="Mining",
-            monthly_spend="a lot",
-        )
-
-
-class IDSliceQuerySetTest(TembaTest):
-    def test_fields(self):
-        # if we don't specify fields, we fetch *
-        users = IDSliceQuerySet(User, [self.user.id, self.editor.id], offset=0, total=3)
-
-        self.assertEqual(
-            f"""SELECT t.* FROM auth_user t JOIN (VALUES (1, {self.user.id}), (2, {self.editor.id})) tmp_resultset (seq, model_id) ON t.id = tmp_resultset.model_id ORDER BY tmp_resultset.seq""",
-            users.raw_query,
-        )
-
-        with self.assertNumQueries(1):
-            users = list(users)
-        with self.assertNumQueries(0):  # already fetched
-            users[0].email
-
-        # if we do specify fields, it's like only on a regular queryset
-        users = IDSliceQuerySet(User, [self.user.id, self.editor.id], only=("id", "first_name"), offset=0, total=3)
-
-        self.assertEqual(
-            f"""SELECT t.id, t.first_name FROM auth_user t JOIN (VALUES (1, {self.user.id}), (2, {self.editor.id})) tmp_resultset (seq, model_id) ON t.id = tmp_resultset.model_id ORDER BY tmp_resultset.seq""",
-            users.raw_query,
-        )
-
-        with self.assertNumQueries(1):
-            users = list(users)
-        with self.assertNumQueries(1):  # requires fetch
-            users[0].email
-
-    def test_slicing(self):
-        empty = IDSliceQuerySet(User, [], offset=0, total=0)
-        self.assertEqual(0, len(empty))
-
-        users = IDSliceQuerySet(User, [self.user.id, self.editor.id, self.admin.id], offset=0, total=3)
-        self.assertEqual(self.user.id, users[0].id)
-        self.assertEqual(self.editor.id, users[0:3][1].id)
-        self.assertEqual(0, users.offset)
-        self.assertEqual(3, users.total)
-
-        with self.assertRaises(IndexError):
-            users[4]
-
-        with self.assertRaises(IndexError):
-            users[-1]
-
-        with self.assertRaises(IndexError):
-            users[1:2]
-
-        with self.assertRaises(TypeError):
-            users["foo"]
-
-        users = IDSliceQuerySet(User, [self.user.id, self.editor.id, self.admin.id], offset=10, total=100)
-        self.assertEqual(self.user.id, users[10].id)
-        self.assertEqual(self.user.id, users[10:11][0].id)
-
-        with self.assertRaises(IndexError):
-            users[0]
-
-        with self.assertRaises(IndexError):
-            users[11:15]
-
-    def test_filter(self):
-        users = IDSliceQuerySet(User, [self.user.id, self.editor.id, self.admin.id], offset=10, total=100)
-
-        filtered = users.filter(pk=self.user.id)
-        self.assertEqual(User, filtered.model)
-        self.assertEqual([self.user.id], filtered.ids)
-        self.assertEqual(0, filtered.offset)
-        self.assertEqual(1, filtered.total)
-
-        filtered = users.filter(pk__in=[self.user.id, self.admin.id])
-        self.assertEqual(User, filtered.model)
-        self.assertEqual([self.user.id, self.admin.id], filtered.ids)
-        self.assertEqual(0, filtered.offset)
-        self.assertEqual(2, filtered.total)
-
-        # pks can be strings
-        filtered = users.filter(pk=str(self.user.id))
-        self.assertEqual([self.user.id], filtered.ids)
-
-        # only filtering by pk is supported
-        with self.assertRaises(ValueError):
-            users.filter(name="Bob")
-
-    def test_none(self):
-        users = IDSliceQuerySet(User, [self.user.id, self.editor.id], offset=0, total=2)
-        empty = users.none()
-        self.assertEqual([], empty.ids)
-        self.assertEqual(0, empty.total)
-
-    def test_prefetch_related(self):
-        flow1 = self.create_flow()
-        flow2 = self.create_flow()
-        with self.assertNumQueries(2):
-            flows = list(IDSliceQuerySet(Flow, [flow1.id, flow2.id], offset=0, total=2).prefetch_related("org"))
-            self.assertEqual(self.org, flows[0].org)
-            self.assertEqual(self.org, flows[1].org)
 
 
 class RedactTest(TestCase):
@@ -1793,33 +1124,63 @@ class RedactTest(TestCase):
 
 
 class TestValidators(TestCase):
+    def test_name_validator(self):
+        cases = (
+            (" ", "Cannot begin or end with whitespace."),
+            (" hello", "Cannot begin or end with whitespace."),
+            ("hello\t", "Cannot begin or end with whitespace."),
+            ('hello "', 'Cannot contain the character: "'),
+            ("hello \\", "Cannot contain the character: \\"),
+            ("hello \0 world", "Cannot contain null characters."),
+            ("x" * 65, "Cannot be longer than 64 characters."),
+            ("hello world", None),
+            ("x" * 64, None),
+        )
+
+        validator = NameValidator(64)
+
+        for tc in cases:
+            if tc[1]:
+                with self.assertRaises(ValidationError) as cm:
+                    validator(tc[0])
+
+                self.assertEqual(tc[1], cm.exception.messages[0])
+            else:
+                try:
+                    validator(tc[0])
+                except Exception:
+                    self.fail(f"unexpected validation error for '{tc[0]}'")
+
+        self.assertEqual(NameValidator(64), validator)
+        self.assertNotEqual(NameValidator(32), validator)
+
     def test_validate_external_url(self):
         cases = (
-            dict(url="ftp://google.com", error="Must use HTTP or HTTPS."),
-            dict(url="http://localhost/foo", error="Cannot be a local or private host."),
-            dict(url="http://localhost:80/foo", error="Cannot be a local or private host."),
-            dict(url="http://127.0.00.1/foo", error="Cannot be a local or private host."),  # loop back
-            dict(url="http://192.168.0.0/foo", error="Cannot be a local or private host."),  # private
-            dict(url="http://255.255.255.255", error="Cannot be a local or private host."),  # multicast
-            dict(url="http://169.254.169.254/latest", error="Cannot be a local or private host."),  # link local
-            dict(url="http://::1:80/foo", error="Unable to resolve host."),  # no ipv6 addresses for now
-            dict(url="http://google.com/foo", error=None),
-            dict(url="http://google.com:8000/foo", error=None),
-            dict(url="HTTP://google.com:8000/foo", error=None),
-            dict(url="HTTP://8.8.8.8/foo", error=None),
+            ("ftp://google.com", "Must use HTTP or HTTPS."),
+            ("http://localhost/foo", "Cannot be a local or private host."),
+            ("http://localhost:80/foo", "Cannot be a local or private host."),
+            ("http://127.0.00.1/foo", "Cannot be a local or private host."),  # loop back
+            ("http://192.168.0.0/foo", "Cannot be a local or private host."),  # private
+            ("http://255.255.255.255", "Cannot be a local or private host."),  # multicast
+            ("http://169.254.169.254/latest", "Cannot be a local or private host."),  # link local
+            ("http://::1:80/foo", "Unable to resolve host."),  # no ipv6 addresses for now
+            ("http://google.com/foo", None),
+            ("http://google.com:8000/foo", None),
+            ("HTTP://google.com:8000/foo", None),
+            ("HTTP://8.8.8.8/foo", None),
         )
 
         for tc in cases:
-            if tc["error"]:
+            if tc[1]:
                 with self.assertRaises(ValidationError) as cm:
-                    validate_external_url(tc["url"])
+                    validate_external_url(tc[0])
 
-                self.assertEqual(tc["error"], cm.exception.message)
+                self.assertEqual(tc[1], cm.exception.message)
             else:
                 try:
-                    validate_external_url(tc["url"])
+                    validate_external_url(tc[0])
                 except Exception:
-                    self.fail(f"unexpected validation error for URL '{tc['url']}'")
+                    self.fail(f"unexpected validation error for '{tc[0]}'")
 
 
 class TestUUIDs(TembaTest):

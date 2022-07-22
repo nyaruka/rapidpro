@@ -1,7 +1,7 @@
 from smartmin.views import SmartReadView, SmartUpdateView
 
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from temba.channels.models import Channel
 from temba.orgs.views import OrgPermsMixin
@@ -48,7 +48,7 @@ class TemplatesView(OrgPermsMixin, SmartReadView):
         return [
             dict(
                 title=_("Sync Logs"),
-                href=reverse(f"channels.types.{self.object.get_type().slug}.sync_logs", args=[self.object.uuid]),
+                href=reverse(f"channels.types.{self.object.type.slug}.sync_logs", args=[self.object.uuid]),
             )
         ]
 
@@ -60,7 +60,9 @@ class TemplatesView(OrgPermsMixin, SmartReadView):
         context = super().get_context_data(**kwargs)
 
         # include all our templates as well
-        context["translations"] = TemplateTranslation.objects.filter(channel=self.object).order_by("template__name")
+        context["translations"] = TemplateTranslation.objects.filter(channel=self.object, is_active=True).order_by(
+            "template__name"
+        )
         return context
 
 
@@ -79,7 +81,7 @@ class SyncLogsView(OrgPermsMixin, SmartReadView):
         return [
             dict(
                 title=_("Message Templates"),
-                href=reverse(f"channels.types.{self.object.get_type().slug}.templates", args=[self.object.uuid]),
+                href=reverse(f"channels.types.{self.object.type.slug}.templates", args=[self.object.uuid]),
             )
         ]
 

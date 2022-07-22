@@ -1,7 +1,8 @@
+from smartmin.models import SmartModel
+
 from django.db import models
-from django.db.models import Model
 from django.utils import timezone
-from django.utils.translation import ngettext, ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _, ngettext
 
 from temba import mailroom
 from temba.contacts.models import Contact, ContactField, ContactGroup
@@ -9,46 +10,28 @@ from temba.flows.models import Flow
 from temba.msgs.models import Msg
 from temba.orgs.models import Org
 from temba.utils import json, on_transaction_commit
-from temba.utils.models import TembaModel, TranslatableField
+from temba.utils.models import TembaModel, TembaUUIDMixin, TranslatableField
 
 
 class Campaign(TembaModel):
-    MAX_NAME_LEN = 255
-
-    EXPORT_UUID = "uuid"
-    EXPORT_NAME = "name"
-    EXPORT_GROUP = "group"
-    EXPORT_EVENTS = "events"
-
     org = models.ForeignKey(Org, related_name="campaigns", on_delete=models.PROTECT)
-    name = models.CharField(max_length=MAX_NAME_LEN)
     group = models.ForeignKey(ContactGroup, on_delete=models.PROTECT, related_name="campaigns")
     is_archived = models.BooleanField(default=False)
 
     @classmethod
     def create(cls, org, user, name, group):
+        assert cls.is_valid_name(name), f"'{name}' is not a valid campaign name"
+
         return cls.objects.create(org=org, name=name, group=group, created_by=user, modified_by=user)
 
-    @classmethod
-    def get_unique_name(cls, org, base_name, ignore=None):
-        """
-        Generates a unique campaign name based on the given base name
-        """
-        name = base_name[:255].strip()
+    def archive(self, user):
+        self.is_archived = True
+        self.modified_by = user
+        self.modified_on = timezone.now()
+        self.save(update_fields=("is_archived", "modified_by", "modified_on"))
 
-        count = 2
-        while True:
-            campaigns = Campaign.objects.filter(name=name, org=org, is_active=True)
-            if ignore:  # pragma: needs cover
-                campaigns = campaigns.exclude(pk=ignore.pk)
-
-            if not campaigns.exists():
-                break
-
-            name = "%s %d" % (base_name[:255].strip(), count)
-            count += 1
-
-        return name
+        # recreate events so existing event fires will be ignored
+        self.recreate_events()
 
     def recreate_events(self):
         """
@@ -75,34 +58,26 @@ class Campaign(TembaModel):
         imported = []
 
         for campaign_def in campaign_defs:
-            name = campaign_def[Campaign.EXPORT_NAME]
+            name = cls.clean_name(campaign_def["name"])
+            group_ref = campaign_def["group"]
             campaign = None
             group = None
 
-            # first check if we have the objects by UUID
+            # if export is from this site, lookup objects by UUID
             if same_site:
-                group = ContactGroup.user_groups.filter(
-                    uuid=campaign_def[Campaign.EXPORT_GROUP]["uuid"], org=org
-                ).first()
-                if group:  # pragma: needs cover
-                    group.name = campaign_def[Campaign.EXPORT_GROUP]["name"]
-                    group.save()
+                group = ContactGroup.get_or_create(org, user, group_ref["name"], uuid=group_ref["uuid"])
 
-                campaign = Campaign.objects.filter(org=org, uuid=campaign_def[Campaign.EXPORT_UUID]).first()
+                campaign = Campaign.objects.filter(org=org, uuid=campaign_def["uuid"]).first()
                 if campaign:  # pragma: needs cover
                     campaign.name = Campaign.get_unique_name(org, name, ignore=campaign)
                     campaign.save()
 
             # fall back to lookups by name
             if not group:
-                group = ContactGroup.get_user_group_by_name(org, campaign_def[Campaign.EXPORT_GROUP]["name"])
+                group = ContactGroup.get_or_create(org, user, group_ref["name"])
 
             if not campaign:
                 campaign = Campaign.objects.filter(org=org, name=name).first()
-
-            # all else fails, create the objects from scratch
-            if not group:
-                group = ContactGroup.create_static(org, user, campaign_def[Campaign.EXPORT_GROUP]["name"])
 
             if not campaign:
                 campaign_name = Campaign.get_unique_name(org, name)
@@ -116,14 +91,18 @@ class Campaign(TembaModel):
                 event.release(user)
 
             # fill our campaign with events
-            for event_spec in campaign_def[Campaign.EXPORT_EVENTS]:
+            for event_spec in campaign_def["events"]:
                 field_key = event_spec["relative_to"]["key"]
 
-                if field_key == "created_on":
-                    relative_to = ContactField.system_fields.filter(org=org, key=field_key).first()
+                if field_key in ("created_on", "last_seen_on"):
+                    relative_to = org.fields.filter(key=field_key, is_system=True).first()
                 else:
                     relative_to = ContactField.get_or_create(
-                        org, user, key=field_key, label=event_spec["relative_to"]["label"], value_type="D"
+                        org,
+                        user,
+                        key=field_key,
+                        name=event_spec["relative_to"]["label"],
+                        value_type=ContactField.TYPE_DATETIME,
                     )
 
                 start_mode = event_spec.get("start_mode", CampaignEvent.MODE_INTERRUPT)
@@ -178,11 +157,8 @@ class Campaign(TembaModel):
 
     @classmethod
     def apply_action_archive(cls, user, campaigns):
-        campaigns.update(is_archived=True, modified_by=user, modified_on=timezone.now())
-
-        # recreate events so existing event fires will be ignored
         for campaign in campaigns:
-            campaign.recreate_events()
+            campaign.archive(user)
 
     @classmethod
     def apply_action_restore(cls, user, campaigns):
@@ -211,16 +187,18 @@ class Campaign(TembaModel):
         events = []
 
         for event in self.events.filter(is_active=True).order_by("flow__uuid"):
-            event_definition = dict(
-                uuid=event.uuid,
-                offset=event.offset,
-                unit=event.unit,
-                event_type=event.event_type,
-                delivery_hour=event.delivery_hour,
-                message=event.message,
-                relative_to=dict(label=event.relative_to.label, key=event.relative_to.key),  # TODO should be key/name
-                start_mode=event.start_mode,
-            )
+            event_definition = {
+                "uuid": str(event.uuid),
+                "offset": event.offset,
+                "unit": event.unit,
+                "event_type": event.event_type,
+                "delivery_hour": event.delivery_hour,
+                "message": event.message,
+                "relative_to": dict(
+                    label=event.relative_to.name, key=event.relative_to.key
+                ),  # TODO should be key/name
+                "start_mode": event.start_mode,
+            }
 
             # only include the flow definition for standalone flows
             if event.event_type == CampaignEvent.TYPE_FLOW:
@@ -233,10 +211,10 @@ class Campaign(TembaModel):
             events.append(event_definition)
 
         return {
-            Campaign.EXPORT_UUID: str(self.uuid),
-            Campaign.EXPORT_NAME: self.name,
-            Campaign.EXPORT_GROUP: self.group.as_export_ref(),
-            Campaign.EXPORT_EVENTS: events,
+            "uuid": str(self.uuid),
+            "name": self.name,
+            "group": self.group.as_export_ref(),
+            "events": events,
         }
 
     def get_sorted_events(self):
@@ -260,45 +238,34 @@ class Campaign(TembaModel):
 
         super().delete()
 
-    def __str__(self):
-        return f'Campaign[uuid={self.uuid}, name="{self.name}"]'
-
     class Meta:
         verbose_name = _("Campaign")
         verbose_name_plural = _("Campaigns")
 
 
-class CampaignEvent(TembaModel):
+class CampaignEvent(TembaUUIDMixin, SmartModel):
     """
     An event within a campaign that can send a message to a contact or start them in a flow
     """
 
     TYPE_FLOW = "F"
     TYPE_MESSAGE = "M"
-
-    # single char flag, human readable name, API readable name
-    TYPE_CONFIG = ((TYPE_FLOW, "Flow Event", "flow"), (TYPE_MESSAGE, "Message Event", "message"))
-
-    TYPE_CHOICES = [(t[0], t[1]) for t in TYPE_CONFIG]
+    TYPE_CHOICES = ((TYPE_FLOW, "Flow Event"), (TYPE_MESSAGE, "Message Event"))
 
     UNIT_MINUTES = "M"
     UNIT_HOURS = "H"
     UNIT_DAYS = "D"
     UNIT_WEEKS = "W"
-
-    UNIT_CONFIG = (
-        (UNIT_MINUTES, _("Minutes"), "minutes"),
-        (UNIT_HOURS, _("Hours"), "hours"),
-        (UNIT_DAYS, _("Days"), "days"),
-        (UNIT_WEEKS, _("Weeks"), "weeks"),
+    UNIT_CHOICES = (
+        (UNIT_MINUTES, _("Minutes")),
+        (UNIT_HOURS, _("Hours")),
+        (UNIT_DAYS, _("Days")),
+        (UNIT_WEEKS, _("Weeks")),
     )
-
-    UNIT_CHOICES = [(u[0], u[1]) for u in UNIT_CONFIG]
 
     MODE_INTERRUPT = "I"
     MODE_SKIP = "S"
     MODE_PASSIVE = "P"
-
     START_MODES_CHOICES = ((MODE_INTERRUPT, "Interrupt"), (MODE_SKIP, "Skip"), (MODE_PASSIVE, "Passive"))
 
     campaign = models.ForeignKey(Campaign, on_delete=models.PROTECT, related_name="events")
@@ -340,8 +307,7 @@ class CampaignEvent(TembaModel):
         base_language=None,
         start_mode=MODE_INTERRUPT,
     ):
-        if campaign.org != org:
-            raise ValueError("Org mismatch")
+        assert campaign.org == org, "org mismatch"
 
         if relative_to.value_type != ContactField.TYPE_DATETIME:
             raise ValueError(
@@ -554,7 +520,7 @@ class CampaignEvent(TembaModel):
         verbose_name_plural = _("Campaign Events")
 
 
-class EventFire(Model):
+class EventFire(models.Model):
     """
     A scheduled firing of a campaign event for a particular contact
     """

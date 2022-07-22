@@ -6,7 +6,6 @@ import pytz
 from django_redis import get_redis_connection
 
 from django.conf import settings
-from django.contrib.auth.models import User
 from django.core.management import BaseCommand, CommandError, call_command
 from django.db import connection
 from django.utils import timezone
@@ -19,9 +18,9 @@ from temba.flows.models import Flow
 from temba.globals.models import Global
 from temba.locations.models import AdminBoundary
 from temba.msgs.models import Label
-from temba.orgs.models import Org
+from temba.orgs.models import Org, OrgRole, User
 from temba.templates.models import Template, TemplateTranslation
-from temba.tickets.models import Ticketer, Topic
+from temba.tickets.models import Team, Ticketer, Topic
 
 ORGS_SPEC_FILE = "temba/utils/management/commands/data/mailroom_db.json"
 
@@ -150,6 +149,7 @@ class Command(BaseCommand):
             uuid=spec["uuid"],
             name=spec["name"],
             timezone=pytz.timezone("America/Los_Angeles"),
+            flow_languages=spec["languages"],
             brand="rapidpro.io",
             country=country,
             created_on=timezone.now(),
@@ -161,7 +161,6 @@ class Command(BaseCommand):
         # set our sequences to make ids stable across orgs
         self.reset_id_sequences(spec["sequence_start"])
 
-        self.create_users(spec, org)
         self.create_channels(spec, org, superuser)
         self.create_fields(spec, org, superuser)
         self.create_globals(spec, org, superuser)
@@ -175,20 +174,10 @@ class Command(BaseCommand):
         self.create_classifiers(spec, org, superuser)
         self.create_ticketers(spec, org, superuser)
         self.create_topics(spec, org, superuser)
+        self.create_teams(spec, org, superuser)
+        self.create_users(spec, org)
 
         return org
-
-    def create_users(self, spec, org):
-        self._log(f"Creating {len(spec['users'])} users... ")
-
-        for u in spec["users"]:
-            user = User.objects.create_user(
-                u["email"], u["email"], USER_PASSWORD, first_name=u["first_name"], last_name=u["last_name"]
-            )
-            getattr(org, u["role"]).add(user)
-            user.set_org(org)
-
-        self._log(self.style.SUCCESS("OK") + "\n")
 
     def create_channels(self, spec, org, user):
         self._log(f"Creating {len(spec['channels'])} channels... ")
@@ -260,14 +249,44 @@ class Command(BaseCommand):
 
         self._log(self.style.SUCCESS("OK") + "\n")
 
+    def create_teams(self, spec, org, user):
+        self._log(f"Creating {len(spec['teams'])} teams... ")
+
+        for t in spec["teams"]:
+            team = Team.objects.create(
+                uuid=t["uuid"],
+                org=org,
+                name=t["name"],
+                created_by=user,
+                modified_by=user,
+            )
+            for topic in t["topics"]:
+                team.topics.add(Topic.objects.get(name=topic))
+
+        self._log(self.style.SUCCESS("OK") + "\n")
+
+    def create_users(self, spec, org):
+        self._log(f"Creating {len(spec['users'])} users... ")
+
+        for u in spec["users"]:
+            user = User.objects.create_user(
+                u["email"], u["email"], USER_PASSWORD, first_name=u["first_name"], last_name=u["last_name"]
+            )
+            org.add_user(user, OrgRole.from_code(u["role"]))
+            if u.get("team"):
+                user.set_team(Team.objects.get(name=u["team"]))
+
+        self._log(self.style.SUCCESS("OK") + "\n")
+
     def create_fields(self, spec, org, user):
         self._log(f"Creating {len(spec['fields'])} fields... ")
 
         for f in spec["fields"]:
-            field = ContactField.user_fields.create(
+            field = ContactField.objects.create(
                 org=org,
                 key=f["key"],
-                label=f["label"],
+                name=f["name"],
+                is_system=False,
                 value_type=f["value_type"],
                 show_in_table=True,
                 created_by=user,
@@ -293,9 +312,9 @@ class Command(BaseCommand):
 
         for g in spec["groups"]:
             if g.get("query"):
-                group = ContactGroup.create_dynamic(org, user, g["name"], g["query"], evaluate=False)
+                group = ContactGroup.create_smart(org, user, g["name"], g["query"], evaluate=False)
             else:
-                group = ContactGroup.create_static(org, user, g["name"])
+                group = ContactGroup.create_manual(org, user, g["name"])
             group.uuid = g["uuid"]
             group.save(update_fields=["uuid"])
 
@@ -304,8 +323,8 @@ class Command(BaseCommand):
     def create_labels(self, spec, org, user):
         self._log(f"Creating {len(spec['labels'])} labels... ")
 
-        for l in spec["labels"]:
-            Label.label_objects.create(org=org, name=l["name"], uuid=l["uuid"], created_by=user, modified_by=user)
+        for lb in spec["labels"]:
+            Label.objects.create(org=org, name=lb["name"], uuid=lb["uuid"], created_by=user, modified_by=user)
 
         self._log(self.style.SUCCESS("OK") + "\n")
 
@@ -325,7 +344,7 @@ class Command(BaseCommand):
         self._log(f"Creating {len(spec['campaigns'])} campaigns... ")
 
         for c in spec["campaigns"]:
-            group = ContactGroup.all_groups.get(org=org, name=c["group"])
+            group = ContactGroup.objects.get(org=org, name=c["group"])
             campaign = Campaign.objects.create(
                 name=c["name"],
                 group=group,
@@ -337,7 +356,7 @@ class Command(BaseCommand):
             )
 
             for e in c.get("events", []):
-                field = ContactField.all_fields.get(org=org, key=e["offset_field"])
+                field = ContactField.objects.get(org=org, key=e["offset_field"])
 
                 if "flow" in e:
                     flow = Flow.objects.get(org=org, name=e["flow"])
@@ -350,6 +369,7 @@ class Command(BaseCommand):
                         e["offset_unit"],
                         flow,
                         delivery_hour=e.get("delivery_hour", -1),
+                        start_mode=e["start_mode"],
                     )
                 else:
                     evt = CampaignEvent.create_message_event(
@@ -362,6 +382,7 @@ class Command(BaseCommand):
                         e["message"],
                         delivery_hour=e.get("delivery_hour", -1),
                         base_language=e["base_language"],
+                        start_mode=e["start_mode"],
                     )
                     evt.flow.uuid = e["uuid"]
                     evt.flow.save()
@@ -396,7 +417,7 @@ class Command(BaseCommand):
 
         for c in spec["contacts"]:
             values = {fields_by_key[key]: val for key, val in c.get("fields", {}).items()}
-            groups = list(ContactGroup.user_groups.filter(org=org, name__in=c.get("groups", [])))
+            groups = list(ContactGroup.objects.filter(org=org, name__in=c.get("groups", [])))
 
             contact = Contact.create(org, user, c["name"], language="", urns=c["urns"], fields=values, groups=groups)
             contact.uuid = c["uuid"]
@@ -406,12 +427,12 @@ class Command(BaseCommand):
         self._log(self.style.SUCCESS("OK") + "\n")
 
     def create_group_contacts(self, spec, org, user):
-        self._log(f"Generating group contacts...")
+        self._log("Generating group contacts...")
 
         for g in spec["groups"]:
             size = int(g.get("size", 0))
             if size > 0:
-                group = ContactGroup.user_groups.get(org=org, name=g["name"])
+                group = ContactGroup.objects.get(org=org, name=g["name"])
 
                 contacts = []
                 for i in range(size):

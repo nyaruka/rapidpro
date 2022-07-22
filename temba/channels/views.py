@@ -31,9 +31,9 @@ from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonRespons
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from temba.contacts.models import URN
@@ -69,12 +69,10 @@ def get_channel_read_url(channel):
 def channel_status_processor(request):
     status = dict()
     user = request.user
+    org = request.org
 
     if user.is_superuser or user.is_anonymous:
         return status
-
-    # from the logged in user get the channel
-    org = user.get_org()
 
     allowed = False
     if org:
@@ -256,11 +254,12 @@ def sync(request, channel_id):
                     urn = URN.from_tel(cmd["phone"])
                     try:
                         ChannelEvent.create_relayer_event(
-                            channel, urn, cmd["type"], date, extra=dict(duration=duration)
+                            channel, urn, cmd["type"], date, extra={"duration": duration}
                         )
                     except ValueError:
                         # in some cases Android passes us invalid URNs, in those cases just ignore them
                         pass
+
                     unique_calls.add(call_tuple)
                 handled = True
 
@@ -324,7 +323,7 @@ def register(request):
     if request.method != "POST":
         return HttpResponse(status=500, content=_("POST Required"))
 
-    client_payload = json.loads(force_text(request.body))
+    client_payload = json.loads(force_str(request.body))
     cmds = client_payload["cmds"]
 
     try:
@@ -348,6 +347,18 @@ class ClaimViewMixin(SpaMixin, OrgPermsMixin, ComponentFormMixin):
             self.request = kwargs.pop("request")
             self.channel_type = kwargs.pop("channel_type")
             super().__init__(**kwargs)
+
+        def clean(self):
+            count, limit = Channel.get_org_limit_progress(self.request.user.get_org())
+            if limit is not None and count >= limit:
+                raise forms.ValidationError(
+                    _(
+                        "This workspace has reached its limit of %(limit)d channels. "
+                        "You must delete existing ones before you can create new ones."
+                    ),
+                    params={"limit": limit},
+                )
+            return super().clean()
 
     def __init__(self, channel_type):
         self.channel_type = channel_type
@@ -613,14 +624,18 @@ class BaseClaimNumberMixin(ClaimViewMixin):
                 return self.form_invalid(form)
 
         # don't add the same number twice to the same account
-        existing = org.channels.filter(is_active=True, address=data["phone_number"]).first()
+        existing = org.channels.filter(
+            is_active=True, address=data["phone_number"], schemes__overlap=list(self.channel_type.schemes)
+        ).first()
         if existing:  # pragma: needs cover
             form._errors["phone_number"] = form.error_class(
                 [_("That number is already connected (%s)" % data["phone_number"])]
             )
             return self.form_invalid(form)
 
-        existing = Channel.objects.filter(is_active=True, address=data["phone_number"]).first()
+        existing = Channel.objects.filter(
+            is_active=True, address=data["phone_number"], schemes__overlap=list(self.channel_type.schemes)
+        ).first()
         if existing:  # pragma: needs cover
             form._errors["phone_number"] = form.error_class(
                 [
@@ -750,7 +765,7 @@ class ChannelCRUDL(SmartCRUDL):
 
                 channels = Channel.objects.filter(org=org, is_active=True, parent=None).order_by("-role")
                 for channel in channels:
-                    icon = channel.get_type().icon.replace("icon-", "")
+                    icon = channel.type.icon.replace("icon-", "")
                     icon = icon.replace("power-cord", "box")
 
                     menu.append(
@@ -776,7 +791,7 @@ class ChannelCRUDL(SmartCRUDL):
         def get_gear_links(self):
             links = []
 
-            extra_links = self.object.get_type().extra_links
+            extra_links = self.object.type.extra_links
             if extra_links:
                 for extra in extra_links:
                     links.append(dict(title=extra["name"], href=reverse(extra["link"], args=[self.object.uuid])))
@@ -790,7 +805,7 @@ class ChannelCRUDL(SmartCRUDL):
                     )
                 )
 
-            if self.object.get_type().show_config_page:
+            if self.object.type.show_config_page:
                 links.append(
                     dict(title=_("Settings"), href=reverse("channels.channel_configuration", args=[self.object.uuid]))
                 )
@@ -1263,6 +1278,10 @@ class ChannelCRUDL(SmartCRUDL):
             context["org_timezone"] = str(org.timezone)
             context["brand"] = org.get_branding()
 
+            channel_count, org_limit = Channel.get_org_limit_progress(org)
+            context["total_count"] = channel_count
+            context["total_limit"] = org_limit
+
             # fetch channel types, sorted by category and name
             recommended_channels, types_by_category, only_regional_channels = self.channel_types_groups()
 
@@ -1294,9 +1313,9 @@ class ChannelCRUDL(SmartCRUDL):
             connection = forms.CharField(max_length=2, widget=forms.HiddenInput, required=False)
             channel = forms.IntegerField(widget=forms.HiddenInput, required=False)
 
-            def __init__(self, *args, **kwargs):
-                self.org = kwargs["org"]
-                del kwargs["org"]
+            def __init__(self, org, *args, **kwargs):
+                self.org = org
+
                 super().__init__(*args, **kwargs)
 
             def clean_connection(self):
@@ -1317,14 +1336,12 @@ class ChannelCRUDL(SmartCRUDL):
 
         def get_form_kwargs(self, *args, **kwargs):
             form_kwargs = super().get_form_kwargs(*args, **kwargs)
-            form_kwargs["org"] = Org.objects.get(pk=self.request.user.get_org().pk)
+            form_kwargs["org"] = self.request.org
             return form_kwargs
 
         def form_valid(self, form):
-            user = self.request.user
-
             channel = form.cleaned_data["channel"]
-            Channel.add_vonage_bulk_sender(user, channel)
+            Channel.add_vonage_bulk_sender(self.request.org, self.request.user, channel)
             return super().form_valid(form)
 
         def form_invalid(self, form):
@@ -1447,7 +1464,7 @@ class ChannelEventCRUDL(SmartCRUDL):
     class Calls(InboxView):
         title = _("Calls")
         fields = ("contact", "event_type", "channel", "occurred_on")
-        default_order = "-occurred_on"
+        default_order = ("-occurred_on",)
         search_fields = ("contact__urns__path__icontains", "contact__name__icontains")
         system_label = SystemLabel.TYPE_CALLS
         select_related = ("contact", "channel")

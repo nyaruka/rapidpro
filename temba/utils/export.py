@@ -4,18 +4,20 @@ import os
 import time
 from datetime import datetime, timedelta
 
+from smartmin.models import SmartModel
 from xlsxlite.writer import XLSXBook
 
 from django.core.files import File
 from django.core.files.temp import NamedTemporaryFile
 from django.db import models
+from django.http import HttpResponse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from temba.assets.models import BaseAssetStore, get_asset_store
 
 from . import analytics
-from .models import TembaModel
+from .models import LegacyUUIDMixin
 from .text import clean_string
 
 logger = logging.getLogger(__name__)
@@ -26,7 +28,7 @@ class BaseExportAssetStore(BaseAssetStore):
         return asset.status == BaseExportTask.STATUS_COMPLETE
 
 
-class BaseExportTask(TembaModel):
+class BaseExportTask(LegacyUUIDMixin, SmartModel):
     """
     Base class for export task models, i.e. contacts, messages and flow results
     """
@@ -213,3 +215,20 @@ class TableExporter:
         temp_file.flush()
 
         return temp_file, "xlsx"
+
+
+def response_from_workbook(workbook, filename: str) -> HttpResponse:
+    """
+    Creates an HTTP response from an openpyxl workbook
+    """
+    with NamedTemporaryFile() as tmp:
+        workbook.save(tmp.name)
+        tmp.seek(0)
+        stream = tmp.read()
+
+    response = HttpResponse(
+        content=stream,
+        content_type="application/ms-excel",
+    )
+    response["Content-Disposition"] = f"attachment; filename={filename}"
+    return response

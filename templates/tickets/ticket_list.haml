@@ -115,7 +115,9 @@
         }                    
       }     
 
-      updatePageTitle();
+      if (window.updatePageTitle) {
+        updatePageTitle();
+      }
     }
 
     function updateTicketList() {
@@ -162,7 +164,7 @@
 
       var chat = document.querySelector("temba-contact-chat");
       if (contact) {
-        chat.contactUUID = contact.uuid;
+        chat.contact = contact.uuid;
         chat.currentTicket = contact.ticket;
 
         var filterNote = document.querySelector(".filter-note");
@@ -176,7 +178,7 @@
           ticketUUID = null;
         }
       } else {
-        chat.contactUUID = null;
+        chat.contact = null;
         chat.currentTicket = null;
         chat.currentContact = null;
       }
@@ -193,7 +195,7 @@
     }
 
     function handleTicketsRefreshed(event) {
-      var menu = document.querySelector('temba-menu');
+      // var menu = document.querySelector('temba-menu');
       var tickets = event.target;
 
       // tell our chat to refresh since we know things are new in our list
@@ -209,7 +211,7 @@
         empty.style.opacity = '1';
       }
 
-      menu.refresh();
+      // menu.refresh();
     }
 
     function removeTicket(uuid) {
@@ -259,13 +261,13 @@
         tickets.refresh();
       }
 
-      menu.refresh();
+      // menu.refresh();
     }
 
 -block page-container
   -block content
     .flex.flex-col(style="height:100%")
-      .page.flex-grow  
+      .page.flex-grow.flex.flex-col.min-h-0
         .flex.widget-container(style="{% if is_spa%}margin:0;padding:0;height:100%{%else%}height:100vh; margin-top:-121px;padding-top:121px;margin-bottom:-100px;padding-bottom:100px;{%endif%}")
           -if not is_spa
             .folders
@@ -285,7 +287,7 @@
               -else
                 %temba-ticket-list(nextselection="{{nextUUID}}" agent="{{request.user.email}}" endpoint="{% url 'tickets.ticket_folder' folder status %}" -temba-refreshed="handleTicketsRefreshed" onchange="handleContactChanged(event)")
 
-          .flex-grow.flex-col.h-full(style="" class="{% if is_spa %}ml-4{%else%}py-4 pb-4 pr-4{% endif %}")
+          .flex-grow.flex-col.flex.min-h-0(class="{% if is_spa %}ml-4{%else%}py-4 pb-4 pr-4{% endif %}")
             .empty
               -if has_tickets
                 %h2
@@ -311,6 +313,5 @@
                   -blocktrans trimmed
                     Sometimes an automated chatbot isn't enough. When your contacts need to chat with a real person, you can use the
                     Open Ticket action to open a new ticket.
-                      
-                      
-            %temba-contact-chat(agent="{{request.user.email}}" -temba-refreshed="handleContactHistoryUpdated" -temba-content-changed="handleTicketUpdated" monitor="true")
+
+            %temba-contact-chat.shadow(agent="{{request.user.email}}" -temba-refreshed="handleContactHistoryUpdated" -temba-content-changed="handleTicketUpdated" monitor="true" toolbar="true")

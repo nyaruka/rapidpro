@@ -1,10 +1,9 @@
 import requests
 
-from django.conf.urls import url
 from django.forms import ValidationError
-from django.urls import reverse
+from django.urls import re_path, reverse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from temba.channels.models import Channel
 from temba.channels.types.whatsapp.views import ClaimView
@@ -20,8 +19,9 @@ CONFIG_FB_BUSINESS_ID = "fb_business_id"
 CONFIG_FB_ACCESS_TOKEN = "fb_access_token"
 CONFIG_FB_NAMESPACE = "fb_namespace"
 CONFIG_FB_TEMPLATE_LIST_DOMAIN = "fb_template_list_domain"
+CONFIG_FB_TEMPLATE_API_VERSION = "fb_template_list_domain_api_version"
 
-TEMPLATE_LIST_URL = "https://%s/v3.3/%s/message_templates"
+TEMPLATE_LIST_URL = "https://%s/%s/%s/message_templates"
 
 
 class WhatsAppType(ChannelType):
@@ -50,9 +50,9 @@ class WhatsAppType(ChannelType):
     def get_urls(self):
         return [
             self.get_claim_url(),
-            url(r"^(?P<uuid>[a-z0-9\-]+)/refresh$", RefreshView.as_view(), name="refresh"),
-            url(r"^(?P<uuid>[a-z0-9\-]+)/templates$", TemplatesView.as_view(), name="templates"),
-            url(r"^(?P<uuid>[a-z0-9\-]+)/sync_logs$", SyncLogsView.as_view(), name="sync_logs"),
+            re_path(r"^(?P<uuid>[a-z0-9\-]+)/refresh$", RefreshView.as_view(), name="refresh"),
+            re_path(r"^(?P<uuid>[a-z0-9\-]+)/templates$", TemplatesView.as_view(), name="templates"),
+            re_path(r"^(?P<uuid>[a-z0-9\-]+)/sync_logs$", SyncLogsView.as_view(), name="sync_logs"),
         ]
 
     def deactivate(self, channel):
@@ -102,7 +102,8 @@ class WhatsAppType(ChannelType):
             # that have been setup earlier for backwards compatibility
             facebook_template_domain = channel.config.get(CONFIG_FB_TEMPLATE_LIST_DOMAIN, "graph.facebook.com")
             facebook_business_id = channel.config.get(CONFIG_FB_BUSINESS_ID)
-            url = TEMPLATE_LIST_URL % (facebook_template_domain, facebook_business_id)
+            facebook_template_api_version = channel.config.get(CONFIG_FB_TEMPLATE_API_VERSION, "v14.0")
+            url = TEMPLATE_LIST_URL % (facebook_template_domain, facebook_template_api_version, facebook_business_id)
             template_data = []
             while url:
                 response = requests.get(

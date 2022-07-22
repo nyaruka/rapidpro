@@ -2,6 +2,11 @@ html input {
   font-weight: 300;
 }
 
+html.dragging * {
+  user-select: none;  
+  pointer-events: none;
+}
+
 html {
 
   --font-family: 'Roboto', Helvetica, Arial, sans-serif;
@@ -48,6 +53,10 @@ html {
   --color-primary-dark: rgb(var(--primary-rgb));
   --color-secondary-dark: rgb(var(--secondary-rgb));
 
+  --color-available: #00f100;
+
+  --color-tertiary: rgb(var(--tertiary-rgb));
+
   /* light text goes over dark, dark over lights */
   --color-text-light: rgba(255, 255, 255, 1);
   --color-text-dark: rgba(0, 0, 0, 0.5);
@@ -56,7 +65,7 @@ html {
   /* solid overlays with text */
   --color-overlay-dark: rgba(0, 0, 0, 0.2);
   --color-overlay-dark-text: rgba(255, 255, 255, 0.9);
-  --color-overlay-light: rgba(0, 0, 0, 0.05);
+  --color-overlay-light: rgba(0, 0, 0, 0.035);
   --color-overlay-light-text: rgba(0, 0, 0, 0.6);
 
   /* links, buttons, and label badges */
@@ -78,8 +87,10 @@ html {
 
   --color-label-primary: var(--color-primary-dark);
   --color-label-primary-text: var(--color-text-light);
-  --color-label-secondary: rgba(0, 0, 0, 0.2);
-  --color-label-secondary-text: rgba(255, 255, 255, 0.9);
+  --color-label-secondary: var(--color-secondary-dark);
+  --color-label-secondary-text: var(--color-text-light);
+  --color-label-tertiary: var(--color-tertiary);
+  --color-label-tertiary-text: var(--color-text-light);
 
   --color-nav-unselected: #fff;
   --color-nav-selected-bg: #fff;
@@ -92,11 +103,13 @@ html {
   --color-warning-border: rgb(251, 246, 176);
 
   --color-error: rgb(var(--error-rgb));
+  --color-alert: rgb(var(--error-rgb));
+
   --font-size: 14px;
   --button-font-size: 1.125rem;
 
   --icon-color: var(--text-color);
-  --icon-color-hover: var(--icon-color);
+  --icon-color-circle-hover: rgb(245, 245, 245);
   
   --transition-speed: 250ms;
   --event-padding: 0.5em 1em;
@@ -118,7 +131,8 @@ html {
 
   --options-block-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
   --options-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  
+  --dropdown-shadow: rgb(0 0 0 / 30%) 0px 0px 60px, rgb(0 0 0 / 12%) 0px 6px 12px;
+
   font-size: var(--font-size);
   font-weight: 300;
   font-family: var(--font-family);
@@ -174,4 +188,33 @@ temba-select:focus {
   margin-top: 28px;
   margin-bottom: 28px;
   margin-left: -13px;
+}
+
+.input {
+  border-radius: var(--curvature-widget);
+  cursor: text;
+  background: var(--color-widget-bg);
+  border: 1px solid var(--color-widget-border);
+  transition: all ease-in-out 200ms;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  box-shadow: var(--widget-box-shadow);
+  caret-color: var(--input-caret);
+  padding: var(--temba-textinput-padding);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-focus);
+  background: var(--color-widget-bg-focused);
+  box-shadow: var(--widget-box-shadow-focused);
+}
+
+temba-dropdown {
+  opacity: 0;
+}
+
+temba-dropdown:defined {
+  opacity: 1;
 }

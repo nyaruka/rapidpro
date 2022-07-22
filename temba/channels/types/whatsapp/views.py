@@ -2,7 +2,7 @@ import requests
 from smartmin.views import SmartFormView
 
 from django import forms
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from temba.contacts.models import URN
 from temba.utils.fields import ExternalURLField, SelectWidget
@@ -32,6 +32,13 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             label=_("Templates Domain"),
             help_text=_("Which domain to retrieve the message templates from"),
             initial="graph.facebook.com",
+        )
+
+        facebook_template_list_api_version = forms.ChoiceField(
+            choices=(("", "v14.0"), ("v3.3", "v3.3")),
+            label=_("Templates API version"),
+            help_text=_("Which API version to retrieve the message templates with"),
+            required=False,
         )
 
         facebook_business_id = forms.CharField(
@@ -72,9 +79,15 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             from .type import TEMPLATE_LIST_URL
 
             if self.cleaned_data["facebook_template_list_domain"] != "graph.facebook.com":
+                api_version = self.cleaned_data.get("facebook_template_list_api_version", "v14.0") or "v14.0"
+
                 response = requests.get(
                     TEMPLATE_LIST_URL
-                    % (self.cleaned_data["facebook_template_list_domain"], self.cleaned_data["facebook_business_id"]),
+                    % (
+                        self.cleaned_data["facebook_template_list_domain"],
+                        api_version,
+                        self.cleaned_data["facebook_business_id"],
+                    ),
                     params=dict(access_token=self.cleaned_data["facebook_access_token"]),
                 )
 
@@ -94,6 +107,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             CONFIG_FB_ACCESS_TOKEN,
             CONFIG_FB_BUSINESS_ID,
             CONFIG_FB_NAMESPACE,
+            CONFIG_FB_TEMPLATE_API_VERSION,
             CONFIG_FB_TEMPLATE_LIST_DOMAIN,
         )
 
@@ -112,6 +126,9 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             CONFIG_FB_NAMESPACE: data["facebook_namespace"],
             CONFIG_FB_TEMPLATE_LIST_DOMAIN: data["facebook_template_list_domain"],
         }
+
+        if data.get("facebook_template_list_api_version"):
+            config[CONFIG_FB_TEMPLATE_API_VERSION] = data["facebook_template_list_api_version"]
 
         self.object = Channel.create(
             org,
