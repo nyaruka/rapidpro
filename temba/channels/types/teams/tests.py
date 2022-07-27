@@ -62,7 +62,7 @@ class TeamsTypeTest(TembaTest):
 
         self.client.post(url, post_data)
 
-        mock_post.assert_any_call(
+        mock_post.assert_called_with(
             "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
             data={
                 "client_id": "123456",
@@ -79,6 +79,22 @@ class TeamsTypeTest(TembaTest):
         self.assertEqual(channel.config[TeamsType.CONFIG_TEAMS_APPLICATION_PASSWORD], "a1b2c3")
         self.assertEqual(channel.config[TeamsType.CONFIG_TEAMS_APPLICATION_ID], "123456")
         self.assertEqual(channel.address, "45612")
+
+        with patch("requests.post") as mock_post:
+            mock_post.return_value = MockResponse(400, '{ "error": "true" }')
+            response = self.client.post(url, post_data)
+            self.assertEqual(200, response.status_code)
+            mock_post.assert_called_with(
+                "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+                data={
+                    "client_id": "123456",
+                    "grant_type": "client_credentials",
+                    "scope": "https://api.botframework.com/.default",
+                    "client_secret": "a1b2c3",
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            self.assertContains(response, "please check information about your APP.")
 
     def test_refresh_tokens(self):
 
