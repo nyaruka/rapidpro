@@ -1,12 +1,16 @@
 from unittest.mock import patch
 
+from requests import RequestException
+
 from django.forms import ValidationError
 from django.urls import reverse
 
+from temba.request_logs.models import HTTPLog
+from temba.templates.models import TemplateTranslation
 from temba.tests import MockResponse, TembaTest
 
 from ...models import Channel
-from .type import ZENVIA_MESSAGE_SUBSCRIPTION_ID, ZENVIA_STATUS_SUBSCRIPTION_ID
+from .type import ZENVIA_MESSAGE_SUBSCRIPTION_ID, ZENVIA_STATUS_SUBSCRIPTION_ID, ZenviaWhatsAppType
 
 
 class ZenviaWhatsAppTypeTest(TembaTest):
@@ -128,3 +132,119 @@ class ZenviaWhatsAppTypeTest(TembaTest):
             self.assertEqual("12345", mock_delete.call_args_list[0][1]["headers"]["X-API-TOKEN"])
             self.assertEqual("https://api.zenvia.com/v2/subscriptions/status_123", mock_delete.call_args_list[1][0][0])
             self.assertEqual("12345", mock_delete.call_args_list[1][1]["headers"]["X-API-TOKEN"])
+
+    @patch("requests.get")
+    def test_get_api_templates(self, mock_get):
+        TemplateTranslation.objects.all().delete()
+        Channel.objects.all().delete()
+
+        channel = self.create_channel(
+            "ZVW",
+            "Zenvia WhatsApp: +12065551212",
+            "+12065551212",
+            config={
+                Channel.CONFIG_API_KEY: "authtoken123",
+            },
+        )
+
+        mock_get.side_effect = [
+            RequestException("Network is unreachable", response=MockResponse(100, "")),
+            MockResponse(400, '{ "meta": { "success": false } }'),
+            MockResponse(
+                200,
+                """[
+                      {
+                        "id": "string",
+                        "name": "string",
+                        "locale": "af",
+                        "channel": "WHATSAPP",
+                        "senderId": "string",
+                        "category": "ACCOUNT_UPDATE",
+                        "components": {
+                          "header": {
+                            "type": "MEDIA_DOCUMENT",
+                            "text": "foo header"
+                          },
+                          "body": {
+                            "type": "TEXT_FIXED",
+                            "text": "foo body"
+                          },
+                          "footer": {
+                            "type": "TEXT_FIXED",
+                            "text": "foo footer"
+                          },
+                          "buttons": {
+                            "type": "string",
+                            "items": [
+                              {
+                                "type": "URL",
+                                "text": "string",
+                                "url": "string"
+                              }
+                            ]
+                          }
+                        },
+                        "examples": {
+                          "imageUrl": "https://example.com/image.jpeg",
+                          "name": "John Smith"
+                        },
+                        "notificationEmail": "string",
+                        "text": "string",
+                        "fields": [
+                          "string"
+                        ],
+                        "comments": [
+                          {
+                            "id": "string",
+                            "author": "string",
+                            "role": "REQUESTER",
+                            "text": "string",
+                            "createdAt": "string",
+                            "updatedAt": "string"
+                          }
+                        ],
+                        "status": "APPROVED",
+                        "createdAt": "string",
+                        "updatedAt": "string"
+                      }
+                    ]
+                """,
+            ),
+        ]
+
+        # RequestException check HTTPLog
+        templates_data, no_error = ZenviaWhatsAppType().get_api_templates(channel)
+        self.assertEqual(1, HTTPLog.objects.filter(log_type=HTTPLog.WHATSAPP_TEMPLATES_SYNCED).count())
+        self.assertFalse(no_error)
+        self.assertEqual([], templates_data)
+
+        # should be empty list with an error flag if fail with API
+        templates_data, no_error = ZenviaWhatsAppType().get_api_templates(channel)
+        self.assertFalse(no_error)
+        self.assertEqual([], templates_data)
+
+        # success no error and list
+        templates_data, no_error = ZenviaWhatsAppType().get_api_templates(channel)
+        self.assertTrue(no_error)
+        self.assertEqual(
+            [
+                {
+                    "category": "ACCOUNT_UPDATE",
+                    "components": [
+                        {"text": "foo header", "type": "HEADER"},
+                        {"text": "foo body", "type": "BODY"},
+                        {"text": "foo footer", "type": "FOOTER"},
+                    ],
+                    "id": "string",
+                    "language": "af",
+                    "name": "string",
+                    "status": "APPROVED",
+                }
+            ],
+            templates_data,
+        )
+
+        mock_get.assert_called_with(
+            "https://api.zenvia.com/v2/templates",
+            headers={"X-API-TOKEN": "authtoken123", "Content-Type": "application/json"},
+        )

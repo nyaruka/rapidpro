@@ -288,6 +288,117 @@ class WhatsAppUtilsTest(TembaTest):
         tt = TemplateTranslation.objects.filter(channel=channel, external_id="en/hello").first()
         self.assertEqual("xxxxxxxx_xxxx_xxxx_xxxx_xxxxxxxxxxxx", tt.namespace)
 
+    def test_update_local_templates_zenvia_whatsapp(self):
+        # no namespace in channel config
+        channel = self.create_channel("ZVW", "channel", "1234", config={})
+
+        ZVW_templates_data = [
+            {
+                "name": "hello",
+                "components": [{"type": "BODY", "text": "Hello {{1}}"}],
+                "language": "en",
+                "status": "pending",
+                "category": "ISSUE_RESOLUTION",
+            },
+            {
+                "name": "hello",
+                "components": [{"type": "BODY", "text": "Hi {{1}}"}],
+                "language": "en_GB",
+                "status": "pending",
+                "category": "ISSUE_RESOLUTION",
+            },
+            {
+                "name": "hello",
+                "components": [{"type": "BODY", "text": "Bonjour {{1}}"}],
+                "language": "fr",
+                "status": "approved",
+                "category": "ISSUE_RESOLUTION",
+            },
+            {
+                "id": "9d01caca-8f35-423d-8e12-30198d7cc8fe",
+                "name": "goodbye",
+                "components": [{"type": "BODY", "text": "Goodbye {{1}}, see you on {{2}}. See you later {{1}}"}],
+                "language": "en",
+                "status": "PENDING",
+                "category": "ISSUE_RESOLUTION",
+            },
+            {
+                "name": "workout_activity",
+                "components": [
+                    {"type": "HEADER", "text": "Workout challenge week extra points!"},
+                    {
+                        "type": "BODY",
+                        "text": "Hey {{1}}, Week {{2}} workout is out now. Get your discount of {{3}} for the next workout by sharing this program to 3 people.",
+                    },
+                    {"type": "FOOTER", "text": "Remember to drink water."},
+                ],
+                "language": "en",
+                "status": "PENDING",
+                "category": "ISSUE_RESOLUTION",
+            },
+            {
+                "name": "workout_activity_with_unsuported_variablet",
+                "components": [
+                    {"type": "HEADER", "text": "Workout challenge week {{2}}, {{4}} extra points!"},
+                    {
+                        "type": "BODY",
+                        "text": "Hey {{1}}, Week {{2}} workout is out now. Get your discount of {{3}} for the next workout by sharing this program to 3 people.",
+                    },
+                    {"type": "FOOTER", "text": "Remember to drink water."},
+                ],
+                "language": "en",
+                "status": "PENDING",
+                "category": "ISSUE_RESOLUTION",
+            },
+            {
+                "name": "missing_text_component",
+                "components": [{"type": "HEADER", "format": "IMAGE", "example": {"header_handle": ["FOO"]}}],
+                "language": "en",
+                "status": "APPROVED",
+                "category": "ISSUE_RESOLUTION",
+            },
+            {
+                "name": "invalid_component",
+                "components": [{"type": "RANDOM", "text": "Bonjour {{1}}"}],
+                "language": "fr",
+                "status": "APPROVED",
+                "category": "ISSUE_RESOLUTION",
+            },
+            {
+                "name": "invalid_status",
+                "components": [{"type": "BODY", "text": "This is an unknown status, it will be ignored"}],
+                "language": "en",
+                "status": "UNKNOWN",
+                "category": "ISSUE_RESOLUTION",
+            },
+            {
+                "name": "invalid_language",
+                "components": [{"type": "BODY", "text": "This is an unknown language, it will be ignored"}],
+                "language": "kli",
+                "status": "APPROVED",
+                "category": "ISSUE_RESOLUTION",
+            },
+        ]
+
+        update_local_templates(channel, ZVW_templates_data)
+
+        self.assertEqual(4, Template.objects.filter(org=self.org).count())
+        self.assertEqual(6, TemplateTranslation.objects.filter(channel=channel).count())
+        self.assertEqual(6, TemplateTranslation.objects.filter(channel=channel, namespace="").count())
+        self.assertEqual(
+            sorted(
+                [
+                    "en/hello",
+                    "en_GB/hello",
+                    "fr/hello",
+                    "9d01caca-8f35-423d-8e12-30198d7cc8fe",
+                    "en/workout_activity",
+                    "kli/invalid_language",
+                ]
+            ),
+            sorted(list(TemplateTranslation.objects.filter(channel=channel).values_list("external_id", flat=True))),
+        )
+
     @patch("temba.channels.types.whatsapp.WhatsAppType.check_health")
     def test_update_api_version_whatsapp(self, mock_health):
         mock_health.return_value = MockResponse(200, '{"meta": {"api_status": "stable", "version": "v2.35.2"}}')
