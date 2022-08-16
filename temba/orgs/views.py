@@ -233,6 +233,11 @@ class OrgObjPermsMixin(OrgPermsMixin):
 
 
 class ModalMixin(SmartFormView):
+    def pre_process(self, request, *args, **kwargs):
+        if "HTTP_X_PJAX" not in self.request.META:
+            return HttpResponseRedirect(self.get_success_url())
+        return super().pre_process(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
