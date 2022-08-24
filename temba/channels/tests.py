@@ -2382,15 +2382,17 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
 
         with AnonymousOrg(self.org):
             response = self.client.get(url)
-            # admin has no access
-            self.assertLoginRedirect(response)
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "123", count=0)
+            self.assertContains(response, HTTPLog.REDACT_MASK, count=1)
 
         self.login(self.customer_support)
 
         with AnonymousOrg(self.org):
             response = self.client.get(url)
-            # customer_support has access
             self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "123", count=0)
+            self.assertContains(response, HTTPLog.REDACT_MASK, count=1)
 
     def test_redaction_for_telegram(self):
         urn = "telegram:3527065"
