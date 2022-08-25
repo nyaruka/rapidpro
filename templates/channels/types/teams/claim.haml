@@ -6,3 +6,20 @@
     You can connect a Teams Bot to your {{ name}} workspace
     to automate sending and receiving Teams messages.
     For this, you will need to create and register a Bot-type application in Microsoft Azure.
+
+  .mt-2
+    %li
+      -blocktrans trimmed
+        To do this, follow the steps in the tutorial starting from <a href="https://docs.microsoft.com/en-us/microsoftteams/platform/sbs-teams-conversation-bot?tutorial-step=2#:~:text=registration%20in%20Azure-,account,-Access%20the%20Azure" target="_blank">Create Bot channel registration in Azure account</a>
+        until step 5 of the To create client secret section, in these steps you must save the Microsoft App ID and Client Secret data, to add the channel.
+        After that, carry out the steps in the To add the Microsoft Teams channel section, it is at the bottom of the page in the same link.
+
+  .mt-2  
+    -blocktrans trimmed
+      Now you will need the Tenant ID information, to get it go to the azure portal home <a href="https://portal.azure.com/" target="_blank")>https://portal.azure.com/</a>, select your bot, in the left menu, click Overview > Select Json View .
+      Once this is done, a json will open with some information about your bot. Search for tenant id and save the value.
+  
+  .mt-2  
+    -blocktrans trimmed
+      Start creating the channel using the form below, add the bot name as you entered it when creating it in Azure, enter the Bot ID and Microsoft App ID that you saved, both are the same value.
+      In APP Password enter the Client Secret value that you saved and finally enter the Tenant ID that was taken in the previous step.
