@@ -34,22 +34,11 @@ class WhatsAppCloudTypeTest(TembaTest):
         connect_whatsapp_cloud_url = reverse("orgs.org_whatsapp_cloud_connect")
         claim_whatsapp_cloud_url = reverse("channels.types.whatsapp_cloud.claim")
 
-        # make sure plivo is on the claim page
+        # make sure whatsapp cloud is on the claim page
         response = self.client.get(reverse("channels.channel_claim"))
         self.assertEqual(200, response.status_code)
-        self.assertNotContains(response, claim_whatsapp_cloud_url)
+        self.assertContains(response, claim_whatsapp_cloud_url)
 
-        with patch("requests.get") as wa_cloud_get:
-            wa_cloud_get.return_value = MockResponse(400, {})
-            response = self.client.get(claim_whatsapp_cloud_url)
-
-            self.assertEqual(response.status_code, 302)
-
-            response = self.client.get(claim_whatsapp_cloud_url, follow=True)
-
-            self.assertEqual(response.request["PATH_INFO"], "/users/login/")
-
-        self.make_beta(self.admin)
         with patch("requests.get") as wa_cloud_get:
             wa_cloud_get.return_value = MockResponse(400, {})
             response = self.client.get(claim_whatsapp_cloud_url)

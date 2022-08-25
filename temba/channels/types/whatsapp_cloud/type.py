@@ -26,7 +26,6 @@ class WhatsAppCloudType(ChannelType):
 
     code = "WAC"
     category = ChannelType.Category.SOCIAL_MEDIA
-    beta_only = True
 
     courier_url = r"^wac/receive"
 
