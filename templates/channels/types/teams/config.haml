@@ -1,0 +1,61 @@
+-load i18n
+
+-blocktrans trimmed
+  To finish configuring your connection, you will need to define the following callback URL in your application on Azure. Go to your bot resource in Azure, in the left menu click on Settings and put the URL below in Messaging Endpoint.
+
+.card.mt-6
+  .title
+    -trans "Request URL"
+  .code.inline-block.m-0
+    https://{{ channel.callback_domain }}/c/tm/{{ channel.uuid }}/receive
+
+%h3
+  -blocktrans trimmed
+    To configure your Bot in Microsoft Teams, perform the steps below.
+
+%ol.steps.card
+  %li
+    -blocktrans trimmed
+      After configuring the messaging endpoint, go to Microsoft Teams > Applications.
+  %li
+    -blocktrans trimmed
+      In the search bar type App Studio and install it.
+  %li
+    -blocktrans trimmed
+      In App Studio, select Create a new App.
+  %li
+    -blocktrans trimmed
+      Under App Details, enter any data you have about the bot you created in Azure.
+  %li
+    -blocktrans trimmed
+      In Identification, put the Microsoft App ID.
+  %li
+    -blocktrans trimmed
+      Under Package name, reference your app.
+  %li
+    -blocktrans trimmed
+      In version, use something like V1.0.0
+  %li
+    -blocktrans trimmed
+      In developer information, put your company data, name, website and others.
+  %li
+    -blocktrans trimmed
+      In Apps URLs enter your company's privacy terms URL and in terms of use, the terms URL.
+  %li
+    -blocktrans trimmed
+      In Branding you update the profile images that you want your bot to have, click on update and choose your images.
+  %li
+    -blocktrans trimmed
+      Now in step 3 of the left menu click on Domains and Permissions.
+  %li
+    -blocktrans trimmed
+      In Valid Domains, enter the domain of our platform so that your bot can integrate and click Add.
+  %li
+    -blocktrans trimmed
+      In AAD App ID enter your Tenant ID that you saved earlier.
+  %li
+    -blocktrans trimmed
+      Now the last step, click on Test and Deploy in step 3 of the left menu.
+  %li
+    -blocktrans trimmed
+      Finally, click Publish app to my organization's catalog and click Submit. After that, the bot will have to be accepted by your organization's IT administrator, so that it is published in your organization.

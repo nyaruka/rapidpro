@@ -11,9 +11,9 @@ class TeamsType(ChannelType):
     A Teams bot channel
     """
 
-    CONFIG_TEAMS_APPLICATION_ID = "appID"
-    CONFIG_TEAMS_BOT_ID = "botID"
-    CONFIG_TEAMS_TENANT_ID = "tenantID"
+    CONFIG_TEAMS_APPLICATION_ID = "app_id"
+    CONFIG_TEAMS_BOT_ID = "bot_id"
+    CONFIG_TEAMS_TENANT_ID = "tenant_id"
     CONFIG_TEAMS_APPLICATION_PASSWORD = "app_password"
     CONFIG_TEAMS_BOT_NAME = "bot_name"
 
@@ -23,8 +23,6 @@ class TeamsType(ChannelType):
     icon = "icon-power-cord"
     schemes = [URN.TEAMS_SCHEME]
     attachment_support = True
-
-    show_config_page = False
 
     courier_url = r"^tm/(?P<uuid>[a-z0-9\-]+)/receive$"
 
