@@ -23,9 +23,9 @@ class TeamsTypeTest(TembaTest):
                 "auth_token": "123456789:ABCDEFabcdef-1a2b3c4d",
                 "bot_name": "bot_test",
                 "app_password": "147852",
-                "tenantID": "98741",
-                "appID": "123456789",
-                "botID": "12345",
+                "tenant_id": "98741",
+                "app_id": "123456789",
+                "bot_id": "12345",
             },
         )
 
