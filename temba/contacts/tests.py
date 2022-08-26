@@ -11,7 +11,6 @@ import pytz
 from openpyxl import load_workbook
 
 from django.conf import settings
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.validators import ValidationError
 from django.db import connection
 from django.db.models import Value as DbValue
@@ -102,13 +101,12 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual([frank, joe], list(response.context["object_list"]))
         self.assertIsNone(response.context["search_error"])
         self.assertEqual([], list(response.context["actions"]))
+        self.assertContentMenu(list_url, self.user, ["Export"])
 
         active_contacts = self.org.active_contacts_group
         open_tickets = self.org.groups.get(name="Open Tickets")
         survey_audience = self.org.groups.get(name="Survey Audience")
         unsatisfied = self.org.groups.get(name="Unsatisfied Customers")
-
-        self.maxDiff = None
 
         self.assertEqual(
             [
@@ -229,6 +227,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(list_url)
         self.assertEqual([frank, joe], list(response.context["object_list"]))
         self.assertEqual(["block", "archive", "send"], list(response.context["actions"]))
+        self.assertContentMenu(list_url, self.admin, ["Manage Fields", "Export"])
 
         # TODO: group labeling as a feature is on probation
         # self.client.post(list_url, {"action": "label", "objects": frank.id, "label": survey_audience.id})
@@ -438,6 +437,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(["block", "unlabel"], list(response.context["actions"]))
         self.assertContains(response, "Edit Group")
         self.assertContains(response, "Delete Group")
+        self.assertContentMenu(
+            group1_url, self.admin, ["Manage Fields", "Edit Group", "Export", "Usages", "Delete Group"]
+        )
 
         response = self.assertReadFetch(group2_url, allow_viewers=True, allow_editors=True)
 
@@ -477,25 +479,32 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(read_url)
         self.assertLoginRedirect(response)
 
+        self.assertContentMenu(read_url, self.user, [])
+        self.assertContentMenu(
+            read_url,
+            self.editor,
+            ["Send Message", "Start Flow", "Open Ticket", "Edit", "Custom Fields", "Block", "Archive"],
+        )
+        self.assertContentMenu(
+            read_url,
+            self.admin,
+            ["Send Message", "Start Flow", "Open Ticket", "Edit", "Custom Fields", "Block", "Archive"],
+        )
+
         # login as viewer
         self.login(self.user)
 
         response = self.client.get(read_url)
         self.assertContains(response, "Joe")
 
-        # make sure the block link is not present
-        self.assertNotContains(response, block_url)
-
         # login as admin
         self.login(self.admin)
 
-        # make sure the block link is present now
-        response = self.client.get(read_url)
-        self.assertContains(response, block_url)
-
-        # and that it works
+        # block the contact
         self.client.post(block_url, dict(id=joe.id))
         self.assertTrue(Contact.objects.get(pk=joe.id, status="B"))
+
+        self.assertContentMenu(read_url, self.admin, ["Edit", "Custom Fields", "Activate", "Archive"])
 
         # try unblocking now
         response = self.client.get(read_url)
@@ -556,6 +565,32 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # invalid uuid should return 404
         response = self.client.get(reverse("contacts.contact_read", args=["invalid-uuid"]))
         self.assertEqual(response.status_code, 404)
+
+    def test_read_as_customer_support(self):
+        joe = self.create_contact("Joe", phone="123")
+        read_url = reverse("contacts.contact_read", args=[joe.uuid])
+
+        # should see service button
+        self.assertContentMenu(read_url, self.customer_support, ["Service"])
+
+    def test_read_language(self):
+        joe = self.create_contact("Joe", phone="123")
+        read_url = reverse("contacts.contact_read", args=[joe.uuid])
+
+        # this is a bogus
+        joe.language = "zzz"
+        joe.save(update_fields=("language",))
+        response = self.requestView(read_url, self.admin)
+
+        # should just show the language code instead of the language name
+        self.assertContains(response, "zzz")
+
+        joe.language = "fra"
+        joe.save(update_fields=("language",))
+        response = self.requestView(read_url, self.admin)
+
+        # with a proper code, we should see the language
+        self.assertContains(response, "French")
 
     def test_scheduled(self):
         contact1 = self.create_contact("Joe", phone="+1234567890")
@@ -800,6 +835,55 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # contact should be unchanged
         other_org_contact.refresh_from_db()
         self.assertEqual(Contact.STATUS_STOPPED, other_org_contact.status)
+
+    @mock_mailroom
+    def test_interrupt(self, mr_mocks):
+        contact = self.create_contact("Joe", phone="+593979000111")
+        other_org_contact = self.create_contact("Hans", phone="+593979123456", org=self.org2)
+
+        read_url = reverse("contacts.contact_read", args=[contact.uuid])
+        interrupt_url = reverse("contacts.contact_interrupt", args=[contact.id])
+
+        self.login(self.admin)
+
+        # no interrupt option if not in a flow
+        response = self.client.get(read_url)
+        self.assertNotContains(response, interrupt_url)
+
+        MockSessionWriter(contact, self.create_flow("Test")).wait().save()
+        MockSessionWriter(other_org_contact, self.create_flow("Test", org=self.org2)).wait().save()
+
+        # now it's an option
+        response = self.client.get(read_url)
+        self.assertContains(response, interrupt_url)
+
+        # can't interrupt if not logged in
+        self.client.logout()
+        response = self.client.post(interrupt_url, {"id": contact.id})
+        self.assertLoginRedirect(response)
+
+        self.login(self.user)
+
+        # can't interrupt if just regular user
+        response = self.client.post(interrupt_url, {"id": contact.id})
+        self.assertLoginRedirect(response)
+
+        self.login(self.admin)
+
+        response = self.client.post(interrupt_url, {"id": contact.id})
+        self.assertEqual(302, response.status_code)
+
+        contact.refresh_from_db()
+        self.assertIsNone(contact.current_flow)
+
+        # can't interrupt contact in other org
+        restore_url = reverse("contacts.contact_interrupt", args=[other_org_contact.id])
+        response = self.client.post(restore_url, {"id": other_org_contact.id})
+        self.assertLoginRedirect(response)
+
+        # contact should be unchanged
+        other_org_contact.refresh_from_db()
+        self.assertIsNotNone(other_org_contact.current_flow)
 
     def test_delete(self):
         contact = self.create_contact("Joe", phone="+593979000111")
@@ -1617,6 +1701,16 @@ class ContactTest(TembaTest):
         self.assertEqual("Looks sus", ticket.body)
 
     @mock_mailroom
+    def test_interrupt(self, mr_mocks):
+        # noop when contact not in a flow
+        self.assertFalse(self.joe.interrupt(self.admin))
+
+        flow = self.create_flow("Test")
+        MockSessionWriter(self.joe, flow).wait().save()
+
+        self.assertTrue(self.joe.interrupt(self.admin))
+
+    @mock_mailroom
     def test_release(self, mr_mocks):
         # create a contact with a message
         old_contact = self.create_contact("Jose", phone="+12065552000")
@@ -2314,9 +2408,7 @@ class ContactTest(TembaTest):
         failed = Msg.objects.filter(direction="O", contact=self.joe).last()
         failed.status = "F"
         failed.save(update_fields=("status",))
-        log = ChannelLog.objects.create(
-            channel=failed.channel, msg=failed, is_error=True, description="It didn't send!!"
-        )
+        ChannelLog.objects.create(channel=failed.channel, msg=failed, is_error=True, description="It didn't send!!")
 
         # create an airtime transfer
         transfer = AirtimeTransfer.objects.create(
@@ -2392,7 +2484,7 @@ class ContactTest(TembaTest):
         # fetch our contact history
         self.login(self.admin)
         with patch("temba.utils.s3.s3.client", return_value=self.mock_s3):
-            with self.assertNumQueries(35):
+            with self.assertNumQueries(34):
                 response = self.client.get(url + "?limit=100")
 
         # history should include all messages in the last 90 days, the channel event, the call, and the flow run
@@ -2434,8 +2526,8 @@ class ContactTest(TembaTest):
             response,
             "http://www.openstreetmap.org/?mlat=47.5414799&amp;mlon=-122.6359908#map=18/47.5414799/-122.6359908",
         )
-        self.assertContains(response, reverse("channels.channellog_read", args=[log.channel.uuid, log.id]))
-        self.assertContains(response, reverse("channels.channellog_connection", args=[call.id]))
+        self.assertContains(response, reverse("channels.channellog_msg", args=[failed.id]))
+        self.assertContains(response, reverse("channels.channellog_call", args=[call.id]))
         self.assertContains(response, "Transferred <b>100.00</b> <b>RWF</b> of airtime")
         self.assertContains(response, reverse("airtime.airtimetransfer_read", args=[transfer.id]))
 
@@ -2896,35 +2988,6 @@ class ContactTest(TembaTest):
             reverse("contacts.contact_read", args=[self.other_org_contact.uuid]), self.superuser
         )
         self.assertEqual(response.status_code, 200)
-
-    def test_read_with_customer_support(self):
-        self.login(self.customer_support)
-
-        response = self.client.get(reverse("contacts.contact_read", args=[self.joe.uuid]))
-
-        gear_links = response.context["view"].get_gear_links()
-        self.assertListEqual([gl["title"] for gl in gear_links], ["Service"])
-        self.assertEqual(
-            gear_links[-1]["href"],
-            f"/org/service/?organization={self.joe.org_id}&redirect_url=/contact/read/{self.joe.uuid}/",
-        )
-
-    def test_read_language(self):
-
-        # this is a bogus
-        self.joe.language = "zzz"
-        self.joe.save(update_fields=("language",))
-        response = self.fetch_protected(reverse("contacts.contact_read", args=[self.joe.uuid]), self.admin)
-
-        # should just show the language code instead of the language name
-        self.assertContains(response, "zzz")
-
-        self.joe.language = "fra"
-        self.joe.save(update_fields=("language",))
-        response = self.fetch_protected(reverse("contacts.contact_read", args=[self.joe.uuid]), self.admin)
-
-        # with a proper code, we should see the language
-        self.assertContains(response, "French")
 
     @mock_mailroom
     def test_contacts_search(self, mr_mocks):
@@ -3849,14 +3912,14 @@ class ContactURNTest(TembaTest):
         with self.assertRaises(IntegrityError):
             ContactURN.objects.create(org=self.org, scheme="ext", path="1234", identity="ext:5678")
 
-    def test_api_urn(self):
+    def test_get_for_api(self):
         urn = ContactURN.objects.create(
-            org=self.org, scheme="tel", path="+250788383383", identity="tel:+250788383383", priority=50
+            org=self.org, scheme="tel", path="+250788383383", identity="tel:+250788383383", priority=50, display="xyz"
         )
-        self.assertEqual(urn.api_urn(), "tel:+250788383383")
+        self.assertEqual(urn.get_for_api(), "tel:+250788383383")
 
         with AnonymousOrg(self.org):
-            self.assertEqual(urn.api_urn(), "tel:********")
+            self.assertEqual(urn.get_for_api(), "tel:********")
 
 
 class ContactFieldTest(TembaTest):
@@ -6167,16 +6230,12 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(create_url, {})
         self.assertFormError(response, "form", "file", "This field is required.")
 
-        def upload(path):
-            with open(path, "rb") as f:
-                return SimpleUploadedFile(path, content=f.read())
-
         # try uploading an empty CSV file
-        response = self.client.post(create_url, {"file": upload("media/test_imports/empty.csv")})
+        response = self.client.post(create_url, {"file": self.upload("media/test_imports/empty.csv")})
         self.assertFormError(response, "form", "file", "Import file doesn't contain any records.")
 
         # try uploading a valid XLSX file
-        response = self.client.post(create_url, {"file": upload("media/test_imports/simple.xlsx")})
+        response = self.client.post(create_url, {"file": self.upload("media/test_imports/simple.xlsx")})
         self.assertEqual(302, response.status_code)
 
         imp = ContactImport.objects.get()

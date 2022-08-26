@@ -11,7 +11,6 @@ from django_redis import get_redis_connection
 from openpyxl import load_workbook
 
 from django.conf import settings
-from django.contrib.auth.models import Group
 from django.db.models.functions import TruncDate
 from django.test.utils import override_settings
 from django.urls import reverse
@@ -264,12 +263,7 @@ class FlowTest(TembaTest):
         self.assertContains(response, "id='rp-flow-editor'")
 
         # customer service gets a service button
-        csrep = self.create_user("csrep")
-        csrep.groups.add(Group.objects.get(name="Customer Support"))
-        csrep.is_staff = True
-        csrep.save()
-
-        self.login(csrep)
+        self.login(self.customer_support)
 
         response = self.client.get(reverse("flows.flow_editor", args=[flow.uuid]))
         self.assertContains(response, "Service")
@@ -1080,24 +1074,22 @@ class FlowTest(TembaTest):
         FlowCategoryCount.objects.get(category_name="Blue", result_name="Color", result_key="color", count=-1)
 
     def test_flow_start_counts(self):
-        flow = self.get_flow("color")
-
         # create start for 10 contacts
+        flow = self.create_flow("Test")
         start = FlowStart.objects.create(org=self.org, flow=flow, created_by=self.admin)
         for i in range(10):
-            contact = self.create_contact("Bob", urns=[f"twitter:bobby{i}"])
-            start.contacts.add(contact)
+            start.contacts.add(self.create_contact("Bob", urns=[f"twitter:bobby{i}"]))
 
         # create runs for first 5
-        for contact in start.contacts.order_by("id")[:5]:
-            FlowRun.objects.create(org=self.org, flow=flow, contact=contact, start=start)
+        for c in start.contacts.order_by("id")[:5]:
+            MockSessionWriter(contact=c, flow=flow, start=start).wait().save()
 
         # check our count
         self.assertEqual(FlowStartCount.get_count(start), 5)
 
         # create runs for last 5
-        for contact in start.contacts.order_by("id")[5:]:
-            FlowRun.objects.create(org=self.org, flow=flow, contact=contact, start=start)
+        for c in start.contacts.order_by("id")[5:]:
+            MockSessionWriter(contact=c, flow=flow, start=start).wait().save()
 
         # check our count
         self.assertEqual(FlowStartCount.get_count(start), 10)
@@ -1690,6 +1682,7 @@ class FlowTest(TembaTest):
             wait_started_on=datetime(2022, 1, 1, 0, 0, 0, 0, pytz.UTC),
             wait_expires_on=None,
             wait_resume_on_expire=False,
+            ended_on=timezone.now(),
         )
 
         # create waiting session for flow 2
@@ -1923,7 +1916,21 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # make sure we don't get a start flow button for Android Surveys
         response = self.client.get(reverse("flows.flow_editor", args=[flow2.uuid]))
-        self.assertNotContains(response, "broadcast-rulesflow btn-primary")
+        self.assertContentMenu(
+            reverse("flows.flow_editor", args=[flow2.uuid]),
+            self.admin,
+            [
+                "Results",
+                "-",
+                "Edit",
+                "Copy",
+                "Delete",
+                "-",
+                "Export Definition",
+                "Export Translation",
+                "Import Translation",
+            ],
+        )
 
         # create a new voice flow
         response = self.client.post(
@@ -2974,51 +2981,6 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertTrue(start.include_active)
         self.assertEqual('name ~ "frank"', start.query)
 
-    @patch("temba.flows.views.uuid4")
-    def test_upload_media_action(self, mock_uuid):
-        flow = self.create_flow("Test")
-        other_org_flow = self.create_flow("Test", org=self.org2)
-
-        action_url = reverse("flows.flow_upload_media_action", args=[flow.uuid])
-
-        def assert_upload(filename, expected_type, expected_url):
-            with open(filename, "rb") as data:
-                response = self.client.post(action_url, {"file": data, "action": ""}, HTTP_X_FORWARDED_HTTPS="https")
-
-                self.assertEqual(response.status_code, 200)
-                actual_type = response.json()["type"]
-                actual_url = response.json()["url"]
-                self.assertEqual(expected_type, actual_type)
-                self.assertEqual(expected_url, actual_url)
-
-        self.login(self.admin)
-
-        mock_uuid.side_effect = ["11111-111-11", "22222-222-22", "33333-333-33", "44444-444-44"]
-
-        assert_upload(
-            f"{settings.MEDIA_ROOT}/test_media/steve marten.jpg",
-            "image/jpeg",
-            f"/media/attachments/{self.org.id}/{flow.id}/steps/11111-111-11/steve%20marten.jpg",
-        )
-        assert_upload(
-            f"{settings.MEDIA_ROOT}/test_media/snow.mp4",
-            "video/mp4",
-            f"/media/attachments/{self.org.id}/{flow.id}/steps/22222-222-22/snow.mp4",
-        )
-        assert_upload(
-            f"{settings.MEDIA_ROOT}/test_media/snow.m4a",
-            "audio/mp4",
-            f"/media/attachments/{self.org.id}/{flow.id}/steps/33333-333-33/snow.m4a",
-        )
-
-        # can't upload for flow in other org
-        with open(f"{settings.MEDIA_ROOT}/test_media/steve marten.jpg", "rb") as data:
-            upload_url = reverse("flows.flow_upload_media_action", args=[other_org_flow.uuid])
-            response = self.client.post(upload_url, {"file": data, "action": ""}, HTTP_X_FORWARDED_HTTPS="https")
-            self.assertLoginRedirect(response)
-
-        self.clear_storage()
-
     def test_copy_view(self):
         flow = self.get_flow("color")
 
@@ -3258,7 +3220,14 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         with patch("temba.flows.views.FlowCRUDL.RunTable.paginate_by", 1):
             # create one empty run
-            FlowRun.objects.create(org=self.org, flow=flow, contact=pete, responded=True)
+            FlowRun.objects.create(
+                org=self.org,
+                flow=flow,
+                contact=pete,
+                responded=True,
+                status=FlowRun.STATUS_COMPLETED,
+                exited_on=timezone.now(),
+            )
 
             # fetch our intercooler rows for the run table
             response = self.client.get(reverse("flows.flow_run_table", args=[flow.id]))
@@ -3267,7 +3236,14 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         with patch("temba.flows.views.FlowCRUDL.RunTable.paginate_by", 1):
             # create one empty run
-            FlowRun.objects.create(org=self.org, flow=flow, contact=pete, responded=False)
+            FlowRun.objects.create(
+                org=self.org,
+                flow=flow,
+                contact=pete,
+                responded=False,
+                status=FlowRun.STATUS_COMPLETED,
+                exited_on=timezone.now(),
+            )
 
             # fetch our intercooler rows for the run table
             response = self.client.get("%s?responded=bla" % reverse("flows.flow_run_table", args=[flow.id]))
@@ -3861,6 +3837,9 @@ class FlowSessionTest(TembaTest):
             org=self.org,
             contact=contact,
             output_url="http://sessions.com/123.json",
+            status=FlowSession.STATUS_WAITING,
+            wait_started_on=timezone.now(),
+            wait_expires_on=timezone.now() + timedelta(days=7),
             wait_resume_on_expire=False,
         )
         session2 = FlowSession.objects.create(
@@ -3868,6 +3847,9 @@ class FlowSessionTest(TembaTest):
             org=self.org,
             contact=contact,
             output_url="http://sessions.com/234.json",
+            status=FlowSession.STATUS_WAITING,
+            wait_started_on=timezone.now(),
+            wait_expires_on=timezone.now() + timedelta(days=7),
             wait_resume_on_expire=False,
         )
         session3 = FlowSession.objects.create(
@@ -3875,11 +3857,20 @@ class FlowSessionTest(TembaTest):
             org=self.org,
             contact=contact,
             output_url="http://sessions.com/345.json",
+            status=FlowSession.STATUS_WAITING,
+            wait_started_on=timezone.now(),
+            wait_expires_on=timezone.now() + timedelta(days=7),
             wait_resume_on_expire=False,
         )
-        run1 = FlowRun.objects.create(org=self.org, flow=flow, contact=contact, session=session1)
-        run2 = FlowRun.objects.create(org=self.org, flow=flow, contact=contact, session=session2)
-        run3 = FlowRun.objects.create(org=self.org, flow=flow, contact=contact, session=session3)
+        run1 = FlowRun.objects.create(
+            org=self.org, flow=flow, contact=contact, session=session1, status=FlowRun.STATUS_WAITING
+        )
+        run2 = FlowRun.objects.create(
+            org=self.org, flow=flow, contact=contact, session=session2, status=FlowRun.STATUS_WAITING
+        )
+        run3 = FlowRun.objects.create(
+            org=self.org, flow=flow, contact=contact, session=session3, status=FlowRun.STATUS_WAITING
+        )
 
         # create an IVR call with session
         call = self.create_incoming_call(flow, contact)
@@ -3891,14 +3882,27 @@ class FlowSessionTest(TembaTest):
         self.assertIsNotNone(run4.session)
 
         # end run1 and run4's sessions in the past
+        run1.status = FlowRun.STATUS_COMPLETED
+        run1.exited_on = datetime(2015, 9, 15, 0, 0, 0, 0, pytz.UTC)
+        run1.save(update_fields=("status", "exited_on"))
+        run1.session.status = FlowSession.STATUS_COMPLETED
         run1.session.ended_on = datetime(2015, 9, 15, 0, 0, 0, 0, pytz.UTC)
-        run1.session.save(update_fields=("ended_on",))
+        run1.session.save(update_fields=("status", "ended_on"))
+
+        run4.status = FlowRun.STATUS_INTERRUPTED
+        run4.exited_on = datetime(2015, 9, 15, 0, 0, 0, 0, pytz.UTC)
+        run4.save(update_fields=("status", "exited_on"))
+        run4.session.status = FlowSession.STATUS_INTERRUPTED
         run4.session.ended_on = datetime(2015, 9, 15, 0, 0, 0, 0, pytz.UTC)
-        run4.session.save(update_fields=("ended_on",))
+        run4.session.save(update_fields=("status", "ended_on"))
 
         # end run2's session now
+        run2.status = FlowRun.STATUS_EXPIRED
+        run2.exited_on = timezone.now()
+        run2.save(update_fields=("status", "exited_on"))
+        run4.session.status = FlowSession.STATUS_EXPIRED
         run2.session.ended_on = timezone.now()
-        run2.session.save(update_fields=("ended_on",))
+        run2.session.save(update_fields=("status", "ended_on"))
 
         trim_flow_sessions_and_starts()
 
@@ -3930,9 +3934,14 @@ class FlowStartTest(TembaTest):
                 org=self.org,
                 contact=contact,
                 output_url="http://sessions.com/123.json",
+                status=FlowSession.STATUS_WAITING,
+                wait_started_on=timezone.now(),
+                wait_expires_on=timezone.now() + timedelta(days=7),
                 wait_resume_on_expire=False,
             )
-            FlowRun.objects.create(org=self.org, contact=contact, flow=flow, session=session, start=start)
+            FlowRun.objects.create(
+                org=self.org, contact=contact, flow=flow, session=session, start=start, status=FlowRun.STATUS_WAITING
+            )
 
             FlowStartCount.objects.create(start=start, count=1, is_squashed=False)
 
@@ -5239,9 +5248,7 @@ class FlowLabelCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_create(self):
         create_url = reverse("flows.flowlabel_create")
 
-        self.assertCreateFetch(
-            create_url, allow_viewers=False, allow_editors=True, form_fields=("name", "parent", "flows")
-        )
+        self.assertCreateFetch(create_url, allow_viewers=False, allow_editors=True, form_fields=("name", "flows"))
 
         # try to submit without a name
         self.assertCreateSubmit(create_url, {}, form_errors={"name": "This field is required."})
@@ -5256,17 +5263,9 @@ class FlowLabelCRUDLTest(TembaTest, CRUDLTestMixin):
             {"name": "Cool Flows"},
             new_obj_query=FlowLabel.objects.filter(org=self.org, name="Cool Flows", parent=None),
         )
-        label1 = FlowLabel.objects.get(name="Cool Flows")
 
         # try to create with a name that's already used
         self.assertCreateSubmit(create_url, {"name": "Cool Flows"}, form_errors={"name": "Must be unique."})
-
-        # create a label with a parent
-        self.assertCreateSubmit(
-            create_url,
-            {"name": "Very Cool Flows", "parent": label1.id},
-            new_obj_query=FlowLabel.objects.filter(org=self.org, name="Very Cool Flows", parent=label1),
-        )
 
     def test_update(self):
         parent = FlowLabel.create(self.org, self.admin, "Cool Flows")
