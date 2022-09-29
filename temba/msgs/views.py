@@ -369,7 +369,7 @@ class BroadcastCRUDL(SmartCRUDL):
 
             broadcast.save()
             return broadcast
-    
+
     class ScheduledDelete(OrgObjPermsMixin, ComponentFormMixin, SmartUpdateView):
         form_class = BroadcastForm
         fields = ("message", "omnibox")
