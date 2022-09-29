@@ -189,6 +189,11 @@ class MailroomClient:
             metadata=QueryMetadata(**response.get("metadata", {})),
         )
 
+    def msg_fail(self, org_id, msg_ids):
+        payload = {"org_id": org_id, "msg_ids": msg_ids}
+
+        return self._request("msg/fail", payload)
+
     def msg_resend(self, org_id, msg_ids):
         payload = {"org_id": org_id, "msg_ids": msg_ids}
 

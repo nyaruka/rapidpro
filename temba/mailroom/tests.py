@@ -220,6 +220,19 @@ class MailroomClientTest(TembaTest):
             )
 
     @patch("requests.post")
+    def test_msg_fail(self, mock_post):
+        mock_post.return_value = MockResponse(200, '{"msg_ids": [12345]}')
+        response = get_client().msg_fail(org_id=self.org.id, msg_ids=[12345, 67890])
+
+        self.assertEqual({"msg_ids": [12345]}, response)
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mr/msg/fail",
+            headers={"User-Agent": "Temba"},
+            json={"org_id": self.org.id, "msg_ids": [12345, 67890]},
+        )
+
+    @patch("requests.post")
     def test_msg_resend(self, mock_post):
         mock_post.return_value = MockResponse(200, '{"msg_ids": [12345]}')
         response = get_client().msg_resend(org_id=self.org.id, msg_ids=[12345, 67890])
