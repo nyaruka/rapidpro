@@ -384,7 +384,7 @@ class BroadcastCRUDL(SmartCRUDL):
             message = self.object.text[self.object.base_language]
             return dict(message=message, omnibox=selected)
 
-        def delete(self, *args, **kwargs):
+        def save(self, *args, **kwargs):
             broadcast = self.object
             broadcast.delete()
             return
