@@ -371,6 +371,7 @@ class BroadcastCRUDL(SmartCRUDL):
             return broadcast
 
     class Delete(DependencyDeleteModal):
+        # todo figure out what to pass for uuid and name since broadcasts have neither of those
         # todo clarify when to put id vs. uuid vs. nothing in front of the @
         cancel_url = "id@msgs.broadcast_scheduled_read"
         success_url = "@msgs.broadcast_scheduled"
