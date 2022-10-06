@@ -174,7 +174,7 @@ class Media(models.Model):
         process_upload(self)
 
 
-class Broadcast(models.Model):
+class Broadcast(models.Model, DependencyMixin):
     """
     A broadcast is a message that is sent out to more than one recipient, such
     as a ContactGroup or a list of Contacts. It's nothing more than a way to tie
@@ -376,6 +376,9 @@ class Broadcast(models.Model):
     def get_template_state(self):
         metadata = self.metadata or {}
         return metadata.get(Broadcast.METADATA_TEMPLATE_STATE, Broadcast.TEMPLATE_STATE_LEGACY)
+
+    def get_dependents(self):
+        return super().get_dependents()
 
     def __str__(self):  # pragma: no cover
         return f"Broadcast[id={self.id}, text={self.text}]"

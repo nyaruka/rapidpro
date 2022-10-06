@@ -333,6 +333,7 @@ class DependencyDeleteModal(DependencyModalMixin, ModalMixin, SmartDeleteView):
 
     slug_url_kwarg = "uuid"
     fields = ("uuid",)
+    display_name = ""
     success_message = ""
     submit_button_name = _("Delete")
     template_name = "orgs/dependency_delete_modal.haml"
@@ -360,11 +361,16 @@ class DependencyDeleteModal(DependencyModalMixin, ModalMixin, SmartDeleteView):
         context["soft_dependents"] = soft_dependents
         context["hard_dependents"] = hard_dependents
         context["type_warnings"] = self.type_warnings
+
+        context["display_name"] = (
+            self.object.name if self.display_name == "" and hasattr(self.object, "name") else self.display_name
+        )
+
         return context
 
     def post(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.release(request.user)
+        obj.release()
 
         messages.info(request, self.derive_success_message())
         response = HttpResponse()

@@ -28,7 +28,7 @@ from temba.archives.models import Archive
 from temba.contacts.models import ContactGroup
 from temba.contacts.search.omnibox import omnibox_deserialize, omnibox_query, omnibox_results_to_dict
 from temba.formax import FormaxMixin
-from temba.orgs.models import Org
+from temba.orgs.models import DependencyMixin, Org
 from temba.orgs.views import (
     DependencyDeleteModal,
     DependencyUsagesModal,
@@ -201,7 +201,7 @@ class BroadcastForm(forms.ModelForm):
         fields = "__all__"
 
 
-class BroadcastCRUDL(SmartCRUDL):
+class BroadcastCRUDL(SmartCRUDL, DependencyMixin):
     actions = ("scheduled", "scheduled_create", "scheduled_read", "scheduled_update", "delete", "send")
     model = Broadcast
 
@@ -371,11 +371,12 @@ class BroadcastCRUDL(SmartCRUDL):
             return broadcast
 
     class Delete(DependencyDeleteModal):
-        # todo figure out what to pass for uuid and name since broadcasts have neither of those
-        # todo clarify when to put id vs. uuid vs. nothing in front of the @
+
+        slug_url_kwarg = "id"
+        fields = ("id",)
+        display_name = _("Scheduled Message")
         cancel_url = "id@msgs.broadcast_scheduled_read"
         success_url = "@msgs.broadcast_scheduled"
-        success_message = ""
 
     class Send(OrgPermsMixin, ModalMixin, SmartFormView):
         class Form(Form):

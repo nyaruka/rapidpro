@@ -28,7 +28,7 @@ from temba.classifiers.models import Classifier
 from temba.contacts import search
 from temba.contacts.models import Contact, ContactField, ContactGroup
 from temba.globals.models import Global
-from temba.msgs.models import Label
+from temba.msgs.models import Broadcast, Label
 from temba.orgs.models import DependencyMixin, Org
 from temba.templates.models import Template
 from temba.tickets.models import Ticketer, Topic
@@ -185,6 +185,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
     has_issues = models.BooleanField(default=False)
 
     # dependencies on other assets
+    broadcast_dependencies = models.ManyToManyField(Broadcast, related_name="dependent_flows")
     channel_dependencies = models.ManyToManyField(Channel, related_name="dependent_flows")
     classifier_dependencies = models.ManyToManyField(Classifier, related_name="dependent_flows")
     field_dependencies = models.ManyToManyField(ContactField, related_name="dependent_flows")
