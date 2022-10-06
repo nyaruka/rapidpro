@@ -1134,6 +1134,7 @@ class MenuMixin(OrgPermsMixin):
         items=[],
         inline=False,
         bottom=False,
+        verbose_name=None,
     ):
 
         if perm and not self.has_org_perm(perm):  # pragma: no cover
@@ -1142,6 +1143,7 @@ class MenuMixin(OrgPermsMixin):
         menu_item = {"name": name, "inline": inline}
         menu_item["id"] = menu_id if menu_id else slugify(name)
         menu_item["bottom"] = bottom
+        menu_item["verbose_name"] = verbose_name
 
         if icon:
             menu_item["icon"] = icon

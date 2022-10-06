@@ -70,7 +70,6 @@ class InboxView(SpaMixin, ContentMenuMixin, OrgPermsMixin, BulkActionMixin, Smar
     paginate_by = 100
     default_order = ("-created_on", "-id")
     allow_export = False
-    show_channel_logs = False
     bulk_actions = ()
     bulk_action_permissions = {"resend": "msgs.broadcast_send", "delete": "msgs.msg_update"}
 
@@ -98,9 +97,6 @@ class InboxView(SpaMixin, ContentMenuMixin, OrgPermsMixin, BulkActionMixin, Smar
             distinct_on = (f.lstrip("-") for f in self.derive_ordering())
 
             qs = qs.filter(created_on__gte=last_90).distinct(*distinct_on)
-
-        if self.show_channel_logs:
-            qs = qs.prefetch_related("channel_logs")
 
         return qs
 
@@ -147,7 +143,6 @@ class InboxView(SpaMixin, ContentMenuMixin, OrgPermsMixin, BulkActionMixin, Smar
         )
         context["current_label"] = label
         context["export_url"] = self.derive_export_url()
-        context["show_channel_logs"] = self.show_channel_logs
         context["start_date"] = org.get_delete_date(archive_type=Archive.TYPE_MSG)
 
         # if refresh was passed in, increase it by our normal refresh time
@@ -564,12 +559,14 @@ class MsgCRUDL(SmartCRUDL):
                     ),
                     self.create_menu_item(
                         name=_("Flows"),
+                        verbose_name=_("Flow Messages"),
                         href=reverse("msgs.msg_flow"),
                         count=counts[SystemLabel.TYPE_FLOWS],
                         icon="flow",
                     ),
                     self.create_menu_item(
                         name=_("Archived"),
+                        verbose_name=_("Archived Messages"),
                         href=reverse("msgs.msg_archived"),
                         count=counts[SystemLabel.TYPE_ARCHIVED],
                         icon="archive",
@@ -582,17 +579,20 @@ class MsgCRUDL(SmartCRUDL):
                     ),
                     self.create_menu_item(
                         name=_("Sent"),
+                        verbose_name=_("Sent Messages"),
                         href=reverse("msgs.msg_sent"),
                         count=counts[SystemLabel.TYPE_SENT],
                     ),
                     self.create_menu_item(
                         name=_("Failed"),
+                        verbose_name=_("Failed Messages"),
                         href=reverse("msgs.msg_failed"),
                         count=counts[SystemLabel.TYPE_FAILED],
                     ),
                     self.create_divider(),
                     self.create_menu_item(
                         name=_("Scheduled"),
+                        verbose_name=_("Scheduled Messages"),
                         href=reverse("msgs.broadcast_scheduled"),
                         count=counts[SystemLabel.TYPE_SCHEDULED],
                     ),
@@ -729,7 +729,7 @@ class MsgCRUDL(SmartCRUDL):
 
         def get_queryset(self, **kwargs):
             qs = super().get_queryset(**kwargs)
-            return qs.prefetch_related("labels").select_related("contact")
+            return qs.prefetch_related("labels").select_related("contact", "channel")
 
     class Flow(InboxView):
         title = _("Flow Messages")
@@ -740,7 +740,7 @@ class MsgCRUDL(SmartCRUDL):
 
         def get_queryset(self, **kwargs):
             qs = super().get_queryset(**kwargs)
-            return qs.prefetch_related("labels").select_related("contact")
+            return qs.prefetch_related("labels").select_related("contact", "channel")
 
     class Archived(InboxView):
         title = _("Archived")
@@ -751,7 +751,7 @@ class MsgCRUDL(SmartCRUDL):
 
         def get_queryset(self, **kwargs):
             qs = super().get_queryset(**kwargs)
-            return qs.prefetch_related("labels").select_related("contact")
+            return qs.prefetch_related("labels").select_related("contact", "channel")
 
     class Outbox(InboxView):
         title = _("Outbox Messages")
@@ -759,7 +759,6 @@ class MsgCRUDL(SmartCRUDL):
         system_label = SystemLabel.TYPE_OUTBOX
         bulk_actions = ()
         allow_export = True
-        show_channel_logs = True
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
@@ -778,7 +777,7 @@ class MsgCRUDL(SmartCRUDL):
             return context
 
         def get_queryset(self, **kwargs):
-            return super().get_queryset(**kwargs).select_related("contact")
+            return super().get_queryset(**kwargs).select_related("contact", "channel")
 
     class Sent(InboxView):
         title = _("Sent Messages")
@@ -786,11 +785,10 @@ class MsgCRUDL(SmartCRUDL):
         system_label = SystemLabel.TYPE_SENT
         bulk_actions = ()
         allow_export = True
-        show_channel_logs = True
         default_order = ("-sent_on", "-id")
 
         def get_queryset(self, **kwargs):
-            return super().get_queryset(**kwargs).select_related("contact")
+            return super().get_queryset(**kwargs).select_related("contact", "channel")
 
     class Failed(InboxView):
         title = _("Failed Outgoing Messages")
@@ -798,13 +796,12 @@ class MsgCRUDL(SmartCRUDL):
         success_message = ""
         system_label = SystemLabel.TYPE_FAILED
         allow_export = True
-        show_channel_logs = True
 
         def get_bulk_actions(self):
             return () if self.request.org.is_suspended else ("resend",)
 
         def get_queryset(self, **kwargs):
-            return super().get_queryset(**kwargs).select_related("contact")
+            return super().get_queryset(**kwargs).select_related("contact", "channel")
 
     class Filter(InboxView):
         template_name = "msgs/msg_filter.haml"
@@ -855,7 +852,7 @@ class MsgCRUDL(SmartCRUDL):
             qs = super().get_queryset(**kwargs)
             qs = self.label.filter_messages(qs).filter(visibility=Msg.VISIBILITY_VISIBLE)
 
-            return qs.prefetch_related("labels").select_related("contact")
+            return qs.prefetch_related("labels").select_related("contact", "channel")
 
 
 class BaseLabelForm(forms.ModelForm):

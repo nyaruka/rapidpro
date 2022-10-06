@@ -289,33 +289,49 @@ class MsgTest(TembaTest):
             },
         )
 
-    def test_delete(self):
-        # create some incoming messages
-        msg1 = self.create_incoming_msg(self.joe, "i'm having a problem", attachments=["image:http://a.jpg"])
-        msg2 = self.create_incoming_msg(self.frank, "ignore joe, he's a liar", attachments=["image:http://b.jpg"])
+    @patch("django.core.files.storage.default_storage.delete")
+    def test_delete(self, mock_storage_delete):
+        # create some messages
+        msg1 = self.create_incoming_msg(
+            self.joe,
+            "i'm having a problem",
+            attachments=[
+                r"audo/mp4:http://s3.com/attachments/1/a/b.jpg",
+                r"image/jpeg:http://s3.com/attachments/1/c/d%20e.jpg",
+            ],
+        )
+        msg2 = self.create_incoming_msg(self.frank, "ignore joe, he's a liar")
+        out1 = self.create_outgoing_msg(self.frank, "hi")
 
-        # create a channel logs for both
+        # can't soft delete outgoing messages
+        with self.assertRaises(AssertionError):
+            out1.delete(soft=True)
+
+        # create a channel logs for both incoming
         ChannelLog.objects.create(channel=self.channel, msg=msg1, is_error=False)
         ChannelLog.objects.create(channel=self.channel, msg=msg2, is_error=False)
 
         # we've used 2 credits
-        self.assertEqual(2, Msg.objects.all().count())
-        self.assertEqual(self.org._calculate_credits_used()[0], 2)
+        self.assertEqual(3, Msg.objects.all().count())
+        self.assertEqual(self.org._calculate_credits_used()[0], 3)
 
         # a soft delete should keep credits the same and clear text
         msg1.delete(soft=True)
         msg1.refresh_from_db()
-        self.assertEqual(2, Msg.objects.all().count())
-        self.assertEqual(self.org._calculate_credits_used()[0], 2)
+        self.assertEqual(3, Msg.objects.all().count())
+        self.assertEqual(self.org._calculate_credits_used()[0], 3)
         self.assertEqual(Msg.VISIBILITY_DELETED_BY_USER, msg1.visibility)
         self.assertEqual("", msg1.text)
         self.assertEqual([], msg1.attachments)
         self.assertEqual(1, msg1.channel_logs.count())  # logs still there
 
+        mock_storage_delete.assert_any_call("/attachments/1/a/b.jpg")
+        mock_storage_delete.assert_any_call("/attachments/1/c/d e.jpg")
+
         # test a hard delete as part of a contact removal
         msg2.delete()
-        self.assertEqual(1, Msg.objects.all().count())
-        self.assertEqual(self.org._calculate_credits_used()[0], 2)  # used credits unchanged
+        self.assertEqual(2, Msg.objects.all().count())
+        self.assertEqual(self.org._calculate_credits_used()[0], 3)  # used credits unchanged
         self.assertEqual(0, msg2.channel_logs.count())  # logs should be gone
 
     def test_get_sync_commands(self):
@@ -542,11 +558,12 @@ class MsgTest(TembaTest):
             build_time=23425,
         )
 
-        msg2.delete()
-        msg3.delete()
-        msg4.delete()
-        msg5.delete()
-        msg6.delete()
+        with patch("django.core.files.storage.default_storage.delete"):
+            msg2.delete()
+            msg3.delete()
+            msg4.delete()
+            msg5.delete()
+            msg6.delete()
 
         # create an archive earlier than our flow created date so we check that it isn't included
         body, md5, size = jsonlgz_encode([msg7.as_archive_json()])
@@ -580,29 +597,31 @@ class MsgTest(TembaTest):
                     "?l=I", {"export_all": 1, "start_date": "2000-09-01", "end_date": "2022-09-01"}
                 )
 
+        expected_headers = [
+            "Date",
+            "Contact UUID",
+            "Contact Name",
+            "URN Scheme",
+            "URN Value",
+            "Flow",
+            "Direction",
+            "Text",
+            "Attachments",
+            "Status",
+            "Channel",
+            "Labels",
+        ]
+
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
-                [
-                    "Date",
-                    "Contact UUID",
-                    "Name",
-                    "URN",
-                    "URN Type",
-                    "Flow",
-                    "Direction",
-                    "Text",
-                    "Attachments",
-                    "Status",
-                    "Channel",
-                    "Labels",
-                ],
+                expected_headers,
                 [
                     msg1.created_on,
                     msg1.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "Color Flow",
                     "IN",
                     "hello 1",
@@ -615,8 +634,8 @@ class MsgTest(TembaTest):
                     msg2.created_on,
                     msg2.contact.uuid,
                     "Frank Blow",
-                    "321",
                     "tel",
+                    "321",
                     "",
                     "IN",
                     "hello 2",
@@ -630,8 +649,8 @@ class MsgTest(TembaTest):
                     msg5.created_on,
                     msg5.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "",
                     "IN",
                     "Media message",
@@ -644,8 +663,8 @@ class MsgTest(TembaTest):
                     msg6.created_on,
                     msg6.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "",
                     "OUT",
                     "Hey out 6",
@@ -658,8 +677,8 @@ class MsgTest(TembaTest):
                     msg8.created_on,
                     msg8.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "",
                     "OUT",
                     "Hey out 8",
@@ -672,8 +691,8 @@ class MsgTest(TembaTest):
                     msg9.created_on,
                     msg9.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "",
                     "OUT",
                     "Hey out 9",
@@ -699,26 +718,13 @@ class MsgTest(TembaTest):
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
-                [
-                    "Date",
-                    "Contact UUID",
-                    "Name",
-                    "URN",
-                    "URN Type",
-                    "Flow",
-                    "Direction",
-                    "Text",
-                    "Attachments",
-                    "Status",
-                    "Channel",
-                    "Labels",
-                ],
+                expected_headers,
                 [
                     msg5.created_on,
                     msg5.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "",
                     "IN",
                     "Media message",
@@ -740,26 +746,13 @@ class MsgTest(TembaTest):
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
-                [
-                    "Date",
-                    "Contact UUID",
-                    "Name",
-                    "URN",
-                    "URN Type",
-                    "Flow",
-                    "Direction",
-                    "Text",
-                    "Attachments",
-                    "Status",
-                    "Channel",
-                    "Labels",
-                ],
+                expected_headers,
                 [
                     msg1.created_on,
                     msg1.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "Color Flow",
                     "IN",
                     "hello 1",
@@ -773,8 +766,8 @@ class MsgTest(TembaTest):
                     msg5.created_on,
                     msg5.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "",
                     "IN",
                     "Media message",
@@ -787,8 +780,8 @@ class MsgTest(TembaTest):
                     msg6.created_on,
                     msg6.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "",
                     "OUT",
                     "Hey out 6",
@@ -801,8 +794,8 @@ class MsgTest(TembaTest):
                     msg8.created_on,
                     msg8.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "",
                     "OUT",
                     "Hey out 8",
@@ -815,8 +808,8 @@ class MsgTest(TembaTest):
                     msg9.created_on,
                     msg9.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "",
                     "OUT",
                     "Hey out 9",
@@ -835,26 +828,13 @@ class MsgTest(TembaTest):
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
-                [
-                    "Date",
-                    "Contact UUID",
-                    "Name",
-                    "URN",
-                    "URN Type",
-                    "Flow",
-                    "Direction",
-                    "Text",
-                    "Attachments",
-                    "Status",
-                    "Channel",
-                    "Labels",
-                ],
+                expected_headers,
                 [
                     msg6.created_on,
                     msg6.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "",
                     "OUT",
                     "Hey out 6",
@@ -873,26 +853,13 @@ class MsgTest(TembaTest):
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
-                [
-                    "Date",
-                    "Contact UUID",
-                    "Name",
-                    "URN",
-                    "URN Type",
-                    "Flow",
-                    "Direction",
-                    "Text",
-                    "Attachments",
-                    "Status",
-                    "Channel",
-                    "Labels",
-                ],
+                expected_headers,
                 [
                     msg9.created_on,
                     msg9.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "",
                     "OUT",
                     "Hey out 9",
@@ -911,26 +878,13 @@ class MsgTest(TembaTest):
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
-                [
-                    "Date",
-                    "Contact UUID",
-                    "Name",
-                    "URN",
-                    "URN Type",
-                    "Flow",
-                    "Direction",
-                    "Text",
-                    "Attachments",
-                    "Status",
-                    "Channel",
-                    "Labels",
-                ],
+                expected_headers,
                 [
                     msg2.created_on,
                     msg2.contact.uuid,
                     "Frank Blow",
-                    "321",
                     "tel",
+                    "321",
                     "",
                     "IN",
                     "hello 2",
@@ -951,26 +905,13 @@ class MsgTest(TembaTest):
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
-                [
-                    "Date",
-                    "Contact UUID",
-                    "Name",
-                    "URN",
-                    "URN Type",
-                    "Flow",
-                    "Direction",
-                    "Text",
-                    "Attachments",
-                    "Status",
-                    "Channel",
-                    "Labels",
-                ],
+                expected_headers,
                 [
                     msg1.created_on,
                     msg1.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "Color Flow",
                     "IN",
                     "hello 1",
@@ -1082,6 +1023,21 @@ class MsgTest(TembaTest):
             workbook = load_workbook(filename=filename)
             return workbook.worksheets[0]
 
+        expected_headers = [
+            "Date",
+            "Contact UUID",
+            "Contact Name",
+            "URN Scheme",
+            "URN Value",
+            "Flow",
+            "Direction",
+            "Text",
+            "Attachments",
+            "Status",
+            "Channel",
+            "Labels",
+        ]
+
         # export all visible messages (i.e. not msg3) using export_all param
         with self.assertLogs("temba.msgs.models", level="INFO") as captured_logger:
             with patch(
@@ -1096,26 +1052,13 @@ class MsgTest(TembaTest):
                             "?l=I", {"export_all": 1, "start_date": "2000-09-01", "end_date": "2022-09-28"}
                         ),
                         [
-                            [
-                                "Date",
-                                "Contact UUID",
-                                "Name",
-                                "URN",
-                                "URN Type",
-                                "Flow",
-                                "Direction",
-                                "Text",
-                                "Attachments",
-                                "Status",
-                                "Channel",
-                                "Labels",
-                            ],
+                            expected_headers,
                             [
                                 msg1.created_on,
                                 msg1.contact.uuid,
                                 "Joe Blow",
-                                "123",
                                 "tel",
+                                "123",
                                 "Color Flow",
                                 "IN",
                                 "hello 1",
@@ -1128,8 +1071,8 @@ class MsgTest(TembaTest):
                                 msg2.created_on,
                                 msg2.contact.uuid,
                                 "Joe Blow",
-                                "123",
                                 "tel",
+                                "123",
                                 "",
                                 "IN",
                                 "hello 2",
@@ -1156,8 +1099,8 @@ class MsgTest(TembaTest):
                                 msg5.created_on,
                                 msg5.contact.uuid,
                                 "Joe Blow",
-                                "123",
                                 "tel",
+                                "123",
                                 "",
                                 "IN",
                                 "Media message",
@@ -1170,8 +1113,8 @@ class MsgTest(TembaTest):
                                 msg6.created_on,
                                 msg6.contact.uuid,
                                 "Joe Blow",
-                                "123",
                                 "tel",
+                                "123",
                                 "",
                                 "OUT",
                                 "Hey out 6",
@@ -1184,8 +1127,8 @@ class MsgTest(TembaTest):
                                 msg7.created_on,
                                 msg7.contact.uuid,
                                 "Joe Blow",
-                                "123",
                                 "tel",
+                                "123",
                                 "",
                                 "OUT",
                                 "Hey out 7",
@@ -1198,8 +1141,8 @@ class MsgTest(TembaTest):
                                 msg8.created_on,
                                 msg8.contact.uuid,
                                 "Joe Blow",
-                                "123",
                                 "tel",
+                                "123",
                                 "",
                                 "OUT",
                                 "Hey out 8",
@@ -1212,8 +1155,8 @@ class MsgTest(TembaTest):
                                 msg9.created_on,
                                 msg9.contact.uuid,
                                 "Joe Blow",
-                                "123",
                                 "tel",
+                                "123",
                                 "",
                                 "OUT",
                                 "Hey out 9",
@@ -1244,26 +1187,13 @@ class MsgTest(TembaTest):
         self.assertExcelSheet(
             request_export("?l=A", {"export_all": 0, "start_date": "2000-09-01", "end_date": "2022-09-28"}),
             [
-                [
-                    "Date",
-                    "Contact UUID",
-                    "Name",
-                    "URN",
-                    "URN Type",
-                    "Flow",
-                    "Direction",
-                    "Text",
-                    "Attachments",
-                    "Status",
-                    "Channel",
-                    "Labels",
-                ],
+                expected_headers,
                 [
                     msg3.created_on,
                     msg3.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "",
                     "IN",
                     "hello 3",
@@ -1286,26 +1216,13 @@ class MsgTest(TembaTest):
                 "?l=%s" % label.uuid, {"export_all": 0, "start_date": "2000-09-01", "end_date": "2022-09-28"}
             ),
             [
-                [
-                    "Date",
-                    "Contact UUID",
-                    "Name",
-                    "URN",
-                    "URN Type",
-                    "Flow",
-                    "Direction",
-                    "Text",
-                    "Attachments",
-                    "Status",
-                    "Channel",
-                    "Labels",
-                ],
+                expected_headers,
                 [
                     msg1.created_on,
                     msg1.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "Color Flow",
                     "IN",
                     "hello 1",
@@ -1324,26 +1241,13 @@ class MsgTest(TembaTest):
                 "?l=%s" % folder.uuid, {"export_all": 0, "start_date": "2000-09-01", "end_date": "2022-09-28"}
             ),
             [
-                [
-                    "Date",
-                    "Contact UUID",
-                    "Name",
-                    "URN",
-                    "URN Type",
-                    "Flow",
-                    "Direction",
-                    "Text",
-                    "Attachments",
-                    "Status",
-                    "Channel",
-                    "Labels",
-                ],
+                expected_headers,
                 [
                     msg1.created_on,
                     msg1.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "Color Flow",
                     "IN",
                     "hello 1",
@@ -1367,26 +1271,13 @@ class MsgTest(TembaTest):
         self.assertExcelSheet(
             request_export("?l=I", export_data),
             [
-                [
-                    "Date",
-                    "Contact UUID",
-                    "Name",
-                    "URN",
-                    "URN Type",
-                    "Flow",
-                    "Direction",
-                    "Text",
-                    "Attachments",
-                    "Status",
-                    "Channel",
-                    "Labels",
-                ],
+                expected_headers,
                 [
                     msg5.created_on,
                     msg5.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "",
                     "IN",
                     "Media message",
@@ -1399,8 +1290,8 @@ class MsgTest(TembaTest):
                     msg6.created_on,
                     msg6.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "",
                     "OUT",
                     "Hey out 6",
@@ -1413,8 +1304,8 @@ class MsgTest(TembaTest):
                     msg7.created_on,
                     msg7.contact.uuid,
                     "Joe Blow",
-                    "123",
                     "tel",
+                    "123",
                     "",
                     "OUT",
                     "Hey out 7",
@@ -1450,17 +1341,15 @@ class MsgTest(TembaTest):
 
         # test as anon org to check that URNs don't end up in exports
         with AnonymousOrg(self.org):
-            joe_anon_id = f"{self.joe.id:010d}"
-
             self.assertExcelSheet(
                 request_export("?l=I", {"export_all": 1, "start_date": "2000-09-01", "end_date": "2022-09-28"}),
                 [
                     [
                         "Date",
                         "Contact UUID",
-                        "Name",
-                        "ID",
-                        "URN Type",
+                        "Contact Name",
+                        "URN Scheme",
+                        "Anon Value",
                         "Flow",
                         "Direction",
                         "Text",
@@ -1473,8 +1362,8 @@ class MsgTest(TembaTest):
                         msg1.created_on,
                         msg1.contact.uuid,
                         "Joe Blow",
-                        joe_anon_id,
-                        "",
+                        "tel",
+                        self.joe.anon_display,
                         "Color Flow",
                         "IN",
                         "hello 1",
@@ -1487,8 +1376,8 @@ class MsgTest(TembaTest):
                         msg2.created_on,
                         msg2.contact.uuid,
                         "Joe Blow",
-                        joe_anon_id,
-                        "",
+                        "tel",
+                        self.joe.anon_display,
                         "",
                         "IN",
                         "hello 2",
@@ -1501,8 +1390,8 @@ class MsgTest(TembaTest):
                         msg4.created_on,
                         msg4.contact.uuid,
                         "Joe Blow",
-                        joe_anon_id,
                         "",
+                        self.joe.anon_display,
                         "",
                         "IN",
                         "hello 4",
@@ -1515,8 +1404,8 @@ class MsgTest(TembaTest):
                         msg5.created_on,
                         msg5.contact.uuid,
                         "Joe Blow",
-                        joe_anon_id,
-                        "",
+                        "tel",
+                        self.joe.anon_display,
                         "",
                         "IN",
                         "Media message",
@@ -1529,8 +1418,8 @@ class MsgTest(TembaTest):
                         msg6.created_on,
                         msg6.contact.uuid,
                         "Joe Blow",
-                        joe_anon_id,
-                        "",
+                        "tel",
+                        self.joe.anon_display,
                         "",
                         "OUT",
                         "Hey out 6",
@@ -1543,8 +1432,8 @@ class MsgTest(TembaTest):
                         msg7.created_on,
                         msg7.contact.uuid,
                         "Joe Blow",
-                        joe_anon_id,
-                        "",
+                        "tel",
+                        self.joe.anon_display,
                         "",
                         "OUT",
                         "Hey out 7",
@@ -1557,8 +1446,8 @@ class MsgTest(TembaTest):
                         msg8.created_on,
                         msg8.contact.uuid,
                         "Joe Blow",
-                        joe_anon_id,
-                        "",
+                        "tel",
+                        self.joe.anon_display,
                         "",
                         "OUT",
                         "Hey out 8",
@@ -1571,8 +1460,8 @@ class MsgTest(TembaTest):
                         msg9.created_on,
                         msg9.contact.uuid,
                         "Joe Blow",
-                        joe_anon_id,
-                        "",
+                        "tel",
+                        self.joe.anon_display,
                         "",
                         "OUT",
                         "Hey out 9",
@@ -1781,7 +1670,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # check query count
         self.login(self.admin)
-        with self.assertNumQueries(31):
+        with self.assertNumQueries(30):
             self.client.get(outbox_url)
 
         # messages sorted by created_on
@@ -1843,7 +1732,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # check query count
         self.login(self.admin)
-        with self.assertNumQueries(31):
+        with self.assertNumQueries(28):
             self.client.get(sent_url)
 
         # messages sorted by sent_on
@@ -1874,7 +1763,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # check query count
         self.login(self.admin)
-        with self.assertNumQueries(30):
+        with self.assertNumQueries(28):
             self.client.get(failed_url)
 
         response = self.assertListFetch(
@@ -1883,11 +1772,6 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual(("resend",), response.context["actions"])
         self.assertContains(response, reverse("channels.channellog_msg", args=[msg1.channel.uuid, msg1.id]))
-
-        # make the org anonymous
-        with AnonymousOrg(self.org):
-            response = self.requestView(failed_url, self.admin)
-            self.assertNotContains(response, reverse("channels.channellog_msg", args=[msg1.channel.uuid, msg1.id]))
 
         # resend some messages
         self.client.post(failed_url, {"action": "resend", "objects": [msg2.id]})

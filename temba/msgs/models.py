@@ -6,6 +6,7 @@ import time
 from array import array
 from datetime import datetime, timedelta
 from fnmatch import fnmatch
+from urllib.parse import unquote, urlparse
 
 import iso8601
 import pytz
@@ -14,6 +15,7 @@ from xlsxlite.writer import XLSXBook
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import ArrayField
+from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.db import models
 from django.db.models import Prefetch, Q, Sum
@@ -24,11 +26,11 @@ from django.utils.translation import gettext_lazy as _
 from temba import mailroom
 from temba.assets.models import register_asset_store
 from temba.channels.models import Channel
-from temba.contacts.models import URN, Contact, ContactGroup, ContactURN
+from temba.contacts.models import Contact, ContactGroup, ContactURN
 from temba.orgs.models import DependencyMixin, Org, TopUp
 from temba.schedules.models import Schedule
 from temba.utils import chunk_list, on_transaction_commit
-from temba.utils.export import BaseDateRangeExport, BaseExportAssetStore
+from temba.utils.export import BaseExportAssetStore, BaseItemWithContactExport
 from temba.utils.models import JSONAsTextField, SquashableModel, TembaModel, TranslatableField
 from temba.utils.s3 import public_file_storage
 from temba.utils.text import clean_string
@@ -407,6 +409,10 @@ class Attachment:
     def parse_all(cls, attachments):
         return [cls.parse(s) for s in attachments] if attachments else []
 
+    def delete(self):
+        parsed = urlparse(self.url)
+        default_storage.delete(unquote(parsed.path))
+
     def as_json(self):
         return {"content_type": self.content_type, "url": self.url}
 
@@ -777,6 +783,13 @@ class Msg(models.Model):
         Deletes this message. This can be soft if messages are being deleted from the UI, or hard in the case of
         contact or org removal.
         """
+
+        assert not soft or self.direction == Msg.DIRECTION_IN, "only incoming messages can be soft deleted"
+
+        if self.direction == Msg.DIRECTION_IN:
+            for attachment in self.get_attachments():
+                attachment.delete()
+
         if soft:
             self.labels.clear()
 
@@ -1208,7 +1221,7 @@ class MsgIterator:
         return next(self._generator)
 
 
-class ExportMessagesTask(BaseDateRangeExport):
+class ExportMessagesTask(BaseItemWithContactExport):
     """
     Wrapper for handling exports of raw messages. This will export all selected messages in
     an Excel spreadsheet, adding sheets as necessary to fall within the guidelines of Excel 97
@@ -1258,20 +1271,11 @@ class ExportMessagesTask(BaseDateRangeExport):
         book = XLSXBook()
         book.num_msgs_sheets = 0
 
-        book.headers = [
-            "Date",
-            "Contact UUID",
-            "Name",
-            "ID" if self.org.is_anon else "URN",
-            "URN Type",
-            "Flow",
-            "Direction",
-            "Text",
-            "Attachments",
-            "Status",
-            "Channel",
-            "Labels",
-        ]
+        book.headers = (
+            ["Date"]
+            + self._get_contact_headers()
+            + ["Flow", "Direction", "Text", "Attachments", "Status", "Channel", "Labels"]
+        )
 
         book.current_msgs_sheet = self._add_msgs_sheet(book)
 
@@ -1381,28 +1385,14 @@ class ExportMessagesTask(BaseDateRangeExport):
             contact = contacts_by_uuid.get(msg["contact"]["uuid"])
             flow = msg.get("flow")
 
-            urn_scheme = URN.to_parts(msg["urn"])[0] if msg["urn"] else ""
-
-            # only show URN path if org isn't anon and there is a URN
-            if self.org.is_anon:  # pragma: needs cover
-                urn_path = f"{contact.id:010d}"
-                urn_scheme = ""
-            elif msg["urn"]:
-                urn_path = URN.format(msg["urn"], international=False, formatted=False)
-            else:
-                urn_path = ""
-
             if book.current_msgs_sheet.num_rows >= self.MAX_EXCEL_ROWS:  # pragma: no cover
                 book.current_msgs_sheet = self._add_msgs_sheet(book)
 
             self.append_row(
                 book.current_msgs_sheet,
-                [
-                    iso8601.parse_date(msg["created_on"]),
-                    msg["contact"]["uuid"],
-                    msg["contact"].get("name", ""),
-                    urn_path,
-                    urn_scheme,
+                [iso8601.parse_date(msg["created_on"])]
+                + self._get_contact_columns(contact, urn=msg["urn"])
+                + [
                     flow["name"] if flow else None,
                     msg["direction"].upper() if msg["direction"] else None,
                     msg["text"],
