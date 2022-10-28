@@ -81,7 +81,7 @@ from temba.utils.views import (
     StaffOnlyMixin,
 )
 
-from .models import BackupToken, IntegrationType, Invitation, Org, OrgCache, OrgRole, TopUp, User
+from .models import BackupToken, IntegrationType, Invitation, Org, OrgRole, TopUp, User
 
 # session key for storing a two-factor enabled user's id once we've checked their password
 TWO_FACTOR_USER_SESSION_KEY = "_two_factor_user_id"
@@ -1220,7 +1220,6 @@ class OrgCRUDL(SmartCRUDL):
         "update",
         "country",
         "languages",
-        "clear_cache",
         "twilio_connect",
         "twilio_account",
         "vonage_account",
@@ -3151,7 +3150,7 @@ class OrgCRUDL(SmartCRUDL):
             ):  # pragma: needs cover
                 obj.add_user(self.request.user, OrgRole.ADMINISTRATOR)
 
-            obj.initialize(branding=obj.get_branding(), topup_size=self.get_welcome_size())
+            obj.initialize(branding=obj.get_branding())
 
             return obj
 
@@ -3177,10 +3176,6 @@ class OrgCRUDL(SmartCRUDL):
             initial = super().get_initial()
             initial["email"] = self.request.POST.get("email", self.request.GET.get("email", None))
             return initial
-
-        def get_welcome_size(self):
-            welcome_topup_size = self.request.branding.get("welcome_topup", 0)
-            return welcome_topup_size
 
         def post_save(self, obj):
             user = authenticate(username=self.user.username, password=self.form.cleaned_data["password"])
@@ -3752,18 +3747,6 @@ class OrgCRUDL(SmartCRUDL):
         def has_permission(self, request, *args, **kwargs):
             self.org = self.derive_org()
             return self.request.user.has_perm("orgs.org_country") or self.has_org_perm("orgs.org_country")
-
-    class ClearCache(SmartUpdateView):  # pragma: no cover
-        fields = ("id",)
-        success_message = None
-        success_url = "id@orgs.org_update"
-
-        def pre_process(self, request, *args, **kwargs):
-            cache = OrgCache(int(request.POST["cache"]))
-            num_deleted = self.get_object().clear_caches([cache])
-            self.success_message = _("Cleared %(name)s cache for this workspace (%(count)d keys)") % dict(
-                name=cache.name, count=num_deleted
-            )
 
 
 class TopUpCRUDL(SmartCRUDL):
