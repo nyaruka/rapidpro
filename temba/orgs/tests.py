@@ -2288,7 +2288,6 @@ class OrgTest(TembaTest):
             connect_url = reverse("orgs.org_twilio_connect")
 
             self.login(self.admin)
-            self.admin.set_org(self.org)
 
             response = self.client.get(connect_url)
             self.assertEqual(200, response.status_code)
@@ -3477,7 +3476,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(user.last_name, "Alexander")
         self.assertEqual(user.email, "kellan@example.com")
         self.assertTrue(user.check_password("HeyThere123"))
-        self.assertTrue(user.api_token)  # should be able to generate an API token
+        self.assertIsNotNone(user.get_api_token(self.org))  # should be able to generate an API token
 
         # should have a new org
         org = Org.objects.get(name="AlexCom")
@@ -3581,7 +3580,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(user.last_name, "Rwagasore")
         self.assertEqual(user.email, "myal12345678901234567890@relieves.org")
         self.assertTrue(user.check_password("HelloWorld1"))
-        self.assertTrue(user.api_token)  # should be able to generate an API token
+        self.assertIsNotNone(user.get_api_token(self.org))  # should be able to generate an API token
 
         # should have a new org
         org = Org.objects.get(name="Relieves World")
@@ -3613,9 +3612,6 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             sample_flows,
         )
         self.assertEqual("RapidPro Tickets", internal_ticketer.name)
-
-        # fake session set_org to make the test work
-        user.set_org(org)
 
         # should now be able to go to channels page
         response = self.client.get(reverse("channels.channel_claim"))

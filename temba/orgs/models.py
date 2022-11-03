@@ -236,15 +236,6 @@ class User(AuthUser):
     def is_beta(self) -> bool:
         return self.groups.filter(name="Beta").exists()
 
-    def get_org(self):
-        """
-        Gets the request org cached on the user. This should only be used where request.org can't be.
-        """
-        return getattr(self, "_org", None)
-
-    def set_org(self, org):
-        self._org = org
-
     def has_org_perm(self, org, permission: str) -> bool:
         """
         Determines if a user has the given permission in the given org.
@@ -271,11 +262,10 @@ class User(AuthUser):
 
         return UserSettings.objects.get_or_create(user=self)[0]
 
-    @cached_property
-    def api_token(self) -> str:
+    def get_api_token(self, org) -> str:
         from temba.api.models import get_or_create_api_token
 
-        return get_or_create_api_token(self)
+        return get_or_create_api_token(org, self)
 
     def as_engine_ref(self) -> dict:
         return {"email": self.email, "name": self.name}

@@ -2941,8 +2941,7 @@ class OrgCRUDL(SmartCRUDL):
                 self.invitation.save()
 
                 # set the active org on this user
-                self.request.user.set_org(org)
-                self.request.session["org_id"] = org.pk
+                self.request.session["org_id"] = org.id
 
         def get_success_url(self):  # pragma: needs cover
             if self.invitation.user_group == "S":

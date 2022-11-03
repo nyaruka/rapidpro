@@ -75,9 +75,6 @@ class OrgMiddleware:
         org = self.determine_org(request)
         request.org = org
 
-        if request.user.is_authenticated:
-            request.user.set_org(org)
-
         response = self.get_response(request)
 
         # set a response header to make it easier to find the current org id
