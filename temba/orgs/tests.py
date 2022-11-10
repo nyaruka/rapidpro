@@ -1,3 +1,4 @@
+import copy
 import io
 import smtplib
 from datetime import date, datetime, timedelta
@@ -3376,6 +3377,12 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(OrgRole.ADMINISTRATOR, new_org.get_user_role(self.admin))
         self.assertIsNone(new_org.parent)
         self.assertTrue(new_org.is_suspended)
+
+        brands = copy.deepcopy(settings.BRANDS)
+        brands[0]["allow_signups"] = False
+        with self.settings(BRANDS=brands):
+            response = self.client.get(create_new_url)
+            self.assertRedirect(response, home_url)
 
     def test_create_child(self):
         home_url = reverse("orgs.org_home")
