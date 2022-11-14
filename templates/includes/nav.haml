@@ -168,6 +168,14 @@
       .title
         -trans "triggers"
 
+
+  -if org_perms.channels.channel_list or request.user.is_superuser
+    %a{href:"{% url 'ussd.handler_list' %}", class:"{% active request 'handlers' %}"}
+      .circle
+        .icon-plug
+      .title
+        -trans "ussd"
+
   -if org_perms.tickets.ticket_list and not request.user.is_superuser
     %a{href:"{% url 'tickets.ticket_list' %}", class:"{% active request 'ticket' %}"}
       .circle

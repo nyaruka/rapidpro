@@ -35,7 +35,7 @@ class ExternalType(ChannelType):
 
     CONFIG_DEFAULT_SEND_BODY = (
         "id={{id}}&text={{text}}&to={{to}}&to_no_plus={{to_no_plus}}&from={{from}}&from_no_plus={{from_no_plus}}"
-        "&channel={{channel}}"
+        "&channel={{channel}}&session_status={{session_status}}"
     )
 
     def get_configuration_context_dict(self, channel):

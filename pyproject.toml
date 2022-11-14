@@ -57,6 +57,8 @@ chardet = "^4.0.0"
 openpyxl = "^3.0.9"
 ffmpeg-python = "^0.2.0"
 slack-sdk = "3.17.0"
+djangorestframework-xml = "^2.0.0"
+python-json-logger = "^2.0.4"
 
 [tool.poetry.dev-dependencies]
 black = "^22.1.0"

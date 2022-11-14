@@ -1,0 +1,53 @@
+-extends 'includes/modax.haml'
+-load smartmin i18n
+
+-block fields
+
+  .flex.flex-col
+    -render_field 'channel'
+  .flex.space-x-4
+    .flex-1.w-32
+      -render_field 'aggregator'
+    .flex-1.w-32
+      -render_field 'short_code'
+  .flex.space-x-4
+    .flex-1.w-32
+      -render_field 'signal_exit_or_reply_mode'
+    .flex-1.w-32
+      -render_field 'signal_header_key'
+  .flex.space-x-4
+    .flex-1.w-32
+      -render_field 'signal_menu_type_strings'
+    .flex-1.w-32
+      -render_field 'auth_scheme'
+  .flex.space-x-4
+    .flex-1.w-32
+      -render_field 'enable_repeat_current_step'
+    .flex-1.w-32
+      -render_field 'trigger_word'
+  .flex.flex-col
+    -render_field 'request_structure'
+  .flex.flex-col
+    -render_field 'response_structure'
+
+
+
+-block modal-script
+  {{block.super}}
+
+  :javascript
+
+    var modalBody = document.querySelector("#create-handler-modal").shadowRoot;
+    var typeSelect = modalBody.querySelector("mondo-select[name='flow_type']");
+    var keywords = modalBody.querySelector(".keywords");
+    var keywordsSelect = modalBody.querySelector("mondo-select[name='keyword_triggers']");
+    
+    typeSelect.addEventListener("change", function(evt) {
+        var selected = evt.target.values[0];
+        if (selected.value === "B" || selected.value === "S") {
+          keywords.classList.add("hidden");
+          keywordsSelect.clear();
+        } else {
+          keywords.classList.remove("hidden");
+        }
+    });

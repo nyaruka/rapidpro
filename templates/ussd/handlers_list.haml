@@ -1,0 +1,122 @@
+-extends "smartmin/list.html"
+-load smartmin sms temba compress i18n humanize
+
+-block page-title
+  -trans "Handlers"
+
+-block page-top
+
+-block content
+  #pjax
+    -block pjax
+      .lp-frame
+        .left
+          .flex.flex-col
+            -if org_perms.ussd.handler_create
+              .w-64.mr-5
+                %temba-modax#create-handler-modal{ header:'Create USSD Handler', endpoint:"{% url 'ussd.handler_create' %}" }
+                  .button-primary.block
+                    -trans "Create USSD Handler"
+
+          -if paginator.count > 0
+            .lp-nav.lower
+              .font-normal.uppercase.text-xs.text-gray-500.pb-1
+                -trans "Logs"
+
+          -if paginator.count > 0
+
+          -#.flex-grow
+          -#  -if org_perms.ussd.handler_list
+          -#    .button-light.block.mt-3(onclick="goto(event)" href="{% url 'flows.flowstart_list' %}")
+          -#      -trans "Handler Sessions"
+
+        .right
+          -if org_has_handlers
+            .flex.w-full.items-end.mb-4
+              -block action-buttons
+                .action-buttons.list-buttons-container.h-full.mr-2.flex-grow
+                  .list-buttons.flex.items-center.-mx-2.h-full
+
+                    - if 'archive' in actions and org_perms.flows.flow_update
+                      .button-action.object-btn-restore
+                        .-mt-1.mr-2.glyph.icon-checkmark
+                        -trans "Activate"
+
+                    - if 'disable' in actions and org_perms.flows.flow_update
+                      .button-action.object-btn-archive
+                        .-mt-1.mr-2.glyph.icon-box
+                        -trans "Disable"
+
+              .flex-grow.ml-2.items-center
+                -block title-text
+                  .page-title.leading-tight
+                    {{title}}
+              .gear-links
+                -include "gear_links_include.haml"
+
+            -if view.search_fields
+              %form#search-form.mb-4(method="get")
+                %temba-textinput(type='text' placeholder='{% trans "Search" %}' name="search" value="{{search}}")
+                -if request.REQUEST.status
+                  %input(type='hidden' name='status' value='{{request.REQUEST.status}}')
+
+            -block flow-list
+              %table.list.lined.selectable
+                -if object_list
+                  %thead
+                    %tr
+                      -if org_perms.ussd.handler_update
+                        %th
+                      %th Aggregator
+                      %th Channel
+                      %th Shortcode
+                      %th Flow Trigger
+                      %th Last Accessed
+                      %th Auth Scheme
+
+                %tbody
+                  -for object in object_list
+                    %tr.object-row.select-row{  data-object-id: "{{ object.id }}",
+                    onrowclick:'gotoLink("{% url "ussd.handler_update" object.id%}")'}
+
+                      -if org_perms.ussd.handler_update
+                        %td.checkbox.object-row-checkbox
+                          %temba-checkbox{onclick:"handleRowSelection(this)"}
+
+                      %td{:class => "w-2/12"}
+                        .flex.flex-wrap.flex-end
+                          .flex.inline.whitespace-nowrap
+                            .name.whitespace-normal
+                              {{ object.aggregator }}
+                      %td
+                        .whitespace-no-break.flex.items-center.ml-2.justify-start
+                          {{ object.channel.name}}
+                      %td
+                        .whitespace-no-break.flex.items-center.ml-2.justify-start
+                          {{ object.short_code}}
+                      %td
+                        .whitespace-no-break.flex.items-center.ml-2.justify-start
+                          {{ object.trigger_word}}
+                      %td
+                        .whitespace-no-break.flex.items-center.ml-2.justify-start
+                          {{ object.last_accessed_at}}
+                      %td
+                        .whitespace-no-break.flex.items-center.ml-2.justify-start
+                          -if object.auth_scheme == 'TOKEN'
+                            %b Token&nbsp;{{object.auth_token}}
+                          -else
+                            Not Required
+                  -empty
+                    %tr.empty_list
+                      %td(colspan='99')
+                        No matching Handlers.
+
+            -block paginator
+              .mt-3
+                -include "includes/pagination.haml"
+
+          -else
+            -include "ussd/empty_include.html"
+
+-block extra-script
+  {{ block.super }}

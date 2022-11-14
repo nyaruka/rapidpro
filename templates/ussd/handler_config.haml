@@ -1,0 +1,27 @@
+-extends "smartmin/read.haml"
+-block title
+  {{ object.aggregator }} Handler Configuration
+
+-block subtitle
+  {{ object.short_code }}
+
+-block content
+    -include "gear_links_include.haml"
+    .mt-12.card.flex-shrink-0
+      .gear-links
+
+      .title
+        IP Addresses
+      .mt-2
+        Additionally you will need to make sure the following IP addresses are whitelisted
+      .mt-2
+        -for ip_address in ip_addresses
+          .code.inline.mr-1= ip_address
+
+  -block extra-script
+    {{ block.super }}
+    <script src="{{ STATIC_URL }}rest_framework/js/prettify-min.js"></script>
+    :javascript
+      $(function(){
+        prettyPrint();
+      });

@@ -32,6 +32,8 @@ urlpatterns = [
     re_path(r"^", include("temba.tickets.urls")),
     re_path(r"^", include("temba.triggers.urls")),
     re_path(r"^", include("temba.orgs.urls")),
+    re_path(r"^", include("temba.ussd.urls")),
+    re_path(r"^", include("temba.ussd_api.urls")),
     re_path(r"^relayers/relayer/sync/(\d+)/$", sync, {}, "sync"),
     re_path(r"^relayers/relayer/register/$", register, {}, "register"),
     re_path(r"users/user/forget/", RedirectView.as_view(pattern_name="orgs.user_forget", permanent=True)),

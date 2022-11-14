@@ -1,0 +1,58 @@
+-load i18n
+
+.flex.flex-col.p-12
+  .page-title
+    -trans "USSD Handlers"
+
+  .mt-4
+    -blocktrans trimmed
+      Handlers let you easily support different aggregator APIs.
+
+  .mt-2
+    -blocktrans trimmed with brand.name as brand
+      Each aggregator or USSD provider has a different API, but at the core of it all, they return the same
+      information only named differently. For example Afrika's Talking might send you a request with this payload
+      %code
+        {
+          "sessionID":"23587468578475832",
+          "serviceCode":"*267*7#",
+          "phoneNumber":"256787411849",
+          "input":"2",
+          "timeStamp":"1643874789834"
+        }
+      %br
+        %br
+        Another aggregator say telcom B can send you a request with this payload
+        %code
+          {
+            "session":"23587468578475832",
+            "shortCode":"*267*7#",
+            "msisdn":"256787411849",
+            "text":"2",
+            "timestamp":"1643874789834"
+          }
+        %br
+        %br
+          Note that this is the same information but the nomenclature differs from aggregator to aggregator.
+          Therefore the system helps you create a standard for this varying nomenclature.
+          <br>
+          The logic requires you to mandatory map the above to these
+          %code
+            session_id, short_code, from, text
+        %br
+        %br
+          An aggregator may send extra parameters but we do not mind about them as long as the above are mapped.
+        %br
+        %br
+          The same applies for the expected response. Different aggregators expect responses in different formats.
+          At the handler is where we configure all this.
+          %br
+          %br
+            Refer to the documentation for more details.
+
+          %br
+          %br
+            Note that this module strictly user only channel types of "External API". In order to configure a handler,
+            rush to
+            %code /channels/types/external/claim
+            and configure an external channel then come back.

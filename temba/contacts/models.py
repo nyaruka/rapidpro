@@ -75,6 +75,7 @@ class URN:
 
     SCHEME_CHOICES = (
         (TEL_SCHEME, _("Phone Number")),
+        (TEL_SCHEME, _("USSD Short Code")),
         (DISCORD_SCHEME, _("Discord Identifier")),
         (EMAIL_SCHEME, _("Email Address")),
         (EXTERNAL_SCHEME, _("External Identifier")),

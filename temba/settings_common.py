@@ -7,13 +7,13 @@ import sentry_sdk
 from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration, ignore_logger
+from temba.log_formatters import CustomJsonFormatter
 
 from django.utils.translation import gettext_lazy as _
 
 from celery.schedules import crontab
 
 SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
-
 
 if SENTRY_DSN:  # pragma: no cover
     sentry_sdk.init(
@@ -23,7 +23,6 @@ if SENTRY_DSN:  # pragma: no cover
         traces_sample_rate=0,
     )
     ignore_logger("django.security.DisallowedHost")
-
 
 # -----------------------------------------------------------------------------------
 # Default to debugging
@@ -153,7 +152,6 @@ MEDIA_URL = "/media/"
 
 HELP_URL = None
 
-
 # -----------------------------------------------------------------------------------
 # Templates Configuration
 # -----------------------------------------------------------------------------------
@@ -267,6 +265,8 @@ INSTALLED_APPS = (
     "temba.campaigns",
     "temba.ivr",
     "temba.locations",
+    "temba.ussd",
+    "temba.ussd_api",
     "temba.airtime",
     "temba.sql",
 )
@@ -274,16 +274,45 @@ INSTALLED_APPS = (
 # the last installed app that uses smartmin permissions
 PERMISSIONS_APP = "temba.airtime"
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+APP_LOG_FILE = f"{BASE_DIR}/logs/app.log"
+APP_JSON_LOG_FILE = f"{BASE_DIR}/logs/app_json.log"
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": True,
     "root": {"level": "WARNING", "handlers": ["console"]},
-    "formatters": {"verbose": {"format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"}},
+    "formatters": {
+        "verbose": {"format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"},
+        'json_formatter': {
+            '()': CustomJsonFormatter,
+        },
+    },
     "handlers": {
         "console": {"level": "DEBUG", "class": "logging.StreamHandler", "formatter": "verbose"},
         "null": {"class": "logging.NullHandler"},
+        'console_json': {
+            'class': "logging.StreamHandler",
+            'formatter': 'verbose'
+        },
+        'file_json': {
+            'class': 'logging.FileHandler',
+            'filename': APP_JSON_LOG_FILE,
+            'formatter': 'json_formatter',
+        },
+        'file_log': {
+            'class': 'logging.FileHandler',
+            'filename': APP_LOG_FILE,
+            'formatter': 'verbose',
+        }
     },
     "loggers": {
+        'ussd': {
+            'handlers': ['file_json', 'file_log'],
+            'propagate': True,
+            'level': "DEBUG"
+        },
         "pycountry": {"level": "ERROR", "handlers": ["console"], "propagate": False},
         "django.security.DisallowedHost": {"handlers": ["null"], "propagate": False},
         "django.db.backends": {"level": "ERROR", "handlers": ["console"], "propagate": False},
@@ -326,7 +355,6 @@ BRANDS = [
 DEFAULT_BRAND = os.environ.get("DEFAULT_BRAND", "rapidpro")
 
 FEATURES = {"locations", "ticketers"}
-
 
 # -----------------------------------------------------------------------------------
 # Permission Management
@@ -481,7 +509,6 @@ PERMISSIONS = {
     "triggers.trigger": ("archived", "type", "menu"),
 }
 
-
 # assigns the permissions that each group should have
 GROUP_PERMISSIONS = {
     "Service Users": ("flows.flow_assets", "msgs.msg_create"),  # internal Temba services have limited permissions
@@ -624,6 +651,8 @@ GROUP_PERMISSIONS = {
         "tickets.ticketer.*",
         "tickets.topic.*",
         "triggers.trigger.*",
+        "ussd.ussdchannel.*",
+        "ussd.handler.*",
     ),
     "Editors": (
         "airtime.airtimetransfer_list",
@@ -1114,7 +1143,6 @@ WHATSAPP_FACEBOOK_BUSINESS_ID = os.environ.get(
     "WHATSAPP_FACEBOOK_BUSINESS_ID", "MISSING_WHATSAPP_FACEBOOK_BUSINESS_ID"
 )
 
-
 # -----------------------------------------------------------------------------------
 # IP Addresses
 # These are the externally accessible IP addresses of the servers running RapidPro.
@@ -1164,3 +1192,4 @@ MAILROOM_AUTH_TOKEN = None
 # ElasticSearch
 # -----------------------------------------------------------------------------------
 ELASTICSEARCH_URL = os.environ.get("ELASTICSEARCH_URL", "http://localhost:9200")
+DEFAULT_COUNTRY_CODE = "256"

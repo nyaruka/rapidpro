@@ -44,7 +44,7 @@ media/recordings
 media/test_orgs
 media/tmp
 media/attachments
-
+logs/*
 
 # External projects
 fabric
