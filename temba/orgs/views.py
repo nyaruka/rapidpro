@@ -1206,6 +1206,7 @@ class OrgCRUDL(SmartCRUDL):
         "plan",
         "sub_orgs",
         "create_child",
+        "create_new",
         "export",
         "import",
         "plivo_connect",
@@ -2623,6 +2624,59 @@ class OrgCRUDL(SmartCRUDL):
         def get_created_by(self, obj):  # pragma: needs cover
             return "%s %s - %s" % (obj.created_by.first_name, obj.created_by.last_name, obj.created_by.email)
 
+    class CreateNew(NonAtomicMixin, SpaMixin, OrgPermsMixin, ModalMixin, InferOrgMixin, SmartCreateView):
+        class Form(forms.ModelForm):
+            name = forms.CharField(
+                label=_("Workspace"), help_text=_("The name of your workspace"), widget=InputWidget()
+            )
+
+            timezone = TimeZoneFormField(
+                help_text=_("The timezone for your workspace"), widget=SelectWidget(attrs={"searchable": True})
+            )
+
+            class Meta:
+                model = Org
+                fields = ("name", "date_format", "timezone")
+                widgets = {"date_format": SelectWidget()}
+
+        form_class = Form
+        success_url = "@orgs.org_choose"
+
+        def pre_process(self, request, *args, **kwargs):
+            allow_signups = self.request.org.branding.get("allow_signups", False)
+            if not allow_signups:
+                return HttpResponseRedirect(reverse("orgs.org_home"))
+
+        def derive_initial(self):
+            initial = super().derive_initial()
+            initial["timezone"] = self.request.org.timezone
+            initial["date_format"] = self.request.org.date_format
+            return initial
+
+        def form_valid(self, form):
+            self.org.create_new_workspace(
+                self.request.user,
+                form.cleaned_data["name"],
+                org_timezone=form.cleaned_data["timezone"],
+                date_format=form.cleaned_data["date_format"],
+            )
+
+            if "HTTP_X_PJAX" not in self.request.META:
+                return HttpResponseRedirect(self.get_success_url())
+            else:  # pragma: no cover
+
+                success_url = self.get_success_url()
+                response = self.render_to_response(
+                    self.get_context_data(
+                        form=form,
+                        success_url=success_url,
+                        success_script=getattr(self, "success_script", None),
+                    )
+                )
+
+                response["Temba-Success"] = success_url
+                return response
+
     class CreateChild(NonAtomicMixin, SpaMixin, MultiOrgMixin, ModalMixin, InferOrgMixin, SmartCreateView):
         class Form(forms.ModelForm):
             name = forms.CharField(
@@ -2655,7 +2709,7 @@ class OrgCRUDL(SmartCRUDL):
             child = self.org.create_child(
                 self.request.user,
                 form.cleaned_data["name"],
-                timezone=form.cleaned_data["timezone"],
+                org_timezone=form.cleaned_data["timezone"],
                 date_format=form.cleaned_data["date_format"],
             )
 
@@ -3359,6 +3413,10 @@ class OrgCRUDL(SmartCRUDL):
                 menu.add_link(_("Add Classifier"), reverse("classifiers.classifier_connect"))
             if self.has_org_perm("tickets.ticketer_connect") and "ticketers" in settings.FEATURES:
                 menu.add_link(_("Add Ticketing Service"), reverse("tickets.ticketer_connect"))
+
+            if self.has_org_perm("orgs.org_create_new"):
+                menu.new_group()
+                menu.add_modax(_("New Workspace"), "new-workspace", reverse("orgs.org_create_new"))
 
             menu.new_group()
 

@@ -3351,6 +3351,32 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         user = User.objects.get(username="myal@wr.org")
         self.assertTrue(user.check_password("Password123"))
 
+    def test_create_new(self):
+        home_url = reverse("orgs.org_home")
+        create_new_url = reverse("orgs.org_create_new")
+        choose_url = reverse("orgs.org_choose")
+
+        self.login(self.admin, choose_org=self.org)
+
+        response = self.client.get(home_url)
+        self.assertContains(response, "New Workspace")
+
+        # now we can create new orgs
+        response = self.client.get(create_new_url)
+        self.assertEqual(200, response.status_code)
+
+        # add a sub org
+        response = self.client.post(
+            create_new_url,
+            {"name": "New Org", "timezone": self.org.timezone, "date_format": self.org.date_format},
+        )
+        self.assertRedirect(response, choose_url)
+        new_org = Org.objects.filter(name="New Org").first()
+        self.assertIsNotNone(new_org)
+        self.assertEqual(OrgRole.ADMINISTRATOR, new_org.get_user_role(self.admin))
+        self.assertIsNone(new_org.parent)
+        self.assertTrue(new_org.is_suspended)
+
     def test_create_child(self):
         home_url = reverse("orgs.org_home")
         create_child_url = reverse("orgs.org_create_child")

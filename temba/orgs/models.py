@@ -521,7 +521,35 @@ class Org(SmartModel):
     def get_new_org_plan(cls, branding, parent=None):
         return "rapidpro"
 
-    def create_child(self, user, name: str, timezone, date_format: str):
+    def create_new_workspace(self, user, name: str, org_timezone, date_format: str):
+        allow_signups = self.branding.get("allow_signups", False)
+
+        assert allow_signups, "cannot create new workspaces"
+
+        now = timezone.now()
+
+        org = Org.objects.create(
+            name=name,
+            timezone=org_timezone,
+            date_format=date_format,
+            language=self.language,
+            flow_languages=self.flow_languages,
+            brand=self.brand,
+            slug=self.get_unique_slug(name),
+            created_by=user,
+            modified_by=user,
+            plan=self.get_new_org_plan(self.branding, parent=self),
+            plan_end=now,
+            is_suspended=True,
+            is_multi_user=self.is_multi_user,
+            is_multi_org=False,
+        )
+
+        org.add_user(user, OrgRole.ADMINISTRATOR)
+        org.initialize(branding=org.branding)
+        return org
+
+    def create_child(self, user, name: str, org_timezone, date_format: str):
         """
         Creates a new child workspace with this as its parent
         """
@@ -530,7 +558,7 @@ class Org(SmartModel):
 
         org = Org.objects.create(
             name=name,
-            timezone=timezone,
+            timezone=org_timezone,
             date_format=date_format,
             language=self.language,
             flow_languages=self.flow_languages,
