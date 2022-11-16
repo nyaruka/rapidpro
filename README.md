@@ -205,7 +205,65 @@ send that trigger to tell rapidpro to start executing a given flow on this parti
 <tr>
 <th>Request structure</th>
 <td>YES</td>
+<td>
+As described earlier, different USSD gateways name request parameters differently, this field allows you to map the 
+these parameter names to the system standard names.
+
+Below is the standard nomenclature of required (mandatory) request parameter names.
+[`short_code`, `session_id`, `from`, `text`]. For example if your aggregator names these as follows;
+[`serviceCode`, `sessionId`, `msisdn`, `input`].
+
+Just map these as follows.
+[`{{short_code=serviceCode}}`,  `{{session_id=sessionId}}`, `{{from=msisdn}}`, `{{text=input}}`]
+
+Note that the USSD gateway might send more parameters in their request to our callback endpoint but we currently do 
+not mind about the rest.
+</td>
+</tr>
+
+<tr>
+<th>Response Structure</th>
+<td>YES (if option 3 or 4 of <b>Menu Type Flag Mode</b> is selected</td>
+<td>
+Just like the previous field, different USSD gateways require different response formats.
+If <b>Menu Type Flag Mode</b> option  <b>3</b> or <b>4</b> is selected, that means that the response will be either 
+XML or JSON. So, just like we did for incoming request parameters, map the system standard response parameter names to 
+any USSD expected response params names.
+The system standard response names are [<b>text</b> , <b>action</b>]
+<ol>
+<li><b>text</b> - This represents the menu string to be rendered at end user device</li>
+<li><b>action</b> - This  represents the menu type (terminating or continue) to be rendered at end 
+user device. Note that in cases where this flag is in headers, i.e if option 4 of <b>Menu Type Flag Mode</b> is 
+selected, you can omit mapping the action at this level because it will have been takne care of by settings 
+in <b>Menu Type Header name</b></li>
+</ol>
+
+For example, if USSD gateway A expects a response in the format;
+`{"responseString":"Welcome to mobile banking select\n1.Login\n2.Register", "menuType":"continue"}`
+
+Just map these as follows.
+[`{{text=responseString}}`,  `{{action=menuType}}`]
+
+</td>
 </tr>
 </tbody>
 </table>
+
+With these configurations, you can support different USSD gateways.
+If yours is unique, feel free to reach out by opening a `pull request` or an `issue` for us to look into it and see how 
+we can assist. 
+
+You can still use the same SMS flows for USSD. Note that USSD supports not beyond 160 characters on some aggregators,
+so try not to be too verbose while preparing your menus inside flows.
+
+Below is the callback endpoint you have to share with your USSD gateway to configure as a callback URL
+
+`https://your-domain/ussd/api/call-back`
+
+Note that while configuring RapidPro's `External API` channel to use with the USSD handler, please set the SEND 
+URL as `https://your-domain/ussd/api/send-url`.
+
+Good luck.
+
+
 
