@@ -538,7 +538,7 @@ class Org(SmartModel):
             slug=self.get_unique_slug(name),
             created_by=user,
             modified_by=user,
-            plan=self.get_new_org_plan(self.branding, parent=self),
+            plan=Org.get_new_org_plan(self.branding, parent=self),
             plan_end=now,
             is_suspended=True,
             is_multi_user=self.is_multi_user,
