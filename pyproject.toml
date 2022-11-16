@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "temba"
-version = "7.5.103"
+version = "7.5.109"
 description = "Hosted service for visually building interactive messaging applications"
 authors = ["Nyaruka <code@nyaruka.com>"]
 license = "AGPL-3"
@@ -31,7 +31,6 @@ vonage = "2.5.2"
 pyfcm = "^1.5.1"
 pyotp = "2.4.1"
 python-telegram-bot = "^13.14"
-sentry-sdk = "^1.0.0"
 twilio = "6.24.0"
 twython = "3.5.0"
 geojson = "^2.5.0"
@@ -71,6 +70,15 @@ beautifulsoup4 = "^4.9.3"
 
 [tool.black]
 line-length = 119
+
+[tool.isort]
+multi_line_output = 3
+force_grid_wrap = 0
+line_length = 119
+include_trailing_comma = true
+combine_as_imports = true
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "DJANGO", "FIRSTPARTY", "LOCALFOLDER"]
+known_django = ["django"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
