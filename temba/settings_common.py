@@ -1081,6 +1081,7 @@ WHATSAPP_FACEBOOK_BUSINESS_ID = os.environ.get(
     "WHATSAPP_FACEBOOK_BUSINESS_ID", "MISSING_WHATSAPP_FACEBOOK_BUSINESS_ID"
 )
 
+SHOW_WHATSAPP_CLOUD = True
 
 # -----------------------------------------------------------------------------------
 # IP Addresses

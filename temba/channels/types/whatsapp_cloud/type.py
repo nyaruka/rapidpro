@@ -42,6 +42,9 @@ class WhatsAppCloudType(ChannelType):
 
     redact_values = (settings.WHATSAPP_ADMIN_SYSTEM_USER_TOKEN,)
 
+    def is_available_to(self, org, user):
+        return settings.SHOW_WHATSAPP_CLOUD or user.is_beta, settings.SHOW_WHATSAPP_CLOUD or user.is_beta
+
     def get_urls(self):
         return [
             self.get_claim_url(),
