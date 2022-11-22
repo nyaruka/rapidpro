@@ -35,6 +35,9 @@ class ZenviaWhatsAppType(ChannelType):
     schemes = [URN.WHATSAPP_SCHEME]
     max_length = 1600
 
+    def is_available_to(self, org, user):
+        return False, False
+
     def update_webhook(self, channel, url, event_type):
         headers = {
             "X-API-TOKEN": channel.config[Channel.CONFIG_API_KEY],

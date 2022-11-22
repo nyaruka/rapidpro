@@ -19,7 +19,7 @@ class ZenviaWhatsAppTypeTest(TembaTest):
 
         # should see the general channel claim page
         response = self.client.get(reverse("channels.channel_claim"))
-        self.assertContains(response, url)
+        self.assertNotContains(response, url)
 
         # try to claim a channel
         response = self.client.get(url)

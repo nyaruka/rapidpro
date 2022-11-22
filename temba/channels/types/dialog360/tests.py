@@ -26,7 +26,7 @@ class Dialog360TypeTest(CRUDLTestMixin, TembaTest):
 
         # make sure 360dialog is on the claim page
         response = self.client.get(reverse("channels.channel_claim"), follow=True)
-        self.assertContains(response, url)
+        self.assertNotContains(response, url)
 
         response = self.client.get(url)
         self.assertEqual(200, response.status_code)

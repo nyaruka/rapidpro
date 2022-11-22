@@ -29,7 +29,7 @@ class KaleyraViewTest(TembaTest):
         self.login(self.admin)
 
         response = self.client.get(reverse("channels.channel_claim"), follow=True)
-        self.assertContains(response, self.url)
+        self.assertNotContains(response, self.url)
 
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)

@@ -41,3 +41,6 @@ class KaleyraType(ChannelType):
             description=_("To receive incoming messages, you need to set the receive URL for your Kaleyra account."),
         ),
     )
+
+    def is_available_to(self, org, user):
+        return False, False

@@ -38,6 +38,9 @@ class Dialog360Type(ChannelType):
     schemes = [URN.WHATSAPP_SCHEME]
     max_length = 4096
 
+    def is_available_to(self, org, user):
+        return False, False
+
     def get_urls(self):
         return [
             self.get_claim_url(),

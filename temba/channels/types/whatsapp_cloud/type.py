@@ -26,11 +26,10 @@ class WhatsAppCloudType(ChannelType):
 
     code = "WAC"
     category = ChannelType.Category.SOCIAL_MEDIA
-    beta_only = True
 
     courier_url = r"^wac/receive"
 
-    name = "WhatsApp Cloud"
+    name = "WhatsApp"
     icon = "icon-whatsapp"
 
     show_config_page = False
