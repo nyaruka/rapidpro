@@ -3782,6 +3782,9 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(manage_url + "?filter=verified")
         self.assertIn(self.org, response.context["object_list"])
 
+        response = self.client.get(manage_url + "?filter=all&search=nya")
+        self.assertIn(self.org, response.context["object_list"])
+
         # and can go to that org
         response = self.client.get(update_url)
         self.assertEqual(200, response.status_code)

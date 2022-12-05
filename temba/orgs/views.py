@@ -2090,6 +2090,8 @@ class OrgCRUDL(SmartCRUDL):
             elif obj_filter == "verified":
                 # this is not my favorite
                 qs = qs.filter(config__icontains='"verified": True', is_suspended=False)
+            elif obj_filter == "all":
+                pass
             elif obj_filter:
                 qs = (
                     qs.filter(parent=None)
