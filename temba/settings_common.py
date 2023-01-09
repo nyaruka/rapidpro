@@ -292,7 +292,7 @@ BRANDS = [
 ]
 DEFAULT_BRAND = os.environ.get("DEFAULT_BRAND", "rapidpro")
 
-FEATURES = {"locations", "ticketers"}
+FEATURES = {"locations", "ticketers", "whatsapp_cloud"}
 
 
 # -----------------------------------------------------------------------------------
@@ -1080,8 +1080,6 @@ WHATSAPP_ADMIN_SYSTEM_USER_TOKEN = os.environ.get(
 WHATSAPP_FACEBOOK_BUSINESS_ID = os.environ.get(
     "WHATSAPP_FACEBOOK_BUSINESS_ID", "MISSING_WHATSAPP_FACEBOOK_BUSINESS_ID"
 )
-
-SHOW_WHATSAPP_CLOUD = True
 
 # -----------------------------------------------------------------------------------
 # IP Addresses
