@@ -146,7 +146,7 @@ class CRUDLTestMixin:
                 if isinstance(form_fields, dict):
                     checks.append(FormInitialValues(form_fields))
             else:
-                checks = [LoginRedirect()]
+                checks = [LoginRedirectOr404()]
 
             return self.requestView(url, user, checks=checks)
 

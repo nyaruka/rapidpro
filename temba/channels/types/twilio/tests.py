@@ -251,7 +251,7 @@ class TwilioTypeTest(TembaTest, CRUDLTestMixin):
             reverse("channels.types.twilio.update_credentials", args=[channel.uuid]),
             allow_viewers=False,
             allow_editors=True,
-            form_fields=["account_sid", "account_token"],
+            form_fields=("account_sid", "account_token"),
         )
 
         twilio_channel = self.org.channels.all().first()

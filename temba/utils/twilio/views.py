@@ -61,7 +61,7 @@ class UpdateCredentials(OrgPermsMixin, SmartUpdateView):
         return initial
 
     def get_queryset(self):
-        return self.request.org.channels.filter(is_active=True, channel_type="T")
+        return self.request.org.channels.filter(is_active=True, channel_type__in=["T", "TMS", "TWA"])
 
     def form_valid(self, form):
         org = self.request.org
