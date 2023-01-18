@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 from temba.contacts.models import URN
 from temba.utils.timezones import timezone_to_country_code
+from temba.utils.twilio.views import UpdateCredentials
 
 from ...models import ChannelType
 from .views import SUPPORTED_COUNTRIES, ClaimView, SearchView
@@ -18,6 +19,8 @@ class TwilioType(ChannelType):
     code = "T"
     category = ChannelType.Category.PHONE
     show_config_page = False
+
+    extra_links = [dict(label=_("Twilio Credentials"), view_name="channels.types.twilio.update_credentials")]
 
     courier_url = r"^t/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive|status)$"
 
@@ -80,7 +83,13 @@ class TwilioType(ChannelType):
                 raise e
 
     def get_urls(self):
-        return [self.get_claim_url(), re_path(r"^search$", SearchView.as_view(), name="search")]
+        return [
+            self.get_claim_url(),
+            re_path(r"^search$", SearchView.as_view(), name="search"),
+            re_path(
+                r"^(?P<uuid>[a-z0-9\-]+)/update_credentials$", UpdateCredentials.as_view(), name="update_credentials"
+            ),
+        ]
 
     def get_error_ref_url(self, channel, code: str) -> str:
         return f"https://www.twilio.com/docs/api/errors/{code}"

@@ -1,6 +1,8 @@
+from django.urls import re_path
 from django.utils.translation import gettext_lazy as _
 
 from temba.contacts.models import URN
+from temba.utils.twilio.views import UpdateCredentials
 
 from ...models import ChannelType
 from .views import ClaimView
@@ -13,6 +15,8 @@ class TwilioWhatsappType(ChannelType):
 
     code = "TWA"
     category = ChannelType.Category.SOCIAL_MEDIA
+
+    extra_links = [dict(label=_("Twilio Credentials"), view_name="channels.types.twilio_whatsapp.update_credentials")]
 
     courier_url = r"^twa/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive|status)$"
 
@@ -58,3 +62,11 @@ class TwilioWhatsappType(ChannelType):
 
     def get_error_ref_url(self, channel, code: str) -> str:
         return f"https://www.twilio.com/docs/api/errors/{code}"
+
+    def get_urls(self):
+        return [
+            self.get_claim_url(),
+            re_path(
+                r"^(?P<uuid>[a-z0-9\-]+)/update_credentials$", UpdateCredentials.as_view(), name="update_credentials"
+            ),
+        ]

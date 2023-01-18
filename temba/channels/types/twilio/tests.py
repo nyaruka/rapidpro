@@ -7,13 +7,13 @@ from django.urls import reverse
 from temba.channels.models import Channel
 from temba.contacts.models import URN
 from temba.orgs.models import Org
-from temba.tests import TembaTest
+from temba.tests import TembaTest, CRUDLTestMixin
 from temba.tests.twilio import MockRequestValidator, MockTwilioClient
 
 from .type import TwilioType
 
 
-class TwilioTypeTest(TembaTest):
+class TwilioTypeTest(TembaTest, CRUDLTestMixin):
     @patch("temba.orgs.models.TwilioClient", MockTwilioClient)
     @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
     def test_claim(self):
@@ -239,6 +239,20 @@ class TwilioTypeTest(TembaTest):
                     # make sure it is actually connected
                     channel = Channel.objects.get(channel_type="T", org=self.org)
                     self.assertEqual(channel.tps, 100)
+
+        self.assertContentMenu(
+            reverse("channels.channel_read", args=[channel.uuid]),
+            self.admin,
+            ["Twilio Credentials", "Edit", "Delete"],
+            True,
+        )
+
+        self.assertUpdateFetch(
+            reverse("channels.types.twilio.update_credentials", args=[channel.uuid]),
+            allow_viewers=False,
+            allow_editors=True,
+            form_fields=["account_sid", "account_token"],
+        )
 
         twilio_channel = self.org.channels.all().first()
         # make channel support both sms and voice to check we clear both applications
