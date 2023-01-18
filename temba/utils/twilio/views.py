@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from temba.channels.models import Channel
-from temba.orgs.views import ModalMixin, OrgPermsMixin
+from temba.orgs.views import OrgPermsMixin
 from temba.utils.fields import InputWidget
 
 
@@ -21,12 +21,6 @@ class UpdateCredentials(OrgPermsMixin, SmartUpdateView):
             account_sid = self.cleaned_data.get("account_sid", None)
             account_token = self.cleaned_data.get("account_token", None)
 
-            if not account_sid:  # pragma: needs cover
-                raise ValidationError(_("You must enter your Twilio Account SID"))
-
-            if not account_token:
-                raise ValidationError(_("You must enter your Twilio Account Token"))
-
             try:
                 client = TwilioClient(account_sid, account_token)
 
@@ -34,7 +28,7 @@ class UpdateCredentials(OrgPermsMixin, SmartUpdateView):
                 account = client.api.account.fetch()
                 self.cleaned_data["account_sid"] = account.sid
                 self.cleaned_data["account_token"] = account.auth_token
-            except Exception:
+            except Exception:  # pragma: needs cover
                 raise ValidationError(
                     _("The Twilio account SID and Token seem invalid. Please check them again and retry.")
                 )
@@ -80,7 +74,7 @@ class UpdateCredentials(OrgPermsMixin, SmartUpdateView):
         elif self.object.channel_type == "TWA":
             twilio_phones = client.api.incoming_phone_numbers.stream(phone_number=phone_number)
             twilio_phone = next(twilio_phones, None)
-            if not twilio_phone:
+            if not twilio_phone:  # pragma: needs cover
                 raise Exception(
                     _(
                         "Phone number not found on your Twilio Account. "
@@ -100,7 +94,7 @@ class UpdateCredentials(OrgPermsMixin, SmartUpdateView):
             if config_app_id:
                 try:
                     twilio_app = client.api.applications.get(sid=config_app_id).fetch()
-                except Exception:
+                except Exception:  # pragma: no cover
                     twilio_app = client.api.applications.create(
                         friendly_name="%s/%s" % (callback_domain.lower(), channel_uuid),
                         sms_method="POST",
@@ -132,7 +126,10 @@ class UpdateCredentials(OrgPermsMixin, SmartUpdateView):
                         )
                     )
             else:
+                twilio_phones = client.api.incoming_phone_numbers.stream(phone_number=phone_number)
+                twilio_phone = next(twilio_phones, None)
                 if twilio_phone:
+                    number_sid = twilio_phone.sid
 
                     client.api.incoming_phone_numbers.get(twilio_phone.sid).update(
                         voice_application_sid=twilio_app.sid, sms_application_sid=twilio_app.sid
@@ -146,6 +143,7 @@ class UpdateCredentials(OrgPermsMixin, SmartUpdateView):
                     )
 
             self.object.config[Channel.CONFIG_APPLICATION_SID] = twilio_app.sid
+            self.object.config[Channel.CONFIG_NUMBER_SID] = number_sid
 
         self.object.config[Channel.CONFIG_ACCOUNT_SID] = data["account_sid"]
         self.object.config[Channel.CONFIG_AUTH_TOKEN] = data["account_token"]

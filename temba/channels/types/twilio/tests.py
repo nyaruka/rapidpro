@@ -7,7 +7,7 @@ from django.urls import reverse
 from temba.channels.models import Channel
 from temba.contacts.models import URN
 from temba.orgs.models import Org
-from temba.tests import TembaTest, CRUDLTestMixin
+from temba.tests import CRUDLTestMixin, TembaTest
 from temba.tests.twilio import MockRequestValidator, MockTwilioClient
 
 from .type import TwilioType
@@ -243,12 +243,13 @@ class TwilioTypeTest(TembaTest, CRUDLTestMixin):
         self.assertContentMenu(
             reverse("channels.channel_read", args=[channel.uuid]),
             self.admin,
-            ["Twilio Credentials", "Edit", "Delete"],
-            True,
+            ["Twilio Credentials", "Channel Log", "Edit", "Delete"],
         )
 
+        update_credentials_url = reverse("channels.types.twilio.update_credentials", args=[channel.uuid])
+
         self.assertUpdateFetch(
-            reverse("channels.types.twilio.update_credentials", args=[channel.uuid]),
+            update_credentials_url,
             allow_viewers=False,
             allow_editors=True,
             form_fields=("account_sid", "account_token"),
