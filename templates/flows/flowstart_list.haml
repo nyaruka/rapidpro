@@ -54,7 +54,7 @@
             -else
               -trans "contacts who haven't already been through this flow"
 
-            .flex.flex-wrap(style="padding-top: 10px; max-height: 150px; overflow-y: auto;")
+            .flex.flex-wrap(style="padding-top: 10px; max-height: 150px; overflow-y: auto; max-width: 1000px; overflow-x: scroll;")
               -include "includes/recipients.haml" with groups=obj.groups.all contacts=obj.contacts.all query=obj.query
 
           %td(style="text-align: right")
