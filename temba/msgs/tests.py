@@ -1986,6 +1986,17 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertFormError(response, "form", "omnibox", "At least one recipient is required.")
 
+        with AnonymousOrg(self.org):
+            # try to submit a urn for anon workspace
+            response = self.client.post(
+                send_url,
+                {
+                    "text": "Broken",
+                    "omnibox": omnibox_serialize(self.org, [], [], urns=[self.joe.get_urn()], json_encode=True),
+                },
+            )
+            self.assertFormError(response, "form", "omnibox", "At least one recipient is required.")
+
         # try to submit with an invalid URN
         response = self.client.post(
             send_url,

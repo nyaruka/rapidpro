@@ -404,6 +404,7 @@ class BroadcastCRUDL(SmartCRUDL):
 
                 self.org = org
                 self.fields["omnibox"].default_country = org.default_country_code
+                self.fields["omnibox"].widget.attrs["urns"] = not self.org.is_anon
 
             def clean(self):
                 cleaned = super().clean()
