@@ -28,6 +28,10 @@ def remove_invalid_translations(definition: dict):
             for caze in node["router"]["cases"]:
                 remove_from_localization(caze["uuid"], "arguments")
 
+        if ui_node_type == "split_by_groups":
+            for caze in node["router"]["cases"]:
+                remove_from_localization(caze["uuid"], "arguments")
+
 
 fixers = [
     remove_invalid_translations,
