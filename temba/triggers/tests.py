@@ -10,9 +10,9 @@ from temba.channels.models import Channel
 from temba.contacts.models import ContactGroup
 from temba.contacts.search.omnibox import omnibox_serialize
 from temba.flows.models import Flow
-from temba.orgs.models import Org
 from temba.schedules.models import Schedule
-from temba.tests import CRUDLTestMixin, MigrationTest, TembaTest
+from temba.tests import CRUDLTestMixin, TembaTest
+from temba.utils.views import TEMBA_MENU_SELECTION
 
 from .models import Trigger
 from .types import KeywordTriggerType
@@ -121,7 +121,6 @@ class TriggerTest(TembaTest):
         # do import to clean workspace
         Trigger.objects.all().delete()
         self.org.import_app(export_def, self.admin)
-
         # should have a single identical trigger
         imported = Trigger.objects.get(
             org=trigger.org,
@@ -294,6 +293,7 @@ class TriggerTest(TembaTest):
             groups=[doctors, farmers],
             exclude_groups=[testers],
             keyword="join",
+            match_type=Trigger.MATCH_FIRST_WORD,
         )
 
         self.assert_export_import(
@@ -307,6 +307,7 @@ class TriggerTest(TembaTest):
                 ],
                 "exclude_groups": [{"uuid": str(testers.uuid), "name": "Testers"}],
                 "keyword": "join",
+                "match_type": "F",
             },
         )
 
@@ -1147,10 +1148,16 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual({group1, group2}, set(trigger.groups.all()))
         self.assertEqual({group3}, set(trigger.exclude_groups.all()))
 
-        # error if keyword is not defined
+        # error if keyword is not defined or invalid
         self.assertUpdateSubmit(
             update_url,
             {"keyword": "", "flow": flow.id, "match_type": "F"},
+            form_errors={"keyword": "This field is required."},
+            object_unchanged=trigger,
+        )
+        self.assertUpdateSubmit(
+            update_url,
+            {"keyword": "two words", "flow": flow.id, "match_type": "F"},
             form_errors={
                 "keyword": "Must be a single word containing only letters and numbers, or a single emoji character."
             },
@@ -1380,6 +1387,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertEqual(("restore",), response.context["actions"])
 
+        self.new_ui()
         # can restore it
         self.client.post(reverse("triggers.trigger_archived"), {"action": "restore", "objects": trigger1.id})
 
@@ -1463,8 +1471,9 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         catchall_url = reverse("triggers.trigger_type", kwargs={"type": "catch_all"})
 
         response = self.assertListFetch(
-            keyword_url, allow_viewers=True, allow_editors=True, context_objects=[trigger2, trigger1]
+            keyword_url, allow_viewers=True, allow_editors=True, context_objects=[trigger2, trigger1], new_ui=True
         )
+        self.assertEqual("/trigger/keyword", response.headers[TEMBA_MENU_SELECTION])
         self.assertEqual(("archive",), response.context["actions"])
 
         # can search by keyword
@@ -1476,61 +1485,3 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
             referral_url, allow_viewers=True, allow_editors=True, context_objects=[trigger3, trigger4]
         )
         self.assertListFetch(catchall_url, allow_viewers=True, allow_editors=True, context_objects=[trigger5])
-
-
-class ConvertMissedCallTriggersTest(MigrationTest):
-    app = "triggers"
-    migrate_from = "0025_delete_bad_missed_calls"
-    migrate_to = "0026_convert_missed_call_triggers"
-
-    def setUpBeforeMigration(self, apps):
-        msg_flow = self.create_flow("Test M", flow_type=Flow.TYPE_MESSAGE)
-        ivr_flow = self.create_flow("Test V", flow_type=Flow.TYPE_VOICE)
-
-        def create_org():
-            return Org.objects.create(
-                name="My Org",
-                timezone=pytz.timezone("US/Pacific"),
-                brand="rapidpro",
-                created_by=self.customer_support,
-                modified_by=self.customer_support,
-            )
-
-        # self.org has an Android channel so its missed call trigger will be left as is
-        self.trigger1 = Trigger.create(self.org, self.admin, Trigger.TYPE_INBOUND_CALL, ivr_flow)
-        self.trigger2 = Trigger.create(self.org, self.admin, Trigger.TYPE_MISSED_CALL, msg_flow)
-
-        # new orgs doesn't have an Android channel, its missed call trigger is shadowed by its incoming call trigger
-        org2 = create_org()
-        self.trigger3 = Trigger.create(org2, self.admin2, Trigger.TYPE_INBOUND_CALL, ivr_flow)
-        self.trigger4 = Trigger.create(org2, self.admin2, Trigger.TYPE_MISSED_CALL, msg_flow)
-
-        # but trigger is only considered shadowed if groups match - if not shadowed then it's converted
-        org3 = create_org()
-        org3_group1 = self.create_group("3-1", org=org3)
-        org3_group2 = self.create_group("3-2", org=org3)
-        self.trigger5 = Trigger.create(org3, self.admin2, Trigger.TYPE_INBOUND_CALL, ivr_flow, groups=(org3_group1,))
-        self.trigger6 = Trigger.create(org3, self.admin2, Trigger.TYPE_MISSED_CALL, msg_flow, groups=(org3_group2,))
-
-        # and if there are no incoming call triggers at all, then it's converted
-        org4 = create_org()
-        self.trigger7 = Trigger.create(org4, self.admin2, Trigger.TYPE_MISSED_CALL, msg_flow)
-
-        # ignore archived triggers
-        org5 = create_org()
-        self.trigger8 = Trigger.create(org5, self.admin2, Trigger.TYPE_MISSED_CALL, msg_flow, is_archived=True)
-
-    def test_migration(self):
-        def assertTrigger(t, trigger_type: str, is_active: bool):
-            t.refresh_from_db()
-            self.assertEqual(trigger_type, t.trigger_type, "")
-            self.assertEqual(is_active, t.is_active)
-
-        assertTrigger(self.trigger1, Trigger.TYPE_INBOUND_CALL, is_active=True)
-        assertTrigger(self.trigger2, Trigger.TYPE_MISSED_CALL, is_active=True)  # ignored
-        assertTrigger(self.trigger3, Trigger.TYPE_INBOUND_CALL, is_active=True)
-        assertTrigger(self.trigger4, Trigger.TYPE_MISSED_CALL, is_active=False)  # deleted
-        assertTrigger(self.trigger5, Trigger.TYPE_INBOUND_CALL, is_active=True)
-        assertTrigger(self.trigger6, Trigger.TYPE_INBOUND_CALL, is_active=True)  # converted
-        assertTrigger(self.trigger7, Trigger.TYPE_INBOUND_CALL, is_active=True)  # converted
-        assertTrigger(self.trigger8, Trigger.TYPE_MISSED_CALL, is_active=True)  # ignored, archived

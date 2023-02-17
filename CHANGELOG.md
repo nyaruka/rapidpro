@@ -1,3 +1,160 @@
+v8.1.34 (2023-02-16)
+-------------------------
+ * Drop raw_urns field on Broadcast
+ * Pass group id instead of uuid to contact_search mailroom endpoint
+ * Remove unused expression_migrate from mailroom client
+
+v8.1.33 (2023-02-15)
+-------------------------
+ * Fix routing of current workspace to settings
+ * Add Broadcast.urns which matches the JSON and FlowStart.urns
+
+v8.1.32 (2023-02-14)
+-------------------------
+ * Drop Broadcast.urns and .send_all
+
+v8.1.30 (2023-02-13)
+-------------------------
+ * Fix keyword triggers match type
+
+v8.1.29 (2023-02-13)
+-------------------------
+ * Fix omnibox search for anon org to allow search by contact name
+ * Prepare to drop Broadcast.send_all and .urns
+
+v8.1.27 (2023-02-10)
+-------------------------
+ * Move all form text from Trigger model to forms
+ * Add migration to convert URNs to contacts on scheduled broadcasts
+
+v8.1.26 (2023-02-10)
+-------------------------
+ * Remove returning specific URNs from omniboxes and instead match contacts by URN
+ * Rework spa menu eliminate mapping
+
+v8.1.25 (2023-02-09)
+-------------------------
+ * Remove support for unused v1 omnibox format
+ * Update broadcasts API endpoint to support attachments
+
+v8.1.24 (2023-02-08)
+-------------------------
+ * Update to latest cryptography library
+ * Add task to interrupt flow sessions after 90 days
+
+v8.1.23 (2023-02-06)
+-------------------------
+ * Fix flow results redirecting to it's own page
+ * Make sure WA numbers can only be claimed once
+
+v8.1.22 (2023-02-06)
+-------------------------
+ * Update to latest django to get security fix
+
+v8.1.21 (2023-02-06)
+-------------------------
+ * Fix export > import path on new ui
+ * Fix login redirects from pjax calls
+
+v8.1.20 (2023-02-02)
+-------------------------
+ * Add servicing menu on org read
+
+v8.1.19 (2023-02-01)
+-------------------------
+ * Add Msg.quick_replies
+ * Add Broadcast.query
+ * More generic servicing for staff users
+
+v8.1.18 (2023-02-01)
+-------------------------
+ * Drop un-used Media.name field
+
+v8.1.17 (2023-01-31)
+-------------------------
+ * Fix modax from menu bug
+
+v8.1.15 (2023-01-30)
+-------------------------
+ * Add new org chooser with avatars in new UI
+ * Add dashboard to menu in new UI
+
+v8.1.14 (2023-01-27)
+-------------------------
+ * Add ordering support for filters
+ * Fix redirect ping pong when managing orgs
+ * Tweak inspect_flows command to report spec veresion mismatches
+
+v8.1.13 (2023-01-26)
+-------------------------
+ * Update flow editor
+
+v8.1.12 (2023-01-26)
+-------------------------
+ * Add locale field to Msg
+
+v8.1.11 (2023-01-25)
+-------------------------
+ * Add migration to alter flow language field to first update any remaining flows with 'base'
+
+v8.1.10 (2023-01-25)
+-------------------------
+ * Require flow and broadcast base languages to 3 letters
+ * Require broadcast.translations to be non-null
+
+v8.1.9 (2023-01-25)
+-------------------------
+ * Drop unused broadcast fields
+
+v8.1.8 (2023-01-24)
+-------------------------
+ * Make Broadcast.text nullable and stop writing it
+
+v8.1.7 (2023-01-24)
+-------------------------
+ * Stop reading from Broadcast.text
+
+v8.1.6 (2023-01-23)
+-------------------------
+ * Fix campaign imports so we don't import base as a language
+ * Increase max-width for channel configuration page
+ * Support bandwidth channel type
+
+v8.1.5 (2023-01-23)
+-------------------------
+ * Data migration to backfill broadcast.translations and replace base with und
+
+v8.1.4 (2023-01-20)
+-------------------------
+ * Update campaign message events with language base
+ * Make servicing to use posterize
+
+v8.1.3 (2023-01-19)
+-------------------------
+ * Tweak broadcasts API endpoint so it filters by is_active and hits index
+ * Fix indexes used for tickets API endpoint
+ * Remove unused indexes on contacts_contact
+ * Bump engine version to 13.2
+
+v8.1.2 (2023-01-19)
+-------------------------
+ * Fixes for content menu changes
+ * Fix test_db to create orgs with flow languages
+
+v8.1.1 (2023-01-18)
+-------------------------
+ * Restrict creating surveyor flows unless that is enabled as a feature
+ * Always create braodcasts with status = QUEUED, create index for fetching queued broadcasts
+ * Add new translations JSON field to broadcasts and start writing it
+ * Remove support for creating broadcasts with legacy expressions
+ * New content menu component
+
+v8.1.0 (2023-01-17)
+-------------------------
+ * Update contact import styling
+ * Implement squashed migrations
+ * Stop trimming flow starts as this will be handled by archiver
+
 v8.0.1 (2023-01-12)
 -------------------------
  * Tweak migration dependencies to ensure clean installs run them in order that works

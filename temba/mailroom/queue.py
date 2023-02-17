@@ -86,10 +86,10 @@ def queue_broadcast(broadcast):
     """
 
     task = {
-        "translations": {lang: {"text": text} for lang, text in broadcast.text.items()},
-        "template_state": broadcast.get_template_state(),
+        "translations": broadcast.translations,
+        "template_state": "unevaluated",
         "base_language": broadcast.base_language,
-        "urns": broadcast.raw_urns or [],
+        "urns": broadcast.urns or [],
         "contact_ids": list(broadcast.contacts.values_list("id", flat=True)),
         "group_ids": list(broadcast.groups.values_list("id", flat=True)),
         "broadcast_id": broadcast.id,
@@ -167,20 +167,20 @@ def queue_interrupt_channel(org, channel):
     _queue_batch_task(org.id, BatchTask.INTERRUPT_CHANNEL, task, HIGH_PRIORITY)
 
 
-def queue_interrupt(org, *, contacts=None, flow=None, session=None):
+def queue_interrupt(org, *, contacts=None, flow=None, sessions=None):
     """
     Queues an interrupt task for handling by mailroom
     """
 
-    assert contacts or flow or session, "must specify either a set of contacts or a flow or a session"
+    assert contacts or flow or sessions, "must specify either a set of contacts or a flow or sessions"
 
     task = {}
     if contacts:
         task["contact_ids"] = [c.id for c in contacts]
     if flow:
         task["flow_ids"] = [flow.id]
-    if session:
-        task["session_ids"] = [session.id]
+    if sessions:
+        task["session_ids"] = [s.id for s in sessions]
 
     _queue_batch_task(org.id, BatchTask.INTERRUPT_SESSIONS, task, HIGH_PRIORITY)
 

@@ -30,25 +30,6 @@ class MailroomClientTest(TembaTest):
 
         self.assertEqual("5.3.4", version)
 
-    def test_expression_migrate(self):
-        with patch("requests.post") as mock_post:
-            mock_post.return_value = MockResponse(200, '{"migrated": "@fields.age"}')
-            migrated = get_client().expression_migrate("@contact.age")
-
-            self.assertEqual("@fields.age", migrated)
-
-            mock_post.assert_called_once_with(
-                "http://localhost:8090/mr/expression/migrate",
-                headers={"User-Agent": "Temba"},
-                json={"expression": "@contact.age"},
-            )
-
-            # in case of error just return original
-            mock_post.return_value = MockResponse(422, '{"error": "bad isn\'t a thing"}')
-            migrated = get_client().expression_migrate("@(bad)")
-
-            self.assertEqual("@(bad)", migrated)
-
     def test_flow_migrate(self):
         flow_def = {"nodes": [{"val": Decimal("1.23")}]}
 
@@ -373,7 +354,7 @@ class MailroomClientTest(TembaTest):
             }
             """,
         )
-        response = get_client().contact_search(1, "2752dbbc-723f-4007-8bc5-b3720835d3a9", "frank", "-created_on")
+        response = get_client().contact_search(1, 2, "frank", "-created_on")
 
         self.assertEqual('name ~ "frank"', response.query)
         self.assertEqual(["name"], response.metadata.attributes)
@@ -383,7 +364,7 @@ class MailroomClientTest(TembaTest):
             json={
                 "query": "frank",
                 "org_id": 1,
-                "group_uuid": "2752dbbc-723f-4007-8bc5-b3720835d3a9",
+                "group_id": 2,
                 "exclude_ids": (),
                 "offset": 0,
                 "sort": "-created_on",
@@ -393,7 +374,7 @@ class MailroomClientTest(TembaTest):
         mock_post.return_value = MockResponse(400, '{"error":"no such field age"}')
 
         with self.assertRaises(MailroomException):
-            get_client().contact_search(1, "2752dbbc-723f-4007-8bc5-b3720835d3a9", "age > 10", "-created_on")
+            get_client().contact_search(1, 2, "age > 10", "-created_on")
 
     def test_ticket_assign(self):
         with patch("requests.post") as mock_post:
@@ -468,10 +449,6 @@ class MailroomClientTest(TembaTest):
             e.exception.as_json(),
             {"endpoint": "flow/migrate", "request": matchers.Dict(), "response": {"errors": ["Bad request", "Doh!"]}},
         )
-
-    def test_empty_expression(self):
-        # empty is as empty does
-        self.assertEqual("", get_client().expression_migrate(""))
 
 
 class MailroomQueueTest(TembaTest):
@@ -585,7 +562,7 @@ class MailroomQueueTest(TembaTest):
                         "eng": {"text": "Welcome to mailroom!"},
                         "spa": {"text": "\u00a1Bienvenidx a mailroom!"},
                     },
-                    "template_state": "legacy",
+                    "template_state": "unevaluated",
                     "base_language": "eng",
                     "urns": ["tel:+12065556666"],
                     "contact_ids": [jim.id],
@@ -935,8 +912,8 @@ class EventTest(TembaTest):
             {
                 "type": "broadcast_created",
                 "created_on": matchers.ISODate(),
-                "translations": {"eng": "Hi there"},
-                "base_language": "eng",
+                "translations": {"und": {"text": "Hi there"}},
+                "base_language": "und",
                 "msg": {
                     "uuid": str(msg_out2.uuid),
                     "id": msg_out2.id,

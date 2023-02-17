@@ -570,27 +570,15 @@ class BaseClaimNumberMixin(ClaimViewMixin):
                 return self.form_invalid(form)
 
         # don't add the same number twice to the same account
-        existing = org.channels.filter(
-            is_active=True, address=data["phone_number"], schemes__overlap=list(self.channel_type.schemes)
-        ).first()
-        if existing:  # pragma: needs cover
-            form._errors["phone_number"] = form.error_class(
-                [_("That number is already connected (%s)" % data["phone_number"])]
-            )
-            return self.form_invalid(form)
-
         existing = Channel.objects.filter(
             is_active=True, address=data["phone_number"], schemes__overlap=list(self.channel_type.schemes)
         ).first()
         if existing:  # pragma: needs cover
-            form._errors["phone_number"] = form.error_class(
-                [
-                    _(
-                        "That number is already connected to another account - %(org)s (%(user)s)"
-                        % dict(org=existing.org, user=existing.created_by.username)
-                    )
-                ]
-            )
+            if existing.org == self.request.org:
+                form._errors["phone_number"] = form.error_class([_("Number is already connected to this workspace")])
+                return self.form_invalid(form)
+
+            form._errors["phone_number"] = form.error_class([_("Number is already connected to another workspace")])
             return self.form_invalid(form)
 
         error_message = None
@@ -731,6 +719,9 @@ class ChannelCRUDL(SmartCRUDL):
         slug_url_kwarg = "uuid"
         exclude = ("id", "is_active", "created_by", "modified_by", "modified_on")
 
+        def derive_menu_path(self):
+            return f"/settings/channels/{self.get_object().uuid}"
+
         def get_queryset(self):
             return Channel.objects.filter(is_active=True)
 
@@ -805,13 +796,6 @@ class ChannelCRUDL(SmartCRUDL):
                     _("Whitelist Domain"),
                     "fb-whitelist",
                     reverse("channels.channel_facebook_whitelist", args=[obj.uuid]),
-                )
-
-            if self.request.user.is_staff:
-                menu.new_group()
-                menu.add_url_post(
-                    _("Service"),
-                    f'{reverse("orgs.org_service")}?organization={obj.org_id}&redirect_url={reverse("channels.channel_read", args=[obj.uuid])}',
                 )
 
         def get_context_data(self, **kwargs):
@@ -1377,6 +1361,9 @@ class ChannelLogCRUDL(SmartCRUDL):
             else:
                 return self.FOLDER_MESSAGES
 
+        def derive_menu_path(self):
+            return f"/settings/channels/{self.channel.uuid}"
+
         def build_content_menu(self, menu):
             list_url = reverse("channels.channellog_list", args=[self.channel.uuid])
 
@@ -1472,6 +1459,9 @@ class ChannelLogCRUDL(SmartCRUDL):
         @cached_property
         def msg(self):
             return get_object_or_404(Msg, id=self.kwargs["msg_id"])
+
+        def derive_menu_path(self):
+            return f"/settings/channels/{self.msg.channel.uuid}"
 
         def build_content_menu(self, menu):
             if not self.is_spa():

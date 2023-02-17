@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from temba.request_logs.models import HTTPLog
 from temba.tests import CRUDLTestMixin, MockResponse, TembaTest
+from temba.utils.views import TEMBA_MENU_SELECTION
 
 from .models import Classifier
 from .types.luis import LuisType
@@ -122,15 +123,16 @@ class ClassifierCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertNotContains(response, "Old Booker")
         self.assertNotContains(response, "Org 2 Booker")
 
-        connect_url = reverse("classifiers.classifier_connect")
         response = self.client.get(reverse("orgs.org_home"))
-        self.assertContains(response, connect_url)
+        self.assertContentMenuContains(reverse("orgs.org_home"), self.admin, "Add Classifier")
 
+        self.new_ui()
         read_url = reverse("classifiers.classifier_read", args=[self.c1.uuid])
         self.assertContains(response, read_url)
 
         # read page
         response = self.client.get(read_url)
+        self.assertEqual(f"/settings/classifiers/{self.c1.uuid}", response.headers[TEMBA_MENU_SELECTION])
 
         # contains intents
         self.assertContains(response, "book_flight")
@@ -138,12 +140,11 @@ class ClassifierCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "book_car")
 
         # a link to logs
-        log_url = reverse("request_logs.httplog_classifier", args=[self.c1.uuid])
-        self.assertContains(response, log_url)
+        self.assertContentMenuContains(read_url, self.admin, "Log")
 
         # and buttons for delete and sync
-        self.assertContains(response, reverse("classifiers.classifier_sync", args=[self.c1.id]))
-        self.assertContains(response, reverse("classifiers.classifier_delete", args=[self.c1.uuid]))
+        self.assertContentMenuContains(read_url, self.admin, "Sync")
+        self.assertContentMenuContains(read_url, self.admin, "Delete")
 
         self.c1.intents.all().delete()
 

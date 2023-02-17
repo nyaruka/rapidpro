@@ -228,14 +228,11 @@ class FlowCRUDL(SmartCRUDL):
 
             menu = []
             menu.append(
-                self.create_menu_item(
-                    name=_("Active"), verbose_name=_("Active Flows"), icon="icon.active", href="flows.flow_list"
-                )
+                self.create_menu_item(menu_id="", name=_("Active"), icon="icon.active", href="flows.flow_list")
             )
             menu.append(
                 self.create_menu_item(
                     name=_("Archived"),
-                    verbose_name=_("Archived Flows"),
                     icon="icon.archive",
                     href="flows.flow_archived",
                 )
@@ -404,22 +401,20 @@ class FlowCRUDL(SmartCRUDL):
                 ),
             )
 
-            flow_type = forms.ChoiceField(
-                label=_("Type"),
-                help_text=_("Choose the method for your flow"),
-                choices=Flow.TYPE_CHOICES,
-                widget=SelectWidget(attrs={"widget_only": False}),
-            )
-
             def __init__(self, org, branding, *args, **kwargs):
                 super().__init__(org, branding, *args, **kwargs)
 
-                language_choices = languages.choices(org.flow_languages)
+                self.fields["flow_type"] = forms.ChoiceField(
+                    label=_("Type"),
+                    help_text=_("Choose the method for your flow"),
+                    choices=Flow.TYPE_CHOICES if "surveyor" in settings.FEATURES else Flow.TYPE_CHOICES[:3],
+                    widget=SelectWidget(attrs={"widget_only": False}),
+                )
 
                 self.fields["base_language"] = forms.ChoiceField(
                     label=_("Language"),
                     initial=org.flow_languages[0],
-                    choices=language_choices,
+                    choices=languages.choices(org.flow_languages),
                     widget=SelectWidget(attrs={"widget_only": False}),
                 )
 
@@ -466,7 +461,9 @@ class FlowCRUDL(SmartCRUDL):
             if self.form.cleaned_data["keyword_triggers"]:
                 keywords = self.form.cleaned_data["keyword_triggers"].split(",")
                 for keyword in keywords:
-                    Trigger.create(org, user, Trigger.TYPE_KEYWORD, flow=obj, keyword=keyword)
+                    Trigger.create(
+                        org, user, Trigger.TYPE_KEYWORD, flow=obj, keyword=keyword, match_type=Trigger.MATCH_FIRST_WORD
+                    )
 
             return obj
 
@@ -678,6 +675,7 @@ class FlowCRUDL(SmartCRUDL):
                             org=org,
                             keyword=keyword,
                             trigger_type=Trigger.TYPE_KEYWORD,
+                            match_type=Trigger.MATCH_FIRST_WORD,
                             flow=obj,
                             created_by=user,
                             modified_by=user,
@@ -814,6 +812,7 @@ class FlowCRUDL(SmartCRUDL):
     class List(BaseList):
         title = _("Active Flows")
         bulk_actions = ("archive", "label", "download-results")
+        menu_path = "/flow/active"
 
         def derive_queryset(self, *args, **kwargs):
             queryset = super().derive_queryset(*args, **kwargs)
@@ -905,6 +904,11 @@ class FlowCRUDL(SmartCRUDL):
     class Editor(SpaMixin, OrgObjPermsMixin, ContentMenuMixin, SmartReadView):
         slug_url_kwarg = "uuid"
 
+        def derive_menu_path(self):
+            if self.object.is_archived:
+                return "/flow/archived"
+            return "/flow/active"
+
         def derive_title(self):
             return self.object.name
 
@@ -943,9 +947,9 @@ class FlowCRUDL(SmartCRUDL):
                     if key.endswith(".js") and filename.endswith(".js"):
                         scripts.append(filename)
 
-                context["scripts"] = scripts
-                context["styles"] = styles
-                context["dev_mode"] = dev_mode
+                    context["scripts"] = scripts
+                    context["styles"] = styles
+                    context["dev_mode"] = dev_mode
 
             flow = self.object
 
@@ -1040,13 +1044,6 @@ class FlowCRUDL(SmartCRUDL):
 
                 if self.has_org_perm("flows.flow_import_translation"):
                     menu.add_link(_("Import Translation"), reverse("flows.flow_import_translation", args=[obj.id]))
-
-            if self.request.user.is_staff:
-                menu.new_group()
-                menu.add_url_post(
-                    _("Service"),
-                    f'{reverse("orgs.org_service")}?organization={obj.org_id}&redirect_url={reverse("flows.flow_editor", args=[obj.uuid])}',
-                )
 
     class ChangeLanguage(OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.Form):
@@ -1764,14 +1761,13 @@ class FlowCRUDL(SmartCRUDL):
             recipients = OmniboxField(
                 label=_("Recipients"),
                 required=False,
-                help_text=_("The contacts to send the message to"),
+                help_text=_("The contacts to send the message to."),
                 widget=OmniboxChoice(
                     attrs={
-                        "placeholder": _("Recipients, enter contacts or groups"),
+                        "placeholder": _("Search for contacts or groups"),
                         "widget_only": True,
                         "groups": True,
                         "contacts": True,
-                        "urns": True,
                     }
                 ),
             )

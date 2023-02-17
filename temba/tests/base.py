@@ -60,9 +60,7 @@ class TembaTestMixin:
         self.user = self.create_user("viewer@nyaruka.com")
         self.agent = self.create_user("agent@nyaruka.com", first_name="Agnes")
         self.surveyor = self.create_user("surveyor@nyaruka.com")
-        self.customer_support = self.create_user(
-            "support@nyaruka.com", group_names=("Customer Support",), is_staff=True
-        )
+        self.customer_support = self.create_user("support@nyaruka.com", is_staff=True)
 
         self.org = Org.objects.create(
             name="Nyaruka",
@@ -138,6 +136,9 @@ class TembaTestMixin:
     def make_beta(self, user):
         user.groups.add(Group.objects.get(name="Beta"))
 
+    def unbeta(self, user):
+        user.groups.remove(Group.objects.get(name="Beta"))
+
     def clear_cache(self):
         """
         Clears the redis cache. We are extra paranoid here and check that redis host is 'localhost'
@@ -168,6 +169,14 @@ class TembaTestMixin:
             session = self.client.session
             session.update({"org_id": choose_org.id})
             session.save()
+
+    def old_ui(self):
+        self.unbeta(self.admin)
+        self.client.cookies.load({"nav": "1"})
+
+    def new_ui(self):
+        self.make_beta(self.admin)
+        self.client.cookies.load({"nav": "2"})
 
     def import_file(self, filename, site="http://rapidpro.io", substitutions=None):
         data = self.get_import_json(filename, substitutions=substitutions)
@@ -300,6 +309,7 @@ class TembaTestMixin:
             channel=channel,
             msg_type=msg_type,
             attachments=attachments,
+            quick_replies=None,
             status=status,
             created_on=created_on,
             visibility=visibility,
@@ -343,6 +353,7 @@ class TembaTestMixin:
             channel=channel,
             msg_type=msg_type,
             attachments=attachments,
+            quick_replies=quick_replies,
             status=status,
             created_on=created_on,
             sent_on=sent_on,
@@ -363,6 +374,7 @@ class TembaTestMixin:
         channel,
         msg_type,
         attachments,
+        quick_replies,
         status,
         created_on,
         sent_on=None,
@@ -372,6 +384,7 @@ class TembaTestMixin:
         surveyor=False,
         flow=None,
         broadcast=None,
+        locale=None,
         metadata=None,
         next_attempt=None,
         failed_reason=None,
@@ -399,10 +412,12 @@ class TembaTestMixin:
             contact=contact,
             contact_urn=contact_urn,
             text=text,
+            attachments=attachments,
+            quick_replies=quick_replies,
+            locale=locale,
             channel=channel,
             status=status,
             msg_type=msg_type,
-            attachments=attachments,
             visibility=visibility,
             external_id=external_id,
             high_priority=high_priority,
@@ -418,9 +433,10 @@ class TembaTestMixin:
     def create_broadcast(
         self,
         user,
-        text,
+        text: str | dict,
         contacts=(),
         groups=(),
+        status=Broadcast.STATUS_SENT,
         msg_status=Msg.STATUS_SENT,
         parent=None,
         schedule=None,
@@ -430,14 +446,14 @@ class TembaTestMixin:
         bcast = Broadcast.create(
             self.org,
             user,
-            text,
+            {"und": text} if isinstance(text, str) else text,
             contacts=contacts,
             groups=groups,
-            status=Msg.STATUS_SENT,
             parent=parent,
             schedule=schedule,
             ticket=ticket,
             created_on=created_on or timezone.now(),
+            status=status,
         )
 
         contacts = set(bcast.contacts.all())
@@ -453,10 +469,12 @@ class TembaTestMixin:
                     channel=None,
                     msg_type=Msg.TYPE_INBOX,
                     attachments=(),
+                    quick_replies=(),
                     status=msg_status,
                     created_on=timezone.now(),
                     sent_on=timezone.now(),
                     broadcast=bcast,
+                    locale=bcast.base_language,
                 )
 
         return bcast

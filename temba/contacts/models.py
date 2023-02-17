@@ -616,21 +616,14 @@ class Contact(LegacyUUIDMixin, SmartModel):
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_ACTIVE)
     current_flow = models.ForeignKey("flows.Flow", on_delete=models.PROTECT, null=True, db_index=False)
     ticket_count = models.IntegerField(default=0)
-
-    # user that last modified this contact
-    modified_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        on_delete=models.PROTECT,
-        related_name="%(app_label)s_%(class)s_modifications",
-    )
-
-    # user that created this contact
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="%(app_label)s_%(class)s_creations", null=True
-    )
-
     last_seen_on = models.DateTimeField(null=True)
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, db_index=False, related_name="+"
+    )
+    modified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, db_index=False, related_name="+"
+    )
 
     # maximum number of contacts to release without using a background task
     BULK_RELEASE_IMMEDIATELY_LIMIT = 50
@@ -699,7 +692,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         return (
             SystemLabel.get_queryset(self.org, SystemLabel.TYPE_SCHEDULED)
             .filter(schedule__next_fire__gte=timezone.now())
-            .filter(Q(contacts__in=[self]) | Q(urns__in=self.get_urns()) | Q(groups__in=self.groups.all()))
+            .filter(Q(contacts__in=[self]) | Q(groups__in=self.groups.all()))
             .select_related("org", "schedule")
         )
 

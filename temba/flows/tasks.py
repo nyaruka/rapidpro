@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta
 
 import pytz
@@ -10,6 +11,7 @@ from django.db.models import F, Prefetch
 from django.utils import timezone
 from django.utils.timesince import timesince
 
+from temba import mailroom
 from temba.contacts.models import ContactField, ContactGroup
 from temba.utils import chunk_list
 from temba.utils.crons import cron_task
@@ -24,11 +26,9 @@ from .models import (
     FlowRun,
     FlowRunStatusCount,
     FlowSession,
-    FlowStart,
     FlowStartCount,
 )
 
-FLOW_TIMEOUT_KEY = "flow_timeouts_%y_%m_%d"
 logger = logging.getLogger(__name__)
 
 
@@ -86,9 +86,37 @@ def trim_flow_revisions():
 
 
 @cron_task()
+def interrupt_flow_sessions():
+    """
+    Interrupt old flow sessions which have exceeded the absolute time limit
+    """
+
+    before = timezone.now() - timedelta(days=90)
+    num_interrupted = 0
+
+    # get old sessions and organize into lists by org
+    by_org = defaultdict(list)
+    sessions = (
+        FlowSession.objects.filter(created_on__lte=before, status=FlowSession.STATUS_WAITING)
+        .only("id", "org")
+        .select_related("org")
+        .order_by("id")
+    )
+    for session in sessions:
+        by_org[session.org].append(session)
+
+    for org, sessions in by_org.items():
+        for batch in chunk_list(sessions, 100):
+            mailroom.queue_interrupt(org, sessions=batch)
+            num_interrupted += len(sessions)
+
+    return {"interrupted": num_interrupted}
+
+
+@cron_task()
 def trim_flow_sessions():
     """
-    Cleanup old flow sessions
+    Cleanup ended flow sessions
     """
 
     trim_before = timezone.now() - settings.RETENTION_PERIODS["flowsession"]
@@ -104,43 +132,5 @@ def trim_flow_sessions():
 
         FlowSession.objects.filter(id__in=session_ids).delete()
         num_deleted += len(session_ids)
-
-    return {"deleted": num_deleted}
-
-
-@cron_task()
-def trim_flow_starts() -> int:
-    """
-    Cleanup completed non-user created flow starts
-    """
-
-    trim_before = timezone.now() - settings.RETENTION_PERIODS["flowstart"]
-    num_deleted = 0
-
-    while True:
-        start_ids = list(
-            FlowStart.objects.filter(
-                created_by=None,
-                status__in=(FlowStart.STATUS_COMPLETE, FlowStart.STATUS_FAILED),
-                modified_on__lte=trim_before,
-            ).values_list("id", flat=True)[:1000]
-        )
-        if not start_ids:
-            break
-
-        # detach any flows runs that belong to these starts
-        run_ids = FlowRun.objects.filter(start_id__in=start_ids).values_list("id", flat=True)[:100000]
-        while len(run_ids) > 0:
-            for chunk in chunk_list(run_ids, 1000):
-                FlowRun.objects.filter(id__in=chunk).update(start_id=None)
-
-            # reselect for our next batch
-            run_ids = FlowRun.objects.filter(start_id__in=start_ids).values_list("id", flat=True)[:100000]
-
-        FlowStart.contacts.through.objects.filter(flowstart_id__in=start_ids).delete()
-        FlowStart.groups.through.objects.filter(flowstart_id__in=start_ids).delete()
-        FlowStartCount.objects.filter(start_id__in=start_ids).delete()
-        FlowStart.objects.filter(id__in=start_ids).delete()
-        num_deleted += len(start_ids)
 
     return {"deleted": num_deleted}

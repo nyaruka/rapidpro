@@ -54,16 +54,16 @@ from .models import (
     get_flow_user,
 )
 from .tasks import (
+    interrupt_flow_sessions,
     squash_flow_counts,
     trim_flow_revisions,
     trim_flow_sessions,
-    trim_flow_starts,
     update_session_wait_expires,
 )
 from .views import FlowCRUDL
 
 
-class FlowTest(TembaTest):
+class FlowTest(TembaTest, CRUDLTestMixin):
     def setUp(self):
         super().setUp()
 
@@ -164,7 +164,7 @@ class FlowTest(TembaTest):
     def test_ensure_current_version(self):
         # importing migrates to latest spec version
         flow = self.get_flow("favorites_v13")
-        self.assertEqual("13.1.0", flow.version_number)
+        self.assertEqual("13.2.0", flow.version_number)
         self.assertEqual(1, flow.revisions.count())
 
         # rewind one spec version..
@@ -181,7 +181,7 @@ class FlowTest(TembaTest):
         flow.ensure_current_version()
 
         # check we migrate to current spec version
-        self.assertEqual("13.1.0", flow.version_number)
+        self.assertEqual("13.2.0", flow.version_number)
         self.assertEqual(2, flow.revisions.count())
         self.assertEqual(get_flow_user(self.org), flow.revisions.order_by("id").last().created_by)
 
@@ -259,8 +259,11 @@ class FlowTest(TembaTest):
         flow = self.get_flow("color")
 
         self.login(self.admin)
+        self.new_ui()
 
-        response = self.client.get(reverse("flows.flow_editor", args=[flow.uuid]))
+        flow_editor_url = reverse("flows.flow_editor", args=[flow.uuid])
+
+        response = self.client.get(flow_editor_url)
 
         self.assertTrue(response.context["mutable"])
         self.assertTrue(response.context["can_start"])
@@ -268,19 +271,13 @@ class FlowTest(TembaTest):
         self.assertContains(response, reverse("flows.flow_simulate", args=[flow.id]))
         self.assertContains(response, "id='rp-flow-editor'")
 
-        # customer service gets a service button
-        self.login(self.customer_support)
-
-        response = self.client.get(reverse("flows.flow_editor", args=[flow.uuid]))
-        self.assertContains(response, "Service")
-
         # flows that are archived can't be edited, started or simulated
         self.login(self.admin)
 
         flow.is_archived = True
         flow.save(update_fields=("is_archived",))
 
-        response = self.client.get(reverse("flows.flow_editor", args=[flow.uuid]))
+        response = self.client.get(flow_editor_url)
 
         self.assertFalse(response.context["mutable"])
         self.assertFalse(response.context["can_start"])
@@ -1774,6 +1771,23 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             response.context["form"].fields["flow_type"].choices,
         )
 
+        # if surveyor feature is disabled, that is no longer a flow type option
+        with self.settings(FEATURES={}):
+            response = self.assertCreateFetch(
+                create_url,
+                allow_viewers=False,
+                allow_editors=True,
+                form_fields=["name", "keyword_triggers", "flow_type", "base_language"],
+            )
+            self.assertEqual(
+                [
+                    (Flow.TYPE_MESSAGE, "Messaging"),
+                    (Flow.TYPE_VOICE, "Phone Call"),
+                    (Flow.TYPE_BACKGROUND, "Background"),
+                ],
+                response.context["form"].fields["flow_type"].choices,
+            )
+
         # try to submit without name or language
         self.assertCreateSubmit(
             create_url,
@@ -1897,9 +1911,13 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         user.save()
         self.login(user)
 
-        self.assertContentMenu(reverse("flows.flow_list"), self.admin, ["Import", "Export"])
+        self.assertContentMenu(reverse("flows.flow_list"), self.user, legacy_items=["Export"], spa_items=["Export"])
+
         self.assertContentMenu(
-            reverse("flows.flow_list"), self.admin, ["New Flow", "New Label", "Import", "Export"], True
+            reverse("flows.flow_list"),
+            self.admin,
+            legacy_items=["Import", "Export"],
+            spa_items=["New Flow", "New Label", "Import", "Export"],
         )
 
         # list, should have only one flow (the one created in setUp)
@@ -1933,7 +1951,12 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # add a trigger on this flow
         Trigger.objects.create(
-            org=self.org, keyword="unique", flow=flow1, created_by=self.admin, modified_by=self.admin
+            org=self.org,
+            keyword="unique",
+            match_type=Trigger.MATCH_FIRST_WORD,
+            flow=flow1,
+            created_by=self.admin,
+            modified_by=self.admin,
         )
 
         # create a new surveyor flow
@@ -1996,7 +2019,12 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # create another trigger so there are two in the way
         trigger = Trigger.objects.create(
-            org=self.org, keyword="this", flow=flow1, created_by=self.admin, modified_by=self.admin
+            org=self.org,
+            keyword="this",
+            match_type=Trigger.MATCH_FIRST_WORD,
+            flow=flow1,
+            created_by=self.admin,
+            modified_by=self.admin,
         )
 
         response = self.client.post(
@@ -2041,6 +2069,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(flow3.triggers.count(), 5)
         self.assertEqual(flow3.triggers.filter(is_archived=True).count(), 2)
         self.assertEqual(flow3.triggers.filter(is_archived=False).count(), 3)
+        self.assertEqual(flow3.triggers.filter(is_archived=False, match_type=Trigger.MATCH_FIRST_WORD).count(), 3)
         self.assertEqual(flow3.triggers.filter(is_archived=False).exclude(groups=None).count(), 0)
 
         # update flow with unformatted keyword
@@ -2429,7 +2458,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                     "user": {"email": "admin@nyaruka.com", "name": "Andy"},
                     "created_on": matchers.ISODate(),
                     "id": revisions[0].id,
-                    "version": "13.1.0",
+                    "version": Flow.CURRENT_SPEC_VERSION,
                     "revision": 2,
                 },
                 {
@@ -2459,7 +2488,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # make sure we can read the definition
         definition = response.json()["definition"]
-        self.assertEqual("base", definition["language"])
+        self.assertEqual("und", definition["language"])
 
         # really break the legacy revision
         revisions[1].definition = {"foo": "bar"}
@@ -3976,6 +4005,48 @@ class FlowRunTest(TembaTest):
 
 
 class FlowSessionTest(TembaTest):
+    @mock_mailroom
+    def test_interrupt(self, mr_mocks):
+        contact = self.create_contact("Ben Haggerty", phone="+250788123123")
+
+        def create_session(org, created_on: datetime):
+            return FlowSession.objects.create(
+                uuid=uuid4(),
+                org=org,
+                contact=contact,
+                created_on=created_on,
+                output_url="http://sessions.com/123.json",
+                status=FlowSession.STATUS_WAITING,
+                wait_started_on=timezone.now(),
+                wait_expires_on=timezone.now() + timedelta(days=7),
+                wait_resume_on_expire=False,
+            )
+
+        create_session(self.org, timezone.now() - timedelta(days=89))
+        session2 = create_session(self.org, timezone.now() - timedelta(days=91))
+        session3 = create_session(self.org, timezone.now() - timedelta(days=92))
+        session4 = create_session(self.org2, timezone.now() - timedelta(days=92))
+
+        interrupt_flow_sessions()
+
+        self.assertEqual(
+            [
+                {
+                    "type": "interrupt_sessions",
+                    "org_id": self.org.id,
+                    "queued_on": matchers.Datetime(),
+                    "task": {"session_ids": [session2.id, session3.id]},
+                },
+                {
+                    "type": "interrupt_sessions",
+                    "org_id": self.org2.id,
+                    "queued_on": matchers.Datetime(),
+                    "task": {"session_ids": [session4.id]},
+                },
+            ],
+            mr_mocks.queued_batch_tasks,
+        )
+
     def test_trim(self):
         contact = self.create_contact("Ben Haggerty", phone="+250788123123")
         flow = self.get_flow("color")
@@ -4064,78 +4135,6 @@ class FlowSessionTest(TembaTest):
 
         # only sessions for run2 and run3 are left
         self.assertEqual(FlowSession.objects.count(), 2)
-
-
-class FlowStartTest(TembaTest):
-    def test_trim(self):
-        contact = self.create_contact("Ben Haggerty", phone="+250788123123")
-        group = self.create_group("Testers", contacts=[contact])
-        flow = self.get_flow("color")
-
-        def create_start(user, start_type, status, modified_on, **kwargs):
-            start = FlowStart.create(flow, user, start_type, **kwargs)
-            start.status = status
-            start.modified_on = modified_on
-            start.save(update_fields=("status", "modified_on"))
-
-            session = FlowSession.objects.create(
-                uuid=uuid4(),
-                org=self.org,
-                contact=contact,
-                output_url="http://sessions.com/123.json",
-                status=FlowSession.STATUS_WAITING,
-                wait_started_on=timezone.now(),
-                wait_expires_on=timezone.now() + timedelta(days=7),
-                wait_resume_on_expire=False,
-            )
-            FlowRun.objects.create(
-                org=self.org, contact=contact, flow=flow, session=session, start=start, status=FlowRun.STATUS_WAITING
-            )
-
-            FlowStartCount.objects.create(start=start, count=1, is_squashed=False)
-
-        date1 = timezone.now() - timedelta(days=8)
-        date2 = timezone.now()
-
-        # some starts that won't be deleted because they are user created
-        create_start(self.admin, FlowStart.TYPE_API, FlowStart.STATUS_COMPLETE, date1, contacts=[contact])
-        create_start(self.admin, FlowStart.TYPE_MANUAL, FlowStart.STATUS_COMPLETE, date1, groups=[group])
-        create_start(self.admin, FlowStart.TYPE_MANUAL, FlowStart.STATUS_FAILED, date1, query="name ~ Ben")
-
-        # some starts that are mailroom created and will be deleted
-        create_start(None, FlowStart.TYPE_FLOW_ACTION, FlowStart.STATUS_COMPLETE, date1, contacts=[contact])
-        create_start(None, FlowStart.TYPE_TRIGGER, FlowStart.STATUS_FAILED, date1, groups=[group])
-
-        # some starts that are mailroom created but not completed so won't be deleted
-        create_start(None, FlowStart.TYPE_FLOW_ACTION, FlowStart.STATUS_STARTING, date1, contacts=[contact])
-        create_start(None, FlowStart.TYPE_TRIGGER, FlowStart.STATUS_PENDING, date1, groups=[group])
-        create_start(None, FlowStart.TYPE_TRIGGER, FlowStart.STATUS_PENDING, date1, groups=[group])
-
-        # some starts that are mailroom created but too new so won't be deleted
-        create_start(None, FlowStart.TYPE_FLOW_ACTION, FlowStart.STATUS_COMPLETE, date2, contacts=[contact])
-        create_start(None, FlowStart.TYPE_TRIGGER, FlowStart.STATUS_FAILED, date2, groups=[group])
-
-        trim_flow_starts()
-
-        # check that related objects still exist!
-        contact.refresh_from_db()
-        group.refresh_from_db()
-        flow.refresh_from_db()
-
-        # check user created starts still exist
-        self.assertEqual(3, FlowStart.objects.filter(created_by=self.admin).count())
-
-        # 5 mailroom created starts remain
-        self.assertEqual(5, FlowStart.objects.filter(created_by=None).count())
-
-        # only runs from our remaining starts still have start ids
-        self.assertEqual(8, FlowRun.objects.exclude(start=None).count())
-
-        # the 3 that aren't complete...
-        self.assertEqual(3, FlowStart.objects.filter(created_by=None).exclude(status="C").exclude(status="F").count())
-
-        # and the 2 that are too new
-        self.assertEqual(2, FlowStart.objects.filter(created_by=None, modified_on=date2).count())
 
 
 class ExportFlowResultsTest(TembaTest):
@@ -5535,7 +5534,7 @@ class SimulationTest(TembaTest):
         replies = []
         for event in response.get("events", []):
             if event["type"] == "broadcast_created":
-                replies.append(event["text"])
+                replies.append(event["translations"][event["base_language"]]["text"])
             elif event["type"] == "msg_created":
                 replies.append(event["msg"]["text"])
         return replies
@@ -5659,7 +5658,7 @@ class FlowSessionCRUDLTest(TembaTest):
         self.assertLoginRedirect(response)
 
         # but logged in as a CS rep we can
-        self.login(self.customer_support)
+        self.login(self.customer_support, choose_org=self.org)
 
         response = self.client.get(url)
         self.assertEqual(200, response.status_code)

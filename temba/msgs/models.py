@@ -30,20 +30,12 @@ from temba.orgs.models import DependencyMixin, Org
 from temba.schedules.models import Schedule
 from temba.utils import chunk_list, on_transaction_commit
 from temba.utils.export import BaseExportAssetStore, BaseItemWithContactExport
-from temba.utils.models import JSONAsTextField, SquashableModel, TembaModel, TranslatableField
+from temba.utils.models import JSONAsTextField, SquashableModel, TembaModel
 from temba.utils.s3 import public_file_storage
 from temba.utils.text import clean_string
 from temba.utils.uuid import uuid4
 
 logger = logging.getLogger(__name__)
-
-
-class UnreachableException(Exception):
-    """
-    Exception thrown when a message is being sent to a contact that we don't have a sendable URN for
-    """
-
-    pass
 
 
 class Media(models.Model):
@@ -75,9 +67,6 @@ class Media(models.Model):
 
     created_by = models.ForeignKey(User, on_delete=models.PROTECT)
     created_on = models.DateTimeField(default=timezone.now)
-
-    # TODO remove
-    name = models.CharField(max_length=255, null=True)
 
     @classmethod
     def is_allowed_type(cls, content_type: str) -> bool:
@@ -182,118 +171,78 @@ class Broadcast(models.Model):
     messages sent from the same bundle together
     """
 
-    STATUS_INITIALIZING = "I"
     STATUS_QUEUED = "Q"
     STATUS_SENT = "S"
     STATUS_FAILED = "F"
-    STATUS_CHOICES = (
-        (STATUS_INITIALIZING, "Initializing"),
-        (STATUS_QUEUED, "Queued"),
-        (STATUS_SENT, "Sent"),
-        (STATUS_FAILED, "Failed"),
-    )
+    STATUS_CHOICES = ((STATUS_QUEUED, "Queued"), (STATUS_SENT, "Sent"), (STATUS_FAILED, "Failed"))
 
     MAX_TEXT_LEN = settings.MSG_FIELD_SIZE
-
-    TEMPLATE_STATE_LEGACY = "legacy"
-    TEMPLATE_STATE_EVALUATED = "evaluated"
-    TEMPLATE_STATE_UNEVALUATED = "unevaluated"
-    TEMPLATE_STATE_CHOICES = (TEMPLATE_STATE_LEGACY, TEMPLATE_STATE_EVALUATED, TEMPLATE_STATE_UNEVALUATED)
-
-    METADATA_QUICK_REPLIES = "quick_replies"
-    METADATA_TEMPLATE_STATE = "template_state"
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT)
 
     # recipients of this broadcast
     groups = models.ManyToManyField(ContactGroup, related_name="addressed_broadcasts")
     contacts = models.ManyToManyField(Contact, related_name="addressed_broadcasts")
-    urns = models.ManyToManyField(ContactURN, related_name="addressed_broadcasts")
+    urns = ArrayField(models.TextField(), null=True)
+    query = models.TextField(null=True)
 
-    # URN strings that mailroom will turn into contacts and URN objects
-    raw_urns = ArrayField(models.TextField(), null=True)
-
-    # message content
-    base_language = models.CharField(max_length=4)
-    text = TranslatableField(max_length=MAX_TEXT_LEN)
-    media = TranslatableField(max_length=2048, null=True)
+    # message content in different languages, e.g. {"eng": {"text": "Hello", "attachments": [...]}, "spa": ...}
+    translations = models.JSONField()
+    base_language = models.CharField(max_length=3)  # ISO-639-3
 
     channel = models.ForeignKey(Channel, on_delete=models.PROTECT, null=True)
     ticket = models.ForeignKey("tickets.Ticket", on_delete=models.PROTECT, null=True, related_name="broadcasts")
-
-    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_INITIALIZING)
-
-    schedule = models.OneToOneField(Schedule, on_delete=models.PROTECT, null=True, related_name="broadcast")
-
-    # used for repeating scheduled broadcasts
-    parent = models.ForeignKey("Broadcast", on_delete=models.PROTECT, null=True, related_name="children")
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_QUEUED)
 
     created_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name="broadcast_creations")
     created_on = models.DateTimeField(default=timezone.now, db_index=True)  # TODO remove index
     modified_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name="broadcast_modifications")
     modified_on = models.DateTimeField(default=timezone.now)
 
-    # whether this broadcast should send to all URNs for each contact
-    send_all = models.BooleanField(default=False)
-
+    # used for scheduled broadcasts which are never actually sent themselves but spawn child broadcasts which are
+    schedule = models.OneToOneField(Schedule, on_delete=models.PROTECT, null=True, related_name="broadcast")
+    parent = models.ForeignKey("Broadcast", on_delete=models.PROTECT, null=True, related_name="children")
     is_active = models.BooleanField(null=True, default=True)
-
-    metadata = JSONAsTextField(null=True, default=dict)
 
     @classmethod
     def create(
         cls,
         org,
         user,
-        text,
+        text: dict[str, str],
         *,
+        attachments: dict[str, list] = None,
+        base_language: str = None,
         groups=None,
         contacts=None,
         urns: list[str] = None,
         contact_ids: list[int] = None,
-        base_language: str = None,
         channel: Channel = None,
         ticket=None,
-        media: dict = None,
-        send_all: bool = False,
-        quick_replies: list[dict] = None,
-        template_state: str = TEMPLATE_STATE_LEGACY,
-        status: str = STATUS_INITIALIZING,
         **kwargs,
     ):
-        # for convenience broadcasts can still be created with single translation and no base_language
-        if isinstance(text, str):
-            base_language = org.flow_languages[0]
-            text = {base_language: text}
+        if not base_language:
+            base_language = next(iter(text))
 
+        assert base_language in text, "no translation for base language"
         assert groups or contacts or contact_ids or urns, "can't create broadcast without recipients"
-        assert base_language in text, "base_language doesn't exist in text translations"
-        assert not media or base_language in media, "base_language doesn't exist in media translations"
 
-        if quick_replies:
-            for quick_reply in quick_replies:
-                if base_language not in quick_reply:
-                    raise ValueError(
-                        "Base language '%s' doesn't exist for one or more of the provided quick replies"
-                        % base_language
-                    )
-
-        metadata = {Broadcast.METADATA_TEMPLATE_STATE: template_state}
-        if quick_replies:
-            metadata[Broadcast.METADATA_QUICK_REPLIES] = quick_replies
+        # merge text and attachments into single dict of translations
+        translations = {lang: {"text": t} for lang, t in text.items()}
+        if attachments:
+            for lang, atts in attachments.items():
+                if lang not in translations:
+                    translations[lang] = {}
+                translations[lang]["attachments"] = atts
 
         broadcast = cls.objects.create(
             org=org,
             channel=channel,
             ticket=ticket,
-            send_all=send_all,
+            translations=translations,
             base_language=base_language,
-            text=text,
-            media=media,
             created_by=user,
             modified_by=user,
-            metadata=metadata,
-            status=status,
             **kwargs,
         )
 
@@ -324,13 +273,13 @@ class Broadcast(models.Model):
         """
 
         if contact and contact.language and contact.language in self.org.flow_languages:  # try contact language
-            if contact.language in self.text:
-                return self.text[contact.language]
+            if contact.language in self.translations:
+                return self.translations[contact.language]["text"]
 
-        if self.org.flow_languages[0] in self.text:  # try org primary language
-            return self.text[self.org.flow_languages[0]]
+        if self.org.flow_languages[0] in self.translations:  # try org primary language
+            return self.translations[self.org.flow_languages[0]]["text"]
 
-        return self.text[self.base_language]  # should always be a base language translation
+        return self.translations[self.base_language]["text"]  # should always be a base language translation
 
     def delete(self, user, *, soft: bool):
         if soft:
@@ -375,8 +324,8 @@ class Broadcast(models.Model):
             self.contacts.add(*contacts)
 
         if urns:
-            self.raw_urns = urns
-            self.save(update_fields=("raw_urns",))
+            self.urns = urns
+            self.save(update_fields=("urns",))
 
         if contact_ids:
             RelatedModel = self.contacts.through
@@ -384,12 +333,8 @@ class Broadcast(models.Model):
                 bulk_contacts = [RelatedModel(contact_id=id, broadcast_id=self.id) for id in chunk]
                 RelatedModel.objects.bulk_create(bulk_contacts)
 
-    def get_template_state(self):
-        metadata = self.metadata or {}
-        return metadata.get(Broadcast.METADATA_TEMPLATE_STATE, Broadcast.TEMPLATE_STATE_LEGACY)
-
-    def __str__(self):  # pragma: no cover
-        return f"Broadcast[id={self.id}, text={self.text}]"
+    def __repr__(self):
+        return f'<Broadcast: id={self.id} text="{self.get_text()}">'
 
     class Meta:
         indexes = [
@@ -404,6 +349,12 @@ class Broadcast(models.Model):
                 name="msgs_broadcasts_scheduled",
                 fields=["org", "-created_on"],
                 condition=Q(schedule__isnull=False, is_active=True),
+            ),
+            # used to fetch pending broadcasts for the Outbox
+            models.Index(
+                name="msgs_broadcasts_queued",
+                fields=["org", "-created_on"],
+                condition=Q(schedule__isnull=True, status="Q", is_active=True),
             ),
         ]
 
@@ -534,6 +485,8 @@ class Msg(models.Model):
 
     text = models.TextField()
     attachments = ArrayField(models.URLField(max_length=2048), null=True)
+    quick_replies = ArrayField(models.CharField(max_length=64), null=True)
+    locale = models.CharField(max_length=6, null=True)  # eng, eng-US, por-BR, und etc
 
     high_priority = models.BooleanField(null=True)
 

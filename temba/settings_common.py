@@ -292,7 +292,7 @@ BRANDS = [
 ]
 DEFAULT_BRAND = os.environ.get("DEFAULT_BRAND", "rapidpro")
 
-FEATURES = {"locations", "ticketers", "whatsapp_cloud"}
+FEATURES = {"locations", "surveyor", "ticketers", "whatsapp_cloud"}
 
 
 # -----------------------------------------------------------------------------------
@@ -466,13 +466,7 @@ GROUP_PERMISSIONS = {
         "orgs.org_spa",
         "orgs.org_surveyor",
     ),
-    "Customer Support": (
-        "campaigns.campaign_read",  # anywhere we allow servicing still needs these
-        "channels.channel_read",
-        "channels.channellog_read",
-        "contacts.contact_read",
-        "flows.flow_editor",
-    ),
+    "Customer Support": (),
     "Granters": ("orgs.org_grant",),
     "Administrators": (
         "airtime.airtimetransfer_list",
@@ -861,7 +855,8 @@ CELERY_BEAT_SCHEDULE = {
     "check-elasticsearch-lag": {"task": "check_elasticsearch_lag", "schedule": timedelta(seconds=300)},
     "delete-released-orgs": {"task": "delete_released_orgs", "schedule": crontab(hour=4, minute=0)},
     "fail-old-messages": {"task": "fail_old_messages", "schedule": crontab(hour=0, minute=0)},
-    "resolve-twitter-ids-task": {"task": "resolve_twitter_ids", "schedule": timedelta(seconds=900)},
+    "interrupt-flow-sessions": {"task": "interrupt_flow_sessions", "schedule": crontab(hour=23, minute=30)},
+    "resolve-twitter-ids": {"task": "resolve_twitter_ids", "schedule": timedelta(seconds=900)},
     "refresh-whatsapp-tokens": {"task": "refresh_whatsapp_tokens", "schedule": crontab(hour=6, minute=0)},
     "refresh-whatsapp-templates": {"task": "refresh_whatsapp_templates", "schedule": timedelta(seconds=900)},
     "send-notification-emails": {"task": "send_notification_emails", "schedule": timedelta(seconds=60)},
@@ -878,7 +873,6 @@ CELERY_BEAT_SCHEDULE = {
     "trim-event-fires": {"task": "trim_event_fires", "schedule": timedelta(seconds=900)},
     "trim-flow-revisions": {"task": "trim_flow_revisions", "schedule": crontab(hour=0, minute=0)},
     "trim-flow-sessions": {"task": "trim_flow_sessions", "schedule": crontab(hour=0, minute=0)},
-    "trim-flow-starts": {"task": "trim_flow_starts", "schedule": crontab(hour=1, minute=0)},
     "trim-http-logs": {"task": "trim_http_logs", "schedule": crontab(hour=2, minute=0)},
     "trim-sync-events": {"task": "trim_sync_events", "schedule": crontab(hour=3, minute=0)},
     "trim-webhook-events": {"task": "trim_webhook_events", "schedule": crontab(hour=3, minute=0)},
@@ -962,6 +956,7 @@ TICKETER_TYPES = [
 CHANNEL_TYPES = [
     "temba.channels.types.africastalking.AfricasTalkingType",
     "temba.channels.types.arabiacell.ArabiaCellType",
+    "temba.channels.types.bandwidth.BandwidthType",
     "temba.channels.types.blackmyna.BlackmynaType",
     "temba.channels.types.bongolive.BongoLiveType",
     "temba.channels.types.burstsms.BurstSMSType",

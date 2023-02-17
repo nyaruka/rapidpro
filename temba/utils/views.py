@@ -1,7 +1,11 @@
+import json
 import logging
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
+
+import requests
 
 from django import forms
+from django.conf import settings
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect, JsonResponse
 from django.urls import reverse
@@ -14,6 +18,8 @@ from django.views.decorators.csrf import csrf_exempt
 from temba.utils.fields import CheckboxWidget, DateWidget, InputWidget, SelectMultipleWidget, SelectWidget
 
 logger = logging.getLogger(__name__)
+
+TEMBA_MENU_SELECTION = "temba_menu_selection"
 
 
 class SpaMixin(View):
@@ -29,7 +35,17 @@ class SpaMixin(View):
     def spa_referrer_path(self) -> tuple:
         return tuple(s for s in self.request.META.get("HTTP_TEMBA_REFERER_PATH", "").split("/") if s)
 
+    def has_permission(self, request, *args, **kwargs):
+
+        is_beta = not request.user.is_anonymous and request.user.is_beta
+        if self.is_spa() and not self.is_content_only() and not is_beta:
+            return False
+        return super().has_permission(request, *args, **kwargs)
+
     def is_spa(self):
+        return self.request.COOKIES.get("nav") == "2" or self.is_content_only()
+
+    def is_content_only(self):
         return "HTTP_TEMBA_SPA" in self.request.META
 
     def get_template_names(self):
@@ -47,14 +63,66 @@ class SpaMixin(View):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
         if self.is_spa():
-            context["base_template"] = "spa.html"
+            if self.is_content_only():
+                context["base_template"] = "spa.html"
+            else:
+                context["base_template"] = "spa_frame.haml"
+
             context["is_spa"] = True
             context["temba_path"] = self.spa_path
             context["temba_referer"] = self.spa_referrer_path
+            context[TEMBA_MENU_SELECTION] = self.derive_menu_path()
+
+            # the base page should prep the flow editor
+            if not self.is_content_only():
+                dev_mode = getattr(settings, "EDITOR_DEV_MODE", False)
+                prefix = "/dev" if dev_mode else settings.STATIC_URL
+
+                # get our list of assets to incude
+                scripts = []
+                styles = []
+
+                if dev_mode:  # pragma: no cover
+                    response = requests.get("http://localhost:3000/asset-manifest.json")
+                    data = response.json()
+                else:
+                    with open("node_modules/@nyaruka/flow-editor/build/asset-manifest.json") as json_file:
+                        data = json.load(json_file)
+
+                for key, filename in data.get("files").items():
+
+                    # tack on our prefix for dev mode
+                    filename = prefix + filename
+
+                    # ignore precache manifest
+                    if key.startswith("precache-manifest") or key.startswith("service-worker"):
+                        continue
+
+                    # css files
+                    if key.endswith(".css") and filename.endswith(".css"):
+                        styles.append(filename)
+
+                    # javascript
+                    if key.endswith(".js") and filename.endswith(".js"):
+                        scripts.append(filename)
+
+                    context["scripts"] = scripts
+                    context["styles"] = styles
+                    context["dev_mode"] = dev_mode
 
         return context
+
+    def derive_menu_path(self):
+        if hasattr(self, "menu_path"):
+            return self.menu_path
+        return self.request.path
+
+    def render_to_response(self, context, **response_kwargs):
+        response = super().render_to_response(context, **response_kwargs)
+        if self.is_spa():
+            response.headers[TEMBA_MENU_SELECTION] = context[TEMBA_MENU_SELECTION]
+        return response
 
 
 class ComponentFormMixin(View):
@@ -296,9 +364,16 @@ class ContentMenu:
     def add_link(self, label: str, url: str, as_button: bool = False):
         self.groups[-1].append({"type": "link", "label": label, "url": url, "as_button": as_button})
 
-    def add_js(self, label: str, on_click: str, link_class: str, as_button: bool = False):
+    def add_js(self, id: str, label: str, on_click: str, link_class: str, as_button: bool = False):
         self.groups[-1].append(
-            {"type": "js", "label": label, "on_click": on_click, "link_class": link_class, "as_button": as_button}
+            {
+                "id": id,
+                "type": "js",
+                "label": label,
+                "on_click": on_click,
+                "link_class": link_class,
+                "as_button": as_button,
+            }
         )
 
     def add_url_post(self, label: str, url: str, as_button: bool = False):
@@ -355,6 +430,7 @@ class ContentMenuMixin:
     gear_link_renderers = {
         "link": lambda i: {"title": i["label"], "href": i["url"], "as_button": i["as_button"]},
         "js": lambda i: {
+            "id": i["id"],
             "title": i["label"],
             "on_click": i["on_click"],
             "js_class": i["link_class"],
@@ -382,18 +458,20 @@ class ContentMenuMixin:
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        menu_links = []
-        menu_buttons = []
 
-        for item in self._get_content_menu():
-            rendered_item = self.gear_link_renderers[item["type"]](item)
-            if item.get("as_button", False):
-                menu_buttons.append(rendered_item)
-            else:
-                menu_links.append(rendered_item)
+        # is the page old (legacy) ui or new (spa) ui?
+        if "HTTP_TEMBA_SPA" in self.request.META:
+            context["is_legacy"] = 0
+        else:
+            context["is_legacy"] = 1
 
-        context["content_menu_buttons"] = menu_buttons
-        context["content_menu_links"] = menu_links
+        # does the page have a content menu?
+        context["has_content_menu"] = len(self._get_content_menu()) > 0
+
+        # does the page have a search query?
+        if "search" in self.request.GET:
+            context["has_search_query"] = urlencode({"search": self.request.GET["search"]})
+
         return context
 
     def _get_content_menu(self):

@@ -1,13 +1,14 @@
 from abc import abstractmethod
 
 from django.forms import model_to_dict
+from django.urls import reverse
 
 
 class CRUDLTestMixin:
     def get_test_users(self):
         return self.user, self.editor, self.agent, self.admin, self.admin2
 
-    def requestView(self, url, user, *, post_data=None, checks=(), choose_org=None, **kwargs):
+    def requestView(self, url, user, *, post_data=None, checks=(), choose_org=None, new_ui=False, **kwargs):
         """
         Requests the given URL as a specific user and runs a set of checks
         """
@@ -24,7 +25,19 @@ class CRUDLTestMixin:
         for check in checks:
             check.pre_check(self, pre_msg_prefix)
 
+        if new_ui or "HTTP_TEMBA_SPA" in kwargs:
+            self.client.cookies.load({"nav": "2"})
+            if user:
+                self.make_beta(user)
+
         response = self.client.post(url, post_data, **kwargs) if method == "POST" else self.client.get(url, **kwargs)
+
+        # remove our spa cookie if we added it
+        if new_ui or "HTTP_TEMBA_SPA" in kwargs:
+            self.client.cookies.load({"nav": "1"})
+
+            if user:
+                self.unbeta(user)
 
         for check in checks:
             check.check(self, response, msg_prefix)
@@ -32,7 +45,7 @@ class CRUDLTestMixin:
         return response
 
     def assertReadFetch(
-        self, url, *, allow_viewers, allow_editors, allow_agents=False, context_object=None, status=200
+        self, url, *, allow_viewers, allow_editors, allow_agents=False, context_object=None, status=200, new_ui=False
     ):
         """
         Fetches a read view as different users
@@ -47,7 +60,7 @@ class CRUDLTestMixin:
             else:
                 checks = [LoginRedirectOr404()]
 
-            return self.requestView(url, user, checks=checks, choose_org=self.org)
+            return self.requestView(url, user, checks=checks, choose_org=self.org, new_ui=new_ui)
 
         as_user(None, allowed=False)
         as_user(viewer, allowed=allow_viewers)
@@ -67,6 +80,7 @@ class CRUDLTestMixin:
         context_objects=None,
         context_object_count=None,
         status=200,
+        new_ui=False,
     ):
         viewer, editor, agent, admin, org2_admin = self.get_test_users()
 
@@ -81,7 +95,7 @@ class CRUDLTestMixin:
             else:
                 checks = [LoginRedirect()]
 
-            return self.requestView(url, user, checks=checks, choose_org=self.org)
+            return self.requestView(url, user, checks=checks, choose_org=self.org, new_ui=new_ui)
 
         as_user(None, allowed=False)
         as_user(viewer, allowed=allow_viewers)
@@ -236,25 +250,38 @@ class CRUDLTestMixin:
 
         return self.requestView(url, self.customer_support, checks=[StatusCode(200)])
 
-    def assertContentMenu(self, url: str, user, labels: list, spa: bool = False):
-
+    def assertContentMenu(self, url: str, user, legacy_items: list, *, spa_items: list = None):
         headers = {"HTTP_TEMBA_CONTENT_MENU": 1}
 
-        if spa:
-            headers["HTTP_TEMBA_SPA"] = 1
-
+        # old ui
         response = self.requestView(url, user, checks=[StatusCode(200), ContentType("application/json")], **headers)
+        items = [item.get("label", "-") for item in response.json()["items"]]
+        self.assertEqual(legacy_items, items)
 
-        self.assertEqual(labels, [item.get("label", "-") for item in response.json()["items"]])
-
-        # for now menu is also stuffed into context in old gear links format
-        headers = {}
-        if spa:
+        # new ui
+        if spa_items:
             headers["HTTP_TEMBA_SPA"] = 1
+            response = self.requestView(
+                url, user, checks=[StatusCode(200), ContentType("application/json")], **headers
+            )
+            items = [item.get("label", "-") for item in response.json()["items"]]
+            self.assertEqual(spa_items, items)
 
-        response = self.requestView(url, user, checks=[StatusCode(200)], **headers)
-        links = response.context.get("content_menu_buttons", []) + response.context.get("content_menu_links", [])
-        self.assertEqual(labels, [i.get("title", "-") for i in links])
+    def assertContentMenuContains(self, url: str, user, item: str, *, is_spa: bool = False):
+        headers = {"HTTP_TEMBA_CONTENT_MENU": 1}
+        if is_spa:
+            headers["HTTP_TEMBA_SPA"] = 1
+        response = self.requestView(url, user, checks=[StatusCode(200), ContentType("application/json")], **headers)
+        items = [item.get("label", "-") for item in response.json()["items"]]
+        self.assertIn(item, items)
+
+    def assertContentMenuNotContains(self, url: str, user, item: str, *, is_spa: bool = False):
+        headers = {"HTTP_TEMBA_CONTENT_MENU": 1}
+        if is_spa:
+            headers["HTTP_TEMBA_SPA"] = 1
+        response = self.requestView(url, user, checks=[StatusCode(200), ContentType("application/json")], **headers)
+        items = [item.get("label", "-") for item in response.json()["items"]]
+        self.assertNotIn(item, items)
 
 
 class BaseCheck:
@@ -424,6 +451,11 @@ class ContentType(BaseCheck):
         test_cls.assertEqual(
             self.content_type, response.headers["content-type"], msg=f"{msg_prefix}: content type mismatch"
         )
+
+
+class StaffRedirect(BaseCheck):
+    def check(self, test_cls, response, msg_prefix):
+        test_cls.assertRedirect(response, reverse("orgs.org_service"), msg=f"{msg_prefix}: expected staff redirect")
 
 
 class LoginRedirectOr404(BaseCheck):
