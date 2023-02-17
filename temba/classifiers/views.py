@@ -77,6 +77,9 @@ class ClassifierCRUDL(SmartCRUDL):
         slug_url_kwarg = "uuid"
         exclude = ("id", "is_active", "created_by", "modified_by", "modified_on")
 
+        def derive_menu_path(self):
+            return f"/settings/classifiers/{self.get_object().uuid}"
+
         def build_content_menu(self, menu):
             obj = self.get_object()
 
@@ -95,7 +98,7 @@ class ClassifierCRUDL(SmartCRUDL):
 
         def get_queryset(self, **kwargs):
             queryset = super().get_queryset(**kwargs)
-            return queryset.filter(org=self.request.org, is_active=True)
+            return queryset.filter(is_active=True)
 
     class Sync(SpaMixin, OrgObjPermsMixin, SmartUpdateView):
         fields = ()

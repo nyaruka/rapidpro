@@ -1,3 +1,75 @@
+v8.1.34 (2023-02-16)
+-------------------------
+ * Drop raw_urns field on Broadcast
+ * Pass group id instead of uuid to contact_search mailroom endpoint
+ * Remove unused expression_migrate from mailroom client
+
+v8.1.33 (2023-02-15)
+-------------------------
+ * Fix routing of current workspace to settings
+ * Add Broadcast.urns which matches the JSON and FlowStart.urns
+
+v8.1.32 (2023-02-14)
+-------------------------
+ * Drop Broadcast.urns and .send_all
+
+v8.1.30 (2023-02-13)
+-------------------------
+ * Fix keyword triggers match type
+
+v8.1.29 (2023-02-13)
+-------------------------
+ * Fix omnibox search for anon org to allow search by contact name
+ * Prepare to drop Broadcast.send_all and .urns
+
+v8.1.27 (2023-02-10)
+-------------------------
+ * Move all form text from Trigger model to forms
+ * Add migration to convert URNs to contacts on scheduled broadcasts
+
+v8.1.26 (2023-02-10)
+-------------------------
+ * Remove returning specific URNs from omniboxes and instead match contacts by URN
+ * Rework spa menu eliminate mapping
+
+v8.1.25 (2023-02-09)
+-------------------------
+ * Remove support for unused v1 omnibox format
+ * Update broadcasts API endpoint to support attachments
+
+v8.1.24 (2023-02-08)
+-------------------------
+ * Update to latest cryptography library
+ * Add task to interrupt flow sessions after 90 days
+
+v8.1.23 (2023-02-06)
+-------------------------
+ * Fix flow results redirecting to it's own page
+ * Make sure WA numbers can only be claimed once
+
+v8.1.22 (2023-02-06)
+-------------------------
+ * Update to latest django to get security fix
+
+v8.1.21 (2023-02-06)
+-------------------------
+ * Fix export > import path on new ui
+ * Fix login redirects from pjax calls
+
+v8.1.20 (2023-02-02)
+-------------------------
+ * Add servicing menu on org read
+
+v8.1.19 (2023-02-01)
+-------------------------
+ * Add Msg.quick_replies
+ * Add Broadcast.query
+ * More generic servicing for staff users
+
+v8.1.18 (2023-02-01)
+-------------------------
+ * Drop un-used Media.name field
+
 v8.1.17 (2023-01-31)
 -------------------------
  * Fix modax from menu bug

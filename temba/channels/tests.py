@@ -24,9 +24,11 @@ from temba.msgs.models import Msg
 from temba.orgs.models import Org
 from temba.request_logs.models import HTTPLog
 from temba.tests import AnonymousOrg, CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom
+from temba.tests.crudl import StaffRedirect
 from temba.triggers.models import Trigger
 from temba.utils import json
 from temba.utils.models import generate_uuid
+from temba.utils.views import TEMBA_MENU_SELECTION
 
 from .models import Alert, Channel, ChannelCount, ChannelEvent, ChannelLog, SyncEvent
 from .tasks import (
@@ -466,6 +468,13 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(tel_channel_read_url)
         self.assertRedirect(response, reverse("orgs.org_choose"))
 
+        # new ui path
+        self.login(self.user)
+        self.make_beta(self.user)
+        self.new_ui()
+        response = self.client.get(tel_channel_read_url)
+        self.assertEqual(f"/settings/channels/{self.tel_channel.uuid}", response.headers[TEMBA_MENU_SELECTION])
+
         # org users can
         response = self.fetch_protected(tel_channel_read_url, self.user)
 
@@ -500,8 +509,8 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
 
         self.assertContentMenuContains(tel_channel_read_url, self.admin, "Enable Voice Calling")
 
-        two_hours_ago = timezone.now() - timedelta(hours=2)
-
+        test_date = datetime(2020, 1, 20, 0, 0, 0, 0, timezone.utc)
+        two_hours_ago = test_date - timedelta(hours=2)
         # make sure our channel is old enough to trigger alerts
         self.tel_channel.created_on = two_hours_ago
         self.tel_channel.save()
@@ -517,69 +526,67 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         with patch("django.utils.timezone.now", return_value=two_hours_ago):
             self.create_outgoing_msg(bob, "delayed message", status=Msg.STATUS_QUEUED, channel=self.tel_channel)
 
-        response = self.fetch_protected(tel_channel_read_url, self.admin)
-        self.assertIn("delayed_sync_event", response.context_data.keys())
-        self.assertIn("unsent_msgs_count", response.context_data.keys())
+        with patch("django.utils.timezone.now", return_value=test_date):
+            response = self.fetch_protected(tel_channel_read_url, self.admin)
+            self.assertIn("delayed_sync_event", response.context_data.keys())
+            self.assertIn("unsent_msgs_count", response.context_data.keys())
+
+            # now that we can access the channel, which messages do we display in the chart?
+            joe = self.create_contact("Joe", phone="+2501234567890")
+
+            # should have two series, one for incoming one for outgoing
+            self.assertEqual(2, len(response.context["message_stats"]))
+
+            # but only an outgoing message so far
+            self.assertEqual(0, len(response.context["message_stats"][0]["data"]))
+            self.assertEqual(1, response.context["message_stats"][1]["data"][-1]["count"])
+
+            # we have one row for the message stats table
+            self.assertEqual(1, len(response.context["message_stats_table"]))
+            # only one outgoing message
+            self.assertEqual(0, response.context["message_stats_table"][0]["incoming_messages_count"])
+            self.assertEqual(1, response.context["message_stats_table"][0]["outgoing_messages_count"])
+            self.assertEqual(0, response.context["message_stats_table"][0]["incoming_ivr_count"])
+            self.assertEqual(0, response.context["message_stats_table"][0]["outgoing_ivr_count"])
+
+            # send messages
+            self.create_incoming_msg(joe, "This incoming message will be counted", channel=self.tel_channel)
+            self.create_outgoing_msg(joe, "This outgoing message will be counted", channel=self.tel_channel)
+
+            # now we have an inbound message and two outbounds
+            response = self.fetch_protected(tel_channel_read_url, self.admin)
+            self.assertEqual(200, response.status_code)
+            self.assertEqual(1, response.context["message_stats"][0]["data"][-1]["count"])
+            self.assertEqual(1, response.context["message_stats"][1]["data"][-1]["count"])
+
+            # message stats table have an inbound and two outbounds in the last month
+            self.assertEqual(1, len(response.context["message_stats_table"]))
+            self.assertEqual(1, response.context["message_stats_table"][0]["incoming_messages_count"])
+            self.assertEqual(2, response.context["message_stats_table"][0]["outgoing_messages_count"])
+            self.assertEqual(0, response.context["message_stats_table"][0]["incoming_ivr_count"])
+            self.assertEqual(0, response.context["message_stats_table"][0]["outgoing_ivr_count"])
+
+            # test cases for IVR messaging, make our relayer accept calls
+            self.tel_channel.role = "SCAR"
+            self.tel_channel.save()
+
+            # now let's create an ivr interaction
+            self.create_incoming_msg(joe, "incoming ivr", channel=self.tel_channel, msg_type=Msg.TYPE_IVR)
+            self.create_outgoing_msg(joe, "outgoing ivr", channel=self.tel_channel, msg_type=Msg.TYPE_IVR)
+            response = self.fetch_protected(tel_channel_read_url, self.admin)
+
+            self.assertEqual(4, len(response.context["message_stats"]))
+            self.assertEqual(1, response.context["message_stats"][2]["data"][0]["count"])
+            self.assertEqual(1, response.context["message_stats"][3]["data"][0]["count"])
+
+            self.assertEqual(1, len(response.context["message_stats_table"]))
+            self.assertEqual(1, response.context["message_stats_table"][0]["incoming_messages_count"])
+            self.assertEqual(2, response.context["message_stats_table"][0]["outgoing_messages_count"])
+            self.assertEqual(1, response.context["message_stats_table"][0]["incoming_ivr_count"])
+            self.assertEqual(1, response.context["message_stats_table"][0]["outgoing_ivr_count"])
 
         # as staff
-        response = self.fetch_protected(tel_channel_read_url, self.customer_support)
-        self.assertEqual(200, response.status_code)
-
-        # now that we can access the channel, which messages do we display in the chart?
-        joe = self.create_contact("Joe", phone="+2501234567890")
-
-        # should have two series, one for incoming one for outgoing
-        self.assertEqual(2, len(response.context["message_stats"]))
-
-        # but only an outgoing message so far
-        self.assertEqual(0, len(response.context["message_stats"][0]["data"]))
-        self.assertEqual(1, response.context["message_stats"][1]["data"][-1]["count"])
-
-        # we have one row for the message stats table
-        self.assertEqual(1, len(response.context["message_stats_table"]))
-        # only one outgoing message
-        self.assertEqual(0, response.context["message_stats_table"][0]["incoming_messages_count"])
-        self.assertEqual(1, response.context["message_stats_table"][0]["outgoing_messages_count"])
-        self.assertEqual(0, response.context["message_stats_table"][0]["incoming_ivr_count"])
-        self.assertEqual(0, response.context["message_stats_table"][0]["outgoing_ivr_count"])
-
-        # send messages
-        self.create_incoming_msg(joe, "This incoming message will be counted", channel=self.tel_channel)
-        self.create_outgoing_msg(joe, "This outgoing message will be counted", channel=self.tel_channel)
-
-        # now we have an inbound message and two outbounds
-        response = self.fetch_protected(tel_channel_read_url, self.admin)
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(1, response.context["message_stats"][0]["data"][-1]["count"])
-
-        # this assertion is problematic causing time-sensitive failures, to reconsider
-        # self.assertEqual(2, response.context['message_stats'][1]['data'][-1]['count'])
-
-        # message stats table have an inbound and two outbounds in the last month
-        self.assertEqual(1, len(response.context["message_stats_table"]))
-        self.assertEqual(1, response.context["message_stats_table"][0]["incoming_messages_count"])
-        self.assertEqual(2, response.context["message_stats_table"][0]["outgoing_messages_count"])
-        self.assertEqual(0, response.context["message_stats_table"][0]["incoming_ivr_count"])
-        self.assertEqual(0, response.context["message_stats_table"][0]["outgoing_ivr_count"])
-
-        # test cases for IVR messaging, make our relayer accept calls
-        self.tel_channel.role = "SCAR"
-        self.tel_channel.save()
-
-        # now let's create an ivr interaction
-        self.create_incoming_msg(joe, "incoming ivr", channel=self.tel_channel, msg_type=Msg.TYPE_IVR)
-        self.create_outgoing_msg(joe, "outgoing ivr", channel=self.tel_channel, msg_type=Msg.TYPE_IVR)
-        response = self.fetch_protected(tel_channel_read_url, self.admin)
-
-        self.assertEqual(4, len(response.context["message_stats"]))
-        self.assertEqual(1, response.context["message_stats"][2]["data"][0]["count"])
-        self.assertEqual(1, response.context["message_stats"][3]["data"][0]["count"])
-
-        self.assertEqual(1, len(response.context["message_stats_table"]))
-        self.assertEqual(1, response.context["message_stats_table"][0]["incoming_messages_count"])
-        self.assertEqual(2, response.context["message_stats_table"][0]["outgoing_messages_count"])
-        self.assertEqual(1, response.context["message_stats_table"][0]["incoming_ivr_count"])
-        self.assertEqual(1, response.context["message_stats_table"][0]["outgoing_ivr_count"])
+        self.requestView(tel_channel_read_url, self.customer_support, checks=[StaffRedirect()])
 
     def test_invalid(self):
 
@@ -1237,15 +1244,6 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             schemes=("tel",),
             config={"send_url": "http://send.com"},
         )
-
-    def test_channel_read_as_customer_support(self):
-        ex_channel_read_url = reverse("channels.channel_read", args=[self.ex_channel.uuid])
-
-        response = self.requestView(ex_channel_read_url, self.customer_support)
-        self.assertContains(response, self.ex_channel.name)
-
-        # should see service button
-        self.assertContentMenuContains(ex_channel_read_url, self.customer_support, "Service")
 
     def test_configuration(self):
         config_url = reverse("channels.channel_configuration", args=[self.ex_channel.uuid])
@@ -1942,6 +1940,11 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             msg1_url, allow_viewers=False, allow_editors=False, allow_org2=False, context_objects=[log1, log2]
         )
 
+        self.login(self.admin)
+        self.new_ui()
+        response = self.client.get(msg1_url)
+        self.assertEqual(f"/settings/channels/{self.channel.uuid}", response.headers[TEMBA_MENU_SELECTION])
+
     def test_call(self):
         contact = self.create_contact("Fred", phone="+12067799191")
         flow = self.create_flow("IVR")
@@ -2115,6 +2118,11 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(list_url)
         self.assertEqual([failed_log, success_log], list(response.context["object_list"]))
 
+        self.new_ui()
+        response = self.client.get(list_url)
+        self.assertEqual(f"/settings/channels/{self.channel.uuid}", response.headers[TEMBA_MENU_SELECTION])
+        self.old_ui()
+
         # check error logs only
         response = self.client.get(list_url + "?errors=1")
         self.assertEqual([failed_log], list(response.context["object_list"]))
@@ -2225,7 +2233,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             self.assertContains(response, HTTPLog.REDACT_MASK, count=8)
 
         # login as customer support, must see URNs
-        self.login(self.customer_support)
+        self.login(self.customer_support, choose_org=self.org)
 
         response = self.client.get(read_url)
 
@@ -2282,7 +2290,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             self.assertContains(response, HTTPLog.REDACT_MASK, count=3)
 
         # login as customer support, must see URNs
-        self.login(self.customer_support)
+        self.login(self.customer_support, choose_org=self.org)
 
         response = self.client.get(read_url)
 
@@ -2336,7 +2344,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             self.assertContains(response, HTTPLog.REDACT_MASK, count=3)
 
         # login as customer support, must see URNs
-        self.login(self.customer_support)
+        self.login(self.customer_support, choose_org=self.org)
 
         response = self.client.get(read_url)
 
@@ -2402,7 +2410,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             self.assertContains(response, HTTPLog.REDACT_MASK, count=13)
 
         # login as customer support, must see URNs
-        self.login(self.customer_support)
+        self.login(self.customer_support, choose_org=self.org)
 
         response = self.client.get(read_url)
 
@@ -2460,8 +2468,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             self.assertContains(response, HTTPLog.REDACT_MASK, count=3)
 
         # login as customer support, must see URNs
-        self.login(self.customer_support)
-
+        self.login(self.customer_support, choose_org=self.org)
         response = self.client.get(read_url)
 
         self.assertContains(response, "767659860", count=1)
@@ -2527,7 +2534,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             self.assertContains(response, HTTPLog.REDACT_MASK, count=3)
 
         # login as customer support, must see URNs
-        self.login(self.customer_support)
+        self.login(self.customer_support, choose_org=self.org)
 
         read_url = reverse("channels.channellog_msg", args=[channel.uuid, msg.id])
 
@@ -2598,7 +2605,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             self.assertContains(response, HTTPLog.REDACT_MASK, count=3)
 
         # login as customer support, must see URNs
-        self.login(self.customer_support)
+        self.login(self.customer_support, choose_org=self.org)
 
         response = self.client.get(read_url)
 
@@ -2671,7 +2678,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             self.assertContains(response, HTTPLog.REDACT_MASK, count=4)
 
         # login as customer support, must see URNs
-        self.login(self.customer_support)
+        self.login(self.customer_support, choose_org=self.org)
 
         response = self.client.get(read_url)
 

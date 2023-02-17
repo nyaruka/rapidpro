@@ -466,13 +466,7 @@ GROUP_PERMISSIONS = {
         "orgs.org_spa",
         "orgs.org_surveyor",
     ),
-    "Customer Support": (
-        "campaigns.campaign_read",  # anywhere we allow servicing still needs these
-        "channels.channel_read",
-        "channels.channellog_read",
-        "contacts.contact_read",
-        "flows.flow_editor",
-    ),
+    "Customer Support": (),
     "Granters": ("orgs.org_grant",),
     "Administrators": (
         "airtime.airtimetransfer_list",
@@ -861,7 +855,8 @@ CELERY_BEAT_SCHEDULE = {
     "check-elasticsearch-lag": {"task": "check_elasticsearch_lag", "schedule": timedelta(seconds=300)},
     "delete-released-orgs": {"task": "delete_released_orgs", "schedule": crontab(hour=4, minute=0)},
     "fail-old-messages": {"task": "fail_old_messages", "schedule": crontab(hour=0, minute=0)},
-    "resolve-twitter-ids-task": {"task": "resolve_twitter_ids", "schedule": timedelta(seconds=900)},
+    "interrupt-flow-sessions": {"task": "interrupt_flow_sessions", "schedule": crontab(hour=23, minute=30)},
+    "resolve-twitter-ids": {"task": "resolve_twitter_ids", "schedule": timedelta(seconds=900)},
     "refresh-whatsapp-tokens": {"task": "refresh_whatsapp_tokens", "schedule": crontab(hour=6, minute=0)},
     "refresh-whatsapp-templates": {"task": "refresh_whatsapp_templates", "schedule": timedelta(seconds=900)},
     "send-notification-emails": {"task": "send_notification_emails", "schedule": timedelta(seconds=60)},

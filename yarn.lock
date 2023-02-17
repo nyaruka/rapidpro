@@ -40,18 +40,18 @@
   resolved "https://registry.npmjs.org/@lit/reactive-element/-/reactive-element-1.4.1.tgz"
   integrity sha512-qDv4851VFSaBWzpS02cXHclo40jsbAjRXnebNXpm0uVg32kCneZPo9RYVQtrTNICtZ+1wAYHu1ZtxWSWMbKrBw==
 
-"@nyaruka/flow-editor@1.19.1":
-  version "1.19.1"
-  resolved "https://registry.yarnpkg.com/@nyaruka/flow-editor/-/flow-editor-1.19.1.tgz#65a5ecc5f2b89fa68690764c62d607361bae30d9"
-  integrity sha512-aRvjEGPWtqk7GmUkGEqnALmVFkOFkB3yXizCH6rMpOjinf4eAa8iEsZjCQChQE+Ti70D+3JOj8gTQKRWCDk3UQ==
+"@nyaruka/flow-editor@1.19.2":
+  version "1.19.2"
+  resolved "https://registry.npmjs.org/@nyaruka/flow-editor/-/flow-editor-1.19.2.tgz#1a0dcb154248b712c4210147d2454014f6768daf"
+  integrity sha512-Knqc6fbM2qTnLrmZhnuANShAkW6B6LyJPUb5afAm9azLSU+YTwAv3V2CwQQ2n4i507F4HGERYxfmf5JBbLEU1Q==
   dependencies:
     react "^16.8.6"
     react-dom "^16.8.6"
 
-"@nyaruka/temba-components@0.38.0":
-  version "0.38.0"
-  resolved "https://registry.npmjs.org/@nyaruka/temba-components/-/temba-components-0.38.0.tgz#02c9df786a9a05055acf4df6d48ff72d4e6fedf4"
-  integrity sha512-UdV/sh/fp3ZzqkuPAB1gTO6rFtM/lr4Ru+dkVsZRzxlQCQ2mTflPerEp7OSc9utVwxQamXP7CG3mlsqJluThEA==
+"@nyaruka/temba-components@0.41.0":
+  version "0.41.0"
+  resolved "https://registry.npmjs.org/@nyaruka/temba-components/-/temba-components-0.41.0.tgz#04719e14d16f81538d58e8d567ac82ed70f45b03"
+  integrity sha512-dyuDo5MqiAFmozhM2oAW8UxiJRGT8v5SpXGn5i4KA1bl2x+eqfKUb3D99mv7acGLcivBoH9IsLUuidIIAGauMA==
   dependencies:
     color-hash "^2.0.2"
     geojson "^0.5.0"
@@ -464,10 +464,10 @@ inherits@2, inherits@~2.0.3:
   resolved "https://registry.npmjs.org/inherits/-/inherits-2.0.4.tgz"
   integrity sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==
 
-intercooler@1.1.2:
-  version "1.1.2"
-  resolved "https://registry.npmjs.org/intercooler/-/intercooler-1.1.2.tgz"
-  integrity sha512-hBb/9j28KSRFqCR9WSrv6m6P6KmFD3B1NAN3TJ56LvNq+GKw7KDKPKRXS9FjWE47HbULUa3OdClxpAhBP/7eHw==
+intercooler@1.2.3:
+  version "1.2.3"
+  resolved "https://registry.npmjs.org/intercooler/-/intercooler-1.2.3.tgz#4dd74d66809e5ec47d03b18f2701bb3a43de241c"
+  integrity sha512-rbgvkXJzRwZlb5UhP1JVzJLT45UEx7hyLB6f97K+ll/s2L4O82Gx8f3ZNdB6oZD6CwYM2Nr0MemOE0u+RovZAQ==
 
 is-arrayish@^0.2.1:
   version "0.2.1"

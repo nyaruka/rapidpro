@@ -53,7 +53,13 @@ from .models import (
     FlowVersionConflictException,
     get_flow_user,
 )
-from .tasks import squash_flow_counts, trim_flow_revisions, trim_flow_sessions, update_session_wait_expires
+from .tasks import (
+    interrupt_flow_sessions,
+    squash_flow_counts,
+    trim_flow_revisions,
+    trim_flow_sessions,
+    update_session_wait_expires,
+)
 from .views import FlowCRUDL
 
 
@@ -253,6 +259,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         flow = self.get_flow("color")
 
         self.login(self.admin)
+        self.new_ui()
 
         flow_editor_url = reverse("flows.flow_editor", args=[flow.uuid])
 
@@ -263,10 +270,6 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         self.assertTrue(response.context["can_simulate"])
         self.assertContains(response, reverse("flows.flow_simulate", args=[flow.id]))
         self.assertContains(response, "id='rp-flow-editor'")
-
-        # customer service gets a service button
-        self.login(self.customer_support)
-        self.assertContentMenuContains(flow_editor_url, self.customer_support, "Service")
 
         # flows that are archived can't be edited, started or simulated
         self.login(self.admin)
@@ -1948,7 +1951,12 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # add a trigger on this flow
         Trigger.objects.create(
-            org=self.org, keyword="unique", flow=flow1, created_by=self.admin, modified_by=self.admin
+            org=self.org,
+            keyword="unique",
+            match_type=Trigger.MATCH_FIRST_WORD,
+            flow=flow1,
+            created_by=self.admin,
+            modified_by=self.admin,
         )
 
         # create a new surveyor flow
@@ -2011,7 +2019,12 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # create another trigger so there are two in the way
         trigger = Trigger.objects.create(
-            org=self.org, keyword="this", flow=flow1, created_by=self.admin, modified_by=self.admin
+            org=self.org,
+            keyword="this",
+            match_type=Trigger.MATCH_FIRST_WORD,
+            flow=flow1,
+            created_by=self.admin,
+            modified_by=self.admin,
         )
 
         response = self.client.post(
@@ -2056,6 +2069,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(flow3.triggers.count(), 5)
         self.assertEqual(flow3.triggers.filter(is_archived=True).count(), 2)
         self.assertEqual(flow3.triggers.filter(is_archived=False).count(), 3)
+        self.assertEqual(flow3.triggers.filter(is_archived=False, match_type=Trigger.MATCH_FIRST_WORD).count(), 3)
         self.assertEqual(flow3.triggers.filter(is_archived=False).exclude(groups=None).count(), 0)
 
         # update flow with unformatted keyword
@@ -3991,6 +4005,48 @@ class FlowRunTest(TembaTest):
 
 
 class FlowSessionTest(TembaTest):
+    @mock_mailroom
+    def test_interrupt(self, mr_mocks):
+        contact = self.create_contact("Ben Haggerty", phone="+250788123123")
+
+        def create_session(org, created_on: datetime):
+            return FlowSession.objects.create(
+                uuid=uuid4(),
+                org=org,
+                contact=contact,
+                created_on=created_on,
+                output_url="http://sessions.com/123.json",
+                status=FlowSession.STATUS_WAITING,
+                wait_started_on=timezone.now(),
+                wait_expires_on=timezone.now() + timedelta(days=7),
+                wait_resume_on_expire=False,
+            )
+
+        create_session(self.org, timezone.now() - timedelta(days=89))
+        session2 = create_session(self.org, timezone.now() - timedelta(days=91))
+        session3 = create_session(self.org, timezone.now() - timedelta(days=92))
+        session4 = create_session(self.org2, timezone.now() - timedelta(days=92))
+
+        interrupt_flow_sessions()
+
+        self.assertEqual(
+            [
+                {
+                    "type": "interrupt_sessions",
+                    "org_id": self.org.id,
+                    "queued_on": matchers.Datetime(),
+                    "task": {"session_ids": [session2.id, session3.id]},
+                },
+                {
+                    "type": "interrupt_sessions",
+                    "org_id": self.org2.id,
+                    "queued_on": matchers.Datetime(),
+                    "task": {"session_ids": [session4.id]},
+                },
+            ],
+            mr_mocks.queued_batch_tasks,
+        )
+
     def test_trim(self):
         contact = self.create_contact("Ben Haggerty", phone="+250788123123")
         flow = self.get_flow("color")
@@ -5602,7 +5658,7 @@ class FlowSessionCRUDLTest(TembaTest):
         self.assertLoginRedirect(response)
 
         # but logged in as a CS rep we can
-        self.login(self.customer_support)
+        self.login(self.customer_support, choose_org=self.org)
 
         response = self.client.get(url)
         self.assertEqual(200, response.status_code)

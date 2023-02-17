@@ -57,6 +57,7 @@ from temba.tickets.models import Ticketer
 from temba.tickets.types.mailgun import MailgunType
 from temba.triggers.models import Trigger
 from temba.utils import brands, json, languages
+from temba.utils.views import TEMBA_MENU_SELECTION
 
 from .context_processors import RolePermsWrapper
 from .models import BackupToken, Invitation, Org, OrgMembership, OrgRole, User
@@ -2841,15 +2842,6 @@ class AnonOrgTest(TembaTest):
 
 
 class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
-    def test_spa(self):
-        Group.objects.get(name="Beta").user_set.add(self.admin)
-
-        self.login(self.admin)
-
-        deep_link = reverse("spa.level_2", args=["tickets", "all", "open"])
-        response = self.client.get(deep_link)
-        self.assertEqual(200, response.status_code)
-
     def assertMenu(self, url, count, contains_names=[]):
         response = self.assertListFetch(url, allow_viewers=True, allow_editors=True, allow_agents=True)
         menu = response.json()["results"]
@@ -2883,7 +2875,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
 
-        with self.assertNumQueries(46):
+        with self.assertNumQueries(49):
             response = self.client.get(home_url)
 
         # more options for admins
@@ -3849,9 +3841,11 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertStaffOnly(manage_url)
         self.assertStaffOnly(update_url)
+        self.new_ui()
 
         def assertOrgFilter(query: str, expected_orgs: list):
             response = self.client.get(manage_url + query)
+            self.assertIsNotNone(response.headers.get(TEMBA_MENU_SELECTION, None))
             self.assertEqual(expected_orgs, list(response.context["object_list"]))
 
         assertOrgFilter("", [self.org2, self.org])
@@ -3984,31 +3978,49 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
     @mock_mailroom
     def test_service(self, mr_mocks):
         service_url = reverse("orgs.org_service")
+        inbox_url = reverse("msgs.msg_inbox")
 
         # without logging in, try to service our main org
-        response = self.client.post(service_url, dict(organization=self.org.id))
+        response = self.client.get(service_url, dict(other_org=self.org.id, next=inbox_url))
+        self.assertLoginRedirect(response)
+
+        response = self.client.post(service_url, dict(other_org=self.org.id))
         self.assertLoginRedirect(response)
 
         # try logging in with a normal user
         self.login(self.admin)
 
         # same thing, no permission
-        response = self.client.post(service_url, dict(organization=self.org.id))
+        response = self.client.get(service_url, dict(other_org=self.org.id, next=inbox_url))
+        self.assertLoginRedirect(response)
+
+        response = self.client.post(service_url, dict(other_org=self.org.id))
         self.assertLoginRedirect(response)
 
         # ok, log in as our cs rep
         self.login(self.customer_support)
 
-        # invalid org just redirects back to manage page
-        response = self.client.post(service_url, dict(organization=325253256))
+        # getting invalid org, has no service form
+        response = self.client.get(service_url, dict(other_org=325253256, next=inbox_url))
+        self.assertContains(response, "Invalid org")
+
+        # posting invalid org just redirects back to manage page
+        response = self.client.post(service_url, dict(other_org=325253256))
         self.assertRedirect(response, "/org/manage/")
 
         # then service our org
-        response = self.client.post(service_url, dict(organization=self.org.id))
+        response = self.client.get(service_url, dict(other_org=self.org.id))
+        self.assertContains(response, "You are about to service the workspace, <b>Nyaruka</b>.")
+
+        # requesting a next page has a slightly different message
+        response = self.client.get(service_url, dict(other_org=self.org.id, next=inbox_url))
+        self.assertContains(response, "The page you are requesting belongs to a different workspace, <b>Nyaruka</b>.")
+
+        response = self.client.post(service_url, dict(other_org=self.org.id))
         self.assertRedirect(response, "/msg/inbox/")
 
         # specify redirect_url
-        response = self.client.post(service_url, dict(organization=self.org.id, redirect_url="/flow/"))
+        response = self.client.post(service_url, dict(other_org=self.org.id, next="/flow/"))
         self.assertRedirect(response, "/flow/")
 
         # create a new contact
@@ -4113,8 +4125,9 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertStaffOnly(list_url)
 
-        response = self.requestView(list_url, self.customer_support)
+        response = self.requestView(list_url, self.customer_support, new_ui=True)
         self.assertEqual(9, len(response.context["object_list"]))
+        self.assertEqual("/staff/users/all", response.headers[TEMBA_MENU_SELECTION])
 
         response = self.requestView(list_url + "?filter=beta", self.customer_support)
         self.assertEqual(set(), set(response.context["object_list"]))

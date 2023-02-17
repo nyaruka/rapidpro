@@ -38,14 +38,6 @@ from temba.utils.uuid import uuid4
 logger = logging.getLogger(__name__)
 
 
-class UnreachableException(Exception):
-    """
-    Exception thrown when a message is being sent to a contact that we don't have a sendable URN for
-    """
-
-    pass
-
-
 class Media(models.Model):
     """
     An uploaded media file that can be used as an attachment on messages.
@@ -75,9 +67,6 @@ class Media(models.Model):
 
     created_by = models.ForeignKey(User, on_delete=models.PROTECT)
     created_on = models.DateTimeField(default=timezone.now)
-
-    # TODO remove
-    name = models.CharField(max_length=255, null=True)
 
     @classmethod
     def is_allowed_type(cls, content_type: str) -> bool:
@@ -194,10 +183,8 @@ class Broadcast(models.Model):
     # recipients of this broadcast
     groups = models.ManyToManyField(ContactGroup, related_name="addressed_broadcasts")
     contacts = models.ManyToManyField(Contact, related_name="addressed_broadcasts")
-    urns = models.ManyToManyField(ContactURN, related_name="addressed_broadcasts")
-
-    # URN strings that mailroom will turn into contacts and URN objects
-    raw_urns = ArrayField(models.TextField(), null=True)
+    urns = ArrayField(models.TextField(), null=True)
+    query = models.TextField(null=True)
 
     # message content in different languages, e.g. {"eng": {"text": "Hello", "attachments": [...]}, "spa": ...}
     translations = models.JSONField()
@@ -212,9 +199,6 @@ class Broadcast(models.Model):
     modified_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name="broadcast_modifications")
     modified_on = models.DateTimeField(default=timezone.now)
 
-    # whether this broadcast should send to all URNs for each contact
-    send_all = models.BooleanField(default=False)
-
     # used for scheduled broadcasts which are never actually sent themselves but spawn child broadcasts which are
     schedule = models.OneToOneField(Schedule, on_delete=models.PROTECT, null=True, related_name="broadcast")
     parent = models.ForeignKey("Broadcast", on_delete=models.PROTECT, null=True, related_name="children")
@@ -225,16 +209,16 @@ class Broadcast(models.Model):
         cls,
         org,
         user,
-        text: dict,
+        text: dict[str, str],
         *,
+        attachments: dict[str, list] = None,
+        base_language: str = None,
         groups=None,
         contacts=None,
         urns: list[str] = None,
         contact_ids: list[int] = None,
-        base_language: str = None,
         channel: Channel = None,
         ticket=None,
-        send_all: bool = False,
         **kwargs,
     ):
         if not base_language:
@@ -243,13 +227,20 @@ class Broadcast(models.Model):
         assert base_language in text, "no translation for base language"
         assert groups or contacts or contact_ids or urns, "can't create broadcast without recipients"
 
+        # merge text and attachments into single dict of translations
+        translations = {lang: {"text": t} for lang, t in text.items()}
+        if attachments:
+            for lang, atts in attachments.items():
+                if lang not in translations:
+                    translations[lang] = {}
+                translations[lang]["attachments"] = atts
+
         broadcast = cls.objects.create(
             org=org,
             channel=channel,
             ticket=ticket,
-            send_all=send_all,
+            translations=translations,
             base_language=base_language,
-            translations={lang: {"text": t} for lang, t in text.items()},
             created_by=user,
             modified_by=user,
             **kwargs,
@@ -333,8 +324,8 @@ class Broadcast(models.Model):
             self.contacts.add(*contacts)
 
         if urns:
-            self.raw_urns = urns
-            self.save(update_fields=("raw_urns",))
+            self.urns = urns
+            self.save(update_fields=("urns",))
 
         if contact_ids:
             RelatedModel = self.contacts.through
@@ -494,6 +485,7 @@ class Msg(models.Model):
 
     text = models.TextField()
     attachments = ArrayField(models.URLField(max_length=2048), null=True)
+    quick_replies = ArrayField(models.CharField(max_length=64), null=True)
     locale = models.CharField(max_length=6, null=True)  # eng, eng-US, por-BR, und etc
 
     high_priority = models.BooleanField(null=True)
