@@ -1017,11 +1017,9 @@ description = "Python library for ISO 639 standard"
 category = "main"
 optional = false
 python-versions = "*"
-files = []
-
-[package.source]
-type = "file"
-url = "../../Library/Caches/pypoetry/artifacts/22/2a/88/413499eeedac1e015b5d9bbbef01d8cad54a009aa3a773a683d24a546a/iso-639-0.4.5.tar.gz"
+files = [
+    {file = "iso-639-0.4.5.tar.gz", hash = "sha256:dc9cd4b880b898d774c47fe9775167404af8a85dd889d58f9008035109acce49"},
+]
 
 [[package]]
 name = "iso8601"
