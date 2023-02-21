@@ -195,7 +195,7 @@ class Broadcast(models.Model):
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_QUEUED)
 
     created_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name="broadcast_creations")
-    created_on = models.DateTimeField(default=timezone.now, db_index=True)  # TODO remove index
+    created_on = models.DateTimeField(default=timezone.now)
     modified_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name="broadcast_modifications")
     modified_on = models.DateTimeField(default=timezone.now)
 
