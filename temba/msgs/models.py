@@ -17,7 +17,8 @@ from django.contrib.postgres.fields import ArrayField
 from django.core.files.storage import default_storage
 from django.core.files.temp import NamedTemporaryFile
 from django.db import models
-from django.db.models import Prefetch, Q, Sum
+from django.db.models import F, Prefetch, Q, Sum
+from django.db.models.expressions import RawSQL
 from django.db.models.functions import Lower
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -696,6 +697,16 @@ class Msg(models.Model):
                 fields=["next_attempt", "created_on", "id"],
                 condition=Q(direction="O", status__in=("I", "E"), next_attempt__isnull=False),
             ),
+            # used for Inbox, Flows and Archived views and API folders
+            models.Index(
+                "org",
+                "visibility",
+                RawSQL("flow_id IS NULL", params=()),
+                F("created_on").desc(),
+                F("id").desc(),
+                name="msgs_inbox_flows_archived",
+                condition=Q(direction="I"),
+            ),
             # used for Outbox and Failed views and API folders
             models.Index(
                 name="msgs_outbox_and_failed",
@@ -781,13 +792,9 @@ class SystemLabel:
         """
 
         if label_type == cls.TYPE_INBOX:
-            qs = Msg.objects.filter(
-                direction=Msg.DIRECTION_IN, visibility=Msg.VISIBILITY_VISIBLE, msg_type=Msg.TYPE_INBOX
-            )
+            qs = Msg.objects.filter(direction=Msg.DIRECTION_IN, visibility=Msg.VISIBILITY_VISIBLE, flow__isnull=True)
         elif label_type == cls.TYPE_FLOWS:
-            qs = Msg.objects.filter(
-                direction=Msg.DIRECTION_IN, visibility=Msg.VISIBILITY_VISIBLE, msg_type=Msg.TYPE_FLOW
-            )
+            qs = Msg.objects.filter(direction=Msg.DIRECTION_IN, visibility=Msg.VISIBILITY_VISIBLE, flow__isnull=False)
         elif label_type == cls.TYPE_ARCHIVED:
             qs = Msg.objects.filter(direction=Msg.DIRECTION_IN, visibility=Msg.VISIBILITY_ARCHIVED)
         elif label_type == cls.TYPE_OUTBOX:
