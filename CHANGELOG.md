@@ -1,3 +1,56 @@
+v8.1.66 (2023-03-09)
+-------------------------
+ * Fix initial editor load
+ * Schedule message validation
+
+v8.1.65 (2023-03-09)
+-------------------------
+ * Update endpoints for messages and media
+
+v8.1.64 (2023-03-08)
+-------------------------
+ * Tweak layout for editor
+ * Cleanup fail_old_messages task. Use correct statuses and return number failed.
+
+v8.1.63 (2023-03-08)
+-------------------------
+ * Adjust export download page for new UI
+ * Make media list page (still staff only) filter by org and add index
+
+v8.1.62 (2023-03-08)
+-------------------------
+ * Small z-index tweak
+
+v8.1.61 (2023-03-07)
+-------------------------
+ * Tweak simulator placement in new ui
+
+v8.1.60 (2023-03-07)
+-------------------------
+ * Encourage users to try the new interface
+ * Add lightbox for contact history
+
+v8.1.59 (2023-03-07)
+-------------------------
+ * Rework code depending on msg_type=I|F
+
+v8.1.58 (2023-03-07)
+-------------------------
+ * Add missing channels migration
+ * Use msg.created_by if set in ticket list view
+ * Remove SMS type channel alerts
+
+v8.1.57 (2023-03-06)
+-------------------------
+ * Move index on msg.external_id onto the model
+
+v8.1.56 (2023-03-06)
+-------------------------
+ * Fix soft deleting of scheduled messages so schedule is deleted too
+ * Stop saving JSONAsTextField values as null for empty dicts and lists
+ * Update select s3 usage for msg exports to not rely on type=inbox|flow
+ * Add created_by to Msg and populate on events in contact histories
+
 v8.1.55 (2023-03-02)
 -------------------------
  * Fix import for sync fcm task
