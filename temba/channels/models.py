@@ -31,6 +31,8 @@ from temba.utils.email import send_template_email
 from temba.utils.models import JSONAsTextField, LegacyUUIDMixin, SquashableModel, TembaModel, generate_uuid
 from temba.utils.text import random_string
 
+from .courier import QueuedChannel
+
 logger = logging.getLogger(__name__)
 
 
@@ -664,38 +666,12 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         return self.address
 
-    def get_last_sent_message(self):
-        from temba.msgs.models import Msg
-
-        # find last successfully sent message
-        return (
-            self.msgs.filter(status__in=[Msg.STATUS_SENT, Msg.STATUS_DELIVERED], direction=Msg.DIRECTION_OUT)
-            .exclude(sent_on=None)
-            .order_by("-sent_on")
-            .first()
-        )
-
-    def get_delayed_outgoing_messages(self):
-        from temba.msgs.models import Msg
-
-        one_hour_ago = timezone.now() - timedelta(hours=1)
-        latest_sent_message = self.get_last_sent_message()
-
-        # if the last sent message was in the last hour, assume this channel is ok
-        if latest_sent_message and latest_sent_message.sent_on > one_hour_ago:  # pragma: no cover
-            return Msg.objects.none()
-
-        messages = self.get_unsent_messages()
-
-        # channels have an hour to send messages before we call them delays, so ignore all messages created in last hour
-        messages = messages.filter(created_on__lt=one_hour_ago)
-
-        # if we have a successfully sent message, we're only interested a new failures since then. Note that we use id
-        # here instead of created_on because we won't hit the outbox index if we use a range condition on created_on.
-        if latest_sent_message:  # pragma: needs cover
-            messages = messages.filter(id__gt=latest_sent_message.id)
-
-        return messages
+    def get_queue_size(self, r) -> int:
+        """
+        Gets the number of messages currently queued for this channel in courier
+        """
+        priority, bulk = QueuedChannel.from_channel(self).get_queue_sizes(r)
+        return priority + bulk
 
     @cached_property
     def last_sync(self):
@@ -703,12 +679,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         Gets the last sync event for this channel (only applies to Android channels)
         """
         return self.sync_events.order_by("id").last()
-
-    def get_unsent_messages(self):
-        # use our optimized index for our org outbox
-        from temba.msgs.models import Msg
-
-        return Msg.objects.filter(org=self.org.id, status__in=["P", "Q"], direction="O", visibility="V", channel=self)
 
     def is_new(self):
         # is this channel newer than an hour
