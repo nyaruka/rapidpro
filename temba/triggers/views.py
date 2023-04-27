@@ -1,9 +1,9 @@
-from smartmin.views import SmartCreateView, SmartCRUDL, SmartListView, SmartTemplateView, SmartUpdateView
+from smartmin.views import SmartCreateView, SmartCRUDL, SmartListView, SmartTemplateView, SmartUpdateView, SmartDeleteView
 
 from django import forms
 from django.db.models import Min
 from django.db.models.functions import Upper
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _, ngettext_lazy
 
@@ -14,7 +14,7 @@ from temba.contacts.search.omnibox import omnibox_serialize
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin
 from temba.msgs.views import ModalMixin
-from temba.orgs.views import MenuMixin, OrgFilterMixin, OrgObjPermsMixin, OrgPermsMixin
+from temba.orgs.views import DependencyDeleteModal, MenuMixin, OrgFilterMixin, OrgObjPermsMixin, OrgPermsMixin
 from temba.schedules.models import Schedule
 from temba.utils.fields import (
     CompletionTextarea,
@@ -199,6 +199,7 @@ class TriggerCRUDL(SmartCRUDL):
         "create_referral",
         "create_closed_ticket",
         "update",
+        "delete",
         "list",
         "menu",
         "archived",
@@ -445,6 +446,20 @@ class TriggerCRUDL(SmartCRUDL):
 
             response = super().form_valid(form)
             response["REDIRECT"] = self.get_success_url()
+            return response
+
+    class Delete(ModalMixin, OrgObjPermsMixin, SmartDeleteView):
+        default_template = "trigger_delete.haml"
+        cancel_url = "@triggers.trigger_list"
+        success_url = "@triggers.trigger_list"
+        fields = ("id",)
+        submit_button_name = _("Delete")
+
+        def post(self, request, *args, **kwargs):
+            self.get_object().delete()
+
+            response = HttpResponse()
+            response["Temba-Success"] = self.get_success_url()
             return response
 
     class BaseList(SpaMixin, OrgFilterMixin, OrgPermsMixin, BulkActionMixin, SmartListView):

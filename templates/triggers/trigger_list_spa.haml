@@ -69,6 +69,11 @@
             %td(onclick="handleRowSelection(this)" width="250px")
               -include "includes/recipients.haml" with groups=obj.groups.all contacts=obj.contacts.all
 
+            -if org_perms.triggers.trigger_delete and obj.is_archived
+              %td.w-10
+                .pl-2.pt-1.delete-link.linked.text-gray-400(style="visibility:hidden;border-width: 1px;padding:0.25em;")
+                  %temba-icon(name="icon.delete_small")
+
           -empty
             %tr.empty_list
               %td{colspan:3}
@@ -77,12 +82,13 @@
       -block extra-rows
 
   %temba-modax#update-trigger
+  %temba-modax#delete-trigger
+
 -block extra-script
   {{ block.super }}
 
   :javascript
     function updateTrigger(event, id) {
-
       if (event.target.tagName == "TEMBA-CHECKBOX") {
         return;
       }
@@ -92,6 +98,29 @@
       var modal = document.querySelector("#update-trigger");
       modal.endpoint = '/trigger/update/' + id + '/';
       modal.header = '{{ _("Update Trigger")|escapejs }}';
+
+      if(event.target.tagName == "TEMBA-ICON"){
+        modal = document.querySelector("#delete-trigger");
+        modal.endpoint = '/trigger/delete/' + id + '/';
+        modal.header = '{{ _("Delete Trigger")|escapejs }}';
+      }
+
       modal.open = true;
     }
+
+-block extra-style
+  {{block.super}}
+  -block spa-style
+    :css
+      tr:hover .delete-link {
+        border: 1px solid #ddd;
+        border-radius: var(--curvature);
+        visibility: visible !important;
+      }
+      temba-icon[name="icon.delete_small"] {
+        --icon-color: var(--color-link-primary);
+        opacity: 1 !important;
+        cursor: pointer !important;
+        pointer-events: all !important;
+      }
     
