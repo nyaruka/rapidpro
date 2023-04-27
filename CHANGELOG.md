@@ -1,3 +1,12 @@
+v8.1.122 (2023-04-26)
+-------------------------
+ * Remove db constriants on Msg.flow and Msg.ticket
+
+v8.1.121 (2023-04-26)
+-------------------------
+ * Tweak migration dependency
+ * Show counts of tickets by topic on tickets menu
+
 v8.1.120 (2023-04-25)
 -------------------------
  * Add topic counts to the API endpoint
