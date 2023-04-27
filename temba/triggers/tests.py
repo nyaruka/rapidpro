@@ -1320,6 +1320,34 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         next_fire = trigger.schedule.calculate_next_fire(datetime(2021, 6, 23, 12, 0, 0, 0, pytz.UTC))  # Wed 23rd
         self.assertEqual(tz.localize(datetime(2021, 6, 24, 12, 0, 0, 0)), next_fire)  # Thu 24th
 
+    def test_delete(self):
+        # create an archived trigger
+        flow1 = self.create_flow("Flow 1")
+        trigger1 = Trigger.create(
+            self.org,
+            self.admin,
+            Trigger.TYPE_KEYWORD,
+            flow1,
+            keyword="archived",
+            match_type=Trigger.MATCH_ONLY_WORD,
+            is_archived=True,
+        )
+
+        delete_url = reverse("triggers.trigger_delete", args=[trigger1.id])
+
+        # fetch the delete modal
+        response = self.assertDeleteFetch(delete_url, allow_editors=True, as_modal=True)
+        self.assertContains(response, "You are about to delete")
+
+        list_url = reverse("triggers.trigger_list")
+
+        # submit the delete modal
+        response = self.assertDeleteSubmit(delete_url, object_deleted=trigger1, success_status=200)
+        self.assertEqual(list_url, response["Temba-Success"])
+
+        # check that the trigger is deleted
+        self.assertNotIn(trigger1, Trigger.objects.all())
+
     @patch("temba.channels.types.facebook.FacebookType.deactivate_trigger")
     @patch("temba.channels.types.facebook.FacebookType.activate_trigger")
     def test_list(self, mock_activate_trigger, mock_deactivate_trigger):

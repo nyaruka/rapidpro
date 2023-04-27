@@ -1,4 +1,11 @@
-from smartmin.views import SmartCreateView, SmartCRUDL, SmartListView, SmartTemplateView, SmartUpdateView, SmartDeleteView
+from smartmin.views import (
+    SmartCreateView,
+    SmartCRUDL,
+    SmartDeleteView,
+    SmartListView,
+    SmartTemplateView,
+    SmartUpdateView,
+)
 
 from django import forms
 from django.db.models import Min
@@ -14,7 +21,7 @@ from temba.contacts.search.omnibox import omnibox_serialize
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin
 from temba.msgs.views import ModalMixin
-from temba.orgs.views import DependencyDeleteModal, MenuMixin, OrgFilterMixin, OrgObjPermsMixin, OrgPermsMixin
+from temba.orgs.views import MenuMixin, OrgFilterMixin, OrgObjPermsMixin, OrgPermsMixin
 from temba.schedules.models import Schedule
 from temba.utils.fields import (
     CompletionTextarea,
