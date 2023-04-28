@@ -462,7 +462,7 @@ class TriggerCRUDL(SmartCRUDL):
         submit_button_name = _("Delete")
 
         def post(self, request, *args, **kwargs):
-            assert self.get_object().is_archived
+            assert self.get_object().is_archived, "can only delete archived triggers"
 
             self.get_object().delete()
 
