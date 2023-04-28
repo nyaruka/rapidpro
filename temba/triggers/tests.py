@@ -1458,7 +1458,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertListFetch(
             archived_url, allow_viewers=True, allow_editors=True, context_objects=[trigger2, trigger1]
         )
-        self.assertEqual(("restore",), response.context["actions"])
+        self.assertEqual(("restore", "delete"), response.context["actions"])
 
         self.new_ui()
         # can restore it
