@@ -1333,6 +1333,16 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
             is_archived=True,
         )
 
+        # create an active trigger
+        trigger2 = Trigger.create(
+            self.org,
+            self.admin,
+            Trigger.TYPE_KEYWORD,
+            flow1,
+            keyword="active",
+            match_type=Trigger.MATCH_ONLY_WORD,
+        )
+
         delete_url = reverse("triggers.trigger_delete", args=[trigger1.id])
 
         # fetch the delete modal
@@ -1341,12 +1351,20 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
 
         list_url = reverse("triggers.trigger_list")
 
-        # submit the delete modal
+        # can delete an archived trigger
         response = self.assertDeleteSubmit(delete_url, object_deleted=trigger1, success_status=200)
         self.assertEqual(list_url, response["Temba-Success"])
 
         # check that the trigger is deleted
         self.assertNotIn(trigger1, Trigger.objects.all())
+
+        delete_url = reverse("triggers.trigger_delete", args=[trigger2.id])
+
+        # can not delete an active trigger (shouldn't happen, UI doesn't actually allow this)
+        with self.assertRaises(AssertionError):
+            self.assertDeleteSubmit(delete_url, object_unchanged=trigger2)
+            # check that the trigger is not deleted
+            self.assertIn(trigger2, Trigger.objects.all())
 
     @patch("temba.channels.types.facebook.FacebookType.deactivate_trigger")
     @patch("temba.channels.types.facebook.FacebookType.activate_trigger")
