@@ -71,7 +71,7 @@
 
             -if org_perms.triggers.trigger_delete and obj.is_archived
               %td.w-10
-                .pl-2.pt-1.delete-link.linked.text-gray-400(style="visibility:hidden;border-width: 1px;padding:0.25em;")
+                .delete-link.linked.text-gray-400(style="visibility:hidden;border-width: 1px;padding:0.25em;" onclick="deleteTrigger(event, {{obj.id}})")
                   %temba-icon(name="icon.delete_small")
 
           -empty
@@ -98,13 +98,15 @@
       var modal = document.querySelector("#update-trigger");
       modal.endpoint = '/trigger/update/' + id + '/';
       modal.header = '{{ _("Update Trigger")|escapejs }}';
-
-      if(event.target.tagName == "TEMBA-ICON"){
-        modal = document.querySelector("#delete-trigger");
-        modal.endpoint = '/trigger/delete/' + id + '/';
-        modal.header = '{{ _("Delete Trigger")|escapejs }}';
-      }
-
+      modal.open = true;
+    }
+    function deleteTrigger(event, id) {
+      debugger;
+      event.preventDefault();
+      event.stopPropagation();
+      modal = document.querySelector("#delete-trigger");
+      modal.endpoint = '/trigger/delete/' + id + '/';
+      modal.header = '{{ _("Delete Trigger")|escapejs }}';
       modal.open = true;
     }
 

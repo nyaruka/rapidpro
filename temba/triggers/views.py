@@ -456,13 +456,14 @@ class TriggerCRUDL(SmartCRUDL):
             return response
 
     class Delete(ModalMixin, OrgObjPermsMixin, SmartDeleteView):
-        default_template = "trigger_delete.haml"
         cancel_url = "@triggers.trigger_list"
         success_url = "@triggers.trigger_list"
         fields = ("id",)
         submit_button_name = _("Delete")
 
         def post(self, request, *args, **kwargs):
+            assert self.get_object().is_archived
+
             self.get_object().delete()
 
             response = HttpResponse()
