@@ -456,7 +456,7 @@ class TriggerCRUDL(SmartCRUDL):
             return response
 
     class Delete(ModalMixin, OrgObjPermsMixin, SmartDeleteView):
-        cancel_url = "@triggers.trigger_list"
+        cancel_url = "@triggers.trigger_archived"
         success_url = "@triggers.trigger_list"
         fields = ("id",)
         submit_button_name = _("Delete")
