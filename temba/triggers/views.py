@@ -536,7 +536,10 @@ class TriggerCRUDL(SmartCRUDL):
         def build_content_menu(self, menu):
             if self.has_org_perm("triggers.trigger_delete"):
                 menu.add_js(
-                    "triggers_delete_all", _("Delete All"), "confirmDeleteAllArchivedTriggers(event)", "triggers-btn-delete-all"
+                    "triggers_delete_all",
+                    _("Delete All"),
+                    "confirmDeleteAllArchivedTriggers(event)",
+                    "triggers-btn-delete-all",
                 )
 
         def get_queryset(self, *args, **kwargs):
