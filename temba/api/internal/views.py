@@ -1,4 +1,8 @@
+from rest_framework import status
+from rest_framework.response import Response
+
 from temba.notifications.models import Notification
+from temba.utils import languages
 
 from ..models import APIPermission, SSLPermission
 from ..support import APISessionAuthentication, CreatedOnCursorPagination
@@ -20,7 +24,31 @@ class BaseEndpoint(BaseAPIView):
 # ============================================================
 
 
+class LanguagesEndpoint(ListAPIMixin, BaseEndpoint):
+    """
+    Lists the flow languages for the current org.
+    """
+
+    permission = "orgs.org_read"
+
+    def list(self, request, *args, **kwargs):
+        def serialize(code: str) -> dict:
+            return {
+                "code": code,
+                "name": languages.get_name(code),
+                "iso": code,  # for backward compatibility
+            }
+
+        return Response(
+            {"results": [serialize(c) for c in self.request.org.flow_languages]}, status=status.HTTP_200_OK
+        )
+
+
 class NotificationsEndpoint(ListAPIMixin, BaseEndpoint):
+    """
+    Lists the notifications for the current user in the current org.
+    """
+
     permission = "notifications.notification_list"
     model = Notification
     pagination_class = CreatedOnCursorPagination

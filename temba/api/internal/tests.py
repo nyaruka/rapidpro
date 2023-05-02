@@ -19,8 +19,33 @@ class EndpointsTest(TembaTest):
 
         connection.settings_dict["ATOMIC_REQUESTS"] = True
 
+    def test_languages(self):
+        endpoint_url = reverse("api.internal.languages")
+
+        response = self.client.get(endpoint_url + ".json")
+        self.assertEqual(403, response.status_code)
+
+        self.org.flow_languages = ["eng", "spa"]
+        self.org.save(update_fields=("flow_languages",))
+
+        for user in (self.agent, self.editor, self.admin):
+            self.login(user)
+            with self.mockReadOnly(assert_models={}):
+                response = self.client.get(endpoint_url + ".json")
+
+            self.assertEqual(200, response.status_code, f"status code mismatch for user {user}")
+            self.assertEqual(
+                {
+                    "results": [
+                        {"code": "eng", "name": "English", "iso": "eng"},
+                        {"code": "spa", "name": "Spanish", "iso": "spa"},
+                    ],
+                },
+                response.json(),
+            )
+
     def test_notifications(self):
-        endpoint_url = reverse("api.internal.notifications") + ".json"
+        endpoint_url = reverse("api.internal.notifications")
 
         response = self.client.get(endpoint_url)
         self.assertEqual(403, response.status_code)
@@ -35,7 +60,7 @@ class EndpointsTest(TembaTest):
         self.login(self.admin)
 
         with self.mockReadOnly(assert_models={Notification}):
-            response = self.client.get(endpoint_url)
+            response = self.client.get(endpoint_url + ".json")
 
         self.assertEqual(200, response.status_code)
         self.assertEqual(
@@ -70,7 +95,7 @@ class EndpointsTest(TembaTest):
         self.login(self.editor)
 
         with self.mockReadOnly(assert_models={Notification}):
-            response = self.client.get(endpoint_url)
+            response = self.client.get(endpoint_url + ".json")
 
         self.assertEqual(200, response.status_code)
         self.assertEqual(

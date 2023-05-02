@@ -1922,6 +1922,7 @@ class FlowCRUDL(SmartCRUDL):
             if asset_type_name == "environment":
                 return JsonResponse(org.as_environment_def())
             else:
+                # TODO switch editor to use /api/internal/languages.json and remove
                 results = [{"iso": code, "name": languages.get_name(code)} for code in org.flow_languages]
                 return JsonResponse({"results": sorted(results, key=lambda lang: lang["name"])})
 
