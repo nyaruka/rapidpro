@@ -129,11 +129,6 @@ def urn(contact, org):
 
 
 @register.filter
-def urn_icon(urn):
-    return URN_SCHEME_ICONS.get(urn.scheme, "")
-
-
-@register.filter
 def msg_status_badge(msg) -> str:
     display = {}
 
