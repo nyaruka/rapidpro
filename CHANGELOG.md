@@ -1,3 +1,31 @@
+v8.1.129 (2023-05-04)
+-------------------------
+ * Remove JSON view to list notifications now that has moved to the internal API
+ * Remove non-spa items from content menus
+
+v8.1.128 (2023-05-03)
+-------------------------
+ * Fix contact import
+
+v8.1.127 (2023-05-03)
+-------------------------
+ * Remove support for adding bulk sender delegate channels
+ * Remove ability to create IVR delegates for android channels
+ * Remove org home view altogether and update links to point to workspace view
+
+v8.1.126 (2023-05-03)
+-------------------------
+ * Change cookie checking for UI so that we always default to new UI
+ * Add color picker widget
+ * Remove ability to store twilio credentials on the org
+
+v8.1.125 (2023-05-02)
+-------------------------
+ * Tweak notifications index to match API endpoint
+ * Add new internal API with a notifications endpoint
+ * Use DRF defaults for STRICT_JSON and UNICODE_JSON
+ * Remove unused .api URL suffixes
+
 v8.1.124 (2023-05-01)
 -------------------------
  * Make contact.modify work with new and old format

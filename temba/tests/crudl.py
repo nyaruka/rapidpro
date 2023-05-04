@@ -26,18 +26,13 @@ class CRUDLTestMixin:
             check.pre_check(self, pre_msg_prefix)
 
         if new_ui or "HTTP_TEMBA_SPA" in kwargs:
-            self.client.cookies.load({"nav": "2"})
-            if user:
-                self.make_beta(user)
+            self.client.cookies.load({"nav": "new"})
 
         response = self.client.post(url, post_data, **kwargs) if method == "POST" else self.client.get(url, **kwargs)
 
         # remove our spa cookie if we added it
         if new_ui or "HTTP_TEMBA_SPA" in kwargs:
-            self.client.cookies.load({"nav": "1"})
-
-            if user:
-                self.unbeta(user)
+            self.client.cookies.load({"nav": "old"})
 
         for check in checks:
             check.check(self, response, msg_prefix)
@@ -269,38 +264,15 @@ class CRUDLTestMixin:
                     except ValueError:
                         self.fail(f"Couldn't find {step} in {menu_names}")
 
-    def assertContentMenu(self, url: str, user, legacy_items: list, *, spa_items: list = None):
-        headers = {"HTTP_TEMBA_CONTENT_MENU": 1}
-
-        # old ui
-        response = self.requestView(url, user, checks=[StatusCode(200), ContentType("application/json")], **headers)
-        items = [item.get("label", "-") for item in response.json()["items"]]
-        self.assertEqual(legacy_items, items)
-
-        # new ui
-        if spa_items:
-            headers["HTTP_TEMBA_SPA"] = 1
-            response = self.requestView(
-                url, user, checks=[StatusCode(200), ContentType("application/json")], **headers
-            )
-            items = [item.get("label", "-") for item in response.json()["items"]]
-            self.assertEqual(spa_items, items)
-
-    def assertContentMenuContains(self, url: str, user, item: str, *, is_spa: bool = False):
-        headers = {"HTTP_TEMBA_CONTENT_MENU": 1}
-        if is_spa:
-            headers["HTTP_TEMBA_SPA"] = 1
-        response = self.requestView(url, user, checks=[StatusCode(200), ContentType("application/json")], **headers)
-        items = [item.get("label", "-") for item in response.json()["items"]]
-        self.assertIn(item, items)
-
-    def assertContentMenuNotContains(self, url: str, user, item: str, *, is_spa: bool = False):
-        headers = {"HTTP_TEMBA_CONTENT_MENU": 1}
-        if is_spa:
-            headers["HTTP_TEMBA_SPA"] = 1
-        response = self.requestView(url, user, checks=[StatusCode(200), ContentType("application/json")], **headers)
-        items = [item.get("label", "-") for item in response.json()["items"]]
-        self.assertNotIn(item, items)
+    def assertContentMenu(self, url: str, user, items: list = None):
+        response = self.requestView(
+            url,
+            user,
+            checks=[StatusCode(200), ContentType("application/json")],
+            HTTP_TEMBA_CONTENT_MENU=1,
+            HTTP_TEMBA_SPA=1,
+        )
+        self.assertEqual(items, [item.get("label", "-") for item in response.json()["items"]])
 
 
 class BaseCheck:

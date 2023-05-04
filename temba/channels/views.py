@@ -456,9 +456,6 @@ class ChannelCRUDL(SmartCRUDL):
         "read",
         "delete",
         "configuration",
-        "bulk_sender_options",
-        "create_bulk_sender",
-        "create_caller",
         "facebook_whitelist",
     )
     permissions = True
@@ -505,25 +502,11 @@ class ChannelCRUDL(SmartCRUDL):
             for extra in obj.type.extra_links or ():
                 menu.add_link(extra["label"], reverse(extra["view_name"], args=[obj.uuid]))
 
-            if obj.parent:
+            if obj.parent:  # pragma: no cover
                 menu.add_link(_("Android Channel"), reverse("channels.channel_read", args=[obj.parent.uuid]))
 
             if obj.type.show_config_page:
                 menu.add_link(_("Settings"), reverse("channels.channel_configuration", args=[obj.uuid]))
-
-            if not self.is_spa() and not obj.is_android():
-                sender = obj.get_sender()
-                caller = obj.get_caller()
-
-                if sender:
-                    menu.add_link(_("Channel Log"), reverse("channels.channellog_list", args=[sender.uuid]))
-                elif Channel.ROLE_RECEIVE in obj.role:
-                    menu.add_link(_("Channel Log"), reverse("channels.channellog_list", args=[obj.uuid]))
-
-                if caller and caller != sender:
-                    menu.add_link(
-                        _("Call Log"), f"{reverse('channels.channellog_list', args=[caller.uuid])}?sessions=1"
-                    )
 
             if self.has_org_perm("channels.channel_update"):
                 menu.add_modax(
@@ -536,30 +519,20 @@ class ChannelCRUDL(SmartCRUDL):
                 if obj.is_android() or (obj.parent and obj.parent.is_android()):
                     sender = obj.get_sender()
 
-                    if sender and sender.is_delegate_sender():
+                    if sender and sender.is_delegate_sender():  # pragma: no cover
                         menu.add_modax(
                             _("Disable Bulk Sending"),
                             "disable-sender",
                             reverse("channels.channel_delete", args=[sender.uuid]),
                         )
-                    elif obj.is_android():
-                        menu.add_link(
-                            _("Enable Bulk Sending"),
-                            f"{reverse('channels.channel_bulk_sender_options')}?channel={obj.id}",
-                        )
 
                     caller = obj.get_caller()
 
-                    if caller and caller.is_delegate_caller():
+                    if caller and caller.is_delegate_caller():  # pragma: no cover
                         menu.add_modax(
                             _("Disable Voice Calling"),
                             "disable-voice",
                             reverse("channels.channel_delete", args=[caller.uuid]),
-                        )
-                    elif obj.org.is_connected_to_twilio():
-                        menu.add_url_post(
-                            _("Enable Voice Calling"),
-                            f"{reverse('channels.channel_create_caller')}?channel={obj.id}",
                         )
 
             if self.has_org_perm("channels.channel_delete"):
@@ -577,10 +550,6 @@ class ChannelCRUDL(SmartCRUDL):
             channel = self.object
 
             context["last_sync"] = channel.last_sync
-
-            if "HTTP_X_FORMAX" in self.request.META:  # no additional data needed if request is for old UI formax
-                return context
-
             context["msg_count"] = channel.get_msg_count()
             context["ivr_count"] = channel.get_ivr_count()
 
@@ -608,7 +577,7 @@ class ChannelCRUDL(SmartCRUDL):
 
             # build up the channels we care about for outgoing messages
             channels = [channel]
-            for sender in Channel.objects.filter(parent=channel):
+            for sender in Channel.objects.filter(parent=channel):  # pragma: needs cover
                 channels.append(sender)
 
             msg_in = []
@@ -755,6 +724,7 @@ class ChannelCRUDL(SmartCRUDL):
 
     class Delete(DependencyDeleteModal, SpaMixin):
         cancel_url = "uuid@channels.channel_read"
+        success_url = "@orgs.org_workspace"
         success_message = _("Your channel has been removed.")
         success_message_twilio = _(
             "We have disconnected your Twilio number. "
@@ -767,7 +737,7 @@ class ChannelCRUDL(SmartCRUDL):
             if channel.parent:
                 return reverse("channels.channel_read", args=[channel.parent.uuid])
 
-            return reverse("orgs.org_workspace") if self.is_spa() else reverse("orgs.org_home")
+            return super().get_success_url()
 
         def derive_submit_button_name(self):
             channel = self.get_object()
@@ -914,101 +884,6 @@ class ChannelCRUDL(SmartCRUDL):
 
             return recommended_channels, types_by_category, False
 
-    class BulkSenderOptions(SpaMixin, OrgPermsMixin, SmartTemplateView):
-        title = _("Enable Bulk Sending")
-        menu_path = "/settings/workspace"
-
-    class CreateBulkSender(SpaMixin, OrgPermsMixin, SmartFormView):
-        class BulkSenderForm(forms.Form):
-            connection = forms.CharField(max_length=2, widget=forms.HiddenInput, required=False)
-            channel = forms.IntegerField(widget=forms.HiddenInput, required=False)
-
-            def __init__(self, org, *args, **kwargs):
-                self.org = org
-
-                super().__init__(*args, **kwargs)
-
-            def clean_connection(self):
-                connection = self.cleaned_data["connection"]
-                if connection == "NX" and not self.org.is_connected_to_vonage():
-                    raise forms.ValidationError(_("A connection to a Vonage account is required"))
-                return connection
-
-            def clean_channel(self):
-                channel = self.cleaned_data["channel"]
-                channel = self.org.channels.filter(pk=channel).first()
-                if not channel:
-                    raise forms.ValidationError("Can't add sender for that number")
-                return channel
-
-        form_class = BulkSenderForm
-        fields = ("connection", "channel")
-
-        def get_form_kwargs(self, *args, **kwargs):
-            form_kwargs = super().get_form_kwargs(*args, **kwargs)
-            form_kwargs["org"] = self.request.org
-            return form_kwargs
-
-        def form_valid(self, form):
-            channel = form.cleaned_data["channel"]
-            Channel.add_vonage_bulk_sender(self.request.org, self.request.user, channel)
-            return super().form_valid(form)
-
-        def form_invalid(self, form):
-            return super().form_invalid(form)
-
-        def get_success_url(self):
-            channel = self.form.cleaned_data["channel"]
-            return reverse("channels.channel_read", args=[channel.uuid])
-
-    class CreateCaller(OrgPermsMixin, SmartFormView):
-        class CallerForm(forms.Form):
-            connection = forms.CharField(max_length=2, widget=forms.HiddenInput, required=False)
-            channel = forms.IntegerField(widget=forms.HiddenInput, required=False)
-
-            def __init__(self, *args, **kwargs):
-                self.org = kwargs["org"]
-                del kwargs["org"]
-                super().__init__(*args, **kwargs)
-
-            def clean_connection(self):
-                connection = self.cleaned_data["connection"]
-                if connection == "T" and not self.org.is_connected_to_twilio():
-                    raise forms.ValidationError(_("A connection to a Twilio account is required"))
-                return connection
-
-            def clean_channel(self):
-                channel = self.cleaned_data["channel"]
-                channel = self.org.channels.filter(pk=channel).first()
-                if not channel:
-                    raise forms.ValidationError(_("A caller cannot be added for that number"))
-                if channel.get_caller():
-                    raise forms.ValidationError(_("A caller has already been added for that number"))
-                return channel
-
-        form_class = CallerForm
-        fields = ("connection", "channel")
-
-        def get_form_kwargs(self, *args, **kwargs):
-            kwargs = super().get_form_kwargs(*args, **kwargs)
-            kwargs["org"] = self.request.org
-            return kwargs
-
-        def form_valid(self, form):
-            org = self.request.org
-            user = self.request.user
-
-            channel = form.cleaned_data["channel"]
-            Channel.add_call_channel(org, user, channel)
-            return super().form_valid(form)
-
-        def form_invalid(self, form):
-            return super().form_invalid(form)
-
-        def get_success_url(self):
-            channel = self.form.cleaned_data["channel"]
-            return reverse("channels.channel_read", args=[channel.uuid])
-
     class Configuration(SpaMixin, OrgObjPermsMixin, SmartReadView):
         slug_url_kwarg = "uuid"
 
@@ -1063,7 +938,7 @@ class ChannelLogCRUDL(SmartCRUDL):
     path = "logs"  # urls like /channels/logs/
     actions = ("list", "read", "msg", "call")
 
-    class List(SpaMixin, OrgPermsMixin, ContentMenuMixin, SmartListView):
+    class List(SpaMixin, OrgPermsMixin, SmartListView):
         fields = ("channel", "description", "created_on")
         link_fields = ("channel", "description", "created_on")
         paginate_by = 50
@@ -1086,19 +961,6 @@ class ChannelLogCRUDL(SmartCRUDL):
 
         def derive_menu_path(self):
             return f"/settings/channels/{self.channel.uuid}"
-
-        def build_content_menu(self, menu):
-            list_url = reverse("channels.channellog_list", args=[self.channel.uuid])
-
-            if not self.is_spa():
-                if self.folder != self.FOLDER_MESSAGES:
-                    menu.add_link(_("Messages"), list_url)
-                if self.folder != self.FOLDER_CALLS and self.channel.supports_ivr():
-                    menu.add_link(_("Calls"), f"{list_url}?calls=1")
-                if self.folder != self.FOLDER_OTHERS:
-                    menu.add_link(_("Other Interactions"), f"{list_url}?others=1")
-                if self.folder != self.FOLDER_ERRORS:
-                    menu.add_link(_("Errors"), f"{list_url}?errors=1")
 
         @classmethod
         def derive_url_pattern(cls, path, action):
@@ -1148,17 +1010,12 @@ class ChannelLogCRUDL(SmartCRUDL):
             context["folder"] = self.folder
             return context
 
-    class Read(SpaMixin, OrgObjPermsMixin, ContentMenuMixin, SmartReadView):
+    class Read(SpaMixin, OrgObjPermsMixin, SmartReadView):
         """
         Detail view for a single channel log
         """
 
         fields = ("description", "created_on")
-
-        def build_content_menu(self, menu):
-            obj = self.get_object()
-            if not self.is_spa():
-                menu.add_link(_("Channel Log"), reverse("channels.channellog_list", args=[obj.channel.uuid]))
 
         def get_object_org(self):
             return self.get_object().channel.org
@@ -1168,7 +1025,7 @@ class ChannelLogCRUDL(SmartCRUDL):
             context["log"] = self.object.get_display(self.request.user)
             return context
 
-    class Msg(SpaMixin, OrgObjPermsMixin, ContentMenuMixin, SmartListView):
+    class Msg(SpaMixin, OrgObjPermsMixin, SmartListView):
         """
         All channel logs for a message
         """
@@ -1185,10 +1042,6 @@ class ChannelLogCRUDL(SmartCRUDL):
 
         def derive_menu_path(self):
             return f"/settings/channels/{self.msg.channel.uuid}"
-
-        def build_content_menu(self, menu):
-            if not self.is_spa():
-                menu.add_link(_("More Logs"), reverse("channels.channellog_list", args=[self.msg.channel.uuid]))
 
         def get_object_org(self):
             return self.msg.org

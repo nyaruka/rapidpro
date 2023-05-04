@@ -45,7 +45,6 @@ from temba.schedules.models import Schedule
 from temba.templates.models import TemplateTranslation
 from temba.tests import CRUDLTestMixin, ESMockWithScroll, MockResponse, TembaTest, matchers, mock_mailroom
 from temba.tests.s3 import MockS3Client, jsonlgz_encode
-from temba.tests.twilio import MockRequestValidator, MockTwilioClient
 from temba.tickets.models import ExportTicketsTask, Ticketer
 from temba.tickets.types.mailgun import MailgunType
 from temba.triggers.models import Trigger
@@ -426,12 +425,13 @@ class UserTest(TembaTest):
         enable_url = reverse("orgs.user_two_factor_enable")
         tokens_url = reverse("orgs.user_two_factor_tokens")
         disable_url = reverse("orgs.user_two_factor_disable")
+        menu_url = reverse("orgs.org_menu") + "settings/"
 
-        self.login(self.admin, update_last_auth_on=False)
+        self.login(self.admin, update_last_auth_on=True)
 
-        # org home page tells us 2FA is disabled, links to page to enable it
-        response = self.client.get(reverse("orgs.org_home"))
-        self.assertContains(response, "Two-factor authentication is <b>disabled</b>")
+        # settings menu gives us option to enable
+        response = self.client.get(menu_url)
+        self.assertContains(response, "Enable 2FA")
         self.assertContains(response, enable_url)
 
         # view form to enable 2FA
@@ -452,11 +452,14 @@ class UserTest(TembaTest):
         with patch("pyotp.TOTP.verify", return_value=True):
             response = self.client.post(enable_url, {"otp": "123456", "password": "Qwerty123"})
         self.assertRedirect(response, tokens_url)
+
+        del self.admin.settings  # clear cached_property
         self.assertTrue(self.admin.settings.two_factor_enabled)
 
-        # org home page now tells us 2FA is enabled, links to page manage tokens
-        response = self.client.get(reverse("orgs.org_home"))
-        self.assertContains(response, "Two-factor authentication is <b>enabled</b>")
+        # settings menu now has a Security option which links to tokens page
+        response = self.client.get(menu_url)
+        self.assertContains(response, "Security")
+        self.assertContains(response, tokens_url)
 
         # view backup tokens page
         response = self.client.get(tokens_url)
@@ -484,7 +487,7 @@ class UserTest(TembaTest):
 
         # submit with valid password
         response = self.client.post(disable_url, {"password": "Qwerty123"})
-        self.assertRedirect(response, reverse("orgs.org_home"))
+        self.assertRedirect(response, reverse("orgs.org_workspace"))
 
         del self.admin.settings  # clear cached_property
         self.assertFalse(self.admin.settings.two_factor_enabled)
@@ -517,13 +520,14 @@ class UserTest(TembaTest):
 
     def test_two_factor_confirm_access(self):
         tokens_url = reverse("orgs.user_two_factor_tokens")
+        menu_url = reverse("orgs.org_menu") + "settings/"
 
         self.admin.enable_2fa()
         self.login(self.admin, update_last_auth_on=False)
 
-        # org home page tells us 2FA is enabled, links to page manage tokens
-        response = self.client.get(reverse("orgs.org_home"))
-        self.assertContains(response, "Two-factor authentication is <b>enabled</b>")
+        # settings menu tells us 2FA is enabled, links to page manage tokens
+        response = self.client.get(menu_url)
+        self.assertContains(response, "Security")
         self.assertContains(response, tokens_url)
 
         # but navigating to tokens page redirects to confirm auth
@@ -835,7 +839,7 @@ class OrgTest(TembaTest):
     def test_country_view(self):
         self.setUpLocations()
 
-        home_url = reverse("orgs.org_home")
+        settings_url = reverse("orgs.org_workspace")
         country_url = reverse("orgs.org_country")
 
         rwanda = AdminBoundary.objects.get(name="Rwanda")
@@ -856,12 +860,12 @@ class OrgTest(TembaTest):
         self.assertEqual("Rwanda", str(self.org.country))
         self.assertEqual("RW", self.org.default_country_code)
 
-        response = self.client.get(home_url)
+        response = self.client.get(settings_url)
         self.assertContains(response, "Rwanda")
 
         # if location support is disabled in the settings, don't display country formax
         with override_settings(FEATURES={}):
-            response = self.client.get(home_url)
+            response = self.client.get(settings_url)
             self.assertNotContains(response, "Rwanda")
 
     def test_default_country(self):
@@ -1103,8 +1107,8 @@ class OrgTest(TembaTest):
 
     def test_refresh_tokens(self):
         self.login(self.admin)
-        url = reverse("orgs.org_home")
-        response = self.client.get(url)
+        settings_url = reverse("orgs.org_workspace")
+        response = self.client.get(settings_url)
 
         # admin should have a token
         token = APIToken.objects.get(user=self.admin)
@@ -1116,7 +1120,7 @@ class OrgTest(TembaTest):
         self.client.post(reverse("api.apitoken_refresh"))
 
         # visit our account page again
-        response = self.client.get(url)
+        response = self.client.get(settings_url)
 
         # old token no longer there
         self.assertNotContains(response, token.key)
@@ -1142,14 +1146,14 @@ class OrgTest(TembaTest):
 
         # but can see it as an editor
         self.login(self.editor)
-        response = self.client.get(url)
+        response = self.client.get(settings_url)
         token = APIToken.objects.get(user=self.editor)
         self.assertContains(response, token.key)
 
     @override_settings(SEND_EMAILS=True)
     def test_manage_accounts(self):
         url = reverse("orgs.org_manage_accounts")
-        home_url = reverse("orgs.org_home")
+        settings_url = reverse("orgs.org_workspace")
 
         # can't access as editor
         self.login(self.editor)
@@ -1159,7 +1163,7 @@ class OrgTest(TembaTest):
         # can't access as admin either because we don't have that feature enabled
         self.login(self.admin)
         response = self.client.get(url)
-        self.assertRedirect(response, home_url)
+        self.assertRedirect(response, settings_url)
 
         self.org.features = [Org.FEATURE_USERS]
         self.org.save(update_fields=("features",))
@@ -1733,129 +1737,6 @@ class OrgTest(TembaTest):
         # and that we have the surveyor role
         self.assertEqual(OrgRole.SURVEYOR, self.org.get_user_role(User.objects.get(username="beastmode@seahawks.com")))
 
-    @patch("temba.orgs.views.Client", MockTwilioClient)
-    @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
-    def test_twilio_connect(self):
-        with patch("temba.tests.twilio.MockTwilioClient.MockAccounts.get") as mock_get:
-            mock_get.return_value = MockTwilioClient.MockAccount("Full")
-
-            connect_url = reverse("orgs.org_twilio_connect")
-
-            self.login(self.admin)
-
-            response = self.client.get(connect_url)
-            self.assertEqual(200, response.status_code)
-            self.assertEqual(list(response.context["form"].fields.keys()), ["account_sid", "account_token", "loc"])
-
-            # try posting without an account token
-            post_data = {"account_sid": "AccountSid"}
-            response = self.client.post(connect_url, post_data)
-            self.assertFormError(response, "form", "account_token", "This field is required.")
-
-            # now add the account token and try again
-            post_data["account_token"] = "AccountToken"
-
-            # but with an unexpected exception
-            with patch("temba.tests.twilio.MockTwilioClient.__init__") as mock:
-                mock.side_effect = Exception("Unexpected")
-                response = self.client.post(connect_url, post_data)
-                self.assertFormError(
-                    response,
-                    "form",
-                    None,
-                    "The Twilio account SID and Token seem invalid. " "Please check them again and retry.",
-                )
-
-            self.client.post(connect_url, post_data)
-
-            self.org.refresh_from_db()
-            self.assertEqual(self.org.config["ACCOUNT_SID"], "AccountSid")
-            self.assertEqual(self.org.config["ACCOUNT_TOKEN"], "AccountToken")
-
-            # when the user submit the secondary token, we use it to get the primary one from the rest API
-            with patch("temba.tests.twilio.MockTwilioClient.MockAccounts.get") as mock_get_primary:
-                with patch("twilio.rest.api.v2010.account.AccountContext.fetch") as mock_account_fetch:
-                    mock_get_primary.return_value = MockTwilioClient.MockAccount("Full", "PrimaryAccountToken")
-                    mock_account_fetch.return_value = MockTwilioClient.MockAccount("Full", "PrimaryAccountToken")
-
-                    response = self.client.post(connect_url, post_data)
-                    self.assertEqual(response.status_code, 302)
-
-                    response = self.client.post(connect_url, post_data, follow=True)
-                    self.assertEqual(response.request["PATH_INFO"], reverse("channels.types.twilio.claim"))
-
-                    self.org.refresh_from_db()
-                    self.assertEqual(self.org.config["ACCOUNT_SID"], "AccountSid")
-                    self.assertEqual(self.org.config["ACCOUNT_TOKEN"], "PrimaryAccountToken")
-
-                    twilio_account_url = reverse("orgs.org_twilio_account")
-                    response = self.client.get(twilio_account_url)
-                    self.assertEqual("AccountSid", response.context["account_sid"])
-
-                    self.org.refresh_from_db()
-                    config = self.org.config
-                    self.assertEqual("AccountSid", config["ACCOUNT_SID"])
-                    self.assertEqual("PrimaryAccountToken", config["ACCOUNT_TOKEN"])
-
-                    # post without a sid or token, should get a form validation error
-                    response = self.client.post(twilio_account_url, dict(disconnect="false"), follow=True)
-                    self.assertEqual(
-                        '[{"message": "You must enter your Twilio Account SID", "code": ""}]',
-                        response.context["form"].errors["__all__"].as_json(),
-                    )
-
-                    # all our twilio creds should remain the same
-                    self.org.refresh_from_db()
-                    config = self.org.config
-                    self.assertEqual(config["ACCOUNT_SID"], "AccountSid")
-                    self.assertEqual(config["ACCOUNT_TOKEN"], "PrimaryAccountToken")
-
-                    # now try with all required fields, and a bonus field we shouldn't change
-                    self.client.post(
-                        twilio_account_url,
-                        dict(
-                            account_sid="AccountSid",
-                            account_token="SecondaryToken",
-                            disconnect="false",
-                            name="DO NOT CHANGE ME",
-                        ),
-                        follow=True,
-                    )
-                    # name shouldn't change
-                    self.org.refresh_from_db()
-                    self.assertEqual(self.org.name, "Nyaruka")
-
-                    # now disconnect our twilio connection
-                    self.assertTrue(self.org.is_connected_to_twilio())
-                    self.client.post(twilio_account_url, dict(disconnect="true", follow=True))
-
-                    self.org.refresh_from_db()
-                    self.assertFalse(self.org.is_connected_to_twilio())
-
-                    response = self.client.post(
-                        f'{reverse("orgs.org_twilio_connect")}?claim_type=twilio', post_data, follow=True
-                    )
-                    self.assertEqual(response.request["PATH_INFO"], reverse("channels.types.twilio.claim"))
-
-                    response = self.client.post(
-                        f'{reverse("orgs.org_twilio_connect")}?claim_type=twilio_messaging_service',
-                        post_data,
-                        follow=True,
-                    )
-                    self.assertEqual(
-                        response.request["PATH_INFO"], reverse("channels.types.twilio_messaging_service.claim")
-                    )
-
-                    response = self.client.post(
-                        f'{reverse("orgs.org_twilio_connect")}?claim_type=twilio_whatsapp', post_data, follow=True
-                    )
-                    self.assertEqual(response.request["PATH_INFO"], reverse("channels.types.twilio_whatsapp.claim"))
-
-                    response = self.client.post(
-                        f'{reverse("orgs.org_twilio_connect")}?claim_type=unknown', post_data, follow=True
-                    )
-                    self.assertEqual(response.request["PATH_INFO"], reverse("channels.channel_claim"))
-
     def test_has_airtime_transfers(self):
         AirtimeTransfer.objects.filter(org=self.org).delete()
         self.assertFalse(self.org.has_airtime_transfers())
@@ -1875,15 +1756,15 @@ class OrgTest(TembaTest):
     def test_prometheus(self):
         # visit as viewer, no prometheus section
         self.login(self.user)
-        org_home_url = reverse("orgs.org_home")
-        response = self.client.get(org_home_url)
+        settings_url = reverse("orgs.org_workspace")
+        response = self.client.get(settings_url)
 
         self.assertNotContains(response, "Prometheus")
 
         # admin can see it though
         self.login(self.admin)
 
-        response = self.client.get(org_home_url)
+        response = self.client.get(settings_url)
         self.assertContains(response, "Prometheus")
         self.assertContains(response, "Enable Prometheus")
 
@@ -1901,7 +1782,7 @@ class OrgTest(TembaTest):
         self.org.add_user(self.other_admin, OrgRole.ADMINISTRATOR)
         self.login(self.other_admin)
 
-        response = self.client.get(org_home_url)
+        response = self.client.get(settings_url)
         self.assertContains(response, "Prometheus")
         self.assertContains(response, "Disable Prometheus")
 
@@ -1911,7 +1792,6 @@ class OrgTest(TembaTest):
         self.assertContains(response, "Enable Prometheus")
 
     def test_resthooks(self):
-        home_url = reverse("orgs.org_home")
         resthook_url = reverse("orgs.org_resthooks")
 
         # no hitting this page without auth
@@ -1925,9 +1805,6 @@ class OrgTest(TembaTest):
 
         # shouldn't have any resthooks listed yet
         self.assertFalse(response.context["current_resthooks"])
-
-        response = self.client.get(home_url)
-        self.assertContains(response, "You have <b>no flow events</b> configured.")
 
         # try to create one with name that's too long
         response = self.client.post(resthook_url, {"new_slug": "x" * 100})
@@ -1949,10 +1826,6 @@ class OrgTest(TembaTest):
             [{"field": f"resthook_{mother_reg.id}", "resthook": mother_reg}],
             list(response.context["current_resthooks"]),
         )
-
-        # and summarized on org home page
-        response = self.client.get(home_url)
-        self.assertContains(response, "You have <b>1 flow event</b> configured.")
 
         # let's try to create a repeat, should fail due to duplicate slug
         response = self.client.post(resthook_url, {"new_slug": "Mother-Registration"})
@@ -1978,11 +1851,11 @@ class OrgTest(TembaTest):
     def test_smtp_server(self):
         self.login(self.admin)
 
-        home_url = reverse("orgs.org_home")
+        settings_url = reverse("orgs.org_workspace")
         config_url = reverse("orgs.org_smtp_server")
 
         # orgs without SMTP settings see default from address
-        response = self.client.get(home_url)
+        response = self.client.get(settings_url)
         self.assertContains(response, "Emails sent from flows will be sent from <b>no-reply@temba.io</b>.")
         self.assertEqual("no-reply@temba.io", response.context["from_email_default"])
         self.assertEqual(None, response.context["from_email_custom"])
@@ -2865,41 +2738,6 @@ class AnonOrgTest(TembaTest):
 
 
 class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
-    def test_home(self):
-        home_url = reverse("orgs.org_home")
-
-        self.login(self.user)
-
-        with self.assertNumQueries(12):
-            response = self.client.get(home_url)
-
-        # not so many options for viewers
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(2, len(response.context["formax"].sections))
-
-        self.login(self.admin)
-
-        with self.assertNumQueries(48):
-            response = self.client.get(home_url)
-
-        # more options for admins
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(14, len(response.context["formax"].sections))
-
-        # add the users and child workspaces features
-        self.org.features = [Org.FEATURE_USERS, Org.FEATURE_CHILD_ORGS]
-        self.org.save(update_fields=("features",))
-
-        response = self.client.get(home_url)
-        self.assertEqual(15, len(response.context["formax"].sections))  # adds Manage Users
-
-        # child workspaces don't see plan formax
-        child = self.org.create_new(self.admin, "Child", timezone.utc, as_child=True)
-        self.login(self.admin, choose_org=child)
-
-        response = self.client.get(home_url)
-        self.assertEqual(12, len(response.context["formax"].sections))
-
     def test_manage_sub_orgs(self):
         # give our org the multi users feature
         self.org.features = [Org.FEATURE_USERS, Org.FEATURE_CHILD_ORGS]
@@ -3025,16 +2863,10 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         with self.assertNumQueries(21):
-            response = self.client.get(reverse("orgs.org_workspace"))
+            response = self.client.get(workspace_url)
 
         # should have an extra menu option for our child (and section header)
         self.assertMenu(f"{reverse('orgs.org_menu')}settings/", 8)
-
-        # going to home in the new ui should route to manage
-        self.login(self.admin)
-        self.new_ui()
-        response = self.client.get(reverse("orgs.org_home"))
-        self.assertRedirect(response, workspace_url)
 
     def test_org_grant(self):
         grant_url = reverse("orgs.org_grant")
@@ -3381,7 +3213,6 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, reverse("flows.flow_list"))
         self.assertContains(response, reverse("contacts.contact_list"))
         self.assertContains(response, reverse("channels.channel_list"))
-        self.assertContains(response, reverse("orgs.org_home"))
 
         # can't signup again with same email
         response = self.client.post(
@@ -3408,12 +3239,12 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRedirect(response, reverse("users.user_login"))
 
         # try going to the org home page, no dice
-        response = self.client.get(reverse("orgs.org_home"))
+        response = self.client.get(reverse("orgs.org_workspace"))
         self.assertRedirect(response, reverse("users.user_login"))
 
         # log in as the user
         self.client.login(username="myal12345678901234567890@relieves.org", password="HelloWorld1")
-        response = self.client.get(reverse("orgs.org_home"))
+        response = self.client.get(reverse("orgs.org_workspace"))
 
         self.assertEqual(200, response.status_code)
 
@@ -3461,28 +3292,27 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertTrue(user.check_password("Password123"))
 
     def test_create_new(self):
-        home_url = reverse("orgs.org_home")
+        children_url = reverse("orgs.org_sub_orgs")
         create_url = reverse("orgs.org_create")
 
         self.login(self.admin)
 
         # by default orgs don't have this feature
-        response = self.client.get(home_url)
-
-        self.assertNotContains(response, ">New Workspace</a>")
+        response = self.client.get(children_url)
+        self.assertContentMenu(children_url, self.admin, [])
 
         # trying to access the modal directly should redirect
         response = self.client.get(create_url)
-        self.assertRedirect(response, "/org/home/")
+        self.assertRedirect(response, "/org/workspace/")
 
         self.org.features = [Org.FEATURE_NEW_ORGS]
         self.org.save(update_fields=("features",))
 
-        response = self.client.get(home_url)
-        self.assertContains(response, ">New Workspace</a>")
+        response = self.client.get(children_url)
+        self.assertContentMenu(children_url, self.admin, ["New Workspace"])
 
         # give org2 the same feature
-        self.org2.features = [Org.FEATURE_CHILD_ORGS]
+        self.org2.features = [Org.FEATURE_NEW_ORGS]
         self.org2.save(update_fields=("features",))
 
         # since we can only create new orgs, we don't show type as an option
@@ -3511,25 +3341,24 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(str(new_org.id), response.headers["X-Temba-Org"])
 
     def test_create_child(self):
-        home_url = reverse("orgs.org_home")
+        children_url = reverse("orgs.org_sub_orgs")
         create_url = reverse("orgs.org_create")
 
         self.login(self.admin)
 
         # by default orgs don't have the new_orgs or child_orgs feature
-        response = self.client.get(home_url)
-
-        self.assertNotContains(response, ">New Workspace</a>")
+        response = self.client.get(children_url)
+        self.assertContentMenu(children_url, self.admin, [])
 
         # trying to access the modal directly should redirect
         response = self.client.get(create_url)
-        self.assertRedirect(response, "/org/home/")
+        self.assertRedirect(response, "/org/workspace/")
 
         self.org.features = [Org.FEATURE_CHILD_ORGS]
         self.org.save(update_fields=("features",))
 
-        response = self.client.get(home_url)
-        self.assertContains(response, ">New Workspace</a>")
+        response = self.client.get(children_url)
+        self.assertContentMenu(children_url, self.admin, ["New Workspace"])
 
         # give org2 the same feature
         self.org2.features = [Org.FEATURE_CHILD_ORGS]
@@ -3606,12 +3435,12 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_child_management(self):
         sub_orgs_url = reverse("orgs.org_sub_orgs")
-        home_url = reverse("orgs.org_home")
+        settings_url = reverse("orgs.org_workspace")
 
         self.login(self.admin)
 
         # we don't see button if we don't have child orgs
-        response = self.client.get(home_url)
+        response = self.client.get(settings_url)
         self.assertNotContains(response, "Manage Workspaces")
 
         # enable child orgs and create some child orgs
@@ -3622,7 +3451,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # now we see the button and can view that page
         self.login(self.admin, choose_org=self.org)
-        response = self.client.get(home_url)
+        response = self.client.get(settings_url)
         self.assertContains(response, "Manage Workspaces")
 
         response = self.assertListFetch(
@@ -4080,12 +3909,12 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(self.customer_support, contact.created_by)
 
     def test_languages(self):
-        home_url = reverse("orgs.org_home")
+        settings_url = reverse("orgs.org_workspace")
         langs_url = reverse("orgs.org_languages")
 
         self.org.set_flow_languages(self.admin, ["eng"])
 
-        response = self.requestView(home_url, self.admin)
+        response = self.requestView(settings_url, self.admin)
         self.assertEqual("English", response.context["primary_lang"])
         self.assertEqual([], response.context["other_langs"])
 
@@ -4116,7 +3945,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(["fra"], self.org.flow_languages)
 
         # summary now includes this
-        response = self.requestView(home_url, self.admin)
+        response = self.requestView(settings_url, self.admin)
         self.assertContains(response, "The default flow language is <b>French</b>.")
         self.assertNotContains(response, "Translations are provided in")
 
@@ -4132,7 +3961,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.org.refresh_from_db()
         self.assertEqual(["fra", "hat", "hau"], self.org.flow_languages)
 
-        response = self.requestView(home_url, self.admin)
+        response = self.requestView(settings_url, self.admin)
         self.assertContains(response, "The default flow language is <b>French</b>.")
         self.assertContains(response, "Translations are provided in")
         self.assertContains(response, "<b>Hausa</b>")
