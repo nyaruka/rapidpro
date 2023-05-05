@@ -8,7 +8,6 @@ from django.conf import settings
 from django.utils import timezone, translation
 
 from temba.orgs.models import Org
-from temba.utils import brands
 
 logger = logging.getLogger(__name__)
 
@@ -34,31 +33,11 @@ class BrandingMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        """
-        Set branding for this request based on the current host
-        """
-
-        host = "localhost"
-        try:
-            host = request.get_host()
-        except Exception as e:  # pragma: needs cover
-            logger.error(f"Could not get host: {host}, {str(e)}", exc_info=True)
-
-        request.branding = self.get_branding_for_host(host)
-
+        request.branding = self.get_branding(request)
         return self.get_response(request)
 
-    @classmethod
-    def get_branding_for_host(cls, host: str) -> dict:
-        # ignore subdomains
-        if len(host.split(".")) > 2:  # pragma: needs cover
-            host = ".".join(host.split(".")[-2:])
-
-        # prune off the port
-        if ":" in host:
-            host = host[0 : host.rindex(":")]
-
-        return brands.get_by_host(host)
+    def get_branding(self, request):
+        return settings.BRANDING
 
 
 class OrgMiddleware:

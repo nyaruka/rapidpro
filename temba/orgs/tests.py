@@ -615,7 +615,7 @@ class UserTest(TembaTest):
             org = Org.objects.create(
                 name=f"Org {i}",
                 timezone=pytz.timezone("Africa/Kigali"),
-                brand=settings.DEFAULT_BRAND,
+                brand=settings.BRANDING["slug"],
                 created_by=self.user,
                 modified_by=self.user,
             )
@@ -643,7 +643,7 @@ class UserTest(TembaTest):
         branded_org.add_user(self.admin, OrgRole.ADMINISTRATOR)
 
         # now release our user on our primary brand
-        self.admin.release(self.customer_support, brand=settings.DEFAULT_BRAND)
+        self.admin.release(self.customer_support, brand=settings.BRAND)
 
         # our admin should still be good
         self.admin.refresh_from_db()
@@ -3525,7 +3525,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         org3 = Org.objects.create(
             name="Deactivated",
             timezone=pytz.UTC,
-            brand=settings.DEFAULT_BRAND,
+            brand=settings.BRANDING["slug"],
             created_by=self.user,
             modified_by=self.user,
             is_active=False,
@@ -3534,7 +3534,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # and another org that none of our users belong to
         org4 = Org.objects.create(
-            name="Other", timezone=pytz.UTC, brand=settings.DEFAULT_BRAND, created_by=self.user, modified_by=self.user
+            name="Other", timezone=pytz.UTC, brand=settings.BRAND["slug"], created_by=self.user, modified_by=self.user
         )
 
         self.assertLoginRedirect(self.client.get(choose_url))

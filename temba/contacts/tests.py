@@ -5263,7 +5263,7 @@ class ESIntegrationTest(TembaNonAtomicTest):
             name="Temba",
             timezone=pytz.timezone("Africa/Kigali"),
             country=self.country,
-            brand=settings.DEFAULT_BRAND,
+            brand=settings.BRANDING["slug"],
             flow_languages=["eng"],
             created_by=self.admin,
             modified_by=self.admin,

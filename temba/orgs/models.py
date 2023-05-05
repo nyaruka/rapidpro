@@ -28,7 +28,7 @@ from django.utils.translation import gettext_lazy as _
 from temba import mailroom
 from temba.archives.models import Archive
 from temba.locations.models import AdminBoundary
-from temba.utils import brands, json, languages
+from temba.utils import json, languages
 from temba.utils.dates import datetime_to_str
 from temba.utils.email import send_template_email
 from temba.utils.models import JSONField
@@ -571,7 +571,7 @@ class Org(SmartModel):
 
     @cached_property
     def branding(self):
-        return brands.get_by_slug(self.brand)
+        return settings.BRANDING
 
     def get_brand_domain(self):
         return self.branding["domain"]

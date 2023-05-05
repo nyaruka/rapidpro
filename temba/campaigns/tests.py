@@ -1050,7 +1050,7 @@ class CampaignTest(TembaTest):
         new_org = Org.objects.create(
             name="Temba New",
             timezone=pytz.timezone("Africa/Kigali"),
-            brand=settings.DEFAULT_BRAND,
+            brand=settings.BRANDING["slug"],
             created_by=self.user,
             modified_by=self.user,
         )
@@ -1113,7 +1113,7 @@ class CampaignTest(TembaTest):
         new_org = Org.objects.create(
             name="Temba New",
             timezone=pytz.timezone("Africa/Kigali"),
-            brand=settings.DEFAULT_BRAND,
+            brand=settings.BRANDING["slug"],
             created_by=self.user,
             modified_by=self.user,
         )

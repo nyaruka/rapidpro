@@ -269,29 +269,26 @@ LOGGING = {
 # -----------------------------------------------------------------------------------
 # Branding Configuration
 # -----------------------------------------------------------------------------------
-BRANDS = [
-    {
-        "slug": "rapidpro",
-        "name": "RapidPro",
-        "hosts": ["rapidpro.io"],
-        "org": "UNICEF",
-        "domain": "app.rapidpro.io",
-        "colors": dict(primary="#0c6596"),
-        "styles": ["brands/rapidpro/font/style.css"],
-        "email": "join@rapidpro.io",
-        "support_email": "support@rapidpro.io",
-        "link": "https://app.rapidpro.io",
-        "docs_link": "http://docs.rapidpro.io",
-        "ticket_domain": "tickets.rapidpro.io",
-        "favico": "brands/rapidpro/rapidpro.ico",
-        "splash": "brands/rapidpro/splash.jpg",
-        "logo": "images/logo-dark.svg",
-        "allow_signups": True,
-        "title": _("Visually build nationally scalable mobile applications"),
-        "primary_color": "#0c6596",
-    }
-]
-DEFAULT_BRAND = os.environ.get("DEFAULT_BRAND", "rapidpro")
+BRANDING = {
+    "primary_color": "#0c6596",
+    "slug": "rapidpro",
+    "name": "RapidPro",
+    "hosts": ["rapidpro.io"],
+    "org": "UNICEF",
+    "domain": "app.rapidpro.io",
+    "colors": dict(primary="#0c6596"),
+    "styles": ["brands/rapidpro/font/style.css"],
+    "email": "join@rapidpro.io",
+    "support_email": "support@rapidpro.io",
+    "link": "https://app.rapidpro.io",
+    "docs_link": "http://docs.rapidpro.io",
+    "ticket_domain": "tickets.rapidpro.io",
+    "favico": "brands/rapidpro/rapidpro.ico",
+    "splash": "brands/rapidpro/splash.jpg",
+    "logo": "images/logo-dark.svg",
+    "allow_signups": True,
+    "title": _("Visually build nationally scalable mobile applications"),
+}
 
 FEATURES = {"locations", "surveyor", "ticketers"}
 
@@ -901,13 +898,6 @@ else:
 
 COMPRESS_ENABLED = False
 COMPRESS_OFFLINE = False
-
-# build up our offline compression context based on available brands
-COMPRESS_OFFLINE_CONTEXT = []
-for brand in BRANDS:
-    context = dict(STATIC_URL=STATIC_URL, base_template="frame.html", debug=False, testing=False)
-    context["brand"] = dict(slug=brand["slug"], styles=brand["styles"])
-    COMPRESS_OFFLINE_CONTEXT.append(context)
 
 # -----------------------------------------------------------------------------------
 # RapidPro configuration settings

@@ -22,7 +22,15 @@ from temba.ivr.models import Call
 from temba.msgs.models import Msg
 from temba.orgs.models import Org
 from temba.request_logs.models import HTTPLog
-from temba.tests import AnonymousOrg, CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom, override_brand
+from temba.tests import (
+    AnonymousOrg,
+    CRUDLTestMixin,
+    MockResponse,
+    TembaTest,
+    matchers,
+    mock_mailroom,
+    override_branding,
+)
 from temba.tests.crudl import StaffRedirect
 from temba.triggers.models import Trigger
 from temba.utils import json
@@ -1369,7 +1377,7 @@ class ChannelClaimTest(TembaTest):
         self.channel.last_seen = timezone.now() - timedelta(minutes=40)
         self.channel.save()
 
-        with override_brand("rapidpro", from_email="support@mybrand.com"):
+        with override_branding(from_email="support@mybrand.com"):
             check_channel_alerts()
 
             # should have created one alert
