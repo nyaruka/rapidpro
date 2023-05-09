@@ -409,6 +409,7 @@ class ContactField(TembaModel, DependencyMixin):
         "last_seen_on",
         "name",
         "status",
+        "ticket",
         "urn",
         "uuid",
         # @contact.* properties in expressions
@@ -1008,7 +1009,8 @@ class Contact(LegacyUUIDMixin, SmartModel):
             raise e
 
         def modified(contact):
-            return len(response.get(contact.id, {}).get("events", [])) > 0
+            c = response.get("modified", {}).get(contact.id, {}) or response.get(contact.id, {})
+            return len(c.get("events", [])) > 0
 
         return [c.id for c in contacts if modified(c)]
 
@@ -1639,7 +1641,7 @@ class ContactGroup(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
     @property
     def icon(self) -> str:
-        return "icon.group_smart" if self.group_type == self.TYPE_SMART else "icon.group"
+        return "group_smart" if self.group_type == self.TYPE_SMART else "group"
 
     def get_attrs(self):
         return {"icon": self.icon}

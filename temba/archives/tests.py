@@ -241,16 +241,11 @@ class ArchiveCRUDLTest(TembaTest, CRUDLTestMixin):
         msgs_url = reverse("archives.archive_message")
 
         response = self.assertListFetch(runs_url, allow_viewers=False, allow_editors=True, context_objects=[d3])
-        self.assertContains(response, "jsonl.gz")
+        self.assertContains(response, f"/archive/read/{d3.id}/")
 
-        self.assertContentMenu(runs_url, self.admin, legacy_items=["Message Archives"], spa_items=[])
-
-        response = self.assertListFetch(
-            reverse("archives.archive_message"), allow_viewers=False, allow_editors=True, context_objects=[d2, m1]
-        )
-        self.assertContains(response, "jsonl.gz")
-
-        self.assertContentMenu(msgs_url, self.admin, legacy_items=["Run Archives"], spa_items=[])
+        response = self.assertListFetch(msgs_url, allow_viewers=False, allow_editors=True, context_objects=[d2, m1])
+        self.assertContains(response, f"/archive/read/{d2.id}/")
+        self.assertContains(response, f"/archive/read/{m1.id}/")
 
     def test_read(self):
         archive = self.create_archive(Archive.TYPE_MSG, "D", date(2020, 7, 31), [{"id": 1}, {"id": 2}])
@@ -265,24 +260,6 @@ class ArchiveCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         self.assertIn(download_url, response.get("Location"))
-
-    def test_formax(self):
-        self.login(self.admin)
-        url = reverse("orgs.org_home")
-
-        response = self.client.get(url)
-        self.assertContains(response, "archives yet")
-        self.assertContains(response, reverse("archives.archive_message"))
-
-        d1 = self.create_archive(Archive.TYPE_MSG, "D", date(2020, 7, 31), [{"id": 1}, {"id": 2}, {"id": 3}])
-        self.create_archive(
-            Archive.TYPE_MSG, "M", date(2020, 7, 1), [{"id": 1}, {"id": 2}, {"id": 3}], rollup_of=(d1,)
-        )
-        self.create_archive(Archive.TYPE_MSG, "D", date(2020, 8, 1), [{"id": 4}])
-
-        response = self.client.get(url)
-        self.assertContains(response, "4 records")
-        self.assertContains(response, reverse("archives.archive_message"))
 
 
 class JSONLGZTest(TembaTest):

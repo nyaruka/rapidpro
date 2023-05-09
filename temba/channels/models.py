@@ -57,7 +57,6 @@ class ChannelType(metaclass=ABCMeta):
     courier_url = None
 
     name = None
-    icon = "icon-channel-external"
     schemes = None
     show_config_page = True
 
@@ -131,7 +130,7 @@ class ChannelType(metaclass=ABCMeta):
         """
         claim_view_kwargs = self.claim_view_kwargs if self.claim_view_kwargs else {}
         claim_view_kwargs["channel_type"] = self
-        return re_path(r"^claim$", self.claim_view.as_view(**claim_view_kwargs), name="claim")
+        return re_path(r"^claim/$", self.claim_view.as_view(**claim_view_kwargs), name="claim")
 
     def get_update_form(self):
         if self.update_form is None:
@@ -223,6 +222,9 @@ class ChannelType(metaclass=ABCMeta):
         Resolves an error code from a channel log into a docs URL for that error.
         """
 
+    def get_icon(self):
+        return f"channel_{self.code.lower()}"
+
     def __str__(self):
         return self.name
 
@@ -254,6 +256,10 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     CONFIG_PLIVO_AUTH_ID = "PLIVO_AUTH_ID"
     CONFIG_PLIVO_AUTH_TOKEN = "PLIVO_AUTH_TOKEN"
     CONFIG_PLIVO_APP_ID = "PLIVO_APP_ID"
+
+    CONFIG_TWILIO_ACCOUNT_SID = "TWILIO_ACCOUNT_SID"
+    CONFIG_TWILIO_AUTH_TOKEN = "TWILIO_AUTH_TOKEN"
+
     CONFIG_AUTH_TOKEN = "auth_token"
     CONFIG_SECRET = "secret"
     CONFIG_CHANNEL_ID = "channel_id"
@@ -512,49 +518,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         )
 
     @classmethod
-    def add_vonage_bulk_sender(cls, org, user, channel):
-        # vonage ships numbers around as E164 without the leading +
-        parsed = phonenumbers.parse(channel.address, None)
-        vonage_phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164).strip("+")
-
-        config = {
-            Channel.CONFIG_VONAGE_API_KEY: org.config[Org.CONFIG_VONAGE_KEY],
-            Channel.CONFIG_VONAGE_API_SECRET: org.config[Org.CONFIG_VONAGE_SECRET],
-            Channel.CONFIG_CALLBACK_DOMAIN: org.get_brand_domain(),
-        }
-
-        return cls.create(
-            org,
-            user,
-            channel.country,
-            "NX",
-            name="Vonage Sender",
-            config=config,
-            tps=1,
-            address=channel.address,
-            role=Channel.ROLE_SEND,
-            parent=channel,
-            bod=vonage_phone_number,
-        )
-
-    @classmethod
-    def add_call_channel(cls, org, user, channel):
-        return Channel.create(
-            org,
-            user,
-            channel.country,
-            "T",
-            name="Twilio Caller",
-            address=channel.address,
-            role=Channel.ROLE_CALL,
-            parent=channel,
-            config={
-                "account_sid": org.config[Org.CONFIG_TWILIO_SID],
-                "auth_token": org.config[Org.CONFIG_TWILIO_TOKEN],
-            },
-        )
-
-    @classmethod
     def generate_secret(cls, length=64):
         """
         Generates a secret value used for command signing
@@ -584,7 +547,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         Get the channel that should perform a given action. Could just be us
         (the same channel), but may be a delegate channel working on our behalf.
         """
-        if self.role == role:
+        if self.role == role:  # pragma: no cover
             delegate = self
         else:
             # if we have a delegate channel for this role, use that

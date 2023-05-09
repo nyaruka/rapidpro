@@ -4,23 +4,6 @@
 -block page-top
 -block header
 
-
-  :javascript
-    function leaveNewInterface() {
-      var confirm = document.querySelector("#legacy-ui");
-      confirm.open = true;
-    }
-
-    function handleUIConfirm(event) {
-      var button = event.detail.button;
-      if (button.primary) {
-        document.cookie = "nav=1; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/;";
-        document.location.reload();
-      }
-    }
-
--block interface-option
-
 -block extra-style
   {{block.super}}
 
@@ -269,7 +252,7 @@
     var static_url = "{{STATIC_URL}}";
 
     var tembaVersion= "{{temba_version}}";
-    var org = {% if active_org %}{{active_org.id}}{% else %}null{%endif%};
+    var org_id = {% if active_org %}{{active_org.id}}{% else %}null{%endif%};
     var pendingRequests = [];
     function fetchAjax(url, container, options) {
 
@@ -293,7 +276,8 @@
       var controller = new AbortController();
       pendingRequests.push(controller);
       options["signal"] = controller.signal;
-      fetch(url, options).then(function(response) {
+      var toFetch = url;
+      fetch(toFetch, options).then(function(response) {
 
         // remove our controller
         pendingRequests = pendingRequests.filter(
@@ -305,12 +289,12 @@
         // if we have a version mismatch, reload the page
         var version = response.headers.get("x-temba-version");
         if (tembaVersion != version) {
-          document.location.href = url;
+          document.location.href = toFetch;
           return;
         }
 
-        if (org != response.headers.get("x-temba-org")) {
-          document.location.href = url;
+        if (org_id != response.headers.get("x-temba-org")) {
+          document.location.href = toFetch;
           return;
         }
 
@@ -319,8 +303,8 @@
         }
 
         if (response.redirected) {
-          document.location.href = url;
-          return;
+          var url = response.url;
+          window.history.replaceState({url: url}, "", url);
         }
         
         if(response.headers.get("x-temba-content-only") != 1) {
@@ -725,7 +709,7 @@
             %a.posterize.relative(href="{% url 'orgs.org_service' %}" style="text-decoration:none")
               .flex.items-center.text-white.text-lg.hover.rounded(style="opacity:1;padding:0em 0.5em;")
                 .flex-grow
-                %temba-icon(style="color:#fff" name="icon.service")
+                %temba-icon(style="color:#fff" name="service")
                 .ml-2
                   {{user_org.name}}
                 .flex-grow
@@ -779,13 +763,4 @@
               -->
               Copyright © 2012-2023 TextIt. All rights reserved.
   
-  %temba-dialog#legacy-ui(header='Not ready yet?' primaryButtonName='Use the old interface for now' -temba-button-clicked="handleUIConfirm")
-    .p-4
-      .mb-4
-        The new interface has some great new features, so we encourage you to take some time to get comfortable with it. 
-        Soon all accounts will be switched over, so it's better to switch now if you have a moment.
-
-      We understand that you might not be ready to switch in the moment so we'll continue to support the old interface 
-      for a bit. If the new interface isn't working well for you, we'd love to hear about it.
-
   %temba-lightbox

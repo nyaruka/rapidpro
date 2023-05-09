@@ -286,7 +286,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # deep link into a page that doesn't have our ticket
         deep_link = f"{list_url}all/closed/{str(ticket.uuid)}/"
-        self.make_beta(self.admin)
+
         self.login(self.admin)
 
         response = self.client.get(deep_link)
@@ -301,8 +301,6 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(bad_topic_link)
         self.assertEqual(404, response.status_code)
 
-        # fetch with spa flag
-        self.new_ui()
         response = self.client.get(
             list_url,
             content_type="application/json",
@@ -1060,17 +1058,6 @@ class TicketerTest(TembaTest):
 
 
 class TicketerCRUDLTest(TembaTest, CRUDLTestMixin):
-    def test_org_home(self):
-        ticketer = Ticketer.create(self.org, self.user, MailgunType.slug, "Email (bob@acme.com)", {})
-
-        self.login(self.admin)
-        response = self.client.get(reverse("orgs.org_home"))
-
-        self.assertContains(response, "Email (bob@acme.com)")
-        self.assertContains(response, "ticketer/delete/")
-        self.assertContains(response, "HTTP Log")
-        self.assertContains(response, reverse("request_logs.httplog_ticketer", args=[ticketer.uuid]))
-
     def test_connect(self):
         connect_url = reverse("tickets.ticketer_connect")
 
@@ -1105,7 +1092,7 @@ class TicketerCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # submit to delete it
         response = self.assertDeleteSubmit(delete_url, object_deactivated=ticketer, success_status=200)
-        self.assertEqual("/org/home/", response["Temba-Success"])
+        self.assertEqual("/org/workspace/", response["Temba-Success"])
 
         # reactivate
         ticketer.is_active = True

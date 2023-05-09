@@ -44,7 +44,7 @@
         -for channel in delegates
           .lbl.linked(onclick="goto(event, this)" href="{% url 'channels.channel_read' channel.uuid %}")
             .flex.items-center
-              .text-base{class:'{{ channel|channel_icon }}'}
+              %temba-icon(name='{{ channel.type.get_icon }}')
               .name.mx-1
                 -if channel.is_delegate_sender
                   -trans "Bulk sending"
@@ -96,67 +96,6 @@
 -block pre-fields
 
 -block fields
-
--block summary
-
-  -with object.get_sender as sender and object.get_caller as caller
-
-    -if object.is_android
-      .device
-        -if channel.name
-          {{ channel.name }}
-          \-
-        {{ channel.device }}
-        -if channel.os
-          .inline-block
-            (v{{channel.os}})
-        %span.number
-          {{ channel.get_address_display }}
-
-      -if last_sync
-        -if delayed_syncevents
-          <span class='text-error'>
-        -else
-          <span>
-
-        -trans "Last synced"
-        -blocktrans trimmed with last_sync.created_on|timesince as last_sync
-          {{ last_sync }} ago
-        </span>
-      -else
-        -trans "Device has not synced yet"
-
-    -else
-      .device
-        {{ object.get_channel_type_display }} -
-        -if object.name
-          {{ object.name }}
-        -else
-          -trans "Number"
-          &nbsp;
-          {{ object.get_address_display }}
-
-      -trans "Activated"
-      {{ object.created_on }}
-
-    -for channel in object.get_delegate_channels
-      .ml-1(class='{{ channel|channel_icon }}')
-
-      -if channel.is_delegate_sender
-        -trans "Bulk sending"
-
-      -if channel.is_delegate_caller
-        -trans "Voice calls"
-  
-    -if object.is_android
-      -if unsent_msgs_count
-        .text-error
-          {{unsent_msgs_count|intcomma}}
-          {% blocktrans trimmed count unsent_msgs_count=unsent_msgs_count %}
-            unsent message
-          {% plural %}
-            unsent messages
-          {% endblocktrans %}
 
 -block content
   -block charts-zone
@@ -229,7 +168,7 @@
                     {{ channel.get_error_log_count|intcomma }}
                 %td.w-0.text-right
                   .inline-block
-                    %temba-icon(onclick="goto(event, this)" clickable="true" name="icon.log" href='{% url "channels.channellog_list" channel.uuid %}?others=1')
+                    %temba-icon(onclick="goto(event, this)" clickable="true" name="log" href='{% url "channels.channellog_list" channel.uuid %}?others=1')
 
 
       .card.pt-8.flex-shrink-0
@@ -324,9 +263,6 @@
 
 -block extra-script
   {{ block.super }}
-
-  -if start_date and not is_spa
-    <script src="{{ STATIC_URL }}highcharts/highcharts.js"></script>
 
   :javascript
     {% if start_date %}
