@@ -60,7 +60,7 @@ class CampaignCRUDL(SmartCRUDL):
                 self.create_menu_item(
                     menu_id="active",
                     name=_("Active"),
-                    icon="icon.campaign_active",
+                    icon="campaign_active",
                     count=org.campaigns.filter(is_active=True, is_archived=False).count(),
                     href="campaigns.campaign_list",
                 )
@@ -70,7 +70,7 @@ class CampaignCRUDL(SmartCRUDL):
                 self.create_menu_item(
                     menu_id="archived",
                     name=_("Archived"),
-                    icon="icon.campaign_archived",
+                    icon="campaign_archived",
                     count=org.campaigns.filter(is_active=True, is_archived=True).count(),
                     href="campaigns.campaign_archived",
                 )
@@ -175,30 +175,9 @@ class CampaignCRUDL(SmartCRUDL):
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
-            context["org_has_campaigns"] = Campaign.objects.filter(org=self.request.org).count()
-            if not self.is_spa():
-                context["folders"] = self.get_folders()
+            context["org_has_campaigns"] = self.request.org.campaigns.exists()
             context["request_url"] = self.request.path
             return context
-
-        def get_folders(self):
-            org = self.request.org
-            folders = []
-            folders.append(
-                dict(
-                    label="Active",
-                    url=reverse("campaigns.campaign_list"),
-                    count=Campaign.objects.filter(is_active=True, is_archived=False, org=org).count(),
-                )
-            )
-            folders.append(
-                dict(
-                    label="Archived",
-                    url=reverse("campaigns.campaign_archived"),
-                    count=Campaign.objects.filter(is_active=True, is_archived=True, org=org).count(),
-                )
-            )
-            return folders
 
     class List(BaseList):
         fields = ("name", "group")
@@ -215,7 +194,7 @@ class CampaignCRUDL(SmartCRUDL):
             return qs
 
         def build_content_menu(self, menu):
-            if self.is_spa() and self.has_org_perm("campaigns.campaign_create"):
+            if self.has_org_perm("campaigns.campaign_create"):
                 menu.add_modax(
                     _("New Campaign"),
                     "event-update",

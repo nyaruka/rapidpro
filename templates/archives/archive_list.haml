@@ -7,28 +7,10 @@
 -block page-title
   {{ title }}
 
--block summary
-  -if archive_count
-    {% blocktrans trimmed with counter=archive_count|intcomma count num=archive_count  %}
-    You have {{ counter }} archive
-    {% plural %}
-    You have {{ counter }} archives
-    {% endblocktrans %}
-
-    {% blocktrans trimmed with counter=record_count|intcomma count num=record_count %}
-    containing {{ counter }} record.
-    {% plural %}
-    containing {{ counter }} records.
-    {% endblocktrans %}
-  -else
-    -trans "You do not have any message or run archives yet."
-
 -block content
   -if object_list
     %table.archives.list.lined
       %thead
-        %th.name
-          -trans "File"
         %th
           -trans "Records"
         %th
@@ -39,23 +21,19 @@
 
       -for archive in object_list
         %tr.archive-row
-          %td
-            .hover-linked.break-all(onclick="goto(event)" href="{% url 'archives.archive_read' archive.id %}")
-              {{archive.filename}}
           %td.archive-record-count.cell
-            {{archive.record_count|intcomma}}
-          %td.archive-size.cell
-            {{archive.size_display}}
-          %td.archive-period.cell
+            .pl-6
+              {{archive.record_count|intcomma}}
+          %td.archive-size.cell.whitespace-nowrap
+            .pl-32
+              {{archive.size_display}}
+          %td.archive-period.cell.w-full
             -if archive.period == 'D'
               {{archive.start_date|date:"M j, Y"}}
             -else
               {{archive.start_date|date:"F Y"}}
-          %td.text-gray-500
-            -if archive.period == 'D'
-              .icon-docs-2.hover-linked(onclick="goto(event)" href="{% url 'archives.archive_read' archive.id %}")
-            -else
-              .icon-box.hover-linked(onclick="goto(event)" href="{% url 'archives.archive_read' archive.id %}")
+          %td(style="--icon-color:#bbb")
+            %temba-icon(clickable="true" name="download" onclick="downloadFile(event, \"{% url 'archives.archive_read' archive.id %}\")")
   -else
 
     -blocktrans trimmed
@@ -95,12 +73,10 @@
 
     .archive-period {
       text-align: right;
-      width: 130px;
     }
 
     .archive-size {
       text-align: right;
-      width: 130px;
     }
 
     .archive-record-count {

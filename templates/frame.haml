@@ -38,15 +38,6 @@
         }
       }
 
-      function switchToNewInterface() {
-        document.cookie = "nav=2; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/;";
-        if (document.location.pathname == "/") {
-          document.location.href = "{% url 'orgs.org_start' %}";
-        } else {
-          document.location.reload();
-        }
-      }
-
       window.supportEmail = '{{brand.support_email}}';
       function conditionalLoad(local, remote) {
         if (local != null && (window.location.hostname == "localhost" || remote == null)) {
@@ -62,7 +53,6 @@
 
     // ==== JQUERY ====
     <script type="text/javascript" src="{{ STATIC_URL }}jquery/dist/jquery.min.js"></script>
-    // <script type="text/javascript" src="{{ STATIC_URL }}jquery-migrate/dist/jquery-migrate.min.js"></script>
 
     -# this view make it possible to process translations from javascript land
     <script src="{% url 'django.views.i18n.javascript_catalog' %}"></script>
@@ -71,13 +61,6 @@
         var static_url = '{{STATIC_URL}}';
 
       %script{src:"{{ STATIC_URL }}js/libs/jquery.url.js"}
-
-      // expanded nav dropdown
-      %script{src:"{{ STATIC_URL }}bower/jquery-hoverintent/jquery.hoverIntent.js"}
-
-      // npm packages
-      %script{src:"{{ STATIC_URL }}intercooler/dist/intercooler.js"}
-
       %script(src="{{ STATIC_URL }}rest_framework/js/prettify-min.js")
 
       -if not debug and not testing
@@ -246,33 +229,8 @@
       %link{rel:'stylesheet', href:'https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:200,300,400,500'}
 
       -compress css
-        %link{type:'text/css', rel:'stylesheet', href:'{{ STATIC_URL }}bower/bootstrap-css/css/bootstrap.css',  media:'all' }
-
-
-      -compress css
-        %link{type:'text/css', rel:'stylesheet', href:"{{ STATIC_URL }}fonts/icons/style.css", media:'all'}
         %link{type:"text/css", rel:"stylesheet", href:"{{ STATIC_URL }}css/temba-components.css"}
-
-      -compress css
-
-        {% lessblock %}
-          :plain
-            @import "style.less";
-
-            // any brand styling tweaks
-            @import (optional, reference) "../brands/style.less";
-            @import (optional) "../brands/{{brand.slug}}/less/style.less";
-
-        {% endlessblock %}
-
-        // any additional brand styling such as fonts, etc
-        -for style in brand.styles
-          -if 'less' in style
-            %link{type:'text/less', rel:'stylesheet', href:'{{STATIC_URL}}{{style}}', media:'all'}
-          -else
-            %link{type:'text/css', rel:'stylesheet', href:"{{ STATIC_URL }}{{style}}", media:'all'}
-
-      -compress css
+        %link{rel:"stylesheet", href:"{{ STATIC_URL }}less/style.less", type:"text/less"}
         %link{rel:"stylesheet", href:"{{ STATIC_URL }}css/tailwind.css", type:"text/css"}
         %link{rel:"stylesheet", href:"{{ STATIC_URL }}less/refresh.less", type:"text/less"}
 
@@ -306,44 +264,15 @@
   .flex.flex-col.h-full
 
     -block header
-      <!-- Header -->
-      -if user_org
-        .org-header.self-end
-          .pull-right.toggle
-            .icon-menu-2
 
-          .org
-            {{ user_org.name }}
+      #header.flex.items-center
+        .flex-grow
+          %a(href="{% if user.is_authenticated %}{% url 'orgs.org_start' %}{% else %}{% ssl_brand_url 'users.user_check_login' %}{% endif %}" title="{{brand.name}}" class="hover:no-underline")
+            %img#header-logo(src="{{STATIC_URL}}{{brand.logo}}" style="max-height:40px")
 
-          .other-orgs.hide
-            -for org in user_orgs
-              -if org != user_org
-                .org.text-primary
-                  %a.posterize{href:'{% url "orgs.org_choose"%}?organization={{org.pk}}'}
-                    {{ org.name }}
-            -if org_perms.orgs.org_create
-              -if "new_orgs" in user_org.features or "child_orgs" in user_org.features
-                %hr
-                .org.text-primary
-                  <a onclick="handleNewWorkspaceClicked(event)">{% trans "New Workspace" %}</a>
-
-      #header
-        &nbsp;
-
-
-      %a#big-logo.logo.icon-logo{href:"{% if user.is_authenticated %}{% url 'orgs.org_start' %}{% else %}/{% endif %}", title:"{{brand.name}}", class:"hover:no-underline"}
-        .name
-          {{brand.name}}
-
-      -block nav
-        -include 'includes/nav.html'
-
-    -block interface-option
-      -if user.is_authenticated
-        #preview.text-center.px-3.text-sm.py-1(style='background:rgba(0,0,0,.75);z-index:10000;position:fixed;bottom:0px;width:100%;color:#fff')
-          Switch to the
-          %span.linked(onclick="switchToNewInterface()" style="color:#43b1ff")<
-            new interface
+        .menu
+          -block nav
+            -include 'includes/nav.html'
 
     -if messages
       -block messages
@@ -351,7 +280,6 @@
           -for msg in messages
             %div{class:"alert alert-{{ message.tags }}"}
               {{ msg }}
-
 
     -block post-header
     <!-- Content -->
@@ -543,52 +471,11 @@
     :javascript
 
       var params = '{{url_params|safe}}';
-      $(document).ready(function(){
-        if (window.scheduleRefresh) {
-          scheduleRefresh();
-        }
-      });
 
       $(document).ready(function() {
         if (navigator.appVersion.indexOf("Win")!=-1) {
           $("html").addClass("windows");
         }
-
-        $('.org-header > .toggle').on('click', function(evt) {
-          evt.stopPropagation();
-          var header = $('.org-header');
-          if (header.hasClass('expanded')) {
-            header.removeClass('expanded');
-          } else {
-            header.addClass('expanded');
-          }
-        });
-
-        $('.org-header').on('click', function(evt) {
-          url = '{% url "orgs.org_home" %}';
-          evt.stopPropagation();
-          if (evt.ctrlKey || evt.metaKey){
-            window.open(url,'_blank')
-          } else {
-            window.location = url;
-          }
-
-        });
-
-        $('#menu .more').hoverIntent({
-          over:function() {
-            // $('.submenu').hide();
-            $(this).find('.submenu-container').slideDown(250);
-            $(this).parents("#menu").addClass('expanded');
-            // $(this).find('.submenu').show();
-          },
-          out:function() {
-          $(this).find('.submenu-container').slideUp(200);
-          $(this).parents("#menu").removeClass('expanded');
-            //$(this).find('.submenu').hide();
-          },
-          timeout:300
-        });
 
         $(".posterize").click(function(event){
 
