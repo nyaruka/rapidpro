@@ -1,8 +1,6 @@
 -extends "smartmin/base.html"
 -load i18n
 
--block page-top
-
 -block title
   {{ title }}
 
@@ -23,7 +21,7 @@
                 %a.button-primary{ href: "{{ download_url }}" }
                   -trans "Download Now"
               -else
-                .alert.alert-warning
+                %temba-alert(level="warning")
                   {{ file_error }}
 
 -block extra-script
