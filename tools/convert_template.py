@@ -17,5 +17,5 @@ html_content = haml_parser.process(haml_content)
 with open(html_path, "w") as file:
     file.write(html_content)
 
-os.system(f"djlint --reformat --format-css --format-js {html_path}")
+os.system(f"djlint --profile=django --reformat --format-css --format-js {html_path}")
 os.remove(haml_path)
