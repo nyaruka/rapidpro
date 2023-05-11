@@ -288,7 +288,6 @@ BRANDS = [
         "logo": "images/logo-dark.svg",
         "allow_signups": True,
         "title": _("Visually build nationally scalable mobile applications"),
-        "primary_color": "#0c6596",
     }
 ]
 DEFAULT_BRAND = os.environ.get("DEFAULT_BRAND", "rapidpro")
@@ -846,7 +845,7 @@ CELERY_BEAT_SCHEDULE = {
     "sync-classifier-intents": {"task": "sync_classifier_intents", "schedule": timedelta(seconds=300)},
     "sync-old-seen-channels": {"task": "sync_old_seen_channels", "schedule": timedelta(seconds=600)},
     "track-org-channel-counts": {"task": "track_org_channel_counts", "schedule": crontab(hour=4, minute=0)},
-    "trim-channel-log": {"task": "trim_channel_log", "schedule": crontab(hour=3, minute=0)},
+    "trim-channel-logs": {"task": "trim_channel_logs", "schedule": crontab(hour=3, minute=0)},
     "trim-event-fires": {"task": "trim_event_fires", "schedule": timedelta(seconds=900)},
     "trim-flow-revisions": {"task": "trim_flow_revisions", "schedule": crontab(hour=0, minute=0)},
     "trim-flow-sessions": {"task": "trim_flow_sessions", "schedule": crontab(hour=0, minute=0)},
@@ -1078,7 +1077,7 @@ ORG_LIMIT_DEFAULTS = {
 # Data retention periods - tasks trim away data older than these settings
 # -----------------------------------------------------------------------------------
 RETENTION_PERIODS = {
-    "channellog": timedelta(days=3),
+    "channellog": timedelta(days=7),
     "eventfire": timedelta(days=90),  # matches default rp-archiver behavior
     "flowsession": timedelta(days=7),
     "httplog": timedelta(days=3),
