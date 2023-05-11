@@ -759,14 +759,14 @@ test = ["djangorestframework", "graphene-django", "pytest", "pytest-cov", "pytes
 
 [[package]]
 name = "django-hamlpy"
-version = "1.5.0"
+version = "1.6.0"
 description = "HAML like syntax for Django templates"
 category = "main"
 optional = false
-python-versions = ">=3.7,<4.0"
+python-versions = ">=3.9,<4.0"
 files = [
-    {file = "django_hamlpy-1.5.0-py3-none-any.whl", hash = "sha256:aac66ef1e50dcdbabb9cdca3de3873c44eb49753f908c06c14753a77c9868cea"},
-    {file = "django_hamlpy-1.5.0.tar.gz", hash = "sha256:05ac64fc3dd9cf0e5931436a6e4781841475bda26301d31a0ccf64ea03c9d2ae"},
+    {file = "django_hamlpy-1.6.0-py3-none-any.whl", hash = "sha256:e7ae9a0467275da4ba1a861a28a46ca56167c5a42b6b1bf529d81696c0378206"},
+    {file = "django_hamlpy-1.6.0.tar.gz", hash = "sha256:ee9d650792b1317038364b96fa34cee0ff0622deffbb13b7554546d88a8e86bc"},
 ]
 
 [package.dependencies]
@@ -2449,4 +2449,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "c2fcd48cd84683a7d0901b9009dfcfe02cf2cadaf47763be8636b3cd13a0fbcd"
+content-hash = "23321144aabacfd1ed3871085ddb61bd1863fe4379d8734da59bfb2fb0f9b095"

@@ -3,10 +3,10 @@
 {% block title %}
     <div style="float:left;" class="medium-help icon-cloud-upload"></div>
     <h2 class="header-margin">{% trans "Airtime Transfer Details" %}</h2>
-{% endblock %}
+{% endblock title %}
 {% block above-bar %}
     <a href="{% url "airtime.airtimetransfer_list" %}" class="btn btn-primary">Back</a>
-{% endblock %}
+{% endblock above-bar %}
 {% block post-fields %}
     {% if show_logs %}
         <h3>
@@ -18,12 +18,14 @@
             {% endfor %}
         </h3>
     {% endif %}
-{% endblock %}
+{% endblock post-fields %}
 {% block extra-script %}
     {{ block.super }}
-    <script type="text/javascript">prettyPrint();</script>
-{% endblock %}
+    <script type="text/javascript">
+        prettyPrint();
+    </script>
+{% endblock extra-script %}
 {% block extra-style %}
     {{ block.super }}
     <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}rest_framework/css/prettify.css" />
-{% endblock %}
+{% endblock extra-style %}

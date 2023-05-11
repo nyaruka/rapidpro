@@ -6,7 +6,7 @@ import sys
 from hamlpy.compiler import Compiler
 
 haml_path = sys.argv[1]
-haml_parser = Compiler(options={"attr_wrapper": '"'})
+haml_parser = Compiler(options={"attr_wrapper": '"', "endblock_names": True})
 html_path = os.path.splitext(haml_path)[0] + ".html"
 
 with open(haml_path, "r") as file:

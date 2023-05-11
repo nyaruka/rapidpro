@@ -1,7 +1,11 @@
 {% extends "smartmin/list.html" %}
 {% load smartmin sms temba compress i18n humanize %}
-{% block title %}{{ title }}{% endblock %}
-{% block page-title %}{{ title }}{% endblock %}
+{% block title %}
+    {{ title }}
+{% endblock title %}
+{% block page-title %}
+    {{ title }}
+{% endblock page-title %}
 {% block content %}
     {% if object_list %}
         <table class="archives list lined">
@@ -42,8 +46,8 @@
         {% if object_list.count %}
             {% include "includes/pagination.haml" %}
         {% endif %}
-    {% endblock %}
-{% endblock %}
+    {% endblock paginator %}
+{% endblock content %}
 {% block extra-style %}
     <style type="text/css">
         .page-content {
@@ -116,4 +120,4 @@
             cursor: pointer;
         }
     </style>
-{% endblock %}
+{% endblock extra-style %}
