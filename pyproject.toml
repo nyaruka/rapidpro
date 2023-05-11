@@ -86,6 +86,7 @@ sections = ["FUTURE", "STDLIB", "THIRDPARTY", "DJANGO", "FIRSTPARTY", "LOCALFOLD
 known_django = ["django"]
 
 [tool.djlint]
+ignore="H021"
 max_line_length = 200
 max_attribute_length = 100
 
