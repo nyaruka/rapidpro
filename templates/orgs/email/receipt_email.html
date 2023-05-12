@@ -1,46 +1,44 @@
 {% extends "email_base.html" %}
-
 {% load tz %}
 {% load i18n %}
+
 {% block body %}
+  {% blocktrans with brand_name=brand.name brand_support=branding.support_email customer=customer.first_name %}
 
-{% blocktrans with brand_name=brand.name brand_support=branding.support_email customer=customer.first_name %}
-
-<br/>
+<br />
 Hi {{ customer }},
-<br/>
-<br/>
+<br />
+<br />
 This is a receipt for your {{ brand_name }} purchase for {{ credits }} credits.  This is only a receipt, no payment is due. If you have any questions, please contact us anytime at {{ brand_support }}.  You can view your top ups at any time by visiting your top up page.
-<br/>
+<br />
 Thanks again for your support!
-<br/>
-<br/>
+<br />
+<br />
 -----------------------------------------------------------------------------------------------
 {{ brand_name }} Receipt
 -----------------------------------------------------------------------------------------------
-<br/>
+<br />
 Invoice Details
-<br/>
+<br />
 Id: {{ charge_id }}
-<br/>
+<br />
 Date: {{ charge_date }}
-<br/>
+<br />
 Workspace: {{ org }}
-<br/>
+<br />
 Description: {{ description }}
-<br/>
+<br />
 Credits: {{ credits }}
-<br/>
+<br />
 Amount: USD ${{ amount }}
-<br/>
-<br/>
+<br />
+<br />
 Charge Details
-<br/>
+<br />
 Name: {{ cc_name }}
-<br/>
+<br />
 Credit Card: {{ cc_type }} X{{ cc_last4 }}
-<br/>
-<br/>
+<br />
+<br />
 {% endblocktrans %}
-
 {% endblock body %}

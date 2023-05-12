@@ -1,15 +1,13 @@
 {% extends "email_base.html" %}
-
 {% load tz %}
 {% load i18n %}
-{% block body %}
 
-<p>
-  {% blocktrans with org=org.name link=branding.link brand=branding.name secret=invitation.secret %}
+{% block body %}
+  <p>
+    {% blocktrans with org=org.name link=branding.link brand=branding.name secret=invitation.secret %}
       You've been invited to join {{ brand }} as a member of {{ org }}.
-      <br/>
+      <br />
       To accept the invitation, <a href='{{link}}/org/join/{{secret}}/'>click here</a>.
   {% endblocktrans %}
-</p>
-
+  </p>
 {% endblock body %}
