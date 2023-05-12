@@ -31,7 +31,7 @@
                         {% endif %}
                     </td>
                     <td style="--icon-color:#bbb">
-                        <temba-icon clickable="true" name="download" onclick="downloadFile(event, &quot;{% url 'archives.archive_read' archive.id %}&quot;)"></temba-icon>
+                        <temba-icon clickable="true" name="download" onclick="downloadFile(event, '{% url 'archives.archive_read' archive.id %}')"></temba-icon>
                     </td>
                 </tr>
             {% endfor %}
