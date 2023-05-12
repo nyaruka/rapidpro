@@ -32,23 +32,17 @@
 
     :javascript
       var static_url = "{{STATIC_URL}}";
-      var org_id = {% if active_org %}{{active_org.id}}{% else %}null{%endif%};
+      var org_id = "{{active_org.id}}";
       var tembaVersion= "{{temba_version}}";
-      var params = '{{url_params|safe}}';
-
-      {% if user_org %}{% if user_org.is_anon %}
-      var anon_org = true;
-      {% else %}
-      var anon_org = false;
-      {% endif %}{% endif %}
+      var params = "{{url_params|safe}}";
+      var anon_org = Boolean("{{user_org.is_anon}}");
+      var menuSelection = "{{temba_menu_selection}}";
 
       function handleMenuReady() {
         var selection = window.location.pathname.split("/").filter(function(path){ return !!path});
         var menu = document.querySelector("temba-menu");
-        if (menu) {
-          {% if temba_menu_selection %}
-          menu.setFocusedItem("{{temba_menu_selection}}");          
-          {% endif %}
+        if (menu && menuSelection) {
+          menu.setFocusedItem(menuSelection);
         }
       }
 
