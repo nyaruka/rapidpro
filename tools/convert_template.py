@@ -9,7 +9,7 @@ from hamlpy.compiler import Compiler
 source = sys.argv[1]
 haml_parser = Compiler(options={"attr_wrapper": '"', "smart_quotes": True, "endblock_names": True})
 
-sad_template = re.compile("\\{\n\\s+%")
+sad_template = re.compile("\\{\n\\s+(\\{|%)")
 sad_files = {}
 
 
