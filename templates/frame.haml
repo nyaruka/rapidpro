@@ -30,12 +30,15 @@
     -if not debug and not testing
       %script{src:"{{ STATIC_URL }}lib/raven.min.js"}
 
+    -compress js
+      %script{src:"{{ STATIC_URL }}js/utils.js"}
+
     :javascript
       var static_url = "{{STATIC_URL}}";
       var org_id = "{{active_org.id}}";
       var tembaVersion= "{{temba_version}}";
       var params = "{{url_params|safe}}";
-      var anon_org = Boolean("{{user_org.is_anon}}");
+      var anon_org = asBool("{{user_org.is_anon}}");
       var menuSelection = "{{temba_menu_selection}}";
 
       function handleMenuReady() {
