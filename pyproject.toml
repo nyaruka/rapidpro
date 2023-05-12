@@ -86,9 +86,18 @@ sections = ["FUTURE", "STDLIB", "THIRDPARTY", "DJANGO", "FIRSTPARTY", "LOCALFOLD
 known_django = ["django"]
 
 [tool.djlint]
+format_css = true
+format_js = true
+indent = 2
 ignore="H021,H023"
 max_line_length = 200
 max_attribute_length = 100
+
+[tool.djlint.css]
+indent_size=2
+
+[tool.djlint.js]
+indent_size=2
 
 [tool.coverage.run]
 source = ["./temba"]

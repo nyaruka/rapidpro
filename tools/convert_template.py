@@ -25,7 +25,7 @@ def convert_template(haml_path: str, *, format: bool, delete: bool):
         file.write(html_content)
 
     if format:
-        os.system(f"djlint --profile=django --reformat --format-css --format-js {html_path}")
+        os.system(f"djlint --profile=django --reformat {html_path}")
     if delete:
         os.remove(haml_path)
 
