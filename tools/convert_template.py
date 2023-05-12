@@ -25,22 +25,21 @@ def check_for_sad(path: str):
 
 def format_path(path: str, *, delete: bool):
     os.system(f"djlint --profile=django --reformat --quiet {path}")
+
     if os.path.isdir(path):
         for root, dirs, files in os.walk(path, topdown=False):
             for name in files:
                 if name.endswith(".html"):
                     filename = os.path.join(root, name)
                     check_for_sad(filename)
-
                     if delete and filename not in sad_files:
                         haml_file = filename.replace(".html", ".haml")
                         if os.path.exists(haml_file):
                             os.remove(filename.replace(".html", ".haml"))
     else:
-        if name.endswith(".html"):
-            check_for_sad(path)
-            if delete and path not in sad_files:
-                os.remove(path)
+        check_for_sad(path)
+        if delete and path not in sad_files:
+            os.remove(path)
 
 
 def convert_template(haml_path: str):
