@@ -1,3 +1,4 @@
+import datetime
 import logging
 from collections import defaultdict
 from datetime import timedelta
@@ -22,8 +23,9 @@ from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Sum
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -48,6 +50,13 @@ ALL_COUNTRIES = countries.choices()
 
 def get_channel_read_url(channel):
     return reverse("channels.channel_read", args=[channel.uuid])
+
+
+class EpochEncoder(DjangoJSONEncoder):
+    def default(self, o: Any) -> Any:
+        if isinstance(o, datetime.date):
+            return int(o.strftime("%s")) * 1000
+        return super().default(o)
 
 
 class ChannelTypeMixin(SpaMixin):
@@ -457,6 +466,7 @@ class ChannelCRUDL(SmartCRUDL):
     model = Channel
     actions = (
         "list",
+        "chart",
         "claim",
         "claim_all",
         "menu",
@@ -490,6 +500,118 @@ class ChannelCRUDL(SmartCRUDL):
             menu.append(self.create_menu_item(menu_id="claim", name=_("Add Channel"), href="channels.channel_claim"))
 
             return menu
+
+    class Chart(OrgObjPermsMixin, ContentMenuMixin, SmartReadView):
+        permission = "channels.channel_read"
+        slug_url_kwarg = "uuid"
+
+        def get_queryset(self):
+            return Channel.objects.filter(is_active=True)
+
+        def render_to_response(self, context, **response_kwargs):
+            channel = self.object
+
+            end_date = (timezone.now() + timedelta(days=1)).date()
+            start_date = end_date - timedelta(days=30)
+
+            message_stats = []
+
+            # build up the channels we care about for outgoing messages
+            channels = [channel]
+            for sender in Channel.objects.filter(parent=channel):  # pragma: needs cover
+                channels.append(sender)
+
+            msg_in = []
+            msg_out = []
+            ivr_in = []
+            ivr_out = []
+
+            message_stats.append(dict(name=_("Incoming Text"), data=msg_in, yAxis=1))
+            message_stats.append(dict(name=_("Outgoing Text"), data=msg_out, yAxis=1))
+
+            ivr_count = channel.get_ivr_count()
+            if ivr_count:
+                message_stats.append(dict(name=_("Incoming IVR"), data=ivr_in, yAxis=1))
+                message_stats.append(dict(name=_("Outgoing IVR"), data=ivr_out, yAxis=1))
+
+            # get all our counts for that period
+            daily_counts = list(
+                ChannelCount.objects.filter(channel__in=channels, day__gte=start_date)
+                .filter(
+                    count_type__in=[
+                        ChannelCount.INCOMING_MSG_TYPE,
+                        ChannelCount.OUTGOING_MSG_TYPE,
+                        ChannelCount.INCOMING_IVR_TYPE,
+                        ChannelCount.OUTGOING_IVR_TYPE,
+                    ]
+                )
+                .values("day", "count_type")
+                .order_by("day", "count_type")
+                .annotate(count_sum=Sum("count"))
+            )
+
+            current = start_date
+            while current <= end_date:
+                # for every date we care about
+                while daily_counts and daily_counts[0]["day"] == current:
+                    daily_count = daily_counts.pop(0)
+
+                    point = [daily_count["day"], daily_count["count_sum"]]
+                    if daily_count["count_type"] == ChannelCount.INCOMING_MSG_TYPE:
+                        msg_in.append(point)
+                    elif daily_count["count_type"] == ChannelCount.OUTGOING_MSG_TYPE:
+                        msg_out.append(point)
+                    elif daily_count["count_type"] == ChannelCount.INCOMING_IVR_TYPE:
+                        ivr_in.append(point)
+                    elif daily_count["count_type"] == ChannelCount.OUTGOING_IVR_TYPE:
+                        ivr_out.append(point)
+                current = current + timedelta(days=1)
+
+            # we'll show totals for every month since this channel was started
+            month_start = channel.created_on.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+            # get our totals grouped by month
+            monthly_totals = list(
+                ChannelCount.objects.filter(channel=channel, day__gte=month_start)
+                .filter(
+                    count_type__in=[
+                        ChannelCount.INCOMING_MSG_TYPE,
+                        ChannelCount.OUTGOING_MSG_TYPE,
+                        ChannelCount.INCOMING_IVR_TYPE,
+                        ChannelCount.OUTGOING_IVR_TYPE,
+                    ]
+                )
+                .extra({"month": "date_trunc('month', day)"})
+                .values("month", "count_type")
+                .order_by("month", "count_type")
+                .annotate(count_sum=Sum("count"))
+            )
+
+            # calculate our summary table for last 12 months
+            now = timezone.now()
+            while month_start < now:
+                msg_in = 0
+                msg_out = 0
+                ivr_in = 0
+                ivr_out = 0
+
+                while monthly_totals and monthly_totals[0]["month"] == month_start:
+                    monthly_total = monthly_totals.pop(0)
+                    if monthly_total["count_type"] == ChannelCount.INCOMING_MSG_TYPE:
+                        msg_in = monthly_total["count_sum"]
+                    elif monthly_total["count_type"] == ChannelCount.OUTGOING_MSG_TYPE:
+                        msg_out = monthly_total["count_sum"]
+                    elif monthly_total["count_type"] == ChannelCount.INCOMING_IVR_TYPE:
+                        ivr_in = monthly_total["count_sum"]
+                    elif monthly_total["count_type"] == ChannelCount.OUTGOING_IVR_TYPE:
+                        ivr_out = monthly_total["count_sum"]
+                month_start = (month_start + timedelta(days=32)).replace(day=1)
+
+            return JsonResponse(
+                {"start_date": start_date, "end_date": end_date, "series": message_stats},
+                json_dumps_params={"indent": 2},
+                encoder=EpochEncoder,
+            )
 
     class Read(SpaMixin, OrgObjPermsMixin, ContentMenuMixin, SmartReadView):
         slug_url_kwarg = "uuid"
@@ -572,14 +694,6 @@ class ChannelCRUDL(SmartCRUDL):
                 if unsent_msgs:
                     context["unsent_msgs_count"] = unsent_msgs.count()
 
-            end_date = (timezone.now() + timedelta(days=1)).date()
-            start_date = end_date - timedelta(days=30)
-
-            context["start_date"] = start_date
-            context["end_date"] = end_date
-
-            message_stats = []
-
             # build up the channels we care about for outgoing messages
             channels = [channel]
             for sender in Channel.objects.filter(parent=channel):  # pragma: needs cover
@@ -590,69 +704,11 @@ class ChannelCRUDL(SmartCRUDL):
             ivr_in = []
             ivr_out = []
 
-            message_stats.append(dict(name=_("Incoming Text"), data=msg_in))
-            message_stats.append(dict(name=_("Outgoing Text"), data=msg_out))
-
-            if context["ivr_count"]:
-                message_stats.append(dict(name=_("Incoming IVR"), data=ivr_in))
-                message_stats.append(dict(name=_("Outgoing IVR"), data=ivr_out))
-
-            # get all our counts for that period
-            daily_counts = list(
-                ChannelCount.objects.filter(channel__in=channels, day__gte=start_date)
-                .filter(
-                    count_type__in=[
-                        ChannelCount.INCOMING_MSG_TYPE,
-                        ChannelCount.OUTGOING_MSG_TYPE,
-                        ChannelCount.INCOMING_IVR_TYPE,
-                        ChannelCount.OUTGOING_IVR_TYPE,
-                    ]
-                )
-                .values("day", "count_type")
-                .order_by("day", "count_type")
-                .annotate(count_sum=Sum("count"))
-            )
-
-            current = start_date
-            while current <= end_date:
-                # for every date we care about
-                while daily_counts and daily_counts[0]["day"] == current:
-                    daily_count = daily_counts.pop(0)
-                    if daily_count["count_type"] == ChannelCount.INCOMING_MSG_TYPE:
-                        msg_in.append(dict(date=daily_count["day"], count=daily_count["count_sum"]))
-                    elif daily_count["count_type"] == ChannelCount.OUTGOING_MSG_TYPE:
-                        msg_out.append(dict(date=daily_count["day"], count=daily_count["count_sum"]))
-                    elif daily_count["count_type"] == ChannelCount.INCOMING_IVR_TYPE:
-                        ivr_in.append(dict(date=daily_count["day"], count=daily_count["count_sum"]))
-                    elif daily_count["count_type"] == ChannelCount.OUTGOING_IVR_TYPE:
-                        ivr_out.append(dict(date=daily_count["day"], count=daily_count["count_sum"]))
-
-                current = current + timedelta(days=1)
-
-            context["message_stats"] = message_stats
             context["has_messages"] = len(msg_in) or len(msg_out) or len(ivr_in) or len(ivr_out)
-
             message_stats_table = []
 
             # we'll show totals for every month since this channel was started
             month_start = channel.created_on.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-            # get our totals grouped by month
-            monthly_totals = list(
-                ChannelCount.objects.filter(channel=channel, day__gte=month_start)
-                .filter(
-                    count_type__in=[
-                        ChannelCount.INCOMING_MSG_TYPE,
-                        ChannelCount.OUTGOING_MSG_TYPE,
-                        ChannelCount.INCOMING_IVR_TYPE,
-                        ChannelCount.OUTGOING_IVR_TYPE,
-                    ]
-                )
-                .extra({"month": "date_trunc('month', day)"})
-                .values("month", "count_type")
-                .order_by("month", "count_type")
-                .annotate(count_sum=Sum("count"))
-            )
 
             # calculate our summary table for last 12 months
             now = timezone.now()
@@ -661,17 +717,6 @@ class ChannelCRUDL(SmartCRUDL):
                 msg_out = 0
                 ivr_in = 0
                 ivr_out = 0
-
-                while monthly_totals and monthly_totals[0]["month"] == month_start:
-                    monthly_total = monthly_totals.pop(0)
-                    if monthly_total["count_type"] == ChannelCount.INCOMING_MSG_TYPE:
-                        msg_in = monthly_total["count_sum"]
-                    elif monthly_total["count_type"] == ChannelCount.OUTGOING_MSG_TYPE:
-                        msg_out = monthly_total["count_sum"]
-                    elif monthly_total["count_type"] == ChannelCount.INCOMING_IVR_TYPE:
-                        ivr_in = monthly_total["count_sum"]
-                    elif monthly_total["count_type"] == ChannelCount.OUTGOING_IVR_TYPE:
-                        ivr_out = monthly_total["count_sum"]
 
                 message_stats_table.append(
                     dict(
@@ -688,7 +733,6 @@ class ChannelCRUDL(SmartCRUDL):
             # reverse our table so most recent is first
             message_stats_table.reverse()
             context["message_stats_table"] = message_stats_table
-
             return context
 
     class FacebookWhitelist(ComponentFormMixin, ModalMixin, OrgObjPermsMixin, SmartModelActionView):
