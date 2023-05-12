@@ -72,5 +72,5 @@ if os.path.isdir(source):
     print_sad()
 else:
     convert_template(source)
-    format_path(source, delete=True)
+    format_path(source.replace(".haml", ".html"), delete=True)
     print_sad()
