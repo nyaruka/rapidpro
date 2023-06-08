@@ -982,8 +982,11 @@ class ChannelLogCRUDL(SmartCRUDL):
 
         fields = ("description", "created_on")
 
+        def derive_menu_path(self):
+            return f"/settings/channels/{self.object.channel.uuid}"
+
         def get_object_org(self):
-            return self.get_object().channel.org
+            return self.object.channel.org
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
