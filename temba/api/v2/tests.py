@@ -482,6 +482,7 @@ class EndpointsTest(APITest):
 
         # 200 for administrator assuming this endpoint supports fetches
         self.login(self.admin)
+
         response = self.fetchHTML(url, query)
         self.assertEqual(response.status_code, fetch_returns)
 

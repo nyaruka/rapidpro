@@ -309,7 +309,7 @@ PERMISSIONS = {
     "api.resthook": ("api", "list"),
     "api.webhookevent": ("api",),
     "api.resthooksubscriber": ("api",),
-    "archives.archive": ("api", "run", "message"),
+    "archives.archive": ("run", "message"),
     "campaigns.campaign": ("api", "archived", "archive", "activate", "menu"),
     "campaigns.campaignevent": ("api",),
     "channels.channel": (

@@ -409,7 +409,6 @@ class ArchivesEndpoint(ListAPIMixin, BaseEndpoint):
 
     """
 
-    permission = "archives.archive_api"
     model = Archive
     serializer_class = ArchiveReadSerializer
 
