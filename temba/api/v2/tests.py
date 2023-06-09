@@ -1067,7 +1067,7 @@ class EndpointsTest(APITest):
     def test_broadcasts(self, mock_queue_broadcast):
         broadcasts_url = reverse("api.v2.broadcasts")
 
-        self.assertEndpointAccess(broadcasts_url, viewer_get=200, admin_get=200, agent_get=200)
+        self.assertEndpointAccess(broadcasts_url, viewer_get=200, admin_get=200, agent_get=403)
 
         reporters = self.create_group("Reporters", [self.joe, self.frank])
 
@@ -3099,7 +3099,7 @@ class EndpointsTest(APITest):
     def test_flows(self):
         flows_url = reverse("api.v2.flows")
 
-        self.assertEndpointAccess(flows_url, viewer_get=403, admin_get=200, agent_get=403)
+        self.assertEndpointAccess(flows_url, viewer_get=200, admin_get=200, agent_get=403)
 
         survey = self.get_flow("media_survey")
         color = self.get_flow("color")

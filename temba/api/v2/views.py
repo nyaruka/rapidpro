@@ -1805,7 +1805,6 @@ class FieldsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
         }
     """
 
-    permission = "contacts.contactfield_api"
     model = ContactField
     serializer_class = ContactFieldReadSerializer
     write_serializer_class = ContactFieldWriteSerializer
@@ -1918,7 +1917,6 @@ class FlowsEndpoint(ListAPIMixin, BaseEndpoint):
         }
     """
 
-    permission = "flows.flow_api"
     model = Flow
     serializer_class = FlowReadSerializer
     pagination_class = CreatedOnCursorPagination
@@ -2054,7 +2052,6 @@ class GlobalsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
         }
     """
 
-    permission = "globals.global_api"
     model = Global
     serializer_class = GlobalReadSerializer
     write_serializer_class = GlobalWriteSerializer
@@ -2207,7 +2204,6 @@ class GroupsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint):
     You will receive either a 204 response if a group was deleted, or a 404 response if no matching group was found.
     """
 
-    permission = "contacts.contactgroup_api"
     model = ContactGroup
     serializer_class = ContactGroupReadSerializer
     write_serializer_class = ContactGroupWriteSerializer
@@ -2366,7 +2362,6 @@ class LabelsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint):
     You will receive either a 204 response if a label was deleted, or a 404 response if no matching label was found.
     """
 
-    permission = "msgs.label_api"
     model = Label
     serializer_class = LabelReadSerializer
     write_serializer_class = LabelWriteSerializer
@@ -3116,7 +3111,6 @@ class RunsEndpoint(ListAPIMixin, BaseEndpoint):
         }
     """
 
-    permission = "flows.flow_api"
     model = FlowRun
     serializer_class = FlowRunReadSerializer
     pagination_class = ModifiedOnCursorPagination
@@ -3725,7 +3719,6 @@ class TopicsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
             ...
     """
 
-    permission = "tickets.topic_api"
     model = Topic
     serializer_class = TopicReadSerializer
     write_serializer_class = TopicWriteSerializer
