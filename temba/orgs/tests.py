@@ -968,12 +968,13 @@ class OrgTest(TembaTest):
         response = self.client.get(reverse("msgs.broadcast_send"))
         self.assertContains(response, expected_message)
 
-        broadcast_url = f"{reverse('flows.flow_broadcast', args=[])}?flow={flow.id}"
+        start_url = reverse("flows.flow_start", args=[flow.id])
+
         # we also can't start flows
         self.assertRaises(
             AssertionError,
             self.client.post,
-            broadcast_url,
+            start_url,
             {"flow": flow.id, "contact_search": get_contact_search(query='uuid="{mark.uuid}"')},
         )
 
@@ -997,7 +998,7 @@ class OrgTest(TembaTest):
         self.assertRaises(
             AssertionError,
             self.client.post,
-            broadcast_url,
+            start_url,
             {"flow": flow.id, "contact_search": get_contact_search(query='uuid="{mark.uuid}"')},
         )
 
@@ -1020,7 +1021,7 @@ class OrgTest(TembaTest):
         self.org.save(update_fields=("is_suspended",))
 
         self.client.post(
-            broadcast_url,
+            start_url,
             {"flow": flow.id, "contact_search": get_contact_search(query='uuid="{mark.uuid}"')},
         )
 

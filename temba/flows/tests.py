@@ -2769,25 +2769,18 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEquals(response.json()["warnings"], [])
 
     @mock_mailroom
-    def test_broadcast(self, mr_mocks):
+    def test_start(self, mr_mocks):
         contact = self.create_contact("Bob", phone="+593979099111")
         flow = self.create_flow("Test")
-        broadcast_url = f"{reverse('flows.flow_broadcast', args=[])}?flow={flow.id}"
+        start_url = reverse("flows.flow_start", args=[flow.id])
 
         self.assertUpdateFetch(
-            broadcast_url,
-            allow_viewers=False,
-            allow_editors=True,
-            allow_org2=True,
-            form_fields=["contact_search", "flow"],
+            start_url, allow_viewers=False, allow_editors=True, allow_org2=False, form_fields=["contact_search"]
         )
 
         # create flow start with a query
         mr_mocks.parse_query("frank", cleaned='name ~ "frank"')
-        self.assertUpdateSubmit(
-            broadcast_url,
-            {"flow": flow.id, "contact_search": get_contact_search(query="frank")},
-        )
+        self.assertUpdateSubmit(start_url, {"contact_search": get_contact_search(query="frank")})
 
         start = FlowStart.objects.get()
         self.assertEqual(flow, start.flow)
@@ -2803,24 +2796,24 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # create flow start with a bogus query
         mr_mocks.error("query contains an error")
         self.assertUpdateSubmit(
-            broadcast_url,
-            {"flow": flow.id, "contact_search": get_contact_search(query='name = "frank')},
+            start_url,
+            {"contact_search": get_contact_search(query='name = "frank')},
             form_errors={"contact_search": "query contains an error"},
             object_unchanged=flow,
         )
 
         # try missing contacts
         self.assertUpdateSubmit(
-            broadcast_url,
-            {"flow": flow.id, "contact_search": get_contact_search(contacts=[])},
+            start_url,
+            {"contact_search": get_contact_search(contacts=[])},
             form_errors={"contact_search": "Contacts or groups are required."},
             object_unchanged=flow,
         )
 
         # try to create with an empty query
         self.assertUpdateSubmit(
-            broadcast_url,
-            {"flow": flow.id, "contact_search": get_contact_search(query="")},
+            start_url,
+            {"contact_search": get_contact_search(query="")},
             form_errors={"contact_search": "A contact query is required."},
             object_unchanged=flow,
         )
@@ -2830,8 +2823,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # create flow start with exclude_in_other and exclude_reruns both left unchecked
         self.assertUpdateSubmit(
-            broadcast_url,
-            {"flow": flow.id, "contact_search": get_contact_search(query=query)},
+            start_url,
+            {"contact_search": get_contact_search(query=query)},
         )
 
         start = FlowStart.objects.get()
@@ -2848,14 +2841,14 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         FlowStart.objects.all().delete()
 
     @mock_mailroom
-    def test_broadcast_background_flow(self, mr_mocks):
+    def test_start_background_flow(self, mr_mocks):
         flow = self.create_flow("Background", flow_type=Flow.TYPE_BACKGROUND)
 
         # create flow start with a query
         mr_mocks.parse_query("frank", cleaned='name ~ "frank"')
 
-        broadcast_url = f"{reverse('flows.flow_broadcast', args=[])}?flow={flow.id}"
-        self.assertUpdateSubmit(broadcast_url, {"flow": flow.id, "contact_search": get_contact_search(query="frank")})
+        start_url = reverse("flows.flow_start", args=[flow.id])
+        self.assertUpdateSubmit(start_url, {"contact_search": get_contact_search(query="frank")})
 
         start = FlowStart.objects.get()
         self.assertEqual(flow, start.flow)
