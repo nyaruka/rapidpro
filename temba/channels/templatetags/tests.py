@@ -22,24 +22,30 @@ class ChannelsTest(TembaTest):
 
         # admin user sees links to msg and call logs
         self.assertEqual(
-            {"logs_url": call_logs_url}, channel_log_link(Context({"user_org": self.org, "user": self.admin}), call)
+            {"logs_url": call_logs_url, "channel": call.channel},
+            channel_log_link(Context({"user_org": self.org, "user": self.admin}), call),
         )
         self.assertEqual(
-            {"logs_url": msg_logs_url}, channel_log_link(Context({"user_org": self.org, "user": self.admin}), msg)
+            {"logs_url": msg_logs_url, "channel": msg.channel},
+            channel_log_link(Context({"user_org": self.org, "user": self.admin}), msg),
         )
 
         # editor user doesn't
         self.assertEqual(
-            {"logs_url": None}, channel_log_link(Context({"user_org": self.org, "user": self.editor}), call)
+            {"logs_url": None, "channel": call.channel},
+            channel_log_link(Context({"user_org": self.org, "user": self.editor}), call),
         )
         self.assertEqual(
-            {"logs_url": None}, channel_log_link(Context({"user_org": self.org, "user": self.editor}), msg)
+            {"logs_url": None, "channel": msg.channel},
+            channel_log_link(Context({"user_org": self.org, "user": self.editor}), msg),
         )
 
         # no log link for channel-less messages or older messages
         self.assertEqual(
-            {"logs_url": None}, channel_log_link(Context({"user_org": self.org, "user": self.admin}), surveyor_msg)
+            {"logs_url": None, "channel": surveyor_msg.channel},
+            channel_log_link(Context({"user_org": self.org, "user": self.admin}), surveyor_msg),
         )
         self.assertEqual(
-            {"logs_url": None}, channel_log_link(Context({"user_org": self.org, "user": self.admin}), old_msg)
+            {"logs_url": None, "channel": old_msg.channel},
+            channel_log_link(Context({"user_org": self.org, "user": self.admin}), old_msg),
         )

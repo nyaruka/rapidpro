@@ -1,5 +1,17 @@
-{% if logs_url %}
+{% load i18n %}
+
+{% if channel %}
   <div class="inline-block text-gray-400 linked ml-3">
+    <a href="{% url 'channels.channel_read' channel.uuid %}" onclick="goto(event, this)">
+      <temba-label icon="{{ channel.type.get_icon }}" secondary clickable class="my-1">
+        {% trans "Channel:" %}
+        {{ channel.name }}
+      </temba-label>
+    </a>
+  </div>
+{% endif %}
+{% if logs_url %}
+  <div class="inline-block text-gray-400 linked ml-1">
     <temba-icon name="log" onclick="goto(event)" href="{{ logs_url }}">
     </temba-icon>
   </div>

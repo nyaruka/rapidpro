@@ -28,4 +28,4 @@ def channel_log_link(context, obj):
             if isinstance(obj, Msg):
                 logs_url = reverse("channels.channellog_msg", args=[obj.channel.uuid, obj.id])
 
-    return {"logs_url": logs_url}
+    return {"logs_url": logs_url, "channel": obj.channel}
