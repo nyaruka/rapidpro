@@ -108,6 +108,7 @@ class MessageHistory(OrgPermsMixin, SmartTemplateView):
             safe=False,
         )
 
+
 class WorkspaceStats(OrgPermsMixin, SmartTemplateView):
     permission = "orgs.org_dashboard"
 
@@ -160,9 +161,11 @@ class WorkspaceStats(OrgPermsMixin, SmartTemplateView):
                 counts.append([day, count["count_sum"]])
 
         for org in orgs:
-
             org_daily_counts = list(
-                daily_counts.filter(channel__org_id=org.id).values("day", "count_type").order_by("day", "count_type").annotate(count_sum=Sum("count"))
+                daily_counts.filter(channel__org_id=org.id)
+                .values("day", "count_type")
+                .order_by("day", "count_type")
+                .annotate(count_sum=Sum("count"))
             )
 
             org_msgs_total = []
@@ -179,13 +182,34 @@ class WorkspaceStats(OrgPermsMixin, SmartTemplateView):
 
                 record_count(org_msgs_total, day, count)
 
-            output.extend([
-                dict(name=f"{org.name} Incoming", stack=org.id, cumulative=True, type="column", data=org_msgs_in, showInNavigator=False),
-                dict(name=f"{org.name} Outgoing", stack=org.id, cumulative=True, type="column", data=org_msgs_out, showInNavigator=False),
-                dict(name=f"{org.name} Total",  cumulative=True, type="line", data=org_msgs_total, showInNavigator=False, dataLabels=dict(format="point.cumulativeSum"))
-
-            ])
-
+            output.extend(
+                [
+                    dict(
+                        name=f"{org.name} Incoming",
+                        stack=org.id,
+                        cumulative=True,
+                        type="column",
+                        data=org_msgs_in,
+                        showInNavigator=False,
+                    ),
+                    dict(
+                        name=f"{org.name} Outgoing",
+                        stack=org.id,
+                        cumulative=True,
+                        type="column",
+                        data=org_msgs_out,
+                        showInNavigator=False,
+                    ),
+                    dict(
+                        name=f"{org.name} Total",
+                        cumulative=True,
+                        type="line",
+                        data=org_msgs_total,
+                        showInNavigator=False,
+                        dataLabels=dict(format="point.cumulativeSum"),
+                    ),
+                ]
+            )
 
         return JsonResponse(
             output,
@@ -248,13 +272,14 @@ class ChannelTypesStats(OrgPermsMixin, SmartTemplateView):
             daily_counts.values("channel__channel_type").annotate(count_sum=Sum("count")).order_by("-count_sum")
         )
 
-
         for ch_type in channel_types:
             channel_type_name = Channel.get_type_from_code(ch_type["channel__channel_type"]).name
 
-
             ch_type_daily_counts = list(
-                daily_counts.filter(channel__channel_type=ch_type["channel__channel_type"]).values("day", "count_type").order_by("day", "count_type").annotate(count_sum=Sum("count"))
+                daily_counts.filter(channel__channel_type=ch_type["channel__channel_type"])
+                .values("day", "count_type")
+                .order_by("day", "count_type")
+                .annotate(count_sum=Sum("count"))
             )
 
             ch_type_msgs_total = []
@@ -271,17 +296,39 @@ class ChannelTypesStats(OrgPermsMixin, SmartTemplateView):
 
                 record_count(ch_type_msgs_total, day, count)
 
-            output.extend([
-                dict(name=f"{channel_type_name} Incoming", cumulative=True, stack=ch_type["channel__channel_type"], type="column", data=ch_type_msgs_in, showInNavigator=False),
-                dict(name=f"{channel_type_name} Outgoing", cumulative=True, stack=ch_type["channel__channel_type"], type="column", data=ch_type_msgs_out, showInNavigator=False),
-                dict(name=f"{channel_type_name} Total", cumulative=True, type="line", data=ch_type_msgs_total, showInNavigator=False)
-
-            ])
+            output.extend(
+                [
+                    dict(
+                        name=f"{channel_type_name} Incoming",
+                        cumulative=True,
+                        stack=ch_type["channel__channel_type"],
+                        type="column",
+                        data=ch_type_msgs_in,
+                        showInNavigator=False,
+                    ),
+                    dict(
+                        name=f"{channel_type_name} Outgoing",
+                        cumulative=True,
+                        stack=ch_type["channel__channel_type"],
+                        type="column",
+                        data=ch_type_msgs_out,
+                        showInNavigator=False,
+                    ),
+                    dict(
+                        name=f"{channel_type_name} Total",
+                        cumulative=True,
+                        type="line",
+                        data=ch_type_msgs_total,
+                        showInNavigator=False,
+                    ),
+                ]
+            )
 
         return JsonResponse(
             output,
             safe=False,
         )
+
 
 class RangeDetails(OrgPermsMixin, SmartTemplateView):
     """
