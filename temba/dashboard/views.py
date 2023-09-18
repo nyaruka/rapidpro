@@ -273,7 +273,6 @@ class ChannelTypesStats(OrgPermsMixin, SmartTemplateView):
                 .annotate(count_sum=Sum("count"))
             )
 
-
             ch_type_msgs_in = []
             ch_type_msgs_out = []
             for count in ch_type_daily_counts:
@@ -294,8 +293,10 @@ class ChannelTypesStats(OrgPermsMixin, SmartTemplateView):
                         data=ch_type_msgs_in,
                         showInNavigator=False,
                         label=False,
-                        tooltip=dict(pointFormat="{series.name}: <b>{point.y:.0f}</b>", nullFormat="{series.name}: <b>0</b>")
+                        tooltip=dict(
+                            pointFormat="{series.name}: <b>{point.y:.0f}</b>", nullFormat="{series.name}: <b>0</b>"
                         ),
+                    ),
                     dict(
                         name=f"{channel_type_name} Outgoing",
                         stack=ch_type["channel__channel_type"],
@@ -303,8 +304,10 @@ class ChannelTypesStats(OrgPermsMixin, SmartTemplateView):
                         data=ch_type_msgs_out,
                         showInNavigator=False,
                         label=False,
-                        tooltip=dict(pointFormat="{series.name}: <b>{point.y:.0f}</b>", nullFormat="{series.name}: <b>0</b>"),
+                        tooltip=dict(
+                            pointFormat="{series.name}: <b>{point.y:.0f}</b>", nullFormat="{series.name}: <b>0</b>"
                         ),
+                    ),
                 ]
             )
 
