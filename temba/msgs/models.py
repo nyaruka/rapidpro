@@ -481,10 +481,7 @@ class Msg(models.Model):
 
     TYPE_TEXT = "T"
     TYPE_VOICE = "V"
-    TYPE_CHOICES = (
-        (TYPE_TEXT, "Text Message"),
-        (TYPE_VOICE, "Voice Message"),
-    )
+    TYPE_CHOICES = ((TYPE_TEXT, "Text Message"), (TYPE_VOICE, "Voice Message"))
 
     FAILED_SUSPENDED = "S"
     FAILED_CONTACT = "C"
@@ -533,6 +530,7 @@ class Msg(models.Model):
     text = models.TextField()
     attachments = ArrayField(models.URLField(max_length=Attachment.MAX_LEN), null=True)
     quick_replies = ArrayField(models.CharField(max_length=64), null=True)
+    optin = models.ForeignKey("msgs.OptIn", on_delete=models.DO_NOTHING, null=True, db_index=False, db_constraint=False)
     locale = models.CharField(max_length=6, null=True)  # eng, eng-US, por-BR, und etc
 
     created_on = models.DateTimeField(db_index=True)
@@ -1052,6 +1050,17 @@ class LabelCount(SquashableModel):
         )
         counts_by_label_id = {c[0]: c[1] for c in counts}
         return {lb: counts_by_label_id.get(lb.id, 0) for lb in labels}
+
+
+class OptIn(TembaModel):
+    """
+    Contact optin for a particular messaging topic.
+    """
+
+    org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="optins")
+
+    class Meta:
+        constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_optin_names")]
 
 
 class MsgIterator:

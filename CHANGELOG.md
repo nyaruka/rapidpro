@@ -1,3 +1,29 @@
+v8.3.25 (2023-09-21)
+-------------------------
+ * Fix trigger ordering
+
+v8.3.24 (2023-09-21)
+-------------------------
+ * Add opt-in and opt-out trigger types (staff only for now)
+ * Group keyword triggers and catch all triggers under a Messages folder
+ * Move broadcasts and scheduled to their own pages
+
+v8.3.23 (2023-09-21)
+-------------------------
+ * Replace Msg.type=optin with optin reference on msg
+ * Group trigger types into folders
+ * Make sure staff can update the log policy on all channel types
+
+v8.3.22 (2023-09-19)
+-------------------------
+ * Make ticketers API endpoint unpublicized
+ * Add 'Send Now' to broadcast creation
+
+v8.3.21 (2023-09-18)
+-------------------------
+ * Add basic OptIn model
+ * Use env variable for dev mode host
+
 v8.3.20 (2023-09-12)
 -------------------------
  * Update editor for localized attachment fix
