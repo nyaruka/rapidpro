@@ -115,12 +115,13 @@ def send_template_email(recipients, subject, template, context, branding):
     text = text_template.render(context)
 
     connection = None
-    if branding.get("from_email"):
-        smtp_host = branding.get("smtp_host", getattr(settings, "EMAIL_HOST", "localhost"))
-        smtp_port = branding.get("smtp_port", getattr(settings, "EMAIL_PORT", 25))
-        smtp_username = branding.get("smtp_username", getattr(settings, "EMAIL_HOST_USER", ""))
-        smtp_password = branding.get("smtp_password", getattr(settings, "EMAIL_HOST_PASSWORD", ""))
-        smtp_tls = branding.get("smtp_tls", getattr(settings, "EMAIL_USE_TLS", False))
+    branding_smtp = branding.get("smtp")
+    if branding_smtp:
+        smtp_host = branding_smtp.get("host")
+        smtp_port = branding_smtp.get("port")
+        smtp_username = branding_smtp.get("username")
+        smtp_password = branding_smtp.get("password")
+        smtp_tls = branding_smtp.get("use_tls")
 
         connection = get_smtp_connection(
             None,
