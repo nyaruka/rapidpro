@@ -114,7 +114,25 @@ def send_template_email(recipients, subject, template, context, branding):
     html = html_template.render(context)
     text = text_template.render(context)
 
-    send_temba_email(subject, text, html, from_email, recipient_list)
+    connection = None
+    if branding.get("from_email"):
+        smtp_host = branding.get("smtp_host", getattr(settings, "EMAIL_HOST", "localhost"))
+        smtp_port = branding.get("smtp_port", getattr(settings, "EMAIL_PORT", 25))
+        smtp_username = branding.get("smtp_username", getattr(settings, "EMAIL_HOST_USER", ""))
+        smtp_password = branding.get("smtp_password", getattr(settings, "EMAIL_HOST_PASSWORD", ""))
+        smtp_tls = branding.get("smtp_tls", getattr(settings, "EMAIL_USE_TLS", False))
+
+        connection = get_smtp_connection(
+            None,
+            fail_silently=False,
+            host=smtp_host,
+            port=smtp_port,
+            username=smtp_username,
+            password=smtp_password,
+            use_tls=smtp_tls,
+        )
+
+    send_temba_email(subject, text, html, from_email, recipient_list, connection=connection)
 
 
 def send_temba_email(subject, text, html, from_email, recipient_list, connection=None):
