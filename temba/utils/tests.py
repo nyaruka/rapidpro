@@ -27,7 +27,7 @@ from temba.utils.templatetags.temba import format_datetime, icon
 from . import chunk_list, countries, format_number, languages, percentage, redact, sizeof_fmt, str_to_bool
 from .crons import clear_cron_stats, cron_task
 from .dates import date_range, datetime_to_str, datetime_to_timestamp, timestamp_to_datetime
-from .email import is_valid_address, send_simple_email
+from .email import is_valid_address, send_simple_email, send_template_email
 from .fields import ExternalURLField, NameValidator
 from .templatetags.temba import oxford, short_datetime
 from .text import clean_string, decode_stream, generate_secret, generate_token, slugify_with, truncate, unsnakify
@@ -402,6 +402,23 @@ class EmailTest(TembaTest):
 
         send_simple_email(["recipient@bar.com"], "Test Subject", "Test Body", from_email="no-reply@foo.com")
         self.assertOutbox(1, "no-reply@foo.com", "Test Subject", "Test Body", ["recipient@bar.com"])
+
+    @override_settings(SEND_EMAILS=True)
+    def test_send_template_email(self):
+        subject = "Test Subject"
+        context = dict(org=self.org, branding=self.org.branding)
+        context["subject"] = subject
+
+        template = "utils/tests/email_template"
+
+        send_template_email(["recipient@bar.com"], subject, template, context, self.org.branding)
+        self.assertOutbox(
+            0,
+            settings.DEFAULT_FROM_EMAIL,
+            "Test Subject",
+            "\n\nPlease check Nyaruka on RapidPro\n",
+            ["recipient@bar.com"],
+        )
 
     def test_is_valid_address(self):
         valid_emails = [

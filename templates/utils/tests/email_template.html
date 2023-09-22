@@ -1,0 +1,11 @@
+{% extends "email_base.html" %}
+{% load tz i18n %}
+
+{% block body %}
+  <p>
+    {% blocktrans trimmed with org=org.name brand=branding.name %}
+      Please check {{ org }} on {{ brand }}
+      <br />
+    {% endblocktrans %}
+  </p>
+{% endblock body %}
