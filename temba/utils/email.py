@@ -101,7 +101,7 @@ def send_template_email(recipients, subject, template, context, branding):
     """
 
     # brands are allowed to give us a from address
-    from_email = branding.get("from_email", getattr(settings, "DEFAULT_FROM_EMAIL", "website@rapidpro.io"))
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "website@rapidpro.io")
     recipient_list = [recipients] if isinstance(recipients, str) else recipients
 
     html_template = loader.get_template(template + ".html")
@@ -117,6 +117,7 @@ def send_template_email(recipients, subject, template, context, branding):
     connection = None
     branding_smtp = branding.get("smtp")
     if branding_smtp:
+        from_email = branding.get("from_email")
         smtp_host = branding_smtp.get("host")
         smtp_port = branding_smtp.get("port")
         smtp_username = branding_smtp.get("username")
