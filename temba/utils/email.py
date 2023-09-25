@@ -117,7 +117,7 @@ def send_template_email(recipients, subject, template, context, branding):
     connection = None
     branding_smtp = branding.get("smtp")
     if branding_smtp:
-        from_email = branding.get("from_email")
+        from_email = branding_smtp.get("from_email")
         smtp_host = branding_smtp.get("host")
         smtp_port = branding_smtp.get("port")
         smtp_username = branding_smtp.get("username")
