@@ -4,7 +4,6 @@ from unittest.mock import patch
 
 from django_redis import get_redis_connection
 
-from django.conf import settings
 from django.test import override_settings
 from django.utils import timezone
 
@@ -512,17 +511,6 @@ class MailroomClientTest(TembaTest):
 
 
 class MailroomQueueTest(TembaTest):
-    def setUp(self):
-        super().setUp()
-        r = get_redis_connection()
-        r.execute_command("select", "9")
-        r.execute_command("flushdb")
-
-    def tearDown(self):
-        super().tearDown()
-        r = get_redis_connection()
-        r.execute_command("select", settings.REDIS_DB)
-
     @mock_mailroom(queue=False)
     def test_queue_msg_handling(self, mr_mocks):
         with override_settings(TESTING=False):
@@ -555,7 +543,6 @@ class MailroomQueueTest(TembaTest):
 
     @mock_mailroom(queue=False)
     def test_queue_mo_miss_event(self, mr_mocks):
-        get_redis_connection("default").flushall()
         event = sync.create_event(self.channel, "tel:12065551212", ChannelEvent.TYPE_CALL_OUT, timezone.now())
 
         r = get_redis_connection()
@@ -618,6 +605,7 @@ class MailroomQueueTest(TembaTest):
                     },
                     "template_state": "unevaluated",
                     "base_language": "eng",
+                    "optin_id": None,
                     "urns": ["tel:+12065556666"],
                     "contact_ids": [jim.id],
                     "group_ids": [bobs.id],
@@ -825,7 +813,7 @@ class EventTest(TembaTest):
             "Hello",
             external_id="12345",
             attachments=["image:http://a.jpg"],
-            created_on=timezone.now() - timedelta(days=10),
+            created_on=timezone.now() - timedelta(days=15),
         )
 
         self.assertEqual(
@@ -922,6 +910,7 @@ class EventTest(TembaTest):
                     "first_name": "Agnes",
                     "last_name": "",
                 },
+                "optin": None,
                 "status": "E",
                 "logs_url": f"/channels/{str(self.channel.uuid)}/logs/msg/{msg_out.id}/",
             },
@@ -945,6 +934,7 @@ class EventTest(TembaTest):
                     "created_by": None,
                 },
                 "created_by": None,
+                "optin": None,
                 "status": "F",
                 "failed_reason": "D",
                 "failed_reason_display": "No suitable channel found",
@@ -968,6 +958,7 @@ class EventTest(TembaTest):
                     "created_by": None,
                 },
                 "created_by": None,
+                "optin": None,
                 "status": "S",
                 "logs_url": f"/channels/{str(self.channel.uuid)}/logs/msg/{ivr_out.id}/",
             },
@@ -1142,7 +1133,7 @@ class EventTest(TembaTest):
 
         # create call that is too old to still have logs
         call1 = self.create_incoming_call(
-            flow, contact, status=Call.STATUS_IN_PROGRESS, created_on=timezone.now() - timedelta(days=10)
+            flow, contact, status=Call.STATUS_IN_PROGRESS, created_on=timezone.now() - timedelta(days=15)
         )
 
         # and one that will have logs

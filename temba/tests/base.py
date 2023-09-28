@@ -6,8 +6,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytz
-import redis
-from smartmin.tests import SmartminTest, SmartminTestMixin
+from django_redis import get_redis_connection
+from smartmin.tests import SmartminTest
 
 from django.conf import settings
 from django.contrib.auth.models import Group
@@ -15,7 +15,7 @@ from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from django.test import TransactionTestCase, override_settings
+from django.test import override_settings
 from django.utils import timezone
 
 from temba.archives.models import Archive
@@ -38,15 +38,16 @@ def add_testing_flag_to_context(*args):
     return dict(testing=settings.TESTING)
 
 
-class TembaTestMixin:
+class TembaTest(SmartminTest):
+    """
+    Base class for our unit tests
+    """
+
     databases = ("default", "readonly")
     default_password = "Qwerty123"
 
-    def setUpOrgs(self):
-        # make sure we start off without any service users
-        Group.objects.get(name="Service Users").user_set.clear()
-
-        self.clear_cache()
+    def setUp(self):
+        super().setUp()
 
         self.create_anonymous_user()
 
@@ -66,7 +67,6 @@ class TembaTestMixin:
         self.org = Org.objects.create(
             name="Nyaruka",
             timezone=pytz.timezone("Africa/Kigali"),
-            brand="rapidpro",
             flow_languages=["eng", "kin"],
             created_by=self.user,
             modified_by=self.user,
@@ -83,7 +83,6 @@ class TembaTestMixin:
         self.org2 = Org.objects.create(
             name="Trileet Inc.",
             timezone=pytz.timezone("US/Pacific"),
-            brand="rapidpro",
             flow_languages=["eng"],
             created_by=self.admin2,
             modified_by=self.admin2,
@@ -112,6 +111,14 @@ class TembaTestMixin:
 
         clear_flow_users()
 
+        # OrgRole.group and OrgRole.permissions are cached properties so get those cached before test starts to avoid
+        # query count differences when a test is first to request it and when it's not.
+        for role in OrgRole:
+            role.group  # noqa
+            role.permissions  # noqa
+
+        self.maxDiff = None
+
     def setUpLocations(self):
         """
         Installs some basic test location data for Rwanda
@@ -134,19 +141,13 @@ class TembaTestMixin:
         self.org.country = self.country
         self.org.save(update_fields=("country",))
 
-    def make_beta(self, user):
-        user.groups.add(Group.objects.get(name="Beta"))
+    def tearDown(self):
+        super().tearDown()
 
-    def clear_cache(self):
-        """
-        Clears the redis cache. We are extra paranoid here and check that redis host is 'localhost'
-        Redis 10 is our testing redis db
-        """
-        if settings.REDIS_HOST != "localhost":
-            raise ValueError(f"Expected redis test server host to be: 'localhost', got '{settings.REDIS_HOST}'")
-
-        r = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=10)
+        r = get_redis_connection()
         r.flushdb()
+
+        clear_flow_users()
 
     def clear_storage(self):
         """
@@ -256,7 +257,16 @@ class TembaTestMixin:
     def create_label(self, name, *, org=None):
         return Label.create(org or self.org, self.admin, name)
 
-    def create_field(self, key, name, value_type=ContactField.TYPE_TEXT, priority=0, show_in_table=False, org=None):
+    def create_field(
+        self,
+        key,
+        name,
+        value_type=ContactField.TYPE_TEXT,
+        priority=0,
+        show_in_table=False,
+        agent_access=ContactField.ACCESS_VIEW,
+        org=None,
+    ):
         org = org or self.org
 
         assert not org.fields.filter(key=key, is_active=True).exists(), f"field with key {key} already exists"
@@ -269,6 +279,7 @@ class TembaTestMixin:
             value_type=value_type,
             priority=priority,
             show_in_table=show_in_table,
+            agent_access=agent_access,
             created_by=self.admin,
             modified_by=self.admin,
         )
@@ -629,7 +640,7 @@ class TembaTestMixin:
         secret=None,
         config=None,
         org=None,
-    ):
+    ) -> Channel:
         channel_type = Channel.get_type_from_code(channel_type)
 
         return Channel.objects.create(
@@ -781,44 +792,26 @@ class TembaTestMixin:
 
     def assertModalResponse(self, response, *, redirect: str):
         self.assertEqual(200, response.status_code)
-        self.assertContains(response, "<div class='success-script'>")
+        self.assertContains(response, '<div class="success-script">')
         self.assertEqual(redirect, response.get("Temba-Success"))
         self.assertEqual(redirect, response.get("REDIRECT"))
-
-
-class TembaTest(TembaTestMixin, SmartminTest):
-    """
-    Base class for tests where each test executes in a DB transaction
-    """
-
-    def setUp(self):
-        self.setUpOrgs()
-
-        # OrgRole.group and OrgRole.permissions are cached properties so get those cached before test starts to avoid
-        # query count differences when a test is first to request it and when it's not.
-        for role in OrgRole:
-            role.group  # noqa
-            role.permissions  # noqa
-
-        self.maxDiff = None
-
-    def tearDown(self):
-        clear_flow_users()
-
-    def mockReadOnly(self, assert_models: set = None):
-        return MockReadOnly(self, assert_models=assert_models)
 
     def upload(self, path: str, content_type="text/plain", name=None):
         with open(path, "rb") as f:
             return SimpleUploadedFile(name or path, content=f.read(), content_type=content_type)
 
+    def make_beta(self, user):
+        user.groups.add(Group.objects.get(name="Beta"))
 
-class TembaNonAtomicTest(TembaTestMixin, SmartminTestMixin, TransactionTestCase):
-    """
-    Base class for tests that can't be wrapped in DB transactions
-    """
+    def anonymous(self, org: Org):
+        """
+        Makes the given org temporarily anonymous
+        """
 
-    pass
+        return AnonymousOrg(org)
+
+    def mockReadOnly(self, assert_models: set = None):
+        return MockReadOnly(self, assert_models=assert_models)
 
 
 class AnonymousOrg:
@@ -929,3 +922,15 @@ def mock_uuids(method=None, *, seed=1234):
         return wrapper
 
     return actual_decorator(method) if method else actual_decorator
+
+
+def get_contact_search(*, query=None, contacts=None, groups=None):
+    if query is not None:
+        contact_search = dict(query=query, advanced=True, recipients=[])
+        return json.dumps(contact_search)
+
+    if contacts is not None or groups is not None:
+        recipients = [{"id": c.uuid, "name": c.name, "type": "contact"} for c in contacts or []]
+        recipients += [{"id": g.uuid, "name": g.name, "type": "group"} for g in groups or []]
+        contact_search = dict(recipients=recipients, advanced=False)
+        return json.dumps(contact_search)

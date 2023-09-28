@@ -9,6 +9,7 @@ import pytz
 from celery.app.task import Task
 from django_redis import get_redis_connection
 
+from django import forms
 from django.conf import settings
 from django.forms import ValidationError
 from django.test import TestCase, override_settings
@@ -20,15 +21,16 @@ from temba.flows.models import Flow
 from temba.tests import TembaTest, matchers, override_brand
 from temba.triggers.models import Trigger
 from temba.utils import json, uuid
+from temba.utils.compose import compose_serialize
 from temba.utils.templatetags.temba import format_datetime, icon
 
 from . import chunk_list, countries, format_number, languages, percentage, redact, sizeof_fmt, str_to_bool
 from .crons import clear_cron_stats, cron_task
 from .dates import date_range, datetime_to_str, datetime_to_timestamp, timestamp_to_datetime
 from .email import is_valid_address, send_simple_email
-from .fields import NameValidator, validate_external_url
+from .fields import ExternalURLField, NameValidator
 from .templatetags.temba import oxford, short_datetime
-from .text import clean_string, decode_stream, generate_token, random_string, slugify_with, truncate, unsnakify
+from .text import clean_string, decode_stream, generate_secret, generate_token, slugify_with, truncate, unsnakify
 from .timezones import TimeZoneFormField, timezone_to_country_code
 
 
@@ -86,8 +88,8 @@ class InitTest(TembaTest):
         self.assertEqual("", unsnakify(""))
         self.assertEqual("Org Name", unsnakify("org_name"))
 
-    def test_random_string(self):
-        rs = random_string(1000)
+    def test_generate_secret(self):
+        rs = generate_secret(1000)
         self.assertEqual(1000, len(rs))
         self.assertFalse("1" in rs or "I" in rs or "0" in rs or "O" in rs)
 
@@ -152,6 +154,7 @@ class DatesTest(TembaTest):
         self.assertIsNone(datetime_to_str(None, "%Y-%m-%d %H:%M", tz=tz))
         self.assertEqual(datetime_to_str(d2, "%Y-%m-%d %H:%M", tz=tz), "2014-01-02 03:04")
         self.assertEqual(datetime_to_str(d2, "%Y/%m/%d %H:%M", tz=pytz.UTC), "2014/01/02 01:04")
+        self.assertEqual(datetime_to_str(date(2023, 8, 16), "%Y/%m/%d %H:%M", tz=pytz.UTC), "2023/08/16 00:00")
 
     def test_date_range(self):
         self.assertEqual(
@@ -638,6 +641,7 @@ class LanguagesTest(TembaTest):
             self.assertEqual("Arabic (Omani, ISO-639-3)", languages.get_name("acx"))  # name is overridden
             self.assertEqual("Cajun French", languages.get_name("frc"))  # non ISO-639-1 lang explicitly included
             self.assertEqual("Kyrgyz", languages.get_name("kir"))
+            self.assertEqual("Oromifa", languages.get_name("orm"))
 
             self.assertEqual("", languages.get_name("cpi"))  # not in our allowed languages
             self.assertEqual("", languages.get_name("xyz"))
@@ -897,34 +901,38 @@ class TestValidators(TestCase):
         self.assertEqual(NameValidator(64), validator)
         self.assertNotEqual(NameValidator(32), validator)
 
-    def test_validate_external_url(self):
+    def test_external_url_field(self):
+        class Form(forms.Form):
+            url = ExternalURLField()
+
         cases = (
-            ("ftp://google.com", "Must use HTTP or HTTPS."),
-            ("http://localhost/foo", "Cannot be a local or private host."),
-            ("http://localhost:80/foo", "Cannot be a local or private host."),
-            ("http://127.0.00.1/foo", "Cannot be a local or private host."),  # loop back
-            ("http://192.168.0.0/foo", "Cannot be a local or private host."),  # private
-            ("http://255.255.255.255", "Cannot be a local or private host."),  # multicast
-            ("http://169.254.169.254/latest", "Cannot be a local or private host."),  # link local
-            ("http://::1:80/foo", "Unable to resolve host."),  # no ipv6 addresses for now
-            ("http://google.com/foo", None),
-            ("http://google.com:8000/foo", None),
-            ("HTTP://google.com:8000/foo", None),
-            ("HTTP://8.8.8.8/foo", None),
+            ("//[", ["Enter a valid URL."]),
+            ("ftp://google.com", ["Must use HTTP or HTTPS."]),
+            ("google.com", ["Enter a valid URL."]),
+            ("http://localhost/foo", ["Cannot be a local or private host."]),
+            ("http://localhost:80/foo", ["Cannot be a local or private host."]),
+            ("http://127.0.00.1/foo", ["Cannot be a local or private host."]),  # loop back
+            ("http://192.168.0.0/foo", ["Cannot be a local or private host."]),  # private
+            ("http://255.255.255.255", ["Cannot be a local or private host."]),  # multicast
+            ("http://169.254.169.254/latest", ["Cannot be a local or private host."]),  # link local
+            ("http://::1:80/foo", ["Unable to resolve host."]),  # no ipv6 addresses for now
+            ("http://google.com/foo", []),
+            ("http://google.com:8000/foo", []),
+            ("HTTP://google.com:8000/foo", []),
+            ("HTTP://8.8.8.8/foo", []),
         )
 
         for tc in cases:
-            if tc[1]:
-                with self.assertRaises(ValidationError) as cm:
-                    validate_external_url(tc[0])
+            form = Form({"url": tc[0]})
+            is_valid = form.is_valid()
 
-                self.assertEqual(tc[1], cm.exception.message)
+            if tc[1]:
+                self.assertFalse(is_valid, f"form.is_valid() unexpectedly true for '{tc[0]}'")
+                self.assertEqual({"url": tc[1]}, form.errors, f"validation errors mismatch for '{tc[0]}'")
+
             else:
-                with patch("socket.gethostbyname", return_value="123.123.123.123"):
-                    try:
-                        validate_external_url(tc[0])
-                    except Exception:
-                        self.fail(f"unexpected validation error for '{tc[0]}'")
+                self.assertTrue(is_valid, f"form.is_valid() unexpectedly false for '{tc[0]}'")
+                self.assertEqual({}, form.errors)
 
 
 class TestUUIDs(TembaTest):
@@ -942,3 +950,8 @@ class TestUUIDs(TembaTest):
         g = uuid.seeded_generator(456)
         self.assertEqual(uuid.UUID("8c338abf-94e2-4c73-9944-72f7a6ff5877", version=4), g())
         self.assertEqual(uuid.UUID("c8e0696f-b3f6-4e63-a03a-57cb95bdb6e3", version=4), g())
+
+
+class ComposeTest(TembaTest):
+    def test_empty_compose(self):
+        self.assertEqual(compose_serialize(), {"text": "", "attachments": []})

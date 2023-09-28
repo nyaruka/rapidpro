@@ -35,16 +35,12 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         username = forms.CharField(
             max_length=64,
             required=False,
-            help_text=_(
-                "The username to use to authenticate to Kannel, if left blank we " "will generate one for you"
-            ),
+            help_text=_("The username to use to authenticate to Kannel, if left blank we " "will generate one for you"),
         )
         password = forms.CharField(
             max_length=64,
             required=False,
-            help_text=_(
-                "The password to use to authenticate to Kannel, if left blank we " "will generate one for you"
-            ),
+            help_text=_("The password to use to authenticate to Kannel, if left blank we " "will generate one for you"),
         )
         encoding = forms.ChoiceField(
             choices=Channel.ENCODING_CHOICES,
@@ -85,7 +81,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             Channel.CONFIG_CALLBACK_DOMAIN: org.get_brand_domain(),
         }
         self.object = Channel.add_config_external_channel(
-            org, self.request.user, country, number, "KN", config, role=role, parent=None
+            org, self.request.user, country, number, "KN", config, role=role
         )
 
         # if they didn't set a username or password, generate them, we do this after the addition above

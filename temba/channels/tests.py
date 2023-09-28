@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import io
 import time
 from datetime import date, datetime, timedelta
 from unittest.mock import patch
@@ -11,27 +12,28 @@ from smartmin.tests import SmartminTest
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core import mail
-from django.template import loader
+from django.core.files.storage import storages
 from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 
-from temba.channels.types.vonage import VonageType
 from temba.contacts.models import URN, Contact, ContactGroup, ContactURN
 from temba.msgs.models import Msg
+from temba.notifications.incidents.builtin import ChannelDisconnectedIncidentType
+from temba.notifications.tasks import send_notification_emails
 from temba.orgs.models import Org
 from temba.request_logs.models import HTTPLog
-from temba.tests import AnonymousOrg, CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom, override_brand
+from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom, override_brand
 from temba.tests.crudl import StaffRedirect
 from temba.triggers.models import Trigger
 from temba.utils import json
 from temba.utils.models import generate_uuid
 from temba.utils.views import TEMBA_MENU_SELECTION
 
-from .models import Alert, Channel, ChannelCount, ChannelEvent, ChannelLog, SyncEvent
+from .models import Channel, ChannelCount, ChannelEvent, ChannelLog, SyncEvent
 from .tasks import (
-    check_channel_alerts,
+    check_android_channels,
     squash_channel_counts,
     sync_old_seen_channels,
     track_org_channel_counts,
@@ -201,9 +203,7 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
 
         # add channel trigger
         flow = self.get_flow("color")
-        Trigger.objects.create(
-            org=self.org, flow=flow, channel=channel1, modified_by=self.admin, created_by=self.admin
-        )
+        Trigger.objects.create(org=self.org, flow=flow, channel=channel1, modified_by=self.admin, created_by=self.admin)
 
         # create some activity on this channel
         contact = self.create_contact("Bob", phone="+593979123456")
@@ -211,12 +211,7 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         self.create_outgoing_msg(contact, "Hi", channel=channel1, status="P")
         self.create_outgoing_msg(contact, "Hi", channel=channel1, status="E")
         self.create_outgoing_msg(contact, "Hi", channel=channel1, status="S")
-        Alert.objects.create(
-            channel=channel1, alert_type=Alert.TYPE_POWER, created_by=self.admin, modified_by=self.admin
-        )
-        Alert.objects.create(
-            channel=channel1, alert_type=Alert.TYPE_DISCONNECTED, created_by=self.admin, modified_by=self.admin
-        )
+        ChannelDisconnectedIncidentType.get_or_create(channel1)
         SyncEvent.create(
             channel1,
             dict(p_src="AC", p_sts="DIS", p_lvl=80, net="WIFI", pending=[1, 2], retry=[3, 4], cc="RW"),
@@ -225,17 +220,13 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
 
         # and some on another channel
         self.create_outgoing_msg(contact, "Hi", channel=channel2, status="E")
-        Alert.objects.create(
-            channel=channel2, alert_type=Alert.TYPE_POWER, created_by=self.admin, modified_by=self.admin
-        )
+        ChannelDisconnectedIncidentType.get_or_create(channel2)
         SyncEvent.create(
             channel2,
             dict(p_src="AC", p_sts="DIS", p_lvl=80, net="WIFI", pending=[1, 2], retry=[3, 4], cc="RW"),
             [1, 2],
         )
-        Trigger.objects.create(
-            org=self.org, flow=flow, channel=channel2, modified_by=self.admin, created_by=self.admin
-        )
+        Trigger.objects.create(org=self.org, flow=flow, channel=channel2, modified_by=self.admin, created_by=self.admin)
 
         # add channel to a flow as a dependency
         flow.channel_dependencies.add(channel1)
@@ -245,9 +236,6 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         flow.refresh_from_db()
         self.assertTrue(flow.has_issues)
         self.assertNotIn(channel1, flow.channel_dependencies.all())
-
-        self.assertEqual(0, channel1.alerts.count())
-        self.assertEqual(0, channel1.sync_events.count())
         self.assertEqual(0, channel1.triggers.filter(is_active=True).count())
 
         # check that we queued a task to interrupt sessions tied to this channel
@@ -263,39 +251,26 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
 
         # other channel should be unaffected
         self.assertEqual(1, channel2.msgs.filter(status="E").count())
-        self.assertEqual(1, channel2.alerts.count())
+        self.assertEqual(1, channel2.incidents.count())
         self.assertEqual(1, channel2.sync_events.count())
         self.assertEqual(1, channel2.triggers.filter(is_active=True).count())
+
+        # now do actual delete of channel
+        channel1.msgs.all().delete()
+        channel1.org.notifications.all().delete()
+        channel1.incidents.all().delete()
+        channel1.delete()
+
+        self.assertFalse(Channel.objects.filter(id=channel1.id).exists())
 
     @mock_mailroom
     def test_release_android(self, mr_mocks):
         android = self.claim_new_android()
         self.assertEqual("FCM111", android.config.get(Channel.CONFIG_FCM_ID))
 
-        # add bulk sender
-        vonage = Channel.create(
-            self.org,
-            self.admin,
-            android.country,
-            "NX",
-            name="Vonage Sender",
-            config={
-                VonageType.CONFIG_API_KEY: "key",
-                VonageType.CONFIG_API_SECRET: "secret",
-                Channel.CONFIG_CALLBACK_DOMAIN: self.org.get_brand_domain(),
-            },
-            tps=1,
-            address=android.address,
-            role=Channel.ROLE_SEND,
-            parent=android,
-            bod=android.address,
-        )
-
         # release it
         android.release(self.admin)
-
         android.refresh_from_db()
-        vonage.refresh_from_db()
 
         response = self.sync(android, cmds=[])
         self.assertEqual(200, response.status_code)
@@ -305,9 +280,6 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
 
         # and FCM ID now cleared
         self.assertIsNone(android.config.get(Channel.CONFIG_FCM_ID))
-
-        # bulk sender was also released
-        self.assertFalse(vonage.is_active)
 
     def test_list(self):
         # de-activate existing channels
@@ -366,6 +338,33 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
             content_type="application/json",
             data=post_data,
         )
+
+    def test_chart(self):
+        chart_url = reverse("channels.channel_chart", args=[self.tel_channel.uuid])
+        self.assertReadFetch(chart_url, allow_viewers=True, allow_editors=True)
+
+        # create some test messages
+        test_date = datetime(2020, 1, 20, 0, 0, 0, 0, timezone.utc)
+        test_date - timedelta(hours=2)
+        bob = self.create_contact("Bob", phone="+250785551212")
+        joe = self.create_contact("Joe", phone="+2501234567890")
+
+        with patch("django.utils.timezone.now", return_value=test_date):
+            self.create_outgoing_msg(bob, "Hey there Bob", channel=self.tel_channel)
+            self.create_incoming_msg(joe, "This incoming message will be counted", channel=self.tel_channel)
+            self.create_outgoing_msg(joe, "This outgoing message will be counted", channel=self.tel_channel)
+
+            response = self.fetch_protected(chart_url, self.admin)
+            chart = response.json()
+
+            # an entry for each incoming and outgoing
+            self.assertEqual(2, len(chart["series"]))
+
+            # one incoming message in the first entry
+            self.assertEqual(1, chart["series"][0]["data"][0][1])
+
+            # two outgoing messages in the second entry
+            self.assertEqual(2, chart["series"][1]["data"][0][1])
 
     def test_read(self):
         # now send the channel's updates
@@ -432,13 +431,6 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
             # now that we can access the channel, which messages do we display in the chart?
             joe = self.create_contact("Joe", phone="+2501234567890")
 
-            # should have two series, one for incoming one for outgoing
-            self.assertEqual(2, len(response.context["message_stats"]))
-
-            # but only an outgoing message so far
-            self.assertEqual(0, len(response.context["message_stats"][0]["data"]))
-            self.assertEqual(1, response.context["message_stats"][1]["data"][-1]["count"])
-
             # we have one row for the message stats table
             self.assertEqual(1, len(response.context["message_stats_table"]))
             # only one outgoing message
@@ -454,8 +446,6 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
             # now we have an inbound message and two outbounds
             response = self.fetch_protected(tel_channel_read_url, self.admin)
             self.assertEqual(200, response.status_code)
-            self.assertEqual(1, response.context["message_stats"][0]["data"][-1]["count"])
-            self.assertEqual(1, response.context["message_stats"][1]["data"][-1]["count"])
 
             # message stats table have an inbound and two outbounds in the last month
             self.assertEqual(1, len(response.context["message_stats_table"]))
@@ -473,15 +463,18 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
             self.create_outgoing_msg(joe, "outgoing ivr", channel=self.tel_channel, voice=True)
             response = self.fetch_protected(tel_channel_read_url, self.admin)
 
-            self.assertEqual(4, len(response.context["message_stats"]))
-            self.assertEqual(1, response.context["message_stats"][2]["data"][0]["count"])
-            self.assertEqual(1, response.context["message_stats"][3]["data"][0]["count"])
-
             self.assertEqual(1, len(response.context["message_stats_table"]))
             self.assertEqual(1, response.context["message_stats_table"][0]["incoming_messages_count"])
             self.assertEqual(2, response.context["message_stats_table"][0]["outgoing_messages_count"])
             self.assertEqual(1, response.context["message_stats_table"][0]["incoming_ivr_count"])
             self.assertEqual(1, response.context["message_stats_table"][0]["outgoing_ivr_count"])
+
+            # look at the chart for our messages
+            chart_url = reverse("channels.channel_chart", args=[self.tel_channel.uuid])
+            response = self.fetch_protected(chart_url, self.admin)
+
+            # incoming, outgoing for both text and our ivr messages
+            self.assertEqual(4, len(response.json()["series"]))
 
         # as staff
         self.requestView(tel_channel_read_url, self.customer_support, checks=[StaffRedirect()])
@@ -593,11 +586,11 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(["AT", "MT", "TG"], [t.code for t in response.context["recommended_channels"]])
 
         self.assertEqual(response.context["channel_types"]["PHONE"][0].code, "AC")
-        self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "BM")
-        self.assertEqual(response.context["channel_types"]["PHONE"][2].code, "BL")
+        self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "BL")
+        self.assertEqual(response.context["channel_types"]["PHONE"][2].code, "BS")
         self.assertEqual(response.context["channel_types"]["PHONE"][-1].code, "A")
 
-        self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][0].code, "D3")
+        self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][0].code, "D3C")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][1].code, "DS")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][2].code, "FBA")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][-2].code, "WC")
@@ -613,11 +606,11 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual(response.context["channel_types"]["PHONE"][0].code, "AC")
         self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "BW")
-        self.assertEqual(response.context["channel_types"]["PHONE"][2].code, "BM")
-        self.assertEqual(response.context["channel_types"]["PHONE"][3].code, "BL")
+        self.assertEqual(response.context["channel_types"]["PHONE"][2].code, "BL")
+        self.assertEqual(response.context["channel_types"]["PHONE"][3].code, "BS")
         self.assertEqual(response.context["channel_types"]["PHONE"][-1].code, "A")
 
-        self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][0].code, "D3")
+        self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][0].code, "D3C")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][1].code, "DS")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][2].code, "FBA")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][-2].code, "WA")
@@ -742,9 +735,7 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         msg6 = self.send_message(["250788382382"], "from when?")
 
         # an incoming message that should not be included even if it is still pending
-        incoming_message = self.create_incoming_msg(
-            contact, "hey", channel=self.tel_channel, status=Msg.STATUS_PENDING
-        )
+        incoming_message = self.create_incoming_msg(contact, "hey", channel=self.tel_channel, status=Msg.STATUS_PENDING)
 
         # Check our sync point has all three messages queued for delivery
         response = self.sync(self.tel_channel, cmds=[])
@@ -868,31 +859,6 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         # no new message
         self.assertEqual(Msg.objects.all().count(), msgs_count)
 
-        # set an email on our channel
-        self.tel_channel.alert_email = "fred@worldrelif.org"
-        self.tel_channel.save()
-
-        # We should not have an alert this time
-        self.assertEqual(0, Alert.objects.all().count())
-
-        # the case the status must be be reported
-        response = self.sync(
-            self.tel_channel,
-            cmds=[
-                # device details status
-                dict(cmd="status", p_sts="DIS", p_src="BAT", p_lvl="20", net="UMTS", retry=[], pending=[])
-            ],
-        )
-
-        # we should now have an Alert
-        self.assertEqual(1, Alert.objects.all().count())
-
-        # and at this time it must be not ended
-        self.assertEqual(
-            1, Alert.objects.filter(sync_event__channel=self.tel_channel, ended_on=None, alert_type="P").count()
-        )
-
-        # the case the status must be be reported but already notification sent
         response = self.sync(
             self.tel_channel,
             cmds=[
@@ -901,30 +867,7 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
             ],
         )
 
-        # we should not create a new alert
-        self.assertEqual(1, Alert.objects.all().count())
-
-        # still not ended
-        self.assertEqual(
-            1, Alert.objects.filter(sync_event__channel=self.tel_channel, ended_on=None, alert_type="P").count()
-        )
-
-        # Let plug the channel to charger
-        response = self.sync(
-            self.tel_channel,
-            cmds=[
-                # device details status
-                dict(cmd="status", p_sts="CHA", p_src="BAT", p_lvl="15", net="UMTS", pending=[], retry=[])
-            ],
-        )
-
-        # only one alert
-        self.assertEqual(1, Alert.objects.all().count())
-
-        # and we end all alert related to this issue
-        self.assertEqual(
-            0, Alert.objects.filter(sync_event__channel=self.tel_channel, ended_on=None, alert_type="P").count()
-        )
+        self.assertEqual(2, SyncEvent.objects.all().count())
 
         # make our events old so we can test trimming them
         SyncEvent.objects.all().update(created_on=timezone.now() - timedelta(days=45))
@@ -932,78 +875,6 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
 
         # should be cleared out
         self.assertEqual(1, SyncEvent.objects.all().count())
-        self.assertFalse(Alert.objects.exists())
-
-        # the case the status is in unknown state
-        response = self.sync(
-            self.tel_channel,
-            cmds=[
-                # device details status
-                dict(cmd="status", p_sts="UNK", p_src="BAT", p_lvl="15", net="UMTS", pending=[], retry=[])
-            ],
-        )
-
-        # we should now create a new alert
-        self.assertEqual(1, Alert.objects.all().count())
-
-        # one alert not ended
-        self.assertEqual(
-            1, Alert.objects.filter(sync_event__channel=self.tel_channel, ended_on=None, alert_type="P").count()
-        )
-
-        # Let plug the channel to charger to end this unknown power status
-        response = self.sync(
-            self.tel_channel,
-            cmds=[
-                # device details status
-                dict(cmd="status", p_sts="CHA", p_src="BAT", p_lvl="15", net="UMTS", pending=[], retry=[])
-            ],
-        )
-
-        # still only one alert
-        self.assertEqual(1, Alert.objects.all().count())
-
-        # and we end all alert related to this issue
-        self.assertEqual(
-            0, Alert.objects.filter(sync_event__channel=self.tel_channel, ended_on=None, alert_type="P").count()
-        )
-
-        # clear all the alerts
-        Alert.objects.all().delete()
-
-        # the case the status is in not charging state
-        response = self.sync(
-            self.tel_channel,
-            cmds=[
-                # device details status
-                dict(cmd="status", p_sts="NOT", p_src="BAT", p_lvl="15", net="UMTS", pending=[], retry=[])
-            ],
-        )
-
-        # we should now create a new alert
-        self.assertEqual(1, Alert.objects.all().count())
-
-        # one alert not ended
-        self.assertEqual(
-            1, Alert.objects.filter(sync_event__channel=self.tel_channel, ended_on=None, alert_type="P").count()
-        )
-
-        # Let plug the channel to charger to end this unknown power status
-        response = self.sync(
-            self.tel_channel,
-            cmds=[
-                # device details status
-                dict(cmd="status", p_sts="CHA", p_src="BAT", p_lvl="15", net="UMTS", pending=[], retry=[])
-            ],
-        )
-
-        # first we have a new alert created
-        self.assertEqual(1, Alert.objects.all().count())
-
-        # and we end all alert related to this issue
-        self.assertEqual(
-            0, Alert.objects.filter(sync_event__channel=self.tel_channel, ended_on=None, alert_type="P").count()
-        )
 
         response = self.sync(
             self.tel_channel,
@@ -1124,6 +995,10 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "To finish configuring your connection")
         self.assertEqual(f"/settings/channels/{self.ex_channel.uuid}", response.context[TEMBA_MENU_SELECTION])
 
+        # can't view configuration of channel whose type doesn't support it
+        response = self.client.get(reverse("channels.channel_configuration", args=[self.channel.uuid]))
+        self.assertRedirect(response, reverse("channels.channel_read", args=[self.channel.uuid]))
+
         # can't view configuration of channel in other org
         response = self.client.get(reverse("channels.channel_configuration", args=[self.other_org_channel.uuid]))
         self.assertLoginRedirect(response)
@@ -1144,24 +1019,19 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             android_url,
             allow_viewers=False,
             allow_editors=True,
-            form_fields={"name": "My Android", "alert_email": None, "allow_international": False},
+            form_fields={"name": "My Android", "allow_international": False},
         )
         self.assertUpdateFetch(
             vonage_url,
             allow_viewers=False,
             allow_editors=True,
-            form_fields={
-                "name": "My Vonage",
-                "alert_email": None,
-                "allow_international": False,
-                "machine_detection": False,
-            },
+            form_fields={"name": "My Vonage", "allow_international": False, "machine_detection": False},
         )
         self.assertUpdateFetch(
             telegram_url,
             allow_viewers=False,
             allow_editors=True,
-            form_fields={"name": "My Telegram", "alert_email": None},
+            form_fields={"name": "My Telegram"},
         )
 
         # name can't be empty
@@ -1175,18 +1045,12 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         # make some changes
         self.assertUpdateSubmit(
             vonage_url,
-            {
-                "name": "Updated Name",
-                "alert_email": "bob@nyaruka.com",
-                "allow_international": True,
-                "machine_detection": True,
-            },
+            {"name": "Updated Name", "allow_international": True, "machine_detection": True},
         )
 
         vonage_channel.refresh_from_db()
         self.assertEqual("Updated Name", vonage_channel.name)
         self.assertEqual("+1234567890", vonage_channel.address)
-        self.assertEqual("bob@nyaruka.com", vonage_channel.alert_email)
         self.assertTrue(vonage_channel.config.get("allow_international"))
         self.assertTrue(vonage_channel.config.get("machine_detection"))
 
@@ -1194,12 +1058,15 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             vonage_url,
             allow_viewers=False,
             allow_editors=True,
-            form_fields={
-                "name": "Updated Name",
-                "alert_email": "bob@nyaruka.com",
-                "allow_international": True,
-                "machine_detection": True,
-            },
+            form_fields={"name": "Updated Name", "allow_international": True, "machine_detection": True},
+        )
+
+        # staff users see extra log policy field
+        self.login(self.customer_support, choose_org=self.org)
+        response = self.client.get(vonage_url)
+        self.assertEqual(
+            ["name", "log_policy", "allow_international", "machine_detection", "loc"],
+            list(response.context["form"].fields.keys()),
         )
 
     def test_delete(self):
@@ -1231,52 +1098,6 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         flow.refresh_from_db()
         self.assertTrue(flow.has_issues)
         self.assertNotIn(self.ex_channel, flow.channel_dependencies.all())
-
-    def test_delete_delegate(self):
-        android = Channel.create(
-            self.org, self.admin, "RW", "A", name="Android", address="+250785551313", role="SR", schemes=("tel",)
-        )
-        vonage = Channel.create(
-            self.org,
-            self.admin,
-            android.country,
-            "NX",
-            name="Vonage Sender",
-            config={
-                VonageType.CONFIG_API_KEY: "key",
-                VonageType.CONFIG_API_SECRET: "secret",
-                Channel.CONFIG_CALLBACK_DOMAIN: self.org.get_brand_domain(),
-            },
-            tps=1,
-            address=android.address,
-            role=Channel.ROLE_SEND,
-            parent=android,
-            bod=android.address,
-        )
-
-        response = self.assertReadFetch(
-            reverse("channels.channel_read", args=[android.uuid]), allow_editors=True, allow_viewers=True
-        )
-        self.assertContains(response, "Bulk sending")
-        self.assertContains(response, "channel_nx")
-
-        delete_url = reverse("channels.channel_delete", args=[vonage.uuid])
-
-        # fetch delete modal
-        response = self.assertDeleteFetch(delete_url, allow_editors=True)
-        self.assertContains(response, "Disable Bulk Sending")
-
-        # try when delegate is a caller instead
-        vonage.role = "C"
-        vonage.save(update_fields=("role",))
-
-        # fetch delete modal
-        response = self.assertDeleteFetch(delete_url, allow_editors=True)
-        self.assertContains(response, "Disable Voice Calling")
-
-        # submit to delete it - should be redirected to the Android channel page
-        response = self.assertDeleteSubmit(delete_url, object_deactivated=vonage, success_status=200)
-        self.assertEqual(f"/channels/channel/read/{android.uuid}/", response["Temba-Success"])
 
 
 class SyncEventTest(SmartminTest):
@@ -1320,25 +1141,6 @@ class SyncEventTest(SmartminTest):
         self.assertEqual("RW", self.tel_channel.country)
 
 
-class ChannelAlertTest(TembaTest):
-    def test_no_alert_email(self):
-        # set our last seen to a while ago
-        self.channel.last_seen = timezone.now() - timedelta(minutes=40)
-        self.channel.save()
-
-        check_channel_alerts()
-        self.assertTrue(len(mail.outbox) == 0)
-
-        # add alert email, remove org and set last seen to now to force an resolve email to try to send
-        self.channel.alert_email = "fred@unicef.org"
-        self.channel.org = None
-        self.channel.last_seen = timezone.now()
-        self.channel.save()
-        check_channel_alerts()
-
-        self.assertTrue(len(mail.outbox) == 0)
-
-
 class ChannelSyncTest(TembaTest):
     @patch("temba.channels.models.Channel.trigger_sync")
     def test_sync_old_seen_chaanels(self, mock_trigger_sync):
@@ -1361,71 +1163,57 @@ class ChannelSyncTest(TembaTest):
         self.assertTrue(mock_trigger_sync.called)
 
 
-class ChannelClaimTest(TembaTest):
+class ChannelIncidentsTest(TembaTest):
     @override_settings(SEND_EMAILS=True)
-    def test_disconnected_alert(self):
+    def test_disconnected(self):
         # set our last seen to a while ago
-        self.channel.alert_email = "fred@unicef.org"
         self.channel.last_seen = timezone.now() - timedelta(minutes=40)
-        self.channel.save()
+        self.channel.save(update_fields=("last_seen",))
 
         with override_brand(from_email="support@mybrand.com"):
-            check_channel_alerts()
+            check_android_channels()
 
-            # should have created one alert
-            alert = Alert.objects.get()
-            self.assertEqual(self.channel, alert.channel)
-            self.assertEqual(Alert.TYPE_DISCONNECTED, alert.alert_type)
-            self.assertFalse(alert.ended_on)
+            # should have created an incident
+            incident = self.org.incidents.get()
+            self.assertEqual(self.channel, incident.channel)
+            self.assertEqual("channel:disconnected", incident.incident_type)
+            self.assertIsNone(incident.ended_on)
 
-            self.assertTrue(len(mail.outbox) == 1)
-            template = "channels/email/disconnected_alert.txt"
-            context = dict(
-                org=self.channel.org,
-                channel=self.channel,
-                now=timezone.now(),
-                branding=self.channel.org.branding,
-                last_seen=self.channel.last_seen,
-                sync=alert.sync_event,
-            )
+            self.assertEqual(1, self.admin.notifications.count())
 
-            text_template = loader.get_template(template)
-            text = text_template.render(context)
+            notification = self.admin.notifications.get()
+            self.assertFalse(notification.is_seen)
 
-            self.assertEqual(mail.outbox[0].body, text)
-            self.assertEqual(mail.outbox[0].from_email, "support@mybrand.com")
+            send_notification_emails()
 
-        # call it again
-        check_channel_alerts()
+            self.assertEqual(1, len(mail.outbox))
+            self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[0].subject)
+            self.assertEqual("support@mybrand.com", mail.outbox[0].from_email)
 
-        # still only one alert
-        self.assertEqual(1, Alert.objects.all().count())
-        self.assertTrue(len(mail.outbox) == 1)
+        # if we go to the read page of the channel, notification will be marked as seen
+        read_url = reverse("channels.channel_read", args=[self.channel.uuid])
+        self.login(self.admin)
+        self.client.get(read_url)
+
+        notification.refresh_from_db()
+        self.assertTrue(notification.is_seen)
+
+        # call task again
+        check_android_channels()
+
+        # still only one incident
+        incident = self.org.incidents.get()
+        self.assertEqual(1, len(mail.outbox))
 
         # ok, let's have the channel show up again
         self.channel.last_seen = timezone.now() + timedelta(minutes=5)
-        self.channel.save()
+        self.channel.save(update_fields=("last_seen",))
 
-        check_channel_alerts()
+        check_android_channels()
 
-        # still only one alert, but it is now ended
-        alert = Alert.objects.get()
-        self.assertTrue(alert.ended_on)
-        self.assertTrue(len(mail.outbox) == 2)
-        template = "channels/email/connected_alert.txt"
-        context = dict(
-            org=self.channel.org,
-            channel=self.channel,
-            now=timezone.now(),
-            branding=self.channel.org.branding,
-            last_seen=self.channel.last_seen,
-            sync=alert.sync_event,
-        )
-
-        text_template = loader.get_template(template)
-        text = text_template.render(context)
-
-        self.assertEqual(mail.outbox[1].body, text)
+        # still only one incident, but it is now ended
+        incident = self.org.incidents.get()
+        self.assertIsNotNone(incident.ended_on)
 
 
 class ChannelCountTest(TembaTest):
@@ -1583,6 +1371,7 @@ class ChannelLogTest(TembaTest):
 
         self.assertEqual(
             {
+                "uuid": str(log.uuid),
                 "type": "msg_send",
                 "http_logs": [
                     {
@@ -1604,6 +1393,7 @@ class ChannelLogTest(TembaTest):
 
         self.assertEqual(
             {
+                "uuid": str(log.uuid),
                 "type": "msg_send",
                 "http_logs": [
                     {
@@ -1626,6 +1416,7 @@ class ChannelLogTest(TembaTest):
         # if we don't pass it a URN, anonymization is more aggressive
         self.assertEqual(
             {
+                "uuid": str(log.uuid),
                 "type": "msg_send",
                 "http_logs": [
                     {
@@ -1667,6 +1458,7 @@ class ChannelLogTest(TembaTest):
 
         self.assertEqual(
             {
+                "uuid": str(log.uuid),
                 "type": "msg_send",
                 "http_logs": [
                     {
@@ -1685,6 +1477,7 @@ class ChannelLogTest(TembaTest):
         )
         self.assertEqual(
             {
+                "uuid": str(log.uuid),
                 "type": "msg_send",
                 "http_logs": [
                     {
@@ -1710,7 +1503,7 @@ class ChannelLogTest(TembaTest):
             is_error=False,
             http_logs=[],
             errors=[],
-            created_on=timezone.now() - timedelta(days=7),
+            created_on=timezone.now() - timedelta(days=15),
         )
         l2 = ChannelLog.objects.create(
             channel=self.channel,
@@ -1790,14 +1583,44 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
 
         msg1_url = reverse("channels.channellog_msg", args=[self.channel.uuid, msg1.id])
 
-        self.assertListFetch(
-            msg1_url, allow_viewers=False, allow_editors=False, allow_org2=False, context_objects=[log1, log2]
+        response = self.assertListFetch(
+            msg1_url, allow_viewers=False, allow_editors=False, allow_org2=False, context_objects=[]
         )
+        self.assertEqual(2, len(response.context["logs"]))
+        self.assertEqual("https://foo.bar/send1", response.context["logs"][0]["http_logs"][0]["url"])
+        self.assertEqual("https://foo.bar/send2", response.context["logs"][1]["http_logs"][0]["url"])
 
         self.login(self.admin)
 
         response = self.client.get(msg1_url)
         self.assertEqual(f"/settings/channels/{self.channel.uuid}", response.headers[TEMBA_MENU_SELECTION])
+
+        # try when log objects are in storage rather than the database
+        ChannelLog.objects.all().delete()
+
+        storages["logs"].save(
+            f"channels/{self.channel.uuid}/{str(log1.uuid)[:4]}/{log1.uuid}.json",
+            io.StringIO(json.dumps(log1._get_json())),
+        )
+        storages["logs"].save(
+            f"channels/{self.channel.uuid}/{str(log2.uuid)[:4]}/{log2.uuid}.json",
+            io.StringIO(json.dumps(log2._get_json())),
+        )
+
+        response = self.assertListFetch(
+            msg1_url, allow_viewers=False, allow_editors=False, allow_org2=False, context_objects=[]
+        )
+        self.assertEqual(2, len(response.context["logs"]))
+        self.assertEqual("https://foo.bar/send1", response.context["logs"][0]["http_logs"][0]["url"])
+        self.assertEqual("https://foo.bar/send2", response.context["logs"][1]["http_logs"][0]["url"])
+
+        # missing logs are logged as errors and ignored
+        storages["logs"].delete(f"channels/{self.channel.uuid}/{str(log2.uuid)[:4]}/{log2.uuid}.json")
+
+        response = self.assertListFetch(
+            msg1_url, allow_viewers=False, allow_editors=False, allow_org2=False, context_objects=[]
+        )
+        self.assertEqual(1, len(response.context["logs"]))
 
     def test_call(self):
         contact = self.create_contact("Fred", phone="+12067799191")
@@ -1830,9 +1653,12 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
 
         call1_url = reverse("channels.channellog_call", args=[self.channel.uuid, call1.id])
 
-        self.assertListFetch(
-            call1_url, allow_viewers=False, allow_editors=False, allow_org2=False, context_objects=[log1, log2]
+        response = self.assertListFetch(
+            call1_url, allow_viewers=False, allow_editors=False, allow_org2=False, context_objects=[]
         )
+        self.assertEqual(2, len(response.context["logs"]))
+        self.assertEqual("https://acme-calls.com/reply", response.context["logs"][0]["http_logs"][0]["url"])
+        self.assertEqual("https://foo.bar/call2", response.context["logs"][1]["http_logs"][0]["url"])
 
     def test_read_and_list(self):
         self.channel.role = "CASR"
@@ -1958,10 +1784,11 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # check read page shows un-redacted content for a regular org
         response = self.client.get(read_url)
+        self.assertEqual(1, len(response.context["logs"]))
         self.assertNotRedacted(response, ("3527065", "Nic", "Pottier"))
 
         # but for anon org we see redaction...
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             response = self.client.get(read_url)
             self.assertRedacted(response, ("3527065", "Nic", "Pottier"))
 
@@ -2006,7 +1833,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertNotRedacted(response, ("3527065", "Nic"))
 
         # but for anon org we see redaction...
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             response = self.client.get(read_url)
             self.assertRedacted(response, ("3527065", "Nic"))
 
@@ -2041,7 +1868,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertNotRedacted(response, ("3527065",))
 
         # but for anon org we see complete redaction
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             response = self.client.get(read_url)
             self.assertRedacted(response, ("3527065", "api.telegram.org", "/65474/sendMessage"))
 
@@ -2076,7 +1903,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertNotRedacted(response, ("767659860", "Aaron Tumukunde", "tumaaron"))
 
         # but for anon org we see redaction...
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             response = self.client.get(read_url)
             self.assertRedacted(response, ("767659860", "Aaron Tumukunde", "tumaaron"))
 
@@ -2111,7 +1938,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertNotRedacted(response, ("767659860",))
 
         # but for anon org we see complete redaction...
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             response = self.client.get(read_url)
             self.assertRedacted(response, ("767659860", "twitter.com", "/65474/sendMessage"))
 
@@ -2148,7 +1975,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertNotRedacted(response, ("2150393045080607",))
 
         # but for anon org we see redaction...
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             response = self.client.get(read_url)
             self.assertRedacted(response, ("2150393045080607",))
 
@@ -2184,7 +2011,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertNotRedacted(response, ("2150393045080607",))
 
         # but for anon org we see complete redaction...
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             response = self.client.get(read_url)
             self.assertRedacted(response, ("2150393045080607", "facebook.com", "/65474/sendMessage"))
 
@@ -2218,7 +2045,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertNotRedacted(response, ("097 909 9111", "979099111", "Quito"))
 
         # but for anon org we see redaction...
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             response = self.client.get(read_url)
             self.assertRedacted(response, ("097 909 9111", "979099111", "Quito"))
 
@@ -2305,7 +2132,7 @@ Content-Type: application/json
         # non anon user can see contact identifying data (in the request)
         self.assertContains(response, tw_urn, count=1)
 
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             response = self.client.get(read_url)
 
             self.assertContains(response, tw_urn, count=0)
@@ -2340,7 +2167,7 @@ class FacebookWhitelistTest(TembaTest, CRUDLTestMixin):
         self.login(self.admin)
         response = self.client.get(read_url)
         self.assertContains(response, self.channel.name)
-        self.assertContentMenu(read_url, self.admin, ["Settings", "Logs", "Edit", "Delete", "Whitelist Domain"])
+        self.assertContentMenu(read_url, self.admin, ["Configuration", "Logs", "Edit", "Delete", "Whitelist Domain"])
 
         with patch("requests.post") as mock:
             mock.return_value = MockResponse(400, '{"error": { "message": "FB Error" } }')

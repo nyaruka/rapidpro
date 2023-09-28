@@ -31,11 +31,11 @@ from temba.contacts.models import Contact, ContactField, ContactGroup, ContactUR
 from temba.flows.models import Flow, FlowLabel, FlowRun, FlowStart
 from temba.globals.models import Global
 from temba.locations.models import AdminBoundary, BoundaryAlias
-from temba.msgs.models import Broadcast, Label, Media, Msg
+from temba.msgs.models import Broadcast, Label, Media, Msg, OptIn
 from temba.orgs.models import Org, OrgRole, User
 from temba.schedules.models import Schedule
 from temba.templates.models import Template, TemplateTranslation
-from temba.tests import AnonymousOrg, TembaTest, matchers, mock_mailroom, mock_uuids
+from temba.tests import TembaTest, matchers, mock_mailroom, mock_uuids
 from temba.tests.engine import MockSessionWriter
 from temba.tickets.models import Ticket, Ticketer, Topic
 from temba.tickets.types.mailgun import MailgunType
@@ -161,9 +161,7 @@ class FieldsTest(APITest):
                 with self.assertRaises(expected, msg=f"expected exception for '{submitted}'"):
                     f.run_validation(submitted)
             else:
-                self.assertEqual(
-                    f.run_validation(submitted), expected, f"to_internal_value mismatch for '{submitted}'"
-                )
+                self.assertEqual(f.run_validation(submitted), expected, f"to_internal_value mismatch for '{submitted}'")
 
         for value, expected in representations.items():
             self.assertEqual(f.to_representation(value), expected, f"to_representation mismatch for '{value}'")
@@ -230,7 +228,7 @@ class FieldsTest(APITest):
             },
         )
 
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             # load contacts again without cached org on them or their urns
             joe = Contact.objects.get(id=joe.id)
             frank = Contact.objects.get(id=frank.id)
@@ -475,7 +473,7 @@ class FieldsTest(APITest):
         self.assertEqual("tel:+250788383383", fields.serialize_urn(self.org, urn_obj))
         self.assertEqual(urn_dict, fields.serialize_urn(self.org, urn_dict))
 
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             self.assertEqual("tel:********", fields.serialize_urn(self.org, urn_obj))
             self.assertEqual(
                 {
@@ -495,7 +493,7 @@ class EndpointsTest(APITest):
         self.joe = self.create_contact("Joe Blow", phone="0788123123")
         self.frank = self.create_contact("Frank", urns=["twitter:franky"])
 
-        self.twitter = self.create_channel("TT", "Twitter Channel", "billy_bob")
+        self.twitter = self.create_channel("TWT", "Twitter Channel", "billy_bob")
 
         self.hans = self.create_contact("Hans Gruber", phone="+4921551511", org=self.org2)
 
@@ -1143,7 +1141,7 @@ class EndpointsTest(APITest):
         response = self.getJSON(broadcasts_url, "before=%s" % format_datetime(bcast2.created_on))
         self.assertResultsById(response, [bcast2, bcast1])
 
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             # URNs shouldn't be included
             response = self.getJSON(broadcasts_url, "id=%d" % bcast1.id)
             self.assertIsNone(response.json()["results"][0]["urns"])
@@ -1842,7 +1840,7 @@ class EndpointsTest(APITest):
         deleted.release(self.admin)
 
         # create channel for other org
-        self.create_channel("TT", "Twitter Channel", "nyaruka", org=self.org2)
+        self.create_channel("TWT", "Twitter Channel", "nyaruka", org=self.org2)
 
         # no filtering
         with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 2):
@@ -2092,7 +2090,7 @@ class EndpointsTest(APITest):
         self.assertEqual(resp_json["next"], None)
         self.assertResultsByUUID(response, [self.frank, contact1, contact2, self.joe, contact4])
 
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 6):
                 response = self.getJSON(contacts_url)
 
@@ -2499,6 +2497,53 @@ class EndpointsTest(APITest):
         response = self.deleteJSON(contacts_url, "uuid=%s" % hans.uuid)
         self.assert404(response)
 
+    @mock_mailroom
+    def test_contacts_as_agent(self, mr_mocks):
+        contacts_url = reverse("api.v2.contacts")
+
+        self.create_field("gender", "Gender", ContactField.TYPE_TEXT, agent_access=ContactField.ACCESS_NONE)
+        self.create_field("age", "Age", ContactField.TYPE_NUMBER, agent_access=ContactField.ACCESS_VIEW)
+        self.create_field("height", "Height", ContactField.TYPE_NUMBER, agent_access=ContactField.ACCESS_EDIT)
+
+        contact = self.create_contact(
+            "Bob", urns=["telegram:12345"], fields={"gender": "M", "age": "40", "height": "180"}
+        )
+
+        self.login(self.agent)
+
+        # fetching a contact returns only the fields that agents can access
+        response = self.getJSON(contacts_url, f"uuid={contact.uuid}")
+        self.assertEqual(
+            {
+                "uuid": str(contact.uuid),
+                "name": "Bob",
+                "status": "active",
+                "language": None,
+                "urns": ["telegram:12345"],
+                "groups": [],
+                "fields": {"age": "40", "height": "180"},
+                "flow": None,
+                "created_on": format_datetime(contact.created_on),
+                "modified_on": format_datetime(contact.modified_on),
+                "last_seen_on": None,
+                "blocked": False,
+                "stopped": False,
+            },
+            response.json()["results"][0],
+        )
+
+        # can't edit the field that we don't have any access to
+        response = self.postJSON(contacts_url, f"uuid={contact.uuid}", {"fields": {"gender": "M"}})
+        self.assertResponseError(response, "fields", "Invalid contact field key: gender")
+
+        # nor the field that we have view access to
+        response = self.postJSON(contacts_url, f"uuid={contact.uuid}", {"fields": {"age": "30"}})
+        self.assertResponseError(response, "fields", "Editing of 'age' values disallowed for current user.")
+
+        # but can edit the field we have edit access for
+        response = self.postJSON(contacts_url, f"uuid={contact.uuid}", {"fields": {"height": "160"}})
+        self.assertEqual(200, response.status_code)
+
     def test_contacts_prevent_null_chars(self):
         contacts_url = reverse("api.v2.contacts")
 
@@ -2620,7 +2665,7 @@ class EndpointsTest(APITest):
 
         jean = Contact.objects.filter(name="Jean", language="fra").get()
 
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             # can't update via URN
             response = self.postJSON(contacts_url, "urn=%s" % "tel:+250785555555", {})
             self.assertEqual(response.status_code, 400)
@@ -2754,9 +2799,7 @@ class EndpointsTest(APITest):
         self.assertEqual(set(group.contacts.all()), {contact1, contact2})
 
         # try to add to a non-existent group
-        response = self.postJSON(
-            actions_url, None, {"contacts": [contact1.uuid], "action": "add", "group": "Spammers"}
-        )
+        response = self.postJSON(actions_url, None, {"contacts": [contact1.uuid], "action": "add", "group": "Spammers"})
         self.assertResponseError(response, "group", "No such object: Spammers")
 
         # try to add to a dynamic group
@@ -2766,9 +2809,7 @@ class EndpointsTest(APITest):
         self.assertResponseError(response, "group", "Contact group must not be query based: Developers")
 
         # add contact 3 to a group by its UUID
-        response = self.postJSON(
-            actions_url, None, {"contacts": [contact3.uuid], "action": "add", "group": group.uuid}
-        )
+        response = self.postJSON(actions_url, None, {"contacts": [contact3.uuid], "action": "add", "group": group.uuid})
         self.assertEqual(response.status_code, 204)
         self.assertEqual(set(group.contacts.all()), {contact1, contact2, contact3})
 
@@ -2969,7 +3010,7 @@ class EndpointsTest(APITest):
 
         self.assertEndpointAccess(fields_url, viewer_get=200, admin_get=200, agent_get=200)
 
-        self.create_field("nick_name", "Nick Name")
+        self.create_field("nick_name", "Nick Name", agent_access=ContactField.ACCESS_EDIT)
         registered = self.create_field("registered", "Registered On", value_type=ContactField.TYPE_DATETIME)
         self.create_field("not_ours", "Something Else", org=self.org2)
 
@@ -2999,6 +3040,7 @@ class EndpointsTest(APITest):
                     "featured": False,
                     "priority": 0,
                     "usages": {"campaign_events": 1, "flows": 0, "groups": 0},
+                    "agent_access": "view",
                     "label": "Registered On",
                     "value_type": "datetime",
                 },
@@ -3009,6 +3051,7 @@ class EndpointsTest(APITest):
                     "featured": False,
                     "priority": 0,
                     "usages": {"campaign_events": 0, "flows": 0, "groups": 0},
+                    "agent_access": "edit",
                     "label": "Nick Name",
                     "value_type": "text",
                 },
@@ -3027,6 +3070,7 @@ class EndpointsTest(APITest):
                     "featured": False,
                     "priority": 0,
                     "usages": {"campaign_events": 0, "flows": 0, "groups": 0},
+                    "agent_access": "edit",
                     "label": "Nick Name",
                     "value_type": "text",
                 }
@@ -4169,11 +4213,11 @@ class EndpointsTest(APITest):
 
         # filter by label name
         response = self.getJSON(msgs_url, "label=Spam")
-        self.assertResultsById(response, [joe_msg3, frank_msg1])
+        self.assertResultsById(response, [frank_msg3, joe_msg3, frank_msg1])
 
         # filter by label UUID
         response = self.getJSON(msgs_url, "label=%s" % label.uuid)
-        self.assertResultsById(response, [joe_msg3, frank_msg1])
+        self.assertResultsById(response, [frank_msg3, joe_msg3, frank_msg1])
 
         # filter by invalid label
         response = self.getJSON(msgs_url, "label=invalid")
@@ -4211,7 +4255,7 @@ class EndpointsTest(APITest):
                 response, None, "You may only specify one of the contact, folder, label, broadcast parameters"
             )
 
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             # for anon orgs, don't return URN values
             response = self.getJSON(msgs_url, "id=%d" % joe_msg3.pk)
             self.assertIsNone(response.json()["results"][0]["urn"])
@@ -4414,7 +4458,7 @@ class EndpointsTest(APITest):
     def test_runs(self):
         runs_url = reverse("api.v2.runs")
 
-        self.assertEndpointAccess(runs_url, viewer_get=403, admin_get=200, agent_get=403)
+        self.assertEndpointAccess(runs_url, viewer_get=200, admin_get=200, agent_get=403)
 
         flow1 = self.get_flow("color_v13")
         flow2 = flow1.clone(self.user)
@@ -4596,7 +4640,7 @@ class EndpointsTest(APITest):
         self.assertResultsById(response, [frank_run2])
 
         # anon orgs should not have a URN field
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             response = self.getJSON(runs_url, "id=%d" % frank_run2.pk)
             self.assertResultsById(response, [frank_run2])
             self.assertEqual(
@@ -4739,6 +4783,73 @@ class EndpointsTest(APITest):
                 }
             },
         )
+
+    def test_optins(self):
+        optins_url = reverse("api.v2.optins")
+
+        self.assertEndpointAccess(optins_url, viewer_get=200, admin_get=200, agent_get=403)
+
+        # create some optins
+        polls = OptIn.create(self.org, self.admin, "Polls")
+        offers = OptIn.create(self.org, self.admin, "Offers")
+        OptIn.create(self.org2, self.admin, "Promos")
+
+        # no filtering
+        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 1):
+            response = self.getJSON(optins_url, readonly_models={OptIn})
+
+        resp_json = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(resp_json["next"], None)
+        self.assertEqual(
+            resp_json["results"],
+            [
+                {
+                    "uuid": str(offers.uuid),
+                    "name": "Offers",
+                    "created_on": format_datetime(offers.created_on),
+                },
+                {
+                    "uuid": str(polls.uuid),
+                    "name": "Polls",
+                    "created_on": format_datetime(polls.created_on),
+                },
+            ],
+        )
+
+        # try to create empty optin
+        response = self.postJSON(optins_url, None, {})
+        self.assertResponseError(response, "name", "This field is required.")
+
+        # create new optin
+        response = self.postJSON(optins_url, None, {"name": "Alerts"})
+        self.assertEqual(response.status_code, 201)
+
+        alerts = OptIn.objects.get(name="Alerts")
+        self.assertEqual(
+            response.json(),
+            {
+                "uuid": str(alerts.uuid),
+                "name": "Alerts",
+                "created_on": matchers.ISODate(),
+            },
+        )
+
+        # try to create another optin with same name
+        response = self.postJSON(optins_url, None, {"name": "alerts"})
+        self.assertResponseError(response, "name", "This field must be unique.")
+
+        # it's fine if a optin in another org has that name
+        response = self.postJSON(optins_url, None, {"name": "Promos"})
+        self.assertEqual(response.status_code, 201)
+
+        # try to create a optin with invalid name
+        response = self.postJSON(optins_url, None, {"name": '"Hi"'})
+        self.assertResponseError(response, "name", 'Cannot contain the character: "')
+
+        # try to create a optin with name that's too long
+        response = self.postJSON(optins_url, None, {"name": "x" * 65})
+        self.assertResponseError(response, "name", "Ensure this field has no more than 64 characters.")
 
     def test_resthooks(self):
         hooks_url = reverse("api.v2.resthooks")

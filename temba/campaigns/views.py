@@ -379,9 +379,7 @@ class CampaignEventForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         relative_to = self.fields["relative_to"]
-        relative_to.queryset = org.fields.filter(is_active=True, value_type=ContactField.TYPE_DATETIME).order_by(
-            "name"
-        )
+        relative_to.queryset = org.fields.filter(is_active=True, value_type=ContactField.TYPE_DATETIME).order_by("name")
 
         flow = self.fields["flow_to_start"]
         flow.queryset = org.flows.filter(
@@ -391,7 +389,12 @@ class CampaignEventForm(forms.ModelForm):
             is_system=False,
         ).order_by("name")
 
-        if self.instance.id and self.instance.flow and self.instance.flow.flow_type == Flow.TYPE_BACKGROUND:
+        if (
+            self.instance.id
+            and self.instance.flow
+            and self.instance.flow.flow_type == Flow.TYPE_BACKGROUND
+            and not self.instance.message
+        ):
             flow.widget.attrs["info_text"] = CampaignEventCRUDL.BACKGROUND_WARNING
 
         message = self.instance.message or {}
@@ -673,7 +676,7 @@ class CampaignEventCRUDL(SmartCRUDL):
         ]
         form_class = CampaignEventForm
         success_message = ""
-        template_name = "campaigns/campaignevent_update.haml"
+        template_name = "campaigns/campaignevent_update.html"
         submit_button_name = _("Save")
 
         def get_context_data(self, **kwargs):

@@ -16,6 +16,7 @@ from temba.utils.views import TEMBA_MENU_SELECTION
 
 from .models import Trigger
 from .types import KeywordTriggerType
+from .views import Folder
 
 
 class TriggerTest(TembaTest):
@@ -31,6 +32,9 @@ class TriggerTest(TembaTest):
 
         self.assertEqual("Catch All → Test Flow", catchall.name)
         self.assertEqual('Trigger[type=C, flow="Test Flow"]', str(catchall))
+
+        self.assertEqual(Folder.TICKETS, Folder.from_slug("tickets"))
+        self.assertIsNone(Folder.from_slug("xx"))
 
     def test_archive_conflicts(self):
         flow = self.create_flow("Test")
@@ -148,7 +152,7 @@ class TriggerTest(TembaTest):
 
     def test_export_import(self):
         # tweak our current channel to be twitter so we can create a channel-based trigger
-        Channel.objects.filter(id=self.channel.id).update(channel_type="TT")
+        Channel.objects.filter(id=self.channel.id).update(channel_type="TWT")
         flow = self.create_flow("Test")
 
         doctors = self.create_group("Doctors", contacts=[])
@@ -343,7 +347,7 @@ class TriggerTest(TembaTest):
             },
         )
 
-    @patch("temba.channels.types.facebook.FacebookType.activate_trigger")
+    @patch("temba.channels.types.facebook_legacy.FacebookLegacyType.activate_trigger")
     def test_export_import_new_conversation(self, mock_activate_trigger):
         flow = self.create_flow("Test")
         channel = self.create_channel("FB", "Facebook", "1234")
@@ -394,7 +398,7 @@ class TriggerTest(TembaTest):
         self.assertTrue(KeywordTriggerType.is_valid_keyword("मिलाए"))
         self.assertTrue(KeywordTriggerType.is_valid_keyword("👋"))
 
-    @patch("temba.channels.types.facebook.FacebookType.deactivate_trigger")
+    @patch("temba.channels.types.facebook_legacy.FacebookLegacyType.deactivate_trigger")
     def test_release(self, mock_deactivate_trigger):
         channel = self.create_channel("FB", "Facebook", "234567")
         flow = self.create_flow("Test")
@@ -499,6 +503,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         create_new_convo_url = reverse("triggers.trigger_create_new_conversation")
         create_inbound_call_url = reverse("triggers.trigger_create_inbound_call")
         create_missed_call_url = reverse("triggers.trigger_create_missed_call")
+        create_opt_in_url = reverse("triggers.trigger_create_opt_in")
 
         self.assertLoginRedirect(self.client.get(create_url))
 
@@ -507,6 +512,8 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
         response = self.client.get(create_url)
+
+        self.assertNotContains(response, create_opt_in_url)  # staff only for now
 
         # call triggers can be made without a call channel
         self.assertContains(response, create_inbound_call_url)
@@ -522,6 +529,12 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(create_url)
         self.assertContains(response, create_new_convo_url)
         self.assertNotContains(response, create_missed_call_url)
+
+        # for now only staff see opt-in triggers
+        self.login(self.customer_support, choose_org=self.org)
+        response = self.client.get(create_url)
+
+        self.assertContains(response, create_opt_in_url)
 
     def test_create_keyword(self):
         create_url = reverse("triggers.trigger_create_keyword")
@@ -825,9 +838,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual([flow3, flow4], list(response.context["form"].fields["msg_flow"].queryset))
 
         # which flow field is required depends on the action selected
-        self.assertCreateSubmit(
-            create_url, {"action": "answer"}, form_errors={"voice_flow": "This field is required."}
-        )
+        self.assertCreateSubmit(create_url, {"action": "answer"}, form_errors={"voice_flow": "This field is required."})
         self.assertCreateSubmit(create_url, {"action": "hangup"}, form_errors={"msg_flow": "This field is required."})
 
         self.assertCreateSubmit(
@@ -895,7 +906,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
             form_errors={"__all__": "There already exists a trigger of this type with these options."},
         )
 
-    @patch("temba.channels.types.facebook.FacebookType.activate_trigger")
+    @patch("temba.channels.types.facebook_legacy.FacebookLegacyType.activate_trigger")
     @patch("temba.channels.types.viber_public.ViberPublicType.activate_trigger")
     def test_create_new_conversation(self, mock_vp_activate, mock_fb_activate):
         create_url = reverse("triggers.trigger_create_new_conversation")
@@ -953,7 +964,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertEqual(mock_vp_activate.call_count, 1)
 
-    @patch("temba.channels.types.facebook.FacebookType.activate_trigger")
+    @patch("temba.channels.types.facebook_legacy.FacebookLegacyType.activate_trigger")
     def test_create_referral(self, mock_fb_activate):
         create_url = reverse("triggers.trigger_create_referral")
         flow1 = self.create_flow("Flow 1", flow_type=Flow.TYPE_MESSAGE)
@@ -1105,6 +1116,70 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
             create_url,
             {"flow": flow1.id},
             new_obj_query=Trigger.objects.filter(flow=flow1, trigger_type=Trigger.TYPE_CLOSED_TICKET),
+            success_status=200,
+        )
+
+        # we can't create another...
+        self.assertCreateSubmit(
+            create_url,
+            {"flow": flow2.id},
+            form_errors={"__all__": "There already exists a trigger of this type with these options."},
+        )
+
+    def test_create_opt_in(self):
+        flow1 = self.create_flow("Flow 1", flow_type=Flow.TYPE_MESSAGE)
+        flow2 = self.create_flow("Flow 2", flow_type=Flow.TYPE_BACKGROUND)
+
+        # flows that shouldn't appear as options
+        self.create_flow("Flow 3", flow_type=Flow.TYPE_VOICE)
+        self.create_flow("Flow 4", is_system=True)
+        self.create_flow("Flow 5", org=self.org2)
+
+        create_url = reverse("triggers.trigger_create_opt_in")
+
+        response = self.assertCreateFetch(
+            create_url, allow_viewers=False, allow_editors=True, form_fields=["flow", "groups", "exclude_groups"]
+        )
+
+        # flow options should be messaging and background flows
+        self.assertEqual([flow1, flow2], list(response.context["form"].fields["flow"].queryset))
+
+        self.assertCreateSubmit(
+            create_url,
+            {"flow": flow1.id},
+            new_obj_query=Trigger.objects.filter(flow=flow1, trigger_type=Trigger.TYPE_OPT_IN),
+            success_status=200,
+        )
+
+        # we can't create another...
+        self.assertCreateSubmit(
+            create_url,
+            {"flow": flow2.id},
+            form_errors={"__all__": "There already exists a trigger of this type with these options."},
+        )
+
+    def test_create_opt_out(self):
+        flow1 = self.create_flow("Flow 1", flow_type=Flow.TYPE_MESSAGE)
+        flow2 = self.create_flow("Flow 2", flow_type=Flow.TYPE_BACKGROUND)
+
+        # flows that shouldn't appear as options
+        self.create_flow("Flow 3", flow_type=Flow.TYPE_VOICE)
+        self.create_flow("Flow 4", is_system=True)
+        self.create_flow("Flow 5", org=self.org2)
+
+        create_url = reverse("triggers.trigger_create_opt_out")
+
+        response = self.assertCreateFetch(
+            create_url, allow_viewers=False, allow_editors=True, form_fields=["flow", "groups", "exclude_groups"]
+        )
+
+        # flow options should be messaging and background flows
+        self.assertEqual([flow1, flow2], list(response.context["form"].fields["flow"].queryset))
+
+        self.assertCreateSubmit(
+            create_url,
+            {"flow": flow1.id},
+            new_obj_query=Trigger.objects.filter(flow=flow1, trigger_type=Trigger.TYPE_OPT_OUT),
             success_status=200,
         )
 
@@ -1320,8 +1395,8 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         next_fire = trigger.schedule.calculate_next_fire(datetime(2021, 6, 23, 12, 0, 0, 0, pytz.UTC))  # Wed 23rd
         self.assertEqual(tz.localize(datetime(2021, 6, 24, 12, 0, 0, 0)), next_fire)  # Thu 24th
 
-    @patch("temba.channels.types.facebook.FacebookType.deactivate_trigger")
-    @patch("temba.channels.types.facebook.FacebookType.activate_trigger")
+    @patch("temba.channels.types.facebook_legacy.FacebookLegacyType.deactivate_trigger")
+    @patch("temba.channels.types.facebook_legacy.FacebookLegacyType.activate_trigger")
     def test_list(self, mock_activate_trigger, mock_deactivate_trigger):
         flow1 = self.create_flow("Report")
         flow2 = self.create_flow("Survey")
@@ -1614,7 +1689,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(list_url)
         self.assertContains(response, trigger7.keyword)
 
-    def test_type_lists(self):
+    def test_folder(self):
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
         flow3 = self.create_flow("Flow 3", org=self.org2)
@@ -1632,25 +1707,23 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
             self.org2, self.admin, Trigger.TYPE_KEYWORD, flow3, keyword="other", match_type=Trigger.MATCH_ONLY_WORD
         )
 
-        keyword_url = reverse("triggers.trigger_type", kwargs={"type": "keyword"})
-        referral_url = reverse("triggers.trigger_type", kwargs={"type": "referral"})
-        catchall_url = reverse("triggers.trigger_type", kwargs={"type": "catch_all"})
+        messages_url = reverse("triggers.trigger_folder", kwargs={"folder": "messages"})
+        referral_url = reverse("triggers.trigger_folder", kwargs={"folder": "referral"})
+        tickets_url = reverse("triggers.trigger_folder", kwargs={"folder": "tickets"})
 
         response = self.assertListFetch(
-            keyword_url, allow_viewers=True, allow_editors=True, context_objects=[trigger2, trigger1]
+            messages_url, allow_viewers=True, allow_editors=True, context_objects=[trigger2, trigger1, trigger5]
         )
-        self.assertEqual("/trigger/keyword", response.headers[TEMBA_MENU_SELECTION])
+        self.assertEqual("/trigger/messages", response.headers[TEMBA_MENU_SELECTION])
         self.assertEqual(("archive",), response.context["actions"])
 
         # can search by keyword
         self.assertListFetch(
-            keyword_url + "?search=TES", allow_viewers=True, allow_editors=True, context_objects=[trigger1]
+            messages_url + "?search=TES", allow_viewers=True, allow_editors=True, context_objects=[trigger1]
         )
 
-        self.assertListFetch(
-            referral_url, allow_viewers=True, allow_editors=True, context_objects=[trigger3, trigger4]
-        )
-        self.assertListFetch(catchall_url, allow_viewers=True, allow_editors=True, context_objects=[trigger5])
+        self.assertListFetch(referral_url, allow_viewers=True, allow_editors=True, context_objects=[trigger3, trigger4])
+        self.assertListFetch(tickets_url, allow_viewers=True, allow_editors=True, context_objects=[])
 
 
 class FixKeywordTriggers(MigrationTest):

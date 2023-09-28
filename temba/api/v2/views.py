@@ -24,7 +24,7 @@ from temba.contacts.models import Contact, ContactField, ContactGroup, ContactGr
 from temba.flows.models import Flow, FlowRun, FlowStart
 from temba.globals.models import Global
 from temba.locations.models import AdminBoundary, BoundaryAlias
-from temba.msgs.models import Broadcast, Label, LabelCount, Media, Msg, SystemLabel
+from temba.msgs.models import Broadcast, Label, LabelCount, Media, Msg, OptIn, SystemLabel
 from temba.orgs.models import OrgMembership, OrgRole, User
 from temba.templates.models import Template, TemplateTranslation
 from temba.tickets.models import Ticket, TicketCount, Ticketer, Topic
@@ -76,6 +76,8 @@ from .serializers import (
     MsgBulkActionSerializer,
     MsgReadSerializer,
     MsgWriteSerializer,
+    OptInReadSerializer,
+    OptInWriteSerializer,
     ResthookReadSerializer,
     ResthookSubscriberReadSerializer,
     ResthookSubscriberWriteSerializer,
@@ -121,7 +123,6 @@ class RootView(views.APIView):
      * [/api/v2/resthook_events](/api/v2/resthook_events) - to list resthook events
      * [/api/v2/resthook_subscribers](/api/v2/resthook_subscribers) - to list, create or delete subscribers on your resthooks
      * [/api/v2/templates](/api/v2/templates) - to list current WhatsApp templates on your account
-     * [/api/v2/ticketers](/api/v2/ticketers) - to list ticketing services
      * [/api/v2/tickets](/api/v2/tickets) - to list tickets
      * [/api/v2/ticket_actions](/api/v2/ticket_actions) - to perform bulk ticket actions
      * [/api/v2/topics](/api/v2/topics) - to list and create topics
@@ -232,7 +233,6 @@ class RootView(views.APIView):
                 "resthook_subscribers": reverse("api.v2.resthook_subscribers", request=request),
                 "runs": reverse("api.v2.runs", request=request),
                 "templates": reverse("api.v2.templates", request=request),
-                "ticketers": reverse("api.v2.ticketers", request=request),
                 "tickets": reverse("api.v2.tickets", request=request),
                 "ticket_actions": reverse("api.v2.ticket_actions", request=request),
                 "topics": reverse("api.v2.topics", request=request),
@@ -248,6 +248,7 @@ class ExplorerView(SmartTemplateView):
     """
 
     template_name = "api/v2/api_explorer.html"
+    title = _("API Explorer")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -296,7 +297,6 @@ class ExplorerView(SmartTemplateView):
             ResthookSubscribersEndpoint.get_delete_explorer(),
             RunsEndpoint.get_read_explorer(),
             TemplatesEndpoint.get_read_explorer(),
-            TicketersEndpoint.get_read_explorer(),
             TicketsEndpoint.get_read_explorer(),
             TicketActionsEndpoint.get_write_explorer(),
             TopicsEndpoint.get_read_explorer(),
@@ -1469,7 +1469,7 @@ class ContactsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint
         So that we only fetch active contact fields once for all contacts
         """
         context = super().get_serializer_context()
-        context["contact_fields"] = ContactField.user_fields.active_for_org(org=self.request.org)
+        context["contact_fields"] = ContactField.get_fields(org=self.request.org, viewable_by=self.request.user)
         return context
 
     def get_object(self):
@@ -1871,7 +1871,7 @@ class FlowsEndpoint(ListAPIMixin, BaseEndpoint):
      * **archived** - whether this flow is archived (boolean), filterable as `archived`
      * **labels** - the labels for this flow (array of objects)
      * **expires** - the time (in minutes) when this flow's inactive contacts will expire (integer)
-     * **runs** - the counts of completed, interrupted and expired runs (object)
+     * **runs** - the counts of active, completed, interrupted and expired runs (object)
      * **results** - the results that this flow may create (array)
      * **parent_refs** - the keys of the parent flow results referenced in this flow (array)
      * **created_on** - when this flow was created (datetime)
@@ -2625,7 +2625,7 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
             if contact:
                 queryset = queryset.filter(contact=contact)
             else:
-                queryset = queryset.filter(pk=-1)
+                queryset = queryset.none()
 
         # filter by label name/uuid (optional)
         label_ref = params.get("label")
@@ -2636,16 +2636,16 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
 
             label = Label.get_active_for_org(org).filter(label_filter).first()
             if label:
-                queryset = queryset.filter(labels=label, visibility=Msg.VISIBILITY_VISIBLE)
+                queryset = queryset.filter(labels=label)
             else:
-                queryset = queryset.filter(pk=-1)
+                queryset = queryset.none()
 
         # use prefetch rather than select_related for foreign keys to avoid joins
         queryset = queryset.prefetch_related(
             Prefetch("contact", queryset=Contact.objects.only("uuid", "name")),
             Prefetch("contact_urn", queryset=ContactURN.objects.only("scheme", "path", "display")),
             Prefetch("channel", queryset=Channel.objects.only("uuid", "name")),
-            Prefetch("labels", queryset=Label.objects.only("uuid", "name").order_by("pk")),
+            Prefetch("labels", queryset=Label.objects.only("uuid", "name").order_by("id")),
             Prefetch("flow", queryset=Flow.objects.only("uuid", "name")),
         )
 
@@ -2750,6 +2750,70 @@ class MessageActionsEndpoint(BulkWriteAPIMixin, BaseEndpoint):
                 {"name": "action", "required": True, "help": "One of the following strings: " + ", ".join(actions)},
                 {"name": "label", "required": False, "help": "The UUID or name of a message label"},
             ],
+        }
+
+
+class OptInsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
+    """
+    This endpoint allows you to list the opt-ins in your workspace and create new ones.
+
+    ## Listing Opt-Ins
+
+    A **GET** returns the opt-ins for your organization, most recent first.
+
+     * **uuid** - the UUID of the opt-in (string).
+     * **name** - the name of the opt-in (string).
+     * **created_on** - when this opt-in was created (datetime).
+
+    Example:
+
+        GET /api/v2/optins.json
+
+    Response:
+
+        {
+            "next": null,
+            "previous": null,
+            "results": [
+            {
+                "uuid": "9a8b001e-a913-486c-80f4-1356e23f582e",
+                "name": "Jokes",
+                "created_on": "2013-02-27T09:06:15.456"
+            },
+            ...
+
+    ## Adding a New Opt-In
+
+    By making a `POST` request with a unique name you can create a new opt-in.
+
+     * **name** - the name of the opt-in to create (string)
+
+    Example:
+
+        POST /api/v2/optins.json
+        {
+            "name": "Weather Updates"
+        }
+    """
+
+    permission = "msgs.optin_api"
+    model = OptIn
+    serializer_class = OptInReadSerializer
+    write_serializer_class = OptInWriteSerializer
+    pagination_class = CreatedOnCursorPagination
+
+    @classmethod
+    def get_read_explorer(cls):  # pragma: no cover
+        return {"method": "GET", "title": "List Opt-Ins", "url": reverse("api.v2.optins"), "slug": "optin-list"}
+
+    @classmethod
+    def get_write_explorer(cls):  # pragma: no cover
+        return {
+            "method": "POST",
+            "title": "Add New Opt-Ins",
+            "url": reverse("api.v2.optins"),
+            "slug": "optin-write",
+            "fields": [{"name": "name", "required": True, "help": "The name of the opt-in"}],
         }
 
 
@@ -3269,7 +3333,7 @@ class FlowStartsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
      * **urns** - the URNs you want to start in this flow (array of up to 100 strings, optional)
      * **restart_participants** - whether to restart participants already in this flow (optional, defaults to true)
      * **exclude_active** - whether to exclude contacts currently in other flow (optional, defaults to false)
-     * **params** - a dictionary of extra parameters to pass to the flow start (accessible via @trigger.params in your flow)
+     * **params** - extra parameters to pass to the flow start (object, accessible via `@trigger.params` in the flow)
 
     Example:
 
@@ -3373,7 +3437,11 @@ class FlowStartsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
                     required=False,
                     help="Whether to restart any participants already in the flow",
                 ),
-                dict(name="extra", required=False, help="Any extra parameters to pass to the flow start"),
+                dict(
+                    name="params",
+                    required=False,
+                    help=_("Extra parameters that will be accessible in the flow"),
+                ),
             ],
             example=dict(body='{"flow":"f5901b62-ba76-4003-9c62-72fdacc1b7b7","urns":["twitter:sirmixalot"]}'),
         )
@@ -3461,34 +3529,7 @@ class TemplatesEndpoint(ListAPIMixin, BaseEndpoint):
 
 class TicketersEndpoint(ListAPIMixin, BaseEndpoint):
     """
-    This endpoint allows you to list the active ticketing services on your account.
-
-    ## Listing Ticketers
-
-    A **GET** returns the ticketers for your organization, most recent first.
-
-     * **uuid** - the UUID of the ticketer, filterable as `uuid`.
-     * **name** - the name of the ticketer.
-     * **type** - the type of the ticketer, e.g. 'mailgun' or 'zendesk'.
-     * **created_on** - when this ticketer was created.
-
-    Example:
-
-        GET /api/v2/ticketers.json
-
-    Response:
-
-        {
-            "next": null,
-            "previous": null,
-            "results": [
-            {
-                "uuid": "9a8b001e-a913-486c-80f4-1356e23f582e",
-                "name": "Email (bob@acme.com)",
-                "type": "mailgun",
-                "created_on": "2013-02-27T09:06:15.456"
-            },
-            ...
+    Deprecated... ticketers won't be a thing
     """
 
     permission = "tickets.ticketer_api"
@@ -3508,32 +3549,6 @@ class TicketersEndpoint(ListAPIMixin, BaseEndpoint):
             queryset = queryset.filter(uuid=uuid)
 
         return self.filter_before_after(queryset, "created_on")
-
-    @classmethod
-    def get_read_explorer(cls):
-        return {
-            "method": "GET",
-            "title": "List Ticketers",
-            "url": reverse("api.v2.ticketers"),
-            "slug": "ticketer-list",
-            "params": [
-                {
-                    "name": "uuid",
-                    "required": False,
-                    "help": "A ticketer UUID to filter by. ex: 09d23a05-47fe-11e4-bfe9-b8f6b119e9ab",
-                },
-                {
-                    "name": "before",
-                    "required": False,
-                    "help": "Only return ticketers created before this date, ex: 2015-01-28T18:00:00.000",
-                },
-                {
-                    "name": "after",
-                    "required": False,
-                    "help": "Only return ticketers created after this date, ex: 2015-01-28T18:00:00.000",
-                },
-            ],
-        }
 
 
 class TicketsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
@@ -3691,7 +3706,7 @@ class TopicsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
 
     ## Listing Topics
 
-    A **GET** returns the tickets for your organization, most recent first.
+    A **GET** returns the topics for your organization, most recent first.
 
      * **uuid** - the UUID of the topic (string).
      * **name** - the name of the topic (string).
@@ -3717,6 +3732,19 @@ class TopicsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
                 "created_on": "2013-02-27T09:06:15.456"
             },
             ...
+
+    ## Adding o New Topic
+
+    By making a `POST` request with a unique name you can create a new topic.
+
+     * **name** - the name of the topic to create (string)
+
+    Example:
+
+        POST /api/v2/topics.json
+        {
+            "name": "Complaints"
+        }
     """
 
     model = Topic

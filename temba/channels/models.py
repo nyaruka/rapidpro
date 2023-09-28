@@ -1,5 +1,6 @@
 import logging
 from abc import ABCMeta
+from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
 from urllib.parse import quote_plus
@@ -13,13 +14,13 @@ from smartmin.models import SmartModel
 from twilio.base.exceptions import TwilioRestException
 
 from django.conf import settings
-from django.contrib.auth.models import Group, User
 from django.contrib.postgres.fields import ArrayField
+from django.core.files.storage import storages
 from django.db import models
-from django.db.models import Q, Sum
+from django.db.models import Sum
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from django.template import Context, Engine, TemplateDoesNotExist
+from django.template import Engine
 from django.urls import re_path
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -27,11 +28,56 @@ from django.utils.translation import gettext_lazy as _
 
 from temba.orgs.models import DependencyMixin, Org
 from temba.utils import analytics, get_anonymous_user, json, on_transaction_commit, redact
-from temba.utils.email import send_template_email
-from temba.utils.models import JSONAsTextField, LegacyUUIDMixin, SquashableModel, TembaModel, generate_uuid
-from temba.utils.text import random_string
+from temba.utils.models import (
+    JSONAsTextField,
+    LegacyUUIDMixin,
+    SquashableModel,
+    TembaModel,
+    delete_in_batches,
+    generate_uuid,
+)
+from temba.utils.text import generate_secret
+from temba.utils.uuid import is_uuid
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ConfigUI:
+    """
+    Parameterized configuration view for a channel type.
+    """
+
+    @dataclass
+    class Endpoint:
+        """
+        Courier (messages) or mailroom (IVR) endpoint that the user needs to configure on the other side.
+        """
+
+        label: str
+        help: str = ""
+        courier: str = None
+        mailroom: str = None
+        roles: tuple[str] = ()
+
+        def get_url(self, channel) -> str:
+            if self.courier is not None:
+                path = f"/c/{channel.type.code.lower()}/{channel.uuid}/{self.courier}"
+            elif self.mailroom is not None:
+                path = f"/mr/ivr/c/{channel.uuid}/{self.mailroom}"
+
+            return f"https://{channel.callback_domain}{path}"
+
+    blurb: str = None
+    endpoints: tuple[Endpoint] = ()
+    show_secret: bool = False
+    show_public_ips: bool = False
+
+    def get_used_endpoints(self, channel) -> list:
+        """
+        Gets the endpoints used by the given channel based on its roles.
+        """
+        return [e for e in self.endpoints if not e.roles or set(channel.role) & set(e.roles)]
 
 
 class ChannelType(metaclass=ABCMeta):
@@ -44,22 +90,16 @@ class ChannelType(metaclass=ABCMeta):
         SOCIAL_MEDIA = 2
         API = 4
 
-    class IVRProtocol(Enum):
-        IVR_PROTOCOL_TWIML = 1
-        IVR_PROTOCOL_NCCO = 2
-
-    code = None
-    slug = None
+    code = None  # DB code and lowercased to create courier URLs
+    slug = None  # set automatically
+    name = None  # display name
     category = None
     beta_only = False
 
     # the courier handling URL, will be wired automatically for use in templates, but wired to a null handler
     courier_url = None
 
-    name = None
     schemes = None
-    show_config_page = True
-
     available_timezones = None
     recommended_timezones = None
 
@@ -67,18 +107,13 @@ class ChannelType(metaclass=ABCMeta):
     claim_view = None
     claim_view_kwargs = None
 
-    configuration_blurb = None
-    configuration_urls = None
-    show_public_addresses = False
+    # the configuration UI - only channel types that aren't configured automatically need this
+    config_ui = None
 
     update_form = None
 
-    max_length = -1
-    max_tps = None
-    free_sending = False
-    quick_reply_text_size = 20
-
-    extra_links = None
+    # additional read page content menu items
+    menu_items = ()
 
     # Whether this channel should be activated in the a celery task, useful to turn off if there's a chance for errors
     # during activation. Channels should make sure their claim view is non-atomic if a callback will be involved
@@ -119,10 +154,7 @@ class ChannelType(metaclass=ABCMeta):
         """
         Returns all the URLs this channel exposes to Django, the URL should be relative.
         """
-        if self.claim_view:
-            return [self.get_claim_url()]
-        else:
-            return []
+        return [self.get_claim_url()]
 
     def get_claim_url(self):
         """
@@ -167,55 +199,11 @@ class ChannelType(metaclass=ABCMeta):
         Called when a trigger that is bound to a channel of this type is being released.
         """
 
-    def get_configuration_context_dict(self, channel):
-        return dict(channel=channel, ip_addresses=settings.IP_ADDRESSES)
-
-    def get_configuration_template(self, channel):
-        try:
-            return (
-                Engine.get_default()
-                .get_template("channels/types/%s/config.html" % self.slug)
-                .render(context=Context(self.get_configuration_context_dict(channel)))
-            )
-        except TemplateDoesNotExist:
-            return ""
-
-    def get_configuration_blurb(self, channel):
+    def get_config_ui_context(self, channel) -> dict:
         """
-        Allows ChannelTypes to define the blurb to show on the channel configuration page.
+        Context for the config UI if a custom template is provided
         """
-        if self.__class__.configuration_blurb is not None:
-            return (
-                Engine.get_default()
-                .from_string(str(self.configuration_blurb))
-                .render(context=Context(dict(channel=channel)))
-            )
-        else:
-            return ""
-
-    def get_configuration_urls(self, channel):
-        """
-        Allows ChannelTypes to specify a list of URLs to show with a label and description on the
-        configuration page.
-        """
-        if self.__class__.configuration_urls is not None:
-            context = Context(dict(channel=channel))
-            engine = Engine.get_default()
-
-            urls = []
-            for url_config in self.__class__.configuration_urls:
-                urls.append(
-                    dict(
-                        label=engine.from_string(url_config.get("label", "")).render(context=context),
-                        url=engine.from_string(url_config.get("url", "")).render(context=context),
-                        description=engine.from_string(url_config.get("description", "")).render(context=context),
-                    )
-                )
-
-            return urls
-
-        else:
-            return ""
+        return {"channel": channel}
 
     def get_error_ref_url(self, channel, code: str) -> str:
         """
@@ -272,7 +260,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     ENCODING_DEFAULT = "D"  # we just pass the text down to the endpoint
     ENCODING_SMART = "S"  # we try simple substitutions to GSM7 then go to unicode if it still isn't GSM7
     ENCODING_UNICODE = "U"  # we send everything as unicode
-
     ENCODING_CHOICES = (
         (ENCODING_DEFAULT, _("Default Encoding")),
         (ENCODING_SMART, _("Smart Encoding")),
@@ -285,23 +272,29 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     ROLE_CALL = "C"
     ROLE_ANSWER = "A"
     ROLE_USSD = "U"
-
     DEFAULT_ROLE = ROLE_SEND + ROLE_RECEIVE
 
     CONTENT_TYPE_URLENCODED = "urlencoded"
     CONTENT_TYPE_JSON = "json"
     CONTENT_TYPE_XML = "xml"
-
     CONTENT_TYPES = {
         CONTENT_TYPE_URLENCODED: "application/x-www-form-urlencoded",
         CONTENT_TYPE_JSON: "application/json",
         CONTENT_TYPE_XML: "text/xml; charset=utf-8",
     }
-
     CONTENT_TYPE_CHOICES = (
         (CONTENT_TYPE_URLENCODED, _("URL Encoded - application/x-www-form-urlencoded")),
         (CONTENT_TYPE_JSON, _("JSON - application/json")),
         (CONTENT_TYPE_XML, _("XML - text/xml; charset=utf-8")),
+    )
+
+    LOG_POLICY_NONE = "N"
+    LOG_POLICY_ERRORS = "E"
+    LOG_POLICY_ALL = "A"
+    LOG_POLICY_CHOICES = (
+        (LOG_POLICY_NONE, "Discard All"),
+        (LOG_POLICY_ERRORS, "Write Errors Only"),
+        (LOG_POLICY_ALL, "Write All"),
     )
 
     SIMULATOR_CHANNEL = {
@@ -330,17 +323,10 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         verbose_name=_("Country"), null=True, blank=True, help_text=_("Country which this channel is for")
     )
 
-    alert_email = models.EmailField(
-        verbose_name=_("Alert Email"),
-        null=True,
-        blank=True,
-        help_text=_("We will send email alerts to this address if experiencing issues sending"),
-    )
-
     config = models.JSONField(default=dict)
     schemes = ArrayField(models.CharField(max_length=16), default=_get_default_channel_scheme)
     role = models.CharField(max_length=4, default=DEFAULT_ROLE)
-    parent = models.ForeignKey("self", on_delete=models.PROTECT, null=True)
+    log_policy = models.CharField(max_length=1, default=LOG_POLICY_ALL, choices=LOG_POLICY_CHOICES)
     tps = models.IntegerField(null=True)
 
     # Android relayer specific fields
@@ -349,9 +335,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     device = models.CharField(max_length=255, null=True, blank=True)
     os = models.CharField(max_length=255, null=True, blank=True)
     last_seen = models.DateTimeField(null=True)
-
-    # TODO drop
-    bod = models.TextField(null=True)
 
     @classmethod
     def create(
@@ -484,7 +467,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         config,
         role=DEFAULT_ROLE,
         schemes=("tel",),
-        parent=None,
         name=None,
         tps=None,
     ):
@@ -498,7 +480,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
             config=config,
             role=role,
             schemes=schemes,
-            parent=parent,
             tps=tps,
         )
 
@@ -507,9 +488,9 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         """
         Generates a secret value used for command signing
         """
-        code = random_string(length)
+        code = generate_secret(length)
         while cls.objects.filter(secret=code):  # pragma: no cover
-            code = random_string(length)
+            code = generate_secret(length)
         return code
 
     def is_android(self) -> bool:
@@ -519,35 +500,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         from .types.android.type import AndroidType
 
         return self.channel_type == AndroidType.code
-
-    def get_delegate_channels(self):
-        # detached channels can't have delegates
-        if not self.org:  # pragma: no cover
-            return Channel.objects.none()
-
-        return self.org.channels.filter(parent=self, is_active=True, org=self.org).order_by("-role")
-
-    def get_delegate(self, role):
-        """
-        Get the channel that should perform a given action. Could just be us
-        (the same channel), but may be a delegate channel working on our behalf.
-        """
-        if self.role == role:  # pragma: no cover
-            delegate = self
-        else:
-            # if we have a delegate channel for this role, use that
-            delegate = self.get_delegate_channels().filter(role=role).first()
-
-        if not delegate and role in self.role:
-            delegate = self
-
-        return delegate
-
-    def get_sender(self):
-        return self.get_delegate(Channel.ROLE_SEND)
-
-    def get_caller(self):
-        return self.get_delegate(Channel.ROLE_CALL)
 
     @property
     def callback_domain(self):
@@ -560,12 +512,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
             return callback_domain
         else:
             return self.org.get_brand_domain()
-
-    def is_delegate_sender(self):
-        return self.parent and Channel.ROLE_SEND in self.role
-
-    def is_delegate_caller(self):
-        return self.parent and Channel.ROLE_CALL in self.role
 
     def supports_ivr(self):
         return Channel.ROLE_CALL in self.role or Channel.ROLE_ANSWER in self.role
@@ -687,20 +633,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
             # proceed with removing this channel but log the problem
             logger.error(f"Unable to deactivate a channel: {str(e)}", exc_info=True)
 
-        # release any channels working on our behalf
-        for delegate_channel in self.org.channels.filter(parent=self):
-            delegate_channel.release(user)
-
-        # disassociate them
-        Channel.objects.filter(parent=self).update(parent=None)
-
-        # delete any alerts
-        self.alerts.all().delete()
-
-        # any related sync events
-        for sync_event in self.sync_events.all():
-            sync_event.release()
-
         # delay mailroom task for 5 seconds, so mailroom assets cache expires
         interrupt_channel_task.apply_async((self.id,), countdown=5)
 
@@ -721,6 +653,19 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         for trigger in self.triggers.all():
             trigger.archive(user)
             trigger.release(user)
+
+    def delete(self):
+        for trigger in self.triggers.all():
+            trigger.delete()
+
+        delete_in_batches(self.incidents.all())
+        delete_in_batches(self.sync_events.all())
+        delete_in_batches(self.logs.all())
+        delete_in_batches(self.http_logs.all())
+        delete_in_batches(self.template_translations.all())
+        delete_in_batches(self.counts.all())  # needs to be after log deletion
+
+        super().delete()
 
     def trigger_sync(self, registration_id=None):  # pragma: no cover
         """
@@ -878,6 +823,8 @@ class ChannelEvent(models.Model):
     TYPE_REFERRAL = "referral"
     TYPE_STOP_CONTACT = "stop_contact"
     TYPE_WELCOME_MESSAGE = "welcome_message"
+    TYPE_OPTIN = "optin"
+    TYPE_OPTOUT = "optout"
 
     # single char flag, human readable name, API readable name
     TYPE_CONFIG = (
@@ -890,6 +837,8 @@ class ChannelEvent(models.Model):
         (TYPE_NEW_CONVERSATION, _("New Conversation"), "new-conversation"),
         (TYPE_REFERRAL, _("Referral"), "referral"),
         (TYPE_WELCOME_MESSAGE, _("Welcome Message"), "welcome-message"),
+        (TYPE_OPTIN, _("Opt In"), "optin"),
+        (TYPE_OPTOUT, _("Opt Out"), "optout"),
     )
 
     TYPE_CHOICES = [(t[0], t[1]) for t in TYPE_CONFIG]
@@ -925,6 +874,7 @@ class ChannelLog(models.Model):
     LOG_TYPE_MSG_STATUS = "msg_status"
     LOG_TYPE_MSG_RECEIVE = "msg_receive"
     LOG_TYPE_EVENT_RECEIVE = "event_receive"
+    LOG_TYPE_MULTI_RECEIVE = "multi_receive"
     LOG_TYPE_IVR_START = "ivr_start"
     LOG_TYPE_IVR_INCOMING = "ivr_incoming"
     LOG_TYPE_IVR_CALLBACK = "ivr_callback"
@@ -933,12 +883,14 @@ class ChannelLog(models.Model):
     LOG_TYPE_ATTACHMENT_FETCH = "attachment_fetch"
     LOG_TYPE_TOKEN_REFRESH = "token_refresh"
     LOG_TYPE_PAGE_SUBSCRIBE = "page_subscribe"
+    LOG_TYPE_WEBHOOK_VERIFY = "webhook_verify"
     LOG_TYPE_CHOICES = (
         (LOG_TYPE_UNKNOWN, _("Other Event")),
         (LOG_TYPE_MSG_SEND, _("Message Send")),
         (LOG_TYPE_MSG_STATUS, _("Message Status")),
         (LOG_TYPE_MSG_RECEIVE, _("Message Receive")),
         (LOG_TYPE_EVENT_RECEIVE, _("Event Receive")),
+        (LOG_TYPE_MULTI_RECEIVE, _("Events Receive")),
         (LOG_TYPE_IVR_START, _("IVR Start")),
         (LOG_TYPE_IVR_INCOMING, _("IVR Incoming")),
         (LOG_TYPE_IVR_CALLBACK, _("IVR Callback")),
@@ -947,11 +899,12 @@ class ChannelLog(models.Model):
         (LOG_TYPE_ATTACHMENT_FETCH, _("Attachment Fetch")),
         (LOG_TYPE_TOKEN_REFRESH, _("Token Refresh")),
         (LOG_TYPE_PAGE_SUBSCRIBE, _("Page Subscribe")),
+        (LOG_TYPE_WEBHOOK_VERIFY, _("Webhook Verify")),
     )
 
     id = models.BigAutoField(primary_key=True)
     uuid = models.UUIDField(default=uuid4, db_index=True)
-    channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="logs")
+    channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="logs", db_index=False)  # index below
 
     log_type = models.CharField(max_length=16, choices=LOG_TYPE_CHOICES)
     http_logs = models.JSONField(null=True)
@@ -959,6 +912,26 @@ class ChannelLog(models.Model):
     is_error = models.BooleanField(default=False)
     elapsed_ms = models.IntegerField(default=0)
     created_on = models.DateTimeField(default=timezone.now)
+
+    def get_display(self, *, anonymize: bool, urn) -> dict:
+        return self.display(self._get_json(), anonymize=anonymize, channel=self.channel, urn=urn)
+
+    @classmethod
+    def display(cls, data: dict, *, anonymize: bool, channel, urn) -> dict:
+        # add reference URLs to errors
+        for err in data["errors"]:
+            ext_code = err.get("ext_code")
+            err["ref_url"] = channel.type.get_error_ref_url(channel, ext_code) if ext_code else None
+
+        if anonymize:
+            cls._anonymize(data, channel, urn)
+
+        # out of an abundance of caution, check that we're not returning one of our own credential values
+        for log in data["http_logs"]:
+            for secret in channel.type.redact_values:
+                assert secret not in log["url"] and secret not in log["request"] and secret not in log["response"]
+
+        return data
 
     @classmethod
     def _anonymize_value(cls, original: str, urn, redact_keys=()) -> str:
@@ -990,26 +963,32 @@ class ChannelLog(models.Model):
         for err in data["errors"]:
             err["message"] = cls._anonymize_value(err["message"], urn)
 
-    def get_display(self, *, anonymize: bool, urn) -> dict:
-        data = self.get_json()
+    @classmethod
+    def get_logs(cls, channel, uuids: list) -> list:
+        # look for logs in the database
+        logs = {l.uuid: l._get_json() for l in cls.objects.filter(channel=channel, uuid__in=uuids)}
 
-        # add reference URLs to errors
-        for err in data["errors"]:
-            ext_code = err.get("ext_code")
-            err["ref_url"] = self.channel.type.get_error_ref_url(self.channel, ext_code) if ext_code else None
+        # and in storage
+        for log_uuid in uuids:
+            assert is_uuid(log_uuid), f"{log_uuid} is not a valid log UUID"
 
-        if anonymize:
-            self._anonymize(data, self.channel, urn)
+            if log_uuid not in logs:
+                key = f"channels/{channel.uuid}/{str(log_uuid)[0:4]}/{log_uuid}.json"
+                try:
+                    log_file = storages["logs"].open(key)
+                    logs[log_uuid] = json.loads(log_file.read())
+                    log_file.close()
+                except Exception:
+                    logger.exception("unable to read log from storage", extra={"key": key})
 
-        # out of an abundance of caution, check that we're not returning one of our own credential values
-        for log in data["http_logs"]:
-            for secret in self.channel.type.redact_values:
-                assert secret not in log["url"] and secret not in log["request"] and secret not in log["response"]
+        return sorted(logs.values(), key=lambda l: l["created_on"])
 
-        return data
-
-    def get_json(self):
+    def _get_json(self):
+        """
+        Get a database instance in the same JSON format we write to S3
+        """
         return {
+            "uuid": str(self.uuid),
             "type": self.log_type,
             "http_logs": [h.copy() for h in self.http_logs or []],
             "errors": [e.copy() for e in self.errors or []],
@@ -1018,13 +997,7 @@ class ChannelLog(models.Model):
         }
 
     class Meta:
-        indexes = [
-            models.Index(
-                name="channels_log_error_created",
-                fields=("channel", "is_error", "-created_on"),
-                condition=Q(is_error=True),
-            )
-        ]
+        indexes = [models.Index(name="channellogs_by_channel", fields=("channel", "-created_on"))]
 
 
 class SyncEvent(SmartModel):
@@ -1107,10 +1080,6 @@ class SyncEvent(SmartModel):
 
         return sync_event
 
-    def release(self):
-        self.alerts.all().delete()
-        self.delete()
-
     def get_pending_messages(self):
         return getattr(self, "pending_messages", [])
 
@@ -1129,158 +1098,3 @@ def pre_save(sender, instance, **kwargs):
             td = timezone.now() - last_sync_event.created_on
             last_sync_event.lifetime = td.seconds + td.days * 24 * 3600
             last_sync_event.save()
-
-
-class Alert(SmartModel):
-    TYPE_DISCONNECTED = "D"
-    TYPE_POWER = "P"
-
-    TYPE_CHOICES = (
-        (TYPE_POWER, _("Power")),  # channel has low power
-        (TYPE_DISCONNECTED, _("Disconnected")),  # channel hasn't synced in a while
-    )
-
-    channel = models.ForeignKey(
-        Channel,
-        related_name="alerts",
-        on_delete=models.PROTECT,
-        verbose_name=_("Channel"),
-        help_text=_("The channel that this alert is for"),
-    )
-    sync_event = models.ForeignKey(
-        SyncEvent,
-        related_name="alerts",
-        on_delete=models.PROTECT,
-        verbose_name=_("Sync Event"),
-        null=True,
-        help_text=_("The sync event that caused this alert to be sent (if any)"),
-    )
-    alert_type = models.CharField(
-        verbose_name=_("Alert Type"),
-        max_length=1,
-        choices=TYPE_CHOICES,
-        help_text=_("The type of alert the channel is sending"),
-    )
-    ended_on = models.DateTimeField(verbose_name=_("Ended On"), blank=True, null=True)
-
-    @classmethod
-    def create_and_send(cls, channel, alert_type: str, *, sync_event=None):
-        user = get_alert_user()
-        alert = cls.objects.create(
-            channel=channel,
-            alert_type=alert_type,
-            sync_event=sync_event,
-            created_by=user,
-            modified_by=user,
-        )
-        alert.send_alert()
-
-        return alert
-
-    @classmethod
-    def check_power_alert(cls, sync):
-        if (
-            sync.power_status
-            in (SyncEvent.STATUS_DISCHARGING, SyncEvent.STATUS_UNKNOWN, SyncEvent.STATUS_NOT_CHARGING)
-            and int(sync.power_level) < 25
-        ):
-            alerts = Alert.objects.filter(sync_event__channel=sync.channel, alert_type=cls.TYPE_POWER, ended_on=None)
-
-            if not alerts:
-                cls.create_and_send(sync.channel, cls.TYPE_POWER, sync_event=sync)
-
-        if sync.power_status == SyncEvent.STATUS_CHARGING or sync.power_status == SyncEvent.STATUS_FULL:
-            alerts = Alert.objects.filter(sync_event__channel=sync.channel, alert_type=cls.TYPE_POWER, ended_on=None)
-            alerts = alerts.order_by("-created_on")
-
-            # end our previous alert
-            if alerts and int(alerts[0].sync_event.power_level) < 25:
-                for alert in alerts:
-                    alert.ended_on = timezone.now()
-                    alert.save()
-                    last_alert = alert
-                last_alert.send_resolved()
-
-    @classmethod
-    def check_alerts(cls):
-        from temba.channels.types.android import AndroidType
-
-        thirty_minutes_ago = timezone.now() - timedelta(minutes=30)
-
-        # end any alerts that no longer seem valid
-        for alert in Alert.objects.filter(alert_type=cls.TYPE_DISCONNECTED, ended_on=None):
-            # if we've seen the channel since this alert went out, then clear the alert
-            if alert.channel.last_seen > alert.created_on:
-                alert.ended_on = alert.channel.last_seen
-                alert.save()
-                alert.send_resolved()
-
-        for channel in (
-            Channel.objects.filter(channel_type=AndroidType.code, is_active=True)
-            .exclude(org=None)
-            .exclude(last_seen__gte=thirty_minutes_ago)
-        ):
-            # have we already sent an alert for this channel
-            if not Alert.objects.filter(channel=channel, alert_type=cls.TYPE_DISCONNECTED, ended_on=None):
-                cls.create_and_send(channel, cls.TYPE_DISCONNECTED)
-
-    def send_alert(self):
-        from .tasks import send_alert_task
-
-        on_transaction_commit(lambda: send_alert_task.delay(self.id, resolved=False))
-
-    def send_resolved(self):
-        from .tasks import send_alert_task
-
-        on_transaction_commit(lambda: send_alert_task.delay(self.id, resolved=True))
-
-    def send_email(self, resolved):
-        from temba.msgs.models import Msg
-
-        # no-op if this channel has no alert email
-        if not self.channel.alert_email:
-            return
-
-        # no-op if the channel is not tied to an org
-        if not self.channel.org:
-            return
-
-        if self.alert_type == self.TYPE_POWER:
-            if resolved:
-                subject = "Your Android phone is now charging"
-                template = "channels/email/power_charging_alert"
-            else:
-                subject = "Your Android phone battery is low"
-                template = "channels/email/power_alert"
-
-        elif self.alert_type == self.TYPE_DISCONNECTED:
-            if resolved:
-                subject = "Your Android phone is now connected"
-                template = "channels/email/connected_alert"
-            else:
-                subject = "Your Android phone is disconnected"
-                template = "channels/email/disconnected_alert"
-
-        else:  # pragma: no cover
-            raise Exception(_("Unknown alert type: %(alert)s") % {"alert": self.alert_type})
-
-        context = dict(
-            org=self.channel.org,
-            channel=self.channel,
-            last_seen=self.channel.last_seen,
-            sync=self.sync_event,
-        )
-        context["unsent_count"] = Msg.objects.filter(channel=self.channel, status__in=["Q", "P"]).count()
-        context["subject"] = subject
-
-        send_template_email(self.channel.alert_email, subject, template, context, self.channel.org.branding)
-
-
-def get_alert_user():
-    user = User.objects.filter(username="alert").first()
-    if user:
-        return user
-    else:
-        user = User.objects.create_user("alert")
-        user.groups.add(Group.objects.get(name="Service Users"))
-        return user

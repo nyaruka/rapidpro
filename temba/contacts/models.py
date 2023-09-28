@@ -29,7 +29,7 @@ from temba.assets.models import register_asset_store
 from temba.channels.models import Channel, ChannelEvent
 from temba.locations.models import AdminBoundary
 from temba.mailroom import ContactSpec, modifiers, queue_populate_dynamic_group
-from temba.orgs.models import DependencyMixin, Org
+from temba.orgs.models import DependencyMixin, Org, OrgRole
 from temba.utils import chunk_list, format_number, on_transaction_commit
 from temba.utils.export import BaseExport, BaseExportAssetStore, MultiSheetExporter
 from temba.utils.models import JSONField, LegacyUUIDMixin, SquashableModel, TembaModel
@@ -315,29 +315,12 @@ class URN:
 
 
 class UserContactFieldsQuerySet(models.QuerySet):
-    def collect_usage(self):
-        return (
-            self.annotate(
-                flow_count=Count("dependent_flows", distinct=True, filter=Q(dependent_flows__is_active=True))
-            )
-            .annotate(
-                campaign_count=Count("campaign_events", distinct=True, filter=Q(campaign_events__is_active=True))
-            )
-            .annotate(
-                contactgroup_count=Count("dependent_groups", distinct=True, filter=Q(dependent_groups__is_active=True))
-            )
-        )
-
-    def active_for_org(self, org):
-        return self.filter(is_active=True, org=org)
+    pass
 
 
 class UserContactFieldsManager(models.Manager):
     def get_queryset(self):
         return UserContactFieldsQuerySet(self.model, using=self._db).filter(is_system=False)
-
-    def active_for_org(self, org):
-        return self.get_queryset().active_for_org(org=org)
 
 
 class ContactField(TembaModel, DependencyMixin):
@@ -462,7 +445,9 @@ class ContactField(TembaModel, DependencyMixin):
             )
 
     @classmethod
-    def create(cls, org, user, name: str, value_type: str = TYPE_TEXT, featured: bool = False):
+    def create(
+        cls, org, user, name: str, value_type: str = TYPE_TEXT, featured: bool = False, agent_access: str = ACCESS_VIEW
+    ):
         """
         Creates a new non-system field based on the given name
         """
@@ -481,6 +466,7 @@ class ContactField(TembaModel, DependencyMixin):
             value_type=value_type,
             is_system=False,
             show_in_table=featured,
+            agent_access=agent_access,
             created_by=user,
             modified_by=user,
         )
@@ -554,6 +540,19 @@ class ContactField(TembaModel, DependencyMixin):
         )
 
     @classmethod
+    def get_fields(cls, org: Org, viewable_by=None):
+        """
+        Gets the fields for the given org
+        """
+
+        fields = org.fields.filter(is_system=False, is_active=True)
+
+        if viewable_by and org.get_user_role(viewable_by) == OrgRole.AGENT:
+            fields = fields.exclude(agent_access=cls.ACCESS_NONE)
+
+        return fields
+
+    @classmethod
     def import_fields(cls, org, user, field_defs: list):
         """
         Import fields from a list of exported fields
@@ -575,6 +574,9 @@ class ContactField(TembaModel, DependencyMixin):
         dependents["group"] = self.dependent_groups.filter(is_active=True)
         dependents["campaign_event"] = self.campaign_events.filter(is_active=True)
         return dependents
+
+    def get_access(self, user) -> str:
+        return self.agent_access if self.org.get_user_role(user) == OrgRole.AGENT else self.ACCESS_EDIT
 
     def release(self, user):
         assert not (self.is_system and self.org.is_active), "can't release system fields"
@@ -829,9 +831,9 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
         ticket_events = ticket_events[:limit]
 
-        transfers = self.airtime_transfers.filter(created_on__gte=after, created_on__lt=before).order_by(
-            "-created_on"
-        )[:limit]
+        transfers = self.airtime_transfers.filter(created_on__gte=after, created_on__lt=before).order_by("-created_on")[
+            :limit
+        ]
 
         session_events = self.get_session_events(after, before, include_event_types)
 
@@ -855,9 +857,11 @@ class Contact(LegacyUUIDMixin, SmartModel):
         """
         Extracts events from this contacts sessions that overlap with the given time window
         """
+
+        # limit to 100 sessions at a time to prevent melting when a contact has a lot of sessions
         sessions = self.sessions.filter(
             Q(created_on__gte=after, created_on__lt=before) | Q(ended_on__gte=after, ended_on__lt=before)
-        )
+        ).order_by("-created_on")[:100]
         events = []
         for session in sessions:
             for run in session.output_json.get("runs", []):
@@ -1362,18 +1366,18 @@ class ContactURN(models.Model):
     # the channel affinity of this URN
     channel = models.ForeignKey(Channel, related_name="urns", on_delete=models.PROTECT, null=True)
 
-    # optional authentication information stored on this URN
-    auth = models.TextField(null=True)
+    # auth tokens - usage is channel specific, e.g. every FCM URN has its own token, FB channels have per opt-in tokens
+    auth_tokens = models.JSONField(null=True)
 
     @classmethod
-    def get_or_create(cls, org, contact, urn_as_string, channel=None, auth=None, priority=PRIORITY_HIGHEST):
+    def get_or_create(cls, org, contact, urn_as_string, channel=None, priority=PRIORITY_HIGHEST):
         urn = cls.lookup(org, urn_as_string)
 
         # not found? create it
         if not urn:
             try:
                 with transaction.atomic():
-                    urn = cls.create(org, contact, urn_as_string, channel=channel, priority=priority, auth=auth)
+                    urn = cls.create(org, contact, urn_as_string, channel=channel, priority=priority)
             except IntegrityError:
                 urn = cls.lookup(org, urn_as_string)
 
@@ -1389,7 +1393,6 @@ class ContactURN(models.Model):
             contact=contact,
             priority=priority,
             channel=channel,
-            auth=auth,
             scheme=scheme,
             path=path,
             identity=urn_as_string,
@@ -1412,9 +1415,7 @@ class ContactURN(models.Model):
         # is this a TWITTER scheme? check TWITTERID scheme by looking up by display
         if scheme == URN.TWITTER_SCHEME:
             twitterid_urn = (
-                cls.objects.filter(org=org, scheme=URN.TWITTERID_SCHEME, display=path)
-                .select_related("contact")
-                .first()
+                cls.objects.filter(org=org, scheme=URN.TWITTERID_SCHEME, display=path).select_related("contact").first()
             )
             if twitterid_urn:
                 return twitterid_urn
@@ -1904,10 +1905,7 @@ class ExportContactsTask(BaseExport):
                     )
 
         contact_fields_list = (
-            ContactField.user_fields.active_for_org(org=self.org)
-            .using("readonly")
-            .select_related("org")
-            .order_by("-priority", "pk")
+            ContactField.get_fields(self.org).using("readonly").select_related("org").order_by("-priority", "pk")
         )
         for contact_field in contact_fields_list:
             fields.append(
@@ -2032,7 +2030,7 @@ class ExportContactsTask(BaseExport):
 
 def get_import_upload_path(instance: Any, filename: str):
     ext = Path(filename).suffix.lower()
-    return f"contact_imports/{instance.org_id}/{uuid4()}{ext}"
+    return f"{settings.STORAGE_ROOT_DIR}/{instance.org_id}/contact_imports/{uuid4()}{ext}"
 
 
 class ContactImport(SmartModel):

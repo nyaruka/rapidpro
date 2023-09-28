@@ -21,7 +21,7 @@ from temba.flows.models import Flow, FlowRun, FlowStart
 from temba.globals.models import Global
 from temba.locations.models import AdminBoundary
 from temba.mailroom import modifiers
-from temba.msgs.models import Broadcast, Label, Media, Msg
+from temba.msgs.models import Broadcast, Label, Media, Msg, OptIn
 from temba.orgs.models import Org, OrgRole
 from temba.templates.models import Template, TemplateTranslation
 from temba.tickets.models import Ticket, Ticketer, Topic
@@ -611,6 +611,9 @@ class ContactWriteSerializer(WriteSerializer):
             if not field_obj:
                 raise serializers.ValidationError(f"Invalid contact field key: {field_key}")
 
+            if field_obj.get_access(self.context["user"]) != ContactField.ACCESS_EDIT:
+                raise serializers.ValidationError(f"Editing of '{field_key}' values disallowed for current user.")
+
             values_by_field[field_obj] = field_val
 
         return values_by_field
@@ -704,10 +707,16 @@ class ContactFieldReadSerializer(ReadSerializer):
         ContactField.TYPE_DISTRICT: "district",
         ContactField.TYPE_WARD: "ward",
     }
+    ACCESS_TYPES = {
+        ContactField.ACCESS_NONE: "none",
+        ContactField.ACCESS_VIEW: "view",
+        ContactField.ACCESS_EDIT: "edit",
+    }
 
     type = serializers.SerializerMethodField()
     featured = serializers.SerializerMethodField()
     usages = serializers.SerializerMethodField()
+    agent_access = serializers.SerializerMethodField()
 
     # for backwards compatibility
     label = serializers.SerializerMethodField()
@@ -726,6 +735,9 @@ class ContactFieldReadSerializer(ReadSerializer):
             "campaign_events": getattr(obj, "campaignevent_count", 0),
         }
 
+    def get_agent_access(self, obj):
+        return self.ACCESS_TYPES[obj.agent_access]
+
     def get_label(self, obj):
         return obj.name
 
@@ -734,7 +746,7 @@ class ContactFieldReadSerializer(ReadSerializer):
 
     class Meta:
         model = ContactField
-        fields = ("key", "name", "type", "featured", "priority", "usages", "label", "value_type")
+        fields = ("key", "name", "type", "featured", "priority", "usages", "agent_access", "label", "value_type")
 
 
 class ContactFieldWriteSerializer(WriteSerializer):
@@ -1230,6 +1242,7 @@ class MediaWriteSerializer(WriteSerializer):
 
 
 class MsgReadSerializer(ReadSerializer):
+    TYPES = {Msg.TYPE_TEXT: "text", Msg.TYPE_OPTIN: "optin", Msg.TYPE_VOICE: "voice"}
     STATUSES = {
         Msg.STATUS_PENDING: "queued",  # same as far as users are concerned
         Msg.STATUS_HANDLED: "handled",
@@ -1270,7 +1283,7 @@ class MsgReadSerializer(ReadSerializer):
         return "in" if obj.direction == Msg.DIRECTION_IN else "out"
 
     def get_type(self, obj):
-        return "voice" if obj.msg_type == Msg.TYPE_VOICE else "text"
+        return self.TYPES.get(obj.msg_type)
 
     def get_status(self, obj):
         return self.STATUSES.get(obj.status)
@@ -1446,6 +1459,29 @@ class MsgBulkActionSerializer(WriteSerializer):
                     msg.restore()
 
         return BulkActionFailure(missing_message_ids) if missing_message_ids else None
+
+
+class OptInReadSerializer(ReadSerializer):
+    created_on = serializers.DateTimeField(default_timezone=pytz.UTC)
+
+    class Meta:
+        model = Topic
+        fields = ("uuid", "name", "created_on")
+
+
+class OptInWriteSerializer(WriteSerializer):
+    name = serializers.CharField(
+        required=True,
+        max_length=OptIn.MAX_NAME_LEN,
+        validators=[
+            NameValidator(OptIn.MAX_NAME_LEN),
+            UniqueForOrgValidator(queryset=OptIn.objects.filter(is_active=True), ignore_case=True),
+        ],
+    )
+
+    def save(self):
+        name = self.validated_data["name"]
+        return OptIn.create(self.context["org"], self.context["user"], name)
 
 
 class ResthookReadSerializer(ReadSerializer):

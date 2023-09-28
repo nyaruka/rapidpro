@@ -1,0 +1,120 @@
+{% extends "smartmin/base.html" %}
+{% load smartmin i18n humanize %}
+
+{% block page-title %}
+  {% trans "Custom Fields" %}
+{% endblock page-title %}
+{% block content %}
+  <temba-field-manager priority-endpoint="{% url "contacts.contactfield_update_priority" %}"
+                       -temba-selection="handleFieldClicked">
+  </temba-field-manager>
+  {% block pre-tables %}
+    <temba-modax header="{{ _("Update Field") |escapejs }}" -temba-submitted="handleFieldUpdated" id="update-field">
+    </temba-modax>
+    <temba-modax header="{{ _("Delete Field") |escapejs }}" -temba-submitted="handleFieldUpdated" id="delete-modal">
+    </temba-modax>
+    <temba-modax header="{{ _("Usages") |escapejs }}" id="usages-modal">
+    </temba-modax>
+  {% endblock pre-tables %}
+{% endblock content %}
+{% block extra-script %}
+  {{ block.super }}
+  <script type="text/javascript">
+    function showUpdateContactFieldModal(key) {
+      var modax = document.querySelector('#update-field');
+      modax.endpoint = `/contactfield/update/${key}/`;
+      modax.open = true;
+    }
+
+    function showFieldDeleteModal(key) {
+      var modax = document.querySelector('#delete-modal');
+      modax.endpoint = `/contactfield/delete/${key}/`;
+      modax.open = true;
+    }
+
+    function showFieldUsagesModal(key) {
+      var modax = document.querySelector('#usages-modal');
+      modax.endpoint = `/contactfield/usages/${key}/`;
+      modax.open = true;
+    }
+
+    function handleFieldUpdated(event) {
+      var store = document.querySelector("temba-store");
+      store.refreshFields();
+      document.querySelector("temba-menu").refresh();
+    }
+
+    function handleFieldClicked(event) {
+      var key = event.detail.key;
+      var action = event.detail.action;
+      if (action == "update") {
+        showUpdateContactFieldModal(key);
+      } else if (action == "usages") {
+        showFieldUsagesModal(key);
+      } else if (action == "delete") {
+        showFieldDeleteModal(key);
+      }
+    }
+  </script>
+{% endblock extra-script %}
+{% block extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    .page-content {
+      align-self: auto;
+      max-width: 100%;
+    }
+
+    .drag-handle {
+      cursor: move;
+      display: block;
+    }
+
+    .drag-icon {
+      width: 15px;
+    }
+
+    .drag-icon:before {
+      content: '';
+      display: block;
+      width: 15px;
+    }
+
+    .sortable-drag {
+      background-color: #f5f9fa;
+      ;
+    }
+
+    .sortable-ghost {
+      background-color: #f5f9ff;
+    }
+
+    .draggable-row .icon {
+      display: none;
+    }
+
+    .draggable-row>td {
+      cursor: move;
+    }
+
+    .draggable-row>td * {
+      user-select: none;
+      -webkit-user-select: none;
+      pointer-events: none;
+    }
+
+    .draggable-row>td:nth-child(2)>div {
+      padding-left: 0rem;
+      cursor: move !important;
+    }
+
+    .draggable-row:hover .icon {
+      display: inline-block;
+      color: #cccccc;
+    }
+
+    tr:hover .delete-link {
+      visibility: visible !important;
+    }
+  </style>
+{% endblock extra-style %}

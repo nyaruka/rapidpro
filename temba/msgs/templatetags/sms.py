@@ -103,9 +103,10 @@ def render(parser, token):
     return RenderNode(nodes, as_var)
 
 
-@register.inclusion_tag("msgs/tags/attachment.haml")
-def attachment_button(attachment: str) -> dict:
+@register.inclusion_tag("msgs/tags/attachment.html")
+def attachment_button(attachment: str, show_thumb=False) -> dict:
     content_type, delim, url = attachment.partition(":")
+    thumb = None
 
     # some OGG/OGA attachments may have wrong content type
     if content_type == "application/octet-stream" and (url.endswith(".ogg") or url.endswith(".oga")):
@@ -116,6 +117,9 @@ def attachment_button(attachment: str) -> dict:
         category, sub_type = content_type.split("/", maxsplit=2)
     else:
         category, sub_type = content_type, ""
+
+    if category == "image" and show_thumb:
+        thumb = url
 
     if category == "geo":
         preview = url
@@ -134,4 +138,5 @@ def attachment_button(attachment: str) -> dict:
         "preview": preview,
         "url": url,
         "is_playable": content_type in PLAYABLE_CONTENT_TYPES,
+        "thumb": thumb,
     }

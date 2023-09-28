@@ -1,7 +1,7 @@
 from smartmin.models import SmartModel
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Case, Q, When
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -19,7 +19,6 @@ class TriggerType:
     code = None  # single char code used for database model
     slug = None  # used for URLs
     name = None
-    title = None  # used for list page title
 
     # flow types allowed for this type
     allowed_flow_types = ()
@@ -74,6 +73,8 @@ class Trigger(SmartModel):
     TYPE_REFERRAL = "R"
     TYPE_CLOSED_TICKET = "T"
     TYPE_CATCH_ALL = "C"
+    TYPE_OPT_IN = "I"
+    TYPE_OPT_OUT = "O"
 
     KEYWORD_MAX_LEN = 16
 
@@ -121,9 +122,7 @@ class Trigger(SmartModel):
         assert flow.flow_type != Flow.TYPE_SURVEY, "can't create triggers for surveyor flows"
         assert trigger_type != cls.TYPE_KEYWORD or (keyword and match_type), "keyword required for keyword triggers"
         assert trigger_type != cls.TYPE_SCHEDULE or schedule, "schedule must be provided for scheduled triggers"
-        assert (
-            trigger_type == cls.TYPE_SCHEDULE or not contacts
-        ), "contacts can only be provided for scheduled triggers"
+        assert trigger_type == cls.TYPE_SCHEDULE or not contacts, "contacts can only be provided for scheduled triggers"
 
         trigger = cls.objects.create(
             org=org,
@@ -158,9 +157,7 @@ class Trigger(SmartModel):
         Returns keys that represents the scopes that this trigger can operate against (and might conflict with other triggers with)
         """
         groups = ["**"] if not self.groups else [str(g.id) for g in self.groups.all().order_by("id")]
-        return [
-            "%s_%s_%s_%s" % (self.trigger_type, str(self.channel_id), group, str(self.keyword)) for group in groups
-        ]
+        return ["%s_%s_%s_%s" % (self.trigger_type, str(self.channel_id), group, str(self.keyword)) for group in groups]
 
     def archive(self, user):
         self.modified_by = user
@@ -381,6 +378,17 @@ class Trigger(SmartModel):
     @property
     def name(self):
         return self.type.get_instance_name(self)
+
+    @classmethod
+    def type_order(cls):
+        """
+        Creates an order by expression based on order of type declarations.
+        """
+
+        from .types import TYPES_BY_CODE
+
+        whens = [When(trigger_type=t.code, then=i) for i, t in enumerate(TYPES_BY_CODE.values())]
+        return Case(*whens, default=100).asc()
 
     def release(self, user):
         """

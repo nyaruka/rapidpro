@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils import timezone
 
+from temba.campaigns.views import CampaignEventCRUDL
 from temba.contacts.models import ContactField
 from temba.flows.models import Flow, FlowRevision
 from temba.msgs.models import Msg
@@ -55,7 +56,7 @@ class CampaignTest(TembaTest):
 
         self.assertEqual("Reminders", campaign.name)
         self.assertEqual("Reminders", str(campaign))
-        self.assertEqual('Event[relative_to=planting_date, offset=1, flow="Test Flow"]', str(event1))
+        self.assertEqual('<Event: relative_to=planting_date offset=1 flow="Test Flow">', repr(event1))
         self.assertEqual([event1, event2], list(campaign.get_events()))
         self.assertEqual(None, event1.get_message(contact))
         self.assertEqual("Hello", event2.get_message(contact))
@@ -209,9 +210,7 @@ class CampaignTest(TembaTest):
             relative_to=self.planting_date,
             offset=1,
             unit="D",
-            message={
-                "eng": "Hi @(upper(contact.name)) don't forget to plant on @(format_date(contact.planting_date))"
-            },
+            message={"eng": "Hi @(upper(contact.name)) don't forget to plant on @(format_date(contact.planting_date))"},
             base_language="eng",
         )
 
@@ -259,9 +258,7 @@ class CampaignTest(TembaTest):
 
         # manually create two event fires
         EventFire.objects.create(event=event, contact=self.farmer1, scheduled=trim_date, fired=trim_date)
-        e2 = EventFire.objects.create(
-            event=event, contact=self.farmer1, scheduled=timezone.now(), fired=timezone.now()
-        )
+        e2 = EventFire.objects.create(event=event, contact=self.farmer1, scheduled=timezone.now(), fired=timezone.now())
 
         # create an unfired fire and release its event
         EventFire.objects.create(event=second_event, contact=self.farmer1, scheduled=trim_date)
@@ -373,9 +370,7 @@ class CampaignTest(TembaTest):
             flow_to_start=self.reminder_flow.pk,
             flow_start_mode="I",
         )
-        response = self.client.post(
-            reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
-        )
+        response = self.client.post(reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data)
 
         self.assertTrue(response.context["form"].errors)
         self.assertIn("A message is required", str(response.context["form"].errors["__all__"]))
@@ -392,9 +387,7 @@ class CampaignTest(TembaTest):
             flow_start_mode="I",
         )
 
-        response = self.client.post(
-            reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
-        )
+        response = self.client.post(reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data)
 
         self.assertFormError(
             response, "form", None, f"Translation for 'English' exceeds the {Msg.MAX_TEXT_LEN} character limit."
@@ -410,9 +403,7 @@ class CampaignTest(TembaTest):
             event_type="F",
             flow_start_mode="I",
         )
-        response = self.client.post(
-            reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
-        )
+        response = self.client.post(reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data)
 
         self.assertFormError(response, "form", "flow_to_start", "This field is required.")
 
@@ -427,9 +418,7 @@ class CampaignTest(TembaTest):
             flow_to_start=self.reminder_flow.pk,
             flow_start_mode="I",
         )
-        response = self.client.post(
-            reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
-        )
+        response = self.client.post(reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data)
 
         event = CampaignEvent.objects.filter(is_active=True).get()
         # should be redirected back to our campaign read page
@@ -616,9 +605,7 @@ class CampaignTest(TembaTest):
             flow_start_mode="I",
             flow_to_start=self.background_flow.pk,
         )
-        response = self.client.post(
-            reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
-        )
+        response = self.client.post(reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data)
 
         # events created with background flows are always passive start mode
         event = CampaignEvent.objects.filter(is_active=True).get()
@@ -756,9 +743,7 @@ class CampaignTest(TembaTest):
             message_start_mode="I",
         )
 
-        response = self.client.post(
-            reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
-        )
+        response = self.client.post(reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data)
 
         self.assertRedirect(response, reverse("campaigns.campaign_read", args=[campaign.uuid]))
 
@@ -766,9 +751,7 @@ class CampaignTest(TembaTest):
         campaign.is_archived = True
         campaign.save()
 
-        response = self.client.post(
-            reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
-        )
+        response = self.client.post(reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data)
 
         # we should get 404 for the archived campaign
         self.assertEqual(response.status_code, 404)
@@ -778,9 +761,7 @@ class CampaignTest(TembaTest):
         campaign.is_active = False
         campaign.save()
 
-        response = self.client.post(
-            reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data
-        )
+        response = self.client.post(reverse("campaigns.campaignevent_create") + "?campaign=%d" % campaign.pk, post_data)
 
         # we should get 404 for the inactive campaign
         self.assertEqual(response.status_code, 404)
@@ -1040,11 +1021,7 @@ class CampaignTest(TembaTest):
         campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
 
         new_org = Org.objects.create(
-            name="Temba New",
-            timezone=pytz.timezone("Africa/Kigali"),
-            brand=settings.BRAND["slug"],
-            created_by=self.user,
-            modified_by=self.user,
+            name="Temba New", timezone=pytz.timezone("Africa/Kigali"), created_by=self.user, modified_by=self.user
         )
 
         self.assertRaises(
@@ -1103,11 +1080,7 @@ class CampaignTest(TembaTest):
         campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
 
         new_org = Org.objects.create(
-            name="Temba New",
-            timezone=pytz.timezone("Africa/Kigali"),
-            brand=settings.BRAND["slug"],
-            created_by=self.user,
-            modified_by=self.user,
+            name="Temba New", timezone=pytz.timezone("Africa/Kigali"), created_by=self.user, modified_by=self.user
         )
 
         with self.assertRaises(AssertionError):
@@ -1352,11 +1325,15 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         registered = self.org.fields.get(key="registered")
         campaign = Campaign.create(org, user, name, group)
         flow = self.create_flow(f"{name} Flow", org=org)
+        background_flow = self.create_flow(f"{name} Background Flow", org=org, flow_type=Flow.TYPE_BACKGROUND)
         CampaignEvent.create_flow_event(
             org, user, campaign, registered, offset=1, unit="W", flow=flow, delivery_hour="13"
         )
         CampaignEvent.create_flow_event(
             org, user, campaign, registered, offset=2, unit="W", flow=flow, delivery_hour="13"
+        )
+        CampaignEvent.create_flow_event(
+            org, user, campaign, registered, offset=2, unit="W", flow=background_flow, delivery_hour="13"
         )
         return campaign
 
@@ -1634,7 +1611,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(response.context["form"].fields["eng"].initial, "Required")
 
     def test_update(self):
-        event1, event2 = self.campaign1.events.order_by("id")
+        event1, event2, event3 = self.campaign1.events.order_by("id")
         other_org_event1 = self.other_org_campaign.events.order_by("id").first()
 
         update_url = reverse("campaigns.campaignevent_update", args=[event1.id])
@@ -1693,7 +1670,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(event1.is_active)
 
         # but will have a new replacement event
-        new_event1 = self.campaign1.events.filter(id__gt=event2.id).get()
+        new_event1 = self.campaign1.events.filter(id__gt=event2.id).last()
 
         self.assertEqual(accepted, new_event1.relative_to)
         self.assertEqual("M", new_event1.event_type)
@@ -1720,6 +1697,14 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         other_org_event1.refresh_from_db()
         self.assertEqual("F", other_org_event1.event_type)
         self.assertTrue(other_org_event1.is_active)
+
+        # event based on background flow should show a warning for it's info text
+        update_url = reverse("campaigns.campaignevent_update", args=[event3.id])
+        response = self.client.get(update_url)
+        self.assertEqual(
+            CampaignEventCRUDL.BACKGROUND_WARNING,
+            response.context["form"].fields["flow_to_start"].widget.attrs["info_text"],
+        )
 
     def test_delete(self):
         # update event to have a field dependency

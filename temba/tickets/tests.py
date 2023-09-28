@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from temba.contacts.models import Contact, ContactField, ContactURN
-from temba.tests import AnonymousOrg, CRUDLTestMixin, TembaTest, matchers, mock_mailroom
+from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
 from temba.utils.dates import datetime_to_timestamp
 from temba.utils.uuid import uuid4
 
@@ -27,7 +27,6 @@ from .models import (
     export_ticket_stats,
 )
 from .tasks import squash_ticket_counts
-from .types import reload_ticketer_types
 from .types.internal import InternalType
 from .types.mailgun import MailgunType
 from .types.zendesk import ZendeskType
@@ -124,9 +123,7 @@ class TicketTest(TembaTest):
             self.assertEqual(sum(assignee_closed.values()), TicketCount.get_all(org, Ticket.STATUS_CLOSED))
 
             self.assertEqual(topic_open, TicketCount.get_by_topics(org, list(org.topics.all()), Ticket.STATUS_OPEN))
-            self.assertEqual(
-                topic_closed, TicketCount.get_by_topics(org, list(org.topics.all()), Ticket.STATUS_CLOSED)
-            )
+            self.assertEqual(topic_closed, TicketCount.get_by_topics(org, list(org.topics.all()), Ticket.STATUS_CLOSED))
 
             self.assertEqual(contacts, {c: Contact.objects.get(id=c.id).ticket_count for c in contacts})
 
@@ -257,9 +254,7 @@ class TopicCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_update(self):
         system_topic = Topic.objects.filter(org=self.org, is_system=True).first()
-        user_topic = Topic.objects.create(
-            org=self.org, name="Hot Topic", created_by=self.admin, modified_by=self.admin
-        )
+        user_topic = Topic.objects.create(org=self.org, name="Hot Topic", created_by=self.admin, modified_by=self.admin)
 
         # can't edit a system topic
         update_url = reverse("tickets.topic_update", args=[system_topic.uuid])
@@ -364,11 +359,11 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         update_url = reverse("tickets.ticket_update", args=[ticket.uuid])
 
-        self.assertUpdateFetch(update_url, allow_viewers=False, allow_editors=True, form_fields=["topic", "body"])
-
-        user_topic = Topic.objects.create(
-            org=self.org, name="Hot Topic", created_by=self.admin, modified_by=self.admin
+        self.assertUpdateFetch(
+            update_url, allow_viewers=False, allow_editors=True, allow_agents=True, form_fields=["topic", "body"]
         )
+
+        user_topic = Topic.objects.create(org=self.org, name="Hot Topic", created_by=self.admin, modified_by=self.admin)
 
         # edit successfully
         self.assertUpdateSubmit(update_url, {"topic": user_topic.id, "body": "This is silly"}, success_status=302)
@@ -392,9 +387,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_folder(self, mr_mocks):
         self.login(self.admin)
 
-        user_topic = Topic.objects.create(
-            org=self.org, name="Hot Topic", created_by=self.admin, modified_by=self.admin
-        )
+        user_topic = Topic.objects.create(org=self.org, name="Hot Topic", created_by=self.admin, modified_by=self.admin)
 
         contact1 = self.create_contact("Joe", phone="123", last_seen_on=timezone.now())
         contact2 = self.create_contact("Frank", phone="124", last_seen_on=timezone.now())
@@ -667,7 +660,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             tz=self.org.timezone,
         )
 
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             # anon org doesn't see URN value column
             export = self._request_export(start_date=date.today() - timedelta(days=7), end_date=date.today())
             self.assertExcelSheet(
@@ -925,7 +918,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             tz=self.org.timezone,
         )
 
-        with AnonymousOrg(self.org):
+        with self.anonymous(self.org):
             with self.mockReadOnly(assert_models={Ticket, ContactURN}):
                 export = self._request_export(start_date=today - timedelta(days=90), end_date=today)
             self.assertExcelSheet(
@@ -1068,28 +1061,6 @@ class TicketerTest(TembaTest):
 
 
 class TicketerCRUDLTest(TembaTest, CRUDLTestMixin):
-    def test_connect(self):
-        connect_url = reverse("tickets.ticketer_connect")
-
-        with override_settings(TICKETER_TYPES=[]):
-            reload_ticketer_types()
-
-            response = self.assertListFetch(connect_url, allow_viewers=False, allow_editors=False, allow_agents=False)
-
-            self.assertEqual([], response.context["ticketer_types"])
-            self.assertContains(response, "No ticketing services are available.")
-
-        with override_settings(TICKETER_TYPES=["temba.tickets.types.mailgun.MailgunType"], MAILGUN_API_KEY="123"):
-            reload_ticketer_types()
-
-            response = self.assertListFetch(connect_url, allow_viewers=False, allow_editors=False, allow_agents=False)
-
-            self.assertNotContains(response, "No ticketing services are available.")
-            self.assertContains(response, reverse("tickets.types.mailgun.connect"))
-
-        # put them all back...
-        reload_ticketer_types()
-
     @patch("temba.mailroom.client.MailroomClient.ticket_close")
     def test_delete(self, mock_ticket_close):
         ticketer = Ticketer.create(self.org, self.user, MailgunType.slug, "Email (bob@acme.com)", {})

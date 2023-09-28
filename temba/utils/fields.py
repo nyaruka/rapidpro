@@ -1,8 +1,9 @@
 import ipaddress
 import json
 import socket
+from copy import deepcopy
 from datetime import datetime
-from urllib import parse
+from urllib.parse import urlparse
 
 from django import forms
 from django.core.validators import URLValidator
@@ -18,7 +19,7 @@ class JSONField(forms.Field):
 
 
 class DateWidget(forms.DateTimeInput):
-    template_name = "utils/forms/datepicker.haml"
+    template_name = "utils/forms/datepicker.html"
     is_annotated = True
 
     def get_context(self, name, value, attrs):
@@ -49,7 +50,7 @@ class TembaDateTimeField(forms.DateTimeField):
 
 
 class ColorPickerWidget(forms.TextInput):  # pragma: needs cover
-    template_name = "utils/forms/color_picker.haml"
+    template_name = "utils/forms/color_picker.html"
     is_annotated = True
 
     def get_context(self, name, value, attrs):
@@ -61,7 +62,7 @@ class ColorPickerWidget(forms.TextInput):  # pragma: needs cover
 
 
 class InputWidget(forms.TextInput):
-    template_name = "utils/forms/input.haml"
+    template_name = "utils/forms/input.html"
     is_annotated = True
 
     def get_context(self, name, value, attrs):
@@ -101,52 +102,91 @@ class NameValidator:
         return isinstance(other, NameValidator) and self.max_length == other.max_length
 
 
-def validate_external_url(value):
-    parsed = parse.urlparse(value)
-
-    # if it isn't http or https, fail
-    if parsed.scheme not in ("http", "https"):
-        raise ValidationError(_("Must use HTTP or HTTPS."), params={"value": value})
-
-    # resolve the host
-    try:
-        host = parsed.netloc
-        if parsed.port:
-            host = parsed.netloc[: -(len(str(parsed.port)) + 1)]
-        ip = socket.gethostbyname(host)
-    except Exception:
-        raise ValidationError(_("Unable to resolve host."), params={"value": value})
-
-    ip = ipaddress.ip_address(ip)
-
-    if ip.is_loopback or ip.is_multicast or ip.is_private or ip.is_link_local:
-        raise ValidationError(_("Cannot be a local or private host."), params={"value": value})
-
-
 class ExternalURLField(forms.URLField):
     """
     Just like a normal URLField but also validates that the URL is external (not localhost)
     """
 
-    default_validators = [URLValidator(), validate_external_url]
+    default_validators = [URLValidator()]
+
+    def to_python(self, value):
+        """
+        Overrides URLField.to_python to remove assuming http scheme
+        """
+        value = super(forms.CharField, self).to_python(value)
+        if value:
+            try:
+                parsed = urlparse(value)
+            except ValueError:
+                raise ValidationError(self.error_messages["invalid"], code="invalid")
+
+            if not parsed.scheme or not parsed.netloc:
+                raise ValidationError(self.error_messages["invalid"], code="invalid")
+
+            # if it isn't http or https, fail
+            if parsed.scheme not in ("http", "https"):
+                raise ValidationError(_("Must use HTTP or HTTPS."), params={"value": value})
+
+            # resolve the host
+            try:
+                if parsed.port:
+                    host = parsed.netloc[: -(len(str(parsed.port)) + 1)]
+                else:
+                    host = parsed.netloc
+
+                ip = socket.gethostbyname(host)
+            except Exception:
+                raise ValidationError(_("Unable to resolve host."), params={"value": value})
+
+            ip = ipaddress.ip_address(ip)
+
+            if ip.is_loopback or ip.is_multicast or ip.is_private or ip.is_link_local:
+                raise ValidationError(_("Cannot be a local or private host."), params={"value": value})
+
+        return value
 
 
 class CheckboxWidget(forms.CheckboxInput):
-    template_name = "utils/forms/checkbox.haml"
+    template_name = "utils/forms/checkbox.html"
     is_annotated = True
 
 
 class SelectWidget(forms.Select):
-    template_name = "utils/forms/select.haml"
+    template_name = "utils/forms/select.html"
     is_annotated = True
-    option_inherits_attrs = True
+    option_inherits_attrs = False
+
+    def __init__(self, attrs=None, choices=(), *, option_attrs={}):
+        super().__init__(attrs, choices)
+        self.option_attrs = option_attrs
 
     def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
         if hasattr(self.choices, "option_attrs_by_value"):
             attrs = self.choices.option_attrs_by_value.get(value)
-        attrs = attrs if attrs else {}
-        option = super().create_option(name, value, label, selected, index, subindex, attrs)
-        return option
+
+        attrs = deepcopy(attrs) if attrs else {}
+        extra = self.option_attrs.get(value, {})
+        attrs.update(extra)
+
+        # django doen't include attrs if inherits is false, this doesn't seem right
+        # so we'll include them ourselves
+        index = str(index) if subindex is None else "%s_%s" % (index, subindex)
+        option_attrs = self.build_attrs(self.attrs, attrs) if self.option_inherits_attrs else attrs
+
+        if "id" in option_attrs:
+            option_attrs["id"] = self.id_for_label(option_attrs["id"], index)
+
+        return {
+            "name": name,
+            "value": value,
+            "label": label,
+            "selected": selected,
+            "index": index,
+            "attrs": option_attrs,
+            "type": self.input_type,
+            "template_name": self.option_template_name,
+            "wrap_label": True,
+        }
 
     def format_value(self, value):
         def format_single(v):
@@ -164,7 +204,7 @@ class SelectWidget(forms.Select):
 
 
 class SelectMultipleWidget(SelectWidget):
-    template_name = "utils/forms/select.haml"
+    template_name = "utils/forms/select.html"
     is_annotated = True
     allow_multiple_selected = True
 
@@ -176,12 +216,24 @@ class SelectMultipleWidget(SelectWidget):
 
 
 class ContactSearchWidget(forms.Widget):
-    template_name = "utils/forms/contact_search.haml"
+    template_name = "utils/forms/contact_search.html"
     is_annotated = True
+
+    def render(self, name, value, attrs=None, renderer=None):
+        if value:
+            value = json.loads(value)
+            attrs = attrs or {}
+            if value:
+                attrs["advanced"] = value["advanced"]
+                attrs["query"] = value.get("query", None)
+                attrs["recipients"] = json.dumps(value.get("recipients", []))
+                attrs["exclusions"] = json.dumps(value.get("exclusions", []))
+
+        return super().render(name, value, attrs)
 
 
 class CompletionTextarea(forms.Widget):
-    template_name = "utils/forms/completion_textarea.haml"
+    template_name = "utils/forms/completion_textarea.html"
     is_annotated = True
 
     def __init__(self, attrs=None):
@@ -192,7 +244,7 @@ class CompletionTextarea(forms.Widget):
 
 
 class OmniboxChoice(forms.Widget):
-    template_name = "utils/forms/omnibox_choice.haml"
+    template_name = "utils/forms/omnibox_choice.html"
     is_annotated = True
 
     def __init__(self, attrs=None):
@@ -225,7 +277,7 @@ class OmniboxField(JSONField):
 
 
 class ComposeWidget(forms.Widget):
-    template_name = "utils/forms/compose.haml"
+    template_name = "utils/forms/compose.html"
     is_annotated = True
 
     def render(self, name, value, attrs=None, renderer=None):
@@ -248,7 +300,6 @@ class TembaChoiceIterator(forms.models.ModelChoiceIterator):
     def choice(self, obj):
         value = self.field.prepare_value(obj)
         option = (value, self.field.label_from_instance(obj))
-
         if hasattr(obj, "get_attrs"):
             self.option_attrs_by_value[value] = obj.get_attrs()
 

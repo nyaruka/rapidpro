@@ -1,8 +1,5 @@
 import itertools
-import logging
-import random
 import smtplib
-import string
 from collections import OrderedDict
 from datetime import timedelta
 from email.utils import parseaddr
@@ -11,7 +8,7 @@ from urllib.parse import parse_qs, quote, quote_plus, unquote, urlparse
 import iso8601
 import pyotp
 from packaging.version import Version
-from smartmin.users.models import FailedLogin, PasswordHistory, RecoveryToken
+from smartmin.users.models import FailedLogin, PasswordHistory
 from smartmin.users.views import Login, UserUpdateForm
 from smartmin.views import (
     SmartCreateView,
@@ -36,7 +33,8 @@ from django.contrib.auth.views import LoginView as AuthLoginView
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import IntegrityError
-from django.forms import Form, ModelChoiceField
+from django.db.models.functions import Lower
+from django.forms import ModelChoiceField
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import resolve_url
 from django.urls import reverse, reverse_lazy
@@ -48,19 +46,11 @@ from django.views.decorators.csrf import csrf_exempt
 
 from temba.api.models import APIToken, Resthook
 from temba.campaigns.models import Campaign
-from temba.channels.models import Channel
-from temba.classifiers.models import Classifier
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin
 from temba.utils import analytics, get_anonymous_user, json, languages
-from temba.utils.email import is_valid_address, send_template_email
-from temba.utils.fields import (
-    ArbitraryJsonChoiceField,
-    CheckboxWidget,
-    InputWidget,
-    SelectMultipleWidget,
-    SelectWidget,
-)
+from temba.utils.email import is_valid_address
+from temba.utils.fields import ArbitraryJsonChoiceField, CheckboxWidget, InputWidget, SelectMultipleWidget, SelectWidget
 from temba.utils.timezones import TimeZoneFormField
 from temba.utils.views import (
     ComponentFormMixin,
@@ -72,7 +62,7 @@ from temba.utils.views import (
     StaffOnlyMixin,
 )
 
-from .models import BackupToken, IntegrationType, Invitation, Org, OrgRole, User
+from .models import BackupToken, IntegrationType, Invitation, Org, OrgImport, OrgRole, User
 
 # session key for storing a two-factor enabled user's id once we've checked their password
 TWO_FACTOR_USER_SESSION_KEY = "_two_factor_user_id"
@@ -111,8 +101,9 @@ class OrgPermsMixin:
         return self.request.org
 
     def has_org_perm(self, permission):
-        if self.org:
-            return self.get_user().has_org_perm(self.org, permission)
+        org = self.derive_org()
+        if org:
+            return self.get_user().has_org_perm(org, permission)
         return False
 
     def has_permission(self, request, *args, **kwargs):
@@ -122,9 +113,10 @@ class OrgPermsMixin:
         self.kwargs = kwargs
         self.args = args
         self.request = request
-        self.org = self.derive_org()
 
-        if self.get_user().is_staff and self.org:
+        org = self.derive_org()
+
+        if self.get_user().is_staff and org:
             return True
 
         if self.get_user().is_anonymous:
@@ -180,10 +172,10 @@ class OrgObjPermsMixin(OrgPermsMixin):
             return self.request.org == self.get_object_org()
 
     def pre_process(self, request, *args, **kwargs):
-        self.org = self.get_object_org()
-        if request.user.is_staff and self.request.org != self.org:
+        org = self.get_object_org()
+        if request.user.is_staff and self.request.org != org:
             return HttpResponseRedirect(
-                f"{reverse('orgs.org_service')}?next={quote_plus(request.path)}&other_org={self.org.pk}"
+                f"{reverse('orgs.org_service')}?next={quote_plus(request.path)}&other_org={org.id}"
             )
 
 
@@ -302,7 +294,7 @@ class DependencyUsagesModal(DependencyModalMixin, SmartReadView):
     """
 
     slug_url_kwarg = "uuid"
-    template_name = "orgs/dependency_usages_modal.haml"
+    template_name = "orgs/dependency_usages_modal.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -319,7 +311,7 @@ class DependencyDeleteModal(DependencyModalMixin, ModalMixin, SmartDeleteView):
     fields = ("uuid",)
     success_message = ""
     submit_button_name = _("Delete")
-    template_name = "orgs/dependency_delete_modal.haml"
+    template_name = "orgs/dependency_delete_modal.html"
 
     # warnings for soft dependencies
     type_warnings = {
@@ -410,9 +402,7 @@ class OrgGrantForm(forms.ModelForm):
         help_text=_("Your last name of the workspace administrator"),
         max_length=User._meta.get_field("last_name").max_length,
     )
-    email = forms.EmailField(
-        help_text=_("Their email address"), max_length=User._meta.get_field("username").max_length
-    )
+    email = forms.EmailField(help_text=_("Their email address"), max_length=User._meta.get_field("username").max_length)
     timezone = TimeZoneFormField(help_text=_("The timezone for the workspace"))
     password = forms.CharField(
         widget=forms.PasswordInput,
@@ -452,7 +442,7 @@ class LoginView(Login):
     Overrides the smartmin login view to redirect users with 2FA enabled to a second verification view.
     """
 
-    template_name = "orgs/login/login.haml"
+    template_name = "orgs/login/login.html"
 
     def form_valid(self, form):
         user = form.get_user()
@@ -559,7 +549,7 @@ class TwoFactorVerifyView(BaseTwoFactorView):
             return data
 
     form_class = Form
-    template_name = "orgs/login/two_factor_verify.haml"
+    template_name = "orgs/login/two_factor_verify.html"
 
 
 class TwoFactorBackupView(BaseTwoFactorView):
@@ -581,7 +571,7 @@ class TwoFactorBackupView(BaseTwoFactorView):
             return data
 
     form_class = Form
-    template_name = "orgs/login/two_factor_backup.haml"
+    template_name = "orgs/login/two_factor_backup.html"
 
 
 class ConfirmAccessView(Login):
@@ -608,7 +598,7 @@ class ConfirmAccessView(Login):
         def get_user(self):
             return self.user
 
-    template_name = "orgs/login/confirm_access.haml"
+    template_name = "orgs/login/confirm_access.html"
     form_class = Form
 
     def dispatch(self, request, *args, **kwargs):
@@ -778,16 +768,7 @@ class UserCRUDL(SmartCRUDL):
             user = User.objects.filter(email__iexact=email).first()
 
             if user:
-                subject = _("Password Recovery Request")
-                template = "orgs/email/user_forget"
-
-                token = "".join(random.choice(string.ascii_uppercase + string.digits) for x in range(32))
-                RecoveryToken.objects.create(token=token, user=user)
-                FailedLogin.objects.filter(username__iexact=user.username).delete()
-
-                context = dict(user=user, path=f'{reverse("users.user_recover", args=[token])}')
-                send_template_email(email, subject, template, context, self.request.branding)
-
+                user.recover_password(self.request.branding)
             else:
                 # No user, check if we have an invite for the email and resend that
                 existing_invite = Invitation.objects.filter(is_active=True, email__iexact=email).first()
@@ -975,7 +956,7 @@ class UserCRUDL(SmartCRUDL):
                 return data
 
         form_class = Form
-        success_url = "@orgs.org_workspace"
+        success_url = "@orgs.user_two_factor_enable"
         success_message = _("Two-factor authentication disabled")
         submit_button_name = _("Disable")
         permission = "orgs.org_two_factor"
@@ -1018,8 +999,10 @@ class UserCRUDL(SmartCRUDL):
 
     class Account(SpaMixin, FormaxMixin, InferOrgMixin, OrgPermsMixin, SmartReadView):
         title = _("Account")
-        permission = "orgs.org_account"
         menu_path = "/settings/account"
+
+        def has_permission(self, request):
+            return request.user.is_authenticated
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
@@ -1028,7 +1011,7 @@ class UserCRUDL(SmartCRUDL):
 
         def derive_formax_sections(self, formax, context):
             if self.has_org_perm("orgs.org_profile"):
-                formax.add_section("org", reverse("orgs.user_edit"), icon="icon-user")
+                formax.add_section("org", reverse("orgs.user_edit"), icon="user")
 
 
 class MenuMixin(OrgPermsMixin):
@@ -1135,7 +1118,7 @@ class OrgCRUDL(SmartCRUDL):
         "grant",
         "create_login",
         "choose",
-        "delete",
+        "delete_child",
         "manage_accounts",
         "manage_accounts_sub_org",
         "manage",
@@ -1146,7 +1129,6 @@ class OrgCRUDL(SmartCRUDL):
         "sub_orgs",
         "create",
         "export",
-        "import",
         "prometheus",
         "resthooks",
         "service",
@@ -1163,33 +1145,32 @@ class OrgCRUDL(SmartCRUDL):
             return r"^%s/%s/((?P<submenu>[A-z]+)/)?$" % (path, action)
 
         def has_permission(self, request, *args, **kwargs):
-            self.org = self.request.org
-
             if self.request.user.is_staff:
                 return True
+
             return super().has_permission(request, *args, **kwargs)
 
         def derive_menu(self):
             submenu = self.kwargs.get("submenu")
+            org = self.request.org
 
             # how this menu is made up is a wip
             # TODO: remove pragma
             if submenu == "settings":  # pragma: no cover
-                menu = []
-                menu.append(
+                menu = [
                     self.create_menu_item(
-                        menu_id="workspace", name=self.org.name, icon="settings", href="orgs.org_workspace"
+                        menu_id="workspace", name=self.request.org.name, icon="settings", href="orgs.org_workspace"
                     )
-                )
+                ]
 
-                if self.has_org_perm("orgs.org_sub_orgs") and Org.FEATURE_CHILD_ORGS in self.org.features:
-                    children = Org.objects.filter(parent=self.org, is_active=True).count()
+                if self.has_org_perm("orgs.org_sub_orgs") and Org.FEATURE_CHILD_ORGS in org.features:
+                    children = org.children.filter(is_active=True).count()
                     item = self.create_menu_item(name=_("Workspaces"), icon="children", href="orgs.org_sub_orgs")
                     if children:
                         item["count"] = children
                     menu.append(item)
 
-                if self.has_org_perm("orgs.org_dashboard") and Org.FEATURE_CHILD_ORGS in self.org.features:
+                if self.has_org_perm("orgs.org_dashboard") and Org.FEATURE_CHILD_ORGS in org.features:
                     menu.append(
                         self.create_menu_item(
                             menu_id="dashboard",
@@ -1220,7 +1201,7 @@ class OrgCRUDL(SmartCRUDL):
                         )
                     )
 
-                if self.has_org_perm("orgs.org_account"):
+                if self.request.user.is_authenticated:
                     menu.append(
                         self.create_menu_item(
                             menu_id="account",
@@ -1230,13 +1211,13 @@ class OrgCRUDL(SmartCRUDL):
                         )
                     )
 
-                if self.has_org_perm("orgs.org_manage_accounts") and Org.FEATURE_USERS in self.org.features:
+                if self.has_org_perm("orgs.org_manage_accounts") and Org.FEATURE_USERS in org.features:
                     menu.append(
                         self.create_menu_item(
                             name=_("Users"),
                             icon="users",
                             href="orgs.org_manage_accounts",
-                            count=self.org.users.count(),
+                            count=org.users.count(),
                         )
                     )
 
@@ -1246,11 +1227,11 @@ class OrgCRUDL(SmartCRUDL):
                     from temba.channels.views import get_channel_read_url
 
                     items = []
-                    channels = Channel.objects.filter(org=self.org, is_active=True, parent=None).order_by("-role")
+                    channels = org.channels.filter(is_active=True).order_by(Lower("name"))
                     for channel in channels:
                         items.append(
                             self.create_menu_item(
-                                menu_id=f"{channel.uuid}",
+                                menu_id=str(channel.uuid),
                                 name=channel.name,
                                 href=get_channel_read_url(channel),
                                 icon=channel.type.get_icon(),
@@ -1262,7 +1243,7 @@ class OrgCRUDL(SmartCRUDL):
 
                 if self.has_org_perm("classifiers.classifier_read"):
                     items = []
-                    classifiers = Classifier.objects.filter(org=self.org, is_active=True).order_by("-created_on")
+                    classifiers = org.classifiers.filter(is_active=True).order_by(Lower("name"))
                     for classifier in classifiers:
                         items.append(
                             self.create_menu_item(
@@ -1313,10 +1294,8 @@ class OrgCRUDL(SmartCRUDL):
                 ]
 
             menu = []
-            if self.org:
-                other_orgs = (
-                    User.get_orgs_for_request(self.request).exclude(id=self.org.id).order_by("-parent", "name")
-                )
+            if org:
+                other_orgs = User.get_orgs_for_request(self.request).exclude(id=org.id).order_by("-parent", "name")
                 other_org_items = [
                     self.create_menu_item(menu_id=other_org.id, name=other_org.name, avatar=other_org.name, event=True)
                     for other_org in other_orgs
@@ -1326,7 +1305,7 @@ class OrgCRUDL(SmartCRUDL):
                     other_org_items.insert(0, self.create_divider())
 
                 if self.has_org_perm("orgs.org_create"):
-                    if Org.FEATURE_NEW_ORGS in self.org.features and Org.FEATURE_CHILD_ORGS not in self.org.features:
+                    if Org.FEATURE_NEW_ORGS in org.features and Org.FEATURE_CHILD_ORGS not in org.features:
                         other_org_items.append(self.create_divider())
                         other_org_items.append(
                             self.create_modax_button(name=_("New Workspace"), href="orgs.org_create")
@@ -1336,13 +1315,11 @@ class OrgCRUDL(SmartCRUDL):
                     self.create_menu_item(
                         menu_id="workspace",
                         name=_("Workspace"),
-                        avatar=self.org.name,
+                        avatar=org.name,
                         popup=True,
                         items=[
                             self.create_space(),
-                            self.create_menu_item(
-                                menu_id="settings", name=self.org.name, avatar=self.org.name, event=True
-                            ),
+                            self.create_menu_item(menu_id="settings", name=org.name, avatar=org.name, event=True),
                             self.create_divider(),
                             self.create_menu_item(
                                 menu_id="logout",
@@ -1407,7 +1384,7 @@ class OrgCRUDL(SmartCRUDL):
                 ),
             ]
 
-            if self.org:
+            if org:
                 menu.append(
                     {
                         "id": "settings",
@@ -1435,59 +1412,6 @@ class OrgCRUDL(SmartCRUDL):
 
             # Other Plugins:
             # Wit.ai, Luis, Bothub, ZenDesk, DT One, Chatbase, Prometheus, Zapier/Resthooks
-
-    class Import(SpaMixin, NonAtomicMixin, InferOrgMixin, OrgPermsMixin, SmartFormView):
-        menu_path = "/settings/workspace"
-
-        class FlowImportForm(Form):
-            import_file = forms.FileField(help_text=_("The import file"))
-            update = forms.BooleanField(help_text=_("Update all flows and campaigns"), required=False)
-
-            def __init__(self, *args, **kwargs):
-                self.org = kwargs["org"]
-                del kwargs["org"]
-                super().__init__(*args, **kwargs)
-
-            def clean_import_file(self):
-                # check that it isn't too old
-                data = self.cleaned_data["import_file"].read()
-                try:
-                    json_data = json.loads(force_str(data))
-                except (DjangoUnicodeDecodeError, ValueError):
-                    raise ValidationError(_("This file is not a valid flow definition file."))
-
-                if Version(str(json_data.get("version", 0))) < Version(Org.EARLIEST_IMPORT_VERSION):
-                    raise ValidationError(
-                        _("This file is no longer valid. Please export a new version and try again.")
-                    )
-
-                return data
-
-        success_message = _("Import successful")
-        form_class = FlowImportForm
-        title = _("Import Flows")
-
-        def get_success_url(self):  # pragma: needs cover
-            return reverse("flows.flow_list")
-
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["org"] = self.request.org
-            return kwargs
-
-        def form_valid(self, form):
-            try:
-                org = self.request.org
-                data = json.loads(form.cleaned_data["import_file"])
-                org.import_app(data, self.request.user, self.request.branding["link"])
-            except Exception as e:
-                # this is an unexpected error, report it to sentry
-                logger = logging.getLogger(__name__)
-                logger.error("Exception on app import: %s" % str(e), exc_info=True)
-                form._errors["import_file"] = form.error_class([_("Sorry, your import file is invalid.")])
-                return self.form_invalid(form)
-
-            return super().form_valid(form)  # pragma: needs cover
 
     class Export(SpaMixin, InferOrgMixin, OrgPermsMixin, SmartTemplateView):
         title = _("Create Export")
@@ -1526,8 +1450,8 @@ class OrgCRUDL(SmartCRUDL):
             context["buckets"] = buckets
             context["singles"] = singles
 
-            context["flow_id"] = int(self.request.GET.get("flow", 0))
-            context["campaign_id"] = int(self.request.GET.get("campaign", 0))
+            context["initial_flow_id"] = int(self.request.GET.get("flow", 0))
+            context["initial_campaign_id"] = int(self.request.GET.get("campaign", 0))
 
             return context
 
@@ -1778,15 +1702,6 @@ class OrgCRUDL(SmartCRUDL):
                 menu.add_url_post(_("Verify"), f"{reverse('orgs.org_update', args=[obj.id])}?action=verify")
 
             menu.new_group()
-            menu.add_modax(
-                _("Delete"),
-                "delete-org",
-                reverse("orgs.org_delete", args=[obj.id]),
-                title=_("Delete Workspace"),
-                disabled=True,
-            )
-
-            menu.new_group()
             menu.add_url_post(
                 _("Service"),
                 f'{reverse("orgs.org_service")}?other_org={obj.id}&next={reverse("msgs.msg_inbox", args=[])}',
@@ -1960,23 +1875,11 @@ class OrgCRUDL(SmartCRUDL):
             obj.limits = cleaned_data["limits"]
             return obj
 
-    class Delete(SpaMixin, OrgObjPermsMixin, ModalMixin, SmartDeleteView):
-        cancel_url = "id@orgs.org_update"
+    class DeleteChild(SpaMixin, OrgObjPermsMixin, ModalMixin, SmartDeleteView):
+        cancel_url = "@orgs.org_sub_orgs"
         success_url = "@orgs.org_sub_orgs"
         fields = ("id",)
         submit_button_name = _("Delete")
-
-        # we don't want to reroute delete requests
-        def pre_process(self, request, *args, **kwargs):
-            return
-
-        def has_org_perm(self, codename):
-            # users can't delete the primary org
-            org = self.get_object()
-            if not org.is_child:
-                return False
-
-            return super().has_org_perm(codename)
 
         def get_object_org(self):
             # child orgs work in the context of their parent
@@ -1989,6 +1892,8 @@ class OrgCRUDL(SmartCRUDL):
             return context
 
         def post(self, request, *args, **kwargs):
+            assert self.get_object().is_child, "can only delete child orgs"
+
             self.object = self.get_object()
             self.object.release(request.user)
             return self.render_modal_response()
@@ -2196,6 +2101,8 @@ class OrgCRUDL(SmartCRUDL):
             return reverse("orgs.org_manage_accounts") if still_in_org else reverse("orgs.org_choose")
 
     class ManageAccountsSubOrg(ManageAccounts):
+        menu_path = "/settings/workspaces"
+
         def pre_process(self, request, *args, **kwargs):
             pass
 
@@ -2323,7 +2230,7 @@ class OrgCRUDL(SmartCRUDL):
         def form_valid(self, form):
             default_type = form.TYPE_CHILD if Org.FEATURE_CHILD_ORGS in self.request.org.features else form.TYPE_NEW
 
-            self.object = self.org.create_new(
+            self.object = self.request.org.create_new(
                 self.request.user,
                 form.cleaned_data["name"],
                 tz=form.cleaned_data["timezone"],
@@ -2748,7 +2655,7 @@ class OrgCRUDL(SmartCRUDL):
                 or "mobile" in self.request.GET
                 or "Android" in self.request.META.get("HTTP_USER_AGENT", "")
             ):
-                return ["orgs/org_surveyor_mobile.haml"]
+                return ["orgs/org_surveyor_mobile.html"]
             else:
                 return super().get_template_names()
 
@@ -2761,10 +2668,7 @@ class OrgCRUDL(SmartCRUDL):
 
         def save(self, obj):
             self.object = Org.create(
-                self.request.user,
-                self.request.branding,
-                self.form.cleaned_data["name"],
-                self.form.cleaned_data["timezone"],
+                self.request.user, self.form.cleaned_data["name"], self.form.cleaned_data["timezone"]
             )
 
             user = User.get_or_create(
@@ -2809,12 +2713,7 @@ class OrgCRUDL(SmartCRUDL):
                 language=settings.DEFAULT_LANGUAGE,
             )
 
-            self.object = Org.create(
-                new_user,
-                self.request.branding,
-                self.form.cleaned_data["name"],
-                self.form.cleaned_data["timezone"],
-            )
+            self.object = Org.create(new_user, self.form.cleaned_data["name"], self.form.cleaned_data["timezone"])
 
             analytics.identify(new_user, brand=self.request.branding, org=obj)
             analytics.track(new_user, "temba.org_signup", properties=dict(org=self.object.name))
@@ -2944,16 +2843,14 @@ class OrgCRUDL(SmartCRUDL):
 
             if self.has_org_perm("classifiers.classifier_connect"):
                 menu.add_link(_("New Classifier"), reverse("classifiers.classifier_connect"))
-            if self.has_org_perm("tickets.ticketer_connect") and "ticketers" in settings.FEATURES:
-                menu.add_link(_("New Ticketing Service"), reverse("tickets.ticketer_connect"))
 
             menu.new_group()
 
             if self.has_org_perm("orgs.org_export"):
                 menu.add_link(_("Export"), reverse("orgs.org_export"))
 
-            if self.has_org_perm("orgs.org_import"):
-                menu.add_link(_("Import"), reverse("orgs.org_import"))
+            if self.has_org_perm("orgs.orgimport_create"):
+                menu.add_link(_("Import"), reverse("orgs.orgimport_create"))
 
         def derive_formax_sections(self, formax, context):
             if self.has_org_perm("orgs.org_edit"):
@@ -2994,10 +2891,6 @@ class OrgCRUDL(SmartCRUDL):
         success_message = ""
         form_class = Form
 
-        def has_permission(self, request, *args, **kwargs):
-            self.org = self.derive_org()
-            return self.has_org_perm("orgs.org_edit")
-
     class EditSubOrg(SpaMixin, ModalMixin, Edit):
         success_url = "@orgs.org_sub_orgs"
 
@@ -3026,10 +2919,6 @@ class OrgCRUDL(SmartCRUDL):
 
         success_message = ""
         form_class = CountryForm
-
-        def has_permission(self, request, *args, **kwargs):
-            self.org = self.derive_org()
-            return self.request.user.has_perm("orgs.org_country") or self.has_org_perm("orgs.org_country")
 
     class Languages(InferOrgMixin, OrgPermsMixin, SmartUpdateView):
         class Form(forms.ModelForm):
@@ -3135,5 +3024,63 @@ class OrgCRUDL(SmartCRUDL):
             if self.request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest" and self.request.method == "GET":
                 perm = "orgs.org_languages"
 
-            self.org = self.derive_org()
             return self.request.user.has_perm(perm) or self.has_org_perm(perm)
+
+
+class OrgImportCRUDL(SmartCRUDL):
+    model = OrgImport
+    actions = ("create", "read")
+
+    class Create(SpaMixin, OrgPermsMixin, SmartCreateView):
+        menu_path = "/settings/workspace"
+
+        class Form(forms.ModelForm):
+            file = forms.FileField(help_text=_("The import file"))
+
+            def __init__(self, org, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.org = org
+
+            def clean_file(self):
+                # check that it isn't too old
+                data = self.cleaned_data["file"].read()
+                try:
+                    json_data = json.loads(force_str(data))
+                except (DjangoUnicodeDecodeError, ValueError):
+                    raise ValidationError(_("This file is not a valid flow definition file."))
+
+                if Version(str(json_data.get("version", 0))) < Version(Org.EARLIEST_IMPORT_VERSION):
+                    raise ValidationError(_("This file is no longer valid. Please export a new version and try again."))
+
+                return self.cleaned_data["file"]
+
+            class Meta:
+                model = OrgImport
+                fields = ("file",)
+
+        success_message = _("Import started")
+        success_url = "id@orgs.orgimport_read"
+        form_class = Form
+
+        def derive_title(self):
+            return _("Import Flows")
+
+        def get_form_kwargs(self):
+            kwargs = super().get_form_kwargs()
+            kwargs["org"] = self.request.org
+            return kwargs
+
+        def pre_save(self, obj):
+            obj = super().pre_save(obj)
+            obj.org = self.request.org
+            return obj
+
+        def post_save(self, obj):
+            obj.start_async()
+            return obj
+
+    class Read(SpaMixin, OrgPermsMixin, SmartReadView):
+        menu_path = "/settings/workspace"
+
+        def derive_title(self):
+            return _("Import Flows and Campaigns")

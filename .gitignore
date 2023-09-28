@@ -3,12 +3,14 @@
 .idea
 *~
 .envrc
+.devcontainer
 .direnv
 .commit
 .ruff_cache
 .vscode/
 .venv
 *.sublime*
+manage.sh
 
 .coverage
 coverage.xml
@@ -17,7 +19,6 @@ celerybeat-schedule
 deploy
 fabfile.py
 node_modules
-rp-indexer
 screenshots
 sitestatic
 temba/settings.py
@@ -27,6 +28,7 @@ media/apks
 media/contacts
 media/csv_imports
 media/contact_imports
+media/org_imports
 media/flow
 media/messages
 media/orgs

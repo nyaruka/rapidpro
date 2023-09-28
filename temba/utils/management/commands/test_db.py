@@ -2,17 +2,16 @@ import json
 import math
 import random
 import resource
+import subprocess
 import sys
 import time
 import uuid
 from collections import defaultdict
 from datetime import timedelta
-from subprocess import CalledProcessError, check_call
 
 import pytz
 from django_redis import get_redis_connection
 
-from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.management import BaseCommand, CommandError
 from django.db import connection
@@ -26,6 +25,7 @@ from temba.flows.models import Flow
 from temba.locations.models import AdminBoundary
 from temba.msgs.models import Label
 from temba.orgs.models import Org, OrgRole, User
+from temba.templates.models import TemplateTranslation
 from temba.utils import chunk_list
 from temba.utils.dates import datetime_to_timestamp, timestamp_to_datetime
 
@@ -37,6 +37,10 @@ USER_PASSWORD = "Qwerty123"
 
 # database dump containing admin boundary records
 LOCATIONS_DUMP = "test-data/nigeria.bin"
+
+PG_CONTAINER_NAME = "textit-postgres-1"
+TEMBA_DB_NAME = "temba"
+TEMBA_DB_USER = "temba"
 
 # number of each type of archive to create
 ARCHIVES = 50
@@ -62,6 +66,8 @@ USERS = (
 )
 CHANNELS = (
     {"name": "Android", "channel_type": "A", "scheme": "tel", "address": "1234"},
+    {"name": "Facebook", "channel_type": "FBA", "scheme": "facebook", "address": "FacebookPage"},
+    {"name": "WhatsApp", "channel_type": "WAC", "scheme": "whatsapp", "address": "3456"},
     {"name": "Vonage", "channel_type": "NX", "scheme": "tel", "address": "2345"},
     {"name": "Twitter", "channel_type": "TWT", "scheme": "twitter", "address": "my_handle"},
 )
@@ -225,24 +231,34 @@ class Command(BaseCommand):
         """
         self._log("Loading locations from %s... " % path)
 
-        # load dump into current db with pg_restore
-        db_config = settings.DATABASES["default"]
-        try:
-            check_call(
-                f"export PGPASSWORD={db_config['PASSWORD']} && pg_restore -h {db_config['HOST']} "
-                f"-p {db_config['PORT']} -U {db_config['USER']} -w -d {db_config['NAME']} {path}",
-                shell=True,
-            )
-        except CalledProcessError:  # pragma: no cover
-            raise CommandError("Error occurred whilst calling pg_restore to load locations dump")
+        with open(path, "rb") as f:
+            try:
+                subprocess.run(
+                    [
+                        "docker",
+                        "exec",
+                        "-i",
+                        PG_CONTAINER_NAME,
+                        "pg_restore",
+                        "-d",
+                        TEMBA_DB_NAME,
+                        "-U",
+                        TEMBA_DB_USER,
+                    ],
+                    input=f.read(),
+                    stdout=subprocess.PIPE,
+                    check=True,
+                )
+            except subprocess.CalledProcessError:
+                raise CommandError("Error occurred whilst calling pg_restore to load locations dump")
+
+        time.sleep(1)
+        self._log(self.style.SUCCESS("OK") + "\n")
 
         # fetch as tuples of (WARD, DISTRICT, STATE)
         wards = AdminBoundary.objects.filter(level=3).prefetch_related("parent", "parent__parent")
         locations = [(w, w.parent, w.parent.parent) for w in wards]
-
         country = AdminBoundary.objects.filter(level=0).get()
-
-        self._log(self.style.SUCCESS("OK") + "\n")
         return country, locations
 
     def create_orgs(self, superuser, country, num_total):
@@ -260,7 +276,6 @@ class Command(BaseCommand):
                 Org.objects.create(
                     name=org_names[o % len(org_names)],
                     timezone=self.random.choice(pytz.all_timezones),
-                    brand="rapidpro",
                     country=country,
                     created_on=self.db_begins_on,
                     created_by=superuser,
@@ -316,7 +331,7 @@ class Command(BaseCommand):
         for org in orgs:
             user = org.cache["users"][0]
             for c in CHANNELS:
-                Channel.objects.create(
+                channel = Channel.objects.create(
                     org=org,
                     name=c["name"],
                     channel_type=c["channel_type"],
@@ -326,7 +341,35 @@ class Command(BaseCommand):
                     modified_by=user,
                 )
 
-        self._log(self.style.SUCCESS("OK") + "\n")
+                # Create some whatsapp message templates
+                if channel.channel_type == "WAC":
+                    TemplateTranslation.get_or_create(
+                        channel,
+                        "hello",
+                        "eng",
+                        "US",
+                        "Hello {{1}}",
+                        1,
+                        TemplateTranslation.STATUS_APPROVED,
+                        "1234",
+                        "",
+                    )
+                    TemplateTranslation.get_or_create(
+                        channel,
+                        "hello",
+                        "fra",
+                        "FR",
+                        "Bonjour {{1}}",
+                        1,
+                        TemplateTranslation.STATUS_APPROVED,
+                        "5678",
+                        "",
+                    )
+                    TemplateTranslation.get_or_create(
+                        channel, "bye", "eng", "US", "See ya {{1}}", 1, TemplateTranslation.STATUS_PENDING, "6789", ""
+                    )
+
+            self._log(self.style.SUCCESS("OK") + "\n")
 
     def create_archives(self, orgs):
         """

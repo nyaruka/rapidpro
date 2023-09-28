@@ -1,8 +1,0 @@
--if group.is_active
-  %a(href="{% url 'contacts.contact_filter' group.uuid %}" onclick="goto(event, this)")
-    %temba-label.mx-1.my-1(icon="group" clickable)
-      {{group.name}}
--else
-  %temba-label.mx-1.my-1(icon="group" clickable)
-    .line-through
-      {{ group.name }}

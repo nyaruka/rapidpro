@@ -5,6 +5,8 @@ from abc import ABCMeta
 from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
+from pathlib import Path
+from typing import Any
 from urllib.parse import quote, urlencode, urlparse
 
 import pycountry
@@ -12,6 +14,7 @@ import pyotp
 import pytz
 from packaging.version import Version
 from smartmin.models import SmartModel
+from smartmin.users.models import FailedLogin, RecoveryToken
 from timezone_field import TimeZoneField
 
 from django.conf import settings
@@ -20,7 +23,9 @@ from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.validators import ArrayMinLengthValidator
 from django.db import models, transaction
 from django.db.models import Prefetch
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.encoding import force_str
 from django.utils.functional import cached_property
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
@@ -28,11 +33,11 @@ from django.utils.translation import gettext_lazy as _
 from temba import mailroom
 from temba.archives.models import Archive
 from temba.locations.models import AdminBoundary
-from temba.utils import json, languages
+from temba.utils import json, languages, on_transaction_commit
 from temba.utils.dates import datetime_to_str
 from temba.utils.email import send_template_email
-from temba.utils.models import JSONField
-from temba.utils.text import generate_token, random_string
+from temba.utils.models import JSONField, delete_in_batches
+from temba.utils.text import generate_secret, generate_token
 from temba.utils.timezones import timezone_to_country_code
 from temba.utils.uuid import uuid4
 
@@ -265,6 +270,24 @@ class User(AuthUser):
 
         return get_or_create_api_token(org, self)
 
+    def recover_password(self, branding: dict):
+        """
+        Generates a recovery token for this user and sends them an email with a recovery link using that token.
+        """
+
+        token = generate_secret(32)
+        RecoveryToken.objects.create(token=token, user=self)
+        FailedLogin.objects.filter(username__iexact=self.username).delete()
+
+        self.send_recovery_email(token, branding)
+
+    def send_recovery_email(self, token: str, branding: dict):
+        subject = _("Password Recovery Request")
+        template = "orgs/email/user_forget"
+        context = {"user": self, "path": reverse("users.user_recover", args=[token])}
+
+        send_template_email(self.email, subject, template, context, branding)
+
     def as_engine_ref(self) -> dict:
         return {"email": self.email, "name": self.name}
 
@@ -431,7 +454,6 @@ class Org(SmartModel):
     uuid = models.UUIDField(unique=True, default=uuid4)
     name = models.CharField(verbose_name=_("Name"), max_length=128)
     parent = models.ForeignKey("orgs.Org", on_delete=models.PROTECT, null=True, related_name="children")
-    brand = models.CharField(max_length=128, default="rapidpro", verbose_name=_("Brand"))
     users = models.ManyToManyField(User, through="OrgMembership", related_name="orgs")
 
     language = models.CharField(
@@ -454,6 +476,7 @@ class Org(SmartModel):
     )
     country = models.ForeignKey("locations.AdminBoundary", null=True, on_delete=models.PROTECT)
     flow_languages = ArrayField(models.CharField(max_length=3), default=list, validators=[ArrayMinLengthValidator(1)])
+    input_collation = models.CharField(max_length=32, default="default")
 
     config = models.JSONField(default=dict)
     slug = models.SlugField(
@@ -504,7 +527,7 @@ class Org(SmartModel):
             return unique_slug
 
     @classmethod
-    def create(cls, user, branding, name: str, tz):
+    def create(cls, user, name: str, tz):
         """
         Creates a new workspace.
         """
@@ -522,7 +545,6 @@ class Org(SmartModel):
             date_format=date_format,
             language=settings.DEFAULT_LANGUAGE,
             flow_languages=flow_languages,
-            brand=branding["slug"],
             slug=cls.get_unique_slug(name),
             created_by=user,
             modified_by=user,
@@ -549,7 +571,6 @@ class Org(SmartModel):
             date_format=self.date_format,
             language=self.language,
             flow_languages=self.flow_languages,
-            brand=self.brand,
             parent=self if as_child else None,
             slug=self.get_unique_slug(name),
             created_by=user,
@@ -785,15 +806,6 @@ class Org(SmartModel):
             "groups": [g.as_export_def() for g in sorted(groups, key=lambda g: g.name)],
         }
 
-    def can_add_sender(self):  # pragma: needs cover
-        """
-        If an org's telephone send channel is an Android device, let them add a bulk sender
-        """
-        from temba.contacts.models import URN
-
-        send_channel = self.get_send_channel(URN.TEL_SCHEME)
-        return send_channel and send_channel.is_android()
-
     def supports_ivr(self):
         return self.get_call_channel() or self.get_answer_channel()
 
@@ -801,19 +813,13 @@ class Org(SmartModel):
         """
         Gets a channel for this org which supports the given role and scheme
         """
-        from temba.channels.models import Channel
 
         channels = self.channels.filter(is_active=True, role__contains=role).order_by("-id")
 
         if scheme is not None:
             channels = channels.filter(schemes__contains=[scheme])
 
-        channel = channels.first()
-
-        if channel and (role == Channel.ROLE_SEND or role == Channel.ROLE_CALL):
-            return channel.get_delegate(role)
-        else:
-            return channel
+        return channels.first()
 
     def get_send_channel(self, scheme=None):
         from temba.channels.models import Channel
@@ -905,11 +911,6 @@ class Org(SmartModel):
         if self.config:
             return bool(self.config.get(Org.CONFIG_SMTP_SERVER))
         return False
-
-    def has_airtime_transfers(self):
-        from temba.airtime.models import AirtimeTransfer
-
-        return AirtimeTransfer.objects.filter(org=self).exists()
 
     @property
     def default_country_code(self) -> str:
@@ -1245,9 +1246,9 @@ class Org(SmartModel):
         for org_user in self.users.all():
             self.remove_user(org_user)
 
-    def delete(self):
+    def delete(self) -> dict:
         """
-        Does an actual delete of this org
+        Does an actual delete of this org, returning counts of what was deleted.
         """
 
         from temba.msgs.models import Msg
@@ -1257,15 +1258,16 @@ class Org(SmartModel):
         assert not self.deleted_on, "can't delete org twice"
 
         user = self.modified_by
+        counts = defaultdict(int)
 
         # delete notifications and exports
-        self.notifications.all().delete()
-        self.notification_counts.all().delete()
-        self.incidents.all().delete()
-        self.exportcontactstasks.all().delete()
-        self.exportmessagestasks.all().delete()
-        self.exportflowresultstasks.all().delete()
-        self.exportticketstasks.all().delete()
+        delete_in_batches(self.notifications.all())
+        delete_in_batches(self.notification_counts.all())
+        delete_in_batches(self.incidents.all())
+        delete_in_batches(self.exportcontactstasks.all())
+        delete_in_batches(self.exportmessagestasks.all())
+        delete_in_batches(self.exportflowresultstasks.all())
+        delete_in_batches(self.exportticketstasks.all())
 
         for imp in self.contact_imports.all():
             imp.delete()
@@ -1279,37 +1281,36 @@ class Org(SmartModel):
             if not msg_batch:
                 break
             Msg.bulk_delete(msg_batch)
-
-        # our system label counts
-        self.system_labels.all().delete()
+            counts["messages"] += len(msg_batch)
 
         # delete all our campaigns and associated events
         for c in self.campaigns.all():
             c.delete()
 
-        # delete everything associated with our flows
+        # release flows (actual deletion occurs later after contacts and tickets are gone)
+        # we want to manually release runs so we don't fire a mailroom task to do it
         for flow in self.flows.all():
-            # we want to manually release runs so we don't fire a mailroom task to do it
             flow.release(user, interrupt_sessions=False)
-            flow.delete()
+            counts["runs"] += flow.delete_runs()
 
         # delete our flow labels (deleting a label deletes its children)
         for flow_label in self.flow_labels.filter(parent=None):
             flow_label.delete()
 
         # delete contact-related data
-        self.http_logs.all().delete()
-        self.sessions.all().delete()
-        self.ticket_events.all().delete()
-        self.tickets.all().delete()
-        self.ticket_counts.all().delete()
-        self.topics.all().delete()
-        self.airtime_transfers.all().delete()
+        delete_in_batches(self.http_logs.all())
+        delete_in_batches(self.sessions.all())
+        delete_in_batches(self.ticket_events.all())
+        delete_in_batches(self.tickets.all())
+        delete_in_batches(self.ticket_counts.all())
+        delete_in_batches(self.topics.all())
+        delete_in_batches(self.airtime_transfers.all())
 
         # delete our contacts
         for contact in self.contacts.all():
             contact.release(user, immediately=True)
             contact.delete()
+            counts["contacts"] += 1
 
         # delete all our URNs
         self.urns.all().delete()
@@ -1325,10 +1326,6 @@ class Org(SmartModel):
 
         # delete our channels
         for channel in self.channels.all():
-            channel.counts.all().delete()
-            channel.logs.all().delete()
-            channel.template_translations.all().delete()
-
             channel.delete()
 
         for glob in self.globals.all():
@@ -1342,30 +1339,30 @@ class Org(SmartModel):
             ticketer.release(user)
             ticketer.delete()
 
-        # release all archives objects and files for this org
-        Archive.release_org_archives(self)
+        for flow in self.flows.all():
+            flow.delete()
 
-        self.webhookevent_set.all().delete()
+        delete_in_batches(self.webhookevent_set.all())
 
         for resthook in self.resthooks.all():
             resthook.release(user)
-            for sub in resthook.subscribers.all():
-                sub.delete()
             resthook.delete()
 
         # release our broadcasts
         for bcast in self.broadcasts.filter(parent=None):
             bcast.delete(user, soft=False)
 
+        Archive.delete_for_org(self)
+
         # delete other related objects
-        self.api_tokens.all().delete()
-        self.invitations.all().delete()
-        self.schedules.all().delete()
-        self.boundaryalias_set.all().delete()
-        self.templates.all().delete()
+        delete_in_batches(self.api_tokens.all(), pk="key")
+        delete_in_batches(self.invitations.all())
+        delete_in_batches(self.schedules.all())
+        delete_in_batches(self.boundaryalias_set.all())
+        delete_in_batches(self.templates.all())
 
         # needs to come after deletion of msgs and broadcasts as those insert new counts
-        self.system_labels.all().delete()
+        delete_in_batches(self.system_labels.all())
 
         # save when we were actually deleted
         self.modified_on = timezone.now()
@@ -1373,6 +1370,8 @@ class Org(SmartModel):
         self.config = {}
         self.surveyor_password = None
         self.save()
+
+        return counts
 
     def as_environment_def(self):
         """
@@ -1408,6 +1407,56 @@ class OrgMembership(models.Model):
         unique_together = (("org", "user"),)
 
 
+def get_import_upload_path(instance: Any, filename: str):
+    ext = Path(filename).suffix.lower()
+    return f"{settings.STORAGE_ROOT_DIR}/{instance.org_id}/org_imports/{uuid4()}{ext}"
+
+
+class OrgImport(SmartModel):
+    STATUS_PENDING = "P"
+    STATUS_PROCESSING = "O"
+    STATUS_COMPLETE = "C"
+    STATUS_FAILED = "F"
+    STATUS_CHOICES = (
+        (STATUS_PENDING, "Pending"),
+        (STATUS_PROCESSING, "Processing"),
+        (STATUS_COMPLETE, "Complete"),
+        (STATUS_FAILED, "Failed"),
+    )
+
+    org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="imports")
+    file = models.FileField(upload_to=get_import_upload_path)
+    status = models.CharField(max_length=1, default=STATUS_PENDING, choices=STATUS_CHOICES)
+
+    def start_async(self):
+        from .tasks import start_org_import_task
+
+        on_transaction_commit(lambda: start_org_import_task.delay(self.id))
+
+    def start(self):
+        assert self.status == self.STATUS_PENDING, "trying to start an already started import"
+
+        # mark us as processing to prevent double starting
+        self.status = self.STATUS_PROCESSING
+        self.save(update_fields=("status",))
+        try:
+            org = self.org
+            link = org.get_brand()["link"]
+            data = json.loads(force_str(self.file.read()))
+            org.import_app(data, self.created_by, link)
+        except Exception as e:
+            self.status = self.STATUS_FAILED
+            self.save(update_fields=("status",))
+
+            # this is an unexpected error, report it to sentry
+            logger = logging.getLogger(__name__)
+            logger.error("Exception on app import: %s" % str(e), exc_info=True)
+
+        else:
+            self.status = self.STATUS_COMPLETE
+            self.save(update_fields=("status", "modified_on"))
+
+
 class Invitation(SmartModel):
     """
     An Invitation to an e-mail address to join an Org with specific roles.
@@ -1435,12 +1484,7 @@ class Invitation(SmartModel):
 
     def save(self, *args, **kwargs):
         if not self.secret:
-            secret = random_string(64)
-
-            while Invitation.objects.filter(secret=secret):  # pragma: needs cover
-                secret = random_string(64)
-
-            self.secret = secret
+            self.secret = generate_secret(64)
 
         return super().save(*args, **kwargs)
 

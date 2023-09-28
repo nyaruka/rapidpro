@@ -13,7 +13,13 @@ from temba.msgs.models import ExportMessagesTask
 from temba.msgs.tasks import export_messages_task
 from temba.utils.crons import cron_task
 
-from .models import Invitation, Org
+from .models import Invitation, Org, OrgImport
+
+
+@shared_task
+def start_org_import_task(import_id):
+    org_import = OrgImport.objects.get(pk=import_id)
+    org_import.start()
 
 
 @shared_task
@@ -65,11 +71,18 @@ def delete_released_orgs():
     num_deleted, num_failed = 0, 0
 
     for org in Org.objects.filter(is_active=False, released_on__lt=week_ago, deleted_on=None):
+        start = timezone.now()
+
         try:
-            org.delete()
-            num_deleted += 1
+            counts = org.delete()
         except Exception:  # pragma: no cover
-            logging.exception(f"exception while deleting {org.name}")
+            logging.exception(f"exception while deleting '{org.name}' (#{org.id})")
             num_failed += 1
+            continue
+
+        seconds = (timezone.now() - start).total_seconds()
+        stats = " ".join([f"{k}={v}" for k, v in counts.items()])
+        logging.warning(f"successfully deleted '{org.name}' (#{org.id}) in {seconds} seconds ({stats})")
+        num_deleted += 1
 
     return {"deleted": num_deleted, "failed": num_failed}

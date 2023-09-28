@@ -13,12 +13,12 @@ from temba import __version__ as temba_version
 from temba.apks.models import Apk
 from temba.public.models import Lead, Video
 from temba.utils import analytics, get_anonymous_user, json
-from temba.utils.text import random_string
+from temba.utils.text import generate_secret
 from temba.utils.views import NoNavMixin, SpaMixin
 
 
 class IndexView(NoNavMixin, SmartTemplateView):
-    template_name = "public/public_index.haml"
+    template_name = "public/public_index.html"
 
     def derive_title(self):
         return f"{self.request.branding['name']} - {self.request.branding['title']}"
@@ -48,7 +48,7 @@ class WelcomeRedirect(RedirectView):
 
 
 class Style(SmartTemplateView):
-    template_name = "public/public_style.haml"
+    template_name = "public/public_style.html"
 
 
 class Android(SmartTemplateView):
@@ -74,8 +74,9 @@ class Android(SmartTemplateView):
 
 
 class Welcome(SpaMixin, SmartTemplateView):
-    template_name = "public/public_welcome.haml"
+    template_name = "public/public_welcome.html"
     menu_path = "/settings"
+    title = _("Getting Started")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -170,7 +171,7 @@ class DemoGenerateCoupon(View):
     """
 
     def post(self, *args, **kwargs):
-        return JsonResponse({"coupon": random_string(6)})
+        return JsonResponse({"coupon": generate_secret(6)})
 
     def get(self, *args, **kwargs):
         return self.post(*args, **kwargs)

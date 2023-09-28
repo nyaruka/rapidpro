@@ -4,6 +4,7 @@ from abc import abstractmethod
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Q
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
 
@@ -20,7 +21,14 @@ logger = logging.getLogger(__name__)
 
 
 class IncidentType:
-    slug: str = None
+    slug: str
+    title: str
+
+    def get_notification_scope(self, incident) -> str:
+        return str(incident.id)
+
+    def get_notification_target_url(self, incident) -> str:
+        return reverse("notifications.incident_list")
 
     def as_json(self, incident) -> dict:
         return {
@@ -72,11 +80,15 @@ class Incident(models.Model):
         self.save(update_fields=("ended_on",))
 
     @property
-    def template(self):
-        return f"notifications/incidents/{self.incident_type.replace(':', '_')}.haml"
+    def template(self) -> str:
+        return f"notifications/incidents/{self.incident_type.replace(':', '_')}.html"
 
     @property
-    def type(self):
+    def email_template(self) -> str:
+        return f"notifications/email/incident_started.{self.incident_type.replace(':', '_')}"
+
+    @property
+    def type(self) -> IncidentType:
         from .incidents import TYPES  # noqa
 
         return TYPES[self.incident_type]
@@ -180,9 +192,7 @@ class Notification(models.Model):
         ExportTicketsTask, null=True, on_delete=models.PROTECT, related_name="notifications"
     )
 
-    contact_import = models.ForeignKey(
-        ContactImport, null=True, on_delete=models.PROTECT, related_name="notifications"
-    )
+    contact_import = models.ForeignKey(ContactImport, null=True, on_delete=models.PROTECT, related_name="notifications")
 
     incident = models.ForeignKey(Incident, null=True, on_delete=models.PROTECT, related_name="notifications")
 
@@ -212,16 +222,14 @@ class Notification(models.Model):
                 self.org.branding,
             )
         else:  # pragma: no cover
-            logger.warning(f"skipping email send for notification type {self.type.slug} not configured for email")
+            logger.error(f"pending emails for notification type {self.type.slug} not configured for email")
 
         self.email_status = Notification.EMAIL_STATUS_SENT
         self.save(update_fields=("email_status",))
 
     @classmethod
     def mark_seen(cls, org, notification_type: str, *, scope: str, user):
-        notifications = cls.objects.filter(
-            org_id=org.id, notification_type=notification_type, user=user, is_seen=False
-        )
+        notifications = cls.objects.filter(org_id=org.id, notification_type=notification_type, user=user, is_seen=False)
 
         if scope is not None:
             notifications = notifications.filter(scope=scope)
