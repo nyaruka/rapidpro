@@ -7,6 +7,15 @@
     temba-button {
       display: block;
     }
+
+    .value-optin {
+      margin-bottom: -2.5em;
+      font-size: 0.75em;
+      border: 1px #ddd solid;
+      padding: 4px;
+      border-radius: 5px;
+      color: rgb(153, 153, 153);
+    }
   </style>
 {% endblock extra-style %}
 {% block content %}
@@ -51,6 +60,18 @@
               <td class="whitespace-nowrap">{{ object.contact|name_or_urn:user_org|truncatechars:20 }}</td>
               <td class="w-full">
                 <div class="flex flex-wrap flex-end items-center justify-end">
+                  {% if object.optin and not object.text and not object.attachments %}
+                  <div style="" class="value-optin inline-flex">
+                    <div class="optin flex">
+                      <temba-icon size="1" class="broadcast inline" name="restore">
+                      </temba-icon>
+                      <div style="margin-left: 3px;" class="text">
+                        Requested Opt In for
+                        <span class="italic">{{ object.optin.name }}</span>
+                      </div>
+                    </div>`
+                  </div>
+                  {% endif %}
                   <div class="flex-grow inline">{% get_value object 'text' %}</div>
                   <div class="labels flex items-center flex-wrap">
                     {% if 'label' in actions %}
@@ -78,6 +99,7 @@
                     {% endfor %}
                   </div>
                 {% endif %}
+                
               </td>
               <td>
                 <div class="flex w-full items-center justify-end pr-4">
