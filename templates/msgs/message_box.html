@@ -9,7 +9,7 @@
     }
 
     .value-optin {
-      display: inline-block;
+      margin-bottom: -2.5em;
       font-size: 0.75em;
       border: 1px #ddd solid;
       padding: 4px;
@@ -89,16 +89,13 @@
                 {% endif %}
                 {% if object.optin and not object.text and not object.attachments %}
                   <div style="padding-top: 2.5em;"></div>
-                  <div style="" class="value-optin">
+                  <div style="" class="value-optin inline-flex">
                     <div class="optin flex">
-                      <temba-icon
-                        size="1"
-                        class="broadcast inline"
-                        name="${Icon.restore}"
-                      ></temba-icon>
+                      <temba-icon size="1" class="broadcast inline" name="restore">
+                      </temba-icon>
                       <div style="margin-left: 3px;" class="text">
                         Requested Opt In for
-                        <span class="italic">${object.optin.name}</span>
+                        <span class="italic">{{ object.optin.name }}</span>
                       </div>
                     </div>`
                   </div>
