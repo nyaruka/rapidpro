@@ -7,6 +7,15 @@
     temba-button {
       display: block;
     }
+
+    .value-optin {
+      display: inline-block;
+      font-size: 0.75em;
+      border: 1px #ddd solid;
+      padding: 4px;
+      border-radius: 5px;
+      color: rgb(153, 153, 153);
+    }
   </style>
 {% endblock extra-style %}
 {% block content %}
@@ -76,6 +85,22 @@
                     {% for attachment in object.attachments %}
                       {% attachment_button attachment %}
                     {% endfor %}
+                  </div>
+                {% endif %}
+                {% if object.optin and not object.text and not object.attachments %}
+                  <div style="padding-top: 2.5em;"></div>
+                  <div style="" class="value-optin">
+                    <div class="optin flex">
+                      <temba-icon
+                        size="1"
+                        class="broadcast inline"
+                        name="${Icon.restore}"
+                      ></temba-icon>
+                      <div style="margin-left: 3px;" class="text">
+                        Requested Opt In for
+                        <span class="italic">${object.optin.name}</span>
+                      </div>
+                    </div>`
                   </div>
                 {% endif %}
               </td>
