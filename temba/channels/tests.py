@@ -1170,7 +1170,16 @@ class ChannelIncidentsTest(TembaTest):
         self.channel.last_seen = timezone.now() - timedelta(minutes=40)
         self.channel.save(update_fields=("last_seen",))
 
-        with override_brand(from_email="support@mybrand.com"):
+        with override_brand(
+            smtp={
+                "host": "smtp.example.com",
+                "port": 587,
+                "username": "foo",
+                "password": "bar",
+                "use_tls": True,
+                "from_email": "support@mybrand.com",
+            }
+        ):
             check_android_channels()
 
             # should have created an incident
