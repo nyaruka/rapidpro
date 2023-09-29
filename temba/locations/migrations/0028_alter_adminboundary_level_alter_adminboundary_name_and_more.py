@@ -8,8 +8,8 @@ import django.db.models.functions.text
 from django.db import migrations, models
 
 SQL = """
-DROP INDEX locations_adminboundary_name;
-DROP INDEX locations_boundaryalias_name;
+DROP INDEX IF EXISTS locations_adminboundary_name;
+DROP INDEX IF EXISTS locations_boundaryalias_name;
 """
 
 
@@ -76,5 +76,5 @@ class Migration(migrations.Migration):
             model_name="boundaryalias",
             index=models.Index(django.db.models.functions.text.Upper("name"), name="boundaryaliases_by_name"),
         ),
-        migrations.RunSQL(SQL),
+        migrations.RunSQL(SQL, ""),
     ]
