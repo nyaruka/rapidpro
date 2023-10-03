@@ -1,7 +1,7 @@
 from smartmin.models import SmartModel
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Case, Q, When
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -13,13 +13,12 @@ from temba.orgs.models import Org
 
 class TriggerType:
     """
-    Base class for trigger types
+    Base class for trigger types.
     """
 
     code = None  # single char code used for database model
     slug = None  # used for URLs
     name = None
-    title = None  # used for list page title
 
     # flow types allowed for this type
     allowed_flow_types = ()
@@ -60,6 +59,17 @@ class TriggerType:
                 raise ValueError(f"Field '{field}' is required.")
 
 
+class ChannelTriggerType(TriggerType):
+    """
+    Base class for trigger types based on channel activity.
+    """
+
+    # channels with these schemes allowed for this type
+    allowed_channel_schemes = ()
+
+    export_fields = TriggerType.export_fields + ("channel",)
+
+
 class Trigger(SmartModel):
     """
     A Trigger is used to start a user in a flow based on an event. For example, triggers might fire for missed calls,
@@ -74,6 +84,8 @@ class Trigger(SmartModel):
     TYPE_REFERRAL = "R"
     TYPE_CLOSED_TICKET = "T"
     TYPE_CATCH_ALL = "C"
+    TYPE_OPT_IN = "I"
+    TYPE_OPT_OUT = "O"
 
     KEYWORD_MAX_LEN = 16
 
@@ -377,6 +389,17 @@ class Trigger(SmartModel):
     @property
     def name(self):
         return self.type.get_instance_name(self)
+
+    @classmethod
+    def type_order(cls):
+        """
+        Creates an order by expression based on order of type declarations.
+        """
+
+        from .types import TYPES_BY_CODE
+
+        whens = [When(trigger_type=t.code, then=i) for i, t in enumerate(TYPES_BY_CODE.values())]
+        return Case(*whens, default=100).asc()
 
     def release(self, user):
         """

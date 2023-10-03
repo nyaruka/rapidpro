@@ -27,7 +27,6 @@ from .models import (
     export_ticket_stats,
 )
 from .tasks import squash_ticket_counts
-from .types import reload_ticketer_types
 from .types.internal import InternalType
 from .types.mailgun import MailgunType
 from .types.zendesk import ZendeskType
@@ -360,7 +359,9 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         update_url = reverse("tickets.ticket_update", args=[ticket.uuid])
 
-        self.assertUpdateFetch(update_url, allow_viewers=False, allow_editors=True, form_fields=["topic", "body"])
+        self.assertUpdateFetch(
+            update_url, allow_viewers=False, allow_editors=True, allow_agents=True, form_fields=["topic", "body"]
+        )
 
         user_topic = Topic.objects.create(org=self.org, name="Hot Topic", created_by=self.admin, modified_by=self.admin)
 
@@ -1060,28 +1061,6 @@ class TicketerTest(TembaTest):
 
 
 class TicketerCRUDLTest(TembaTest, CRUDLTestMixin):
-    def test_connect(self):
-        connect_url = reverse("tickets.ticketer_connect")
-
-        with override_settings(TICKETER_TYPES=[]):
-            reload_ticketer_types()
-
-            response = self.assertListFetch(connect_url, allow_viewers=False, allow_editors=False, allow_agents=False)
-
-            self.assertEqual([], response.context["ticketer_types"])
-            self.assertContains(response, "No ticketing services are available.")
-
-        with override_settings(TICKETER_TYPES=["temba.tickets.types.mailgun.MailgunType"], MAILGUN_API_KEY="123"):
-            reload_ticketer_types()
-
-            response = self.assertListFetch(connect_url, allow_viewers=False, allow_editors=False, allow_agents=False)
-
-            self.assertNotContains(response, "No ticketing services are available.")
-            self.assertContains(response, reverse("tickets.types.mailgun.connect"))
-
-        # put them all back...
-        reload_ticketer_types()
-
     @patch("temba.mailroom.client.MailroomClient.ticket_close")
     def test_delete(self, mock_ticket_close):
         ticketer = Ticketer.create(self.org, self.user, MailgunType.slug, "Email (bob@acme.com)", {})

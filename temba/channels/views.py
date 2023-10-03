@@ -34,6 +34,7 @@ from django.utils.translation import gettext_lazy as _
 from temba.contacts.models import URN
 from temba.ivr.models import Call
 from temba.msgs.models import Msg
+from temba.notifications.views import NotificationTargetMixin
 from temba.orgs.views import DependencyDeleteModal, ModalMixin, OrgObjPermsMixin, OrgPermsMixin
 from temba.utils import countries
 from temba.utils.fields import SelectWidget
@@ -444,7 +445,7 @@ class UpdateChannelForm(forms.ModelForm):
 
     class Meta:
         model = Channel
-        fields = ("name", "alert_email", "log_policy")
+        fields = ("name", "log_policy")
         readonly = ()
         labels = {}
         helps = {}
@@ -469,7 +470,7 @@ class ChannelCRUDL(SmartCRUDL):
         "facebook_whitelist",
     )
 
-    class Read(SpaMixin, OrgObjPermsMixin, ContentMenuMixin, SmartReadView):
+    class Read(SpaMixin, OrgObjPermsMixin, ContentMenuMixin, NotificationTargetMixin, SmartReadView):
         slug_url_kwarg = "uuid"
         exclude = ("id", "is_active", "created_by", "modified_by", "modified_on")
 
@@ -478,6 +479,9 @@ class ChannelCRUDL(SmartCRUDL):
 
         def get_queryset(self):
             return Channel.objects.filter(is_active=True)
+
+        def get_notification_scope(self) -> tuple:
+            return "incident:started", str(self.object.id)
 
         def build_content_menu(self, menu):
             obj = self.get_object()
@@ -497,26 +501,6 @@ class ChannelCRUDL(SmartCRUDL):
                     reverse("channels.channel_update", args=[obj.id]),
                     title=_("Edit Channel"),
                 )
-
-                if obj.is_android() or (obj.parent and obj.parent.is_android()):
-                    sender = obj.get_sender()
-
-                    if sender and sender.is_delegate_sender():  # pragma: no cover
-                        menu.add_modax(
-                            _("Disable Bulk Sending"),
-                            "disable-sender",
-                            reverse("channels.channel_delete", args=[sender.uuid]),
-                        )
-
-                    caller = obj.get_caller()
-
-                    if caller and caller.is_delegate_caller():  # pragma: no cover
-                        menu.add_modax(
-                            _("Disable Voice Calling"),
-                            "disable-voice",
-                            reverse("channels.channel_delete", args=[caller.uuid]),
-                        )
-
             if self.has_org_perm("channels.channel_delete"):
                 menu.add_modax(_("Delete"), "delete-channel", reverse("channels.channel_delete", args=[obj.uuid]))
 
@@ -548,11 +532,6 @@ class ChannelCRUDL(SmartCRUDL):
 
                 if unsent_msgs:
                     context["unsent_msgs_count"] = unsent_msgs.count()
-
-            # build up the channels we care about for outgoing messages
-            channels = [channel]
-            for sender in Channel.objects.filter(parent=channel):  # pragma: needs cover
-                channels.append(sender)
 
             msg_in = []
             msg_out = []
@@ -634,12 +613,6 @@ class ChannelCRUDL(SmartCRUDL):
             start_date = end_date - timedelta(days=30)
 
             message_stats = []
-
-            # build up the channels we care about for outgoing messages
-            channels = [channel]
-            for sender in Channel.objects.filter(parent=channel):  # pragma: needs cover
-                channels.append(sender)
-
             msg_in = []
             msg_out = []
             ivr_in = []
@@ -655,14 +628,14 @@ class ChannelCRUDL(SmartCRUDL):
 
             # get all our counts for that period
             daily_counts = list(
-                ChannelCount.objects.filter(channel__in=channels, day__gte=start_date)
-                .filter(
+                channel.counts.filter(
+                    day__gte=start_date,
                     count_type__in=[
                         ChannelCount.INCOMING_MSG_TYPE,
                         ChannelCount.OUTGOING_MSG_TYPE,
                         ChannelCount.INCOMING_IVR_TYPE,
                         ChannelCount.OUTGOING_IVR_TYPE,
-                    ]
+                    ],
                 )
                 .values("day", "count_type")
                 .order_by("day", "count_type")
@@ -777,24 +750,6 @@ class ChannelCRUDL(SmartCRUDL):
             "If you do not need this number you can delete it from the Twilio website."
         )
 
-        def get_success_url(self):
-            # if we're deleting a child channel, redirect to parent afterwards
-            channel = self.get_object()
-            if channel.parent:
-                return reverse("channels.channel_read", args=[channel.parent.uuid])
-
-            return super().get_success_url()
-
-        def derive_submit_button_name(self):
-            channel = self.get_object()
-
-            if channel.is_delegate_caller():
-                return _("Disable Voice Calling")
-            if channel.is_delegate_sender():
-                return _("Disable Bulk Sending")
-
-            return super().derive_submit_button_name()
-
         def post(self, request, *args, **kwargs):
             channel = self.get_object()
 
@@ -811,7 +766,7 @@ class ChannelCRUDL(SmartCRUDL):
                 return response
 
             # override success message for Twilio channels
-            if channel.channel_type == "T" and not channel.is_delegate_sender():
+            if channel.channel_type == "T":
                 messages.info(request, self.success_message_twilio)
             else:
                 messages.info(request, self.success_message)
@@ -856,14 +811,6 @@ class ChannelCRUDL(SmartCRUDL):
 
         def pre_save(self, obj):
             obj.config.update(self.form.get_config_values())
-            return obj
-
-        def post_save(self, obj):
-            # update our delegate channels with the new number
-            if not obj.parent and URN.TEL_SCHEME in obj.schemes:
-                for channel in obj.get_delegate_channels():  # pragma: needs cover
-                    channel.address = obj.address
-                    channel.save(update_fields=("address",))
             return obj
 
     class Claim(SpaMixin, OrgPermsMixin, SmartTemplateView):

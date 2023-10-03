@@ -3,15 +3,14 @@ import regex
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from temba.channels.models import Channel
 from temba.contacts.models import ContactURN
 from temba.contacts.search.omnibox import omnibox_deserialize
 from temba.flows.models import Flow
 from temba.schedules.views import ScheduleFormMixin
 from temba.utils.fields import InputWidget, JSONField, OmniboxChoice, SelectWidget, TembaChoiceField
 
-from .models import Trigger, TriggerType
-from .views import BaseTriggerForm
+from .models import ChannelTriggerType, Trigger, TriggerType
+from .views import BaseChannelTriggerForm, BaseTriggerForm
 
 
 class KeywordTriggerType(TriggerType):
@@ -53,7 +52,6 @@ class KeywordTriggerType(TriggerType):
     code = Trigger.TYPE_KEYWORD
     slug = "keyword"
     name = _("Keyword")
-    title = _("Keyword Triggers")
     allowed_flow_types = (Flow.TYPE_MESSAGE, Flow.TYPE_VOICE)
     export_fields = TriggerType.export_fields + ("keyword", "match_type")
     required_fields = TriggerType.required_fields + ("keyword",)
@@ -85,7 +83,6 @@ class CatchallTriggerType(TriggerType):
     code = Trigger.TYPE_CATCH_ALL
     slug = "catch_all"
     name = _("Catch All")
-    title = _("Catch All Triggers")
     allowed_flow_types = (Flow.TYPE_MESSAGE, Flow.TYPE_VOICE)
     form = Form
 
@@ -132,7 +129,6 @@ class ScheduledTriggerType(TriggerType):
     code = Trigger.TYPE_SCHEDULE
     slug = "schedule"
     name = _("Schedule")
-    title = _("Schedule Triggers")
     allowed_flow_types = (Flow.TYPE_MESSAGE, Flow.TYPE_VOICE, Flow.TYPE_BACKGROUND)
     exportable = False
     form = Form
@@ -198,7 +194,6 @@ class InboundCallTriggerType(TriggerType):
     code = Trigger.TYPE_INBOUND_CALL
     slug = "inbound_call"
     name = _("Inbound Call")
-    title = _("Inbound Call Triggers")
     allowed_flow_types = (Flow.TYPE_VOICE, Flow.TYPE_MESSAGE, Flow.TYPE_BACKGROUND)
     form = Form
 
@@ -215,56 +210,36 @@ class MissedCallTriggerType(TriggerType):
     code = Trigger.TYPE_MISSED_CALL
     slug = "missed_call"
     name = _("Missed Call")
-    title = _("Missed Call Triggers")
     allowed_flow_types = (Flow.TYPE_MESSAGE, Flow.TYPE_BACKGROUND)
     form = Form
 
 
-class NewConversationTriggerType(TriggerType):
+class NewConversationTriggerType(ChannelTriggerType):
     """
-    A trigger for new conversations (Facebook, Telegram, Viber)
+    A trigger for new conversations (Facebook, Telegram, Viber).
     """
 
-    class Form(BaseTriggerForm):
-        channel = TembaChoiceField(
-            Channel.objects.none(), label=_("Channel"), help_text=_("The associated channel."), required=True
-        )
-
+    class Form(BaseChannelTriggerForm):
         def __init__(self, org, user, *args, **kwargs):
             super().__init__(org, user, Trigger.TYPE_NEW_CONVERSATION, *args, **kwargs)
 
-            self.fields["channel"].queryset = self.get_channel_choices(ContactURN.SCHEMES_SUPPORTING_NEW_CONVERSATION)
-
-        def get_conflicts_kwargs(self, cleaned_data):
-            kwargs = super().get_conflicts_kwargs(cleaned_data)
-            kwargs["channel"] = cleaned_data.get("channel")
-            return kwargs
-
         class Meta(BaseTriggerForm.Meta):
-            fields = ("channel",) + BaseTriggerForm.Meta.fields
+            fields = BaseChannelTriggerForm.Meta.fields
 
     code = Trigger.TYPE_NEW_CONVERSATION
     slug = "new_conversation"
     name = _("New Conversation")
-    title = _("New Conversation Triggers")
     allowed_flow_types = (Flow.TYPE_MESSAGE,)
-    export_fields = TriggerType.export_fields + ("channel",)
-    required_fields = TriggerType.required_fields + ("channel",)
+    allowed_channel_schemes = ContactURN.SCHEMES_SUPPORTING_NEW_CONVERSATION
     form = Form
 
 
-class ReferralTriggerType(TriggerType):
+class ReferralTriggerType(ChannelTriggerType):
     """
     A trigger for Facebook referral clicks
     """
 
-    class Form(BaseTriggerForm):
-        channel = TembaChoiceField(
-            Channel.objects.none(),
-            label=_("Channel"),
-            required=False,
-            help_text=_("The channel to apply this trigger to, leave blank for all Facebook channels"),
-        )
+    class Form(BaseChannelTriggerForm):
         referrer_id = forms.CharField(
             max_length=255, required=False, label=_("Referrer Id"), help_text=_("The referrer id that will trigger us")
         )
@@ -272,23 +247,19 @@ class ReferralTriggerType(TriggerType):
         def __init__(self, org, user, *args, **kwargs):
             super().__init__(org, user, Trigger.TYPE_REFERRAL, *args, **kwargs)
 
-            self.fields["channel"].queryset = self.get_channel_choices(ContactURN.SCHEMES_SUPPORTING_REFERRALS)
-
         def get_conflicts_kwargs(self, cleaned_data):
             kwargs = super().get_conflicts_kwargs(cleaned_data)
-            kwargs["channel"] = cleaned_data.get("channel")
             kwargs["referrer_id"] = cleaned_data.get("referrer_id", "").strip()
             return kwargs
 
         class Meta(BaseTriggerForm.Meta):
-            fields = ("channel", "referrer_id") + BaseTriggerForm.Meta.fields
+            fields = ("referrer_id",) + BaseChannelTriggerForm.Meta.fields
 
     code = Trigger.TYPE_REFERRAL
     slug = "referral"
     name = _("Referral")
-    title = _("Referral Triggers")
     allowed_flow_types = (Flow.TYPE_MESSAGE,)
-    export_fields = TriggerType.export_fields + ("channel",)
+    allowed_channel_schemes = ContactURN.SCHEMES_SUPPORTING_REFERRALS
     form = Form
 
 
@@ -304,10 +275,46 @@ class ClosedTicketTriggerType(TriggerType):
     code = Trigger.TYPE_CLOSED_TICKET
     slug = "closed_ticket"
     name = _("Closed Ticket")
-    title = _("Closed Ticket Triggers")
     allowed_flow_types = (Flow.TYPE_MESSAGE, Flow.TYPE_VOICE, Flow.TYPE_BACKGROUND)
     form = Form
 
 
-TYPES_BY_CODE = {tc.code: tc() for tc in TriggerType.__subclasses__()}
-TYPES_BY_SLUG = {tc.slug: tc() for tc in TriggerType.__subclasses__()}
+class OptInTriggerType(TriggerType):
+    """
+    An opt-in trigger type
+    """
+
+    class Form(BaseTriggerForm):
+        def __init__(self, org, user, *args, **kwargs):
+            super().__init__(org, user, Trigger.TYPE_OPT_IN, *args, **kwargs)
+
+    code = Trigger.TYPE_OPT_IN
+    slug = "opt_in"
+    name = _("Opt-In")
+    allowed_flow_types = (Flow.TYPE_MESSAGE, Flow.TYPE_BACKGROUND)
+    form = Form
+
+
+class OptOutTriggerType(TriggerType):
+    """
+    An opt-out trigger type
+    """
+
+    class Form(BaseTriggerForm):
+        def __init__(self, org, user, *args, **kwargs):
+            super().__init__(org, user, Trigger.TYPE_OPT_OUT, *args, **kwargs)
+
+    code = Trigger.TYPE_OPT_OUT
+    slug = "opt_out"
+    name = _("Opt-Out")
+    allowed_flow_types = (Flow.TYPE_MESSAGE, Flow.TYPE_BACKGROUND)
+    form = Form
+
+
+TYPES_BY_CODE = {}
+TYPES_BY_SLUG = {}
+
+for tt in TriggerType.__subclasses__() + ChannelTriggerType.__subclasses__():
+    instance = tt()
+    TYPES_BY_CODE[instance.code] = instance
+    TYPES_BY_SLUG[instance.slug] = instance

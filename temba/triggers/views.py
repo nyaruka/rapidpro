@@ -1,3 +1,5 @@
+from enum import Enum
+
 from smartmin.views import SmartCreateView, SmartCRUDL, SmartListView, SmartTemplateView, SmartUpdateView
 
 from django import forms
@@ -29,9 +31,38 @@ from temba.utils.views import BulkActionMixin, ComponentFormMixin, ContentMenuMi
 from .models import Trigger
 
 
+class Folder(Enum):
+    MESSAGES = (_("Messages"), _("Message Triggers"), (Trigger.TYPE_KEYWORD, Trigger.TYPE_CATCH_ALL))
+    SCHEDULE = (_("Scheduled"), _("Scheduled Triggers"), (Trigger.TYPE_SCHEDULE,))
+    CALLS = (_("Calls"), _("Call Triggers"), (Trigger.TYPE_INBOUND_CALL, Trigger.TYPE_MISSED_CALL))
+    NEW_CONVERSATION = (_("New Conversation"), _("New Conversation Triggers"), (Trigger.TYPE_NEW_CONVERSATION,))
+    REFERRAL = (_("Referral"), _("Referral Triggers"), (Trigger.TYPE_REFERRAL,))
+    TICKETS = (_("Tickets"), _("Ticket Triggers"), (Trigger.TYPE_CLOSED_TICKET,))
+    OPTINS = (_("Opt-Ins"), _("Opt-In Triggers"), (Trigger.TYPE_OPT_IN, Trigger.TYPE_OPT_OUT))
+
+    def __init__(self, display, title, types):
+        self.display = display
+        self.title = title
+        self.types = types
+
+    @property
+    def slug(self) -> str:
+        return self.name.lower()
+
+    def get_count(self, org) -> int:
+        return org.triggers.filter(trigger_type__in=self.types, is_active=True, is_archived=False).count()
+
+    @classmethod
+    def from_slug(cls, slug: str):
+        for folder in cls:
+            if folder.slug == slug:
+                return folder
+        return None
+
+
 class BaseTriggerForm(forms.ModelForm):
     """
-    Base form for different trigger types
+    Base form for different trigger types.
     """
 
     flow = TembaChoiceField(
@@ -41,7 +72,6 @@ class BaseTriggerForm(forms.ModelForm):
         required=True,
         widget=SelectWidget(attrs={"placeholder": _("Select a flow"), "searchable": True}),
     )
-
     groups = TembaMultipleChoiceField(
         queryset=ContactGroup.objects.none(),
         label=_("Groups To Include"),
@@ -68,18 +98,17 @@ class BaseTriggerForm(forms.ModelForm):
         self.user = user
         self.trigger_type = Trigger.get_type(code=trigger_type)
 
-        flow_types = self.trigger_type.allowed_flow_types
-        flows = self.org.flows.filter(flow_type__in=flow_types, is_active=True, is_archived=False, is_system=False)
+        self.fields["flow"].queryset = self.get_flow_choices().order_by(Upper("name"))
+        self.fields["groups"].queryset = self.get_group_choices().order_by(Upper("name"))
+        self.fields["exclude_groups"].queryset = self.get_group_choices().order_by(Upper("name"))
 
-        self.fields["flow"].queryset = flows.order_by("name")
+    def get_flow_choices(self):
+        return self.org.flows.filter(
+            flow_type__in=self.trigger_type.allowed_flow_types, is_active=True, is_archived=False, is_system=False
+        )
 
-        groups = ContactGroup.get_groups(self.org).order_by(Upper("name"))
-
-        self.fields["groups"].queryset = groups
-        self.fields["exclude_groups"].queryset = groups
-
-    def get_channel_choices(self, schemes):
-        return self.org.channels.filter(is_active=True, schemes__overlap=list(schemes)).order_by("name")
+    def get_group_choices(self):
+        return ContactGroup.get_groups(self.org)
 
     def get_conflicts(self, cleaned_data):
         conflicts = Trigger.get_conflicts(self.org, self.trigger_type.code, **self.get_conflicts_kwargs(cleaned_data))
@@ -122,6 +151,39 @@ class BaseTriggerForm(forms.ModelForm):
     class Meta:
         model = Trigger
         fields = ("flow", "groups", "exclude_groups")
+
+
+class BaseChannelTriggerForm(BaseTriggerForm):
+    """
+    Base form for trigger types based on channel activity.
+    """
+
+    channel = TembaChoiceField(
+        queryset=Channel.objects.none(),
+        label=_("Channel"),
+        help_text=_("Only include activity from this channel."),
+        required=False,
+    )
+
+    def __init__(self, org, user, trigger_type, *args, **kwargs):
+        super().__init__(org, user, trigger_type, *args, **kwargs)
+
+        self.fields["channel"].queryset = self.get_channel_choices().order_by(Upper("name"))
+
+    def get_channel_choices(self):
+        qs = self.org.channels.filter(is_active=True)
+        if self.trigger_type.allowed_channel_schemes:
+            qs = qs.filter(schemes__overlap=list(self.trigger_type.allowed_channel_schemes))
+        return qs
+
+    def get_conflicts_kwargs(self, cleaned_data):
+        kwargs = super().get_conflicts_kwargs(cleaned_data)
+        kwargs["channel"] = cleaned_data.get("channel")
+        return kwargs
+
+    class Meta:
+        model = Trigger
+        fields = ("flow", "channel", "groups", "exclude_groups")
 
 
 class RegisterTriggerForm(BaseTriggerForm):
@@ -198,11 +260,13 @@ class TriggerCRUDL(SmartCRUDL):
         "create_new_conversation",
         "create_referral",
         "create_closed_ticket",
+        "create_opt_in",
+        "create_opt_out",
         "update",
         "list",
         "menu",
         "archived",
-        "type",
+        "folder",
     )
 
     class Menu(MenuMixin, SmartTemplateView):
@@ -213,8 +277,6 @@ class TriggerCRUDL(SmartCRUDL):
         def derive_menu(self):
             org = self.request.org
             menu = []
-
-            from .types import TYPES_BY_SLUG
 
             org_triggers = org.triggers.filter(is_active=True)
             menu.append(
@@ -241,14 +303,14 @@ class TriggerCRUDL(SmartCRUDL):
 
             menu.append(self.create_divider())
 
-            for slug, trigger_type in TYPES_BY_SLUG.items():
-                count = org_triggers.filter(trigger_type=trigger_type.code, is_archived=False).count()
+            for folder in Folder:
+                count = folder.get_count(org)
                 if count:
                     menu.append(
                         self.create_menu_item(
-                            name=trigger_type.name,
+                            name=folder.display,
                             count=count,
-                            href=reverse("triggers.trigger_type", kwargs={"type": slug}),
+                            href=reverse("triggers.trigger_folder", kwargs={"folder": folder.slug}),
                         )
                     )
 
@@ -262,7 +324,7 @@ class TriggerCRUDL(SmartCRUDL):
             def add_section(name, url, icon):
                 formax.add_section(name, reverse(url), icon=icon, action="redirect", button=_("New Trigger"))
 
-            org_schemes = self.org.get_schemes(Channel.ROLE_RECEIVE)
+            org_schemes = self.request.org.get_schemes(Channel.ROLE_RECEIVE)
 
             add_section("trigger-keyword", "triggers.trigger_create_keyword", "flow")
             add_section("trigger-register", "triggers.trigger_create_register", "group")
@@ -270,7 +332,7 @@ class TriggerCRUDL(SmartCRUDL):
             add_section("trigger-schedule", "triggers.trigger_create_schedule", "calendar")
             add_section("trigger-inboundcall", "triggers.trigger_create_inbound_call", "incoming_call")
 
-            if self.org.channels.filter(is_active=True, channel_type=AndroidType.code).exists():
+            if self.request.org.channels.filter(is_active=True, channel_type=AndroidType.code).exists():
                 add_section("trigger-missedcall", "triggers.trigger_create_missed_call", "missed_call")
 
             if ContactURN.SCHEMES_SUPPORTING_NEW_CONVERSATION.intersection(org_schemes):
@@ -280,6 +342,10 @@ class TriggerCRUDL(SmartCRUDL):
                 add_section("trigger-referral", "triggers.trigger_create_referral", "referral")
 
             add_section("trigger-closed-ticket", "triggers.trigger_create_closed_ticket", "agent")
+
+            if self.request.user.is_staff:
+                add_section("trigger-opt-in", "triggers.trigger_create_opt_in", "optin")
+                add_section("trigger-opt-out", "triggers.trigger_create_opt_out", "optout")
 
     class BaseCreate(OrgPermsMixin, ComponentFormMixin, SmartCreateView):
         trigger_type = None
@@ -305,8 +371,9 @@ class TriggerCRUDL(SmartCRUDL):
             flow = form.cleaned_data.get("flow")
             groups = form.cleaned_data["groups"]
             exclude_groups = form.cleaned_data["exclude_groups"]
+            channel = form.cleaned_data.get("channel")
 
-            create_kwargs = {"flow": flow, "groups": groups, "exclude_groups": exclude_groups}
+            create_kwargs = {"flow": flow, "groups": groups, "exclude_groups": exclude_groups, "channel": channel}
             create_kwargs.update(self.get_create_kwargs(user, form.cleaned_data))
 
             Trigger.create(
@@ -384,17 +451,20 @@ class TriggerCRUDL(SmartCRUDL):
     class CreateNewConversation(BaseCreate):
         trigger_type = Trigger.TYPE_NEW_CONVERSATION
 
-        def get_create_kwargs(self, user, cleaned_data):
-            return {"channel": cleaned_data["channel"]}
-
     class CreateReferral(BaseCreate):
         trigger_type = Trigger.TYPE_REFERRAL
 
         def get_create_kwargs(self, user, cleaned_data):
-            return {"channel": cleaned_data["channel"], "referrer_id": cleaned_data["referrer_id"]}
+            return {"referrer_id": cleaned_data["referrer_id"]}
 
     class CreateClosedTicket(BaseCreate):
         trigger_type = Trigger.TYPE_CLOSED_TICKET
+
+    class CreateOptIn(BaseCreate):
+        trigger_type = Trigger.TYPE_OPT_IN
+
+    class CreateOptOut(BaseCreate):
+        trigger_type = Trigger.TYPE_OPT_OUT
 
     class Update(ModalMixin, ComponentFormMixin, OrgObjPermsMixin, SmartUpdateView):
         success_message = ""
@@ -452,18 +522,10 @@ class TriggerCRUDL(SmartCRUDL):
         Base class for list views
         """
 
+        permission = "triggers.trigger_list"
         fields = ("name",)
         default_template = "triggers/trigger_list.html"
         search_fields = ("keyword__icontains", "flow__name__icontains", "channel__name__icontains")
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-
-            org = self.request.org
-            context["main_folders"] = self.get_main_folders(org)
-            context["type_folders"] = self.get_type_folders(org)
-            context["request_url"] = self.request.path
-            return context
 
         def get_queryset(self, *args, **kwargs):
             qs = super().get_queryset(*args, **kwargs)
@@ -475,35 +537,6 @@ class TriggerCRUDL(SmartCRUDL):
                 .prefetch_related("contacts", "groups")
             )
             return qs
-
-        def get_main_folders(self, org):
-            return [
-                dict(
-                    label=_("All"),
-                    url=reverse("triggers.trigger_list"),
-                    count=org.triggers.filter(is_active=True, is_archived=False).count(),
-                ),
-                dict(
-                    label=_("Archived"),
-                    url=reverse("triggers.trigger_archived"),
-                    count=org.triggers.filter(is_active=True, is_archived=True).count(),
-                ),
-            ]
-
-        def get_type_folders(self, org):
-            from .types import TYPES_BY_SLUG
-
-            org_triggers = org.triggers.filter(is_active=True, is_archived=False)
-            folders = []
-            for slug, trigger_type in TYPES_BY_SLUG.items():
-                folders.append(
-                    dict(
-                        label=trigger_type.name,
-                        url=reverse("triggers.trigger_type", kwargs={"type": slug}),
-                        count=org_triggers.filter(trigger_type=trigger_type.code).count(),
-                    )
-                )
-            return folders
 
     class List(BaseList):
         """
@@ -539,7 +572,7 @@ class TriggerCRUDL(SmartCRUDL):
         def get_queryset(self, *args, **kwargs):
             return super().get_queryset(*args, **kwargs).filter(is_archived=True)
 
-    class Type(BaseList):
+    class Folder(BaseList):
         """
         Type filtered list view
         """
@@ -548,19 +581,22 @@ class TriggerCRUDL(SmartCRUDL):
 
         @classmethod
         def derive_url_pattern(cls, path, action):
-            from .types import TYPES_BY_SLUG
-
-            return rf"^%s/%s/(?P<type>{'|'.join(TYPES_BY_SLUG.keys())}+)/$" % (path, action)
+            return rf"^%s/%s/(?P<folder>{'|'.join([f.slug for f in Folder])}+)/$" % (path, action)
 
         @property
-        def trigger_type(self):
-            return Trigger.get_type(slug=self.kwargs["type"])
+        def folder(self):
+            return Folder.from_slug(slug=self.kwargs["folder"])
 
         def derive_menu_path(self):
-            return f"/trigger/{self.trigger_type.slug}"
+            return f"/trigger/{self.folder.slug}"
 
         def derive_title(self):
-            return self.trigger_type.title
+            return self.folder.title
 
         def get_queryset(self, *args, **kwargs):
-            return super().get_queryset(*args, **kwargs).filter(is_archived=False, trigger_type=self.trigger_type.code)
+            return (
+                super()
+                .get_queryset(*args, **kwargs)
+                .filter(is_archived=False, trigger_type__in=self.folder.types)
+                .order_by(Trigger.type_order(), "keyword", "earliest_group", "id")
+            )

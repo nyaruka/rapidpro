@@ -1,3 +1,136 @@
+v8.3.38 (2023-10-03)
+-------------------------
+ * Remove completion from contact chat
+ * Do not recreate the events when the campaign is archived
+
+v8.3.37 (2023-10-02)
+-------------------------
+ * Abstract functionality for triggers based on channel actvity into base classes
+ * API endpoint should default to CRUDL based permissions if permission not specified
+ * Update to use Facebook API v17
+
+v8.3.36 (2023-09-29)
+-------------------------
+ * Remove minutes label from channel chart
+ * Add workspace breakdown for dashboard
+
+v8.3.35 (2023-09-28)
+-------------------------
+ * Update opt-in styling
+ * Fix generation of history events from messages with optins
+
+v8.3.34 (2023-09-28)
+-------------------------
+ * Fix migration conflict
+
+v8.3.33 (2023-09-28)
+-------------------------
+ * Fix rendering of optin triggers
+ * Completely remove channel alerts
+
+v8.3.32 (2023-09-27)
+-------------------------
+ * Fix previous accidental merge to main to add optin import support
+ * Cleanup views accessing request org
+ * Add optin as option to broadcast create wizard
+
+v8.3.30 (2023-09-27)
+-------------------------
+ * Allow the target_urls of incident notifications to differ by type
+ * Use proper secret generation for recovery tokens and re-org code
+ * Fix task discover for legacy whatsapp channel type
+ * Implement channel disconnected alert as incident
+
+v8.3.29 (2023-09-26)
+-------------------------
+ * Update editor to include opt-ins
+
+v8.3.28 (2023-09-26)
+-------------------------
+ * Fix Contact Importss
+ * Rename old legacy channel types
+ * Add title to incident list page and tweak styling
+ * Implement email notifications for incidents
+ * Fix ticket squashable count models
+
+v8.3.27 (2023-09-25)
+-------------------------
+ * Tweak mailroom_db to create an FBA channel instead of a TWT channel
+ * Remove ticketers as a feature and the views for connecting external ticketers
+ * Re-add optin as distinct message type
+ * Add undocumented API endpoint for opt-ins
+
+v8.3.26 (2023-09-22)
+-------------------------
+ * Bump cryptography from 41.0.3 to 41.0.4
+ * Add optin field to Broadcast
+
+v8.3.25 (2023-09-21)
+-------------------------
+ * Fix trigger ordering
+
+v8.3.24 (2023-09-21)
+-------------------------
+ * Add opt-in and opt-out trigger types (staff only for now)
+ * Group keyword triggers and catch all triggers under a Messages folder
+ * Move broadcasts and scheduled to their own pages
+
+v8.3.23 (2023-09-21)
+-------------------------
+ * Replace Msg.type=optin with optin reference on msg
+ * Group trigger types into folders
+ * Make sure staff can update the log policy on all channel types
+
+v8.3.22 (2023-09-19)
+-------------------------
+ * Make ticketers API endpoint unpublicized
+ * Add 'Send Now' to broadcast creation
+
+v8.3.21 (2023-09-18)
+-------------------------
+ * Add basic OptIn model
+ * Use env variable for dev mode host
+
+v8.3.20 (2023-09-12)
+-------------------------
+ * Update editor for localized attachment fix
+
+v8.3.19 (2023-09-12)
+-------------------------
+ * Add new data migration to fix IVR call counts
+ * Drop Channel.parent, ContactURN.auth and Org.input_cleaners
+ * Remove support for delegate channels
+
+v8.3.18 (2023-09-07)
+-------------------------
+ * Add data migration to populate ContactURN.auth_tokens
+
+v8.3.17 (2023-09-06)
+-------------------------
+ * Add ContactURN.auth_tokens to replace .auth
+
+v8.3.16 (2023-09-06)
+-------------------------
+ * Tweak documentation for flow_starts endpoint
+ * Allow agents to update tickets topics
+
+v8.3.15 (2023-09-06)
+-------------------------
+ * Add hover-darker button option
+ * Update icons
+
+v8.3.14 (2023-08-31)
+-------------------------
+ * Limit to load the recent 100 sessions
+ * Disallow GET request for media upload view
+
+v8.3.13 (2023-08-28)
+-------------------------
+ * Tweaks to the channel config blurbs for consistency
+ * Fetching messages by label should include arched messages
+ * Use secrets module instead of random for random_string
+ * Little bit of cleanup in channel types like removing unused fields
+
 v8.3.12 (2023-08-23)
 -------------------------
  * Add ChannelType.config_ui to replace configuration_urls, configuration_blurb etc

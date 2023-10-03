@@ -6,7 +6,6 @@ import pytz
 from openpyxl import load_workbook
 
 from django.conf import settings
-from django.db.models import Sum
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -25,11 +24,13 @@ from temba.msgs.models import (
     LabelCount,
     Media,
     Msg,
+    OptIn,
     SystemLabel,
     SystemLabelCount,
 )
+from temba.msgs.views import ScheduleForm
 from temba.schedules.models import Schedule
-from temba.tests import CRUDLTestMixin, MigrationTest, TembaTest, mock_mailroom, mock_uuids
+from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom, mock_uuids
 from temba.tests.engine import MockSessionWriter
 from temba.tests.s3 import MockS3Client, jsonlgz_encode
 from temba.tickets.models import Ticket
@@ -1423,9 +1424,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
             context_objects=[msg4, msg3, msg2, msg1],
         )
 
-        # make sure that we embed refresh script if View.refresh is set
-        self.assertContains(response, "function refresh")
-        self.assertEqual(20000, response.context["refresh"])
+        # check that we have the appropriate bulk actions
         self.assertEqual(("archive", "label"), response.context["actions"])
 
         # test searching
@@ -1486,7 +1485,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual({label1, label3}, set(msg1.labels.all()))
 
         self.assertContentMenu(inbox_url, self.user, ["Download"])
-        self.assertContentMenu(inbox_url, self.admin, ["Send Message", "New Label", "Download"])
+        self.assertContentMenu(inbox_url, self.admin, ["New Broadcast", "New Label", "Download"])
 
     def test_flows(self):
         flow = self.create_flow("Test")
@@ -1927,18 +1926,30 @@ class BroadcastTest(TembaTest):
 
 
 def get_broadcast_form_data(
-    org, message, attachments=[], contacts=[], start_datetime="", repeat_period="", repeat_days_of_week=""
+    org,
+    message,
+    *,
+    attachments=[],
+    contacts=[],
+    send_when=ScheduleForm.SEND_LATER,
+    start_datetime="",
+    repeat_period="",
+    repeat_days_of_week="",
+    optin=None,
 ):
-    return OrderedDict(
+    payload = OrderedDict(
         [
+            ("target", {"omnibox": omnibox_serialize(org, groups=[], contacts=contacts, json_encode=True)}),
             (
                 "compose",
-                {"compose": compose_serialize({"text": message, "attachments": attachments}, json_encode=True)},
+                {
+                    "compose": compose_serialize({"text": message, "attachments": attachments}, json_encode=True),
+                },
             ),
-            ("target", {"omnibox": omnibox_serialize(org, groups=[], contacts=contacts, json_encode=True)}),
             (
                 "schedule",
                 {
+                    "send_when": send_when,
                     "start_datetime": start_datetime,
                     "repeat_period": repeat_period,
                     "repeat_days_of_week": repeat_days_of_week,
@@ -1946,6 +1957,13 @@ def get_broadcast_form_data(
             ),
         ]
     )
+
+    if optin:
+        payload["compose"]["optin"] = optin if not optin.id else optin.id
+
+    if send_when == ScheduleForm.SEND_NOW:
+        payload["schedule"] = {"send_when": send_when, "repeat_period": Schedule.REPEAT_NEVER}
+    return payload
 
 
 class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
@@ -1966,37 +1984,81 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         create_url = reverse("msgs.broadcast_create")
-        self.assertCreateFetch(create_url, allow_viewers=False, allow_editors=True, form_fields=("compose",))
+        self.assertCreateFetch(create_url, allow_viewers=False, allow_editors=True, form_fields=("omnibox",))
         self.login(self.admin)
 
+        # initialize form based on a contact
+        response = self.client.get(f"{create_url}?c={self.joe.uuid}")
+        omnibox = response.context["form"]["omnibox"]
+        self.assertEqual(
+            [{"id": str(self.joe.uuid), "name": "Joe Blow", "type": "contact", "urn": "(202) 555-0149"}],
+            omnibox.value(),
+        )
+
         # missing text
-        response = self.process_wizard("create", create_url, get_broadcast_form_data(self.org, ""))
+        response = self.process_wizard("create", create_url, get_broadcast_form_data(self.org, "", contacts=[self.joe]))
         self.assertFormError(response.context["form"], "compose", ["Text or attachments are required."])
 
         # text too long
-        response = self.process_wizard("create", create_url, get_broadcast_form_data(self.org, "." * 641))
+        response = self.process_wizard(
+            "create", create_url, get_broadcast_form_data(self.org, "." * 641, contacts=[self.joe])
+        )
         self.assertFormError(response.context["form"], "compose", ["Maximum allowed text is 640 characters."])
 
         # too many attachments
         attachments = compose_deserialize_attachments([{"content_type": media.content_type, "url": media.url}])
-        response = self.process_wizard("create", create_url, get_broadcast_form_data(self.org, text, attachments * 11))
-        self.assertFormError(response.context["form"], "compose", ["Maximum allowed attachments is 10 files."])
-
-        # empty recipients
-        response = self.process_wizard("create", create_url, get_broadcast_form_data(self.org, text, []))
-        self.assertFormError(response.context["form"], "omnibox", ["At least one recipient is required."])
-
-        # successful broadcast creation
         response = self.process_wizard(
             "create",
             create_url,
-            get_broadcast_form_data(self.org, text, [], [self.joe], "2021-06-24 12:00", "W", ["M", "F"]),
+            get_broadcast_form_data(self.org, text, attachments=attachments * 11, contacts=[self.joe]),
         )
-        self.assertEqual(302, response.status_code)
+        self.assertFormError(response.context["form"], "compose", ["Maximum allowed attachments is 10 files."])
 
+        # empty recipients
+        response = self.process_wizard("create", create_url, get_broadcast_form_data(self.org, text))
+        self.assertFormError(response.context["form"], "omnibox", ["At least one recipient is required."])
+
+        # missing start time
+        response = self.process_wizard(
+            "create",
+            create_url,
+            get_broadcast_form_data(self.org, text, contacts=[self.joe]),
+        )
+        self.assertFormError(response.context["form"], None, ["Select when you would like the broadcast to be sent"])
+
+        optin = OptIn.create(self.org, self.admin, "Alerts")
+
+        # successful broadcast schedule
+        response = self.process_wizard(
+            "create",
+            create_url,
+            get_broadcast_form_data(
+                self.org,
+                text,
+                contacts=[self.joe],
+                start_datetime="2021-06-24 12:00",
+                repeat_period="W",
+                repeat_days_of_week=["M", "F"],
+                optin=optin,
+            ),
+        )
+
+        self.assertEqual(302, response.status_code)
         self.assertEqual(1, Broadcast.objects.count())
         broadcast = Broadcast.objects.filter(translations__icontains=text).first()
         self.assertEqual("W", broadcast.schedule.repeat_period)
+        self.assertEqual("Alerts", broadcast.optin.name)
+
+        # send a broadcast right away
+        response = self.process_wizard(
+            "create",
+            create_url,
+            get_broadcast_form_data(self.org, text, contacts=[self.joe], send_when=ScheduleForm.SEND_NOW),
+        )
+        self.assertEqual(302, response.status_code)
+
+        # we should have a sent broadcast, so no schedule attached
+        self.assertEqual(1, Broadcast.objects.filter(schedule=None).count())
 
     def test_update(self):
         updated_text = "Updated broadcast"
@@ -2010,13 +2072,20 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         update_url = reverse("msgs.broadcast_update", args=[broadcast.id])
 
-        self.assertUpdateFetch(update_url, allow_viewers=False, allow_editors=True, form_fields=("compose",))
+        self.assertUpdateFetch(update_url, allow_viewers=False, allow_editors=True, form_fields=("omnibox",))
         self.login(self.admin)
 
         response = self.process_wizard(
             "update",
             update_url,
-            get_broadcast_form_data(self.org, updated_text, [], [self.joe], "2021-06-24 12:00", "W", ["M", "F"]),
+            get_broadcast_form_data(
+                self.org,
+                updated_text,
+                contacts=[self.joe],
+                start_datetime="2021-06-24 12:00",
+                repeat_period="W",
+                repeat_days_of_week=["M", "F"],
+            ),
         )
         self.assertEqual(302, response.status_code)
 
@@ -2120,14 +2189,6 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(send_url)
         self.assertEqual(["omnibox", "text", "step_node", "loc"], list(response.context["form"].fields.keys()))
 
-        # initialize form based on a contact
-        response = self.client.get(f"{send_url}?c={self.joe.uuid}")
-        omnibox = response.context["form"]["omnibox"]
-        self.assertEqual(
-            [{"id": str(self.joe.uuid), "name": "Joe Blow", "type": "contact", "urn": "(202) 555-0149"}],
-            omnibox.value(),
-        )
-
         # submit with a send to a group and a contact
         response = self.client.post(
             send_url,
@@ -2200,12 +2261,27 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual(1, Broadcast.objects.count())
 
-    def test_scheduled(self):
-        list_url = reverse("msgs.broadcast_scheduled")
+    def test_list(self):
+        list_url = reverse("msgs.broadcast_list")
 
         self.assertListFetch(list_url, allow_viewers=True, allow_editors=True, context_objects=[])
         self.assertContentMenu(list_url, self.user, [])
         self.assertContentMenu(list_url, self.admin, ["New Broadcast"])
+
+        broadcast = self.create_broadcast(
+            self.admin,
+            "Broadcast sent to one contact",
+            contacts=[self.joe],
+        )
+
+        self.assertListFetch(list_url, allow_viewers=True, allow_editors=True, context_objects=[broadcast])
+
+    def test_scheduled(self):
+        scheduled_url = reverse("msgs.broadcast_scheduled")
+
+        self.assertListFetch(scheduled_url, allow_viewers=True, allow_editors=True, context_objects=[])
+        self.assertContentMenu(scheduled_url, self.user, [])
+        self.assertContentMenu(scheduled_url, self.admin, ["New Broadcast"])
 
         bc1 = self.create_broadcast(
             self.admin,
@@ -2228,16 +2304,20 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
             schedule=Schedule.create_schedule(self.org, self.admin, timezone.now(), Schedule.REPEAT_DAILY),
         )
 
-        self.assertListFetch(list_url, allow_viewers=True, allow_editors=True, context_objects=[bc3, bc2, bc1])
+        self.assertListFetch(scheduled_url, allow_viewers=True, allow_editors=True, context_objects=[bc3, bc2, bc1])
 
         bc3.is_active = False
         bc3.save(update_fields=("is_active",))
 
-        self.assertListFetch(list_url, allow_viewers=True, allow_editors=True, context_objects=[bc2, bc1])
+        self.assertListFetch(scheduled_url, allow_viewers=True, allow_editors=True, context_objects=[bc2, bc1])
 
         # can search on text or URN path
-        self.assertListFetch(list_url + "?search=MORN", allow_viewers=True, allow_editors=True, context_objects=[bc1])
-        self.assertListFetch(list_url + "?search=50195", allow_viewers=True, allow_editors=True, context_objects=[bc2])
+        self.assertListFetch(
+            scheduled_url + "?search=MORN", allow_viewers=True, allow_editors=True, context_objects=[bc1]
+        )
+        self.assertListFetch(
+            scheduled_url + "?search=50195", allow_viewers=True, allow_editors=True, context_objects=[bc2]
+        )
 
     def test_scheduled_read(self):
         schedule = Schedule.create_schedule(self.org, self.admin, timezone.now(), "D", repeat_days_of_week="MWF")
@@ -2801,6 +2881,9 @@ class MediaCRUDLTest(CRUDLTestMixin, TembaTest):
         def assert_upload(user, filename, expected_json):
             self.login(user)
 
+            response = self.client.get(upload_url)
+            self.assertEqual(response.status_code, 405)
+
             with open(filename, "rb") as data:
                 response = self.client.post(upload_url, {"file": data}, HTTP_X_FORWARDED_HTTPS="https")
 
@@ -2877,40 +2960,3 @@ class MediaCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual([media2, media1], list(response.context["object_list"]))
 
         self.clear_storage()
-
-
-class FixArchivedLabelCountsTest(MigrationTest):
-    app = "msgs"
-    migrate_from = "0242_update_db_triggers"
-    migrate_to = "0243_fix_archived_label_counts"
-
-    def setUpBeforeMigration(self, apps):
-        contact = self.create_contact("Bob", phone="+1234567890")
-        self.label1 = self.create_label("Label1")
-        self.label2 = self.create_label("Label2")
-        self.label3 = self.create_label("Label3")
-
-        msg1 = self.create_incoming_msg(contact=contact, text="1", visibility=Msg.VISIBILITY_VISIBLE)
-        msg2 = self.create_incoming_msg(contact=contact, text="2", visibility=Msg.VISIBILITY_ARCHIVED)
-        msg3 = self.create_incoming_msg(contact=contact, text="3", visibility=Msg.VISIBILITY_ARCHIVED)
-        msg4 = self.create_incoming_msg(contact=contact, text="4", visibility=Msg.VISIBILITY_ARCHIVED)
-
-        self.label1.toggle_label([msg1, msg2, msg3], add=True)
-        self.label2.toggle_label([msg2, msg3, msg4], add=True)
-
-        # make archived message count for label 2 wrong
-        LabelCount.objects.filter(label=self.label2, is_archived=True).update(count=5)
-
-        assert self._get_label_count(self.label1) == (1, 2)
-        assert self._get_label_count(self.label2) == (0, 15)  # because 3 count=5 rows, but should really be 3
-        assert self._get_label_count(self.label3) == (0, 0)
-
-    def test_execute(self):
-        self.assertEqual((1, 2), self._get_label_count(self.label1))
-        self.assertEqual((0, 3), self._get_label_count(self.label2))
-        self.assertEqual((0, 0), self._get_label_count(self.label3))
-
-    def _get_label_count(self, lbl) -> tuple:
-        counts = LabelCount.objects.filter(label=lbl).values_list("is_archived").annotate(count_sum=Sum("count"))
-        counts_by_is_archived = {c[0]: c[1] for c in counts}
-        return counts_by_is_archived.get(False, 0), counts_by_is_archived.get(True, 0)

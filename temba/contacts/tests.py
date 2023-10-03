@@ -2384,7 +2384,7 @@ class ContactTest(TembaTest, CRUDLTestMixin):
         assertHistoryEvent(history, 11, "flow_entered", flow__name="Colors")
         assertHistoryEvent(history, 12, "msg_received", msg__text="Message caption")
         assertHistoryEvent(
-            history, 13, "msg_created", msg__text="A beautiful broadcast", msg__created_by__email="viewer@nyaruka.com"
+            history, 13, "msg_created", msg__text="A beautiful broadcast", created_by__email="viewer@nyaruka.com"
         )
         assertHistoryEvent(history, 14, "campaign_fired", campaign__name="Planting Reminders")
         assertHistoryEvent(history, -1, "msg_received", msg__text="Inbound message 11")
@@ -4276,7 +4276,11 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         list_url = reverse("contacts.contactfield_list")
 
         self.assertListFetch(
-            list_url, allow_viewers=False, allow_editors=True, context_objects=[self.age, self.gender, self.state]
+            list_url,
+            allow_viewers=True,
+            allow_editors=True,
+            allow_agents=True,
+            context_objects=[self.age, self.gender, self.state],
         )
 
     def test_create_warnings(self):
