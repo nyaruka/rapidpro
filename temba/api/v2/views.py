@@ -108,7 +108,6 @@ class RootView(views.APIView):
      * [/api/v2/classifiers](/api/v2/classifiers) - to list classifiers
      * [/api/v2/contacts](/api/v2/contacts) - to list, create, update or delete contacts
      * [/api/v2/contact_actions](/api/v2/contact_actions) - to perform bulk contact actions
-     * [/api/v2/definitions](/api/v2/definitions) - to export flow definitions, campaigns, and triggers
      * [/api/v2/fields](/api/v2/fields) - to list, create or update contact fields
      * [/api/v2/flow_starts](/api/v2/flow_starts) - to list flow starts and start contacts in flows
      * [/api/v2/flows](/api/v2/flows) - to list flows
@@ -218,7 +217,6 @@ class RootView(views.APIView):
                 "classifiers": reverse("api.v2.classifiers", request=request),
                 "contacts": reverse("api.v2.contacts", request=request),
                 "contact_actions": reverse("api.v2.contact_actions", request=request),
-                "definitions": reverse("api.v2.definitions", request=request),
                 "fields": reverse("api.v2.fields", request=request),
                 "flow_starts": reverse("api.v2.flow_starts", request=request),
                 "flows": reverse("api.v2.flows", request=request),
@@ -274,7 +272,6 @@ class ExplorerView(SmartTemplateView):
             ContactsEndpoint.get_write_explorer(),
             ContactsEndpoint.get_delete_explorer(),
             ContactActionsEndpoint.get_write_explorer(),
-            DefinitionsEndpoint.get_read_explorer(),
             FieldsEndpoint.get_read_explorer(),
             FieldsEndpoint.get_write_explorer(),
             FlowsEndpoint.get_read_explorer(),
@@ -409,7 +406,6 @@ class ArchivesEndpoint(ListAPIMixin, BaseEndpoint):
 
     """
 
-    permission = "archives.archive_api"
     model = Archive
     serializer_class = ArchiveReadSerializer
 
@@ -508,7 +504,6 @@ class BoundariesEndpoint(ListAPIMixin, BaseEndpoint):
     class Pagination(CursorPagination):
         ordering = ("osm_id",)
 
-    permission = "locations.adminboundary_api"
     model = AdminBoundary
     serializer_class = AdminBoundaryReadSerializer
     pagination_class = Pagination
@@ -618,7 +613,6 @@ class BroadcastsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
         }
     """
 
-    permission = "msgs.broadcast_api"
     model = Broadcast
     serializer_class = BroadcastReadSerializer
     write_serializer_class = BroadcastWriteSerializer
@@ -752,7 +746,6 @@ class CampaignsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
 
     """
 
-    permission = "campaigns.campaign_api"
     model = Campaign
     serializer_class = CampaignReadSerializer
     write_serializer_class = CampaignWriteSerializer
@@ -912,7 +905,6 @@ class CampaignEventsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEn
 
     """
 
-    permission = "campaigns.campaignevent_api"
     model = CampaignEvent
     serializer_class = CampaignEventReadSerializer
     write_serializer_class = CampaignEventWriteSerializer
@@ -1070,7 +1062,6 @@ class ChannelsEndpoint(ListAPIMixin, BaseEndpoint):
 
     """
 
-    permission = "channels.channel_api"
     model = Channel
     serializer_class = ChannelReadSerializer
     pagination_class = CreatedOnCursorPagination
@@ -1148,7 +1139,6 @@ class ChannelEventsEndpoint(ListAPIMixin, BaseEndpoint):
 
     """
 
-    permission = "channels.channelevent_api"
     model = ChannelEvent
     serializer_class = ChannelEventReadSerializer
     pagination_class = CreatedOnCursorPagination
@@ -1241,7 +1231,6 @@ class ClassifiersEndpoint(ListAPIMixin, BaseEndpoint):
 
     """
 
-    permission = "classifiers.classifier_api"
     model = Classifier
     serializer_class = ClassifierReadSerializer
     pagination_class = CreatedOnCursorPagination
@@ -1720,24 +1709,6 @@ class DefinitionsEndpoint(BaseEndpoint):
 
         return Response(export, status=status.HTTP_200_OK)
 
-    @classmethod
-    def get_read_explorer(cls):
-        return {
-            "method": "GET",
-            "title": "Export Definitions",
-            "url": reverse("api.v2.definitions"),
-            "slug": "definition-list",
-            "params": [
-                {"name": "flow", "required": False, "help": "One or more flow UUIDs to include"},
-                {"name": "campaign", "required": False, "help": "One or more campaign UUIDs to include"},
-                {
-                    "name": "dependencies",
-                    "required": False,
-                    "help": "Whether to include dependencies of the requested items. ex: false",
-                },
-            ],
-        }
-
 
 class FieldsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
     """
@@ -1814,7 +1785,6 @@ class FieldsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
         }
     """
 
-    permission = "contacts.contactfield_api"
     model = ContactField
     serializer_class = ContactFieldReadSerializer
     write_serializer_class = ContactFieldWriteSerializer
@@ -2063,7 +2033,6 @@ class GlobalsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
         }
     """
 
-    permission = "globals.global_api"
     model = Global
     serializer_class = GlobalReadSerializer
     write_serializer_class = GlobalWriteSerializer
@@ -2216,7 +2185,6 @@ class GroupsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint):
     You will receive either a 204 response if a group was deleted, or a 404 response if no matching group was found.
     """
 
-    permission = "contacts.contactgroup_api"
     model = ContactGroup
     serializer_class = ContactGroupReadSerializer
     write_serializer_class = ContactGroupWriteSerializer

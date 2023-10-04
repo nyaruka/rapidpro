@@ -1,3 +1,29 @@
+v8.3.40 (2023-10-03)
+-------------------------
+ * Remove globals from agent store when missing permission
+ * Remove arst
+
+v8.3.39 (2023-10-03)
+-------------------------
+ * Fix compose clear on send
+ * Use more CRUDL perms with API endpoints
+
+v8.3.38 (2023-10-03)
+-------------------------
+ * Remove completion from contact chat
+ * Do not recreate the events when the campaign is archived
+
+v8.3.37 (2023-10-02)
+-------------------------
+ * Abstract functionality for triggers based on channel actvity into base classes
+ * API endpoint should default to CRUDL based permissions if permission not specified
+ * Update to use Facebook API v17
+
+v8.3.36 (2023-09-29)
+-------------------------
+ * Remove minutes label from channel chart
+ * Add workspace breakdown for dashboard
+
 v8.3.35 (2023-09-28)
 -------------------------
  * Update opt-in styling

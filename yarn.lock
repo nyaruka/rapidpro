@@ -70,10 +70,10 @@
     react "^16.8.6"
     react-dom "^16.8.6"
 
-"@nyaruka/temba-components@0.59.0":
-  version "0.59.0"
-  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.59.0.tgz#95011810ac61808ee8753035354100edf7d70e0c"
-  integrity sha512-j8npbr8PYvSgsfiyCfoJ3eHrcHs3e3equR4NxoOkWq4EYA1AXUlKQLaZiQnke5Npz9/e0CT0H70uqzZ/zcNK8A==
+"@nyaruka/temba-components@0.60.1":
+  version "0.60.1"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.60.1.tgz#2b6d32af4b58384a08650b801fbc832bf703178d"
+  integrity sha512-SWZ8klN5EDDr4WZGg9mzN9BIbiLPBhX8vCwRIFsq5c9x7/hjomR6ct0aOmh8SM80OHUysUdjE4URdumVV7/eDQ==
   dependencies:
     "@lit/localize" "^0.11.4"
     color-hash "^2.0.2"
@@ -443,10 +443,10 @@ has@^1.0.3:
   dependencies:
     function-bind "^1.1.1"
 
-highcharts@5.0.6:
-  version "5.0.6"
-  resolved "https://registry.npmjs.org/highcharts/-/highcharts-5.0.6.tgz#9fba0fbd38c34cca23ffffa8898d39eb23fd35ba"
-  integrity sha512-7QxpMuCgHIUfcO6rvKza+0syBa+P9aZrGS/Z16wxOsjgN9ygwyeKzUWC3sZC9iBzeMhGNHt2oTnVIfx+RjJj5w==
+highcharts@9.3.0:
+  version "9.3.0"
+  resolved "https://registry.npmjs.org/highcharts/-/highcharts-9.3.0.tgz#999496c8af677d5f08e41e2e708d3eb7baf56640"
+  integrity sha512-nQ7yW5ni7wFiPgDN2IWrS6o6NjL1gK/OhZjrdpyB3FQuefMkTQngygP+JqZFMx7PDrP3YAvfejx0M5IgkC01ow==
 
 highlight.js@^10.7.1:
   version "10.7.3"
