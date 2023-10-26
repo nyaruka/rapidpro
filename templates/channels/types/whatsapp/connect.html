@@ -55,7 +55,7 @@
         appId: '{{ facebook_app_id }}', // Meta App ID
         cookie: true, // enable cookies
         xfbml: true, // parse social plugins on this page
-        version: 'v18.0' //Graph API version
+        version: 'v17.0' //Graph API version
       });
     };
     // Load the JavaScript SDK asynchronously
@@ -83,7 +83,7 @@
           //Use this token to call the debug_token API and get the shared WABA's ID
         } else {
           console.log('User cancelled login or did not fully authorize, redirect to the dialog auth');
-          location.replace("https://www.facebook.com/v18.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + window.location.pathname + "&config_id={{ facebook_login_whatsapp_config_id }}&response_type=token&override_default_response_type=true")
+          location.replace("https://www.facebook.com/v17.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + window.location.pathname + "&config_id={{ facebook_login_whatsapp_config_id }}&response_type=token&override_default_response_type=true")
         }
       }, {
         config_id: '{{ facebook_login_whatsapp_config_id }}',
@@ -101,7 +101,7 @@
           //Use this token to call the debug_token API and get the shared WABA's ID
         } else {
           console.log('User cancelled login or did not fully authorize, redirect to the dialog auth');
-          location.replace("https://www.facebook.com/v18.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + window.location.pathname + "&scope=business_management,whatsapp_business_management,whatsapp_business_messaging&response_type=token")
+          location.replace("https://www.facebook.com/v17.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + window.location.pathname + "&scope=business_management,whatsapp_business_management,whatsapp_business_messaging&response_type=token")
         }
       }, {
         scope: 'business_management,whatsapp_business_management,whatsapp_business_messaging',

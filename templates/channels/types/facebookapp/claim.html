@@ -62,12 +62,12 @@
     $(document).ready(function() {
       {% if facebook_login_messenger_config_id %}
       $(".connect-facebook").click(function(evt) {
-        location.replace("https://www.facebook.com/v18.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + window.location.pathname + "&config_id={{ facebook_login_messenger_config_id }}&response_type=token")
+        location.replace("https://www.facebook.com/v17.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + window.location.pathname + "&config_id={{ facebook_login_messenger_config_id }}&response_type=token")
 
       });
       {% else %}
       $(".connect-facebook").click(function(evt) {
-        location.replace("https://www.facebook.com/v18.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + window.location.pathname + "&scope=pages_messaging,pages_show_list,pages_manage_metadata,pages_read_engagement&response_type=token")
+        location.replace("https://www.facebook.com/v17.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + window.location.pathname + "&scope=pages_messaging,pages_show_list,pages_manage_metadata,pages_read_engagement&response_type=token")
 
       });
       {% endif %}
