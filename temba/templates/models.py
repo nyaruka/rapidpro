@@ -2,6 +2,7 @@ import uuid
 
 from django_countries.fields import CountryField
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils import timezone
 
@@ -73,6 +74,12 @@ class TemplateTranslation(models.Model):
 
     # the content of this template
     content = models.TextField(null=False)
+
+    # the components of this template
+    components = models.TextField(null=True)
+
+    # list template features detected
+    features = ArrayField(models.CharField(max_length=32), default=list)
 
     # how many variables this template contains
     variable_count = models.IntegerField()
