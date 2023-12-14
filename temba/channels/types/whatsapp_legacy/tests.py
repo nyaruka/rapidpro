@@ -244,8 +244,7 @@ class WhatsAppLegacyTypeTest(CRUDLTestMixin, TembaTest):
             response = self.client.post(url, post_data)
             self.assertEqual(200, response.status_code)
             self.assertFormError(
-                response,
-                "form",
+                response.context["form"],
                 None,
                 "This channel is already connected in another workspace.",
             )
