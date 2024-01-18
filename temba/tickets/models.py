@@ -607,7 +607,7 @@ class TicketExport(ExportType):
 
 @register_asset_store
 class TicketExportAssetStore(BaseExportAssetStore):
-    model = Export
+    model = ExportTicketsTask
     key = "ticket_export"
     directory = "ticket_exports"
     permission = "tickets.ticket_export"
