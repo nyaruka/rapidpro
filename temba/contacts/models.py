@@ -407,6 +407,8 @@ class ContactField(TembaModel, DependencyMixin):
         "tickets",
         "timezone",
         "urns",
+        # reserved for future use
+        "email",
     }.union(URN.VALID_SCHEMES)
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="fields")

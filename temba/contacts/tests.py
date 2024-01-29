@@ -3151,7 +3151,7 @@ class ContactFieldTest(TembaTest):
     def test_is_valid_key(self):
         self.assertTrue(ContactField.is_valid_key("age"))
         self.assertTrue(ContactField.is_valid_key("age_now_2"))
-        self.assertTrue(ContactField.is_valid_key("email"))
+        self.assertTrue(ContactField.is_valid_key("email1"))
         self.assertFalse(ContactField.is_valid_key("Age"))  # must be lowercase
         self.assertFalse(ContactField.is_valid_key("age!"))  # can't have punctuation
         self.assertFalse(ContactField.is_valid_key("âge"))  # a-z only
@@ -3160,6 +3160,7 @@ class ContactFieldTest(TembaTest):
         self.assertFalse(ContactField.is_valid_key("uuid"))
         self.assertFalse(ContactField.is_valid_key("tel"))  # can't be URN scheme
         self.assertFalse(ContactField.is_valid_key("mailto"))
+        self.assertFalse(ContactField.is_valid_key("email"))
         self.assertFalse(ContactField.is_valid_key("a" * 37))  # too long
 
     def test_is_valid_name(self):
