@@ -741,8 +741,8 @@ class OrgTest(TembaTest):
             self.assertEqual(is_suspended, org.is_suspended)
 
         self.org.features += [Org.FEATURE_CHILD_ORGS]
-        org1_child1 = self.org.create_new(self.admin, "Child 1", timezone.utc, as_child=True)
-        org1_child2 = self.org.create_new(self.admin, "Child 2", timezone.utc, as_child=True)
+        org1_child1 = self.org.create_new(self.admin, "Child 1", tzone.utc, as_child=True)
+        org1_child2 = self.org.create_new(self.admin, "Child 2", tzone.utc, as_child=True)
 
         self.org.suspend()
 
