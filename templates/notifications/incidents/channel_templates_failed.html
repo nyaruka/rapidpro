@@ -1,6 +1,6 @@
 {% load i18n %}
 
 {% url 'channels.channel_read' incident.channel.uuid as read_url %}
-{% blocktrans trimmed with read_url=read_url %}
-    Your <a href="{{ read_url }}">WhatsApp channel</a> appears to not be syncing templates.
+{% blocktrans trimmed with read_url=read_url sync_log_url=incident.as_json.incident_url %}
+    Your <a href="{{ read_url }}">WhatsApp channel</a> appears to not be <a href="{{ sync_log_url }}">syncing templates</a>.
 {% endblocktrans %}

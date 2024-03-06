@@ -428,18 +428,29 @@ class NotificationTest(TembaTest):
     def test_channel_templates_failed(self):
         self.org.add_user(self.editor, OrgRole.ADMINISTRATOR)  # upgrade editor to administrator
 
-        ChannelTemplatesFailedIncidentType.get_or_create(channel=self.channel)
+        channel = self.create_channel(
+            "WAC",
+            "Channel",
+            "1234",
+            config={
+                "fb_namespace": "foo_namespace",
+                "base_url": "https://nyaruka.com/whatsapp",
+            },
+        )
+
+        ChannelTemplatesFailedIncidentType.get_or_create(channel=channel)
 
         self.assert_notifications(
             expected_json={
                 "type": "incident:started",
                 "created_on": matchers.ISODate(),
-                "target_url": f"/channels/channel/read/{self.channel.uuid}/",
+                "target_url": f"/channels/types/whatsapp/{channel.uuid}/sync_logs",
                 "is_seen": False,
                 "incident": {
                     "type": "channel:templates_failed",
                     "started_on": matchers.ISODate(),
                     "ended_on": None,
+                    "incident_url": f"/channels/types/whatsapp/{channel.uuid}/sync_logs",
                 },
             },
             expected_users={self.editor, self.admin},
@@ -458,7 +469,7 @@ class NotificationTest(TembaTest):
 
         # if a user visits the incident page, all incident notifications are now read
         self.login(self.editor)
-        self.client.get(f"/channels/channel/read/{self.channel.uuid}/")
+        self.client.get(f"/channels/types/whatsapp/{channel.uuid}/sync_logs")
 
         self.assertTrue(self.editor.notifications.get().is_seen)
         self.assertFalse(self.admin.notifications.get().is_seen)
