@@ -520,6 +520,7 @@ class WhatsAppLegacyTypeTest(CRUDLTestMixin, TembaTest):
             external_locale="en_US",
             namespace="foo_namespace",
             components={"body": {"content": "Hello {{1}}", "params": [{"type": "text"}]}},
+            raw_components=[{"type": "BODY", "text": "Hello {{1}}"}],
             # deprecated
             content="Hello {{1}}",
             variable_count=1,
@@ -535,6 +536,7 @@ class WhatsAppLegacyTypeTest(CRUDLTestMixin, TembaTest):
             external_locale="en_US",
             namespace="foo_namespace",
             components={"body": {"content": "Goodbye {{1}}", "params": [{"type": "text"}]}},
+            raw_components=[{"type": "BODY", "text": "Goodbye {{1}}"}],
             # deprecated
             content="Goodbye {{1}}",
             variable_count=1,

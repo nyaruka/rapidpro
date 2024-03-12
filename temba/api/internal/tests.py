@@ -94,6 +94,7 @@ class EndpointsTest(APITestMixin, TembaTest):
             external_locale="en_US",
             namespace="foo_namespace",
             components={"body": {"content": "Hi {{1}}", "params": [{"type": "text"}]}},
+            raw_components=[{"type": "BODY", "text": "Hi {{1}}"}],
             # deprecated
             content="Hi {{1}}",
             variable_count=1,
@@ -108,6 +109,7 @@ class EndpointsTest(APITestMixin, TembaTest):
             external_locale="fr_FR",
             namespace="foo_namespace",
             components={"body": {"content": "Bonjour {{1}}", "params": [{"type": "text"}]}},
+            raw_components=[{"type": "BODY", "text": "Bonjour {{1}}"}],
             # deprecated
             content="Bonjour {{1}}",
             variable_count=1,
@@ -127,6 +129,7 @@ class EndpointsTest(APITestMixin, TembaTest):
                     "params": [{"type": "text"}],
                 }
             },
+            raw_components=[{"type": "BODY", "text": "This is a template translation for a deleted channel {{1}}"}],
             # deprecated
             content="This is a template translation for a deleted channel {{1}}",
             variable_count=1,
@@ -144,6 +147,7 @@ class EndpointsTest(APITestMixin, TembaTest):
             external_locale="en_US",
             namespace="foo_namespace",
             components={"body": {"content": "Goodbye {{1}}", "params": [{"type": "text"}]}},
+            raw_components=[{"type": "BODY", "text": "Goodbye {{1}}"}],
             # deprecated
             content="Goodbye {{1}}",
             variable_count=1,
@@ -160,6 +164,7 @@ class EndpointsTest(APITestMixin, TembaTest):
             external_locale="en_US",
             namespace="bar_namespace",
             components={"body": {"content": "Goodbye {{1}}", "params": [{"type": "text"}]}},
+            raw_components=[{"type": "BODY", "text": "Goodbye {{1}}"}],
             # deprecated
             content="Goodbye {{1}}",
             variable_count=1,
@@ -174,6 +179,7 @@ class EndpointsTest(APITestMixin, TembaTest):
             external_locale="fr_FR",
             namespace="bar_namespace",
             components={"body": {"content": "Salut {{1}}", "params": [{"type": "text"}]}},
+            raw_components=[{"type": "BODY", "text": "Salut {{1}}"}],
             # deprecated
             content="Salut {{1}}",
             variable_count=1,

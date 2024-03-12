@@ -402,6 +402,9 @@ class Command(BaseCommand):
                                 "params": [{"type": "text"}],
                             }
                         },
+                        raw_components=[
+                            {"type": "BODY", "text": "We have reserved a table for you at {{1}}. See you soon!"}
+                        ],
                         # deprecated
                         content="We have reserved a table for you at {{1}}. See you soon!",
                         variable_count=1,

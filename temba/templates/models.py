@@ -107,6 +107,7 @@ class TemplateTranslation(models.Model):
         external_locale,
         namespace,
         components,
+        raw_components,
         params,
     ):
         existing = TemplateTranslation.objects.filter(channel=channel, external_id=external_id).first()
@@ -129,6 +130,7 @@ class TemplateTranslation(models.Model):
                 content=content,
                 variable_count=variable_count,
                 components=components,
+                raw_components=raw_components,
                 params=params,
                 status=status,
                 external_id=external_id,
@@ -141,6 +143,7 @@ class TemplateTranslation(models.Model):
                 or existing.content != content
                 or existing.locale != locale
                 or existing.components != components
+                or existing.raw_components != raw_components
                 or existing.params != params
             ):
                 existing.namespace = namespace
@@ -150,6 +153,7 @@ class TemplateTranslation(models.Model):
                 existing.variable_count = variable_count
                 existing.is_active = True
                 existing.components = components
+                existing.raw_components = raw_components
                 existing.params = params
                 existing.external_locale = external_locale
                 existing.save(
@@ -161,6 +165,7 @@ class TemplateTranslation(models.Model):
                         "is_active",
                         "variable_count",
                         "components",
+                        "raw_components",
                         "params",
                         "external_locale",
                     ]

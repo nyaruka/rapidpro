@@ -14,6 +14,7 @@ class TemplateTest(TembaTest):
             external_locale="en_US",
             namespace="",
             components={"body": {"content": "Hello {{1}}", "params": [{"type": "text"}]}},
+            raw_components=[{"type": "BODY", "text": "Hello {{1}}"}],
             # deprecated
             content="Hello {{1}}",
             variable_count=1,
@@ -28,6 +29,7 @@ class TemplateTest(TembaTest):
             external_locale="fr_FR",
             namespace="",
             components={"body": {"content": "Bonjour {{1}}", "params": [{"type": "text"}]}},
+            raw_components=[{"type": "BODY", "text": "Bonjour {{1}}"}],
             # deprecated
             content="Bonjour {{1}}",
             variable_count=1,
@@ -46,6 +48,7 @@ class TemplateTest(TembaTest):
             external_locale="fr_FR",
             namespace="foo_namespace",
             components={"body": {"content": "Salut {{1}}", "params": [{"type": "text"}]}},
+            raw_components=[{"type": "BODY", "text": "Salut {{1}}"}],
             # deprecated
             content="Salut {{1}}",
             variable_count=1,

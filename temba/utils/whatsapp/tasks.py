@@ -188,6 +188,7 @@ def update_local_templates(channel, templates_data):
             external_id=template.get("id", missing_external_id[:64]),
             namespace=template.get("namespace", channel_namespace),
             components=transformed_components,
+            raw_components=components,
             params=params,
         )
 

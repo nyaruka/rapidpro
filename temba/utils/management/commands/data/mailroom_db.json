@@ -365,6 +365,12 @@
                   ]
                 }
               },
+              "raw_components": [
+                {
+                  "type": "BODY",
+                  "text": "Hi {{1}}, are you still experiencing problems with {{2}}?"
+                }
+              ],
               "params": {
                 "body": [
                   {
@@ -385,6 +391,12 @@
               "status": "P",
               "external_id": "fra1",
               "external_locale": "fr",
+              "raw_components": [
+                {
+                  "type": "BODY",
+                  "text": "Bonjour {{1}}, a tu des problems avec {{2}}?"
+                }
+              ],
               "components": {
                 "body": {
                   "content": "Bonjour {{1}}, a tu des problems avec {{2}}?",
@@ -430,6 +442,12 @@
                   "params": []
                 }
               },
+              "raw_components": [
+                {
+                  "type": "BODY",
+                  "text": "Salut!"
+                }
+              ],
               "params": {}
             }
           ]

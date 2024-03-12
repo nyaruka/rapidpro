@@ -4836,6 +4836,7 @@ class EndpointsTest(APITest):
             external_locale="en_US",
             namespace="foo_namespace",
             components={},
+            raw_components=[{"type": "BODY", "text": "Hi {{1}}"}],
             params={"body": [{"type": "text"}]},
         ).template
         TemplateTranslation.get_or_create(
@@ -4849,6 +4850,7 @@ class EndpointsTest(APITest):
             external_locale="fr_FR",
             namespace="foo_namespace",
             components={},
+            raw_components=[{"type": "BODY", "text": "Bonjour {{1}}"}],
             params={"body": [{"type": "text"}]},
         )
         tt = TemplateTranslation.get_or_create(
@@ -4862,6 +4864,7 @@ class EndpointsTest(APITest):
             external_locale="af_ZA",
             namespace="foo_namespace",
             components={},
+            raw_components=[{"type": "BODY", "text": "This is a template translation for a deleted channel {{1}}"}],
             params={"body": [{"type": "text"}]},
         )
         tt.is_active = False
@@ -4878,6 +4881,7 @@ class EndpointsTest(APITest):
             external_locale="en_US",
             namespace="foo_namespace",
             components={},
+            raw_components=[{"type": "BODY", "text": "Goodbye {{1}}"}],
             params={"body": [{"type": "text"}]},
         ).template
 
@@ -4893,6 +4897,7 @@ class EndpointsTest(APITest):
             external_locale="en_US",
             namespace="bar_namespace",
             components={},
+            raw_components=[{"type": "BODY", "text": "Goodbye {{1}}"}],
             params={"body": [{"type": "text"}]},
         )
         TemplateTranslation.get_or_create(
@@ -4906,6 +4911,7 @@ class EndpointsTest(APITest):
             external_locale="fr_FR",
             namespace="bar_namespace",
             components={},
+            raw_components=[{"type": "BODY", "text": "Salut {{1}}"}],
             params={"body": [{"type": "text"}]},
         )
 

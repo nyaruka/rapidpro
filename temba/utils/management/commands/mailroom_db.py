@@ -404,6 +404,7 @@ class Command(BaseCommand):
                     external_locale=tt["external_locale"],
                     namespace=tt["namespace"],
                     components=tt["components"],
+                    raw_components=tt["components"],
                     # deprecated
                     content=tt["content"],
                     variable_count=tt["variable_count"],
