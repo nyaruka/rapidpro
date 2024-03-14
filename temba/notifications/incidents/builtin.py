@@ -80,7 +80,7 @@ class ChannelTemplatesFailedIncidentType(IncidentType):
     @classmethod
     def get_or_create(cls, channel):
         """
-        Creates a channel disconnected incident if one is not already ongoing
+        Creates a channel template sync failed incident if one is not already ongoing
         """
         return Incident.get_or_create(
             channel.org, ChannelTemplatesFailedIncidentType.slug, scope=str(channel.id), channel=channel
@@ -90,4 +90,9 @@ class ChannelTemplatesFailedIncidentType(IncidentType):
         return str(incident.channel.id)
 
     def get_notification_target_url(self, incident) -> str:
-        return reverse("channels.channel_read", args=[str(incident.channel.uuid)])
+        return reverse(f"channels.types.{incident.channel.type.slug}.sync_logs", args=[str(incident.channel.uuid)])
+
+    def as_json(self, incident) -> dict:
+        json = super().as_json(incident)
+        json["incident_url"] = self.get_notification_target_url(incident=incident)
+        return json

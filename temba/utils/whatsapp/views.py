@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 from temba.channels.models import Channel
 from temba.channels.views import ChannelTypeMixin
+from temba.notifications.views import NotificationTargetMixin
 from temba.orgs.views import OrgPermsMixin
 from temba.request_logs.models import HTTPLog
 from temba.templates.models import TemplateTranslation
@@ -65,7 +66,7 @@ class TemplatesView(ChannelTypeMixin, ContentMenuMixin, OrgPermsMixin, SmartRead
         return f"/settings/channels/{self.get_object().uuid}"
 
 
-class SyncLogsView(ChannelTypeMixin, ContentMenuMixin, OrgPermsMixin, SmartReadView):
+class SyncLogsView(ChannelTypeMixin, ContentMenuMixin, OrgPermsMixin, NotificationTargetMixin, SmartReadView):
     """
     Displays a simple table of the WhatsApp Templates Synced requests for this channel
     """
@@ -80,6 +81,9 @@ class SyncLogsView(ChannelTypeMixin, ContentMenuMixin, OrgPermsMixin, SmartReadV
         obj = self.get_object()
 
         menu.add_link(_("Message Templates"), reverse(f"channels.types.{obj.type.slug}.templates", args=[obj.uuid]))
+
+    def get_notification_scope(self) -> tuple:
+        return "incident:started", str(self.object.id)
 
     def get_queryset(self):
         queryset = super().get_queryset()
