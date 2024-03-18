@@ -123,32 +123,40 @@ def _extract_template_params(components):
 
             if comp_params:
                 params[component_type] = comp_params
-            transformed_components[component_type] = dict(content=component.get("text", ""), params=comp_params)
+            transformed_components[component_type] = dict(
+                content=component.get("text", ""), type=component_type, params=comp_params
+            )
         elif component_type == "body":
             comp_params = []
             for match in VARIABLE_RE.findall(component.get("text", "")):
                 comp_params.append({"type": "text"})
             if comp_params:
                 params[component_type] = comp_params
-            transformed_components[component_type] = dict(content=component.get("text", ""), params=comp_params)
+            transformed_components[component_type] = dict(
+                content=component.get("text", ""), type=component_type, params=comp_params
+            )
         elif component_type == "buttons":
             buttons = component["buttons"]
             for idx, button in enumerate(buttons):
                 comp_params = []
                 content = button.get("text", "")
                 display = ""
-                if button["type"].lower() == "url":
+                button_type = button["type"].lower()
+
+                if button_type == "url":
                     for match in VARIABLE_RE.findall(button.get("url", "")):
                         comp_params.append({"type": "url"})
                     content = button.get("url", "")
                     display = button.get("text", "")
                 if comp_params:
                     params[f"button.{idx}"] = comp_params
-                transformed_components[f"button.{idx}"] = dict(content=content, params=comp_params)
+                transformed_components[f"button.{idx}"] = dict(content=content, type=button_type, params=comp_params)
                 if display:
                     transformed_components[f"button.{idx}"]["display"] = display
         else:
-            transformed_components[component_type] = dict(content=component.get("text", ""), params=[])
+            transformed_components[component_type] = dict(
+                content=component.get("text", ""), type=component_type, params=[]
+            )
     return params, transformed_components, all_parts_supported
 
 

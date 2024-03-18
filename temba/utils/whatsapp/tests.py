@@ -210,6 +210,7 @@ class WhatsAppUtilsTest(TembaTest):
             {
                 "body": {
                     "content": "Goodbye {{1}}, see you on {{2}}. See you later {{1}}",
+                    "type": "body",
                     "params": [{"type": "text"}, {"type": "text"}, {"type": "text"}],
                 }
             },
@@ -228,12 +229,13 @@ class WhatsAppUtilsTest(TembaTest):
         self.assertEqual("foo_namespace", ct.namespace)
         self.assertEqual(
             {
-                "header": {"content": "Workout challenge week extra points!", "params": []},
+                "header": {"content": "Workout challenge week extra points!", "type": "header", "params": []},
                 "body": {
                     "content": "Hey {{1}}, Week {{2}} workout is out now. Get your discount of {{3}} for the next workout by sharing this program to 3 people.",
+                    "type": "body",
                     "params": [{"type": "text"}, {"type": "text"}, {"type": "text"}],
                 },
-                "footer": {"content": "Remember to drink water.", "params": []},
+                "footer": {"content": "Remember to drink water.", "type": "footer", "params": []},
             },
             ct.components,
         )
@@ -244,7 +246,7 @@ class WhatsAppUtilsTest(TembaTest):
         self.assertEqual(TemplateTranslation.STATUS_UNSUPPORTED_COMPONENTS, ct.status)
         self.assertEqual("foo_namespace", ct.namespace)
         self.assertEqual(
-            {"random": {"content": "Bonjour {{1}}", "params": []}},
+            {"random": {"content": "Bonjour {{1}}", "type": "random", "params": []}},
             ct.components,
         )
         self.assertEqual({}, ct.params)
@@ -255,9 +257,9 @@ class WhatsAppUtilsTest(TembaTest):
         self.assertEqual("foo_namespace", ct.namespace)
         self.assertEqual(
             {
-                "body": {"content": "", "params": []},
-                "footer": {"content": "", "params": []},
-                "button.0": {"content": "copy", "params": []},
+                "body": {"content": "", "type": "body", "params": []},
+                "footer": {"content": "", "type": "footer", "params": []},
+                "button.0": {"content": "copy", "type": "otp", "params": []},
             },
             ct.components,
         )
@@ -269,21 +271,28 @@ class WhatsAppUtilsTest(TembaTest):
         self.assertEqual("foo_namespace", ct.namespace)
         self.assertEqual(
             {
-                "header": {"content": "", "params": [{"type": "image"}]},
+                "header": {"content": "", "type": "header", "params": [{"type": "image"}]},
                 "body": {
                     "content": "Sorry your order {{1}} took longer to deliver than expected.\nWe'll notify you about updates in the next {{2}} days.\n\nDo you have more question?",
+                    "type": "body",
                     "params": [{"type": "text"}, {"type": "text"}],
                 },
-                "footer": {"content": "Thanks for your patience", "params": []},
-                "button.0": {"content": "Yes", "params": []},
-                "button.1": {"content": "No", "params": []},
-                "button.2": {"content": "Call center", "params": []},
+                "footer": {"content": "Thanks for your patience", "type": "footer", "params": []},
+                "button.0": {"content": "Yes", "type": "quick_reply", "params": []},
+                "button.1": {"content": "No", "type": "quick_reply", "params": []},
+                "button.2": {"content": "Call center", "type": "phone_number", "params": []},
                 "button.3": {
                     "content": r"https:\/\/example.com\/?wa_customer={{1}}",
                     "display": "Check website",
+                    "type": "url",
                     "params": [{"type": "url"}],
                 },
-                "button.4": {"content": r"https:\/\/example.com\/help", "display": "Check website", "params": []},
+                "button.4": {
+                    "content": r"https:\/\/example.com\/help",
+                    "type": "url",
+                    "display": "Check website",
+                    "params": [],
+                },
             },
             ct.components,
         )
