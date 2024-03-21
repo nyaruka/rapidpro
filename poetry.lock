@@ -1063,6 +1063,17 @@ files = [
 ]
 
 [[package]]
+name = "iso639-lang"
+version = "2.2.3"
+description = "A lightweight library for the ISO 639 standard."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "iso639-lang-2.2.3.tar.gz", hash = "sha256:ebbfd1a9ebcbfd7c327523017ad0dde0ba5faeb84110378569d74aee14530ac3"},
+    {file = "iso639_lang-2.2.3-py3-none-any.whl", hash = "sha256:472290a2dfccfddc7eb1bd2d1ca6b174e988093c2ccb8b74743fe190625a9c61"},
+]
+
+[[package]]
 name = "iso8601"
 version = "0.1.16"
 description = "Simple module to parse ISO 8601 dates"
@@ -2380,4 +2391,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "51aa14e29efd25d255f8f74d7c8d09d352ab397315fc4af32316935270d2a088"
+content-hash = "3a60845fa4d5d20b16c7c67fdc10f64b0b73117e93e74d64e145f77eb72b5fee"
