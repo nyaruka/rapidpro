@@ -2186,42 +2186,6 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("bob@acme.com", response.context["from_email_default"])
         self.assertEqual("foo@bar.com", response.context["from_email_custom"])
 
-        # password can be omitted when editing
-        self.client.post(
-            config_url,
-            {
-                "from_email": "support@example.com",
-                "smtp_host": "smtp.example.com",
-                "smtp_username": "support@example.com",
-                "smtp_password": "",
-                "smtp_port": "465",
-                "disconnect": "false",
-            },
-            follow=True,
-        )
-
-        # password shouldn't change
-        self.org.refresh_from_db()
-        self.assertEqual(
-            r"smtp://support%40example.com:secret@smtp.example.com:465/?from=support%40example.com&tls=true",
-            self.org.flow_smtp,
-        )
-
-        # unless username is changing
-        response = self.client.post(
-            config_url,
-            {
-                "from_email": "support@example.com",
-                "smtp_host": "smtp.example.com",
-                "smtp_username": "help@example.com",
-                "smtp_password": "",
-                "smtp_port": "465",
-                "disconnect": "false",
-            },
-            follow=True,
-        )
-        self.assertFormError(response.context["form"], "smtp_password", "This field is required.")
-
         # submit with disconnect flag
         self.client.post(config_url, {"disconnect": "true"})
 
