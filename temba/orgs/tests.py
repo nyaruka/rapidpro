@@ -1311,107 +1311,6 @@ class OrgTest(TembaTest):
                 response.context["form"].fields["invite_role"].choices,
             )
 
-    def test_surveyor_invite(self):
-        surveyor_invite = Invitation.objects.create(
-            org=self.org, user_group="S", email="surveyor@gmail.com", created_by=self.admin, modified_by=self.admin
-        )
-
-        admin_create_login_url = reverse("orgs.org_join_signup", args=[surveyor_invite.secret])
-        self.client.logout()
-
-        response = self.client.post(
-            admin_create_login_url,
-            {"first_name": "Surveyor", "last_name": "User", "email": "surveyor@gmail.com", "password": "HeyThere123"},
-            follow=True,
-        )
-        self.assertEqual(200, response.status_code)
-
-        # as a surveyor we should have been rerouted
-        self.assertEqual(reverse("orgs.org_surveyor"), response._request.path)
-        self.assertFalse(Invitation.objects.get(pk=surveyor_invite.pk).is_active)
-
-        # make sure we are a surveyor
-        new_invited_user = User.objects.get(email="surveyor@gmail.com")
-        self.assertEqual(OrgRole.SURVEYOR, self.org.get_user_role(new_invited_user))
-
-        # if we login, we should be rerouted too
-        self.client.logout()
-        response = self.client.post(
-            "/users/login/", {"username": "surveyor@gmail.com", "password": "HeyThere123"}, follow=True
-        )
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(reverse("orgs.org_surveyor"), response._request.path)
-
-    def test_surveyor(self):
-        self.client.logout()
-        url = "%s?mobile=true" % reverse("orgs.org_surveyor")
-
-        # try creating a surveyor account with a bogus password
-        post_data = dict(surveyor_password="badpassword")
-        response = self.client.post(url, post_data)
-        self.assertContains(response, "Invalid surveyor password, please check with your project leader and try again.")
-
-        # put a space in the org name to test URL encoding and set a surveyor password
-        self.org.name = "Temba Org"
-        self.org.surveyor_password = "nyaruka"
-        self.org.save()
-
-        # now lets try again
-        post_data = dict(surveyor_password="nyaruka")
-        response = self.client.post(url, post_data)
-        self.assertContains(response, "Enter your details below to create your login.")
-
-        # now try creating an account on the second step without and surveyor_password
-        post_data = dict(
-            first_name="Marshawn", last_name="Lynch", password="beastmode24", email="beastmode@seahawks.com"
-        )
-        response = self.client.post(url, post_data)
-        self.assertContains(response, "Enter your details below to create your login.")
-
-        # now do the same but with a valid surveyor_password
-        post_data = dict(
-            first_name="Marshawn",
-            last_name="Lynch",
-            password="beastmode24",
-            email="beastmode@seahawks.com",
-            surveyor_password="nyaruka",
-        )
-        response = self.client.post(url, post_data)
-        self.assertIn("token", response.url)
-        self.assertIn("beastmode", response.url)
-        self.assertIn("Temba%20Org", response.url)
-
-        # try with a login that already exists
-        post_data = dict(
-            first_name="Resused",
-            last_name="Email",
-            password="mypassword1",
-            email="beastmode@seahawks.com",
-            surveyor_password="nyaruka",
-        )
-        response = self.client.post(url, post_data)
-        self.assertContains(response, "That email address is already used")
-
-        # try with a login that already exists
-        post_data = dict(
-            first_name="Short",
-            last_name="Password",
-            password="short",
-            email="thomasrawls@seahawks.com",
-            surveyor_password="nyaruka",
-        )
-        response = self.client.post(url, post_data)
-        self.assertFormError(
-            response.context["form"], "password", "This password is too short. It must contain at least 8 characters."
-        )
-
-        # finally make sure our login works
-        success = self.client.login(username="beastmode@seahawks.com", password="beastmode24")
-        self.assertTrue(success)
-
-        # and that we have the surveyor role
-        self.assertEqual(OrgRole.SURVEYOR, self.org.get_user_role(User.objects.get(username="beastmode@seahawks.com")))
-
     def test_prometheus(self):
         # visit as viewer, no prometheus section
         self.login(self.user)
@@ -2243,9 +2142,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                     "port": "465",
                 },
             )
-            self.assertFormError(
-                response, "form", None, "Failed to send email with STMP server configuration with error 'boom'"
-            )
+            self.assertFormError(response, "form", None, "SMTP settings test failed with error: boom")
             self.assertEqual(len(mail.outbox), 0)
 
             mock_send.side_effect = Exception("Unexpected Error")
