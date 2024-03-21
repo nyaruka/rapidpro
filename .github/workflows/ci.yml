@@ -61,6 +61,7 @@ jobs:
 
       - name: Initialize environment
         run: |
+          poetry run pip install iso-639
           poetry install
           poetry add django==${{ matrix.django-version }}
           yarn install
