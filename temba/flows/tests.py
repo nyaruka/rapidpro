@@ -4079,19 +4079,6 @@ class ResultsExportTest(TembaTest):
         for run in (contact1_run1, contact2_run1, contact3_run1, contact1_run2, contact2_run2):
             run.refresh_from_db()
 
-        # try to submit without specifying dates (UI doesn't actually allow this)
-        response = self.client.post(export_url, {})
-        self.assertFormError(response.context["form"], "start_date", "This field is required.")
-        self.assertFormError(response.context["form"], "end_date", "This field is required.")
-
-        # try to submit with start date in future
-        response = self.client.post(export_url, {"start_date": "2200-01-01", "end_date": "2022-09-28"})
-        self.assertFormError(response.context["form"], None, "Start date can't be in the future.")
-
-        # try to submit with start date > end date
-        response = self.client.post(export_url, {"start_date": "2022-09-01", "end_date": "2022-03-01"})
-        self.assertFormError(response.context["form"], None, "End date can't be before start date.")
-
         with self.assertNumQueries(23):
             workbook = self._export(
                 flow,

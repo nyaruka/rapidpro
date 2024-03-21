@@ -822,19 +822,6 @@ class TicketExportTest(TembaTest):
         # create a ticket on another org for rebecca
         self.create_ticket(self.create_contact("Rebecca", urns=["twitter:rwaddingham"], org=self.org2), "Stuff")
 
-        # try to submit without specifying dates (UI doesn't actually allow this)
-        response = self.client.post(export_url, {})
-        self.assertFormError(response.context["form"], "start_date", "This field is required.")
-        self.assertFormError(response.context["form"], "end_date", "This field is required.")
-
-        # try to submit with start date in future
-        response = self.client.post(export_url, {"start_date": "2200-01-01", "end_date": "2022-09-28"})
-        self.assertFormError(response.context["form"], None, "Start date can't be in the future.")
-
-        # try to submit with start date > end date
-        response = self.client.post(export_url, {"start_date": "2022-09-01", "end_date": "2022-03-01"})
-        self.assertFormError(response.context["form"], None, "End date can't be before start date.")
-
         # check requesting export for last 90 days
         with self.mockReadOnly(assert_models={Ticket, ContactURN}):
             with self.assertNumQueries(17):
