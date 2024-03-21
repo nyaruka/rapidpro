@@ -2157,7 +2157,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                 },
                 follow=True,
             )
-            self.assertFormError(response.context["form"], None, "Failed to send email with STMP server configuration")
+            self.assertFormError(response.context["form"], None, "SMTP settings test failed.")
             self.assertEqual(len(mail.outbox), 0)
 
         # submit with valid fields
