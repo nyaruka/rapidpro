@@ -3172,9 +3172,9 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # try to submit with no values
         response = self.client.post(export_url, {})
-        self.assertFormError(response, "form", "start_date", "This field is required.")
-        self.assertFormError(response, "form", "end_date", "This field is required.")
-        self.assertFormError(response, "form", "flows", "This field is required.")
+        self.assertFormError(response.context["form"], "start_date", "This field is required.")
+        self.assertFormError(response.context["form"], "end_date", "This field is required.")
+        self.assertFormError(response.context["form"], "flows", "This field is required.")
 
         response = self.client.post(
             export_url,

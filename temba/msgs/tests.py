@@ -857,9 +857,9 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # try to submit with no values
         response = self.client.post(export_url + "?l=I", {})
-        self.assertFormError(response, "form", "start_date", "This field is required.")
-        self.assertFormError(response, "form", "end_date", "This field is required.")
-        self.assertFormError(response, "form", "export_all", "This field is required.")
+        self.assertFormError(response.context["form"], "start_date", "This field is required.")
+        self.assertFormError(response.context["form"], "end_date", "This field is required.")
+        self.assertFormError(response.context["form"], "export_all", "This field is required.")
 
         # submit for inbox export
         response = self.client.post(

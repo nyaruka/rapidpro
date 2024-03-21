@@ -2116,16 +2116,16 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # try submitting without any data
         response = self.client.post(config_url, {})
-        self.assertFormError(response, "form", "from_email", "This field is required.")
-        self.assertFormError(response, "form", "host", "This field is required.")
-        self.assertFormError(response, "form", "username", "This field is required.")
-        self.assertFormError(response, "form", "password", "This field is required.")
-        self.assertFormError(response, "form", "port", "This field is required.")
+        self.assertFormError(response.context["form"], "from_email", "This field is required.")
+        self.assertFormError(response.context["form"], "host", "This field is required.")
+        self.assertFormError(response.context["form"], "username", "This field is required.")
+        self.assertFormError(response.context["form"], "password", "This field is required.")
+        self.assertFormError(response.context["form"], "port", "This field is required.")
         self.assertEqual(len(mail.outbox), 0)
 
         # try submitting an invalid from address
         response = self.client.post(config_url, {"from_email": "foobar.com"})
-        self.assertFormError(response, "form", "from_email", "Not a valid email address.")
+        self.assertFormError(response.context["form"], "from_email", "Not a valid email address.")
         self.assertEqual(len(mail.outbox), 0)
 
         # mock email sending so test send fails
@@ -2142,7 +2142,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                     "port": "465",
                 },
             )
-            self.assertFormError(response, "form", None, "SMTP settings test failed with error: boom")
+            self.assertFormError(response.context["form"], None, "SMTP settings test failed with error: boom")
             self.assertEqual(len(mail.outbox), 0)
 
             mock_send.side_effect = Exception("Unexpected Error")
@@ -2157,7 +2157,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                 },
                 follow=True,
             )
-            self.assertFormError(response, "form", None, "Failed to send email with STMP server configuration")
+            self.assertFormError(response.context["form"], None, "Failed to send email with STMP server configuration")
             self.assertEqual(len(mail.outbox), 0)
 
         # submit with valid fields
@@ -3609,9 +3609,9 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         # try to submit without required fields
         response = self.client.post(edit_url, {})
         self.assertEqual(200, response.status_code)
-        self.assertFormError(response, "form", "first_name", "This field is required.")
-        self.assertFormError(response, "form", "last_name", "This field is required.")
-        self.assertFormError(response, "form", "language", "This field is required.")
+        self.assertFormError(response.context["form"], "first_name", "This field is required.")
+        self.assertFormError(response.context["form"], "last_name", "This field is required.")
+        self.assertFormError(response.context["form"], "language", "This field is required.")
 
         # change the name and language
         response = self.client.post(
