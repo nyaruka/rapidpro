@@ -822,6 +822,19 @@ class TicketExportTest(TembaTest):
         # create a ticket on another org for rebecca
         self.create_ticket(self.create_contact("Rebecca", urns=["twitter:rwaddingham"], org=self.org2), "Stuff")
 
+        # try to submit without specifying dates (UI doesn't actually allow this)
+        response = self.client.post(export_url, {})
+        self.assertFormError(response.context["form"], "start_date", "This field is required.")
+        self.assertFormError(response.context["form"], "end_date", "This field is required.")
+
+        # try to submit with start date in future
+        response = self.client.post(export_url, {"start_date": "2200-01-01", "end_date": "2022-09-28"})
+        self.assertFormError(response.context["form"], None, "Start date can't be in the future.")
+
+        # try to submit with start date > end date
+        response = self.client.post(export_url, {"start_date": "2022-09-01", "end_date": "2022-03-01"})
+        self.assertFormError(response.context["form"], None, "End date can't be before start date.")
+
         # check requesting export for last 90 days
         with self.mockReadOnly(assert_models={Ticket, ContactURN}):
             with self.assertNumQueries(17):
@@ -1033,6 +1046,41 @@ class TicketExportTest(TembaTest):
             )
 
         self.clear_storage()
+
+    def test_export_with_too_many_fields_and_groups(self):
+        export_url = reverse("tickets.ticket_export")
+        today = timezone.now().astimezone(self.org.timezone).date()
+        too_many_fields = [self.create_field(f"Field {i}", f"field{i}") for i in range(11)]
+        too_many_groups = [self.create_group(f"Group {i}", contacts=[]) for i in range(11)]
+
+        self.login(self.admin)
+        response = self.client.post(
+            export_url,
+            {
+                "start_date": today - timedelta(days=7),
+                "end_date": today,
+                "with_fields": [cf.id for cf in too_many_fields],
+                "with_groups": [cg.id for cg in too_many_groups],
+            },
+        )
+        self.assertFormError(response.context["form"], "with_fields", "You can only include up to 10 fields.")
+        self.assertFormError(response.context["form"], "with_groups", "You can only include up to 10 groups.")
+
+    def _request_export(self, start_date: date, end_date: date, with_fields=(), with_groups=()):
+        export_url = reverse("tickets.ticket_export")
+        self.client.post(
+            export_url,
+            {
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "with_fields": [cf.id for cf in with_fields],
+                "with_groups": [cf.id for cf in with_groups],
+            },
+        )
+        task = Export.objects.all().order_by("-id").first()
+        filename = f"{settings.MEDIA_ROOT}/test_orgs/{self.org.id}/ticket_exports/{task.uuid}.xlsx"
+        workbook = load_workbook(filename=filename)
+        return workbook.worksheets
 
 
 class TopicTest(TembaTest):
