@@ -1,10 +1,17 @@
+import base64
+
+import requests
+
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from temba.channels.types.twilio.type import TwilioType
 from temba.channels.types.twilio.views import UpdateForm
 from temba.contacts.models import URN
+from temba.request_logs.models import HTTPLog
+from temba.templates.whatsapp import extract_params
 
-from ...models import ChannelType, ConfigUI
+from ...models import Channel, ChannelType, ConfigUI
 from .views import ClaimView
 
 
@@ -62,3 +69,83 @@ class TwilioWhatsappType(ChannelType):
 
     def check_credentials(self, config: dict) -> bool:
         return TwilioType().check_credentials(config)
+
+    def fetch_templates(self, channel) -> list:
+        url = "https://content.twilio.com/v1/Content"
+        credentials_base64 = base64.b64encode(
+            f"{channel.config[Channel.CONFIG_ACCOUNT_SID]}:{channel.config[Channel.CONFIG_AUTH_TOKEN]}".encode()
+        ).decode()
+
+        headers = {"Authorization": f"Basic {credentials_base64}"}
+
+        twilio_templates = []
+
+        while url:
+            start = timezone.now()
+            try:
+                response = requests.get(url, headers=headers)
+                response.raise_for_status()
+                HTTPLog.from_response(
+                    HTTPLog.WHATSAPP_TEMPLATES_SYNCED, response, start, timezone.now(), channel=channel
+                )
+
+                twilio_templates.extend(response.json()["contents"])
+                url = response.json().get("meta", {}).get("next_page_url", None)
+            except Exception as e:
+                HTTPLog.from_exception(HTTPLog.WHATSAPP_TEMPLATES_SYNCED, e, start, channel=channel)
+                raise e
+
+        templates = []
+
+        for temp in twilio_templates:
+            approval_url = temp["links"]["approval_fetch"]
+            approval_start = timezone.now()
+            try:
+                response = requests.get(approval_url, headers=headers)
+                response.raise_for_status()
+                HTTPLog.from_response(
+                    HTTPLog.WHATSAPP_TEMPLATES_SYNCED, response, approval_start, timezone.now(), channel=channel
+                )
+                status = response.json()["whatsapp"]["status"]
+                category = response.json()["whatsapp"]["category"]
+            except Exception as e:
+                HTTPLog.from_exception(HTTPLog.WHATSAPP_TEMPLATES_SYNCED, e, approval_start, channel=channel)
+                status = "unsubmitted"
+                category = ""
+
+            components = []
+
+            for content_type in temp["types"]:
+                buttons = []
+                if "actions" in temp["types"][content_type]:
+                    for action in temp["types"][content_type]["actions"]:
+                        if content_type == "twilio/quick-reply":
+                            buttons.append({"type": "quick_reply", "text": action["title"]})
+                        elif content_type == "twilio/call-to-action":
+                            if action["type"].upper() == "URL":
+                                buttons.append({"type": action["type"], "text": action["title"], "url": action["url"]})
+                            elif action["type"].upper() == "PHONE_NUMBER":
+                                buttons.append(
+                                    {"type": action["type"], "text": action["title"], "phone_number": action["phone"]}
+                                )
+
+                if "body" in temp["types"][content_type]:
+                    components.append({"type": "body", "text": temp["types"][content_type]["body"]})
+                if "media" in temp["types"][content_type]:
+                    if extract_params(temp["types"][content_type]["media"][0]):
+                        components.append({"type": "header", "format": "unknown"})
+                if buttons:
+                    components.append({"type": "buttons", "buttons": buttons})
+
+            templates.append(
+                {
+                    "id": temp["sid"],
+                    "status": status,
+                    "category": category,
+                    "language": temp["language"],
+                    "name": temp["friendly_name"],
+                    "components": components,
+                }
+            )
+
+        return templates

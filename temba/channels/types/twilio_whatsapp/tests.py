@@ -1,11 +1,15 @@
+import json
 from unittest.mock import patch
 
+from requests import RequestException
 from twilio.base.exceptions import TwilioRestException
 
 from django.urls import reverse
 
 from temba.channels.models import Channel
+from temba.request_logs.models import HTTPLog
 from temba.tests import TembaTest
+from temba.tests.requests import MockResponse
 from temba.tests.twilio import MockRequestValidator, MockTwilioClient
 
 from .type import TwilioWhatsappType
@@ -189,3 +193,230 @@ class TwilioWhatsappTypeTest(TembaTest):
 
             response = self.client.post(update_url, post_data)
             self.assertFormError(response.context["form"], None, "Credentials don't appear to be valid.")
+
+    @patch("requests.get")
+    def test_fetch_templates(self, mock_get):
+        config = {
+            Channel.CONFIG_ACCOUNT_SID: "TEST_SID",
+            Channel.CONFIG_AUTH_TOKEN: "TEST_TOKEN",
+        }
+        channel = self.org.channels.all().first()
+        channel.config = config
+        channel.channel_type = "TWA"
+        channel.save()
+
+        mock_get.side_effect = [
+            RequestException("Network is unreachable", response=MockResponse(100, "")),
+            MockResponse(400, '{ "meta": { "success": false } }'),
+            MockResponse(
+                200,
+                json.dumps(
+                    {
+                        "contents": [
+                            {
+                                "friendly_name": "call_to_action_template",
+                                "language": "en",
+                                "links": {
+                                    "approval_fetch": "https://content.twilio.com/v1/Content/HX1234500/ApprovalRequests"
+                                },
+                                "sid": "HX1234500",
+                                "types": {
+                                    "twilio/call-to-action": {
+                                        "actions": [
+                                            {"phone": "+12538678447", "title": "Call us", "type": "PHONE_NUMBER"},
+                                            {
+                                                "title": "Check site",
+                                                "type": "URL",
+                                                "url": "https://example.com/?wa_customer={{3}}",
+                                            },
+                                        ],
+                                        "body": "Call to action {{1}} and {{2}}",
+                                    }
+                                },
+                                "url": "https://content.twilio.com/v1/Content/HX1234500",
+                                "variables": {"1": "for Product A", "2": "features A,B,C", "3": "id123"},
+                            },
+                            {
+                                "friendly_name": "media_template",
+                                "language": "en",
+                                "links": {
+                                    "approval_fetch": "https://content.twilio.com/v1/Content/HX1234501/ApprovalRequests"
+                                },
+                                "sid": "HX1234501",
+                                "types": {
+                                    "twilio/media": {
+                                        "body": "Template with media for {{2}} can have a link with variables",
+                                        "media": ["https://example.com/images/{{1}}.jpg"],
+                                    },
+                                },
+                                "url": "https://content.twilio.com/v1/Content/HX1234501",
+                                "variables": {"1": "for Product A", "2": "features A,B,C", "3": "id123"},
+                            },
+                            {
+                                "friendly_name": "text_only_template",
+                                "language": "en",
+                                "links": {
+                                    "approval_fetch": "https://content.twilio.com/v1/Content/HX1234502/ApprovalRequests"
+                                },
+                                "sid": "HX1234502",
+                                "types": {
+                                    "twilio/text": {
+                                        "body": "Hello {{1}}, this is text example only and can have variables replaces such as {{2}} and {{3}}"
+                                    },
+                                    "url": "https://content.twilio.com/v1/Content/HX1234502",
+                                    "variables": {"1": "for Product A", "2": "features A,B,C", "3": "id123"},
+                                },
+                            },
+                        ],
+                        "meta": {"next_page_url": "https://content.twilio.com/v1/Content?PageSize=50&Page=1"},
+                    }
+                ),
+            ),
+            MockResponse(
+                200,
+                json.dumps(
+                    {
+                        "contents": [
+                            {
+                                "friendly_name": "quick_reply_template",
+                                "language": "en",
+                                "links": {
+                                    "approval_fetch": "https://content.twilio.com/v1/Content/HX1234503/ApprovalRequests"
+                                },
+                                "sid": "HX1234503",
+                                "types": {
+                                    "twilio/quick-reply": {
+                                        "actions": [
+                                            {"id": "subscribe", "title": "Subscribe {{2}}"},
+                                            {"id": "stop", "title": "Stop promotions"},
+                                            {"id": "help", "title": "Help for {{3}}"},
+                                        ],
+                                        "body": "Up to 3 buttons for quick replies here we can have variables in the body {{1}} and 20 character max for each button",
+                                    }
+                                },
+                                "url": "https://content.twilio.com/v1/Content/HX1234503",
+                                "variables": {"1": "Product A", "2": "Product B", "3": "Product C"},
+                            }
+                        ],
+                        "meta": {"next_page_url": None},
+                    }
+                ),
+            ),
+            MockResponse(
+                200,
+                json.dumps(
+                    {
+                        "whatsapp": {
+                            "category": "marketing",
+                            "status": "approved",
+                        }
+                    }
+                ),
+            ),
+            MockResponse(
+                200,
+                json.dumps(
+                    {
+                        "whatsapp": {
+                            "category": "marketing",
+                            "status": "approved",
+                        }
+                    }
+                ),
+            ),
+            MockResponse(
+                200,
+                json.dumps(
+                    {
+                        "whatsapp": {
+                            "category": "marketing",
+                            "status": "rejected",
+                        }
+                    }
+                ),
+            ),
+            MockResponse(400, "Error"),
+        ]
+
+        with self.assertRaises(RequestException):
+            channel.type.fetch_templates(channel)
+
+        self.assertEqual(1, HTTPLog.objects.filter(log_type=HTTPLog.WHATSAPP_TEMPLATES_SYNCED, is_error=True).count())
+
+        with self.assertRaises(RequestException):
+            channel.type.fetch_templates(channel)
+
+        self.assertEqual(2, HTTPLog.objects.filter(log_type=HTTPLog.WHATSAPP_TEMPLATES_SYNCED, is_error=True).count())
+
+        templates = channel.type.fetch_templates(channel)
+
+        self.assertEqual(
+            [
+                {
+                    "category": "marketing",
+                    "components": [
+                        {"text": "Call to action {{1}} and {{2}}", "type": "body"},
+                        {
+                            "buttons": [
+                                {"phone_number": "+12538678447", "text": "Call us", "type": "PHONE_NUMBER"},
+                                {"text": "Check site", "type": "URL", "url": "https://example.com/?wa_customer={{3}}"},
+                            ],
+                            "type": "buttons",
+                        },
+                    ],
+                    "id": "HX1234500",
+                    "language": "en",
+                    "name": "call_to_action_template",
+                    "status": "approved",
+                },
+                {
+                    "category": "marketing",
+                    "components": [
+                        {"text": "Template with media for {{2}} can have a link with " "variables", "type": "body"},
+                        {"format": "unknown", "type": "header"},
+                    ],
+                    "id": "HX1234501",
+                    "language": "en",
+                    "name": "media_template",
+                    "status": "approved",
+                },
+                {
+                    "category": "marketing",
+                    "components": [
+                        {
+                            "text": "Hello {{1}}, this is text example only and can have "
+                            "variables replaces such as {{2}} and {{3}}",
+                            "type": "body",
+                        }
+                    ],
+                    "id": "HX1234502",
+                    "language": "en",
+                    "name": "text_only_template",
+                    "status": "rejected",
+                },
+                {
+                    "category": "",
+                    "components": [
+                        {
+                            "text": "Up to 3 buttons for quick replies here we can have "
+                            "variables in the body {{1}} and 20 character max "
+                            "for each button",
+                            "type": "body",
+                        },
+                        {
+                            "buttons": [
+                                {"text": "Subscribe {{2}}", "type": "quick_reply"},
+                                {"text": "Stop promotions", "type": "quick_reply"},
+                                {"text": "Help for {{3}}", "type": "quick_reply"},
+                            ],
+                            "type": "buttons",
+                        },
+                    ],
+                    "id": "HX1234503",
+                    "language": "en",
+                    "name": "quick_reply_template",
+                    "status": "unsubmitted",
+                },
+            ],
+            templates,
+        )
