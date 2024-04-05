@@ -22,7 +22,7 @@ def _extract_params(content, _type="text") -> list:
 
     for match in VARIABLE_RE.findall(content):
         if match not in seen:
-            params.append({"type": _type})
+            params.append({"type": _type, "name": match})
             seen.add(match)
 
     return params

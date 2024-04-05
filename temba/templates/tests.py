@@ -311,7 +311,7 @@ class TemplateTest(TembaTest):
                     },
                     {
                         "type": "BODY",
-                        "text": "Sorry your order {{1}} took longer to deliver than expected.\nWe'll notify you about updates in the next {{2}} days.\n\nDo you have more question?",
+                        "text": "Sorry your order {{2}} took longer to deliver than expected.\nWe'll notify you about updates in the next {{1}} days.\n\nDo you have more question?",
                         "example": {"body_text": [["#123 for shoes", "3"]]},
                     },
                     {"type": "FOOTER", "text": "Thanks for your patience"},
@@ -379,7 +379,7 @@ class TemplateTest(TembaTest):
                     "type": "body",
                     "name": "body",
                     "content": "Goodbye {{1}}, see you on {{2}}. See you later {{1}}",
-                    "params": [{"type": "text"}, {"type": "text"}],
+                    "params": [{"type": "text", "name": "1"}, {"type": "text", "name": "2"}],
                 }
             ],
             ct.components,
@@ -401,7 +401,11 @@ class TemplateTest(TembaTest):
                     "type": "body",
                     "name": "body",
                     "content": "Hey {{1}}, Week {{2}} workout is out now. Get your discount of {{3}} for the next workout by sharing this program to 3 people.",
-                    "params": [{"type": "text"}, {"type": "text"}, {"type": "text"}],
+                    "params": [
+                        {"type": "text", "name": "1"},
+                        {"type": "text", "name": "2"},
+                        {"type": "text", "name": "3"},
+                    ],
                 },
                 {"type": "footer", "name": "footer", "content": "Remember to drink water.", "params": []},
             ],
@@ -436,8 +440,8 @@ class TemplateTest(TembaTest):
                 {
                     "type": "body",
                     "name": "body",
-                    "content": "Sorry your order {{1}} took longer to deliver than expected.\nWe'll notify you about updates in the next {{2}} days.\n\nDo you have more question?",
-                    "params": [{"type": "text"}, {"type": "text"}],
+                    "content": "Sorry your order {{2}} took longer to deliver than expected.\nWe'll notify you about updates in the next {{1}} days.\n\nDo you have more question?",
+                    "params": [{"type": "text", "name": "2"}, {"type": "text", "name": "1"}],
                 },
                 {"type": "footer", "name": "footer", "content": "Thanks for your patience", "params": []},
                 {"type": "button/quick_reply", "name": "button.0", "content": "Yes", "params": []},
@@ -454,7 +458,7 @@ class TemplateTest(TembaTest):
                     "name": "button.3",
                     "content": r"https:\/\/example.com\/?wa_customer={{1}}",
                     "display": "Check website",
-                    "params": [{"type": "text"}],
+                    "params": [{"type": "text", "name": "1"}],
                 },
                 {
                     "type": "button/url",
@@ -740,6 +744,16 @@ class WhatsAppUtilsTest(TembaTest):
         self.assertEqual("fil", parse_language("fil"))
 
     def test_extract_params(self):
-        self.assertEqual([{"type": "text"}, {"type": "text"}], _extract_params("Hi {{1}} how are you? {{2}}"))
-        self.assertEqual([{"type": "text"}, {"type": "text"}], _extract_params("Hi {{1}} how are you? {{2}} {{1}}"))
+        self.assertEqual(
+            [{"type": "text", "name": "1"}, {"type": "text", "name": "2"}],
+            _extract_params("Hi {{1}} how are you? {{2}}"),
+        )
+        self.assertEqual(
+            [{"type": "text", "name": "1"}, {"type": "text", "name": "2"}],
+            _extract_params("Hi {{1}} how are you? {{2}} {{1}}"),
+        )
+        self.assertEqual(
+            [{"type": "text", "name": "3"}, {"type": "text", "name": "2"}, {"type": "text", "name": "1"}],
+            _extract_params("Hi {{3}} how are you? {{2}} {{1}}"),
+        )
         self.assertEqual([], _extract_params("Hi there."))
