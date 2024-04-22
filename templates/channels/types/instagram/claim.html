@@ -79,10 +79,11 @@
       });
       {% endif %}
 
-      var hash = window.location.hash.substring(1)
+      // Parse the hash from URL to extract tokens
+      var hash = window.location.hash.substring(1);
       var result = hash.split('&').reduce(function(res, item) {
         var parts = item.split('=');
-        res[parts[0]] = parts[1];
+        res[parts[0]] = decodeURIComponent(parts[1] || '');
         return res;
       }, {});
 
@@ -108,9 +109,8 @@
           response.json().then(function(result) {
             const data = result.data;
             if (data.length > 0) {
+              var fbChannelOptions = document.getElementById("fb-channel-options");
               for (var i = 0; i < data.length; i++) {
-
-                var fbChannelOptions = document.getElementById("fb-channel-options");
 
                 var div = document.createElement("div");
                 div.className = 'fb-page-channel-option lbl mt-3 mr-2 p-2 linked';
