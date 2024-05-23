@@ -13,7 +13,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django.views import View
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 
 from temba import __version__ as temba_version
 from temba.utils import json
@@ -27,6 +27,11 @@ TEMBA_VERSION = "x-temba-version"
 
 
 class NoNavMixin(View):
+
+    @ensure_csrf_cookie
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["base_template"] = "no_nav.html"
@@ -37,6 +42,10 @@ class SpaMixin(View):
     """
     Uses SPA base template if the header is set appropriately
     """
+
+    @ensure_csrf_cookie
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
 
     @cached_property
     def spa_path(self) -> tuple:
