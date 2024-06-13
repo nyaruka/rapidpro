@@ -1,3 +1,5 @@
+import html
+import json
 from abc import abstractmethod
 
 from django.db.models import QuerySet
@@ -348,6 +350,14 @@ class FormErrors(BaseCheck):
             actual[field_key] = errors[0] if len(errors) == 1 else errors
 
         test_cls.assertEqual(actual, self.form_errors, msg=f"{msg_prefix}: form errors mismatch")
+
+        # and check that the errors are actually displayed in the response
+        for field_key, error_msg in self.form_errors.items():
+            if field_key == "__all__":
+                test_cls.assertContains(response, error_msg, msg_prefix=msg_prefix)
+            else:
+                error_encoded = html.escape(json.dumps(error_msg))
+                test_cls.assertContains(response, error_encoded, msg_prefix=msg_prefix)
 
 
 class NoFormErrors(BaseCheck):
