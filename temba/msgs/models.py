@@ -202,6 +202,7 @@ class Broadcast(models.Model):
     translations = models.JSONField()
     base_language = models.CharField(max_length=3)  # ISO-639-3
     optin = models.ForeignKey("msgs.OptIn", null=True, on_delete=models.PROTECT)
+    template = models.ForeignKey("templates.Template", null=True, on_delete=models.PROTECT)
 
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_QUEUED)
     created_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name="broadcast_creations")
@@ -213,41 +214,6 @@ class Broadcast(models.Model):
     schedule = models.OneToOneField(Schedule, on_delete=models.PROTECT, null=True, related_name="broadcast")
     parent = models.ForeignKey("Broadcast", on_delete=models.PROTECT, null=True, related_name="children")
     is_active = models.BooleanField(null=True, default=True)
-
-    @classmethod
-    def create_legacy(
-        cls,
-        org,
-        user,
-        translations: dict[str, dict] = None,
-        *,
-        base_language: str = None,
-        groups=None,
-        contacts=None,
-        urns: list[str] = None,
-        **kwargs,
-    ):
-        assert groups or contacts or urns, "can't create broadcast without recipients"
-
-        # if base language is not provided
-        if not base_language:
-            base_language = next(iter(translations))
-
-        assert base_language in translations, "no translation for base language"
-
-        broadcast = cls.objects.create(
-            org=org,
-            translations=translations,
-            base_language=base_language,
-            created_by=user,
-            modified_by=user,
-            **kwargs,
-        )
-
-        # set our recipients
-        broadcast._set_recipients(groups=groups, contacts=contacts, urns=urns)
-
-        return broadcast
 
     @classmethod
     def create(
@@ -324,7 +290,8 @@ class Broadcast(models.Model):
         """
 
         def trans(d):
-            return {"text": "", "attachments": [], "quick_replies": []} | d  # ensure we always have text+attachments
+            # ensure that we have all fields
+            return {"text": "", "attachments": [], "quick_replies": [], "template_variables": []} | d
 
         if contact and contact.language and contact.language in self.org.flow_languages:  # try contact language
             if contact.language in self.translations:
@@ -361,7 +328,7 @@ class Broadcast(models.Model):
             if self.schedule:
                 self.schedule.delete()
 
-    def update_recipients(self, *, groups=None, contacts=None, urns: list[str] = None):
+    def update_recipients(self, *, groups=None, contacts=None):
         """
         Only used to update recipients for scheduled / repeating broadcasts
         """
@@ -369,21 +336,11 @@ class Broadcast(models.Model):
         self.groups.clear()
         self.contacts.clear()
 
-        self._set_recipients(groups=groups, contacts=contacts, urns=urns)
-
-    def _set_recipients(self, *, groups=None, contacts=None, urns: list[str] = None):
-        """
-        Sets the recipients which may be contact groups, contacts or contact URNs.
-        """
-        if groups:
+        if groups:  # pragma: no cover
             self.groups.add(*groups)
 
         if contacts:
             self.contacts.add(*contacts)
-
-        if urns:
-            self.urns = urns
-            self.save(update_fields=("urns",))
 
     def __repr__(self):
         return f'<Broadcast: id={self.id} text="{self.get_translation()["text"]}">'
