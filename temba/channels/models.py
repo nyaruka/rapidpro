@@ -13,7 +13,6 @@ from phonenumbers import NumberParseException
 from smartmin.models import SmartModel
 from twilio.base.exceptions import TwilioRestException
 
-from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.core.files.storage import storages
 from django.db import models
@@ -26,6 +25,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
+from temba import mailroom
 from temba.orgs.models import DependencyMixin, Org
 from temba.utils import analytics, get_anonymous_user, json, on_transaction_commit, redact
 from temba.utils.models import (
@@ -678,14 +678,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         """
 
         assert self.is_android, "can only trigger syncs on Android channels"
-
-        from .tasks import sync_channel_fcm_task
-
-        # androids sync via FCM
-        fcm_id = self.config.get(Channel.CONFIG_FCM_ID)
-
-        if fcm_id and settings.ANDROID_FCM_PROJECT_ID and settings.ANDROID_CREDENTIALS_FILE:
-            on_transaction_commit(lambda: sync_channel_fcm_task.delay(fcm_id, channel_id=self.id))
+        mailroom.get_client().android_sync(self)
 
     @classmethod
     def replace_variables(cls, text, variables, content_type=CONTENT_TYPE_URLENCODED):
