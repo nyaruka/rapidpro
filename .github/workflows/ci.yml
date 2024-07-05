@@ -5,7 +5,7 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     env:
-      python-version: "3.11.x"
+      python-version: "3.12.x"
       node-version: "20"
       mailroom-version: "9.1.52"
       DJANGO_SETTINGS_MODULE: temba.settings_ci
@@ -28,7 +28,6 @@ jobs:
         image: elasticsearch:7.17.9
         ports:
           - 9200:9200
-          - 9300:9300
         env:
           discovery.type: single-node
     
