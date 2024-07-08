@@ -269,12 +269,6 @@ class Broadcast(models.Model):
 
         return preview.query, preview.total
 
-    def send_async(self):
-        """
-        Queues this broadcast for sending by mailroom
-        """
-        mailroom.queue_broadcast(self)
-
     def has_pending_fire(self):  # pragma: needs cover
         return self.schedule and self.schedule.next_fire is not None
 
@@ -526,6 +520,7 @@ class Msg(models.Model):
     direction = models.CharField(max_length=1, choices=DIRECTION_CHOICES)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING, db_index=True)
     visibility = models.CharField(max_length=1, choices=VISIBILITY_CHOICES, default=VISIBILITY_VISIBLE)
+    is_android = models.BooleanField(null=True)
     labels = models.ManyToManyField("Label", related_name="msgs")
 
     # the number of actual messages the channel sent this as (outgoing only)

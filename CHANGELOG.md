@@ -1,3 +1,18 @@
+v9.1.175 (2024-07-05)
+-------------------------
+ * Make send_when optional when updating broadcasts
+
+v9.1.174 (2024-07-05)
+-------------------------
+ * Fix updating scheduled broadcasts
+ * Remove old unused code for queueing broadcasts
+
+v9.1.173 (2024-07-05)
+-------------------------
+ * Add Msg.is_android field
+ * Add internal API endpoint for searching locations by level and name
+ * Remove option to send now on broadcast update
+
 v9.1.172 (2024-07-04)
 -------------------------
  * Add templates to broadcasts (hidden for now)

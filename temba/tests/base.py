@@ -28,6 +28,7 @@ from temba.ivr.models import Call
 from temba.locations.models import AdminBoundary, BoundaryAlias
 from temba.msgs.models import Broadcast, Label, Msg, OptIn
 from temba.orgs.models import Org, OrgRole, User
+from temba.templates.models import Template
 from temba.tickets.models import Ticket, TicketEvent
 from temba.utils import json
 from temba.utils.uuid import UUID, uuid4
@@ -443,6 +444,7 @@ class TembaTest(SmartminTest):
             status=status or (Msg.STATUS_PENDING if direction == Msg.DIRECTION_IN else Msg.STATUS_INITIALIZING),
             msg_type=msg_type,
             visibility=visibility,
+            is_android=channel and channel.is_android,
             external_id=external_id,
             high_priority=high_priority,
             created_on=created_on or timezone.now(),
@@ -717,6 +719,15 @@ class TembaTest(SmartminTest):
             event_type=event_type,
             optin=optin,
             extra=extra,
+        )
+
+    def create_template(self, name: str, org=None, uuid=None):
+        return Template.objects.create(
+            uuid=uuid or uuid4(),
+            org=org or self.org,
+            name=name,
+            created_by=self.admin,
+            modified_by=self.admin,
         )
 
     def create_ticket(

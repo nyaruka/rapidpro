@@ -510,6 +510,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
             code = generate_secret(length)
         return code
 
+    @property
     def is_android(self) -> bool:
         """
         Is this an Android channel
@@ -646,7 +647,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         self.save(update_fields=("is_active", "config", "modified_by", "modified_on"))
 
         # trigger the orphaned channel
-        if trigger_sync and self.is_android() and registration_id:
+        if trigger_sync and self.is_android and registration_id:
             self.trigger_sync(registration_id)
 
         # any triggers associated with our channel get archived and released
@@ -658,8 +659,8 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         for incident in self.incidents.filter(ended_on=None):
             incident.end()
 
-        # any template translations for this channel are marked inactive
-        self.template_translations.filter(is_active=True).update(is_active=False)
+        # delete template translations for this channel
+        self.template_translations.all().delete()
 
     def delete(self):
         for trigger in self.triggers.all():
@@ -679,7 +680,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         Sends a FCM command to trigger a sync on the client
         """
 
-        assert self.is_android(), "can only trigger syncs on Android channels"
+        assert self.is_android, "can only trigger syncs on Android channels"
 
         from .tasks import sync_channel_fcm_task
 
