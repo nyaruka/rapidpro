@@ -57,6 +57,7 @@ iso639-lang = "^2.2.3"
 google-auth = "^2.30.0"
 django-celery-beat = "^2.6.0"
 django-celery-results = "^2.5.1"
+urllib3 = "1.26.15"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
