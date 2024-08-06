@@ -60,11 +60,6 @@ def sync(request, channel_id):
     if not channel:
         return JsonResponse(dict(cmds=[dict(cmd="rel", relayer_id=channel_id)]))
 
-    latest_client_app_version = ""
-    latest_client_app = Apk.objects.filter(apk_type=Apk.TYPE_RELAYER).order_by("-created_on").first()
-    if latest_client_app:
-        latest_client_app_version = latest_client_app.version
-
     request_time = request.GET.get("ts", "")
     request_signature = force_bytes(request.GET.get("signature", ""))
 
@@ -96,6 +91,11 @@ def sync(request, channel_id):
         channel.save(update_fields=["last_seen"])
 
     sync_event = None
+
+    latest_client_app_version = ""
+    latest_client_app = Apk.objects.filter(apk_type=Apk.TYPE_RELAYER).order_by("created_on").last()
+    if latest_client_app:
+        latest_client_app_version = latest_client_app.version
 
     # Take the update from the client
     cmds = []
