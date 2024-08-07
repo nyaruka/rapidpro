@@ -62,7 +62,7 @@ class FirebaseCloudMessagingTypeTest(TembaTest):
         self.assertEqual(
             channel.config,
             {
-                "FCM_CREDENTIALS_JSON": {"foo": "bar", "baz": "abc", "private_key_id": "abcde12345"},
+                "FCM_CREDENTIALS_JSON": '{"foo": "bar", "baz": "abc", "private_key_id": "abcde12345"}',
                 "FCM_TITLE": "FCM Channel",
                 "FCM_NOTIFICATION": True,
             },

@@ -1,3 +1,5 @@
+import json
+
 from smartmin.views import SmartFormView
 
 from django import forms
@@ -41,7 +43,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         title = form.cleaned_data.get("title")
         authentication_json = form.cleaned_data.get("authentication_json")
         address = form.cleaned_data.get("address")
-        config = {"FCM_TITLE": title, "FCM_CREDENTIALS_JSON": authentication_json}
+        config = {"FCM_TITLE": title, "FCM_CREDENTIALS_JSON": json.dumps(authentication_json)}
 
         if form.cleaned_data.get("send_notification") == "True":
             config["FCM_NOTIFICATION"] = True
