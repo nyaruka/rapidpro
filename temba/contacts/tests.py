@@ -3786,6 +3786,13 @@ class ContactImportTest(TembaTest):
             with self.assertRaisesRegex(ValidationError, r"Import files can contain a maximum of 2 records\."):
                 try_to_parse("simple.xlsx")
 
+        with patch("openpyxl.reader.excel.ExcelReader.read") as mock_read_xl:
+            mock_read_xl.side_effect = Exception("error")
+            with self.assertRaisesRegex(
+                ValidationError, r"Import file appears to be corrupted. Please save again in Excel and try again."
+            ):
+                try_to_parse("simple.xlsx")
+
         bad_files = [
             ("empty.xlsx", "Import file doesn't contain any records."),
             ("empty_header.xlsx", "Import file contains an empty header."),
