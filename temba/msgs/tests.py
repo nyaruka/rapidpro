@@ -2349,7 +2349,10 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("esp", languages[0]["iso"])
 
     @mock_mailroom
-    def test_preview(self, mr_mocks):
+    @patch("temba.orgs.models.Org.is_overloaded")
+    def test_preview(self, mr_mocks, mock_org_is_overloaded):
+        mock_org_is_overloaded.return_value = False
+
         self.create_field("age", "Age")
         self.create_contact("Ann", phone="+16302222222", fields={"age": 40})
         self.create_contact("Bob", phone="+16303333333", fields={"age": 33})
@@ -2407,6 +2410,19 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         self.org.is_flagged = False
         self.org.save()
 
+        mr_mocks.msg_broadcast_preview(query='age > 30 AND status = "active"', total=100)
+
+        mock_org_is_overloaded.return_value = True
+        response = self.client.post(preview_url, {"query": "age > 30"}, content_type="application/json")
+        self.assertEqual(
+            [
+                "Sorry your workspace has a big queue of messages. Please for the queue to reduce before starting flows and sending messages again."
+            ],
+            response.json()["blockers"],
+        )
+
+        mock_org_is_overloaded.return_value = False
+
         # if we release our send channel we can't send a broadcast
         self.channel.release(self.admin)
         mr_mocks.msg_broadcast_preview(query='age > 30 AND status = "active"', total=100)
@@ -2421,7 +2437,10 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
     @mock_mailroom
-    def test_to_node(self, mr_mocks):
+    @patch("temba.orgs.models.Org.is_overloaded")
+    def test_to_node(self, mr_mocks, mock_org_is_overloaded):
+        mock_org_is_overloaded.return_value = False
+
         to_node_url = reverse("msgs.broadcast_to_node")
 
         # give Joe a flow run that has stopped on a node
@@ -2466,6 +2485,15 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
             f"{to_node_url}?node=4ba8fcfa-f213-4164-a8d4-daede0a02144&count=1", [self.admin2], form_fields=["text"]
         )
         self.assertContains(response, "To get started you need to")
+
+        mock_org_is_overloaded.return_value = True
+        response = self.assertCreateFetch(
+            f"{to_node_url}?node=4ba8fcfa-f213-4164-a8d4-daede0a02144&count=1", [self.admin2], form_fields=["text"]
+        )
+        self.assertContains(
+            response,
+            "Sorry your workspace has a big queue of messages. Please for the queue to reduce before starting flows and sending messages again.",
+        )
 
     def test_list(self):
         list_url = reverse("msgs.broadcast_list")

@@ -19,6 +19,7 @@ from temba.campaigns.models import Campaign, CampaignEvent
 from temba.classifiers.models import Classifier
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactURN
 from temba.globals.models import Global
+from temba.msgs.models import SystemLabel
 from temba.orgs.integrations.dtone import DTOneType
 from temba.orgs.models import Export
 from temba.templates.models import TemplateTranslation
@@ -2290,8 +2291,10 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     @mock_mailroom
     @patch("temba.flows.models.Flow.is_starting")
-    def test_preview_start(self, mr_mocks, mock_flow_is_starting):
+    @patch("temba.msgs.models.SystemLabel.get_counts")
+    def test_preview_start(self, mr_mocks, mock_get_counts, mock_flow_is_starting):
         mock_flow_is_starting.return_value = False
+        mock_get_counts.return_value = {SystemLabel.TYPE_OUTBOX: 100}
 
         with override_brand(inactive_threshold=1000):
             flow = self.create_flow("Test")
@@ -2364,6 +2367,18 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
             self.org.is_flagged = False
             self.org.save()
+
+            mr_mocks.flow_start_preview(query='age > 30 AND status = "active" AND history != "Test Flow"', total=100)
+            mock_get_counts.return_value = {SystemLabel.TYPE_OUTBOX: 2000000000}
+
+            response = self.client.post(preview_url, {"query": "age > 30"}, content_type="application/json")
+            self.assertEqual(
+                [
+                    "Sorry your workspace has a big queue of messages. Please for the queue to reduce before starting flows and sending messages again."
+                ],
+                response.json()["blockers"],
+            )
+            mock_get_counts.return_value = {SystemLabel.TYPE_OUTBOX: 100}
 
             # trying to start again should fail because there is already a pending start for this flow
             mock_flow_is_starting.return_value = True

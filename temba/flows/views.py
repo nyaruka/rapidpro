@@ -1537,11 +1537,12 @@ class FlowCRUDL(SmartCRUDL):
 
         def get_blockers(self, flow) -> list:
             blockers = []
-
             if flow.org.is_suspended:
                 blockers.append(Org.BLOCKER_SUSPENDED)
             elif flow.org.is_flagged:
                 blockers.append(Org.BLOCKER_FLAGGED)
+            elif flow.org.is_overloaded():
+                blockers.append(Org.BLOCKER_OVERLOAD)
             elif flow.is_starting():
                 blockers.append(self.blockers["already_starting"])
 

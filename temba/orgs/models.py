@@ -479,6 +479,8 @@ class Org(SmartModel):
 
     DELETE_DELAY_DAYS = 7  # how many days after releasing that an org is deleted
 
+    OUTBOX_LOAD_LIMIT = 10000000  # the threshold for outbox overload
+
     BLOCKER_SUSPENDED = _(
         "Sorry, your workspace is currently suspended. To re-enable starting flows and sending messages, please "
         "contact support."
@@ -486,6 +488,10 @@ class Org(SmartModel):
     BLOCKER_FLAGGED = _(
         "Sorry, your workspace is currently flagged. To re-enable starting flows and sending messages, please "
         "contact support."
+    )
+
+    BLOCKER_OVERLOAD = _(
+        "Sorry your workspace has a big queue of messages. Please for the queue to reduce before starting flows and sending messages again."
     )
 
     uuid = models.UUIDField(unique=True, default=uuid4)
@@ -643,6 +649,11 @@ class Org(SmartModel):
         """
 
         return [t for t in IntegrationType.get_all(category) if t.is_connected(self)]
+
+    def is_overloaded(self):
+        from temba.msgs.models import SystemLabel
+
+        return SystemLabel.get_counts(self)[SystemLabel.TYPE_OUTBOX] > self.OUTBOX_LOAD_LIMIT
 
     def get_limit(self, limit_type):
         return int(self.limits.get(limit_type, settings.ORG_LIMIT_DEFAULTS.get(limit_type)))

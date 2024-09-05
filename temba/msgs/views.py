@@ -636,6 +636,8 @@ class BroadcastCRUDL(SmartCRUDL):
                 blockers.append(Org.BLOCKER_SUSPENDED)
             elif org.is_flagged:
                 blockers.append(Org.BLOCKER_FLAGGED)
+            elif org.is_overloaded():
+                blockers.append(Org.BLOCKER_OVERLOAD)
             if not org.get_send_channel():
                 blockers.append(self.blockers["no_send_channel"] % {"link": reverse("channels.channel_claim")})
 
@@ -698,6 +700,8 @@ class BroadcastCRUDL(SmartCRUDL):
                 blockers.append(Org.BLOCKER_SUSPENDED)
             elif org.is_flagged:
                 blockers.append(Org.BLOCKER_FLAGGED)
+            elif org.is_overloaded():
+                blockers.append(Org.BLOCKER_OVERLOAD)
             if not org.get_send_channel():
                 blockers.append(self.blockers["no_send_channel"] % {"link": reverse("channels.channel_claim")})
 
