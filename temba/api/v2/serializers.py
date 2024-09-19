@@ -165,10 +165,12 @@ class ArchiveReadSerializer(ReadSerializer):
 
 class BroadcastReadSerializer(ReadSerializer):
     STATUSES = {
-        "I": "queued",  # may exist in older data
-        Broadcast.STATUS_QUEUED: "queued",
-        Broadcast.STATUS_SENT: "sent",
+        Broadcast.STATUS_QUEUED: "queued",  # may exist in older data
+        Broadcast.STATUS_PENDING: "pending",
+        Broadcast.STATUS_SENT: "sent",  # may exist in older data
+        Broadcast.STATUS_COMPLETED: "completed",
         Broadcast.STATUS_FAILED: "failed",
+        Broadcast.STATUS_INTERRUPTED: "interrupted",
     }
 
     urns = serializers.SerializerMethodField()
@@ -1077,9 +1079,10 @@ class FlowRunReadSerializer(ReadSerializer):
 class FlowStartReadSerializer(ReadSerializer):
     STATUSES = {
         FlowStart.STATUS_PENDING: "pending",
-        FlowStart.STATUS_STARTING: "starting",
-        FlowStart.STATUS_COMPLETE: "complete",
+        FlowStart.STATUS_STARTED: "started",
+        FlowStart.STATUS_COMPLETED: "completed",
         FlowStart.STATUS_FAILED: "failed",
+        FlowStart.STATUS_INTERRUPTED: "interrupted",
     }
 
     flow = fields.FlowField()

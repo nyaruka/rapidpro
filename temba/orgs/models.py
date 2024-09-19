@@ -852,7 +852,7 @@ class Org(SmartModel):
         from temba.flows.models import FlowStart
 
         return (
-            FlowStart.objects.filter(org=self, status__in=(FlowStart.STATUS_STARTING, FlowStart.STATUS_PENDING))
+            FlowStart.objects.filter(org=self, status__in=(FlowStart.STATUS_STARTED, FlowStart.STATUS_PENDING))
             .exclude(created_by=None)
             .exists()
         )

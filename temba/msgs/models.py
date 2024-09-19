@@ -184,10 +184,22 @@ class Broadcast(models.Model):
     messages sent from the same bundle together
     """
 
-    STATUS_QUEUED = "Q"
-    STATUS_SENT = "S"
+    STATUS_QUEUED = "Q"  # deprecated
+    STATUS_PENDING = "P"
+    # STATUS_STARTED = "S"  # can't use until SENT becomes COMPLETED
+    STATUS_COMPLETED = "C"
+    STATUS_SENT = "S"  # deprecated
     STATUS_FAILED = "F"
-    STATUS_CHOICES = ((STATUS_QUEUED, "Queued"), (STATUS_SENT, "Sent"), (STATUS_FAILED, "Failed"))
+    STATUS_INTERRUPTED = "I"
+    STATUS_CHOICES = (
+        (STATUS_QUEUED, "Queued"),
+        (STATUS_PENDING, "Pending"),
+        # (STATUS_STARTED, "Started"),
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_SENT, "Sent"),
+        (STATUS_FAILED, "Failed"),
+        (STATUS_INTERRUPTED, "Interrupted"),
+    )
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="broadcasts")
 
@@ -256,13 +268,6 @@ class Broadcast(models.Model):
             template_variables=template_variables,
             schedule=schedule,
         )
-
-    @classmethod
-    def get_queued(cls, org):
-        """
-        Gets the queued broadcasts which will be prepended to the Outbox
-        """
-        return org.broadcasts.filter(status=cls.STATUS_QUEUED, schedule=None, is_active=True)
 
     @classmethod
     def preview(cls, org, *, include: mailroom.Inclusions, exclude: mailroom.Exclusions) -> tuple[str, int]:
@@ -358,12 +363,6 @@ class Broadcast(models.Model):
                 name="msgs_broadcasts_scheduled",
                 fields=["org", "-created_on"],
                 condition=Q(schedule__isnull=False, is_active=True),
-            ),
-            # used to fetch queued broadcasts for the Outbox
-            models.Index(
-                name="msgs_broadcasts_queued",
-                fields=["org", "-created_on"],
-                condition=Q(schedule__isnull=True, status="Q", is_active=True),
             ),
         ]
 
