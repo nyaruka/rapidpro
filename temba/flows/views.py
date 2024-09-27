@@ -246,6 +246,10 @@ class FlowCRUDL(SmartCRUDL):
                 )
 
             history_items = []
+            if self.has_org_perm("flows.flowstart_list"):
+                history_items.append(
+                    self.create_menu_item(menu_id="starts", name=_("Starts"), href=reverse("flows.flowstart_list"))
+                )
             if self.has_org_perm("request_logs.httplog_webhooks"):
                 history_items.append(
                     self.create_menu_item(
@@ -253,19 +257,8 @@ class FlowCRUDL(SmartCRUDL):
                     )
                 )
 
-            if self.has_org_perm("flows.flowstart_list"):
-                history_items.append(
-                    self.create_menu_item(menu_id="starts", name=_("Flow Starts"), href=reverse("flows.flowstart_list"))
-                )
-
             if history_items:
-                menu.append(
-                    self.create_menu_item(
-                        name=_("History"),
-                        items=history_items,
-                        inline=True,
-                    )
-                )
+                menu.append(self.create_menu_item(name=_("History"), items=history_items, inline=True))
 
             if label_items:
                 menu.append(self.create_menu_item(name=_("Labels"), items=label_items, inline=True))
@@ -426,7 +419,7 @@ class FlowCRUDL(SmartCRUDL):
                 self.fields["flow_type"] = forms.ChoiceField(
                     label=_("Type"),
                     help_text=_("Choose the method for your flow"),
-                    choices=Flow.TYPE_CHOICES if "surveyor" in settings.FEATURES else Flow.TYPE_CHOICES[:3],
+                    choices=Flow.TYPE_CHOICES[:3],  # exclude SURVEY from options
                     widget=SelectWidget(
                         attrs={"widget_only": False},
                         option_attrs={
@@ -889,7 +882,7 @@ class FlowCRUDL(SmartCRUDL):
                 context["can_start"] = flow.flow_type != Flow.TYPE_VOICE or flow.org.supports_ivr()
                 context["can_simulate"] = True
 
-            context["is_starting"] = flow.is_starting()
+            context["active_start"] = flow.get_active_start()
             context["feature_filters"] = json.dumps(self.get_features(flow.org))
             return context
 
@@ -1030,17 +1023,12 @@ class FlowCRUDL(SmartCRUDL):
             kwargs["org"] = self.request.org
             return kwargs
 
+        def get_success_url(self):
+            params = {"flow": self.object.id, "language": self.form.cleaned_data["language"]}
+            return reverse("flows.flow_download_translation") + "?" + urlencode(params, doseq=True)
+
         def form_valid(self, form):
-            params = {"flow": self.object.id, "language": form.cleaned_data["language"]}
-            download_url = reverse("flows.flow_download_translation") + "?" + urlencode(params, doseq=True)
-
-            # if this is an XHR request, we need to return a structured response that it can parse
-            if "HTTP_X_PJAX" in self.request.META:
-                response = self.render_modal_response(form)
-                response["Temba-Success"] = download_url
-                return response
-
-            return HttpResponseRedirect(download_url)
+            return self.render_modal_response(form)
 
     class DownloadTranslation(OrgPermsMixin, SmartListView):
         """
@@ -1431,8 +1419,7 @@ class FlowCRUDL(SmartCRUDL):
         def get(self, request, *args, **kwargs):
             flow = self.get_object(self.get_queryset())
             (active, visited) = flow.get_activity()
-
-            return JsonResponse(dict(nodes=active, segments=visited, is_starting=flow.is_starting()))
+            return JsonResponse(dict(nodes=active, segments=visited))
 
     class Simulate(OrgObjPermsMixin, SmartReadView):
         permission = "flows.flow_editor"
@@ -1517,10 +1504,6 @@ class FlowCRUDL(SmartCRUDL):
         permission = "flows.flow_start"
 
         blockers = {
-            "already_starting": _(
-                "This flow is already being started - please wait until that process completes before starting "
-                "more contacts."
-            ),
             "no_send_channel": _(
                 'To start this flow you need to <a href="%(link)s">add a channel</a> to your workspace which will allow '
                 "you to send messages to your contacts."
@@ -1529,30 +1512,42 @@ class FlowCRUDL(SmartCRUDL):
                 'To start this flow you need to <a href="%(link)s">add a voice channel</a> to your workspace which will '
                 "allow you to make and receive calls."
             ),
+            "outbox_full": _(
+                "You have too many messages queued in your outbox. Please wait for these messages to send and then try again."
+            ),
+            "too_many_recipients": _(
+                "Your channels cannot send fast enough to reach all of the selected contacts in a reasonable time. "
+                "Select fewer contacts to continue."
+            ),
         }
 
         warnings = {
+            "already_starting": _(
+                "A flow is already starting. To avoid confusion, make sure you are not targeting the same contacts before continuing."
+            ),
             "no_templates": _(
                 "This flow does not use message templates. You may still start this flow but WhatsApp contacts who "
                 "have not sent an incoming message in the last 24 hours may not receive it."
             ),
-            "inactive_threshold": _(
-                "You've selected a lot of contacts! Depending on your channel "
-                "it could take days to reach everybody and could reduce response rates. "
-                "Filter for contacts that have sent a message recently "
-                "to limit your selection to contacts who are more likely to respond."
+            "too_many_recipients": _(
+                "Your channels will likely take over a day to reach all of the selected contacts. Consider "
+                "selecting fewer contacts before continuing."
             ),
         }
 
-        def get_blockers(self, flow) -> list:
+        def get_blockers(self, flow, send_time) -> list:
             blockers = []
 
+            if flow.org.is_outbox_full():
+                blockers.append(self.blockers["outbox_full"])
             if flow.org.is_suspended:
                 blockers.append(Org.BLOCKER_SUSPENDED)
             elif flow.org.is_flagged:
                 blockers.append(Org.BLOCKER_FLAGGED)
-            elif flow.is_starting():
-                blockers.append(self.blockers["already_starting"])
+
+            hours = send_time / timedelta(hours=1)
+            if settings.SEND_HOURS_BLOCK and hours >= settings.SEND_HOURS_BLOCK:
+                blockers.append(self.blockers["too_many_recipients"])
 
             if flow.flow_type == Flow.TYPE_MESSAGE and not flow.org.get_send_channel():
                 blockers.append(self.blockers["no_send_channel"] % {"link": reverse("channels.channel_claim")})
@@ -1561,13 +1556,11 @@ class FlowCRUDL(SmartCRUDL):
 
             return blockers
 
-        def get_warnings(self, flow, query, total) -> list:
+        def get_warnings(self, flow, query, send_time) -> list:
             warnings = []
-
-            # if we are over our threshold, show the amount warning
-            threshold = self.request.branding.get("inactive_threshold", 0)
-            if "last_seen_on" not in query and threshold > 0 and total > threshold:
-                warnings.append(self.warnings["inactive_threshold"])
+            hours = send_time / timedelta(hours=1)
+            if settings.SEND_HOURS_WARNING and hours >= settings.SEND_HOURS_WARNING:
+                warnings.append(self.warnings["too_many_recipients"])
 
             # if we have a whatsapp channel that requires a message template; exclude twilio whatsApp
             whatsapp_channel = flow.org.channels.filter(
@@ -1588,6 +1581,10 @@ class FlowCRUDL(SmartCRUDL):
                         )
                     elif not template.is_approved():
                         warnings.append(_(f"Your message template {template.name} is not approved and cannot be sent."))
+
+            if FlowStart.has_unfinished(flow.org):
+                warnings.append(self.warnings["already_starting"])
+
             return warnings
 
         def post(self, request, *args, **kwargs):
@@ -1601,12 +1598,16 @@ class FlowCRUDL(SmartCRUDL):
             except mailroom.QueryValidationException as e:
                 return JsonResponse({"query": "", "total": 0, "error": str(e)}, status=400)
 
+            # calculate the estimated send time
+            send_time = flow.org.get_estimated_send_time(total)
+
             return JsonResponse(
                 {
                     "query": query,
                     "total": total,
-                    "warnings": self.get_warnings(flow, query, total),
-                    "blockers": self.get_blockers(flow),
+                    "warnings": self.get_warnings(flow, query, send_time),
+                    "blockers": self.get_blockers(flow, send_time),
+                    "send_time": send_time.total_seconds(),
                 }
             )
 
@@ -1622,7 +1623,12 @@ class FlowCRUDL(SmartCRUDL):
 
             contact_search = forms.JSONField(
                 required=True,
-                widget=ContactSearchWidget(attrs={"widget_only": True, "placeholder": _("Enter contact query")}),
+                widget=ContactSearchWidget(
+                    attrs={
+                        "widget_only": True,
+                        "placeholder": _("Enter contact query"),
+                    }
+                ),
             )
 
             def __init__(self, org, flow, **kwargs):
@@ -1689,8 +1695,18 @@ class FlowCRUDL(SmartCRUDL):
                     urn = urn.get_display(org=org, international=True)
                 recipients.append({"id": contact.uuid, "name": contact.name, "urn": urn, "type": "contact"})
 
+            exclusions = settings.DEFAULT_EXCLUSIONS.copy()
+
+            if self.flow and self.flow.flow_type == Flow.TYPE_BACKGROUND:
+                del exclusions["in_a_flow"]
+
             return {
-                "contact_search": {"recipients": recipients, "advanced": False, "query": "", "exclusions": {}},
+                "contact_search": {
+                    "recipients": recipients,
+                    "advanced": False,
+                    "query": "",
+                    "exclusions": exclusions,
+                },
                 "flow": self.flow.id if self.flow else None,
             }
 
@@ -1836,7 +1852,7 @@ class FlowLabelCRUDL(SmartCRUDL):
 
 class FlowStartCRUDL(SmartCRUDL):
     model = FlowStart
-    actions = ("list",)
+    actions = ("list", "interrupt", "status")
 
     class List(SpaMixin, OrgFilterMixin, OrgPermsMixin, SmartListView):
         title = _("Flow Starts")
@@ -1868,3 +1884,52 @@ class FlowStartCRUDL(SmartCRUDL):
             FlowStartCount.bulk_annotate(context["object_list"])
 
             return context
+
+    class Status(OrgPermsMixin, OrgFilterMixin, SmartListView):
+        permission = "flows.flowstart_list"
+
+        def derive_queryset(self, **kwargs):
+            qs = super().derive_queryset(**kwargs)
+            id = self.request.GET.get("id", None)
+            if id:
+                qs = qs.filter(id=id)
+
+            status = self.request.GET.get("status", None)
+            if status:
+                qs = qs.filter(status=status)
+
+            return qs.order_by("-created_on")
+
+        def render_to_response(self, context, **response_kwargs):
+            # add run count
+            FlowStartCount.bulk_annotate(context["object_list"])
+
+            results = []
+            for obj in context["object_list"]:
+                # created_on as an iso date
+                results.append(
+                    {
+                        "id": obj.id,
+                        "status": obj.get_status_display(),
+                        "created_on": obj.created_on.isoformat(),
+                        "modified_on": obj.modified_on.isoformat(),
+                        "flow": {
+                            "name": obj.flow.name,
+                            "uuid": obj.flow.uuid,
+                        },
+                        "progress": {"total": obj.contact_count, "current": obj.run_count},
+                    }
+                )
+            return JsonResponse({"results": results})
+
+    class Interrupt(ModalMixin, OrgObjPermsMixin, SmartUpdateView):
+        default_template = "smartmin/delete_confirm.html"
+        permission = "flows.flowstart_update"
+        fields = ()
+        submit_button_name = _("Interrupt")
+        success_url = "@flows.flowstart_list"
+
+        def post(self, request, *args, **kwargs):
+            flow_start = self.get_object()
+            flow_start.interrupt(self.request.user)
+            return super().post(request, *args, **kwargs)

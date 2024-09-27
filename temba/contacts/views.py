@@ -51,7 +51,7 @@ from temba.utils.models import patch_queryset_count
 from temba.utils.models.es import IDSliceQuerySet
 from temba.utils.views import BulkActionMixin, ComponentFormMixin, ContentMenuMixin, NonAtomicMixin, SpaMixin
 
-from .forms import ContactGroupForm, UpdateContactForm
+from .forms import ContactGroupForm, CreateContactForm, UpdateContactForm
 from .models import URN, Contact, ContactExport, ContactField, ContactGroup, ContactGroupCount, ContactImport
 from .omnibox import omnibox_query, omnibox_serialize
 
@@ -681,16 +681,13 @@ class ContactCRUDL(SmartCRUDL):
                 raise Http404("Group not found")
 
     class Create(NonAtomicMixin, ModalMixin, OrgPermsMixin, SmartCreateView):
-        class Form(forms.ModelForm):
-            phone = forms.CharField(required=False, max_length=255, label=_("Phone Number"), widget=InputWidget())
-
-            class Meta:
-                model = Contact
-                fields = ("name", "phone")
-                widgets = {"name": InputWidget(attrs={"widget_only": False})}
-
-        form_class = Form
+        form_class = CreateContactForm
         submit_button_name = _("Create")
+
+        def get_form_kwargs(self, *args, **kwargs):
+            kwargs = super().get_form_kwargs(*args, **kwargs)
+            kwargs["org"] = self.request.org
+            return kwargs
 
         def form_valid(self, form):
             name = self.form.cleaned_data.get("name")
@@ -708,7 +705,7 @@ class ContactCRUDL(SmartCRUDL):
                     fields={},
                     groups=[],
                 )
-            except mailroom.URNValidationException as e:
+            except mailroom.URNValidationException as e:  # pragma: needs cover
                 error = _("In use by another contact.") if e.code == "taken" else _("Not a valid phone number.")
                 self.form.add_error("phone", error)
                 return self.form_invalid(form)
@@ -730,9 +727,9 @@ class ContactCRUDL(SmartCRUDL):
             return exclude
 
         def get_form_kwargs(self, *args, **kwargs):
-            form_kwargs = super().get_form_kwargs(*args, **kwargs)
-            form_kwargs["org"] = self.request.org
-            return form_kwargs
+            kwargs = super().get_form_kwargs(*args, **kwargs)
+            kwargs["org"] = self.request.org
+            return kwargs
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
@@ -800,17 +797,17 @@ class ContactCRUDL(SmartCRUDL):
 
         class Form(forms.Form):
             topic = forms.ModelChoiceField(queryset=Topic.objects.none(), label=_("Topic"), required=True)
-            body = forms.CharField(
-                label=_("Body"),
-                widget=InputWidget(attrs={"textarea": True, "placeholder": _("Optional")}),
-                required=False,
-            )
             assignee = forms.ModelChoiceField(
                 queryset=User.objects.none(),
                 label=_("Assignee"),
                 widget=SelectWidget(),
                 required=False,
                 empty_label=_("Unassigned"),
+            )
+            note = forms.CharField(
+                label=_("Note"),
+                widget=InputWidget(attrs={"textarea": True, "placeholder": _("Optional")}),
+                required=False,
             )
 
             def __init__(self, instance, org, **kwargs):
@@ -830,9 +827,9 @@ class ContactCRUDL(SmartCRUDL):
         def save(self, obj):
             self.ticket = obj.open_ticket(
                 self.request.user,
-                self.form.cleaned_data["topic"],
-                self.form.cleaned_data.get("body"),
+                topic=self.form.cleaned_data["topic"],
                 assignee=self.form.cleaned_data.get("assignee"),
+                note=self.form.cleaned_data.get("note"),
             )
 
         def get_success_url(self):
@@ -844,6 +841,7 @@ class ContactCRUDL(SmartCRUDL):
         """
 
         fields = ()
+        success_url = "uuid@contacts.contact_read"
 
         def save(self, obj):
             obj.interrupt(self.request.user)
@@ -1136,12 +1134,14 @@ class ContactFieldCRUDL(SmartCRUDL):
         default_order = "name"
 
         def build_content_menu(self, menu):
-            menu.add_modax(
-                _("New Field"),
-                "new-field",
-                f"{reverse('contacts.contactfield_create')}",
-                on_submit="handleFieldUpdated()",
-            )
+            if self.has_org_perm("contacts.contactfield_create"):
+                menu.add_modax(
+                    _("New Field"),
+                    "new-field",
+                    f"{reverse('contacts.contactfield_create')}",
+                    on_submit="handleFieldUpdated()",
+                    as_button=True,
+                )
 
         def get_queryset(self, **kwargs):
             return super().get_queryset(**kwargs).filter(org=self.request.org, is_active=True, is_system=False)
@@ -1157,7 +1157,7 @@ class ContactImportCRUDL(SmartCRUDL):
 
     class Create(SpaMixin, OrgPermsMixin, SmartCreateView):
         class Form(forms.ModelForm):
-            file = forms.FileField(validators=[FileExtensionValidator(allowed_extensions=("xls", "xlsx", "csv"))])
+            file = forms.FileField(validators=[FileExtensionValidator(allowed_extensions=("xlsx",))])
 
             def __init__(self, *args, org, **kwargs):
                 self.org = org
@@ -1408,6 +1408,7 @@ class ContactImportCRUDL(SmartCRUDL):
 
     class Read(SpaMixin, OrgObjPermsMixin, NotificationTargetMixin, SmartReadView):
         menu_path = "/contact/import"
+        title = _("Contact Import")
 
         def get_notification_scope(self) -> tuple:
             return "import:finished", f"contact:{self.object.id}"

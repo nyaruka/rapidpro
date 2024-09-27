@@ -16,7 +16,7 @@ from temba.archives.models import Archive
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.channels.models import Channel, ChannelEvent
 from temba.classifiers.models import Classifier
-from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactURN
+from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactNote, ContactURN
 from temba.flows.models import Flow, FlowRun, FlowStart
 from temba.globals.models import Global
 from temba.locations.models import AdminBoundary
@@ -165,19 +165,22 @@ class ArchiveReadSerializer(ReadSerializer):
 
 class BroadcastReadSerializer(ReadSerializer):
     STATUSES = {
-        "I": "queued",  # may exist in older data
+        Broadcast.STATUS_PENDING: "pending",
         Broadcast.STATUS_QUEUED: "queued",
-        Broadcast.STATUS_SENT: "sent",
+        Broadcast.STATUS_STARTED: "started",
+        Broadcast.STATUS_COMPLETED: "completed",
         Broadcast.STATUS_FAILED: "failed",
+        Broadcast.STATUS_INTERRUPTED: "interrupted",
     }
 
+    status = serializers.SerializerMethodField()
+    progress = serializers.SerializerMethodField()
     urns = serializers.SerializerMethodField()
     contacts = fields.ContactField(many=True)
     groups = fields.ContactGroupField(many=True)
     text = serializers.SerializerMethodField()
     attachments = serializers.SerializerMethodField()
     base_language = fields.LanguageField()
-    status = serializers.SerializerMethodField()
     created_on = serializers.DateTimeField(default_timezone=tzone.utc)
 
     def get_text(self, obj):
@@ -187,7 +190,10 @@ class BroadcastReadSerializer(ReadSerializer):
         return {lang: trans.get("attachments", []) for lang, trans in obj.translations.items()}
 
     def get_status(self, obj):
-        return self.STATUSES.get(obj.status, "sent")
+        return self.STATUSES[obj.status]
+
+    def get_progress(self, obj):
+        return {"total": obj.contact_count or -1, "started": obj.msg_count}
 
     def get_urns(self, obj):
         if self.context["org"].is_anon:
@@ -197,7 +203,18 @@ class BroadcastReadSerializer(ReadSerializer):
 
     class Meta:
         model = Broadcast
-        fields = ("id", "urns", "contacts", "groups", "text", "attachments", "base_language", "status", "created_on")
+        fields = (
+            "id",
+            "status",
+            "progress",
+            "urns",
+            "contacts",
+            "groups",
+            "text",
+            "attachments",
+            "base_language",
+            "created_on",
+        )
 
 
 class BroadcastWriteSerializer(WriteSerializer):
@@ -518,6 +535,7 @@ class ContactReadSerializer(ReadSerializer):
     urns = serializers.SerializerMethodField()
     groups = serializers.SerializerMethodField()
     fields = serializers.SerializerMethodField("get_contact_fields")
+    notes = serializers.SerializerMethodField()
     created_on = serializers.DateTimeField(default_timezone=tzone.utc)
     modified_on = serializers.DateTimeField(default_timezone=tzone.utc)
     last_seen_on = serializers.DateTimeField(default_timezone=tzone.utc)
@@ -556,6 +574,18 @@ class ContactReadSerializer(ReadSerializer):
         groups = obj.prefetched_groups if hasattr(obj, "prefetched_groups") else obj.get_groups()
         return [{"uuid": g.uuid, "name": g.name} for g in groups]
 
+    def get_notes(self, obj):
+        if not obj.is_active:
+            return []
+        return [
+            {
+                "text": note.text,
+                "created_on": note.created_on,
+                "created_by": {"email": note.created_by.email, "name": note.created_by.name},
+            }
+            for note in obj.notes.all()
+        ]
+
     def get_contact_fields(self, obj):
         if not obj.is_active:
             return {}
@@ -581,6 +611,7 @@ class ContactReadSerializer(ReadSerializer):
             "language",
             "urns",
             "groups",
+            "notes",
             "fields",
             "flow",
             "created_on",
@@ -594,6 +625,7 @@ class ContactReadSerializer(ReadSerializer):
 class ContactWriteSerializer(WriteSerializer):
     name = serializers.CharField(required=False, max_length=64, allow_null=True)
     language = serializers.CharField(required=False, min_length=3, max_length=3, allow_null=True)
+    note = serializers.CharField(required=False, max_length=ContactNote.MAX_LENGTH, allow_blank=True)
     urns = serializers.ListField(required=False, child=fields.URNField(), max_length=100)
     groups = fields.ContactGroupField(many=True, required=False, allow_dynamic=False)
     fields = fields.LimitedDictField(
@@ -668,6 +700,7 @@ class ContactWriteSerializer(WriteSerializer):
         urns = self.validated_data.get("urns")
         groups = self.validated_data.get("groups")
         custom_fields = self.validated_data.get("fields")
+        note = self.validated_data.get("note")
 
         mods = []
 
@@ -692,6 +725,9 @@ class ContactWriteSerializer(WriteSerializer):
 
             if mods:
                 self.instance.modify(self.context["user"], mods)
+
+            if note is not None:
+                self.instance.set_note(self.context["user"], note)
 
         # create new contact
         else:
@@ -1058,13 +1094,16 @@ class FlowRunReadSerializer(ReadSerializer):
 class FlowStartReadSerializer(ReadSerializer):
     STATUSES = {
         FlowStart.STATUS_PENDING: "pending",
-        FlowStart.STATUS_STARTING: "starting",
-        FlowStart.STATUS_COMPLETE: "complete",
+        FlowStart.STATUS_QUEUED: "queued",
+        FlowStart.STATUS_STARTED: "started",
+        FlowStart.STATUS_COMPLETED: "completed",
         FlowStart.STATUS_FAILED: "failed",
+        FlowStart.STATUS_INTERRUPTED: "interrupted",
     }
 
     flow = fields.FlowField()
     status = serializers.SerializerMethodField()
+    progress = serializers.SerializerMethodField()
     groups = fields.ContactGroupField(many=True)
     contacts = fields.ContactField(many=True)
     params = serializers.JSONField(required=False)
@@ -1079,6 +1118,9 @@ class FlowStartReadSerializer(ReadSerializer):
     def get_status(self, obj):
         return self.STATUSES.get(obj.status)
 
+    def get_progress(self, obj):
+        return {"total": obj.contact_count or -1, "started": obj.run_count}
+
     def get_restart_participants(self, obj):
         return not (obj.exclusions and obj.exclusions.get(FlowStart.EXCLUSION_STARTED_PREVIOUSLY, False))
 
@@ -1088,15 +1130,17 @@ class FlowStartReadSerializer(ReadSerializer):
     class Meta:
         model = FlowStart
         fields = (
-            "id",
             "uuid",
             "flow",
             "status",
+            "progress",
             "groups",
             "contacts",
             "params",
             "created_on",
             "modified_on",
+            # deprecated
+            "id",
             "extra",
             "restart_participants",
             "exclude_active",
@@ -1577,9 +1621,13 @@ class TicketReadSerializer(ReadSerializer):
     opened_in = fields.FlowField()
     modified_on = serializers.DateTimeField(default_timezone=tzone.utc)
     closed_on = serializers.DateTimeField(default_timezone=tzone.utc)
+    body = serializers.SerializerMethodField()  # deprecated
 
     def get_status(self, obj):
         return self.STATUSES.get(obj.status)
+
+    def get_body(self, obj):
+        return None
 
     class Meta:
         model = Ticket
@@ -1610,7 +1658,7 @@ class TicketBulkActionSerializer(WriteSerializer):
     action = serializers.ChoiceField(required=True, choices=ACTION_CHOICES)
     assignee = fields.UserField(required=False, allow_null=True, assignable_only=True)
     topic = fields.TopicField(required=False)
-    note = serializers.CharField(required=False, max_length=Ticket.MAX_NOTE_LEN)
+    note = serializers.CharField(required=False, max_length=Ticket.MAX_NOTE_LENGTH)
 
     def validate(self, data):
         action = data["action"]
@@ -1688,7 +1736,6 @@ class UserReadSerializer(ReadSerializer):
         OrgRole.EDITOR: "editor",
         OrgRole.VIEWER: "viewer",
         OrgRole.AGENT: "agent",
-        OrgRole.SURVEYOR: "surveyor",
     }
 
     avatar = serializers.SerializerMethodField()

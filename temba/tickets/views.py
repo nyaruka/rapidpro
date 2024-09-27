@@ -1,6 +1,13 @@
 from datetime import timedelta
 
-from smartmin.views import SmartCRUDL, SmartDeleteView, SmartListView, SmartTemplateView, SmartUpdateView
+from smartmin.views import (
+    SmartCreateView,
+    SmartCRUDL,
+    SmartDeleteView,
+    SmartListView,
+    SmartTemplateView,
+    SmartUpdateView,
+)
 
 from django import forms
 from django.db.models.aggregates import Max
@@ -33,23 +40,24 @@ from .models import (
 )
 
 
-class NoteForm(forms.ModelForm):
-    note = forms.CharField(
-        max_length=2048,
-        required=True,
-        widget=InputWidget({"hide_label": True, "textarea": True}),
-        help_text=_("Notes can only be seen by the support team"),
-    )
-
-    class Meta:
-        model = Ticket
-        fields = ("note",)
-
-
 class TopicCRUDL(SmartCRUDL):
     model = Topic
-    actions = ("update", "delete")
+    actions = ("create", "update", "delete")
     slug_field = "uuid"
+
+    class Create(OrgPermsMixin, ComponentFormMixin, ModalMixin, SmartCreateView):
+        class TopicForm(forms.ModelForm):
+            class Meta:
+                model = Topic
+                fields = ("name",)
+
+        form_class = TopicForm
+        success_url = "hide"
+
+        def pre_save(self, obj):
+            obj = super().pre_save(obj)
+            obj.org = self.request.org
+            return obj
 
     class Update(OrgObjPermsMixin, ComponentFormMixin, ModalMixin, SmartUpdateView):
         class Form(forms.ModelForm):
@@ -112,11 +120,11 @@ class TicketCRUDL(SmartCRUDL):
                 )
 
             class Meta:
-                fields = ("topic", "body")
+                fields = ("topic",)
                 model = Ticket
 
         form_class = Form
-        fields = ("topic", "body")
+        fields = ("topic",)
         slug_url_kwarg = "uuid"
         success_url = "hide"
 
@@ -261,10 +269,15 @@ class TicketCRUDL(SmartCRUDL):
                 )
 
             menu.append(self.create_divider())
+            menu.append(self.create_modax_button(_("Export"), "tickets.ticket_export", icon="export"))
+            menu.append(
+                self.create_modax_button(_("New Topic"), "tickets.topic_create", icon="add", on_submit="refreshMenu()")
+            )
+
+            menu.append(self.create_divider())
 
             topics = list(org.topics.filter(is_active=True).order_by("-is_system", "name"))
             counts = TicketCount.get_by_topics(org, topics, Ticket.STATUS_OPEN)
-
             for topic in topics:
                 menu.append(
                     {
@@ -317,12 +330,6 @@ class TicketCRUDL(SmartCRUDL):
                     "delete-topic",
                     f"{reverse('tickets.topic_delete', args=[self.folder.id])}",
                     title=_("Delete"),
-                )
-
-            if self.has_org_perm("tickets.ticket_export"):
-                menu.new_group()
-                menu.add_modax(
-                    _("Export"), "export-tickets", f"{reverse('tickets.ticket_export')}", title=_("Export Tickets")
                 )
 
         def get_queryset(self, **kwargs):
@@ -415,7 +422,6 @@ class TicketCRUDL(SmartCRUDL):
                         "uuid": str(t.uuid),
                         "assignee": user_as_json(t.assignee) if t.assignee else None,
                         "topic": topic_as_json(t.topic) if t.topic else None,
-                        "body": t.body,
                         "last_activity_on": t.last_activity_on,
                         "closed_on": t.closed_on,
                     },
@@ -438,7 +444,19 @@ class TicketCRUDL(SmartCRUDL):
         Creates a note for this contact
         """
 
-        form_class = NoteForm
+        class Form(forms.ModelForm):
+            note = forms.CharField(
+                max_length=Ticket.MAX_NOTE_LENGTH,
+                required=True,
+                widget=InputWidget({"hide_label": True, "textarea": True}),
+                help_text=_("Notes can only be seen by the support team"),
+            )
+
+            class Meta:
+                model = Ticket
+                fields = ("note",)
+
+        form_class = Form
         fields = ("note",)
         success_url = "hide"
         slug_url_kwarg = "uuid"

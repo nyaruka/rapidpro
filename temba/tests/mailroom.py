@@ -202,6 +202,10 @@ class TestClient(MailroomClient):
         )
 
     @_client_method
+    def contact_deindex(self, org, contacts):
+        return {"deindexed": len(contacts)}
+
+    @_client_method
     def contact_export(self, org, group, query: str) -> list[int]:
         if self.mocks._contact_export:
             return self.mocks._contact_export.pop(0)
@@ -274,16 +278,18 @@ class TestClient(MailroomClient):
 
     @_client_method
     def contact_urns(self, org, urns: list[str]):
-        results = [mailroom.URNResult(normalized=urn) for urn in urns]
+        results = [mailroom.URNResult(normalized=urn, e164=True) for urn in urns]
 
         if self.mocks._contact_urns:
-            urn_by_id_or_err = self.mocks._contact_urns.pop(0)
+            result_by_urn = self.mocks._contact_urns.pop(0)
             for i, urn in enumerate(urns):
-                id_or_err = urn_by_id_or_err.get(urn)
-                if isinstance(id_or_err, int):
-                    results[i].contact_id = id_or_err
-                elif isinstance(id_or_err, str):
-                    results[i].error = id_or_err
+                result = result_by_urn.get(urn)
+                if isinstance(result, str):
+                    results[i].error = result
+                elif isinstance(result, bool):
+                    results[i].e164 = result
+                elif isinstance(result, int):
+                    results[i].contact_id = result
 
         return results
 
@@ -366,6 +372,10 @@ class TestClient(MailroomClient):
             "created_on": msg.created_on.isoformat(),
             "modified_on": msg.modified_on.isoformat(),
         }
+
+    @_client_method
+    def org_deindex(self, org):
+        return {}
 
     @_client_method
     def ticket_assign(self, org, user, tickets, assignee):
@@ -526,12 +536,14 @@ def apply_modifiers(org, user, contacts, modifiers: list):
             topic = org.topics.get(uuid=mod.topic.uuid, is_active=True)
             assignee = org.users.get(email=mod.assignee.email, is_active=True) if mod.assignee else None
             for contact in contacts:
-                contact.tickets.create(
+                ticket = contact.tickets.create(
                     org=org,
                     topic=topic,
                     status=Ticket.STATUS_OPEN,
-                    body=mod.body,
                     assignee=assignee,
+                )
+                ticket.events.create(
+                    org=org, contact=contact, event_type=TicketEvent.TYPE_OPENED, note=mod.note, created_by=user
                 )
 
         elif mod.type == "urns":

@@ -16,6 +16,7 @@ from smartmin.views import (
 )
 
 from django import forms
+from django.conf import settings
 from django.db.models.functions.text import Lower
 from django.forms import Form, ValidationError
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
@@ -34,6 +35,7 @@ from temba.orgs.views import (
     DependencyUsagesModal,
     MenuMixin,
     ModalMixin,
+    OrgFilterMixin,
     OrgObjPermsMixin,
     OrgPermsMixin,
 )
@@ -322,6 +324,8 @@ class BroadcastCRUDL(SmartCRUDL):
         "scheduled_delete",
         "preview",
         "to_node",
+        "status",
+        "interrupt",
     )
     model = Broadcast
 
@@ -388,24 +392,20 @@ class BroadcastCRUDL(SmartCRUDL):
             return {"org": self.request.org}
 
         def get_form_initial(self, step):
+            initial = super().get_form_initial(step)
 
             if step == "target":
-                initial = {}
                 org = self.request.org
                 contact_uuids = [_ for _ in self.request.GET.get("c", "").split(",") if _]
                 contacts = org.contacts.filter(uuid__in=contact_uuids)
-                if contact_uuids:
-                    params = {}
-                    if len(contact_uuids) > 0:
-                        params["c"] = ",".join(contact_uuids)
-                    initial["contact_search"] = {
-                        "recipients": ContactSearchWidget.get_recipients(contacts),
-                        "advanced": False,
-                        "query": None,
-                        "exclusions": {},
-                    }
-                    return initial
-            return super().get_form_initial(step)
+
+                initial["contact_search"] = {
+                    "recipients": ContactSearchWidget.get_recipients(contacts),
+                    "advanced": False,
+                    "query": None,
+                    "exclusions": settings.DEFAULT_EXCLUSIONS,
+                }
+                return initial
 
         def done(self, form_list, form_dict, **kwargs):
             user = self.request.user
@@ -627,15 +627,22 @@ class BroadcastCRUDL(SmartCRUDL):
                 'To get started you need to <a href="%(link)s">add a channel</a> to your workspace which will allow '
                 "you to send messages to your contacts."
             ),
+            "outbox_full": _(
+                "You have too many messages queued in your outbox. Please wait for these messages to send and then try again."
+            ),
         }
 
         def get_blockers(self, org) -> list:
             blockers = []
 
+            if org.is_outbox_full():
+                blockers.append(self.blockers["outbox_full"])
+
             if org.is_suspended:
                 blockers.append(Org.BLOCKER_SUSPENDED)
             elif org.is_flagged:
                 blockers.append(Org.BLOCKER_FLAGGED)
+
             if not org.get_send_channel():
                 blockers.append(self.blockers["no_send_channel"] % {"link": reverse("channels.channel_claim")})
 
@@ -713,6 +720,49 @@ class BroadcastCRUDL(SmartCRUDL):
 
             return self.render_modal_response(form)
 
+    class Status(OrgPermsMixin, OrgFilterMixin, SmartListView):
+        permission = "msgs.broadcast_read"
+
+        def derive_queryset(self, **kwargs):
+            qs = super().derive_queryset(**kwargs)
+
+            id = self.request.GET.get("id", None)
+            if id:
+                qs = qs.filter(id=id)
+
+            status = self.request.GET.get("status", None)
+            if status:
+                qs = qs.filter(status=status)
+
+            return qs.order_by("-created_on")
+
+        def render_to_response(self, context, **response_kwargs):
+            results = []
+            for obj in context["object_list"]:
+                # created_on as an iso date
+                results.append(
+                    {
+                        "id": obj.id,
+                        "status": obj.get_status_display(),
+                        "created_on": obj.created_on.isoformat(),
+                        "modified_on": obj.modified_on.isoformat(),
+                        "progress": {"total": obj.contact_count, "current": obj.get_message_count()},
+                    }
+                )
+            return JsonResponse({"results": results})
+
+    class Interrupt(ModalMixin, OrgObjPermsMixin, SmartUpdateView):
+        default_template = "smartmin/delete_confirm.html"
+        permission = "msgs.broadcast_update"
+        fields = ()
+        submit_button_name = _("Interrupt")
+        success_url = "@msgs.broadcast_list"
+
+        def post(self, request, *args, **kwargs):
+            broadcast = self.get_object()
+            broadcast.interrupt(self.request.user)
+            return super().post(request, *args, **kwargs)
+
 
 class MsgCRUDL(SmartCRUDL):
     model = Msg
@@ -768,7 +818,7 @@ class MsgCRUDL(SmartCRUDL):
                         menu_id="outbox",
                         name=_("Outbox"),
                         href=reverse("msgs.msg_outbox"),
-                        count=counts[SystemLabel.TYPE_OUTBOX] + Broadcast.get_queued(org).count(),
+                        count=counts[SystemLabel.TYPE_OUTBOX],
                     ),
                     self.create_menu_item(
                         menu_id="sent",
@@ -929,18 +979,6 @@ class MsgCRUDL(SmartCRUDL):
         system_label = SystemLabel.TYPE_OUTBOX
         bulk_actions = ()
         allow_export = True
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-
-            # stuff in any queued broadcasts
-            context["queued_broadcasts"] = (
-                Broadcast.get_queued(self.request.org)
-                .select_related("org")
-                .prefetch_related("groups", "contacts")
-                .order_by("-created_on")
-            )
-            return context
 
         def get_queryset(self, **kwargs):
             return super().get_queryset(**kwargs).select_related("contact", "channel", "flow")

@@ -72,6 +72,9 @@ class MailroomClient:
 
         return Contact.objects.get(id=resp["contact"]["id"])
 
+    def contact_deindex(self, org, contacts):
+        return self._request("contact/deindex", {"org_id": org.id, "contact_ids": [c.id for c in contacts]})
+
     def contact_export(self, org, group, query: str) -> list[int]:
         resp = self._request("contact/export", {"org_id": org.id, "group_id": group.id, "query": query})
 
@@ -242,6 +245,9 @@ class MailroomClient:
                 "ticket_id": ticket.id if ticket else None,
             },
         )
+
+    def org_deindex(self, org):
+        return self._request("org/deindex", {"org_id": org.id})
 
     def po_export(self, org, flows, language: str):
         return self._request(

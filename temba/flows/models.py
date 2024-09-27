@@ -457,14 +457,14 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         """
         return self.get_node_counts(), self.get_segment_counts()
 
-    def is_starting(self):
+    def get_active_start(self):
         """
         Returns whether this flow is already being started by a user
         """
         return (
-            self.starts.filter(status__in=(FlowStart.STATUS_STARTING, FlowStart.STATUS_PENDING))
+            self.starts.filter(status__in=(FlowStart.STATUS_PENDING, FlowStart.STATUS_STARTED))
             .exclude(created_by=None)
-            .exists()
+            .first()
         )
 
     def import_definition(self, user, definition, dependency_mapping):
@@ -1007,7 +1007,10 @@ class FlowSession(models.Model):
         """
         # if our output is stored on S3, fetch it from there
         if self.output_url:
-            return json.loads(s3.get_body(self.output_url))
+            bucket, key = s3.split_url(self.output_url)
+
+            obj = s3.client().get_object(Bucket=bucket, Key=key)
+            return json.loads(obj["Body"].read())
 
         # otherwise, read it from our DB field
         else:
@@ -1788,15 +1791,19 @@ class FlowStart(models.Model):
     EXCLUSION_STARTED_PREVIOUSLY = "started_previously"  # contacts been in this flow in the last 90 days
     EXCLUSION_NOT_SEEN_SINCE_DAYS = "not_seen_since_days"  # contacts not seen for more than this number of days
 
-    STATUS_PENDING = "P"
-    STATUS_STARTING = "S"
-    STATUS_COMPLETE = "C"
+    STATUS_PENDING = "P"  # exists in the database
+    STATUS_QUEUED = "Q"  # batch tasks created, count_count set
+    STATUS_STARTED = "S"  # first batch task started
+    STATUS_COMPLETED = "C"  # last batch task completed
     STATUS_FAILED = "F"
+    STATUS_INTERRUPTED = "I"
     STATUS_CHOICES = (
-        (STATUS_PENDING, _("Pending")),
-        (STATUS_STARTING, _("Starting")),
-        (STATUS_COMPLETE, _("Complete")),
-        (STATUS_FAILED, _("Failed")),
+        (STATUS_PENDING, "Pending"),
+        (STATUS_QUEUED, "Queued"),
+        (STATUS_STARTED, "Started"),
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_FAILED, "Failed"),
+        (STATUS_INTERRUPTED, "Interrupted"),
     )
 
     TYPE_MANUAL = "M"
@@ -1816,7 +1823,8 @@ class FlowStart(models.Model):
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="flow_starts")
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="starts")
     start_type = models.CharField(max_length=1, choices=TYPE_CHOICES)
-    status = models.CharField(max_length=1, default=STATUS_PENDING, choices=STATUS_CHOICES)
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    contact_count = models.IntegerField(default=0, null=True)  # null until status is QUEUED
 
     # who to start
     groups = models.ManyToManyField(ContactGroup)
@@ -1824,9 +1832,6 @@ class FlowStart(models.Model):
     urns = ArrayField(models.TextField(), null=True)
     query = models.TextField(null=True)
     exclusions = models.JSONField(default=dict, null=True)
-
-    # the number of de-duped contacts that might be started, depending on options above
-    contact_count = models.IntegerField(default=0, null=True)
 
     campaign_event = models.ForeignKey(
         "campaigns.CampaignEvent", null=True, on_delete=models.PROTECT, related_name="flow_starts"
@@ -1837,10 +1842,9 @@ class FlowStart(models.Model):
     parent_summary = models.JSONField(null=True)
     session_history = models.JSONField(null=True)
 
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, related_name="flow_starts"
-    )
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, related_name="+")
     created_on = models.DateTimeField(default=timezone.now)
+    modified_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, related_name="+")
     modified_on = models.DateTimeField(default=timezone.now)
 
     @classmethod
@@ -1888,8 +1892,24 @@ class FlowStart(models.Model):
 
         return preview.query, preview.total
 
+    def is_starting(self) -> bool:
+        return self.status in (self.STATUS_PENDING, self.STATUS_STARTED)
+
+    @classmethod
+    def has_unfinished(cls, org) -> bool:
+        return org.flow_starts.filter(status__in=(cls.STATUS_PENDING, cls.STATUS_STARTED)).exists()
+
     def async_start(self):
         on_transaction_commit(lambda: mailroom.queue_flow_start(self))
+
+    def interrupt(self, user):
+        """
+        Interrupts this flow start
+        """
+
+        self.status = self.STATUS_INTERRUPTED
+        self.modified_by = user
+        self.save(update_fields=("status", "modified_by", "modified_on"))
 
     def delete(self):
         """
@@ -1905,8 +1925,8 @@ class FlowStart(models.Model):
 
         super().delete()
 
-    def __str__(self):  # pragma: no cover
-        return f"FlowStart[id={self.id}, flow={self.flow.uuid}]"
+    def __repr__(self):
+        return f'<FlowStart: id={self.id} flow="{self.flow.uuid}">'
 
     class Meta:
         indexes = [

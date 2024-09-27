@@ -68,7 +68,7 @@ class ChannelTypeMixin(SpaMixin):
 
 class ClaimViewMixin(ChannelTypeMixin, OrgPermsMixin, ComponentFormMixin):
     permission = "channels.channel_claim"
-    menu_path = "/settings/workspace"
+    menu_path = "/settings/channels/new-channel"
 
     class Form(forms.Form):
         def __init__(self, **kwargs):
@@ -759,7 +759,7 @@ class ChannelCRUDL(SmartCRUDL):
 
     class Claim(SpaMixin, OrgPermsMixin, SmartTemplateView):
         title = _("New Channel")
-        menu_path = "/settings/workspace"
+        menu_path = "/settings/channels/new-channel"
 
         def channel_types_groups(self):
             org = self.request.org
@@ -932,9 +932,7 @@ class ChannelLogCRUDL(SmartCRUDL):
             anonymize = self.request.org.is_anon and not (self.request.GET.get("break") and self.request.user.is_staff)
             logs = []
             for log in self.owner.get_logs():
-                logs.append(
-                    ChannelLog.display(log, anonymize=anonymize, channel=self.owner.channel, urn=self.owner.contact_urn)
-                )
+                logs.append(log.get_display(anonymize=anonymize, urn=self.owner.contact_urn))
 
             context["logs"] = logs
             return context

@@ -1,11 +1,9 @@
 import logging
 from abc import ABCMeta
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as tzone
 from enum import Enum
-from urllib.parse import quote_plus
 from uuid import uuid4
-from xml.sax.saxutils import escape
 
 import phonenumbers
 from django_countries.fields import CountryField
@@ -15,7 +13,6 @@ from twilio.base.exceptions import TwilioRestException
 
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
-from django.core.files.storage import storages
 from django.db import models
 from django.db.models import Q, Sum
 from django.db.models.signals import pre_save
@@ -27,7 +24,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from temba.orgs.models import DependencyMixin, Org
-from temba.utils import analytics, get_anonymous_user, json, on_transaction_commit, redact
+from temba.utils import analytics, dynamo, get_anonymous_user, on_transaction_commit, redact
 from temba.utils.models import (
     JSONAsTextField,
     LegacyUUIDMixin,
@@ -37,7 +34,6 @@ from temba.utils.models import (
     generate_uuid,
 )
 from temba.utils.text import generate_secret
-from temba.utils.uuid import is_uuid
 
 logger = logging.getLogger(__name__)
 
@@ -687,43 +683,21 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         if fcm_id and settings.ANDROID_FCM_PROJECT_ID and settings.ANDROID_CREDENTIALS_FILE:
             on_transaction_commit(lambda: sync_channel_fcm_task.delay(fcm_id, channel_id=self.id))
 
-    @classmethod
-    def replace_variables(cls, text, variables, content_type=CONTENT_TYPE_URLENCODED):
-        for key in variables.keys():
-            replacement = str(variables[key])
+    def get_count(self, count_types, since=None):
+        qs = ChannelCount.objects.filter(channel=self, count_type__in=count_types)
+        if since:
+            qs = qs.filter(day__gte=since)
 
-            # encode based on our content type
-            if content_type == Channel.CONTENT_TYPE_URLENCODED:
-                replacement = quote_plus(replacement)
-
-            # if this is JSON, need to wrap in quotes (and escape them)
-            elif content_type == Channel.CONTENT_TYPE_JSON:
-                replacement = json.dumps(replacement)
-
-            # XML needs to be escaped
-            elif content_type == Channel.CONTENT_TYPE_XML:
-                replacement = escape(replacement)
-
-            text = text.replace("{{%s}}" % key, replacement)
-
-        return text
-
-    def get_count(self, count_types):
-        count = (
-            ChannelCount.objects.filter(channel=self, count_type__in=count_types)
-            .aggregate(Sum("count"))
-            .get("count__sum", 0)
-        )
-
+        count = qs.aggregate(Sum("count")).get("count__sum", 0)
         return 0 if count is None else count
 
-    def get_msg_count(self):
-        return self.get_count([ChannelCount.INCOMING_MSG_TYPE, ChannelCount.OUTGOING_MSG_TYPE])
+    def get_msg_count(self, since=None):
+        return self.get_count([ChannelCount.INCOMING_MSG_TYPE, ChannelCount.OUTGOING_MSG_TYPE], since)
 
-    def get_ivr_count(self):
+    def get_ivr_count(self, since=None):
         return self.get_count([ChannelCount.INCOMING_IVR_TYPE, ChannelCount.OUTGOING_IVR_TYPE])
 
-    def get_log_count(self):
+    def get_log_count(self, since=None):
         return self.get_count([ChannelCount.SUCCESS_LOG_TYPE, ChannelCount.ERROR_LOG_TYPE])
 
     class Meta:
@@ -874,6 +848,7 @@ class ChannelLog(models.Model):
     A log of an interaction with a channel
     """
 
+    DYNAMO_TABLE = "ChannelLogs"  # unprefixed table name
     REDACT_MASK = "*" * 8  # used to mask redacted values
 
     LOG_TYPE_UNKNOWN = "unknown"
@@ -920,90 +895,95 @@ class ChannelLog(models.Model):
     elapsed_ms = models.IntegerField(default=0)
     created_on = models.DateTimeField(default=timezone.now)
 
-    def get_display(self, *, anonymize: bool, urn) -> dict:
-        return self.display(self._get_json(), anonymize=anonymize, channel=self.channel, urn=urn)
-
     @classmethod
-    def display(cls, data: dict, *, anonymize: bool, channel, urn) -> dict:
+    def get_by_uuid(cls, channel, uuids: list) -> list:
+        """
+        Get logs from DynamoDB and converts them to non-persistent instances of this class
+        """
+        if not uuids:
+            return []
+
+        client = dynamo.get_client()
+        resp = client.batch_get_item(
+            RequestItems={dynamo.table_name(cls.DYNAMO_TABLE): {"Keys": [{"UUID": {"S": str(u)}} for u in uuids]}}
+        )
+
+        logs = []
+        for log in resp["Responses"][dynamo.table_name(cls.DYNAMO_TABLE)]:
+            data = dynamo.load_jsongz(log["DataGZ"]["B"])
+            logs.append(
+                ChannelLog(
+                    uuid=log["UUID"]["S"],
+                    channel=channel,
+                    log_type=log["Type"]["S"],
+                    http_logs=data["http_logs"],
+                    errors=data["errors"],
+                    elapsed_ms=int(log["ElapsedMS"]["N"]),
+                    created_on=datetime.fromtimestamp(int(log["CreatedOn"]["N"]), tz=tzone.utc),
+                )
+            )
+
+        return sorted(logs, key=lambda l: l.uuid)
+
+    def get_display(self, *, anonymize: bool, urn) -> dict:
+        """
+        Gets a dict representation of this log for display that is optionally anonymized
+        """
+
         # add reference URLs to errors
-        for err in data["errors"]:
+        errors = [e.copy() for e in self.errors or []]
+        for err in errors:
             ext_code = err.get("ext_code")
-            err["ref_url"] = channel.type.get_error_ref_url(channel, ext_code) if ext_code else None
+            err["ref_url"] = self.channel.type.get_error_ref_url(self.channel, ext_code) if ext_code else None
+
+        data = {
+            "uuid": str(self.uuid),
+            "type": self.log_type,
+            "http_logs": [h.copy() for h in self.http_logs or []],
+            "errors": errors,
+            "elapsed_ms": self.elapsed_ms,
+            "created_on": self.created_on.isoformat(),
+        }
 
         if anonymize:
-            cls._anonymize(data, channel, urn)
+            self._anonymize(data, urn)
 
         # out of an abundance of caution, check that we're not returning one of our own credential values
         for log in data["http_logs"]:
-            for secret in channel.type.get_redact_values(channel):
+            for secret in self.channel.type.get_redact_values(self.channel):
                 assert secret not in log["url"] and secret not in log["request"] and secret not in log["response"]
 
         return data
 
-    @classmethod
-    def _anonymize_value(cls, original: str, urn, redact_keys=()) -> str:
+    def _anonymize(self, data: dict, urn):
+        request_keys = self.channel.type.redact_request_keys
+        response_keys = self.channel.type.redact_response_keys
+
+        for http_log in data["http_logs"]:
+            http_log["url"] = self._anonymize_value(http_log["url"], urn)
+            http_log["request"] = self._anonymize_value(http_log["request"], urn, redact_keys=request_keys)
+            http_log["response"] = self._anonymize_value(http_log.get("response", ""), urn, redact_keys=response_keys)
+
+        for err in data["errors"]:
+            err["message"] = self._anonymize_value(err["message"], urn)
+
+    def _anonymize_value(self, original: str, urn, redact_keys=()) -> str:
         # if log doesn't have an associated URN then we don't know what to anonymize, so redact completely
         if not original:
             return ""
         if not urn:
-            return original[:10] + cls.REDACT_MASK
+            return original[:10] + self.REDACT_MASK
 
         if redact_keys:
-            redacted = redact.http_trace(original, urn.path, cls.REDACT_MASK, redact_keys)
+            redacted = redact.http_trace(original, urn.path, self.REDACT_MASK, redact_keys)
         else:
-            redacted = redact.text(original, urn.path, cls.REDACT_MASK)
+            redacted = redact.text(original, urn.path, self.REDACT_MASK)
 
         # if nothing was redacted, don't risk returning sensitive information we didn't find
         if original == redacted and original:
-            return original[:10] + cls.REDACT_MASK
+            return original[:10] + self.REDACT_MASK
 
         return redacted
-
-    @classmethod
-    def _anonymize(cls, data: dict, channel, urn):
-        request_keys = channel.type.redact_request_keys
-        response_keys = channel.type.redact_response_keys
-
-        for http_log in data["http_logs"]:
-            http_log["url"] = cls._anonymize_value(http_log["url"], urn)
-            http_log["request"] = cls._anonymize_value(http_log["request"], urn, redact_keys=request_keys)
-            http_log["response"] = cls._anonymize_value(http_log.get("response", ""), urn, redact_keys=response_keys)
-
-        for err in data["errors"]:
-            err["message"] = cls._anonymize_value(err["message"], urn)
-
-    @classmethod
-    def get_logs(cls, channel, uuids: list) -> list:
-        # look for logs in the database
-        logs = {l.uuid: l._get_json() for l in cls.objects.filter(channel=channel, uuid__in=uuids)}
-
-        # and in storage
-        for log_uuid in uuids:
-            assert is_uuid(log_uuid), f"{log_uuid} is not a valid log UUID"
-
-            if log_uuid not in logs:
-                key = f"channels/{channel.uuid}/{str(log_uuid)[0:4]}/{log_uuid}.json"
-                try:
-                    log_file = storages["logs"].open(key)
-                    logs[log_uuid] = json.loads(log_file.read())
-                    log_file.close()
-                except Exception:
-                    logger.exception("unable to read log from storage", extra={"key": key})
-
-        return sorted(logs.values(), key=lambda l: l["created_on"])
-
-    def _get_json(self):
-        """
-        Get a database instance in the same JSON format we write to S3
-        """
-        return {
-            "uuid": str(self.uuid),
-            "type": self.log_type,
-            "http_logs": [h.copy() for h in self.http_logs or []],
-            "errors": [e.copy() for e in self.errors or []],
-            "elapsed_ms": self.elapsed_ms,
-            "created_on": self.created_on.isoformat(),
-        }
 
     class Meta:
         indexes = [models.Index(name="channellogs_by_channel", fields=("channel", "-created_on"))]

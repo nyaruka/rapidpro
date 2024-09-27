@@ -12,8 +12,11 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from temba import mailroom
+from temba.apks.models import Apk
 from temba.channels.models import ChannelEvent
 from temba.msgs.models import Msg
+from temba.notifications.incidents.builtin import ChannelOutdatedAppIncidentType
+from temba.notifications.models import Incident
 from temba.utils import analytics, json
 
 from ..models import Channel, SyncEvent
@@ -88,9 +91,8 @@ def sync(request, channel_id):
         channel.save(update_fields=["last_seen"])
 
     sync_event = None
-
-    # Take the update from the client
     cmds = []
+
     if request.body:
         body_parsed = json.loads(request.body)
 
@@ -101,13 +103,17 @@ def sync(request, channel_id):
         cmds = body_parsed["cmds"]
 
     if not channel.org and channel.uuid == cmds[0].get("uuid"):
-        # Unclaimed channel with same UUID resend the registration commmands
+        # unclaimed channel with same UUID resend the registration commmands
         cmd = dict(
             cmd="reg", relayer_claim_code=channel.claim_code, relayer_secret=channel.secret, relayer_id=channel.id
         )
         return JsonResponse(dict(cmds=[cmd]))
     elif not channel.org:
         return JsonResponse({"error_id": 4, "error": "Can't sync unclaimed channel", "cmds": []}, status=401)
+
+    # get latest app version to allow us to check if user's app is outdated
+    latest_app = Apk.objects.filter(apk_type=Apk.TYPE_RELAYER).order_by("created_on").last()
+    latest_app_version = latest_app.version if latest_app else None
 
     unique_calls = set()
 
@@ -201,6 +207,16 @@ def sync(request, channel_id):
                 # tell the channel to update its org if this channel got moved
                 if channel.org and "org_id" in cmd and channel.org.pk != cmd["org_id"]:
                     commands.append(dict(cmd="claim", org_id=channel.org.pk))
+
+                if latest_app_version and cmd.get("app_version"):
+                    if latest_app_version != cmd["app_version"]:
+                        ChannelOutdatedAppIncidentType.get_or_create(channel)
+                    else:
+                        ongoing = Incident.objects.filter(
+                            incident_type=ChannelOutdatedAppIncidentType.slug, ended_on=None, channel=channel
+                        ).select_related("channel")
+                        for incident in ongoing:
+                            incident.end()
 
                 # we don't ack status messages since they are always included
                 handled = False

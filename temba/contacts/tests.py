@@ -1,4 +1,5 @@
 import io
+import tempfile
 from datetime import date, datetime, timedelta, timezone as tzone
 from decimal import Decimal
 from unittest.mock import call, patch
@@ -6,10 +7,9 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import iso8601
-import xlrd
 from openpyxl import load_workbook
 
-from django.conf import settings
+from django.core.files.storage import default_storage
 from django.core.validators import ValidationError
 from django.db.models import Value as DbValue
 from django.db.models.functions import Concat, Substr
@@ -31,10 +31,9 @@ from temba.orgs.models import Export, Org, OrgRole
 from temba.schedules.models import Schedule
 from temba.tests import CRUDLTestMixin, MigrationTest, MockResponse, TembaTest, matchers, mock_mailroom
 from temba.tests.engine import MockSessionWriter
-from temba.tests.s3 import MockS3Client
-from temba.tickets.models import Ticket, TicketCount
+from temba.tickets.models import Ticket, TicketCount, Topic
 from temba.triggers.models import Trigger
-from temba.utils import json
+from temba.utils import json, s3
 from temba.utils.dates import datetime_to_timestamp
 from temba.utils.views import TEMBA_MENU_SELECTION
 
@@ -92,18 +91,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertRequestDisallowed(create_url, [None, self.agent, self.user])
         self.assertCreateFetch(create_url, [self.editor, self.admin], form_fields=("name", "phone"))
 
-        # simulate mailroom rejecting the number because it's invalid
-        mr_mocks.exception(mailroom.URNValidationException("URN 0 invalid", "invalid", 0))
-
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"name": "Joe", "phone": "+250781111111"},
-            form_errors={"phone": "Not a valid phone number."},
-        )
-
-        # simulate mailroom rejecting the number because it's taken
-        mr_mocks.exception(mailroom.URNValidationException("URN 0 in use", "taken", 0))
+        # simulate validation failing because phone number taken
+        mr_mocks.contact_urns({"tel:+250781111111": 12345678})
 
         self.assertCreateSubmit(
             create_url,
@@ -112,7 +101,27 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             form_errors={"phone": "In use by another contact."},
         )
 
-        # try when mailroom call succeeds
+        # simulate validation failing because phone number isn't E164
+        mr_mocks.contact_urns({"tel:+250781111111": False})
+
+        self.assertCreateSubmit(
+            create_url,
+            self.admin,
+            {"name": "Joe", "phone": "+250781111111"},
+            form_errors={"phone": "Ensure number includes country code."},
+        )
+
+        # simulate validation failing because phone number isn't valid
+        mr_mocks.contact_urns({"tel:xx": "URN 0 invalid"})
+
+        self.assertCreateSubmit(
+            create_url,
+            self.admin,
+            {"name": "Joe", "phone": "xx"},
+            form_errors={"phone": "Invalid phone number."},
+        )
+
+        # try valid number
         self.assertCreateSubmit(
             create_url,
             self.admin,
@@ -462,7 +471,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertContentMenu(read_url, self.admin, ["Edit", "Start Flow", "Open Ticket"])
 
         # if there's an open ticket already, don't show open ticket option
-        self.create_ticket(joe, "Help")
+        self.create_ticket(joe)
         self.assertContentMenu(read_url, self.editor, ["Edit", "Start Flow"])
 
         # login as viewer
@@ -566,6 +575,25 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # try to add a new invalid phone URN
         mr_mocks.contact_urns({"tel:123": "not a valid phone number"})
+
+        self.assertUpdateSubmit(
+            update_url,
+            self.admin,
+            {
+                "name": "Bobby",
+                "status": "B",
+                "language": "spa",
+                "groups": [testers.id],
+                "urn__tel__0": "+593979111111",
+                "new_scheme": "tel",
+                "new_path": "123",
+            },
+            form_errors={"new_path": "Invalid format."},
+            object_unchanged=contact,
+        )
+
+        # try to add a new phone URN that isn't E164
+        mr_mocks.contact_urns({"tel:123": False})
 
         self.assertUpdateSubmit(
             update_url,
@@ -745,8 +773,6 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             export.config,
         )
 
-        self.clear_storage()
-
     def test_scheduled(self):
         contact1 = self.create_contact("Joe", phone="+1234567890")
         contact2 = self.create_contact("Frank", phone="+1204567802")
@@ -863,7 +889,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         open_url = reverse("contacts.contact_open_ticket", args=[contact.id])
 
         self.assertRequestDisallowed(open_url, [None, self.user, self.agent, self.admin2])
-        self.assertUpdateFetch(open_url, [self.editor, self.admin], form_fields=("topic", "body", "assignee"))
+        self.assertUpdateFetch(open_url, [self.editor, self.admin], form_fields=("topic", "assignee", "note"))
 
         # can submit with no assignee
         response = self.assertUpdateSubmit(open_url, self.admin, {"topic": general.id, "body": "Help", "assignee": ""})
@@ -871,7 +897,6 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # should have new ticket
         ticket = contact.tickets.get()
         self.assertEqual(general, ticket.topic)
-        self.assertEqual("Help", ticket.body)
         self.assertIsNone(ticket.assignee)
 
         # and we're redirected to that ticket
@@ -925,7 +950,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         other_org_contact.refresh_from_db()
         self.assertIsNotNone(other_org_contact.current_flow)
 
-    def test_delete(self):
+    @mock_mailroom
+    def test_delete(self, mr_mocks):
         contact = self.create_contact("Joe", phone="+593979000111")
         other_org_contact = self.create_contact("Hans", phone="+593979123456", org=self.org2)
 
@@ -949,6 +975,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         contact.refresh_from_db()
         self.assertFalse(contact.is_active)
 
+        self.assertEqual([call(self.org, [contact])], mr_mocks.calls["contact_deindex"])
+
         # can't delete contact in other org
         delete_url = reverse("contacts.contact_delete", args=[other_org_contact.id])
         response = self.client.post(delete_url, {"id": other_org_contact.id})
@@ -961,9 +989,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
     @mock_mailroom
     def test_start(self, mr_mocks):
         sample_flows = list(self.org.flows.order_by("name"))
-        background_flow = self.get_flow("background")
-        self.get_flow("media_survey")
-        archived_flow = self.get_flow("color")
+        background_flow = self.create_flow("Background")
+        archived_flow = self.create_flow("Archived")
         archived_flow.archive(self.admin)
 
         contact = self.create_contact("Joe", phone="+593979000111")
@@ -1651,12 +1678,10 @@ class ContactTest(TembaTest, CRUDLTestMixin):
 
         # create an deleted contact
         self.jim = self.create_contact(name="Jim")
-        self.jim.release(self.user)
+        self.jim.release(self.user, deindex=False)
 
         # create contact in other org
         self.other_org_contact = self.create_contact(name="Fred", phone="+250768111222", org=self.org2)
-
-        self.mock_s3 = MockS3Client()
 
     def create_campaign(self):
         # create a campaign with a future event and add joe
@@ -1688,6 +1713,21 @@ class ContactTest(TembaTest, CRUDLTestMixin):
             message="Sent 7 days after planting date",
         )
 
+    def test_contact_notes(self):
+        note_text = "This is note"
+
+        # create 10 notes
+        for i in range(10):
+            self.joe.set_note(self.user, f"{note_text} {i+1}")
+
+        notes = self.joe.notes.all().order_by("id")
+
+        # we should only have five notes after pruning
+        self.assertEqual(5, notes.count())
+
+        # check that the oldest notes are the ones that were pruned
+        self.assertEqual("This is note 6", notes.first().text)
+
     @mock_mailroom
     def test_block_and_stop(self, mr_mocks):
         self.joe.block(self.admin)
@@ -1707,10 +1747,12 @@ class ContactTest(TembaTest, CRUDLTestMixin):
     def test_open_ticket(self, mock_contact_modify):
         mock_contact_modify.return_value = {self.joe.id: {"contact": {}, "events": []}}
 
-        ticket = self.joe.open_ticket(self.admin, self.org.default_ticket_topic, "Looks sus", assignee=self.agent)
+        ticket = self.joe.open_ticket(
+            self.admin, topic=self.org.default_ticket_topic, assignee=self.agent, note="Looks sus"
+        )
 
         self.assertEqual(self.org.default_ticket_topic, ticket.topic)
-        self.assertEqual("Looks sus", ticket.body)
+        self.assertEqual("Looks sus", ticket.events.get(event_type="O").note)
 
     @mock_mailroom
     def test_interrupt(self, mr_mocks):
@@ -1730,7 +1772,7 @@ class ContactTest(TembaTest, CRUDLTestMixin):
         urn = old_contact.get_urn()
         self.create_channel_event(self.channel, urn.identity, ChannelEvent.TYPE_CALL_IN_MISSED)
 
-        self.create_ticket(old_contact, "Hi")
+        self.create_ticket(old_contact)
 
         ivr_flow = self.get_flow("ivr")
         msg_flow = self.get_flow("favorites_v13")
@@ -1787,11 +1829,8 @@ class ContactTest(TembaTest, CRUDLTestMixin):
         self.create_incoming_call(msg_flow, contact)
 
         # give contact an open and a closed ticket
-        self.create_ticket(contact, "Hi")
-        self.create_ticket(contact, "Hi", closed_on=timezone.now())
-        bcast_ticket = self.create_ticket(contact, "Hi All")
-        bcast2.ticket = bcast_ticket
-        bcast2.save()
+        self.create_ticket(contact)
+        self.create_ticket(contact, closed_on=timezone.now())
 
         self.assertEqual(1, group.contacts.all().count())
         self.assertEqual(1, contact.calls.all().count())
@@ -1802,7 +1841,7 @@ class ContactTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(2, len(contact.fields))
         self.assertEqual(1, contact.campaign_fires.count())
 
-        self.assertEqual(3, TicketCount.get_all(self.org, Ticket.STATUS_OPEN))
+        self.assertEqual(2, TicketCount.get_all(self.org, Ticket.STATUS_OPEN))
         self.assertEqual(1, TicketCount.get_all(self.org, Ticket.STATUS_CLOSED))
 
         # first try releasing with _full_release patched so we can check the state of the contact before the task
@@ -1816,7 +1855,7 @@ class ContactTest(TembaTest, CRUDLTestMixin):
             self.assertEqual(URN.DELETED_SCHEME, urn.scheme)
 
         # tickets unchanged
-        self.assertEqual(3, contact.tickets.count())
+        self.assertEqual(2, contact.tickets.count())
 
         # a new contact arrives with those urns
         new_contact = self.create_contact("URN Thief", urns=["tel:+12065552000", "twitter:tweettweet"])
@@ -1824,7 +1863,6 @@ class ContactTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual({contact2}, set(bcast1.contacts.all()))
         self.assertEqual({contact, contact2}, set(bcast2.contacts.all()))
-        self.assertIsNotNone(bcast2.ticket)
 
         # now lets go for a full release
         contact.release(self.admin)
@@ -2314,8 +2352,9 @@ class ContactTest(TembaTest, CRUDLTestMixin):
         EventFire.objects.create(event=self.planting_reminder, contact=self.joe, scheduled=scheduled, fired=scheduled)
 
         # two tickets for joe
-        self.create_ticket(self.joe, "Question 1", opened_on=timezone.now(), closed_on=timezone.now())
-        ticket = self.create_ticket(self.joe, "Question 2")
+        sales = Topic.create(self.org, self.admin, "Sales")
+        self.create_ticket(self.joe, opened_on=timezone.now(), closed_on=timezone.now())
+        ticket = self.create_ticket(self.joe, topic=sales)
 
         # create missed incoming and outgoing calls
         self.create_channel_event(
@@ -2361,14 +2400,15 @@ class ContactTest(TembaTest, CRUDLTestMixin):
 
         # set an output URL on our session so we fetch from there
         s = FlowSession.objects.get(contact=self.joe)
-        FlowSession.objects.filter(id=s.id).update(output_url="https://temba-sessions.s3.aws.amazon.com/c/session.json")
-        self.mock_s3.objects[("temba-sessions", "c/session.json")] = io.StringIO(json.dumps(s.output))
+        s3.client().put_object(
+            Bucket="test-sessions", Key="c/session.json", Body=io.BytesIO(json.dumps(s.output).encode())
+        )
+        FlowSession.objects.filter(id=s.id).update(output_url="http://minio:9000/test-sessions/c/session.json")
 
         # fetch our contact history
         self.login(self.admin)
-        with patch("temba.utils.s3.s3.client", return_value=self.mock_s3):
-            with self.assertNumQueries(27):
-                response = self.client.get(url + "?limit=100")
+        with self.assertNumQueries(27):
+            response = self.client.get(url + "?limit=100")
 
         # history should include all messages in the last 90 days, the channel event, the call, and the flow run
         history = response.json()["events"]
@@ -2386,9 +2426,9 @@ class ContactTest(TembaTest, CRUDLTestMixin):
         assertHistoryEvent(history, 1, "channel_event", channel_event_type="new_conversation")
         assertHistoryEvent(history, 2, "channel_event", channel_event_type="mo_miss")
         assertHistoryEvent(history, 3, "channel_event", channel_event_type="mt_miss")
-        assertHistoryEvent(history, 4, "ticket_opened", ticket__body="Question 2")
-        assertHistoryEvent(history, 5, "ticket_closed", ticket__body="Question 1")
-        assertHistoryEvent(history, 6, "ticket_opened", ticket__body="Question 1")
+        assertHistoryEvent(history, 4, "ticket_opened", ticket__topic__name="Sales")
+        assertHistoryEvent(history, 5, "ticket_closed", ticket__topic__name="General")
+        assertHistoryEvent(history, 6, "ticket_opened", ticket__topic__name="General")
         assertHistoryEvent(history, 7, "airtime_transferred", actual_amount="100.00")
         assertHistoryEvent(history, 8, "msg_created", msg__text="What is your favorite color?")
         assertHistoryEvent(history, 9, "flow_entered", flow__name="Colors")
@@ -2408,7 +2448,7 @@ class ContactTest(TembaTest, CRUDLTestMixin):
         assertHistoryEvent(history, 0, "ticket_assigned", assignee__id=self.admin.id)
         assertHistoryEvent(history, 1, "ticket_note_added", note="I have a bad feeling about this")
         assertHistoryEvent(history, 5, "channel_event", channel_event_type="mt_miss")
-        assertHistoryEvent(history, 6, "ticket_opened", ticket__body="Question 2")
+        assertHistoryEvent(history, 6, "ticket_opened", ticket__topic__name="Sales")
         assertHistoryEvent(history, 7, "airtime_transferred", actual_amount="100.00")
 
         # fetch next page
@@ -3459,6 +3499,8 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertListFetch(
             list_url, [self.user, self.editor, self.admin], context_objects=[self.age, self.gender, self.state]
         )
+        self.assertContentMenu(list_url, self.user, [])
+        self.assertContentMenu(list_url, self.admin, ["New Field"])
 
     def test_create_warnings(self):
         self.login(self.admin)
@@ -3733,7 +3775,9 @@ class ContactImportTest(TembaTest):
     def test_parse_errors(self):
         # try to open an import that is completely empty
         with self.assertRaisesRegex(ValidationError, "Import file appears to be empty."):
-            ContactImport.try_to_parse(self.org, io.BytesIO(b""), "foo.csv")
+            path = "media/test_imports/empty_all_rows.xlsx"  # No header row present either
+            with open(path, "rb") as f:
+                ContactImport.try_to_parse(self.org, f, path)
 
         def try_to_parse(name):
             path = f"media/test_imports/{name}"
@@ -3745,16 +3789,9 @@ class ContactImportTest(TembaTest):
             with self.assertRaisesRegex(ValidationError, r"Import files can contain a maximum of 2 records\."):
                 try_to_parse("simple.xlsx")
 
-        with patch("pyexcel.iget_array") as mock_iget_array:
-            mock_iget_array.side_effect = xlrd.XLRDError("error")
-            with self.assertRaisesRegex(
-                ValidationError, r"Import file appears to be corrupted. Please save again in Excel and try again."
-            ):
-                try_to_parse("simple.csv")
-
         bad_files = [
-            ("empty.csv", "Import file doesn't contain any records."),
-            ("empty_header.xls", "Import file contains an empty header."),
+            ("empty.xlsx", "Import file doesn't contain any records."),
+            ("empty_header.xlsx", "Import file contains an empty header."),
             ("duplicate_urn.xlsx", "Import file contains duplicated contact URN 'tel:+250788382382' on row 4."),
             (
                 "duplicate_uuid.xlsx",
@@ -3764,7 +3801,8 @@ class ContactImportTest(TembaTest):
             ("invalid_field_key.xlsx", "Header 'Field: #$^%' is not a valid field name."),
             ("reserved_field_key.xlsx", "Header 'Field:HAS' is not a valid field name."),
             ("no_urn_or_uuid.xlsx", "Import files must contain either UUID or a URN header."),
-            ("uuid_only.csv", "Import files must contain columns besides UUID."),
+            ("uuid_only.xlsx", "Import files must contain columns besides UUID."),
+            ("invalid.txt.xlsx", "Import file appears to be corrupted."),
         ]
 
         for imp_file, imp_error in bad_files:
@@ -3774,7 +3812,7 @@ class ContactImportTest(TembaTest):
 
     def test_extract_mappings(self):
         # try simple import in different formats
-        for ext in ("csv", "xls", "xlsx"):
+        for ext in ("xlsx",):
             imp = self.create_contact_import(f"media/test_imports/simple.{ext}")
             self.assertEqual(3, imp.num_records)
             self.assertEqual(
@@ -3786,7 +3824,7 @@ class ContactImportTest(TembaTest):
             )
 
         # try import with 2 URN types
-        imp = self.create_contact_import("media/test_imports/twitter_and_phone.xls")
+        imp = self.create_contact_import("media/test_imports/twitter_and_phone.xlsx")
         self.assertEqual(
             [
                 {"header": "URN:Tel", "mapping": {"type": "scheme", "scheme": "tel"}},
@@ -3808,7 +3846,7 @@ class ContactImportTest(TembaTest):
             imp.mappings,
         )
 
-        imp = self.create_contact_import("media/test_imports/missing_name_header.xls")
+        imp = self.create_contact_import("media/test_imports/missing_name_header.xlsx")
         self.assertEqual([{"header": "URN:Tel", "mapping": {"type": "scheme", "scheme": "tel"}}], imp.mappings)
 
         self.create_field("goats", "Num Goats", ContactField.TYPE_NUMBER)
@@ -4180,8 +4218,8 @@ class ContactImportTest(TembaTest):
         )
 
     @mock_mailroom
-    def test_batches_from_csv(self, mr_mocks):
-        imp = self.create_contact_import("media/test_imports/simple.csv")
+    def test_batches_from_xlsx(self, mr_mocks):
+        imp = self.create_contact_import("media/test_imports/simple.xlsx")
         imp.start()
         batch = imp.batches.get()
 
@@ -4209,21 +4247,35 @@ class ContactImportTest(TembaTest):
             batch.specs,
         )
 
-        # check that we correctly detect different encodings
-        enc_tests = [
-            ("utf16-le", "Drazen"),
-            ("utf16-be", "Drazen"),
-            ("iso-8859-1", "Dràzen"),
-        ]
-        for test in enc_tests:
-            imp = self.create_contact_import(f"media/test_imports/encoding_{test[0]}.csv")
-            imp.start()
-            batch = imp.batches.get()
-            self.assertEqual(test[1], batch.specs[0]["name"])
+    @mock_mailroom
+    def test_batches_from_xlsx_with_formulas(self, mr_mocks):
+        imp = self.create_contact_import("media/test_imports/formula_data.xlsx")
+        imp.start()
+        batch = imp.batches.get()
+
+        self.assertEqual(
+            [
+                {
+                    "_import_row": 2,
+                    "fields": {"team": "Managers"},
+                    "name": "John Smith",
+                    "urns": ["tel:+12025550199"],
+                    "groups": [str(imp.group.uuid)],
+                },
+                {
+                    "_import_row": 3,
+                    "fields": {"team": "Advisors"},
+                    "name": "Mary Green",
+                    "urns": ["tel:+14045550178"],
+                    "groups": [str(imp.group.uuid)],
+                },
+            ],
+            batch.specs,
+        )
 
     @mock_mailroom
     def test_detect_spamminess(self, mr_mocks):
-        imp = self.create_contact_import("media/test_imports/sequential_tels.xls")
+        imp = self.create_contact_import("media/test_imports/sequential_tels.xlsx")
         imp.start()
 
         self.org.refresh_from_db()
@@ -4258,7 +4310,7 @@ class ContactImportTest(TembaTest):
         # if an org is verified, no flagging occurs
         self.org.verify()
 
-        imp = self.create_contact_import("media/test_imports/sequential_tels.xls")
+        imp = self.create_contact_import("media/test_imports/sequential_tels.xlsx")
         imp.start()
 
         self.org.refresh_from_db()
@@ -4275,7 +4327,7 @@ class ContactImportTest(TembaTest):
                     "uuid": "17c4388a-024f-4e67-937a-13be78a70766",
                     "fields": {
                         "a_number": "1234.5678",
-                        "a_date": "2020-10-19",
+                        "a_date": "2020-10-19T00:00:00+02:00",
                         "a_time": "13:17:00",
                         "a_datetime": "2020-10-19T13:18:00+02:00",
                         "price": "123.45",
@@ -4305,19 +4357,19 @@ class ContactImportTest(TembaTest):
     def test_get_default_group_name(self):
         self.create_group("Testers", contacts=[])
         tests = [
-            ("simple.csv", "Simple"),
-            ("testers.csv", "Testers 2"),  # group called Testers already exists
-            ("contact-imports.csv", "Contact Imports"),
-            ("abc_@@é.csv", "Abc É"),
-            ("a_@@é.csv", "Import"),  # would be too short
-            (f"{'x' * 100}.csv", "Xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"),  # truncated
+            ("simple.xlsx", "Simple"),
+            ("testers.xlsx", "Testers 2"),  # group called Testers already exists
+            ("contact-imports.xlsx", "Contact Imports"),
+            ("abc_@@é.xlsx", "Abc É"),
+            ("a_@@é.xlsx", "Import"),  # would be too short
+            (f"{'x' * 100}.xlsx", "Xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"),  # truncated
         ]
         for test in tests:
             self.assertEqual(test[1], ContactImport(org=self.org, original_filename=test[0]).get_default_group_name())
 
     @mock_mailroom
     def test_delete(self, mr_mocks):
-        imp = self.create_contact_import("media/test_imports/simple.csv")
+        imp = self.create_contact_import("media/test_imports/simple.xlsx")
         imp.start()
         imp.delete()
 
@@ -4336,8 +4388,8 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(create_url, {})
         self.assertFormError(response.context["form"], "file", "This field is required.")
 
-        # try uploading an empty CSV file
-        response = self.client.post(create_url, {"file": self.upload("media/test_imports/empty.csv")})
+        # try uploading an empty file
+        response = self.client.post(create_url, {"file": self.upload("media/test_imports/empty.xlsx")})
         self.assertFormError(response.context["form"], "file", "Import file doesn't contain any records.")
 
         # try uploading a valid XLSX file
@@ -4347,7 +4399,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         imp = ContactImport.objects.get()
         self.assertEqual(self.org, imp.org)
         self.assertEqual(3, imp.num_records)
-        self.assertRegex(imp.file.name, rf"test_orgs/{self.org.id}/contact_imports/[\w-]{{36}}.xlsx$")
+        self.assertRegex(imp.file.name, rf"orgs/{self.org.id}/contact_imports/[\w-]{{36}}.xlsx$")
         self.assertEqual("simple.xlsx", imp.original_filename)
         self.assertIsNone(imp.started_on)
         self.assertIsNone(imp.group)
@@ -4377,7 +4429,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
     @mock_mailroom
     def test_creating_new_group(self, mr_mocks):
         self.login(self.admin)
-        imp = self.create_contact_import("media/test_imports/simple.csv")
+        imp = self.create_contact_import("media/test_imports/simple.xlsx")
         preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
         read_url = reverse("contacts.contactimport_read", args=[imp.id])
 
@@ -4413,7 +4465,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(new_group, imp.group)
 
         # existing group should not check for workspace limit
-        imp = self.create_contact_import("media/test_imports/simple.csv")
+        imp = self.create_contact_import("media/test_imports/simple.xlsx")
         preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
         read_url = reverse("contacts.contactimport_read", args=[imp.id])
         with override_settings(ORG_LIMIT_DEFAULTS={"groups": 2}):
@@ -4427,7 +4479,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
     @mock_mailroom
     def test_using_existing_group(self, mr_mocks):
         self.login(self.admin)
-        imp = self.create_contact_import("media/test_imports/simple.csv")
+        imp = self.create_contact_import("media/test_imports/simple.xlsx")
         preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
         read_url = reverse("contacts.contactimport_read", args=[imp.id])
 
@@ -4607,14 +4659,13 @@ class ContactExportTest(TembaTest):
         with self.mockReadOnly(assert_models={Contact, ContactURN, ContactField}):
             export.perform()
 
-        filename = f"{settings.MEDIA_ROOT}/test_orgs/{self.org.id}/contact_exports/{export.uuid}.xlsx"
-        workbook = load_workbook(filename=filename)
+        workbook = load_workbook(
+            filename=default_storage.open(f"orgs/{self.org.id}/contact_exports/{export.uuid}.xlsx")
+        )
         return workbook.worksheets, export
 
     @mock_mailroom
     def test_export(self, mr_mocks):
-        self.clear_storage()
-
         # archive all our current contacts
         Contact.apply_action_block(self.admin, self.org.contacts.all())
 
@@ -4660,8 +4711,12 @@ class ContactExportTest(TembaTest):
         ContactURN.objects.create(org=self.org, identity="line:12345", scheme="line", path="12345")
 
         def assertReimport(export):
-            filename = f"{settings.MEDIA_ROOT}/test_orgs/{self.org.id}/contact_exports/{export.uuid}.xlsx"
-            self.create_contact_import(filename)
+            with default_storage.open(f"orgs/{self.org.id}/contact_exports/{export.uuid}.xlsx") as exp:
+                with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                    tmp.write(exp.read())
+                    tmp.close()
+
+                    self.create_contact_import(tmp.name)
 
         with self.assertNumQueries(22):
             sheets, export = self._export(self.org.active_contacts_group, with_groups=[group1])

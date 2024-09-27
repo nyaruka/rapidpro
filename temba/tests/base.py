@@ -1,5 +1,6 @@
 import copy
-import shutil
+import os
+from collections import namedtuple
 from datetime import datetime
 from functools import wraps
 from io import BytesIO
@@ -20,7 +21,7 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import override_settings
 from django.utils import timezone
 
-from temba.archives.models import Archive
+from temba.archives.models import Archive, jsonlgz_encode
 from temba.channels.models import Channel, ChannelEvent, ChannelLog
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactImport
 from temba.flows.models import Flow, FlowRun, FlowSession
@@ -30,8 +31,8 @@ from temba.msgs.models import Broadcast, Label, Msg, OptIn
 from temba.orgs.models import Org, OrgRole, User
 from temba.templates.models import Template
 from temba.tickets.models import Ticket, TicketEvent
-from temba.utils import json
-from temba.utils.uuid import UUID, uuid4
+from temba.utils import dynamo, json
+from temba.utils.uuid import UUID, uuid4, uuid7
 
 from .mailroom import (
     contact_urn_lookup,
@@ -40,7 +41,6 @@ from .mailroom import (
     resolve_destination,
     update_field_locally,
 )
-from .s3 import jsonlgz_encode
 
 
 def add_testing_flag_to_context(*args):
@@ -70,7 +70,6 @@ class TembaTest(SmartminTest):
         self.editor = self.create_user("editor@nyaruka.com", first_name="Ed", last_name="McEdits")
         self.user = self.create_user("viewer@nyaruka.com")
         self.agent = self.create_user("agent@nyaruka.com", first_name="Agnes")
-        self.surveyor = self.create_user("surveyor@nyaruka.com")
         self.customer_support = self.create_user("support@nyaruka.com", is_staff=True)
 
         self.org = Org.objects.create(
@@ -85,7 +84,6 @@ class TembaTest(SmartminTest):
         self.org.add_user(self.editor, OrgRole.EDITOR)
         self.org.add_user(self.user, OrgRole.VIEWER)
         self.org.add_user(self.agent, OrgRole.AGENT)
-        self.org.add_user(self.surveyor, OrgRole.SURVEYOR)
 
         # setup a second org with a single admin
         self.admin2 = self.create_user("administrator@trileet.com")
@@ -155,12 +153,6 @@ class TembaTest(SmartminTest):
         r = get_redis_connection()
         r.flushdb()
 
-    def clear_storage(self):
-        """
-        If a test has written files to storage, it should remove them by calling this
-        """
-        shutil.rmtree("%s/%s" % (settings.MEDIA_ROOT, settings.STORAGE_ROOT_DIR), ignore_errors=True)
-
     def login(self, user, update_last_auth_on: bool = True, choose_org=None):
         self.assertTrue(
             self.client.login(username=user.username, password=self.default_password),
@@ -175,26 +167,31 @@ class TembaTest(SmartminTest):
             session.update({"org_id": choose_org.id})
             session.save()
 
-    def import_file(self, filename, site="http://rapidpro.io", substitutions=None):
-        data = self.get_import_json(filename, substitutions=substitutions)
-        self.org.import_app(data, self.admin, site=site)
+    def load_json(self, path: str, substitutions=None) -> dict:
+        """
+        Loads a JSON test file from a path relatve to the media directory
+        """
 
-    def get_import_json(self, filename, substitutions=None):
-        handle = open("%s/test_flows/%s.json" % (settings.MEDIA_ROOT, filename), "r+")
-        data = handle.read()
-        handle.close()
+        with open(os.path.join(settings.MEDIA_ROOT, path), "r") as f:
+            data = f.read()
 
-        if substitutions:
-            for k, v in substitutions.items():
-                print('Replacing "%s" with "%s"' % (k, v))
-                data = data.replace(k, str(v))
+            if substitutions:
+                for k, v in substitutions.items():
+                    data = data.replace(k, str(v))
 
-        return json.loads(data)
+            return json.loads(data)
+
+    def import_file(self, path: str, substitutions=None):
+        """
+        Imports definitions from a JSON file
+        """
+
+        self.org.import_app(self.load_json(path, substitutions), self.admin, site="http://rapidpro.io")
 
     def get_flow(self, filename, substitutions=None, name=None):
         now = timezone.now()
 
-        self.import_file(filename, substitutions=substitutions)
+        self.import_file(f"test_flows/{filename}.json", substitutions=substitutions)
 
         imported_flows = Flow.objects.filter(org=self.org, saved_on__gt=now)
         flow = imported_flows.filter(name=name).first() if name else imported_flows.order_by("id").last()
@@ -203,10 +200,6 @@ class TembaTest(SmartminTest):
 
         flow.org = self.org
         return flow
-
-    def get_flow_json(self, filename, substitutions=None):
-        data = self.get_import_json(filename, substitutions=substitutions)
-        return data["flows"][0]
 
     def create_user(self, email, group_names=(), **kwargs):
         user = User.objects.create_user(username=email, email=email, **kwargs)
@@ -470,7 +463,7 @@ class TembaTest(SmartminTest):
         urns=(),
         optin=None,
         exclude=None,
-        status=Broadcast.STATUS_SENT,
+        status=Broadcast.STATUS_COMPLETED,
         msg_status=Msg.STATUS_SENT,
         parent=None,
         schedule=None,
@@ -513,7 +506,10 @@ class TembaTest(SmartminTest):
         for group in bcast.groups.all():
             contacts.update(group.contacts.all())
 
-        if not schedule and status != Broadcast.STATUS_QUEUED:
+        if not schedule and status != Broadcast.STATUS_PENDING:
+            bcast.contact_count = len(contacts)
+            bcast.save(update_fields=("contact_count",))
+
             for contact in contacts:
                 translation = bcast.get_translation(contact)
                 self._create_msg(
@@ -553,7 +549,7 @@ class TembaTest(SmartminTest):
             "name": name,
             "type": Flow.GOFLOW_TYPES[flow_type],
             "revision": 1,
-            "spec_version": "13.1.0",
+            "spec_version": Flow.CURRENT_SPEC_VERSION,
             "expire_after_minutes": Flow.EXPIRES_DEFAULTS[flow_type],
             "language": "eng",
             "nodes": nodes,
@@ -561,32 +557,16 @@ class TembaTest(SmartminTest):
 
         flow.version_number = definition["spec_version"]
         flow.save()
-
-        json_flow = Flow.migrate_definition(definition, flow)
-        flow.save_revision(self.admin, json_flow)
+        flow.save_revision(self.admin, definition)
 
         return flow
 
-    def create_incoming_call(self, flow, contact, status=Call.STATUS_COMPLETED, error_reason=None, created_on=None):
+    def create_incoming_call(
+        self, flow, contact, status=Call.STATUS_COMPLETED, error_reason=None, created_on=None, logs=()
+    ):
         """
         Create something that looks like an incoming IVR call handled by mailroom
         """
-        log = ChannelLog.objects.create(
-            channel=self.channel,
-            log_type=ChannelLog.LOG_TYPE_IVR_START,
-            is_error=status in (Call.STATUS_FAILED, Call.STATUS_ERRORED),
-            http_logs=[
-                {
-                    "url": "https://acme-calls.com/reply",
-                    "status_code": 200,
-                    "request": 'POST /reply\r\n\r\n{"say": "Hello"}',
-                    "response": '{"status": "%s"}' % ("error" if status == Call.STATUS_FAILED else "OK"),
-                    "elapsed_ms": 12,
-                    "retries": 0,
-                    "created_on": "2022-01-01T00:00:00Z",
-                }
-            ],
-        )
         call = Call.objects.create(
             org=self.org,
             channel=self.channel,
@@ -597,7 +577,7 @@ class TembaTest(SmartminTest):
             error_reason=error_reason,
             created_on=created_on or timezone.now(),
             duration=15,
-            log_uuids=[log.uuid],
+            log_uuids=[l.uuid for l in logs or []],
         )
         session = FlowSession.objects.create(
             uuid=uuid4(),
@@ -634,24 +614,23 @@ class TembaTest(SmartminTest):
         return call
 
     def create_archive(
-        self, archive_type, period, start_date, records=(), needs_deletion=False, rollup_of=(), s3=None, org=None
+        self, archive_type, period, start_date, records=(), needs_deletion=False, rollup_of=(), org=None
     ):
         org = org or self.org
         body, md5, size = jsonlgz_encode(records)
-        bucket = "s3-bucket"
         type_code = "run" if archive_type == Archive.TYPE_FLOWRUN else "message"
         date_code = start_date.strftime("%Y%m") if period == "M" else start_date.strftime("%Y%m%d")
         key = f"{org.id}/{type_code}_{period}{date_code}_{md5}.jsonl.gz"
 
-        if s3:
-            s3.put_object(bucket, key, body)
+        key = Archive.storage().save(key, body)
+        url = Archive.storage().url(key)
 
         archive = Archive.objects.create(
             org=org,
             archive_type=archive_type,
             size=size,
             hash=md5,
-            url=f"http://{bucket}.aws.com/{key}",
+            url=url,
             record_count=len(records),
             start_date=start_date,
             period=period,
@@ -704,6 +683,26 @@ class TembaTest(SmartminTest):
             modified_by=self.admin,
         )
 
+    def create_channel_log(self, log_type: str, *, http_logs=(), errors=()) -> dict:
+        uuid = uuid7()
+        created_on = timezone.now()
+        expires_on = created_on + timezone.timedelta(days=7)
+
+        client = dynamo.get_client()
+        client.put_item(
+            TableName=dynamo.table_name(ChannelLog.DYNAMO_TABLE),
+            Item={
+                "UUID": {"S": str(uuid)},
+                "Type": {"S": log_type},
+                "DataGZ": {"B": dynamo.dump_jsongz({"http_logs": http_logs, "errors": errors})},
+                "ElapsedMS": {"N": "12"},
+                "CreatedOn": {"N": str(int(created_on.timestamp()))},
+                "ExpiresOn": {"N": str(int(expires_on.timestamp()))},
+            },
+        )
+
+        return namedtuple("ChannelLog", ["uuid", "created_on"])(uuid, created_on)
+
     def create_channel_event(self, channel, urn, event_type, occurred_on=None, optin=None, extra=None):
         urn_obj = contact_urn_lookup(channel.org, urn)
         if urn_obj:
@@ -742,9 +741,9 @@ class TembaTest(SmartminTest):
     def create_ticket(
         self,
         contact,
-        body: str,
         topic=None,
         assignee=None,
+        note: str = None,
         opened_on=None,
         opened_by=None,
         opened_in=None,
@@ -758,7 +757,6 @@ class TembaTest(SmartminTest):
             org=contact.org,
             contact=contact,
             topic=topic or contact.org.default_ticket_topic,
-            body=body,
             status=Ticket.STATUS_CLOSED if closed_on else Ticket.STATUS_OPEN,
             assignee=assignee,
             opened_on=opened_on,
@@ -772,6 +770,7 @@ class TembaTest(SmartminTest):
             ticket=ticket,
             event_type=TicketEvent.TYPE_OPENED,
             assignee=assignee,
+            note=note,
             created_by=opened_by,
             created_on=opened_on,
         )

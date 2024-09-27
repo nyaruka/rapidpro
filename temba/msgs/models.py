@@ -86,7 +86,7 @@ class Media(models.Model):
         Returns the storage path for the given filename. Differs slightly from that used by the media endpoint because
         it preserves the original filename which courier still needs if there's no media record for an attachment URL.
         """
-        return f"{settings.STORAGE_ROOT_DIR}/{org.id}/media/{str(uuid)[0:4]}/{uuid}/{filename}"
+        return f"orgs/{org.id}/media/{str(uuid)[0:4]}/{uuid}/{filename}"
 
     @classmethod
     def clean_name(cls, filename: str, content_type: str) -> str:
@@ -184,12 +184,24 @@ class Broadcast(models.Model):
     messages sent from the same bundle together
     """
 
-    STATUS_QUEUED = "Q"
-    STATUS_SENT = "S"
+    STATUS_PENDING = "P"  # exists in the database
+    STATUS_QUEUED = "Q"  # batch tasks created, count_count set
+    STATUS_STARTED = "S"  # first batch task started
+    STATUS_COMPLETED = "C"  # last batch task completed
     STATUS_FAILED = "F"
-    STATUS_CHOICES = ((STATUS_QUEUED, "Queued"), (STATUS_SENT, "Sent"), (STATUS_FAILED, "Failed"))
+    STATUS_INTERRUPTED = "I"
+    STATUS_CHOICES = (
+        (STATUS_PENDING, "Pending"),
+        (STATUS_QUEUED, "Queued"),
+        (STATUS_STARTED, "Started"),
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_FAILED, "Failed"),
+        (STATUS_INTERRUPTED, "Interrupted"),
+    )
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="broadcasts")
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    contact_count = models.IntegerField(default=0, null=True)  # null until status is QUEUED
 
     # recipients of this broadcast
     groups = models.ManyToManyField(ContactGroup, related_name="addressed_broadcasts")
@@ -206,10 +218,9 @@ class Broadcast(models.Model):
     template = models.ForeignKey("templates.Template", null=True, on_delete=models.PROTECT)
     template_variables = ArrayField(models.TextField(), null=True)
 
-    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_QUEUED)
-    created_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name="broadcast_creations")
+    created_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name="+")
     created_on = models.DateTimeField(default=timezone.now)
-    modified_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name="broadcast_modifications")
+    modified_by = models.ForeignKey(User, null=True, on_delete=models.PROTECT, related_name="+")
     modified_on = models.DateTimeField(default=timezone.now)
 
     # used for scheduled broadcasts which are never actually sent themselves but spawn child broadcasts which are
@@ -258,13 +269,6 @@ class Broadcast(models.Model):
         )
 
     @classmethod
-    def get_queued(cls, org):
-        """
-        Gets the queued broadcasts which will be prepended to the Outbox
-        """
-        return org.broadcasts.filter(status=cls.STATUS_QUEUED, schedule=None, is_active=True)
-
-    @classmethod
     def preview(cls, org, *, include: mailroom.Inclusions, exclude: mailroom.Exclusions) -> tuple[str, int]:
         """
         Requests a preview of the recipients of a broadcast created with the given inclusions/exclusions, returning a
@@ -301,6 +305,15 @@ class Broadcast(models.Model):
             return trans(self.translations[self.org.flow_languages[0]])
 
         return trans(self.translations[self.base_language])  # should always be a base language translation
+
+    def interrupt(self, user):
+        """
+        Interrupts this flow start
+        """
+
+        self.status = self.STATUS_INTERRUPTED
+        self.modified_by = user
+        self.save(update_fields=("status", "modified_by", "modified_on"))
 
     def delete(self, user, *, soft: bool):
         if soft:
@@ -358,12 +371,6 @@ class Broadcast(models.Model):
                 name="msgs_broadcasts_scheduled",
                 fields=["org", "-created_on"],
                 condition=Q(schedule__isnull=False, is_active=True),
-            ),
-            # used to fetch queued broadcasts for the Outbox
-            models.Index(
-                name="msgs_broadcasts_queued",
-                fields=["org", "-created_on"],
-                condition=Q(schedule__isnull=True, status="Q", is_active=True),
             ),
         ]
 
@@ -577,7 +584,7 @@ class Msg(models.Model):
         return Attachment.parse_all(self.attachments)
 
     def get_logs(self) -> list:
-        return ChannelLog.get_logs(self.channel, self.log_uuids or [])
+        return ChannelLog.get_by_uuid(self.channel, self.log_uuids or [])
 
     def handle(self):  # pragma: no cover
         """
@@ -698,6 +705,12 @@ class Msg(models.Model):
                 fields=["next_attempt", "created_on", "id"],
                 condition=Q(direction="O", status__in=("I", "E"), next_attempt__isnull=False),
             ),
+            # used for finding old Android messages to fail
+            models.Index(
+                name="msgs_outgoing_android_to_fail",
+                fields=["created_on"],
+                condition=Q(direction="O", is_android=True, status__in=("I", "Q", "E")),
+            ),
             # used by courier to lookup messages by external id
             models.Index(
                 name="msgs_by_external_id",
@@ -779,6 +792,19 @@ class BroadcastMsgCount(SquashableModel):
     @classmethod
     def get_count(cls, broadcast):
         return cls.sum(broadcast.counts.all())
+
+    @classmethod
+    def bulk_annotate(cls, broadcasts):
+        counts = (
+            cls.objects.filter(broadcast_id__in=[b.id for b in broadcasts])
+            .values("broadcast_id")
+            .order_by("broadcast_id")
+            .annotate(count=Sum("count"))
+        )
+        counts_by_bcast = {c["broadcast_id"]: c["count"] for c in counts}
+
+        for bcast in broadcasts:
+            bcast.msg_count = counts_by_bcast.get(bcast.id, 0)
 
 
 class SystemLabel:
@@ -1164,7 +1190,7 @@ class MessageExport(ExportType):
         if system_label:
             where = SystemLabel.get_archive_query(system_label)
         elif label:
-            where = {"visibility": "visible", "__raw__": f"'{label.uuid}' IN s.labels[*].uuid[*]"}
+            where = {"visibility": "visible", "__raw__": f"'{label.uuid}' IN s.labels[*].uuid"}
         else:
             where = {"visibility": "visible"}
 

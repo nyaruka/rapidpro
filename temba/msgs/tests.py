@@ -5,6 +5,7 @@ from unittest.mock import call, patch
 from openpyxl import load_workbook
 
 from django.conf import settings
+from django.core.files.storage import default_storage
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -29,16 +30,15 @@ from temba.msgs.views import ScheduleForm
 from temba.orgs.models import Export
 from temba.schedules.models import Schedule
 from temba.templates.models import TemplateTranslation
-from temba.tests import CRUDLTestMixin, MigrationTest, TembaTest, mock_mailroom, mock_uuids
+from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom, mock_uuids
 from temba.tests.engine import MockSessionWriter
-from temba.tests.s3 import MockS3Client, jsonlgz_encode
 from temba.tickets.models import Ticket
 from temba.utils import s3
 from temba.utils.compose import compose_deserialize_attachments, compose_serialize
 from temba.utils.fields import ContactSearchWidget
 from temba.utils.views import TEMBA_MENU_SELECTION
 
-from .tasks import fail_old_messages, squash_msg_counts
+from .tasks import fail_old_android_messages, squash_msg_counts
 
 
 class AttachmentTest(TembaTest):
@@ -63,11 +63,6 @@ class AttachmentTest(TembaTest):
 
 
 class MediaTest(TembaTest):
-    def tearDown(self):
-        self.clear_storage()
-
-        return super().tearDown()
-
     def test_clean_name(self):
         self.assertEqual("file.jpg", Media.clean_name("", "image/jpeg"))
         self.assertEqual("foo.jpg", Media.clean_name("foo", "image/jpeg"))
@@ -87,12 +82,12 @@ class MediaTest(TembaTest):
         self.assertEqual("b97f69f7-5edf-45c7-9fda-d37066eae91d", str(media.uuid))
         self.assertEqual(self.org, media.org)
         self.assertEqual(
-            f"/media/test_orgs/{self.org.id}/media/b97f/b97f69f7-5edf-45c7-9fda-d37066eae91d/steve%20marten.jpg",
+            f"{settings.STORAGE_URL}/orgs/{self.org.id}/media/b97f/b97f69f7-5edf-45c7-9fda-d37066eae91d/steve%20marten.jpg",
             media.url,
         )
         self.assertEqual("image/jpeg", media.content_type)
         self.assertEqual(
-            f"test_orgs/{self.org.id}/media/b97f/b97f69f7-5edf-45c7-9fda-d37066eae91d/steve marten.jpg", media.path
+            f"orgs/{self.org.id}/media/b97f/b97f69f7-5edf-45c7-9fda-d37066eae91d/steve marten.jpg", media.path
         )
         self.assertEqual(self.admin, media.created_by)
         self.assertEqual(Media.STATUS_PENDING, media.status)
@@ -105,9 +100,7 @@ class MediaTest(TembaTest):
             process=False,
         )
 
-        self.assertEqual(
-            f"test_orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/passwd.png", media.path
-        )
+        self.assertEqual(f"orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/passwd.png", media.path)
 
     @mock_uuids
     def test_process_image_png(self):
@@ -141,10 +134,11 @@ class MediaTest(TembaTest):
 
         self.assertEqual(self.org, alt1.org)
         self.assertEqual(
-            f"/media/test_orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/allo.mp3", alt1.url
+            f"{settings.STORAGE_URL}/orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/allo.mp3",
+            alt1.url,
         )
         self.assertEqual("audio/mp3", alt1.content_type)
-        self.assertEqual(f"test_orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/allo.mp3", alt1.path)
+        self.assertEqual(f"orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/allo.mp3", alt1.path)
         self.assertAlmostEqual(5517, alt1.size, delta=1000)
         self.assertEqual(5110, alt1.duration)
         self.assertEqual(0, alt1.width)
@@ -153,10 +147,11 @@ class MediaTest(TembaTest):
 
         self.assertEqual(self.org, alt2.org)
         self.assertEqual(
-            f"/media/test_orgs/{self.org.id}/media/d1ee/d1ee73f0-bdb5-47ce-99dd-0c95d4ebf008/allo.m4a", alt2.url
+            f"{settings.STORAGE_URL}/orgs/{self.org.id}/media/d1ee/d1ee73f0-bdb5-47ce-99dd-0c95d4ebf008/allo.m4a",
+            alt2.url,
         )
         self.assertEqual("audio/mp4", alt2.content_type)
-        self.assertEqual(f"test_orgs/{self.org.id}/media/d1ee/d1ee73f0-bdb5-47ce-99dd-0c95d4ebf008/allo.m4a", alt2.path)
+        self.assertEqual(f"orgs/{self.org.id}/media/d1ee/d1ee73f0-bdb5-47ce-99dd-0c95d4ebf008/allo.m4a", alt2.path)
         self.assertAlmostEqual(20552, alt2.size, delta=7500)
         self.assertEqual(5110, alt2.duration)
         self.assertEqual(0, alt2.width)
@@ -180,12 +175,11 @@ class MediaTest(TembaTest):
 
         self.assertEqual(self.org, alt.org)
         self.assertEqual(
-            f"/media/test_orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/bubbles.mp3", alt.url
+            f"{settings.STORAGE_URL}/orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/bubbles.mp3",
+            alt.url,
         )
         self.assertEqual("audio/mp3", alt.content_type)
-        self.assertEqual(
-            f"test_orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/bubbles.mp3", alt.path
-        )
+        self.assertEqual(f"orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/bubbles.mp3", alt.path)
         self.assertAlmostEqual(41493, alt.size, delta=1000)
         self.assertEqual(10216, alt.duration)
         self.assertEqual(0, alt.width)
@@ -209,10 +203,11 @@ class MediaTest(TembaTest):
 
         self.assertEqual(self.org, alt.org)
         self.assertEqual(
-            f"/media/test_orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/snow.jpg", alt.url
+            f"{settings.STORAGE_URL}/orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/snow.jpg",
+            alt.url,
         )
         self.assertEqual("image/jpeg", alt.content_type)
-        self.assertEqual(f"test_orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/snow.jpg", alt.path)
+        self.assertEqual(f"orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/snow.jpg", alt.path)
         self.assertAlmostEqual(37613, alt.size, delta=1000)
         self.assertEqual(0, alt.duration)
         self.assertEqual(640, alt.width)
@@ -222,11 +217,11 @@ class MediaTest(TembaTest):
     @mock_uuids
     def test_process_unsupported(self):
         media = Media.from_upload(
-            self.org, self.admin, self.upload(f"{settings.MEDIA_ROOT}/test_imports/simple.xls", "audio/m4a")
+            self.org, self.admin, self.upload(f"{settings.MEDIA_ROOT}/test_imports/simple.xlsx", "audio/m4a")
         )
         media.refresh_from_db()
 
-        self.assertEqual(19968, media.size)
+        self.assertEqual(9635, media.size)
         self.assertEqual(Media.STATUS_FAILED, media.status)
 
 
@@ -421,7 +416,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         assertReleaseCount("I", Msg.STATUS_HANDLED, Msg.VISIBILITY_ARCHIVED, None, SystemLabel.TYPE_ARCHIVED)
         assertReleaseCount("I", Msg.STATUS_HANDLED, Msg.VISIBILITY_VISIBLE, flow, SystemLabel.TYPE_FLOWS)
 
-    def test_fail_old_messages(self):
+    def test_fail_old_android_messages(self):
         msg1 = self.create_outgoing_msg(self.joe, "Hello", status=Msg.STATUS_QUEUED)
         msg2 = self.create_outgoing_msg(
             self.joe, "Hello", status=Msg.STATUS_QUEUED, created_on=timezone.now() - timedelta(days=8)
@@ -433,7 +428,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
             self.joe, "Hello", status=Msg.STATUS_SENT, created_on=timezone.now() - timedelta(days=8)
         )
 
-        fail_old_messages()
+        fail_old_android_messages()
 
         def assert_status(msg, status):
             msg.refresh_from_db()
@@ -471,7 +466,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         # create a message which references a flow and a ticket
         flow = self.create_flow("Flow")
         contact = self.create_contact("Ann", phone="+250788000001")
-        ticket = self.create_ticket(contact, "Help")
+        ticket = self.create_ticket(contact)
         msg = self.create_outgoing_msg(contact, "Hi", flow=flow, ticket=ticket)
 
         # both Msg.flow and Msg.ticket are unconstrained so we shuld be able to delete these
@@ -645,7 +640,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             {"eng": {"text": "How is it going?"}},
             contacts=[contact1],
-            status=Broadcast.STATUS_SENT,
+            status=Broadcast.STATUS_COMPLETED,
             msg_status=Msg.STATUS_INITIALIZING,
         )
         msg1 = broadcast1.msgs.get()
@@ -674,20 +669,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         msg4, msg3, msg2 = broadcast2.msgs.order_by("-id")
 
-        broadcast3 = self.create_broadcast(
-            self.admin, {"eng": {"text": "Pending broadcast"}}, contacts=[contact4], status="Q"
-        )
-        self.create_broadcast(
-            self.admin,
-            {"eng": {"text": "Scheduled broadcast"}},
-            contacts=[contact4],
-            schedule=Schedule.create(self.org, timezone.now(), Schedule.REPEAT_DAILY),
-        )
-
         response = self.assertListFetch(outbox_url, [self.admin], context_objects=[msg4, msg3, msg2, msg1])
-
-        # should see queued broadcast but not the scheduled one
-        self.assertEqual([broadcast3], list(response.context_data["queued_broadcasts"]))
 
         response = self.client.get(outbox_url + "?search=kevin")
         self.assertEqual([Msg.objects.get(contact=contact4)], list(response.context_data["object_list"]))
@@ -908,8 +890,6 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
             export.config,
         )
 
-        self.clear_storage()
-
 
 class MessageExportTest(TembaTest):
     def setUp(self):
@@ -936,8 +916,7 @@ class MessageExportTest(TembaTest):
         with self.mockReadOnly():
             export.perform()
 
-        filename = f"{settings.MEDIA_ROOT}/test_orgs/{self.org.id}/message_exports/{export.uuid}.xlsx"
-        return load_workbook(filename=filename)
+        return load_workbook(filename=default_storage.open(f"orgs/{self.org.id}/message_exports/{export.uuid}.xlsx"))
 
     def test_export_from_archives(self):
         self.joe.name = "Jo\02e Blow"
@@ -994,21 +973,12 @@ class MessageExportTest(TembaTest):
         msg3.visibility = Msg.VISIBILITY_ARCHIVED
         msg3.save()
 
-        # archive 5 msgs
-        mock_s3 = MockS3Client()
-        body, md5, size = jsonlgz_encode([m.as_archive_json() for m in (msg1, msg2, msg3, msg4, msg5, msg6)])
-        mock_s3.put_object("test-bucket", "archive1.jsonl.gz", body)
-
-        Archive.objects.create(
-            org=self.org,
-            archive_type=Archive.TYPE_MSG,
-            size=size,
-            hash=md5,
-            url="http://test-bucket.aws.com/archive1.jsonl.gz",
-            record_count=6,
-            start_date=msg5.created_on.date(),
-            period="D",
-            build_time=23425,
+        # archive 6 msgs
+        self.create_archive(
+            Archive.TYPE_MSG,
+            "D",
+            msg5.created_on.date(),
+            [m.as_archive_json() for m in (msg1, msg2, msg3, msg4, msg5, msg6)],
         )
 
         with patch("django.core.files.storage.default_storage.delete"):
@@ -1018,27 +988,14 @@ class MessageExportTest(TembaTest):
             msg5.delete()
             msg6.delete()
 
-        # create an archive earlier than our flow created date so we check that it isn't included
-        body, md5, size = jsonlgz_encode([msg7.as_archive_json()])
-        Archive.objects.create(
-            org=self.org,
-            archive_type=Archive.TYPE_MSG,
-            size=size,
-            hash=md5,
-            url="http://test-bucket.aws.com/archive2.jsonl.gz",
-            record_count=1,
-            start_date=self.org.created_on - timedelta(days=2),
-            period="D",
-            build_time=5678,
-        )
-        mock_s3.put_object("test-bucket", "archive2.jsonl.gz", body)
+        # create an archive earlier than our org creation date so we check that it isn't included
+        self.create_archive(Archive.TYPE_MSG, "D", self.org.created_on - timedelta(days=2), [msg7.as_archive_json()])
 
         msg7.delete()
 
         # export all visible messages (i.e. not msg3) using export_all param
         with self.assertNumQueries(18):
-            with patch("temba.utils.s3.client", return_value=mock_s3):
-                workbook = self._export(None, None, date(2000, 9, 1), date(2022, 9, 1))
+            workbook = self._export(None, None, date(2000, 9, 1), date(2022, 9, 1))
 
         expected_headers = [
             "Date",
@@ -1148,9 +1105,7 @@ class MessageExportTest(TembaTest):
             self.org.timezone,
         )
 
-        with patch("temba.utils.s3.client", return_value=mock_s3):
-            workbook = self._export(SystemLabel.TYPE_INBOX, None, msg5.created_on.date(), msg7.created_on.date())
-
+        workbook = self._export(SystemLabel.TYPE_INBOX, None, msg5.created_on.date(), msg7.created_on.date())
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
@@ -1173,9 +1128,7 @@ class MessageExportTest(TembaTest):
             self.org.timezone,
         )
 
-        with patch("temba.utils.s3.client", return_value=mock_s3):
-            workbook = self._export(SystemLabel.TYPE_SENT, None, date(2000, 9, 1), date(2022, 9, 1))
-
+        workbook = self._export(SystemLabel.TYPE_SENT, None, date(2000, 9, 1), date(2022, 9, 1))
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
@@ -1198,9 +1151,7 @@ class MessageExportTest(TembaTest):
             self.org.timezone,
         )
 
-        with patch("temba.utils.s3.client", return_value=mock_s3):
-            workbook = self._export(SystemLabel.TYPE_FAILED, None, date(2000, 9, 1), date(2022, 9, 1))
-
+        workbook = self._export(SystemLabel.TYPE_FAILED, None, date(2000, 9, 1), date(2022, 9, 1))
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
@@ -1237,9 +1188,7 @@ class MessageExportTest(TembaTest):
             self.org.timezone,
         )
 
-        with patch("temba.utils.s3.client", return_value=mock_s3):
-            workbook = self._export(SystemLabel.TYPE_FLOWS, None, date(2000, 9, 1), date(2022, 9, 1))
-
+        workbook = self._export(SystemLabel.TYPE_FLOWS, None, date(2000, 9, 1), date(2022, 9, 1))
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
@@ -1262,9 +1211,7 @@ class MessageExportTest(TembaTest):
             self.org.timezone,
         )
 
-        with patch("temba.utils.s3.client", return_value=mock_s3):
-            workbook = self._export(None, label, date(2000, 9, 1), date(2022, 9, 1))
-
+        workbook = self._export(None, label, date(2000, 9, 1), date(2022, 9, 1))
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
@@ -1286,8 +1233,6 @@ class MessageExportTest(TembaTest):
             ],
             self.org.timezone,
         )
-
-        self.clear_storage()
 
     def test_export(self):
         age = self.create_field("age", "Age")
@@ -1759,8 +1704,6 @@ class MessageExportTest(TembaTest):
                 self.org.timezone,
             )
 
-        self.clear_storage()
-
 
 class BroadcastTest(TembaTest):
     def setUp(self):
@@ -1857,8 +1800,15 @@ class BroadcastTest(TembaTest):
             contacts=[self.kevin, self.lucy],
             schedule=schedule,
         )
-        self.assertEqual("Q", bcast2.status)
+        self.assertEqual("P", bcast2.status)
         self.assertTrue(bcast2.is_active)
+
+        bcast2.interrupt(self.editor)
+
+        bcast2.refresh_from_db()
+        self.assertEqual(Broadcast.STATUS_INTERRUPTED, bcast2.status)
+        self.assertEqual(self.editor, bcast2.modified_by)
+        self.assertIsNotNone(bcast2.modified_on)
 
         # create a broadcast that looks like it has been sent
         bcast3 = self.create_broadcast(self.admin, {"eng": {"text": "Hi everyone"}}, contacts=[self.kevin, self.lucy])
@@ -2078,7 +2028,7 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
                 ],
                 "advanced": False,
                 "query": None,
-                "exclusions": {},
+                "exclusions": {"in_a_flow": True},
             },
             json.loads(contact_search.value()),
         )
@@ -2451,6 +2401,18 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         self.org.is_flagged = False
         self.org.save()
 
+        # if we have too many messages in our outbox we should block
+        mr_mocks.msg_broadcast_preview(query="age > 30", total=2)
+        SystemLabelCount.objects.create(org=self.org, label_type=SystemLabel.TYPE_OUTBOX, count=1_000_001)
+        response = self.client.post(preview_url, {"query": "age > 30"}, content_type="application/json")
+        self.assertEqual(
+            [
+                "You have too many messages queued in your outbox. Please wait for these messages to send and then try again."
+            ],
+            response.json()["blockers"],
+        )
+        self.org.system_labels.all().delete()
+
         # if we release our send channel we can't send a broadcast
         self.channel.release(self.admin)
         mr_mocks.msg_broadcast_preview(query='age > 30 AND status = "active"', total=100)
@@ -2599,7 +2561,7 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
                     self.admin,
                     translations={"eng": {"text": text, "attachments": attachments}},
                     groups=[self.joe_and_frank],
-                    status=Msg.STATUS_QUEUED,
+                    status=Msg.STATUS_PENDING,
                     parent=broadcast,
                 )
             )
@@ -2640,6 +2602,36 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(broadcast.is_active)
         self.assertIsNone(broadcast.schedule)
         self.assertEqual(0, Schedule.objects.count())
+
+    def test_status(self):
+        broadcast = self.create_broadcast(
+            self.admin,
+            {"eng": {"text": "Daily reminder"}},
+            groups=[self.joe_and_frank],
+            status=Broadcast.STATUS_PENDING,
+        )
+
+        status_url = f"{reverse('msgs.broadcast_status')}?id={broadcast.id}&status=P"
+        self.assertRequestDisallowed(status_url, [None, self.user, self.agent])
+        response = self.assertReadFetch(status_url, [self.editor, self.admin])
+
+        # status returns json
+        self.assertEqual("Pending", response.json()["results"][0]["status"])
+
+    def test_interrupt(self):
+        broadcast = self.create_broadcast(
+            self.admin,
+            {"eng": {"text": "Daily reminder"}},
+            groups=[self.joe_and_frank],
+            status=Broadcast.STATUS_PENDING,
+        )
+
+        interrupt_url = reverse("msgs.broadcast_interrupt", args=[broadcast.id])
+        self.assertRequestDisallowed(interrupt_url, [None, self.user, self.agent])
+        self.requestView(interrupt_url, self.admin, post_data={})
+
+        broadcast.refresh_from_db()
+        self.assertEqual(Broadcast.STATUS_INTERRUPTED, broadcast.status)
 
 
 class LabelTest(TembaTest):
@@ -2913,7 +2905,7 @@ class SystemLabelTest(TembaTest):
         self.create_incoming_msg(contact1, "Message 2")
         msg3 = self.create_incoming_msg(contact1, "Message 3")
         msg4 = self.create_incoming_msg(contact1, "Message 4")
-        self.create_broadcast(self.user, {"eng": {"text": "Broadcast 2"}}, contacts=[contact1, contact2], status="Q")
+        self.create_broadcast(self.user, {"eng": {"text": "Broadcast 2"}}, contacts=[contact1, contact2], status="P")
         self.create_broadcast(
             self.user,
             {"eng": {"text": "Broadcast 2"}},
@@ -3084,7 +3076,7 @@ class MediaCRUDLTest(CRUDLTestMixin, TembaTest):
                 "uuid": "b97f69f7-5edf-45c7-9fda-d37066eae91d",
                 "content_type": "image/jpeg",
                 "type": "image/jpeg",
-                "url": f"/media/test_orgs/{self.org.id}/media/b97f/b97f69f7-5edf-45c7-9fda-d37066eae91d/steve%20marten.jpg",
+                "url": f"{settings.STORAGE_URL}/orgs/{self.org.id}/media/b97f/b97f69f7-5edf-45c7-9fda-d37066eae91d/steve%20marten.jpg",
                 "name": "steve marten.jpg",
                 "size": 7461,
             },
@@ -3096,7 +3088,7 @@ class MediaCRUDLTest(CRUDLTestMixin, TembaTest):
                 "uuid": "14f6ea01-456b-4417-b0b8-35e942f549f1",
                 "content_type": "video/mp4",
                 "type": "video/mp4",
-                "url": f"/media/test_orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/snow.mp4",
+                "url": f"{settings.STORAGE_URL}/orgs/{self.org.id}/media/14f6/14f6ea01-456b-4417-b0b8-35e942f549f1/snow.mp4",
                 "name": "snow.mp4",
                 "size": 684558,
             },
@@ -3108,7 +3100,7 @@ class MediaCRUDLTest(CRUDLTestMixin, TembaTest):
                 "uuid": "9295ebab-5c2d-4eb1-86f9-7c15ed2f3219",
                 "content_type": "audio/mp4",
                 "type": "audio/mp4",
-                "url": f"/media/test_orgs/{self.org.id}/media/9295/9295ebab-5c2d-4eb1-86f9-7c15ed2f3219/bubbles.m4a",
+                "url": f"{settings.STORAGE_URL}/orgs/{self.org.id}/media/9295/9295ebab-5c2d-4eb1-86f9-7c15ed2f3219/bubbles.m4a",
                 "name": "bubbles.m4a",
                 "size": 46468,
             },
@@ -3118,7 +3110,7 @@ class MediaCRUDLTest(CRUDLTestMixin, TembaTest):
             self.assertEqual({"error": "Unsupported file type"}, response.json())
 
         # error message if you upload something unsupported
-        with open(f"{settings.MEDIA_ROOT}/test_imports/simple.xls", "rb") as data:
+        with open(f"{settings.MEDIA_ROOT}/test_imports/simple.xlsx", "rb") as data:
             response = self.client.post(upload_url, {"file": data}, HTTP_X_FORWARDED_HTTPS="https")
             self.assertEqual({"error": "Unsupported file type"}, response.json())
 
@@ -3131,8 +3123,6 @@ class MediaCRUDLTest(CRUDLTestMixin, TembaTest):
             with open(f"{settings.MEDIA_ROOT}/test_media/snow.mp4", "rb") as data:
                 response = self.client.post(upload_url, {"file": data}, HTTP_X_FORWARDED_HTTPS="https")
                 self.assertEqual({"error": "Limit for file uploads is 0.0009765625 MB"}, response.json())
-
-        self.clear_storage()
 
     def test_list(self):
         upload_url = reverse("msgs.media_upload")
@@ -3152,33 +3142,3 @@ class MediaCRUDLTest(CRUDLTestMixin, TembaTest):
         self.login(self.customer_support, choose_org=self.org)
         response = self.client.get(list_url)
         self.assertEqual([media2, media1], list(response.context["object_list"]))
-
-        self.clear_storage()
-
-
-class TrimOldBroadcastsToNodesTest(MigrationTest):
-    app = "msgs"
-    migrate_from = "0267_broadcast_node_uuid"
-    migrate_to = "0268_trim_old_broadcasts_to_nodes"
-
-    def setUpBeforeMigration(self, apps):
-        def create_broadcast(status: str, num_contacts: int):
-            contacts = [self.create_contact(f"Contact {i}", urns=[]) for i in range(num_contacts)]
-            bcast = Broadcast.objects.create(
-                org=self.org,
-                translations={"und": {"text": "Hi"}},
-                base_language="und",
-                status=status,
-                created_by=self.admin,
-            )
-            bcast.contacts.add(*contacts)
-            return bcast
-
-        self.bcast1 = create_broadcast("P", 55)  # should be ignored because of status
-        self.bcast2 = create_broadcast("S", 45)  # should be ignored because of contact count
-        self.bcast3 = create_broadcast("S", 2005)  # requires 2 batches of deletes
-
-    def test_migration(self):
-        self.assertEqual(55, self.bcast1.contacts.count())
-        self.assertEqual(45, self.bcast2.contacts.count())
-        self.assertEqual(50, self.bcast3.contacts.count())  # trimmed

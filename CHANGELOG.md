@@ -1,3 +1,252 @@
+v9.3.51 (2024-09-27)
+-------------------------
+ * Update components with progress bar tweaks
+
+v9.3.50 (2024-09-27)
+-------------------------
+ * Add commas for broadcast message count
+
+v9.3.49 (2024-09-26)
+-------------------------
+ * Tweak deindexing a deleted contact
+
+v9.3.48 (2024-09-26)
+-------------------------
+ * Use 10th anniversary rp logo
+ * Explicitly de-index contacts when released
+ * Request de-indexing of contacts when hard deleting an org
+ * Switch to flowstart_list permission for status
+ * Add status and interrupt for broadcasts and starts
+
+v9.3.47 (2024-09-25)
+-------------------------
+ * Re-introduce QUEUED status for FlowStarts and Broadcasts
+ * Remove progress field from flow starts endpoint docs
+
+v9.3.46 (2024-09-23)
+-------------------------
+ * Add progress field to broadcasts API endpoint
+ * Add Broadcast.interrupt(user)
+
+v9.3.45 (2024-09-23)
+-------------------------
+ * Add PENDING/STARTED statuses and contact_count field to broadcasts
+
+v9.3.44 (2024-09-23)
+-------------------------
+ * Validate channel variable in the body for EX channels
+ * Replace broadcast status S with C
+
+v9.3.43 (2024-09-19)
+-------------------------
+ * Add support broadcast status (C)COMPLETED
+ * Remove broadcasts from Outbox now that they have their own page
+ * Put starts before webhooks on flow history menu
+
+v9.3.42 (2024-09-18)
+-------------------------
+ * Cleanup how we read and anonymize channel logs
+
+v9.3.41 (2024-09-18)
+-------------------------
+ * Limit SetRunResult category length in editor
+ * Add --testing argument to migrate_dynamo command
+ * Start reading attached channel logs from DynamoDB instead of S3
+
+v9.3.40 (2024-09-17)
+-------------------------
+ * Add INTERRUPTED as a status for flow starts
+ * Switch flow starting blocker to warning
+
+v9.3.39 (2024-09-17)
+-------------------------
+ * Show bad import file error as validation errors to the user
+ * Fix flow start progress bar with high pcts
+ * Simplify outbox limit to be hardcoded at 1M
+ * Validate body for EX channel type will be valid JSON after replacing variables
+
+v9.3.38 (2024-09-14)
+-------------------------
+ * Add flow start progress bar
+
+v9.3.37 (2024-09-13)
+-------------------------
+ * Fix import read page title
+ * Fix importing contacts from spreadsheet with broken dimensions
+ * Fix TTL attribute name on DynamoDB channel logs table
+
+v9.3.36 (2024-09-12)
+-------------------------
+ * Use 'tasks:batch' queue name instead of 'batch'
+
+v9.3.35 (2024-09-12)
+-------------------------
+ * Add progress field to flow starts endpoint
+
+v9.3.34 (2024-09-11)
+-------------------------
+ * Add timing controls around flow starts
+
+v9.3.33 (2024-09-11)
+-------------------------
+ * Rename dynamodb channel logs table
+
+v9.3.32 (2024-09-07)
+-------------------------
+ * Add outbox monitor for large queues
+
+v9.3.31 (2024-09-05)
+-------------------------
+ * Add an org limit for too many messages in outbox
+
+v9.3.30 (2024-09-02)
+-------------------------
+ * Import cell data value instead of formulas using data_only flag to load the workbook
+
+v9.3.29 (2024-08-27)
+-------------------------
+ * Fix authorization code, verification, redirect URI
+
+v9.3.28 (2024-08-27)
+-------------------------
+ * Authorization code cannot be debugged
+ * Fix channel URLs to have a trailing slash
+ * Delete no longer used test flows
+ * Simplify functions for loading flows in tests and move flows used by legacy migration tests into their own directory
+ * TembaTest.create_flow should return a flow in latest version without migrating
+ * Only import real flows in tests where it's required
+ * Update README.md
+
+v9.3.27 (2024-08-21)
+-------------------------
+ * Updates to migrate_dynamo command
+
+v9.3.26 (2024-08-21)
+-------------------------
+ * Add redirect for contact interrupt
+ * Create dynamo table with on-demand billing by default
+
+v9.3.25 (2024-08-21)
+-------------------------
+ * Fix matching for invites with email case insensitively
+ * Tweak migrate_dynamo command
+
+v9.3.24 (2024-08-20)
+-------------------------
+ * Add dynamo table prefix setting
+
+v9.3.23 (2024-08-20)
+-------------------------
+ * Add management command to create DynamoDB tables
+ * Add option for connection pooling
+
+v9.3.22 (2024-08-19)
+-------------------------
+ * Drop APIToken.role field
+
+v9.3.21 (2024-08-19)
+-------------------------
+ * Use correct URL when breaking spa-container
+ * Delete API tokens when user deleted and use generate_secret to create new tokens
+ * Update API token management UI to support multiple tokens
+
+v9.3.20 (2024-08-14)
+-------------------------
+ * Rework S3 code to always use real S3 clients, even in tests
+
+v9.3.19 (2024-08-14)
+-------------------------
+ * Fix DTOne formax section
+ * Change default settings to use minio for file storage
+
+v9.3.18 (2024-08-13)
+-------------------------
+ * Record when API tokens were last used
+ * Only support import contacts using .xlsx files with openpyxl
+
+v9.3.17 (2024-08-12)
+-------------------------
+ * Data migration to delete old surveyor and prometheus API tokens
+
+v9.3.16 (2024-08-08)
+-------------------------
+ * Stop generating prometheus API tokens
+ * Drop Ticket.body
+
+v9.3.15 (2024-08-08)
+-------------------------
+ * Add Org.prometheus_token and backill from API tokens
+
+v9.3.14 (2024-08-08)
+-------------------------
+ * Update tests to not set ticket body
+ * Add data migration to move body to ticket on open ticket event
+
+v9.3.13 (2024-08-08)
+-------------------------
+ * Show notes on ticket open events in contact history
+ * Remove body from ticket endpoint documentation
+ * Update floweditor which now also refers to ticket body as note
+ * Update open ticket modal to use note instead of body
+ * Add cutoff date for using viewer role
+
+v9.3.12 (2024-08-07)
+-------------------------
+ * Don't create surveyor user in mailroom test db
+ * Add warning to manage accounts page if org has viewers
+ * Remove viewers as an org feature, only allow existing viewer users to remain as viewers
+ * Update to latest Django
+
+v9.3.11 (2024-08-07)
+-------------------------
+ * Remove Org.surveyor_password and always disable creating surveyor flows
+ * Remove non-modal response support from export translation view
+ * Remove surveyor user role and test user
+
+v9.3.10 (2024-08-07)
+-------------------------
+ * Remove surveyor users from workspaces
+
+v9.3.9 (2024-08-07)
+-------------------------
+ * Fix incidents templates name
+ * Let Ticket.body be null and make note length match contact note length
+
+v9.3.8 (2024-08-06)
+-------------------------
+ * Show tabs on tickets when contact is set
+
+v9.3.7 (2024-08-06)
+-------------------------
+ * Add contact notes ui
+
+v9.3.6 (2024-08-06)
+-------------------------
+ * Adjust the grant view for new UI
+ * Fix Android claim page
+ * Add incident for Android client app version out of date
+ * Tweak fail_old_messages to only fail Android messages and add an index
+
+v9.3.5 (2024-07-31)
+-------------------------
+ * Support FCM changes
+ * Require E164 phone numbers for contacts created from UI
+
+v9.3.4 (2024-07-30)
+-------------------------
+ * Add contact notes and expose over contacts API endpoint
+
+v9.3.3 (2024-07-29)
+-------------------------
+ * Clamp messages on message views to one line
+ * Adjust max length for AT API key
+ * Make 'New Field' a button
+
+v9.3.2 (2024-07-29)
+-------------------------
+ * Allow deleting of empty ticket topics
+ * Add support for buttons in side menu and use where appropriate
+
 v9.3.0 (2024-07-25)
 -------------------------
  * Add User.get_by_email to ensure consistent behaviour where we look up a user by their email

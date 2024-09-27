@@ -30,6 +30,17 @@ if TESTING:
 TEST_RUNNER = "temba.tests.runner.TembaTestRunner"
 TEST_EXCLUDE = ("smartmin",)
 
+if os.getenv("REMOTE_CONTAINERS") == "true":
+    _db_host = "postgres"
+    _redis_host = "redis"
+    _minio_host = "minio"
+    _dynamo_host = "dynamo"
+else:
+    _db_host = "localhost"
+    _redis_host = "localhost"
+    _minio_host = "localhost"
+    _dynamo_host = "localhost"
+
 # -----------------------------------------------------------------------------------
 # Email
 # -----------------------------------------------------------------------------------
@@ -48,31 +59,54 @@ EMAIL_TIMEOUT = 10
 FLOW_FROM_EMAIL = "no-reply@temba.io"
 
 # -----------------------------------------------------------------------------------
+# AWS
+# -----------------------------------------------------------------------------------
+
+AWS_ACCESS_KEY_ID = "root"
+AWS_SECRET_ACCESS_KEY = "tembatemba"
+AWS_REGION = "us-east-1"
+
+DYNAMO_ENDPOINT_URL = f"http://{_dynamo_host}:6000"
+DYNAMO_TABLE_PREFIX = "Test" if TESTING else "Temba"
+
+# -----------------------------------------------------------------------------------
 # Storage
 # -----------------------------------------------------------------------------------
 
+_bucket_prefix = "test" if TESTING else "temba"
+
 STORAGES = {
     # default storage for things like exports, imports
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    # wherever rp-archiver writes archive files (must be S3 compatible)
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {"bucket_name": f"{_bucket_prefix}-default"},
+    },
+    # wherever rp-archiver writes archive files
     "archives": {
         "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
-        "OPTIONS": {"bucket_name": "temba-archives"},
+        "OPTIONS": {"bucket_name": f"{_bucket_prefix}-archives"},
     },
-    # wherever courier and mailroom are writing logs
-    "logs": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
     # media file uploads that need to be publicly accessible
-    "public": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "public": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "bucket_name": f"{_bucket_prefix}-default",
+            "signature_version": "s3v4",
+            "default_acl": "public-read",
+            "querystring_auth": False,
+        },
+    },
     # standard Django static files storage
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 
-STORAGE_URL = None  # may be an absolute URL to /media (like http://localhost:8000/media) or AWS S3
-STORAGE_ROOT_DIR = "test_orgs" if TESTING else "orgs"
+# settings used by django-storages (defaults to local Minio server)
+AWS_S3_REGION_NAME = AWS_REGION
+AWS_S3_ENDPOINT_URL = f"http://{_minio_host}:9000"
+AWS_S3_ADDRESSING_STYLE = "path"
+AWS_S3_FILE_OVERWRITE = False
 
-# settings used by django-storages
-AWS_ACCESS_KEY_ID = "aws_access_key_id"
-AWS_SECRET_ACCESS_KEY = "aws_secret_access_key"
+STORAGE_URL = f"{AWS_S3_ENDPOINT_URL}/{_bucket_prefix}-default"
 
 # -----------------------------------------------------------------------------------
 # Localization
@@ -287,6 +321,12 @@ BRAND = {
 
 FEATURES = {"locations"}
 
+# The default checked options for flow starts and broadcasts
+DEFAULT_EXCLUSIONS = {"in_a_flow": True}
+
+# Estimated send time limits before warning or blocking, zero is no limit
+SEND_HOURS_WARNING = 0
+SEND_HOURS_BLOCK = 0
 
 # -----------------------------------------------------------------------------------
 # Permissions
@@ -319,10 +359,15 @@ PERMISSIONS = {
     "contacts.contactgroup": ("menu",),
     "contacts.contactimport": ("preview",),
     "flows.flow": ("assets", "copy", "editor", "export", "menu", "next", "results", "start"),
+    "flows.flowstart": ("interrupt", "status"),
     "flows.flowsession": ("json",),
     "globals.global": ("unused",),
     "locations.adminboundary": ("alias", "boundaries", "geometry"),
-    "msgs.broadcast": ("scheduled", "scheduled_read", "scheduled_delete"),
+    "msgs.broadcast": (
+        "scheduled",
+        "scheduled_read",
+        "scheduled_delete",
+    ),
     "msgs.msg": ("archive", "export", "label", "menu"),
     "orgs.export": ("download",),
     "orgs.org": (
@@ -355,7 +400,7 @@ PERMISSIONS = {
         "twilio_connect",
         "workspace",
     ),
-    "orgs.user": ("token",),
+    "orgs.user": ("tokens",),
     "request_logs.httplog": ("webhooks", "classifier"),
     "tickets.ticket": ("assign", "assignee", "menu", "note", "export_stats", "export"),
     "triggers.trigger": ("archived", "type", "menu"),
@@ -461,7 +506,7 @@ GROUP_PERMISSIONS = {
         "orgs.org_workspace",
         "orgs.orgimport.*",
         "orgs.user_list",
-        "orgs.user_token",
+        "orgs.user_tokens",
         "request_logs.httplog_list",
         "request_logs.httplog_read",
         "request_logs.httplog_webhooks",
@@ -543,7 +588,7 @@ GROUP_PERMISSIONS = {
         "orgs.org_workspace",
         "orgs.orgimport.*",
         "orgs.user_list",
-        "orgs.user_token",
+        "orgs.user_tokens",
         "request_logs.httplog_webhooks",
         "templates.template_list",
         "templates.template_read",
@@ -667,13 +712,6 @@ ANONYMOUS_USER_NAME = "AnonymousUser"
 
 INVITATION_VALIDITY = timedelta(days=30)
 
-_db_host = "localhost"
-_redis_host = "localhost"
-
-if os.getenv("REMOTE_CONTAINERS") == "true":
-    _db_host = "postgres"
-    _redis_host = "redis"
-
 # -----------------------------------------------------------------------------------
 # Database
 # -----------------------------------------------------------------------------------
@@ -727,7 +765,7 @@ CELERY_BEAT_SCHEDULE = {
     "check-android-channels": {"task": "check_android_channels", "schedule": timedelta(seconds=300)},
     "delete-released-orgs": {"task": "delete_released_orgs", "schedule": crontab(hour=4, minute=0)},
     "expire-invitations": {"task": "expire_invitations", "schedule": crontab(hour=0, minute=10)},
-    "fail-old-messages": {"task": "fail_old_messages", "schedule": crontab(hour=0, minute=0)},
+    "fail-old-android-messages": {"task": "fail_old_android_messages", "schedule": crontab(hour=0, minute=0)},
     "interrupt-flow-sessions": {"task": "interrupt_flow_sessions", "schedule": crontab(hour=23, minute=30)},
     "refresh-whatsapp-tokens": {"task": "refresh_whatsapp_tokens", "schedule": crontab(hour=6, minute=0)},
     "refresh-templates": {"task": "refresh_templates", "schedule": timedelta(seconds=900)},
@@ -750,6 +788,7 @@ CELERY_BEAT_SCHEDULE = {
     "trim-http-logs": {"task": "trim_http_logs", "schedule": crontab(hour=2, minute=0)},
     "trim-notifications": {"task": "trim_notifications", "schedule": crontab(hour=2, minute=0)},
     "trim-webhook-events": {"task": "trim_webhook_events", "schedule": crontab(hour=3, minute=0)},
+    "update-tokens-used": {"task": "update_tokens_used", "schedule": timedelta(seconds=30)},
 }
 
 # -----------------------------------------------------------------------------------
@@ -910,7 +949,7 @@ ORG_LIMIT_DEFAULTS = {
 
 RETENTION_PERIODS = {
     "channelevent": timedelta(days=90),
-    "channellog": timedelta(days=14),
+    "channellog": timedelta(days=7),
     "export": timedelta(days=90),
     "eventfire": timedelta(days=90),
     "flowsession": timedelta(days=7),
