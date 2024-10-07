@@ -110,7 +110,7 @@ class GlobalCRUDL(SmartCRUDL):
 
     class Delete(BaseDependencyDeleteModal):
         cancel_url = "@globals.global_list"
-        success_url = "@globals.global_list"
+        redirect_url = "@globals.global_list"
 
     class List(ContextMenuMixin, BaseListView):
         title = _("Globals")

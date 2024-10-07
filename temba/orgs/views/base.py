@@ -64,8 +64,8 @@ class BaseDeleteModal(OrgObjPermsMixin, SmartDeleteView):
 
     def post(self, request, *args, **kwargs):
         self.get_object().release(self.request.user)
-        redirect_url = self.get_redirect_url()
-        return HttpResponseRedirect(redirect_url)
+
+        return HttpResponseRedirect(self.get_redirect_url())
 
 
 class BaseListView(SpaMixin, OrgPermsMixin, SmartListView):
@@ -350,7 +350,6 @@ class BaseDependencyDeleteModal(DependencyMixin, OrgObjPermsMixin, SmartDeleteVi
         obj = self.get_object()
         obj.release(request.user)
 
-        messages.info(request, self.derive_success_message())
         response = HttpResponse()
-        response["Temba-Success"] = self.get_success_url()
+        response["Temba-Success"] = self.get_redirect_url()
         return response

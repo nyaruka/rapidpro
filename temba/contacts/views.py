@@ -923,7 +923,7 @@ class ContactGroupCRUDL(SmartCRUDL):
 
     class Delete(BaseDependencyDeleteModal):
         cancel_url = "uuid@contacts.contact_filter"
-        success_url = "@contacts.contact_list"
+        redirect_url = "@contacts.contact_list"
 
 
 class ContactFieldForm(forms.ModelForm):
@@ -1079,7 +1079,7 @@ class ContactFieldCRUDL(SmartCRUDL):
 
     class Delete(FieldLookupMixin, BaseDependencyDeleteModal):
         cancel_url = "@contacts.contactfield_list"
-        success_url = "hide"
+        redirect_url = "@contacts.contactfield_list"
 
     class UpdatePriority(OrgPermsMixin, SmartView, View):
         def post(self, request, *args, **kwargs):

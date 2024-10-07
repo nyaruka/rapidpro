@@ -1142,8 +1142,7 @@ class LabelCRUDL(SmartCRUDL):
 
     class Delete(BaseDependencyDeleteModal):
         cancel_url = "@msgs.msg_inbox"
-        success_url = "@msgs.msg_inbox"
-        success_message = _("Your label has been deleted.")
+        redirect_url = "@msgs.msg_inbox"
 
 
 class MediaCRUDL(SmartCRUDL):
