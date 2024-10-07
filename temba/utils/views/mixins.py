@@ -2,7 +2,7 @@ import logging
 from urllib.parse import quote, urlencode
 
 import requests
-from smartmin.views import SmartFormView, SmartModelActionView, SmartModelFormView
+from smartmin.views import SmartModelActionView, SmartModelFormView
 
 from django import forms
 from django.conf import settings
@@ -217,9 +217,9 @@ class ContextMenuMixin:
         return super().get(request, *args, **kwargs)
 
 
-class ModalFormMixin(SmartFormView):
+class ModalFormMixin:
     """
-    TODO rework this to be an actual mixin
+    Mixin for modals that contain a form.
     """
 
     def get_context_data(self, **kwargs):

@@ -531,7 +531,7 @@ class CampaignEventCRUDL(SmartCRUDL):
                     title=_("Delete Event"),
                 )
 
-    class Delete(ModalFormMixin, OrgObjPermsMixin, SmartDeleteView):
+    class Delete(OrgObjPermsMixin, SmartDeleteView):
         default_template = "smartmin/delete_confirm.html"
         submit_button_name = _("Delete")
         fields = ("uuid",)

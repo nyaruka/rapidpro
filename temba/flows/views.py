@@ -157,7 +157,7 @@ class FlowRunCRUDL(SmartCRUDL):
     actions = ("delete",)
     model = FlowRun
 
-    class Delete(ModalFormMixin, OrgObjPermsMixin, SmartDeleteView):
+    class Delete(OrgObjPermsMixin, SmartDeleteView):
         fields = ("id",)
         success_message = None
 
@@ -1790,7 +1790,7 @@ class FlowLabelCRUDL(SmartCRUDL):
     model = FlowLabel
     actions = ("create", "update", "delete")
 
-    class Delete(ModalFormMixin, OrgObjPermsMixin, SmartDeleteView):
+    class Delete(OrgObjPermsMixin, SmartDeleteView):
         fields = ("uuid",)
         success_url = "@flows.flow_list"
         cancel_url = "@flows.flow_list"

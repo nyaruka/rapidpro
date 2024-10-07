@@ -96,7 +96,7 @@ class TopicCRUDL(SmartCRUDL):
         success_url = "hide"
         slug_url_kwarg = "uuid"
 
-    class Delete(ModalFormMixin, OrgObjPermsMixin, SmartDeleteView):
+    class Delete(OrgObjPermsMixin, SmartDeleteView):
         default_template = "smartmin/delete_confirm.html"
         submit_button_name = _("Delete")
         slug_url_kwarg = "uuid"

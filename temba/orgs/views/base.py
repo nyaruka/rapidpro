@@ -57,7 +57,7 @@ class BaseUpdateModal(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, Smar
         return super().derive_queryset(**kwargs).filter(org=self.request.org, is_active=True)
 
 
-class BaseDeleteModal(ModalFormMixin, OrgObjPermsMixin, SmartDeleteView):
+class BaseDeleteModal(OrgObjPermsMixin, SmartDeleteView):
     default_template = "smartmin/delete_confirm.html"
     submit_button_name = _("Delete")
     fields = ("id",)
@@ -311,7 +311,7 @@ class BaseUsagesModal(DependencyMixin, OrgObjPermsMixin, SmartReadView):
         return context
 
 
-class BaseDependencyDeleteModal(DependencyMixin, ModalFormMixin, OrgObjPermsMixin, SmartDeleteView):
+class BaseDependencyDeleteModal(DependencyMixin, OrgObjPermsMixin, SmartDeleteView):
     """
     Base view for delete modals of flow dependencies
     """

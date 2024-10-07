@@ -444,7 +444,7 @@ class UserCRUDL(SmartCRUDL):
 
             return obj
 
-    class Delete(StaffOnlyMixin, ModalFormMixin, SmartDeleteView):
+    class Delete(StaffOnlyMixin, SmartDeleteView):
         fields = ("id",)
         permission = "orgs.user_update"
         submit_button_name = _("Delete")
@@ -1647,7 +1647,7 @@ class OrgCRUDL(SmartCRUDL):
             obj.limits = cleaned_data["limits"]
             return obj
 
-    class DeleteChild(ModalFormMixin, OrgObjPermsMixin, SmartDeleteView):
+    class DeleteChild(OrgObjPermsMixin, SmartDeleteView):
         cancel_url = "@orgs.org_sub_orgs"
         success_url = "@orgs.org_sub_orgs"
         fields = ("id",)
