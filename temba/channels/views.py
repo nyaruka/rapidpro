@@ -701,8 +701,7 @@ class ChannelCRUDL(SmartCRUDL):
 
     class Delete(BaseDependencyDeleteModal):
         cancel_url = "uuid@channels.channel_read"
-        success_url = "@orgs.org_workspace"
-        success_message = _("Your channel has been removed.")
+        redirect_url = "@orgs.org_workspace"
         success_message_twilio = _(
             "We have disconnected your Twilio number. "
             "If you do not need this number you can delete it from the Twilio website."
@@ -723,14 +722,12 @@ class ChannelCRUDL(SmartCRUDL):
                 response["Temba-Success"] = self.cancel_url
                 return response
 
-            # override success message for Twilio channels
+            # add success message for Twilio channels
             if channel.channel_type == "T":
                 messages.info(request, self.success_message_twilio)
-            else:
-                messages.info(request, self.success_message)
 
             response = HttpResponse()
-            response["Temba-Success"] = self.get_success_url()
+            response["Temba-Success"] = self.get_redirect_url()
             return response
 
     class Update(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):

@@ -45,8 +45,7 @@ class ClassifierCRUDL(SmartCRUDL):
 
     class Delete(BaseDependencyDeleteModal):
         cancel_url = "uuid@classifiers.classifier_read"
-        success_url = "@orgs.org_workspace"
-        success_message = _("Your classifier has been deleted.")
+        redirect_url = "@orgs.org_workspace"
 
     class Read(SpaMixin, OrgObjPermsMixin, ContextMenuMixin, SmartReadView):
         slug_url_kwarg = "uuid"

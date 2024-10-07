@@ -602,7 +602,7 @@ class BroadcastCRUDL(SmartCRUDL):
                     title=_("Delete Broadcast"),
                 )
 
-    class ScheduledDelete(ModalFormMixin, OrgObjPermsMixin, SmartDeleteView):
+    class ScheduledDelete(OrgObjPermsMixin, SmartDeleteView):
         default_template = "broadcast_scheduled_delete.html"
         cancel_url = "id@msgs.broadcast_scheduled_read"
         success_url = "@msgs.broadcast_scheduled"
@@ -1142,8 +1142,7 @@ class LabelCRUDL(SmartCRUDL):
 
     class Delete(BaseDependencyDeleteModal):
         cancel_url = "@msgs.msg_inbox"
-        success_url = "@msgs.msg_inbox"
-        success_message = _("Your label has been deleted.")
+        redirect_url = "@msgs.msg_inbox"
 
 
 class MediaCRUDL(SmartCRUDL):

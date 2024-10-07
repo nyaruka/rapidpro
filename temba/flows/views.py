@@ -157,7 +157,7 @@ class FlowRunCRUDL(SmartCRUDL):
     actions = ("delete",)
     model = FlowRun
 
-    class Delete(ModalFormMixin, OrgObjPermsMixin, SmartDeleteView):
+    class Delete(OrgObjPermsMixin, SmartDeleteView):
         fields = ("id",)
         success_message = None
 
@@ -484,7 +484,7 @@ class FlowCRUDL(SmartCRUDL):
 
     class Delete(BaseDependencyDeleteModal):
         cancel_url = "uuid@flows.flow_editor"
-        success_url = "@flows.flow_list"
+        redirect_url = "@flows.flow_list"
 
     class Copy(OrgObjPermsMixin, SmartUpdateView):
         fields = []
@@ -1790,19 +1790,17 @@ class FlowLabelCRUDL(SmartCRUDL):
     model = FlowLabel
     actions = ("create", "update", "delete")
 
-    class Delete(ModalFormMixin, OrgObjPermsMixin, SmartDeleteView):
+    class Delete(OrgObjPermsMixin, SmartDeleteView):
         fields = ("uuid",)
-        success_url = "@flows.flow_list"
+        redirect_url = "@flows.flow_list"
         cancel_url = "@flows.flow_list"
         submit_button_name = _("Delete")
-
-        def get_success_url(self):
-            return reverse("flows.flow_list")
 
         def post(self, request, *args, **kwargs):
             self.object = self.get_object()
             self.object.delete()
-            return self.render_modal_response()
+
+            return HttpResponseRedirect(self.get_redirect_url())
 
     class Update(ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
         form_class = FlowLabelForm

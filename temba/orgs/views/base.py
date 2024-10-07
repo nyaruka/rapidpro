@@ -311,7 +311,7 @@ class BaseUsagesModal(DependencyMixin, OrgObjPermsMixin, SmartReadView):
         return context
 
 
-class BaseDependencyDeleteModal(DependencyMixin, ModalFormMixin, OrgObjPermsMixin, SmartDeleteView):
+class BaseDependencyDeleteModal(DependencyMixin, OrgObjPermsMixin, SmartDeleteView):
     """
     Base view for delete modals of flow dependencies
     """
@@ -350,7 +350,6 @@ class BaseDependencyDeleteModal(DependencyMixin, ModalFormMixin, OrgObjPermsMixi
         obj = self.get_object()
         obj.release(request.user)
 
-        messages.info(request, self.derive_success_message())
         response = HttpResponse()
-        response["Temba-Success"] = self.get_success_url()
+        response["Temba-Success"] = self.get_redirect_url()
         return response
