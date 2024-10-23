@@ -37,9 +37,11 @@ if os.getenv("REMOTE_CONTAINERS") == "true":
     _dynamo_host = "dynamo"
 else:
     _db_host = "localhost"
-    _redis_host = "localhost"
+    _redis_host = os.environ.get("REDIS_HOST", "localhost")
     _minio_host = "localhost"
     _dynamo_host = "localhost"
+_redis_username = os.environ.get("REDIS_USERNAME", "")
+_redis_password = os.environ.get("REDIS_PASSWORD", "")
 
 # -----------------------------------------------------------------------------------
 # Email
@@ -737,7 +739,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 # -----------------------------------------------------------------------------------
 # Cache
 # -----------------------------------------------------------------------------------
-_redis_url = f"redis://{_redis_host}:6379/{10 if TESTING else 15}"
+_redis_url = f"redis://{_redis_username}:{_redis_password}@{_redis_host}:6379/{10 if TESTING else 15}"
 
 CACHES = {
     "default": {
