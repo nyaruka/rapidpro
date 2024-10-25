@@ -1788,6 +1788,7 @@ class ContactExport(ExportType):
             dict(label="Status", key="status", field=None, urn_scheme=None),
             dict(label="Created On", key="created_on", field=None, urn_scheme=None),
             dict(label="Last Seen On", key="last_seen_on", field=None, urn_scheme=None),
+            dict(label="Notepad", key="note", field=None, urn_scheme=None),
         ]
 
         # anon orgs also get an ID column that is just the PK
@@ -1881,14 +1882,21 @@ class ContactExport(ExportType):
             # to maintain our sort, we need to lookup by id, create a map of our id->contact to aid in that
             contact_by_id = {c.id: c for c in batch_contacts}
 
+            notes = ContactNote.objects.filter(contact_id__in=batch_ids).order_by("-id")
+            note_by_contact_id = {}
+            for note in notes:
+                if note.contact_id not in note_by_contact_id:
+                    note_by_contact_id[note.contact_id] = note.text
+
             Contact.bulk_urn_cache_initialize(batch_contacts, using="readonly")
 
             for contact_id in batch_ids:
                 contact = contact_by_id[contact_id]
+                note = note_by_contact_id.get(contact_id, "")
 
                 values = []
                 for field in fields:
-                    values.append(self.get_field_value(export.org, field, contact=contact))
+                    values.append(self.get_field_value(export.org, field, contact=contact, note=note))
 
                 group_values = []
                 if include_group_memberships:
@@ -1908,7 +1916,7 @@ class ContactExport(ExportType):
 
         return *exporter.save_file(), num_records
 
-    def get_field_value(self, org, field: dict, contact: Contact):
+    def get_field_value(self, org, field: dict, contact: Contact, note: str):
         if field["key"] == "name":
             return contact.name
         elif field["key"] == "uuid":
@@ -1923,6 +1931,8 @@ class ContactExport(ExportType):
             return contact.last_seen_on
         elif field["key"] == "id":
             return str(contact.id)
+        elif field["key"] == "note":
+            return note
         elif field["key"] == "scheme":
             contact_urns = contact.get_urns()
             return contact_urns[0].scheme if contact_urns else ""

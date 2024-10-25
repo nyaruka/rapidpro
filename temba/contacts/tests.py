@@ -4676,6 +4676,7 @@ class ContactExportTest(TembaTest):
             fields={"first": "On\02e", "third": "20/12/2015 08:30"},
             last_seen_on=datetime(2020, 1, 1, 12, 0, 0, 0, tzinfo=tzone.utc),
         )
+        contact.set_note(self.admin, "VIP Artist")
 
         flow = self.get_flow("color_v13")
         nodes = flow.get_definition()["nodes"]
@@ -4714,7 +4715,7 @@ class ContactExportTest(TembaTest):
 
                     self.create_contact_import(tmp.name)
 
-        with self.assertNumQueries(22):
+        with self.assertNumQueries(23):
             sheets, export = self._export(self.org.active_contacts_group, with_groups=[group1])
             self.assertEqual(2, export.num_records)
             self.assertEqual("C", export.status)
@@ -4728,6 +4729,7 @@ class ContactExportTest(TembaTest):
                         "Status",
                         "Created On",
                         "Last Seen On",
+                        "Notepad",
                         "URN:Mailto",
                         "URN:Tel",
                         "URN:Telegram",
@@ -4744,6 +4746,7 @@ class ContactExportTest(TembaTest):
                         "Active",
                         contact.created_on,
                         datetime(2020, 1, 1, 12, 0, 0, 0, tzinfo=tzone.utc),
+                        "VIP Artist",
                         "",
                         "+12067799294",
                         "",
@@ -4759,6 +4762,7 @@ class ContactExportTest(TembaTest):
                         "eng",
                         "Active",
                         contact2.created_on,
+                        "",
                         "",
                         "adam@sumner.com",
                         "+12067799191",
@@ -4783,7 +4787,7 @@ class ContactExportTest(TembaTest):
         self.contactfield_2.priority = 15
         self.contactfield_2.save()
 
-        with self.assertNumQueries(21):
+        with self.assertNumQueries(22):
             sheets, export = self._export(self.org.active_contacts_group, with_groups=[group1])
             self.assertEqual(2, export.num_records)
             self.assertEqual("C", export.status)
@@ -4797,6 +4801,7 @@ class ContactExportTest(TembaTest):
                         "Status",
                         "Created On",
                         "Last Seen On",
+                        "Notepad",
                         "URN:Mailto",
                         "URN:Tel",
                         "URN:Telegram",
@@ -4813,6 +4818,7 @@ class ContactExportTest(TembaTest):
                         "Active",
                         contact.created_on,
                         datetime(2020, 1, 1, 12, 0, 0, 0, tzinfo=tzone.utc),
+                        "VIP Artist",
                         "",
                         "+12067799294",
                         "",
@@ -4828,6 +4834,7 @@ class ContactExportTest(TembaTest):
                         "eng",
                         "Active",
                         contact2.created_on,
+                        "",
                         "",
                         "adam@sumner.com",
                         "+12067799191",
@@ -4850,7 +4857,7 @@ class ContactExportTest(TembaTest):
         contact.urns.create(org=self.org, identity="tel:+12062233445", scheme="tel", path="+12062233445")
 
         # but should have additional Twitter and phone columns
-        with self.assertNumQueries(21):
+        with self.assertNumQueries(22):
             sheets, export = self._export(self.org.active_contacts_group, with_groups=[group1])
             self.assertEqual(4, export.num_records)
             self.assertExcelSheet(
@@ -4863,6 +4870,7 @@ class ContactExportTest(TembaTest):
                         "Status",
                         "Created On",
                         "Last Seen On",
+                        "Notepad",
                         "URN:Mailto",
                         "URN:Tel",
                         "URN:Tel",
@@ -4880,6 +4888,7 @@ class ContactExportTest(TembaTest):
                         "Active",
                         contact.created_on,
                         datetime(2020, 1, 1, 12, 0, 0, 0, tzinfo=tzone.utc),
+                        "VIP Artist",
                         "",
                         "+12067799294",
                         "+12062233445",
@@ -4896,6 +4905,7 @@ class ContactExportTest(TembaTest):
                         "eng",
                         "Active",
                         contact2.created_on,
+                        "",
                         "",
                         "adam@sumner.com",
                         "+12067799191",
@@ -4915,6 +4925,7 @@ class ContactExportTest(TembaTest):
                         contact3.created_on,
                         "",
                         "",
+                        "",
                         "+12078776655",
                         "",
                         "",
@@ -4930,6 +4941,7 @@ class ContactExportTest(TembaTest):
                         "",
                         "Active",
                         contact4.created_on,
+                        "",
                         "",
                         "",
                         "+12078778899",
@@ -4948,7 +4960,7 @@ class ContactExportTest(TembaTest):
         assertReimport(export)
 
         # export a specified group of contacts (only Ben and Adam are in the group)
-        with self.assertNumQueries(21):
+        with self.assertNumQueries(22):
             sheets, export = self._export(group1, with_groups=[group1])
             self.assertExcelSheet(
                 sheets[0],
@@ -4960,6 +4972,7 @@ class ContactExportTest(TembaTest):
                         "Status",
                         "Created On",
                         "Last Seen On",
+                        "Notepad",
                         "URN:Mailto",
                         "URN:Tel",
                         "URN:Tel",
@@ -4977,6 +4990,7 @@ class ContactExportTest(TembaTest):
                         "Active",
                         contact.created_on,
                         datetime(2020, 1, 1, 12, 0, 0, 0, tzinfo=tzone.utc),
+                        "VIP Artist",
                         "",
                         "+12067799294",
                         "+12062233445",
@@ -4993,6 +5007,7 @@ class ContactExportTest(TembaTest):
                         "eng",
                         "Active",
                         contact2.created_on,
+                        "",
                         "",
                         "adam@sumner.com",
                         "+12067799191",
@@ -5024,6 +5039,7 @@ class ContactExportTest(TembaTest):
                     "Status",
                     "Created On",
                     "Last Seen On",
+                    "Notepad",
                     "URN:Mailto",
                     "URN:Tel",
                     "URN:Tel",
@@ -5042,6 +5058,7 @@ class ContactExportTest(TembaTest):
                     contact5.created_on,
                     "",
                     "",
+                    "",
                     "1234567777",
                     "",
                     "",
@@ -5057,7 +5074,7 @@ class ContactExportTest(TembaTest):
 
         # export a search
         mr_mocks.contact_export([contact2.id, contact3.id])
-        with self.assertNumQueries(22):
+        with self.assertNumQueries(23):
             sheets, export = self._export(
                 self.org.active_contacts_group, "name has adam or name has deng", with_groups=[group1]
             )
@@ -5071,6 +5088,7 @@ class ContactExportTest(TembaTest):
                         "Status",
                         "Created On",
                         "Last Seen On",
+                        "Notepad",
                         "URN:Mailto",
                         "URN:Tel",
                         "URN:Tel",
@@ -5087,6 +5105,7 @@ class ContactExportTest(TembaTest):
                         "eng",
                         "Active",
                         contact2.created_on,
+                        "",
                         "",
                         "adam@sumner.com",
                         "+12067799191",
@@ -5106,6 +5125,7 @@ class ContactExportTest(TembaTest):
                         contact3.created_on,
                         "",
                         "",
+                        "",
                         "+12078776655",
                         "",
                         "",
@@ -5123,7 +5143,7 @@ class ContactExportTest(TembaTest):
 
         # export a search within a specified group of contacts
         mr_mocks.contact_export([contact.id])
-        with self.assertNumQueries(20):
+        with self.assertNumQueries(21):
             sheets, export = self._export(group1, search="Hagg", with_groups=[group1])
             self.assertExcelSheet(
                 sheets[0],
@@ -5135,6 +5155,7 @@ class ContactExportTest(TembaTest):
                         "Status",
                         "Created On",
                         "Last Seen On",
+                        "Notepad",
                         "URN:Mailto",
                         "URN:Tel",
                         "URN:Tel",
@@ -5152,6 +5173,7 @@ class ContactExportTest(TembaTest):
                         "Active",
                         contact.created_on,
                         datetime(2020, 1, 1, 12, 0, 0, 0, tzinfo=tzone.utc),
+                        "VIP Artist",
                         "",
                         "+12067799294",
                         "+12062233445",
@@ -5183,6 +5205,7 @@ class ContactExportTest(TembaTest):
                         "Status",
                         "Created On",
                         "Last Seen On",
+                        "Notepad",
                         "Field:Third",
                         "Field:Second",
                         "Field:First",
@@ -5197,6 +5220,7 @@ class ContactExportTest(TembaTest):
                         "Active",
                         contact.created_on,
                         datetime(2020, 1, 1, 12, 0, 0, 0, tzinfo=tzone.utc),
+                        "VIP Artist",
                         "20-12-2015 08:30",
                         "",
                         "One",
@@ -5210,6 +5234,7 @@ class ContactExportTest(TembaTest):
                         "eng",
                         "Active",
                         contact2.created_on,
+                        "",
                         "",
                         "",
                         "",
@@ -5228,6 +5253,7 @@ class ContactExportTest(TembaTest):
                         "",
                         "",
                         "",
+                        "",
                         False,
                     ],
                     [
@@ -5238,6 +5264,7 @@ class ContactExportTest(TembaTest):
                         "",
                         "Active",
                         contact4.created_on,
+                        "",
                         "",
                         "",
                         "",
