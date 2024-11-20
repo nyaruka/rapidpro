@@ -1067,6 +1067,26 @@ class FlowSession(models.Model):
         ]
 
 
+class SessionTimer(models.Model):
+    """
+    A scheduled timed event for a session
+    """
+
+    TYPE_TIMEOUT = "T"
+    TYPE_EXPIRATION = "E"
+    TYPE_CHOICES = ((TYPE_TIMEOUT, "Timeout"), (TYPE_EXPIRATION, "Expiration"))
+
+    session = models.ForeignKey(FlowSession, on_delete=models.PROTECT, related_name="timers", db_index=False)
+    type = models.CharField(max_length=1, choices=TYPE_CHOICES)
+    time = models.DateTimeField()
+
+    class Meta:
+        indexes = [models.Index(fields=["time"])]
+        constraints = [
+            models.UniqueConstraint(fields=("session", "type"), name="session_timer_unique"),
+        ]
+
+
 class FlowRun(models.Model):
     """
     A single contact's journey through a flow. It records the path taken, results collected etc.
