@@ -56,7 +56,6 @@ from .tasks import (
     trim_flow_sessions,
     update_session_wait_expires,
 )
-from .views import FlowCRUDL
 
 
 class FlowTest(TembaTest, CRUDLTestMixin):
@@ -2888,9 +2887,6 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("Color", counts[0]["name"])
         self.assertEqual(2, counts[0]["total"])
 
-        FlowCRUDL.ActivityChart.HISTOGRAM_MIN = 0
-        FlowCRUDL.ActivityChart.PERIOD_MIN = 0
-
         # and some charts
         response = self.client.get(reverse("flows.flow_activity_data", args=[flow.id]))
         data = response.json()
@@ -2968,6 +2964,62 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(reverse("flows.flow_category_counts", args=[flow.uuid]))
         self.assertEqual(404, response.status_code)
+
+    def test_activity_data(self):
+        flow1 = self.create_flow("Test 1")
+
+        data_url = reverse("flows.flow_activity_data", args=[flow1.id])
+
+        self.assertRequestDisallowed(data_url, [None, self.agent])
+
+        # check with no data
+        response = self.assertReadFetch(data_url, [self.user, self.editor, self.admin])
+        self.assertEqual(
+            {
+                "min_date": 1729900800000,
+                "summary": {
+                    "responses": 0,
+                    "active": 0,
+                    "waiting": 0,
+                    "completed": 0,
+                    "expired": 0,
+                    "interrupted": 0,
+                    "failed": 0,
+                    "title": "0 Responses",
+                },
+                "dow": [
+                    {"name": "Sunday", "msgs": 0, "y": 0},
+                    {"name": "Monday", "msgs": 0, "y": 0},
+                    {"name": "Tuesday", "msgs": 0, "y": 0},
+                    {"name": "Wednesday", "msgs": 0, "y": 0},
+                    {"name": "Thursday", "msgs": 0, "y": 0},
+                    {"name": "Friday", "msgs": 0, "y": 0},
+                    {"name": "Saturday", "msgs": 0, "y": 0},
+                ],
+                "hod": [[i, 0] for i in range(24)],
+                "histogram": [],
+                "completion": {
+                    "summary": [
+                        {"name": "Active", "y": 0, "drilldown": None, "color": "#2387CA"},
+                        {"name": "Completed", "y": 0, "drilldown": None, "color": "#8FC93A"},
+                        {"name": "Interrupted, Expired and Failed", "y": 0, "drilldown": "incomplete", "color": "#CCC"},
+                    ],
+                    "drilldown": [
+                        {
+                            "name": "Interrupted, Expired and Failed",
+                            "id": "incomplete",
+                            "innerSize": "50%",
+                            "data": [
+                                {"name": "Expired", "y": 0, "color": "#CCC"},
+                                {"name": "Interrupted", "y": 0, "color": "#EEE"},
+                                {"name": "Failed", "y": 0, "color": "#FEE"},
+                            ],
+                        }
+                    ],
+                },
+            },
+            response.json(),
+        )
 
     def test_activity(self):
         flow = self.get_flow("favorites_v13")

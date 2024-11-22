@@ -19,10 +19,11 @@ from django import forms
 from django.conf import settings
 from django.contrib.humanize.templatetags import humanize
 from django.core.exceptions import ValidationError
-from django.db.models import Max, Min, Sum
+from django.db.models import Min, Sum
 from django.db.models.functions import Lower
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _, ngettext_lazy as _p
@@ -1146,12 +1147,6 @@ class FlowCRUDL(SmartCRUDL):
             )
 
     class ActivityData(BaseReadView):
-        # the min number of responses to show a histogram
-        HISTOGRAM_MIN = 0
-
-        # the min number of responses to show the period charts
-        PERIOD_MIN = 0
-
         permission = "flows.flow_results"
 
         day_names = (
@@ -1164,7 +1159,7 @@ class FlowCRUDL(SmartCRUDL):
             _("Saturday"),
         )
 
-        def get_day_of_week_counts(self, exit_uuids: list) -> dict:
+        def get_day_of_week_counts(self, exit_uuids: list) -> dict[int, int]:
             dow = (
                 self.object.path_counts.filter(from_uuid__in=exit_uuids)
                 .extra({"day": "extract(dow from period::timestamp)"})
@@ -1174,7 +1169,7 @@ class FlowCRUDL(SmartCRUDL):
 
             return {int(d.get("day")): d.get("count") for d in dow}
 
-        def get_hour_of_day_counts(self, exit_uuids: list) -> dict:
+        def get_hour_of_day_counts(self, exit_uuids: list) -> dict[int, int]:
             hod = (
                 self.object.path_counts.filter(from_uuid__in=exit_uuids)
                 .extra({"hour": "extract(hour from period::timestamp)"})
@@ -1185,14 +1180,21 @@ class FlowCRUDL(SmartCRUDL):
 
             return {int(h.get("hour")): h.get("count") for h in hod}
 
+        def get_date_counts(self, exit_uuids: list, truncate: str) -> list[tuple]:
+            dates = (
+                self.object.path_counts.filter(from_uuid__in=exit_uuids)
+                .extra({"date": f"date_trunc('{truncate}', period::date)"})
+                .values("date")
+                .annotate(count=Sum("count"))
+                .order_by("date")
+            )
+
+            return [(d.get("date"), d.get("count")) for d in dates]
+
         def render_to_response(self, context, **response_kwargs):
             total_responses = 0
             flow = self.object
-
             exit_uuids = flow.metadata["waiting_exit_uuids"]
-            dates = self.object.path_counts.filter(from_uuid__in=exit_uuids).aggregate(Max("period"), Min("period"))
-            start_date = dates.get("period__min")
-            end_date = dates.get("period__max")
 
             hour_dict = self.get_hour_of_day_counts(exit_uuids)
             hours = []
@@ -1206,34 +1208,33 @@ class FlowCRUDL(SmartCRUDL):
                 dow.append({"name": x, "msgs": day_count})
                 total_responses += day_count
 
-            if total_responses > self.PERIOD_MIN:
-                dow = sorted(dow, key=lambda k: k["name"])
-                dow = [
-                    {
-                        "name": self.day_names[d["name"]],
-                        "msgs": d["msgs"],
-                        "y": 100 * float(d["msgs"]) / float(total_responses),
-                    }
-                    for d in dow
-                ]
+            dow = [
+                {
+                    "name": self.day_names[d["name"]],
+                    "msgs": d["msgs"],
+                    "y": (100 * float(d["msgs"]) / float(total_responses)) if total_responses else 0,
+                }
+                for d in dow
+            ]
 
-            min_date = None
-            histogram = []
+            # figure out the earliest date we have data for
+            min_date = self.object.path_counts.filter(from_uuid__in=exit_uuids).aggregate(Min("period"))
+            min_date = min_date.get("period__min")
+            if min_date:
+                min_date = min_date.date()
+            else:
+                min_date = timezone.now().date() - timedelta(days=30)
 
-            if total_responses > self.HISTOGRAM_MIN:
-                # our main histogram
-                date_range = end_date - start_date
-                histogram = self.object.path_counts.filter(from_uuid__in=exit_uuids)
+            # bucket dates into months or weeks depending on the range
+            if min_date < timezone.now().date() - timedelta(days=365 * 3):
+                truncate = "month"
+            elif min_date < timezone.now().date() - timedelta(days=365):
+                truncate = "week"
+            else:
+                truncate = "day"
 
-                if date_range < timedelta(days=500):
-                    histogram = histogram.extra({"bucket": "date_trunc('day', period)"})
-                    min_date = end_date - timedelta(days=100)
-                else:
-                    histogram = histogram.extra({"bucket": "date_trunc('week', period)"})
-                    min_date = end_date - timedelta(days=500)
-
-                histogram = histogram.values("bucket").annotate(count=Sum("count")).order_by("bucket")
-                histogram = [[_["bucket"], _["count"]] for _ in histogram]
+            dates = self.get_date_counts(exit_uuids, truncate)
+            min_date = dates[0][0] if dates else timezone.now().date() - timedelta(days=30)
 
             summary = {
                 "responses": total_responses,
@@ -1279,13 +1280,11 @@ class FlowCRUDL(SmartCRUDL):
 
             return JsonResponse(
                 {
-                    "start_date": start_date,
-                    "end_date": end_date,
                     "min_date": min_date,
                     "summary": summary,
                     "dow": dow,
                     "hod": hours,
-                    "histogram": histogram,
+                    "histogram": dates,
                     "completion": completion,
                 },
                 json_dumps_params={"indent": 2},
