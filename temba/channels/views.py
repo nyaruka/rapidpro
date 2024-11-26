@@ -489,10 +489,7 @@ class ChannelCRUDL(SmartCRUDL):
             obj = self.get_object()
 
             for item in obj.type.menu_items:
-                menu.add_link(
-                    item["label"],
-                    reverse(item["view_name"], args=[obj.uuid]) if item["obj_view"] else reverse(item["view_name"]),
-                )
+                menu.add_link(item["label"], reverse(item["view_name"], args=[obj.uuid]))
 
             if obj.type.config_ui:
                 menu.add_link(_("Configuration"), reverse("channels.channel_configuration", args=[obj.uuid]))

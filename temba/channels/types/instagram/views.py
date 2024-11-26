@@ -1,17 +1,18 @@
 import logging
 
 import requests
-from smartmin.views import SmartFormView
+from smartmin.views import SmartFormView, SmartReadView
 
 from django import forms
 from django.conf import settings
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from temba.orgs.views.mixins import OrgObjPermsMixin
 from temba.utils.text import truncate
 
 from ...models import Channel
-from ...views import ClaimViewMixin
+from ...views import ChannelTypeMixin, ClaimViewMixin
 
 logger = logging.getLogger(__name__)
 
@@ -172,3 +173,22 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             )
 
         return super().form_valid(form)
+
+
+class CheckCredentials(ChannelTypeMixin, OrgObjPermsMixin, SmartReadView):
+    slug_url_kwarg = "uuid"
+    permission = "channels.channel_claim"
+    fields = ()
+    template_name = "channels/types/instagram/check_credentials.html"
+
+    def derive_menu_path(self):
+        return f"/settings/channels/{self.get_object().uuid}"
+
+    def get_queryset(self):
+        return self.request.org.channels.filter(is_active=True, channel_type=self.channel_type.code)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["update_token_url"] = f"{reverse("channels.types.instagram.claim")}?update=1"
+        context["valid_token"] = self.object.type.check_credentials(self.object.config)
+        return context
