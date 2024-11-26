@@ -1,12 +1,13 @@
 import requests
 
 from django.conf import settings
+from django.urls import re_path
 from django.utils.translation import gettext_lazy as _
 
 from temba.contacts.models import URN
 
 from ...models import Channel, ChannelType
-from .views import ClaimView
+from .views import CheckCredentials, ClaimView
 
 
 class InstagramType(ChannelType):
@@ -29,9 +30,17 @@ class InstagramType(ChannelType):
     }
     claim_view = ClaimView
 
-    menu_items = [
-        dict(label=_("Reconnect Business Account"), view_name="channels.types.instagram.claim", obj_view=False)
-    ]
+    menu_items = [dict(label=_("Reconnect Business Account"), view_name="channels.types.instagram.check_credentials")]
+
+    def get_urls(self):
+        return [
+            self.get_claim_url(),
+            re_path(
+                r"^(?P<uuid>[a-z0-9\-]+)/check_credentials/$",
+                CheckCredentials.as_view(channel_type=self),
+                name="check_credentials",
+            ),
+        ]
 
     def deactivate(self, channel):
         config = channel.config
@@ -48,3 +57,17 @@ class InstagramType(ChannelType):
 
     def get_error_ref_url(self, channel, code: str) -> str:
         return "https://developers.facebook.com/docs/instagram-api/reference/error-codes"
+
+    def check_credentials(self, config: dict) -> bool:
+        app_id = settings.FACEBOOK_APPLICATION_ID
+        app_secret = settings.FACEBOOK_APPLICATION_SECRET
+        url = "https://graph.facebook.com/v18.0/debug_token"
+        params = {
+            "access_token": f"{app_id}|{app_secret}",
+            "input_token": config[Channel.CONFIG_AUTH_TOKEN],
+        }
+        resp = requests.get(url, params=params)
+
+        if resp.status_code == 200:
+            return resp.json().get("data", dict()).get("is_valid", False)
+        return False
