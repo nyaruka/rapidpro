@@ -117,6 +117,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             claim_error = context["form"].errors["__all__"][0]
         context["claim_error"] = claim_error
 
+        context["update_existing"] = self.request.GET.get("update") == "1"
         return context
 
     def form_valid(self, form):
