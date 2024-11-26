@@ -88,6 +88,7 @@ class ChannelType(metaclass=ABCMeta):
     beta_only = False
 
     unique_addresses = False
+    matching_addresses_updates = False
 
     # the courier handling URL, will be wired automatically for use in templates, but wired to a null handler
     courier_url = None

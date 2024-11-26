@@ -25,7 +25,7 @@ class FacebookTypeTest(TembaTest):
             address="12345",
             role="SR",
             schemes=["facebook"],
-            config={"auth_token": "09876543"},
+            config={"auth_token": "09876543", "page_name": "FirstName"},
         )
 
     @override_settings(FACEBOOK_APPLICATION_ID="FB_APP_ID", FACEBOOK_APPLICATION_SECRET="FB_APP_SECRET")
@@ -172,6 +172,11 @@ class FacebookTypeTest(TembaTest):
     @patch("requests.post")
     @patch("requests.get")
     def test_claim_already_connected(self, mock_get, mock_post):
+        channel = Channel.objects.get(address="12345", channel_type="FBA")
+        self.assertEqual(channel.config[Channel.CONFIG_AUTH_TOKEN], "09876543")
+        self.assertEqual(channel.config[Channel.CONFIG_PAGE_NAME], "FirstName")
+        self.assertEqual(channel.name, "Facebook")
+
         token = "x" * 200
         name = "Temba"
 
@@ -180,7 +185,7 @@ class FacebookTypeTest(TembaTest):
             MockResponse(200, json.dumps({"access_token": f"long-life-user-{token}"})),
             MockResponse(
                 200,
-                json.dumps({"data": [{"name": name, "id": "12345", "access_token": f"page-long-life-{token}"}]}),
+                json.dumps({"data": [{"name": name, "id": "12345", "access_token": f"page-long-life-update-{token}"}]}),
             ),
         ]
 
@@ -206,7 +211,10 @@ class FacebookTypeTest(TembaTest):
         post_data["page_name"] = name
 
         response = self.client.post(url, post_data, follow=True)
-        self.assertContains(response, "This channel is already connected in this workspace.")
+        channel = Channel.objects.get(address="12345", channel_type="FBA")
+        self.assertEqual(channel.config[Channel.CONFIG_AUTH_TOKEN], f"page-long-life-update-{token}")
+        self.assertEqual(channel.config[Channel.CONFIG_PAGE_NAME], "Temba")
+        self.assertEqual(channel.name, "Facebook")
 
         mock_get.side_effect = [
             MockResponse(200, json.dumps({"data": {"user_id": "098765", "expired_at": 100}})),
@@ -244,85 +252,6 @@ class FacebookTypeTest(TembaTest):
 
         mock_delete.assert_called_once_with(
             "https://graph.facebook.com/v18.0/12345/subscribed_apps", params={"access_token": "09876543"}
-        )
-
-    @override_settings(FACEBOOK_APPLICATION_ID="FB_APP_ID", FACEBOOK_APPLICATION_SECRET="FB_APP_SECRET")
-    @patch("requests.post")
-    @patch("requests.get")
-    def test_refresh_token(self, mock_get, mock_post):
-        token = "x" * 200
-
-        url = reverse("channels.types.facebookapp.refresh_token", args=(self.channel.uuid,))
-
-        self.login(self.admin)
-
-        mock_post.return_value = MockResponse(200, json.dumps({"success": True}))
-
-        mock_get.side_effect = [
-            MockResponse(400, json.dumps({"error": "token invalid"})),
-        ]
-
-        response = self.client.get(url)
-        self.assertContains(response, "Reconnect Facebook Page")
-        self.assertEqual(response.context["facebook_app_id"], "FB_APP_ID")
-        self.assertEqual(response.context["refresh_url"], url)
-        self.assertTrue(response.context["error_connect"])
-
-        mock_get.side_effect = [MockResponse(200, json.dumps({"data": {"is_valid": False}}))]
-        response = self.client.get(url)
-        self.assertContains(response, "Reconnect Facebook Page")
-        self.assertEqual(response.context["facebook_app_id"], "FB_APP_ID")
-        self.assertEqual(response.context["refresh_url"], url)
-        self.assertTrue(response.context["error_connect"])
-
-        mock_get.side_effect = [
-            MockResponse(200, json.dumps({"data": {"is_valid": True}})),
-            MockResponse(200, json.dumps({"access_token": f"long-life-user-{token}"})),
-            MockResponse(
-                200,
-                json.dumps({"data": [{"name": "Temba", "id": "12345", "access_token": f"page-long-life-{token}"}]}),
-            ),
-        ]
-
-        response = self.client.get(url)
-        self.assertContains(response, "Reconnect Facebook Page")
-        self.assertEqual(response.context["facebook_app_id"], "FB_APP_ID")
-        self.assertEqual(response.context["refresh_url"], url)
-        self.assertFalse(response.context["error_connect"])
-
-        post_data = response.context["form"].initial
-        post_data["fb_user_id"] = "098765"
-        post_data["user_access_token"] = token
-
-        response = self.client.post(url, post_data, follow=True)
-
-        # assert our channel got created
-        channel = Channel.objects.get(address="12345", channel_type="FBA")
-        self.assertEqual(channel.config[Channel.CONFIG_AUTH_TOKEN], f"page-long-life-{token}")
-        self.assertEqual(channel.config[Channel.CONFIG_PAGE_NAME], "Temba")
-        self.assertEqual(channel.address, "12345")
-
-        self.assertEqual(response.request["PATH_INFO"], reverse("channels.channel_read", args=[channel.uuid]))
-
-        mock_get.assert_any_call(
-            "https://graph.facebook.com/oauth/access_token",
-            params={
-                "grant_type": "fb_exchange_token",
-                "client_id": "FB_APP_ID",
-                "client_secret": "FB_APP_SECRET",
-                "fb_exchange_token": token,
-            },
-        )
-        mock_get.assert_any_call(
-            "https://graph.facebook.com/v18.0/098765/accounts", params={"access_token": f"long-life-user-{token}"}
-        )
-
-        mock_post.assert_any_call(
-            "https://graph.facebook.com/v18.0/12345/subscribed_apps",
-            data={
-                "subscribed_fields": "messages,message_deliveries,messaging_optins,messaging_optouts,messaging_postbacks,message_reads,messaging_referrals,messaging_handovers"
-            },
-            params={"access_token": f"page-long-life-{token}"},
         )
 
     def test_new_conversation_triggers(self):

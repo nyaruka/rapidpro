@@ -1,14 +1,13 @@
 import requests
 
 from django.conf import settings
-from django.urls import re_path
 from django.utils.translation import gettext_lazy as _
 
 from temba.contacts.models import URN
 from temba.triggers.models import Trigger
 
 from ...models import Channel, ChannelType
-from .views import ClaimView, RefreshToken
+from .views import ClaimView
 
 
 class FacebookAppType(ChannelType):
@@ -21,6 +20,7 @@ class FacebookAppType(ChannelType):
     category = ChannelType.Category.SOCIAL_MEDIA
 
     unique_addresses = True
+    matching_addresses_updates = True
 
     courier_url = r"^fba/receive"
     schemes = [URN.FACEBOOK_SCHEME]
@@ -32,15 +32,9 @@ class FacebookAppType(ChannelType):
     ) % {"link": '<a target="_blank" href="http://facebook.com">Facebook</a>'}
     claim_view = ClaimView
 
-    menu_items = [dict(label=_("Reconnect Facebook Page"), view_name="channels.types.facebookapp.refresh_token")]
-
-    def get_urls(self):
-        return [
-            self.get_claim_url(),
-            re_path(
-                r"^(?P<uuid>[a-z0-9\-]+)/refresh_token/$", RefreshToken.as_view(channel_type=self), name="refresh_token"
-            ),
-        ]
+    menu_items = [
+        dict(label=_("Reconnect Facebook Page"), view_name="channels.types.facebookapp.claim", obj_view=False)
+    ]
 
     def deactivate(self, channel):
         config = channel.config
