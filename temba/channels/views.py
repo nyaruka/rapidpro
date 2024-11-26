@@ -98,9 +98,11 @@ class ClaimViewMixin(ChannelTypeMixin, OrgPermsMixin, ComponentFormMixin):
                     schemes__overlap=list(self.channel_type.schemes),
                 ).first()
                 if existing:
-                    if existing.org == self.request.org:
+                    if existing.org != self.request.org:
+                        raise forms.ValidationError(_("This channel is already connected in another workspace."))
+
+                    if not self.channel_type.matching_addresses_updates:
                         raise forms.ValidationError(_("This channel is already connected in this workspace."))
-                    raise forms.ValidationError(_("This channel is already connected in another workspace."))
 
             return super().clean()
 
@@ -487,7 +489,10 @@ class ChannelCRUDL(SmartCRUDL):
             obj = self.get_object()
 
             for item in obj.type.menu_items:
-                menu.add_link(item["label"], reverse(item["view_name"], args=[obj.uuid]))
+                menu.add_link(
+                    item["label"],
+                    reverse(item["view_name"], args=[obj.uuid]) if item["obj_view"] else reverse(item["view_name"]),
+                )
 
             if obj.type.config_ui:
                 menu.add_link(_("Configuration"), reverse("channels.channel_configuration", args=[obj.uuid]))

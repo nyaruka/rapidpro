@@ -1,18 +1,17 @@
 import logging
 
 import requests
-from smartmin.views import SmartFormView, SmartModelActionView
+from smartmin.views import SmartFormView
 
 from django import forms
 from django.conf import settings
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from temba.orgs.views.mixins import OrgObjPermsMixin
 from temba.utils.text import truncate
 
 from ...models import Channel
-from ...views import ChannelTypeMixin, ClaimViewMixin
+from ...views import ClaimViewMixin
 
 logger = logging.getLogger(__name__)
 
@@ -154,142 +153,22 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             "page_id": page_id,
         }
 
-        self.object = Channel.create(
-            self.request.org,
-            self.request.user,
-            None,
-            self.channel_type,
-            name=name,
-            address=ig_user_id,
-            config=config,
-        )
+        existing_channel = Channel.objects.filter(
+            org=self.request.org, address=ig_user_id, channel_type=self.channel_type.code
+        ).first()
+        if existing_channel:
+            existing_channel.config = config
+            existing_channel.save(update_fields=("name", "config"))
+            self.object = existing_channel
+        else:
+            self.object = Channel.create(
+                self.request.org,
+                self.request.user,
+                None,
+                self.channel_type,
+                name=name,
+                address=ig_user_id,
+                config=config,
+            )
 
         return super().form_valid(form)
-
-
-class RefreshToken(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, SmartFormView):
-    class Form(forms.Form):
-        user_access_token = forms.CharField(min_length=32, required=True, help_text=_("The User Access Token"))
-        fb_user_id = forms.CharField(
-            required=True,
-            help_text=_("The Facebook User ID of the admin that connected the channel"),
-        )
-
-    slug_url_kwarg = "uuid"
-    success_url = "uuid@channels.channel_read"
-    form_class = Form
-    permission = "channels.channel_claim"
-    fields = ()
-    template_name = "channels/types/instagram/refresh_token.html"
-    title = _("Reconnect Instagram Business Account")
-
-    def derive_menu_path(self):
-        return f"/settings/channels/{self.get_object().uuid}"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["refresh_url"] = reverse("channels.types.instagram.refresh_token", args=(self.object.uuid,))
-
-        app_id = settings.FACEBOOK_APPLICATION_ID
-        app_secret = settings.FACEBOOK_APPLICATION_SECRET
-
-        context["facebook_app_id"] = app_id
-
-        context["facebook_login_instagram_config_id"] = settings.FACEBOOK_LOGIN_INSTAGRAM_CONFIG_ID
-
-        url = "https://graph.facebook.com/v18.0/debug_token"
-        params = {
-            "access_token": f"{app_id}|{app_secret}",
-            "input_token": self.object.config[Channel.CONFIG_AUTH_TOKEN],
-        }
-        resp = requests.get(url, params=params)
-
-        error_connect = False
-        if resp.status_code != 200:
-            error_connect = True
-        else:
-            valid_token = resp.json().get("data", dict()).get("is_valid", False)
-            if not valid_token:
-                error_connect = True
-
-        context["error_connect"] = error_connect
-
-        return context
-
-    def get_queryset(self):
-        return self.request.org.channels.filter(is_active=True, channel_type=self.channel_type.code)
-
-    def execute_action(self):
-        form = self.form
-        channel = self.object
-
-        auth_token = form.data["user_access_token"]
-        fb_user_id = form.data["fb_user_id"]
-
-        page_id = channel.config.get("page_id")
-
-        if page_id is None:
-            raise Exception("Failed to get channel page ID")  # pragma: needs cover
-
-        app_id = settings.FACEBOOK_APPLICATION_ID
-        app_secret = settings.FACEBOOK_APPLICATION_SECRET
-
-        # get user long lived access token
-        url = "https://graph.facebook.com/oauth/access_token"
-        params = {
-            "grant_type": "fb_exchange_token",
-            "client_id": app_id,
-            "client_secret": app_secret,
-            "fb_exchange_token": auth_token,
-        }
-
-        response = requests.get(url, params=params)
-
-        if response.status_code != 200:  # pragma: no cover
-            raise Exception("Failed to get a user long lived token")
-
-        long_lived_auth_token = response.json().get("access_token", "")
-
-        if long_lived_auth_token == "":  # pragma: no cover
-            raise Exception("Empty user access token!")
-
-        url = f"https://graph.facebook.com/v18.0/{fb_user_id}/accounts"
-        params = {"access_token": long_lived_auth_token}
-
-        page_access_token = ""
-
-        while True:
-            response = requests.get(url, params=params)
-            response_json = response.json()
-
-            if response.status_code != 200:  # pragma: no cover
-                raise Exception("Failed to get a page long lived token")
-
-            for page in response_json.get("data", []):
-                if page["id"] == str(page_id):
-                    page_access_token = page["access_token"]
-                    name = page["name"]
-                    break
-
-            if page_access_token != "":
-                break
-
-            next_ = response_json["paging"].get("next", None)  # pragma: needs cover
-            if next_:  # pragma: needs cover
-                url = next_
-
-            else:  # pragma: needs cover
-                break
-
-        url = f"https://graph.facebook.com/v18.0/{page_id}/subscribed_apps"
-        params = {"access_token": page_access_token}
-        data = {"subscribed_fields": "messages,messaging_postbacks"}
-
-        response = requests.post(url, data=data, params=params)
-
-        if response.status_code != 200:  # pragma: no cover
-            raise Exception("Failed to subscribe to app for webhook events")
-
-        channel.config[Channel.CONFIG_AUTH_TOKEN] = page_access_token
-        channel.config[Channel.CONFIG_PAGE_NAME] = name
-        channel.save(update_fields=["config"])
