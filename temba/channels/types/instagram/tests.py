@@ -356,3 +356,42 @@ class InstagramTypeTest(TembaTest):
             "https://developers.facebook.com/docs/instagram-api/reference/error-codes",
             InstagramType().get_error_ref_url(None, "36000"),
         )
+
+    @override_settings(FACEBOOK_APPLICATION_ID="FB_APP_ID", FACEBOOK_APPLICATION_SECRET="FB_APP_SECRET")
+    @patch("requests.get")
+    def test_check_credentials(self, mock_get):
+        check_credentials_url = reverse("channels.types.instagram.check_credentials", args=(self.channel.uuid,))
+
+        self.login(self.admin)
+
+        mock_get.return_value = MockResponse(200, json.dumps({"success": True, "data": {}}))
+        response = self.client.get(check_credentials_url)
+        self.assertContains(response, "Reconnect Instagram Business Account")
+        self.assertContains(
+            response,
+            "Error with token, you need to reconnect the Instagram Business Account by clicking the button below",
+        )
+        self.assertEqual(response.context["update_token_url"], f"{reverse("channels.types.instagram.claim")}?update=1")
+        self.assertFalse(response.context["valid_token"])
+
+        mock_get.return_value = MockResponse(200, json.dumps({"success": True, "data": {"is_valid": True}}))
+
+        response = self.client.get(check_credentials_url)
+        self.assertContains(response, "Reconnect Instagram Business Account")
+        self.assertContains(response, "Everything looks good. No need to reconnect")
+        self.assertEqual(response.context["update_token_url"], f"{reverse("channels.types.instagram.claim")}?update=1")
+        self.assertTrue(response.context["valid_token"])
+
+    @override_settings(FACEBOOK_APPLICATION_ID="FB_APP_ID", FACEBOOK_APPLICATION_SECRET="FB_APP_SECRET")
+    @patch("requests.get")
+    def test_type_check_credentials(self, mock_get):
+        self.assertFalse(InstagramType().check_credentials({}))
+
+        mock_get.return_value = MockResponse(200, json.dumps({"success": True, "data": {}}))
+        self.assertFalse(InstagramType().check_credentials({Channel.CONFIG_AUTH_TOKEN: "Token"}))
+
+        mock_get.return_value = MockResponse(400, json.dumps({"error": True}))
+        self.assertFalse(InstagramType().check_credentials({Channel.CONFIG_AUTH_TOKEN: "Token"}))
+
+        mock_get.return_value = MockResponse(200, json.dumps({"success": True, "data": {"is_valid": True}}))
+        self.assertTrue(InstagramType().check_credentials({Channel.CONFIG_AUTH_TOKEN: "Token"}))
