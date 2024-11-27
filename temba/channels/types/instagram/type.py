@@ -62,6 +62,10 @@ class InstagramType(ChannelType):
         app_id = settings.FACEBOOK_APPLICATION_ID
         app_secret = settings.FACEBOOK_APPLICATION_SECRET
         url = "https://graph.facebook.com/v18.0/debug_token"
+
+        if Channel.CONFIG_AUTH_TOKEN not in config:
+            return False
+
         params = {
             "access_token": f"{app_id}|{app_secret}",
             "input_token": config[Channel.CONFIG_AUTH_TOKEN],
