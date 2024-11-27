@@ -44,7 +44,7 @@ def send_user_verification_email(org_id, user_id):
     if r.exists(key):
         return
 
-    sender = EmailSender.from_email_type(org.branding, "notifications")
+    sender = EmailSender.from_email_type(org.branding, "notifications", org=org)
     sender.send(
         [user.email],
         _("%(name)s Email Verification") % org.branding,

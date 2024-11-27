@@ -3,6 +3,7 @@ from .builtin import (
     ChannelOutdatedAppIncidentType,
     ChannelTemplatesFailedIncidentType,
     OrgFlaggedIncidentType,
+    OrgSMTPFailedIncidentType,
     OrgSuspendedIncidentType,
     WebhooksUnhealthyIncidentType,
 )
@@ -25,5 +26,6 @@ register_incident_type(ChannelDisconnectedIncidentType())
 register_incident_type(ChannelOutdatedAppIncidentType())
 register_incident_type(OrgFlaggedIncidentType())
 register_incident_type(OrgSuspendedIncidentType())
+register_incident_type(OrgSMTPFailedIncidentType())
 register_incident_type(WebhooksUnhealthyIncidentType())
 register_incident_type(ChannelTemplatesFailedIncidentType())

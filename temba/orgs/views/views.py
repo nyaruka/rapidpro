@@ -616,7 +616,7 @@ class UserCRUDL(SmartCRUDL):
                 user.recovery_tokens.all().delete()
                 token = user.recovery_tokens.create(token=generate_secret(32))
 
-                sender = EmailSender.from_email_type(self.request.branding, "notifications")
+                sender = EmailSender.from_email_type(self.request.branding, "notifications", org=None)
                 sender.send(
                     [user.email],
                     _("Password Recovery Request"),

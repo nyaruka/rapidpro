@@ -61,6 +61,32 @@ class OrgFlaggedIncidentType(IncidentType):
         return Incident.get_or_create(org, cls.slug, scope="")
 
 
+class OrgSMTPFailedIncidentType(IncidentType):
+    """
+    Org has SMTP credentials issues.
+    """
+
+    slug = "org:smtp_failed"
+    title = _("Workspace SMTP credentials failed")
+
+    @classmethod
+    def get_or_create(cls, org):
+        """
+        Creates a SMTP credentials failed incident if one is not already ongoing
+        """
+        if org is None:
+            return
+        return Incident.get_or_create(org, cls.slug, scope="")
+
+    @classmethod
+    def find_and_end(cls, org):
+        if org is None:
+            return
+        ongoing = Incident.objects.filter(incident_type=OrgSMTPFailedIncidentType.slug, ended_on=None, org=org)
+        for incident in ongoing:
+            incident.end()
+
+
 class OrgSuspendedIncidentType(IncidentType):
     """
     Org has been suspended.

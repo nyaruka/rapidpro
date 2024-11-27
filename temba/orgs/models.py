@@ -1539,7 +1539,7 @@ class Invitation(SmartModel):
         return OrgRole.from_code(self.role_code)
 
     def send(self):
-        sender = EmailSender.from_email_type(self.org.branding, "notifications")
+        sender = EmailSender.from_email_type(self.org.branding, "notifications", org=self.org)
         sender.send(
             [self.email],
             _("%(name)s Invitation") % self.org.branding,

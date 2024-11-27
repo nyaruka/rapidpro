@@ -1,3 +1,8 @@
+from smtplib import SMTPException
+from unittest.mock import patch
+
+from temba.notifications.incidents.builtin import OrgSMTPFailedIncidentType
+from temba.notifications.models import Incident
 from temba.tests import TembaTest
 
 from .conf import make_smtp_url, parse_smtp_url
@@ -8,23 +13,64 @@ from .validate import is_valid_address
 class EmailTest(TembaTest):
     def test_sender(self):
         branding = {"name": "Test", "emails": {"spam": "no-reply@acme.com"}}
-        sender = EmailSender.from_email_type(branding, "spam")
+        sender = EmailSender.from_email_type(branding, "spam", org=self.org)
         self.assertEqual(branding, sender.branding)
         self.assertIsNone(sender.connection)  # use default
         self.assertEqual("no-reply@acme.com", sender.from_email)
 
         # test email type not defined in branding
-        sender = EmailSender.from_email_type(branding, "marketing")
+        sender = EmailSender.from_email_type(branding, "marketing", org=self.org)
         self.assertEqual(branding, sender.branding)
         self.assertIsNone(sender.connection)
         self.assertEqual("server@temba.io", sender.from_email)  # from settings
 
         # test full SMTP url in branding
         branding = {"name": "Test", "emails": {"spam": "smtp://foo:sesame@acme.com/?tls=true&from=no-reply%40acme.com"}}
-        sender = EmailSender.from_email_type(branding, "spam")
+        sender = EmailSender.from_email_type(branding, "spam", org=self.org)
         self.assertEqual(branding, sender.branding)
         self.assertIsNotNone(sender.connection)
         self.assertEqual("no-reply@acme.com", sender.from_email)
+
+    def test_sender_send(self):
+        branding = {"name": "Test", "emails": {"spam": "no-reply@acme.com"}}
+        sender = EmailSender.from_email_type(branding, "spam", org=self.org)
+
+        sender_no_org = EmailSender.from_email_type(branding, "spam", org=None)
+
+        with patch("temba.utils.email.send.send_email") as mock_send_email:
+            mock_send_email.side_effect = [SMTPException("error"), SMTPException("error"), None]
+
+            self.assertEqual(
+                0, Incident.objects.filter(incident_type=OrgSMTPFailedIncidentType.slug, org=self.org).count()
+            )
+            self.assertEqual(0, Incident.objects.filter(incident_type=OrgSMTPFailedIncidentType.slug).count())
+            sender_no_org.send(["prettyandsimple@example.com"], "Test", "notifications/email/user_email", {})
+
+            self.assertEqual(0, Incident.objects.filter(incident_type=OrgSMTPFailedIncidentType.slug).count())
+
+            sender.send(["prettyandsimple@example.com"], "Test", "notifications/email/user_email", {})
+
+            self.assertEqual(
+                1, Incident.objects.filter(incident_type=OrgSMTPFailedIncidentType.slug, org=self.org).count()
+            )
+            self.assertEqual(
+                1,
+                Incident.objects.filter(
+                    incident_type=OrgSMTPFailedIncidentType.slug, ended_on=None, org=self.org
+                ).count(),
+            )
+
+            sender.send(["prettyandsimple@example.com"], "Test", "notifications/email/user_email", {})
+
+            self.assertEqual(
+                1, Incident.objects.filter(incident_type=OrgSMTPFailedIncidentType.slug, org=self.org).count()
+            )
+            self.assertEqual(
+                0,
+                Incident.objects.filter(
+                    incident_type=OrgSMTPFailedIncidentType.slug, ended_on=None, org=self.org
+                ).count(),
+            )
 
     def test_is_valid_address(self):
         valid_emails = [

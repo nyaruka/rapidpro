@@ -104,7 +104,7 @@ class SMTPForm(forms.Form):
             password = self.cleaned_data["password"]
 
             smtp_url = make_smtp_url(host, port, username, password, from_email, tls=True)
-            sender = EmailSender.from_smtp_url(self.org.branding, smtp_url)
+            sender = EmailSender.from_smtp_url(self.org.branding, smtp_url, org=self.org)
             recipients = [admin.email for admin in self.org.get_admins().order_by("email")]
             subject = _("%(name)s SMTP settings test") % self.org.branding
             try:
