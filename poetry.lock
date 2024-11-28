@@ -2029,17 +2029,18 @@ six = "*"
 
 [[package]]
 name = "twython"
-version = "3.5.0"
-description = "Actively maintained, pure Python wrapper for the     Twitter API. Supports both normal and streaming Twitter APIs"
+version = "3.9.1"
+description = "Actively maintained, pure Python wrapper for the Twitter API. Supports both normal and streaming Twitter APIs"
 optional = false
-python-versions = "*"
+python-versions = ">=3.5"
 files = [
-    {file = "twython-3.5.0.tar.gz", hash = "sha256:01ad5ed21f3da641a3dc58a814b435aac4cf91c691b1afc5a8dc0ca4e1affe47"},
+    {file = "twython-3.9.1-py3-none-any.whl", hash = "sha256:aef7ad4faabee91efcbe82a8618b38a948498fc6b3eca4cd76f642f957353818"},
+    {file = "twython-3.9.1.tar.gz", hash = "sha256:5a3f0ac24d10705257028fb4205bfedf432ff28d358b796e0c2f01a2f9990c84"},
 ]
 
 [package.dependencies]
 requests = ">=2.1.0"
-requests_oauthlib = ">=0.4.0"
+requests-oauthlib = ">=0.4.0"
 
 [[package]]
 name = "typing-extensions"
@@ -2234,4 +2235,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.12"
-content-hash = "2805b22c847a8a482990466f54fae9eb820c27819d469274a403f2fe961026f5"
+content-hash = "dd3228ddfbf87e44b6cb23f5b56000df976b2b49c8e5ea651af240eaf41ca253"

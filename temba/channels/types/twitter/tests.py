@@ -173,6 +173,7 @@ class TwitterClientTest(TembaTest):
             "POST",
             params=None,
             version="1.1",
+            json_encoded=False,
         )
 
     @patch("twython.Twython.request")
@@ -184,4 +185,5 @@ class TwitterClientTest(TembaTest):
             "POST",
             params=None,
             version="1.1",
+            json_encoded=False,
         )
