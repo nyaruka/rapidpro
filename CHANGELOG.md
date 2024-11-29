@@ -1,3 +1,33 @@
+v9.3.125 (2024-11-28)
+-------------------------
+ * Remove TWT channel type
+ * Prefetch run status counts used by flows list view and flows API endpoint
+ * Update twilio python client library
+ * Read segment counts from new flow activity count model
+
+v9.3.124 (2024-11-28)
+-------------------------
+ * Data migration to backfill new segment counts
+ * Update vonage python client
+ * Stop writing and squashing old node and status counts
+
+v9.3.123 (2024-11-28)
+-------------------------
+ * Only load flow results once per page load
+
+v9.3.122 (2024-11-27)
+-------------------------
+ * Stop reading node and status counts from old models
+
+v9.3.121 (2024-11-27)
+-------------------------
+ * Data migration to backfill node and status counts into new model
+
+v9.3.120 (2024-11-27)
+-------------------------
+ * Change new count model squashing to not insert zero sums
+ * Start writing run status/node counts to new count model
+
 v9.3.119 (2024-11-26)
 -------------------------
  * Fix selecting of menu when going to group page

@@ -1,5 +1,3 @@
-import logging
-import time
 from abc import abstractmethod
 
 from django.db import connection, models
@@ -12,20 +10,31 @@ class SquashableModel(models.Model):
     """
 
     squash_over = ()
+    squash_max_distinct = 5000
 
     id = models.BigAutoField(auto_created=True, primary_key=True)
     is_squashed = models.BooleanField(default=False)
+
+    @classmethod
+    def get_squash_over(cls) -> tuple:
+        return cls.squash_over
 
     @classmethod
     def get_unsquashed(cls):
         return cls.objects.filter(is_squashed=False)
 
     @classmethod
-    def squash(cls):
-        start = time.time()
-        num_sets = 0
+    def squash(cls) -> int:
+        """
+        Squashes all distinct sets of counts with unsquashed rows into a single row if they sum to non-zero or just
+        deletes them if they sum to zero. Returns the number of sets squashed.
+        """
 
-        for distinct_set in cls.get_unsquashed().order_by(*cls.squash_over).distinct(*cls.squash_over)[:5000]:
+        num_sets = 0
+        squash_over = cls.get_squash_over()
+        distinct_sets = cls.get_unsquashed().order_by(*squash_over).distinct(*squash_over)[: cls.squash_max_distinct]
+
+        for distinct_set in distinct_sets:
             with connection.cursor() as cursor:
                 sql, params = cls.get_squash_query(distinct_set)
 
@@ -33,9 +42,7 @@ class SquashableModel(models.Model):
 
             num_sets += 1
 
-        time_taken = time.time() - start
-
-        logging.debug("Squashed %d distinct sets of %s in %0.3fs" % (num_sets, cls.__name__, time_taken))
+        return num_sets
 
     @classmethod
     @abstractmethod

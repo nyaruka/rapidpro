@@ -29,7 +29,7 @@ from temba.tickets.models import Topic
 from temba.utils import analytics, json, on_transaction_commit, s3
 from temba.utils.export.models import MultiSheetExporter
 from temba.utils.models import JSONAsTextField, LegacyUUIDMixin, SquashableModel, TembaModel, delete_in_batches
-from temba.utils.models.counts import ScopeCountQuerySet
+from temba.utils.models.counts import BaseScopedCount
 from temba.utils.uuid import uuid4
 
 from . import legacy
@@ -441,24 +441,19 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         lock_key = FLOW_LOCK_KEY % (self.org_id, self.id)
         return r.lock(lock_key, FLOW_LOCK_TTL)
 
-    def get_node_counts(self):
-        """
-        Gets the number of contacts at each node in the flow
-        """
-        return FlowNodeCount.get_totals(self)
-
-    def get_segment_counts(self):
-        """
-        Gets the number of contacts to have taken each flow segment.
-        """
-        return FlowPathCount.get_totals(self)
-
-    def get_activity(self):
+    def get_activity(self) -> tuple:
         """
         Get the activity summary for a flow as a tuple of the number of active runs
         at each step and a map of the previous visits
         """
-        return self.get_node_counts(), self.get_segment_counts()
+
+        counts = self.counts.prefix("node:").scope_totals()
+        by_node = {scope[5:]: count for scope, count in counts.items() if count}
+
+        counts = self.counts.prefix("segment:").scope_totals()
+        by_segment = {scope[8:]: count for scope, count in counts.items() if count}
+
+        return by_node, by_segment
 
     def get_active_start(self):
         """
@@ -592,20 +587,30 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         self.save_revision(user, definition)
 
+    @classmethod
+    def prefetch_run_stats(cls, flows, *, using="default"):
+        FlowActivityCount.prefetch_by_scope(flows, prefix="status:", to_attr="_status_counts", using=using)
+
     def get_run_stats(self):
-        totals_by_status = FlowRunStatusCount.get_totals(self)
-        total_runs = sum(totals_by_status.values())
-        completed = totals_by_status.get(FlowRun.STATUS_COMPLETED, 0)
+        if hasattr(self, "_status_counts"):
+            counts = self._status_counts
+        else:
+            counts = self.counts.prefix("status:").scope_totals()
+
+        by_status = {scope[7:]: count for scope, count in counts.items()}
+
+        total_runs = sum(by_status.values())
+        completed = by_status.get(FlowRun.STATUS_COMPLETED, 0)
 
         return {
             "total": total_runs,
             "status": {
-                "active": totals_by_status.get(FlowRun.STATUS_ACTIVE, 0),
-                "waiting": totals_by_status.get(FlowRun.STATUS_WAITING, 0),
+                "active": by_status.get(FlowRun.STATUS_ACTIVE, 0),
+                "waiting": by_status.get(FlowRun.STATUS_WAITING, 0),
                 "completed": completed,
-                "expired": totals_by_status.get(FlowRun.STATUS_EXPIRED, 0),
-                "interrupted": totals_by_status.get(FlowRun.STATUS_INTERRUPTED, 0),
-                "failed": totals_by_status.get(FlowRun.STATUS_FAILED, 0),
+                "expired": by_status.get(FlowRun.STATUS_EXPIRED, 0),
+                "interrupted": by_status.get(FlowRun.STATUS_INTERRUPTED, 0),
+                "failed": by_status.get(FlowRun.STATUS_FAILED, 0),
             },
             "completion": int(completed * 100 // total_runs) if total_runs else 0,
         }
@@ -1421,7 +1426,7 @@ class FlowRevision(models.Model):
         self.delete()
 
 
-class FlowActivityCount(SquashableModel):
+class FlowActivityCount(BaseScopedCount):
     """
     Flow-level counts of activity.
     """
@@ -1429,10 +1434,6 @@ class FlowActivityCount(SquashableModel):
     squash_over = ("flow_id", "scope")
 
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="counts", db_index=False)  # indexed below
-    scope = models.CharField(max_length=128)
-    count = models.IntegerField(default=0)
-
-    objects = ScopeCountQuerySet.as_manager()
 
     @classmethod
     def get_squash_query(cls, distinct_set) -> tuple:
@@ -1441,7 +1442,9 @@ class FlowActivityCount(SquashableModel):
             DELETE FROM %(table)s WHERE "flow_id" = %%s AND "scope" = %%s RETURNING "count"
         )
         INSERT INTO %(table)s("flow_id", "scope", "count", "is_squashed")
-        VALUES (%%s, %%s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
+        SELECT %%s, %%s, s.total, TRUE FROM (
+            SELECT COALESCE(SUM("count"), 0) AS "total" FROM removed
+        ) s WHERE s.total != 0;
         """ % {
             "table": cls._meta.db_table
         }
@@ -1449,6 +1452,22 @@ class FlowActivityCount(SquashableModel):
         params = (distinct_set.flow_id, distinct_set.scope) * 2
 
         return sql, params
+
+    @classmethod
+    def prefetch_by_scope(cls, flows, *, prefix: str, to_attr: str, using: str):
+        counts = (
+            cls.objects.using(using)
+            .filter(flow__in=flows)
+            .prefix(prefix)
+            .values_list("flow_id", "scope")
+            .annotate(total=Sum("count"))
+        )
+        by_flow = defaultdict(dict)
+        for count in counts:
+            by_flow[count[0]][count[1]] = count[2]
+
+        for flow in flows:
+            setattr(flow, to_attr, by_flow[flow.id])
 
     class Meta:
         indexes = [
@@ -1540,7 +1559,7 @@ class FlowPathCount(SquashableModel):
     count = models.IntegerField(default=0)
 
     @classmethod
-    def get_squash_query(cls, distinct_set):
+    def get_squash_query(cls, distinct_set):  # pragma: no cover
         sql = """
         WITH removed as (
             DELETE FROM %(table)s WHERE "flow_id" = %%s AND "from_uuid" = %%s AND "to_uuid" = %%s AND "period" = date_trunc('hour', %%s) RETURNING "count"
@@ -1554,12 +1573,6 @@ class FlowPathCount(SquashableModel):
         params = (distinct_set.flow_id, distinct_set.from_uuid, distinct_set.to_uuid, distinct_set.period) * 2
         return sql, params
 
-    @classmethod
-    def get_totals(cls, flow):
-        counts = cls.objects.filter(flow=flow)
-        totals = list(counts.values_list("from_uuid", "to_uuid").annotate(replies=Sum("count")))
-        return {"%s:%s" % (t[0], t[1]): t[2] for t in totals}
-
     class Meta:
         indexes = [
             models.Index(
@@ -1572,37 +1585,12 @@ class FlowPathCount(SquashableModel):
 
 class FlowNodeCount(SquashableModel):
     """
-    Maintains counts of unique contacts at each flow node.
+    TODO drop
     """
 
-    squash_over = ("node_uuid",)
-
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="node_counts")
-
-    # the UUID of the node
     node_uuid = models.UUIDField(db_index=True)
-
-    # the number of contacts/runs currently at that node
     count = models.IntegerField(default=0)
-
-    @classmethod
-    def get_squash_query(cls, distinct_set):
-        sql = """
-        WITH removed as (
-            DELETE FROM %(table)s WHERE "node_uuid" = %%s RETURNING "count"
-        )
-        INSERT INTO %(table)s("flow_id", "node_uuid", "count", "is_squashed")
-        VALUES (%%s, %%s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
-        """ % {
-            "table": cls._meta.db_table
-        }
-
-        return sql, (distinct_set.node_uuid, distinct_set.flow_id, distinct_set.node_uuid)
-
-    @classmethod
-    def get_totals(cls, flow):
-        totals = list(cls.objects.filter(flow=flow).values_list("node_uuid").annotate(replies=Sum("count")))
-        return {str(t[0]): t[1] for t in totals if t[1]}
 
     class Meta:
         indexes = [
@@ -1614,36 +1602,16 @@ class FlowNodeCount(SquashableModel):
 
 class FlowRunStatusCount(SquashableModel):
     """
-    Maintains counts of different statuses of flow runs for all flows. These are inserted via triggers on the database.
+    TODO drop
     """
-
-    squash_over = ("flow_id", "status")
 
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="status_counts")
     status = models.CharField(max_length=1, choices=FlowRun.STATUS_CHOICES)
     count = models.IntegerField(default=0)
 
-    @classmethod
-    def get_squash_query(cls, distinct_set):
-        sql = r"""
-        WITH removed as (
-            DELETE FROM flows_flowrunstatuscount WHERE "flow_id" = %s AND "status" = %s RETURNING "count"
-        )
-        INSERT INTO flows_flowrunstatuscount("flow_id", "status", "count", "is_squashed")
-        VALUES (%s, %s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
-        """
-
-        return sql, (distinct_set.flow_id, distinct_set.status) * 2
-
-    @classmethod
-    def get_totals(cls, flow):
-        totals = list(cls.objects.filter(flow=flow).values_list("status").annotate(total=Sum("count")))
-        return {t[0]: t[1] for t in totals}
-
     class Meta:
         indexes = [
             models.Index(fields=("flow", "status")),
-            # for squashing task
             models.Index(name="flowrun_count_unsquashed", fields=("flow", "status"), condition=Q(is_squashed=False)),
         ]
 

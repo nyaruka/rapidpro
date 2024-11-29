@@ -6,7 +6,7 @@ from django.db import migrations, transaction
 from django.db.models import Sum
 
 
-def backfill_engagement_counts(apps, schema_editor):
+def backfill_engagement_counts(apps, schema_editor):  # pragma: no cover
     Flow = apps.get_model("flows", "Flow")
 
     flow_ids = list(Flow.objects.filter(is_active=True).order_by("id").values_list("id", flat=True))
@@ -24,7 +24,7 @@ def backfill_engagement_counts(apps, schema_editor):
         print(f"> updated counts for {num_backfilled} of {len(flow_ids)} flows")
 
 
-def backfill_for_flow(apps, flow) -> int:
+def backfill_for_flow(apps, flow) -> int:  # pragma: no cover
     FlowActivityCount = apps.get_model("flows", "FlowActivityCount")
 
     # no waits then no engagement counts
@@ -53,7 +53,7 @@ def backfill_for_flow(apps, flow) -> int:
         for count in by_date:
             add_count(f"msgsin:date:{count['date'].isoformat()}", count["total"])
 
-        flow.counts.all().delete()
+        flow.counts.filter(scope__startswith="msgsin:").delete()
         FlowActivityCount.objects.bulk_create(to_create)
         return len(to_create)
 
