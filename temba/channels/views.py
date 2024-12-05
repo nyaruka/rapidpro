@@ -98,9 +98,11 @@ class ClaimViewMixin(ChannelTypeMixin, OrgPermsMixin, ComponentFormMixin):
                     schemes__overlap=list(self.channel_type.schemes),
                 ).first()
                 if existing:
-                    if existing.org == self.request.org:
+                    if existing.org != self.request.org:
+                        raise forms.ValidationError(_("This channel is already connected in another workspace."))
+
+                    if not self.channel_type.matching_addresses_updates:
                         raise forms.ValidationError(_("This channel is already connected in this workspace."))
-                    raise forms.ValidationError(_("This channel is already connected in another workspace."))
 
             return super().clean()
 
