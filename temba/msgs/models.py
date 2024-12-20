@@ -5,6 +5,7 @@ import os
 import re
 from array import array
 from dataclasses import dataclass
+from enum import Enum
 from fnmatch import fnmatch
 from urllib.parse import unquote, urlparse
 
@@ -793,13 +794,94 @@ class BroadcastMsgCount(BaseSquashableCount):
             bcast.msg_count = counts_by_bcast.get(bcast.id, 0)
 
 
+class MsgFolder(Enum):
+    """
+    A folder of messages owned by an org.
+    """
+
+    INBOX = (
+        "I",
+        dict(
+            direction=Msg.DIRECTION_IN,
+            visibility=Msg.VISIBILITY_VISIBLE,
+            status=Msg.STATUS_HANDLED,
+            flow__isnull=True,
+            msg_type=Msg.TYPE_TEXT,
+        ),
+        dict(direction="in", visibility="visible", status="handled", flow__isnull=True, type__ne="voice"),
+    )
+    HANDLED = (
+        "W",
+        dict(
+            direction=Msg.DIRECTION_IN,
+            visibility=Msg.VISIBILITY_VISIBLE,
+            status=Msg.STATUS_HANDLED,
+            flow__isnull=False,
+            msg_type=Msg.TYPE_TEXT,
+        ),
+        dict(direction="in", visibility="visible", status="handled", flow__isnull=False, type__ne="voice"),
+    )
+    ARCHIVED = (
+        "A",
+        dict(
+            direction=Msg.DIRECTION_IN,
+            visibility=Msg.VISIBILITY_ARCHIVED,
+            status=Msg.STATUS_HANDLED,
+            msg_type=Msg.TYPE_TEXT,
+        ),
+        dict(direction="in", visibility="archived", status="handled", type__ne="voice"),
+    )
+    OUTBOX = (
+        "O",
+        dict(
+            direction=Msg.DIRECTION_OUT,
+            visibility=Msg.VISIBILITY_VISIBLE,
+            status__in=(Msg.STATUS_INITIALIZING, Msg.STATUS_QUEUED, Msg.STATUS_ERRORED),
+        ),
+        dict(direction="out", visibility="visible", status__in=("initializing", "queued", "errored")),
+    )
+    SENT = (
+        "S",
+        dict(
+            direction=Msg.DIRECTION_OUT,
+            visibility=Msg.VISIBILITY_VISIBLE,
+            status__in=(Msg.STATUS_WIRED, Msg.STATUS_SENT, Msg.STATUS_DELIVERED, Msg.STATUS_READ),
+        ),
+        dict(direction="out", visibility="visible", status__in=("wired", "sent", "delivered", "read")),
+    )
+    FAILED = (
+        "X",
+        dict(direction=Msg.DIRECTION_OUT, visibility=Msg.VISIBILITY_VISIBLE, status=Msg.STATUS_FAILED),
+        dict(direction="out", visibility="visible", status="failed"),
+    )
+
+    def __init__(self, code, query: dict, archive_query: dict = None):
+        self.code = code
+        self.query = query
+        self.archive_query = archive_query
+
+    def get_queryset(self, org):
+        return org.msgs.filter(**self.query)
+
+    def get_archive_query(self) -> dict:
+        return self.archive_query.copy()
+
+    @classmethod
+    def from_code(cls, code):
+        return next(f for f in cls if f.code == code)
+
+
 class SystemLabel:
-    TYPE_INBOX = "I"
-    TYPE_FLOWS = "W"
-    TYPE_ARCHIVED = "A"
-    TYPE_OUTBOX = "O"
-    TYPE_SENT = "S"
-    TYPE_FAILED = "X"
+    """
+    TODO replace with MsgFolder once we figure out what to do with calls and broadcasts.
+    """
+
+    TYPE_INBOX = MsgFolder.INBOX.code
+    TYPE_FLOWS = MsgFolder.HANDLED.code
+    TYPE_ARCHIVED = MsgFolder.ARCHIVED.code
+    TYPE_OUTBOX = MsgFolder.OUTBOX.code
+    TYPE_SENT = MsgFolder.SENT.code
+    TYPE_FAILED = MsgFolder.FAILED.code
     TYPE_SCHEDULED = "E"
     TYPE_CALLS = "C"
 
@@ -826,70 +908,18 @@ class SystemLabel:
         trigger used to maintain the label counts.
         """
 
-        from temba.ivr.models import Call
-
         assert label_type in [c[0] for c in cls.TYPE_CHOICES]
 
-        if label_type == cls.TYPE_INBOX:
-            qs = Msg.objects.filter(
-                direction=Msg.DIRECTION_IN,
-                visibility=Msg.VISIBILITY_VISIBLE,
-                status=Msg.STATUS_HANDLED,
-                flow__isnull=True,
-                msg_type=Msg.TYPE_TEXT,
-            )
-        elif label_type == cls.TYPE_FLOWS:
-            qs = Msg.objects.filter(
-                direction=Msg.DIRECTION_IN,
-                visibility=Msg.VISIBILITY_VISIBLE,
-                status=Msg.STATUS_HANDLED,
-                flow__isnull=False,
-                msg_type=Msg.TYPE_TEXT,
-            )
-        elif label_type == cls.TYPE_ARCHIVED:
-            qs = Msg.objects.filter(
-                direction=Msg.DIRECTION_IN,
-                visibility=Msg.VISIBILITY_ARCHIVED,
-                status=Msg.STATUS_HANDLED,
-                msg_type=Msg.TYPE_TEXT,
-            )
-        elif label_type == cls.TYPE_OUTBOX:
-            qs = Msg.objects.filter(
-                direction=Msg.DIRECTION_OUT,
-                visibility=Msg.VISIBILITY_VISIBLE,
-                status__in=(Msg.STATUS_INITIALIZING, Msg.STATUS_QUEUED, Msg.STATUS_ERRORED),
-            )
-        elif label_type == cls.TYPE_SENT:
-            qs = Msg.objects.filter(
-                direction=Msg.DIRECTION_OUT,
-                visibility=Msg.VISIBILITY_VISIBLE,
-                status__in=(Msg.STATUS_WIRED, Msg.STATUS_SENT, Msg.STATUS_DELIVERED, Msg.STATUS_READ),
-            )
-        elif label_type == cls.TYPE_FAILED:
-            qs = Msg.objects.filter(
-                direction=Msg.DIRECTION_OUT, visibility=Msg.VISIBILITY_VISIBLE, status=Msg.STATUS_FAILED
-            )
-        elif label_type == cls.TYPE_SCHEDULED:
-            qs = Broadcast.objects.filter(is_active=True).exclude(schedule=None)
+        if label_type == cls.TYPE_SCHEDULED:
+            return org.broadcasts.filter(is_active=True).exclude(schedule=None)
         elif label_type == cls.TYPE_CALLS:
-            qs = Call.objects.all()
+            return org.calls.all()
 
-        return qs.filter(org=org)
+        return MsgFolder.from_code(label_type).get_queryset(org)
 
     @classmethod
     def get_archive_query(cls, label_type: str) -> dict:
-        if label_type == cls.TYPE_INBOX:
-            return dict(direction="in", visibility="visible", status="handled", flow__isnull=True, type__ne="voice")
-        elif label_type == cls.TYPE_FLOWS:
-            return dict(direction="in", visibility="visible", status="handled", flow__isnull=False, type__ne="voice")
-        elif label_type == cls.TYPE_ARCHIVED:
-            return dict(direction="in", visibility="archived", status="handled", type__ne="voice")
-        elif label_type == cls.TYPE_OUTBOX:
-            return dict(direction="out", visibility="visible", status__in=("initializing", "queued", "errored"))
-        elif label_type == cls.TYPE_SENT:
-            return dict(direction="out", visibility="visible", status__in=("wired", "sent", "delivered", "read"))
-        elif label_type == cls.TYPE_FAILED:
-            return dict(direction="out", visibility="visible", status="failed")
+        return MsgFolder.from_code(label_type).get_archive_query()
 
 
 class SystemLabelCount(BaseSquashableCount):

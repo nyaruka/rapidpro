@@ -20,7 +20,7 @@ from temba.contacts.models import Contact, ContactField, ContactGroup, ContactNo
 from temba.flows.models import Flow, FlowRun, FlowStart, FlowStartCount
 from temba.globals.models import Global
 from temba.locations.models import AdminBoundary, BoundaryAlias
-from temba.msgs.models import Broadcast, BroadcastMsgCount, Label, LabelCount, Media, Msg, OptIn, SystemLabel
+from temba.msgs.models import Broadcast, BroadcastMsgCount, Label, LabelCount, Media, Msg, MsgFolder, OptIn
 from temba.orgs.models import OrgMembership, User
 from temba.orgs.views.mixins import OrgPermsMixin
 from temba.tickets.models import Ticket, Topic
@@ -2411,12 +2411,12 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
     throttle_scope = "v2.messages"
 
     FOLDER_FILTERS = {
-        "inbox": SystemLabel.TYPE_INBOX,
-        "flows": SystemLabel.TYPE_FLOWS,
-        "archived": SystemLabel.TYPE_ARCHIVED,
-        "outbox": SystemLabel.TYPE_OUTBOX,
-        "failed": SystemLabel.TYPE_FAILED,
-        "sent": SystemLabel.TYPE_SENT,
+        "inbox": MsgFolder.INBOX,
+        "flows": MsgFolder.HANDLED,
+        "archived": MsgFolder.ARCHIVED,
+        "outbox": MsgFolder.OUTBOX,
+        "sent": MsgFolder.SENT,
+        "failed": MsgFolder.FAILED,
     }
 
     def derive_queryset(self):
@@ -2424,9 +2424,9 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
         folder = self.request.query_params.get("folder")
 
         if folder:
-            sys_label = self.FOLDER_FILTERS.get(folder.lower())
-            if sys_label:
-                return SystemLabel.get_queryset(org, sys_label)
+            msg_folder = self.FOLDER_FILTERS.get(folder.lower())
+            if msg_folder:
+                return msg_folder.get_queryset(org)
             elif folder == "incoming":
                 return self.model.objects.filter(org=org, direction=Msg.DIRECTION_IN, status=Msg.STATUS_HANDLED)
             else:
