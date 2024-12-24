@@ -4,8 +4,9 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    container:
+      image: python:3.12-bullseye
     env:
-      python-version: '3.12.x'
       node-version: '20'
       mailroom-version: '9.3.59'
 
@@ -39,13 +40,8 @@ jobs:
 
       - name: Install Linux packages
         run: |
-          sudo apt update
-          sudo apt install -y --no-install-recommends libgdal-dev ffmpeg
-
-      - name: Install Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.python-version }}
+          apt-get update
+          apt-get install -y --no-install-recommends libgdal-dev ffmpeg
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
@@ -57,6 +53,15 @@ jobs:
         with:
           node-version: ${{ env.node-version }}
 
+      - name: Install Mailroom
+        run: |
+          git clone --depth 1 https://github.com/${{ github.repository_owner }}/mailroom
+          cd mailroom
+          go install github.com/${{ github.repository_owner }}/mailroom/cmd/mailroom
+          # start mailroom but use different redis db so that it doesn't actually handle tasks
+          ./mailroom -db=postgres://temba:temba@postgres:5432/temba?sslmode=disable -redis=redis://redis:6379/15 -log-level=info > mailroom.log &
+        working-directory: ${{ github.workspace }}
+
       - name: Install and start DynamoDB
         uses: rrainn/dynamodb-action@v4.0.0
         with:
@@ -64,17 +69,13 @@ jobs:
 
       - name: Initialize environment
         run: |
+          npm install -g yarn less
           poetry install
           yarn install
-          sudo yarn global add less
-          ln -s ${{ github.workspace }}/temba/settings.py.dev ${{ github.workspace }}/temba/settings.py
+          ln -s settings.py.dev temba/settings.py
           poetry run python manage.py migrate
           poetry run python manage.py migrate_dynamo --testing
-          # fetch, extract and start mailroom
-          wget https://github.com/${{ github.repository_owner }}/mailroom/releases/download/v${{ env.mailroom-version }}/mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz
-          tar -xvf mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz mailroom
-          # start mailroom but use different redis db so that it doesn't actually handle tasks
-          ./mailroom -db=postgres://temba:temba@localhost:5432/temba?sslmode=disable -redis=redis://localhost:6379/15 -log-level=info > mailroom.log &
+        working-directory: ${{ github.workspace }} # https://github.com/actions/runner/issues/2058#issuecomment-2085119510
 
       - name: Run pre-test checks
         run: |
@@ -83,6 +84,7 @@ jobs:
           # check we can collect and compress all static files
           poetry run python manage.py collectstatic --noinput --verbosity=0
           poetry run python manage.py compress --extension=".html" --settings=temba.settings_compress
+        working-directory: ${{ github.workspace }}
 
       - name: Run tests
         run: |
@@ -90,6 +92,7 @@ jobs:
           poetry run coverage report -i
           poetry run coverage xml
           poetry run coverage html
+        working-directory: ${{ github.workspace }}
 
       - name: Save coverage report as artifact
         uses: actions/upload-artifact@v4

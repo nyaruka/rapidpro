@@ -18,6 +18,11 @@ SECRET_KEY = "your own secret key"
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 2500  # needed for exports of big workspaces
 
+_db_host = "postgres"
+_redis_host = "redis"
+_minio_host = "minio"
+_dynamo_host = "dynamo"
+
 # -----------------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------------
@@ -26,17 +31,6 @@ TESTING = sys.argv[1:2] == ["test"]
 if TESTING:
     PASSWORD_HASHERS = ("django.contrib.auth.hashers.MD5PasswordHasher",)
     DEBUG = False
-
-if os.getenv("REMOTE_CONTAINERS") == "true":
-    _db_host = "postgres"
-    _redis_host = "redis"
-    _minio_host = "minio"
-    _dynamo_host = "dynamo"
-else:
-    _db_host = "localhost"
-    _redis_host = "localhost"
-    _minio_host = "localhost"
-    _dynamo_host = "localhost"
 
 # -----------------------------------------------------------------------------------
 # Email
