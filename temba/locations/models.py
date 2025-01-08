@@ -178,3 +178,50 @@ class BoundaryAlias(SmartModel):
 
     class Meta:
         indexes = [models.Index(Upper("name"), name="boundaryaliases_by_name")]
+
+
+class AdminLocation(MPTTModel, models.Model):
+    """
+    Represents a single administrative region (like a country, state or district)
+    """
+
+    LEVEL_COUNTRY = 0
+    LEVEL_STATE = 1
+    LEVEL_DISTRICT = 2
+    LEVEL_WARD = 3
+
+    MAX_NAME_LEN = 128
+
+    # Used to separate segments in a hierarchy of boundaries. Has the advantage of being a character in GSM7 and
+    # being very unlikely to show up in an admin region name.
+    PATH_SEPARATOR = ">"
+    PADDED_PATH_SEPARATOR = " > "
+
+    osm_id = models.CharField(max_length=15, unique=True)
+    name = models.CharField(max_length=MAX_NAME_LEN)
+    level = models.IntegerField()
+    parent = TreeForeignKey("self", null=True, on_delete=models.PROTECT, related_name="children", db_index=True)
+    path = models.CharField(max_length=768)  # e.g. Rwanda > Kigali
+    simplified_geometry = models.JSONField(null=True)
+
+    objects = NoGeometryManager()
+    geometries = GeometryManager()
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        indexes = [models.Index(Upper("name"), name="adminlocations_by_name")]
+
+
+class LocationAlias(SmartModel):
+    """
+    An org specific alias for a location name
+    """
+
+    org = models.ForeignKey("orgs.Org", on_delete=models.PROTECT)
+    location = models.ForeignKey(AdminLocation, on_delete=models.PROTECT, related_name="aliases")
+    name = models.CharField(max_length=AdminLocation.MAX_NAME_LEN, help_text="The name for our alias")
+
+    class Meta:
+        indexes = [models.Index(Upper("name"), name="locationaliases_by_name")]
