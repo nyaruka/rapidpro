@@ -207,6 +207,46 @@ class AdminLocation(MPTTModel, models.Model):
     objects = NoGeometryManager()
     geometries = GeometryManager()
 
+    def update(self, **kwargs):
+        AdminLocation.objects.filter(id=self.id).update(**kwargs)
+
+        # update our object values so that self is up to date
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def update_path(self):
+        if self.level == 0:
+            self.path = self.name
+            self.save(update_fields=("path",))
+
+        def _update_child_paths(boundary):
+            boundaries = AdminLocation.objects.filter(parent=boundary).only("name", "parent__path")
+            boundaries.update(
+                path=Concat(Value(boundary.path), Value(" %s " % AdminLocation.PATH_SEPARATOR), F("name"))
+            )
+            for boundary in boundaries:
+                _update_child_paths(boundary)
+
+        _update_child_paths(self)
+
+    def release(self):
+        for child_boundary in AdminLocation.objects.filter(parent=self):  # pragma: no cover
+            child_boundary.release()
+
+        self.aliases.all().delete()
+        self.delete()
+
+    @classmethod
+    def create(cls, osm_id, name, level, parent=None, **kwargs):
+        """
+        Create method that takes care of creating path based on name and parent
+        """
+        path = name
+        if parent is not None:
+            path = parent.path + AdminLocation.PADDED_PATH_SEPARATOR + name
+
+        return AdminLocation.objects.create(osm_id=osm_id, name=name, level=level, parent=parent, path=path, **kwargs)
+
     def __str__(self):
         return self.name
 
