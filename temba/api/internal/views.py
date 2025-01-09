@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from django.db.models import Prefetch, Q
 
 from temba.channels.models import Channel
-from temba.locations.models import AdminBoundary
+from temba.locations.models import Location
 from temba.notifications.models import Notification
 from temba.templates.models import Template, TemplateTranslation
 from temba.tickets.models import Shortcut
@@ -36,16 +36,16 @@ class LocationsEndpoint(ListAPIMixin, BaseEndpoint):
     """
 
     LEVELS = {
-        "state": AdminBoundary.LEVEL_STATE,
-        "district": AdminBoundary.LEVEL_DISTRICT,
-        "ward": AdminBoundary.LEVEL_WARD,
+        "state": Location.LEVEL_STATE,
+        "district": Location.LEVEL_DISTRICT,
+        "ward": Location.LEVEL_WARD,
     }
 
     class Pagination(CursorPagination):
         ordering = ("name", "id")
         offset_cutoff = 100000
 
-    model = AdminBoundary
+    model = Location
     serializer_class = serializers.LocationReadSerializer
     pagination_class = Pagination
 
@@ -54,12 +54,10 @@ class LocationsEndpoint(ListAPIMixin, BaseEndpoint):
         level = self.LEVELS.get(self.request.query_params.get("level"))
         query = self.request.query_params.get("query")
 
-        if not org.country or not level:
-            return AdminBoundary.objects.none()
+        if not org.location or not level:
+            return Location.objects.none()
 
-        qs = AdminBoundary.objects.filter(
-            path__startswith=f"{org.country.name} {AdminBoundary.PATH_SEPARATOR}", level=level
-        )
+        qs = Location.objects.filter(path__startswith=f"{org.location.name} {Location.PATH_SEPARATOR}", level=level)
 
         if query:
             qs = qs.filter(Q(path__icontains=query))

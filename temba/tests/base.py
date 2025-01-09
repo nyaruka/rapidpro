@@ -26,7 +26,7 @@ from temba.channels.models import Channel, ChannelEvent, ChannelLog
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactImport
 from temba.flows.models import Flow, FlowRun, FlowSession
 from temba.ivr.models import Call
-from temba.locations.models import AdminBoundary, BoundaryAlias
+from temba.locations.models import Location, LocationAlias
 from temba.msgs.models import Broadcast, Label, Msg, OptIn
 from temba.orgs.models import Org, OrgRole, User
 from temba.templates.models import Template
@@ -124,24 +124,24 @@ class TembaTest(SmartminTest):
         """
         Installs some basic test location data for Rwanda
         """
-        self.country = AdminBoundary.create(osm_id="171496", name="Rwanda", level=0)
-        self.state1 = AdminBoundary.create(osm_id="1708283", name="Kigali City", level=1, parent=self.country)
-        self.state2 = AdminBoundary.create(osm_id="171591", name="Eastern Province", level=1, parent=self.country)
-        self.district1 = AdminBoundary.create(osm_id="R1711131", name="Gatsibo", level=2, parent=self.state2)
-        self.district2 = AdminBoundary.create(osm_id="1711163", name="Kayônza", level=2, parent=self.state2)
-        self.district3 = AdminBoundary.create(osm_id="3963734", name="Nyarugenge", level=2, parent=self.state1)
-        self.district4 = AdminBoundary.create(osm_id="1711142", name="Rwamagana", level=2, parent=self.state2)
-        self.ward1 = AdminBoundary.create(osm_id="171113181", name="Kageyo", level=3, parent=self.district1)
-        self.ward2 = AdminBoundary.create(osm_id="171116381", name="Kabare", level=3, parent=self.district2)
-        self.ward3 = AdminBoundary.create(osm_id="VMN.49.1_1", name="Bukure", level=3, parent=self.district4)
+        self.country = Location.create(osm_id="171496", name="Rwanda", level=0)
+        self.state1 = Location.create(osm_id="1708283", name="Kigali City", level=1, parent=self.country)
+        self.state2 = Location.create(osm_id="171591", name="Eastern Province", level=1, parent=self.country)
+        self.district1 = Location.create(osm_id="R1711131", name="Gatsibo", level=2, parent=self.state2)
+        self.district2 = Location.create(osm_id="1711163", name="Kayônza", level=2, parent=self.state2)
+        self.district3 = Location.create(osm_id="3963734", name="Nyarugenge", level=2, parent=self.state1)
+        self.district4 = Location.create(osm_id="1711142", name="Rwamagana", level=2, parent=self.state2)
+        self.ward1 = Location.create(osm_id="171113181", name="Kageyo", level=3, parent=self.district1)
+        self.ward2 = Location.create(osm_id="171116381", name="Kabare", level=3, parent=self.district2)
+        self.ward3 = Location.create(osm_id="VMN.49.1_1", name="Bukure", level=3, parent=self.district4)
 
-        BoundaryAlias.create(self.org, self.admin, self.state1, "Kigari")
-        BoundaryAlias.create(self.org2, self.admin2, self.state1, "Chigali")
+        LocationAlias.create(self.org, self.admin, self.state1, "Kigari")
+        LocationAlias.create(self.org2, self.admin2, self.state1, "Chigali")
 
         self.country.update_path()
 
-        self.org.country = self.country
-        self.org.save(update_fields=("country",))
+        self.org.location = self.country
+        self.org.save(update_fields=("location",))
 
     def tearDown(self):
         super().tearDown()

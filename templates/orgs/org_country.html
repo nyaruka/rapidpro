@@ -2,18 +2,18 @@
 {% load smartmin i18n %}
 
 {% block fields %}
-  {% render_field 'country' %}
+  {% render_field 'location' %}
 {% endblock fields %}
 {% block summary %}
-  {% if object.country %}
+  {% if object.location %}
     <div class="flex items-center">
       <div class="flex-grow mr-4">
-        {% blocktrans trimmed with country=object.country %}
+        {% blocktrans trimmed with country=object.location %}
           Responses to location questions must be in <b>{{ country }}</b>.
         {% endblocktrans %}
       </div>
       <div class="buttons">
-        <div onclick="goto(event)" href="{% url "locations.adminboundary_alias" %}" class="button-light">{% trans "Edit Aliases" %}</div>
+        <div onclick="goto(event)" href="{% url "locations.location_alias" %}" class="button-light">{% trans "Edit Aliases" %}</div>
       </div>
     </div>
   {% else %}

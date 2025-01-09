@@ -4,11 +4,10 @@ from zipfile import ZipFile
 import geojson
 import regex
 
-from django.contrib.gis.geos import MultiPolygon, Polygon
 from django.core.management.base import BaseCommand
 from django.db import connection, transaction
 
-from temba.locations.models import AdminBoundary
+from temba.locations.models import Location
 
 
 class Command(BaseCommand):
@@ -56,23 +55,23 @@ class Command(BaseCommand):
             parent_osm_id = str(props.get("parent_id"))
 
             # if parent_osm_id is not set and not LEVEL_COUNTRY check for old file format
-            if parent_osm_id == "None" and level != AdminBoundary.LEVEL_COUNTRY:
-                if level == AdminBoundary.LEVEL_STATE:
+            if parent_osm_id == "None" and level != Location.LEVEL_COUNTRY:
+                if level == Location.LEVEL_STATE:
                     parent_osm_id = str(props["is_in_country"])
-                elif level == AdminBoundary.LEVEL_DISTRICT:
+                elif level == Location.LEVEL_DISTRICT:
                     parent_osm_id = str(props["is_in_state"])
-                elif level == AdminBoundary.LEVEL_WARD:
+                elif level == Location.LEVEL_WARD:
                     parent_osm_id = str(props["is_in_state"])
 
             osm_id = str(props["osm_id"])
             name = props.get("name", "")
-            if not name or name == "None" or level == AdminBoundary.LEVEL_COUNTRY:
+            if not name or name == "None" or level == Location.LEVEL_COUNTRY:
                 name = props.get("name_en", "")
 
             # try to find parent, bail if we can't
             parent = None
             if parent_osm_id != "None":
-                parent = AdminBoundary.objects.filter(osm_id=parent_osm_id).first()
+                parent = Location.objects.filter(osm_id=parent_osm_id).first()
                 if not parent:
                     self.stdout.write(
                         self.style.SUCCESS(f"Skipping {name} ({osm_id}) as parent {parent_osm_id} not found.")
@@ -80,11 +79,11 @@ class Command(BaseCommand):
                     continue
 
             # try to find existing admin level by osm_id
-            boundary = AdminBoundary.objects.filter(osm_id=osm_id)
+            boundary = Location.objects.filter(osm_id=osm_id)
 
             # didn't find it? what about by name?
             if not boundary:
-                boundary = AdminBoundary.objects.filter(parent=parent, name__iexact=name)
+                boundary = Location.objects.filter(parent=parent, name__iexact=name)
 
             # skip over items with no geometry
             if not feature["geometry"] or not feature["geometry"]["coordinates"]:
@@ -92,14 +91,14 @@ class Command(BaseCommand):
 
             polygons = []
             if feature["geometry"]["type"] == "Polygon":
-                polygons.append(Polygon(*feature["geometry"]["coordinates"]))
+                polygons.append(geojson.Polygon(coordinates=feature["geometry"]["coordinates"]))
             elif feature["geometry"]["type"] == "MultiPolygon":
                 for polygon in feature["geometry"]["coordinates"]:
-                    polygons.append(Polygon(*polygon))
+                    polygons.append(geojson.Polygon(coordinates=polygon))
             else:
                 raise Exception("Error importing %s, unknown geometry type '%s'" % (name, feature["geometry"]["type"]))
 
-            geometry = MultiPolygon(polygons)
+            geometry = geojson.loads(geojson.dumps(geojson.MultiPolygon(polygons)))
 
             kwargs = dict(osm_id=osm_id, name=name, level=level, parent=parent)
             if is_simplified:
@@ -110,7 +109,7 @@ class Command(BaseCommand):
                 if not parent:
                     kwargs["path"] = name
                 else:
-                    kwargs["path"] = parent.path + AdminBoundary.PADDED_PATH_SEPARATOR + name
+                    kwargs["path"] = parent.path + Location.PADDED_PATH_SEPARATOR + name
 
                 self.stdout.write(self.style.SUCCESS(f" ** updating {name} ({osm_id})"))
                 boundary = boundary.first()
@@ -122,14 +121,14 @@ class Command(BaseCommand):
             # otherwise, this is new, so create it
             else:
                 self.stdout.write(self.style.SUCCESS(f" ** adding {name} ({osm_id})"))
-                AdminBoundary.create(**kwargs)
+                Location.create(**kwargs)
 
             # keep track of this osm_id
             seen_osm_ids.add(osm_id)
 
         # now remove any unseen boundaries
         if osm_id:
-            last_boundary = AdminBoundary.objects.filter(osm_id=osm_id).first()
+            last_boundary = Location.objects.filter(osm_id=osm_id).first()
             if last_boundary:
                 self.stdout.write(self.style.SUCCESS(f" ** removing unseen boundaries ({osm_id})"))
                 country = last_boundary.get_root()
@@ -198,22 +197,22 @@ class Command(BaseCommand):
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                DELETE FROM locations_adminboundary WHERE id IN (
+                DELETE FROM locations_location WHERE id IN (
 
-                with recursive adminboundary_set(id, parent_id, name, depth, path, cycle, osm_id) AS (
+                with recursive location_set(id, parent_id, name, depth, path, cycle, osm_id) AS (
   SELECT ab.id, ab.parent_id, ab.name, 1, ARRAY[ab.id], false, ab.osm_id
-  from locations_adminboundary ab
+  from locations_location ab
   WHERE id = %s
 
   UNION ALL
 
   SELECT ab.id, ab.parent_id, ab.name, abs.depth+1, abs.path || ab.id, ab.id = ANY(abs.path), ab.osm_id
-  from locations_adminboundary ab , adminboundary_set abs
+  from locations_location ab , location_set abs
   WHERE not cycle AND ab.parent_id = abs.id
 )
 SELECT
   abs.id
-from adminboundary_set abs
+from location_set abs
 WHERE NOT (abs.osm_id = ANY(%s)))
                 """,
                     (country.id, list(updated_osm_ids)),

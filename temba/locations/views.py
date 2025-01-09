@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
-from temba.locations.models import AdminBoundary, BoundaryAlias
+from temba.locations.models import Location, LocationAlias
 from temba.orgs.views.mixins import OrgPermsMixin
 from temba.utils import json
 from temba.utils.views.mixins import ContextMenuMixin, SpaMixin
@@ -15,7 +15,7 @@ from temba.utils.views.mixins import ContextMenuMixin, SpaMixin
 
 class BoundaryCRUDL(SmartCRUDL):
     actions = ("alias", "geometry", "boundaries")
-    model = AdminBoundary
+    model = Location
 
     class Alias(SpaMixin, OrgPermsMixin, ContextMenuMixin, SmartReadView):
         menu_path = "/settings/workspace"
@@ -32,14 +32,14 @@ class BoundaryCRUDL(SmartCRUDL):
             # we didn't shortcut for some other reason, check that they have an
             # org
             if not response:
-                if not request.org.country:
+                if not request.org.location:
                     messages.warning(request, _("You must select a country for your workspace."))
                     return HttpResponseRedirect(reverse("orgs.org_workspace"))
 
             return None
 
         def get_object(self, queryset=None):
-            return self.request.org.country
+            return self.request.org.location
 
     class Geometry(OrgPermsMixin, SmartReadView):
         @classmethod
@@ -49,7 +49,7 @@ class BoundaryCRUDL(SmartCRUDL):
             return r"^%s/%s/(?P<osmId>\w+\.?\d+\.?\d?\_?\d?)/$" % (path, action)
 
         def get_object(self):
-            return AdminBoundary.geometries.get(osm_id=self.kwargs["osmId"])
+            return Location.geometries.get(osm_id=self.kwargs["osmId"])
 
         def render_to_response(self, context):
             if self.object.children.all().count() > 0:
@@ -68,7 +68,7 @@ class BoundaryCRUDL(SmartCRUDL):
             return r"^%s/%s/(?P<osmId>[\w\.]+)/$" % (path, action)
 
         def get_object(self):
-            return AdminBoundary.geometries.get(osm_id=self.kwargs["osmId"])
+            return Location.geometries.get(osm_id=self.kwargs["osmId"])
 
         def post(self, request, *args, **kwargs):
             # try to parse our body
@@ -80,7 +80,7 @@ class BoundaryCRUDL(SmartCRUDL):
             except Exception as e:
                 return JsonResponse(dict(status="error", description="Error parsing JSON: %s" % str(e)), status=400)
 
-            boundary = AdminBoundary.objects.filter(osm_id=boundary_update["osm_id"]).first()
+            boundary = Location.objects.filter(osm_id=boundary_update["osm_id"]).first()
             aliases = boundary_update.get("aliases", "")
             if boundary:
                 unique_new_aliases = [a.strip() for a in set(aliases.split("\n")) if a]
@@ -100,13 +100,13 @@ class BoundaryCRUDL(SmartCRUDL):
             if query:
                 page = int(request.GET.get("page", 0))
                 matches = set(
-                    AdminBoundary.objects.filter(
-                        path__startswith=f"{boundary.name} {AdminBoundary.PATH_SEPARATOR}"
-                    ).filter(name__icontains=query)
+                    Location.objects.filter(path__startswith=f"{boundary.name} {Location.PATH_SEPARATOR}").filter(
+                        name__icontains=query
+                    )
                 )
-                aliases = BoundaryAlias.objects.filter(name__icontains=query, org=org)
+                aliases = LocationAlias.objects.filter(name__icontains=query, org=org)
                 for alias in aliases:
-                    matches.add(alias.boundary)
+                    matches.add(alias.location)
 
                 start = page * page_size
                 end = start + page_size
@@ -119,10 +119,10 @@ class BoundaryCRUDL(SmartCRUDL):
             path = []
             while boundary:
                 children = list(
-                    AdminBoundary.objects.filter(parent__osm_id=boundary.osm_id)
+                    Location.objects.filter(parent__osm_id=boundary.osm_id)
                     .order_by("name")
                     .prefetch_related(
-                        Prefetch("aliases", queryset=BoundaryAlias.objects.filter(org=org).order_by("name"))
+                        Prefetch("aliases", queryset=LocationAlias.objects.filter(org=org).order_by("name"))
                     )
                 )
 
@@ -130,7 +130,7 @@ class BoundaryCRUDL(SmartCRUDL):
                 children_json = []
                 for child in children:
                     child_json = child.as_json(org)
-                    child_json["has_children"] = AdminBoundary.objects.filter(parent__osm_id=child.osm_id).exists()
+                    child_json["has_children"] = Location.objects.filter(parent__osm_id=child.osm_id).exists()
                     children_json.append(child_json)
 
                 item["children"] = children_json

@@ -17,7 +17,7 @@ from temba.classifiers.types.wit import WitType
 from temba.contacts.models import ContactExport, ContactField, ContactImport, ContactImportBatch
 from temba.flows.models import FlowLabel, FlowRun, FlowSession, FlowStart, FlowStartCount, ResultsExport
 from temba.globals.models import Global
-from temba.locations.models import AdminBoundary
+from temba.locations.models import Location
 from temba.msgs.models import MessageExport, Msg
 from temba.notifications.incidents.builtin import ChannelDisconnectedIncidentType
 from temba.notifications.types.builtin import ExportFinishedNotificationType
@@ -162,7 +162,7 @@ class OrgTest(TembaTest):
         settings_url = reverse("orgs.org_workspace")
         country_url = reverse("orgs.org_country")
 
-        rwanda = AdminBoundary.objects.get(name="Rwanda")
+        rwanda = Location.objects.get(name="Rwanda")
 
         # can't see this page if not logged in
         self.assertLoginRedirect(self.client.get(country_url))
@@ -173,11 +173,11 @@ class OrgTest(TembaTest):
         self.assertEqual(200, response.status_code)
 
         # save with Rwanda as a country
-        self.client.post(country_url, {"country": rwanda.id})
+        self.client.post(country_url, {"location": rwanda.id})
 
         # assert it has changed
         self.org.refresh_from_db()
-        self.assertEqual("Rwanda", str(self.org.country))
+        self.assertEqual("Rwanda", str(self.org.location))
         self.assertEqual("RW", self.org.default_country_code)
 
         response = self.client.get(settings_url)
@@ -189,8 +189,8 @@ class OrgTest(TembaTest):
             self.assertNotContains(response, "Rwanda")
 
     def test_default_country(self):
-        # if country boundary is set and name is valid country, that has priority
-        self.org.country = AdminBoundary.create(osm_id="171496", name="Ecuador", level=0)
+        # if location boundary is set and name is valid country, that has priority
+        self.org.location = Location.create(osm_id="171496", name="Ecuador", level=0)
         self.org.timezone = "Africa/Nairobi"
         self.org.save(update_fields=("country", "timezone"))
 
@@ -198,9 +198,9 @@ class OrgTest(TembaTest):
 
         del self.org.default_country
 
-        # if country name isn't valid, we'll try timezone
-        self.org.country.name = "Fantasia"
-        self.org.country.save(update_fields=("name",))
+        # if location name isn't valid, we'll try timezone
+        self.org.location.name = "Fantasia"
+        self.org.location.save(update_fields=("name",))
 
         self.assertEqual("KE", self.org.default_country.alpha_2)
 

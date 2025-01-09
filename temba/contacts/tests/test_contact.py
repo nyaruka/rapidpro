@@ -13,7 +13,7 @@ from temba.campaigns.models import Campaign, CampaignEvent, EventFire
 from temba.channels.models import ChannelEvent
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactURN
 from temba.flows.models import Flow
-from temba.locations.models import AdminBoundary
+from temba.locations.models import Location
 from temba.mailroom import modifiers
 from temba.msgs.models import Msg, SystemLabel
 from temba.orgs.models import Org
@@ -932,10 +932,10 @@ class ContactTest(TembaTest):
         not_state_field = self.create_field("not_state", "Not State", value_type=ContactField.TYPE_TEXT)
 
         # add duplicate district in different states
-        east_province = AdminBoundary.create(osm_id="R005", name="East Province", level=1, parent=self.country)
-        AdminBoundary.create(osm_id="R004", name="Remera", level=2, parent=east_province)
-        kigali = AdminBoundary.objects.get(name="Kigali City")
-        AdminBoundary.create(osm_id="R003", name="Remera", level=2, parent=kigali)
+        east_province = Location.create(osm_id="R005", name="East Province", level=1, parent=self.country)
+        Location.create(osm_id="R004", name="Remera", level=2, parent=east_province)
+        kigali = Location.objects.get(name="Kigali City")
+        Location.create(osm_id="R003", name="Remera", level=2, parent=kigali)
 
         joe = Contact.objects.get(pk=self.joe.pk)
         self.set_contact_field(joe, "district", "Remera")
@@ -961,9 +961,9 @@ class ContactTest(TembaTest):
     def test_set_location_ward_fields(self):
         self.setUpLocations()
 
-        state = AdminBoundary.create(osm_id="3710302", name="Kano", level=1, parent=self.country)
-        district = AdminBoundary.create(osm_id="3710307", name="Bichi", level=2, parent=state)
-        AdminBoundary.create(osm_id="3710377", name="Bichi", level=3, parent=district)
+        state = Location.create(osm_id="3710302", name="Kano", level=1, parent=self.country)
+        district = Location.create(osm_id="3710307", name="Bichi", level=2, parent=state)
+        Location.create(osm_id="3710377", name="Bichi", level=3, parent=district)
 
         self.create_field("state", "State", value_type=ContactField.TYPE_STATE)
         self.create_field("district", "District", value_type=ContactField.TYPE_DISTRICT)

@@ -36,7 +36,7 @@ from django.utils.translation import gettext_lazy as _
 
 from temba import mailroom
 from temba.archives.models import Archive
-from temba.locations.models import AdminBoundary
+from temba.locations.models import Location
 from temba.utils import json, languages, on_transaction_commit
 from temba.utils.dates import datetime_to_str
 from temba.utils.email import EmailSender
@@ -968,7 +968,7 @@ class Org(SmartModel):
 
     @classmethod
     def get_possible_countries(cls):
-        return AdminBoundary.objects.filter(level=0).order_by("name")
+        return Location.objects.filter(level=0).order_by("name")
 
     @property
     def default_country_code(self) -> str:
@@ -984,9 +984,9 @@ class Org(SmartModel):
         Gets the default country as a pycountry country for this org
         """
 
-        # first try the country boundary field
-        if self.country:
-            country = pycountry.countries.get(name=self.country.name)
+        # first try the location field
+        if self.location:
+            country = pycountry.countries.get(name=self.location.name)
             if country:
                 return country
 

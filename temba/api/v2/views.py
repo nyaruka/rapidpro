@@ -19,7 +19,7 @@ from temba.classifiers.models import Classifier
 from temba.contacts.models import Contact, ContactField, ContactGroup, ContactNote, ContactURN
 from temba.flows.models import Flow, FlowRun, FlowStart, FlowStartCount
 from temba.globals.models import Global
-from temba.locations.models import AdminBoundary, BoundaryAlias
+from temba.locations.models import Location, LocationAlias
 from temba.msgs.models import Broadcast, BroadcastMsgCount, Label, LabelCount, Media, Msg, MsgFolder, OptIn
 from temba.orgs.models import OrgMembership, User
 from temba.orgs.views.mixins import OrgPermsMixin
@@ -43,7 +43,6 @@ from ..support import (
 )
 from ..views import BaseAPIView, BulkWriteAPIMixin, DeleteAPIMixin, ListAPIMixin, WriteAPIMixin
 from .serializers import (
-    AdminBoundaryReadSerializer,
     ArchiveReadSerializer,
     BroadcastReadSerializer,
     BroadcastWriteSerializer,
@@ -69,6 +68,7 @@ from .serializers import (
     GlobalWriteSerializer,
     LabelReadSerializer,
     LabelWriteSerializer,
+    LocationReadSerializer,
     MediaReadSerializer,
     MediaWriteSerializer,
     MsgBulkActionSerializer,
@@ -453,19 +453,19 @@ class BoundariesEndpoint(ListAPIMixin, BaseEndpoint):
     class Pagination(CursorPagination):
         ordering = ("osm_id",)
 
-    model = AdminBoundary
-    serializer_class = AdminBoundaryReadSerializer
+    model = Location
+    serializer_class = LocationReadSerializer
     pagination_class = Pagination
 
     def derive_queryset(self):
         org = self.request.org
-        if not org.country:
-            return AdminBoundary.objects.none()
+        if not org.location:
+            return Location.objects.none()
 
-        queryset = org.country.get_descendants(include_self=True)
+        queryset = org.location.get_descendants(include_self=True)
 
         queryset = queryset.prefetch_related(
-            Prefetch("aliases", queryset=BoundaryAlias.objects.filter(org=org).order_by("name"))
+            Prefetch("aliases", queryset=LocationAlias.objects.filter(org=org).order_by("name"))
         )
 
         return queryset.defer(None).select_related("parent")

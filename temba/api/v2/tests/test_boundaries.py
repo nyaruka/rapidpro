@@ -1,7 +1,6 @@
-from django.contrib.gis.geos import GEOSGeometry
 from django.urls import reverse
 
-from temba.locations.models import BoundaryAlias
+from temba.locations.models import LocationAlias
 from temba.tests import matchers
 
 from . import APITest
@@ -17,11 +16,14 @@ class BoundariesEndpointTest(APITest):
 
         self.setUpLocations()
 
-        BoundaryAlias.create(self.org, self.admin, self.state1, "Kigali")
-        BoundaryAlias.create(self.org, self.admin, self.state2, "East Prov")
-        BoundaryAlias.create(self.org2, self.admin2, self.state1, "Other Org")  # shouldn't be returned
+        LocationAlias.create(self.org, self.admin, self.state1, "Kigali")
+        LocationAlias.create(self.org, self.admin, self.state2, "East Prov")
+        LocationAlias.create(self.org2, self.admin2, self.state1, "Other Org")  # shouldn't be returned
 
-        self.state1.simplified_geometry = GEOSGeometry("MULTIPOLYGON(((1 1, 1 -1, -1 -1, -1 1, 1 1)))")
+        self.state1.simplified_geometry = {
+            "type": "MultiPolygon",
+            "coordinates": [[[[1, 1], [1, -1], [-1, -1], [-1, 1], [1, 1]]]],
+        }
         self.state1.save()
 
         # test without geometry
@@ -136,7 +138,7 @@ class BoundariesEndpointTest(APITest):
         )
 
         # if org doesn't have a country, just return no results
-        self.org.country = None
-        self.org.save(update_fields=("country",))
+        self.org.location = None
+        self.org.save(update_fields=("location",))
 
         self.assertGet(endpoint_url, [self.admin], results=[])

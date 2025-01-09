@@ -19,7 +19,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertPostNotAllowed(endpoint_url)
         self.assertDeleteNotAllowed(endpoint_url)
 
-        # no country, no results
+        # no location on org, no results
         self.assertGet(endpoint_url + "?level=state", [self.agent], results=[])
 
         self.setUpLocations()

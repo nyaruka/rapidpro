@@ -24,7 +24,7 @@ from django.utils.translation import gettext_lazy as _
 
 from temba import mailroom
 from temba.channels.models import Channel
-from temba.locations.models import AdminBoundary
+from temba.locations.models import Location
 from temba.mailroom import ContactSpec, modifiers, queue_populate_dynamic_group
 from temba.orgs.models import DependencyMixin, Export, ExportType, Org, OrgRole, User
 from temba.utils import format_number, on_transaction_commit
@@ -843,7 +843,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
     def get_field_value(self, field: ContactField):
         """
-        Given the passed in contact field object, returns the value (as a string, decimal, datetime, AdminBoundary)
+        Given the passed in contact field object, returns the value (as a string, decimal, datetime, Location)
         for this contact or None.
         """
 
@@ -861,7 +861,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
             elif field.value_type == ContactField.TYPE_NUMBER:
                 return Decimal(string_value)
             elif field.value_type in [ContactField.TYPE_STATE, ContactField.TYPE_DISTRICT, ContactField.TYPE_WARD]:
-                return AdminBoundary.get_by_path(self.org, string_value)
+                return Location.get_by_path(self.org, string_value)
 
     def get_field_display(self, field: ContactField) -> str:
         """

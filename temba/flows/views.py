@@ -807,7 +807,7 @@ class FlowCRUDL(SmartCRUDL):
                 features.append("classifier")
             if org.get_resthooks():
                 features.append("resthook")
-            if org.country_id:
+            if org.location_id:
                 features.append("locations")
 
             return features

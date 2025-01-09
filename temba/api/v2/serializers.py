@@ -18,7 +18,7 @@ from temba.classifiers.models import Classifier
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactNote, ContactURN
 from temba.flows.models import Flow, FlowRun, FlowStart
 from temba.globals.models import Global
-from temba.locations.models import AdminBoundary
+from temba.locations.models import Location
 from temba.mailroom import modifiers
 from temba.msgs.models import Broadcast, Label, Media, Msg, OptIn
 from temba.orgs.models import Org, OrgRole, User
@@ -123,7 +123,7 @@ class WriteSerializer(serializers.Serializer):
 # ============================================================
 
 
-class AdminBoundaryReadSerializer(ReadSerializer):
+class LocationReadSerializer(ReadSerializer):
     parent = serializers.SerializerMethodField()
     aliases = serializers.SerializerMethodField()
     geometry = serializers.SerializerMethodField()
@@ -136,12 +136,12 @@ class AdminBoundaryReadSerializer(ReadSerializer):
 
     def get_geometry(self, obj):
         if self.context["include_geometry"] and obj.simplified_geometry:
-            return json.loads(obj.simplified_geometry.geojson)
+            return obj.simplified_geometry
         else:
             return None
 
     class Meta:
-        model = AdminBoundary
+        model = Location
         fields = ("osm_id", "name", "parent", "level", "aliases", "geometry")
 
 

@@ -15,7 +15,7 @@ from temba.channels.models import ChannelEvent
 from temba.contacts.models import URN, Contact, ContactExport, ContactField
 from temba.flows.models import FlowSession, FlowStart
 from temba.ivr.models import Call
-from temba.locations.models import AdminBoundary
+from temba.locations.models import Location
 from temba.msgs.models import Msg
 from temba.orgs.models import Export, OrgRole
 from temba.schedules.models import Schedule
@@ -32,8 +32,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
     def setUp(self):
         super().setUp()
 
-        self.country = AdminBoundary.create(osm_id="171496", name="Rwanda", level=0)
-        AdminBoundary.create(osm_id="1708283", name="Kigali", level=1, parent=self.country)
+        self.location = Location.create(osm_id="171496", name="Rwanda", level=0)
+        Location.create(osm_id="1708283", name="Kigali", level=1, parent=self.location)
 
         self.create_field("age", "Age", value_type="N", show_in_table=True)
         self.create_field("home", "Home", value_type="S", show_in_table=True, priority=10)

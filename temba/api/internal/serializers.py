@@ -2,7 +2,7 @@ from datetime import timezone as tzone
 
 from rest_framework import serializers
 
-from temba.locations.models import AdminBoundary
+from temba.locations.models import Location
 from temba.templates.models import Template, TemplateTranslation
 from temba.tickets.models import Shortcut
 
@@ -14,7 +14,7 @@ class ModelAsJsonSerializer(serializers.BaseSerializer):
 
 class LocationReadSerializer(serializers.ModelSerializer):
     class Meta:
-        model = AdminBoundary
+        model = Location
         fields = ("osm_id", "name", "path")
 
 

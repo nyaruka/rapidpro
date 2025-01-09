@@ -8,7 +8,7 @@ import responses
 from django.core.management import call_command
 from django.test.utils import captured_stdout
 
-from temba.locations.models import AdminBoundary, BoundaryAlias
+from temba.locations.models import Location, LocationAlias
 from temba.tests import TembaTest
 from temba.utils import json
 
@@ -165,7 +165,7 @@ class ImportGeoJSONtest(TembaTest):
             captured_output.getvalue(), "=== parsing data.json\nSkipping 'data.json', doesn't match file pattern.\n"
         )
 
-        self.assertEqual(AdminBoundary.objects.count(), 0)
+        self.assertEqual(Location.objects.count(), 0)
 
     def test_filename_with_no_features(self):
         with patch("builtins.open", mock_open(read_data=self.data_geojson_no_features)):
@@ -174,7 +174,7 @@ class ImportGeoJSONtest(TembaTest):
 
         self.assertEqual(captured_output.getvalue(), "=== parsing R188933admin0_simplified.json\n")
 
-        self.assertEqual(AdminBoundary.objects.count(), 0)
+        self.assertEqual(Location.objects.count(), 0)
 
     def test_ok_filename_admin(self):
         with patch("builtins.open", mock_open(read_data=self.data_geojson_level_0)):
@@ -186,7 +186,7 @@ class ImportGeoJSONtest(TembaTest):
             "=== parsing R188933admin0_simplified.json\n ** adding Granica (R1000)\n ** removing unseen boundaries (R1000)\nOther unseen boundaries removed: 0\n ** updating paths for all of Granica\n",
         )
 
-        self.assertEqual(AdminBoundary.objects.count(), 1)
+        self.assertEqual(Location.objects.count(), 1)
 
     def test_ok_filename_admin_level_with_country_prefix(self):
         with patch("builtins.open", mock_open(read_data=self.data_geojson_level_0)):
@@ -198,7 +198,7 @@ class ImportGeoJSONtest(TembaTest):
             "=== parsing R188933admin0_simplified.json\n ** adding Granica (R1000)\n ** removing unseen boundaries (R1000)\nOther unseen boundaries removed: 0\n ** updating paths for all of Granica\n",
         )
 
-        self.assertEqual(AdminBoundary.objects.count(), 1)
+        self.assertEqual(Location.objects.count(), 1)
 
     def test_ok_filename_admin_level(self):
         with patch("builtins.open", mock_open(read_data=self.data_geojson_level_0)):
@@ -210,7 +210,7 @@ class ImportGeoJSONtest(TembaTest):
             "=== parsing admin_level_0_simplified.json\n ** adding Granica (R1000)\n ** removing unseen boundaries (R1000)\nOther unseen boundaries removed: 0\n ** updating paths for all of Granica\n",
         )
 
-        self.assertEqual(AdminBoundary.objects.count(), 1)
+        self.assertEqual(Location.objects.count(), 1)
 
     def test_missing_parent_in_db(self):
         with patch("builtins.open", mock_open(read_data=self.data_geojson_without_parent)):
@@ -222,7 +222,7 @@ class ImportGeoJSONtest(TembaTest):
             "=== parsing admin_level_1_simplified.json\nSkipping Međa (R2000) as parent R0 not found.\n",
         )
 
-        self.assertEqual(AdminBoundary.objects.count(), 0)
+        self.assertEqual(Location.objects.count(), 0)
 
     def test_feature_without_geometry(self):
         with patch("builtins.open", mock_open(read_data=self.data_geojson_feature_no_geometry)):
@@ -231,7 +231,7 @@ class ImportGeoJSONtest(TembaTest):
 
         self.assertEqual(captured_output.getvalue(), "=== parsing admin_level_0_simplified.json\n")
 
-        self.assertEqual(AdminBoundary.objects.count(), 0)
+        self.assertEqual(Location.objects.count(), 0)
 
     def test_feature_multipolygon_geometry(self):
         with patch("builtins.open", mock_open(read_data=self.data_geojson_multipolygon)):
@@ -318,7 +318,7 @@ class ImportGeoJSONtest(TembaTest):
 
         self.assertOSMIDs({"R1000", "R2000"})
 
-        BoundaryAlias.create(self.org, self.admin, AdminBoundary.objects.get(osm_id="R2000"), "My Alias")
+        LocationAlias.create(self.org, self.admin, Location.objects.get(osm_id="R2000"), "My Alias")
 
         # update data, and add a new boundary
         geojson_data = [self.data_geojson_level_0, self.data_geojson_level_1_new_boundary]
@@ -391,7 +391,7 @@ class ImportGeoJSONtest(TembaTest):
         self.assertOSMIDs({"R1000"})
 
     def assertOSMIDs(self, ids):
-        self.assertEqual(set(ids), set(AdminBoundary.objects.values_list("osm_id", flat=True)))
+        self.assertEqual(set(ids), set(Location.objects.values_list("osm_id", flat=True)))
 
 
 class DownloadGeoJsonTest(TembaTest):
