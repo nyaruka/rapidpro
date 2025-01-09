@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def remove_viewers(apps, schema_editor):
+def remove_viewers(apps, schema_editor):  # pragma: no cover
     OrgMembership = apps.get_model("orgs", "OrgMembership")
     num_deleted = OrgMembership.objects.filter(role_code="V").delete()[0]
     if num_deleted:

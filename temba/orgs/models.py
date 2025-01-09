@@ -507,6 +507,7 @@ class Org(SmartModel):
         help_text=_("Default formatting and parsing of dates in flows and messages."),
     )
     country = models.ForeignKey("locations.AdminBoundary", null=True, on_delete=models.PROTECT)
+    location = models.ForeignKey("locations.Location", null=True, on_delete=models.PROTECT)
     flow_languages = ArrayField(models.CharField(max_length=3), default=list, validators=[ArrayMinLengthValidator(1)])
     input_collation = models.CharField(max_length=32, choices=COLLATION_CHOICES, default=COLLATION_DEFAULT)
     flow_smtp = models.CharField(null=True)  # e.g. smtp://...

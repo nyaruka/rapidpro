@@ -4,7 +4,7 @@ from smartmin.models import SmartModel
 
 from django.contrib.gis.db import models
 from django.db.models import F, Value
-from django.db.models.functions import Concat, Upper
+from django.db.models.functions import Concat, Lower, Upper
 
 
 # default manager for AdminBoundary, doesn't load geometries
@@ -178,3 +178,44 @@ class BoundaryAlias(SmartModel):
 
     class Meta:
         indexes = [models.Index(Upper("name"), name="boundaryaliases_by_name")]
+
+
+class Location(MPTTModel, models.Model):
+    """
+    Represents a single administrative locations (like a country, state or district)
+    """
+
+    LEVEL_COUNTRY = 0
+    LEVEL_STATE = 1
+    LEVEL_DISTRICT = 2
+    LEVEL_WARD = 3
+
+    MAX_NAME_LEN = 128
+
+    # Used to separate segments in a hierarchy of locations. Has the advantage of being a character in GSM7 and
+    # being very unlikely to show up in an admin region name.
+    PATH_SEPARATOR = ">"
+    PADDED_PATH_SEPARATOR = " > "
+
+    osm_id = models.CharField(max_length=15, unique=True)
+    name = models.CharField(max_length=MAX_NAME_LEN)
+    level = models.IntegerField()
+    parent = TreeForeignKey("self", null=True, on_delete=models.PROTECT, related_name="children", db_index=True)
+    path = models.CharField(max_length=768)  # e.g. Rwanda > Kigali
+    geometry = models.JSONField(null=True)
+
+    class Meta:
+        indexes = [models.Index(Lower("name"), name="locations_by_name")]
+
+
+class LocationAlias(SmartModel):
+    """
+    An org specific alias for a location name
+    """
+
+    org = models.ForeignKey("orgs.Org", on_delete=models.PROTECT)
+    location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="aliases")
+    name = models.CharField(max_length=Location.MAX_NAME_LEN, help_text="The name for our alias")
+
+    class Meta:
+        indexes = [models.Index(Lower("name"), name="locationaliases_by_name")]
