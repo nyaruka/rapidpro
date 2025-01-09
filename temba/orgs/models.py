@@ -506,7 +506,6 @@ class Org(SmartModel):
         default=DATE_FORMAT_DAY_FIRST,
         help_text=_("Default formatting and parsing of dates in flows and messages."),
     )
-    country = models.ForeignKey("locations.AdminBoundary", null=True, on_delete=models.PROTECT)
     location = models.ForeignKey("locations.Location", null=True, on_delete=models.PROTECT)
     flow_languages = ArrayField(models.CharField(max_length=3), default=list, validators=[ArrayMinLengthValidator(1)])
     input_collation = models.CharField(max_length=32, choices=COLLATION_CHOICES, default=COLLATION_DEFAULT)
@@ -536,6 +535,9 @@ class Org(SmartModel):
     suspended_on = models.DateTimeField(null=True)
     released_on = models.DateTimeField(null=True)
     deleted_on = models.DateTimeField(null=True)
+
+    # Deprecated
+    country = models.ForeignKey("locations.AdminBoundary", null=True, on_delete=models.PROTECT)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
