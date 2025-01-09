@@ -536,9 +536,6 @@ class Org(SmartModel):
     released_on = models.DateTimeField(null=True)
     deleted_on = models.DateTimeField(null=True)
 
-    # Deprecated
-    country = models.ForeignKey("locations.AdminBoundary", null=True, on_delete=models.PROTECT)
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
