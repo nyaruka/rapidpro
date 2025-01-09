@@ -1407,6 +1407,7 @@ class Org(SmartModel):
         delete_in_batches(self.api_tokens.all(), pk="key")
         delete_in_batches(self.schedules.all())
         delete_in_batches(self.boundaryalias_set.all())
+        delete_in_batches(self.locationalias_set.all())
         delete_in_batches(self.templates.all())
 
         # needs to come after deletion of other things as those insert new negative counts

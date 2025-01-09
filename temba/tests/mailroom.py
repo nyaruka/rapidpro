@@ -822,24 +822,24 @@ def parse_location(org, location_string, level, parent=None):
     if not org.location_id or not isinstance(location_string, str):
         return []
 
-    boundary = None
+    location = None
 
     # try it as a path first if it looks possible
     if level == Location.LEVEL_COUNTRY or Location.PATH_SEPARATOR in location_string:
-        boundary = parse_location_path(org, location_string)
-        if boundary:
-            boundary = [boundary]
+        location = parse_location_path(org, location_string)
+        if location:
+            location = [location]
 
     # try to look up it by full name
-    if not boundary:
-        boundary = find_boundary_by_name(org, location_string, level, parent)
+    if not location:
+        location = find_location_by_name(org, location_string, level, parent)
 
     # try removing punctuation and try that
-    if not boundary:
+    if not location:
         bare_name = re.sub(r"\W+", " ", location_string, flags=re.UNICODE).strip()
-        boundary = find_boundary_by_name(org, bare_name, level, parent)
+        location = find_location_by_name(org, bare_name, level, parent)
 
-    return boundary
+    return location
 
 
 def parse_location_path(org, location_string):
@@ -853,7 +853,7 @@ def parse_location_path(org, location_string):
     )
 
 
-def find_boundary_by_name(org, name, level, parent):
+def find_location_by_name(org, name, level, parent):
     # first check if we have a direct name match
     if parent:
         location = parent.children.filter(name__iexact=name, level=level)

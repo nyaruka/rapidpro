@@ -13,7 +13,7 @@ from temba.utils import json
 from temba.utils.views.mixins import ContextMenuMixin, SpaMixin
 
 
-class BoundaryCRUDL(SmartCRUDL):
+class LocationCRUDL(SmartCRUDL):
     actions = ("alias", "geometry", "boundaries")
     model = Location
 
@@ -76,22 +76,22 @@ class BoundaryCRUDL(SmartCRUDL):
             org = request.org
 
             try:
-                boundary_update = json.loads(json_string)
+                location_update = json.loads(json_string)
             except Exception as e:
                 return JsonResponse(dict(status="error", description="Error parsing JSON: %s" % str(e)), status=400)
 
-            boundary = Location.objects.filter(osm_id=boundary_update["osm_id"]).first()
-            aliases = boundary_update.get("aliases", "")
-            if boundary:
+            location = Location.objects.filter(osm_id=location_update["osm_id"]).first()
+            aliases = location_update.get("aliases", "")
+            if location:
                 unique_new_aliases = [a.strip() for a in set(aliases.split("\n")) if a]
 
-                boundary.update_aliases(org, self.request.user, unique_new_aliases)
+                location.update_aliases(org, self.request.user, unique_new_aliases)
 
-            return JsonResponse(boundary_update, safe=False)
+            return JsonResponse(location_update, safe=False)
 
         def get(self, request, *args, **kwargs):
             org = request.org
-            boundary = self.get_object()
+            location = self.get_object()
 
             page_size = 25
 
@@ -100,7 +100,7 @@ class BoundaryCRUDL(SmartCRUDL):
             if query:
                 page = int(request.GET.get("page", 0))
                 matches = set(
-                    Location.objects.filter(path__startswith=f"{boundary.name} {Location.PATH_SEPARATOR}").filter(
+                    Location.objects.filter(path__startswith=f"{location.name} {Location.PATH_SEPARATOR}").filter(
                         name__icontains=query
                     )
                 )
@@ -117,16 +117,16 @@ class BoundaryCRUDL(SmartCRUDL):
 
             # otherwise grab each item in the path
             path = []
-            while boundary:
+            while location:
                 children = list(
-                    Location.objects.filter(parent__osm_id=boundary.osm_id)
+                    Location.objects.filter(parent__osm_id=location.osm_id)
                     .order_by("name")
                     .prefetch_related(
                         Prefetch("aliases", queryset=LocationAlias.objects.filter(org=org).order_by("name"))
                     )
                 )
 
-                item = boundary.as_json(org)
+                item = location.as_json(org)
                 children_json = []
                 for child in children:
                     child_json = child.as_json(org)
@@ -136,7 +136,7 @@ class BoundaryCRUDL(SmartCRUDL):
                 item["children"] = children_json
                 item["has_children"] = len(children_json) > 0
                 path.append(item)
-                boundary = boundary.parent
+                location = location.parent
 
             path.reverse()
             return JsonResponse(path, safe=False)

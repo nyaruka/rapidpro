@@ -194,7 +194,7 @@ class LocationTest(TembaTest):
         self.assertEqual("kig\nkigs", children[1]["aliases"])
         self.assertEqual(
             "", children[0]["aliases"]
-        )  # kigs alias should have been moved from the eastern province boundary
+        )  # kigs alias should have been moved from the eastern province location
 
         # fetch our aliases
         response = self.client.get(reverse("locations.location_boundaries", args=[self.state1.osm_id]))
@@ -287,7 +287,7 @@ class LocationTest(TembaTest):
         self.assertEqual(400, response.status_code)
         self.assertEqual(response_json.get("status"), "error")
 
-        # Get geometry of admin boundary without sub-levels, should return one feature
+        # Get geometry of admin location without sub-levels, should return one feature
         response = self.client.get(reverse("locations.location_geometry", args=[self.ward3.osm_id]))
         self.assertEqual(200, response.status_code)
         response_json = response.json()
@@ -305,23 +305,23 @@ class LocationTest(TembaTest):
 
     def test_location_create(self):
         # create a simple location
-        boundary = Location.create(osm_id="-1", name="Null Island", level=0)
-        self.assertEqual(boundary.path, "Null Island")
-        self.assertIsNone(boundary.simplified_geometry)
+        location = Location.create(osm_id="-1", name="Null Island", level=0)
+        self.assertEqual(location.path, "Null Island")
+        self.assertIsNone(location.simplified_geometry)
 
-        # create a simple boundary with parent
-        child_boundary = Location.create(osm_id="-2", name="Palm Tree", level=1, parent=boundary)
-        self.assertEqual(child_boundary.path, "Null Island > Palm Tree")
-        self.assertIsNone(child_boundary.simplified_geometry)
+        # create a simple location with parent
+        child_location = Location.create(osm_id="-2", name="Palm Tree", level=1, parent=location)
+        self.assertEqual(child_location.path, "Null Island > Palm Tree")
+        self.assertIsNone(child_location.simplified_geometry)
 
         wkb_geometry = {"type": "MultiPolygon", "coordinates": [[[[71.83225, 39.95415], [71.82655, 39.9563]]]]}
 
-        # create a simple boundary with parent and geometry
-        geom_boundary = Location.create(
-            osm_id="-3", name="Plum Tree", level=1, parent=boundary, simplified_geometry=wkb_geometry
+        # create a simple location with parent and geometry
+        geom_location = Location.create(
+            osm_id="-3", name="Plum Tree", level=1, parent=location, simplified_geometry=wkb_geometry
         )
-        self.assertEqual(geom_boundary.path, "Null Island > Plum Tree")
-        self.assertIsNotNone(geom_boundary.simplified_geometry)
+        self.assertEqual(geom_location.path, "Null Island > Plum Tree")
+        self.assertIsNotNone(geom_location.simplified_geometry)
 
         # path should not be defined when calling Location.create
         self.assertRaises(TypeError, Location.create, osm_id="-1", name="Null Island", level=0, path="some path")

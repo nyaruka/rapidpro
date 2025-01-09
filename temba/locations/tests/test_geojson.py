@@ -50,7 +50,7 @@ class ImportGeoJSONtest(TembaTest):
             }]
         }"""
 
-    data_geojson_level_1_new_boundary = """{
+    data_geojson_level_1_new_location = """{
             "type": "FeatureCollection",
             "features": [{
                 "type": "Feature",
@@ -183,7 +183,7 @@ class ImportGeoJSONtest(TembaTest):
 
         self.assertEqual(
             captured_output.getvalue(),
-            "=== parsing R188933admin0_simplified.json\n ** adding Granica (R1000)\n ** removing unseen boundaries (R1000)\nOther unseen boundaries removed: 0\n ** updating paths for all of Granica\n",
+            "=== parsing R188933admin0_simplified.json\n ** adding Granica (R1000)\n ** removing unseen locations (R1000)\nOther unseen locations removed: 0\n ** updating paths for all of Granica\n",
         )
 
         self.assertEqual(Location.objects.count(), 1)
@@ -195,7 +195,7 @@ class ImportGeoJSONtest(TembaTest):
 
         self.assertEqual(
             captured_output.getvalue(),
-            "=== parsing R188933admin0_simplified.json\n ** adding Granica (R1000)\n ** removing unseen boundaries (R1000)\nOther unseen boundaries removed: 0\n ** updating paths for all of Granica\n",
+            "=== parsing R188933admin0_simplified.json\n ** adding Granica (R1000)\n ** removing unseen locations (R1000)\nOther unseen locations removed: 0\n ** updating paths for all of Granica\n",
         )
 
         self.assertEqual(Location.objects.count(), 1)
@@ -207,7 +207,7 @@ class ImportGeoJSONtest(TembaTest):
 
         self.assertEqual(
             captured_output.getvalue(),
-            "=== parsing admin_level_0_simplified.json\n ** adding Granica (R1000)\n ** removing unseen boundaries (R1000)\nOther unseen boundaries removed: 0\n ** updating paths for all of Granica\n",
+            "=== parsing admin_level_0_simplified.json\n ** adding Granica (R1000)\n ** removing unseen locations (R1000)\nOther unseen locations removed: 0\n ** updating paths for all of Granica\n",
         )
 
         self.assertEqual(Location.objects.count(), 1)
@@ -240,7 +240,7 @@ class ImportGeoJSONtest(TembaTest):
 
         self.assertEqual(
             captured_output.getvalue(),
-            "=== parsing admin_level_0_simplified.json\n ** adding Granica (R1000)\n ** removing unseen boundaries (R1000)\nOther unseen boundaries removed: 0\n ** updating paths for all of Granica\n",
+            "=== parsing admin_level_0_simplified.json\n ** adding Granica (R1000)\n ** removing unseen locations (R1000)\nOther unseen locations removed: 0\n ** updating paths for all of Granica\n",
         )
 
         self.assertOSMIDs({"R1000"})
@@ -267,7 +267,7 @@ class ImportGeoJSONtest(TembaTest):
 
         self.assertEqual(
             captured_output.getvalue(),
-            "=== parsing admin_level_0_simplified.json\n ** adding Granica (R1000)\n ** removing unseen boundaries (R1000)\n=== parsing admin_level_1_simplified.json\n ** adding Međa 2 (R2000)\n ** removing unseen boundaries (R2000)\n=== parsing admin_level_2_simplified.json\n ** adding Međa 55 (R55000)\n ** removing unseen boundaries (R55000)\nOther unseen boundaries removed: 0\n ** updating paths for all of Granica\n",
+            "=== parsing admin_level_0_simplified.json\n ** adding Granica (R1000)\n ** removing unseen locations (R1000)\n=== parsing admin_level_1_simplified.json\n ** adding Međa 2 (R2000)\n ** removing unseen locations (R2000)\n=== parsing admin_level_2_simplified.json\n ** adding Međa 55 (R55000)\n ** removing unseen locations (R55000)\nOther unseen locations removed: 0\n ** updating paths for all of Granica\n",
         )
 
         self.assertOSMIDs({"R1000", "R2000", "R55000"})
@@ -299,12 +299,12 @@ class ImportGeoJSONtest(TembaTest):
 
         self.assertEqual(
             captured_output.getvalue(),
-            "=== parsing admin_level_0_simplified.json\n ** updating Granica (R1000)\n ** removing unseen boundaries (R1000)\n=== parsing admin_level_1_simplified.json\n ** updating Međa 2 (R2000)\n ** removing unseen boundaries (R2000)\nOther unseen boundaries removed: 0\n ** updating paths for all of Granica\n",
+            "=== parsing admin_level_0_simplified.json\n ** updating Granica (R1000)\n ** removing unseen locations (R1000)\n=== parsing admin_level_1_simplified.json\n ** updating Međa 2 (R2000)\n ** removing unseen locations (R2000)\nOther unseen locations removed: 0\n ** updating paths for all of Granica\n",
         )
 
         self.assertOSMIDs({"R1000", "R2000"})
 
-    def test_remove_unseen_boundaries(self):
+    def test_remove_unseen_locations(self):
         # insert features in the database
         geojson_data = [self.data_geojson_level_0, self.data_geojson_level_1]
 
@@ -320,8 +320,8 @@ class ImportGeoJSONtest(TembaTest):
 
         LocationAlias.create(self.org, self.admin, Location.objects.get(osm_id="R2000"), "My Alias")
 
-        # update data, and add a new boundary
-        geojson_data = [self.data_geojson_level_0, self.data_geojson_level_1_new_boundary]
+        # update data, and add a new location
+        geojson_data = [self.data_geojson_level_0, self.data_geojson_level_1_new_location]
 
         with patch("builtins.open") as mock_file:
             mock_file.return_value.__enter__ = lambda filename: filename
@@ -333,13 +333,13 @@ class ImportGeoJSONtest(TembaTest):
 
         self.assertEqual(
             captured_output.getvalue(),
-            "=== parsing admin_level_0_simplified.json\n ** updating Granica (R1000)\n ** removing unseen boundaries (R1000)\n=== parsing admin_level_1_simplified.json\n ** adding Međa 3 (R3000)\n ** removing unseen boundaries (R3000)\n ** Unseen boundaries removed: 1\nOther unseen boundaries removed: 0\n ** updating paths for all of Granica\n",
+            "=== parsing admin_level_0_simplified.json\n ** updating Granica (R1000)\n ** removing unseen locations (R1000)\n=== parsing admin_level_1_simplified.json\n ** adding Međa 3 (R3000)\n ** removing unseen locations (R3000)\n ** Unseen locations removed: 1\nOther unseen locations removed: 0\n ** updating paths for all of Granica\n",
         )
 
         self.assertOSMIDs({"R1000", "R3000"})
 
-    def test_remove_other_unseen_boundaries(self):
-        # other unseen boundaries are boundaries which have not been updated in any way for a country
+    def test_remove_other_unseen_locations(self):
+        # other unseen locations are locations which have not been updated in any way for a country
 
         # insert features in the database
         geojson_data = [self.data_geojson_level_0, self.data_geojson_level_1]
@@ -354,7 +354,7 @@ class ImportGeoJSONtest(TembaTest):
 
         self.assertOSMIDs({"R1000", "R2000"})
 
-        # update data, and add a new boundary
+        # update data, and add a new location
         geojson_data = [self.data_geojson_level_0]
 
         with patch("builtins.open") as mock_file:
@@ -367,7 +367,7 @@ class ImportGeoJSONtest(TembaTest):
 
         self.assertEqual(
             captured_output.getvalue(),
-            "=== parsing admin_level_0_simplified.json\n ** updating Granica (R1000)\n ** removing unseen boundaries (R1000)\nOther unseen boundaries removed: 1\n ** updating paths for all of Granica\n",
+            "=== parsing admin_level_0_simplified.json\n ** updating Granica (R1000)\n ** removing unseen locations (R1000)\nOther unseen locations removed: 1\n ** updating paths for all of Granica\n",
         )
 
         self.assertOSMIDs({"R1000"})
@@ -385,7 +385,7 @@ class ImportGeoJSONtest(TembaTest):
 
         self.assertEqual(
             captured_output.getvalue(),
-            "=== parsing admin_level_0_simplified.json\n ** adding Granica (R1000)\n ** removing unseen boundaries (R1000)\nOther unseen boundaries removed: 0\n ** updating paths for all of Granica\n",
+            "=== parsing admin_level_0_simplified.json\n ** adding Granica (R1000)\n ** removing unseen locations (R1000)\nOther unseen locations removed: 0\n ** updating paths for all of Granica\n",
         )
 
         self.assertOSMIDs({"R1000"})

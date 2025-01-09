@@ -189,7 +189,7 @@ class OrgTest(TembaTest):
             self.assertNotContains(response, "Rwanda")
 
     def test_default_country(self):
-        # if location boundary is set and name is valid country, that has priority
+        # if location is set and name is valid country, that has priority
         self.org.location = Location.create(osm_id="171496", name="Ecuador", level=0)
         self.org.timezone = "Africa/Nairobi"
         self.org.save(update_fields=("country", "timezone"))

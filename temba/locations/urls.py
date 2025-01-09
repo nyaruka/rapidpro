@@ -1,3 +1,3 @@
-from .views import BoundaryCRUDL
+from .views import LocationCRUDL
 
-urlpatterns = BoundaryCRUDL().as_urlpatterns()
+urlpatterns = LocationCRUDL().as_urlpatterns()

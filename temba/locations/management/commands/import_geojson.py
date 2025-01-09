@@ -16,7 +16,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("files", nargs="+")
         parser.add_argument(
-            "--country", dest="country", default=None, help="Only process the boundary files for this country osm id"
+            "--country", dest="country", default=None, help="Only process the location files for this country osm id"
         )
 
     def import_file(self, filename, file):
@@ -79,11 +79,11 @@ class Command(BaseCommand):
                     continue
 
             # try to find existing admin level by osm_id
-            boundary = Location.objects.filter(osm_id=osm_id)
+            location = Location.objects.filter(osm_id=osm_id)
 
             # didn't find it? what about by name?
-            if not boundary:
-                boundary = Location.objects.filter(parent=parent, name__iexact=name)
+            if not location:
+                location = Location.objects.filter(parent=parent, name__iexact=name)
 
             # skip over items with no geometry
             if not feature["geometry"] or not feature["geometry"]["coordinates"]:
@@ -105,18 +105,18 @@ class Command(BaseCommand):
                 kwargs["simplified_geometry"] = geometry
 
             # if this is an update, just update with those fields
-            if boundary:
+            if location:
                 if not parent:
                     kwargs["path"] = name
                 else:
                     kwargs["path"] = parent.path + Location.PADDED_PATH_SEPARATOR + name
 
                 self.stdout.write(self.style.SUCCESS(f" ** updating {name} ({osm_id})"))
-                boundary = boundary.first()
-                boundary.update(**kwargs)
+                location = location.first()
+                location.update(**kwargs)
 
                 # update any children
-                boundary.update_path()
+                location.update_path()
 
             # otherwise, this is new, so create it
             else:
@@ -126,19 +126,19 @@ class Command(BaseCommand):
             # keep track of this osm_id
             seen_osm_ids.add(osm_id)
 
-        # now remove any unseen boundaries
+        # now remove any unseen locations
         if osm_id:
-            last_boundary = Location.objects.filter(osm_id=osm_id).first()
-            if last_boundary:
-                self.stdout.write(self.style.SUCCESS(f" ** removing unseen boundaries ({osm_id})"))
-                country = last_boundary.get_root()
-                unseen_boundaries = country.get_descendants().filter(level=level).exclude(osm_id__in=seen_osm_ids)
+            last_location = Location.objects.filter(osm_id=osm_id).first()
+            if last_location:
+                self.stdout.write(self.style.SUCCESS(f" ** removing unseen locations ({osm_id})"))
+                country = last_location.get_root()
+                unseen_locations = country.get_descendants().filter(level=level).exclude(osm_id__in=seen_osm_ids)
                 deleted_count = 0
-                for unseen_boundary in unseen_boundaries:
-                    unseen_boundary.release()
+                for unseen_location in unseen_locations:
+                    unseen_location.release()
                     deleted_count += 1
                 if deleted_count > 0:
-                    self.stdout.write(f" ** Unseen boundaries removed: {deleted_count}")
+                    self.stdout.write(f" ** Unseen locations removed: {deleted_count}")
 
                 return country, seen_osm_ids
             else:
@@ -193,7 +193,7 @@ class Command(BaseCommand):
             if country is None:
                 return
 
-            # remove all other unseen boundaries from the database for the country
+            # remove all other unseen locations from the database for the country
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
@@ -217,7 +217,7 @@ WHERE NOT (abs.osm_id = ANY(%s)))
                 """,
                     (country.id, list(updated_osm_ids)),
                 )
-                self.stdout.write(self.style.SUCCESS(f"Other unseen boundaries removed: {cursor.rowcount}"))
+                self.stdout.write(self.style.SUCCESS(f"Other unseen locations removed: {cursor.rowcount}"))
 
         if country:
             self.stdout.write(self.style.SUCCESS((f" ** updating paths for all of {country.name}")))

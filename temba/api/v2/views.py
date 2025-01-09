@@ -408,11 +408,11 @@ class BoundariesEndpoint(ListAPIMixin, BaseEndpoint):
     A `GET` returns the boundaries for your organization with the following fields. To include geometry,
     specify `geometry=true`.
 
-      * **osm_id** - the OSM ID for this boundary prefixed with the element type (string).
-      * **name** - the name of the administrative boundary (string).
-      * **parent** - the id of the containing parent of this boundary or null if this boundary is a country (string).
+      * **osm_id** - the OSM ID for this location prefixed with the element type (string).
+      * **name** - the name of the administrative location (string).
+      * **parent** - the id of the containing parent of this location or null if this location is a country (string).
       * **level** - the level: 0 for country, 1 for state, 2 for district (int).
-      * **geometry** - the geometry for this boundary, which will usually be a MultiPolygon (GEOJSON).
+      * **geometry** - the geometry for this location, which will usually be a MultiPolygon (GEOJSON).
 
     **Note that including geometry may produce a very large result so it is recommended to cache the results on the
     client side.**
