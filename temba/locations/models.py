@@ -2,79 +2,21 @@ import geojson
 from mptt.models import MPTTModel, TreeForeignKey
 from smartmin.models import SmartModel
 
-from django.contrib.gis.db import models
+from django.db import models
 from django.db.models import F, Value
 from django.db.models.functions import Concat, Lower, Upper
 
 
-# default manager for AdminBoundary, doesn't load geometries
+# default manager for Location, doesn't load geometries
 class NoGeometryManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().defer("simplified_geometry")
 
 
-# optional 'geometries' manager for AdminBoundary, loads everything
+# optional 'geometries' manager for Location, loads everything
 class GeometryManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset()
-
-
-class AdminBoundary(MPTTModel, models.Model):
-    """
-    Represents a single administrative boundary (like a country, state or district)
-    """
-
-    LEVEL_COUNTRY = 0
-    LEVEL_STATE = 1
-    LEVEL_DISTRICT = 2
-    LEVEL_WARD = 3
-
-    MAX_NAME_LEN = 128
-
-    # Used to separate segments in a hierarchy of boundaries. Has the advantage of being a character in GSM7 and
-    # being very unlikely to show up in an admin boundary name.
-    PATH_SEPARATOR = ">"
-    PADDED_PATH_SEPARATOR = " > "
-
-    osm_id = models.CharField(max_length=15, unique=True)
-    name = models.CharField(max_length=MAX_NAME_LEN)
-    level = models.IntegerField()
-    parent = TreeForeignKey("self", null=True, on_delete=models.PROTECT, related_name="children", db_index=True)
-    path = models.CharField(max_length=768)  # e.g. Rwanda > Kigali
-    simplified_geometry = models.MultiPolygonField(null=True)
-
-    objects = NoGeometryManager()
-    geometries = GeometryManager()
-
-    def release(self):
-        for child_boundary in AdminBoundary.objects.filter(parent=self):  # pragma: no cover
-            child_boundary.release()
-
-        self.aliases.all().delete()
-        self.delete()
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        indexes = [models.Index(Upper("name"), name="adminboundaries_by_name")]
-
-
-class BoundaryAlias(SmartModel):
-    """
-    An org specific alias for a boundary name
-    """
-
-    org = models.ForeignKey("orgs.Org", on_delete=models.PROTECT)
-    boundary = models.ForeignKey(AdminBoundary, on_delete=models.PROTECT, related_name="aliases")
-    name = models.CharField(max_length=AdminBoundary.MAX_NAME_LEN, help_text="The name for our alias")
-
-    @classmethod
-    def create(cls, org, user, boundary, name):
-        return cls.objects.create(org=org, boundary=boundary, name=name, created_by=user, modified_by=user)
-
-    class Meta:
-        indexes = [models.Index(Upper("name"), name="boundaryaliases_by_name")]
 
 
 class Location(MPTTModel, models.Model):
