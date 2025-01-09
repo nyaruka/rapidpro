@@ -18,7 +18,7 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
         # remove our explicit country so it needs to be derived from channels
         self.org.location = None
         self.org.timezone = "UTC"
-        self.org.save(update_fields=("country", "timezone"))
+        self.org.save(update_fields=("location", "timezone"))
 
         Channel.objects.all().delete()
 

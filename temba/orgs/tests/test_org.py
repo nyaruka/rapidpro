@@ -192,7 +192,7 @@ class OrgTest(TembaTest):
         # if location is set and name is valid country, that has priority
         self.org.location = Location.create(osm_id="171496", name="Ecuador", level=0)
         self.org.timezone = "Africa/Nairobi"
-        self.org.save(update_fields=("country", "timezone"))
+        self.org.save(update_fields=("location", "timezone"))
 
         self.assertEqual("EC", self.org.default_country.alpha_2)
 
