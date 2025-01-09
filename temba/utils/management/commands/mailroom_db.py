@@ -16,7 +16,7 @@ from temba.classifiers.models import Classifier
 from temba.contacts.models import Contact, ContactField, ContactGroup, ContactURN
 from temba.flows.models import Flow
 from temba.globals.models import Global
-from temba.locations.models import AdminBoundary
+from temba.locations.models import Location
 from temba.msgs.models import Label
 from temba.orgs.models import Org, OrgRole, User
 from temba.templates.models import Template, TemplateTranslation
@@ -152,7 +152,7 @@ class Command(BaseCommand):
         # TODO figure out why this is needed
         time.sleep(1)
 
-        return AdminBoundary.objects.filter(level=0).get()
+        return Location.objects.filter(level=0).get()
 
     def reset_id_sequences(self, start: int):
         with connection.cursor() as cursor:
@@ -167,7 +167,7 @@ class Command(BaseCommand):
             name=spec["name"],
             timezone=ZoneInfo("America/Los_Angeles"),
             flow_languages=spec["languages"],
-            country=country,
+            location=country,
             created_on=timezone.now(),
             created_by=superuser,
             modified_by=superuser,
