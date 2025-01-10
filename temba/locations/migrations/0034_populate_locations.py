@@ -37,13 +37,15 @@ def populate_locations(apps, schema_editor):
         org.location_id = location_id_by_country_id[org.country_id]
         org.save(update_fields=("location_id",))
 
-        aliases = BoundaryAlias.objects.filter(org=org)
-        for alias in aliases:
-            LocationAlias.objects.create(
-                org=org,
-                location_id=location_id_by_boundary_id[alias.boundary_id],
-                name=alias.name,
-            )
+    aliases = BoundaryAlias.objects.all().order_by("org")
+    for alias in aliases:
+        LocationAlias.objects.create(
+            org_id=alias.org_id,
+            location_id=location_id_by_boundary_id[alias.boundary_id],
+            name=alias.name,
+            modified_by_id=alias.created_by_id,
+            created_by_id=alias.created_by_id,
+        )
 
 
 class Migration(migrations.Migration):
