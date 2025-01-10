@@ -9,7 +9,7 @@ from django.core.management import call_command
 from django.test.utils import captured_stdout
 
 from temba.locations.models import Location, LocationAlias
-from temba.tests import TembaTest
+from temba.tests import TembaTest, matchers
 from temba.utils import json
 
 
@@ -389,6 +389,14 @@ class ImportGeoJSONtest(TembaTest):
         )
 
         self.assertOSMIDs({"R1000"})
+
+    def test_import_geojson(self):
+        self.assertEqual(0, Location.objects.all().count())
+        call_command("import_geojson", "test-data/rwanda.zip")
+        self.assertEqual(9, Location.objects.all().count())
+
+        country_location = Location.objects.filter(level=0).get()
+        self.assertEqual(country_location.geometry, matchers.Dict())
 
     def assertOSMIDs(self, ids):
         self.assertEqual(set(ids), set(Location.objects.values_list("osm_id", flat=True)))

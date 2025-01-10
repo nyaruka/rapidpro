@@ -135,8 +135,8 @@ class LocationReadSerializer(ReadSerializer):
         return [alias.name for alias in obj.aliases.all()]
 
     def get_geometry(self, obj):
-        if self.context["include_geometry"] and obj.simplified_geometry:
-            return obj.simplified_geometry
+        if self.context["include_geometry"] and obj.geometry:
+            return obj.geometry
         else:
             return None
 

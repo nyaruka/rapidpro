@@ -307,21 +307,19 @@ class LocationTest(TembaTest):
         # create a simple location
         location = Location.create(osm_id="-1", name="Null Island", level=0)
         self.assertEqual(location.path, "Null Island")
-        self.assertIsNone(location.simplified_geometry)
+        self.assertIsNone(location.geometry)
 
         # create a simple location with parent
         child_location = Location.create(osm_id="-2", name="Palm Tree", level=1, parent=location)
         self.assertEqual(child_location.path, "Null Island > Palm Tree")
-        self.assertIsNone(child_location.simplified_geometry)
+        self.assertIsNone(child_location.geometry)
 
         wkb_geometry = {"type": "MultiPolygon", "coordinates": [[[[71.83225, 39.95415], [71.82655, 39.9563]]]]}
 
         # create a simple location with parent and geometry
-        geom_location = Location.create(
-            osm_id="-3", name="Plum Tree", level=1, parent=location, simplified_geometry=wkb_geometry
-        )
+        geom_location = Location.create(osm_id="-3", name="Plum Tree", level=1, parent=location, geometry=wkb_geometry)
         self.assertEqual(geom_location.path, "Null Island > Plum Tree")
-        self.assertIsNotNone(geom_location.simplified_geometry)
+        self.assertIsNotNone(geom_location.geometry)
 
         # path should not be defined when calling Location.create
         self.assertRaises(TypeError, Location.create, osm_id="-1", name="Null Island", level=0, path="some path")

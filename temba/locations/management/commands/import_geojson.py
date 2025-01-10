@@ -102,7 +102,7 @@ class Command(BaseCommand):
 
             kwargs = dict(osm_id=osm_id, name=name, level=level, parent=parent)
             if is_simplified:
-                kwargs["simplified_geometry"] = geometry
+                kwargs["geometry"] = geometry
 
             # if this is an update, just update with those fields
             if location:

@@ -20,7 +20,7 @@ class BoundariesEndpointTest(APITest):
         LocationAlias.create(self.org, self.admin, self.state2, "East Prov")
         LocationAlias.create(self.org2, self.admin2, self.state1, "Other Org")  # shouldn't be returned
 
-        self.state1.simplified_geometry = {
+        self.state1.geometry = {
             "type": "MultiPolygon",
             "coordinates": [[[[1, 1], [1, -1], [-1, -1], [-1, 1], [1, 1]]]],
         }

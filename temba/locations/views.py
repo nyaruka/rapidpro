@@ -49,7 +49,7 @@ class LocationCRUDL(SmartCRUDL):
             return r"^%s/%s/(?P<osmId>\w+\.?\d+\.?\d?\_?\d?)/$" % (path, action)
 
         def get_object(self):
-            return Location.geometries.get(osm_id=self.kwargs["osmId"])
+            return Location.objects.get(osm_id=self.kwargs["osmId"])
 
         def render_to_response(self, context):
             if self.object.children.all().count() > 0:
@@ -68,7 +68,7 @@ class LocationCRUDL(SmartCRUDL):
             return r"^%s/%s/(?P<osmId>[\w\.]+)/$" % (path, action)
 
         def get_object(self):
-            return Location.geometries.get(osm_id=self.kwargs["osmId"])
+            return Location.objects.get(osm_id=self.kwargs["osmId"])
 
         def post(self, request, *args, **kwargs):
             # try to parse our body
