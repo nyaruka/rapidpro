@@ -7,18 +7,6 @@ from django.db.models import F, Value
 from django.db.models.functions import Concat, Lower, Upper
 
 
-# default manager for AdminBoundary, doesn't load geometries
-class NoGeometryManager(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset().defer("simplified_geometry")
-
-
-# optional 'geometries' manager for AdminBoundary, loads everything
-class GeometryManager(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset()
-
-
 class AdminBoundary(MPTTModel, models.Model):
     """
     Represents a single administrative boundary (like a country, state or district)
@@ -42,19 +30,6 @@ class AdminBoundary(MPTTModel, models.Model):
     parent = TreeForeignKey("self", null=True, on_delete=models.PROTECT, related_name="children", db_index=True)
     path = models.CharField(max_length=768)  # e.g. Rwanda > Kigali
     simplified_geometry = models.MultiPolygonField(null=True)
-
-    objects = NoGeometryManager()
-    geometries = GeometryManager()
-
-    def release(self):
-        for child_boundary in AdminBoundary.objects.filter(parent=self):  # pragma: no cover
-            child_boundary.release()
-
-        self.aliases.all().delete()
-        self.delete()
-
-    def __str__(self):
-        return self.name
 
     class Meta:
         indexes = [models.Index(Upper("name"), name="adminboundaries_by_name")]
