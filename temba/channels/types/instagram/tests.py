@@ -26,7 +26,7 @@ class InstagramTypeTest(TembaTest):
             address="019283",
             role="SR",
             schemes=["instagram"],
-            config={"auth_token": "09876543", "page_id": "123456"},
+            config={"auth_token": "09876543", "page_name": "FirstName", "page_id": "123456"},
         )
 
     @override_settings(FACEBOOK_APPLICATION_ID="FB_APP_ID", FACEBOOK_APPLICATION_SECRET="FB_APP_SECRET")
@@ -206,6 +206,12 @@ class InstagramTypeTest(TembaTest):
     @patch("requests.post")
     @patch("requests.get")
     def test_claim_already_connected(self, mock_get, mock_post):
+        channel = Channel.objects.get(address="019283", channel_type="IG")
+        self.assertEqual(channel.config[Channel.CONFIG_AUTH_TOKEN], "09876543")
+        self.assertEqual(channel.config[Channel.CONFIG_PAGE_NAME], "FirstName")
+        self.assertEqual(channel.config["page_id"], "123456")
+        self.assertEqual(channel.name, "Instagram")
+
         name = "Temba"
 
         mock_get.side_effect = [
@@ -219,7 +225,7 @@ class InstagramTypeTest(TembaTest):
                             {
                                 "name": name,
                                 "id": "123456",
-                                "access_token": self.long_life_page_token,
+                                "access_token": self.long_life_page_token + "-updated",
                             }
                         ]
                     }
@@ -253,7 +259,11 @@ class InstagramTypeTest(TembaTest):
         post_data["page_name"] = name
 
         response = self.client.post(url, post_data, follow=True)
-        self.assertContains(response, "This channel is already connected in this workspace.")
+        channel = Channel.objects.get(address="019283", channel_type="IG")
+        self.assertEqual(channel.config[Channel.CONFIG_AUTH_TOKEN], self.long_life_page_token + "-updated")
+        self.assertEqual(channel.config[Channel.CONFIG_PAGE_NAME], "Temba")
+        self.assertEqual(channel.config["page_id"], 123456)
+        self.assertEqual(channel.name, "Instagram")
 
         mock_get.side_effect = [
             MockResponse(200, json.dumps({"data": {"user_id": "098765", "expired_at": 100}})),
@@ -341,100 +351,47 @@ class InstagramTypeTest(TembaTest):
             params={"access_token": "09876543"},
         )
 
-    @override_settings(FACEBOOK_APPLICATION_ID="FB_APP_ID", FACEBOOK_APPLICATION_SECRET="FB_APP_SECRET")
-    @patch("requests.post")
-    @patch("requests.get")
-    def test_refresh_token(self, mock_get, mock_post):
-        token = "x" * 200
-
-        url = reverse("channels.types.instagram.refresh_token", args=(self.channel.uuid,))
-
-        self.login(self.admin)
-
-        mock_post.return_value = MockResponse(200, json.dumps({"success": True}))
-
-        mock_get.side_effect = [
-            MockResponse(400, json.dumps({"error": "token invalid"})),
-        ]
-
-        response = self.client.get(url)
-        self.assertContains(response, "Reconnect Instagram Business Account")
-        self.assertEqual(response.context["facebook_app_id"], "FB_APP_ID")
-        self.assertEqual(response.context["refresh_url"], url)
-        self.assertTrue(response.context["error_connect"])
-
-        mock_get.side_effect = [MockResponse(200, json.dumps({"data": {"is_valid": False}}))]
-        response = self.client.get(url)
-        self.assertContains(response, "Reconnect Instagram Business Account")
-        self.assertEqual(response.context["facebook_app_id"], "FB_APP_ID")
-        self.assertEqual(response.context["refresh_url"], url)
-        self.assertTrue(response.context["error_connect"])
-
-        mock_get.side_effect = [
-            MockResponse(200, json.dumps({"data": {"is_valid": True}})),
-            MockResponse(200, json.dumps({"access_token": self.long_life_page_token})),
-            MockResponse(
-                200,
-                json.dumps(
-                    {
-                        "data": [
-                            {
-                                "name": "Temba",
-                                "id": "123456",
-                                "access_token": self.long_life_page_token,
-                            }
-                        ]
-                    }
-                ),
-            ),
-        ]
-
-        response = self.client.get(url)
-        self.assertContains(response, "Reconnect Instagram Business Account")
-        self.assertEqual(response.context["facebook_app_id"], "FB_APP_ID")
-        self.assertEqual(response.context["refresh_url"], url)
-        self.assertFalse(response.context["error_connect"])
-
-        post_data = response.context["form"].initial
-        post_data["fb_user_id"] = "098765"
-        post_data["user_access_token"] = token
-
-        response = self.client.post(url, post_data, follow=True)
-
-        # assert our channel got created
-        channel = Channel.objects.get(address="019283", channel_type="IG")
-        self.assertEqual(channel.config[Channel.CONFIG_AUTH_TOKEN], self.long_life_page_token)
-        self.assertEqual(channel.config[Channel.CONFIG_PAGE_NAME], "Temba")
-        self.assertEqual(channel.address, "019283")
-
-        self.assertEqual(
-            response.request["PATH_INFO"],
-            reverse("channels.channel_read", args=[channel.uuid]),
-        )
-
-        mock_get.assert_any_call(
-            "https://graph.facebook.com/oauth/access_token",
-            params={
-                "grant_type": "fb_exchange_token",
-                "client_id": "FB_APP_ID",
-                "client_secret": "FB_APP_SECRET",
-                "fb_exchange_token": self.token,
-            },
-        )
-
-        mock_get.assert_any_call(
-            "https://graph.facebook.com/v18.0/098765/accounts",
-            params={"access_token": self.long_life_page_token},
-        )
-
-        mock_post.assert_any_call(
-            "https://graph.facebook.com/v18.0/123456/subscribed_apps",
-            data={"subscribed_fields": "messages,messaging_postbacks"},
-            params={"access_token": self.long_life_page_token},
-        )
-
     def test_get_error_ref_url(self):
         self.assertEqual(
             "https://developers.facebook.com/docs/instagram-api/reference/error-codes",
             InstagramType().get_error_ref_url(None, "36000"),
         )
+
+    @override_settings(FACEBOOK_APPLICATION_ID="FB_APP_ID", FACEBOOK_APPLICATION_SECRET="FB_APP_SECRET")
+    @patch("requests.get")
+    def test_check_credentials(self, mock_get):
+        check_credentials_url = reverse("channels.types.instagram.check_credentials", args=(self.channel.uuid,))
+
+        self.login(self.admin)
+
+        mock_get.return_value = MockResponse(200, json.dumps({"success": True, "data": {}}))
+        response = self.client.get(check_credentials_url)
+        self.assertContains(response, "Reconnect Instagram Business Account")
+        self.assertContains(
+            response,
+            "Error with token, you need to reconnect the Instagram Business Account by clicking the button below",
+        )
+        self.assertEqual(response.context["update_token_url"], f"{reverse("channels.types.instagram.claim")}?update=1")
+        self.assertFalse(response.context["valid_token"])
+
+        mock_get.return_value = MockResponse(200, json.dumps({"success": True, "data": {"is_valid": True}}))
+
+        response = self.client.get(check_credentials_url)
+        self.assertContains(response, "Reconnect Instagram Business Account")
+        self.assertContains(response, "Everything looks good. No need to reconnect")
+        self.assertEqual(response.context["update_token_url"], f"{reverse("channels.types.instagram.claim")}?update=1")
+        self.assertTrue(response.context["valid_token"])
+
+    @override_settings(FACEBOOK_APPLICATION_ID="FB_APP_ID", FACEBOOK_APPLICATION_SECRET="FB_APP_SECRET")
+    @patch("requests.get")
+    def test_type_check_credentials(self, mock_get):
+        self.assertFalse(InstagramType().check_credentials({}))
+
+        mock_get.return_value = MockResponse(200, json.dumps({"success": True, "data": {}}))
+        self.assertFalse(InstagramType().check_credentials({Channel.CONFIG_AUTH_TOKEN: "Token"}))
+
+        mock_get.return_value = MockResponse(400, json.dumps({"error": True}))
+        self.assertFalse(InstagramType().check_credentials({Channel.CONFIG_AUTH_TOKEN: "Token"}))
+
+        mock_get.return_value = MockResponse(200, json.dumps({"success": True, "data": {"is_valid": True}}))
+        self.assertTrue(InstagramType().check_credentials({Channel.CONFIG_AUTH_TOKEN: "Token"}))
