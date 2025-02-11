@@ -1319,6 +1319,37 @@ class ChannelCountTest(TembaTest):
                 mock.assert_called_with(self.admin, "temba.ivr_outgoing", {"count": 1})
 
 
+class ChannelEventCRUDLTest(CRUDLTestMixin, TembaTest):
+    def test_read(self):
+        contact = self.create_contact("Joe", phone="+250788111222")
+        e1 = ChannelEvent.objects.create(
+            org=self.org,
+            channel=self.channel,
+            event_type=ChannelEvent.TYPE_STOP_CONTACT,
+            contact=contact,
+            created_on=timezone.now() - timedelta(days=3),
+            occurred_on=timezone.now() - timedelta(days=3),
+        )
+        e2 = ChannelEvent.objects.create(
+            org=self.org,
+            channel=self.channel,
+            event_type=ChannelEvent.TYPE_DELETE_CONTACT,
+            contact=contact,
+            created_on=timezone.now() - timedelta(days=2),
+            occurred_on=timezone.now() - timedelta(days=3),
+        )
+        self.assertEqual(2, ChannelEvent.objects.all().count())
+
+        # 404 for non delete request event type
+        response = self.client.get(reverse("channels.channelevent_read", args=[e1.uuid]))
+        self.assertEqual(404, response.status_code)
+
+        # success for event of type delete request
+        response = self.client.get(reverse("channels.channelevent_read", args=[e2.uuid]))
+        self.assertEqual(200, response.status_code)
+        self.assertContains(response, f"Confirmation code: {e2.uuid}")
+
+
 class ChannelEventTest(TembaTest):
     def test_trim_task(self):
         contact = self.create_contact("Joe", phone="+250788111222")
