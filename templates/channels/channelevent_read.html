@@ -1,0 +1,17 @@
+{% extends "no_nav.html" %}
+{% load smartmin compress temba %}
+{% load i18n %}
+
+{% block head-title %}
+  {% trans "Data deletion request" %}
+{% endblock head-title %}
+{% block page-top %}
+{% endblock page-top %}
+{% block content %}
+  <div class="flex flex-col h-full">
+    <div class="inner">
+      <div class="page-title mb-2">{% trans "Data deletion request received" %}</div>
+      <div class="centered mt-8">{% trans "Confirmation code" %}: {{ event.uuid }}</div>
+    </div>
+  </div>
+{% endblock content %}
