@@ -1740,6 +1740,15 @@ class UserReadSerializer(ReadSerializer):
     team = serializers.SerializerMethodField()
     created_on = serializers.DateTimeField(default_timezone=tzone.utc, source="date_joined")
 
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
+
+    def get_first_name(self, obj):
+        return obj.name
+
+    def get_last_name(self, obj):
+        return ""
+
     def get_avatar(self, obj):
         return obj.avatar.url if obj.avatar else None
 
@@ -1752,7 +1761,7 @@ class UserReadSerializer(ReadSerializer):
 
     class Meta:
         model = User
-        fields = ("email", "first_name", "last_name", "role", "team", "created_on", "avatar")
+        fields = ("email", "name", "first_name", "last_name", "role", "team", "created_on", "avatar")
 
 
 class WorkspaceReadSerializer(ReadSerializer):

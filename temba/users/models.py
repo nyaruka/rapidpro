@@ -74,27 +74,15 @@ class User(AbstractBaseUser, PermissionsMixin):
             "unique": _("A user with that username already exists."),
         },
     )
-    first_name = models.CharField(_("first name"), max_length=150, blank=True)
-    last_name = models.CharField(_("last name"), max_length=150, blank=True)
+    name = models.CharField(max_length=150, blank=True)
     email = models.EmailField(_("email address"), blank=True)
-    is_staff = models.BooleanField(
-        _("staff status"),
-        default=False,
-        help_text=_("Designates whether the user can log into this admin site."),
-    )
-    is_active = models.BooleanField(
-        _("active"),
-        default=True,
-        help_text=_(
-            "Designates whether this user should be treated as active. " "Unselect this instead of deleting accounts."
-        ),
-    )
-    date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
-
     language = models.CharField(max_length=8, choices=settings.LANGUAGES, default=settings.DEFAULT_LANGUAGE)
+    date_joined = models.DateTimeField(default=timezone.now)
     last_auth_on = models.DateTimeField(null=True)
     avatar = models.ImageField(upload_to=UploadToIdPathAndRename("avatars/"), storage=storages["public"], null=True)
     is_system = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
 
     # email verification
     email_status = models.CharField(max_length=1, default=STATUS_UNVERIFIED, choices=STATUS_CHOICES)
@@ -108,6 +96,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     external_id = models.CharField(max_length=128, null=True)
     verification_token = models.CharField(max_length=64, null=True)
 
+    # TODO replace by name
+    first_name = models.CharField(_("first name"), max_length=150, blank=True)
+    last_name = models.CharField(_("last name"), max_length=150, blank=True)
+
     objects = UserManager()
 
     def clean(self):
@@ -119,6 +111,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         if not self.id:
             self.two_factor_secret = pyotp.random_base32()
             self.email_verification_secret = generate_secret(64)
+
+        self.name = ("%s %s" % (self.first_name, self.last_name)).strip()[:150]
 
         return super().save(**kwargs)
 
@@ -164,17 +158,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         if not user:
             user = cls.objects.create_user(cls.SYSTEM_USER_USERNAME, first_name="System", last_name="Update")
         return user
-
-    @property
-    def name(self) -> str:
-        return self.get_full_name()
-
-    def get_full_name(self):
-        """
-        Return the first_name plus the last_name, with a space in between.
-        """
-        full_name = "%s %s" % (self.first_name, self.last_name)
-        return full_name.strip()
 
     def get_orgs(self):
         return self.orgs.filter(is_active=True).order_by("name")

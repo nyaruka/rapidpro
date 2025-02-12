@@ -3435,8 +3435,7 @@ class UsersEndpoint(ListAPIMixin, BaseEndpoint):
     A **GET** returns the users in your workspace, ordered by newest created first.
 
      * **email** - the email address of the user (string), filterable as `email`.
-     * **first_name** - the first name of the user (string).
-     * **last_name** - the last name of the user (string).
+     * **name** - the name of the user (string).
      * **role** - the role of the user (string), filterable as `role`.
      * **team** - team user belongs to (object).
      * **created_on** - when this user was created (datetime).
@@ -3454,8 +3453,7 @@ class UsersEndpoint(ListAPIMixin, BaseEndpoint):
             {
                 "avatar": "https://..."
                 "email": "bob@flow.com",
-                "first_name": "Bob",
-                "last_name": "McFlow",
+                "name": "Bob McFlow",
                 "role": "agent",
                 "team": {"uuid": "f5901b62-ba76-4003-9c62-72fdacc1b7b7", "name": "All Topics"},
                 "created_on": "2013-03-02T17:28:12.123456Z"

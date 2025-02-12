@@ -19,6 +19,7 @@ class UsersEndpointTest(APITest):
             results=[
                 {
                     "email": "agent@textit.com",
+                    "name": "Agnes",
                     "first_name": "Agnes",
                     "last_name": "",
                     "role": "agent",
@@ -28,8 +29,9 @@ class UsersEndpointTest(APITest):
                 },
                 {
                     "email": "editor@textit.com",
-                    "first_name": "Ed",
-                    "last_name": "McEdits",
+                    "name": "Ed McEdits",
+                    "first_name": "Ed McEdits",
+                    "last_name": "",
                     "role": "editor",
                     "team": None,
                     "created_on": format_datetime(self.editor.date_joined),
@@ -37,6 +39,7 @@ class UsersEndpointTest(APITest):
                 },
                 {
                     "email": "admin@textit.com",
+                    "name": "Andy",
                     "first_name": "Andy",
                     "last_name": "",
                     "role": "administrator",
