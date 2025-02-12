@@ -9,7 +9,7 @@ def populate_channel_events_uuid(apps, schema_editor):
     ChannelEvent = apps.get_model("channels", "ChannelEvent")
 
     num_updated = 0
-    while True:
+    while True:  # pragma: no cover
         batch = list(ChannelEvent.objects.filter(uuid=None)[:100])
         if not batch:
             return

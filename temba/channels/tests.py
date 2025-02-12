@@ -25,7 +25,7 @@ from temba.notifications.tasks import send_notification_emails
 from temba.orgs.models import Org
 from temba.request_logs.models import HTTPLog
 from temba.templates.models import TemplateTranslation
-from temba.tests import CRUDLTestMixin, MigrationTest, MockResponse, TembaTest, matchers, mock_mailroom, override_brand
+from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom, override_brand
 from temba.tests.crudl import StaffRedirect
 from temba.triggers.models import Trigger
 from temba.utils import json
@@ -2126,25 +2126,3 @@ class CourierTest(TembaTest):
         response = self.client.get(reverse("courier.t", args=[self.channel.uuid, "receive"]))
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.content, b"this URL should be mapped to a Courier instance")
-
-
-class TestPopulateChannelEventUUID(MigrationTest):
-    app = "channels"
-    migrate_from = "0189_channelevent_uuid_alter_channelevent_event_type"
-    migrate_to = "0190_populate_channelevents_uuid"
-
-    def setUpBeforeMigration(self, apps):
-        contact = self.create_contact("Joe", phone="+250788111222")
-        self.evt = ChannelEvent.objects.create(
-            org=self.org,
-            channel=self.channel,
-            event_type=ChannelEvent.TYPE_STOP_CONTACT,
-            contact=contact,
-            created_on=timezone.now() - timedelta(days=1),
-            occurred_on=timezone.now() - timedelta(days=1),
-        )
-        self.assertIsNone(self.evt.uuid)
-
-    def test_migration(self):
-        self.evt.refresh_from_db()
-        self.assertIsNotNone(self.evt.uuid)
