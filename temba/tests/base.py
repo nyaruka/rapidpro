@@ -55,8 +55,6 @@ class TembaTest(SmartminTest):
     def setUp(self):
         super().setUp()
 
-        self.create_anonymous_user()
-
         self.superuser = User.objects.create_superuser(
             username="super", email="super@user.com", password=self.default_password
         )
@@ -105,11 +103,6 @@ class TembaTest(SmartminTest):
             config={Channel.CONFIG_FCM_ID: "123"},
             normalize_urns=False,
         )
-
-        # don't cache anon user between tests
-        from temba import utils
-
-        utils._anon_user = None
 
         # OrgRole.group and OrgRole.permissions are cached properties so get those cached before test starts to avoid
         # query count differences when a test is first to request it and when it's not.
