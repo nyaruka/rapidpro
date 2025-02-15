@@ -149,9 +149,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @classmethod
     def get_system_user(cls):
-        user = cls.objects.filter(username=cls.SYSTEM_USER_USERNAME).first()
+        user = cls.objects.filter(email=cls.SYSTEM_USER_USERNAME).first()
         if not user:
-            user = cls.objects.create_user(cls.SYSTEM_USER_USERNAME, first_name="System", last_name="Update")
+            user = cls.objects.create_user(
+                cls.SYSTEM_USER_USERNAME, email=cls.SYSTEM_USER_USERNAME, first_name="System", last_name="Update"
+            )
         return user
 
     @property

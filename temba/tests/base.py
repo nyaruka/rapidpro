@@ -143,7 +143,7 @@ class TembaTest(SmartminTest):
 
     def login(self, user, *, update_last_auth_on: bool = True, choose_org=None):
         self.assertTrue(
-            self.client.login(username=user.username, password=self.default_password),
+            self.client.login(username=user.email, password=self.default_password),
             f"couldn't login as {user.username}:{self.default_password}",
         )
 

@@ -38,7 +38,7 @@ class LoginViewsTest(TembaTest):
         self.assertFormError(
             response.context["form"],
             None,
-            "Please enter a correct username and password. Note that both fields may be case-sensitive.",
+            "Please enter a correct email address and password. Note that both fields may be case-sensitive.",
         )
 
         # submit incorrect password by case sensitivity
@@ -47,7 +47,7 @@ class LoginViewsTest(TembaTest):
         self.assertFormError(
             response.context["form"],
             None,
-            "Please enter a correct username and password. Note that both fields may be case-sensitive.",
+            "Please enter a correct email address and password. Note that both fields may be case-sensitive.",
         )
 
         # submit correct username and password
@@ -131,7 +131,7 @@ class LoginViewsTest(TembaTest):
         self.assertFormError(
             response.context["form"],
             None,
-            "Please enter a correct username and password. Note that both fields may be case-sensitive.",
+            "Please enter a correct email address and password. Note that both fields may be case-sensitive.",
         )
 
         # and successful logins

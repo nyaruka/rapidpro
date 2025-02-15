@@ -14,7 +14,7 @@ class CRUDLTestMixin:
         """
 
         method = "POST" if post_data is not None else "GET"
-        user_name = user.username if user else "anonymous"
+        user_name = user.email if user else "anonymous"
         msg_prefix = f"{method} {url} as {user_name}"
         pre_msg_prefix = f"before {msg_prefix}"
 
