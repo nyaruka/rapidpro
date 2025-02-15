@@ -14,7 +14,6 @@ from django.views.decorators.csrf import csrf_exempt
 from temba.orgs.models import Org, OrgRole
 from temba.orgs.views import switch_to_org
 from temba.users.models import User
-from temba.utils import get_anonymous_user
 from temba.utils.fields import SelectMultipleWidget
 from temba.utils.views.mixins import ComponentFormMixin, ContextMenuMixin, ModalFormMixin, SpaMixin, StaffOnlyMixin
 
@@ -352,7 +351,7 @@ class UserCRUDL(SmartCRUDL):
             return super().dispatch(*args, **kwargs)
 
         def derive_queryset(self, **kwargs):
-            qs = super().derive_queryset(**kwargs).filter(is_active=True).exclude(id=get_anonymous_user().id)
+            qs = super().derive_queryset(**kwargs).filter(is_active=True)
 
             obj_filter = self.request.GET.get("filter")
             if obj_filter == "beta":

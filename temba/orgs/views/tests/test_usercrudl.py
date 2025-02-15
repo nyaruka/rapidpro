@@ -323,7 +323,6 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         self.admin.refresh_from_db()
-        self.assertEqual("admin@trileet.com", self.admin.username)
         self.assertEqual("admin@trileet.com", self.admin.email)
         self.assertEqual("U", self.admin.email_status)  # because email changed
         self.assertNotEqual("old-email-secret", self.admin.email_verification_secret)

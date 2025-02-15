@@ -22,7 +22,7 @@ from temba.msgs.models import Broadcast, Msg
 from temba.schedules.models import Schedule
 from temba.tests.dates import parse_datetime
 from temba.tickets.models import Ticket, TicketEvent
-from temba.utils import get_anonymous_user, json
+from temba.utils import json
 
 event_units = {
     CampaignEvent.UNIT_MINUTES: "minutes",
@@ -592,8 +592,6 @@ def contact_urn_lookup(org, urn: str):
 
 
 def contact_resolve(org, phone: str) -> tuple:
-    user = get_anonymous_user()
-
     if not PHONE_REGEX.match(phone):
         raise mailroom.URNValidationException("not a number", "invalid", 0)
 
@@ -603,7 +601,7 @@ def contact_resolve(org, phone: str) -> tuple:
     if contact_urn:
         contact = contact_urn.contact
     else:
-        contact = create_contact_locally(org, user, name="", language="", urns=[urn], fields={}, group_uuids=[])
+        contact = create_contact_locally(org, None, name="", language="", urns=[urn], fields={}, group_uuids=[])
         contact_urn = contact_urn_lookup(org, urn)
 
     return contact, contact_urn

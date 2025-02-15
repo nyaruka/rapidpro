@@ -828,9 +828,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(edit_url, post_data, HTTP_X_FORMAX=True)
         self.assertEqual(200, response.status_code)
 
-        self.assertTrue(User.objects.get(username="myal@wr.org"))
         self.assertTrue(User.objects.get(email="myal@wr.org"))
-        self.assertFalse(User.objects.filter(username="myal@relieves.org"))
         self.assertFalse(User.objects.filter(email="myal@relieves.org"))
 
     def test_create_new(self):

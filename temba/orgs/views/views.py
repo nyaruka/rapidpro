@@ -758,9 +758,6 @@ class UserCRUDL(SmartCRUDL):
         def pre_save(self, obj):
             obj = super().pre_save(obj)
 
-            # keep our username and email in sync and record if email is changing
-            obj.username = obj.email
-
             # get existing email address to know if it's changing
             obj._prev_email = User.objects.get(id=obj.id).email
 

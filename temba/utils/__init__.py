@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from .checks import *  # noqa
@@ -80,17 +79,3 @@ def set_nested_key(nested_dict, key, value):
             level[key] = next_level
 
         level = next_level
-
-
-_anon_user = None
-
-
-def get_anonymous_user():
-    """
-    Returns the anonymous user id, originally created by django-guardian
-    """
-
-    global _anon_user
-    if _anon_user is None:
-        _anon_user = get_user_model().objects.get(username=settings.ANONYMOUS_USER_NAME)
-    return _anon_user
