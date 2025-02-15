@@ -60,7 +60,7 @@ class BothubTypeTest(TembaTest):
 
         url = reverse("classifiers.classifier_connect")
         response = self.client.get(url)
-        self.assertRedirect(response, "/users/login/")
+        self.assertRedirect(response, "/accounts/login/")
 
         self.login(self.admin)
         response = self.client.get(url)

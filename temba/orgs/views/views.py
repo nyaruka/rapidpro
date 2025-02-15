@@ -1278,11 +1278,14 @@ class OrgCRUDL(SmartCRUDL):
                             *org_options,
                             self.create_divider(),
                             self.create_menu_item(
+                                menu_id="account", name=_("Account"), icon="account", href="/accounts/", posterize=True
+                            ),
+                            self.create_menu_item(
                                 menu_id="logout",
                                 name=_("Sign Out"),
                                 icon="logout",
+                                href="/accounts/logout/",
                                 posterize=True,
-                                href=reverse("orgs.logout"),
                             ),
                             self.create_space(),
                         ],

@@ -318,7 +318,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(join_url)
         self.assertContains(response, "Sign in to join the <b>Nyaruka</b> workspace")
-        self.assertContains(response, f"/users/login/?next={join_accept_url}")
+        self.assertContains(response, f"/accounts/login/?next={join_accept_url}")
 
         # should be logged out as the other user
         self.assertEqual(0, len(self.client.session.keys()))
@@ -339,7 +339,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(join_url)
         self.assertContains(response, "Sign in to join the <b>Trileet Inc.</b> workspace")
-        self.assertContains(response, f"/users/login/?next={join_accept_url}")
+        self.assertContains(response, f"/accounts/login/?next={join_accept_url}")
 
     def test_join_signup(self):
         # if invitation secret is invalid, redirect to root
@@ -420,13 +420,13 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_org_grant(self):
         grant_url = reverse("orgs.org_grant")
         response = self.client.get(grant_url)
-        self.assertRedirect(response, "/users/login/")
+        self.assertRedirect(response, "/accounts/login/")
 
         user = self.create_user("tito@textit.com")
 
         self.login(user)
         response = self.client.get(grant_url)
-        self.assertRedirect(response, "/users/login/")
+        self.assertRedirect(response, "/accounts/login/")
 
         granters = Group.objects.get(name="Granters")
         user.groups.add(granters)
@@ -1076,7 +1076,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         # users with no org are redirected back to the login page
         response = self.requestView(choose_url, self.non_org_user)
         self.assertLoginRedirect(response)
-        response = self.client.get("/users/login/")
+        response = self.client.get("/accounts/login/")
         self.assertContains(response, "No workspaces for this account, please contact your administrator.")
 
         # unless they are staff

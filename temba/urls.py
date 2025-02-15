@@ -36,6 +36,7 @@ urlpatterns += [
     re_path(r"^", include("temba.orgs.urls")),
     re_path(r"^staff/", include("temba.staff.urls")),
     re_path(r"^jsi18n/$", JavaScriptCatalog.as_view(), js_info_dict, name="django.views.i18n.javascript_catalog"),
+    re_path("accounts/", include("allauth.urls")),
 ]
 
 if settings.DEBUG:

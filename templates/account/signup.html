@@ -1,0 +1,78 @@
+{% extends "account/base_entrance.html" %}
+{% load allauth i18n %}
+
+{% block head_title %}
+  {% trans "Signup" %}
+{% endblock head_title %}
+{% block content %}
+  {% element h2 %}
+  {% trans "Create Account" %}
+{% endelement %}
+<div class="mb-2">Creating a TextIt account is free and only takes a minute.</div>
+{% setvar link %}
+<a href="{{ login_url }}">
+{% endsetvar %}
+{% setvar end_link %}
+</a>
+{% endsetvar %}
+{% element p %}
+{% endelement %}
+{% if not SOCIALACCOUNT_ONLY %}
+  {% url 'account_signup' as action_url %}
+  {% element form form=form method="post" action=action_url tags="entrance,signup" %}
+  {% slot body %}
+  {% csrf_token %}
+  {% element fields form=form unlabeled=True %}
+{% endelement %}
+{{ redirect_field }}
+{% endslot %}
+{% slot actions %}
+{% element button tags="prominent,signup" type="submit" %}
+{% trans "Sign Up" %}
+{% endelement %}
+{% endslot %}
+{% endelement %}
+<div class="sign-in-notice">{% blocktranslate %}Already have an account? {{ link }}Sign in{{ end_link }}{% endblocktranslate %}</div>
+{% endif %}
+{% if PASSKEY_SIGNUP_ENABLED %}
+  {% element hr %}
+{% endelement %}
+{% element button href=signup_by_passkey_url tags="prominent,signup,outline,primary" %}
+{% trans "Sign up using a passkey" %}
+{% endelement %}
+{% endif %}
+{% if SOCIALACCOUNT_ENABLED %}
+  {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
+{% endif %}
+{% endblock content %}
+{% block extra-script %}
+  <script src="{{ STATIC_URL }}lib/jsTimezoneDetect/jstz.js"></script>
+  <script type="text/javascript">
+    onSpload(function() {
+      var timezone = jstz.determine().name();
+      document.getElementById("id_timezone").value = timezone;
+    });
+  </script>
+{% endblock extra-script %}
+{% block extra-style %}
+  {{ block.super }}
+  <style>
+    label[for="id_workspace"] {
+      display: block;
+    }
+
+    #id_first_name,
+    #id_last_name {
+      width: 100%;
+    }
+
+    .sign-in-notice {
+      margin-top: 1rem;
+    }
+
+    button[type="submit"] {
+      display: block;
+      width: 100%;
+    }
+  </style>
+{% endblock extra-style %}

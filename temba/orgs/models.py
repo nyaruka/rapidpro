@@ -916,7 +916,7 @@ class Org(SmartModel):
         user = self.get_admins().first()
         if user:
             # some some substitutions
-            samples = samples.replace("{{EMAIL}}", user.username).replace("{{API_URL}}", api_url)
+            samples = samples.replace("{{EMAIL}}", user.email).replace("{{API_URL}}", api_url)
 
             try:
                 self.import_app(json.loads(samples), user)

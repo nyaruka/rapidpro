@@ -178,16 +178,6 @@ class LoginViewsTest(TembaTest):
         response = self.client.post(backup_url, {"token": self.admin.backup_tokens.first()})
         self.assertRedirect(response, reverse("orgs.org_choose"))
 
-    def test_logout(self):
-        logout_url = reverse("orgs.logout")
-
-        self.assertEqual(405, self.client.get(logout_url).status_code)
-
-        self.login(self.admin)
-
-        response = self.client.post(logout_url)
-        self.assertLoginRedirect(response)
-
     @override_settings(USER_LOCKOUT_TIMEOUT=1, USER_FAILED_LOGIN_LIMIT=3)
     def test_confirm_access(self):
         confirm_url = reverse("orgs.confirm_access") + "?next=/msg/"

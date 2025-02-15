@@ -213,6 +213,7 @@ MIDDLEWARE = (
     "temba.middleware.LanguageMiddleware",
     "temba.middleware.TimezoneMiddleware",
     "temba.middleware.ToastMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 )
 
 # -----------------------------------------------------------------------------------
@@ -238,6 +239,11 @@ INSTALLED_APPS = (
     "django.contrib.sitemaps",
     "django.contrib.postgres",
     "django.forms",
+    "allauth",
+    "allauth.account",
+    "allauth.mfa",
+    # "allauth.socialaccount",
+    # "allauth.socialaccount.providers.google",
     "formtools",
     "imagekit",
     "redis",
@@ -610,7 +616,7 @@ API_PERMISSIONS = {
 # Authentication
 # -----------------------------------------------------------------------------------
 
-LOGIN_URL = "/users/login/"
+LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/org/choose/"
 
 AUTH_USER_MODEL = "users.User"
@@ -907,3 +913,35 @@ WHATSAPP_FACEBOOK_BUSINESS_ID = os.environ.get("WHATSAPP_FACEBOOK_BUSINESS_ID", 
 #
 # You need to change these to real addresses to work with these.
 IP_ADDRESSES = ("172.16.10.10", "162.16.10.20")
+
+
+# -----------------------------------------------------------------------------------
+# AllAuth
+# -----------------------------------------------------------------------------------
+ACCOUNT_ADAPTER = "temba.users.adapters.TembaAccountAdapter"
+
+AUTHENTICATION_BACKENDS = [
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+ACCOUNT_FORMS = {
+    "signup": "temba.users.forms.TembaSignupForm",
+    "change_password": "temba.users.forms.TembaChangePasswordForm",
+}
+
+SOCIALACCOUNT_PROVIDERS = {}
+
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+
+ACCOUNT_LOGIN_METHODS = ("email",)
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_NOTIFICATIONS = True
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_CHANGE_EMAIL = True
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_SESSION_REMEMBER = True
+
+ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = False
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
