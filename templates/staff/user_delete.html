@@ -10,7 +10,7 @@
       </ul>
     </div>
   {% endif %}
-  {% blocktrans trimmed with username=object.username %}
-    Are you sure you want to delete <b>{{ username }}</b>?"
+  {% blocktrans trimmed with email=object.email %}
+    Are you sure you want to delete <b>{{ email }}</b>?"
   {% endblocktrans %}
 {% endblock fields %}

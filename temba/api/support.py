@@ -66,7 +66,7 @@ class APIBasicAuthentication(RequestAttributesMixin, BasicAuthentication):
 
     Clients should authenticate using HTTP Basic Authentication.
 
-    Credentials: username:api_token
+    Credentials: email:api_token
     """
 
     def authenticate_credentials(self, userid, password, request=None):
@@ -75,7 +75,7 @@ class APIBasicAuthentication(RequestAttributesMixin, BasicAuthentication):
         except APIToken.DoesNotExist:
             raise exceptions.AuthenticationFailed("Invalid token or email")
 
-        if token.user.username != userid:
+        if token.user.email != userid:
             raise exceptions.AuthenticationFailed("Invalid token or email")
 
         if token.user.is_active:
