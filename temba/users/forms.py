@@ -44,17 +44,12 @@ class TembaSignupForm(SignupForm):
         self.fields["password1"].help_text = "At least 8 characters or more"
 
     def save(self, request):
-
-        # request["username"] = self.cleaned_data["email"]
         user = super(TembaSignupForm, self).save(request)
 
-        # Add your own processing here
         org = Org.create(user, self.cleaned_data["workspace"], self.cleaned_data["timezone"])
-
         analytics.identify(user, brand=request.branding, org=org)
         analytics.track(user, "temba.org_signup", properties=dict(org=org.name))
 
-        # You must return the original result.
         return user
 
 
