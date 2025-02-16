@@ -918,7 +918,6 @@ IP_ADDRESSES = ("172.16.10.10", "162.16.10.20")
 # -----------------------------------------------------------------------------------
 # AllAuth
 # -----------------------------------------------------------------------------------
-ACCOUNT_ADAPTER = "temba.users.adapters.TembaAccountAdapter"
 
 AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",
@@ -930,7 +929,6 @@ ACCOUNT_FORMS = {
 }
 
 SOCIALACCOUNT_PROVIDERS = {}
-
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
 ACCOUNT_LOGIN_METHODS = ("email",)
