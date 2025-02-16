@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 
@@ -76,7 +77,7 @@ class MiddlewareTest(TembaTest):
 
     def test_language(self):
         def assert_text(text: str):
-            self.assertContains(self.client.get(reverse("orgs.login")), text)
+            self.assertContains(self.client.get(settings.LOGIN_URL, follow=True), text)
 
         # default is English
         assert_text("continue?")
