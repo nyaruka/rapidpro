@@ -79,11 +79,11 @@ class MiddlewareTest(TembaTest):
             self.assertContains(self.client.get(reverse("orgs.login")), text)
 
         # default is English
-        assert_text("Sign In")
+        assert_text("continue?")
 
         # can be overridden in Django settings
         with override_settings(DEFAULT_LANGUAGE="es"):
-            assert_text("Ingresar")
+            assert_text("continuar?")
 
         # if we have an authenticated user, their setting takes priority
         self.login(self.admin)
@@ -91,4 +91,4 @@ class MiddlewareTest(TembaTest):
         self.admin.language = "fr"
         self.admin.save(update_fields=("language",))
 
-        assert_text("Se connecter")
+        assert_text("continuer?")
