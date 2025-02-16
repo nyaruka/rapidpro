@@ -2,7 +2,6 @@ import pyotp
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserManager as AuthUserManager
-from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.files.storage import storages
 from django.db import models
 from django.utils import timezone
@@ -68,22 +67,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
 
     EMAIL_FIELD = "email"
-    USERNAME_FIELD = "username"
-    REQUIRED_FIELDS = ["email"]
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []
 
-    username = models.CharField(
-        _("username"),
-        max_length=150,
-        unique=True,
-        help_text=_("Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only."),
-        validators=[UnicodeUsernameValidator()],
-        error_messages={
-            "unique": _("A user with that username already exists."),
-        },
-    )
+    # username is on its way out
+    username = models.CharField(_("username"), max_length=150, null=True)
+
     first_name = models.CharField(_("first name"), max_length=150, blank=True)
     last_name = models.CharField(_("last name"), max_length=150, blank=True)
-    email = models.EmailField(_("email address"), blank=True)
+    email = models.EmailField(_("email address"), unique=True)
     language = models.CharField(max_length=8, choices=settings.LANGUAGES, default=settings.DEFAULT_LANGUAGE)
     avatar = models.ImageField(upload_to=UploadToIdPathAndRename("avatars/"), storage=storages["public"], null=True)
 
@@ -157,9 +149,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @classmethod
     def get_system_user(cls):
-        user = cls.objects.filter(username=cls.SYSTEM_USER_USERNAME).first()
+        user = cls.objects.filter(email=cls.SYSTEM_USER_USERNAME).first()
         if not user:
-            user = cls.objects.create_user(cls.SYSTEM_USER_USERNAME, first_name="System", last_name="Update")
+            user = cls.objects.create_user(
+                cls.SYSTEM_USER_USERNAME, email=cls.SYSTEM_USER_USERNAME, first_name="System", last_name="Update"
+            )
         return user
 
     @property
@@ -265,11 +259,9 @@ class User(AbstractBaseUser, PermissionsMixin):
         """
         Releases this user, and any orgs of which they are the sole owner.
         """
-        user_uuid = str(uuid4())
         self.first_name = ""
         self.last_name = ""
-        self.email = f"{user_uuid}@rapidpro.io"
-        self.username = f"{user_uuid}@rapidpro.io"
+        self.email = f"{str(uuid4())}@rapidpro.io"
         self.password = ""
         self.is_active = False
         self.save()

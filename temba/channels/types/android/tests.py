@@ -6,7 +6,7 @@ from temba.contacts.models import URN
 from temba.orgs.models import Org
 from temba.tests import CRUDLTestMixin, TembaTest
 from temba.tests.mailroom import mock_mailroom
-from temba.utils import get_anonymous_user
+from temba.users.models import User
 
 from ...models import Channel
 
@@ -42,7 +42,7 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(android1.uuid, "uuid")
         self.assertTrue(android1.secret)
         self.assertTrue(android1.claim_code)
-        self.assertEqual(android1.created_by, get_anonymous_user())
+        self.assertEqual(android1.created_by, User.get_system_user())
 
         # check channel JSON in response
         response_json = response.json()

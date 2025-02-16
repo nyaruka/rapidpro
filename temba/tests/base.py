@@ -19,6 +19,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from temba.archives.models import Archive, jsonlgz_encode
@@ -54,8 +55,6 @@ class TembaTest(SmartminTest):
 
     def setUp(self):
         super().setUp()
-
-        self.create_anonymous_user()
 
         self.superuser = User.objects.create_superuser(
             username="super", email="super@user.com", password=self.default_password
@@ -106,11 +105,6 @@ class TembaTest(SmartminTest):
             normalize_urns=False,
         )
 
-        # don't cache anon user between tests
-        from temba import utils
-
-        utils._anon_user = None
-
         # OrgRole.group and OrgRole.permissions are cached properties so get those cached before test starts to avoid
         # query count differences when a test is first to request it and when it's not.
         for role in OrgRole:
@@ -150,7 +144,7 @@ class TembaTest(SmartminTest):
 
     def login(self, user, *, update_last_auth_on: bool = True, choose_org=None):
         self.assertTrue(
-            self.client.login(username=user.username, password=self.default_password),
+            self.client.login(username=user.email, password=self.default_password),
             f"couldn't login as {user.username}:{self.default_password}",
         )
 
@@ -790,6 +784,9 @@ class TembaTest(SmartminTest):
 
     def set_contact_field(self, contact, key, value):
         update_field_locally(self.admin, contact, key, value)
+
+    def assertLoginRedirectLegacy(self, response, msg=None):
+        self.assertRedirect(response, reverse("orgs.login"), msg=msg)
 
     def assertToast(self, response, level, text):
         toasts = json.loads(response.get("X-Temba-Toasts", []))
