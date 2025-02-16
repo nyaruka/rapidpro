@@ -36,7 +36,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             menu_url,
             self.admin,
             [
-                ("Workspace", ["Sign Out"]),
+                ("Workspace", ["Account", "Sign Out"]),
                 "Messages",
                 "Contacts",
                 "Flows",
@@ -70,7 +70,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             menu_url,
             self.agent,
             [
-                ("Workspace", ["Nyaruka", "Sign Out"]),
+                ("Workspace", ["Nyaruka", "Account", "Sign Out"]),
                 "Tickets",
                 ("Notifications", []),
                 "Settings",
@@ -90,7 +90,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             menu_url,
             self.admin,
             [
-                ("Workspace", ["New Workspace", "Sign Out"]),
+                ("Workspace", ["New Workspace", "Account", "Sign Out"]),
                 "Messages",
                 "Contacts",
                 "Flows",
@@ -776,7 +776,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.client.logout()
 
         response = self.client.get(reverse("orgs.check_login"))
-        self.assertLoginRedirect(response)
+        self.assertLoginRedirectLegacy(response)
 
         # try going to the org home page, no dice
         response = self.client.get(reverse("orgs.org_workspace"))

@@ -143,6 +143,11 @@ class ToastMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
 
+        # print("ToastMiddleware", request.headers)
+        # if not request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        # print(request.path, "skipping toast check")
+        # return response
+
         # only work on spa requests and exclude redirects
         if response.status_code == 200:
             storage = messages.get_messages(request)
@@ -152,6 +157,7 @@ class ToastMiddleware:
                     {"level": "error" if message.level == messages.ERROR else "info", "text": str(message.message)}
                 )
                 message.used = False
+                # print("Message", str(message.message))
 
             if toasts:
                 response["X-Temba-Toasts"] = json.dumps(toasts)

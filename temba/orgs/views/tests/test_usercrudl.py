@@ -420,12 +420,12 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # try submitting email addess that don't exist in the system
         response = self.client.post(forget_url, {"email": "foo@textit.com"})
-        self.assertLoginRedirect(response)
+        self.assertLoginRedirectLegacy(response)
         self.assertEqual(0, len(mail.outbox))  # no emails sent
 
         # try submitting email address that has been invited
         response = self.client.post(forget_url, {"email": "invited@textit.com"})
-        self.assertLoginRedirect(response)
+        self.assertLoginRedirectLegacy(response)
 
         # invitation email should have been resent
         self.assertEqual(1, len(mail.outbox))
@@ -434,7 +434,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # try submitting email address for existing user
         response = self.client.post(forget_url, {"email": "admin@textit.com"})
-        self.assertLoginRedirect(response)
+        self.assertLoginRedirectLegacy(response)
 
         # will have a recovery token
         token1 = RecoveryToken.objects.get(user=self.admin)
@@ -454,7 +454,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         token1.save(update_fields=("created_on",))
 
         response = self.client.post(forget_url, {"email": "admin@textit.com"})
-        self.assertLoginRedirect(response)
+        self.assertLoginRedirectLegacy(response)
 
         # will have a new recovery token and the previous one is deleted
         token2 = RecoveryToken.objects.get(user=self.admin)
@@ -522,7 +522,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertUpdateSubmit(
             recover_url, None, {"new_password": "Azerty123", "confirm_password": "Azerty123"}
         )
-        self.assertLoginRedirect(response)
+        self.assertLoginRedirectLegacy(response)
 
         response = self.client.get(response.url)
         self.assertContains(response, "Your password has been updated successfully.")

@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
+from django.urls import reverse
 from django_redis import get_redis_connection
 from PIL import Image, ImageDraw
 from smartmin.tests import SmartminTest
@@ -783,6 +784,9 @@ class TembaTest(SmartminTest):
 
     def set_contact_field(self, contact, key, value):
         update_field_locally(self.admin, contact, key, value)
+
+    def assertLoginRedirectLegacy(self, response, msg=None):
+        self.assertRedirect(response, reverse("orgs.login"), msg=msg)
 
     def assertToast(self, response, level, text):
         toasts = json.loads(response.get("X-Temba-Toasts", []))

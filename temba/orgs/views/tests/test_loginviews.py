@@ -63,7 +63,7 @@ class LoginViewsTest(TembaTest):
 
         # can't access two-factor verify page yet
         response = self.client.get(verify_url)
-        self.assertLoginRedirect(response)
+        self.assertLoginRedirectLegacy(response)
 
         # login via login page again
         response = self.client.post(
@@ -121,7 +121,7 @@ class LoginViewsTest(TembaTest):
         response = self.client.post(login_url, {"username": "admin@textit.com", "password": "pass123"})
 
         self.assertRedirect(response, failed_url)
-        self.assertRedirect(self.client.get(reverse("msgs.msg_inbox")), login_url)
+        self.assertLoginRedirect(self.client.get(reverse("msgs.msg_inbox")))
 
         # simulate failed logins timing out by making them older
         FailedLogin.objects.all().update(failed_on=timezone.now() - timedelta(minutes=3))
@@ -148,7 +148,7 @@ class LoginViewsTest(TembaTest):
         response = self.client.post(login_url, {"username": "admin@textit.com", "password": "pass123"})
 
         self.assertRedirect(response, failed_url)
-        self.assertRedirect(self.client.get(reverse("msgs.msg_inbox")), login_url)
+        self.assertLoginRedirect(self.client.get(reverse("msgs.msg_inbox")))
 
         # login correctly
         FailedLogin.objects.all().delete()
@@ -163,7 +163,7 @@ class LoginViewsTest(TembaTest):
         self.assertRedirect(response, failed_url)
         self.assertRedirect(self.client.get(verify_url), login_url)
         self.assertRedirect(self.client.get(backup_url), login_url)
-        self.assertRedirect(self.client.get(reverse("msgs.msg_inbox")), login_url)
+        self.assertLoginRedirect(self.client.get(reverse("msgs.msg_inbox")))
 
         # simulate failed logins timing out by making them older
         FailedLogin.objects.all().update(failed_on=timezone.now() - timedelta(minutes=3))
@@ -185,7 +185,7 @@ class LoginViewsTest(TembaTest):
 
         # try to access before logging in
         response = self.client.get(confirm_url)
-        self.assertLoginRedirect(response)
+        self.assertLoginRedirectLegacy(response)
 
         self.login(self.admin)
 
@@ -202,7 +202,7 @@ class LoginViewsTest(TembaTest):
         self.assertRedirect(response, failed_url)
 
         # and we are logged out
-        self.assertLoginRedirect(self.client.get(confirm_url))
+        self.assertLoginRedirectLegacy(self.client.get(confirm_url))
         self.assertLoginRedirect(self.client.get(reverse("msgs.msg_inbox")))
 
         FailedLogin.objects.all().delete()

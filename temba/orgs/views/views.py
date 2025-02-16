@@ -1784,9 +1784,10 @@ class OrgCRUDL(SmartCRUDL):
 
             if not org:
                 # TODO: we should take to a workspace create page if permitted by deployment
+                print("no org logging out..")
                 messages.info(request, _("No workspaces for this account, please contact your administrator."))
                 logout(request)
-                return HttpResponseRedirect(reverse("orgs.login"))
+                return HttpResponseRedirect(settings.LOGIN_URL)
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)

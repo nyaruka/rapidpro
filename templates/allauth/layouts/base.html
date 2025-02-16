@@ -14,7 +14,7 @@
     h1 {
       font-size: 1.5em;
       border-bottom: 1px solid #dee2e6;
-      padding-bottom: 0.25em;
+      padding-bottom: .75em;
       margin-bottom: 0.5em;
     }
 
@@ -94,8 +94,13 @@
 
     }
 
-    .errorlist {
+    section {
+      margin-bottom: 1.5em;
+      margin-top: 2em;
+    }
 
+    .errorlist {
+      margin-top: 1em;
       border: 1px solid var(--color-error);
       border-radius: var(--curvature);
       padding: 0.5em 0.5em;
@@ -121,18 +126,17 @@
   {% endif %}
 {% endblock extra-style %}
 {% block content-wrapper %}
+  {% if messages %}
+    <div class="mb-6">
+      <temba-alert>
+        {% for message in messages %}{{ message }}&nbsp;{% endfor %}
+      </temba-alert>
+    </div>
+  {% endif %}
   <div class="flex flex-row {% if not user.is_authenticated %}signin{% endif %}">
     {% if user.is_authenticated %}
       <div class="menu">
         {% block header %}
-          {% if messages %}
-            <div>
-              <strong>{% trans "Messages:" %}</strong>
-              <ul>
-                {% for message in messages %}<li>{{ message }}</li>{% endfor %}
-              </ul>
-            </div>
-          {% endif %}
           <div>
             <ul>
               {% url 'account_email' as email_url_ %}
