@@ -8,7 +8,6 @@ from pathlib import Path
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
-from django.urls import reverse
 from django_redis import get_redis_connection
 from PIL import Image, ImageDraw
 from smartmin.tests import SmartminTest
@@ -20,6 +19,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from temba.archives.models import Archive, jsonlgz_encode

@@ -1,6 +1,8 @@
-from allauth.account.forms import SignupForm, ChangePasswordForm
+from allauth.account.forms import ChangePasswordForm, SignupForm
+
 from django import forms
 from django.utils.translation import gettext_lazy as _
+
 from temba.orgs.models import Org
 from temba.users.models import User
 from temba.utils import analytics

@@ -1,5 +1,6 @@
 from allauth.mfa.adapter import get_adapter
 from allauth.mfa.models import Authenticator
+
 from django.core.management.base import BaseCommand
 
 from temba.users.models import User
