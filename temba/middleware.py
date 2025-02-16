@@ -152,7 +152,6 @@ class ToastMiddleware:
                     {"level": "error" if message.level == messages.ERROR else "info", "text": str(message.message)}
                 )
                 message.used = False
-                # print("Message", str(message.message))
 
             if toasts:
                 response["X-Temba-Toasts"] = json.dumps(toasts)

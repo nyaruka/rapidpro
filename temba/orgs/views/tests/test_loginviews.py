@@ -316,7 +316,8 @@ class LoginViewsTest(TembaTest):
         # but navigating to tokens page redirects to confirm auth
         response = self.client.get(tokens_url)
         self.assertEqual(302, response.status_code)
-        self.assertTrue(response.url.endswith("/users/confirm-access/?next=/user/two_factor_tokens/"))
+        print(response.url)
+        self.assertTrue(response.url.endswith("/legacy/confirm-access/?next=/user/two_factor_tokens/"))
 
         confirm_url = response.url
 
