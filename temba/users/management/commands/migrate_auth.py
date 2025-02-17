@@ -1,6 +1,6 @@
+from allauth.account.models import EmailAddress
 from allauth.mfa.adapter import get_adapter
 from allauth.mfa.models import Authenticator
-from allauth.account.models import EmailAddress
 
 from django.core.management.base import BaseCommand
 
@@ -20,7 +20,6 @@ class Command(BaseCommand):
                 continue
 
             backup_tokens.update(user.backup_tokens.filter(is_used=False).values_list("token", flat=True))
-            # tokens = [t.token for t in user.backup_tokens.filter(is_used=False)]
 
             totp_authenticator = Authenticator(
                 user_id=user.id,
