@@ -206,7 +206,8 @@ class LoginView(AuthLoginView):
         return form.cleaned_data.get("username")
 
 
-class LogoutView(View):
+# This will be removed once we have fully switched to allauth
+class LogoutView(View):  # pragma: needs cover
     """
     Logouts user on a POST and redirects to the login page.
     """
