@@ -206,7 +206,8 @@ class LoginView(AuthLoginView):
         return form.cleaned_data.get("username")
 
 
-class LogoutView(View):
+# This will be removed once we have fully switched to allauth
+class LogoutView(View):  # pragma: needs cover
     """
     Logouts user on a POST and redirects to the login page.
     """
@@ -759,7 +760,7 @@ class UserCRUDL(SmartCRUDL):
             obj = super().pre_save(obj)
 
             # keep our username and email in sync and record if email is changing
-            obj.username = obj.email
+            # obj.username = obj.email
 
             # get existing email address to know if it's changing
             obj._prev_email = User.objects.get(id=obj.id).email
@@ -1278,11 +1279,14 @@ class OrgCRUDL(SmartCRUDL):
                             *org_options,
                             self.create_divider(),
                             self.create_menu_item(
+                                menu_id="account", name=_("Account"), icon="account", href="/accounts/", posterize=True
+                            ),
+                            self.create_menu_item(
                                 menu_id="logout",
                                 name=_("Sign Out"),
                                 icon="logout",
+                                href="/accounts/logout/",
                                 posterize=True,
-                                href=reverse("orgs.logout"),
                             ),
                             self.create_space(),
                         ],
@@ -1783,7 +1787,7 @@ class OrgCRUDL(SmartCRUDL):
                 # TODO: we should take to a workspace create page if permitted by deployment
                 messages.info(request, _("No workspaces for this account, please contact your administrator."))
                 logout(request)
-                return HttpResponseRedirect(reverse("orgs.login"))
+                return HttpResponseRedirect(settings.LOGIN_URL)
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
