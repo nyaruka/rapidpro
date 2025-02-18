@@ -818,8 +818,6 @@ class ChannelEvent(TembaUUIDMixin, models.Model):
     STATUS_HANDLED = "H"
     STATUS_CHOICES = ((STATUS_PENDING, "Pending"), (STATUS_HANDLED, "Handled"))
 
-    uuid = models.UUIDField(unique=True, null=True)
-
     org = models.ForeignKey(Org, on_delete=models.PROTECT)
     channel = models.ForeignKey(Channel, on_delete=models.PROTECT)
     event_type = models.CharField(max_length=16, choices=TYPE_CHOICES)

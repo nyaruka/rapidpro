@@ -8,7 +8,8 @@ def backfill_current_session_uuid(apps, schema_editor):
     Contact = apps.get_model("contacts", "Contact")
     FlowSession = apps.get_model("flows", "FlowSession")
 
-    num_updated = 0
+    num_updated, num_session_set, num_flow_cleared = 0, 0, 0
+
     while True:
         batch_ids = list(
             Contact.objects.filter(current_session_uuid=None)
@@ -31,14 +32,16 @@ def backfill_current_session_uuid(apps, schema_editor):
 
         for contact_id, session_uuid in sessions_by_contact.items():
             Contact.objects.filter(id=contact_id).update(current_session_uuid=session_uuid)
+            num_session_set += 1
 
         for contact_id in batch_ids:
             if contact_id not in sessions_by_contact:
                 print(f" > contact #{contact_id} has flow set but no waiting session!")
                 Contact.objects.filter(id=contact_id).update(current_flow=None, modified_on=timezone.now())
+                num_flow_cleared += 1
 
         num_updated += len(batch_ids)
-        print(f"Updated {num_updated} contacts")
+        print(f"Updated {num_updated} contacts ({num_session_set} sessions set, {num_flow_cleared} flows cleared)")
 
 
 def apply_manual():  # pragma: no cover

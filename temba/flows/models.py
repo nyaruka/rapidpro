@@ -1023,7 +1023,7 @@ class FlowSession(models.Model):
 
     id = models.BigAutoField(primary_key=True)
     uuid = models.UUIDField(unique=True)
-    org = models.ForeignKey(Org, related_name="sessions", on_delete=models.PROTECT)
+    org = models.ForeignKey(Org, related_name="sessions", on_delete=models.PROTECT, null=True)
     contact = models.ForeignKey("contacts.Contact", on_delete=models.PROTECT, related_name="sessions")
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
     last_sprint_uuid = models.UUIDField(null=True)  # last sprint in this session

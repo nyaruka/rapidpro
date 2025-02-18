@@ -75,10 +75,10 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@nyaruka/flow-editor@1.37.2":
-  version "1.37.2"
-  resolved "https://registry.yarnpkg.com/@nyaruka/flow-editor/-/flow-editor-1.37.2.tgz#312d60713b4327a4904cb03a77856923bff6371e"
-  integrity sha512-BplfT4vye2fGP9ECKy70IlKVM/wlnQWS4J2Z6+1ZzJhrUFF6Be6AiBZcuvQGrl8Btsla1c9z+TZdFg3421HcUg==
+"@nyaruka/flow-editor@1.37.3":
+  version "1.37.3"
+  resolved "https://registry.yarnpkg.com/@nyaruka/flow-editor/-/flow-editor-1.37.3.tgz#418ae0693e2afe99d9a5aab5203a814883c6d524"
+  integrity sha512-kbuz4JDNR1nXR2oKYZgOxHdL0kjChSKYN3QeJGc4JtIVBMJp3vHdr736kVSFOUJBFuUS7KGp6arClMUgh6GSNA==
   dependencies:
     "@nyaruka/temba-components" "0.101.0"
     react "^16.8.6"

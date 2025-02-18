@@ -1,3 +1,23 @@
+v10.1.58 (2025-02-17)
+-------------------------
+ * Make FlowSession.org nullable
+
+v10.1.57 (2025-02-17)
+-------------------------
+ * More logging in data migration
+
+v10.1.56 (2025-02-17)
+-------------------------
+ * Make channel event uuid field not null
+ * Add post migrate signal to create system user
+ * Remove AnonymousUser
+
+v10.1.55 (2025-02-17)
+-------------------------
+ * Update to latest editor
+ * Remove no longer used lead and video models/crudls
+ * Remove smart model fields on SyncEvent
+
 v10.1.54 (2025-02-14)
 -------------------------
  * Data migration to backfill Contact.current_session_uuid
