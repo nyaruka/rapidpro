@@ -1051,12 +1051,6 @@ class FlowSession(models.Model):
         else:
             return self.output
 
-    def delete(self):
-        for run in self.runs.all():
-            run.delete()
-
-        super().delete()
-
     def __repr__(self):  # pragma: no cover
         return f"<FlowSession: id={self.id} contact={self.contact.id}>"
 
