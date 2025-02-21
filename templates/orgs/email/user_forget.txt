@@ -5,7 +5,7 @@
 
 {% trans "Someone has requested that the password for this email address be reset." %}
 
-{% blocktrans trimmed with email=user.username  %}
+{% blocktrans trimmed with email=user.email  %}
 Clicking on the following link will allow you to reset the password for the account {{ email }}:
 {% endblocktrans %}
 
