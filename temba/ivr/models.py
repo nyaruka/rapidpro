@@ -106,13 +106,6 @@ class Call(models.Model):
     def get_logs(self) -> list:
         return ChannelLog.get_by_uuid(self.channel, self.log_uuids or [])
 
-    def release(self):
-        session = self.get_session()
-        if session:
-            session.delete()
-
-        self.delete()
-
     class Meta:
         indexes = [
             # used to list calls in UI

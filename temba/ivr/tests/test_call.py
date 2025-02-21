@@ -1,12 +1,8 @@
 from datetime import datetime, timedelta, timezone as tzone
 from unittest.mock import patch
 
-from django.utils import timezone
-
-from temba.flows.models import FlowSession
 from temba.ivr.models import Call
 from temba.tests import TembaTest
-from temba.utils.uuid import uuid4
 
 
 class CallTest(TembaTest):
@@ -33,29 +29,3 @@ class CallTest(TembaTest):
 
         self.assertEqual(timedelta(seconds=15), call.get_duration())  # from duration field
         self.assertEqual("Errored (No Answer)", call.status_display)
-
-    def test_release(self):
-        contact = self.create_contact("Bob", phone="+123456789")
-
-        call = Call.objects.create(
-            org=self.org,
-            channel=self.channel,
-            direction=Call.DIRECTION_IN,
-            contact=contact,
-            contact_urn=contact.get_urn(),
-            status=Call.STATUS_IN_PROGRESS,
-            duration=15,
-        )
-        FlowSession.objects.create(
-            uuid=uuid4(),
-            contact=contact,
-            call=call,
-            status=FlowSession.STATUS_COMPLETED,
-            output={"status": "waiting"},
-            ended_on=timezone.now(),
-        )
-
-        call.release()
-
-        self.assertEqual(0, FlowSession.objects.count())
-        self.assertEqual(0, Call.objects.count())

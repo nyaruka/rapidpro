@@ -1,6 +1,6 @@
 from django.utils import timezone
 
-from temba.flows.models import Flow
+from temba.flows.models import Flow, FlowRun, FlowSession
 from temba.msgs.models import Msg, SystemLabel
 from temba.orgs.tasks import squash_item_counts
 from temba.schedules.models import Schedule
@@ -128,7 +128,9 @@ class SystemLabelTest(TembaTest):
         msg5.save(update_fields=("status",))
         msg6.status = "S"
         msg6.save(update_fields=("status",))
-        call1.release()
+        FlowRun.objects.all().delete()
+        FlowSession.objects.all().delete()
+        call1.delete()
 
         assert_counts(
             self.org,

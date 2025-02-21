@@ -1122,6 +1122,12 @@ class Contact(LegacyUUIDMixin, SmartModel):
                     break
                 Msg.bulk_delete(msg_batch)
 
+            for run in self.runs.all():
+                run.delete()
+
+            for session in self.sessions.all():
+                session.delete()
+
             # any urns currently owned by us
             for urn in self.urns.all():
                 # release any messages attached with each urn, these could include messages that began life
@@ -1131,22 +1137,14 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
                 # same thing goes for calls
                 for call in urn.calls.all():
-                    call.release()
+                    if call.session:
+                        call.session.delete()
+                    call.delete()
 
                 urn.release()
 
-            # release our channel events
             delete_in_batches(self.channel_events.all())
-
-            for run in self.runs.all():
-                run.delete()
-
-            for session in self.sessions.all():
-                session.delete()
-
-            for call in self.calls.all():  # pragma: needs cover
-                call.release()
-
+            delete_in_batches(self.calls.all())
             delete_in_batches(self.fires.all())
 
             # take us out of broadcast addressed contacts
