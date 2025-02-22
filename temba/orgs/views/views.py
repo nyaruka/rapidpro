@@ -151,7 +151,7 @@ class LoginView(AuthLoginView):
         if not username:
             return self.form_invalid(form)
 
-        user = User.objects.filter(username__iexact=username).first()
+        user = User.objects.filter(email__iexact=username).first()
         valid_password = False
 
         # this could be a valid login by a user
@@ -206,7 +206,8 @@ class LoginView(AuthLoginView):
         return form.cleaned_data.get("username")
 
 
-class LogoutView(View):
+# This will be removed once we have fully switched to allauth
+class LogoutView(View):  # pragma: needs cover
     """
     Logouts user on a POST and redirects to the login page.
     """
@@ -252,10 +253,10 @@ class BaseTwoFactorView(AuthLoginView):
         lockout_timeout = getattr(settings, "USER_LOCKOUT_TIMEOUT", 10)
         failed_login_limit = getattr(settings, "USER_FAILED_LOGIN_LIMIT", 5)
 
-        FailedLogin.objects.create(username=user.username)
+        FailedLogin.objects.create(username=user.email)
 
         bad_interval = timezone.now() - timedelta(minutes=lockout_timeout)
-        failures = FailedLogin.objects.filter(username__iexact=user.username)
+        failures = FailedLogin.objects.filter(username__iexact=user.email)
 
         # if the failures reset after a period of time, then limit our query to that interval
         if lockout_timeout > 0:
@@ -280,7 +281,7 @@ class BaseTwoFactorView(AuthLoginView):
         self.reset_user()
 
         # cleanup any failed logins
-        FailedLogin.objects.filter(username__iexact=user.username).delete()
+        FailedLogin.objects.filter(username__iexact=user.email).delete()
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -368,7 +369,7 @@ class ConfirmAccessView(LoginView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_username(self, form):
-        return self.request.user.username
+        return self.request.user.email
 
 
 class UserCRUDL(SmartCRUDL):
@@ -678,7 +679,7 @@ class UserCRUDL(SmartCRUDL):
             obj.recovery_tokens.all().delete()
 
             # delete any failed login records
-            FailedLogin.objects.filter(username__iexact=obj.username).delete()
+            FailedLogin.objects.filter(username__iexact=obj.email).delete()
 
             return obj
 
@@ -759,7 +760,7 @@ class UserCRUDL(SmartCRUDL):
             obj = super().pre_save(obj)
 
             # keep our username and email in sync and record if email is changing
-            obj.username = obj.email
+            # obj.username = obj.email
 
             # get existing email address to know if it's changing
             obj._prev_email = User.objects.get(id=obj.id).email
@@ -910,7 +911,7 @@ class UserCRUDL(SmartCRUDL):
 
             brand = self.request.branding["name"]
             user = self.request.user
-            secret_url = pyotp.TOTP(user.two_factor_secret).provisioning_uri(user.username, issuer_name=brand)
+            secret_url = pyotp.TOTP(user.two_factor_secret).provisioning_uri(user.email, issuer_name=brand)
 
             context["secret_url"] = secret_url
             return context
@@ -1278,11 +1279,14 @@ class OrgCRUDL(SmartCRUDL):
                             *org_options,
                             self.create_divider(),
                             self.create_menu_item(
+                                menu_id="account", name=_("Account"), icon="account", href="/accounts/", posterize=True
+                            ),
+                            self.create_menu_item(
                                 menu_id="logout",
                                 name=_("Sign Out"),
                                 icon="logout",
+                                href="/accounts/logout/",
                                 posterize=True,
-                                href=reverse("orgs.logout"),
                             ),
                             self.create_space(),
                         ],
@@ -1783,7 +1787,7 @@ class OrgCRUDL(SmartCRUDL):
                 # TODO: we should take to a workspace create page if permitted by deployment
                 messages.info(request, _("No workspaces for this account, please contact your administrator."))
                 logout(request)
-                return HttpResponseRedirect(reverse("orgs.login"))
+                return HttpResponseRedirect(settings.LOGIN_URL)
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
@@ -1820,7 +1824,7 @@ class OrgCRUDL(SmartCRUDL):
 
             # if user exists and is logged in then they just need to accept
             user = User.get_by_email(self.invitation.email)
-            if user and self.invitation.email.lower() == request.user.username.lower():
+            if user and self.invitation.email.lower() == request.user.email.lower():
                 return HttpResponseRedirect(reverse("orgs.org_join_accept", args=[secret]))
 
             logout(request)
@@ -1860,7 +1864,7 @@ class OrgCRUDL(SmartCRUDL):
             )
 
             # log the user in
-            user = authenticate(username=user.username, password=self.form.cleaned_data["password"])
+            user = authenticate(username=user.email, password=self.form.cleaned_data["password"])
             login(self.request, user)
 
             self.invitation.accept(user)
@@ -1890,7 +1894,7 @@ class OrgCRUDL(SmartCRUDL):
 
             # if user doesn't already exist or we're logged in as a different user, we shouldn't be here
             user = User.get_by_email(self.invitation.email)
-            if not user or self.invitation.email != request.user.username:
+            if not user or self.invitation.email != request.user.email:
                 return HttpResponseRedirect(reverse("orgs.org_join", args=[self.kwargs["secret"]]))
 
             return None

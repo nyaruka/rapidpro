@@ -19,4 +19,4 @@ def on_post_migrate(sender, **kwargs):
     try:
         User.get_system_user()
     except User.DoesNotExist:
-        User._create_system_user()
+        User.objects.create_system_user()

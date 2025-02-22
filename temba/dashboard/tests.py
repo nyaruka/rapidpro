@@ -23,7 +23,7 @@ class DashboardTest(TembaTest):
         response = self.client.get(dashboard_url, follow=True)
 
         # nope! cannot visit dashboard.
-        self.assertRedirects(response, "/users/login/?next=%s" % dashboard_url)
+        self.assertRedirects(response, "/accounts/login/?next=%s" % dashboard_url)
 
         self.login(self.admin)
         response = self.client.get(dashboard_url, follow=True)
@@ -38,7 +38,7 @@ class DashboardTest(TembaTest):
         response = self.client.get(url, follow=True)
 
         # nope!
-        self.assertRedirects(response, "/users/login/?next=%s" % url)
+        self.assertRedirects(response, "/accounts/login/?next=%s" % url)
 
         self.login(self.admin)
         self.create_activity()
@@ -81,7 +81,7 @@ class DashboardTest(TembaTest):
         response = self.client.get(url, follow=True)
 
         # nope!
-        self.assertRedirects(response, "/users/login/?next=%s" % url)
+        self.assertRedirects(response, "/accounts/login/?next=%s" % url)
 
         self.login(self.admin)
         self.create_activity()

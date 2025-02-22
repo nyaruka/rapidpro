@@ -6,8 +6,6 @@ from datetime import date, datetime, timedelta, timezone as tzone
 from unittest.mock import patch
 from urllib.parse import quote
 
-from smartmin.tests import SmartminTest
-
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core import mail
@@ -1113,7 +1111,7 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertNotIn(self.ex_channel, flow.channel_dependencies.all())
 
 
-class SyncEventTest(SmartminTest):
+class SyncEventTest(TembaTest):
     def setUp(self):
         self.user = self.create_user("tito")
         self.org = Org.objects.create(
