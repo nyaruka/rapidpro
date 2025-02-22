@@ -41,7 +41,7 @@ class RunsEndpointTest(APITest):
             .visit(blue_reply)
             .complete()
             .save()
-        ).session.runs.get()
+        )[0]
 
         frank_run1 = (
             MockSessionWriter(frank, flow1)
@@ -52,16 +52,12 @@ class RunsEndpointTest(APITest):
             .set_result("Color", "Indigo", "Other", "Indigo")
             .wait()
             .save()
-        ).session.runs.get()
+        )[0]
 
-        joe_run2 = (
-            MockSessionWriter(joe, flow1).visit(color_prompt).visit(color_split).wait().save()
-        ).session.runs.get()
-        frank_run2 = (
-            MockSessionWriter(frank, flow1).visit(color_prompt).visit(color_split).wait().save()
-        ).session.runs.get()
+        joe_run2 = (MockSessionWriter(joe, flow1).visit(color_prompt).visit(color_split).wait().save())[0]
+        frank_run2 = (MockSessionWriter(frank, flow1).visit(color_prompt).visit(color_split).wait().save())[0]
 
-        joe_run3 = MockSessionWriter(joe, flow2).wait().save().session.runs.get()
+        joe_run3 = MockSessionWriter(joe, flow2).wait().save()[0]
 
         # add a run for another org
         flow3 = self.create_flow("Test", org=self.org2)

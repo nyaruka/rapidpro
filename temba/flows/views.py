@@ -56,7 +56,14 @@ from temba.utils.fields import (
 from temba.utils.text import slugify_with
 from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, SpaMixin, StaffOnlyMixin
 
-from .models import FlowLabel, FlowStartCount, FlowUserConflictException, FlowVersionConflictException, ResultsExport
+from .models import (
+    FlowLabel,
+    FlowRun,
+    FlowStartCount,
+    FlowUserConflictException,
+    FlowVersionConflictException,
+    ResultsExport,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -142,9 +149,9 @@ class FlowSessionCRUDL(SmartCRUDL):
             output = session.output_json
             output["_metadata"] = dict(
                 session_id=session.id,
-                org=session.org.name,
-                org_id=session.org_id,
-                site=f"https://{session.org.get_brand_domain()}",
+                org=session.contact.org.name,
+                org_id=session.contact.org_id,
+                site=f"https://{session.contact.org.get_brand_domain()}",
             )
             return JsonResponse(output, json_dumps_params=dict(indent=2))
 
@@ -621,11 +628,15 @@ class FlowCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
 
-            Flow.prefetch_run_stats(context["object_list"])
+            Flow.prefetch_run_counts(context["object_list"])
 
             # decorate flow objects with their run activity stats
             for flow in context["object_list"]:
-                flow.run_stats = flow.get_run_stats()
+                counts = flow.get_run_counts()
+                total = sum(counts.values())
+                flow.num_runs_ongoing = counts[FlowRun.STATUS_ACTIVE] + counts[FlowRun.STATUS_WAITING]
+                flow.num_runs_total = total
+                flow.completion_pct = 100 * counts[FlowRun.STATUS_COMPLETED] // total if total else 0
 
             return context
 
@@ -1142,7 +1153,7 @@ class FlowCRUDL(SmartCRUDL):
                 truncate = "day"
 
             timeline_data = self.object.get_engagement_by_date(truncate)
-            run_status = self.object.get_run_stats()["status"]
+            runs = self.object.get_run_counts()
 
             return JsonResponse(
                 {
@@ -1162,19 +1173,21 @@ class FlowCRUDL(SmartCRUDL):
                         "summary": [
                             {
                                 "name": _("Active"),
-                                "y": run_status["active"] + run_status["waiting"],
+                                "y": runs[FlowRun.STATUS_ACTIVE] + runs[FlowRun.STATUS_WAITING],
                                 "drilldown": None,
                                 "color": "#2387CA",
                             },
                             {
                                 "name": _("Completed"),
-                                "y": run_status["completed"],
+                                "y": runs[FlowRun.STATUS_COMPLETED],
                                 "drilldown": None,
                                 "color": "#8FC93A",
                             },
                             {
                                 "name": _("Interrupted, Expired and Failed"),
-                                "y": run_status["interrupted"] + run_status["expired"] + run_status["failed"],
+                                "y": runs[FlowRun.STATUS_EXPIRED]
+                                + runs[FlowRun.STATUS_INTERRUPTED]
+                                + runs[FlowRun.STATUS_FAILED],
                                 "drilldown": "incomplete",
                                 "color": "#CCC",
                             },
@@ -1185,9 +1198,9 @@ class FlowCRUDL(SmartCRUDL):
                                 "id": "incomplete",
                                 "innerSize": "50%",
                                 "data": [
-                                    {"name": _("Expired"), "y": run_status["expired"], "color": "#CCC"},
-                                    {"name": _("Interrupted"), "y": run_status["interrupted"], "color": "#EEE"},
-                                    {"name": _("Failed"), "y": run_status["failed"], "color": "#FEE"},
+                                    {"name": _("Expired"), "y": runs[FlowRun.STATUS_EXPIRED], "color": "#CCC"},
+                                    {"name": _("Interrupted"), "y": runs[FlowRun.STATUS_INTERRUPTED], "color": "#EEE"},
+                                    {"name": _("Failed"), "y": runs[FlowRun.STATUS_FAILED], "color": "#FEE"},
                                 ],
                             }
                         ],

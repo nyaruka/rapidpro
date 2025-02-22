@@ -520,7 +520,6 @@ class OrgDeleteTest(TembaTest):
         session1 = add(
             FlowSession.objects.create(
                 uuid=uuid4(),
-                org=org,
                 contact=contacts[0],
                 current_flow=flow1,
                 status=FlowSession.STATUS_WAITING,

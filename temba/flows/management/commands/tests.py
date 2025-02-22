@@ -107,7 +107,7 @@ class UndoFootgunTest(TembaTest):
 
         # and another which adds contact 3 to group 3
         start2 = FlowStart.create(flow, self.admin, contacts=[contact3])
-        (MockSessionWriter(contact3, flow, start=start2).visit(nodes[0]).add_contact_groups([group3]).complete().save())
+        MockSessionWriter(contact3, flow, start=start2).visit(nodes[0]).add_contact_groups([group3]).complete().save()
 
         t0 = timezone.now()
 

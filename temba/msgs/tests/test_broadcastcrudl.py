@@ -577,7 +577,7 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
             .visit(color_split)
             .wait()
             .save()
-        ).session.runs.get()
+        )[0]
 
         self.assertRequestDisallowed(to_node_url, [None, self.agent])
 

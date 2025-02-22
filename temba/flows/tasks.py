@@ -57,12 +57,12 @@ def interrupt_flow_sessions():
     by_org = defaultdict(list)
     sessions = (
         FlowSession.objects.filter(created_on__lte=before, status=FlowSession.STATUS_WAITING)
-        .only("id", "org")
-        .select_related("org")
+        .only("id", "contact")
+        .select_related("contact__org")
         .order_by("id")
     )
     for session in sessions:
-        by_org[session.org].append(session)
+        by_org[session.contact.org].append(session)
 
     for org, sessions in by_org.items():
         for batch in itertools.batched(sessions, 100):

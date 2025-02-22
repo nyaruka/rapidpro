@@ -10,7 +10,7 @@ from temba.utils import countries
 
 from ...android.claim import claim_channel
 from ...models import Channel
-from ...views import ClaimViewMixin, UpdateTelChannelForm
+from ...views import ClaimViewMixin
 
 
 class ClaimView(ClaimViewMixin, SmartFormView):
@@ -102,9 +102,3 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         self.object.trigger_sync()
 
         return super().form_valid(form)
-
-
-class UpdateForm(UpdateTelChannelForm):
-    class Meta(UpdateTelChannelForm.Meta):
-        readonly = []
-        helps = {"address": _("Phone number of this device")}

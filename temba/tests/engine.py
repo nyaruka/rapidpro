@@ -282,7 +282,6 @@ class MockSessionWriter:
         else:
             self.session = FlowSession.objects.create(
                 uuid=self.output["uuid"],
-                org=self.org,
                 contact=self.contact,
                 session_type=db_flow_types[self.output["type"]],
                 output=self.output,
@@ -291,6 +290,7 @@ class MockSessionWriter:
             )
 
         current_flow = None
+        runs = []
 
         for i, run in enumerate(self.output["runs"]):
             if run["status"] == "waiting":
@@ -308,7 +308,7 @@ class MockSessionWriter:
 
             run_obj = FlowRun.objects.filter(uuid=run["uuid"]).first()
             if not run_obj:
-                FlowRun.objects.create(
+                run_obj = FlowRun.objects.create(
                     uuid=run["uuid"],
                     org=self.org,
                     start=self.start if i == 0 else None,
@@ -321,12 +321,14 @@ class MockSessionWriter:
             else:
                 FlowRun.objects.filter(id=run_obj.id).update(**db_state)
 
+            runs.append(FlowRun.objects.get(uuid=run["uuid"]))
+
         self.contact.current_flow = current_flow
         self.contact.modified_on = timezone.now()
         self.contact.save(update_fields=("current_flow", "modified_on"))
 
         self._handle_events()
-        return self
+        return runs
 
     def _handle_events(self):
         for event in self.events:

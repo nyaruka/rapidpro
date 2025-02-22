@@ -145,7 +145,7 @@ class TembaTest(SmartminTest):
     def login(self, user, *, update_last_auth_on: bool = True, choose_org=None):
         self.assertTrue(
             self.client.login(username=user.email, password=self.default_password),
-            f"couldn't login as {user.username}:{self.default_password}",
+            f"couldn't login as {user.email}:{self.default_password}",
         )
 
         # infer our org if we weren't handed one
@@ -195,8 +195,7 @@ class TembaTest(SmartminTest):
         return flow
 
     def create_user(self, email, group_names=(), **kwargs):
-        user = User.objects.create_user(username=email, email=email, **kwargs)
-        user.set_password(self.default_password)
+        user = User.objects.create_user(email=email, password=self.default_password, **kwargs)
         user.save()
 
         for group in group_names:
@@ -574,7 +573,6 @@ class TembaTest(SmartminTest):
         )
         session = FlowSession.objects.create(
             uuid=uuid4(),
-            org=contact.org,
             contact=contact,
             status=FlowSession.STATUS_COMPLETED,
             output_url="http://sessions.com/123.json",

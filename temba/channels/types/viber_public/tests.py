@@ -79,11 +79,15 @@ class ViberPublicTypeTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
         self.assertUpdateFetch(
-            update_url, [self.editor, self.admin], form_fields={"name": "Viber", "welcome_message": ""}
+            update_url,
+            [self.editor, self.admin],
+            form_fields={"name": "Viber", "is_enabled": True, "welcome_message": ""},
         )
 
         self.assertUpdateSubmit(
-            update_url, self.admin, {"name": "Updated", "welcome_message": "Welcome, please subscribe for more"}
+            update_url,
+            self.admin,
+            {"name": "Updated", "is_enabled": True, "welcome_message": "Welcome, please subscribe for more"},
         )
 
         self.channel.refresh_from_db()
@@ -93,7 +97,11 @@ class ViberPublicTypeTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateFetch(
             update_url,
             [self.editor, self.admin],
-            form_fields={"name": "Updated", "welcome_message": "Welcome, please subscribe for more"},
+            form_fields={
+                "name": "Updated",
+                "is_enabled": True,
+                "welcome_message": "Welcome, please subscribe for more",
+            },
         )
 
         # read page has link to update page
@@ -103,7 +111,7 @@ class ViberPublicTypeTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateFetch(
             update_url,
             [self.customer_support],
-            form_fields=["name", "log_policy", "welcome_message"],
+            form_fields=["name", "is_enabled", "log_policy", "welcome_message"],
             choose_org=self.org,
         )
 

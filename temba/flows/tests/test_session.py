@@ -11,22 +11,22 @@ from temba.utils.uuid import uuid4
 class FlowSessionTest(TembaTest):
     @mock_mailroom
     def test_interrupt(self, mr_mocks):
-        contact = self.create_contact("Ben Haggerty", phone="+250788123123")
+        org1_contact = self.create_contact("Ben", phone="+250788123123")
+        org2_contact = self.create_contact("Ben", phone="+250788123123", org=self.org2)
 
-        def create_session(org, created_on: datetime):
+        def create_session(contact, created_on: datetime):
             return FlowSession.objects.create(
                 uuid=uuid4(),
-                org=org,
                 contact=contact,
                 created_on=created_on,
                 output_url="http://sessions.com/123.json",
                 status=FlowSession.STATUS_WAITING,
             )
 
-        create_session(self.org, timezone.now() - timedelta(days=88))
-        session2 = create_session(self.org, timezone.now() - timedelta(days=90))
-        session3 = create_session(self.org, timezone.now() - timedelta(days=91))
-        session4 = create_session(self.org2, timezone.now() - timedelta(days=92))
+        create_session(org1_contact, timezone.now() - timedelta(days=88))
+        session2 = create_session(org1_contact, timezone.now() - timedelta(days=90))
+        session3 = create_session(org1_contact, timezone.now() - timedelta(days=91))
+        session4 = create_session(org2_contact, timezone.now() - timedelta(days=92))
 
         interrupt_flow_sessions()
 
@@ -55,21 +55,18 @@ class FlowSessionTest(TembaTest):
         # create some runs that have sessions
         session1 = FlowSession.objects.create(
             uuid=uuid4(),
-            org=self.org,
             contact=contact,
             output_url="http://sessions.com/123.json",
             status=FlowSession.STATUS_WAITING,
         )
         session2 = FlowSession.objects.create(
             uuid=uuid4(),
-            org=self.org,
             contact=contact,
             output_url="http://sessions.com/234.json",
             status=FlowSession.STATUS_WAITING,
         )
         session3 = FlowSession.objects.create(
             uuid=uuid4(),
-            org=self.org,
             contact=contact,
             output_url="http://sessions.com/345.json",
             status=FlowSession.STATUS_WAITING,

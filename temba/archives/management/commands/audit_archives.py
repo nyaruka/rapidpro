@@ -73,7 +73,7 @@ class Command(BaseCommand):  # pragma: no cover
             db_counts = {f["flow_id"]: f["count"] for f in db_counts}
 
             for flow in flows.order_by("-created_on"):
-                squashed_count = flow.get_run_stats()["total"]
+                squashed_count = sum(flow.get_run_counts().values())
                 db_count = db_counts.get(flow.id, 0)
                 archive_count = flow_run_counts[str(flow.uuid)]
 

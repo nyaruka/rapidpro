@@ -13,7 +13,7 @@ from temba.utils.fields import InputWidget, SelectWidget
 from temba.utils.models import generate_uuid
 
 from ...models import Channel
-from ...views import BaseClaimNumberMixin, ChannelTypeMixin, ClaimViewMixin, UpdateTelChannelForm
+from ...views import BaseClaimNumberMixin, ChannelTypeMixin, ClaimViewMixin
 from .client import VonageClient
 
 SUPPORTED_COUNTRIES = {
@@ -455,11 +455,6 @@ class SearchView(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
             )
 
         return JsonResponse(numbers, safe=False)
-
-
-class UpdateForm(UpdateTelChannelForm):
-    class Meta(UpdateTelChannelForm.Meta):
-        readonly = ()
 
 
 class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):

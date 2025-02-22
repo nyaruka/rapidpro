@@ -228,7 +228,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(f"/flow/editor/{flow1.uuid}/", response.url)
         self.assertEqual(1, flow1.revisions.all().count())
         self.assertEqual(Flow.TYPE_MESSAGE, flow1.flow_type)
-        self.assertEqual(10080, flow1.expires_after_minutes)
+        self.assertEqual(4320, flow1.expires_after_minutes)
 
         # add a trigger on this flow
         trigger = Trigger.create(
@@ -383,7 +383,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             form_fields={
                 "name": "Test",
                 "keyword_triggers": [],
-                "expires_after_minutes": 10080,
+                "expires_after_minutes": 4320,
                 "ignore_triggers": False,
             },
         )

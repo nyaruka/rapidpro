@@ -72,5 +72,5 @@ class UpdateForm(UpdateChannelForm):
         )
 
     class Meta(UpdateChannelForm.Meta):
-        fields = ("name", "address", "log_policy")
+        fields = ("name", "address", "is_enabled", "log_policy")
         readonly = ("address",)

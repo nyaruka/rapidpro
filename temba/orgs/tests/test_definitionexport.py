@@ -464,7 +464,7 @@ class DefinitionExportTest(TembaTest):
         self.import_file("test_flows/the_clinic.json")
 
         confirm_appointment = Flow.objects.get(name="Confirm Appointment")
-        self.assertEqual(10080, confirm_appointment.expires_after_minutes)
+        self.assertEqual(4320, confirm_appointment.expires_after_minutes)
 
         # check that the right number of objects successfully imported for our app
         assert_object_counts()
@@ -487,7 +487,7 @@ class DefinitionExportTest(TembaTest):
 
         # our flow should get reset from the import
         confirm_appointment.refresh_from_db()
-        self.assertEqual(10080, confirm_appointment.expires_after_minutes)
+        self.assertEqual(4320, confirm_appointment.expires_after_minutes)
 
         # same with our trigger
         trigger = Trigger.objects.filter(keywords=["patient"]).order_by("-created_on").first()

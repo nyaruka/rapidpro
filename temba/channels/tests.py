@@ -6,8 +6,6 @@ from datetime import date, datetime, timedelta, timezone as tzone
 from unittest.mock import patch
 from urllib.parse import quote
 
-from smartmin.tests import SmartminTest
-
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core import mail
@@ -1011,14 +1009,27 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # fields shown depend on scheme and role
         self.assertUpdateFetch(
-            android_url, [self.editor, self.admin], form_fields={"name": "My Android", "allow_international": False}
+            android_url,
+            [self.editor, self.admin],
+            form_fields={
+                "name": "My Android",
+                "is_enabled": True,
+                "allow_international": False,
+            },
         )
         self.assertUpdateFetch(
             vonage_url,
             [self.editor, self.admin],
-            form_fields={"name": "My Vonage", "allow_international": False, "machine_detection": False},
+            form_fields={
+                "name": "My Vonage",
+                "is_enabled": True,
+                "allow_international": False,
+                "machine_detection": False,
+            },
         )
-        self.assertUpdateFetch(telegram_url, [self.editor, self.admin], form_fields={"name": "My Telegram"})
+        self.assertUpdateFetch(
+            telegram_url, [self.editor, self.admin], form_fields={"name": "My Telegram", "is_enabled": True}
+        )
 
         # name can't be empty
         self.assertUpdateSubmit(
@@ -1033,7 +1044,12 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateSubmit(
             vonage_url,
             self.admin,
-            {"name": "Updated Name", "allow_international": True, "machine_detection": True},
+            {
+                "name": "Updated Name",
+                "is_enabled": True,
+                "allow_international": True,
+                "machine_detection": True,
+            },
         )
 
         vonage_channel.refresh_from_db()
@@ -1045,14 +1061,19 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateFetch(
             vonage_url,
             [self.editor, self.admin],
-            form_fields={"name": "Updated Name", "allow_international": True, "machine_detection": True},
+            form_fields={
+                "name": "Updated Name",
+                "is_enabled": True,
+                "allow_international": True,
+                "machine_detection": True,
+            },
         )
 
         # staff users see extra log policy field
         self.assertUpdateFetch(
             vonage_url,
             [self.customer_support],
-            form_fields=["name", "log_policy", "allow_international", "machine_detection"],
+            form_fields=["name", "is_enabled", "log_policy", "allow_international", "machine_detection"],
             choose_org=self.org,
         )
 
@@ -1090,7 +1111,7 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertNotIn(self.ex_channel, flow.channel_dependencies.all())
 
 
-class SyncEventTest(SmartminTest):
+class SyncEventTest(TembaTest):
     def setUp(self):
         self.user = self.create_user("tito")
         self.org = Org.objects.create(

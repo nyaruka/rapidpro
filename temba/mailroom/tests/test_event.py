@@ -293,14 +293,13 @@ class EventTest(TembaTest):
         contact = self.create_contact("Jim", phone="0979111111")
         flow = self.get_flow("color_v13")
         nodes = flow.get_definition()["nodes"]
-        (
+        run = (
             MockSessionWriter(contact, flow)
             .visit(nodes[0])
             .send_msg("What is your favorite color?", self.channel)
             .wait()
             .save()
-        )
-        run = contact.runs.get()
+        )[0]
 
         self.assertEqual(
             {

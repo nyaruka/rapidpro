@@ -18,7 +18,11 @@
         <tr>
           {% if org_perms.flows.flow_update %}<th></th>{% endif %}
           <th></th>
-          <th style="text-align:right" class="whitespace-nowrap">Runs / Completion</th>
+          <th style="text-align: right" class="whitespace-nowrap">{% trans "Runs" %}</th>
+          {% if not object.is_archived %}
+            <th style="text-align: right" class="whitespace-nowrap">{% trans "Ongoing" %}</th>
+          {% endif %}
+          <th style="text-align: right" class="whitespace-nowrap">{% trans "Completion" %}</th>
         </tr>
       </thead>
     {% endif %}
@@ -51,7 +55,17 @@
                       </temba-icon>
                     {% endif %}
                   </div>
-                  <div class="name truncate flex-grow">{{ object.name }}</div>
+                  <div class="flex-grow">
+                    {{ object.name }}
+                    {% if object.has_issues %}
+                      <div class="inline-block mr-2">
+                        <temba-tip position="top" text="{{ _("Has issues") |escapejs }}" slot="toggle">
+                          <temba-icon name="issue">
+                          </temba-icon>
+                        </temba-tip>
+                      </div>
+                    {% endif %}
+                  </div>
                 </div>
               </div>
               <div class="whitespace-no-break flex items-center ml-2 justify-end flex-wrap">
@@ -65,27 +79,27 @@
               </div>
             </div>
           </td>
-          <td>
-            {% if not object.is_archived %}
-              <div class="whitespace-no-break flex items-center justify-end">
-                {% if object.has_issues %}
-                  <div>
-                    <temba-tip position="top" text="{{ _("Has issues") |escapejs }}" slot="toggle">
-                      <temba-icon name="issue" class="mr-2" clickable="true">
-                      </temba-icon>
-                    </temba-tip>
-                  </div>
-                {% endif %}
-                {% if object.run_stats.total %}
-                  <div onclick="goto(event)"
-                       href="{% url "flows.flow_results" object.id %}"
-                       class="linked mr-2 whitespace-nowrap">{{ object.run_stats.total|intcomma }}</div>
-                  /
-                  <div onclick="goto(event)"
-                       href="{% url "flows.flow_results" object.id %}"
-                       class="text-center linked mx-2 whitespace-nowrap">{{ object.run_stats.completion }}%</div>
-                {% endif %}
-              </div>
+          <td class="whitespace-nowrap text-right">
+            {% if object.num_runs_total %}
+              {{ object.num_runs_total|intcomma }}
+            {% else %}
+              --
+            {% endif %}
+          </td>
+          {% if not object.is_archived %}
+            <td class="whitespace-nowrap text-right">
+              {% if object.num_runs_total %}
+                {{ object.num_runs_ongoing|intcomma }}
+              {% else %}
+                --
+              {% endif %}
+            </td>
+          {% endif %}
+          <td class="whitespace-nowrap text-right">
+            {% if object.num_runs_total %}
+              <a href="{% url "flows.flow_results" object.id %}">{{ object.completion_pct }}%</a>
+            {% else %}
+              --
             {% endif %}
           </td>
         </tr>

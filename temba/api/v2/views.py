@@ -1715,7 +1715,7 @@ class FlowsEndpoint(ListAPIMixin, BaseEndpoint):
         return self.filter_before_after(queryset, "modified_on")
 
     def prepare_for_serialization(self, object_list, using: str):
-        Flow.prefetch_run_stats(object_list, using=using)
+        Flow.prefetch_run_counts(object_list, using=using)
 
     @classmethod
     def get_read_explorer(cls):

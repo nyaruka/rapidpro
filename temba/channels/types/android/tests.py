@@ -305,4 +305,6 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
         response = self.client.get(update_url)
-        self.assertEqual(["name", "allow_international", "loc"], list(response.context["form"].fields.keys()))
+        self.assertEqual(
+            ["name", "is_enabled", "allow_international", "loc"], list(response.context["form"].fields.keys())
+        )

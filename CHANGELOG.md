@@ -1,3 +1,38 @@
+v10.1.67 (2025-02-21)
+-------------------------
+ * Tweak display of flow stats
+
+v10.1.64 (2025-02-20)
+-------------------------
+ * Add index to flow runs to support interrupting by session
+ * Drop ContactFire.extra
+ * Add number of ongoing runs to the flow list view
+
+v10.1.63 (2025-02-20)
+-------------------------
+ * Add apply_manual hook to migration
+ * Update is_enabled help text
+
+v10.1.62 (2025-02-20)
+-------------------------
+ * Use default of 3 days for flow expiry
+ * Data migration to backfill FlowRun.session_uuid
+ * Add is_enabled field to the update form
+
+v10.1.61 (2025-02-19)
+-------------------------
+ * Add data migration to reduce expires_after to 2 weeks on all flows
+ * Remove 30 days as option for flow expiry
+
+v10.1.60 (2025-02-19)
+-------------------------
+ * Add channel is_enabled field
+
+v10.1.59 (2025-02-18)
+-------------------------
+ * Update org deletion to delete sessions via contacts
+ * Drop FlowSession.org
+
 v10.1.58 (2025-02-17)
 -------------------------
  * Make FlowSession.org nullable

@@ -449,15 +449,9 @@ class UpdateChannelForm(forms.ModelForm):
 
     class Meta:
         model = Channel
-        fields = ("name", "log_policy")
+        fields = ("name", "is_enabled", "log_policy")
         readonly = ()
-        labels = {}
-        helps = {}
-
-
-class UpdateTelChannelForm(UpdateChannelForm):
-    class Meta(UpdateChannelForm.Meta):
-        helps = {"address": _("Phone number of this channel")}
+        labels = {"is_enabled": _("Enabled")}
 
 
 class ChannelCRUDL(SmartCRUDL):
@@ -728,6 +722,12 @@ class ChannelCRUDL(SmartCRUDL):
             return response
 
     class Update(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
+        field_config = {
+            "is_enabled": {
+                "help": _("Makes channel available for sending. Incoming messages will be archived if not enabled.")
+            }
+        }
+
         def derive_title(self):
             return _("%s Channel") % self.object.type.name
 

@@ -151,7 +151,7 @@ class LoginView(AuthLoginView):
         if not username:
             return self.form_invalid(form)
 
-        user = User.objects.filter(username__iexact=username).first()
+        user = User.objects.filter(email__iexact=username).first()
         valid_password = False
 
         # this could be a valid login by a user
@@ -253,10 +253,10 @@ class BaseTwoFactorView(AuthLoginView):
         lockout_timeout = getattr(settings, "USER_LOCKOUT_TIMEOUT", 10)
         failed_login_limit = getattr(settings, "USER_FAILED_LOGIN_LIMIT", 5)
 
-        FailedLogin.objects.create(username=user.username)
+        FailedLogin.objects.create(username=user.email)
 
         bad_interval = timezone.now() - timedelta(minutes=lockout_timeout)
-        failures = FailedLogin.objects.filter(username__iexact=user.username)
+        failures = FailedLogin.objects.filter(username__iexact=user.email)
 
         # if the failures reset after a period of time, then limit our query to that interval
         if lockout_timeout > 0:
@@ -281,7 +281,7 @@ class BaseTwoFactorView(AuthLoginView):
         self.reset_user()
 
         # cleanup any failed logins
-        FailedLogin.objects.filter(username__iexact=user.username).delete()
+        FailedLogin.objects.filter(username__iexact=user.email).delete()
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -369,7 +369,7 @@ class ConfirmAccessView(LoginView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_username(self, form):
-        return self.request.user.username
+        return self.request.user.email
 
 
 class UserCRUDL(SmartCRUDL):
@@ -679,7 +679,7 @@ class UserCRUDL(SmartCRUDL):
             obj.recovery_tokens.all().delete()
 
             # delete any failed login records
-            FailedLogin.objects.filter(username__iexact=obj.username).delete()
+            FailedLogin.objects.filter(username__iexact=obj.email).delete()
 
             return obj
 
@@ -911,7 +911,7 @@ class UserCRUDL(SmartCRUDL):
 
             brand = self.request.branding["name"]
             user = self.request.user
-            secret_url = pyotp.TOTP(user.two_factor_secret).provisioning_uri(user.username, issuer_name=brand)
+            secret_url = pyotp.TOTP(user.two_factor_secret).provisioning_uri(user.email, issuer_name=brand)
 
             context["secret_url"] = secret_url
             return context
@@ -1166,14 +1166,14 @@ class OrgCRUDL(SmartCRUDL):
                             self.create_menu_item(name=_("New Channel"), href="channels.channel_claim", icon="add")
                         )
 
-                    channels = org.channels.filter(is_active=True).order_by(Lower("name"))
+                    channels = org.channels.filter(is_active=True).order_by("-is_enabled", Lower("name"))
                     for channel in channels:
                         items.append(
                             self.create_menu_item(
                                 menu_id=str(channel.uuid),
                                 name=channel.name,
                                 href=get_channel_read_url(channel),
-                                icon=channel.type.icon,
+                                icon=channel.type.icon if channel.is_enabled else "slash-circle-01",
                             )
                         )
 
@@ -1824,7 +1824,7 @@ class OrgCRUDL(SmartCRUDL):
 
             # if user exists and is logged in then they just need to accept
             user = User.get_by_email(self.invitation.email)
-            if user and self.invitation.email.lower() == request.user.username.lower():
+            if user and self.invitation.email.lower() == request.user.email.lower():
                 return HttpResponseRedirect(reverse("orgs.org_join_accept", args=[secret]))
 
             logout(request)
@@ -1864,7 +1864,7 @@ class OrgCRUDL(SmartCRUDL):
             )
 
             # log the user in
-            user = authenticate(username=user.username, password=self.form.cleaned_data["password"])
+            user = authenticate(username=user.email, password=self.form.cleaned_data["password"])
             login(self.request, user)
 
             self.invitation.accept(user)
@@ -1894,7 +1894,7 @@ class OrgCRUDL(SmartCRUDL):
 
             # if user doesn't already exist or we're logged in as a different user, we shouldn't be here
             user = User.get_by_email(self.invitation.email)
-            if not user or self.invitation.email != request.user.username:
+            if not user or self.invitation.email != request.user.email:
                 return HttpResponseRedirect(reverse("orgs.org_join", args=[self.kwargs["secret"]]))
 
             return None

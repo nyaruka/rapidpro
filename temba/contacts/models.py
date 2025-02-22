@@ -1748,9 +1748,6 @@ class ContactFire(models.Model):
     session_uuid = models.UUIDField(null=True)
     sprint_uuid = models.UUIDField(null=True)
 
-    # TODO remove
-    extra = models.JSONField(null=True)
-
     def __repr__(self):  # pragma: no cover
         return f'<ContactFire: id={self.id} type="{self.fire_type}" fire_on="{self.fire_on.isoformat()}">'
 

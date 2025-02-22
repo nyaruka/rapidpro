@@ -882,7 +882,7 @@ class FlowMigrationTest(TembaTest):
         flow_json = migrate_to_version_9(flow_json, start_flow)
         self.assertEqual(1, flow_json["metadata"]["revision"])
         self.assertEqual("Flow 2", flow_json["metadata"]["name"])
-        self.assertEqual(10080, flow_json["metadata"]["expires"])
+        self.assertEqual(4320, flow_json["metadata"]["expires"])
         self.assertIn("uuid", flow_json["metadata"])
 
         # check that our replacements work

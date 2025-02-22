@@ -50,12 +50,30 @@ class UserManager(AuthUserManager):
     Overrides the default user manager to make username lookups case insensitive
     """
 
-    def get_by_natural_key(self, username):
-        return self.get(**{f"{self.model.USERNAME_FIELD}__iexact": username})
+    def get_by_natural_key(self, email):
+        return self.get(**{f"{self.model.USERNAME_FIELD}__iexact": email})
+
+    def create_user(self, email, password, **extra_fields):
+        """
+        Create and save a user with the given email and password.
+        """
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save()
+        return user
+
+    def create_system_user(self):
+        """
+        Creates the system user
+        """
+        user = self.model(email=User.SYSTEM["email"], first_name=User.SYSTEM["first_name"], is_system=True)
+        user.save()
+        return user
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    SYSTEM = {"username": "system", "first_name": "System"}
+    SYSTEM = {"email": "system", "first_name": "System"}
 
     STATUS_UNVERIFIED = "U"
     STATUS_VERIFIED = "V"
@@ -137,7 +155,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @classmethod
     def get_by_email(cls, email: str):
-        return cls.objects.filter(username__iexact=email).first()
+        return cls.objects.filter(email__iexact=email).first()
 
     @classmethod
     def get_orgs_for_request(cls, request):
@@ -152,14 +170,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         """
         Gets the system user
         """
-        return cls.objects.get(username=cls.SYSTEM["username"])
-
-    @classmethod
-    def _create_system_user(cls):
-        """
-        Creates the system user
-        """
-        cls.objects.create_user(cls.SYSTEM["username"], first_name=cls.SYSTEM["first_name"], is_system=True)
+        return cls.objects.get(email=cls.SYSTEM["email"])
 
     @property
     def name(self) -> str:
@@ -283,7 +294,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             org.remove_user(self)
 
     def __str__(self):
-        return self.name or self.username
+        return self.name or self.email
 
     class Meta:
         verbose_name = _("user")

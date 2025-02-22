@@ -132,7 +132,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         # check we migrate to current spec version
         self.assertEqual("13.6.1", flow.version_number)
         self.assertEqual(2, flow.revisions.count())
-        self.assertEqual("system", flow.revisions.order_by("id").last().created_by.username)
+        self.assertEqual("system", flow.revisions.order_by("id").last().created_by.email)
 
         # saved on won't have been updated but modified on will
         self.assertEqual(old_saved_on, flow.saved_on)

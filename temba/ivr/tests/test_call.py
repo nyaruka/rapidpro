@@ -48,7 +48,6 @@ class CallTest(TembaTest):
         )
         FlowSession.objects.create(
             uuid=uuid4(),
-            org=self.org,
             contact=contact,
             call=call,
             status=FlowSession.STATUS_COMPLETED,

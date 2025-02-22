@@ -993,6 +993,14 @@ class FlowReadSerializer(ReadSerializer):
         Flow.TYPE_BACKGROUND: "background",
         Flow.TYPE_SURVEY: "survey",
     }
+    RUN_STATUSES = {
+        FlowRun.STATUS_ACTIVE: "active",
+        FlowRun.STATUS_WAITING: "waiting",
+        FlowRun.STATUS_COMPLETED: "completed",
+        FlowRun.STATUS_EXPIRED: "expired",
+        FlowRun.STATUS_INTERRUPTED: "interrupted",
+        FlowRun.STATUS_FAILED: "failed",
+    }
 
     type = serializers.SerializerMethodField()
     archived = serializers.ReadOnlyField(source="is_archived")
@@ -1011,7 +1019,8 @@ class FlowReadSerializer(ReadSerializer):
         return [{"uuid": str(lb.uuid), "name": lb.name} for lb in obj.labels.all()]
 
     def get_runs(self, obj):
-        return obj.get_run_stats()["status"]
+        counts = obj.get_run_counts()
+        return {key: counts[s] for s, key in self.RUN_STATUSES.items()}
 
     def get_results(self, obj):
         return obj.metadata.get(Flow.METADATA_RESULTS, [])
