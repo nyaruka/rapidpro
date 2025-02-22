@@ -303,7 +303,7 @@ class UserCRUDL(SmartCRUDL):
         title = "Update User"
 
         def pre_save(self, obj):
-            obj.username = obj.email
+            obj.email = obj.email
             return obj
 
         def post_save(self, obj):

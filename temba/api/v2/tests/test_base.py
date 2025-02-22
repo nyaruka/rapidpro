@@ -100,7 +100,7 @@ class EndpointsTest(APITest):
         response = request_by_token(fields_url, token2.key, {"name": "Field 2", "type": "text"})
         self.assertEqual(201, response.status_code)
 
-        response = request_by_basic_auth(fields_url, self.admin.username, token1.key)
+        response = request_by_basic_auth(fields_url, self.admin.email, token1.key)
         self.assertEqual(200, response.status_code)
 
         # can GET using session auth for admins, editors and servicing staff
@@ -129,7 +129,7 @@ class EndpointsTest(APITest):
         self.assertResponseError(response, None, "Invalid token", status_code=403)
 
         # can't fetch endpoint with invalid token
-        response = request_by_basic_auth(contacts_url, self.admin.username, "1234567890")
+        response = request_by_basic_auth(contacts_url, self.admin.email, "1234567890")
         self.assertResponseError(response, None, "Invalid token or email", status_code=403)
 
         # can't fetch endpoint with invalid username
@@ -141,7 +141,7 @@ class EndpointsTest(APITest):
         self.assertEqual(200, response.status_code)
         self.assertEqual(str(self.org.id), response["X-Temba-Org"])
 
-        response = request_by_basic_auth(contacts_url, self.editor.username, token2.key)
+        response = request_by_basic_auth(contacts_url, self.editor.email, token2.key)
         self.assertEqual(200, response.status_code)
         self.assertEqual(str(self.org.id), response["X-Temba-Org"])
 
@@ -153,7 +153,7 @@ class EndpointsTest(APITest):
         self.assertEqual(response.status_code, 429)
 
         # same with basic auth
-        response = request_by_basic_auth(fields_url, self.admin.username, token1.key)
+        response = request_by_basic_auth(fields_url, self.admin.email, token1.key)
         self.assertEqual(response.status_code, 429)
 
         # or if another user in same org makes a request
@@ -168,7 +168,7 @@ class EndpointsTest(APITest):
         self.org.api_rates = {"v2": "15000/hour"}
         self.org.save(update_fields=("api_rates",))
 
-        response = request_by_basic_auth(fields_url, self.admin.username, token1.key)
+        response = request_by_basic_auth(fields_url, self.admin.email, token1.key)
         self.assertEqual(response.status_code, 200)
 
         cache.set(f"throttle_v2_{self.org.id}", [time.time() for r in range(15000)])
@@ -181,7 +181,7 @@ class EndpointsTest(APITest):
         self.org.add_user(self.admin, OrgRole.AGENT)
 
         self.assertEqual(request_by_token(campaigns_url, token1.key).status_code, 403)
-        self.assertEqual(request_by_basic_auth(campaigns_url, self.admin.username, token1.key).status_code, 403)
+        self.assertEqual(request_by_basic_auth(campaigns_url, self.admin.email, token1.key).status_code, 403)
 
         # and if user is inactive, disallow the request
         self.org.add_user(self.admin, OrgRole.ADMINISTRATOR)
@@ -191,7 +191,7 @@ class EndpointsTest(APITest):
         response = request_by_token(contacts_url, token1.key)
         self.assertResponseError(response, None, "Invalid token", status_code=403)
 
-        response = request_by_basic_auth(contacts_url, self.admin.username, token1.key)
+        response = request_by_basic_auth(contacts_url, self.admin.email, token1.key)
         self.assertResponseError(response, None, "Invalid token or email", status_code=403)
 
     @override_settings(SECURE_PROXY_SSL_HEADER=("HTTP_X_FORWARDED_HTTPS", "https"))

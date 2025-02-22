@@ -451,8 +451,8 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(org.date_format, Org.DATE_FORMAT_DAY_FIRST)
 
         # check user exists and is admin
-        self.assertEqual(OrgRole.ADMINISTRATOR, org.get_user_role(User.objects.get(username="john@carmack.com")))
-        self.assertEqual(OrgRole.ADMINISTRATOR, org.get_user_role(User.objects.get(username="tito@textit.com")))
+        self.assertEqual(OrgRole.ADMINISTRATOR, org.get_user_role(User.objects.get(email="john@carmack.com")))
+        self.assertEqual(OrgRole.ADMINISTRATOR, org.get_user_role(User.objects.get(email="tito@textit.com")))
 
         # try a new org with a user that already exists instead
         del post_data["password"]
@@ -464,8 +464,8 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         org = Org.objects.get(name="id Software")
         self.assertEqual(org.date_format, Org.DATE_FORMAT_DAY_FIRST)
 
-        self.assertEqual(OrgRole.ADMINISTRATOR, org.get_user_role(User.objects.get(username="john@carmack.com")))
-        self.assertEqual(OrgRole.ADMINISTRATOR, org.get_user_role(User.objects.get(username="tito@textit.com")))
+        self.assertEqual(OrgRole.ADMINISTRATOR, org.get_user_role(User.objects.get(email="john@carmack.com")))
+        self.assertEqual(OrgRole.ADMINISTRATOR, org.get_user_role(User.objects.get(email="tito@textit.com")))
 
         # try a new org with US timezone
         post_data["name"] = "Bulls"
@@ -828,9 +828,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(edit_url, post_data, HTTP_X_FORMAX=True)
         self.assertEqual(200, response.status_code)
 
-        self.assertTrue(User.objects.get(username="myal@wr.org"))
         self.assertTrue(User.objects.get(email="myal@wr.org"))
-        self.assertFalse(User.objects.filter(username="myal@relieves.org"))
         self.assertFalse(User.objects.filter(email="myal@relieves.org"))
 
     def test_create_new(self):

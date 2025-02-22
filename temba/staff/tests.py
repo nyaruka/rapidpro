@@ -284,7 +284,6 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.editor.refresh_from_db()
         self.assertEqual("eddy@textit.com", self.editor.email)
-        self.assertEqual("eddy@textit.com", self.editor.username)  # should match email
         self.assertEqual("Edward", self.editor.first_name)
         self.assertEqual("", self.editor.last_name)
         self.assertEqual({granters, betas}, set(self.editor.groups.all()))
@@ -305,7 +304,6 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.editor.refresh_from_db()
         self.assertEqual("eddy@textit.com", self.editor.email)
-        self.assertEqual("eddy@textit.com", self.editor.username)
         self.assertEqual("Edward", self.editor.first_name)
         self.assertEqual("", self.editor.last_name)
         self.assertEqual({granters}, set(self.editor.groups.all()))
