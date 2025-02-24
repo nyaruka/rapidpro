@@ -79,22 +79,8 @@
               </div>
             </div>
           </td>
-          <td class="whitespace-nowrap text-right">
-            {% if object.num_runs_total %}
-              {{ object.num_runs_total|intcomma }}
-            {% else %}
-              --
-            {% endif %}
-          </td>
-          {% if not object.is_archived %}
-            <td class="whitespace-nowrap text-right">
-              {% if object.num_runs_total %}
-                {{ object.num_runs_ongoing|intcomma }}
-              {% else %}
-                --
-              {% endif %}
-            </td>
-          {% endif %}
+          <td class="whitespace-nowrap text-right">{{ object.num_runs_total|intcomma }}</td>
+          {% if not object.is_archived %}<td class="whitespace-nowrap text-right">{{ object.num_runs_ongoing|intcomma }}</td>{% endif %}
           <td class="whitespace-nowrap text-right">
             {% if object.num_runs_total %}
               <a href="{% url "flows.flow_results" object.id %}">{{ object.completion_pct }}%</a>

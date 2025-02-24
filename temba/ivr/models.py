@@ -54,6 +54,7 @@ class Call(models.Model):
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="calls")
     direction = models.CharField(max_length=1, choices=DIRECTION_CHOICES)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
+    session_uuid = models.UUIDField(null=True)
 
     channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="calls")
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT, related_name="calls")

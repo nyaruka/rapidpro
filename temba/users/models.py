@@ -50,10 +50,10 @@ class UserManager(AuthUserManager):
     Overrides the default user manager to make username lookups case insensitive
     """
 
-    def get_by_natural_key(self, email):
+    def get_by_natural_key(self, email: str):
         return self.get(**{f"{self.model.USERNAME_FIELD}__iexact": email})
 
-    def create_user(self, email, password, **extra_fields):
+    def create_user(self, email: str, password: str, **extra_fields):
         """
         Create and save a user with the given email and password.
         """
@@ -277,7 +277,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         """
         self.first_name = ""
         self.last_name = ""
-        self.email = f"{str(uuid4())}@rapidpro.io"
+        self.email = str(uuid4())
         self.password = ""
         self.is_active = False
         self.save()

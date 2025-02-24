@@ -271,7 +271,7 @@ class Command(BaseCommand):
 
         for u in spec["users"]:
             user = User.objects.create_user(
-                u["email"], u["email"], USER_PASSWORD, first_name=u["first_name"], last_name=u["last_name"]
+                u["email"], USER_PASSWORD, first_name=u["first_name"], last_name=u["last_name"]
             )
             team = org.teams.get(name=u["team"]) if u.get("team") else None
             org.add_user(user, OrgRole.from_code(u["role"]), team=team)

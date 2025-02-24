@@ -302,10 +302,6 @@ class UserCRUDL(SmartCRUDL):
         success_message = "User updated successfully."
         title = "Update User"
 
-        def pre_save(self, obj):
-            obj.email = obj.email
-            return obj
-
         def post_save(self, obj):
             """
             Make sure our groups are up-to-date

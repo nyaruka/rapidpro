@@ -1,3 +1,11 @@
+v10.1.69 (2025-02-24)
+-------------------------
+ * Remove usage of username in favor of email
+
+v10.1.68 (2025-02-24)
+-------------------------
+ * Add Call.session_uuid
+
 v10.1.67 (2025-02-21)
 -------------------------
  * Tweak display of flow stats
