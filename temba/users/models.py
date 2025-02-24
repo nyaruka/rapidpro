@@ -47,7 +47,7 @@ class BackupToken(models.Model):
 
 class UserManager(AuthUserManager):
     """
-    Overrides the default user manager to make username lookups case insensitive
+    Overrides the default user manager to make email lookups case insensitive
     """
 
     def get_by_natural_key(self, email: str):
@@ -87,9 +87,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     EMAIL_FIELD = "email"
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
-
-    # username is on its way out
-    username = models.CharField(_("username"), max_length=150, null=True)
 
     first_name = models.CharField(_("first name"), max_length=150, blank=True)
     last_name = models.CharField(_("last name"), max_length=150, blank=True)
@@ -134,7 +131,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         assert not cls.get_by_email(email), "user with this email already exists"
 
         return cls.objects.create_user(
-            username=email,
             email=email,
             first_name=first_name,
             last_name=last_name,

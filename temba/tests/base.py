@@ -56,9 +56,7 @@ class TembaTest(SmartminTest):
     def setUp(self):
         super().setUp()
 
-        self.superuser = User.objects.create_superuser(
-            username="super", email="super@user.com", password=self.default_password
-        )
+        self.superuser = User.objects.create_user("super@user.com", self.default_password, is_superuser=True)
 
         # create different user types
         self.non_org_user = self.create_user("nonorg@textit.com")

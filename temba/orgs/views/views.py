@@ -1915,7 +1915,7 @@ class OrgCRUDL(SmartCRUDL):
                 max_length=User._meta.get_field("last_name").max_length,
             )
             email = forms.EmailField(
-                help_text=_("Their email address"), max_length=User._meta.get_field("username").max_length
+                help_text=_("Their email address"), max_length=User._meta.get_field("email").max_length
             )
             timezone = TimeZoneFormField(help_text=_("The timezone for the workspace"))
             password = forms.CharField(

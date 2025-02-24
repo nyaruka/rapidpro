@@ -514,7 +514,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(
             grant_url,
             {
-                "email": f"john@{'x' * 150}.com",
+                "email": f"john@{'x' * 250}.com",
                 "first_name": f"John@{'n' * 150}.com",
                 "last_name": f"Carmack@{'k' * 150}.com",
                 "name": f"Oculus{'s' * 130}",
@@ -535,7 +535,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFormError(
             response.context["form"],
             "email",
-            ["Enter a valid email address.", "Ensure this value has at most 150 characters (it has 159)."],
+            ["Enter a valid email address.", "Ensure this value has at most 254 characters (it has 259)."],
         )
 
     def test_org_grant_form_clean(self):
@@ -723,7 +723,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(response.status_code, 302)
 
         # should have a new user
-        user = User.objects.get(username="myal12345678901234567890@relieves.org")
+        user = User.objects.get(email="myal12345678901234567890@relieves.org")
         self.assertEqual(user.first_name, "Eugene")
         self.assertEqual(user.last_name, "Rwagasore")
         self.assertEqual(user.email, "myal12345678901234567890@relieves.org")
@@ -811,7 +811,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             "This password is too short. It must contain at least 8 characters.",
         )
 
-        User.objects.create(username="bill@msn.com", email="bill@msn.com")
+        User.objects.create_user("bill@msn.com", "Qwerty123")
 
         # dupe user
         response = self.client.post(edit_url, {"email": "bill@MSN.com", "current_password": "HelloWorld1"})

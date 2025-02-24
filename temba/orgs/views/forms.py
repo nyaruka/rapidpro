@@ -27,7 +27,7 @@ class SignupForm(forms.ModelForm):
         widget=InputWidget(attrs={"widget_only": True, "placeholder": _("Last name")}),
     )
     email = forms.EmailField(
-        max_length=User._meta.get_field("username").max_length,
+        max_length=User._meta.get_field("email").max_length,
         widget=InputWidget(attrs={"widget_only": True, "placeholder": _("name@domain.com")}),
     )
 
@@ -48,7 +48,7 @@ class SignupForm(forms.ModelForm):
     def clean_email(self):
         email = self.cleaned_data["email"]
         if email:
-            if User.objects.filter(username__iexact=email):
+            if User.objects.filter(email__iexact=email):
                 raise forms.ValidationError(_("That email address is already used"))
 
         return email.lower()
