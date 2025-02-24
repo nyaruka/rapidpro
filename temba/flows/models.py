@@ -1056,8 +1056,6 @@ class FlowSession(models.Model):
 
     class Meta:
         indexes = [
-            # for finding the waiting session for a contact
-            models.Index(name="flowsessions_contact_waiting", fields=("contact_id",), condition=Q(status="W")),
             # for trimming ended sessions
             models.Index(name="flowsessions_ended", fields=("ended_on",), condition=Q(ended_on__isnull=False)),
         ]
