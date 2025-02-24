@@ -1122,30 +1122,20 @@ class Contact(LegacyUUIDMixin, SmartModel):
                     break
                 Msg.bulk_delete(msg_batch)
 
-            for run in self.runs.all():
-                run.delete()
-
-            for session in self.sessions.all():
-                session.delete()
-
-            # any urns currently owned by us
-            for urn in self.urns.all():
-                # release any messages attached with each urn, these could include messages that began life
-                # on a different contact
-                for msg in urn.msgs.all():
-                    msg.delete()
-
-                # same thing goes for calls
-                for call in urn.calls.all():
-                    if call.session:
-                        call.session.delete()
-                    call.delete()
-
-                urn.release()
-
+            delete_in_batches(self.runs.all())
+            delete_in_batches(self.sessions.all())
             delete_in_batches(self.channel_events.all())
             delete_in_batches(self.calls.all())
             delete_in_batches(self.fires.all())
+
+            for urn in self.urns.all():
+                # delete the urn if it has no associated content.. which should be the case if it wasn't
+                # stolen from another contact
+                if not urn.msgs.all() and not urn.channel_events.all() and not urn.calls.all():
+                    urn.delete()
+                else:
+                    urn.contact = None
+                    urn.save(update_fields=("contact",))
 
             # take us out of broadcast addressed contacts
             for broadcast in self.addressed_broadcasts.all():
@@ -1319,11 +1309,6 @@ class ContactURN(models.Model):
 
     # auth tokens - usage is channel specific, e.g. every FCM URN has its own token, FB channels have per opt-in tokens
     auth_tokens = models.JSONField(null=True)
-
-    def release(self):
-        delete_in_batches(self.channel_events.all())
-
-        self.delete()
 
     def ensure_number_normalization(self, country_code):
         """

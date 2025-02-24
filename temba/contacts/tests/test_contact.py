@@ -220,9 +220,9 @@ class ContactTest(TembaTest):
         self.assertEqual(1, Ticket.get_status_count(self.org, self.org.topics.all(), Ticket.STATUS_OPEN))
         self.assertEqual(0, Ticket.get_status_count(self.org, self.org.topics.all(), Ticket.STATUS_CLOSED))
 
-        # contact who used to own our urn had theirs released too
-        self.assertEqual(0, old_contact.calls.all().count())
-        self.assertEqual(0, old_contact.msgs.all().count())
+        # contact who used to own our urn still has their content
+        self.assertEqual(1, old_contact.calls.all().count())
+        self.assertEqual(2, old_contact.msgs.all().count())
 
         self.assertIsNone(contact.fields)
         self.assertIsNone(contact.name)
