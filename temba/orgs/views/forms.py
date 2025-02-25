@@ -108,7 +108,7 @@ class SMTPForm(forms.Form):
             recipients = [admin.email for admin in self.org.get_admins().order_by("email")]
             subject = _("%(name)s SMTP settings test") % self.org.branding
             try:
-                sender.send(recipients, subject, "orgs/email/smtp_test", {})
+                sender.send(recipients, "orgs/email/smtp_test", {}, subject)
             except smtplib.SMTPException as e:
                 raise ValidationError(_("SMTP settings test failed with error: %s") % str(e))
             except Exception:

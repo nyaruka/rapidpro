@@ -57,9 +57,12 @@ def send_user_verification_email(org_id, user_id):
     sender = EmailSender.from_email_type(org.branding, "notifications")
     sender.send(
         [user.email],
-        _("%(name)s Email Verification") % org.branding,
         "orgs/email/email_verification",
-        {"org": org, "secret": user.email_verification_secret},
+        {
+            "org": org,
+            "secret": user.email_verification_secret,
+        },
+        _("%(name)s Email Verification") % org.branding,
     )
 
     r.set(key, "1", ex=60 * 10)

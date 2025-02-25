@@ -46,7 +46,7 @@ class EmailSender:
 
         return cls(branding, connection, from_email)
 
-    def send(self, recipients: list, subject: str, template: str, context: dict):
+    def send(self, recipients: list, template: str, context: dict, subject: str = None):
         """
         Sends a multi-part email rendered from templates for the text and html parts. `template` should be the name of
         the template, without .html or .txt (e.g. 'channels/email/power_charging').
@@ -54,20 +54,19 @@ class EmailSender:
         html_template = loader.get_template(template + ".html")
         text_template = loader.get_template(template + ".txt")
 
-        context["subject"] = subject
+        if not subject:  # pragma: no cover
+            try:
+                subject_template = loader.get_template(template + "_subject.txt")
+                subject = subject_template.render(context)
+            except loader.TemplateDoesNotExist:
+                subject = ""
+
         context["branding"] = self.branding
         context["now"] = timezone.now()
 
         html = html_template.render(context)
         text = text_template.render(context)
 
-        send_email(recipients, subject, text, html, self.from_email, self.connection)
-
-
-def send_email(recipients: list, subject: str, text: str, html: str, from_email: str, connection=None):
-    """
-    Actually sends the email. Having this as separate function makes testing multi-part emails easier
-    """
-    message = EmailMultiAlternatives(subject, text, from_email, recipients, connection=connection)
-    message.attach_alternative(html, "text/html")
-    message.send()
+        message = EmailMultiAlternatives(subject, text, self.from_email, recipients, connection=self.connection)
+        message.attach_alternative(html, "text/html")
+        message.send()
