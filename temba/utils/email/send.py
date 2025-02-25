@@ -68,16 +68,6 @@ def send_email(recipients: list, subject: str, text: str, html: str, from_email:
     """
     Actually sends the email. Having this as separate function makes testing multi-part emails easier
     """
-    if settings.SEND_EMAILS:
-        message = EmailMultiAlternatives(subject, text, from_email, recipients, connection=connection)
-        message.attach_alternative(html, "text/html")
-        message.send()
-    else:  # pragma: no cover
-        # just print to console if we aren't meant to send emails
-        print("------------- Skipping sending email, SEND_EMAILS is False -------------")
-        print(f"To: {', '.join(recipients)}")
-        print(f"From: {from_email}")
-        print(f"Subject: {subject}")
-        print()
-        print(text)
-        print("------------------------------------------------------------------------")
+    message = EmailMultiAlternatives(subject, text, from_email, recipients, connection=connection)
+    message.attach_alternative(html, "text/html")
+    message.send()
