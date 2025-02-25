@@ -1,3 +1,9 @@
+v10.1.70 (2025-02-25)
+-------------------------
+ * Remove User.username
+ * Drop no longer used contact+status=W index on FlowSession
+ * Always delete runs before sessions and not runs by session
+
 v10.1.69 (2025-02-24)
 -------------------------
  * Remove usage of username in favor of email
