@@ -1,3 +1,8 @@
+v10.1.71 (2025-02-25)
+-------------------------
+ * Remove SEND_EMAILS in favor of file backend for local dev
+ * Add new 'session expire' type to contact fires and re-add expired status to sessions
+
 v10.1.70 (2025-02-25)
 -------------------------
  * Remove User.username
