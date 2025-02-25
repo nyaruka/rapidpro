@@ -67,6 +67,13 @@ class EmailSender:
         html = html_template.render(context)
         text = text_template.render(context)
 
-        message = EmailMultiAlternatives(subject, text, self.from_email, recipients, connection=self.connection)
-        message.attach_alternative(html, "text/html")
-        message.send()
+        send_email(recipients, subject, text, html, self.from_email, self.connection)
+
+
+def send_email(recipients: list, subject: str, text: str, html: str, from_email: str, connection=None):
+    """
+    Actually sends the email. Having this as separate function makes testing multi-part emails easier
+    """
+    message = EmailMultiAlternatives(subject, text, from_email, recipients, connection=connection)
+    message.attach_alternative(html, "text/html")
+    message.send()
