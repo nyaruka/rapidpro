@@ -59,7 +59,7 @@ class EmailSender:
                 subject_template = loader.get_template(template + "_subject.txt")
                 subject = subject_template.render(context)
             except loader.TemplateDoesNotExist:
-                subject = ""
+                raise ValueError("No subject provided and subject template doesn't exist")
 
         context["branding"] = self.branding
         context["now"] = timezone.now()
