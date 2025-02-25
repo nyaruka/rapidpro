@@ -4,8 +4,8 @@
 [![Build Status](https://github.com/nyaruka/rapidpro/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nyaruka/rapidpro/actions?query=workflow%3ACI)
 [![codecov](https://codecov.io/gh/nyaruka/rapidpro/branch/main/graph/badge.svg)](https://codecov.io/gh/nyaruka/rapidpro)
 
-RapidPro is a cloud based SaaS developed by [TextIt](https://textit.com) for visually building interactive messaging applications. You can signup at
-[textit.com](https://textit.com) or host it yourself.
+RapidPro is a cloud based SaaS developed by [TextIt](https://textit.com) for visually building interactive messaging applications. 
+For a hosted version you can signup for a free trial account at [textit.com](https://textit.com).
 
 ## Technology Stack
 
