@@ -238,7 +238,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(set(), set(response.context["object_list"]))
 
         response = self.requestView(list_url + "?filter=staff", self.customer_support)
-        self.assertEqual({self.customer_support, self.superuser}, set(response.context["object_list"]))
+        self.assertEqual({self.customer_support}, set(response.context["object_list"]))
 
         response = self.requestView(list_url + "?search=admin@textit.com", self.customer_support)
         self.assertEqual({self.admin}, set(response.context["object_list"]))

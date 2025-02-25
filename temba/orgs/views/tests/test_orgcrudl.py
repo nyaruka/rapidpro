@@ -618,7 +618,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(response.status_code, 302)
 
         # should have a new user
-        user2 = User.objects.get(username="kellan@example.com")
+        user2 = User.objects.get(email="kellan@example.com")
         self.assertEqual(user2.first_name, "Kellan")
         self.assertEqual(user2.last_name, "Alexander")
         self.assertEqual(user2.email, "kellan@example.com")
