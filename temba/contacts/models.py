@@ -671,7 +671,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         """
         from temba.campaigns.models import CampaignEvent
 
-        fires = self.fires.filter(fire_type=ContactFire.TYPE_CAMPAIGN)
+        fires = self.fires.filter(fire_type=ContactFire.TYPE_CAMPAIGN_EVENT)
         event_ids = {int(f.scope) for f in fires}
         events = CampaignEvent.objects.filter(
             campaign__org=self.org, campaign__is_archived=False, id__in=event_ids, is_active=True
@@ -1717,8 +1717,14 @@ class ContactFire(models.Model):
 
     TYPE_WAIT_EXPIRATION = "E"
     TYPE_WAIT_TIMEOUT = "T"
-    TYPE_CAMPAIGN = "C"
-    TYPE_CHOICES = ((TYPE_WAIT_EXPIRATION, "Expiration"), (TYPE_WAIT_TIMEOUT, "Timeout"), (TYPE_CAMPAIGN, "Campaign"))
+    TYPE_SESSION_EXPIRATION = "S"
+    TYPE_CAMPAIGN_EVENT = "C"
+    TYPE_CHOICES = (
+        (TYPE_WAIT_EXPIRATION, "Wait Expiration"),
+        (TYPE_WAIT_TIMEOUT, "Wait Timeout"),
+        (TYPE_SESSION_EXPIRATION, "Session Expiration"),
+        (TYPE_CAMPAIGN_EVENT, "Campaign Event"),
+    )
 
     id = models.BigAutoField(auto_created=True, primary_key=True)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, db_index=False)

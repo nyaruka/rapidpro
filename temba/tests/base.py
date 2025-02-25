@@ -583,6 +583,7 @@ class TembaTest(SmartminTest):
             contact=contact,
             status=FlowRun.STATUS_COMPLETED,
             session=session,
+            session_uuid=session.uuid,
             exited_on=timezone.now(),
         )
         Msg.objects.create(
@@ -599,6 +600,9 @@ class TembaTest(SmartminTest):
             created_on=timezone.now(),
             modified_on=timezone.now(),
         )
+
+        call.session_uuid = session.uuid
+        call.save(update_fields=("session_uuid",))
 
         return call
 

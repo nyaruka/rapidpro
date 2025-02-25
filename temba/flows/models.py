@@ -1004,11 +1004,13 @@ class FlowSession(models.Model):
     STATUS_WAITING = "W"
     STATUS_COMPLETED = "C"
     STATUS_INTERRUPTED = "I"
+    STATUS_EXPIRED = "X"
     STATUS_FAILED = "F"
     STATUS_CHOICES = (
         (STATUS_WAITING, "Waiting"),
         (STATUS_COMPLETED, "Completed"),
         (STATUS_INTERRUPTED, "Interrupted"),
+        (STATUS_EXPIRED, "Expired"),
         (STATUS_FAILED, "Failed"),
     )
 
@@ -1108,13 +1110,10 @@ class FlowRun(models.Model):
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="runs", db_index=False)
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="runs")
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
+    session_uuid = models.UUIDField(null=True)
 
     # contact isn't an index because we have flows_flowrun_contact_inc_flow below
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT, related_name="runs", db_index=False)
-
-    # session this run belongs to (can be null if session has been trimmed)
-    session = models.ForeignKey(FlowSession, on_delete=models.PROTECT, related_name="runs", null=True)
-    session_uuid = models.UUIDField(null=True)  # to replace session_id above
 
     # when this run was created, last modified and exited
     created_on = models.DateTimeField(default=timezone.now)
@@ -1137,6 +1136,9 @@ class FlowRun(models.Model):
 
     # current node location of this run in the flow
     current_node_uuid = models.UUIDField(null=True)
+
+    # TODO drop
+    session = models.ForeignKey(FlowSession, on_delete=models.PROTECT, null=True)
 
     @dataclass
     class Step:

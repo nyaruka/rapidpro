@@ -1114,14 +1114,14 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         fire1 = ContactFire.objects.create(
             org=self.org,
             contact=contact1,
-            fire_type=ContactFire.TYPE_CAMPAIGN,
+            fire_type=ContactFire.TYPE_CAMPAIGN_EVENT,
             scope=str(event1.id),
             fire_on=timezone.now() + timedelta(days=2),
         )
         fire2 = ContactFire.objects.create(
             org=self.org,
             contact=contact1,
-            fire_type=ContactFire.TYPE_CAMPAIGN,
+            fire_type=ContactFire.TYPE_CAMPAIGN_EVENT,
             scope=str(event2.id),
             fire_on=timezone.now() + timedelta(days=5),
         )

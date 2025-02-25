@@ -83,7 +83,7 @@ class FlowSessionTest(TembaTest):
 
         # create an IVR call with session
         call = self.create_incoming_call(flow, contact)
-        run4 = call.session.runs.get()
+        run4 = FlowRun.objects.get(session_uuid=call.session_uuid)
 
         self.assertIsNotNone(run1.session)
         self.assertIsNotNone(run2.session)
