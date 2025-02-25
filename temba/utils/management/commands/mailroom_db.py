@@ -90,7 +90,7 @@ class Command(BaseCommand):
         self._log(self.style.SUCCESS("OK") + "\n")
 
         self._log("Creating superuser... ")
-        superuser = User.objects.create_superuser("root", "root@textit.com", USER_PASSWORD)
+        superuser = User.objects.create_superuser("root", USER_PASSWORD)
         self._log(self.style.SUCCESS("OK") + "\n")
 
         mr_cmd = f'mailroom --port={mr_port} -db="postgres://{db_user}:temba@localhost/{db_name}?sslmode=disable" -uuid-seed=123'
