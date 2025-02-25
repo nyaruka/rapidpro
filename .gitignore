@@ -38,6 +38,7 @@ media/test_orgs
 media/tmp
 media/attachments
 media/blog
+media/emails
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
