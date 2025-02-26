@@ -31,17 +31,18 @@ def create_session_expires_fires(apps, schema_editor):
 
         to_create = []
         for contact in batch:
-            session_created_on = created_on_by_uuid[contact.current_session_uuid]
-            to_create.append(
-                ContactFire(
-                    org_id=contact.org_id,
-                    contact=contact,
-                    fire_type="S",
-                    scope="",
-                    fire_on=session_created_on + timedelta(days=30) + timedelta(seconds=random.randint(0, 86400)),
-                    session_uuid=contact.current_session_uuid,
+            session_created_on = created_on_by_uuid.get(contact.current_session_uuid)
+            if session_created_on:
+                to_create.append(
+                    ContactFire(
+                        org_id=contact.org_id,
+                        contact=contact,
+                        fire_type="S",
+                        scope="",
+                        fire_on=session_created_on + timedelta(days=30) + timedelta(seconds=random.randint(0, 86400)),
+                        session_uuid=contact.current_session_uuid,
+                    )
                 )
-            )
 
         ContactFire.objects.bulk_create(to_create)
         num_created += len(to_create)
