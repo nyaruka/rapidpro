@@ -314,7 +314,7 @@ class MockSessionWriter:
                     start=self.start if i == 0 else None,
                     flow=Flow.objects.get(uuid=run["flow"]["uuid"]),
                     contact=self.contact,
-                    session=self.session,
+                    session_uuid=self.session.uuid,
                     created_on=run["created_on"],
                     **db_state,
                 )

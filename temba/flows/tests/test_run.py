@@ -17,22 +17,15 @@ class FlowRunTest(TembaTest):
 
     def test_get_path(self):
         flow = self.create_flow("Test")
-        session = FlowSession.objects.create(
-            uuid=uuid4(),
-            contact=self.contact,
-            status=FlowSession.STATUS_COMPLETED,
-            output_url="http://sessions.com/123.json",
-            ended_on=timezone.now(),
-        )
 
         # create run with old style path JSON
         run = FlowRun.objects.create(
             uuid=uuid4(),
             org=self.org,
-            session=session,
             flow=flow,
             contact=self.contact,
             status=FlowRun.STATUS_WAITING,
+            session_uuid="082cb7a8-a8fc-468d-b0a4-06f5a5179e2b",
             path=[
                 {
                     "uuid": "b5c3421c-3bbb-4dc7-9bda-683456588a6d",
@@ -68,10 +61,10 @@ class FlowRunTest(TembaTest):
         run = FlowRun.objects.create(
             uuid=uuid4(),
             org=self.org,
-            session=session,
             flow=flow,
             contact=self.contact,
             status=FlowRun.STATUS_WAITING,
+            session_uuid="082cb7a8-a8fc-468d-b0a4-06f5a5179e2b",
             path_nodes=[UUID("857a1498-3d5f-40f5-8185-2ce596ce2677"), UUID("59d992c6-c491-473d-a7e9-4f431d705c01")],
             path_times=[
                 datetime(2021, 12, 20, 8, 47, 30, 123000, tzinfo=tzone.utc),
@@ -187,10 +180,10 @@ class FlowRunTest(TembaTest):
             id=4_000_000_000,
             uuid=uuid4(),
             org=self.org,
-            session=session,
             flow=self.create_flow("Test"),
             contact=self.contact,
             status=FlowRun.STATUS_WAITING,
+            session_uuid=session.uuid,
             created_on=timezone.now(),
             modified_on=timezone.now(),
             path=[
