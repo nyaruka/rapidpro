@@ -1,15 +1,11 @@
-import itertools
 import logging
-from collections import defaultdict
-from datetime import datetime, timedelta, timezone as tzone
+from datetime import datetime, timezone as tzone
 
 from django_redis import get_redis_connection
 
 from django.conf import settings
 from django.utils import timezone
-from django.utils.timesince import timesince
 
-from temba import mailroom
 from temba.utils.crons import cron_task
 from temba.utils.models import delete_in_batches
 
@@ -27,8 +23,6 @@ def squash_flow_counts():
 
 @cron_task()
 def trim_flow_revisions():
-    start = timezone.now()
-
     # get when the last time we trimmed was
     r = get_redis_connection()
     last_trim = r.get(FlowRevision.LAST_TRIM_KEY)
@@ -36,40 +30,11 @@ def trim_flow_revisions():
         last_trim = 0
 
     last_trim = datetime.utcfromtimestamp(int(last_trim)).astimezone(tzone.utc)
-    count = FlowRevision.trim(last_trim)
+    num_trimmed = FlowRevision.trim(last_trim)
 
     r.set(FlowRevision.LAST_TRIM_KEY, int(timezone.now().timestamp()))
 
-    elapsed = timesince(start)
-    logger.info(f"Trimmed {count} flow revisions since {last_trim} in {elapsed}")
-
-
-@cron_task()
-def interrupt_flow_sessions():
-    """
-    Interrupt old flow sessions which have exceeded the absolute time limit
-    """
-
-    before = timezone.now() - timedelta(days=89)
-    num_interrupted = 0
-
-    # get old sessions and organize into lists by org
-    by_org = defaultdict(list)
-    sessions = (
-        FlowSession.objects.filter(created_on__lte=before, status=FlowSession.STATUS_WAITING)
-        .only("id", "contact")
-        .select_related("contact__org")
-        .order_by("id")
-    )
-    for session in sessions:
-        by_org[session.contact.org].append(session)
-
-    for org, sessions in by_org.items():
-        for batch in itertools.batched(sessions, 100):
-            mailroom.queue_interrupt(org, sessions=batch)
-            num_interrupted += len(sessions)
-
-    return {"interrupted": num_interrupted}
+    return {"trimmed": num_trimmed}
 
 
 @cron_task()

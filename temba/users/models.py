@@ -273,7 +273,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         """
         self.first_name = ""
         self.last_name = ""
-        self.email = str(uuid4())
+        self.email = f"{str(uuid4())}@temba.io"
         self.password = ""
         self.is_active = False
         self.save()

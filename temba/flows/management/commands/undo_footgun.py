@@ -57,12 +57,12 @@ class Command(BaseCommand):
 
     def undo_for_batch(self, runs: list, undoers: dict, dry_run: bool):
         contact_ids = {r.contact_id for r in runs}
-        session_ids = {r.session_id for r in runs}
+        session_uuids = {r.session_uuid for r in runs}
 
         if undoers:
             contacts_by_uuid = {str(c.uuid): c for c in Contact.objects.filter(id__in=contact_ids)}
 
-            for session in FlowSession.objects.filter(id__in=session_ids):
+            for session in FlowSession.objects.filter(uuid__in=session_uuids):
                 contact = contacts_by_uuid[str(session.contact.uuid)]
                 for run in reversed(session.output_json["runs"]):
                     for event in reversed(run["events"]):

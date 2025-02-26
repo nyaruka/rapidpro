@@ -1,656 +1,673 @@
-v10.1.71 (2025-02-25)
--------------------------
- * Remove SEND_EMAILS in favor of file backend for local dev
- * Add new 'session expire' type to contact fires and re-add expired status to sessions
-
-v10.1.70 (2025-02-25)
--------------------------
- * Remove User.username
- * Drop no longer used contact+status=W index on FlowSession
- * Always delete runs before sessions and not runs by session
-
-v10.1.69 (2025-02-24)
--------------------------
- * Remove usage of username in favor of email
-
-v10.1.68 (2025-02-24)
--------------------------
- * Add Call.session_uuid
-
-v10.1.67 (2025-02-21)
--------------------------
- * Tweak display of flow stats
-
-v10.1.64 (2025-02-20)
--------------------------
- * Add index to flow runs to support interrupting by session
- * Drop ContactFire.extra
- * Add number of ongoing runs to the flow list view
-
-v10.1.63 (2025-02-20)
--------------------------
- * Add apply_manual hook to migration
- * Update is_enabled help text
-
-v10.1.62 (2025-02-20)
--------------------------
- * Use default of 3 days for flow expiry
- * Data migration to backfill FlowRun.session_uuid
- * Add is_enabled field to the update form
-
-v10.1.61 (2025-02-19)
--------------------------
- * Add data migration to reduce expires_after to 2 weeks on all flows
- * Remove 30 days as option for flow expiry
-
-v10.1.60 (2025-02-19)
--------------------------
- * Add channel is_enabled field
-
-v10.1.59 (2025-02-18)
--------------------------
- * Update org deletion to delete sessions via contacts
- * Drop FlowSession.org
-
-v10.1.58 (2025-02-17)
--------------------------
- * Make FlowSession.org nullable
-
-v10.1.57 (2025-02-17)
--------------------------
- * More logging in data migration
-
-v10.1.56 (2025-02-17)
--------------------------
- * Make channel event uuid field not null
- * Add post migrate signal to create system user
- * Remove AnonymousUser
-
-v10.1.55 (2025-02-17)
--------------------------
- * Update to latest editor
- * Remove no longer used lead and video models/crudls
- * Remove smart model fields on SyncEvent
-
-v10.1.54 (2025-02-14)
--------------------------
- * Data migration to backfill Contact.current_session_uuid
- * Data migration to populate ChannelEvent.uuid
- * Add support for quick replies on broadcasts and msgs API endpoints
-
-v10.1.53 (2025-02-13)
--------------------------
- * Add Contact.current_session_uuid
- * Drop UserSettings
-
-v10.1.52 (2025-02-13)
--------------------------
- * Drop FlowRun.delete_from_results
-
-v10.1.51 (2025-02-12)
--------------------------
- * Override user manager to lookup username case insensitively
-
-v10.1.49 (2025-02-12)
--------------------------
- * Remove no longer needed custom auth backend
- * Remove user settings prefetch
- * Fix results preview on run list
-
-v10.1.48 (2025-02-12)
--------------------------
- * Stop writing old user settings
-
-v10.1.47 (2025-02-12)
--------------------------
- * Make email_verification_secret not-null
- * Read from new user fields instead of settings
-
-v10.1.46 (2025-02-12)
--------------------------
- * Tweak how randomly generated values on user are saved
- * Fix aspect ratio for thumbnail zooming
- * Add UUID field to channel event and delete_contact type
-
-v10.1.45 (2025-02-12)
--------------------------
- * Allow message text up to 4,096 characters.
- * Data migration to copy user settings to new fields
-
-v10.1.44 (2025-02-12)
--------------------------
- * Drop old backup token model in orgs app
- * Add fields to custom user model to replace UserSettings and start writing them
-
-v10.1.43 (2025-02-12)
--------------------------
- * Rename auth_user to users_user
-
-v10.1.42 (2025-02-11)
--------------------------
- * Add BackupToken in users app and copy records from model in orgs app
-
-v10.1.41 (2025-02-11)
--------------------------
- * Remove auth_tweaks app
- * Simplify validation of params field on flow starts endpoint to allow any JSON object up to 10K chars when encoded
-
-v10.1.40 (2025-02-11)
--------------------------
- * Add custom user model (migration must be faked)
-
-v10.1.38 (2025-02-11)
--------------------------
- * Don't show times across date bondaries
- * Remove unused CSV imports functionality from smartmin
- * Drop EventFire model
-
-v10.1.37 (2025-02-10)
--------------------------
- * Remove deleting of flow runs
- * Remove event fires from contact history and remove trimming task
-
-v10.1.36 (2025-02-10)
--------------------------
- * Update recent history part of campaign event page to read from redis
- * Remove view of upcoming events from campaign event read page
-
-v10.1.35 (2025-02-06)
--------------------------
- * Read scheduled acivity from new fire model instead of eventfire
- * Data migration to convert old event fires to new contact fires model
-
-v10.1.34 (2025-02-05)
--------------------------
- * Fix access to orgs internal API endpoint
-
-v10.1.33 (2025-02-05)
--------------------------
- * Drop no longer used fields on FlowSession
-
-v10.1.32 (2025-02-04)
--------------------------
- * Drop no longer used indexes on flows_flowsession and make responded and modified_on nullable
-
-v10.1.31 (2025-02-04)
--------------------------
- * Add deprecation notice for facebook topics
-
-v10.1.30 (2025-02-04)
--------------------------
- * Add FlowRun.session_uuid to replace FlowRun.session_id
- * Tweaks to previous data migration
-
-v10.1.29 (2025-02-03)
--------------------------
- * Data migration to create fires for existing waiting sessions
-
-v10.1.28 (2025-01-31)
--------------------------
- * Fix dropdowns embedded in modals
-
-v10.1.27 (2025-01-30)
--------------------------
- * Fix org switcher on safari
-
-v10.1.26 (2025-01-30)
--------------------------
- * Label dropdown fixes
-
-v10.1.25 (2025-01-29)
--------------------------
- * Add session and sprint UUID fields to fires and last_sprint_uuid to sessions
- * Tweak contact interrupt modal
-
-v10.1.24 (2025-01-27)
--------------------------
- * Remove updating session wait expirations when a flow is edited
- * Remove no longer used session status EXPIRED
-
-v10.1.23 (2025-01-27)
--------------------------
- * Make FlowSession.wait_resume_on_expire nullable
-
-v10.1.22 (2025-01-24)
--------------------------
- * Fix case for staff also being a member
-
-v10.1.21 (2025-01-24)
--------------------------
- * Nulls last on membership sort
-
-v10.1.20 (2025-01-24)
--------------------------
- * Auto org selection with cross-org object switcher
-
-v10.1.19 (2025-01-24)
--------------------------
- * Change index used by mailroom to find expired waiting sessions
- * Drop constraint that waiting sessions have wait_expires_on
-
-v10.1.18 (2025-01-23)
--------------------------
- * Revert "Do not migrate definitions with the current spec version"
- * Add new generic model for scheduled contact events like session timeouts etc
-
-v10.1.17 (2025-01-22)
--------------------------
- * Do not migrate definitions with the current spec version
-
-v10.1.16 (2025-01-21)
--------------------------
- * Fix button layout for tickets
-
-v10.1.15 (2025-01-20)
--------------------------
- * Use temba-workspace-select in menu
-
-v10.1.14 (2025-01-20)
--------------------------
- * Make FlowSession.modified_on non-null
-
-v10.1.13 (2025-01-20)
--------------------------
- * Data migration to backfill FlowSession.modified_on
-
-v10.1.12 (2025-01-20)
--------------------------
- * Add FlowSession.modified_on
-
-v10.1.11 (2025-01-16)
--------------------------
- * Turn prometheus access into an org feature and grant to all orgs with existing token
-
-v10.1.10 (2025-01-16)
--------------------------
- * Allow running migrations without PostGIS
-
-v10.1.9 (2025-01-15)
--------------------------
- * Remove no longer used auth groups
- * Remove no longer needed functionality for restricting which users can by assigned to tickets
- * Tweak broadcast API rate limit
- * Remove VIEWER role
- * Update to latest xlsxlite
-
-v10.1.8 (2025-01-14)
--------------------------
- * Depublicize boundaries API endpoint
- * Remove old geometry field on boundary
- * Drop old count models
-
-v10.1.7 (2025-01-14)
--------------------------
- * Delete new category counts when deleting a flow
- * Remove squashing and db triggers used for old category counts
-
-v10.1.6 (2025-01-13)
--------------------------
- * More migration tweaking
-
-v10.1.5 (2025-01-13)
--------------------------
- * Migrations to backfill Msg.is_android and set not-null
- * Start using boundary geometry field
- * Move deps to project dependencies config in pyproject.toml
- * Ensure that SQL app migrations run after other apps
- * Adjust ticket flow to allow more change context
-
-v10.1.4 (2025-01-13)
--------------------------
- * Remove ability to delete runs from the UI
- * Read from new category count model
- * Add new AdminBoundary.geometry field and populate as JSON
-
-v10.1.3 (2025-01-09)
--------------------------
- * Data migration to backfill new category counts
- * Remove viewer user handling code from API
-
-v10.1.2 (2025-01-09)
--------------------------
- * Remove no longer needed viewer warning
- * Ticket bulk actions endpoint should report failures like message bulk actions endpoint
- * Add data migration to remove viewers from workspaces
-
-v10.1.1 (2025-01-08)
--------------------------
- * Update pyproject.toml for poetry 2
- * Add support for yearly schedules
-
-v10.1.0 (2025-01-08)
--------------------------
- * Add new ticket bar
-
-v10.0.1 (2025-01-07)
--------------------------
- * Read MAILROOM_AUTH_TOKEN from env in dev settings
-
-v10.0.0 (2025-01-06)
--------------------------
- * Add placeholder migration files for squashed migrations
-
-v9.3.142 (2025-01-06)
--------------------------
- * Fix API messages endpoint when using readonly db connection
-
-v9.3.141 (2025-01-06)
--------------------------
- * Fix CI builds for latest poetry
- * Add MsgFolder to eventually replace SystemLabel
- * A lot of test cleanup
-
-v9.3.140 (2024-12-19)
--------------------------
- * Remove system check that MAILROOM_URL is set
-
-v9.3.139 (2024-12-16)
--------------------------
- * Remove no longer used waiting_exits from flow inspection
-
-v9.3.138 (2024-12-16)
--------------------------
- * Read only servicing for channels claim
- * Improve servicing banner
-
-v9.3.137 (2024-12-12)
--------------------------
- * Prevent importing of flows with a spec version that is ahead of the engine
-
-v9.3.136 (2024-12-11)
--------------------------
- * Remove gauges from analytics abstraction
- * Move cron utils to their own package
- * Stop writing and squashing old message counts
- * Read from new message counts
-
-v9.3.135 (2024-12-11)
--------------------------
- * Data migration to backfill new message folder counts
-
-v9.3.134 (2024-12-10)
--------------------------
- * Start writing new message folder counts
-
-v9.3.133 (2024-12-10)
--------------------------
- * Bump to flow spec 13.6.1
- * Revert removal of input/text columns from results exports
-
-v9.3.132 (2024-12-09)
--------------------------
- * Update to latest Django 5.1
- * Allow servicing users to preview starts
-
-v9.3.131 (2024-12-09)
--------------------------
- * Allow servicing users to claim channels
- * Use statement level db triggers to maintain group counts
-
-v9.3.130 (2024-12-07)
--------------------------
- * Allow service exports and inspection of broadcasts
-
-v9.3.129 (2024-12-04)
--------------------------
- * Remove input field on results returned from runs endpoint
- * Use generic squash query for possible for squashable counts
- * Update db triggers to look at run.path_nodes instead of run.path
-
-v9.3.128 (2024-12-03)
--------------------------
- * Bump to flow spec version 13.6
-
-v9.3.127 (2024-12-03)
--------------------------
- * Add new fields to flow runs to store path data in more condensed format
- * Remove input/text columns from results exports
-
-v9.3.126 (2024-12-03)
--------------------------
- * Update to latest editor
- * Remove antialiasing from general fonts
- * Cleanup fetching of category counts for results page analytics tab
- * Fix segment count backfill migration to include non-waits
- * Stop writing and squashing old path counts
-
-v9.3.125 (2024-11-28)
--------------------------
- * Remove TWT channel type
- * Prefetch run status counts used by flows list view and flows API endpoint
- * Update twilio python client library
- * Read segment counts from new flow activity count model
-
-v9.3.124 (2024-11-28)
--------------------------
- * Data migration to backfill new segment counts
- * Update vonage python client
- * Stop writing and squashing old node and status counts
-
-v9.3.123 (2024-11-28)
--------------------------
- * Only load flow results once per page load
-
-v9.3.122 (2024-11-27)
--------------------------
- * Stop reading node and status counts from old models
-
-v9.3.121 (2024-11-27)
--------------------------
- * Data migration to backfill node and status counts into new model
-
-v9.3.120 (2024-11-27)
--------------------------
- * Change new count model squashing to not insert zero sums
- * Start writing run status/node counts to new count model
-
-v9.3.119 (2024-11-26)
--------------------------
- * Fix selecting of menu when going to group page
- * Fix some JS errors on flow result pages
- * Add team field to uesrs API endpoint and allowing filtering by multiple emails
- * Stop validating flow revisions when fetching revision list
- * Tweak axis scaling of engagement timeline chart
- * Read engagement counts from new count model
-
-v9.3.118 (2024-11-26)
--------------------------
- * Add URL param (new=1) to read engagement chart data from new count model
-
-v9.3.117 (2024-11-26)
--------------------------
- * Update smartmin and start cleaning up old pjax/formax code
- * Show hour of day chart in org timezone
-
-v9.3.116 (2024-11-25)
--------------------------
- * Improve and simplify flow engagement charts
- * Allow releasing FBA channels even if we cannot reach the API to deactivate new conversation triggers
- * Move active flow bar into chat component  
- * Add email filtering for api users endpoint 
- * Fix safari font rendering
-
-v9.3.115 (2024-11-22)
--------------------------
- * Tweak migration to allow offline use
-
-v9.3.114 (2024-11-22)
--------------------------
- * Data migration to backfill new flow engagement counts
-
-v9.3.113 (2024-11-22)
--------------------------
- * Use debug logging for channel types errors, D3 and WA
- * Don't send notifications to system users
- * Split up flow count squashing tasks so we can track performance separately
- * Start tracking incoming message counts by flow
-
-v9.3.112 (2024-11-21)
--------------------------
- * Update editor
- * Hide option to delete runs for viewers
- * Don't rewind path counts for deleted runs
- * Add new FlowActivityCount model
- * Use debug logging for channel types errors
- * Limit servicing staff users to API GETs
-
-v9.3.111 (2024-11-20)
--------------------------
- * Allow using the API explorer without creating an API token
- * Use temba.orgs.models.User consistently
-
-v9.3.110 (2024-11-19)
--------------------------
- * Prevent workspace admins to modify the system user on a workspace
- * Cleanup group update view
- * Show on read page for a smart group if it's being populated.
- * Disable async activation for channel types not showing config page
- * Add is_system to user settings
-
-v9.3.109 (2024-11-18)
--------------------------
- * Add support for TST type testing channels
-
-v9.3.108 (2024-11-18)
--------------------------
- * Add Org.suspended_on to track when an org was suspended
- * Rework org perms again
-
-v9.3.107 (2024-11-15)
--------------------------
- * Fix deleting orgs with invitations to teams
- * More view refactoring
-
-v9.3.106 (2024-11-13)
--------------------------
- * Show on user list pages whether user has 2FA enabled
- * Change confirm access view to logout on failed attempts limit
- * Move login view functionality from smartmin and remove no longer needed redirect
-
-v9.3.105 (2024-11-13)
--------------------------
- * Allow staff to create invitations to workspaces
-
-v9.3.104 (2024-11-12)
--------------------------
- * Revert change to disallow API posts from staff users
-
-v9.3.103 (2024-11-12)
--------------------------
- * Only allow GET requests to API by servicing staff members
- * Allow requests to break out of spa on demand
-
-v9.3.102 (2024-11-12)
--------------------------
- * Make sure agents can still edit accounts
- * Reorganize staff menu
-
-v9.3.101 (2024-11-11)
--------------------------
- * Fix issues with inconsistent header names
- * Add our own simple logout view
- * Ending servicing of an org should redirect to org list page
- * Stop exposing the Smartmin UserCRUDL
-
-v9.3.100 (2024-11-11)
--------------------------
- * Show error dialog for http errors in more places
- * Remove old scheduled bcast read view and legacy paginator template
- * Create our own view for user failed login
- * Don't include smartmin.csv_imports urls and move relayer urls to channels app
- * Tweak appearance of login page
- * Don't show org suspended warning on any no-nav pages
- * Fix styling on join-accept page
- * Don't notify new admins that they joined a workspace
- * Fix fetching tickets as servicing staff user
-
-v9.3.99 (2024-11-08)
--------------------------
- * Fix resolving ticket topics for servicing staff users
-
-v9.3.98 (2024-11-08)
--------------------------
- * Add readonly_servicing to OrgPermsMixin
-
-v9.3.97 (2024-11-08)
--------------------------
- * Handle ajax response redirects
- * Only include temba org if it is set
-
-v9.3.96 (2024-11-07)
--------------------------
- * Fix org obj perms mixin for staff users
- * Omit temba-org header in some cases
- * Fix org start view and org_perms context processor for servicing staff users
- * Remove no longer used partial template view
-
-v9.3.95 (2024-11-07)
--------------------------
- * Only allow GET requests by servicing staff users
- * Send temba-org header from components
- * More obvious account servicing
- * Restrict staff servicing org perms to non-POST requests
- * OrgMiddleware should prevent cross-org POSTs
-
-v9.3.94 (2024-11-07)
--------------------------
- * Allow updating agent team from user list page
- * User and invitation list views should show team for agent users if that feature is enabled
- * Allow creating invitations with teams
- * Remove experimental mailgun channel type
- * Fix displaying of exports based on status "groups"
-
-v9.3.93 (2024-11-05)
--------------------------
- * Allow invitations to specify team and block team deletion when it has pending invitations
- * Drop no longer used count models
-
-v9.3.92 (2024-11-05)
--------------------------
- * Remove database triggers to maintain old notification counts
-
-v9.3.91 (2024-11-05)
--------------------------
- * Update some deps
- * Start using new notification counts
- * Add data migration to backfill new notification counts
-
-v9.3.90 (2024-11-05)
--------------------------
- * Start writing notification counts to orgs_itemcount
-
-v9.3.89 (2024-11-05)
--------------------------
- * Fix calculating field usages on API endpoint
- * Stop writing old ticket counts
-
-v9.3.88 (2024-10-31)
--------------------------
- * Fix browsing definitions API endpoint docs
- * Fix the My Tickets icon, wasn't always accurate
- * Prevent deletion of non-empty teams
- * Start reading from new ticket counts
-
-v9.3.87 (2024-10-31)
--------------------------
- * Make shortcuts an optional attribute on compose
-
-v9.3.86 (2024-10-31)
--------------------------
- * Replace custom chunk_list with new itertools.batched
- * Fetch logs from DynamoDB in batches of 100
- * Data migration to back fill item counts for tickets
-
-v9.3.85 (2024-10-30)
--------------------------
- * Add generic squashable count model for things owned by orgs
- * Implement tickets counts by topic and assignee using new count model
- * Ensure that ticket counts are cleaned up when a topic is deleted
-
-v9.3.84 (2024-10-30)
--------------------------
- * Reduce topic limit to 50 and enforce limits for topics and teams
- * Implement filtering of tickets by accessible topics
+## v10.1.74 (2025-02-26)
+
+- Allow FlowRun.session to be null
+- Remove unncessary subtitle from trigger create page
+
+## v10.1.73 (2025-02-26)
+
+- Fix contacts whose current_session_uuid doesn't match a waiting session
+- Remove task to interrupt sessions as this is now handled by session expiration fires
+
+## v10.1.72 (2025-02-26)
+
+- Fix join view when not logged in but URL correct
+- Data migration to backfill session expiration contact fires
+- Use email for deleted user
+- Allow template-based email subjects
+
+## v10.1.71 (2025-02-25)
+
+- Remove SEND_EMAILS in favor of file backend for local dev
+- Add new 'session expire' type to contact fires and re-add expired status to sessions
+
+## v10.1.70 (2025-02-25)
+
+- Remove User.username
+- Drop no longer used contact+status=W index on FlowSession
+- Always delete runs before sessions and not runs by session
+
+## v10.1.69 (2025-02-24)
+
+- Remove usage of username in favor of email
+
+## v10.1.68 (2025-02-24)
+
+- Add Call.session_uuid
+
+## v10.1.67 (2025-02-21)
+
+- Tweak display of flow stats
+
+## v10.1.64 (2025-02-20)
+
+- Add index to flow runs to support interrupting by session
+- Drop ContactFire.extra
+- Add number of ongoing runs to the flow list view
+
+## v10.1.63 (2025-02-20)
+
+- Add apply_manual hook to migration
+- Update is_enabled help text
+
+## v10.1.62 (2025-02-20)
+
+- Use default of 3 days for flow expiry
+- Data migration to backfill FlowRun.session_uuid
+- Add is_enabled field to the update form
+
+## v10.1.61 (2025-02-19)
+
+- Add data migration to reduce expires_after to 2 weeks on all flows
+- Remove 30 days as option for flow expiry
+
+## v10.1.60 (2025-02-19)
+
+- Add channel is_enabled field
+
+## v10.1.59 (2025-02-18)
+
+- Update org deletion to delete sessions via contacts
+- Drop FlowSession.org
+
+## v10.1.58 (2025-02-17)
+
+- Make FlowSession.org nullable
+
+## v10.1.57 (2025-02-17)
+
+- More logging in data migration
+
+## v10.1.56 (2025-02-17)
+
+- Make channel event uuid field not null
+- Add post migrate signal to create system user
+- Remove AnonymousUser
+
+## v10.1.55 (2025-02-17)
+
+- Update to latest editor
+- Remove no longer used lead and video models/crudls
+- Remove smart model fields on SyncEvent
+
+## v10.1.54 (2025-02-14)
+
+- Data migration to backfill Contact.current_session_uuid
+- Data migration to populate ChannelEvent.uuid
+- Add support for quick replies on broadcasts and msgs API endpoints
+
+## v10.1.53 (2025-02-13)
+
+- Add Contact.current_session_uuid
+- Drop UserSettings
+
+## v10.1.52 (2025-02-13)
+
+- Drop FlowRun.delete_from_results
+
+## v10.1.51 (2025-02-12)
+
+- Override user manager to lookup username case insensitively
+
+## v10.1.49 (2025-02-12)
+
+- Remove no longer needed custom auth backend
+- Remove user settings prefetch
+- Fix results preview on run list
+
+## v10.1.48 (2025-02-12)
+
+- Stop writing old user settings
+
+## v10.1.47 (2025-02-12)
+
+- Make email_verification_secret not-null
+- Read from new user fields instead of settings
+
+## v10.1.46 (2025-02-12)
+
+- Tweak how randomly generated values on user are saved
+- Fix aspect ratio for thumbnail zooming
+- Add UUID field to channel event and delete_contact type
+
+## v10.1.45 (2025-02-12)
+
+- Allow message text up to 4,096 characters.
+- Data migration to copy user settings to new fields
+
+## v10.1.44 (2025-02-12)
+
+- Drop old backup token model in orgs app
+- Add fields to custom user model to replace UserSettings and start writing them
+
+## v10.1.43 (2025-02-12)
+
+- Rename auth_user to users_user
+
+## v10.1.42 (2025-02-11)
+
+- Add BackupToken in users app and copy records from model in orgs app
+
+## v10.1.41 (2025-02-11)
+
+- Remove auth_tweaks app
+- Simplify validation of params field on flow starts endpoint to allow any JSON object up to 10K chars when encoded
+
+## v10.1.40 (2025-02-11)
+
+- Add custom user model (migration must be faked)
+
+## v10.1.38 (2025-02-11)
+
+- Don't show times across date bondaries
+- Remove unused CSV imports functionality from smartmin
+- Drop EventFire model
+
+## v10.1.37 (2025-02-10)
+
+- Remove deleting of flow runs
+- Remove event fires from contact history and remove trimming task
+
+## v10.1.36 (2025-02-10)
+
+- Update recent history part of campaign event page to read from redis
+- Remove view of upcoming events from campaign event read page
+
+## v10.1.35 (2025-02-06)
+
+- Read scheduled acivity from new fire model instead of eventfire
+- Data migration to convert old event fires to new contact fires model
+
+## v10.1.34 (2025-02-05)
+
+- Fix access to orgs internal API endpoint
+
+## v10.1.33 (2025-02-05)
+
+- Drop no longer used fields on FlowSession
+
+## v10.1.32 (2025-02-04)
+
+- Drop no longer used indexes on flows_flowsession and make responded and modified_on nullable
+
+## v10.1.31 (2025-02-04)
+
+- Add deprecation notice for facebook topics
+
+## v10.1.30 (2025-02-04)
+
+- Add FlowRun.session_uuid to replace FlowRun.session_id
+- Tweaks to previous data migration
+
+## v10.1.29 (2025-02-03)
+
+- Data migration to create fires for existing waiting sessions
+
+## v10.1.28 (2025-01-31)
+
+- Fix dropdowns embedded in modals
+
+## v10.1.27 (2025-01-30)
+
+- Fix org switcher on safari
+
+## v10.1.26 (2025-01-30)
+
+- Label dropdown fixes
+
+## v10.1.25 (2025-01-29)
+
+- Add session and sprint UUID fields to fires and last_sprint_uuid to sessions
+- Tweak contact interrupt modal
+
+## v10.1.24 (2025-01-27)
+
+- Remove updating session wait expirations when a flow is edited
+- Remove no longer used session status EXPIRED
+
+## v10.1.23 (2025-01-27)
+
+- Make FlowSession.wait_resume_on_expire nullable
+
+## v10.1.22 (2025-01-24)
+
+- Fix case for staff also being a member
+
+## v10.1.21 (2025-01-24)
+
+- Nulls last on membership sort
+
+## v10.1.20 (2025-01-24)
+
+- Auto org selection with cross-org object switcher
+
+## v10.1.19 (2025-01-24)
+
+- Change index used by mailroom to find expired waiting sessions
+- Drop constraint that waiting sessions have wait_expires_on
+
+## v10.1.18 (2025-01-23)
+
+- Revert "Do not migrate definitions with the current spec version"
+- Add new generic model for scheduled contact events like session timeouts etc
+
+## v10.1.17 (2025-01-22)
+
+- Do not migrate definitions with the current spec version
+
+## v10.1.16 (2025-01-21)
+
+- Fix button layout for tickets
+
+## v10.1.15 (2025-01-20)
+
+- Use temba-workspace-select in menu
+
+## v10.1.14 (2025-01-20)
+
+- Make FlowSession.modified_on non-null
+
+## v10.1.13 (2025-01-20)
+
+- Data migration to backfill FlowSession.modified_on
+
+## v10.1.12 (2025-01-20)
+
+- Add FlowSession.modified_on
+
+## v10.1.11 (2025-01-16)
+
+- Turn prometheus access into an org feature and grant to all orgs with existing token
+
+## v10.1.10 (2025-01-16)
+
+- Allow running migrations without PostGIS
+
+## v10.1.9 (2025-01-15)
+
+- Remove no longer used auth groups
+- Remove no longer needed functionality for restricting which users can by assigned to tickets
+- Tweak broadcast API rate limit
+- Remove VIEWER role
+- Update to latest xlsxlite
+
+## v10.1.8 (2025-01-14)
+
+- Depublicize boundaries API endpoint
+- Remove old geometry field on boundary
+- Drop old count models
+
+## v10.1.7 (2025-01-14)
+
+- Delete new category counts when deleting a flow
+- Remove squashing and db triggers used for old category counts
+
+## v10.1.6 (2025-01-13)
+
+- More migration tweaking
+
+## v10.1.5 (2025-01-13)
+
+- Migrations to backfill Msg.is_android and set not-null
+- Start using boundary geometry field
+- Move deps to project dependencies config in pyproject.toml
+- Ensure that SQL app migrations run after other apps
+- Adjust ticket flow to allow more change context
+
+## v10.1.4 (2025-01-13)
+
+- Remove ability to delete runs from the UI
+- Read from new category count model
+- Add new AdminBoundary.geometry field and populate as JSON
+
+## v10.1.3 (2025-01-09)
+
+- Data migration to backfill new category counts
+- Remove viewer user handling code from API
+
+## v10.1.2 (2025-01-09)
+
+- Remove no longer needed viewer warning
+- Ticket bulk actions endpoint should report failures like message bulk actions endpoint
+- Add data migration to remove viewers from workspaces
+
+## v10.1.1 (2025-01-08)
+
+- Update pyproject.toml for poetry 2
+- Add support for yearly schedules
+
+## v10.1.0 (2025-01-08)
+
+- Add new ticket bar
+
+## v10.0.1 (2025-01-07)
+
+- Read MAILROOM_AUTH_TOKEN from env in dev settings
+
+## v10.0.0 (2025-01-06)
+
+- Add placeholder migration files for squashed migrations
+
+## v9.3.142 (2025-01-06)
+
+- Fix API messages endpoint when using readonly db connection
+
+## v9.3.141 (2025-01-06)
+
+- Fix CI builds for latest poetry
+- Add MsgFolder to eventually replace SystemLabel
+- A lot of test cleanup
+
+## v9.3.140 (2024-12-19)
+
+- Remove system check that MAILROOM_URL is set
+
+## v9.3.139 (2024-12-16)
+
+- Remove no longer used waiting_exits from flow inspection
+
+## v9.3.138 (2024-12-16)
+
+- Read only servicing for channels claim
+- Improve servicing banner
+
+## v9.3.137 (2024-12-12)
+
+- Prevent importing of flows with a spec version that is ahead of the engine
+
+## v9.3.136 (2024-12-11)
+
+- Remove gauges from analytics abstraction
+- Move cron utils to their own package
+- Stop writing and squashing old message counts
+- Read from new message counts
+
+## v9.3.135 (2024-12-11)
+
+- Data migration to backfill new message folder counts
+
+## v9.3.134 (2024-12-10)
+
+- Start writing new message folder counts
+
+## v9.3.133 (2024-12-10)
+
+- Bump to flow spec 13.6.1
+- Revert removal of input/text columns from results exports
+
+## v9.3.132 (2024-12-09)
+
+- Update to latest Django 5.1
+- Allow servicing users to preview starts
+
+## v9.3.131 (2024-12-09)
+
+- Allow servicing users to claim channels
+- Use statement level db triggers to maintain group counts
+
+## v9.3.130 (2024-12-07)
+
+- Allow service exports and inspection of broadcasts
+
+## v9.3.129 (2024-12-04)
+
+- Remove input field on results returned from runs endpoint
+- Use generic squash query for possible for squashable counts
+- Update db triggers to look at run.path_nodes instead of run.path
+
+## v9.3.128 (2024-12-03)
+
+- Bump to flow spec version 13.6
+
+## v9.3.127 (2024-12-03)
+
+- Add new fields to flow runs to store path data in more condensed format
+- Remove input/text columns from results exports
+
+## v9.3.126 (2024-12-03)
+
+- Update to latest editor
+- Remove antialiasing from general fonts
+- Cleanup fetching of category counts for results page analytics tab
+- Fix segment count backfill migration to include non-waits
+- Stop writing and squashing old path counts
+
+## v9.3.125 (2024-11-28)
+
+- Remove TWT channel type
+- Prefetch run status counts used by flows list view and flows API endpoint
+- Update twilio python client library
+- Read segment counts from new flow activity count model
+
+## v9.3.124 (2024-11-28)
+
+- Data migration to backfill new segment counts
+- Update vonage python client
+- Stop writing and squashing old node and status counts
+
+## v9.3.123 (2024-11-28)
+
+- Only load flow results once per page load
+
+## v9.3.122 (2024-11-27)
+
+- Stop reading node and status counts from old models
+
+## v9.3.121 (2024-11-27)
+
+- Data migration to backfill node and status counts into new model
+
+## v9.3.120 (2024-11-27)
+
+- Change new count model squashing to not insert zero sums
+- Start writing run status/node counts to new count model
+
+## v9.3.119 (2024-11-26)
+
+- Fix selecting of menu when going to group page
+- Fix some JS errors on flow result pages
+- Add team field to uesrs API endpoint and allowing filtering by multiple emails
+- Stop validating flow revisions when fetching revision list
+- Tweak axis scaling of engagement timeline chart
+- Read engagement counts from new count model
+
+## v9.3.118 (2024-11-26)
+
+- Add URL param (new=1) to read engagement chart data from new count model
+
+## v9.3.117 (2024-11-26)
+
+- Update smartmin and start cleaning up old pjax/formax code
+- Show hour of day chart in org timezone
+
+## v9.3.116 (2024-11-25)
+
+- Improve and simplify flow engagement charts
+- Allow releasing FBA channels even if we cannot reach the API to deactivate new conversation triggers
+- Move active flow bar into chat component
+- Add email filtering for api users endpoint
+- Fix safari font rendering
+
+## v9.3.115 (2024-11-22)
+
+- Tweak migration to allow offline use
+
+## v9.3.114 (2024-11-22)
+
+- Data migration to backfill new flow engagement counts
+
+## v9.3.113 (2024-11-22)
+
+- Use debug logging for channel types errors, D3 and WA
+- Don't send notifications to system users
+- Split up flow count squashing tasks so we can track performance separately
+- Start tracking incoming message counts by flow
+
+## v9.3.112 (2024-11-21)
+
+- Update editor
+- Hide option to delete runs for viewers
+- Don't rewind path counts for deleted runs
+- Add new FlowActivityCount model
+- Use debug logging for channel types errors
+- Limit servicing staff users to API GETs
+
+## v9.3.111 (2024-11-20)
+
+- Allow using the API explorer without creating an API token
+- Use temba.orgs.models.User consistently
+
+## v9.3.110 (2024-11-19)
+
+- Prevent workspace admins to modify the system user on a workspace
+- Cleanup group update view
+- Show on read page for a smart group if it's being populated.
+- Disable async activation for channel types not showing config page
+- Add is_system to user settings
+
+## v9.3.109 (2024-11-18)
+
+- Add support for TST type testing channels
+
+## v9.3.108 (2024-11-18)
+
+- Add Org.suspended_on to track when an org was suspended
+- Rework org perms again
+
+## v9.3.107 (2024-11-15)
+
+- Fix deleting orgs with invitations to teams
+- More view refactoring
+
+## v9.3.106 (2024-11-13)
+
+- Show on user list pages whether user has 2FA enabled
+- Change confirm access view to logout on failed attempts limit
+- Move login view functionality from smartmin and remove no longer needed redirect
+
+## v9.3.105 (2024-11-13)
+
+- Allow staff to create invitations to workspaces
+
+## v9.3.104 (2024-11-12)
+
+- Revert change to disallow API posts from staff users
+
+## v9.3.103 (2024-11-12)
+
+- Only allow GET requests to API by servicing staff members
+- Allow requests to break out of spa on demand
+
+## v9.3.102 (2024-11-12)
+
+- Make sure agents can still edit accounts
+- Reorganize staff menu
+
+## v9.3.101 (2024-11-11)
+
+- Fix issues with inconsistent header names
+- Add our own simple logout view
+- Ending servicing of an org should redirect to org list page
+- Stop exposing the Smartmin UserCRUDL
+
+## v9.3.100 (2024-11-11)
+
+- Show error dialog for http errors in more places
+- Remove old scheduled bcast read view and legacy paginator template
+- Create our own view for user failed login
+- Don't include smartmin.csv_imports urls and move relayer urls to channels app
+- Tweak appearance of login page
+- Don't show org suspended warning on any no-nav pages
+- Fix styling on join-accept page
+- Don't notify new admins that they joined a workspace
+- Fix fetching tickets as servicing staff user
+
+## v9.3.99 (2024-11-08)
+
+- Fix resolving ticket topics for servicing staff users
+
+## v9.3.98 (2024-11-08)
+
+- Add readonly_servicing to OrgPermsMixin
+
+## v9.3.97 (2024-11-08)
+
+- Handle ajax response redirects
+- Only include temba org if it is set
+
+## v9.3.96 (2024-11-07)
+
+- Fix org obj perms mixin for staff users
+- Omit temba-org header in some cases
+- Fix org start view and org_perms context processor for servicing staff users
+- Remove no longer used partial template view
+
+## v9.3.95 (2024-11-07)
+
+- Only allow GET requests by servicing staff users
+- Send temba-org header from components
+- More obvious account servicing
+- Restrict staff servicing org perms to non-POST requests
+- OrgMiddleware should prevent cross-org POSTs
+
+## v9.3.94 (2024-11-07)
+
+- Allow updating agent team from user list page
+- User and invitation list views should show team for agent users if that feature is enabled
+- Allow creating invitations with teams
+- Remove experimental mailgun channel type
+- Fix displaying of exports based on status "groups"
+
+## v9.3.93 (2024-11-05)
+
+- Allow invitations to specify team and block team deletion when it has pending invitations
+- Drop no longer used count models
+
+## v9.3.92 (2024-11-05)
+
+- Remove database triggers to maintain old notification counts
+
+## v9.3.91 (2024-11-05)
+
+- Update some deps
+- Start using new notification counts
+- Add data migration to backfill new notification counts
+
+## v9.3.90 (2024-11-05)
+
+- Start writing notification counts to orgs_itemcount
+
+## v9.3.89 (2024-11-05)
+
+- Fix calculating field usages on API endpoint
+- Stop writing old ticket counts
+
+## v9.3.88 (2024-10-31)
+
+- Fix browsing definitions API endpoint docs
+- Fix the My Tickets icon, wasn't always accurate
+- Prevent deletion of non-empty teams
+- Start reading from new ticket counts
+
+## v9.3.87 (2024-10-31)
+
+- Make shortcuts an optional attribute on compose
+
+## v9.3.86 (2024-10-31)
+
+- Replace custom chunk_list with new itertools.batched
+- Fetch logs from DynamoDB in batches of 100
+- Data migration to back fill item counts for tickets
+
+## v9.3.85 (2024-10-30)
+
+- Add generic squashable count model for things owned by orgs
+- Implement tickets counts by topic and assignee using new count model
+- Ensure that ticket counts are cleaned up when a topic is deleted
+
+## v9.3.84 (2024-10-30)
+
+- Reduce topic limit to 50 and enforce limits for topics and teams
+- Implement filtering of tickets by accessible topics
 
 ## v9.3.83 (2024-10-30)
 

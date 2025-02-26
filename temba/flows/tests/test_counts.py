@@ -13,22 +13,15 @@ class FlowActivityCountTest(TembaTest):
     def test_node_counts(self):
         flow = self.create_flow("Test 1")
         contact = self.create_contact("Bob", phone="+1234567890")
-        session = FlowSession.objects.create(
-            uuid=uuid4(),
-            contact=contact,
-            status=FlowSession.STATUS_WAITING,
-            output_url="http://sessions.com/123.json",
-            created_on=timezone.now(),
-        )
 
         def create_run(status, node_uuid):
             return FlowRun.objects.create(
                 uuid=uuid4(),
                 org=self.org,
-                session=session,
                 flow=flow,
                 contact=contact,
                 status=status,
+                session_uuid="082cb7a8-a8fc-468d-b0a4-06f5a5179e2b",
                 created_on=timezone.now(),
                 modified_on=timezone.now(),
                 exited_on=timezone.now() if status not in ("A", "W") else None,

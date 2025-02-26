@@ -211,7 +211,7 @@ class TembaTest(SmartminTest):
         org=None,
         user=None,
         status=Contact.STATUS_ACTIVE,
-        last_seen_on=None,
+        **kwargs,
     ):
         """
         Create a new contact
@@ -230,7 +230,7 @@ class TembaTest(SmartminTest):
             fields or {},
             group_uuids=[],
             status=status,
-            last_seen_on=last_seen_on,
+            **kwargs,
         )
 
     def create_group(self, name, contacts=(), query=None, org=None):

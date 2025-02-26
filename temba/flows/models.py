@@ -1207,11 +1207,6 @@ class FlowRun(models.Model):
             models.Index(name="flowruns_by_session", fields=("session_uuid",), condition=Q(status__in=("A", "W"))),
         ]
         constraints = [
-            # all active/waiting runs must have a session
-            models.CheckConstraint(
-                check=~Q(status__in=("A", "W")) | Q(session__isnull=False),
-                name="flows_run_active_or_waiting_has_session",
-            ),
             # all non-active/waiting runs must have an exited_on
             models.CheckConstraint(
                 check=Q(status__in=("A", "W")) | Q(exited_on__isnull=False),

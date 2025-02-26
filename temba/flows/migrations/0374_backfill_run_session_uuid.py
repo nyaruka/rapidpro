@@ -3,7 +3,7 @@
 from django.db import migrations, transaction
 
 
-def backfill_run_session_uuid(apps, schema_editor):
+def backfill_run_session_uuid(apps, schema_editor):  # pragma: no cover
     FlowSession = apps.get_model("flows", "FlowSession")
     FlowRun = apps.get_model("flows", "FlowRun")
 

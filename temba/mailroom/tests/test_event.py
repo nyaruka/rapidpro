@@ -317,7 +317,7 @@ class EventTest(TembaTest):
                 "type": "flow_entered",
                 "created_on": matchers.ISODate(),
                 "flow": {"uuid": str(flow.uuid), "name": "Colors"},
-                "logs_url": f"/flowsession/json/{run.session.uuid}/",
+                "logs_url": f"/flowsession/json/{run.session_uuid}/",
             },
             Event.from_flow_run(self.org, self.customer_support, run),
         )
