@@ -33,13 +33,28 @@ class FlowSessionTest(TembaTest):
             status=FlowSession.STATUS_WAITING,
         )
         run1 = FlowRun.objects.create(
-            org=self.org, flow=flow, contact=contact, session=session1, status=FlowRun.STATUS_WAITING
+            org=self.org,
+            flow=flow,
+            contact=contact,
+            session=session1,
+            session_uuid=session1.uuid,
+            status=FlowRun.STATUS_WAITING,
         )
         run2 = FlowRun.objects.create(
-            org=self.org, flow=flow, contact=contact, session=session2, status=FlowRun.STATUS_WAITING
+            org=self.org,
+            flow=flow,
+            contact=contact,
+            session=session2,
+            session_uuid=session2.uuid,
+            status=FlowRun.STATUS_WAITING,
         )
         run3 = FlowRun.objects.create(
-            org=self.org, flow=flow, contact=contact, session=session3, status=FlowRun.STATUS_WAITING
+            org=self.org,
+            flow=flow,
+            contact=contact,
+            session=session3,
+            session_uuid=session3.uuid,
+            status=FlowRun.STATUS_WAITING,
         )
 
         # create an IVR call with session

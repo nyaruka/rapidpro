@@ -531,7 +531,7 @@ class OrgDeleteTest(TembaTest):
                 org=org,
                 flow=flow1,
                 contact=contacts[0],
-                session=session1,
+                session_uuid=session1.uuid,
                 status=FlowRun.STATUS_COMPLETED,
                 exited_on=timezone.now(),
             )

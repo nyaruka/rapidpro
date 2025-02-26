@@ -150,8 +150,9 @@ class Event:
 
     @classmethod
     def from_flow_run(cls, org: Org, user: User, obj: FlowRun) -> dict:
-        session = obj.session
-        logs_url = _url_for_user(org, user, "flows.flowsession_json", args=[session.uuid]) if session else None
+        logs_url = (
+            _url_for_user(org, user, "flows.flowsession_json", args=[obj.session_uuid]) if obj.session_uuid else None
+        )
 
         return {
             "type": cls.TYPE_FLOW_ENTERED,
