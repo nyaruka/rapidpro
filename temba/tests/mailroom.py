@@ -608,7 +608,7 @@ def contact_resolve(org, phone: str) -> tuple:
 
 
 def create_contact_locally(
-    org, user, name, language, urns, fields, group_uuids, status=Contact.STATUS_ACTIVE, last_seen_on=None
+    org, user, name, language, urns, fields, group_uuids, status=Contact.STATUS_ACTIVE, last_seen_on=None, **kwargs
 ):
     orphaned_urns = {}
 
@@ -629,6 +629,7 @@ def create_contact_locally(
         created_on=timezone.now(),
         status=status,
         last_seen_on=last_seen_on,
+        **kwargs,
     )
     update_urns_locally(contact, urns)
     update_fields_locally(user, contact, fields)
