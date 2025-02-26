@@ -1,6 +1,8 @@
 from allauth.account.adapter import DefaultAccountAdapter
-from temba.utils.email.send import EmailSender
+
 from django.utils import timezone
+
+from temba.utils.email.send import EmailSender
 
 
 class TembaAccountAdapter(DefaultAccountAdapter):
