@@ -1137,9 +1137,6 @@ class FlowRun(models.Model):
     # current node location of this run in the flow
     current_node_uuid = models.UUIDField(null=True)
 
-    # TODO drop
-    session = models.ForeignKey(FlowSession, on_delete=models.PROTECT, null=True)
-
     @dataclass
     class Step:
         node: UUID

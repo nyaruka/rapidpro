@@ -44,7 +44,7 @@ class Command(BaseCommand):
 
         # process runs in batches
         for run_id_batch in itertools.batched(run_ids, self.batch_size):
-            run_batch = list(FlowRun.objects.filter(id__in=run_id_batch).only("id", "contact_id", "session_id"))
+            run_batch = list(FlowRun.objects.filter(id__in=run_id_batch).only("id", "contact_id", "session_uuid"))
 
             self.undo_for_batch(run_batch, undoers, dry_run)
             num_fixed += len(run_batch)
