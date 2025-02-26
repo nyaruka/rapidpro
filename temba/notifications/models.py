@@ -204,7 +204,7 @@ class Notification(models.Model):
 
         if subject and template:
             sender = EmailSender.from_email_type(self.org.branding, "notifications")
-            sender.send([self.email_address or self.user.email], f"[{self.org.name}] {subject}", template, context)
+            sender.send([self.email_address or self.user.email], template, context, f"[{self.org.name}] {subject}")
         else:  # pragma: no cover
             logger.error(f"pending emails for notification type {self.type.slug} not configured for email")
 

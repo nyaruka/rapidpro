@@ -1333,9 +1333,12 @@ class Invitation(SmartModel):
         sender = EmailSender.from_email_type(self.org.branding, "notifications")
         sender.send(
             [self.email],
-            _("%(name)s Invitation") % self.org.branding,
             "orgs/email/invitation_email",
-            {"org": self.org, "invitation": self},
+            {
+                "org": self.org,
+                "invitation": self,
+            },
+            _("%(name)s Invitation") % self.org.branding,
         )
 
     def accept(self, user):

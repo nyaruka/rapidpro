@@ -602,9 +602,12 @@ class UserCRUDL(SmartCRUDL):
                 sender = EmailSender.from_email_type(self.request.branding, "notifications")
                 sender.send(
                     [user.email],
-                    _("Password Recovery Request"),
                     "orgs/email/user_forget",
-                    {"user": user, "path": reverse("orgs.user_recover", args=[token.token])},
+                    {
+                        "user": user,
+                        "path": reverse("orgs.user_recover", args=[token.token]),
+                    },
+                    _("Password Recovery Request"),
                 )
             else:
                 # no user, check if we have an invite for the email and resend that
