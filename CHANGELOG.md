@@ -1,3 +1,8 @@
+v10.1.73 (2025-02-26)
+-------------------------
+ * Fix contacts whose current_session_uuid doesn't match a waiting session
+ * Remove task to interrupt sessions as this is now handled by session expiration fires
+
 v10.1.72 (2025-02-26)
 -------------------------
  * Fix join view when not logged in but URL correct
