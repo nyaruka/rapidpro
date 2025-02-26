@@ -1,53 +1,14 @@
-from datetime import datetime, timedelta, timezone as tzone
+from datetime import datetime, timezone as tzone
 
 from django.utils import timezone
 
 from temba.flows.models import FlowRun, FlowSession
-from temba.flows.tasks import interrupt_flow_sessions, trim_flow_sessions
-from temba.tests import TembaTest, matchers, mock_mailroom
+from temba.flows.tasks import trim_flow_sessions
+from temba.tests import TembaTest
 from temba.utils.uuid import uuid4
 
 
 class FlowSessionTest(TembaTest):
-    @mock_mailroom
-    def test_interrupt(self, mr_mocks):
-        org1_contact = self.create_contact("Ben", phone="+250788123123")
-        org2_contact = self.create_contact("Ben", phone="+250788123123", org=self.org2)
-
-        def create_session(contact, created_on: datetime):
-            return FlowSession.objects.create(
-                uuid=uuid4(),
-                contact=contact,
-                created_on=created_on,
-                output_url="http://sessions.com/123.json",
-                status=FlowSession.STATUS_WAITING,
-            )
-
-        create_session(org1_contact, timezone.now() - timedelta(days=88))
-        session2 = create_session(org1_contact, timezone.now() - timedelta(days=90))
-        session3 = create_session(org1_contact, timezone.now() - timedelta(days=91))
-        session4 = create_session(org2_contact, timezone.now() - timedelta(days=92))
-
-        interrupt_flow_sessions()
-
-        self.assertEqual(
-            [
-                {
-                    "type": "interrupt_sessions",
-                    "org_id": self.org.id,
-                    "queued_on": matchers.Datetime(),
-                    "task": {"session_ids": [session2.id, session3.id]},
-                },
-                {
-                    "type": "interrupt_sessions",
-                    "org_id": self.org2.id,
-                    "queued_on": matchers.Datetime(),
-                    "task": {"session_ids": [session4.id]},
-                },
-            ],
-            mr_mocks.queued_batch_tasks,
-        )
-
     def test_trim(self):
         contact = self.create_contact("Ben Haggerty", phone="+250788123123")
         flow = self.create_flow("Test")

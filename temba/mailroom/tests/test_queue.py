@@ -2,13 +2,10 @@ from unittest.mock import patch
 
 from django_redis import get_redis_connection
 
-from django.utils import timezone
-
-from temba.flows.models import FlowSession, FlowStart
+from temba.flows.models import FlowStart
 from temba.mailroom.queue import queue_interrupt
 from temba.tests import TembaTest, matchers
 from temba.utils import json
-from temba.utils.uuid import uuid4
 
 
 class MailroomQueueTest(TembaTest):
@@ -102,24 +99,6 @@ class MailroomQueueTest(TembaTest):
         self.assert_queued_batch_task(
             self.org,
             {"type": "interrupt_sessions", "task": {"flow_ids": [flow.id]}, "queued_on": matchers.ISODate()},
-        )
-
-    def test_queue_interrupt_by_session(self):
-        contact = self.create_contact("Bob", phone="+1234567890")
-        session = FlowSession.objects.create(
-            uuid=uuid4(),
-            contact=contact,
-            status=FlowSession.STATUS_WAITING,
-            output_url="http://sessions.com/123.json",
-            created_on=timezone.now(),
-        )
-
-        queue_interrupt(self.org, sessions=[session])
-
-        self.assert_org_queued(self.org)
-        self.assert_queued_batch_task(
-            self.org,
-            {"type": "interrupt_sessions", "task": {"session_ids": [session.id]}, "queued_on": matchers.ISODate()},
         )
 
     def assert_org_queued(self, org):
