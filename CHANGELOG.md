@@ -1,3 +1,10 @@
+v10.1.72 (2025-02-26)
+-------------------------
+ * Fix join view when not logged in but URL correct
+ * Data migration to backfill session expiration contact fires
+ * Use email for deleted user
+ * Allow template-based email subjects
+
 v10.1.71 (2025-02-25)
 -------------------------
  * Remove SEND_EMAILS in favor of file backend for local dev
