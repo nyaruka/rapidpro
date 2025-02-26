@@ -1,3 +1,8 @@
+v10.1.74 (2025-02-26)
+-------------------------
+ * Allow FlowRun.session to be null
+ * Remove unncessary subtitle from trigger create page
+
 v10.1.73 (2025-02-26)
 -------------------------
  * Fix contacts whose current_session_uuid doesn't match a waiting session
