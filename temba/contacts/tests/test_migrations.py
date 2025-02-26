@@ -51,6 +51,18 @@ class CreateSessionExpiresFiresTest(MigrationTest):
         # contact with no waiting session
         self.contact4 = self.create_contact("Dan", phone="+1234567004")
 
+        # contact with session mismatch
+        self.contact5 = self.create_contact(
+            "Dan", phone="+1234567004", current_session_uuid="ffca65c7-42ac-40cd-bef0-63aedc099ec9"
+        )
+        FlowSession.objects.create(
+            uuid="80466ed4-de5c-49e8-acad-2432b4e9cdf9",
+            contact=self.contact5,
+            status=FlowSession.STATUS_WAITING,
+            output_url="http://sessions.com/123.json",
+            created_on=timezone.now(),
+        )
+
     def test_migration(self):
         def assert_session_expire(contact):
             self.assertTrue(contact.fires.exists())
@@ -70,3 +82,7 @@ class CreateSessionExpiresFiresTest(MigrationTest):
         assert_session_expire(self.contact3)
 
         self.assertFalse(self.contact4.fires.exists())
+        self.assertFalse(self.contact5.fires.exists())
+
+        self.contact5.refresh_from_db()
+        self.assertIsNone(self.contact5.current_session_uuid)

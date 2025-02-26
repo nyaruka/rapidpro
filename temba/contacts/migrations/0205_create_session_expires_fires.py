@@ -12,7 +12,7 @@ def create_session_expires_fires(apps, schema_editor):
     ContactFire = apps.get_model("contacts", "ContactFire")
     FlowSession = apps.get_model("flows", "FlowSession")
 
-    num_created = 0
+    num_created, num_skipped = 0, 0
 
     while True:
         # find contacts with waiting sessions that don't have a corresponding session expiration fire
@@ -24,7 +24,7 @@ def create_session_expires_fires(apps, schema_editor):
         if not batch:
             break
 
-        sessions = FlowSession.objects.filter(uuid__in=[c.current_session_uuid for c in batch]).only(
+        sessions = FlowSession.objects.filter(uuid__in=[c.current_session_uuid for c in batch], status="W").only(
             "uuid", "created_on"
         )
         created_on_by_uuid = {s.uuid: s.created_on for s in sessions}
@@ -43,10 +43,17 @@ def create_session_expires_fires(apps, schema_editor):
                         session_uuid=contact.current_session_uuid,
                     )
                 )
+            else:
+                contact.current_session_uuid = None
+                contact.current_flow = None
+                contact.save(update_fields=("current_session_uuid", "current_flow"))
 
-        ContactFire.objects.bulk_create(to_create)
+                num_skipped += 1
+
+        if to_create:
+            ContactFire.objects.bulk_create(to_create)
         num_created += len(to_create)
-        print(f"Created {num_created} session expiration fires")
+        print(f"Created {num_created} session expiration fires ({num_skipped} skipped)")
 
 
 def apply_manual():  # pragma: no cover
