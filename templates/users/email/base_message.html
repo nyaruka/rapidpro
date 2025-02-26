@@ -1,0 +1,14 @@
+{% extends "email_base.html" %}
+{% load i18n %}
+
+{% block body %}
+  {% autoescape off %}
+    <div>{% blocktrans with site_name=branding.name %}Hello from {{ site_name }}!{% endblocktrans %}</div>
+    <div>
+      {% block content %}
+      {% endblock content %}
+    </div>
+    {% blocktrans with site_name=branding.name site_domain=branding.domain %}Thank you for using {{ site_name }}!
+{{ site_domain }}{% endblocktrans %}
+  {% endautoescape %}
+{% endblock body %}

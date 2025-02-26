@@ -51,21 +51,27 @@ class EmailSender:
         Sends a multi-part email rendered from templates for the text and html parts. `template` should be the name of
         the template, without .html or .txt (e.g. 'channels/email/power_charging').
         """
-        html_template = loader.get_template(template + ".html")
-        text_template = loader.get_template(template + ".txt")
+        context["branding"] = self.branding
+        context["now"] = timezone.now()
 
         if not subject:  # pragma: no cover
             try:
                 subject_template = loader.get_template(template + "_subject.txt")
                 subject = subject_template.render(context)
+
+                # strip out any newlines
+                subject = "".join(subject.splitlines())
             except loader.TemplateDoesNotExist:
                 raise ValueError("No subject provided and subject template doesn't exist")
 
-        context["branding"] = self.branding
-        context["now"] = timezone.now()
-
+        html_template = loader.get_template(template + ".html")
         html = html_template.render(context)
-        text = text_template.render(context)
+
+        try:
+            text_template = loader.get_template(template + ".txt")
+            text = text_template.render(context)
+        except loader.TemplateDoesNotExist:
+            text = None
 
         send_email(recipients, subject, text, html, self.from_email, self.connection)
 

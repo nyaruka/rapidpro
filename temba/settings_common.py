@@ -925,6 +925,8 @@ ACCOUNT_FORMS = {
     "change_password": "temba.users.forms.TembaChangePasswordForm",
 }
 
+ACCOUNT_ADAPTER = "temba.users.adapter.TembaAccountAdapter"
+
 SOCIALACCOUNT_PROVIDERS = {}
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
