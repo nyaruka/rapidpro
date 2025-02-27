@@ -264,7 +264,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         # change the name and language
-        response = self.assertUpdateSubmit(
+        self.assertUpdateSubmit(
             edit_url,
             self.admin,
             {

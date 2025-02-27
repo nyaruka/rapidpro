@@ -643,7 +643,6 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
     )
     def test_signup(self):
         signup_url = reverse("orgs.org_signup")
-        edit_url = reverse("orgs.user_edit")
 
         response = self.client.get(signup_url + "?%s" % urlencode({"email": "address@example.com"}))
         self.assertEqual(response.status_code, 200)
