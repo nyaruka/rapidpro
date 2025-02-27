@@ -1,4 +1,5 @@
 from urllib.parse import urlencode
+
 from django.urls import reverse
 
 from temba.tests.base import TembaTest
