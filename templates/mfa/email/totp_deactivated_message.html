@@ -2,5 +2,7 @@
 {% load i18n %}
 
 {% block notification_message %}
-  {% blocktrans %}Authenticator app deactivated.{% endblocktrans %}
+  {% blocktrans trimmed %}
+    Authenticator app deactivated.
+  {% endblocktrans %}
 {% endblock notification_message %}

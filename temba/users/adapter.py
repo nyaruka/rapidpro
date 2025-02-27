@@ -17,6 +17,9 @@ class TembaAccountAdapter(DefaultAccountAdapter):
         sender = EmailSender.from_email_type(self.request.branding, "notifications")
         sender.send([email], template_prefix, context)
 
+    def is_open_for_signup(self, request):
+        return "signups" in request.branding.get("features")
+
 
 class TembaMFAAdapter(DefaultMFAAdapter):
     def _get_site_name(self) -> str:

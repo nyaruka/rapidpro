@@ -2,5 +2,7 @@
 {% load i18n %}
 
 {% block notification_message %}
-  {% blocktrans %}Your email has been confirmed.{% endblocktrans %}
+  {% blocktrans trimmed %}
+    Your email has been confirmed.
+  {% endblocktrans %}
 {% endblock notification_message %}

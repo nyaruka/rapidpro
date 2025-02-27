@@ -1,4 +1,4 @@
 {% load i18n %}
 {% autoescape off %}
-{% blocktrans %}Security Key Removed{% endblocktrans %}
+{% blocktrans trimmed %}Security Key Removed{% endblocktrans %}
 {% endautoescape %}

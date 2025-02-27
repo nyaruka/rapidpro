@@ -53,7 +53,9 @@ Sign in with your email address and password
 {% if SOCIALACCOUNT_ENABLED %}
   {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
 {% endif %}
-<div class="sign-in-notice">{% blocktranslate %}Don't have an account yet? {{ link }}Sign up{{ end_link }}{% endblocktranslate %}</div>
+{% if "signups" in request.branding.features %}
+  <div class="sign-in-notice">{% blocktranslate %}Don't have an account yet? {{ link }}Sign up{{ end_link }}{% endblocktranslate %}</div>
+{% endif %}
 {% endblock content %}
 {% block extra_body %}
   {{ block.super }}

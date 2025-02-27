@@ -2,5 +2,7 @@
 {% load i18n %}
 
 {% block notification_message %}
-  {% blocktrans %}A new security key has been added.{% endblocktrans %}
+  {% blocktrans trimmed %}
+    A new security key has been added.
+  {% endblocktrans %}
 {% endblock notification_message %}

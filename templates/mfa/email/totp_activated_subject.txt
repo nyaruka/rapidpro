@@ -1,4 +1,4 @@
 {% load i18n %}
 {% autoescape off %}
-{% blocktrans %}Authenticator App Activated{% endblocktrans %}
+{% blocktrans trimmed %}Authenticator App Activated{% endblocktrans %}
 {% endautoescape %}

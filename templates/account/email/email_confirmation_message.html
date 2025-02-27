@@ -4,12 +4,27 @@
 
 {% block content %}
   {% autoescape off %}
-    {% user_display user as user_display %}{% blocktranslate with site_name=branding.name site_domain=branding.domain %}You're receiving this email because user {{ user_display }} has given your email address to register an account on {{ site_domain }}.{% endblocktranslate %}
+    {% user_display user as user_display %}
+    <div style="margin-top:1em">
+      {% blocktranslate trimmed with site_name=branding.name site_domain=branding.domain %}
+        You're receiving this message because {{ user_display }} has given this email address to register an account on {{ site_name }}.
+      {% endblocktranslate %}
+    </div>
     {% if code %}
-      {% blocktranslate %}Your email verification code is listed below. Please enter it in your open browser window.{% endblocktranslate %}
-      {{ code }}
+      <div style="margin-top:1em">
+        <div>
+          {% blocktranslate trimmed %}
+            Your email verification code is listed below. Please enter it in your open browser window.
+          {% endblocktranslate %}
+        </div>
+        <div style="margin-top:1em;font-weight:bold">{{ code }}</div>
+      </div>
     {% else %}
-      {% blocktranslate %}To confirm this is correct, go to {{ activate_url }}{% endblocktranslate %}
+      <div style="margin-top:1em">
+        {% blocktranslate trimmed %}
+          If this is correct, <a href="{{ activate_url }}">confirm your email address</a>.
+        {% endblocktranslate %}
+      </div>
     {% endif %}
   {% endautoescape %}
 {% endblock content %}
