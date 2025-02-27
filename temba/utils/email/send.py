@@ -71,11 +71,11 @@ class EmailSender:
         # make sure our subject is a single line
         subject = " ".join(subject.splitlines()).strip()
 
-        text = self.render_template(template, [".txt", "_message.txt"], context)
+        text = self.render_template(template, [".txt"], context)
         html = self.render_template(template, [".html", "_message.html"], context)
 
-        if not html and not text:
-            raise ValueError("Could not find message template for %s" % template)
+        if not html:
+            raise ValueError("Could not render message template for %s" % template)
 
         send_email(recipients, subject, text, html, self.from_email, self.connection)
 

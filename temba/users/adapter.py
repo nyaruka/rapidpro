@@ -1,4 +1,5 @@
 from allauth.account.adapter import DefaultAccountAdapter
+from allauth.core import context as allauth_context
 from allauth.mfa.adapter import DefaultMFAAdapter
 
 from django.utils import timezone
@@ -18,6 +19,9 @@ class TembaAccountAdapter(DefaultAccountAdapter):
 
 
 class TembaMFAAdapter(DefaultMFAAdapter):
+    def _get_site_name(self) -> str:
+        return allauth_context.request.get_host()
+
     def build_totp_url(self, user, secret: str) -> str:
         url = super().build_totp_url(user, secret)
 
