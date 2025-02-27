@@ -63,7 +63,7 @@ class LoginViewsTest(TembaTest):
 
         # can't access two-factor verify page yet
         response = self.client.get(verify_url)
-        self.assertLoginRedirect(response)
+        self.assertLoginRedirectLegacy(response)
 
         # login via login page again
         response = self.client.post(
@@ -121,7 +121,7 @@ class LoginViewsTest(TembaTest):
         response = self.client.post(login_url, {"username": "admin@textit.com", "password": "pass123"})
 
         self.assertRedirect(response, failed_url)
-        self.assertRedirect(self.client.get(reverse("msgs.msg_inbox")), login_url)
+        self.assertLoginRedirect(self.client.get(reverse("msgs.msg_inbox")))
 
         # simulate failed logins timing out by making them older
         FailedLogin.objects.all().update(failed_on=timezone.now() - timedelta(minutes=3))
@@ -148,7 +148,7 @@ class LoginViewsTest(TembaTest):
         response = self.client.post(login_url, {"username": "admin@textit.com", "password": "pass123"})
 
         self.assertRedirect(response, failed_url)
-        self.assertRedirect(self.client.get(reverse("msgs.msg_inbox")), login_url)
+        self.assertLoginRedirect(self.client.get(reverse("msgs.msg_inbox")))
 
         # login correctly
         FailedLogin.objects.all().delete()
@@ -163,7 +163,7 @@ class LoginViewsTest(TembaTest):
         self.assertRedirect(response, failed_url)
         self.assertRedirect(self.client.get(verify_url), login_url)
         self.assertRedirect(self.client.get(backup_url), login_url)
-        self.assertRedirect(self.client.get(reverse("msgs.msg_inbox")), login_url)
+        self.assertLoginRedirect(self.client.get(reverse("msgs.msg_inbox")))
 
         # simulate failed logins timing out by making them older
         FailedLogin.objects.all().update(failed_on=timezone.now() - timedelta(minutes=3))
@@ -178,16 +178,6 @@ class LoginViewsTest(TembaTest):
         response = self.client.post(backup_url, {"token": self.admin.backup_tokens.first()})
         self.assertRedirect(response, reverse("orgs.org_choose"))
 
-    def test_logout(self):
-        logout_url = reverse("orgs.logout")
-
-        self.assertEqual(405, self.client.get(logout_url).status_code)
-
-        self.login(self.admin)
-
-        response = self.client.post(logout_url)
-        self.assertLoginRedirect(response)
-
     @override_settings(USER_LOCKOUT_TIMEOUT=1, USER_FAILED_LOGIN_LIMIT=3)
     def test_confirm_access(self):
         confirm_url = reverse("orgs.confirm_access") + "?next=/msg/"
@@ -195,7 +185,7 @@ class LoginViewsTest(TembaTest):
 
         # try to access before logging in
         response = self.client.get(confirm_url)
-        self.assertLoginRedirect(response)
+        self.assertLoginRedirectLegacy(response)
 
         self.login(self.admin)
 
@@ -212,7 +202,7 @@ class LoginViewsTest(TembaTest):
         self.assertRedirect(response, failed_url)
 
         # and we are logged out
-        self.assertLoginRedirect(self.client.get(confirm_url))
+        self.assertLoginRedirectLegacy(self.client.get(confirm_url))
         self.assertLoginRedirect(self.client.get(reverse("msgs.msg_inbox")))
 
         FailedLogin.objects.all().delete()
@@ -326,7 +316,7 @@ class LoginViewsTest(TembaTest):
         # but navigating to tokens page redirects to confirm auth
         response = self.client.get(tokens_url)
         self.assertEqual(302, response.status_code)
-        self.assertTrue(response.url.endswith("/users/confirm-access/?next=/user/two_factor_tokens/"))
+        self.assertTrue(response.url.endswith("/legacy/confirm-access/?next=/user/two_factor_tokens/"))
 
         confirm_url = response.url
 
