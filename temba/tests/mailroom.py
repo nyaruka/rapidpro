@@ -255,12 +255,12 @@ class TestClient(MailroomClient):
 
     @_client_method
     def contact_interrupt(self, org, user, contact) -> int:
-        # get the waiting session IDs
-        session_ids = list(contact.sessions.filter(status=FlowSession.STATUS_WAITING).values_list("id", flat=True))
+        # get the waiting session UUIDs
+        session_uuids = list(contact.sessions.filter(status=FlowSession.STATUS_WAITING).values_list("uuid", flat=True))
 
-        exit_sessions(session_ids, FlowSession.STATUS_INTERRUPTED)
+        exit_sessions(session_uuids, FlowSession.STATUS_INTERRUPTED)
 
-        return len(session_ids)
+        return len(session_uuids)
 
     @_client_method
     def contact_parse_query(self, org, query: str, parse_only: bool = False):
@@ -854,20 +854,21 @@ def find_boundary_by_name(org, name, level, parent):
     return boundary
 
 
-def exit_sessions(session_ids: list, status: str):
-    FlowRun.objects.filter(session_id__in=session_ids).update(
+def exit_sessions(session_uuids: list, status: str):
+    FlowRun.objects.filter(session_uuid__in=session_uuids).update(
         status=status, exited_on=timezone.now(), modified_on=timezone.now()
     )
-    FlowSession.objects.filter(id__in=session_ids).update(
+    FlowSession.objects.filter(uuid__in=session_uuids).update(
         status=status,
         ended_on=timezone.now(),
         current_flow_id=None,
     )
 
-    for session in FlowSession.objects.filter(id__in=session_ids):
+    for session in FlowSession.objects.filter(uuid__in=session_uuids):
+        session.contact.current_session_uuid = None
         session.contact.current_flow = None
         session.contact.modified_on = timezone.now()
-        session.contact.save(update_fields=("current_flow", "modified_on"))
+        session.contact.save(update_fields=("current_session_uuid", "current_flow", "modified_on"))
 
 
 def resolve_destination(org, contact, channel=None) -> tuple:

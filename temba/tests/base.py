@@ -582,7 +582,6 @@ class TembaTest(SmartminTest):
             flow=flow,
             contact=contact,
             status=FlowRun.STATUS_COMPLETED,
-            session=session,
             session_uuid=session.uuid,
             exited_on=timezone.now(),
         )

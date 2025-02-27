@@ -9,7 +9,7 @@ from django.utils import timezone
 from temba.utils.crons import cron_task
 from temba.utils.models import delete_in_batches
 
-from .models import FlowActivityCount, FlowResultCount, FlowRevision, FlowRun, FlowSession, FlowStartCount
+from .models import FlowActivityCount, FlowResultCount, FlowRevision, FlowSession, FlowStartCount
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +45,6 @@ def trim_flow_sessions():
 
     trim_before = timezone.now() - settings.RETENTION_PERIODS["flowsession"]
 
-    def pre_delete(session_ids):
-        # detach any flows runs that belong to these sessions
-        FlowRun.objects.filter(session_id__in=session_ids).update(session_id=None)
-
-    num_deleted = delete_in_batches(FlowSession.objects.filter(ended_on__lte=trim_before), pre_delete=pre_delete)
+    num_deleted = delete_in_batches(FlowSession.objects.filter(ended_on__lte=trim_before))
 
     return {"deleted": num_deleted}
