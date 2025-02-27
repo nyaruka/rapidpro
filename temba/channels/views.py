@@ -43,7 +43,7 @@ from temba.utils.json import EpochEncoder
 from temba.utils.models import patch_queryset_count
 from temba.utils.views.mixins import ComponentFormMixin, ContextMenuMixin, ModalFormMixin, SpaMixin
 
-from .models import Channel, ChannelCount, ChannelLog
+from .models import Channel, ChannelCount, ChannelEvent, ChannelLog
 
 logger = logging.getLogger(__name__)
 
@@ -847,6 +847,28 @@ class ChannelCRUDL(SmartCRUDL):
             context["secret"] = secret
             context["ip_addresses"] = settings.IP_ADDRESSES if self.object.type.config_ui.show_public_ips else None
 
+            return context
+
+
+class ChannelEventCRUDL(SmartCRUDL):
+    model = ChannelEvent
+    path = "events"  # urls like /channels/events/
+    actions = ("read",)
+
+    class Read(SpaMixin, SmartReadView):
+        """
+        Detail view for a single channel event that is a delete request event type
+        """
+
+        permission = None
+        slug_url_kwarg = "uuid"
+
+        def derive_queryset(self, **kwargs):
+            return ChannelEvent.objects.filter(event_type=ChannelEvent.TYPE_DELETE_CONTACT)
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            context["event"] = self.object
             return context
 
 
