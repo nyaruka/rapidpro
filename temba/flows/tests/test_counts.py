@@ -71,10 +71,10 @@ class FlowActivityCountTest(TembaTest):
                     FlowRun(
                         uuid=uuid4(),
                         org=self.org,
-                        session=session,
                         flow=flow,
                         contact=contact,
                         status=status,
+                        session_uuid=session.uuid,
                         created_on=timezone.now(),
                         modified_on=timezone.now(),
                         exited_on=timezone.now() if status not in ("A", "W") else None,
