@@ -235,7 +235,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateFetch(
             edit_url,
             [self.admin],
-            form_fields=["first_name", "last_name", "email", "avatar", "current_password", "new_password", "language"],
+            form_fields=["first_name", "last_name", "avatar", "language"],
         )
 
         # language is only shown if there are multiple options
@@ -243,7 +243,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertUpdateFetch(
                 edit_url,
                 [self.admin],
-                form_fields=["first_name", "last_name", "email", "avatar", "current_password", "new_password"],
+                form_fields=["first_name", "last_name", "avatar"],
             )
 
         self.admin.email_status = "V"  # mark user email as verified
@@ -256,17 +256,15 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             {},
             form_errors={
-                "email": "This field is required.",
                 "first_name": "This field is required.",
                 "last_name": "This field is required.",
                 "language": "This field is required.",
-                "current_password": "Please enter your password to save changes.",
             },
             object_unchanged=self.admin,
         )
 
         # change the name and language
-        self.assertUpdateSubmit(
+        response = self.assertUpdateSubmit(
             edit_url,
             self.admin,
             {
@@ -274,10 +272,8 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
                 "language": "pt-br",
                 "first_name": "Admin",
                 "last_name": "User",
-                "email": "admin@textit.com",
-                "current_password": "",
             },
-            success_status=200,
+            success_status=302,
         )
 
         self.admin.refresh_from_db()
@@ -292,97 +288,6 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.admin.language = "en-us"
         self.admin.save()
-
-        # try to change email without entering password
-        self.assertUpdateSubmit(
-            edit_url,
-            self.admin,
-            {
-                "language": "en-us",
-                "first_name": "Admin",
-                "last_name": "User",
-                "email": "admin@trileet.com",
-                "current_password": "",
-            },
-            form_errors={"current_password": "Please enter your password to save changes."},
-            object_unchanged=self.admin,
-        )
-
-        # submit with current password
-        self.assertUpdateSubmit(
-            edit_url,
-            self.admin,
-            {
-                "language": "en-us",
-                "first_name": "Admin",
-                "last_name": "User",
-                "email": "admin@trileet.com",
-                "current_password": "Qwerty123",
-            },
-            success_status=200,
-        )
-
-        self.admin.refresh_from_db()
-        self.assertEqual("admin@trileet.com", self.admin.email)
-        self.assertEqual("U", self.admin.email_status)  # because email changed
-        self.assertNotEqual("old-email-secret", self.admin.email_verification_secret)
-        self.assertEqual(0, RecoveryToken.objects.filter(user=self.admin).count())
-
-        # should have a email changed notification using old address
-        self.assertEqual({"user:email"}, set(self.admin.notifications.values_list("notification_type", flat=True)))
-        self.assertEqual("admin@textit.com", self.admin.notifications.get().email_address)
-
-        # try to change password without entering current password
-        self.assertUpdateSubmit(
-            edit_url,
-            self.admin,
-            {
-                "language": "en-us",
-                "first_name": "Admin",
-                "last_name": "User",
-                "email": "admin@trileet.com",
-                "new_password": "Sesame765",
-                "current_password": "",
-            },
-            form_errors={"current_password": "Please enter your password to save changes."},
-            object_unchanged=self.admin,
-        )
-
-        # try to change password to something too simple
-        self.assertUpdateSubmit(
-            edit_url,
-            self.admin,
-            {
-                "language": "en-us",
-                "first_name": "Admin",
-                "last_name": "User",
-                "email": "admin@trileet.com",
-                "new_password": "123",
-                "current_password": "Qwerty123",
-            },
-            form_errors={"new_password": "This password is too short. It must contain at least 8 characters."},
-            object_unchanged=self.admin,
-        )
-
-        # submit with current password
-        self.assertUpdateSubmit(
-            edit_url,
-            self.admin,
-            {
-                "language": "en-us",
-                "first_name": "Admin",
-                "last_name": "User",
-                "email": "admin@trileet.com",
-                "new_password": "Sesame765",
-                "current_password": "Qwerty123",
-            },
-            success_status=200,
-        )
-
-        # should have a password changed notification
-        self.assertEqual(
-            {"user:email", "user:password"}, set(self.admin.notifications.values_list("notification_type", flat=True))
-        )
 
         # check that user still has a valid session
         self.assertEqual(200, self.client.get(reverse("msgs.msg_inbox")).status_code)
@@ -401,7 +306,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
                     "last_name": "Flows",
                     "email": "admin@trileet.com",
                 },
-                success_status=200,
+                success_status=302,
             )
 
             self.admin.refresh_from_db()

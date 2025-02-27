@@ -53,7 +53,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             [
                 "Nyaruka",
-                "Account",
+                "API Tokens",
                 "Resthooks",
                 "Incidents",
                 "Export",
@@ -127,7 +127,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             [
                 "Nyaruka",
-                "Account",
+                "API Tokens",
                 "Resthooks",
                 "Incidents",
                 "Export",
@@ -162,7 +162,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             [
                 "Nyaruka",
-                "Account",
+                "API Tokens",
                 "Resthooks",
                 "Incidents",
                 "Workspaces (2)",
@@ -790,46 +790,6 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(reverse("orgs.org_workspace"))
         self.assertEqual(200, response.status_code)
-
-        # try changing our username, wrong password
-        response = self.client.post(edit_url, {"email": "myal@wr.org", "current_password": "HelloWorld"})
-        self.assertEqual(200, response.status_code)
-        self.assertFormError(
-            response.context["form"],
-            "current_password",
-            "Please enter your password to save changes.",
-        )
-
-        # bad new password
-        response = self.client.post(
-            edit_url, {"email": "myal@wr.org", "current_password": "HelloWorld1", "new_password": "passwor"}
-        )
-        self.assertEqual(200, response.status_code)
-        self.assertFormError(
-            response.context["form"],
-            "new_password",
-            "This password is too short. It must contain at least 8 characters.",
-        )
-
-        User.objects.create_user("bill@msn.com", "Qwerty123")
-
-        # dupe user
-        response = self.client.post(edit_url, {"email": "bill@MSN.com", "current_password": "HelloWorld1"})
-        self.assertEqual(200, response.status_code)
-        self.assertFormError(response.context["form"], "email", "Sorry, that email address is already taken.")
-
-        post_data = dict(
-            email="myal@wr.org",
-            first_name="Myal",
-            last_name="Greene",
-            language="en-us",
-            current_password="HelloWorld1",
-        )
-        response = self.client.post(edit_url, post_data, HTTP_X_FORMAX=True)
-        self.assertEqual(200, response.status_code)
-
-        self.assertTrue(User.objects.get(email="myal@wr.org"))
-        self.assertFalse(User.objects.filter(email="myal@relieves.org"))
 
     def test_create_new(self):
         create_url = reverse("orgs.org_create")
