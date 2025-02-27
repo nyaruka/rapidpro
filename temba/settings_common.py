@@ -228,7 +228,6 @@ INSTALLED_APPS = (
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
-    "django.contrib.sites",
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
@@ -925,6 +924,7 @@ ACCOUNT_FORMS = {
 }
 
 ACCOUNT_ADAPTER = "temba.users.adapter.TembaAccountAdapter"
+MFA_ADAPTER = "temba.users.adapter.TembaMFAAdapter"
 
 SOCIALACCOUNT_PROVIDERS = {}
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True

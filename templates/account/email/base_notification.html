@@ -1,4 +1,4 @@
-{% extends "users/email/base_message.html" %}
+{% extends "account/email/base_message.html" %}
 {% load account %}
 {% load i18n %}
 
@@ -12,4 +12,4 @@
 - Browser: {{user_agent}}
 - Date: {{timestamp}}{% endblocktrans %}
   {% endautoescape %}
-{% endblock %}
+{% endblock content %}

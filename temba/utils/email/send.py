@@ -46,6 +46,15 @@ class EmailSender:
 
         return cls(branding, connection, from_email)
 
+    def render_template(self, template_path: str, postfixes, context: dict):
+        for postfix in postfixes:
+            try:
+                template = loader.get_template(f"{template_path}{postfix}")
+                return template.render(context)
+            except loader.TemplateDoesNotExist:
+                pass
+        return None
+
     def send(self, recipients: list, template: str, context: dict, subject: str = None):
         """
         Sends a multi-part email rendered from templates for the text and html parts. `template` should be the name of
@@ -54,24 +63,19 @@ class EmailSender:
         context["branding"] = self.branding
         context["now"] = timezone.now()
 
-        if not subject:  # pragma: no cover
-            try:
-                subject_template = loader.get_template(template + "_subject.txt")
-                subject = subject_template.render(context)
-
-                # strip out any newlines
-                subject = "".join(subject.splitlines())
-            except loader.TemplateDoesNotExist:
+        if not subject:
+            subject = self.render_template(template, ["_subject.txt"], context)
+            if not subject:
                 raise ValueError("No subject provided and subject template doesn't exist")
 
-        html_template = loader.get_template(template + ".html")
-        html = html_template.render(context)
+        # make sure our subject is a single line
+        subject = " ".join(subject.splitlines()).strip()
 
-        try:
-            text_template = loader.get_template(template + ".txt")
-            text = text_template.render(context)
-        except loader.TemplateDoesNotExist:
-            text = None
+        text = self.render_template(template, [".txt", "_message.txt"], context)
+        html = self.render_template(template, [".html", "_message.html"], context)
+
+        if not html and not text:
+            raise ValueError("Could not find message template for %s" % template)
 
         send_email(recipients, subject, text, html, self.from_email, self.connection)
 
