@@ -1,3 +1,7 @@
+v10.1.75 (2025-02-27)
+-------------------------
+ * Drop FlowRun.session_id
+
 v10.1.74 (2025-02-26)
 -------------------------
  * Allow FlowRun.session to be null
