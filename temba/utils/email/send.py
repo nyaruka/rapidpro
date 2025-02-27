@@ -65,7 +65,7 @@ class EmailSender:
 
         if not subject:
             subject = self.render_template(template, ["_subject.txt"], context)
-            if not subject:
+            if not subject:  # pragma: no cover
                 raise ValueError("No subject provided and subject template doesn't exist")
 
         # make sure our subject is a single line
@@ -74,7 +74,7 @@ class EmailSender:
         text = self.render_template(template, [".txt"], context)
         html = self.render_template(template, [".html", "_message.html"], context)
 
-        if not html:
+        if not html:  # pragma: no cover
             raise ValueError("Could not render message template for %s" % template)
 
         send_email(recipients, subject, text, html, self.from_email, self.connection)

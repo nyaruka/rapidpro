@@ -1,3 +1,4 @@
+from urllib.parse import urlencode
 from django.urls import reverse
 
 from temba.tests.base import TembaTest
@@ -46,3 +47,19 @@ class UserAuthTest(TembaTest):
         response = self.client.get(change_password_url)
         self.assertEqual(200, response.status_code)
         self.assertContains(response, "At least 8 characters or more")
+
+    def test_mfa(self):
+        self.login(self.admin)
+        mfa_url = reverse("mfa_activate_totp")
+
+        # we should be forced to reauthenticate before we can get to mfa
+        response = self.client.get(mfa_url)
+        self.assertRedirect(response, reverse("account_reauthenticate"))
+
+        # Reauthenticate and make sure we get the QR code
+        response = self.client.post(
+            f"{reverse("account_reauthenticate")}?{urlencode({'next': mfa_url})}",
+            {"login": self.admin.email, "password": self.default_password},
+            follow=True,
+        )
+        self.assertContains(response, "scan the QR code below")
