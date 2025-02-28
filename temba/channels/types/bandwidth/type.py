@@ -33,12 +33,18 @@ class BandwidthType(ChannelType):
 
     def activate(self, channel):
         domain = channel.org.get_brand_domain()
-        receive_url = "https://" + domain + reverse("courier.bw", args=[channel.uuid, "receive"])
-        status_url = "https://" + domain + reverse("courier.bw", args=[channel.uuid, "status"])
-
         account_id = channel.config.get("account_id")
 
-        application_xml = f"<Application><ServiceType>Messaging-V2</ServiceType><AppName>{domain}/{channel.uuid}</AppName><InboundCallbackUrl>{receive_url}</InboundCallbackUrl><OutboundCallbackUrl>{status_url}</OutboundCallbackUrl><RequestedCallbackTypes><CallbackType>message-delivered</CallbackType><CallbackType>message-failed</CallbackType><CallbackType>message-sending</CallbackType></RequestedCallbackTypes></Application>"
+        if channel.role == "SR":
+            receive_url = "https://" + domain + reverse("courier.bw", args=[channel.uuid, "receive"])
+            status_url = "https://" + domain + reverse("courier.bw", args=[channel.uuid, "status"])
+
+            application_xml = f"<Application><ServiceType>Messaging-V2</ServiceType><AppName>{domain}/{channel.uuid}</AppName><InboundCallbackUrl>{receive_url}</InboundCallbackUrl><OutboundCallbackUrl>{status_url}</OutboundCallbackUrl><RequestedCallbackTypes><CallbackType>message-delivered</CallbackType><CallbackType>message-failed</CallbackType><CallbackType>message-sending</CallbackType></RequestedCallbackTypes></Application>"
+        elif channel.role == "CA":
+            incoming_call_url = "https://" + domain + f"/mr/ivr/c/{channel.uuid}/incoming"
+            status_call_url = "https://" + domain + f"/mr/ivr/c/{channel.uuid}/status"
+
+            application_xml = f"<Application><ServiceType>Voice-V2</ServiceType><AppName>{domain}/{channel.uuid}</AppName><CallInitiatedCallbackUrl>{incoming_call_url}</CallInitiatedCallbackUrl><CallStatusCallbackUrl>{status_call_url}</CallStatusCallbackUrl></Application>"
 
         url = f"https://dashboard.bandwidth.com/api/accounts/{account_id}/applications"
 
