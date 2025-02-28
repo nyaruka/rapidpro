@@ -1,4 +1,5 @@
 from datetime import datetime, timezone as tzone
+from uuid import uuid4
 
 from django_redis import get_redis_connection
 from smartmin.models import SmartModel
@@ -256,6 +257,10 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     TYPE_MESSAGE = "M"
     TYPE_CHOICES = ((TYPE_FLOW, "Flow Event"), (TYPE_MESSAGE, "Message Event"))
 
+    STATUS_SCHEDULING = "P"
+    STATUS_READY = "S"
+    STATUS_CHOICES = ((STATUS_SCHEDULING, _("Scheduling")), (STATUS_READY, _("Ready")))
+
     UNIT_MINUTES = "M"
     UNIT_HOURS = "H"
     UNIT_DAYS = "D"
@@ -273,17 +278,18 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     START_MODES_CHOICES = ((MODE_INTERRUPT, "Interrupt"), (MODE_SKIP, "Skip"), (MODE_PASSIVE, "Passive"))
 
     campaign = models.ForeignKey(Campaign, on_delete=models.PROTECT, related_name="events")
-
     event_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_FLOW)
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_READY)
+
+    # TODO switch contact fires to reference event by this instead of it's ID/UUID so we can invalidate fires without
+    # recreating events
+    fire_uuid = models.UUIDField(default=uuid4, db_index=True)
 
     # the contact specific date value this is event is based on
     relative_to = models.ForeignKey(ContactField, on_delete=models.PROTECT, related_name="campaign_events")
-
-    # offset from that date value (positive is after, negative is before)
-    offset = models.IntegerField(default=0)
-
-    # the unit for the offset, e.g. days, weeks
-    unit = models.CharField(max_length=1, choices=UNIT_CHOICES, default=UNIT_DAYS)
+    offset = models.IntegerField(default=0)  # offset from that date value (positive is after, negative is before)
+    unit = models.CharField(max_length=1, choices=UNIT_CHOICES, default=UNIT_DAYS)  # the unit for the offset
+    delivery_hour = models.IntegerField(default=-1)  # can also specify the hour during the day
 
     # the flow that will be triggered by this event
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="campaign_events")
@@ -293,9 +299,6 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
 
     # when sending single message events, we store the message here (as well as on the flow) for convenience
     message = TranslatableField(max_length=Msg.MAX_TEXT_LEN, null=True)
-
-    # can also specify the hour during the day that the even should be triggered
-    delivery_hour = models.IntegerField(default=-1)
 
     @classmethod
     def create_message_event(
