@@ -257,8 +257,8 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     TYPE_MESSAGE = "M"
     TYPE_CHOICES = ((TYPE_FLOW, "Flow Event"), (TYPE_MESSAGE, "Message Event"))
 
-    STATUS_SCHEDULING = "P"
-    STATUS_READY = "S"
+    STATUS_SCHEDULING = "S"
+    STATUS_READY = "R"
     STATUS_CHOICES = ((STATUS_SCHEDULING, _("Scheduling")), (STATUS_READY, _("Ready")))
 
     UNIT_MINUTES = "M"

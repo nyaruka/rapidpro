@@ -20,6 +20,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="campaignevent",
             name="status",
-            field=models.CharField(choices=[("P", "Scheduling"), ("S", "Ready")], default="S", max_length=1),
+            field=models.CharField(choices=[("S", "Scheduling"), ("R", "Ready")], default="R", max_length=1),
         ),
     ]
