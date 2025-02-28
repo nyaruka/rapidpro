@@ -1,5 +1,4 @@
 from datetime import datetime, timezone as tzone
-from uuid import uuid4
 
 from django_redis import get_redis_connection
 from smartmin.models import SmartModel
@@ -15,6 +14,7 @@ from temba.msgs.models import Msg
 from temba.orgs.models import Org
 from temba.utils import json, on_transaction_commit
 from temba.utils.models import TembaModel, TembaUUIDMixin, TranslatableField
+from temba.utils.uuid import uuid4
 
 
 class Campaign(TembaModel):
@@ -283,7 +283,7 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
 
     # TODO switch contact fires to reference event by this instead of it's ID/UUID so we can invalidate fires without
     # recreating events
-    fire_uuid = models.UUIDField(default=uuid4, db_index=True)
+    fire_uuid = models.UUIDField(default=uuid4)
 
     # the contact specific date value this is event is based on
     relative_to = models.ForeignKey(ContactField, on_delete=models.PROTECT, related_name="campaign_events")
