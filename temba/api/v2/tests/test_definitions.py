@@ -18,10 +18,11 @@ class DefinitionsEndpointTest(APITest):
         self.assertPostNotAllowed(endpoint_url)
         self.assertDeleteNotAllowed(endpoint_url)
 
-        # create a flow with a subflow dependency
+        # create a flow with subflow dependencies
         flow1 = self.create_flow("Parent Flow")
-        flow2 = self.create_flow("Child Flow")
-        flow1.flow_dependencies.add(flow2)
+        flow2 = self.create_flow("Child Flow 1")
+        flow3 = self.create_flow("Child Flow 2")
+        flow1.flow_dependencies.add(flow2, flow3)
 
         # that's used in a campaign
         field = self.create_field("registered", "Registered", ContactField.TYPE_DATETIME)
@@ -38,16 +39,36 @@ class DefinitionsEndpointTest(APITest):
         self.assertGet(
             endpoint_url + f"?flow={flow1.uuid}",
             [self.editor],
-            raw=lambda j: {f["name"] for f in j["flows"]} == {"Child Flow", "Parent Flow"}
+            raw=lambda j: {f["name"] for f in j["flows"]} == {"Parent Flow", "Child Flow 1", "Child Flow 2"}
             and len(j["campaigns"]) == 1
             and len(j["triggers"]) == 1,
         )
 
-        # export just the parent flow
+        # all flow dependencies explicitly
+        self.assertGet(
+            endpoint_url + f"?flow={flow1.uuid}&dependencies=all",
+            [self.editor],
+            raw=lambda j: {f["name"] for f in j["flows"]} == {"Parent Flow", "Child Flow 1", "Child Flow 2"}
+            and len(j["campaigns"]) == 1
+            and len(j["triggers"]) == 1,
+        )
+
+        # no dependencies
         self.assertGet(
             endpoint_url + f"?flow={flow1.uuid}&dependencies=none",
             [self.editor],
-            raw=lambda j: {f["name"] for f in j["flows"]} == {"Parent Flow"},
+            raw=lambda j: {f["name"] for f in j["flows"]} == {"Parent Flow"}
+            and len(j["campaigns"]) == 0
+            and len(j["triggers"]) == 0,
+        )
+
+        # just flow dependencies (includes triggers)
+        self.assertGet(
+            endpoint_url + f"?flow={flow1.uuid}&dependencies=flows",
+            [self.editor],
+            raw=lambda j: {f["name"] for f in j["flows"]} == {"Parent Flow", "Child Flow 1", "Child Flow 2"}
+            and len(j["campaigns"]) == 0
+            and len(j["triggers"]) == 1,
         )
 
         # test an invalid value for dependencies
