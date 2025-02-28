@@ -108,6 +108,8 @@ class APITestMixin:
                 for field, msg in errors.items():
                     self.assertResponseError(response, field, msg, status_code=400)
             elif callable(raw):
+                if not raw(response.json()):
+                    print(response.json())
                 self.assertTrue(raw(response.json()))
             else:
                 self.assertEqual(raw, response.json())

@@ -1,4 +1,5 @@
 import json
+from unittest.mock import call
 from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ValidationError
@@ -55,24 +56,8 @@ class CampaignTest(TembaTest):
 
         campaign.schedule_events_async()
 
-        # should have queued a scheduling task to mailroom for each event
-        self.assertEqual(
-            [
-                {
-                    "org_id": self.org.id,
-                    "type": "schedule_campaign_event",
-                    "queued_on": matchers.Datetime(),
-                    "task": {"campaign_event_id": event1.id, "org_id": self.org.id},
-                },
-                {
-                    "org_id": self.org.id,
-                    "type": "schedule_campaign_event",
-                    "queued_on": matchers.Datetime(),
-                    "task": {"campaign_event_id": event2.id, "org_id": self.org.id},
-                },
-            ],
-            mr_mocks.queued_batch_tasks,
-        )
+        # should have called mailroom to schedule our events
+        self.assertEqual([call(self.org, event1), call(self.org, event2)], mr_mocks.calls["campaign_schedule_event"])
 
         campaign.recreate_events()
 
@@ -218,7 +203,8 @@ class CampaignTest(TembaTest):
             event.flow.get_definition(),
         )
 
-    def test_import(self):
+    @mock_mailroom
+    def test_import(self, mr_mocks):
         self.import_file("test_flows/the_clinic.json")
         self.assertEqual(1, Campaign.objects.count())
 
@@ -239,7 +225,8 @@ class CampaignTest(TembaTest):
         self.assertEqual("und", events[5].flow.base_language)
         self.assertEqual(Flow.CURRENT_SPEC_VERSION, events[5].flow.version_number)
 
-    def test_import_created_on_event(self):
+    @mock_mailroom
+    def test_import_created_on_event(self, mr_mocks):
         campaign = Campaign.create(self.org, self.admin, "New contact reminders", self.farmers)
         created_on = self.org.fields.get(key="created_on")
 
@@ -257,7 +244,8 @@ class CampaignTest(TembaTest):
 
         self.org.import_app(exported, self.admin)
 
-    def test_update_to_non_date(self):
+    @mock_mailroom
+    def test_update_to_non_date(self, mr_mocks):
         # create our campaign and event
         campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
         event = CampaignEvent.create_flow_event(
@@ -300,7 +288,8 @@ class CampaignTest(TembaTest):
             event1.message = {}
             event1.full_clean()
 
-    def test_unarchiving_campaigns(self):
+    @mock_mailroom
+    def test_unarchiving_campaigns(self, mr_mocks):
         # create a campaign
         campaign = Campaign.create(self.org, self.editor, "Planting Reminders", self.farmers)
 

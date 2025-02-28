@@ -454,7 +454,7 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             return _("on")
 
     def schedule_async(self):
-        on_transaction_commit(lambda: mailroom.queue_schedule_campaign_event(self))
+        on_transaction_commit(lambda: mailroom.get_client().campaign_schedule_event(self.campaign.org, self))
 
     def recreate(self):
         """

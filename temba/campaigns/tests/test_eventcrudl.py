@@ -4,7 +4,7 @@ from temba.campaigns.models import Campaign, CampaignEvent
 from temba.campaigns.views import CampaignEventCRUDL
 from temba.contacts.models import ContactField
 from temba.flows.models import Flow
-from temba.tests import CRUDLTestMixin, TembaTest, matchers
+from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
 
@@ -64,7 +64,8 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(read_url, self.editor)
         self.assertRedirect(response, reverse("campaigns.campaign_read", args=[event.campaign.uuid]))
 
-    def test_create(self):
+    @mock_mailroom
+    def test_create(self, mr_mocks):
         farmer1 = self.create_contact("Rob Jasper", phone="+250788111111")
         farmer2 = self.create_contact("Mike Gordon", phone="+250788222222", language="kin")
         self.create_contact("Trey Anastasio", phone="+250788333333")
@@ -377,7 +378,8 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(response.context["form"].fields["kin"].initial, "@fields.planting_date")
         self.assertEqual(response.context["form"].fields["eng"].initial, "Required")
 
-    def test_update(self):
+    @mock_mailroom
+    def test_update(self, mr_mocks):
         event1, event2, event3 = self.campaign1.events.order_by("id")
         other_org_event1 = self.other_org_campaign.events.order_by("id").first()
 
@@ -473,33 +475,30 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             response.context["form"].fields["flow_to_start"].widget.attrs["info_text"],
         )
 
-    def test_delete(self):
-        # update event to have a field dependency
-        event = self.campaign1.events.get(offset=1)
-        update_url = reverse("campaigns.campaignevent_update", args=[event.id])
-        self.assertUpdateSubmit(
-            update_url,
+    @mock_mailroom
+    def test_delete_message_event(self, mr_mocks):
+        event = CampaignEvent.create_message_event(
+            self.org,
             self.admin,
-            {
-                "relative_to": event.relative_to.id,
-                "event_type": "M",
-                "eng": "This is my message @fields.registered",
-                "direction": "A",
-                "offset": 1,
-                "unit": "W",
-                "flow_to_start": "",
-                "delivery_hour": 13,
-                "message_start_mode": "I",
-            },
+            self.campaign1,
+            self.org.fields.get(key="registered"),
+            offset=3,
+            unit="D",
+            message="Hello",
+            delivery_hour=9,
         )
 
-        event = self.campaign1.events.get(offset=1, is_active=True)
+        # update event's flow to have a field dependency
+        field = self.create_field("age", "Age", value_type="N")
+        event.flow.field_dependencies.add(field)
 
-        self.assertEqual(1, event.flow.field_dependencies.count())
+        delete_url = reverse("campaigns.campaignevent_delete", args=[event.id])
 
         # delete the event
-        self.client.post(reverse("campaigns.campaignevent_delete", args=[event.id]), dict())
-        self.assertFalse(CampaignEvent.objects.filter(id=event.id).first().is_active)
+        response = self.assertDeleteSubmit(delete_url, self.admin, object_deactivated=event)
+        self.assertRedirect(response, reverse("campaigns.campaign_read", args=[event.campaign.uuid]))
 
         # our single message flow should be released and take its dependencies with it
+        event.flow.refresh_from_db()
+        self.assertFalse(event.flow.is_active)
         self.assertEqual(event.flow.field_dependencies.count(), 0)

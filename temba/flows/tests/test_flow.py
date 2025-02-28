@@ -10,7 +10,7 @@ from temba.flows.models import Flow, FlowStart, FlowStartCount, FlowUserConflict
 from temba.flows.tasks import squash_flow_counts
 from temba.globals.models import Global
 from temba.orgs.integrations.dtone import DTOneType
-from temba.tests import CRUDLTestMixin, TembaTest, matchers
+from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
 from temba.tests.engine import MockSessionWriter
 from temba.triggers.models import Trigger
 from temba.utils import json
@@ -138,7 +138,8 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(old_saved_on, flow.saved_on)
         self.assertGreater(flow.modified_on, old_modified_on)
 
-    def test_flow_archive_with_campaign(self):
+    @mock_mailroom
+    def test_flow_archive_with_campaign(self, mr_mocks):
         self.login(self.admin)
         self.get_flow("the_clinic")
 

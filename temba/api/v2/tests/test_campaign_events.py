@@ -1,10 +1,12 @@
+from unittest.mock import call
+
 from django.urls import reverse
 from django.utils import timezone
 
 from temba.api.v2.serializers import format_datetime
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField, ContactGroup
-from temba.tests import matchers, mock_mailroom
+from temba.tests import mock_mailroom
 
 from . import APITest
 
@@ -249,16 +251,8 @@ class CampaignEventsEndpointTest(APITest):
         self.assertEqual(event2.message, None)
         self.assertEqual(event2.flow, flow)
 
-        # make sure we queued a mailroom task to schedule this event
-        self.assertEqual(
-            {
-                "org_id": self.org.id,
-                "type": "schedule_campaign_event",
-                "queued_on": matchers.Datetime(),
-                "task": {"campaign_event_id": event2.id, "org_id": self.org.id},
-            },
-            mr_mocks.queued_batch_tasks[-1],
-        )
+        # make sure we called mailroom to schedule this event
+        self.assertEqual(call(self.org, event2), mr_mocks.calls["campaign_schedule_event"][-1])
 
         # update the message event to be a flow event
         self.assertPost(
