@@ -6,6 +6,7 @@ from django.test import override_settings
 
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField
+from temba.flows.models import Flow
 from temba.schedules.models import Schedule
 from temba.tests import MockJsonResponse, MockResponse, TembaTest
 from temba.tickets.models import Topic
@@ -100,7 +101,7 @@ class MailroomClientTest(TembaTest):
         farmers = self.create_group("Farmers", [])
         campaign = Campaign.create(self.org, self.admin, "Reminders", farmers)
         planting_date = self.create_field("planting_date", "Planting Date", value_type=ContactField.TYPE_DATETIME)
-        flow = self.create_flow("Test Flow")
+        flow = Flow.create(self.org, self.admin, "Flow")
         event = CampaignEvent.create_flow_event(
             self.org, self.admin, campaign, planting_date, offset=1, unit="W", flow=flow, delivery_hour=13
         )
@@ -108,7 +109,7 @@ class MailroomClientTest(TembaTest):
         mock_post.return_value = MockJsonResponse(200, {})
         response = self.client.campaign_schedule_event(self.org, event)
 
-        self.assertEqual({}, response)
+        self.assertIsNone(response)
 
         mock_post.assert_called_once_with(
             "http://localhost:8090/mr/campaign/schedule_event",
