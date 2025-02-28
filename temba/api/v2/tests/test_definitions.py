@@ -35,7 +35,14 @@ class DefinitionsEndpointTest(APITest):
             self.org, self.editor, Trigger.TYPE_KEYWORD, flow1, keywords=["test"], match_type=Trigger.MATCH_FIRST_WORD
         )
 
-        # all flow dependencies by default
+        # nothing specified, nothing exported
+        self.assertGet(
+            endpoint_url,
+            [self.editor],
+            raw=lambda j: len(j["flows"]) == 0 and len(j["campaigns"]) == 0 and len(j["triggers"]) == 0,
+        )
+
+        # flow + all dependencies by default
         self.assertGet(
             endpoint_url + f"?flow={flow1.uuid}",
             [self.editor],
@@ -44,7 +51,7 @@ class DefinitionsEndpointTest(APITest):
             and len(j["triggers"]) == 1,
         )
 
-        # all flow dependencies explicitly
+        # flow + all dependencies explicitly
         self.assertGet(
             endpoint_url + f"?flow={flow1.uuid}&dependencies=all",
             [self.editor],
@@ -53,7 +60,7 @@ class DefinitionsEndpointTest(APITest):
             and len(j["triggers"]) == 1,
         )
 
-        # no dependencies
+        # flow + no dependencies
         self.assertGet(
             endpoint_url + f"?flow={flow1.uuid}&dependencies=none",
             [self.editor],
@@ -62,13 +69,20 @@ class DefinitionsEndpointTest(APITest):
             and len(j["triggers"]) == 0,
         )
 
-        # just flow dependencies (includes triggers)
+        # flow + just flow dependencies (includes triggers)
         self.assertGet(
             endpoint_url + f"?flow={flow1.uuid}&dependencies=flows",
             [self.editor],
             raw=lambda j: {f["name"] for f in j["flows"]} == {"Parent Flow", "Child Flow 1", "Child Flow 2"}
             and len(j["campaigns"]) == 0
             and len(j["triggers"]) == 1,
+        )
+
+        # campaign + all dependencies
+        self.assertGet(
+            endpoint_url + f"?campaign={campaign1.uuid}",
+            [self.editor],
+            raw=lambda j: len(j["flows"]) == 3 and len(j["campaigns"]) == 1 and len(j["triggers"]) == 1,
         )
 
         # test an invalid value for dependencies
