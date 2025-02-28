@@ -1,7 +1,9 @@
+from unittest.mock import call
+
 from django.urls import reverse
 
 from temba.campaigns.models import Campaign, CampaignEvent
-from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
+from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
 
 
 class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
@@ -110,8 +112,8 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("Greetings", campaign.name)
         self.assertEqual(group1, campaign.group)
 
-        # group didn't change so should only have dynamic group creation queued
-        self.assertEqual(1, len(mr_mocks.queued_batch_tasks))
+        # won't have rescheduled the campaign's event for just a name change
+        self.assertEqual([], mr_mocks.calls["campaign_schedule_event"])
 
         # submit with group change
         self.assertUpdateSubmit(update_url, self.admin, {"name": "Greetings", "group": group2.id}, success_status=200)
@@ -120,16 +122,9 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("Greetings", campaign.name)
         self.assertEqual(group2, campaign.group)
 
-        # should have a task queued to reschedule the campaign's event
-        self.assertEqual(2, len(mr_mocks.queued_batch_tasks))
+        # should have called mailroom reschedule the campaign's event
         self.assertEqual(
-            {
-                "type": "schedule_campaign_event",
-                "org_id": self.org.id,
-                "task": {"campaign_event_id": campaign.events.filter(is_active=True).get().id, "org_id": self.org.id},
-                "queued_on": matchers.Datetime(),
-            },
-            mr_mocks.queued_batch_tasks[1],
+            [call(self.org, campaign.events.filter(is_active=True).get())], mr_mocks.calls["campaign_schedule_event"]
         )
 
         # can't update archived campaign
@@ -171,7 +166,8 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertListFetch(archived_url, [self.editor, self.admin], context_objects=[campaign2, campaign1])
         self.assertContentMenu(archived_url, self.admin, [])
 
-    def test_archive_and_activate(self):
+    @mock_mailroom
+    def test_archive_and_activate(self, mr_mocks):
         group = self.create_group("Reporters", contacts=[])
         campaign = self.create_campaign(self.org, "Welcomes", group)
         other_org_group = self.create_group("Reporters", contacts=[], org=self.org2)

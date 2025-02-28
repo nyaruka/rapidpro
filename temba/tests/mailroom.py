@@ -145,6 +145,7 @@ class TestClient(MailroomClient):
 
         super().__init__(settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN)
 
+    @_client_method
     def android_event(self, org, channel, phone: str, event_type: str, extra: dict, occurred_on):
         contact, contact_urn = contact_resolve(org, phone)
 
@@ -159,6 +160,7 @@ class TestClient(MailroomClient):
         )
         return {"id": event.id}
 
+    @_client_method
     def android_message(self, org, channel, phone: str, text: str, received_on):
         contact, contact_urn = contact_resolve(org, phone)
         text = text[: Msg.MAX_TEXT_LEN]
@@ -186,8 +188,13 @@ class TestClient(MailroomClient):
         )
         return {"id": msg.id, "duplicate": False}
 
+    @_client_method
     def android_sync(self, channel):
         return {"id": channel.id}
+
+    @_client_method
+    def campaign_schedule_event(self, org, event):
+        pass
 
     @_client_method
     def contact_create(self, org, user, contact: mailroom.ContactSpec):

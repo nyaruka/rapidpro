@@ -2,12 +2,14 @@ from django.urls import reverse
 
 from temba.campaigns.models import Campaign
 from temba.flows.models import Flow
+from temba.tests import mock_mailroom
 
 from . import APITest
 
 
 class DefinitionsEndpointTest(APITest):
-    def test_endpoint(self):
+    @mock_mailroom
+    def test_endpoint(self, mr_mocks):
         endpoint_url = reverse("api.v2.definitions") + ".json"
 
         self.assertGetNotPermitted(endpoint_url, [None, self.agent])
@@ -16,6 +18,7 @@ class DefinitionsEndpointTest(APITest):
 
         self.import_file("test_flows/subflow.json")
         flow = Flow.objects.get(name="Parent Flow")
+        flow.flow_dependencies.add(Flow.objects.get(name="Child Flow"))
 
         # all flow dependencies and we should get the child flow
         self.assertGet(
