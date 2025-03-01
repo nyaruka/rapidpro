@@ -4,6 +4,9 @@ from unittest.mock import patch
 
 from django.test import override_settings
 
+from temba.campaigns.models import Campaign, CampaignEvent
+from temba.contacts.models import ContactField
+from temba.flows.models import Flow
 from temba.schedules.models import Schedule
 from temba.tests import MockJsonResponse, MockResponse, TembaTest
 from temba.tickets.models import Topic
@@ -83,18 +86,35 @@ class MailroomClientTest(TembaTest):
     @patch("requests.post")
     def test_android_sync(self, mock_post):
         mock_post.return_value = MockJsonResponse(200, {"id": 12345})
-        response = self.client.android_sync(
-            channel=self.channel,
-        )
+        response = self.client.android_sync(self.channel)
 
         self.assertEqual({"id": 12345}, response)
 
         mock_post.assert_called_once_with(
             "http://localhost:8090/mr/android/sync",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
-            json={
-                "channel_id": self.channel.id,
-            },
+            json={"channel_id": self.channel.id},
+        )
+
+    @patch("requests.post")
+    def test_campaign_schedule_event(self, mock_post):
+        farmers = self.create_group("Farmers", [])
+        campaign = Campaign.create(self.org, self.admin, "Reminders", farmers)
+        planting_date = self.create_field("planting_date", "Planting Date", value_type=ContactField.TYPE_DATETIME)
+        flow = Flow.create(self.org, self.admin, "Flow")
+        event = CampaignEvent.create_flow_event(
+            self.org, self.admin, campaign, planting_date, offset=1, unit="W", flow=flow, delivery_hour=13
+        )
+
+        mock_post.return_value = MockJsonResponse(200, {})
+        response = self.client.campaign_schedule_event(self.org, event)
+
+        self.assertIsNone(response)
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mr/campaign/schedule_event",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={"org_id": self.org.id, "event_id": event.id},
         )
 
     @patch("requests.post")
