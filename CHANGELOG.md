@@ -1,3 +1,9 @@
+v10.1.76 (2025-03-03)
+-------------------------
+ * Tweak how we render upcoming campaign events to support fires with version in scope
+ * Add CampaignEvent.fire_version and status
+ * Switch rescheduling of campaign events to use new mailroom endpoint and add new fields to support invalidating fires without recreating events.
+
 v10.1.75 (2025-02-27)
 -------------------------
  * Drop FlowRun.session_id
