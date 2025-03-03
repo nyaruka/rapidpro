@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="campaignevent",
-            name="schedule_version",
+            name="fire_version",
             field=models.IntegerField(default=1),
         ),
     ]

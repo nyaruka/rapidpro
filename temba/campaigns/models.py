@@ -279,7 +279,7 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     campaign = models.ForeignKey(Campaign, on_delete=models.PROTECT, related_name="events")
     event_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_FLOW)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_READY)
-    schedule_version = models.IntegerField(default=1)  # updated when the scheduling values below are changed
+    fire_version = models.IntegerField(default=1)  # updated when the scheduling values below are changed
 
     # the contact specific date value this is event is based on
     relative_to = models.ForeignKey(ContactField, on_delete=models.PROTECT, related_name="campaign_events")
