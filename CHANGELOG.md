@@ -1,3 +1,7 @@
+v10.1.77 (2025-03-03)
+-------------------------
+ * Fix value key for tickets in editor
+
 v10.1.76 (2025-03-03)
 -------------------------
  * Tweak how we render upcoming campaign events to support fires with version in scope
