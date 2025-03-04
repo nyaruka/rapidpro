@@ -490,7 +490,11 @@ class CampaignEventCRUDL(SmartCRUDL):
         def build_context_menu(self, menu):
             obj = self.get_object()
 
-            if self.has_org_perm("campaigns.campaignevent_update") and not obj.campaign.is_archived:
+            if (
+                self.has_org_perm("campaigns.campaignevent_update")
+                and obj.status != obj.STATUS_SCHEDULING
+                and not obj.campaign.is_archived
+            ):
                 menu.add_modax(
                     _("Edit"),
                     "event-update",
@@ -541,15 +545,17 @@ class CampaignEventCRUDL(SmartCRUDL):
             "flow_start_mode",
         ]
 
-        def pre_process(self, request, *args, **kwargs):
-            event = self.get_object()
-            if not event.is_active or not event.campaign.is_active or event.campaign.is_archived:
-                raise Http404("Event not found")
-
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
             kwargs["org"] = self.request.org
             return kwargs
+
+        def get_queryset(self):
+            return (
+                super()
+                .get_queryset()
+                .filter(is_active=True, status=CampaignEvent.STATUS_READY, campaign__is_archived=False)
+            )
 
         def get_object_org(self):
             return self.get_object().campaign.org

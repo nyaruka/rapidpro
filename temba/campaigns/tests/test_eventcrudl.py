@@ -46,6 +46,11 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "1 week after")
         self.assertContains(response, "Registered")
         self.assertEqual("/campaign/active/", response.headers.get(TEMBA_MENU_SELECTION))
+        self.assertContentMenu(read_url, self.admin, ["Delete"])  # because new events have SCHEDULING status
+
+        event.status = CampaignEvent.STATUS_READY
+        event.save(update_fields=("status",))
+
         self.assertContentMenu(read_url, self.admin, ["Edit", "Delete"])
 
         event.campaign.is_archived = True
@@ -259,6 +264,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("W", event.unit)
         self.assertEqual("M", event.event_type)
         self.assertEqual("I", event.start_mode)
+        self.assertEqual("S", event.status)
 
         self.assertEqual("hello", event.get_message(contact=farmer1))
         self.assertEqual("muraho", event.get_message(contact=farmer2))
@@ -292,6 +298,9 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             flow_json,
         )
 
+        event.status = CampaignEvent.STATUS_READY
+        event.save(update_fields=("status",))
+
         update_url = reverse("campaigns.campaignevent_update", args=[event.id])
 
         # update the event to be passive
@@ -320,6 +329,10 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("W", event.unit)
         self.assertEqual("M", event.event_type)
         self.assertEqual("P", event.start_mode)
+        self.assertEqual("S", event.status)
+
+        event.status = CampaignEvent.STATUS_READY
+        event.save(update_fields=("status",))
 
         update_url = reverse("campaigns.campaignevent_update", args=[event.id])
 
@@ -364,6 +377,9 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         # update org languages to something not including the flow's base language
         self.org.set_flow_languages(self.admin, ["por", "kin"])
 
+        event.status = CampaignEvent.STATUS_READY
+        event.save(update_fields=("status",))
+
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
 
         # should get new org primary language but also base language of flow
@@ -383,6 +399,12 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         flow = self.org.flows.get(name="Welcomes Flow")
 
         update_url = reverse("campaigns.campaignevent_update", args=[event1.id])
+
+        # newly created events have SCHEDULING status and can't be edited
+        self.assertRequestDisallowed(update_url, [self.admin])
+
+        event1.status = CampaignEvent.STATUS_READY
+        event1.save(update_fields=("status",))
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
         self.assertUpdateFetch(
@@ -429,7 +451,11 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(event1.delivery_hour, 11)
         self.assertEqual(event1.start_mode, "I")
         self.assertEqual(event1.message, {"eng": "Hi there"})
+        self.assertEqual(event1.status, "S")
         self.assertEqual(event1.fire_version, 2)  # bumped
+
+        event1.status = CampaignEvent.STATUS_READY
+        event1.save(update_fields=("status",))
 
         # if we only update message content, fire version isn't bumped
         response = self.assertUpdateSubmit(
@@ -451,9 +477,13 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
 
         event1.refresh_from_db()
         self.assertEqual(event1.message, {"eng": "Hi there friends"})
-        self.assertEqual(event1.fire_version, 2)  # same
+        self.assertEqual(event1.status, "R")  # unchanged
+        self.assertEqual(event1.fire_version, 2)  # unchanged
 
         # event based on background flow should show a warning for it's info text
+        event3.status = CampaignEvent.STATUS_READY
+        event3.save(update_fields=("status",))
+
         update_url = reverse("campaigns.campaignevent_update", args=[event3.id])
         response = self.requestView(update_url, self.admin)
         self.assertEqual(
