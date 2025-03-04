@@ -1,3 +1,7 @@
+v10.1.79 (2025-03-04)
+-------------------------
+ * Enforce default topic in editor
+
 v10.1.78 (2025-03-04)
 -------------------------
  * Data migration to update all campaign event fires to have a version in scope
