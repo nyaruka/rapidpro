@@ -671,8 +671,12 @@ class Contact(LegacyUUIDMixin, SmartModel):
         """
         from temba.campaigns.models import CampaignEvent
 
+        def scope_to_event_id(scope: str) -> int:
+            # scope is "<eventid>:<fire_version>"
+            return int(scope.split(":")[0])
+
         fires = self.fires.filter(fire_type=ContactFire.TYPE_CAMPAIGN_EVENT)
-        event_ids = {int(f.scope) for f in fires}
+        event_ids = {scope_to_event_id(f.scope) for f in fires}
         events = CampaignEvent.objects.filter(
             campaign__org=self.org, campaign__is_archived=False, id__in=event_ids, is_active=True
         )
@@ -680,7 +684,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
         merged = []
         for fire in fires:
-            event = events_by_id.get(int(fire.scope))
+            event = events_by_id.get(scope_to_event_id(fire.scope))
             if event:
                 obj = {
                     "type": "campaign_event",

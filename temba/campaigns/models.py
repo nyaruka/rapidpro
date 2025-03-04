@@ -14,7 +14,6 @@ from temba.msgs.models import Msg
 from temba.orgs.models import Org
 from temba.utils import json, on_transaction_commit
 from temba.utils.models import TembaModel, TembaUUIDMixin, TranslatableField
-from temba.utils.uuid import uuid4
 
 
 class Campaign(TembaModel):
@@ -280,10 +279,7 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     campaign = models.ForeignKey(Campaign, on_delete=models.PROTECT, related_name="events")
     event_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_FLOW)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_READY)
-
-    # TODO switch contact fires to reference event by this instead of it's ID/UUID so we can invalidate fires without
-    # recreating events
-    fire_uuid = models.UUIDField(default=uuid4)
+    fire_version = models.IntegerField(default=1)  # updated when the scheduling values below are changed
 
     # the contact specific date value this is event is based on
     relative_to = models.ForeignKey(ContactField, on_delete=models.PROTECT, related_name="campaign_events")
