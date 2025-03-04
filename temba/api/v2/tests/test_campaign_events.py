@@ -187,6 +187,8 @@ class CampaignEventsEndpointTest(APITest):
         self.assertEqual(event1.unit, "W")
         self.assertEqual(event1.delivery_hour, -1)
         self.assertEqual(event1.message, {"eng": "You are @fields.age"})
+        self.assertEqual(event1.status, "S")
+        self.assertEqual(event1.fire_version, 1)
         self.assertIsNotNone(event1.flow)
 
         # try to create a message event with an empty message
@@ -254,43 +256,48 @@ class CampaignEventsEndpointTest(APITest):
         # make sure we called mailroom to schedule this event
         self.assertEqual(call(self.org, event2), mr_mocks.calls["campaign_schedule_event"][-1])
 
-        # update the message event to be a flow event
+        CampaignEvent.objects.filter(campaign=campaign1).update(status=CampaignEvent.STATUS_READY)
+
+        # update the message event to be a flow event (don't change scheduling)
         self.assertPost(
             endpoint_url + f"?uuid={event1.uuid}",
             self.editor,
             {
                 "campaign": str(campaign1.uuid),
-                "relative_to": "registration",
+                "relative_to": "created_on",
                 "offset": 15,
-                "unit": "weeks",
+                "unit": "days",
                 "delivery_hour": -1,
                 "flow": str(flow.uuid),
             },
         )
 
-        event1 = CampaignEvent.objects.filter(campaign=campaign1).order_by("-id").first()
-
+        event1.refresh_from_db()
         self.assertEqual(event1.event_type, CampaignEvent.TYPE_FLOW)
         self.assertIsNone(event1.message)
         self.assertEqual(event1.flow, flow)
+        self.assertEqual(event1.status, "R")  # unchanged
+        self.assertEqual(event1.fire_version, 1)  # unchanged
 
-        # and update the flow event to be a message event
+        # and update the flow event to be a message event (do change scheduling)
         self.assertPost(
             endpoint_url + f"?uuid={event2.uuid}",
             self.editor,
             {
                 "campaign": str(campaign1.uuid),
                 "relative_to": "registration",
-                "offset": 15,
+                "offset": 10,
                 "unit": "weeks",
                 "delivery_hour": -1,
                 "message": {"eng": "OK @(format_urn(urns.tel))", "fra": "D'accord"},
             },
         )
 
-        event2 = CampaignEvent.objects.filter(campaign=campaign1).order_by("-id").first()
+        event2.refresh_from_db()
         self.assertEqual(event2.event_type, CampaignEvent.TYPE_MESSAGE)
         self.assertEqual(event2.message, {"eng": "OK @(format_urn(urns.tel))", "fra": "D'accord"})
+        self.assertEqual(event2.status, "S")
+        self.assertEqual(event2.fire_version, 2)  # bumped
 
         # and update update it's message again
         self.assertPost(
