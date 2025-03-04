@@ -43,6 +43,7 @@ from temba.orgs.views.base import (
     BaseUpdateModal,
 )
 from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin
+from temba.tickets.models import Topic
 from temba.triggers.models import Trigger
 from temba.utils import analytics, gettext, json, languages
 from temba.utils.fields import (
@@ -778,6 +779,10 @@ class FlowCRUDL(SmartCRUDL):
 
             context["active_start"] = flow.get_active_start()
             context["feature_filters"] = json.dumps(self.get_features(flow.org))
+
+            default_topic = Topic.objects.get(org=self.request.org, is_system=True, is_default=True)
+            context["default_topic"] = json.dumps({"name": default_topic.name, "uuid": str(default_topic.uuid)})
+
             return context
 
         def get_features(self, org) -> list:
