@@ -606,30 +606,29 @@ class CampaignEventCRUDL(SmartCRUDL):
             obj = super().pre_save(obj)
             self.form.pre_save(self.request, obj)
 
-            prev = CampaignEvent.objects.get(pk=obj.pk)
-            if prev.event_type == "M" and (obj.event_type == "F" and prev.flow):  # pragma: needs cover
+            prev = CampaignEvent.objects.get(id=obj.id)
+            if prev.event_type == CampaignEvent.TYPE_MESSAGE and (
+                obj.event_type == CampaignEvent.TYPE_FLOW and prev.flow
+            ):  # pragma: needs cover
                 flow = prev.flow
                 flow.is_active = False
-                flow.save()
+                flow.save(update_fields=("is_active",))
                 obj.message = None
 
-            # if we changed anything, update our event fires
+            # if we changed scheduling, update the fire version to invalidate existing fires
             if (
                 prev.unit != obj.unit
                 or prev.offset != obj.offset
                 or prev.relative_to != obj.relative_to
                 or prev.delivery_hour != obj.delivery_hour
-                or prev.message != obj.message
-                or prev.flow != obj.flow
-                or prev.start_mode != obj.start_mode
             ):
-                obj = obj.recreate()
+                obj.fire_version += 1
                 obj.schedule_async()
 
             return obj
 
         def get_success_url(self):
-            return reverse("campaigns.campaignevent_read", args=[self.object.campaign.uuid, self.object.pk])
+            return reverse("campaigns.campaignevent_read", args=[self.object.campaign.uuid, self.object.id])
 
     class Create(ModalFormMixin, OrgPermsMixin, SmartCreateView):
         default_fields = [
