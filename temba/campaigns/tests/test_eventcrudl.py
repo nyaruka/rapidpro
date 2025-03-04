@@ -57,12 +57,12 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertContentMenu(read_url, self.admin, ["Delete"])
 
-        # deleted events should redirect to campaign read page
+        # can't view a deleted event
         event.is_active = False
         event.save(update_fields=("is_active",))
 
         response = self.requestView(read_url, self.editor)
-        self.assertRedirect(response, reverse("campaigns.campaign_read", args=[event.campaign.uuid]))
+        self.assertEqual(404, response.status_code)
 
     @mock_mailroom
     def test_create(self, mr_mocks):

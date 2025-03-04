@@ -1,7 +1,6 @@
 from smartmin.views import SmartCreateView, SmartCRUDL, SmartDeleteView, SmartReadView, SmartUpdateView
 
 from django import forms
-from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db.models.functions import Lower
 from django.http import Http404, HttpResponseRedirect
@@ -477,12 +476,8 @@ class CampaignEventCRUDL(SmartCRUDL):
         def derive_menu_path(self):
             return f"/campaign/{'archived' if self.get_object().campaign.is_archived else 'active'}/"
 
-        def pre_process(self, request, *args, **kwargs):
-            event = self.get_object()
-            if not event.is_active:
-                messages.error(self.request, "Campaign event no longer exists")
-                return HttpResponseRedirect(reverse("campaigns.campaign_read", args=[event.campaign.uuid]))
-            return super().pre_process(request, *args, **kwargs)
+        def get_queryset(self):
+            return super().get_queryset().filter(is_active=True)
 
         def get_object_org(self):
             return self.get_object().campaign.org
