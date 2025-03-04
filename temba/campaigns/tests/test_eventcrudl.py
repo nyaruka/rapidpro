@@ -46,12 +46,16 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "1 week after")
         self.assertContains(response, "Registered")
         self.assertEqual("/campaign/active/", response.headers.get(TEMBA_MENU_SELECTION))
-        self.assertContentMenu(read_url, self.admin, ["Delete"])  # because new events have SCHEDULING status
+        self.assertContentMenu(read_url, self.admin, ["Edit", "Delete"])
+
+        # can't edit an event whilst it's being scheduled
+        event.status = CampaignEvent.STATUS_SCHEDULING
+        event.save(update_fields=("status",))
+
+        self.assertContentMenu(read_url, self.admin, ["Delete"])
 
         event.status = CampaignEvent.STATUS_READY
         event.save(update_fields=("status",))
-
-        self.assertContentMenu(read_url, self.admin, ["Edit", "Delete"])
 
         event.campaign.is_archived = True
         event.campaign.save()
@@ -60,6 +64,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertReadFetch(read_url, [self.editor], context_object=event)
         self.assertEqual("/campaign/archived/", response.headers.get(TEMBA_MENU_SELECTION))
 
+        # can't edit the events of an archived campaign
         self.assertContentMenu(read_url, self.admin, ["Delete"])
 
         # can't view a deleted event
@@ -167,7 +172,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
                 "delivery_hour": 13,
                 "message_start_mode": "I",
             },
-            new_obj_query=CampaignEvent.objects.filter(campaign=campaign, event_type="M"),
+            new_obj_query=CampaignEvent.objects.filter(campaign=campaign, event_type="M", fire_version=1, status="S"),
         )
 
         event1 = CampaignEvent.objects.get(campaign=campaign)
@@ -400,12 +405,6 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
 
         update_url = reverse("campaigns.campaignevent_update", args=[event1.id])
 
-        # newly created events have SCHEDULING status and can't be edited
-        self.assertRequestDisallowed(update_url, [self.admin])
-
-        event1.status = CampaignEvent.STATUS_READY
-        event1.save(update_fields=("status",))
-
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
         self.assertUpdateFetch(
             update_url,
@@ -452,7 +451,10 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(event1.start_mode, "I")
         self.assertEqual(event1.message, {"eng": "Hi there"})
         self.assertEqual(event1.status, "S")
-        self.assertEqual(event1.fire_version, 2)  # bumped
+        self.assertEqual(event1.fire_version, 1)  # bumped
+
+        # can't update an event whilst it's being scheduled
+        self.assertRequestDisallowed(update_url, [self.admin])
 
         event1.status = CampaignEvent.STATUS_READY
         event1.save(update_fields=("status",))
@@ -478,7 +480,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         event1.refresh_from_db()
         self.assertEqual(event1.message, {"eng": "Hi there friends"})
         self.assertEqual(event1.status, "R")  # unchanged
-        self.assertEqual(event1.fire_version, 2)  # unchanged
+        self.assertEqual(event1.fire_version, 1)  # unchanged
 
         # event based on background flow should show a warning for it's info text
         event3.status = CampaignEvent.STATUS_READY

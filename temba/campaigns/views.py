@@ -623,8 +623,6 @@ class CampaignEventCRUDL(SmartCRUDL):
                 or prev.relative_to != obj.relative_to
                 or prev.delivery_hour != obj.delivery_hour
             ):
-                obj.fire_version += 1
-                obj.status = CampaignEvent.STATUS_SCHEDULING
                 obj.schedule_async()
 
             return obj

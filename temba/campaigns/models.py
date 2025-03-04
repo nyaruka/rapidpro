@@ -278,8 +278,8 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
 
     campaign = models.ForeignKey(Campaign, on_delete=models.PROTECT, related_name="events")
     event_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_FLOW)
-    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_SCHEDULING)
-    fire_version = models.IntegerField(default=1)  # updated when the scheduling values below are changed
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_READY)
+    fire_version = models.IntegerField(default=0)  # updated when the scheduling values below are changed
 
     # the contact specific date value this is event is based on
     relative_to = models.ForeignKey(ContactField, on_delete=models.PROTECT, related_name="campaign_events")
@@ -450,6 +450,10 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             return _("on")
 
     def schedule_async(self):
+        self.fire_version += 1
+        self.status = self.STATUS_SCHEDULING
+        self.save(update_fields=("fire_version", "status"))
+
         on_transaction_commit(lambda: mailroom.get_client().campaign_schedule_event(self.campaign.org, self))
 
     def recreate(self):
@@ -515,9 +519,10 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
         """
         Marks the event inactive and releases flows for single message flows
         """
-        # we need to be inactive so our fires are noops
+
         self.is_active = False
         self.modified_by = user
+        self.modified_on = timezone.now()
         self.save(update_fields=("is_active", "modified_by", "modified_on"))
 
         # if flow isn't a user created flow we can delete it too
