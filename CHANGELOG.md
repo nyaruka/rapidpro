@@ -1,3 +1,7 @@
+v10.1.78 (2025-03-04)
+-------------------------
+ * Data migration to update all campaign event fires to have a version in scope
+
 v10.1.77 (2025-03-03)
 -------------------------
  * Fix value key for tickets in editor
