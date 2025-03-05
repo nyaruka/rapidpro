@@ -2,13 +2,59 @@ from datetime import datetime, timezone as tzone
 
 from django_redis import get_redis_connection
 
+from django.utils import timezone
+
 from temba.campaigns.models import Campaign, CampaignEvent
-from temba.contacts.models import ContactField
+from temba.contacts.models import ContactField, ContactFire
 from temba.tests import TembaTest
 from temba.utils.uuid import uuid4
 
 
 class CampaignEventTest(TembaTest):
+    def test_fire_counts(self):
+        contact1 = self.create_contact("Ann", phone="+1234567890")
+        contact2 = self.create_contact("Bob", phone="+1234567891")
+        farmers = self.create_group("Farmers", [contact1, contact2])
+        campaign = Campaign.create(self.org, self.admin, "Reminders", farmers)
+        planting_date = self.create_field("planting_date", "Planting Date", value_type=ContactField.TYPE_DATETIME)
+        event1 = CampaignEvent.create_message_event(
+            self.org, self.admin, campaign, planting_date, offset=1, unit="W", message="1", delivery_hour=13
+        )
+        event2 = CampaignEvent.create_message_event(
+            self.org, self.admin, campaign, planting_date, offset=3, unit="D", message="2", delivery_hour=9
+        )
+
+        def create_fire(contact, event, fire_version=None):
+            return ContactFire.objects.create(
+                org=self.org,
+                contact=contact,
+                fire_type="C",
+                scope=f"{event.id}:{fire_version or event.fire_version}",
+                fire_on=timezone.now(),
+            )
+
+        create_fire(contact1, event1)
+        fire2 = create_fire(contact2, event1)
+        fire3 = create_fire(contact1, event2)
+        create_fire(contact1, event2, fire_version=2)  # not the current version
+        ContactFire.objects.create(org=self.org, contact=contact1, fire_type="S", scope="", fire_on=timezone.now())
+
+        self.assertEqual(2, event1.get_fire_count())
+        self.assertEqual(1, event2.get_fire_count())
+
+        # can also be prefetched
+        events = campaign.get_events()
+        campaign.prefetch_fire_counts(events)
+
+        self.assertEqual(2, events[0].get_fire_count())
+        self.assertEqual(1, events[1].get_fire_count())
+
+        fire2.delete()
+        fire3.delete()
+
+        self.assertEqual(1, event1.get_fire_count())
+        self.assertEqual(0, event2.get_fire_count())
+
     def test_get_recent_fires(self):
         contact1 = self.create_contact("Ann", phone="+1234567890")
         contact2 = self.create_contact("Bob", phone="+1234567891")

@@ -1,9 +1,11 @@
+from collections import defaultdict
 from datetime import datetime, timezone as tzone
 
 from django_redis import get_redis_connection
 from smartmin.models import SmartModel
 
 from django.db import models
+from django.db.models import Sum
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _, ngettext
 
@@ -188,6 +190,21 @@ class Campaign(TembaModel):
 
     def get_events(self):
         return self.events.filter(is_active=True).order_by("id")
+
+    def prefetch_fire_counts(self, events):
+        """
+        Prefetches contact fire counts for all events
+        """
+
+        scopes = [f"campfires:{e.id}:{e.fire_version}" for e in events]
+        counts = self.org.counts.filter(scope__in=scopes).values_list("scope").annotate(total=Sum("count"))
+        by_event = defaultdict(int)
+        for count in counts:
+            event_id = int(count[0].split(":")[1])
+            by_event[event_id] = count[1]
+
+        for event in events:
+            setattr(event, "_fire_count", by_event[event.id])
 
     def as_export_def(self):
         """
@@ -450,6 +467,8 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             return _("on")
 
     def schedule_async(self):
+        self.delete_fire_counts()  # new counts will be created with new fire version
+
         self.fire_version += 1
         self.status = self.STATUS_SCHEDULING
         self.save(update_fields=("fire_version", "status"))
@@ -515,6 +534,15 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
 
         return recent
 
+    def get_fire_count(self) -> int:
+        if hasattr(self, "_fire_count"):  # use prefetched value if available
+            return self._fire_count
+
+        return self.campaign.org.counts.filter(scope=f"campfires:{self.id}:{self.fire_version}").sum()
+
+    def delete_fire_counts(self):
+        self.campaign.org.counts.filter(scope__startswith=f"campfires:{self.id}:").delete()
+
     def release(self, user):
         """
         Marks the event inactive and releases flows for single message flows
@@ -524,6 +552,8 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
         self.modified_by = user
         self.modified_on = timezone.now()
         self.save(update_fields=("is_active", "modified_by", "modified_on"))
+
+        self.delete_fire_counts()
 
         # if flow isn't a user created flow we can delete it too
         if self.event_type == CampaignEvent.TYPE_MESSAGE:
