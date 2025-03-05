@@ -5,7 +5,7 @@ from django.db.models import F, Value
 from django.db.models.functions import Concat
 
 
-def add_version_to_event_fires(apps, schema_editor):
+def add_version_to_event_fires(apps, schema_editor):  # pragma: no cover
     ContactFire = apps.get_model("contacts", "ContactFire")
 
     num_updated = 0
