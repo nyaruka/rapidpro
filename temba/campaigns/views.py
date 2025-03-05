@@ -104,8 +104,8 @@ class CampaignCRUDL(SmartCRUDL):
 
             # if our group changed, create our new fires
             if new_group != previous_group:
-                self.object.recreate_events()
-                self.object.schedule_events_async()
+                for event in self.object.get_events():
+                    event.schedule_async()
 
             return self.render_modal_response(form)
 

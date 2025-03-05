@@ -554,7 +554,7 @@ class Org(SmartModel):
 
         # queue mailroom tasks to schedule campaign events
         for campaign in new_campaigns:
-            campaign.schedule_events_async()
+            campaign.schedule_async()
 
         # with all the flows and dependencies committed, we can now have mailroom do full validation
         for flow in new_flows:

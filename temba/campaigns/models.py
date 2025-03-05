@@ -29,27 +29,19 @@ class Campaign(TembaModel):
 
         return cls.objects.create(org=org, name=name, group=group, created_by=user, modified_by=user)
 
+    def schedule_async(self):
+        """
+        Schedules or reschedules all the events in this campaign. Required on creation or when group changes.
+        """
+
+        for event in self.get_events():
+            event.schedule_async()
+
     def archive(self, user):
         self.is_archived = True
         self.modified_by = user
         self.modified_on = timezone.now()
         self.save(update_fields=("is_archived", "modified_by", "modified_on"))
-
-    def recreate_events(self):
-        """
-        Recreates all the events in this campaign - called when something like the group changes.
-        """
-
-        for event in self.get_events():
-            event.recreate()
-
-    def schedule_events_async(self):
-        """
-        Schedules all the events in this campaign - called when something like the group changes.
-        """
-
-        for event in self.get_events():
-            event.schedule_async()
 
     @classmethod
     def import_campaigns(cls, org, user, campaign_defs, same_site=False) -> list:
@@ -186,7 +178,7 @@ class Campaign(TembaModel):
             for event in events:
                 event.flow.restore(user)
 
-            campaign.schedule_events_async()
+            campaign.schedule_async()
 
     def get_events(self):
         return self.events.filter(is_active=True).order_by("id")
@@ -474,42 +466,6 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
         self.save(update_fields=("fire_version", "status"))
 
         on_transaction_commit(lambda: mailroom.get_client().campaign_schedule_event(self.campaign.org, self))
-
-    def recreate(self):
-        """
-        Cleaning up millions of event fires would be expensive so instead we treat campaign events as immutable objects
-        and when a change is made that would invalidate existing event fires, we deactivate the event and recreate it.
-        The event fire handling code knows to ignore event fires for deactivated event.
-        """
-        self.release(self.created_by)
-
-        # clone our event into a new event
-        if self.event_type == CampaignEvent.TYPE_FLOW:
-            return CampaignEvent.create_flow_event(
-                self.campaign.org,
-                self.created_by,
-                self.campaign,
-                self.relative_to,
-                self.offset,
-                self.unit,
-                self.flow,
-                self.delivery_hour,
-                self.start_mode,
-            )
-
-        elif self.event_type == CampaignEvent.TYPE_MESSAGE:
-            return CampaignEvent.create_message_event(
-                self.campaign.org,
-                self.created_by,
-                self.campaign,
-                self.relative_to,
-                self.offset,
-                self.unit,
-                self.message,
-                self.delivery_hour,
-                self.flow.base_language,
-                self.start_mode,
-            )
 
     def get_recent_fires(self) -> list[dict]:
         r = get_redis_connection()
