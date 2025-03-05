@@ -341,9 +341,14 @@ class CampaignWriteSerializer(WriteSerializer):
         group = self.validated_data.get("group")
 
         if self.instance:
+            needs_scheduling = self.instance.group != group
+
             self.instance.name = name
             self.instance.group = group
             self.instance.save(update_fields=("name", "group"))
+
+            if needs_scheduling:
+                self.instance.schedule_async()
         else:
             self.instance = Campaign.create(self.context["org"], self.context["user"], name, group)
 
