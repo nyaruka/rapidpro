@@ -1695,9 +1695,6 @@ class FlowStart(models.Model):
     query = models.TextField(null=True)
     exclusions = models.JSONField(default=dict, null=True)
 
-    campaign_event = models.ForeignKey(
-        "campaigns.CampaignEvent", null=True, on_delete=models.PROTECT, related_name="flow_starts"
-    )
     calls = models.ManyToManyField("ivr.Call", related_name="starts")
 
     params = models.JSONField(null=True, default=dict)
@@ -1722,13 +1719,11 @@ class FlowStart(models.Model):
         query=None,
         exclusions=None,
         params=None,
-        campaign_event=None,
     ):
         start = cls.objects.create(
             org=flow.org,
             flow=flow,
             start_type=start_type,
-            campaign_event=campaign_event,
             urns=list(urns),
             query=query,
             exclusions=exclusions or {},

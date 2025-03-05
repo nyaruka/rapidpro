@@ -15,7 +15,7 @@ from temba.flows.models import Flow
 from temba.msgs.models import Msg
 from temba.orgs.models import Org
 from temba.utils import json, on_transaction_commit
-from temba.utils.models import TembaModel, TembaUUIDMixin, TranslatableField
+from temba.utils.models import TembaModel, TembaUUIDMixin, TranslatableField, delete_in_batches
 
 
 class Campaign(TembaModel):
@@ -246,8 +246,8 @@ class Campaign(TembaModel):
         """
         Deletes this campaign completely
         """
-        for event in self.events.all():
-            event.delete()
+
+        delete_in_batches(self.events.all())
 
         super().delete()
 
@@ -514,17 +514,6 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
         # if flow isn't a user created flow we can delete it too
         if self.event_type == CampaignEvent.TYPE_MESSAGE:
             self.flow.release(user)
-
-    def delete(self):
-        """
-        Deletes this event completely along with associated fires and starts.
-        """
-
-        for start in self.flow_starts.all():
-            start.delete()
-
-        # and ourselves
-        super().delete()
 
     def __repr__(self):
         return f'<Event: id={self.id} relative_to={self.relative_to.key} offset={self.offset} flow="{self.flow.name}">'

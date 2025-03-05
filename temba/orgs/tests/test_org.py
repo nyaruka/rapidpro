@@ -648,8 +648,6 @@ class OrgDeleteTest(TembaTest):
                 org=org, contact=contacts[0], fire_type="C", scope=str(event1.id), fire_on=timezone.now()
             )
         )
-        start1 = add(FlowStart.objects.create(org=org, flow=flows[0], campaign_event=event1))
-        add(FlowStartCount.objects.create(start=start1, count=1))
 
     def _create_ticket_content(self, org, user, contacts, flows, add):
         topic = add(Topic.create(org, user, "Spam"))
