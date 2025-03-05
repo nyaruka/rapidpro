@@ -1,3 +1,8 @@
+v10.1.80 (2025-03-05)
+-------------------------
+ * Block editing of scheduling campaign events
+ * Update campaign event view to not recreate events but instead bump fire_version field
+
 v10.1.79 (2025-03-04)
 -------------------------
  * Enforce default topic in editor
