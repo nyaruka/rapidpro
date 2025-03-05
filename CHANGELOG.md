@@ -1,3 +1,8 @@
+v10.1.82 (2025-03-05)
+-------------------------
+ * Data migration to backfill campaign event fire counts
+ * Remove unused FlowStart.campaign_event field
+
 v10.1.81 (2025-03-05)
 -------------------------
  * Remove event recreation on campaign group changes
