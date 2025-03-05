@@ -417,6 +417,9 @@ class CampaignEventWriteSerializer(WriteSerializer):
         message = data.get("message")
         flow = data.get("flow")
 
+        if self.instance and self.instance.status == CampaignEvent.STATUS_SCHEDULING:
+            raise serializers.ValidationError("Cannot modify events which are currently being scheduled.")
+
         if (message and flow) or (not message and not flow):
             raise serializers.ValidationError("Flow or a message text required.")
 

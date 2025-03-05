@@ -256,6 +256,21 @@ class CampaignEventsEndpointTest(APITest):
         # make sure we called mailroom to schedule this event
         self.assertEqual(call(self.org, event2), mr_mocks.calls["campaign_schedule_event"][-1])
 
+        # can't update an event which is being scheduled
+        self.assertPost(
+            endpoint_url + f"?uuid={event1.uuid}",
+            self.editor,
+            {
+                "campaign": str(campaign1.uuid),
+                "relative_to": "created_on",
+                "offset": 15,
+                "unit": "days",
+                "delivery_hour": -1,
+                "flow": str(flow.uuid),
+            },
+            errors={"non_field_errors": "Cannot modify events which are currently being scheduled."},
+        )
+
         CampaignEvent.objects.filter(campaign=campaign1).update(status=CampaignEvent.STATUS_READY)
 
         # update the message event to be a flow event (don't change scheduling)
@@ -298,6 +313,8 @@ class CampaignEventsEndpointTest(APITest):
         self.assertEqual(event2.message, {"eng": "OK @(format_urn(urns.tel))", "fra": "D'accord"})
         self.assertEqual(event2.status, "S")
         self.assertEqual(event2.fire_version, 2)  # bumped
+
+        CampaignEvent.objects.filter(campaign=campaign1).update(status=CampaignEvent.STATUS_READY)
 
         # and update update it's message again
         self.assertPost(
