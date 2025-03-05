@@ -1,3 +1,8 @@
+v10.1.81 (2025-03-05)
+-------------------------
+ * Remove event recreation on campaign group changes
+ * Start tracking campaign event fire counts
+
 v10.1.80 (2025-03-05)
 -------------------------
  * Block editing of scheduling campaign events
