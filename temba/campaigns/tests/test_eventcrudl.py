@@ -48,6 +48,15 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("/campaign/active/", response.headers.get(TEMBA_MENU_SELECTION))
         self.assertContentMenu(read_url, self.admin, ["Edit", "Delete"])
 
+        # can't edit an event whilst it's being scheduled
+        event.status = CampaignEvent.STATUS_SCHEDULING
+        event.save(update_fields=("status",))
+
+        self.assertContentMenu(read_url, self.admin, ["Delete"])
+
+        event.status = CampaignEvent.STATUS_READY
+        event.save(update_fields=("status",))
+
         event.campaign.is_archived = True
         event.campaign.save()
 
@@ -55,14 +64,15 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertReadFetch(read_url, [self.editor], context_object=event)
         self.assertEqual("/campaign/archived/", response.headers.get(TEMBA_MENU_SELECTION))
 
+        # can't edit the events of an archived campaign
         self.assertContentMenu(read_url, self.admin, ["Delete"])
 
-        # deleted events should redirect to campaign read page
+        # can't view a deleted event
         event.is_active = False
         event.save(update_fields=("is_active",))
 
         response = self.requestView(read_url, self.editor)
-        self.assertRedirect(response, reverse("campaigns.campaign_read", args=[event.campaign.uuid]))
+        self.assertEqual(404, response.status_code)
 
     @mock_mailroom
     def test_create(self, mr_mocks):
@@ -162,7 +172,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
                 "delivery_hour": 13,
                 "message_start_mode": "I",
             },
-            new_obj_query=CampaignEvent.objects.filter(campaign=campaign, event_type="M"),
+            new_obj_query=CampaignEvent.objects.filter(campaign=campaign, event_type="M", fire_version=1, status="S"),
         )
 
         event1 = CampaignEvent.objects.get(campaign=campaign)
@@ -259,6 +269,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("W", event.unit)
         self.assertEqual("M", event.event_type)
         self.assertEqual("I", event.start_mode)
+        self.assertEqual("S", event.status)
 
         self.assertEqual("hello", event.get_message(contact=farmer1))
         self.assertEqual("muraho", event.get_message(contact=farmer2))
@@ -292,6 +303,9 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             flow_json,
         )
 
+        event.status = CampaignEvent.STATUS_READY
+        event.save(update_fields=("status",))
+
         update_url = reverse("campaigns.campaignevent_update", args=[event.id])
 
         # update the event to be passive
@@ -320,6 +334,10 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("W", event.unit)
         self.assertEqual("M", event.event_type)
         self.assertEqual("P", event.start_mode)
+        self.assertEqual("S", event.status)
+
+        event.status = CampaignEvent.STATUS_READY
+        event.save(update_fields=("status",))
 
         update_url = reverse("campaigns.campaignevent_update", args=[event.id])
 
@@ -364,8 +382,8 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         # update org languages to something not including the flow's base language
         self.org.set_flow_languages(self.admin, ["por", "kin"])
 
-        event = CampaignEvent.objects.all().order_by("id").last()
-        update_url = reverse("campaigns.campaignevent_update", args=[event.id])
+        event.status = CampaignEvent.STATUS_READY
+        event.save(update_fields=("status",))
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
 
@@ -381,47 +399,38 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
     @mock_mailroom
     def test_update(self, mr_mocks):
         event1, event2, event3 = self.campaign1.events.order_by("id")
-        other_org_event1 = self.other_org_campaign.events.order_by("id").first()
+        registered = self.org.fields.get(key="registered")
+        accepted = self.create_field("accepted", "Accepted", value_type="D")
+        flow = self.org.flows.get(name="Welcomes Flow")
 
         update_url = reverse("campaigns.campaignevent_update", args=[event1.id])
 
-        # can't view update form if not logged in
-        response = self.client.get(update_url)
-        self.assertLoginRedirect(response)
-
-        self.login(self.admin)
-
-        response = self.client.get(update_url)
-        self.assertEqual(
-            [
-                "event_type",
-                "relative_to",
-                "offset",
-                "unit",
-                "delivery_hour",
-                "direction",
-                "flow_to_start",
-                "flow_start_mode",
-                "message_start_mode",
-                "eng",
-                "kin",
-                "loc",
-            ],
-            list(response.context["form"].fields.keys()),
+        self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
+        self.assertUpdateFetch(
+            update_url,
+            [self.editor, self.admin],
+            form_fields={
+                "event_type": "F",
+                "relative_to": registered.id,
+                "offset": 1,
+                "unit": "W",
+                "delivery_hour": 13,
+                "direction": "A",
+                "flow_to_start": flow,
+                "flow_start_mode": "I",
+                "message_start_mode": None,
+                "eng": "",
+                "kin": "",
+            },
         )
 
-        # can't view update form for event from other org
-        response = self.client.get(reverse("campaigns.campaignevent_update", args=[other_org_event1.id]))
-        self.assertLoginRedirect(response)
-
-        accepted = self.create_field("accepted", "Accepted", value_type="D")
-
-        # update the first event
-        response = self.client.post(
+        # update the first event to a message event
+        response = self.assertUpdateSubmit(
             update_url,
+            self.admin,
             {
-                "relative_to": accepted.id,
                 "event_type": "M",
+                "relative_to": accepted.id,
                 "eng": "Hi there",
                 "direction": "B",
                 "offset": 2,
@@ -433,43 +442,52 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertEqual(302, response.status_code)
 
-        # original event will be unchanged.. except to be inactive
         event1.refresh_from_db()
-        self.assertEqual("F", event1.event_type)
-        self.assertFalse(event1.is_active)
+        self.assertEqual(event1.event_type, "M")
+        self.assertEqual(event1.relative_to, accepted)
+        self.assertEqual(event1.offset, -2)
+        self.assertEqual(event1.unit, "D")
+        self.assertEqual(event1.delivery_hour, 11)
+        self.assertEqual(event1.start_mode, "I")
+        self.assertEqual(event1.message, {"eng": "Hi there"})
+        self.assertEqual(event1.status, "S")
+        self.assertEqual(event1.fire_version, 1)  # bumped
 
-        # but will have a new replacement event
-        new_event1 = self.campaign1.events.filter(id__gt=event2.id).last()
+        # can't update an event whilst it's being scheduled
+        self.assertRequestDisallowed(update_url, [self.admin])
 
-        self.assertEqual(accepted, new_event1.relative_to)
-        self.assertEqual("M", new_event1.event_type)
-        self.assertEqual(-2, new_event1.offset)
-        self.assertEqual("D", new_event1.unit)
+        event1.status = CampaignEvent.STATUS_READY
+        event1.save(update_fields=("status",))
 
-        # can't update event in other org
-        response = self.client.post(
+        # if we only update message content, fire version isn't bumped
+        response = self.assertUpdateSubmit(
             update_url,
+            self.admin,
             {
-                "relative_to": other_org_event1.relative_to,
                 "event_type": "M",
-                "eng": "Hi there",
+                "relative_to": accepted.id,
+                "eng": "Hi there friends",
                 "direction": "B",
                 "offset": 2,
                 "unit": "D",
                 "flow_to_start": "",
                 "delivery_hour": 11,
+                "message_start_mode": "I",
             },
         )
-        self.assertEqual(404, response.status_code)
+        self.assertEqual(302, response.status_code)
 
-        # check event is unchanged
-        other_org_event1.refresh_from_db()
-        self.assertEqual("F", other_org_event1.event_type)
-        self.assertTrue(other_org_event1.is_active)
+        event1.refresh_from_db()
+        self.assertEqual(event1.message, {"eng": "Hi there friends"})
+        self.assertEqual(event1.status, "R")  # unchanged
+        self.assertEqual(event1.fire_version, 1)  # unchanged
 
         # event based on background flow should show a warning for it's info text
+        event3.status = CampaignEvent.STATUS_READY
+        event3.save(update_fields=("status",))
+
         update_url = reverse("campaigns.campaignevent_update", args=[event3.id])
-        response = self.client.get(update_url)
+        response = self.requestView(update_url, self.admin)
         self.assertEqual(
             CampaignEventCRUDL.BACKGROUND_WARNING,
             response.context["form"].fields["flow_to_start"].widget.attrs["info_text"],
