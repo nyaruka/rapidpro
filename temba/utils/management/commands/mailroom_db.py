@@ -387,6 +387,9 @@ class Command(BaseCommand):
                     evt.flow.uuid = e["uuid"]
                     evt.flow.save()
 
+        # make events look like they've been scheduled
+        CampaignEvent.objects.all().update(status=CampaignEvent.STATUS_READY, fire_version=1)
+
         self._log(self.style.SUCCESS("OK") + "\n")
 
     def create_templates(self, spec, org, templates):
