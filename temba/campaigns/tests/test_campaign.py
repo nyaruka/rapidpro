@@ -54,30 +54,18 @@ class CampaignTest(TembaTest):
         self.assertEqual(None, event1.get_message(contact))
         self.assertEqual("Hello", event2.get_message(contact))
 
-        campaign.schedule_events_async()
+        campaign.schedule_async()
+
+        # existing events should be scheduling with bumped fire versions
+        event1.refresh_from_db()
+        event2.refresh_from_db()
+        self.assertEqual(event1.status, "S")
+        self.assertEqual(event1.fire_version, 1)
+        self.assertEqual(event2.status, "S")
+        self.assertEqual(event2.fire_version, 1)
 
         # should have called mailroom to schedule our events
         self.assertEqual([call(self.org, event1), call(self.org, event2)], mr_mocks.calls["campaign_schedule_event"])
-
-        campaign.recreate_events()
-
-        # existing events should be deactivated
-        event1.refresh_from_db()
-        event2.refresh_from_db()
-        self.assertFalse(event1.is_active)
-        self.assertFalse(event2.is_active)
-
-        # and clones created
-        new_event1, new_event2 = campaign.events.filter(is_active=True).order_by("id")
-
-        self.assertEqual(self.planting_date, new_event1.relative_to)
-        self.assertEqual("W", new_event1.unit)
-        self.assertEqual(1, new_event1.offset)
-        self.assertEqual(flow, new_event1.flow)
-        self.assertEqual(13, new_event1.delivery_hour)
-        self.assertEqual("D", new_event2.unit)
-        self.assertEqual(3, new_event2.offset)
-        self.assertEqual({"eng": "Hello"}, new_event2.message)
 
     def test_get_offset_display(self):
         campaign = Campaign.create(self.org, self.admin, Campaign.get_unique_name(self.org, "Reminders"), self.farmers)

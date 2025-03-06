@@ -1,3 +1,26 @@
+v10.1.82 (2025-03-05)
+-------------------------
+ * Data migration to backfill campaign event fire counts
+ * Remove unused FlowStart.campaign_event field
+
+v10.1.81 (2025-03-05)
+-------------------------
+ * Remove event recreation on campaign group changes
+ * Start tracking campaign event fire counts
+
+v10.1.80 (2025-03-05)
+-------------------------
+ * Block editing of scheduling campaign events
+ * Update campaign event view to not recreate events but instead bump fire_version field
+
+v10.1.79 (2025-03-04)
+-------------------------
+ * Enforce default topic in editor
+
+v10.1.78 (2025-03-04)
+-------------------------
+ * Data migration to update all campaign event fires to have a version in scope
+
 v10.1.77 (2025-03-03)
 -------------------------
  * Fix value key for tickets in editor

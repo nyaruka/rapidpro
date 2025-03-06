@@ -341,9 +341,14 @@ class CampaignWriteSerializer(WriteSerializer):
         group = self.validated_data.get("group")
 
         if self.instance:
+            needs_scheduling = self.instance.group != group
+
             self.instance.name = name
             self.instance.group = group
             self.instance.save(update_fields=("name", "group"))
+
+            if needs_scheduling:
+                self.instance.schedule_async()
         else:
             self.instance = Campaign.create(self.context["org"], self.context["user"], name, group)
 
@@ -417,6 +422,9 @@ class CampaignEventWriteSerializer(WriteSerializer):
         message = data.get("message")
         flow = data.get("flow")
 
+        if self.instance and self.instance.status == CampaignEvent.STATUS_SCHEDULING:
+            raise serializers.ValidationError("Cannot modify events which are currently being scheduled.")
+
         if (message and flow) or (not message and not flow):
             raise serializers.ValidationError("Flow or a message text required.")
 
@@ -440,7 +448,12 @@ class CampaignEventWriteSerializer(WriteSerializer):
         flow = self.validated_data.get("flow")
 
         if self.instance:
-            self.instance = self.instance.recreate()  # don't update but re-create to invalidate existing event fires
+            needs_scheduling = (
+                self.instance.offset != offset
+                or self.instance.unit != unit
+                or self.instance.delivery_hour != delivery_hour
+                or self.instance.relative_to != relative_to
+            )
 
             # we are being set to a flow
             if flow:
@@ -462,7 +475,7 @@ class CampaignEventWriteSerializer(WriteSerializer):
                     # set our single message on our flow
                     self.instance.flow.update_single_message_flow(user, message, base_language)
 
-            # update our other attributes
+            # update scheduling attributes
             self.instance.offset = offset
             self.instance.unit = unit
             self.instance.delivery_hour = delivery_hour
@@ -471,6 +484,8 @@ class CampaignEventWriteSerializer(WriteSerializer):
             self.instance.update_flow_name()
 
         else:
+            needs_scheduling = True
+
             if flow:
                 self.instance = CampaignEvent.create_flow_event(
                     org, user, campaign, relative_to, offset, unit, flow, delivery_hour
@@ -483,7 +498,8 @@ class CampaignEventWriteSerializer(WriteSerializer):
             self.instance.update_flow_name()
 
         # create our event fires for this event in the background
-        self.instance.schedule_async()
+        if needs_scheduling:
+            self.instance.schedule_async()
 
         return self.instance
 

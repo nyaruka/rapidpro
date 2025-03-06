@@ -1,14 +1,18 @@
+from unittest.mock import call
+
 from django.urls import reverse
 
 from temba.api.v2.serializers import format_datetime
-from temba.campaigns.models import Campaign
+from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactGroup
+from temba.tests import mock_mailroom
 
 from . import APITest
 
 
 class CampaignsEndpointTest(APITest):
-    def test_endpoint(self):
+    @mock_mailroom
+    def test_endpoint(self, mr_mocks):
         endpoint_url = reverse("api.v2.campaigns") + ".json"
 
         self.assertGetNotPermitted(endpoint_url, [None, self.agent])
@@ -77,6 +81,13 @@ class CampaignsEndpointTest(APITest):
             },
         )
 
+        event1 = CampaignEvent.create_message_event(
+            self.org, self.admin, campaign3, self.create_field("field1", "Field1", value_type="D"), 1, "W", "1"
+        )
+        event2 = CampaignEvent.create_message_event(
+            self.org, self.admin, campaign3, self.create_field("field2", "Field2", value_type="D"), 1, "W", "2"
+        )
+
         # try to create another campaign with same name
         self.assertPost(
             endpoint_url,
@@ -104,6 +115,9 @@ class CampaignsEndpointTest(APITest):
         campaign3.refresh_from_db()
         self.assertEqual(campaign3.name, "Reminders III")
         self.assertEqual(campaign3.group, other_group)
+
+        self.assertEqual(campaign3.events.filter(status="S").count(), 2)  # events should be scheduling
+        self.assertEqual([call(self.org, event1), call(self.org, event2)], mr_mocks.calls["campaign_schedule_event"])
 
         # can't update campaign in other org
         self.assertPost(

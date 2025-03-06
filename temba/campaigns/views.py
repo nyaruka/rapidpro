@@ -1,7 +1,6 @@
 from smartmin.views import SmartCreateView, SmartCRUDL, SmartDeleteView, SmartReadView, SmartUpdateView
 
 from django import forms
-from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db.models.functions import Lower
 from django.http import Http404, HttpResponseRedirect
@@ -105,8 +104,8 @@ class CampaignCRUDL(SmartCRUDL):
 
             # if our group changed, create our new fires
             if new_group != previous_group:
-                self.object.recreate_events()
-                self.object.schedule_events_async()
+                for event in self.object.get_events():
+                    event.schedule_async()
 
             return self.render_modal_response(form)
 
@@ -477,12 +476,8 @@ class CampaignEventCRUDL(SmartCRUDL):
         def derive_menu_path(self):
             return f"/campaign/{'archived' if self.get_object().campaign.is_archived else 'active'}/"
 
-        def pre_process(self, request, *args, **kwargs):
-            event = self.get_object()
-            if not event.is_active:
-                messages.error(self.request, "Campaign event no longer exists")
-                return HttpResponseRedirect(reverse("campaigns.campaign_read", args=[event.campaign.uuid]))
-            return super().pre_process(request, *args, **kwargs)
+        def get_queryset(self):
+            return super().get_queryset().filter(is_active=True)
 
         def get_object_org(self):
             return self.get_object().campaign.org
@@ -495,7 +490,11 @@ class CampaignEventCRUDL(SmartCRUDL):
         def build_context_menu(self, menu):
             obj = self.get_object()
 
-            if self.has_org_perm("campaigns.campaignevent_update") and not obj.campaign.is_archived:
+            if (
+                self.has_org_perm("campaigns.campaignevent_update")
+                and obj.status != obj.STATUS_SCHEDULING
+                and not obj.campaign.is_archived
+            ):
                 menu.add_modax(
                     _("Edit"),
                     "event-update",
@@ -546,15 +545,17 @@ class CampaignEventCRUDL(SmartCRUDL):
             "flow_start_mode",
         ]
 
-        def pre_process(self, request, *args, **kwargs):
-            event = self.get_object()
-            if not event.is_active or not event.campaign.is_active or event.campaign.is_archived:
-                raise Http404("Event not found")
-
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
             kwargs["org"] = self.request.org
             return kwargs
+
+        def get_queryset(self):
+            return (
+                super()
+                .get_queryset()
+                .filter(is_active=True, status=CampaignEvent.STATUS_READY, campaign__is_archived=False)
+            )
 
         def get_object_org(self):
             return self.get_object().campaign.org
@@ -606,30 +607,28 @@ class CampaignEventCRUDL(SmartCRUDL):
             obj = super().pre_save(obj)
             self.form.pre_save(self.request, obj)
 
-            prev = CampaignEvent.objects.get(pk=obj.pk)
-            if prev.event_type == "M" and (obj.event_type == "F" and prev.flow):  # pragma: needs cover
+            prev = CampaignEvent.objects.get(id=obj.id)
+            if prev.event_type == CampaignEvent.TYPE_MESSAGE and (
+                obj.event_type == CampaignEvent.TYPE_FLOW and prev.flow
+            ):  # pragma: needs cover
                 flow = prev.flow
                 flow.is_active = False
-                flow.save()
+                flow.save(update_fields=("is_active",))
                 obj.message = None
 
-            # if we changed anything, update our event fires
+            # if we changed scheduling, update the fire version to invalidate existing fires
             if (
                 prev.unit != obj.unit
                 or prev.offset != obj.offset
                 or prev.relative_to != obj.relative_to
                 or prev.delivery_hour != obj.delivery_hour
-                or prev.message != obj.message
-                or prev.flow != obj.flow
-                or prev.start_mode != obj.start_mode
             ):
-                obj = obj.recreate()
                 obj.schedule_async()
 
             return obj
 
         def get_success_url(self):
-            return reverse("campaigns.campaignevent_read", args=[self.object.campaign.uuid, self.object.pk])
+            return reverse("campaigns.campaignevent_read", args=[self.object.campaign.uuid, self.object.id])
 
     class Create(ModalFormMixin, OrgPermsMixin, SmartCreateView):
         default_fields = [

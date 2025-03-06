@@ -1,9 +1,11 @@
+from collections import defaultdict
 from datetime import datetime, timezone as tzone
 
 from django_redis import get_redis_connection
 from smartmin.models import SmartModel
 
 from django.db import models
+from django.db.models import Sum
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _, ngettext
 
@@ -13,7 +15,7 @@ from temba.flows.models import Flow
 from temba.msgs.models import Msg
 from temba.orgs.models import Org
 from temba.utils import json, on_transaction_commit
-from temba.utils.models import TembaModel, TembaUUIDMixin, TranslatableField
+from temba.utils.models import TembaModel, TembaUUIDMixin, TranslatableField, delete_in_batches
 
 
 class Campaign(TembaModel):
@@ -27,27 +29,19 @@ class Campaign(TembaModel):
 
         return cls.objects.create(org=org, name=name, group=group, created_by=user, modified_by=user)
 
+    def schedule_async(self):
+        """
+        Schedules or reschedules all the events in this campaign. Required on creation or when group changes.
+        """
+
+        for event in self.get_events():
+            event.schedule_async()
+
     def archive(self, user):
         self.is_archived = True
         self.modified_by = user
         self.modified_on = timezone.now()
         self.save(update_fields=("is_archived", "modified_by", "modified_on"))
-
-    def recreate_events(self):
-        """
-        Recreates all the events in this campaign - called when something like the group changes.
-        """
-
-        for event in self.get_events():
-            event.recreate()
-
-    def schedule_events_async(self):
-        """
-        Schedules all the events in this campaign - called when something like the group changes.
-        """
-
-        for event in self.get_events():
-            event.schedule_async()
 
     @classmethod
     def import_campaigns(cls, org, user, campaign_defs, same_site=False) -> list:
@@ -184,10 +178,25 @@ class Campaign(TembaModel):
             for event in events:
                 event.flow.restore(user)
 
-            campaign.schedule_events_async()
+            campaign.schedule_async()
 
     def get_events(self):
         return self.events.filter(is_active=True).order_by("id")
+
+    def prefetch_fire_counts(self, events):
+        """
+        Prefetches contact fire counts for all events
+        """
+
+        scopes = [f"campfires:{e.id}:{e.fire_version}" for e in events]
+        counts = self.org.counts.filter(scope__in=scopes).values_list("scope").annotate(total=Sum("count"))
+        by_event = defaultdict(int)
+        for count in counts:
+            event_id = int(count[0].split(":")[1])
+            by_event[event_id] = count[1]
+
+        for event in events:
+            setattr(event, "_fire_count", by_event[event.id])
 
     def as_export_def(self):
         """
@@ -237,8 +246,8 @@ class Campaign(TembaModel):
         """
         Deletes this campaign completely
         """
-        for event in self.events.all():
-            event.delete()
+
+        delete_in_batches(self.events.all())
 
         super().delete()
 
@@ -279,7 +288,7 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     campaign = models.ForeignKey(Campaign, on_delete=models.PROTECT, related_name="events")
     event_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_FLOW)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_READY)
-    fire_version = models.IntegerField(default=1)  # updated when the scheduling values below are changed
+    fire_version = models.IntegerField(default=0)  # updated when the scheduling values below are changed
 
     # the contact specific date value this is event is based on
     relative_to = models.ForeignKey(ContactField, on_delete=models.PROTECT, related_name="campaign_events")
@@ -450,43 +459,13 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             return _("on")
 
     def schedule_async(self):
+        self.delete_fire_counts()  # new counts will be created with new fire version
+
+        self.fire_version += 1
+        self.status = self.STATUS_SCHEDULING
+        self.save(update_fields=("fire_version", "status"))
+
         on_transaction_commit(lambda: mailroom.get_client().campaign_schedule_event(self.campaign.org, self))
-
-    def recreate(self):
-        """
-        Cleaning up millions of event fires would be expensive so instead we treat campaign events as immutable objects
-        and when a change is made that would invalidate existing event fires, we deactivate the event and recreate it.
-        The event fire handling code knows to ignore event fires for deactivated event.
-        """
-        self.release(self.created_by)
-
-        # clone our event into a new event
-        if self.event_type == CampaignEvent.TYPE_FLOW:
-            return CampaignEvent.create_flow_event(
-                self.campaign.org,
-                self.created_by,
-                self.campaign,
-                self.relative_to,
-                self.offset,
-                self.unit,
-                self.flow,
-                self.delivery_hour,
-                self.start_mode,
-            )
-
-        elif self.event_type == CampaignEvent.TYPE_MESSAGE:
-            return CampaignEvent.create_message_event(
-                self.campaign.org,
-                self.created_by,
-                self.campaign,
-                self.relative_to,
-                self.offset,
-                self.unit,
-                self.message,
-                self.delivery_hour,
-                self.flow.base_language,
-                self.start_mode,
-            )
 
     def get_recent_fires(self) -> list[dict]:
         r = get_redis_connection()
@@ -511,29 +490,30 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
 
         return recent
 
+    def get_fire_count(self) -> int:
+        if hasattr(self, "_fire_count"):  # use prefetched value if available
+            return self._fire_count
+
+        return self.campaign.org.counts.filter(scope=f"campfires:{self.id}:{self.fire_version}").sum()
+
+    def delete_fire_counts(self):
+        self.campaign.org.counts.filter(scope__startswith=f"campfires:{self.id}:").delete()
+
     def release(self, user):
         """
         Marks the event inactive and releases flows for single message flows
         """
-        # we need to be inactive so our fires are noops
+
         self.is_active = False
         self.modified_by = user
+        self.modified_on = timezone.now()
         self.save(update_fields=("is_active", "modified_by", "modified_on"))
+
+        self.delete_fire_counts()
 
         # if flow isn't a user created flow we can delete it too
         if self.event_type == CampaignEvent.TYPE_MESSAGE:
             self.flow.release(user)
-
-    def delete(self):
-        """
-        Deletes this event completely along with associated fires and starts.
-        """
-
-        for start in self.flow_starts.all():
-            start.delete()
-
-        # and ourselves
-        super().delete()
 
     def __repr__(self):
         return f'<Event: id={self.id} relative_to={self.relative_to.key} offset={self.offset} flow="{self.flow.name}">'

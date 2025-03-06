@@ -116,6 +116,9 @@ class Topic(TembaModel, DependencyMixin):
         self.modified_by = user
         self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))
 
+    def as_engine_ref(self) -> dict:
+        return {"uuid": str(self.uuid), "name": self.name}
+
     class Meta:
         constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_topic_names")]
 
