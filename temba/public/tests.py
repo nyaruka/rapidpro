@@ -1,9 +1,13 @@
+from datetime import timedelta
+
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from django.utils import timezone
 
 from temba import __version__ as temba_version
 from temba.apks.models import Apk
+from temba.channels.models import ChannelEvent
 from temba.tests import TembaTest
 
 
@@ -13,6 +17,50 @@ class PublicTest(TembaTest):
         response = self.client.get(home_url, follow=True)
         self.assertEqual(response.request["PATH_INFO"], "/")
         self.assertContains(response, temba_version)
+
+    def test_forgetme(self):
+        contact = self.create_contact("Joe", phone="+250788111222")
+        e1 = ChannelEvent.objects.create(
+            org=self.org,
+            channel=self.channel,
+            event_type=ChannelEvent.TYPE_STOP_CONTACT,
+            contact=contact,
+            created_on=timezone.now() - timedelta(days=3),
+            occurred_on=timezone.now() - timedelta(days=3),
+        )
+        e2 = ChannelEvent.objects.create(
+            org=self.org,
+            channel=self.channel,
+            event_type=ChannelEvent.TYPE_DELETE_CONTACT,
+            contact=contact,
+            created_on=timezone.now() - timedelta(days=2),
+            occurred_on=timezone.now() - timedelta(days=3),
+        )
+        self.assertEqual(2, ChannelEvent.objects.all().count())
+
+        # 404 for non delete request event type
+        forgetme_url = reverse("public.public_forgetme")
+
+        response = self.client.get(forgetme_url)
+        self.assertEqual(200, response.status_code)
+        self.assertNotContains(response, "Incorrect code provided, try again")
+
+        # not valid uuid
+        post_data = dict(code="foo")
+        response = self.client.post(forgetme_url, post_data, follow=True)
+        self.assertFormError(response.context["form"], "code", ["Invalid confirmation code"])
+        self.assertNotContains(response, "Incorrect code provided, try again")
+
+        # invalid confirmation code for event of type delete request
+        post_data = dict(code=e1.uuid)
+        response = self.client.post(forgetme_url, post_data, follow=True)
+        self.assertContains(response, "Incorrect code provided, try again")
+
+        # valid confirmation code for event of type delete request
+        post_data = dict(code=e2.uuid)
+        response = self.client.post(forgetme_url, post_data, follow=True)
+        self.assertEqual(200, response.status_code)
+        self.assertContains(response, f"Confirmation code: {e2.uuid}")
 
     def test_android(self):
         android_url = reverse("public.public_android")
