@@ -922,6 +922,7 @@ AUTHENTICATION_BACKENDS = [
 ACCOUNT_FORMS = {
     "signup": "temba.users.forms.TembaSignupForm",
     "change_password": "temba.users.forms.TembaChangePasswordForm",
+    "add_email": "temba.users.forms.TembaAddEmailForm",
 }
 
 ACCOUNT_ADAPTER = "temba.users.adapter.TembaAccountAdapter"

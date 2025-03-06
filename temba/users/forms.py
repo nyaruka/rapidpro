@@ -1,4 +1,4 @@
-from allauth.account.forms import ChangePasswordForm, SignupForm
+from allauth.account.forms import AddEmailForm, ChangePasswordForm, SignupForm
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
@@ -59,3 +59,14 @@ class TembaChangePasswordForm(ChangePasswordForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["password1"].help_text = "At least 8 characters or more"
+
+
+class TembaAddEmailForm(AddEmailForm):
+
+    def clean_email(self):
+
+        # check if email is already in use
+        if User.objects.filter(email__iexact=self.cleaned_data["email"]).exists():
+            raise forms.ValidationError(_("This email is already in use"))
+
+        return super().clean_email()

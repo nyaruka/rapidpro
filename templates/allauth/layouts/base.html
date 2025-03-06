@@ -134,6 +134,38 @@
       .content-card {
         max-width: 800px
       }
+
+      @media (max-width: 800px) {
+        .panels {
+          flex-direction: column;
+        }
+
+        .menu {
+          border-radius: var(--curvature);
+
+          border-right: none;
+          margin-right: 0;
+          white-space: nowrap;
+          margin-top: 1em;
+          padding: 0.5em;
+          margin-bottom: 2em;
+          background: #f8f9fa;
+        }
+
+
+        .menu ul {
+          display: flex;
+          flex-direction: row;
+          justify-content: space-around;
+          padding: 0;
+          margin: 0;
+          flex-wrap: wrap;
+        }
+
+        .menu ul li {
+          padding: 0.25em;
+        }
+      }
     </style>
   {% endif %}
 {% endblock extra-style %}
@@ -145,7 +177,7 @@
       </temba-alert>
     </div>
   {% endif %}
-  <div class="flex flex-row {% if not user.is_authenticated %}signin{% endif %}">
+  <div class="flex flex-row panels {% if not user.is_authenticated %}signin{% endif %}">
     {% if user.is_authenticated %}
       <div class="menu">
         {% block header %}
