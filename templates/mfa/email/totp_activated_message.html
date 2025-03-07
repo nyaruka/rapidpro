@@ -1,0 +1,8 @@
+{% extends "account/email/base_notification.html" %}
+{% load i18n %}
+
+{% block notification_message %}
+  {% blocktrans trimmed %}
+    Authenticator app activated.
+  {% endblocktrans %}
+{% endblock notification_message %}
