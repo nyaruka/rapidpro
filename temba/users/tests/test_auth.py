@@ -64,3 +64,15 @@ class UserAuthTest(TembaTest):
             follow=True,
         )
         self.assertContains(response, "scan the QR code below")
+
+    def test_add_email(self):
+        # we override change email to ensure the new email is not already in use
+        self.login(self.admin)
+        add_email_url = reverse("account_email")
+
+        # try to change our email address to one that is already in use
+        response = self.client.post(add_email_url, {"email": self.admin2.email, "action_add": True})
+
+        self.assertEqual(200, response.status_code)
+        form = response.context.get("form")
+        self.assertFormError(form, "email", "This email is already in use")
