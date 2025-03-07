@@ -76,3 +76,12 @@ class UserAuthTest(TembaTest):
         self.assertEqual(200, response.status_code)
         form = response.context.get("form")
         self.assertFormError(form, "email", "This email is already in use")
+
+        # now try to change our email address to a new one
+        response = self.client.post(add_email_url, {"email": "newemail@temba.io", "action_add": True})
+        self.assertRedirect(response, reverse("account_email"))
+
+        # we should see the new email now
+        emails = self.admin.emailaddress_set.all()
+        self.assertEqual(2, emails.count())
+        self.assertTrue(emails.filter(email="newemail@temba.io").exists())

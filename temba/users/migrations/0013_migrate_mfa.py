@@ -13,11 +13,10 @@ def migration_mfa(apps, schema_editor):
     adapter = get_adapter()
     authenticators = []
 
-    print("Migrating MFA data...")
     backup_tokens = set()
     users = User.objects.filter(two_factor_enabled=True)
     for user in users:
-        if Authenticator.objects.filter(user=user).exists():
+        if Authenticator.objects.filter(user=user).exists():  # pragma: no cover
             continue
 
         backup_tokens.update(user.backup_tokens.filter(is_used=False).values_list("token", flat=True))
@@ -39,10 +38,6 @@ def migration_mfa(apps, schema_editor):
         )
 
     Authenticator.objects.bulk_create(authenticators)
-
-    print(f"Created MFA for {len(users)} users")
-
-    print("Migrating email addresses")
     users = User.objects.filter(email_status="V")
     for user in users:
         EmailAddress.objects.filter(user=user).delete()
@@ -52,7 +47,6 @@ def migration_mfa(apps, schema_editor):
             verified=True,
             primary=True,
         )
-    print(f"Created verified email addresses for {len(users)} users")
 
 
 class Migration(migrations.Migration):
