@@ -16,6 +16,10 @@ class MigrateMFATest(MigrationTest):
         self.admin.email_status = "V"
         self.admin.save(update_fields=("email_status",))
 
+        # clear out any existing allauth mfa records
+        self.admin.emailaddress_set.all().delete()
+        self.admin.authenticator_set.all().delete()
+
     def test_migration(self):
 
         # we should now have the allauth equivalent of 2fa enabled
