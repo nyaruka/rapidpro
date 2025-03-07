@@ -61,4 +61,4 @@ class Migration(migrations.Migration):
         ("users", "0012_remove_user_username"),
     ]
 
-    operations = [migrations.RunPython(migration_mfa)]
+    operations = [migrations.RunPython(migration_mfa, migrations.RunPython.noop)]
