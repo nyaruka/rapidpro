@@ -37,7 +37,8 @@ def migration_mfa(apps, schema_editor):
                 },
             )
         )
-        Authenticator.objects.bulk_create(authenticators)
+
+    Authenticator.objects.bulk_create(authenticators)
 
     print(f"Created MFA for {len(users)} users")
 
