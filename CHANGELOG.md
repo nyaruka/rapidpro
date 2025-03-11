@@ -1,3 +1,8 @@
+v10.1.89 (2025-03-11)
+-------------------------
+ * Make email case insensitive on invites
+ * Improve campaign event read page and prefetch fire counts
+
 v10.1.88 (2025-03-11)
 -------------------------
  * Improve campaign read page and include contact fire count wtih events
