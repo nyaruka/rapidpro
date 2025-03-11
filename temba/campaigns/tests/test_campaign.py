@@ -49,7 +49,9 @@ class CampaignTest(TembaTest):
 
         self.assertEqual("Reminders", campaign.name)
         self.assertEqual("Reminders", str(campaign))
-        self.assertEqual(f'<Event: id={event1.id} relative_to=planting_date offset=1 flow="Test Flow">', repr(event1))
+        self.assertEqual(
+            f'<Event: id={event1.id} relative_to=planting_date offset=7 days, 0:00:00 flow="Test Flow">', repr(event1)
+        )
         self.assertEqual([event1, event2], list(campaign.get_events()))
         self.assertEqual(None, event1.get_message(contact))
         self.assertEqual("Hello", event2.get_message(contact))
@@ -122,33 +124,23 @@ class CampaignTest(TembaTest):
     def test_get_sorted_events(self):
         # create a campaign
         campaign = Campaign.create(self.org, self.editor, "Planting Reminders", self.farmers)
-
+        joined_on = self.create_field("joined_on", "Joined On", value_type=ContactField.TYPE_DATETIME)
         flow = self.create_flow("Test 1")
 
         event1 = CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, self.planting_date, offset=1, unit="W", flow=flow, delivery_hour="13"
+            self.org, self.admin, campaign, self.planting_date, offset=8, unit="D", flow=flow
         )
         event2 = CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, self.planting_date, offset=1, unit="W", flow=flow, delivery_hour="9"
+            self.org, self.admin, campaign, self.planting_date, offset=3, unit="D", flow=flow
         )
         event3 = CampaignEvent.create_flow_event(
-            self.org, self.admin, campaign, self.planting_date, offset=2, unit="W", flow=flow, delivery_hour="1"
+            self.org, self.admin, campaign, self.planting_date, offset=1, unit="W", flow=flow
         )
-
-        self.assertEqual(campaign.get_sorted_events(), [event2, event1, event3])
-
         event4 = CampaignEvent.create_flow_event(
-            self.org,
-            self.admin,
-            campaign,
-            self.planting_date,
-            offset=2,
-            unit="W",
-            flow=self.create_flow("Test 2"),
-            delivery_hour="5",
+            self.org, self.admin, campaign, joined_on, offset=24, unit="H", flow=flow
         )
 
-        self.assertEqual(campaign.get_sorted_events(), [event2, event1, event3, event4])
+        self.assertEqual(campaign.get_sorted_events(), [event4, event2, event3, event1])
 
     def test_message_event(self):
         # create a campaign with a message event 1 day after planting date

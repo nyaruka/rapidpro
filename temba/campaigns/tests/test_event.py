@@ -1,4 +1,4 @@
-from datetime import datetime, timezone as tzone
+from datetime import datetime, timedelta, timezone as tzone
 
 from django_redis import get_redis_connection
 
@@ -6,11 +6,46 @@ from django.utils import timezone
 
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField, ContactFire
-from temba.tests import TembaTest
+from temba.tests import TembaTest, mock_mailroom
 from temba.utils.uuid import uuid4
 
 
 class CampaignEventTest(TembaTest):
+    @mock_mailroom
+    def test_model(self, mr_mocks):
+        contact = self.create_contact("Joe", phone="+1234567890")
+        farmers = self.create_group("Farmers", [])
+        campaign = Campaign.create(self.org, self.admin, Campaign.get_unique_name(self.org, "Reminders"), farmers)
+        field = self.create_field("planting_date", "Planting Date", value_type=ContactField.TYPE_DATETIME)
+        flow = self.create_flow("Test Flow")
+
+        event1 = CampaignEvent.create_flow_event(
+            self.org, self.admin, campaign, field, offset=30, unit="M", flow=flow, delivery_hour=13
+        )
+        event2 = CampaignEvent.create_message_event(
+            self.org, self.admin, campaign, field, offset=12, unit="H", message="Hello", delivery_hour=9
+        )
+        event3 = CampaignEvent.create_flow_event(
+            self.org, self.admin, campaign, field, offset=4, unit="D", flow=flow, delivery_hour=13
+        )
+        event4 = CampaignEvent.create_message_event(
+            self.org, self.admin, campaign, field, offset=2, unit="W", message="Hello", delivery_hour=9
+        )
+
+        self.assertEqual("R", event1.status)
+        self.assertEqual(0, event1.fire_version)
+        self.assertEqual(timedelta(minutes=30), event1.get_offset())
+        self.assertEqual(None, event1.get_message(contact))
+        self.assertEqual(
+            f'<Event: id={event1.id} relative_to=planting_date offset=0:30:00 flow="Test Flow">', repr(event1)
+        )
+
+        self.assertEqual(timedelta(hours=12), event2.get_offset())
+        self.assertEqual("Hello", event2.get_message(contact))
+
+        self.assertEqual(timedelta(days=4), event3.get_offset())
+        self.assertEqual(timedelta(days=14), event4.get_offset())
+
     def test_fire_counts(self):
         contact1 = self.create_contact("Ann", phone="+1234567890")
         contact2 = self.create_contact("Bob", phone="+1234567891")
