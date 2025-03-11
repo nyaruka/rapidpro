@@ -13,14 +13,11 @@ def migration_mfa(apps, schema_editor):
     adapter = get_adapter()
     authenticators = []
 
-    backup_tokens = set()
     users = User.objects.filter(two_factor_enabled=True)
     for user in users:
         if Authenticator.objects.filter(user=user).exists():  # pragma: no cover
             continue
-
-        backup_tokens.update(user.backup_tokens.filter(is_used=False).values_list("token", flat=True))
-
+        backup_tokens = set(user.backup_tokens.filter(is_used=False).values_list("token", flat=True))
         totp_authenticator = Authenticator(
             user_id=user.id,
             type=Authenticator.Type.TOTP,
