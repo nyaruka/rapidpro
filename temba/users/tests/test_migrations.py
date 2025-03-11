@@ -10,7 +10,9 @@ class MigrateMFATest(MigrationTest):
 
         # enable 2fa using the old method
         self.admin.enable_2fa()
+        self.editor.enable_2fa()
         self.assertTrue(self.admin.two_factor_enabled)
+        self.assertTrue(self.editor.two_factor_enabled)
 
         # mark our email address as verified
         self.admin.email_status = "V"
