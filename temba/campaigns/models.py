@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime, timezone as tzone
+from datetime import datetime, timedelta, timezone as tzone
 
 from django_redis import get_redis_connection
 from smartmin.models import SmartModel
@@ -181,7 +181,13 @@ class Campaign(TembaModel):
             campaign.schedule_async()
 
     def get_events(self):
-        return self.events.filter(is_active=True).order_by("id")
+        return self.events.filter(is_active=True).order_by("id").select_related("flow", "relative_to")
+
+    def get_sorted_events(self):
+        """
+        Returns events sorted by relative_to and offset
+        """
+        return sorted(self.get_events(), key=lambda e: (e.relative_to.name, e.get_offset()))
 
     def prefetch_fire_counts(self, events):
         """
@@ -233,14 +239,6 @@ class Campaign(TembaModel):
             "group": self.group.as_export_ref(),
             "events": events,
         }
-
-    def get_sorted_events(self):
-        """
-        Returns campaign events sorted by their actual offset with event flow definitions on the current export version
-        """
-        events = list(self.events.filter(is_active=True))
-
-        return sorted(events, key=lambda e: (e.relative_to.id, e.minute_offset()))
 
     def delete(self):
         """
@@ -411,25 +409,19 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
         self.flow.name = "Single Message (%d)" % self.id
         self.flow.save(update_fields=["name"])
 
-    def minute_offset(self):
+    def get_offset(self) -> timedelta:
         """
-        Returns an offset that can be used to sort events that go against the same relative_to variable.
+        Converts offset and unit into a timedelta object
         """
-        # by default our offset is in minutes
-        offset = self.offset
 
-        if self.unit == self.UNIT_HOURS:  # pragma: needs cover
-            offset = self.offset * 60
+        if self.unit == self.UNIT_MINUTES:
+            return timedelta(minutes=self.offset)
+        if self.unit == self.UNIT_HOURS:
+            return timedelta(hours=self.offset)
         elif self.unit == self.UNIT_DAYS:
-            offset = self.offset * 60 * 24
+            return timedelta(days=self.offset)
         elif self.unit == self.UNIT_WEEKS:
-            offset = self.offset * 60 * 24 * 7
-
-        # if there is a specified hour, use that
-        if self.delivery_hour != -1:
-            offset += self.delivery_hour * 60
-
-        return offset
+            return timedelta(days=7 * self.offset)
 
     @property
     def offset_display(self):
@@ -516,7 +508,7 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             self.flow.release(user)
 
     def __repr__(self):
-        return f'<Event: id={self.id} relative_to={self.relative_to.key} offset={self.offset} flow="{self.flow.name}">'
+        return f'<Event: id={self.id} relative_to={self.relative_to.key} offset={self.get_offset()} flow="{self.flow.name}">'
 
     class Meta:
         verbose_name = _("Campaign Event")
