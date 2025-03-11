@@ -1030,15 +1030,14 @@ class Org(SmartModel):
         from temba.contacts.models import ContactField, ContactGroup
         from temba.tickets.models import Team, Topic
 
-        with transaction.atomic():
-            ContactGroup.create_system_groups(self)
-            ContactField.create_system_fields(self)
-            Team.create_system(self)
-            Topic.create_system(self)
+        ContactGroup.create_system_groups(self)
+        ContactField.create_system_fields(self)
+        Team.create_system(self)
+        Topic.create_system(self)
 
-        # outside of the transaction as it's going to call out to mailroom for flow validation
+        # we should be called within a transaction, create the sample flows when its committed
         if sample_flows:
-            self.create_sample_flows(f"https://{self.get_brand_domain()}")
+            on_transaction_commit(lambda: self.create_sample_flows(f"https://{self.get_brand_domain()}"))
 
     def get_delete_date(self, *, archive_type=Archive.TYPE_MSG):
         """
