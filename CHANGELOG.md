@@ -1,3 +1,8 @@
+v10.1.88 (2025-03-11)
+-------------------------
+ * Improve campaign read page and include contact fire count wtih events
+ * Import sample flows after transaction commits
+
 v10.1.87 (2025-03-11)
 -------------------------
  * Add allauth
