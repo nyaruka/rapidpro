@@ -148,6 +148,11 @@ class CampaignCRUDL(SmartCRUDL):
                 if self.has_org_perm("campaigns.campaign_archive"):
                     menu.add_url_post(_("Archive"), reverse("campaigns.campaign_archive", args=[obj.id]))
 
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            context["events"] = self.object.get_sorted_events()
+            return context
+
     class Create(ModalFormMixin, OrgPermsMixin, SmartCreateView):
         fields = ("name", "group")
         form_class = CampaignForm
@@ -466,12 +471,11 @@ class CampaignEventCRUDL(SmartCRUDL):
     )
 
     class Read(SpaMixin, OrgObjPermsMixin, ContextMenuMixin, SmartReadView):
+        title = _("Event History")
+
         @classmethod
         def derive_url_pattern(cls, path, action):
             return r"^%s/%s/(?P<campaign_uuid>[0-9a-f-]+)/(?P<pk>\d+)/$" % (path, action)
-
-        def derive_title(self):
-            return _("Event History")
 
         def derive_menu_path(self):
             return f"/campaign/{'archived' if self.get_object().campaign.is_archived else 'active'}/"
@@ -500,6 +504,7 @@ class CampaignEventCRUDL(SmartCRUDL):
                     "event-update",
                     reverse("campaigns.campaignevent_update", args=[obj.id]),
                     title=_("Edit Event"),
+                    as_button=True,
                 )
 
             if self.has_org_perm("campaigns.campaignevent_delete"):

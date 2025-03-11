@@ -37,7 +37,7 @@
       </tr>
     </thead>
     <tbody>
-      {% for event in object.get_sorted_events %}
+      {% for event in events %}
         <tr onclick="goto(event, this)"
             href="{% url 'campaigns.campaignevent_read' event.campaign.uuid event.id %}"
             class="hover-linked">
@@ -56,7 +56,13 @@
               </a>
             {% endif %}
           </td>
-          <td class="whitespace-nowrap text-right">{{ event.get_fire_count|intcomma }}</td>
+          <td class="whitespace-nowrap text-right">
+            {% if event.status == 'S' %}
+              <span class="text-gray-400">{% trans "Scheduling" %}</span>
+            {% else %}
+              {{ event.get_fire_count|intcomma }}
+            {% endif %}
+          </td>
         </tr>
       {% empty %}
         <tr class="empty_list">
