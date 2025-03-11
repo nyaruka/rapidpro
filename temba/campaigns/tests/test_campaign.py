@@ -36,7 +36,6 @@ class CampaignTest(TembaTest):
 
     @mock_mailroom
     def test_model(self, mr_mocks):
-        contact = self.create_contact("Joe", phone="+1234567890")
         campaign = Campaign.create(self.org, self.admin, Campaign.get_unique_name(self.org, "Reminders"), self.farmers)
         flow = self.create_flow("Test Flow")
 
@@ -49,12 +48,7 @@ class CampaignTest(TembaTest):
 
         self.assertEqual("Reminders", campaign.name)
         self.assertEqual("Reminders", str(campaign))
-        self.assertEqual(
-            f'<Event: id={event1.id} relative_to=planting_date offset=7 days, 0:00:00 flow="Test Flow">', repr(event1)
-        )
         self.assertEqual([event1, event2], list(campaign.get_events()))
-        self.assertEqual(None, event1.get_message(contact))
-        self.assertEqual("Hello", event2.get_message(contact))
 
         campaign.schedule_async()
 
