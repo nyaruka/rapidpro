@@ -78,7 +78,7 @@ class CampaignEventTest(TembaTest):
         self.assertEqual(1, event2.get_fire_count())
 
         # can also be prefetched
-        events = campaign.get_events()
+        events = campaign.get_events().order_by("id")
         campaign.prefetch_fire_counts(events)
 
         self.assertEqual(2, events[0].get_fire_count())

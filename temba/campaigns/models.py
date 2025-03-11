@@ -181,13 +181,16 @@ class Campaign(TembaModel):
             campaign.schedule_async()
 
     def get_events(self):
-        return self.events.filter(is_active=True).order_by("id").select_related("flow", "relative_to")
+        return self.events.filter(is_active=True).select_related("flow", "relative_to")
 
     def get_sorted_events(self):
         """
-        Returns events sorted by relative_to and offset
+        Gets events sorted by relative_to+offset and with fire counts prefetched.
         """
-        return sorted(self.get_events(), key=lambda e: (e.relative_to.name, e.get_offset()))
+
+        events = sorted(self.get_events(), key=lambda e: (e.relative_to.name, e.get_offset()))
+        self.prefetch_fire_counts(events)
+        return events
 
     def prefetch_fire_counts(self, events):
         """
