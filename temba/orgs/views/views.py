@@ -4,6 +4,7 @@ from urllib.parse import quote
 
 import iso8601
 import pyotp
+from allauth.account.models import EmailAddress
 from django_redis import get_redis_connection
 from packaging.version import Version
 from smartmin.views import (
@@ -1297,7 +1298,7 @@ class OrgCRUDL(SmartCRUDL):
                 )
 
                 if not self.has_org_perm("orgs.org_workspace"):
-                    settings_view = "orgs.user_account"
+                    settings_view = "orgs.user_edit"
                 else:
                     settings_view = "orgs.org_workspace"
 
@@ -1786,18 +1787,22 @@ class OrgCRUDL(SmartCRUDL):
             return None
 
         def save(self, obj):
+            email = self.invitation.email.lower()
+            password = self.form.cleaned_data["password"]
             user = User.create(
-                self.invitation.email,
+                email,
                 self.form.cleaned_data["first_name"],
                 self.form.cleaned_data["last_name"],
-                password=self.form.cleaned_data["password"],
+                password=password,
                 language=obj.language,
             )
 
-            # log the user in
-            user = authenticate(username=user.email, password=self.form.cleaned_data["password"])
-            login(self.request, user)
+            # consider this email address verified
+            EmailAddress.objects.create(user=user, email=email, verified=True, primary=True)
 
+            # log the user in
+            user = authenticate(email=email, password=password)
+            login(self.request, user)
             self.invitation.accept(user)
 
     class JoinAccept(NoNavMixin, InvitationMixin, SmartUpdateView):
