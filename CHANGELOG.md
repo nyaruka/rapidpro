@@ -1,3 +1,7 @@
+v10.1.87 (2025-03-11)
+-------------------------
+ * Add allauth
+
 v10.1.82 (2025-03-05)
 -------------------------
  * Data migration to backfill campaign event fire counts
