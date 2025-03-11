@@ -36,7 +36,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             menu_url,
             self.admin,
             [
-                ("Workspace", ["Sign Out"]),
+                ("Workspace", ["Account", "Sign Out"]),
                 "Messages",
                 "Contacts",
                 "Flows",
@@ -53,7 +53,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             [
                 "Nyaruka",
-                "Account",
+                "API Tokens",
                 "Resthooks",
                 "Incidents",
                 "Export",
@@ -70,7 +70,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             menu_url,
             self.agent,
             [
-                ("Workspace", ["Nyaruka", "Sign Out"]),
+                ("Workspace", ["Nyaruka", "Account", "Sign Out"]),
                 "Tickets",
                 ("Notifications", []),
                 "Settings",
@@ -90,7 +90,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             menu_url,
             self.admin,
             [
-                ("Workspace", ["New Workspace", "Sign Out"]),
+                ("Workspace", ["New Workspace", "Account", "Sign Out"]),
                 "Messages",
                 "Contacts",
                 "Flows",
@@ -127,7 +127,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             [
                 "Nyaruka",
-                "Account",
+                "API Tokens",
                 "Resthooks",
                 "Incidents",
                 "Export",
@@ -162,7 +162,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             [
                 "Nyaruka",
-                "Account",
+                "API Tokens",
                 "Resthooks",
                 "Incidents",
                 "Workspaces (2)",
@@ -318,7 +318,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(join_url)
         self.assertContains(response, "Sign in to join the <b>Nyaruka</b> workspace")
-        self.assertContains(response, f"/users/login/?next={join_accept_url}")
+        self.assertContains(response, f"/accounts/login/?next={join_accept_url}")
 
         # should be logged out as the other user
         self.assertEqual(0, len(self.client.session.keys()))
@@ -339,7 +339,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(join_url)
         self.assertContains(response, "Sign in to join the <b>Trileet Inc.</b> workspace")
-        self.assertContains(response, f"/users/login/?next={join_accept_url}")
+        self.assertContains(response, f"/accounts/login/?next={join_accept_url}")
 
     def test_join_signup(self):
         # if invitation secret is invalid, redirect to root
@@ -420,13 +420,13 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_org_grant(self):
         grant_url = reverse("orgs.org_grant")
         response = self.client.get(grant_url)
-        self.assertRedirect(response, "/users/login/")
+        self.assertRedirect(response, "/accounts/login/")
 
         user = self.create_user("tito@textit.com")
 
         self.login(user)
         response = self.client.get(grant_url)
-        self.assertRedirect(response, "/users/login/")
+        self.assertRedirect(response, "/accounts/login/")
 
         granters = Group.objects.get(name="Granters")
         user.groups.add(granters)
@@ -643,7 +643,6 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
     )
     def test_signup(self):
         signup_url = reverse("orgs.org_signup")
-        edit_url = reverse("orgs.user_edit")
 
         response = self.client.get(signup_url + "?%s" % urlencode({"email": "address@example.com"}))
         self.assertEqual(response.status_code, 200)
@@ -776,7 +775,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.client.logout()
 
         response = self.client.get(reverse("orgs.check_login"))
-        self.assertLoginRedirect(response)
+        self.assertLoginRedirectLegacy(response)
 
         # try going to the org home page, no dice
         response = self.client.get(reverse("orgs.org_workspace"))
@@ -790,46 +789,6 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(reverse("orgs.org_workspace"))
         self.assertEqual(200, response.status_code)
-
-        # try changing our username, wrong password
-        response = self.client.post(edit_url, {"email": "myal@wr.org", "current_password": "HelloWorld"})
-        self.assertEqual(200, response.status_code)
-        self.assertFormError(
-            response.context["form"],
-            "current_password",
-            "Please enter your password to save changes.",
-        )
-
-        # bad new password
-        response = self.client.post(
-            edit_url, {"email": "myal@wr.org", "current_password": "HelloWorld1", "new_password": "passwor"}
-        )
-        self.assertEqual(200, response.status_code)
-        self.assertFormError(
-            response.context["form"],
-            "new_password",
-            "This password is too short. It must contain at least 8 characters.",
-        )
-
-        User.objects.create_user("bill@msn.com", "Qwerty123")
-
-        # dupe user
-        response = self.client.post(edit_url, {"email": "bill@MSN.com", "current_password": "HelloWorld1"})
-        self.assertEqual(200, response.status_code)
-        self.assertFormError(response.context["form"], "email", "Sorry, that email address is already taken.")
-
-        post_data = dict(
-            email="myal@wr.org",
-            first_name="Myal",
-            last_name="Greene",
-            language="en-us",
-            current_password="HelloWorld1",
-        )
-        response = self.client.post(edit_url, post_data, HTTP_X_FORMAX=True)
-        self.assertEqual(200, response.status_code)
-
-        self.assertTrue(User.objects.get(email="myal@wr.org"))
-        self.assertFalse(User.objects.filter(email="myal@relieves.org"))
 
     def test_create_new(self):
         create_url = reverse("orgs.org_create")
@@ -1076,7 +1035,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         # users with no org are redirected back to the login page
         response = self.requestView(choose_url, self.non_org_user)
         self.assertLoginRedirect(response)
-        response = self.client.get("/users/login/")
+        response = self.client.get("/accounts/login/")
         self.assertContains(response, "No workspaces for this account, please contact your administrator.")
 
         # unless they are staff

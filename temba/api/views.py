@@ -283,7 +283,7 @@ class APITokenCRUDL(SmartCRUDL):
 
     class List(SpaMixin, ContextMenuMixin, BaseListView):
         title = _("API Tokens")
-        menu_path = "/settings/account"
+        menu_path = "/settings/api-tokens"
         paginate_by = None
         token_limit = 3
 

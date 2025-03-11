@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
+from allauth.account.models import EmailAddress
 from django_redis import get_redis_connection
 from PIL import Image, ImageDraw
 from smartmin.tests import SmartminTest
@@ -19,6 +20,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from temba.archives.models import Archive, jsonlgz_encode
@@ -63,6 +65,10 @@ class TembaTest(SmartminTest):
         self.editor = self.create_user("editor@textit.com", first_name="Ed", last_name="McEdits")
         self.agent = self.create_user("agent@textit.com", first_name="Agnes")
         self.customer_support = self.create_user("support@textit.com", is_staff=True)
+
+        # mark all of their emails as verified
+        for user in User.objects.all():
+            EmailAddress.objects.create(user=user, email=user.email, verified=True, primary=True)
 
         self.org = Org.objects.create(
             name="Nyaruka",
@@ -782,6 +788,9 @@ class TembaTest(SmartminTest):
 
     def set_contact_field(self, contact, key, value):
         update_field_locally(self.admin, contact, key, value)
+
+    def assertLoginRedirectLegacy(self, response, msg=None):
+        self.assertRedirect(response, reverse("orgs.login"), msg=msg)
 
     def assertToast(self, response, level, text):
         toasts = json.loads(response.get("X-Temba-Toasts", []))

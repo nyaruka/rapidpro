@@ -19,7 +19,7 @@ from smartmin.views import (
 from django import forms
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.views import LoginView as AuthLoginView
 from django.core.exceptions import ValidationError
@@ -206,7 +206,8 @@ class LoginView(AuthLoginView):
         return form.cleaned_data.get("username")
 
 
-class LogoutView(View):
+# This will be removed once we have fully switched to allauth
+class LogoutView(View):  # pragma: needs cover
     """
     Logouts user on a POST and redirects to the login page.
     """
@@ -693,58 +694,32 @@ class UserCRUDL(SmartCRUDL):
             context["lockout_timeout"] = getattr(settings, "USER_LOCKOUT_TIMEOUT", 10)
             return context
 
-    class Edit(FormaxSectionMixin, ComponentFormMixin, InferUserMixin, SmartUpdateView):
+    class Edit(ComponentFormMixin, InferUserMixin, SmartUpdateView):
+
         class Form(forms.ModelForm):
             first_name = forms.CharField(
                 label=_("First Name"), widget=InputWidget(attrs={"placeholder": _("Required")})
             )
             last_name = forms.CharField(label=_("Last Name"), widget=InputWidget(attrs={"placeholder": _("Required")}))
-            email = forms.EmailField(required=True, label=_("Email"), widget=InputWidget())
             avatar = forms.ImageField(
                 required=False, label=_("Profile Picture"), widget=ImagePickerWidget(attrs={"shape": "circle"})
-            )
-            current_password = forms.CharField(
-                required=False,
-                label=_("Current Password"),
-                widget=InputWidget({"widget_only": True, "placeholder": _("Password Required"), "password": True}),
-            )
-            new_password = forms.CharField(
-                required=False,
-                label=_("New Password"),
-                validators=[validate_password],
-                widget=InputWidget(attrs={"placeholder": _("Optional"), "password": True}),
             )
             language = forms.ChoiceField(
                 choices=settings.LANGUAGES, required=True, label=_("Website Language"), widget=SelectWidget()
             )
 
-            def clean_current_password(self):
-                user = self.instance
-                password = self.cleaned_data.get("current_password", None)
-
-                # password is required to change your email address or set a new password
-                if self.data.get("new_password", None) or self.data.get("email", None) != user.email:
-                    if not user.check_password(password):
-                        raise forms.ValidationError(_("Please enter your password to save changes."))
-
-                return password
-
-            def clean_email(self):
-                user = self.instance
-                email = self.cleaned_data["email"].lower()
-
-                existing = User.get_by_email(email)
-                if existing and existing != user:
-                    raise forms.ValidationError(_("Sorry, that email address is already taken."))
-
-                return email
-
             class Meta:
                 model = User
-                fields = ("first_name", "last_name", "email", "avatar", "current_password", "new_password", "language")
+                fields = ("first_name", "last_name", "avatar", "language")
 
         form_class = Form
         success_url = "@orgs.user_edit"
+        success_message = _("Your profile has been updated successfully.")
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            context["base_template"] = "allauth/layouts/base.html"
+            return context
 
         def has_permission(self, request, *args, **kwargs):
             return self.request.user.is_authenticated
@@ -757,44 +732,6 @@ class UserCRUDL(SmartCRUDL):
             initial["language"] = self.object.language
             initial["avatar"] = self.object.avatar
             return initial
-
-        def pre_save(self, obj):
-            obj = super().pre_save(obj)
-
-            # get existing email address to know if it's changing
-            obj._prev_email = User.objects.get(id=obj.id).email
-
-            if obj.email != obj._prev_email:
-                obj.email_status = User.STATUS_UNVERIFIED
-                obj.email_verification_secret = generate_secret(64)
-
-            # figure out if password is being changed and if so update it
-            new_password = self.form.cleaned_data["new_password"]
-            current_password = self.form.cleaned_data["current_password"]
-            if new_password and new_password != current_password:
-                obj.set_password(self.form.cleaned_data["new_password"])
-                obj._password_changed = True
-            else:
-                obj._password_changed = False
-
-            return obj
-
-        def post_save(self, obj):
-            from temba.notifications.types.builtin import UserEmailNotificationType, UserPasswordNotificationType
-
-            obj = super().post_save(obj)
-
-            if obj.email != obj._prev_email:
-                RecoveryToken.objects.filter(user=obj).delete()  # make old password recovery links unusable
-
-                UserEmailNotificationType.create(self.request.org, self.request.user, obj._prev_email)
-
-            if obj._password_changed:
-                update_session_auth_hash(self.request, self.request.user)
-
-                UserPasswordNotificationType.create(self.request.org, self.request.user)
-
-            return obj
 
     class SendVerificationEmail(SpaMixin, PostOnlyMixin, InferUserMixin, SmartUpdateView):
         class Form(forms.ModelForm):
@@ -1082,16 +1019,7 @@ class OrgCRUDL(SmartCRUDL):
                     )
                 ]
 
-                if self.request.user.is_authenticated:
-                    menu.append(
-                        self.create_menu_item(
-                            menu_id="account",
-                            name=_("Account"),
-                            icon="account",
-                            href=reverse("orgs.user_account"),
-                        )
-                    )
-
+                menu.append(self.create_menu_item(name=_("API Tokens"), icon="user_token", href="api.apitoken_list"))
                 menu.append(self.create_menu_item(name=_("Resthooks"), icon="resthooks", href="orgs.org_resthooks"))
 
                 if self.has_org_perm("notifications.incident_list"):
@@ -1278,11 +1206,18 @@ class OrgCRUDL(SmartCRUDL):
                             *org_options,
                             self.create_divider(),
                             self.create_menu_item(
+                                menu_id="account",
+                                name=_("Account"),
+                                icon="account",
+                                href=reverse("orgs.user_edit"),
+                                posterize=True,
+                            ),
+                            self.create_menu_item(
                                 menu_id="logout",
                                 name=_("Sign Out"),
                                 icon="logout",
+                                href="/accounts/logout/",
                                 posterize=True,
-                                href=reverse("orgs.logout"),
                             ),
                             self.create_space(),
                         ],
@@ -1783,7 +1718,7 @@ class OrgCRUDL(SmartCRUDL):
                 # TODO: we should take to a workspace create page if permitted by deployment
                 messages.info(request, _("No workspaces for this account, please contact your administrator."))
                 logout(request)
-                return HttpResponseRedirect(reverse("orgs.login"))
+                return HttpResponseRedirect(settings.LOGIN_URL)
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
