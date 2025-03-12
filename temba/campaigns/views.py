@@ -347,8 +347,9 @@ class CampaignEventForm(forms.ModelForm):
                 # set our single message on our flow
                 obj.flow.update_single_message_flow(request.user, translations, base_language)
 
-            obj.message = translations
+            obj.message = translations  # deprecated
             obj.translations = {lang: {"text": text} for lang, text in translations.items()}
+            obj.base_language = base_language
             obj.full_clean()
             obj.start_mode = self.cleaned_data["message_start_mode"]
 
