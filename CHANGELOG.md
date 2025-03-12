@@ -1,3 +1,7 @@
+v10.1.92 (2025-03-12)
+-------------------------
+ * Data migration to backfill campaign event translations
+
 v10.1.91 (2025-03-12)
 -------------------------
  * Add CampaignEvent.base_language field too
