@@ -1,3 +1,7 @@
+v10.1.94 (2025-03-12)
+-------------------------
+ * Read from campaignevent translations instead of message
+
 v10.1.93 (2025-03-12)
 -------------------------
  * Fix account already exists email template
