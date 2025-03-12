@@ -5,8 +5,8 @@ from temba.tests import MigrationTest
 
 class BackfillCampaignEventTranslationsTest(MigrationTest):
     app = "campaigns"
-    migrate_from = "0072_campaignevent_translations"
-    migrate_to = "0073_backfill_campaignevent_translations"
+    migrate_from = "0073_campaignevent_base_language"
+    migrate_to = "0074_backfill_campaignevent_translations"
 
     def setUpBeforeMigration(self, apps):
         group = self.create_group("Group", [])

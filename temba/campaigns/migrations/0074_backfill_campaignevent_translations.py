@@ -17,7 +17,7 @@ def backfill_campaignevent_translations(apps, schema_editor):
         for event in batch:
             event.translations = {lang: {"text": text} for lang, text in event.message.items()}
             event.base_language = event.flow.base_language
-            event.save(update_fields=("translations",))
+            event.save(update_fields=("translations", "base_language"))
 
         num_updated += len(batch)
         print(f"Backfilled translations for {num_updated} campaign events...")

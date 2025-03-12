@@ -1,3 +1,7 @@
+v10.1.91 (2025-03-12)
+-------------------------
+ * Add CampaignEvent.base_language field too
+
 v10.1.90 (2025-03-12)
 -------------------------
  * Add CampaignEvent.translations and start populating
