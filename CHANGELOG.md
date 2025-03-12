@@ -1,3 +1,7 @@
+v10.1.93 (2025-03-12)
+-------------------------
+ * Fix account already exists email template
+
 v10.1.92 (2025-03-12)
 -------------------------
  * Data migration to backfill campaign event translations
