@@ -348,6 +348,7 @@ class CampaignEventForm(forms.ModelForm):
                 obj.flow.update_single_message_flow(request.user, translations, base_language)
 
             obj.message = translations
+            obj.translations = {lang: {"text": text} for lang, text in translations.items()}
             obj.full_clean()
             obj.start_mode = self.cleaned_data["message_start_mode"]
 

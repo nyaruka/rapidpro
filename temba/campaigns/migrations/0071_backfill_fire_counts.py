@@ -3,7 +3,7 @@
 from django.db import migrations, transaction
 
 
-def backfill_fire_counts(apps, schema_editor):
+def backfill_fire_counts(apps, schema_editor):  # pragma: no cover
     CampaignEvent = apps.get_model("campaigns", "CampaignEvent")
     ContactFire = apps.get_model("contacts", "ContactFire")
     ItemCount = apps.get_model("orgs", "ItemCount")

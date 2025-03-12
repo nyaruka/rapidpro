@@ -459,11 +459,13 @@ class CampaignEventWriteSerializer(WriteSerializer):
             if flow:
                 self.instance.flow = flow
                 self.instance.event_type = CampaignEvent.TYPE_FLOW
-                self.instance.message = None
+                self.instance.translations = None
+                self.instance.message = None  # deprecated
 
             # we are being set to a message
             else:
-                self.instance.message = message
+                self.instance.translations = {lang: {"text": text} for lang, text in message.items()}
+                self.instance.message = message  # deprecated
 
                 # if we aren't currently a message event, we need to create our hidden message flow
                 if self.instance.event_type != CampaignEvent.TYPE_MESSAGE:
