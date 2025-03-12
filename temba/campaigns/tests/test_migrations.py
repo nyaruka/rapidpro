@@ -38,13 +38,15 @@ class BackfillCampaignEventTranslationsTest(MigrationTest):
             base_language="eng",
         )
         self.event3.translations = None
-        self.event3.save(update_fields=("translations",))
+        self.event3.base_language = None
+        self.event3.save(update_fields=("translations", "base_language"))
 
     def test_migration(self):
-        def assert_translations(event, expected_translations):
+        def assert_translations(event, expected_translations, expected_base_language):
             event.refresh_from_db()
             self.assertEqual(event.translations, expected_translations)
+            self.assertEqual(event.base_language, expected_base_language)
 
-        assert_translations(self.event1, None)  # flow event should not have translations
-        assert_translations(self.event2, {"eng": {"text": "Hello"}, "spa": {"text": "Hola"}})
-        assert_translations(self.event3, {"eng": {"text": "Goodbye"}, "spa": {"text": "Adios"}})
+        assert_translations(self.event1, None, None)  # flow event should not have translations
+        assert_translations(self.event2, {"eng": {"text": "Hello"}, "spa": {"text": "Hola"}}, "eng")
+        assert_translations(self.event3, {"eng": {"text": "Goodbye"}, "spa": {"text": "Adios"}}, "eng")

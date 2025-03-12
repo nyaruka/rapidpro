@@ -8,12 +8,15 @@ def backfill_campaignevent_translations(apps, schema_editor):
 
     num_updated = 0
     while True:
-        batch = CampaignEvent.objects.filter(message__isnull=False, translations__isnull=True)[:500]
+        batch = CampaignEvent.objects.filter(message__isnull=False, translations__isnull=True).select_related("flow")[
+            :500
+        ]
         if not batch:
             break
 
         for event in batch:
             event.translations = {lang: {"text": text} for lang, text in event.message.items()}
+            event.base_language = event.flow.base_language
             event.save(update_fields=("translations",))
 
         num_updated += len(batch)
@@ -23,7 +26,7 @@ def backfill_campaignevent_translations(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("campaigns", "0072_campaignevent_translations"),
+        ("campaigns", "0073_campaignevent_base_language"),
     ]
 
     operations = [

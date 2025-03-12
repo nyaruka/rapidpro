@@ -460,11 +460,13 @@ class CampaignEventWriteSerializer(WriteSerializer):
                 self.instance.flow = flow
                 self.instance.event_type = CampaignEvent.TYPE_FLOW
                 self.instance.translations = None
+                self.instance.base_language = None
                 self.instance.message = None  # deprecated
 
             # we are being set to a message
             else:
                 self.instance.translations = {lang: {"text": text} for lang, text in message.items()}
+                self.instance.base_language = base_language
                 self.instance.message = message  # deprecated
 
                 # if we aren't currently a message event, we need to create our hidden message flow
