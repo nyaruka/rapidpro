@@ -621,7 +621,9 @@ class CampaignEventCRUDL(SmartCRUDL):
                 flow = prev.flow
                 flow.is_active = False
                 flow.save(update_fields=("is_active",))
-                obj.message = None
+                obj.translations = None
+                obj.base_language = None
+                obj.message = None  # deprecated
 
             # if we changed scheduling, update the fire version to invalidate existing fires
             if (
