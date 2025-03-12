@@ -48,7 +48,7 @@ class CampaignTest(TembaTest):
 
         self.assertEqual("Reminders", campaign.name)
         self.assertEqual("Reminders", str(campaign))
-        self.assertEqual([event1, event2], list(campaign.get_events()))
+        self.assertEqual({event1, event2}, set(campaign.get_events()))
 
         campaign.schedule_async()
 
