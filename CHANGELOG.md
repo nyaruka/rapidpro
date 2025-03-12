@@ -1,3 +1,7 @@
+v10.1.90 (2025-03-12)
+-------------------------
+ * Add CampaignEvent.translations and start populating
+
 v10.1.89 (2025-03-11)
 -------------------------
  * Make email case insensitive on invites
