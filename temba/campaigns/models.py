@@ -291,19 +291,20 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_READY)
     fire_version = models.IntegerField(default=0)  # updated when the scheduling values below are changed
 
-    # the contact specific date value this is event is based on
+    # the schedule: a datetime field and an offset
     relative_to = models.ForeignKey(ContactField, on_delete=models.PROTECT, related_name="campaign_events")
     offset = models.IntegerField(default=0)  # offset from that date value (positive is after, negative is before)
     unit = models.CharField(max_length=1, choices=UNIT_CHOICES, default=UNIT_DAYS)  # the unit for the offset
     delivery_hour = models.IntegerField(default=-1)  # can also specify the hour during the day
 
-    # the flow that will be triggered by this event
+    # the content: either a flow or message translations
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="campaign_events")
+    translations = models.JSONField(null=True)
 
     # what should happen to other runs when this event is triggered
     start_mode = models.CharField(max_length=1, choices=START_MODES_CHOICES, default=MODE_INTERRUPT)
 
-    # when sending single message events, we store the message here (as well as on the flow) for convenience
+    # deprecated: use translations instead
     message = TranslatableField(max_length=Msg.MAX_TEXT_LEN, null=True)
 
     @classmethod
@@ -339,12 +340,13 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             offset=offset,
             unit=unit,
             event_type=cls.TYPE_MESSAGE,
-            message=message,
+            translations={lang: {"text": text} for lang, text in message.items()},
             flow=flow,
             delivery_hour=delivery_hour,
             start_mode=start_mode,
             created_by=user,
             modified_by=user,
+            message=message,  # deprecated
         )
 
     @classmethod
