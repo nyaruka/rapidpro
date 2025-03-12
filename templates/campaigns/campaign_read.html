@@ -46,7 +46,7 @@
           <td class="w-full">
             {% if event.event_type == 'M' %}
               <div class="message">
-                <div class="text">{{ event.get_message }}</div>
+                <div class="text">{{ event.get_message.text }}</div>
               </div>
             {% else %}
               <a href="{% url 'flows.flow_editor' event.flow.uuid %}" onclick="goto(event, this)">

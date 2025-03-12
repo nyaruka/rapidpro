@@ -20,7 +20,7 @@
   <div class="event-details p-4 bg-gray-200 rounded-lg mb-4">
     {% if object.event_type == 'M' %}
       <div class="cap-label">{% trans "Send Message" %}</div>
-      <div class="text-gray-600">{{ object.get_message }}</div>
+      <div class="text-gray-600">{{ object.get_message.text }}</div>
     {% else %}
       <div class="start-flow">
         {% trans "Start" %}
