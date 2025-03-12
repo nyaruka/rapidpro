@@ -695,7 +695,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
                 if event.event_type == CampaignEvent.TYPE_FLOW:
                     obj["flow"] = event.flow.as_export_ref()
                 else:
-                    obj["message"] = event.get_message(contact=self)
+                    obj["message"] = event.get_message(contact=self)["text"]
 
                 merged.append(obj)
 

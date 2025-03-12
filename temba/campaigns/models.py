@@ -34,7 +34,7 @@ class Campaign(TembaModel):
         Schedules or reschedules all the events in this campaign. Required on creation or when group changes.
         """
 
-        for event in self.get_events():
+        for event in self.get_events().order_by("id"):
             event.schedule_async()
 
     def archive(self, user):
@@ -393,18 +393,20 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     def name(self):
         return f"{self.campaign.name} ({self.offset_display} {self.relative_to.name})"
 
-    def get_message(self, contact=None):
-        if not self.message:
-            return None
+    def get_message(self, contact=None) -> dict:
+        """
+        For message type events returns the message translation
+        """
+        assert self.event_type == self.TYPE_MESSAGE, "can only call get_message on message type events"
 
-        message = None
-        if contact and contact.language and contact.language in self.message:
-            message = self.message[contact.language]
+        translation = None
+        if contact and contact.language and contact.language in self.translations:
+            translation = self.translations[contact.language]
 
-        if not message:
-            message = self.message[self.flow.base_language]
+        if not translation:
+            translation = self.translations[self.base_language]
 
-        return message
+        return translation
 
     def update_flow_name(self):
         """

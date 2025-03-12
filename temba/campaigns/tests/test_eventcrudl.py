@@ -271,9 +271,8 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("I", event.start_mode)
         self.assertEqual("S", event.status)
 
-        self.assertEqual("hello", event.get_message(contact=farmer1))
-        self.assertEqual("muraho", event.get_message(contact=farmer2))
-        self.assertEqual("hello", event.get_message())
+        self.assertEqual({"eng": {"text": "hello"}, "kin": {"text": "muraho"}}, event.translations)
+        self.assertEqual("eng", event.base_language)
 
         self.assertTrue(event.flow.is_system)
         self.assertEqual("eng", event.flow.base_language)
