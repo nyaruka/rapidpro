@@ -300,6 +300,7 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     # the content: either a flow or message translations
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="campaign_events")
     translations = models.JSONField(null=True)
+    base_language = models.CharField(max_length=3, null=True)  # ISO-639-3
 
     # what should happen to other runs when this event is triggered
     start_mode = models.CharField(max_length=1, choices=START_MODES_CHOICES, default=MODE_INTERRUPT)
@@ -341,6 +342,7 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             unit=unit,
             event_type=cls.TYPE_MESSAGE,
             translations={lang: {"text": text} for lang, text in message.items()},
+            base_language=base_language,
             flow=flow,
             delivery_hour=delivery_hour,
             start_mode=start_mode,
