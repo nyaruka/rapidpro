@@ -1,3 +1,7 @@
+v10.1.97 (2025-03-13)
+-------------------------
+ * Drop CampaignEvent.message field
+
 v10.1.96 (2025-03-13)
 -------------------------
  * Stop writing CampaignEvent.message
