@@ -1,3 +1,7 @@
+v10.1.95 (2025-03-13)
+-------------------------
+ * Fix floweditor grid in chrome
+
 v10.1.94 (2025-03-12)
 -------------------------
  * Read from campaignevent translations instead of message
