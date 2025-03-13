@@ -2,7 +2,6 @@ import json
 from unittest.mock import call
 from zoneinfo import ZoneInfo
 
-from django.core.exceptions import ValidationError
 from django.core.files.storage import default_storage
 
 from temba.campaigns.models import Campaign, CampaignEvent
@@ -219,32 +218,6 @@ class CampaignTest(TembaTest):
         # should be able to change our field type now
         ContactField.get_or_create(self.org, self.admin, "planting_date", value_type=ContactField.TYPE_TEXT)
 
-    def test_translations(self):
-        campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
-
-        event1 = CampaignEvent.create_message_event(
-            self.org,
-            self.admin,
-            campaign,
-            relative_to=self.planting_date,
-            offset=0,
-            unit="D",
-            message={"eng": "hello"},
-            base_language="eng",
-        )
-
-        with self.assertRaises(ValidationError):
-            event1.message = {"ddddd": "x"}
-            event1.full_clean()
-
-        with self.assertRaises(ValidationError):
-            event1.message = {"eng": "x" * 8001}
-            event1.full_clean()
-
-        with self.assertRaises(ValidationError):
-            event1.message = {}
-            event1.full_clean()
-
     @mock_mailroom
     def test_unarchiving_campaigns(self, mr_mocks):
         # create a campaign
@@ -409,11 +382,11 @@ class CampaignTest(TembaTest):
             self.org, self.admin, campaign, offset=3, unit="D", flow=self.reminder_flow, relative_to=self.planting_date
         )
 
-        self.assertEqual(campaign_event.campaign_id, campaign.id)
+        self.assertEqual(campaign_event.campaign, campaign)
         self.assertEqual(campaign_event.offset, 3)
         self.assertEqual(campaign_event.unit, "D")
-        self.assertEqual(campaign_event.relative_to_id, self.planting_date.id)
-        self.assertEqual(campaign_event.flow_id, self.reminder_flow.id)
+        self.assertEqual(campaign_event.relative_to, self.planting_date)
+        self.assertEqual(campaign_event.flow, self.reminder_flow)
         self.assertEqual(campaign_event.event_type, "F")
         self.assertEqual(campaign_event.translations, None)
         self.assertEqual(campaign_event.base_language, None)
@@ -423,11 +396,11 @@ class CampaignTest(TembaTest):
             self.org, self.admin, campaign, offset=3, unit="D", flow=self.reminder_flow, relative_to=created_on
         )
 
-        self.assertEqual(campaign_event.campaign_id, campaign.id)
+        self.assertEqual(campaign_event.campaign, campaign)
         self.assertEqual(campaign_event.offset, 3)
         self.assertEqual(campaign_event.unit, "D")
-        self.assertEqual(campaign_event.relative_to_id, created_on.id)
-        self.assertEqual(campaign_event.flow_id, self.reminder_flow.id)
+        self.assertEqual(campaign_event.relative_to, created_on)
+        self.assertEqual(campaign_event.flow, self.reminder_flow)
         self.assertEqual(campaign_event.event_type, "F")
         self.assertEqual(campaign_event.translations, None)
         self.assertEqual(campaign_event.base_language, None)
@@ -482,3 +455,4 @@ class CampaignTest(TembaTest):
         self.assertEqual(campaign_event.translations, {"eng": {"text": "oy, pancake man, come back"}})
         self.assertEqual(campaign_event.base_language, "eng")
         self.assertEqual(campaign_event.delivery_hour, -1)
+        self.assertIsNone(campaign_event.flow)

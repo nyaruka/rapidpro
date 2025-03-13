@@ -12,10 +12,9 @@ from django.utils.translation import gettext_lazy as _, ngettext
 from temba import mailroom
 from temba.contacts.models import ContactField, ContactGroup
 from temba.flows.models import Flow
-from temba.msgs.models import Msg
 from temba.orgs.models import Org
 from temba.utils import json, on_transaction_commit
-from temba.utils.models import TembaModel, TembaUUIDMixin, TranslatableField, delete_in_batches
+from temba.utils.models import TembaModel, TembaUUIDMixin, delete_in_batches
 
 
 class Campaign(TembaModel):
@@ -303,9 +302,6 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
 
     # what should happen to other runs when this event is triggered
     start_mode = models.CharField(max_length=1, choices=START_MODES_CHOICES, default=MODE_INTERRUPT)
-
-    # TODO drop
-    message = TranslatableField(max_length=Msg.MAX_TEXT_LEN, null=True)
 
     @classmethod
     def create_message_event(

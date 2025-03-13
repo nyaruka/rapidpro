@@ -371,7 +371,11 @@ class CampaignEventForm(forms.ModelForm):
             is_system=False,
         ).order_by("name")
 
-        if self.instance.id and self.instance.flow and self.instance.flow.flow_type == Flow.TYPE_BACKGROUND:
+        if (
+            self.instance.id
+            and self.instance.event_type == CampaignEvent.TYPE_FLOW
+            and self.instance.flow.flow_type == Flow.TYPE_BACKGROUND
+        ):
             flow.widget.attrs["info_text"] = CampaignEventCRUDL.BACKGROUND_WARNING
 
         message = {lang: t["text"] for lang, t in (self.instance.translations or {}).items()}
