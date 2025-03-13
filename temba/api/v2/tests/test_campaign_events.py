@@ -186,7 +186,8 @@ class CampaignEventsEndpointTest(APITest):
         self.assertEqual(event1.offset, 15)
         self.assertEqual(event1.unit, "W")
         self.assertEqual(event1.delivery_hour, -1)
-        self.assertEqual(event1.message, {"eng": "You are @fields.age"})
+        self.assertEqual(event1.translations, {"eng": {"text": "You are @fields.age"}})
+        self.assertEqual(event1.base_language, "eng")
         self.assertEqual(event1.status, "S")
         self.assertEqual(event1.fire_version, 1)
         self.assertIsNotNone(event1.flow)
@@ -226,7 +227,7 @@ class CampaignEventsEndpointTest(APITest):
         self.assertEqual(event1.offset, 15)
         self.assertEqual(event1.unit, "D")
         self.assertEqual(event1.delivery_hour, -1)
-        self.assertEqual(event1.message, {"eng": "Nice unit of work @fields.code"})
+        self.assertEqual(event1.translations, {"eng": {"text": "Nice unit of work @fields.code"}})
         self.assertIsNotNone(event1.flow)
 
         # create a flow event
@@ -310,7 +311,9 @@ class CampaignEventsEndpointTest(APITest):
 
         event2.refresh_from_db()
         self.assertEqual(event2.event_type, CampaignEvent.TYPE_MESSAGE)
-        self.assertEqual(event2.message, {"eng": "OK @(format_urn(urns.tel))", "fra": "D'accord"})
+        self.assertEqual(
+            event2.translations, {"eng": {"text": "OK @(format_urn(urns.tel))"}, "fra": {"text": "D'accord"}}
+        )
         self.assertEqual(event2.status, "S")
         self.assertEqual(event2.fire_version, 2)  # bumped
 
@@ -332,7 +335,9 @@ class CampaignEventsEndpointTest(APITest):
 
         event2 = CampaignEvent.objects.filter(campaign=campaign1).order_by("-id").first()
         self.assertEqual(event2.event_type, CampaignEvent.TYPE_MESSAGE)
-        self.assertEqual(event2.message, {"eng": "OK", "fra": "D'accord", "kin": "Sawa"})
+        self.assertEqual(
+            event2.translations, {"eng": {"text": "OK"}, "fra": {"text": "D'accord"}, "kin": {"text": "Sawa"}}
+        )
 
         # try to change an existing event's campaign
         self.assertPost(
