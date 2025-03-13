@@ -1,3 +1,8 @@
+v10.1.96 (2025-03-13)
+-------------------------
+ * Stop writing CampaignEvent.message
+ * Remove new classifier, make way for llms
+
 v10.1.95 (2025-03-13)
 -------------------------
  * Fix floweditor grid in chrome
