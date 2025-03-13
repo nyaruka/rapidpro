@@ -330,10 +330,9 @@ class CampaignEventForm(forms.ModelForm):
 
         # if its a message flow, set that accordingly
         if self.cleaned_data["event_type"] == CampaignEvent.TYPE_MESSAGE:
-            if self.instance.id:
+            base_language = org.flow_languages[0]
+            if self.instance.id and self.instance.base_language:
                 base_language = self.instance.base_language
-            else:
-                base_language = org.flow_languages[0]
 
             translations = {}
             for language in self.languages:
@@ -604,11 +603,6 @@ class CampaignEventCRUDL(SmartCRUDL):
                 initial["message_start_mode"] = self.object.start_mode
 
             return initial
-
-        def post_save(self, obj):
-            obj = super().post_save(obj)
-            obj.update_flow_name()
-            return obj
 
         def pre_save(self, obj):
             obj = super().pre_save(obj)

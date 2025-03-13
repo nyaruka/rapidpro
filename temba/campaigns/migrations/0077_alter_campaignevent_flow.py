@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("campaigns", "0074_backfill_campaignevent_translations"),
+        ("campaigns", "0076_remove_campaignevent_message"),
         ("flows", "0381_remove_flowstart_campaign_event"),
     ]
 
@@ -16,7 +16,11 @@ class Migration(migrations.Migration):
             model_name="campaignevent",
             name="flow",
             field=models.ForeignKey(
-                null=True, on_delete=django.db.models.deletion.PROTECT, related_name="campaign_events", to="flows.flow"
+                null=True,
+                blank=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="campaign_events",
+                to="flows.flow",
             ),
         ),
     ]

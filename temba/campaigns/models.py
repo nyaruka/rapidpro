@@ -296,7 +296,7 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     delivery_hour = models.IntegerField(default=-1)  # can also specify the hour during the day
 
     # the content: either a flow or message translations
-    flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="campaign_events", null=True)
+    flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="campaign_events", null=True, blank=True)
     translations = models.JSONField(null=True)
     base_language = models.CharField(max_length=3, null=True)  # ISO-639-3
 
