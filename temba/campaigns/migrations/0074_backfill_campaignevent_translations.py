@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def backfill_campaignevent_translations(apps, schema_editor):
+def backfill_campaignevent_translations(apps, schema_editor):  # pragma: no cover
     CampaignEvent = apps.get_model("campaigns", "CampaignEvent")
 
     num_updated = 0

@@ -365,6 +365,7 @@ class CampaignEventReadSerializer(ReadSerializer):
 
     campaign = fields.CampaignField()
     flow = serializers.SerializerMethodField()
+    message = serializers.SerializerMethodField()
     relative_to = fields.ContactFieldField()
     unit = serializers.SerializerMethodField()
     created_on = serializers.DateTimeField(default_timezone=tzone.utc)
@@ -372,6 +373,12 @@ class CampaignEventReadSerializer(ReadSerializer):
     def get_flow(self, obj):
         if obj.event_type == CampaignEvent.TYPE_FLOW:
             return {"uuid": obj.flow.uuid, "name": obj.flow.name}
+        else:
+            return None
+
+    def get_message(self, obj):
+        if obj.event_type == CampaignEvent.TYPE_MESSAGE:
+            return {lang: t["text"] for lang, t in obj.translations.items()}
         else:
             return None
 
@@ -457,27 +464,17 @@ class CampaignEventWriteSerializer(WriteSerializer):
 
             # we are being set to a flow
             if flow:
-                self.instance.flow = flow
                 self.instance.event_type = CampaignEvent.TYPE_FLOW
+                self.instance.flow = flow
                 self.instance.translations = None
                 self.instance.base_language = None
-                self.instance.message = None  # deprecated
 
             # we are being set to a message
             else:
+                self.instance.event_type = CampaignEvent.TYPE_MESSAGE
+                self.instance.flow = None
                 self.instance.translations = {lang: {"text": text} for lang, text in message.items()}
                 self.instance.base_language = base_language
-                self.instance.message = message  # deprecated
-
-                # if we aren't currently a message event, we need to create our hidden message flow
-                if self.instance.event_type != CampaignEvent.TYPE_MESSAGE:
-                    self.instance.flow = Flow.create_single_message(org, user, message, base_language)
-                    self.instance.event_type = CampaignEvent.TYPE_MESSAGE
-
-                # otherwise, we can just update that flow
-                else:
-                    # set our single message on our flow
-                    self.instance.flow.update_single_message_flow(user, message, base_language)
 
             # update scheduling attributes
             self.instance.offset = offset
@@ -485,7 +482,6 @@ class CampaignEventWriteSerializer(WriteSerializer):
             self.instance.delivery_hour = delivery_hour
             self.instance.relative_to = relative_to
             self.instance.save()
-            self.instance.update_flow_name()
 
         else:
             needs_scheduling = True
@@ -498,8 +494,6 @@ class CampaignEventWriteSerializer(WriteSerializer):
                 self.instance = CampaignEvent.create_message_event(
                     org, user, campaign, relative_to, offset, unit, message, delivery_hour, base_language
                 )
-
-            self.instance.update_flow_name()
 
         # create our event fires for this event in the background
         if needs_scheduling:

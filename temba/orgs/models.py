@@ -938,7 +938,7 @@ class Org(SmartModel):
         campaign_prefetches = (
             Prefetch(
                 "events",
-                queryset=CampaignEvent.objects.filter(is_active=True).exclude(flow__is_system=True),
+                queryset=CampaignEvent.objects.filter(event_type=CampaignEvent.TYPE_FLOW, is_active=True),
                 to_attr="flow_events",
             ),
             "flow_events__flow",

@@ -492,8 +492,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             response.context["form"].fields["flow_to_start"].widget.attrs["info_text"],
         )
 
-    @mock_mailroom
-    def test_delete_message_event(self, mr_mocks):
+    def test_delete(self):
         event = CampaignEvent.create_message_event(
             self.org,
             self.admin,
@@ -505,17 +504,8 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             delivery_hour=9,
         )
 
-        # update event's flow to have a field dependency
-        field = self.create_field("age", "Age", value_type="N")
-        event.flow.field_dependencies.add(field)
-
         delete_url = reverse("campaigns.campaignevent_delete", args=[event.id])
 
         # delete the event
         response = self.assertDeleteSubmit(delete_url, self.admin, object_deactivated=event)
         self.assertRedirect(response, reverse("campaigns.campaign_read", args=[event.campaign.uuid]))
-
-        # our single message flow should be released and take its dependencies with it
-        event.flow.refresh_from_db()
-        self.assertFalse(event.flow.is_active)
-        self.assertEqual(event.flow.field_dependencies.count(), 0)
