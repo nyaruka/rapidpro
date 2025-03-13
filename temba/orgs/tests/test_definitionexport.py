@@ -148,8 +148,8 @@ class DefinitionExportTest(TembaTest):
         campaign = Campaign.objects.all().first()
         event = campaign.events.all().first()
 
-        self.assertEqual(event.message["swa"], "hello")
-        self.assertEqual(event.message["eng"], "Hey")
+        self.assertEqual(event.translations["swa"], {"text": "hello"})
+        self.assertEqual(event.translations["eng"], {"text": "Hey"})
 
         # base language for this flow is 'swa' despite our org languages being unset
         self.assertEqual(event.flow.base_language, "swa")

@@ -10,9 +10,9 @@ from django.utils.functional import cached_property
 from temba.utils import json
 
 
-class TranslatableField(HStoreField):
+class TranslatableField(HStoreField):  # pragma: no cover
     """
-    Model field which is a set of language code and translation pairs stored as HSTORE
+    TODO remove once removed from CampaignEvent
     """
 
     class Validator:

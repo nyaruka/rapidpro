@@ -221,7 +221,6 @@ class Campaign(TembaModel):
                 "unit": event.unit,
                 "event_type": event.event_type,
                 "delivery_hour": event.delivery_hour,
-                "message": event.message,
                 "relative_to": dict(label=event.relative_to.name, key=event.relative_to.key),  # TODO should be key/name
                 "start_mode": event.start_mode,
             }
@@ -230,9 +229,10 @@ class Campaign(TembaModel):
             if event.event_type == CampaignEvent.TYPE_FLOW:
                 event_definition["flow"] = event.flow.as_export_ref()
 
-            # include the flow base language for message flows
+            # include the translations and base language for message flows
             elif event.event_type == CampaignEvent.TYPE_MESSAGE:
-                event_definition["base_language"] = event.flow.base_language
+                event_definition["message"] = {lang: t["text"] for lang, t in event.translations.items()}
+                event_definition["base_language"] = event.base_language
 
             events.append(event_definition)
 
@@ -305,8 +305,8 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     # what should happen to other runs when this event is triggered
     start_mode = models.CharField(max_length=1, choices=START_MODES_CHOICES, default=MODE_INTERRUPT)
 
-    # deprecated: use translations instead
-    message = TranslatableField(max_length=Msg.MAX_TEXT_LEN, null=True)
+    # TODO drop
+    message = TranslatableField(max_length=Msg.MAX_TEXT_LEN, null=True, blank=True)
 
     @classmethod
     def create_message_event(
@@ -348,7 +348,6 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             start_mode=start_mode,
             created_by=user,
             modified_by=user,
-            message=message,  # deprecated
         )
 
     @classmethod

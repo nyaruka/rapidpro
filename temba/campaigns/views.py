@@ -347,7 +347,6 @@ class CampaignEventForm(forms.ModelForm):
                 # set our single message on our flow
                 obj.flow.update_single_message_flow(request.user, translations, base_language)
 
-            obj.message = translations  # deprecated
             obj.translations = {lang: {"text": text} for lang, text in translations.items()}
             obj.base_language = base_language
             obj.full_clean()
@@ -382,11 +381,11 @@ class CampaignEventForm(forms.ModelForm):
             self.instance.id
             and self.instance.flow
             and self.instance.flow.flow_type == Flow.TYPE_BACKGROUND
-            and not self.instance.message
+            and not self.instance.translations
         ):
             flow.widget.attrs["info_text"] = CampaignEventCRUDL.BACKGROUND_WARNING
 
-        message = self.instance.message or {}
+        message = {lang: t["text"] for lang, t in (self.instance.translations or {}).items()}
         self.languages = []
 
         # add in all of our languages for message forms
@@ -460,7 +459,17 @@ class CampaignEventForm(forms.ModelForm):
 
     class Meta:
         model = CampaignEvent
-        fields = "__all__"
+        fields = (
+            "event_type",
+            "relative_to",
+            "offset",
+            "unit",
+            "delivery_hour",
+            "direction",
+            "flow_to_start",
+            "flow_start_mode",
+            "message_start_mode",
+        )
         widgets = {"offset": InputWidget(attrs={"widget_only": True})}
 
 
@@ -623,7 +632,6 @@ class CampaignEventCRUDL(SmartCRUDL):
                 flow.save(update_fields=("is_active",))
                 obj.translations = None
                 obj.base_language = None
-                obj.message = None  # deprecated
 
             # if we changed scheduling, update the fire version to invalidate existing fires
             if (

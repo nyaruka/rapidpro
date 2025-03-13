@@ -176,7 +176,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         event1 = CampaignEvent.objects.get(campaign=campaign)
-        self.assertEqual({"eng": "This is my message"}, event1.message)
+        self.assertEqual({"eng": {"text": "This is my message"}}, event1.translations)
 
         # add another language to our org
         self.org.set_flow_languages(self.admin, ["eng", "kin"])
@@ -448,7 +448,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(event1.unit, "D")
         self.assertEqual(event1.delivery_hour, 11)
         self.assertEqual(event1.start_mode, "I")
-        self.assertEqual(event1.message, {"eng": "Hi there"})
+        self.assertEqual(event1.translations, {"eng": {"text": "Hi there"}})
         self.assertEqual(event1.status, "S")
         self.assertEqual(event1.fire_version, 1)  # bumped
 
@@ -477,7 +477,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(302, response.status_code)
 
         event1.refresh_from_db()
-        self.assertEqual(event1.message, {"eng": "Hi there friends"})
+        self.assertEqual(event1.translations, {"eng": {"text": "Hi there friends"}})
         self.assertEqual(event1.status, "R")  # unchanged
         self.assertEqual(event1.fire_version, 1)  # unchanged
 
