@@ -251,7 +251,8 @@ class CampaignEventsEndpointTest(APITest):
         self.assertEqual(event2.offset, 15)
         self.assertEqual(event2.unit, "W")
         self.assertEqual(event2.delivery_hour, -1)
-        self.assertEqual(event2.message, None)
+        self.assertEqual(event2.translations, None)
+        self.assertEqual(event2.base_language, None)
         self.assertEqual(event2.flow, flow)
 
         # make sure we called mailroom to schedule this event
@@ -290,7 +291,7 @@ class CampaignEventsEndpointTest(APITest):
 
         event1.refresh_from_db()
         self.assertEqual(event1.event_type, CampaignEvent.TYPE_FLOW)
-        self.assertIsNone(event1.message)
+        self.assertIsNone(event1.translations)
         self.assertEqual(event1.flow, flow)
         self.assertEqual(event1.status, "R")  # unchanged
         self.assertEqual(event1.fire_version, 1)  # unchanged
