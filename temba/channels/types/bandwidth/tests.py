@@ -123,6 +123,8 @@ class BandwidthTypeTest(TembaTest):
         self.assertEqual(post_data["password"], channel.config["password"])
         self.assertEqual(post_data["account_id"], channel.config["account_id"])
         self.assertEqual("e5a9e103-application_id", channel.config["application_id"])
+        self.assertEqual(channel.config[Channel.CONFIG_CALLBACK_DOMAIN], self.org.get_brand_domain())
+        self.assertEqual(channel.config[Channel.CONFIG_MAX_CONCURRENT_EVENTS], "100")
         self.assertEqual("250788123123", channel.address)
         self.assertEqual("BW", channel.channel_type)
         self.assertEqual("SR", channel.role)

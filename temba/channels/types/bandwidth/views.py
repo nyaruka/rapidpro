@@ -39,15 +39,21 @@ class ClaimView(ClaimViewMixin, SmartFormView):
 
     def form_valid(self, form):
         data = form.cleaned_data
+
+        org = self.request.org
+        domain = org.get_brand_domain()
+
         config = {
             Channel.CONFIG_USERNAME: data["username"],
             Channel.CONFIG_PASSWORD: data["password"],
             "account_id": data["account_id"],
+            Channel.CONFIG_CALLBACK_DOMAIN: domain,
+            Channel.CONFIG_MAX_CONCURRENT_EVENTS: "100",
         }
         role = data.get("role")
 
         self.object = Channel.create(
-            self.request.org,
+            org,
             self.request.user,
             data["country"],
             self.channel_type,
