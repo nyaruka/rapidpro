@@ -21,8 +21,8 @@ class FlowsEndpointTest(APITest):
         archived = self.get_flow("favorites")
         archived.archive(self.admin)
 
-        # add a campaign message flow that should be filtered out
-        Flow.create_single_message(self.org, self.admin, dict(eng="Hello world"), "eng")
+        # add a legacy campaign message flow that should be filtered out
+        Flow.create(self.org, self.admin, "Single Message 1", is_system=True)
 
         # add a flow label
         reporting = FlowLabel.create(self.org, self.admin, "Reporting")

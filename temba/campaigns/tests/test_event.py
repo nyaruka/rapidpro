@@ -44,9 +44,7 @@ class CampaignEventTest(TembaTest):
         self.assertEqual("R", event1.status)
         self.assertEqual(0, event1.fire_version)
         self.assertEqual(timedelta(minutes=30), event1.get_offset())
-        self.assertEqual(
-            f'<Event: id={event1.id} relative_to=planting_date offset=0:30:00 flow="Test Flow">', repr(event1)
-        )
+        self.assertEqual(f"<Event: id={event1.id} relative_to=planting_date offset=0:30:00>", repr(event1))
 
         with self.assertRaises(AssertionError):  # can't call get_message on flow event
             event1.get_message(contact1)

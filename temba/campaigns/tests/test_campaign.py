@@ -8,7 +8,7 @@ from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField
 from temba.flows.models import Flow
 from temba.orgs.models import DefinitionExport, Org
-from temba.tests import TembaTest, matchers, mock_mailroom
+from temba.tests import TembaTest, mock_mailroom
 
 
 class CampaignTest(TembaTest):
@@ -149,32 +149,18 @@ class CampaignTest(TembaTest):
             base_language="eng",
         )
 
+        self.assertEqual(self.planting_date, event.relative_to)
+        self.assertEqual(1, event.offset)
+        self.assertEqual("D", event.unit)
         self.assertEqual(
             {
-                "uuid": str(event.flow.uuid),
-                "name": event.flow.name,
-                "spec_version": Flow.CURRENT_SPEC_VERSION,
-                "revision": 1,
-                "language": "eng",
-                "type": "messaging_background",
-                "expire_after_minutes": 0,
-                "localization": {},
-                "nodes": [
-                    {
-                        "uuid": matchers.UUID4String(),
-                        "actions": [
-                            {
-                                "uuid": matchers.UUID4String(),
-                                "type": "send_msg",
-                                "text": "Hi @(upper(contact.name)) don't forget to plant on @(format_date(contact.planting_date))",
-                            }
-                        ],
-                        "exits": [{"uuid": matchers.UUID4String()}],
-                    }
-                ],
+                "eng": {
+                    "text": "Hi @(upper(contact.name)) don't forget to plant on @(format_date(contact.planting_date))"
+                }
             },
-            event.flow.get_definition(),
+            event.translations,
         )
+        self.assertEqual("eng", event.base_language)
 
     @mock_mailroom
     def test_import(self, mr_mocks):
@@ -465,8 +451,8 @@ class CampaignTest(TembaTest):
         self.assertEqual(campaign_event.offset, 3)
         self.assertEqual(campaign_event.unit, "D")
         self.assertEqual(campaign_event.relative_to, self.planting_date)
-        self.assertIsNotNone(campaign_event.flow)
         self.assertEqual(campaign_event.event_type, "M")
         self.assertEqual(campaign_event.translations, {"eng": {"text": "oy, pancake man, come back"}})
         self.assertEqual(campaign_event.base_language, "eng")
         self.assertEqual(campaign_event.delivery_hour, -1)
+        self.assertIsNone(campaign_event.flow)

@@ -330,22 +330,15 @@ class CampaignEventForm(forms.ModelForm):
 
         # if its a message flow, set that accordingly
         if self.cleaned_data["event_type"] == CampaignEvent.TYPE_MESSAGE:
-            if self.instance.id:
-                base_language = self.instance.flow.base_language
-            else:
-                base_language = org.flow_languages[0]
+            base_language = org.flow_languages[0]
+            if self.instance.id and self.instance.base_language:
+                base_language = self.instance.base_language
 
             translations = {}
             for language in self.languages:
                 iso_code = language.language["iso_code"]
                 if iso_code in self.cleaned_data and self.cleaned_data.get(iso_code, "").strip():
                     translations[iso_code] = self.cleaned_data.get(iso_code, "").strip()
-
-            if not obj.flow_id or not obj.flow.is_active or not obj.flow.is_system:
-                obj.flow = Flow.create_single_message(org, request.user, translations, base_language=base_language)
-            else:
-                # set our single message on our flow
-                obj.flow.update_single_message_flow(request.user, translations, base_language)
 
             obj.translations = {lang: {"text": text} for lang, text in translations.items()}
             obj.base_language = base_language
@@ -379,9 +372,8 @@ class CampaignEventForm(forms.ModelForm):
 
         if (
             self.instance.id
-            and self.instance.flow
+            and self.instance.event_type == CampaignEvent.TYPE_FLOW
             and self.instance.flow.flow_type == Flow.TYPE_BACKGROUND
-            and not self.instance.translations
         ):
             flow.widget.attrs["info_text"] = CampaignEventCRUDL.BACKGROUND_WARNING
 
@@ -433,9 +425,9 @@ class CampaignEventForm(forms.ModelForm):
         # determine our base language if necessary
         base_language = org.flow_languages[0]
 
-        # if we are editing, always include the flow base language
+        # if we are editing, always include the base language
         if self.instance.id:
-            base_language = self.instance.flow.base_language
+            base_language = self.instance.base_language
 
         # add our default language, we'll insert it at the front of the list
         if base_language and base_language not in self.fields:
@@ -590,10 +582,8 @@ class CampaignEventCRUDL(SmartCRUDL):
             org = self.request.org
             fields += org.flow_languages
 
-            flow_language = self.object.flow.base_language
-
-            if flow_language not in fields:
-                fields.append(flow_language)
+            if self.object.base_language not in fields:
+                fields.append(self.object.base_language)
 
             return fields
 
@@ -613,11 +603,6 @@ class CampaignEventCRUDL(SmartCRUDL):
                 initial["message_start_mode"] = self.object.start_mode
 
             return initial
-
-        def post_save(self, obj):
-            obj = super().post_save(obj)
-            obj.update_flow_name()
-            return obj
 
         def pre_save(self, obj):
             obj = super().pre_save(obj)
@@ -713,7 +698,6 @@ class CampaignEventCRUDL(SmartCRUDL):
 
         def post_save(self, obj):
             obj = super().post_save(obj)
-            obj.update_flow_name()
             obj.schedule_async()
             return obj
 

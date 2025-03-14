@@ -235,16 +235,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         analytics.track(user, "temba.flow_created", dict(name=name, uuid=flow.uuid))
         return flow
 
-    @classmethod
-    def create_single_message(cls, org, user, message, base_language):
-        """
-        Creates a special 'single message' flow
-        """
-        name = "Single Message (%s)" % str(uuid4())
-        flow = Flow.create(org, user, name, flow_type=Flow.TYPE_BACKGROUND, is_system=True)
-        flow.update_single_message_flow(user, message, base_language)
-        return flow
-
     @property
     def engine_type(self):
         return Flow.GOFLOW_TYPES.get(self.flow_type, "")
@@ -557,35 +547,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         self.is_archived = False
         self.modified_by = user
         self.save(update_fields=("is_archived", "modified_by", "modified_on"))
-
-    def update_single_message_flow(self, user, translations: dict, base_language: str):
-        assert translations and base_language in translations, "must include translation for base language"
-
-        translations = translations.copy()  # don't modify instance being saved on event object
-        action_uuid = str(uuid4())
-        base_text = translations.pop(base_language)
-        localization = {k: {action_uuid: {"text": [v]}} for k, v in translations.items()}
-
-        definition = Flow.migrate_definition(
-            {
-                "uuid": "8ca44c09-791d-453a-9799-a70dd3303306",
-                "name": self.name,
-                "spec_version": "13.5.0",
-                "language": base_language,
-                "type": "messaging_background",
-                "localization": localization,
-                "nodes": [
-                    {
-                        "uuid": str(uuid4()),
-                        "actions": [{"uuid": action_uuid, "type": "send_msg", "text": base_text}],
-                        "exits": [{"uuid": "0c599307-8222-4386-b43c-e41654f03acf"}],
-                    }
-                ],
-            },
-            flow=self,
-        )
-
-        self.save_revision(user, definition)
 
     @classmethod
     def prefetch_run_counts(cls, flows, *, using="default"):

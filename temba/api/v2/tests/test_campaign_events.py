@@ -190,7 +190,7 @@ class CampaignEventsEndpointTest(APITest):
         self.assertEqual(event1.base_language, "eng")
         self.assertEqual(event1.status, "S")
         self.assertEqual(event1.fire_version, 1)
-        self.assertIsNotNone(event1.flow)
+        self.assertIsNone(event1.flow)
 
         # try to create a message event with an empty message
         self.assertPost(
@@ -228,7 +228,7 @@ class CampaignEventsEndpointTest(APITest):
         self.assertEqual(event1.unit, "D")
         self.assertEqual(event1.delivery_hour, -1)
         self.assertEqual(event1.translations, {"eng": {"text": "Nice unit of work @fields.code"}})
-        self.assertIsNotNone(event1.flow)
+        self.assertIsNone(event1.flow)
 
         # create a flow event
         self.assertPost(

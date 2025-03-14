@@ -124,7 +124,7 @@ class Campaign(TembaModel):
                     if base_language not in message:  # pragma: needs cover
                         base_language = next(iter(message))
 
-                    event = CampaignEvent.create_message_event(
+                    CampaignEvent.create_message_event(
                         org,
                         user,
                         campaign,
@@ -136,7 +136,6 @@ class Campaign(TembaModel):
                         base_language=base_language,
                         start_mode=start_mode,
                     )
-                    event.update_flow_name()
                 else:
                     flow = Flow.objects.filter(
                         org=org, is_active=True, is_system=False, uuid=event_spec["flow"]["uuid"]
@@ -297,7 +296,7 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     delivery_hour = models.IntegerField(default=-1)  # can also specify the hour during the day
 
     # the content: either a flow or message translations
-    flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="campaign_events")
+    flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="campaign_events", null=True, blank=True)
     translations = models.JSONField(null=True)
     base_language = models.CharField(max_length=3, null=True)  # ISO-639-3
 
@@ -329,8 +328,6 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             base_language = org.flow_languages[0]
             message = {base_language: message}
 
-        flow = Flow.create_single_message(org, user, message, base_language)
-
         return cls.objects.create(
             campaign=campaign,
             relative_to=relative_to,
@@ -339,7 +336,6 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             event_type=cls.TYPE_MESSAGE,
             translations={lang: {"text": text} for lang, text in message.items()},
             base_language=base_language,
-            flow=flow,
             delivery_hour=delivery_hour,
             start_mode=start_mode,
             created_by=user,
@@ -402,16 +398,6 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             translation = self.translations[self.base_language]
 
         return translation
-
-    def update_flow_name(self):
-        """
-        Updates our flow name to include our Event id, keeps flow names from colliding. No-op for non-message events.
-        """
-        if self.event_type != self.TYPE_MESSAGE:
-            return
-
-        self.flow.name = "Single Message (%d)" % self.id
-        self.flow.save(update_fields=["name"])
 
     def get_offset(self) -> timedelta:
         """
@@ -507,12 +493,8 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
 
         self.delete_fire_counts()
 
-        # if flow isn't a user created flow we can delete it too
-        if self.event_type == CampaignEvent.TYPE_MESSAGE:
-            self.flow.release(user)
-
     def __repr__(self):
-        return f'<Event: id={self.id} relative_to={self.relative_to.key} offset={self.get_offset()} flow="{self.flow.name}">'
+        return f"<Event: id={self.id} relative_to={self.relative_to.key} offset={self.get_offset()}>"
 
     class Meta:
         verbose_name = _("Campaign Event")
