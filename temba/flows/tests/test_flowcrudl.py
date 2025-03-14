@@ -645,18 +645,6 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(reverse("flows.flow_list"))
         self.assertContains(response, flow1.name)
 
-        # single message flow (flom campaign) should not be included in counts and not even on this list
-        Flow.objects.filter(id=flow1.id).update(is_system=True)
-
-        response = self.client.get(reverse("flows.flow_list"))
-        self.assertNotContains(response, flow1.name)
-
-        # single message flow should not be even in the archived list
-        Flow.objects.filter(id=flow1.id).update(is_system=True, is_archived=True)
-
-        response = self.client.get(reverse("flows.flow_archived"))
-        self.assertNotContains(response, flow1.name)
-
     def test_filter(self):
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
