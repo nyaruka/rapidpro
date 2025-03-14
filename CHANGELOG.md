@@ -1,3 +1,7 @@
+v10.1.99 (2025-03-14)
+-------------------------
+ * Data migration to release single message flows
+
 v10.1.98 (2025-03-14)
 -------------------------
  * Stop writing to CampaignEvent.message and stop creating single message flows
