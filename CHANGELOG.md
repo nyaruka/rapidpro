@@ -1,3 +1,8 @@
+v10.1.100 (2025-03-14)
+-------------------------
+ * Remove no longer need filtering out of system flows
+ * Add forgetme view to check the delete confirmation
+
 v10.1.99 (2025-03-14)
 -------------------------
  * Data migration to release single message flows
