@@ -1,3 +1,7 @@
+v10.1.98 (2025-03-14)
+-------------------------
+ * Stop writing to CampaignEvent.message and stop creating single message flows
+
 v10.1.97 (2025-03-13)
 -------------------------
  * Drop CampaignEvent.message field
