@@ -18,8 +18,7 @@ class SmartWizardView(SmartView, SessionWizardView):
         return []
 
     def lookup_field_help(self, field, default=None):
-        form = self.get_form(self.steps.current)
-        return form.fields[field].help_text or default
+        return self.form_list[self.steps.current].base_fields[field].help_text
 
     def lookup_field_label(self, context, field, object):
         return context["form"].fields[field].label
@@ -49,9 +48,9 @@ class SmartWizardView(SmartView, SessionWizardView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context["completed"] = ",".join(
-            [step for step in self.steps.all if self.get_cleaned_data_for_step(step) is not None]
-        )
+        # context["completed"] = ",".join(
+        #    [step for step in self.steps.all if self.get_cleaned_data_for_step(step) is not None]
+        # )
         context["submit_button_name"] = self.derive_submit_button_name()
         return context
 

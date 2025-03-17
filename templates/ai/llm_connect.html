@@ -1,0 +1,32 @@
+{% extends "smartmin/base.html" %}
+{% load i18n compress temba %}
+
+{% block title-text %}
+  {% trans "AI Models" %}
+{% endblock title-text %}
+{% block content %}
+  <div class="llm-options">
+    {% for llm_type in llm_types %}
+      <temba-modax header="{{ llm_type.name }}" endpoint="{% url 'ai.types.'|add:llm_type.slug|add:'.connect' %}">
+        <div class="card link">
+          <div class="relative">
+            <temba-icon name="{{ llm_type.get_icon }}" class="text-base absolute text-gray-100 bg-icon">
+            </temba-icon>
+          </div>
+          <div class="flex flex-col mx-20 relative">
+            <div class="title">{{ llm_type.name }}</div>
+            <div class="mt-2">{% include llm_type.get_connect_blurb %}</div>
+          </div>
+        </div>
+      </temba-modax>
+    {% endfor %}
+  </div>
+{% endblock content %}
+{% block extra-style %}
+  <style type="text/css">
+    .bg-icon {
+      font-size: 90px;
+      transform: translate(-45px, 10px) rotate(-15deg);
+    }
+  </style>
+{% endblock extra-style %}
