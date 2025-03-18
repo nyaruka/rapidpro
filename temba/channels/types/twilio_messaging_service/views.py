@@ -7,8 +7,8 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from temba.channels.types.twilio.views import COUNTRY_CHOICES
-from temba.utils.fields import SelectWidget
+from temba.channels.types.twilio.views import COUNTRY_CHOICES, UpdateForm as TwilioUpdateForm
+from temba.utils.fields import CheckboxWidget, SelectWidget
 
 from ...models import Channel
 from ...views import ClaimViewMixin
@@ -87,3 +87,19 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         del self.request.session[self.channel_type.SESSION_AUTH_TOKEN]
 
         return super().form_valid(form)
+
+
+class UpdateForm(TwilioUpdateForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.add_config_field(
+            "link_shortening",
+            forms.CharField(
+                label=_("Twilio Link Shortening"),
+                required=False,
+                initial=True,
+                widget=CheckboxWidget(),
+            ),
+            default=False,
+        )
