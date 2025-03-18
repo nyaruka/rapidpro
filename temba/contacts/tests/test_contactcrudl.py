@@ -68,7 +68,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             relative_to=self.planting_date,
             offset=7,
             unit="D",
-            message="Sent 7 days after planting date",
+            translations={"eng": {"text": "Sent 7 days after planting date"}},
+            base_language="eng",
         )
 
     def test_menu(self):
@@ -1109,7 +1110,16 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         campaign = Campaign.create(self.org, self.admin, "Reminders", farmers)
         joined = self.create_field("joined", "Joined On", value_type=ContactField.TYPE_DATETIME)
         event2_flow = self.create_flow("Reminder Flow")
-        event1 = CampaignEvent.create_message_event(self.org, self.admin, campaign, joined, 2, unit="D", message="Hi")
+        event1 = CampaignEvent.create_message_event(
+            self.org,
+            self.admin,
+            campaign,
+            joined,
+            2,
+            unit="D",
+            translations={"eng": {"text": "Hi"}},
+            base_language="eng",
+        )
         event2 = CampaignEvent.create_flow_event(self.org, self.admin, campaign, joined, 2, unit="D", flow=event2_flow)
         fire1 = ContactFire.objects.create(
             org=self.org,

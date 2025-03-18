@@ -304,9 +304,9 @@
                         {
                             "uuid": "3a92a964-3a8d-420b-9206-2cd9d884ac30",
                             "base_language": "eng",
-                            "message": {
-                                "eng": "Hi @contact.name, it is time to consult with your patients.",
-                                "fra": "Bonjour @contact.name, il est temps de consulter vos patients."
+                            "translations": {
+                                "eng": {"text": "Hi @contact.name, it is time to consult with your patients."},
+                                "fra": {"text": "Bonjour @contact.name, il est temps de consulter vos patients."}
                             },
                             "offset_field": "joined",
                             "offset": "10",

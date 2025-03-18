@@ -30,7 +30,7 @@ class CampaignEventTest(TembaTest):
             field,
             offset=12,
             unit="H",
-            message={"eng": "Hello", "spa": "Hola"},
+            translations={"eng": {"text": "Hello"}, "spa": {"text": "Hola"}},
             base_language="eng",
             delivery_hour=9,
         )
@@ -38,7 +38,15 @@ class CampaignEventTest(TembaTest):
             self.org, self.admin, campaign, field, offset=4, unit="D", flow=flow, delivery_hour=13
         )
         event4 = CampaignEvent.create_message_event(
-            self.org, self.admin, campaign, field, offset=2, unit="W", message="Goodbye", delivery_hour=9
+            self.org,
+            self.admin,
+            campaign,
+            field,
+            offset=2,
+            unit="W",
+            translations={"eng": {"text": "Goodbye"}},
+            base_language="eng",
+            delivery_hour=9,
         )
 
         self.assertEqual("R", event1.status)
@@ -63,10 +71,26 @@ class CampaignEventTest(TembaTest):
         campaign = Campaign.create(self.org, self.admin, "Reminders", farmers)
         planting_date = self.create_field("planting_date", "Planting Date", value_type=ContactField.TYPE_DATETIME)
         event1 = CampaignEvent.create_message_event(
-            self.org, self.admin, campaign, planting_date, offset=1, unit="W", message="1", delivery_hour=13
+            self.org,
+            self.admin,
+            campaign,
+            planting_date,
+            offset=1,
+            unit="W",
+            translations={"eng": {"text": "1"}},
+            base_language="eng",
+            delivery_hour=13,
         )
         event2 = CampaignEvent.create_message_event(
-            self.org, self.admin, campaign, planting_date, offset=3, unit="D", message="2", delivery_hour=9
+            self.org,
+            self.admin,
+            campaign,
+            planting_date,
+            offset=3,
+            unit="D",
+            translations={"eng": {"text": "2"}},
+            base_language="eng",
+            delivery_hour=9,
         )
 
         def create_fire(contact, event, fire_version=None):
@@ -111,7 +135,15 @@ class CampaignEventTest(TembaTest):
             self.org, self.admin, campaign, planting_date, offset=1, unit="W", flow=flow, delivery_hour=13
         )
         event2 = CampaignEvent.create_message_event(
-            self.org, self.admin, campaign, planting_date, offset=3, unit="D", message="Hello", delivery_hour=9
+            self.org,
+            self.admin,
+            campaign,
+            planting_date,
+            offset=3,
+            unit="D",
+            translations={"eng": {"text": "Hello"}},
+            base_language="eng",
+            delivery_hour=9,
         )
 
         def add_recent_contact(event, contact, ts: float):

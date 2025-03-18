@@ -492,7 +492,15 @@ class CampaignEventWriteSerializer(WriteSerializer):
                 )
             else:
                 self.instance = CampaignEvent.create_message_event(
-                    org, user, campaign, relative_to, offset, unit, message, delivery_hour, base_language
+                    org,
+                    user,
+                    campaign,
+                    relative_to,
+                    offset,
+                    unit,
+                    translations={lang: {"text": text} for lang, text in message.items()},
+                    base_language=base_language,
+                    delivery_hour=delivery_hour,
                 )
 
         # create our event fires for this event in the background

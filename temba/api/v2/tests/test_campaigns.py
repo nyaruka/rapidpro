@@ -82,10 +82,24 @@ class CampaignsEndpointTest(APITest):
         )
 
         event1 = CampaignEvent.create_message_event(
-            self.org, self.admin, campaign3, self.create_field("field1", "Field1", value_type="D"), 1, "W", "1"
+            self.org,
+            self.admin,
+            campaign3,
+            self.create_field("field1", "Field1", value_type="D"),
+            1,
+            "W",
+            {"eng": {"text": "1"}},
+            base_language="eng",
         )
         event2 = CampaignEvent.create_message_event(
-            self.org, self.admin, campaign3, self.create_field("field2", "Field2", value_type="D"), 1, "W", "2"
+            self.org,
+            self.admin,
+            campaign3,
+            self.create_field("field2", "Field2", value_type="D"),
+            1,
+            "W",
+            {"eng": {"text": "2"}},
+            base_language="eng",
         )
 
         # try to create another campaign with same name

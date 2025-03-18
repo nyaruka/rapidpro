@@ -471,7 +471,8 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             self.org.fields.get(key="registered"),
             offset=3,
             unit="D",
-            message="Hello",
+            translations={"eng": {"text": "Hello"}},
+            base_language="eng",
             delivery_hour=9,
         )
 
