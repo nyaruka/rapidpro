@@ -41,7 +41,8 @@ class CampaignEventsEndpointTest(APITest):
             registration,
             1,
             CampaignEvent.UNIT_DAYS,
-            "Don't forget to brush your teeth",
+            {"eng": {"text": "Don't forget to brush your teeth"}},
+            base_language="eng",
         )
 
         campaign2 = Campaign.create(self.org, self.admin, "Notifications", reporters)

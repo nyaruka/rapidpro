@@ -379,9 +379,9 @@ class Command(BaseCommand):
                         field,
                         e["offset"],
                         e["offset_unit"],
-                        e["message"],
-                        delivery_hour=e.get("delivery_hour", -1),
+                        e["translations"],
                         base_language=e["base_language"],
+                        delivery_hour=e.get("delivery_hour", -1),
                         start_mode=e["start_mode"],
                     )
                     evt.flow.uuid = e["uuid"]

@@ -156,7 +156,16 @@ class ContactTest(TembaTest):
 
         campaign = Campaign.create(self.org, self.admin, "Reminders", group)
         joined = self.create_field("joined", "Joined On", value_type=ContactField.TYPE_DATETIME)
-        event = CampaignEvent.create_message_event(self.org, self.admin, campaign, joined, 2, unit="D", message="Hi")
+        event = CampaignEvent.create_message_event(
+            self.org,
+            self.admin,
+            campaign,
+            joined,
+            2,
+            unit="D",
+            translations={"eng": {"text": "Hi"}},
+            base_language="eng",
+        )
         ContactFire.objects.create(
             org=self.org,
             contact=contact,

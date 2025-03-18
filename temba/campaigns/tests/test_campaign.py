@@ -42,7 +42,15 @@ class CampaignTest(TembaTest):
             self.org, self.admin, campaign, self.planting_date, offset=1, unit="W", flow=flow, delivery_hour=13
         )
         event2 = CampaignEvent.create_message_event(
-            self.org, self.admin, campaign, self.planting_date, offset=3, unit="D", message="Hello", delivery_hour=9
+            self.org,
+            self.admin,
+            campaign,
+            self.planting_date,
+            offset=3,
+            unit="D",
+            translations={"eng": {"text": "Hello"}},
+            base_language="eng",
+            delivery_hour=9,
         )
 
         self.assertEqual("Reminders", campaign.name)
@@ -145,7 +153,11 @@ class CampaignTest(TembaTest):
             relative_to=self.planting_date,
             offset=1,
             unit="D",
-            message={"eng": "Hi @(upper(contact.name)) don't forget to plant on @(format_date(contact.planting_date))"},
+            translations={
+                "eng": {
+                    "text": "Hi @(upper(contact.name)) don't forget to plant on @(format_date(contact.planting_date))"
+                }
+            },
             base_language="eng",
         )
 
@@ -246,7 +258,8 @@ class CampaignTest(TembaTest):
             self.planting_date,
             1,
             CampaignEvent.UNIT_DAYS,
-            "Don't forget to brush your teeth",
+            {"eng": {"text": "Don't forget to brush your teeth"}},
+            base_language="eng",
         )
 
         flow.archive(self.admin)
@@ -320,7 +333,14 @@ class CampaignTest(TembaTest):
 
         campaign3 = Campaign.create(self.org, self.admin, "Planting Reminders 2", self.farmers)
         planting_reminder3 = CampaignEvent.create_message_event(
-            self.org, self.admin, campaign3, relative_to=field_created_on, offset=2, unit="D", message="o' a framer?"
+            self.org,
+            self.admin,
+            campaign3,
+            relative_to=field_created_on,
+            offset=2,
+            unit="D",
+            translations={"eng": {"text": "o' a framer?"}},
+            base_language="eng",
         )
 
         self.assertEqual(
@@ -421,7 +441,8 @@ class CampaignTest(TembaTest):
                 campaign,
                 offset=3,
                 unit="D",
-                message="oy, pancake man, come back",
+                translations={"eng": {"text": "oy, pancake man, come back"}},
+                base_language="eng",
                 relative_to=self.planting_date,
             )
 
@@ -433,7 +454,8 @@ class CampaignTest(TembaTest):
                 campaign,
                 offset=3,
                 unit="D",
-                message="oy, pancake man, come back",
+                translations={"eng": {"text": "oy, pancake man, come back"}},
+                base_language="eng",
                 relative_to=gender,
             )
 
@@ -443,7 +465,8 @@ class CampaignTest(TembaTest):
             campaign,
             offset=3,
             unit="D",
-            message="oy, pancake man, come back",
+            translations={"eng": {"text": "oy, pancake man, come back"}},
+            base_language="eng",
             relative_to=self.planting_date,
         )
 

@@ -13,7 +13,7 @@ from temba import mailroom
 from temba.contacts.models import ContactField, ContactGroup
 from temba.flows.models import Flow
 from temba.orgs.models import Org
-from temba.utils import json, on_transaction_commit
+from temba.utils import json, languages, on_transaction_commit
 from temba.utils.models import TembaModel, TembaUUIDMixin, delete_in_batches
 
 
@@ -131,9 +131,9 @@ class Campaign(TembaModel):
                         relative_to,
                         event_spec["offset"],
                         event_spec["unit"],
-                        message,
-                        event_spec["delivery_hour"],
+                        {lang: {"text": val} for lang, val in message.items()},
                         base_language=base_language,
+                        delivery_hour=event_spec["delivery_hour"],
                         start_mode=start_mode,
                     )
                 else:
@@ -312,21 +312,20 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
         relative_to,
         offset,
         unit,
-        message,
+        translations: dict[str, dict],
+        *,
+        base_language: str,
         delivery_hour=-1,
-        base_language=None,
         start_mode=MODE_INTERRUPT,
     ):
         assert campaign.org == org, "org mismatch"
+        assert base_language and languages.get_name(base_language), f"{base_language} is not a valid language code"
+        assert base_language in translations, "no translation for base language"
 
         if relative_to.value_type != ContactField.TYPE_DATETIME:
             raise ValueError(
                 f"Contact fields for CampaignEvents must have a datetime type, got {relative_to.value_type}."
             )
-
-        if isinstance(message, str):
-            base_language = org.flow_languages[0]
-            message = {base_language: message}
 
         return cls.objects.create(
             campaign=campaign,
@@ -334,7 +333,7 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             offset=offset,
             unit=unit,
             event_type=cls.TYPE_MESSAGE,
-            translations={lang: {"text": text} for lang, text in message.items()},
+            translations=translations,
             base_language=base_language,
             delivery_hour=delivery_hour,
             start_mode=start_mode,

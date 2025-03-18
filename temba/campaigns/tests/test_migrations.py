@@ -24,7 +24,7 @@ class RemoveSingleMessageFlowsTest(MigrationTest):
             field,
             offset=12,
             unit="H",
-            message={"eng": "Hello", "spa": "Hola"},
+            translations={"eng": {"text": "Hello"}, "spa": {"text": "Hola"}},
             base_language="eng",
             delivery_hour=9,
         )
@@ -35,7 +35,7 @@ class RemoveSingleMessageFlowsTest(MigrationTest):
             field,
             offset=12,
             unit="H",
-            message={"eng": "Hello", "spa": "Hola"},
+            translations={"eng": {"text": "Hello"}, "spa": {"text": "Hola"}},
             base_language="eng",
             delivery_hour=9,
         )
