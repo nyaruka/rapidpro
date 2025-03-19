@@ -47,19 +47,19 @@ class LLM(TembaModel, DependencyMixin):
         """
         return self.config.get("api_key")
 
-    def get_model_name(self):
+    def get_model(self):
         """
         Returns the model name for this LLM
         """
-        return self.config.get("model_name")
+        return self.config.get("model")
 
     def get_type(self):
         """
         Returns the type instance for this AI model
         """
-        from .types import get_ai_types
+        from .types import TYPES
 
-        return get_ai_types()[self.type]
+        return TYPES[self.type]
 
     def release(self, user):
         super().release(user)
