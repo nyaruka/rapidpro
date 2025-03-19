@@ -1,17 +1,14 @@
+import openai
+
 from django import forms
-
 from django.conf import settings
-
-
 from django.http import HttpResponseRedirect
-from temba.ai.models import LLM
+from django.utils.translation import gettext_lazy as _
 
+from temba.ai.models import LLM
 from temba.orgs.views.mixins import OrgPermsMixin
 from temba.utils.fields import InputWidget, SelectWidget
 from temba.utils.views.wizard import SmartWizardView
-from django.utils.translation import gettext_lazy as _
-
-import openai
 
 
 class ConnectForm(forms.Form):

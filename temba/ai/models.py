@@ -1,9 +1,9 @@
 from abc import ABCMeta
 
 from django.db import models
-
 from django.template import Engine
 from django.urls import re_path
+
 from temba.orgs.models import DependencyMixin, Org
 from temba.utils.models import TembaModel
 
