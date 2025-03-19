@@ -22,6 +22,8 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
         list_url = reverse("ai.llm_list")
         response = self.assertListFetch(list_url, [self.admin])
         self.assertEqual("settings/ai", response.headers[TEMBA_MENU_SELECTION])
+        self.assertContains(response, "Basic")
+        self.assertContains(response, "Advanced")
 
     def test_delete(self):
         list_url = reverse("ai.llm_list")
