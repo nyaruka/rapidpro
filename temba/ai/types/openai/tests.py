@@ -1,6 +1,9 @@
 from unittest.mock import Mock, patch
-from django.urls import reverse
+
 import openai
+
+from django.urls import reverse
+
 from temba.ai.models import LLM
 from temba.ai.types.openai.type import OpenAIType
 from temba.tests import TembaTest
