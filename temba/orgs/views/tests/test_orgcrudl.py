@@ -53,6 +53,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             [
                 "Nyaruka",
+                "AI Models",
                 "API Tokens",
                 "Resthooks",
                 "Incidents",
@@ -127,6 +128,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             [
                 "Nyaruka",
+                "AI Models",
                 "API Tokens",
                 "Resthooks",
                 "Incidents",
@@ -162,6 +164,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             [
                 "Nyaruka",
+                "AI Models",
                 "API Tokens",
                 "Resthooks",
                 "Incidents",

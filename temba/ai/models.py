@@ -119,7 +119,6 @@ class LLMType(metaclass=ABCMeta):
         """
         Gets the URL/view configuration for this classifier's connect page
         """
-        print(self, self.connect_view)
         return re_path(r"^connect", self.connect_view.as_view(llm_type=self), name="connect")
 
     def get_connect_blurb(self):
