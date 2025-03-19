@@ -1,0 +1,88 @@
+{% extends "orgs/base/list.html" %}
+{% load smartmin temba i18n humanize %}
+
+{% block modaxes %}
+  <temba-modax header="{{ _("Delete Model") |escapejs }}" id="delete-llm">
+  </temba-modax>
+  <temba-modax header="{{ _("Usages") |escapejs }}" id="usages-llm">
+  </temba-modax>
+{% endblock modaxes %}
+{% block pre-table %}
+  <div class="mb-4">
+    {% blocktrans trimmed %}
+      Large Language Models (LLMs) are useful for a variety of tasks. You might use them to translate flows, provide categorizaion, or summarize results you have collected from your contacts.
+    {% endblocktrans %}
+  </div>
+{% endblock pre-table %}
+{% block table %}
+  <table class="list lined scrolled">
+    <tbody>
+      {% for obj in object_list %}
+        <tr>
+          <td style="min-width: 50px">{{ obj.name }}</td>
+          <td style="">
+            <temba-icon style="display:inline-block;vertical-align:middle;margin-right:0.25em" name="{{ obj.type }}">
+            </temba-icon>
+            {{ obj.config.model }}
+          </td>
+          <td class="w-12">
+            <div class="flex text-center">
+              {% with usage_count=obj.usage_count %}
+                {% if usage_count %}
+                  <div onclick="event.stopPropagation() ; showLLMUsagesModal('{{ obj.uuid }}');" class="uses">
+                    <div class="lbl linked">
+                      {% blocktrans trimmed count counter=usage_count %}
+                        {{ counter }} use
+                      {% plural %}
+                        {{ counter }} uses
+                      {% endblocktrans %}
+                    </div>
+                  </div>
+                {% endif %}
+              {% endwith %}
+            </div>
+          </td>
+          {% if org_perms.ai.llm_delete %}
+            <td class="w-10">
+              <temba-icon name="delete"
+                          clickable="true"
+                          style="--icon-color:#bbb"
+                          onclick="event.stopPropagation(); showDeleteLLMModal('{{ obj.uuid }}');">
+              </temba-icon>
+            </td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr class="empty_list">
+          <td colspan="99" class="text-center">{% trans "No models yet" %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock table %}
+{% block extra-script %}
+  {{ block.super }}
+  <script>
+    function showDeleteLLMModal(uuid) {
+      var modax = document.querySelector('#delete-llm');
+      modax.endpoint = `/llm/delete/${uuid}/`;
+      modax.open = true;
+    }
+
+    function showLLMUsagesModal(uuid) {
+      var modax = document.querySelector('#usages-llm');
+      modax.endpoint = `/llm/usages/${uuid}/`
+      modax.open = true;
+    }
+  </script>
+{% endblock extra-script %}
+{% block extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    td.dependencies {
+      text-align: right;
+      white-space: nowrap;
+      width: 3em;
+    }
+  </style>
+{% endblock extra-style %}

@@ -11,16 +11,12 @@ class OpenAIType(LLMType):
 
     name = "OpenAI"
     slug = "openai"
-    icon = "icon-openai"
+    icon = "openai"
     connect_blurb = _(
         "If you have an existing OpenAI account, you can add it to your workspace and use it for AI tasks."
     )
 
-    form_blurb = _(
-        "To connect your OpenAI account, please provide your API key. "
-        "You can find your API key in your OpenAI dashboard."
-    )
-
+    form_blurb = _("To connect your OpenAI account, please provide your API key. ")
     connect_view = ConnectView
 
     CONFIG_API_KEY = "api_key"

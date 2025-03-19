@@ -4,17 +4,17 @@ from django.db import models
 
 from django.template import Engine
 from django.urls import re_path
-from temba.orgs.models import Org
+from temba.orgs.models import DependencyMixin, Org
 from temba.utils.models import TembaModel
 
 
-class LLM(TembaModel):
+class LLM(TembaModel, DependencyMixin):
     """
     A language model that can be used for AI tasks
     """
 
     org = models.ForeignKey(Org, related_name="llms", on_delete=models.PROTECT)
-    name = models.CharField(max_length=64, help_text="The name of this LLM model")
+    name = models.CharField(max_length=64, help_text="The user's name for the LLM model")
     type = models.CharField(max_length=16)
     config = models.JSONField()
 
@@ -23,12 +23,12 @@ class LLM(TembaModel):
     )
 
     @classmethod
-    def create(cls, org, user, ai_type, name, api_key, model_name, config=None):
+    def create(cls, org, user, ai_type, name, api_key, model, config=None):
         if config is None:
             config = {}
 
         config["api_key"] = api_key
-        config["model_name"] = model_name
+        config["model"] = model
 
         ai = cls.objects.create(
             org=org,
