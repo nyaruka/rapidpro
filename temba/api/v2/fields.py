@@ -7,7 +7,7 @@ from temba.campaigns.models import Campaign, CampaignEvent
 from temba.channels.models import Channel
 from temba.contacts.models import URN, Contact, ContactField as ContactFieldModel, ContactGroup, ContactURN
 from temba.flows.models import Flow
-from temba.msgs.models import Attachment, Label, Media, Msg
+from temba.msgs.models import Attachment, Label, Media, Msg, QuickReply
 from temba.tickets.models import Ticket, Topic
 from temba.users.models import User
 from temba.utils import languages
@@ -58,7 +58,6 @@ class LimitedDictField(serializers.DictField):
 
     def __init__(self, **kwargs):
         self.max_length = kwargs.pop("max_length", None)
-        self.valid_keys = kwargs.pop("valid_keys", None)
 
         super().__init__(**kwargs)
 
@@ -79,55 +78,66 @@ class LimitedDictField(serializers.DictField):
             raise serializers.ValidationError(errors)
 
     def validate_key(self, value):
-        if self.valid_keys and value not in self.valid_keys:
-            raise serializers.ValidationError("Invalid key: %s" % value)
+        pass
 
 
 class LanguageDictField(LimitedDictField):
     """
-    Dict field where all the keys must be valid languages
+    Dict field where all the keys must be valid languages.
     """
 
     def validate_key(self, value):
         validate_language(value)
 
 
-class TranslatedTextField(LanguageDictField):
+class TranslatedField(LanguageDictField):
+    """
+    Field which can be provided as a language dict or single translation which is assumed to be in the default language
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(max_length=50, **kwargs)
+
+    def to_internal_value(self, data):
+        if isinstance(data, (str, list)):
+            data = {self.context["org"].flow_languages[0]: data}
+
+        return super().to_internal_value(data)
+
+
+class TranslatedTextField(TranslatedField):
     """
     A field which is either a string or a language -> string translations dict
     """
 
     def __init__(self, max_length, **kwargs):
-        super().__init__(allow_empty=False, max_length=50, child=serializers.CharField(max_length=max_length), **kwargs)
-
-    def to_internal_value(self, data):
-        if isinstance(data, str):
-            data = {self.context["org"].flow_languages[0]: data}
-
-        return super().to_internal_value(data)
+        super().__init__(allow_empty=False, child=serializers.CharField(max_length=max_length), **kwargs)
 
 
-class TranslatedAttachmentsField(LanguageDictField):
+class TranslatedAttachmentsField(TranslatedField):
     """
     A field which is either a list of strings or a language -> list of strings translations dict
     """
 
     def __init__(self, **kwargs):
-        super().__init__(allow_empty=False, max_length=50, child=MediaField(many=True, max_items=10), **kwargs)
+        super().__init__(allow_empty=False, child=MediaField(many=True, max_items=Msg.MAX_ATTACHMENTS), **kwargs)
+
+
+class QuickReplySerializer(serializers.Serializer):
+    """
+    A serializer for quick replies
+    """
+
+    text = serializers.CharField(max_length=64)
+    extra = serializers.CharField(max_length=64, required=False, allow_null=True)
 
     def to_internal_value(self, data):
-        if isinstance(data, list):
-            data = {self.context["org"].flow_languages[0]: data}
+        value = super().to_internal_value(data)
 
-        return super().to_internal_value(data)
-
-
-class QuickReplyField(LimitedDictField):
-    def __init__(self, **kwargs):
-        super().__init__(child=serializers.CharField(max_length=64), valid_keys=("text", "extra"), **kwargs)
+        return QuickReply(value["text"], value.get("extra"))
 
 
-class TranslatedQuickRepliesField(LanguageDictField):
+class TranslatedQuickRepliesField(TranslatedField):
     """
     A field which is either a list of quick replies or a language -> list of quick replies translations dict
     """
@@ -135,15 +145,9 @@ class TranslatedQuickRepliesField(LanguageDictField):
     def __init__(self, **kwargs):
         super().__init__(
             allow_empty=False,
-            child=serializers.ListField(child=QuickReplyField(), max_length=Msg.MAX_QUICK_REPLIES),
+            child=serializers.ListField(child=QuickReplySerializer(), max_length=Msg.MAX_QUICK_REPLIES),
             **kwargs,
         )
-
-    def to_internal_value(self, data):
-        if isinstance(data, list):
-            data = {self.context["org"].flow_languages[0]: data}
-
-        return super().to_internal_value(data)
 
 
 class LimitedManyRelatedField(serializers.ManyRelatedField):

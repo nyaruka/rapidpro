@@ -7,6 +7,7 @@ from array import array
 from dataclasses import dataclass
 from enum import Enum
 from fnmatch import fnmatch
+from typing import Optional
 from urllib.parse import unquote, urlparse
 
 import iso8601
@@ -399,8 +400,8 @@ class Attachment:
         raise ValueError(f"{s} is not a valid attachment")
 
     @classmethod
-    def parse_all(cls, attachments):
-        return [cls.parse(s) for s in attachments] if attachments else []
+    def parse_all(cls, attachments) -> list:
+        return [cls.parse(s) for s in (attachments or [])]
 
     @classmethod
     def bulk_delete(cls, attachments):
@@ -408,8 +409,35 @@ class Attachment:
             parsed = urlparse(att.url)
             default_storage.delete(unquote(parsed.path))
 
-    def as_json(self):
+    def as_json(self) -> dict:
         return {"content_type": self.content_type, "url": self.url}
+
+
+@dataclass
+class QuickReply:
+    """
+    Represents a message quick reply stored as text\nextra
+    """
+
+    text: str
+    extra: Optional[str]
+
+    @classmethod
+    def parse(cls, s: str):
+        parts = s.split("\n")
+        return cls(parts[0], parts[1] if len(parts) > 1 else None)
+
+    def as_json(self) -> dict:
+        d = {"text": self.text}
+        if self.extra:
+            d["extra"] = self.extra
+        return d
+
+    def __str__(self) -> str:
+        s = self.text
+        if self.extra:
+            s += "\n" + self.extra
+        return s
 
 
 class Msg(models.Model):
@@ -574,7 +602,7 @@ class Msg(models.Model):
             "status": serializer.get_status(self),
             "visibility": serializer.get_visibility(self),
             "text": self.text,
-            "attachments": [attachment.as_json() for attachment in Attachment.parse_all(self.attachments)],
+            "attachments": [attachment.as_json() for attachment in self.get_attachments()],
             "labels": [{"uuid": str(lb.uuid), "name": lb.name} for lb in self.labels.all()],
             "created_on": self.created_on.isoformat(),
             "sent_on": self.sent_on.isoformat() if self.sent_on else None,
@@ -582,9 +610,15 @@ class Msg(models.Model):
 
     def get_attachments(self):
         """
-        Gets this message's attachments parsed into actual attachment objects
+        Gets this message's attachments parsed into objects
         """
         return Attachment.parse_all(self.attachments)
+
+    def get_quick_replies(self):
+        """
+        Gets this message's quick replies parsed into objects
+        """
+        return [QuickReply.parse(qr) for qr in self.quick_replies or []]
 
     def get_logs(self) -> list:
         return ChannelLog.get_by_uuid(self.channel, self.log_uuids or [])

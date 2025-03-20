@@ -18,7 +18,7 @@ from temba.flows.models import Flow, FlowRun, FlowStart
 from temba.globals.models import Global
 from temba.locations.models import AdminBoundary
 from temba.mailroom import modifiers
-from temba.msgs.models import Broadcast, Label, Media, Msg, OptIn
+from temba.msgs.models import Broadcast, Label, Media, Msg, OptIn, QuickReply
 from temba.orgs.models import Org, OrgRole
 from temba.tickets.models import Ticket, Topic
 from temba.users.models import User
@@ -275,7 +275,7 @@ class BroadcastWriteSerializer(WriteSerializer):
                 if lang not in translations:
                     translations[lang] = {}
 
-                translations[lang]["quick_replies"] = [qr for qr in qrs]
+                translations[lang]["quick_replies"] = [qr.as_json() for qr in qrs]
 
         if not base_language:
             base_language = next(iter(translations))
@@ -1395,7 +1395,7 @@ class MsgReadSerializer(ReadSerializer):
         return [a.as_json() for a in obj.get_attachments()]
 
     def get_quick_replies(self, obj):
-        return [{"text": qr} for qr in (obj.quick_replies or [])]
+        return [q.as_json() for q in obj.get_quick_replies()]
 
     def get_media(self, obj):
         return obj.attachments[0] if obj.attachments else None
@@ -1443,7 +1443,7 @@ class MsgWriteSerializer(WriteSerializer):
     text = serializers.CharField(required=False, max_length=Msg.MAX_TEXT_LEN)
     attachments = fields.MediaField(required=False, many=True, max_items=Msg.MAX_ATTACHMENTS)
     quick_replies = serializers.ListField(
-        required=False, child=fields.QuickReplyField(), max_length=Msg.MAX_QUICK_REPLIES
+        required=False, child=fields.QuickReplySerializer(), max_length=Msg.MAX_QUICK_REPLIES
     )
     ticket = fields.TicketField(required=False)
 
@@ -1474,7 +1474,7 @@ class MsgWriteSerializer(WriteSerializer):
         else:
             contact_urn = None
 
-        msg_quick_replies = [qr["text"] for qr in resp.get("quick_replies")]
+        msg_quick_replies = [str(QuickReply(qr["text"], qr.get("extra"))) for qr in resp.get("quick_replies")]
 
         return Msg(
             id=resp["id"],

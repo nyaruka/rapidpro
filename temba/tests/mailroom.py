@@ -18,7 +18,7 @@ from temba.flows.models import FlowRun, FlowSession
 from temba.locations.models import AdminBoundary
 from temba.mailroom.client.client import MailroomClient
 from temba.mailroom.modifiers import Modifier
-from temba.msgs.models import Broadcast, Msg
+from temba.msgs.models import Broadcast, Msg, QuickReply
 from temba.schedules.models import Schedule
 from temba.tests.dates import parse_datetime
 from temba.tickets.models import Ticket, TicketEvent
@@ -375,7 +375,7 @@ class TestClient(MailroomClient):
         return {"msg_ids": [m.id for m in msgs]}
 
     @_client_method
-    def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[dict], ticket):
+    def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[QuickReply], ticket):
         msg = send_to_contact(org, contact, text, attachments, quick_replies)
 
         return {
@@ -385,7 +385,7 @@ class TestClient(MailroomClient):
             "urn": str(msg.contact_urn) if msg.contact_urn else "",
             "text": msg.text,
             "attachments": msg.attachments,
-            "quick_replies": [{"text": qr} for qr in msg.quick_replies],
+            "quick_replies": [qr.as_json() for qr in msg.get_quick_replies()],
             "status": msg.status,
             "created_on": msg.created_on.isoformat(),
             "modified_on": msg.modified_on.isoformat(),
@@ -892,7 +892,7 @@ def resolve_destination(org, contact, channel=None) -> tuple:
     return None, None
 
 
-def send_to_contact(org, contact, text, attachments, quick_replies) -> Msg:
+def send_to_contact(org, contact, text: str, attachments: list[str], quick_replies: list[QuickReply]) -> Msg:
     channel, contact_urn = resolve_destination(org, contact)
 
     if contact_urn and channel:
@@ -904,8 +904,6 @@ def send_to_contact(org, contact, text, attachments, quick_replies) -> Msg:
         status = "F"
         failed_reason = Msg.FAILED_NO_DESTINATION
 
-    msg_quick_replies = [qr["text"] for qr in quick_replies]
-
     return Msg.objects.create(
         org=org,
         channel=channel,
@@ -916,7 +914,7 @@ def send_to_contact(org, contact, text, attachments, quick_replies) -> Msg:
         failed_reason=failed_reason,
         text=text or "",
         attachments=attachments or [],
-        quick_replies=msg_quick_replies,
+        quick_replies=[str(qr) for qr in quick_replies],
         msg_type=Msg.TYPE_TEXT,
         is_android=False,
         created_on=timezone.now(),

@@ -5,6 +5,7 @@ from django.conf import settings
 from temba.api.v2 import fields
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import Contact, ContactField, ContactURN
+from temba.msgs.models import QuickReply
 
 from . import APITest
 
@@ -145,11 +146,11 @@ class FieldsTest(APITest):
 
         self.assertEqual(
             field.run_validation({"eng": [{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}]}),
-            {"eng": [{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}]},
+            {"eng": [QuickReply("Red", None), QuickReply("Green", None), QuickReply("Blue", None)]},
         )
         self.assertEqual(
             field.run_validation([{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}]),
-            {"eng": [{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}]},
+            {"eng": [QuickReply("Red", None), QuickReply("Green", None), QuickReply("Blue", None)]},
         )
         self.assertEqual(
             field.run_validation(
@@ -159,8 +160,8 @@ class FieldsTest(APITest):
                 }
             ),
             {
-                "eng": [{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}],
-                "fra": [{"text": "Rouge"}, {"text": "Vert"}, {"text": "Bleu"}],
+                "eng": [QuickReply("Red", None), QuickReply("Green", None), QuickReply("Blue", None)],
+                "fra": [QuickReply("Rouge", None), QuickReply("Vert", None), QuickReply("Bleu", None)],
             },
         )
         self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": ""})  # empty
@@ -173,7 +174,7 @@ class FieldsTest(APITest):
         self.assertRaises(serializers.ValidationError, field.run_validation, {"base": [{"text": "Red"}]})  # not a lang
         self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": [{"text": "1"}] * 11})  # too many
         self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": [{"text": "a" * 65}]})  # too long
-        self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": [{"text": "Hello", "foo": "??"}]})
+        self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": [{"foo": "??"}]})
         self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": [{"text": {}}]})  # invalid qr
 
     def test_language_and_translations(self):
