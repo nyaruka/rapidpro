@@ -1111,14 +1111,6 @@ class OrgCRUDL(SmartCRUDL):
 
                 if self.has_org_perm("classifiers.classifier_read"):
                     items = []
-
-                    if self.has_org_perm("classifiers.classifier_connect"):
-                        items.append(
-                            self.create_menu_item(
-                                name=_("New Classifier"), href="classifiers.classifier_connect", icon="add"
-                            )
-                        )
-
                     classifiers = org.classifiers.filter(is_active=True).order_by(Lower("name"))
                     for classifier in classifiers:
                         items.append(

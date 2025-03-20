@@ -1,3 +1,25 @@
+v10.1.100 (2025-03-14)
+-------------------------
+ * Remove no longer need filtering out of system flows
+ * Add forgetme view to check the delete confirmation
+
+v10.1.99 (2025-03-14)
+-------------------------
+ * Data migration to release single message flows
+
+v10.1.98 (2025-03-14)
+-------------------------
+ * Stop writing to CampaignEvent.message and stop creating single message flows
+
+v10.1.97 (2025-03-13)
+-------------------------
+ * Drop CampaignEvent.message field
+
+v10.1.96 (2025-03-13)
+-------------------------
+ * Stop writing CampaignEvent.message
+ * Remove new classifier, make way for llms
+
 v10.1.95 (2025-03-13)
 -------------------------
  * Fix floweditor grid in chrome

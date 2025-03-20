@@ -250,7 +250,16 @@ class ContactGroupTest(TembaTest):
         # create a campaign based on group 1 - a hard dependency
         campaign = Campaign.create(self.org, self.admin, "Reminders", group1)
         joined = self.create_field("joined", "Joined On", value_type=ContactField.TYPE_DATETIME)
-        CampaignEvent.create_message_event(self.org, self.admin, campaign, joined, 2, unit="D", message="Hi")
+        CampaignEvent.create_message_event(
+            self.org,
+            self.admin,
+            campaign,
+            joined,
+            2,
+            unit="D",
+            translations={"eng": {"text": "Hi"}},
+            base_language="eng",
+        )
         campaign.is_archived = True
         campaign.save()
 

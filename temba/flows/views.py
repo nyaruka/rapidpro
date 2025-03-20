@@ -640,9 +640,6 @@ class FlowCRUDL(SmartCRUDL):
 
             return context
 
-        def derive_queryset(self, *args, **kwargs):
-            return super().derive_queryset(*args, **kwargs).exclude(is_system=True)
-
         def apply_bulk_action(self, user, action, objects, label):
             super().apply_bulk_action(user, action, objects, label)
 
@@ -1475,7 +1472,6 @@ class FlowCRUDL(SmartCRUDL):
                 self.fields["flow"].queryset = org.flows.filter(
                     flow_type__in=(Flow.TYPE_MESSAGE, Flow.TYPE_VOICE, Flow.TYPE_BACKGROUND),
                     is_archived=False,
-                    is_system=False,
                     is_active=True,
                 ).order_by(Lower("name"))
 

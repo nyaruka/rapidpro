@@ -2,7 +2,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from temba.api.v2.serializers import format_datetime
-from temba.flows.models import Flow, FlowLabel, FlowRun
+from temba.flows.models import FlowLabel, FlowRun
 from temba.tests import matchers
 
 from . import APITest
@@ -20,9 +20,6 @@ class FlowsEndpointTest(APITest):
         color = self.get_flow("color_v13")
         archived = self.get_flow("favorites")
         archived.archive(self.admin)
-
-        # add a campaign message flow that should be filtered out
-        Flow.create_single_message(self.org, self.admin, dict(eng="Hello world"), "eng")
 
         # add a flow label
         reporting = FlowLabel.create(self.org, self.admin, "Reporting")

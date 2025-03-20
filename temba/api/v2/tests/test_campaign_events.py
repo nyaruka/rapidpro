@@ -41,7 +41,8 @@ class CampaignEventsEndpointTest(APITest):
             registration,
             1,
             CampaignEvent.UNIT_DAYS,
-            "Don't forget to brush your teeth",
+            {"eng": {"text": "Don't forget to brush your teeth"}},
+            base_language="eng",
         )
 
         campaign2 = Campaign.create(self.org, self.admin, "Notifications", reporters)
@@ -186,10 +187,11 @@ class CampaignEventsEndpointTest(APITest):
         self.assertEqual(event1.offset, 15)
         self.assertEqual(event1.unit, "W")
         self.assertEqual(event1.delivery_hour, -1)
-        self.assertEqual(event1.message, {"eng": "You are @fields.age"})
+        self.assertEqual(event1.translations, {"eng": {"text": "You are @fields.age"}})
+        self.assertEqual(event1.base_language, "eng")
         self.assertEqual(event1.status, "S")
         self.assertEqual(event1.fire_version, 1)
-        self.assertIsNotNone(event1.flow)
+        self.assertIsNone(event1.flow)
 
         # try to create a message event with an empty message
         self.assertPost(
@@ -226,8 +228,8 @@ class CampaignEventsEndpointTest(APITest):
         self.assertEqual(event1.offset, 15)
         self.assertEqual(event1.unit, "D")
         self.assertEqual(event1.delivery_hour, -1)
-        self.assertEqual(event1.message, {"eng": "Nice unit of work @fields.code"})
-        self.assertIsNotNone(event1.flow)
+        self.assertEqual(event1.translations, {"eng": {"text": "Nice unit of work @fields.code"}})
+        self.assertIsNone(event1.flow)
 
         # create a flow event
         self.assertPost(
@@ -250,7 +252,8 @@ class CampaignEventsEndpointTest(APITest):
         self.assertEqual(event2.offset, 15)
         self.assertEqual(event2.unit, "W")
         self.assertEqual(event2.delivery_hour, -1)
-        self.assertEqual(event2.message, None)
+        self.assertEqual(event2.translations, None)
+        self.assertEqual(event2.base_language, None)
         self.assertEqual(event2.flow, flow)
 
         # make sure we called mailroom to schedule this event
@@ -289,7 +292,7 @@ class CampaignEventsEndpointTest(APITest):
 
         event1.refresh_from_db()
         self.assertEqual(event1.event_type, CampaignEvent.TYPE_FLOW)
-        self.assertIsNone(event1.message)
+        self.assertIsNone(event1.translations)
         self.assertEqual(event1.flow, flow)
         self.assertEqual(event1.status, "R")  # unchanged
         self.assertEqual(event1.fire_version, 1)  # unchanged
@@ -310,7 +313,9 @@ class CampaignEventsEndpointTest(APITest):
 
         event2.refresh_from_db()
         self.assertEqual(event2.event_type, CampaignEvent.TYPE_MESSAGE)
-        self.assertEqual(event2.message, {"eng": "OK @(format_urn(urns.tel))", "fra": "D'accord"})
+        self.assertEqual(
+            event2.translations, {"eng": {"text": "OK @(format_urn(urns.tel))"}, "fra": {"text": "D'accord"}}
+        )
         self.assertEqual(event2.status, "S")
         self.assertEqual(event2.fire_version, 2)  # bumped
 
@@ -332,7 +337,9 @@ class CampaignEventsEndpointTest(APITest):
 
         event2 = CampaignEvent.objects.filter(campaign=campaign1).order_by("-id").first()
         self.assertEqual(event2.event_type, CampaignEvent.TYPE_MESSAGE)
-        self.assertEqual(event2.message, {"eng": "OK", "fra": "D'accord", "kin": "Sawa"})
+        self.assertEqual(
+            event2.translations, {"eng": {"text": "OK"}, "fra": {"text": "D'accord"}, "kin": {"text": "Sawa"}}
+        )
 
         # try to change an existing event's campaign
         self.assertPost(

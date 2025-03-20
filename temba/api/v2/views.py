@@ -1693,7 +1693,7 @@ class FlowsEndpoint(ListAPIMixin, BaseEndpoint):
     def filter_queryset(self, queryset):
         params = self.request.query_params
 
-        queryset = queryset.exclude(is_active=False).exclude(is_system=True)
+        queryset = queryset.exclude(is_active=False)
 
         # filter by UUID (optional)
         uuid = params.get("uuid")

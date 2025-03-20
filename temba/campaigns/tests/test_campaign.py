@@ -2,14 +2,13 @@ import json
 from unittest.mock import call
 from zoneinfo import ZoneInfo
 
-from django.core.exceptions import ValidationError
 from django.core.files.storage import default_storage
 
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField
 from temba.flows.models import Flow
 from temba.orgs.models import DefinitionExport, Org
-from temba.tests import TembaTest, matchers, mock_mailroom
+from temba.tests import TembaTest, mock_mailroom
 
 
 class CampaignTest(TembaTest):
@@ -43,7 +42,15 @@ class CampaignTest(TembaTest):
             self.org, self.admin, campaign, self.planting_date, offset=1, unit="W", flow=flow, delivery_hour=13
         )
         event2 = CampaignEvent.create_message_event(
-            self.org, self.admin, campaign, self.planting_date, offset=3, unit="D", message="Hello", delivery_hour=9
+            self.org,
+            self.admin,
+            campaign,
+            self.planting_date,
+            offset=3,
+            unit="D",
+            translations={"eng": {"text": "Hello"}},
+            base_language="eng",
+            delivery_hour=9,
         )
 
         self.assertEqual("Reminders", campaign.name)
@@ -146,36 +153,26 @@ class CampaignTest(TembaTest):
             relative_to=self.planting_date,
             offset=1,
             unit="D",
-            message={"eng": "Hi @(upper(contact.name)) don't forget to plant on @(format_date(contact.planting_date))"},
+            translations={
+                "eng": {
+                    "text": "Hi @(upper(contact.name)) don't forget to plant on @(format_date(contact.planting_date))"
+                }
+            },
             base_language="eng",
         )
 
+        self.assertEqual(self.planting_date, event.relative_to)
+        self.assertEqual(1, event.offset)
+        self.assertEqual("D", event.unit)
         self.assertEqual(
             {
-                "uuid": str(event.flow.uuid),
-                "name": event.flow.name,
-                "spec_version": Flow.CURRENT_SPEC_VERSION,
-                "revision": 1,
-                "language": "eng",
-                "type": "messaging_background",
-                "expire_after_minutes": 0,
-                "localization": {},
-                "nodes": [
-                    {
-                        "uuid": matchers.UUID4String(),
-                        "actions": [
-                            {
-                                "uuid": matchers.UUID4String(),
-                                "type": "send_msg",
-                                "text": "Hi @(upper(contact.name)) don't forget to plant on @(format_date(contact.planting_date))",
-                            }
-                        ],
-                        "exits": [{"uuid": matchers.UUID4String()}],
-                    }
-                ],
+                "eng": {
+                    "text": "Hi @(upper(contact.name)) don't forget to plant on @(format_date(contact.planting_date))"
+                }
             },
-            event.flow.get_definition(),
+            event.translations,
         )
+        self.assertEqual("eng", event.base_language)
 
     @mock_mailroom
     def test_import(self, mr_mocks):
@@ -193,11 +190,8 @@ class CampaignTest(TembaTest):
         self.assertEqual(CampaignEvent.TYPE_FLOW, events[3].event_type)
         self.assertEqual(CampaignEvent.TYPE_MESSAGE, events[4].event_type)
         self.assertEqual(CampaignEvent.TYPE_MESSAGE, events[5].event_type)
-
-        # message flow should be migrated to latest engine spec
-        self.assertEqual({"und": "This is a second campaign message"}, events[5].message)
-        self.assertEqual("und", events[5].flow.base_language)
-        self.assertEqual(Flow.CURRENT_SPEC_VERSION, events[5].flow.version_number)
+        self.assertEqual({"und": {"text": "This is a second campaign message"}}, events[5].translations)
+        self.assertEqual("und", events[5].base_language)
 
     @mock_mailroom
     def test_import_created_on_event(self, mr_mocks):
@@ -236,32 +230,6 @@ class CampaignTest(TembaTest):
         # should be able to change our field type now
         ContactField.get_or_create(self.org, self.admin, "planting_date", value_type=ContactField.TYPE_TEXT)
 
-    def test_translations(self):
-        campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
-
-        event1 = CampaignEvent.create_message_event(
-            self.org,
-            self.admin,
-            campaign,
-            relative_to=self.planting_date,
-            offset=0,
-            unit="D",
-            message={"eng": "hello"},
-            base_language="eng",
-        )
-
-        with self.assertRaises(ValidationError):
-            event1.message = {"ddddd": "x"}
-            event1.full_clean()
-
-        with self.assertRaises(ValidationError):
-            event1.message = {"eng": "x" * 8001}
-            event1.full_clean()
-
-        with self.assertRaises(ValidationError):
-            event1.message = {}
-            event1.full_clean()
-
     @mock_mailroom
     def test_unarchiving_campaigns(self, mr_mocks):
         # create a campaign
@@ -290,7 +258,8 @@ class CampaignTest(TembaTest):
             self.planting_date,
             1,
             CampaignEvent.UNIT_DAYS,
-            "Don't forget to brush your teeth",
+            {"eng": {"text": "Don't forget to brush your teeth"}},
+            base_language="eng",
         )
 
         flow.archive(self.admin)
@@ -306,7 +275,7 @@ class CampaignTest(TembaTest):
         self.assertFalse(campaign.is_archived)
         self.assertFalse(Flow.objects.filter(is_archived=True))
 
-    def test_model_as_export_def(self):
+    def test_as_export_def(self):
         field_created_on = self.org.fields.get(key="created_on")
         campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
 
@@ -329,7 +298,6 @@ class CampaignTest(TembaTest):
                         "event_type": "F",
                         "start_mode": "I",
                         "delivery_hour": -1,
-                        "message": None,
                         "relative_to": {"label": "Planting Date", "key": "planting_date"},
                         "flow": {"uuid": str(self.reminder_flow.uuid), "name": "Reminder Flow"},
                     }
@@ -356,7 +324,6 @@ class CampaignTest(TembaTest):
                         "event_type": "F",
                         "start_mode": "I",
                         "delivery_hour": -1,
-                        "message": None,
                         "relative_to": {"key": "created_on", "label": "Created On"},
                         "flow": {"uuid": str(self.reminder_flow.uuid), "name": "Reminder Flow"},
                     }
@@ -366,7 +333,14 @@ class CampaignTest(TembaTest):
 
         campaign3 = Campaign.create(self.org, self.admin, "Planting Reminders 2", self.farmers)
         planting_reminder3 = CampaignEvent.create_message_event(
-            self.org, self.admin, campaign3, relative_to=field_created_on, offset=2, unit="D", message="o' a framer?"
+            self.org,
+            self.admin,
+            campaign3,
+            relative_to=field_created_on,
+            offset=2,
+            unit="D",
+            translations={"eng": {"text": "o' a framer?"}},
+            base_language="eng",
         )
 
         self.assertEqual(
@@ -428,31 +402,32 @@ class CampaignTest(TembaTest):
             self.org, self.admin, campaign, offset=3, unit="D", flow=self.reminder_flow, relative_to=self.planting_date
         )
 
-        self.assertEqual(campaign_event.campaign_id, campaign.id)
+        self.assertEqual(campaign_event.campaign, campaign)
         self.assertEqual(campaign_event.offset, 3)
         self.assertEqual(campaign_event.unit, "D")
-        self.assertEqual(campaign_event.relative_to_id, self.planting_date.id)
-        self.assertEqual(campaign_event.flow_id, self.reminder_flow.id)
+        self.assertEqual(campaign_event.relative_to, self.planting_date)
+        self.assertEqual(campaign_event.flow, self.reminder_flow)
         self.assertEqual(campaign_event.event_type, "F")
-        self.assertEqual(campaign_event.message, None)
+        self.assertEqual(campaign_event.translations, None)
+        self.assertEqual(campaign_event.base_language, None)
         self.assertEqual(campaign_event.delivery_hour, -1)
 
         campaign_event = CampaignEvent.create_flow_event(
             self.org, self.admin, campaign, offset=3, unit="D", flow=self.reminder_flow, relative_to=created_on
         )
 
-        self.assertEqual(campaign_event.campaign_id, campaign.id)
+        self.assertEqual(campaign_event.campaign, campaign)
         self.assertEqual(campaign_event.offset, 3)
         self.assertEqual(campaign_event.unit, "D")
-        self.assertEqual(campaign_event.relative_to_id, created_on.id)
-        self.assertEqual(campaign_event.flow_id, self.reminder_flow.id)
+        self.assertEqual(campaign_event.relative_to, created_on)
+        self.assertEqual(campaign_event.flow, self.reminder_flow)
         self.assertEqual(campaign_event.event_type, "F")
-        self.assertEqual(campaign_event.message, None)
+        self.assertEqual(campaign_event.translations, None)
+        self.assertEqual(campaign_event.base_language, None)
         self.assertEqual(campaign_event.delivery_hour, -1)
 
     def test_create_message_event(self):
         gender = self.create_field("gender", "Gender", value_type="T")
-        created_on = self.org.fields.get(key="created_on")
         campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
 
         new_org = Org.objects.create(
@@ -466,7 +441,8 @@ class CampaignTest(TembaTest):
                 campaign,
                 offset=3,
                 unit="D",
-                message="oy, pancake man, come back",
+                translations={"eng": {"text": "oy, pancake man, come back"}},
+                base_language="eng",
                 relative_to=self.planting_date,
             )
 
@@ -478,7 +454,8 @@ class CampaignTest(TembaTest):
                 campaign,
                 offset=3,
                 unit="D",
-                message="oy, pancake man, come back",
+                translations={"eng": {"text": "oy, pancake man, come back"}},
+                base_language="eng",
                 relative_to=gender,
             )
 
@@ -488,35 +465,17 @@ class CampaignTest(TembaTest):
             campaign,
             offset=3,
             unit="D",
-            message="oy, pancake man, come back",
+            translations={"eng": {"text": "oy, pancake man, come back"}},
+            base_language="eng",
             relative_to=self.planting_date,
         )
 
-        self.assertEqual(campaign_event.campaign_id, campaign.id)
+        self.assertEqual(campaign_event.campaign, campaign)
         self.assertEqual(campaign_event.offset, 3)
         self.assertEqual(campaign_event.unit, "D")
-        self.assertEqual(campaign_event.relative_to_id, self.planting_date.id)
-        self.assertIsNotNone(campaign_event.flow_id)
+        self.assertEqual(campaign_event.relative_to, self.planting_date)
         self.assertEqual(campaign_event.event_type, "M")
-        self.assertEqual(campaign_event.message, {"eng": "oy, pancake man, come back"})
+        self.assertEqual(campaign_event.translations, {"eng": {"text": "oy, pancake man, come back"}})
+        self.assertEqual(campaign_event.base_language, "eng")
         self.assertEqual(campaign_event.delivery_hour, -1)
-
-        campaign_event = CampaignEvent.create_message_event(
-            self.org,
-            self.admin,
-            campaign,
-            offset=3,
-            unit="D",
-            message="oy, pancake man, come back",
-            relative_to=created_on,
-        )
-
-        self.assertEqual(campaign_event.campaign_id, campaign.id)
-        self.assertEqual(campaign_event.offset, 3)
-        self.assertEqual(campaign_event.unit, "D")
-        self.assertEqual(campaign_event.relative_to_id, created_on.id)
-        self.assertIsNotNone(campaign_event.flow_id)
-        self.assertEqual(campaign_event.event_type, "M")
-        self.assertEqual(campaign_event.message, {"eng": "oy, pancake man, come back"})
-        self.assertEqual(campaign_event.delivery_hour, -1)
-        self.assertEqual(campaign_event.flow.flow_type, Flow.TYPE_BACKGROUND)
+        self.assertIsNone(campaign_event.flow)

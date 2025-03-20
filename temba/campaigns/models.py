@@ -12,10 +12,9 @@ from django.utils.translation import gettext_lazy as _, ngettext
 from temba import mailroom
 from temba.contacts.models import ContactField, ContactGroup
 from temba.flows.models import Flow
-from temba.msgs.models import Msg
 from temba.orgs.models import Org
-from temba.utils import json, on_transaction_commit
-from temba.utils.models import TembaModel, TembaUUIDMixin, TranslatableField, delete_in_batches
+from temba.utils import json, languages, on_transaction_commit
+from temba.utils.models import TembaModel, TembaUUIDMixin, delete_in_batches
 
 
 class Campaign(TembaModel):
@@ -125,19 +124,18 @@ class Campaign(TembaModel):
                     if base_language not in message:  # pragma: needs cover
                         base_language = next(iter(message))
 
-                    event = CampaignEvent.create_message_event(
+                    CampaignEvent.create_message_event(
                         org,
                         user,
                         campaign,
                         relative_to,
                         event_spec["offset"],
                         event_spec["unit"],
-                        message,
-                        event_spec["delivery_hour"],
+                        {lang: {"text": val} for lang, val in message.items()},
                         base_language=base_language,
+                        delivery_hour=event_spec["delivery_hour"],
                         start_mode=start_mode,
                     )
-                    event.update_flow_name()
                 else:
                     flow = Flow.objects.filter(
                         org=org, is_active=True, is_system=False, uuid=event_spec["flow"]["uuid"]
@@ -221,7 +219,6 @@ class Campaign(TembaModel):
                 "unit": event.unit,
                 "event_type": event.event_type,
                 "delivery_hour": event.delivery_hour,
-                "message": event.message,
                 "relative_to": dict(label=event.relative_to.name, key=event.relative_to.key),  # TODO should be key/name
                 "start_mode": event.start_mode,
             }
@@ -230,9 +227,10 @@ class Campaign(TembaModel):
             if event.event_type == CampaignEvent.TYPE_FLOW:
                 event_definition["flow"] = event.flow.as_export_ref()
 
-            # include the flow base language for message flows
+            # include the translations and base language for message flows
             elif event.event_type == CampaignEvent.TYPE_MESSAGE:
-                event_definition["base_language"] = event.flow.base_language
+                event_definition["message"] = {lang: t["text"] for lang, t in event.translations.items()}
+                event_definition["base_language"] = event.base_language
 
             events.append(event_definition)
 
@@ -298,15 +296,12 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     delivery_hour = models.IntegerField(default=-1)  # can also specify the hour during the day
 
     # the content: either a flow or message translations
-    flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="campaign_events")
+    flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="campaign_events", null=True, blank=True)
     translations = models.JSONField(null=True)
     base_language = models.CharField(max_length=3, null=True)  # ISO-639-3
 
     # what should happen to other runs when this event is triggered
     start_mode = models.CharField(max_length=1, choices=START_MODES_CHOICES, default=MODE_INTERRUPT)
-
-    # deprecated: use translations instead
-    message = TranslatableField(max_length=Msg.MAX_TEXT_LEN, null=True)
 
     @classmethod
     def create_message_event(
@@ -317,23 +312,20 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
         relative_to,
         offset,
         unit,
-        message,
+        translations: dict[str, dict],
+        *,
+        base_language: str,
         delivery_hour=-1,
-        base_language=None,
         start_mode=MODE_INTERRUPT,
     ):
         assert campaign.org == org, "org mismatch"
+        assert base_language and languages.get_name(base_language), f"{base_language} is not a valid language code"
+        assert base_language in translations, "no translation for base language"
 
         if relative_to.value_type != ContactField.TYPE_DATETIME:
             raise ValueError(
                 f"Contact fields for CampaignEvents must have a datetime type, got {relative_to.value_type}."
             )
-
-        if isinstance(message, str):
-            base_language = org.flow_languages[0]
-            message = {base_language: message}
-
-        flow = Flow.create_single_message(org, user, message, base_language)
 
         return cls.objects.create(
             campaign=campaign,
@@ -341,14 +333,12 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             offset=offset,
             unit=unit,
             event_type=cls.TYPE_MESSAGE,
-            translations={lang: {"text": text} for lang, text in message.items()},
+            translations=translations,
             base_language=base_language,
-            flow=flow,
             delivery_hour=delivery_hour,
             start_mode=start_mode,
             created_by=user,
             modified_by=user,
-            message=message,  # deprecated
         )
 
     @classmethod
@@ -407,16 +397,6 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             translation = self.translations[self.base_language]
 
         return translation
-
-    def update_flow_name(self):
-        """
-        Updates our flow name to include our Event id, keeps flow names from colliding. No-op for non-message events.
-        """
-        if self.event_type != self.TYPE_MESSAGE:
-            return
-
-        self.flow.name = "Single Message (%d)" % self.id
-        self.flow.save(update_fields=["name"])
 
     def get_offset(self) -> timedelta:
         """
@@ -512,12 +492,8 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
 
         self.delete_fire_counts()
 
-        # if flow isn't a user created flow we can delete it too
-        if self.event_type == CampaignEvent.TYPE_MESSAGE:
-            self.flow.release(user)
-
     def __repr__(self):
-        return f'<Event: id={self.id} relative_to={self.relative_to.key} offset={self.get_offset()} flow="{self.flow.name}">'
+        return f"<Event: id={self.id} relative_to={self.relative_to.key} offset={self.get_offset()}>"
 
     class Meta:
         verbose_name = _("Campaign Event")

@@ -1,17 +1,21 @@
-from smartmin.views import SmartTemplateView
+from smartmin.views import SmartFormView, SmartTemplateView
 
+from django import forms
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import RedirectView, View
 
 from temba import __version__ as temba_version
 from temba.apks.models import Apk
+from temba.channels.models import ChannelEvent
 from temba.utils import analytics, json
 from temba.utils.text import generate_secret
-from temba.utils.views.mixins import NoNavMixin, SpaMixin
+from temba.utils.uuid import is_uuid
+from temba.utils.views.mixins import ComponentFormMixin, NoNavMixin, SpaMixin
 
 
-class IndexView(NoNavMixin, SmartTemplateView):
+class IndexView(NoNavMixin, ComponentFormMixin, SmartTemplateView):
     template_name = "public/public_index.html"
 
     def derive_title(self):
@@ -36,6 +40,38 @@ class WelcomeRedirect(RedirectView):
 
 class Style(SmartTemplateView):
     template_name = "public/public_style.html"
+
+
+class Forgetme(NoNavMixin, ComponentFormMixin, SmartFormView):
+    class Form(forms.Form):
+        code = forms.CharField(label=_("Confirmation Code"), help_text=_("The confirmation code for your request"))
+
+        def clean_code(self):
+            code = self.data.get("code")
+            if not is_uuid(code):
+                raise forms.ValidationError(_("Invalid confirmation code"))
+            return code
+
+    form_class = Form
+
+    template_name = "public/public_forgetme.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        code = self.request.GET.get("code", "")
+        event = None
+        if code:
+            event = ChannelEvent.objects.filter(event_type=ChannelEvent.TYPE_DELETE_CONTACT, uuid=code).first()
+
+        context["unknown_code"] = code and not event
+        context["event"] = event
+        return context
+
+    def form_valid(self, form):
+        code = form.cleaned_data["code"]
+
+        return HttpResponseRedirect(f"{reverse('public.public_forgetme')}?code={code}")
 
 
 class Android(SmartTemplateView):

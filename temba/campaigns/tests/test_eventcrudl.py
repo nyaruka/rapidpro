@@ -4,7 +4,7 @@ from temba.campaigns.models import Campaign, CampaignEvent
 from temba.campaigns.views import CampaignEventCRUDL
 from temba.contacts.models import ContactField
 from temba.flows.models import Flow
-from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
+from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
 
@@ -176,7 +176,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         event1 = CampaignEvent.objects.get(campaign=campaign)
-        self.assertEqual({"eng": "This is my message"}, event1.message)
+        self.assertEqual({"eng": {"text": "This is my message"}}, event1.translations)
 
         # add another language to our org
         self.org.set_flow_languages(self.admin, ["eng", "kin"])
@@ -270,37 +270,9 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("M", event.event_type)
         self.assertEqual("I", event.start_mode)
         self.assertEqual("S", event.status)
-
+        self.assertIsNone(event.flow)
         self.assertEqual({"eng": {"text": "hello"}, "kin": {"text": "muraho"}}, event.translations)
         self.assertEqual("eng", event.base_language)
-
-        self.assertTrue(event.flow.is_system)
-        self.assertEqual("eng", event.flow.base_language)
-        self.assertEqual(Flow.TYPE_BACKGROUND, event.flow.flow_type)
-
-        flow_json = event.flow.get_definition()
-        action_uuid = flow_json["nodes"][0]["actions"][0]["uuid"]
-
-        self.assertEqual(
-            {
-                "uuid": str(event.flow.uuid),
-                "name": f"Single Message ({event.id})",
-                "spec_version": Flow.CURRENT_SPEC_VERSION,
-                "revision": 1,
-                "expire_after_minutes": 0,
-                "language": "eng",
-                "type": "messaging_background",
-                "localization": {"kin": {action_uuid: {"text": ["muraho"]}}},
-                "nodes": [
-                    {
-                        "uuid": matchers.UUID4String(),
-                        "actions": [{"uuid": action_uuid, "type": "send_msg", "text": "hello"}],
-                        "exits": [{"uuid": matchers.UUID4String()}],
-                    }
-                ],
-            },
-            flow_json,
-        )
 
         event.status = CampaignEvent.STATUS_READY
         event.save(update_fields=("status",))
@@ -373,10 +345,10 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             },
         )
 
-        event.flow.refresh_from_db()
+        event.refresh_from_db()
 
         # we should retain our base language
-        self.assertEqual("eng", event.flow.base_language)
+        self.assertEqual("eng", event.base_language)
 
         # update org languages to something not including the flow's base language
         self.org.set_flow_languages(self.admin, ["por", "kin"])
@@ -424,7 +396,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         # update the first event to a message event
-        response = self.assertUpdateSubmit(
+        self.assertUpdateSubmit(
             update_url,
             self.admin,
             {
@@ -439,7 +411,6 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
                 "message_start_mode": "I",
             },
         )
-        self.assertEqual(302, response.status_code)
 
         event1.refresh_from_db()
         self.assertEqual(event1.event_type, "M")
@@ -448,7 +419,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(event1.unit, "D")
         self.assertEqual(event1.delivery_hour, 11)
         self.assertEqual(event1.start_mode, "I")
-        self.assertEqual(event1.message, {"eng": "Hi there"})
+        self.assertEqual(event1.translations, {"eng": {"text": "Hi there"}})
         self.assertEqual(event1.status, "S")
         self.assertEqual(event1.fire_version, 1)  # bumped
 
@@ -477,7 +448,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(302, response.status_code)
 
         event1.refresh_from_db()
-        self.assertEqual(event1.message, {"eng": "Hi there friends"})
+        self.assertEqual(event1.translations, {"eng": {"text": "Hi there friends"}})
         self.assertEqual(event1.status, "R")  # unchanged
         self.assertEqual(event1.fire_version, 1)  # unchanged
 
@@ -492,8 +463,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             response.context["form"].fields["flow_to_start"].widget.attrs["info_text"],
         )
 
-    @mock_mailroom
-    def test_delete_message_event(self, mr_mocks):
+    def test_delete(self):
         event = CampaignEvent.create_message_event(
             self.org,
             self.admin,
@@ -501,21 +471,13 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             self.org.fields.get(key="registered"),
             offset=3,
             unit="D",
-            message="Hello",
+            translations={"eng": {"text": "Hello"}},
+            base_language="eng",
             delivery_hour=9,
         )
-
-        # update event's flow to have a field dependency
-        field = self.create_field("age", "Age", value_type="N")
-        event.flow.field_dependencies.add(field)
 
         delete_url = reverse("campaigns.campaignevent_delete", args=[event.id])
 
         # delete the event
         response = self.assertDeleteSubmit(delete_url, self.admin, object_deactivated=event)
         self.assertRedirect(response, reverse("campaigns.campaign_read", args=[event.campaign.uuid]))
-
-        # our single message flow should be released and take its dependencies with it
-        event.flow.refresh_from_db()
-        self.assertFalse(event.flow.is_active)
-        self.assertEqual(event.flow.field_dependencies.count(), 0)
