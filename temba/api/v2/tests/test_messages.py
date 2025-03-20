@@ -299,7 +299,7 @@ class MessagesEndpointTest(APITest):
             {
                 "contact": joe.uuid,
                 "text": "What is your preferred color?",
-                "quick_replies": [{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}],
+                "quick_replies": [{"text": "Red"}, {"text": "Green", "extra": "Like grass"}, {"text": "Blue"}],
             },
             status=201,
         )
@@ -310,7 +310,7 @@ class MessagesEndpointTest(APITest):
                 joe,
                 "What is your preferred color?",
                 [],
-                [{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}],
+                [{"text": "Red"}, {"text": "Green", "extra": "Like grass"}, {"text": "Blue"}],
                 None,
             ),
             mr_mocks.calls["msg_send"][-1],

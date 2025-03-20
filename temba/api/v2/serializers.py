@@ -1443,7 +1443,7 @@ class MsgWriteSerializer(WriteSerializer):
     text = serializers.CharField(required=False, max_length=Msg.MAX_TEXT_LEN)
     attachments = fields.MediaField(required=False, many=True, max_items=Msg.MAX_ATTACHMENTS)
     quick_replies = serializers.ListField(
-        required=False, max_length=10, child=serializers.DictField(child=serializers.CharField(max_length=64))
+        required=False, child=fields.QuickReplyField(), max_length=Msg.MAX_QUICK_REPLIES
     )
     ticket = fields.TicketField(required=False)
 
@@ -1459,7 +1459,7 @@ class MsgWriteSerializer(WriteSerializer):
         contact = self.validated_data["contact"]
         text = self.validated_data.get("text")
         attachments = [str(m) for m in self.validated_data.get("attachments", [])]
-        quick_replies = [{"text": qr["text"]} for qr in self.validated_data.get("quick_replies", [])]
+        quick_replies = self.validated_data.get("quick_replies", [])
         ticket = self.validated_data.get("ticket")
 
         resp = mailroom.get_client().msg_send(org, user, contact, text or "", attachments, quick_replies, ticket)

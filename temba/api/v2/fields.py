@@ -51,13 +51,14 @@ class LanguageField(serializers.CharField):
 
 class LimitedDictField(serializers.DictField):
     """
-    Adds max length validation to the standard DRF DictField
+    Adds key and max length validation to the standard DictField
     """
 
     default_error_messages = {"max_length": _("Ensure this field has no more than {max_length} elements.")}
 
     def __init__(self, **kwargs):
         self.max_length = kwargs.pop("max_length", None)
+        self.valid_keys = kwargs.pop("valid_keys", None)
 
         super().__init__(**kwargs)
 
@@ -65,27 +66,30 @@ class LimitedDictField(serializers.DictField):
             message = fields.lazy_format(self.error_messages["max_length"], max_length=self.max_length)
             self.validators.append(fields.MaxLengthValidator(self.max_length, message=message))
 
+        self.validators.append(self._validate_keys)
+
+    def _validate_keys(self, value):
+        errors = {}
+        for key in value:
+            try:
+                self.validate_key(key)
+            except serializers.ValidationError as e:
+                errors[key] = e.detail
+        if errors:
+            raise serializers.ValidationError(errors)
+
+    def validate_key(self, value):
+        if self.valid_keys and value not in self.valid_keys:
+            raise serializers.ValidationError("Invalid key: %s" % value)
+
 
 class LanguageDictField(LimitedDictField):
     """
     Dict field where all the keys must be valid languages
     """
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        self.validators.append(self.validate_keys_as_languages)
-
-    @staticmethod
-    def validate_keys_as_languages(value):
-        errors = {}
-        for key in value:
-            try:
-                validate_language(key)
-            except serializers.ValidationError as e:
-                errors[key] = e.detail
-        if errors:
-            raise serializers.ValidationError(errors)
+    def validate_key(self, value):
+        validate_language(value)
 
 
 class TranslatedTextField(LanguageDictField):
@@ -118,17 +122,20 @@ class TranslatedAttachmentsField(LanguageDictField):
         return super().to_internal_value(data)
 
 
+class QuickReplyField(LimitedDictField):
+    def __init__(self, **kwargs):
+        super().__init__(child=serializers.CharField(max_length=64), valid_keys=("text", "extra"), **kwargs)
+
+
 class TranslatedQuickRepliesField(LanguageDictField):
     """
-    A field which is either a list of strings or a language -> list of strings translations dict
+    A field which is either a list of quick replies or a language -> list of quick replies translations dict
     """
 
     def __init__(self, **kwargs):
         super().__init__(
             allow_empty=False,
-            child=serializers.ListField(
-                max_length=10, child=serializers.DictField(child=serializers.CharField(max_length=64))
-            ),
+            child=serializers.ListField(child=QuickReplyField(), max_length=Msg.MAX_QUICK_REPLIES),
             **kwargs,
         )
 
