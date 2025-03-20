@@ -102,14 +102,8 @@ class LLMType(metaclass=ABCMeta):
     # the view that handles connection of a new model
     connect_view = None
 
-    # the blurb to show on the list page
-    connect_blurb = None
-
     # the blurb to show on the connect form page
     form_blurb = None
-
-    def get_icon(self):
-        return self.icon
 
     def get_form_blurb(self):
         """
@@ -128,9 +122,3 @@ class LLMType(metaclass=ABCMeta):
         Gets the URL/view configuration for this classifier's connect page
         """
         return re_path(r"^connect", self.connect_view.as_view(llm_type=self), name="connect")
-
-    def get_connect_blurb(self):
-        """
-        Gets the blurb for use on the connect page
-        """
-        return Engine.get_default().from_string(self.connect_blurb)
