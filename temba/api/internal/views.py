@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from django.db.models import Prefetch, Q
 
+from temba.ai.models import LLM
 from temba.channels.models import Channel
 from temba.locations.models import AdminBoundary
 from temba.notifications.models import Notification
@@ -30,6 +31,18 @@ class BaseEndpoint(BaseAPIView):
 # ============================================================
 # Endpoints (A-Z)
 # ============================================================
+
+
+class LLMsEndpoint(ListAPIMixin, BaseEndpoint):
+    """
+    LLMs for the current user.
+    """
+
+    model = LLM
+    serializer_class = serializers.LLMReadSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().filter(org=self.request.org)
 
 
 class LocationsEndpoint(ListAPIMixin, BaseEndpoint):

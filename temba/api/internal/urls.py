@@ -2,10 +2,18 @@ from rest_framework.urlpatterns import format_suffix_patterns
 
 from django.urls import re_path
 
-from .views import LocationsEndpoint, NotificationsEndpoint, OrgsEndpoint, ShortcutsEndpoint, TemplatesEndpoint
+from .views import (
+    LLMsEndpoint,
+    LocationsEndpoint,
+    NotificationsEndpoint,
+    OrgsEndpoint,
+    ShortcutsEndpoint,
+    TemplatesEndpoint,
+)
 
 urlpatterns = [
     # ========== endpoints A-Z ===========
+    re_path(r"^llms$", LLMsEndpoint.as_view(), name="api.internal.llms"),
     re_path(r"^locations$", LocationsEndpoint.as_view(), name="api.internal.locations"),
     re_path(r"^notifications$", NotificationsEndpoint.as_view(), name="api.internal.notifications"),
     re_path(r"^shortcuts$", ShortcutsEndpoint.as_view(), name="api.internal.shortcuts"),
