@@ -181,7 +181,7 @@ class BroadcastsEndpointTest(APITest):
                     "kin": [str(media2.uuid)],
                 },
                 "quick_replies": {
-                    "eng": [{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}],
+                    "eng": [{"text": "Red"}, {"text": "Green", "extra": "Like grass"}, {"text": "Blue"}],
                     "fra": [{"text": "Rouge"}, {"text": "Vert"}, {"text": "Bleu"}],
                 },
                 "base_language": "eng",
@@ -198,7 +198,7 @@ class BroadcastsEndpointTest(APITest):
                 "eng": {
                     "text": "Hello @contact.name",
                     "attachments": [f"image/jpeg:{media1.url}", f"video/mp4:{media2.url}"],
-                    "quick_replies": [{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}],
+                    "quick_replies": [{"text": "Red"}, {"text": "Green", "extra": "Like grass"}, {"text": "Blue"}],
                 },
                 "spa": {"text": "Hola @contact.name"},
                 "kin": {"attachments": [f"video/mp4:{media2.url}"]},
