@@ -13,6 +13,7 @@ for app in settings.APP_URLS:  # pragma: needs cover
     urlpatterns.append(re_path(r"^", include(app)))
 
 urlpatterns += [
+    re_path(r"^", include("temba.ai.urls")),
     re_path(r"^", include("temba.airtime.urls")),
     re_path(r"^", include("temba.api.urls")),
     re_path(r"^", include("temba.apks.urls")),
