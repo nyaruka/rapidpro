@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from temba.api.v2.serializers import format_datetime
-from temba.msgs.models import Msg
+from temba.msgs.models import Msg, QuickReply
 from temba.tests import mock_mailroom
 
 from . import APITest
@@ -299,7 +299,7 @@ class MessagesEndpointTest(APITest):
             {
                 "contact": joe.uuid,
                 "text": "What is your preferred color?",
-                "quick_replies": [{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}],
+                "quick_replies": [{"text": "Red"}, {"text": "Green", "extra": "Like grass"}, {"text": "Blue"}],
             },
             status=201,
         )
@@ -310,7 +310,7 @@ class MessagesEndpointTest(APITest):
                 joe,
                 "What is your preferred color?",
                 [],
-                [{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}],
+                [QuickReply("Red", None), QuickReply("Green", "Like grass"), QuickReply("Blue", None)],
                 None,
             ),
             mr_mocks.calls["msg_send"][-1],
@@ -325,7 +325,7 @@ class MessagesEndpointTest(APITest):
                 "urn": "tel:+250788123123",
                 "text": "What is your preferred color?",
                 "attachments": [],
-                "quick_replies": [{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}],
+                "quick_replies": [{"text": "Red"}, {"text": "Green", "extra": "Like grass"}, {"text": "Blue"}],
                 "archived": False,
                 "broadcast": None,
                 "created_on": format_datetime(msg.created_on),
