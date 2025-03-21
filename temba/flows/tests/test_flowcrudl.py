@@ -12,7 +12,6 @@ from temba import mailroom
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import URN
 from temba.flows.models import Flow, FlowLabel, FlowStart, FlowUserConflictException, ResultsExport
-from temba.msgs.models import SystemLabel
 from temba.orgs.models import Export
 from temba.templates.models import TemplateTranslation
 from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
@@ -984,7 +983,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         # if we have too many messages in our outbox we should block
-        self.org.counts.create(scope=f"msgs:folder:{SystemLabel.TYPE_OUTBOX}", count=1_000_001)
+        self.org.counts.create(scope="msgs:folder:O", count=1_000_001)
         preview_url = reverse("flows.flow_preview_start", args=[flow.id])
         mr_mocks.flow_start_preview(query="age > 30", total=1000)
 

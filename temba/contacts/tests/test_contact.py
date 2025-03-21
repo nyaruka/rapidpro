@@ -15,7 +15,7 @@ from temba.contacts.models import URN, Contact, ContactField, ContactFire, Conta
 from temba.flows.models import Flow
 from temba.locations.models import AdminBoundary
 from temba.mailroom import modifiers
-from temba.msgs.models import Msg, SystemLabel
+from temba.msgs.models import Msg, MsgFolder
 from temba.orgs.models import Org
 from temba.schedules.models import Schedule
 from temba.tests import TembaTest, mock_mailroom
@@ -252,10 +252,10 @@ class ContactTest(TembaTest):
         label.toggle_label([msg1, msg2, msg3], add=True)
         static_group = self.create_group("Just Joe", [self.joe])
 
-        msg_counts = SystemLabel.get_counts(self.org)
-        self.assertEqual(1, msg_counts[SystemLabel.TYPE_INBOX])
-        self.assertEqual(1, msg_counts[SystemLabel.TYPE_FLOWS])
-        self.assertEqual(1, msg_counts[SystemLabel.TYPE_ARCHIVED])
+        msg_counts = MsgFolder.get_counts(self.org)
+        self.assertEqual(1, msg_counts[MsgFolder.INBOX])
+        self.assertEqual(1, msg_counts[MsgFolder.HANDLED])
+        self.assertEqual(1, msg_counts[MsgFolder.ARCHIVED])
 
         self.assertEqual(
             Contact.get_status_counts(self.org),
@@ -312,10 +312,10 @@ class ContactTest(TembaTest):
 
         # but his messages are unchanged
         self.assertEqual(2, Msg.objects.filter(contact=self.joe, visibility="V").count())
-        msg_counts = SystemLabel.get_counts(self.org)
-        self.assertEqual(1, msg_counts[SystemLabel.TYPE_INBOX])
-        self.assertEqual(1, msg_counts[SystemLabel.TYPE_FLOWS])
-        self.assertEqual(1, msg_counts[SystemLabel.TYPE_ARCHIVED])
+        msg_counts = MsgFolder.get_counts(self.org)
+        self.assertEqual(1, msg_counts[MsgFolder.INBOX])
+        self.assertEqual(1, msg_counts[MsgFolder.HANDLED])
+        self.assertEqual(1, msg_counts[MsgFolder.ARCHIVED])
 
         self.joe.archive(self.admin)
 
@@ -374,10 +374,10 @@ class ContactTest(TembaTest):
         self.assertEqual(0, Msg.objects.filter(contact=self.joe).exclude(text="").count())
         self.assertEqual(0, label.msgs.count())
 
-        msg_counts = SystemLabel.get_counts(self.org)
-        self.assertEqual(0, msg_counts[SystemLabel.TYPE_INBOX])
-        self.assertEqual(0, msg_counts[SystemLabel.TYPE_FLOWS])
-        self.assertEqual(0, msg_counts[SystemLabel.TYPE_ARCHIVED])
+        msg_counts = MsgFolder.get_counts(self.org)
+        self.assertEqual(0, msg_counts[MsgFolder.INBOX])
+        self.assertEqual(0, msg_counts[MsgFolder.HANDLED])
+        self.assertEqual(0, msg_counts[MsgFolder.ARCHIVED])
 
         # and he shouldn't be in any groups
         self.assertEqual(set(static_group.contacts.all()), set())

@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from temba import mailroom
-from temba.msgs.models import Broadcast, Media, OptIn, SystemLabel
+from temba.msgs.models import Broadcast, Media, OptIn
 from temba.msgs.views import ScheduleForm
 from temba.schedules.models import Schedule
 from temba.templates.models import TemplateTranslation
@@ -538,7 +538,7 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # if we have too many messages in our outbox we should block
         mr_mocks.msg_broadcast_preview(query="age > 30", total=2)
-        self.org.counts.create(scope=f"msgs:folder:{SystemLabel.TYPE_OUTBOX}", count=1_000_001)
+        self.org.counts.create(scope="msgs:folder:O", count=1_000_001)
         response = self.client.post(preview_url, {"query": "age > 30"}, content_type="application/json")
         self.assertEqual(
             [

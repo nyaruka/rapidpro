@@ -3,7 +3,7 @@ from django.utils import timezone
 
 from temba import mailroom
 from temba.channels.models import ChannelCount
-from temba.msgs.models import Broadcast, LabelCount, Media, Msg, SystemLabel
+from temba.msgs.models import Broadcast, LabelCount, Media, Msg, MsgFolder
 from temba.schedules.models import Schedule
 from temba.tests import TembaTest, mock_mailroom
 from temba.utils.compose import compose_deserialize_attachments
@@ -58,10 +58,11 @@ class BroadcastTest(TembaTest):
         msg_in1.labels.add(label)
         self.assertEqual(LabelCount.get_totals([label])[label], 1)
 
-        self.assertEqual(SystemLabel.get_counts(self.org)[SystemLabel.TYPE_INBOX], 2)
-        self.assertEqual(SystemLabel.get_counts(self.org)[SystemLabel.TYPE_FLOWS], 1)
-        self.assertEqual(SystemLabel.get_counts(self.org)[SystemLabel.TYPE_SENT], 6)
-        self.assertEqual(SystemLabel.get_counts(self.org)[SystemLabel.TYPE_FAILED], 1)
+        msg_counts = MsgFolder.get_counts(self.org)
+        self.assertEqual(msg_counts[MsgFolder.INBOX], 2)
+        self.assertEqual(msg_counts[MsgFolder.HANDLED], 1)
+        self.assertEqual(msg_counts[MsgFolder.SENT], 6)
+        self.assertEqual(msg_counts[MsgFolder.FAILED], 1)
 
         today = timezone.now().date()
         self.assertEqual(ChannelCount.get_day_count(self.channel, ChannelCount.INCOMING_MSG_TYPE, today), 3)
@@ -76,11 +77,12 @@ class BroadcastTest(TembaTest):
         # broadcasts should be unaffected
         self.assertEqual(2, Broadcast.objects.count())
 
-        # check system label counts have been updated
-        self.assertEqual(0, SystemLabel.get_counts(self.org)[SystemLabel.TYPE_INBOX])
-        self.assertEqual(1, SystemLabel.get_counts(self.org)[SystemLabel.TYPE_FLOWS])
-        self.assertEqual(0, SystemLabel.get_counts(self.org)[SystemLabel.TYPE_SENT])
-        self.assertEqual(0, SystemLabel.get_counts(self.org)[SystemLabel.TYPE_FAILED])
+        # check msg folder counts have been updated
+        msg_counts = MsgFolder.get_counts(self.org)
+        self.assertEqual(0, msg_counts[MsgFolder.INBOX])
+        self.assertEqual(1, msg_counts[MsgFolder.HANDLED])
+        self.assertEqual(0, msg_counts[MsgFolder.SENT])
+        self.assertEqual(0, msg_counts[MsgFolder.FAILED])
 
         # check user label
         self.assertEqual(0, LabelCount.get_totals([label])[label])

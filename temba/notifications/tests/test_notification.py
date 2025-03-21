@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from temba.contacts.models import ContactExport, ContactImport
 from temba.flows.models import ResultsExport
-from temba.msgs.models import MessageExport
+from temba.msgs.models import MessageExport, MsgFolder
 from temba.notifications.incidents.builtin import ChannelTemplatesFailedIncidentType, OrgFlaggedIncidentType
 from temba.notifications.models import Notification
 from temba.notifications.tasks import send_notification_emails, trim_notifications
@@ -80,7 +80,7 @@ class NotificationTest(TembaTest):
 
     def test_message_export_finished(self):
         export = MessageExport.create(
-            self.org, self.editor, start_date=date.today(), end_date=date.today(), system_label="I"
+            self.org, self.editor, start_date=date.today(), end_date=date.today(), folder=MsgFolder.INBOX
         )
         export.perform()
 
