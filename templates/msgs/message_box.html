@@ -73,7 +73,7 @@
                         </a>
                       {% endfor %}
                     {% endif %}
-                    {% if object.flow %}
+                    {% if object.flow and object.flow.is_active %}
                       <a href="{% url 'flows.flow_editor' object.flow.uuid %}" onclick="goto(event, this)">
                         <temba-label icon="flow" primary clickable class="mx-1 my-1">
                           {{ object.flow.name }}
