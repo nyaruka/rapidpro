@@ -117,19 +117,6 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SystemLabelView):
     def get_bulk_action_labels(self):
         return self.request.org.msgs_labels.filter(is_active=True).order_by(Lower("name"))
 
-    def get_context_data(self, **kwargs):
-        org = self.request.org
-
-        context = super().get_context_data(**kwargs)
-        context["org"] = org
-
-        # if refresh was passed in, increase it by our normal refresh time
-        previous_refresh = self.request.GET.get("refresh")
-        if previous_refresh:
-            context["refresh"] = int(previous_refresh) + self.derive_refresh()
-
-        return context
-
     def build_context_menu(self, menu):
         if self.has_org_perm("msgs.broadcast_create"):
             menu.add_modax(
@@ -156,7 +143,7 @@ class BroadcastCRUDL(SmartCRUDL):
     )
     model = Broadcast
 
-    class List(MsgListView):
+    class List(SpaMixin, ContextMenuMixin, BulkActionMixin, BaseListView):
         title = _("Broadcasts")
         menu_path = "/msg/broadcasts"
         paginate_by = 25
@@ -180,16 +167,21 @@ class BroadcastCRUDL(SmartCRUDL):
                     as_button=True,
                 )
 
-    class Scheduled(MsgListView):
+    class Scheduled(SpaMixin, ContextMenuMixin, BulkActionMixin, BaseListView):
         title = _("Scheduled Broadcasts")
         menu_path = "/msg/scheduled"
-        fields = ("contacts", "msgs", "sent", "status")
-        system_label = SystemLabel.TYPE_SCHEDULED
         paginate_by = 25
-        default_order = (
-            "schedule__next_fire",
-            "-created_on",
-        )
+        default_order = ("schedule__next_fire", "-created_on")
+
+        def get_queryset(self, **kwargs):
+            return (
+                super()
+                .get_queryset(**kwargs)
+                .filter(is_active=True)
+                .exclude(schedule=None)
+                .select_related("org", "schedule")
+                .prefetch_related("groups", "contacts")
+            )
 
         def build_context_menu(self, menu):
             if self.has_org_perm("msgs.broadcast_create"):
@@ -200,15 +192,6 @@ class BroadcastCRUDL(SmartCRUDL):
                     title=_("New Broadcast"),
                     as_button=True,
                 )
-
-        def get_queryset(self, **kwargs):
-            return (
-                super()
-                .get_queryset(**kwargs)
-                .filter(is_active=True)
-                .select_related("org", "schedule")
-                .prefetch_related("groups", "contacts")
-            )
 
     class Create(OrgPermsMixin, SmartWizardView):
         form_list = [("target", TargetForm), ("compose", ComposeForm), ("schedule", ScheduleForm)]
@@ -750,7 +733,7 @@ class MsgCRUDL(SmartCRUDL):
 
     class Archived(MsgListView):
         title = _("Archived")
-        template_name = "msgs/msg_archived.html"
+        template_name = "msgs/message_box.html"
         system_label = SystemLabel.TYPE_ARCHIVED
         bulk_actions = ("restore", "label", "delete")
         allow_export = True
@@ -761,7 +744,7 @@ class MsgCRUDL(SmartCRUDL):
 
     class Outbox(MsgListView):
         title = _("Outbox")
-        template_name = "msgs/msg_outbox.html"
+        template_name = "msgs/message_box.html"
         system_label = SystemLabel.TYPE_OUTBOX
         bulk_actions = ()
         allow_export = True
@@ -782,7 +765,7 @@ class MsgCRUDL(SmartCRUDL):
 
     class Failed(MsgListView):
         title = _("Failed")
-        template_name = "msgs/msg_failed.html"
+        template_name = "msgs/message_box.html"
         system_label = SystemLabel.TYPE_FAILED
         allow_export = True
 
@@ -793,7 +776,7 @@ class MsgCRUDL(SmartCRUDL):
             return super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
 
     class Filter(MsgListView):
-        template_name = "msgs/msg_filter.html"
+        template_name = "msgs/message_box.html"
         bulk_actions = ("label",)
 
         def derive_menu_path(self):
