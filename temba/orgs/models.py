@@ -634,9 +634,9 @@ class Org(SmartModel):
         return self.get_call_channel() or self.get_answer_channel()
 
     def is_outbox_full(self) -> bool:
-        from temba.msgs.models import SystemLabel
+        from temba.msgs.models import MsgFolder
 
-        return SystemLabel.get_counts(self)[SystemLabel.TYPE_OUTBOX] >= 1_000_000
+        return MsgFolder.get_counts(self)[MsgFolder.OUTBOX] >= 1_000_000
 
     def get_estimated_send_time(self, msg_count):
         """

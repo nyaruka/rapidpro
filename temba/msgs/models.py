@@ -909,36 +909,16 @@ class MsgFolder(Enum):
     def from_code(cls, code):
         return next(f for f in cls if f.code == code)
 
-
-class SystemLabel:
-    """
-    TODO replace with MsgFolder once we figure out what to do with calls and broadcasts.
-    """
-
-    TYPE_INBOX = MsgFolder.INBOX.code
-    TYPE_FLOWS = MsgFolder.HANDLED.code
-    TYPE_ARCHIVED = MsgFolder.ARCHIVED.code
-    TYPE_OUTBOX = MsgFolder.OUTBOX.code
-    TYPE_SENT = MsgFolder.SENT.code
-    TYPE_FAILED = MsgFolder.FAILED.code
-    TYPE_SCHEDULED = "E"
-    TYPE_CALLS = "C"
-
-    TYPE_CHOICES = (
-        (TYPE_INBOX, "Inbox"),
-        (TYPE_FLOWS, "Flows"),
-        (TYPE_ARCHIVED, "Archived"),
-        (TYPE_OUTBOX, "Outbox"),
-        (TYPE_SENT, "Sent"),
-        (TYPE_FAILED, "Failed"),
-        (TYPE_SCHEDULED, "Scheduled"),
-        (TYPE_CALLS, "Calls"),
-    )
-
     @classmethod
-    def get_counts(cls, org):
+    def get_counts(cls, org) -> dict:
         counts = org.counts.prefix("msgs:folder:").scope_totals()
-        return {lb: counts.get(f"msgs:folder:{lb}", 0) for lb, n in cls.TYPE_CHOICES}
+        by_folder = {folder: counts.get(f"msgs:folder:{folder.code}", 0) for folder in cls}
+
+        # TODO stuff counts for scheduled broadcasts and calls until we figure out what to do with them
+        by_folder["scheduled"] = counts.get("msgs:folder:E", 0)
+        by_folder["calls"] = counts.get("msgs:folder:C", 0)
+
+        return by_folder
 
 
 class Label(TembaModel, DependencyMixin):
@@ -1113,14 +1093,14 @@ class MessageExport(ExportType):
     download_template = "msgs/export_download.html"
 
     @classmethod
-    def create(cls, org, user, start_date, end_date, system_label=None, label=None, with_fields=(), with_groups=()):
+    def create(cls, org, user, start_date, end_date, folder=None, label=None, with_fields=(), with_groups=()):
         export = Export.objects.create(
             org=org,
             export_type=cls.slug,
             start_date=start_date,
             end_date=end_date,
             config={
-                "system_label": system_label,
+                "system_label": folder.code if folder else None,
                 "label_uuid": str(label.uuid) if label else None,
                 "with_fields": [f.id for f in with_fields],
                 "with_groups": [g.id for g in with_groups],
@@ -1129,7 +1109,7 @@ class MessageExport(ExportType):
         )
         return export
 
-    def get_folder(self, export):
+    def get_folder(self, export) -> tuple:
         label_uuid = export.config.get("label_uuid")
         folder_code = export.config.get("system_label")
         if label_uuid:
@@ -1248,5 +1228,5 @@ class MessageExport(ExportType):
             )
 
     def get_download_context(self, export) -> dict:
-        system_label, label = self.get_folder(export)
+        folder, label = self.get_folder(export)
         return {"label": label} if label else {}
