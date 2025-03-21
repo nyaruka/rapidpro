@@ -1,3 +1,8 @@
+v10.1.102 (2025-03-21)
+-------------------------
+ * Update broadcast views to support quick replies as structs and add data migration to convert existing scheduled broadcasts.
+ * Use boolean field for TMS link shortening config form field
+
 v10.1.101 (2025-03-21)
 -------------------------
  * Add API support for extra on quick replies
