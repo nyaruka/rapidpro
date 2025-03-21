@@ -47,42 +47,7 @@ from .forms import ComposeForm, ScheduleForm, TargetForm
 from .models import Broadcast, Label, LabelCount, Media, MessageExport, Msg, OptIn, SystemLabel
 
 
-class SystemLabelView(SpaMixin, BaseListView):
-    """
-    Base class for views backed by a system label or message label queryset
-    """
-
-    system_label = None
-    paginate_by = 100
-
-    def pre_process(self, request, *args, **kwargs):
-        if self.system_label:
-            self.queryset = SystemLabel.get_queryset(request.org, self.system_label)
-
-    def derive_label(self):
-        return self.system_label
-
-    def get_context_data(self, **kwargs):
-        org = self.request.org
-        counts = SystemLabel.get_counts(org)
-        label = self.derive_label()
-
-        # if there isn't a search filtering the queryset, we can replace the count function with a pre-calculated value
-        if "search" not in self.request.GET:
-            if isinstance(label, Label):
-                patch_queryset_count(self.object_list, label.get_visible_count)
-            elif isinstance(label, str):
-                patch_queryset_count(self.object_list, lambda: counts[label])
-
-        context = super().get_context_data(**kwargs)
-        context["has_messages"] = (
-            any(counts.values()) or Archive.objects.filter(org=org, archive_type=Archive.TYPE_MSG).exists()
-        )
-
-        return context
-
-
-class MsgListView(ContextMenuMixin, BulkActionMixin, SystemLabelView):
+class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     """
     Base class for message list views with message folders and labels listed by the side
     """
@@ -93,6 +58,15 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SystemLabelView):
     allow_export = False
     bulk_actions = ()
     bulk_action_permissions = {"resend": "msgs.msg_create", "delete": "msgs.msg_update"}
+    system_label = None
+    paginate_by = 100
+
+    def pre_process(self, request, *args, **kwargs):
+        if self.system_label:
+            self.queryset = SystemLabel.get_queryset(request.org, self.system_label)
+
+    def derive_label(self):
+        return self.system_label
 
     def derive_export_url(self):
         redirect = quote_plus(self.request.get_full_path())
@@ -113,6 +87,25 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SystemLabelView):
             qs = qs.filter(created_on__gte=last_90).distinct(*distinct_on)
 
         return qs
+
+    def get_context_data(self, **kwargs):
+        org = self.request.org
+        counts = SystemLabel.get_counts(org)
+        label = self.derive_label()
+
+        # if there isn't a search filtering the queryset, we can replace the count function with a pre-calculated value
+        if "search" not in self.request.GET:
+            if isinstance(label, Label):
+                patch_queryset_count(self.object_list, label.get_visible_count)
+            elif isinstance(label, str):
+                patch_queryset_count(self.object_list, lambda: counts[label])
+
+        context = super().get_context_data(**kwargs)
+        context["has_messages"] = (
+            any(counts.values()) or Archive.objects.filter(org=org, archive_type=Archive.TYPE_MSG).exists()
+        )
+
+        return context
 
     def get_bulk_action_labels(self):
         return self.request.org.msgs_labels.filter(is_active=True).order_by(Lower("name"))
