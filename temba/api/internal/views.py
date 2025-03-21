@@ -42,7 +42,7 @@ class LLMsEndpoint(ListAPIMixin, BaseEndpoint):
     serializer_class = serializers.LLMReadSerializer
 
     def get_queryset(self):
-        return super().get_queryset().filter(org=self.request.org)
+        return super().get_queryset().filter(org=self.request.org, is_active=True)
 
 
 class LocationsEndpoint(ListAPIMixin, BaseEndpoint):

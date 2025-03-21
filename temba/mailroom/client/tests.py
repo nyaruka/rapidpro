@@ -7,6 +7,7 @@ from django.test import override_settings
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField
 from temba.flows.models import Flow
+from temba.msgs.models import QuickReply
 from temba.schedules.models import Schedule
 from temba.tests import MockJsonResponse, MockResponse, TembaTest
 from temba.tickets.models import Topic
@@ -596,7 +597,9 @@ class MailroomClientTest(TembaTest):
         ann = self.create_contact("Ann", urns=["tel:+12340000001"])
         ticket = self.create_ticket(ann)
         mock_post.return_value = MockJsonResponse(200, {"id": 12345})
-        response = self.client.msg_send(self.org, self.admin, ann, "hi", [], [], ticket)
+        response = self.client.msg_send(
+            self.org, self.admin, ann, "hi", [], [QuickReply("Yes", "Let's go!"), QuickReply("No", None)], ticket
+        )
 
         self.assertEqual({"id": 12345}, response)
 
@@ -609,7 +612,7 @@ class MailroomClientTest(TembaTest):
                 "contact_id": ann.id,
                 "text": "hi",
                 "attachments": [],
-                "quick_replies": [],
+                "quick_replies": [{"text": "Yes", "extra": "Let's go!"}, {"text": "No"}],
                 "ticket_id": ticket.id,
             },
         )
