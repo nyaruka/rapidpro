@@ -20,8 +20,13 @@ def update_quick_replies(apps, schema_editor):
             broadcast.save(update_fields=("translations",))
             num_updated += 1
 
-        if num_updated % 1000 == 0:  # pragma: no cover
             print(f"Updated {num_updated} broadcasts with quick replies")
+
+
+def apply_manual():  # pragma: no cover
+    from django.apps import apps
+
+    update_quick_replies(apps, None)
 
 
 class Migration(migrations.Migration):
