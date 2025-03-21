@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from temba.channels.types.twilio.views import COUNTRY_CHOICES, UpdateForm as TwilioUpdateForm
-from temba.utils.fields import CheckboxWidget, SelectWidget
+from temba.utils.fields import SelectWidget
 
 from ...models import Channel
 from ...views import ClaimViewMixin
@@ -95,11 +95,10 @@ class UpdateForm(TwilioUpdateForm):
 
         self.add_config_field(
             "link_shortening",
-            forms.CharField(
+            forms.BooleanField(
                 label=_("Twilio Link Shortening"),
                 required=False,
-                initial=True,
-                widget=CheckboxWidget(),
+                help_text=_("Whether the Twilio Link shortening is enabled on the channel"),
             ),
             default=False,
         )
