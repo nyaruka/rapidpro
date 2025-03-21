@@ -337,7 +337,7 @@ PERMISSIONS = {
         "delete",  # can delete an object,
         "list",  # can view a list of the objects
     ),
-    "ai.llm": ("connect",),
+    "ai.llm": ("connect", "translate"),
     "api.apitoken": ("explorer",),
     "archives.archive": ("run", "message"),
     "campaigns.campaign": ("archive", "activate", "menu"),
@@ -398,6 +398,7 @@ GROUP_PERMISSIONS = {
         "ai.llm_delete",
         "ai.llm_list",
         "ai.llm_read",
+        "ai.llm_translate",
         "airtime.airtimetransfer_list",
         "airtime.airtimetransfer_read",
         "api.apitoken_explorer",
@@ -500,6 +501,7 @@ GROUP_PERMISSIONS = {
     "Editors": (
         "ai.llm_list",
         "ai.llm_read",
+        "ai.llm_translate",
         "airtime.airtimetransfer_list",
         "airtime.airtimetransfer_read",
         "api.apitoken_explorer",
@@ -927,7 +929,6 @@ IP_ADDRESSES = ("172.16.10.10", "162.16.10.20")
 LLM_PROVIDERS = {
     "temba.ai.types.openai.type.OpenAIType": {
         "models": [
-            "gpt-3.5-turbo",
             "gpt-4o",
             "gpt-4o-mini",
         ],

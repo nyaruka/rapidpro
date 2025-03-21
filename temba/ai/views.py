@@ -1,9 +1,14 @@
-from smartmin.views import SmartCRUDL
+import json
 
+from smartmin.views import SmartCRUDL, SmartUpdateView
+
+from django.http import JsonResponse
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+from django.views.decorators.csrf import csrf_exempt
 
 from temba.orgs.views.base import BaseDependencyDeleteModal, BaseListView
+from temba.orgs.views.mixins import OrgObjPermsMixin
 from temba.utils.views.mixins import ContextMenuMixin, SpaMixin
 
 from .models import LLM
@@ -11,7 +16,7 @@ from .models import LLM
 
 class LLMCRUDL(SmartCRUDL):
     model = LLM
-    actions = ("list", "delete")
+    actions = ("list", "delete", "translate")
 
     class List(SpaMixin, ContextMenuMixin, BaseListView):
         title = _("AI Models")
@@ -34,3 +39,22 @@ class LLMCRUDL(SmartCRUDL):
         cancel_url = "@ai.llm_list"
         success_url = "@ai.llm_list"
         success_message = _("Your LLM model has been deleted.")
+
+    class Translate(OrgObjPermsMixin, SmartUpdateView):
+        permission = "ai.llm_translate"
+        slug_url_kwarg = "uuid"
+
+        @csrf_exempt
+        def dispatch(self, *args, **kwargs):
+            return super().dispatch(*args, **kwargs)
+
+        def post(self, request, *args, **kwargs):
+            self.object = self.get_object()
+
+            data = json.loads(request.body)
+            text = data["text"]
+            lang_from = data["lang"]["from"]
+            lang_to = data["lang"]["to"]
+
+            result = self.object.translate(text, lang_from, lang_to)
+            return JsonResponse({"result": result})

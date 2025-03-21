@@ -61,6 +61,12 @@ class LLM(TembaModel, DependencyMixin):
 
         return TYPES[self.type]
 
+    def translate(self, text, lang_from, lang_to):
+        """
+        Translates the given text from lang_from to lang_to
+        """
+        return self.get_type().translate(text, lang_from, lang_to, self.config)
+
     def release(self, user):
         super().release(user)
 
@@ -122,3 +128,9 @@ class LLMType(metaclass=ABCMeta):
         Gets the URL/view configuration for this classifier's connect page
         """
         return re_path(r"^connect", self.connect_view.as_view(llm_type=self), name="connect")
+
+    def translate(self, text, lang_from, lang_to, config):
+        """
+        Translates the given text from one language to another
+        """
+        raise NotImplementedError()
