@@ -1,3 +1,9 @@
+v10.1.101 (2025-03-21)
+-------------------------
+ * Add API support for extra on quick replies
+ * Fix signin button alignment
+ * Add support to configure TMS shorten links
+
 v10.1.100 (2025-03-14)
 -------------------------
  * Remove no longer need filtering out of system flows
