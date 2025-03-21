@@ -412,6 +412,9 @@ class Attachment:
     def as_json(self) -> dict:
         return {"content_type": self.content_type, "url": self.url}
 
+    def __str__(self) -> str:
+        return f"{self.content_type}:{self.url}"
+
 
 @dataclass
 class QuickReply:
