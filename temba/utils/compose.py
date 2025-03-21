@@ -4,7 +4,7 @@ import json
 from temba.msgs.models import Attachment, Media, Q
 
 
-def compose_serialize(translations=None, *, json_encode=False, base_language=None, optin=None) -> dict:
+def compose_serialize(translations, *, json_encode=False, base_language=None, optin=None) -> dict:
     """
     Serializes translations to format for compose widget
     """
