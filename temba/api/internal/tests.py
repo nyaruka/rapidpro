@@ -1,6 +1,8 @@
 from django.urls import reverse
 from django.utils import timezone
 
+from temba.ai.models import LLM
+from temba.ai.types.openai.type import OpenAIType
 from temba.api.tests.mixins import APITestMixin
 from temba.contacts.models import ContactExport
 from temba.notifications.types import ExportFinishedNotificationType
@@ -310,4 +312,48 @@ class EndpointsTest(APITestMixin, TembaTest):
                 },
             ],
             num_queries=NUM_BASE_QUERIES + 3,
+        )
+
+    def test_llms(self):
+        endpoint_url = reverse("api.internal.llms") + ".json"
+
+        self.basic = LLM.create(self.org, self.admin, OpenAIType.slug, "Basic", "api_key", "gpt-turbo-3.5")
+        self.advanced = LLM.create(self.org, self.admin, OpenAIType.slug, "Advanced", "api_key", "gpt-4o")
+
+        self.assertGetNotPermitted(endpoint_url, [None])
+        self.assertPostNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        self.assertGet(
+            endpoint_url,
+            [self.admin],
+            results=[
+                {
+                    "model": "gpt-turbo-3.5",
+                    "name": "Basic",
+                    "type": "openai",
+                    "uuid": str(self.basic.uuid),
+                },
+                {
+                    "model": "gpt-4o",
+                    "name": "Advanced",
+                    "type": "openai",
+                    "uuid": str(self.advanced.uuid),
+                },
+            ],
+        )
+
+        self.advanced.release(self.admin)
+
+        self.assertGet(
+            endpoint_url,
+            [self.admin],
+            results=[
+                {
+                    "model": "gpt-turbo-3.5",
+                    "name": "Basic",
+                    "type": "openai",
+                    "uuid": str(self.basic.uuid),
+                },
+            ],
         )

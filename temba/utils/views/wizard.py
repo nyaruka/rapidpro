@@ -18,8 +18,7 @@ class SmartWizardView(SmartView, SessionWizardView):
         return []
 
     def lookup_field_help(self, field, default=None):
-        form = self.get_form(self.steps.current)
-        return form.fields[field].help_text or default
+        return self.form_list[self.steps.current].base_fields[field].help_text
 
     def lookup_field_label(self, context, field, object):
         return context["form"].fields[field].label
@@ -48,12 +47,18 @@ class SmartWizardView(SmartView, SessionWizardView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
         context["completed"] = ",".join(
-            [step for step in self.steps.all if self.get_cleaned_data_for_step(step) is not None]
+            [step for step in self.steps.all if self.storage.data.get("step_data").get(step) is not None]
         )
         context["submit_button_name"] = self.derive_submit_button_name()
         return context
+
+    def process_step(self, form):
+        step_data = super().process_step(form).copy()
+        if hasattr(form, "extra_data"):
+            for key, value in form.extra_data.items():
+                step_data[key] = value
+        return step_data
 
     # here to support standard smartmin behavior, but pragma since object references aren't used yet
     def get_success_url(self):  # pragma: no cover
