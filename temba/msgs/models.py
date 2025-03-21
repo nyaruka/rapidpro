@@ -940,26 +940,6 @@ class SystemLabel:
         counts = org.counts.prefix("msgs:folder:").scope_totals()
         return {lb: counts.get(f"msgs:folder:{lb}", 0) for lb, n in cls.TYPE_CHOICES}
 
-    @classmethod
-    def get_queryset(cls, org, label_type):
-        """
-        Gets the queryset for the given system label. Any change here needs to be reflected in a change to the db
-        trigger used to maintain the label counts.
-        """
-
-        assert label_type in [c[0] for c in cls.TYPE_CHOICES]
-
-        if label_type == cls.TYPE_SCHEDULED:
-            return org.broadcasts.filter(is_active=True).exclude(schedule=None)
-        elif label_type == cls.TYPE_CALLS:
-            return org.calls.all()
-
-        return MsgFolder.from_code(label_type).get_queryset(org)
-
-    @classmethod
-    def get_archive_query(cls, label_type: str) -> dict:
-        return MsgFolder.from_code(label_type).get_archive_query()
-
 
 class Label(TembaModel, DependencyMixin):
     """
@@ -1151,14 +1131,16 @@ class MessageExport(ExportType):
 
     def get_folder(self, export):
         label_uuid = export.config.get("label_uuid")
-        system_label = export.config.get("system_label")
+        folder_code = export.config.get("system_label")
         if label_uuid:
             return None, export.org.msgs_labels.filter(uuid=label_uuid).first()
+        elif folder_code:
+            return MsgFolder.from_code(folder_code), None
         else:
-            return system_label, None
+            return None, None
 
     def write(self, export):
-        system_label, label = self.get_folder(export)
+        folder, label = self.get_folder(export)
         start_date, end_date = export.get_date_range()
 
         # create our exporter
@@ -1172,7 +1154,7 @@ class MessageExport(ExportType):
         num_records = 0
         logger.info(f"starting msgs export #{export.id} for org #{export.org.id}")
 
-        for batch in self._get_msg_batches(export, system_label, label, start_date, end_date):
+        for batch in self._get_msg_batches(export, folder, label, start_date, end_date):
             self._write_msgs(export, exporter, batch)
 
             num_records += len(batch)
@@ -1183,13 +1165,13 @@ class MessageExport(ExportType):
 
         return *exporter.save_file(), num_records
 
-    def _get_msg_batches(self, export, system_label, label, start_date, end_date):
+    def _get_msg_batches(self, export, folder, label, start_date, end_date):
         from temba.archives.models import Archive
         from temba.flows.models import Flow
 
         # firstly get msgs from archives
-        if system_label:
-            where = SystemLabel.get_archive_query(system_label)
+        if folder:
+            where = folder.get_archive_query()
         elif label:
             where = {"visibility": "visible", "__raw__": f"'{label.uuid}' IN s.labels[*].uuid"}
         else:
@@ -1208,8 +1190,8 @@ class MessageExport(ExportType):
                 matching.append(record)
             yield matching
 
-        if system_label:
-            messages = SystemLabel.get_queryset(export.org, system_label)
+        if folder:
+            messages = folder.get_queryset(export.org)
         elif label:
             messages = label.get_messages()
         else:

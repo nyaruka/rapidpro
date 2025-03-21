@@ -1,45 +1,45 @@
 from django.utils import timezone
 
 from temba.flows.models import Flow, FlowRun, FlowSession
-from temba.msgs.models import Msg, SystemLabel
+from temba.msgs.models import Msg, MsgFolder, SystemLabel
 from temba.orgs.tasks import squash_item_counts
 from temba.schedules.models import Schedule
 from temba.tests import TembaTest
 from temba.utils import s3
 
 
-class SystemLabelTest(TembaTest):
+class MsgFolderTest(TembaTest):
     def test_get_archive_query(self):
         tcs = (
             (
-                SystemLabel.TYPE_INBOX,
+                MsgFolder.INBOX,
                 "SELECT s.* FROM s3object s WHERE s.direction = 'in' AND s.visibility = 'visible' AND s.status = 'handled' AND s.flow IS NULL AND s.type != 'voice'",
             ),
             (
-                SystemLabel.TYPE_FLOWS,
+                MsgFolder.HANDLED,
                 "SELECT s.* FROM s3object s WHERE s.direction = 'in' AND s.visibility = 'visible' AND s.status = 'handled' AND s.flow IS NOT NULL AND s.type != 'voice'",
             ),
             (
-                SystemLabel.TYPE_ARCHIVED,
+                MsgFolder.ARCHIVED,
                 "SELECT s.* FROM s3object s WHERE s.direction = 'in' AND s.visibility = 'archived' AND s.status = 'handled' AND s.type != 'voice'",
             ),
             (
-                SystemLabel.TYPE_OUTBOX,
+                MsgFolder.OUTBOX,
                 "SELECT s.* FROM s3object s WHERE s.direction = 'out' AND s.visibility = 'visible' AND s.status IN ('initializing', 'queued', 'errored')",
             ),
             (
-                SystemLabel.TYPE_SENT,
+                MsgFolder.SENT,
                 "SELECT s.* FROM s3object s WHERE s.direction = 'out' AND s.visibility = 'visible' AND s.status IN ('wired', 'sent', 'delivered', 'read')",
             ),
             (
-                SystemLabel.TYPE_FAILED,
+                MsgFolder.FAILED,
                 "SELECT s.* FROM s3object s WHERE s.direction = 'out' AND s.visibility = 'visible' AND s.status = 'failed'",
             ),
         )
 
-        for label_type, expected_select in tcs:
-            select = s3.compile_select(where=SystemLabel.get_archive_query(label_type))
-            self.assertEqual(expected_select, select, f"select s3 mismatch for label {label_type}")
+        for folder, expected_select in tcs:
+            select = s3.compile_select(where=folder.get_archive_query())
+            self.assertEqual(expected_select, select, f"select s3 mismatch for {folder}")
 
     def test_get_counts(self):
         def assert_counts(org, expected: dict):

@@ -44,7 +44,7 @@ from temba.utils.views.mixins import (
 from temba.utils.views.wizard import SmartWizardUpdateView, SmartWizardView
 
 from .forms import ComposeForm, ScheduleForm, TargetForm
-from .models import Broadcast, Label, LabelCount, Media, MessageExport, Msg, OptIn, SystemLabel
+from .models import Broadcast, Label, LabelCount, Media, MessageExport, Msg, MsgFolder, OptIn, SystemLabel
 
 
 class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
@@ -58,20 +58,20 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     allow_export = False
     bulk_actions = ()
     bulk_action_permissions = {"resend": "msgs.msg_create", "delete": "msgs.msg_update"}
-    system_label = None
+    folder = None
     paginate_by = 100
 
     def pre_process(self, request, *args, **kwargs):
-        if self.system_label:
-            self.queryset = SystemLabel.get_queryset(request.org, self.system_label)
+        if self.folder:
+            self.queryset = self.folder.get_queryset(request.org)
 
-    def derive_label(self):
-        return self.system_label
+    def derive_folder(self):
+        return self.folder
 
     def derive_export_url(self):
         redirect = quote_plus(self.request.get_full_path())
-        label = self.derive_label()
-        label_id = label.uuid if isinstance(label, Label) else label
+        folder = self.derive_folder()
+        label_id = folder.uuid if isinstance(folder, Label) else folder.code
         return "%s?l=%s&redirect=%s" % (reverse("msgs.msg_export"), label_id, redirect)
 
     def get_queryset(self, **kwargs):
@@ -91,14 +91,14 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     def get_context_data(self, **kwargs):
         org = self.request.org
         counts = SystemLabel.get_counts(org)
-        label = self.derive_label()
+        folder = self.derive_folder()
 
         # if there isn't a search filtering the queryset, we can replace the count function with a pre-calculated value
         if "search" not in self.request.GET:
-            if isinstance(label, Label):
-                patch_queryset_count(self.object_list, label.get_visible_count)
-            elif isinstance(label, str):
-                patch_queryset_count(self.object_list, lambda: counts[label])
+            if isinstance(folder, Label):
+                patch_queryset_count(self.object_list, folder.get_visible_count)
+            elif isinstance(folder, MsgFolder):
+                patch_queryset_count(self.object_list, lambda: counts[folder.code])
 
         context = super().get_context_data(**kwargs)
         context["has_messages"] = (
@@ -699,7 +699,7 @@ class MsgCRUDL(SmartCRUDL):
     class Inbox(MsgListView):
         title = _("Inbox")
         template_name = "msgs/message_box.html"
-        system_label = SystemLabel.TYPE_INBOX
+        folder = MsgFolder.INBOX
         bulk_actions = ("archive", "label")
         allow_export = True
         menu_path = "/msg/inbox"
@@ -715,7 +715,7 @@ class MsgCRUDL(SmartCRUDL):
     class Flow(MsgListView):
         title = _("Handled")
         template_name = "msgs/message_box.html"
-        system_label = SystemLabel.TYPE_FLOWS
+        folder = MsgFolder.HANDLED
         bulk_actions = ("archive", "label")
         allow_export = True
         menu_path = "/msg/handled"
@@ -727,7 +727,7 @@ class MsgCRUDL(SmartCRUDL):
     class Archived(MsgListView):
         title = _("Archived")
         template_name = "msgs/message_box.html"
-        system_label = SystemLabel.TYPE_ARCHIVED
+        folder = MsgFolder.ARCHIVED
         bulk_actions = ("restore", "label", "delete")
         allow_export = True
 
@@ -738,7 +738,7 @@ class MsgCRUDL(SmartCRUDL):
     class Outbox(MsgListView):
         title = _("Outbox")
         template_name = "msgs/message_box.html"
-        system_label = SystemLabel.TYPE_OUTBOX
+        folder = MsgFolder.OUTBOX
         bulk_actions = ()
         allow_export = True
 
@@ -748,7 +748,7 @@ class MsgCRUDL(SmartCRUDL):
     class Sent(MsgListView):
         title = _("Sent")
         template_name = "msgs/msg_sent.html"
-        system_label = SystemLabel.TYPE_SENT
+        folder = MsgFolder.SENT
         bulk_actions = ()
         allow_export = True
         default_order = ("-sent_on", "-id")
@@ -759,7 +759,7 @@ class MsgCRUDL(SmartCRUDL):
     class Failed(MsgListView):
         title = _("Failed")
         template_name = "msgs/message_box.html"
-        system_label = SystemLabel.TYPE_FAILED
+        folder = MsgFolder.FAILED
         allow_export = True
 
         def get_bulk_actions(self):
@@ -810,7 +810,7 @@ class MsgCRUDL(SmartCRUDL):
         def label(self):
             return self.request.org.msgs_labels.get(uuid=self.kwargs["label_uuid"])
 
-        def derive_label(self):
+        def derive_folder(self):
             return self.label
 
         def get_queryset(self, **kwargs):
