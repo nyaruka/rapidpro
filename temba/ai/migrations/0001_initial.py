@@ -2,10 +2,11 @@
 
 import django.db.models.deletion
 import django.utils.timezone
-import temba.orgs.models
-import temba.utils.uuid
 from django.conf import settings
 from django.db import migrations, models
+
+import temba.orgs.models
+import temba.utils.uuid
 
 
 class Migration(migrations.Migration):
