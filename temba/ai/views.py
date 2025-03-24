@@ -18,8 +18,19 @@ class LLMCRUDL(SmartCRUDL):
         menu_path = "settings/ai"
         default_order = ("name",)
 
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+
+            count, limit = LLM.get_org_limit_progress(self.request.org)
+            context["llm_limit"] = limit
+            context["llm_count"] = count
+
+            return context
+
         def build_context_menu(self, menu):
-            if self.has_org_perm("ai.llm_connect"):
+            count, limit = LLM.get_org_limit_progress(self.request.org)
+
+            if self.has_org_perm("ai.llm_connect") and count < limit:
                 menu.add_modax(
                     _("New"),
                     "new-llm",

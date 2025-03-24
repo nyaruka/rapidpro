@@ -165,7 +165,7 @@ class TembaModel(TembaUUIDMixin, TembaNameMixin, SmartModel):
         return cls._default_manager.filter(org=org, is_active=True)
 
     @classmethod
-    def get_org_limit_progress(cls, org) -> tuple:
+    def get_org_limit_progress(cls, org) -> tuple[int, int]:
         """
         Gets a tuple of the count of non-system active objects and the limit. A limit of None means unlimited.
         """
