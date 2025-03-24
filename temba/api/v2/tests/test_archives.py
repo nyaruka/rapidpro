@@ -87,52 +87,56 @@ class ArchivesEndpointTest(APITest):
             [self.editor],
             results=[
                 {
-                    "archive_type": "run",
+                    "type": "run",
                     "download_url": "",
                     "hash": "a87ff679a2f3e71d9181a67b7542122c",
                     "period": "monthly",
                     "record_count": 34,
                     "size": 345,
                     "start_date": "2017-07-05",
+                    "archive_type": "run",  # deprecated
                 },
                 {
-                    "archive_type": "run",
+                    "type": "run",
                     "download_url": "",
                     "hash": "eccbc87e4b5ce2fe28308fd9f2a7baf3",
                     "period": "daily",
                     "record_count": 34,
                     "size": 345,
                     "start_date": "2017-06-05",
+                    "archive_type": "run",
                 },
                 {
-                    "archive_type": "message",
+                    "type": "message",
                     "download_url": "",
                     "hash": "c81e728d9d4c2f636f067f89cc14862c",
                     "period": "monthly",
                     "record_count": 34,
                     "size": 345,
                     "start_date": "2017-05-05",
+                    "archive_type": "message",
                 },
                 {
-                    "archive_type": "message",
+                    "type": "message",
                     "download_url": "",
                     "hash": "c4ca4238a0b923820dcc509a6f75849b",
                     "period": "daily",
                     "record_count": 34,
                     "size": 345,
                     "start_date": "2017-04-05",
+                    "archive_type": "message",
                 },
             ],
             num_queries=self.BASE_SESSION_QUERIES + 2,
         )
 
         self.assertGet(endpoint_url + "?after=2017-05-01", [self.editor], results=[archive4, archive3, archive2])
-        self.assertGet(endpoint_url + "?after=2017-05-01&archive_type=run", [self.editor], results=[archive4, archive3])
+        self.assertGet(endpoint_url + "?after=2017-05-01&type=run", [self.editor], results=[archive4, archive3])
 
         # unknown archive type
-        self.assertGet(endpoint_url + "?archive_type=invalid", [self.editor], results=[])
+        self.assertGet(endpoint_url + "?type=invalid", [self.editor], results=[])
 
-        # only for dailies
+        # only for dailies (using deprecated archive_type)
         self.assertGet(
             endpoint_url + "?after=2017-05-01&archive_type=run&period=daily", [self.editor], results=[archive3]
         )

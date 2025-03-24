@@ -321,7 +321,7 @@ class ArchivesEndpoint(ListAPIMixin, BaseEndpoint):
 
     A `GET` returns the archives for your organization with the following fields.
 
-      * **archive_type** - the type of the archive, one of `message` or `run` (filterable as `archive_type`).
+      * **type** - the type of the archive, one of `message` or `run` (filterable as `type`).
       * **start_date** - the UTC date of the archive (string) (filterable as `before` and `after`).
       * **period** - `daily` for daily archives, `monthly` for monthly archives (filterable as `period`).
       * **record_count** - number of records in the archive (int).
@@ -331,7 +331,7 @@ class ArchivesEndpoint(ListAPIMixin, BaseEndpoint):
 
     Example:
 
-        GET /api/v2/archives.json?archive_type=message&before=2017-05-15&period=daily
+        GET /api/v2/archives.json?type=message&before=2017-05-15&period=daily
 
     Response is a list of the archives on your account
 
@@ -341,7 +341,7 @@ class ArchivesEndpoint(ListAPIMixin, BaseEndpoint):
             "count": 248,
             "results": [
             {
-                "archive_type": "message",
+                "type": "message",
                 "start_date": "2017-02-20",
                 "period": "daily",
                 "record_count": 1432,
@@ -363,8 +363,8 @@ class ArchivesEndpoint(ListAPIMixin, BaseEndpoint):
         return queryset.order_by("-start_date").exclude(period=Archive.PERIOD_DAILY, rollup_id__isnull=False)
 
     def filter_queryset(self, queryset):
-        # filter by `archive_type`
-        archive_type = self.request.query_params.get("archive_type")
+        # filter by `type`
+        archive_type = self.request.query_params.get("type") or self.request.query_params.get("archive_type")
         if archive_type:
             queryset = queryset.filter(archive_type=archive_type)
 
@@ -388,11 +388,11 @@ class ArchivesEndpoint(ListAPIMixin, BaseEndpoint):
             "slug": "archive-list",
             "params": [
                 {
-                    "name": "archive_type",
+                    "name": "type",
                     "required": False,
-                    "help": "An archive_type to filter by, like: run, message",
+                    "help": "The archive type to filter by: run or message",
                 },
-                {"name": "period", "required": False, "help": "A period to filter by: daily, monthly"},
+                {"name": "period", "required": False, "help": "The period to filter by: daily or monthly"},
             ],
         }
 
