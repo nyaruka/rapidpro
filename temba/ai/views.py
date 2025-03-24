@@ -17,7 +17,6 @@ class LLMCRUDL(SmartCRUDL):
         title = _("AI Models")
         menu_path = "settings/ai"
         default_order = ("name",)
-        paginate_by = 250
 
         def build_context_menu(self, menu):
             if self.has_org_perm("ai.llm_connect"):
