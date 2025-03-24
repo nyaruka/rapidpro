@@ -107,7 +107,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["claim_url"] = reverse("channels.types.facebookapp.claim")
+        context["claim_url"] = reverse("channels.types.facebook.claim")
         context["facebook_app_id"] = settings.FACEBOOK_APPLICATION_ID
 
         context["facebook_login_messenger_config_id"] = settings.FACEBOOK_LOGIN_MESSENGER_CONFIG_ID
@@ -148,7 +148,7 @@ class RefreshToken(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, Sma
     form_class = Form
     permission = "channels.channel_claim"
     fields = ()
-    template_name = "channels/types/facebookapp/refresh_token.html"
+    template_name = "channels/types/facebook/refresh_token.html"
     title = _("Reconnect Facebook Page")
     menu_path = "/settings/workspace"
 
@@ -157,7 +157,7 @@ class RefreshToken(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, Sma
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["refresh_url"] = reverse("channels.types.facebookapp.refresh_token", args=(self.object.uuid,))
+        context["refresh_url"] = reverse("channels.types.facebook.refresh_token", args=(self.object.uuid,))
 
         app_id = settings.FACEBOOK_APPLICATION_ID
         app_secret = settings.FACEBOOK_APPLICATION_SECRET
