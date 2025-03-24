@@ -10,8 +10,13 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
     def setUp(self):
         super().setUp()
 
-        self.basic = LLM.create(self.org, self.admin, OpenAIType.slug, "Basic", "api_key", "gpt-turbo-3.5")
-        self.advanced = LLM.create(self.org, self.admin, OpenAIType.slug, "Advanced", "api_key", "gpt-4o")
+        config = {
+            "api_key": "api_key",
+            "model": "gpt-turbo-3.5",
+        }
+
+        self.basic = LLM.create(self.org, self.admin, OpenAIType.slug, "Basic", config)
+        self.advanced = LLM.create(self.org, self.admin, OpenAIType.slug, "Advanced", config)
 
         self.flow = self.create_flow("Color Flow")
         self.flow.llm_dependencies.add(self.basic)

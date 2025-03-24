@@ -924,10 +924,9 @@ IP_ADDRESSES = ("172.16.10.10", "162.16.10.20")
 # LLM Configs
 # -----------------------------------------------------------------------------------
 
-LLM_PROVIDERS = {
+LLM_TYPES = {
     "temba.ai.types.openai.type.OpenAIType": {
         "models": [
-            "gpt-3.5-turbo",
             "gpt-4o",
             "gpt-4o-mini",
         ],

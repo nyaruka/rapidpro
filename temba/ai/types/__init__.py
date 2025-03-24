@@ -27,7 +27,7 @@ def reload_llm_types():
     global TYPES
 
     TYPES = OrderedDict({})
-    for class_name in settings.LLM_PROVIDERS.keys():
+    for class_name in settings.LLM_TYPES.keys():
         register_llm_type(import_string(class_name))
 
 

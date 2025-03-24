@@ -29,7 +29,7 @@ class ConnectForm(forms.Form):
         api_key = self.data.get("connect-api_key")
         client = openai.OpenAI(api_key=api_key)
         try:
-            models = settings.LLM_PROVIDERS.get("temba.ai.types.openai.type.OpenAIType").get("models", [])
+            models = settings.LLM_TYPES.get("temba.ai.types.openai.type.OpenAIType").get("models", [])
             available_models = client.models.list()
             model_choices = [(model.id, model.id) for model in available_models if not models or model.id in models]
 
@@ -103,12 +103,7 @@ class ConnectView(OrgPermsMixin, SmartWizardView):
         model_form = form_dict.get("model")
         name = form_dict.get("name").cleaned_data["name"] or model_form.cleaned_data["model"]
 
-        self.object = LLM.create(
-            self.request.org,
-            self.request.user,
-            OpenAIType.slug,
-            name,
-            connect_form.cleaned_data["api_key"],
-            model_form.cleaned_data["model"],
-        )
+        config = {"api_key": connect_form.cleaned_data["api_key"], "model": model_form.cleaned_data["model"]}
+
+        self.object = LLM.create(self.request.org, self.request.user, OpenAIType.slug, name, config)
         return HttpResponseRedirect(self.get_success_url())

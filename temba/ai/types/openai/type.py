@@ -16,7 +16,7 @@ class OpenAIType(LLMType):
         "If you have an existing OpenAI account, you can add it to your workspace and use it for AI tasks."
     )
 
-    form_blurb = _("To connect your OpenAI account, please provide your API key. ")
+    form_blurb = _("To connect your OpenAI account, please provide your API key.")
     connect_view = ConnectView
 
     CONFIG_API_KEY = "api_key"
