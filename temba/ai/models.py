@@ -1,0 +1,94 @@
+from abc import ABCMeta
+
+from django.db import models
+from django.template import Engine
+from django.urls import re_path
+
+from temba.orgs.models import DependencyMixin, Org
+from temba.utils.models import TembaModel
+
+
+class LLMType(metaclass=ABCMeta):
+    """
+    Base type for all LLM model types
+    """
+
+    # icon to show in UI
+    icon = "icon-llm"
+
+    # the view that handles connection of a new model
+    connect_view = None
+
+    # the blurb to show on the connect form page
+    form_blurb = None
+
+    def get_form_blurb(self):
+        """
+        Gets the blurb to show on the connect form
+        """
+        return Engine.get_default().from_string(self.form_blurb)
+
+    def get_urls(self):
+        """
+        Returns all the URLs this llm exposes to Django, the URL should be relative.
+        """
+        return [self.get_connect_url()]
+
+    def get_connect_url(self):
+        """
+        Gets the URL/view configuration for this llm's connect wizard
+        """
+        return re_path(r"^connect", self.connect_view.as_view(llm_type=self), name="connect")
+
+
+class LLM(TembaModel, DependencyMixin):
+    """
+    A language model that can be used for AI tasks
+    """
+
+    org = models.ForeignKey(Org, related_name="llms", on_delete=models.PROTECT)
+    llm_type = models.CharField(max_length=16)
+    config = models.JSONField()
+
+    @classmethod
+    def create(cls, org, user, llm_type, name, config=None):
+        if config is None:
+            config = {}
+
+        return cls.objects.create(
+            org=org,
+            name=name,
+            llm_type=llm_type,
+            config=config,
+            created_by=user,
+            modified_by=user,
+        )
+
+    @property
+    def type(self) -> LLMType:
+        return self.get_type_from_code()
+
+    def get_type_from_code(self):
+        """
+        Returns the type instance for this AI model
+        """
+        from .types import TYPES
+
+        return TYPES[self.llm_type]
+
+    def release(self, user):
+        super().release(user)
+
+        self.is_active = False
+        self.name = self._deleted_name()
+        self.modified_by = user
+        self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))
+
+    def __str__(self):
+        return f"{self.name} ({self.llm_type})"
+
+    @classmethod
+    def get_types(cls):
+        from .types import TYPES
+
+        return TYPES.values()
