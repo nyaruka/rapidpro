@@ -645,10 +645,10 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
     def get_scheduled_broadcasts(self):
         return (
-            self.org.broadcasts.filter(is_active=True)
+            self.org.broadcasts.filter(schedule__next_fire__gte=timezone.now(), is_active=True)
             .exclude(schedule=None)
-            .filter(schedule__next_fire__gte=timezone.now())
             .filter(Q(contacts__in=[self]) | Q(groups__in=self.groups.all()))
+            .distinct()
             .select_related("org", "schedule")
         )
 
@@ -661,6 +661,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
             )
             .filter(Q(contacts__in=[self]) | Q(groups__in=self.groups.all()))
             .exclude(exclude_groups__in=self.groups.all())
+            .distinct()
             .select_related("schedule")
         )
 
