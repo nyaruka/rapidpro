@@ -151,7 +151,6 @@ class TargetForm(Form):
         self.org = org
 
     def clean_contact_search(self):
-        print("cleaning contact search")
         contact_search = self.cleaned_data.get("contact_search")
         recipients = contact_search.get("recipients", [])
 

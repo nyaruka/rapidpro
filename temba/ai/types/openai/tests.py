@@ -48,4 +48,4 @@ class OpenAITypeTest(TembaTest, CRUDLTestMixin):
         )
 
         # check that we created our model
-        LLM.objects.get(name="Basic Model", type=OpenAIType.slug)
+        LLM.objects.get(name="Basic Model", llm_type=OpenAIType.slug)

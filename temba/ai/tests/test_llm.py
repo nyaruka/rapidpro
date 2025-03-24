@@ -14,7 +14,7 @@ class LLMTest(TembaTest):
     def test_basics(self):
         self.assertEqual("api_key", self.basic.get_api_key())
         self.assertEqual("gpt-turbo-3.5", self.basic.get_model())
-        self.assertIsInstance(self.basic.get_type(), OpenAIType)
+        self.assertIsInstance(self.basic.type, OpenAIType)
         self.assertEqual("Basic (openai)", str(self.basic))
 
     def test_release(self):

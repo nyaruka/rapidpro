@@ -29,7 +29,7 @@ class ConnectForm(forms.Form):
         api_key = self.data.get("connect-api_key")
         client = openai.OpenAI(api_key=api_key)
         try:
-            models = settings.LLM_PROVIDERS.get("temba.ai.types.openai.type.OpenAIType").get("models", [])
+            models = settings.LLM_TYPES.get("temba.ai.types.openai.type.OpenAIType").get("models", [])
             available_models = client.models.list()
             model_choices = [(model.id, model.id) for model in available_models if not models or model.id in models]
 
