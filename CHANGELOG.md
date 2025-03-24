@@ -1,3 +1,9 @@
+v10.1.103 (2025-03-24)
+-------------------------
+ * Refactor message views to remove SystemLabel (replaced by MsgFolder)
+ * Update docs for broadcasts and messages API endpoints
+ * Fix displaying of deleted flows on message list views
+
 v10.1.102 (2025-03-21)
 -------------------------
  * Update broadcast views to support quick replies as structs and add data migration to convert existing scheduled broadcasts.
