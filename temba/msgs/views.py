@@ -550,28 +550,30 @@ class MsgCRUDL(SmartCRUDL):
     class Menu(BaseMenuView):
         def derive_menu(self):
             org = self.request.org
-            counts = MsgFolder.get_counts(org)
+            count_scopes = [f.count_scope for f in MsgFolder] + ["bcasts:scheduled", "bcasts:immediate", "calls:all"]
+            counts = org.counts.filter(scope__in=count_scopes).scope_totals()
+            counts = {}
 
             menu = [
                 self.create_menu_item(
                     menu_id="inbox",
                     name=_("Inbox"),
                     href=reverse("msgs.msg_inbox"),
-                    count=counts[MsgFolder.INBOX],
+                    count=counts[MsgFolder.INBOX._count_scope],
                     icon="inbox",
                 ),
                 self.create_menu_item(
                     menu_id="handled",
                     name=_("Handled"),
                     href=reverse("msgs.msg_flow"),
-                    count=counts[MsgFolder.HANDLED],
+                    count=counts[MsgFolder.HANDLED._count_scope],
                     icon="flow",
                 ),
                 self.create_menu_item(
                     menu_id="archived",
                     name=_("Archived"),
                     href=reverse("msgs.msg_archived"),
-                    count=counts[MsgFolder.ARCHIVED],
+                    count=counts[MsgFolder.ARCHIVED._count_scope],
                     icon="archive",
                 ),
                 self.create_divider(),
@@ -579,19 +581,19 @@ class MsgCRUDL(SmartCRUDL):
                     menu_id="outbox",
                     name=_("Outbox"),
                     href=reverse("msgs.msg_outbox"),
-                    count=counts[MsgFolder.OUTBOX],
+                    count=counts[MsgFolder.OUTBOX._count_scope],
                 ),
                 self.create_menu_item(
                     menu_id="sent",
                     name=_("Sent"),
                     href=reverse("msgs.msg_sent"),
-                    count=counts[MsgFolder.SENT],
+                    count=counts[MsgFolder.SENT._count_scope],
                 ),
                 self.create_menu_item(
                     menu_id="failed",
                     name=_("Failed"),
                     href=reverse("msgs.msg_failed"),
-                    count=counts[MsgFolder.FAILED],
+                    count=counts[MsgFolder.FAILED._count_scope],
                 ),
                 self.create_divider(),
                 self.create_menu_item(
@@ -604,6 +606,7 @@ class MsgCRUDL(SmartCRUDL):
                     menu_id="broadcasts",
                     name=_("Broadcasts"),
                     href=reverse("msgs.broadcast_list"),
+                    count=counts["scheduled"],
                 ),
                 self.create_menu_item(
                     menu_id="templates",
@@ -615,7 +618,7 @@ class MsgCRUDL(SmartCRUDL):
                     menu_id="calls",
                     name=_("Calls"),
                     href=reverse("ivr.call_list"),
-                    count=counts["calls"],
+                    count=counts["calls:all"],
                 ),
             ]
 
