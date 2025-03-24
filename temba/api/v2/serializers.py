@@ -511,6 +511,7 @@ class CampaignEventWriteSerializer(WriteSerializer):
 
 
 class ChannelReadSerializer(ReadSerializer):
+    type = serializers.CharField(source="type.slug")
     country = serializers.SerializerMethodField()
     device = serializers.SerializerMethodField()
     created_on = serializers.DateTimeField(default_timezone=tzone.utc)
@@ -533,7 +534,7 @@ class ChannelReadSerializer(ReadSerializer):
 
     class Meta:
         model = Channel
-        fields = ("uuid", "name", "address", "country", "device", "last_seen", "created_on")
+        fields = ("uuid", "name", "address", "type", "country", "device", "last_seen", "created_on")
 
 
 class ClassifierReadSerializer(ReadSerializer):
