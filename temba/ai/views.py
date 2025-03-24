@@ -16,7 +16,6 @@ class LLMCRUDL(SmartCRUDL):
     class List(SpaMixin, ContextMenuMixin, BaseListView):
         title = _("AI Models")
         menu_path = "settings/ai"
-        fields = ("name", "type", "value")
         default_order = ("name",)
         paginate_by = 250
 

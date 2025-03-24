@@ -103,12 +103,7 @@ class ConnectView(OrgPermsMixin, SmartWizardView):
         model_form = form_dict.get("model")
         name = form_dict.get("name").cleaned_data["name"] or model_form.cleaned_data["model"]
 
-        self.object = LLM.create(
-            self.request.org,
-            self.request.user,
-            OpenAIType.slug,
-            name,
-            connect_form.cleaned_data["api_key"],
-            model_form.cleaned_data["model"],
-        )
+        config = {"api_key": connect_form.cleaned_data["api_key"], "model": model_form.cleaned_data["model"]}
+
+        self.object = LLM.create(self.request.org, self.request.user, OpenAIType.slug, name, config)
         return HttpResponseRedirect(self.get_success_url())

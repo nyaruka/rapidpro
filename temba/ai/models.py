@@ -30,13 +30,13 @@ class LLMType(metaclass=ABCMeta):
 
     def get_urls(self):
         """
-        Returns all the URLs this classifier exposes to Django, the URL should be relative.
+        Returns all the URLs this llm exposes to Django, the URL should be relative.
         """
         return [self.get_connect_url()]
 
     def get_connect_url(self):
         """
-        Gets the URL/view configuration for this classifier's connect page
+        Gets the URL/view configuration for this llm's connect wizard
         """
         return re_path(r"^connect", self.connect_view.as_view(llm_type=self), name="connect")
 
@@ -47,19 +47,15 @@ class LLM(TembaModel, DependencyMixin):
     """
 
     org = models.ForeignKey(Org, related_name="llms", on_delete=models.PROTECT)
-    name = models.CharField(max_length=64)
     llm_type = models.CharField(max_length=16)
     config = models.JSONField()
 
     @classmethod
-    def create(cls, org, user, llm_type, name, api_key, model, config=None):
+    def create(cls, org, user, llm_type, name, config=None):
         if config is None:
             config = {}
 
-        config["api_key"] = api_key
-        config["model"] = model
-
-        ai = cls.objects.create(
+        return cls.objects.create(
             org=org,
             name=name,
             llm_type=llm_type,
@@ -68,23 +64,9 @@ class LLM(TembaModel, DependencyMixin):
             modified_by=user,
         )
 
-        return ai
-
     @property
     def type(self) -> LLMType:
         return self.get_type_from_code()
-
-    def get_api_key(self):
-        """
-        Returns the API key for this LLM
-        """
-        return self.config.get("api_key")
-
-    def get_model(self):
-        """
-        Returns the model name for this LLM
-        """
-        return self.config.get("model")
 
     def get_type_from_code(self):
         """
@@ -107,10 +89,6 @@ class LLM(TembaModel, DependencyMixin):
 
     @classmethod
     def get_types(cls):
-        """
-        Returns the possible types available for classifiers
-        :return:
-        """
         from .types import TYPES
 
         return TYPES.values()

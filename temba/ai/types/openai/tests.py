@@ -48,4 +48,8 @@ class OpenAITypeTest(TembaTest, CRUDLTestMixin):
         )
 
         # check that we created our model
-        LLM.objects.get(name="Basic Model", llm_type=OpenAIType.slug)
+        llm = LLM.objects.get(name="Basic Model", llm_type=OpenAIType.slug)
+
+        # check our config has what we need
+        self.assertEqual("good_key", llm.config["api_key"])
+        self.assertEqual("gpt-4o", llm.config["model"])
