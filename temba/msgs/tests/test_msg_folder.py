@@ -1,7 +1,7 @@
 from django.utils import timezone
 
 from temba.flows.models import Flow, FlowRun, FlowSession
-from temba.msgs.models import Msg, MsgFolder, SystemLabel
+from temba.msgs.models import Msg, MsgFolder
 from temba.orgs.tasks import squash_item_counts
 from temba.schedules.models import Schedule
 from temba.tests import TembaTest
@@ -43,19 +43,19 @@ class MsgFolderTest(TembaTest):
 
     def test_get_counts(self):
         def assert_counts(org, expected: dict):
-            self.assertEqual(SystemLabel.get_counts(org), expected)
+            self.assertEqual(MsgFolder.get_counts(org), expected)
 
         assert_counts(
             self.org,
             {
-                SystemLabel.TYPE_INBOX: 0,
-                SystemLabel.TYPE_FLOWS: 0,
-                SystemLabel.TYPE_ARCHIVED: 0,
-                SystemLabel.TYPE_OUTBOX: 0,
-                SystemLabel.TYPE_SENT: 0,
-                SystemLabel.TYPE_FAILED: 0,
-                SystemLabel.TYPE_SCHEDULED: 0,
-                SystemLabel.TYPE_CALLS: 0,
+                MsgFolder.INBOX: 0,
+                MsgFolder.HANDLED: 0,
+                MsgFolder.ARCHIVED: 0,
+                MsgFolder.OUTBOX: 0,
+                MsgFolder.SENT: 0,
+                MsgFolder.FAILED: 0,
+                "scheduled": 0,
+                "calls": 0,
             },
         )
 
@@ -79,14 +79,14 @@ class MsgFolderTest(TembaTest):
         assert_counts(
             self.org,
             {
-                SystemLabel.TYPE_INBOX: 4,
-                SystemLabel.TYPE_FLOWS: 0,
-                SystemLabel.TYPE_ARCHIVED: 0,
-                SystemLabel.TYPE_OUTBOX: 0,
-                SystemLabel.TYPE_SENT: 2,
-                SystemLabel.TYPE_FAILED: 0,
-                SystemLabel.TYPE_SCHEDULED: 1,
-                SystemLabel.TYPE_CALLS: 2,
+                MsgFolder.INBOX: 4,
+                MsgFolder.HANDLED: 0,
+                MsgFolder.ARCHIVED: 0,
+                MsgFolder.OUTBOX: 0,
+                MsgFolder.SENT: 2,
+                MsgFolder.FAILED: 0,
+                "scheduled": 1,
+                "calls": 2,
             },
         )
 
@@ -110,14 +110,14 @@ class MsgFolderTest(TembaTest):
         assert_counts(
             self.org,
             {
-                SystemLabel.TYPE_INBOX: 3,
-                SystemLabel.TYPE_FLOWS: 0,
-                SystemLabel.TYPE_ARCHIVED: 1,
-                SystemLabel.TYPE_OUTBOX: 2,
-                SystemLabel.TYPE_SENT: 2,
-                SystemLabel.TYPE_FAILED: 0,
-                SystemLabel.TYPE_SCHEDULED: 2,
-                SystemLabel.TYPE_CALLS: 2,
+                MsgFolder.INBOX: 3,
+                MsgFolder.HANDLED: 0,
+                MsgFolder.ARCHIVED: 1,
+                MsgFolder.OUTBOX: 2,
+                MsgFolder.SENT: 2,
+                MsgFolder.FAILED: 0,
+                "scheduled": 2,
+                "calls": 2,
             },
         )
 
@@ -135,14 +135,14 @@ class MsgFolderTest(TembaTest):
         assert_counts(
             self.org,
             {
-                SystemLabel.TYPE_INBOX: 1,
-                SystemLabel.TYPE_FLOWS: 0,
-                SystemLabel.TYPE_ARCHIVED: 1,
-                SystemLabel.TYPE_OUTBOX: 0,
-                SystemLabel.TYPE_SENT: 3,
-                SystemLabel.TYPE_FAILED: 1,
-                SystemLabel.TYPE_SCHEDULED: 2,
-                SystemLabel.TYPE_CALLS: 1,
+                MsgFolder.INBOX: 1,
+                MsgFolder.HANDLED: 0,
+                MsgFolder.ARCHIVED: 1,
+                MsgFolder.OUTBOX: 0,
+                MsgFolder.SENT: 3,
+                MsgFolder.FAILED: 1,
+                "scheduled": 2,
+                "calls": 1,
             },
         )
 
@@ -155,14 +155,14 @@ class MsgFolderTest(TembaTest):
         assert_counts(
             self.org,
             {
-                SystemLabel.TYPE_INBOX: 2,
-                SystemLabel.TYPE_FLOWS: 0,
-                SystemLabel.TYPE_ARCHIVED: 0,
-                SystemLabel.TYPE_OUTBOX: 0,
-                SystemLabel.TYPE_SENT: 3,
-                SystemLabel.TYPE_FAILED: 1,
-                SystemLabel.TYPE_SCHEDULED: 2,
-                SystemLabel.TYPE_CALLS: 1,
+                MsgFolder.INBOX: 2,
+                MsgFolder.HANDLED: 0,
+                MsgFolder.ARCHIVED: 0,
+                MsgFolder.OUTBOX: 0,
+                MsgFolder.SENT: 3,
+                MsgFolder.FAILED: 1,
+                "scheduled": 2,
+                "calls": 1,
             },
         )
 
@@ -174,14 +174,14 @@ class MsgFolderTest(TembaTest):
         assert_counts(
             self.org,
             {
-                SystemLabel.TYPE_INBOX: 2,
-                SystemLabel.TYPE_FLOWS: 0,
-                SystemLabel.TYPE_ARCHIVED: 0,
-                SystemLabel.TYPE_OUTBOX: 0,
-                SystemLabel.TYPE_SENT: 3,
-                SystemLabel.TYPE_FAILED: 1,
-                SystemLabel.TYPE_SCHEDULED: 2,
-                SystemLabel.TYPE_CALLS: 1,
+                MsgFolder.INBOX: 2,
+                MsgFolder.HANDLED: 0,
+                MsgFolder.ARCHIVED: 0,
+                MsgFolder.OUTBOX: 0,
+                MsgFolder.SENT: 3,
+                MsgFolder.FAILED: 1,
+                "scheduled": 2,
+                "calls": 1,
             },
         )
 

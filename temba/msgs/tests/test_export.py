@@ -6,7 +6,7 @@ from openpyxl import load_workbook
 from django.core.files.storage import default_storage
 
 from temba.archives.models import Archive
-from temba.msgs.models import Attachment, MessageExport, Msg, SystemLabel
+from temba.msgs.models import Attachment, MessageExport, Msg, MsgFolder
 from temba.orgs.models import Export
 from temba.tests import TembaTest
 
@@ -22,14 +22,14 @@ class MessageExportTest(TembaTest):
         self.just_joe = self.create_group("Just Joe", [self.joe])
         self.joe_and_frank = self.create_group("Joe and Frank", [self.joe, self.frank])
 
-    def _export(self, system_label, label, start_date, end_date, with_groups=(), with_fields=()):
+    def _export(self, folder, label, start_date, end_date, with_groups=(), with_fields=()):
         export = MessageExport.create(
             self.org,
             self.admin,
             start_date,
             end_date,
-            system_label,
-            label,
+            folder=folder,
+            label=label,
             with_groups=with_groups,
             with_fields=with_fields,
         )
@@ -225,7 +225,7 @@ class MessageExportTest(TembaTest):
             self.org.timezone,
         )
 
-        workbook = self._export(SystemLabel.TYPE_INBOX, None, msg5.created_on.date(), msg7.created_on.date())
+        workbook = self._export(MsgFolder.INBOX, None, msg5.created_on.date(), msg7.created_on.date())
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
@@ -248,7 +248,7 @@ class MessageExportTest(TembaTest):
             self.org.timezone,
         )
 
-        workbook = self._export(SystemLabel.TYPE_SENT, None, date(2000, 9, 1), date(2022, 9, 1))
+        workbook = self._export(MsgFolder.SENT, None, date(2000, 9, 1), date(2022, 9, 1))
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
@@ -271,7 +271,7 @@ class MessageExportTest(TembaTest):
             self.org.timezone,
         )
 
-        workbook = self._export(SystemLabel.TYPE_FAILED, None, date(2000, 9, 1), date(2022, 9, 1))
+        workbook = self._export(MsgFolder.FAILED, None, date(2000, 9, 1), date(2022, 9, 1))
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
@@ -308,7 +308,7 @@ class MessageExportTest(TembaTest):
             self.org.timezone,
         )
 
-        workbook = self._export(SystemLabel.TYPE_FLOWS, None, date(2000, 9, 1), date(2022, 9, 1))
+        workbook = self._export(MsgFolder.HANDLED, None, date(2000, 9, 1), date(2022, 9, 1))
         self.assertExcelSheet(
             workbook.worksheets[0],
             [
@@ -571,7 +571,7 @@ class MessageExportTest(TembaTest):
 
         # export just archived messages
         self.assertExcelSheet(
-            self._export(SystemLabel.TYPE_ARCHIVED, None, date(2000, 9, 1), date(2022, 9, 28)).worksheets[0],
+            self._export(MsgFolder.ARCHIVED, None, date(2000, 9, 1), date(2022, 9, 28)).worksheets[0],
             [
                 expected_headers,
                 [
