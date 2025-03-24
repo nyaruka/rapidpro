@@ -250,6 +250,7 @@ INSTALLED_APPS = (
     "smartmin",
     "timezone_field",
     "temba.users",
+    "temba.ai",
     "temba.apks",
     "temba.archives",
     "temba.api",
@@ -336,6 +337,7 @@ PERMISSIONS = {
         "delete",  # can delete an object,
         "list",  # can view a list of the objects
     ),
+    "ai.llm": ("connect",),
     "api.apitoken": ("explorer",),
     "archives.archive": ("run", "message"),
     "campaigns.campaign": ("archive", "activate", "menu"),
@@ -392,6 +394,10 @@ GROUP_PERMISSIONS = {
     "Dashboard": ("orgs.org_dashboard",),
     "Granters": ("orgs.org_grant",),
     "Administrators": (
+        "ai.llm_connect",
+        "ai.llm_delete",
+        "ai.llm_list",
+        "ai.llm_read",
         "airtime.airtimetransfer_list",
         "airtime.airtimetransfer_read",
         "api.apitoken_explorer",
@@ -492,6 +498,8 @@ GROUP_PERMISSIONS = {
         "users.user_update",
     ),
     "Editors": (
+        "ai.llm_list",
+        "ai.llm_read",
         "airtime.airtimetransfer_list",
         "airtime.airtimetransfer_read",
         "api.apitoken_explorer",
@@ -757,6 +765,7 @@ CLASSIFIER_TYPES = [
     "temba.classifiers.types.bothub.BothubType",
 ]
 
+
 CHANNEL_TYPES = [
     "temba.channels.types.africastalking.AfricasTalkingType",
     "temba.channels.types.arabiacell.ArabiaCellType",
@@ -909,6 +918,20 @@ WHATSAPP_FACEBOOK_BUSINESS_ID = os.environ.get("WHATSAPP_FACEBOOK_BUSINESS_ID", 
 #
 # You need to change these to real addresses to work with these.
 IP_ADDRESSES = ("172.16.10.10", "162.16.10.20")
+
+
+# -----------------------------------------------------------------------------------
+# LLM Configs
+# -----------------------------------------------------------------------------------
+
+LLM_TYPES = {
+    "temba.ai.types.openai.type.OpenAIType": {
+        "models": [
+            "gpt-4o",
+            "gpt-4o-mini",
+        ],
+    }
+}
 
 
 # -----------------------------------------------------------------------------------

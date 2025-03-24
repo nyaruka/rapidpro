@@ -33,6 +33,7 @@ class CRUDLTestMixin:
         return response
 
     def process_wizard(self, view_name, url, form_data):
+        response = None
         for step, data in form_data.items():
             if not data:
                 break
