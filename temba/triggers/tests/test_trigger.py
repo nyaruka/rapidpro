@@ -196,8 +196,8 @@ class TriggerTest(TembaTest):
         self.org.import_app(export_def, self.admin)
         self.assertEqual(1, Trigger.objects.count())
 
-    @patch("temba.channels.types.facebookapp.type.FacebookAppType.deactivate_trigger")
-    @patch("temba.channels.types.facebookapp.type.FacebookAppType.activate_trigger")
+    @patch("temba.channels.types.facebook.type.FacebookType.deactivate_trigger")
+    @patch("temba.channels.types.facebook.type.FacebookType.activate_trigger")
     def test_export_import(self, mock_activate_trigger, mock_deactivate_trigger):
         mock_activate_trigger.return_value = None
         mock_deactivate_trigger.return_value = None

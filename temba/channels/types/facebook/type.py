@@ -11,7 +11,7 @@ from ...models import Channel, ChannelType
 from .views import ClaimView, RefreshToken
 
 
-class FacebookAppType(ChannelType):
+class FacebookType(ChannelType):
     """
     A Facebook channel
     """
@@ -32,7 +32,7 @@ class FacebookAppType(ChannelType):
     ) % {"link": '<a target="_blank" href="http://facebook.com">Facebook</a>'}
     claim_view = ClaimView
 
-    menu_items = [dict(label=_("Reconnect Facebook Page"), view_name="channels.types.facebookapp.refresh_token")]
+    menu_items = [dict(label=_("Reconnect Facebook Page"), view_name="channels.types.facebook.refresh_token")]
 
     def get_urls(self):
         return [

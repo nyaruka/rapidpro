@@ -437,7 +437,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
     @patch("temba.channels.types.facebook_legacy.FacebookLegacyType.activate_trigger")
-    @patch("temba.channels.types.viber_public.ViberPublicType.activate_trigger")
+    @patch("temba.channels.types.viber.ViberType.activate_trigger")
     def test_create_new_conversation(self, mock_vp_activate, mock_fb_activate):
         create_url = reverse("triggers.trigger_create_new_conversation")
         flow1 = self.create_flow("Flow 1", flow_type=Flow.TYPE_MESSAGE)
