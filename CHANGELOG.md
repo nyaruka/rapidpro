@@ -1,3 +1,9 @@
+v10.1.104 (2025-03-24)
+-------------------------
+ * Add type slug to channels endpoint
+ * Rename type field on archives API endpoint (keeping existing field for backwards compatibility)
+ * Simplify naming of FacebookAppType and ViberPublicType to FacebookType and ViberType
+
 v10.1.103 (2025-03-24)
 -------------------------
  * Refactor message views to remove SystemLabel (replaced by MsgFolder)
