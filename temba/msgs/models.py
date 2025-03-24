@@ -898,6 +898,10 @@ class MsgFolder(Enum):
         self.query = query
         self.archive_query = archive_query
 
+    @classmethod
+    def from_code(cls, code):
+        return next(f for f in cls if f.code == code)
+
     def get_queryset(self, org):
         # we don't use org.msgs here because it causes problems when the API is using different db connections
         return Msg.objects.filter(org=org, **self.query)
@@ -905,14 +909,17 @@ class MsgFolder(Enum):
     def get_archive_query(self) -> dict:
         return self.archive_query.copy()
 
-    @classmethod
-    def from_code(cls, code):
-        return next(f for f in cls if f.code == code)
+    @property
+    def _count_scope(self) -> str:
+        return f"msgs:folder:{self.code}"
+
+    def get_count(self, org) -> int:
+        return org.counts.filter(scope=self._count_scope).sum()
 
     @classmethod
     def get_counts(cls, org) -> dict:
         counts = org.counts.prefix("msgs:folder:").scope_totals()
-        by_folder = {folder: counts.get(f"msgs:folder:{folder.code}", 0) for folder in cls}
+        by_folder = {folder: counts.get(folder._count_scope, 0) for folder in cls}
 
         # TODO stuff counts for scheduled broadcasts and calls until we figure out what to do with them
         by_folder["scheduled"] = counts.get("msgs:folder:E", 0)

@@ -184,13 +184,12 @@ class MsgTest(TembaTest, CRUDLTestMixin):
             Msg.objects.filter(id=msg.id).update(visibility=visibility)
 
             # assert our folder count is right
-            counts = MsgFolder.get_counts(self.org)
-            self.assertEqual(counts[folder], 1)
+            self.assertEqual(folder.get_count(self.org), 1)
 
             # delete the msg, count should now be 0
             msg.delete()
-            counts = MsgFolder.get_counts(self.org)
-            self.assertEqual(counts[folder], 0)
+
+            self.assertEqual(folder.get_count(self.org), 0)
 
         # outgoing labels
         assertReleaseCount("O", Msg.STATUS_SENT, Msg.VISIBILITY_VISIBLE, None, MsgFolder.SENT)

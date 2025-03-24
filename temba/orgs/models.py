@@ -636,7 +636,7 @@ class Org(SmartModel):
     def is_outbox_full(self) -> bool:
         from temba.msgs.models import MsgFolder
 
-        return MsgFolder.get_counts(self)[MsgFolder.OUTBOX] >= 1_000_000
+        return MsgFolder.OUTBOX.get_count(self) >= 1_000_000
 
     def get_estimated_send_time(self, msg_count):
         """
