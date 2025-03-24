@@ -139,6 +139,7 @@ class AdminBoundaryReadSerializer(ReadSerializer):
 
 
 class ArchiveReadSerializer(ReadSerializer):
+    type = serializers.CharField(source="archive_type")
     period = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
 
@@ -152,7 +153,7 @@ class ArchiveReadSerializer(ReadSerializer):
 
     class Meta:
         model = Archive
-        fields = ("archive_type", "start_date", "period", "record_count", "size", "hash", "download_url")
+        fields = ("type", "start_date", "period", "record_count", "size", "hash", "download_url", "archive_type")
 
 
 class BroadcastReadSerializer(ReadSerializer):
