@@ -1,11 +1,15 @@
-{% extends "includes/modax.html" %}
-{% load i18n smartmin %}
+{% extends "orgs/base/create.html" %}
+{% load smartmin %}
 
 {% block fields %}
-  <div class="flex items-start flex-col">
-    <div class="w-full">{% render_field 'name' %}</div>
-    <div class="w-full">{% render_field 'value_type' %}</div>
-    {% render_field 'show_in_table' %}
-    {% render_field 'agent_access' %}
-  </div>
+  {% if limit_reached %}
+    {{ block.super }}
+  {% else %}
+    <div class="flex items-start flex-col">
+      <div class="w-full">{% render_field 'name' %}</div>
+      <div class="w-full">{% render_field 'value_type' %}</div>
+      {% render_field 'show_in_table' %}
+      {% render_field 'agent_access' %}
+    </div>
+  {% endif %}
 {% endblock fields %}

@@ -103,10 +103,10 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
             success_status=200,
         )
 
-        # check we can't access this view when we've reached the limit
+        # check we get the limit warning when we've reached the limit
         with override_settings(ORG_LIMIT_DEFAULTS={"fields": 2}):
             response = self.requestView(create_url, self.admin)
-            self.assertRedirect(response, "hide")
+            self.assertContains(response, "You have reached the per-workspace limit")
 
     def test_update(self):
         update_url = reverse("contacts.contactfield_update", args=[self.age.key])

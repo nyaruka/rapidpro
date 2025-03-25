@@ -84,7 +84,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.client.post(
                 preview_url, {"add_to_group": True, "group_mode": "N", "new_group_name": "Import"}
             )
-            self.assertFormError(response.context["form"], None, "This workspace has reached its limit of 2 groups.")
+            self.assertFormError(response.context["form"], None, "This workspace has reached its limit of groups.")
 
         # finally create new group...
         response = self.client.post(preview_url, {"add_to_group": True, "group_mode": "N", "new_group_name": "Import"})

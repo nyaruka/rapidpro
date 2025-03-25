@@ -83,9 +83,9 @@ class GlobalCRUDLTest(TembaTest, CRUDLTestMixin):
             new_obj_query=Global.objects.filter(org=self.org, name="Secret2", value="[abc]"),
         )
 
-        # check we can't access this view now that we've reached the limit
+        # check we get the limit warning when we've reached the limit
         response = self.requestView(create_url, self.admin)
-        self.assertRedirect(response, "/global/")
+        self.assertContains(response, "You have reached the per-workspace limit")
 
     def test_update(self):
         update_url = reverse("globals.global_update", args=[self.global1.id])

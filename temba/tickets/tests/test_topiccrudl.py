@@ -54,9 +54,9 @@ class TopicCRUDLTest(TembaTest, CRUDLTestMixin):
             success_status=302,
         )
 
-        # check we can't access this view now that we've reached the limit
+        # check we get the limit warning when we've reached the limit
         response = self.requestView(create_url, self.admin)
-        self.assertRedirect(response, "hide")
+        self.assertContains(response, "You have reached the per-workspace limit")
 
     def test_update(self):
         topic = Topic.create(self.org, self.admin, "Hot Topic")

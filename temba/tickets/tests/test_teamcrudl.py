@@ -76,9 +76,9 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
         team = Team.objects.get(name="Sales")
         self.assertEqual({sales}, set(team.topics.all()))
 
-        # check we can't access this view now that we've reached the limit
+        # check we get the limit warning when we've reached the limit
         response = self.requestView(create_url, self.admin)
-        self.assertRedirect(response, "/team/")
+        self.assertContains(response, "You have reached the per-workspace limit")
 
     def test_update(self):
         sales = Topic.create(self.org, self.admin, "Sales")

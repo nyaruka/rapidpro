@@ -834,7 +834,7 @@ class ContactGroupCRUDL(SmartCRUDL):
     model = ContactGroup
     actions = ("create", "update", "usages", "delete")
 
-    class Create(ComponentFormMixin, ModalFormMixin, OrgPermsMixin, SmartCreateView):
+    class Create(BaseCreateModal):
         form_class = ContactGroupForm
         fields = ("name", "preselected_contacts", "group_query")
         success_url = "uuid@contacts.contact_group"
@@ -862,11 +862,6 @@ class ContactGroupCRUDL(SmartCRUDL):
             initial = super().derive_initial()
             initial["group_query"] = self.request.GET.get("search", "")
             return initial
-
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["org"] = self.request.org
-            return kwargs
 
     class Update(BaseUpdateModal):
         form_class = ContactGroupForm
@@ -1242,12 +1237,8 @@ class ContactImportCRUDL(SmartCRUDL):
                 if add_to_group:
                     group_mode = self.cleaned_data["group_mode"]
                     if group_mode == self.GROUP_MODE_NEW:
-                        group_count, group_limit = ContactGroup.get_org_limit_progress(self.org)
-                        if group_limit is not None and group_count >= group_limit:
-                            raise forms.ValidationError(
-                                _("This workspace has reached its limit of %(limit)d groups."),
-                                params={"limit": group_limit},
-                            )
+                        if ContactGroup.is_limit_reached(self.org):
+                            raise forms.ValidationError(_("This workspace has reached its limit of groups."))
 
                         new_group_name = self.cleaned_data.get("new_group_name")
                         if not new_group_name:
