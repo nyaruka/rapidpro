@@ -1020,7 +1020,6 @@ class OrgCRUDL(SmartCRUDL):
                     )
                 ]
 
-                menu.append(self.create_menu_item(menu_id="ai", name=_("AI Models"), icon="ai", href="ai.llm_list"))
                 menu.append(self.create_menu_item(name=_("API Tokens"), icon="user_token", href="api.apitoken_list"))
                 menu.append(self.create_menu_item(name=_("Resthooks"), icon="resthooks", href="orgs.org_resthooks"))
 
@@ -1028,6 +1027,8 @@ class OrgCRUDL(SmartCRUDL):
                     menu.append(
                         self.create_menu_item(name=_("Incidents"), icon="incidents", href="notifications.incident_list")
                     )
+
+                menu.append(self.create_menu_item(menu_id="ai", name=_("AI"), icon="ai", href="ai.llm_list"))
 
                 if Org.FEATURE_CHILD_ORGS in org.features and self.has_org_perm("orgs.org_list"):
                     menu.append(self.create_divider())

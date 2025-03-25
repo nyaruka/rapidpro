@@ -929,6 +929,7 @@ class ChannelsEndpoint(ListAPIMixin, BaseEndpoint):
      * **uuid** - the UUID of the channel (string), filterable as `uuid`.
      * **name** - the name of the channel (string).
      * **address** - the address (e.g. phone number, Twitter handle) of the channel (string), filterable as `address`.
+     * **type** - the type of the channel (e.g. android, facebook, telegram, twilio, vonage...)
      * **country** - which country the sim card for this channel is registered for (string, two letter country code).
      * **device** - information about the device if this is an Android channel:
         * **name** - the name of the device (string).
@@ -953,6 +954,7 @@ class ChannelsEndpoint(ListAPIMixin, BaseEndpoint):
                 "uuid": "09d23a05-47fe-11e4-bfe9-b8f6b119e9ab",
                 "name": "Android Phone",
                 "address": "+250788123123",
+                "type": "android",
                 "country": "RW",
                 "device": {
                     "name": "Nexus 5X",
