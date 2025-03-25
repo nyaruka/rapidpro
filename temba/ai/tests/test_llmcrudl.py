@@ -10,25 +10,32 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
     def setUp(self):
         super().setUp()
 
-        config = {
-            "api_key": "api_key",
-            "model": "gpt-turbo-3.5",
-        }
-
-        self.basic = LLM.create(self.org, self.admin, OpenAIType.slug, "Basic", config)
-        self.advanced = LLM.create(self.org, self.admin, OpenAIType.slug, "Advanced", config)
+        self.basic = LLM.create(self.org, self.admin, OpenAIType.slug, "Basic", {})
+        self.advanced = LLM.create(self.org, self.admin, OpenAIType.slug, "Advanced", {})
+        LLM.create(self.org2, self.admin2, OpenAIType.slug, "Other Org", {})
 
         self.flow = self.create_flow("Color Flow")
         self.flow.llm_dependencies.add(self.basic)
 
     def test_list(self):
-
-        self.login(self.admin)
         list_url = reverse("ai.llm_list")
-        response = self.assertListFetch(list_url, [self.admin])
+
+        self.assertRequestDisallowed(list_url, [None, self.agent])
+
+        response = self.assertListFetch(
+            list_url, [self.editor, self.admin], context_objects=[self.advanced, self.basic]
+        )
         self.assertEqual("settings/ai", response.headers[TEMBA_MENU_SELECTION])
-        self.assertContains(response, "Basic")
-        self.assertContains(response, "Advanced")
+        self.assertContentMenu(list_url, self.admin, ["New"])
+        self.assertContentMenu(list_url, self.editor, [])
+
+        # create more models to hit the org limit
+        for i in range(8):
+            LLM.create(self.org, self.admin, OpenAIType.slug, f"Model {i}", {})
+
+        response = self.assertListFetch(list_url, [self.editor, self.admin], context_object_count=10)
+        self.assertContains(response, "You have reached the limit")
+        self.assertContentMenu(list_url, self.admin, [])
 
     def test_delete(self):
         list_url = reverse("ai.llm_list")

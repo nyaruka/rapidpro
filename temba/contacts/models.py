@@ -644,12 +644,11 @@ class Contact(LegacyUUIDMixin, SmartModel):
         return {g.group_type: count for g, count in ContactGroup.get_member_counts(groups).items()}
 
     def get_scheduled_broadcasts(self):
-        from temba.msgs.models import SystemLabel
-
         return (
-            SystemLabel.get_queryset(self.org, SystemLabel.TYPE_SCHEDULED)
-            .filter(schedule__next_fire__gte=timezone.now())
+            self.org.broadcasts.filter(schedule__next_fire__gte=timezone.now(), is_active=True)
+            .exclude(schedule=None)
             .filter(Q(contacts__in=[self]) | Q(groups__in=self.groups.all()))
+            .distinct()
             .select_related("org", "schedule")
         )
 
@@ -662,6 +661,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
             )
             .filter(Q(contacts__in=[self]) | Q(groups__in=self.groups.all()))
             .exclude(exclude_groups__in=self.groups.all())
+            .distinct()
             .select_related("schedule")
         )
 

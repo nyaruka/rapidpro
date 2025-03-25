@@ -10,9 +10,16 @@
 {% block pre-table %}
   <div class="mb-4">
     {% blocktrans trimmed %}
-      Large Language Models (LLMs) are useful for a variety of tasks. You might use them to translate flows, provide categorizaion, or summarize results you have collected from your contacts.
+      Add Large Language Models (LLMs) to your workspace to unlock AI assisted features.
     {% endblocktrans %}
   </div>
+  {% if llm_count >= llm_limit %}
+    <temba-alert level="warning" class="mb-4">
+      {% blocktrans trimmed with limit=llm_limit %}
+        You have reached the limit of {{ limit }} models. You must delete existing ones before you can create new ones.
+      {% endblocktrans %}
+    </temba-alert>
+  {% endif %}
 {% endblock pre-table %}
 {% block table %}
   <table class="list lined scrolled">

@@ -1,3 +1,37 @@
+v10.1.107 (2025-03-25)
+-------------------------
+ * Tweak copy for AI models
+ * Update channels API docs
+
+v10.1.106 (2025-03-25)
+-------------------------
+ * Go back to init form on lookup_field_help
+
+v10.1.105 (2025-03-25)
+-------------------------
+ * Add org limit for LLMs
+ * Update gunicorn to latest
+ * Fix upcoming links to triggers in contact read page
+ * Fix fetching scheduled broadcasts for contacts so we don't return dupes
+ * Add new AI app with LLM model
+
+v10.1.104 (2025-03-24)
+-------------------------
+ * Add type slug to channels endpoint
+ * Rename type field on archives API endpoint (keeping existing field for backwards compatibility)
+ * Simplify naming of FacebookAppType and ViberPublicType to FacebookType and ViberType
+
+v10.1.103 (2025-03-24)
+-------------------------
+ * Refactor message views to remove SystemLabel (replaced by MsgFolder)
+ * Update docs for broadcasts and messages API endpoints
+ * Fix displaying of deleted flows on message list views
+
+v10.1.102 (2025-03-21)
+-------------------------
+ * Update broadcast views to support quick replies as structs and add data migration to convert existing scheduled broadcasts.
+ * Use boolean field for TMS link shortening config form field
+
 v10.1.101 (2025-03-21)
 -------------------------
  * Add API support for extra on quick replies

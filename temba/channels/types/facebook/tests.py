@@ -9,7 +9,7 @@ from temba.utils import json
 from temba.utils.text import truncate
 
 from ...models import Channel
-from .type import FacebookAppType
+from .type import FacebookType
 
 
 class FacebookTypeTest(TembaTest):
@@ -44,7 +44,7 @@ class FacebookTypeTest(TembaTest):
 
         mock_post.return_value = MockResponse(200, json.dumps({"success": True}))
 
-        url = reverse("channels.types.facebookapp.claim")
+        url = reverse("channels.types.facebook.claim")
 
         self.login(self.admin)
 
@@ -141,7 +141,7 @@ class FacebookTypeTest(TembaTest):
 
         mock_post.return_value = MockResponse(200, json.dumps({"success": True}))
 
-        url = reverse("channels.types.facebookapp.claim")
+        url = reverse("channels.types.facebook.claim")
 
         self.login(self.admin)
 
@@ -186,7 +186,7 @@ class FacebookTypeTest(TembaTest):
 
         mock_post.return_value = MockResponse(200, json.dumps({"success": True}))
 
-        url = reverse("channels.types.facebookapp.claim")
+        url = reverse("channels.types.facebook.claim")
 
         self.login(self.admin)
 
@@ -252,7 +252,7 @@ class FacebookTypeTest(TembaTest):
     def test_refresh_token(self, mock_get, mock_post):
         token = "x" * 200
 
-        url = reverse("channels.types.facebookapp.refresh_token", args=(self.channel.uuid,))
+        url = reverse("channels.types.facebook.refresh_token", args=(self.channel.uuid,))
 
         self.login(self.admin)
 
@@ -392,5 +392,5 @@ class FacebookTypeTest(TembaTest):
     def test_get_error_ref_url(self):
         self.assertEqual(
             "https://developers.facebook.com/docs/messenger-platform/error-codes",
-            FacebookAppType().get_error_ref_url(None, "190"),
+            FacebookType().get_error_ref_url(None, "190"),
         )

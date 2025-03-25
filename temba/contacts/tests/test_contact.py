@@ -15,7 +15,7 @@ from temba.contacts.models import URN, Contact, ContactField, ContactFire, Conta
 from temba.flows.models import Flow
 from temba.locations.models import AdminBoundary
 from temba.mailroom import modifiers
-from temba.msgs.models import Msg, SystemLabel
+from temba.msgs.models import Msg, MsgFolder
 from temba.orgs.models import Org
 from temba.schedules.models import Schedule
 from temba.tests import TembaTest, mock_mailroom
@@ -252,10 +252,10 @@ class ContactTest(TembaTest):
         label.toggle_label([msg1, msg2, msg3], add=True)
         static_group = self.create_group("Just Joe", [self.joe])
 
-        msg_counts = SystemLabel.get_counts(self.org)
-        self.assertEqual(1, msg_counts[SystemLabel.TYPE_INBOX])
-        self.assertEqual(1, msg_counts[SystemLabel.TYPE_FLOWS])
-        self.assertEqual(1, msg_counts[SystemLabel.TYPE_ARCHIVED])
+        msg_counts = MsgFolder.get_counts(self.org)
+        self.assertEqual(1, msg_counts[MsgFolder.INBOX])
+        self.assertEqual(1, msg_counts[MsgFolder.HANDLED])
+        self.assertEqual(1, msg_counts[MsgFolder.ARCHIVED])
 
         self.assertEqual(
             Contact.get_status_counts(self.org),
@@ -312,10 +312,10 @@ class ContactTest(TembaTest):
 
         # but his messages are unchanged
         self.assertEqual(2, Msg.objects.filter(contact=self.joe, visibility="V").count())
-        msg_counts = SystemLabel.get_counts(self.org)
-        self.assertEqual(1, msg_counts[SystemLabel.TYPE_INBOX])
-        self.assertEqual(1, msg_counts[SystemLabel.TYPE_FLOWS])
-        self.assertEqual(1, msg_counts[SystemLabel.TYPE_ARCHIVED])
+        msg_counts = MsgFolder.get_counts(self.org)
+        self.assertEqual(1, msg_counts[MsgFolder.INBOX])
+        self.assertEqual(1, msg_counts[MsgFolder.HANDLED])
+        self.assertEqual(1, msg_counts[MsgFolder.ARCHIVED])
 
         self.joe.archive(self.admin)
 
@@ -374,10 +374,10 @@ class ContactTest(TembaTest):
         self.assertEqual(0, Msg.objects.filter(contact=self.joe).exclude(text="").count())
         self.assertEqual(0, label.msgs.count())
 
-        msg_counts = SystemLabel.get_counts(self.org)
-        self.assertEqual(0, msg_counts[SystemLabel.TYPE_INBOX])
-        self.assertEqual(0, msg_counts[SystemLabel.TYPE_FLOWS])
-        self.assertEqual(0, msg_counts[SystemLabel.TYPE_ARCHIVED])
+        msg_counts = MsgFolder.get_counts(self.org)
+        self.assertEqual(0, msg_counts[MsgFolder.INBOX])
+        self.assertEqual(0, msg_counts[MsgFolder.HANDLED])
+        self.assertEqual(0, msg_counts[MsgFolder.ARCHIVED])
 
         # and he shouldn't be in any groups
         self.assertEqual(set(static_group.contacts.all()), set())
@@ -622,34 +622,47 @@ class ContactTest(TembaTest):
         # lookup by contact uuids
         self.assertEqual(omnibox_request("?c=%s,%s" % (self.joe.uuid, self.frank.uuid)), [])
 
-    def test_get_scheduled_messages(self):
-        just_joe = self.create_group("Just Joe", [self.joe])
+    def test_get_scheduled_broadcasts(self):
+        just_joe1 = self.create_group("Just Joe 1", [self.joe])
+        just_joe2 = self.create_group("Just Joe 2", [self.joe])
 
-        self.assertEqual(0, self.joe.get_scheduled_broadcasts().count())
+        # scheduled via contact
+        broadcast1 = self.create_broadcast(
+            self.admin,
+            {"eng": {"text": "Hello"}},
+            contacts=[self.joe],
+            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=2), Schedule.REPEAT_NEVER),
+        )
 
-        broadcast = self.create_broadcast(self.admin, {"eng": {"text": "Hello"}}, contacts=[self.frank])
-        self.assertEqual(0, self.joe.get_scheduled_broadcasts().count())
+        # scheduled via group (two to check we don't return duplicates)
+        broadcast2 = self.create_broadcast(
+            self.admin,
+            {"eng": {"text": "Hello"}},
+            groups=[just_joe1, just_joe2],
+            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=2), Schedule.REPEAT_NEVER),
+        )
 
-        broadcast.contacts.add(self.joe)
+        # scheduled via contact and group
+        broadcast3 = self.create_broadcast(
+            self.admin,
+            {"eng": {"text": "Hello"}},
+            contacts=[self.joe],
+            groups=[just_joe1],
+            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=2), Schedule.REPEAT_NEVER),
+        )
 
-        self.assertEqual(0, self.joe.get_scheduled_broadcasts().count())
+        # scheduled in past
+        self.create_broadcast(
+            self.admin,
+            {"eng": {"text": "Hello"}},
+            groups=[just_joe1],
+            schedule=Schedule.create(self.org, timezone.now() - timedelta(days=2), Schedule.REPEAT_NEVER),
+        )
 
-        schedule_time = timezone.now() + timedelta(days=2)
-        broadcast.schedule = Schedule.create(self.org, schedule_time, Schedule.REPEAT_NEVER)
-        broadcast.save(update_fields=("schedule",))
+        # non-scheduled broadcast
+        self.create_broadcast(self.admin, {"eng": {"text": "Hello"}}, contacts=[self.joe])
 
-        self.assertEqual(self.joe.get_scheduled_broadcasts().count(), 1)
-        self.assertIn(broadcast, self.joe.get_scheduled_broadcasts())
-
-        broadcast.contacts.remove(self.joe)
-        self.assertEqual(0, self.joe.get_scheduled_broadcasts().count())
-
-        broadcast.groups.add(just_joe)
-        self.assertEqual(self.joe.get_scheduled_broadcasts().count(), 1)
-        self.assertIn(broadcast, self.joe.get_scheduled_broadcasts())
-
-        broadcast.groups.remove(just_joe)
-        self.assertEqual(0, self.joe.get_scheduled_broadcasts().count())
+        self.assertEqual(list(self.joe.get_scheduled_broadcasts().order_by("id")), [broadcast1, broadcast2, broadcast3])
 
     @mock_mailroom
     def test_contacts_search(self, mr_mocks):

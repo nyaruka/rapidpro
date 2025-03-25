@@ -412,6 +412,9 @@ class Attachment:
     def as_json(self) -> dict:
         return {"content_type": self.content_type, "url": self.url}
 
+    def __str__(self) -> str:
+        return f"{self.content_type}:{self.url}"
+
 
 @dataclass
 class QuickReply:
@@ -895,6 +898,10 @@ class MsgFolder(Enum):
         self.query = query
         self.archive_query = archive_query
 
+    @classmethod
+    def from_code(cls, code):
+        return next(f for f in cls if f.code == code)
+
     def get_queryset(self, org):
         # we don't use org.msgs here because it causes problems when the API is using different db connections
         return Msg.objects.filter(org=org, **self.query)
@@ -902,60 +909,23 @@ class MsgFolder(Enum):
     def get_archive_query(self) -> dict:
         return self.archive_query.copy()
 
-    @classmethod
-    def from_code(cls, code):
-        return next(f for f in cls if f.code == code)
+    @property
+    def _count_scope(self) -> str:
+        return f"msgs:folder:{self.code}"
 
-
-class SystemLabel:
-    """
-    TODO replace with MsgFolder once we figure out what to do with calls and broadcasts.
-    """
-
-    TYPE_INBOX = MsgFolder.INBOX.code
-    TYPE_FLOWS = MsgFolder.HANDLED.code
-    TYPE_ARCHIVED = MsgFolder.ARCHIVED.code
-    TYPE_OUTBOX = MsgFolder.OUTBOX.code
-    TYPE_SENT = MsgFolder.SENT.code
-    TYPE_FAILED = MsgFolder.FAILED.code
-    TYPE_SCHEDULED = "E"
-    TYPE_CALLS = "C"
-
-    TYPE_CHOICES = (
-        (TYPE_INBOX, "Inbox"),
-        (TYPE_FLOWS, "Flows"),
-        (TYPE_ARCHIVED, "Archived"),
-        (TYPE_OUTBOX, "Outbox"),
-        (TYPE_SENT, "Sent"),
-        (TYPE_FAILED, "Failed"),
-        (TYPE_SCHEDULED, "Scheduled"),
-        (TYPE_CALLS, "Calls"),
-    )
+    def get_count(self, org) -> int:
+        return org.counts.filter(scope=self._count_scope).sum()
 
     @classmethod
-    def get_counts(cls, org):
+    def get_counts(cls, org) -> dict:
         counts = org.counts.prefix("msgs:folder:").scope_totals()
-        return {lb: counts.get(f"msgs:folder:{lb}", 0) for lb, n in cls.TYPE_CHOICES}
+        by_folder = {folder: counts.get(folder._count_scope, 0) for folder in cls}
 
-    @classmethod
-    def get_queryset(cls, org, label_type):
-        """
-        Gets the queryset for the given system label. Any change here needs to be reflected in a change to the db
-        trigger used to maintain the label counts.
-        """
+        # TODO stuff counts for scheduled broadcasts and calls until we figure out what to do with them
+        by_folder["scheduled"] = counts.get("msgs:folder:E", 0)
+        by_folder["calls"] = counts.get("msgs:folder:C", 0)
 
-        assert label_type in [c[0] for c in cls.TYPE_CHOICES]
-
-        if label_type == cls.TYPE_SCHEDULED:
-            return org.broadcasts.filter(is_active=True).exclude(schedule=None)
-        elif label_type == cls.TYPE_CALLS:
-            return org.calls.all()
-
-        return MsgFolder.from_code(label_type).get_queryset(org)
-
-    @classmethod
-    def get_archive_query(cls, label_type: str) -> dict:
-        return MsgFolder.from_code(label_type).get_archive_query()
+        return by_folder
 
 
 class Label(TembaModel, DependencyMixin):
@@ -1130,14 +1100,14 @@ class MessageExport(ExportType):
     download_template = "msgs/export_download.html"
 
     @classmethod
-    def create(cls, org, user, start_date, end_date, system_label=None, label=None, with_fields=(), with_groups=()):
+    def create(cls, org, user, start_date, end_date, folder=None, label=None, with_fields=(), with_groups=()):
         export = Export.objects.create(
             org=org,
             export_type=cls.slug,
             start_date=start_date,
             end_date=end_date,
             config={
-                "system_label": system_label,
+                "system_label": folder.code if folder else None,
                 "label_uuid": str(label.uuid) if label else None,
                 "with_fields": [f.id for f in with_fields],
                 "with_groups": [g.id for g in with_groups],
@@ -1146,16 +1116,18 @@ class MessageExport(ExportType):
         )
         return export
 
-    def get_folder(self, export):
+    def get_folder(self, export) -> tuple:
         label_uuid = export.config.get("label_uuid")
-        system_label = export.config.get("system_label")
+        folder_code = export.config.get("system_label")
         if label_uuid:
             return None, export.org.msgs_labels.filter(uuid=label_uuid).first()
+        elif folder_code:
+            return MsgFolder.from_code(folder_code), None
         else:
-            return system_label, None
+            return None, None
 
     def write(self, export):
-        system_label, label = self.get_folder(export)
+        folder, label = self.get_folder(export)
         start_date, end_date = export.get_date_range()
 
         # create our exporter
@@ -1169,7 +1141,7 @@ class MessageExport(ExportType):
         num_records = 0
         logger.info(f"starting msgs export #{export.id} for org #{export.org.id}")
 
-        for batch in self._get_msg_batches(export, system_label, label, start_date, end_date):
+        for batch in self._get_msg_batches(export, folder, label, start_date, end_date):
             self._write_msgs(export, exporter, batch)
 
             num_records += len(batch)
@@ -1180,13 +1152,13 @@ class MessageExport(ExportType):
 
         return *exporter.save_file(), num_records
 
-    def _get_msg_batches(self, export, system_label, label, start_date, end_date):
+    def _get_msg_batches(self, export, folder, label, start_date, end_date):
         from temba.archives.models import Archive
         from temba.flows.models import Flow
 
         # firstly get msgs from archives
-        if system_label:
-            where = SystemLabel.get_archive_query(system_label)
+        if folder:
+            where = folder.get_archive_query()
         elif label:
             where = {"visibility": "visible", "__raw__": f"'{label.uuid}' IN s.labels[*].uuid"}
         else:
@@ -1205,8 +1177,8 @@ class MessageExport(ExportType):
                 matching.append(record)
             yield matching
 
-        if system_label:
-            messages = SystemLabel.get_queryset(export.org, system_label)
+        if folder:
+            messages = folder.get_queryset(export.org)
         elif label:
             messages = label.get_messages()
         else:
@@ -1263,5 +1235,5 @@ class MessageExport(ExportType):
             )
 
     def get_download_context(self, export) -> dict:
-        system_label, label = self.get_folder(export)
+        folder, label = self.get_folder(export)
         return {"label": label} if label else {}

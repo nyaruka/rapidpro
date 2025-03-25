@@ -9,7 +9,7 @@ from ...models import ChannelType, ConfigUI
 from .views import ClaimView, UpdateForm
 
 
-class ViberPublicType(ChannelType):
+class ViberType(ChannelType):
     """
     A Viber public account channel (https://www.viber.com/public-accounts/)
     """

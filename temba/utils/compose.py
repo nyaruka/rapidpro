@@ -4,59 +4,62 @@ import json
 from temba.msgs.models import Attachment, Media, Q
 
 
-def compose_serialize(translation=None, json_encode=False, *, base_language=None, optin=None):
+def compose_serialize(translations, *, json_encode=False, base_language=None, optin=None) -> dict:
     """
-    Serializes attachments from db to compose widget for populating initial widget values
+    Serializes translations to format for compose widget
     """
 
-    if not translation:
+    if not translations:
         return {}
 
-    translation = copy.deepcopy(translation)
+    translations = copy.deepcopy(translations)
 
     if base_language and optin:
-        translation[base_language]["optin"] = {"uuid": str(optin.uuid), "name": optin.name}
+        translations[base_language]["optin"] = {"uuid": str(optin.uuid), "name": optin.name}
 
-    for details in translation.values():
-        if "attachments" in details:
-            details["attachments"] = compose_serialize_attachments(details["attachments"])
+    for translation in translations.values():
+        if "attachments" in translation:
+            translation["attachments"] = compose_serialize_attachments(translation["attachments"])
 
-    if json_encode:
-        return json.dumps(translation)
+        # for now compose widget only supports simple text quick replies
+        if "quick_replies" in translation:
+            translation["quick_replies"] = [qr["text"] for qr in translation["quick_replies"]]
 
-    return translation
-
-
-def compose_serialize_attachments(attachments):
-    if not attachments:
-        return []
-    parsed_attachments = Attachment.parse_all(attachments)
-    serialized_attachments = []
-    for parsed_attachment in parsed_attachments:
-        media = Media.objects.filter(
-            Q(content_type=parsed_attachment.content_type) and Q(url=parsed_attachment.url)
-        ).first()
-        serialized_attachment = {
-            "uuid": str(media.uuid),
-            "content_type": media.content_type,
-            "url": media.url,
-            "filename": media.filename,
-            "size": str(media.size),
-        }
-        serialized_attachments.append(serialized_attachment)
-    return serialized_attachments
+    return json.dumps(translations) if json_encode else translations
 
 
-def compose_deserialize(compose):
+def compose_serialize_attachments(attachments: list) -> list:
+    serialized = []
+
+    for parsed in Attachment.parse_all(attachments):
+        media = Media.objects.filter(Q(content_type=parsed.content_type) and Q(url=parsed.url)).first()
+        serialized.append(
+            {
+                "uuid": str(media.uuid),
+                "content_type": media.content_type,
+                "url": media.url,
+                "filename": media.filename,
+                "size": str(media.size),
+            }
+        )
+    return serialized
+
+
+def compose_deserialize(compose: dict) -> dict:
     """
     Deserializes attachments from compose widget to db for saving final db values
     """
-    for details in compose.values():
-        details["attachments"] = compose_deserialize_attachments(details.get("attachments", []))
+    for translation in compose.values():
+        translation["attachments"] = compose_deserialize_attachments(translation.get("attachments", []))
+
+        # for now compose widget only supports simple text quick replies
+        if "quick_replies" in translation:
+            translation["quick_replies"] = [{"text": qr} for qr in translation["quick_replies"]]
     return compose
 
 
-def compose_deserialize_attachments(attachments):
+def compose_deserialize_attachments(attachments: list) -> list:
     if not attachments:
         return []
-    return [f"{a['content_type']}:{a['url']}" for a in attachments]
+
+    return [str(Attachment(a["content_type"], a["url"])) for a in attachments]

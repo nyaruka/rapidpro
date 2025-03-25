@@ -6,11 +6,11 @@ from temba.tests import CRUDLTestMixin, MockResponse, TembaTest
 from temba.utils import json
 
 from ...models import Channel
-from .type import ViberPublicType
+from .type import ViberType
 from .views import CONFIG_WELCOME_MESSAGE
 
 
-class ViberPublicTypeTest(TembaTest, CRUDLTestMixin):
+class ViberTypeTest(TembaTest, CRUDLTestMixin):
     def setUp(self):
         super().setUp()
 
@@ -34,7 +34,7 @@ class ViberPublicTypeTest(TembaTest, CRUDLTestMixin):
 
     @patch("requests.post")
     def test_claim(self, mock_post):
-        url = reverse("channels.types.viber_public.claim")
+        url = reverse("channels.types.viber.claim")
 
         self.login(self.admin)
 
@@ -118,5 +118,5 @@ class ViberPublicTypeTest(TembaTest, CRUDLTestMixin):
     def test_get_error_ref_url(self):
         self.assertEqual(
             "https://developers.viber.com/docs/api/rest-bot-api/#error-codes",
-            ViberPublicType().get_error_ref_url(None, "12"),
+            ViberType().get_error_ref_url(None, "12"),
         )

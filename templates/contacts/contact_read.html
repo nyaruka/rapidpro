@@ -119,8 +119,10 @@
 
       if (pending.type == "campaign_event") {
         spaGet("/campaign/read/" + pending.campaign.uuid + "/");
+      } else if (pending.type == "scheduled_broadcast") {
+        spaGet("{% url 'msgs.broadcast_scheduled' %}");
       } else {
-        spaGet("/broadcast/scheduled/");
+        spaGet("{% url 'triggers.trigger_folder' 'schedule' %}");
       }
     }
   </script>

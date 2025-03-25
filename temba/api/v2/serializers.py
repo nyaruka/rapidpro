@@ -139,6 +139,7 @@ class AdminBoundaryReadSerializer(ReadSerializer):
 
 
 class ArchiveReadSerializer(ReadSerializer):
+    type = serializers.CharField(source="archive_type")
     period = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
 
@@ -152,7 +153,7 @@ class ArchiveReadSerializer(ReadSerializer):
 
     class Meta:
         model = Archive
-        fields = ("archive_type", "start_date", "period", "record_count", "size", "hash", "download_url")
+        fields = ("type", "start_date", "period", "record_count", "size", "hash", "download_url", "archive_type")
 
 
 class BroadcastReadSerializer(ReadSerializer):
@@ -511,6 +512,7 @@ class CampaignEventWriteSerializer(WriteSerializer):
 
 
 class ChannelReadSerializer(ReadSerializer):
+    type = serializers.CharField(source="type.slug")
     country = serializers.SerializerMethodField()
     device = serializers.SerializerMethodField()
     created_on = serializers.DateTimeField(default_timezone=tzone.utc)
@@ -533,7 +535,7 @@ class ChannelReadSerializer(ReadSerializer):
 
     class Meta:
         model = Channel
-        fields = ("uuid", "name", "address", "country", "device", "last_seen", "created_on")
+        fields = ("uuid", "name", "address", "type", "country", "device", "last_seen", "created_on")
 
 
 class ClassifierReadSerializer(ReadSerializer):

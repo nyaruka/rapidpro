@@ -131,6 +131,7 @@ class ExplorerView(OrgPermsMixin, SmartTemplateView):
             LabelsEndpoint.get_write_explorer(),
             LabelsEndpoint.get_delete_explorer(),
             MessagesEndpoint.get_read_explorer(),
+            MessagesEndpoint.get_write_explorer(),
             MessageActionsEndpoint.get_write_explorer(),
             ResthooksEndpoint.get_read_explorer(),
             ResthookEventsEndpoint.get_read_explorer(),
@@ -320,7 +321,7 @@ class ArchivesEndpoint(ListAPIMixin, BaseEndpoint):
 
     A `GET` returns the archives for your organization with the following fields.
 
-      * **archive_type** - the type of the archive, one of `message` or `run` (filterable as `archive_type`).
+      * **type** - the type of the archive, one of `message` or `run` (filterable as `type`).
       * **start_date** - the UTC date of the archive (string) (filterable as `before` and `after`).
       * **period** - `daily` for daily archives, `monthly` for monthly archives (filterable as `period`).
       * **record_count** - number of records in the archive (int).
@@ -330,7 +331,7 @@ class ArchivesEndpoint(ListAPIMixin, BaseEndpoint):
 
     Example:
 
-        GET /api/v2/archives.json?archive_type=message&before=2017-05-15&period=daily
+        GET /api/v2/archives.json?type=message&before=2017-05-15&period=daily
 
     Response is a list of the archives on your account
 
@@ -340,7 +341,7 @@ class ArchivesEndpoint(ListAPIMixin, BaseEndpoint):
             "count": 248,
             "results": [
             {
-                "archive_type": "message",
+                "type": "message",
                 "start_date": "2017-02-20",
                 "period": "daily",
                 "record_count": 1432,
@@ -362,8 +363,8 @@ class ArchivesEndpoint(ListAPIMixin, BaseEndpoint):
         return queryset.order_by("-start_date").exclude(period=Archive.PERIOD_DAILY, rollup_id__isnull=False)
 
     def filter_queryset(self, queryset):
-        # filter by `archive_type`
-        archive_type = self.request.query_params.get("archive_type")
+        # filter by `type`
+        archive_type = self.request.query_params.get("type") or self.request.query_params.get("archive_type")
         if archive_type:
             queryset = queryset.filter(archive_type=archive_type)
 
@@ -387,11 +388,11 @@ class ArchivesEndpoint(ListAPIMixin, BaseEndpoint):
             "slug": "archive-list",
             "params": [
                 {
-                    "name": "archive_type",
+                    "name": "type",
                     "required": False,
-                    "help": "An archive_type to filter by, like: run, message",
+                    "help": "The archive type to filter by: run or message",
                 },
-                {"name": "period", "required": False, "help": "A period to filter by: daily, monthly"},
+                {"name": "period", "required": False, "help": "The period to filter by: daily or monthly"},
             ],
         }
 
@@ -483,8 +484,14 @@ class BroadcastsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
         {
             "urns": ["tel:+250788123123", "tel:+250788123124"],
             "contacts": ["09d23a05-47fe-11e4-bfe9-b8f6b119e9ab"],
-            "text": {"eng": "Hello @contact.name!", "spa": "Hola @contact.name!"},
-            "quick_replies": {"eng": [{"text": "Hey"}, {"text": "Hello!"}]}
+            "text": {
+                "eng": "Hello @contact.name! Burger or pizza?",
+                "spa": "Hola @contact.name! Hamburguesa o pizza?"
+            },
+            "quick_replies": {
+                "eng": [{"text": "Burger", "extra": "With cheese"}, {"text": "Pizza"}],
+                "spa": [{"text": "Hamburguesa", "extra": "Con queso"}, {"text": "Pizza"}]
+            },
             "base_language": "eng"
         }
 
@@ -495,9 +502,15 @@ class BroadcastsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
             "urns": ["tel:+250788123123", "tel:+250788123124"],
             "contacts": [{"uuid": "09d23a05-47fe-11e4-bfe9-b8f6b119e9ab", "name": "Joe"}]
             "groups": [],
-            "text": {"eng": "Hello @contact.name!", "spa": "Hola @contact.name!"},
+            "text": {
+                "eng": "Hello @contact.name! Burger or pizza?",
+                "spa": "Hola @contact.name! Hamburguesa o pizza?"
+            },
             "attachments": {"eng": [], "spa": []},
-            "quick_replies": {"eng": [{"text": "Hey"}, {"text": "Hello!"}], "spa": []},
+            "quick_replies": {
+                "eng": [{"text": "Burger", "extra": "With cheese"}, {"text": "Pizza"}],
+                "spa": [{"text": "Hamburguesa", "extra": "Con queso"}, {"text": "Pizza"}]
+            },
             "base_language": "eng",
             "created_on": "2013-03-02T17:28:12.123456Z"
         }
@@ -916,6 +929,7 @@ class ChannelsEndpoint(ListAPIMixin, BaseEndpoint):
      * **uuid** - the UUID of the channel (string), filterable as `uuid`.
      * **name** - the name of the channel (string).
      * **address** - the address (e.g. phone number, Twitter handle) of the channel (string), filterable as `address`.
+     * **type** - the type of the channel (e.g. android, facebook, telegram, twilio, vonage...)
      * **country** - which country the sim card for this channel is registered for (string, two letter country code).
      * **device** - information about the device if this is an Android channel:
         * **name** - the name of the device (string).
@@ -940,6 +954,7 @@ class ChannelsEndpoint(ListAPIMixin, BaseEndpoint):
                 "uuid": "09d23a05-47fe-11e4-bfe9-b8f6b119e9ab",
                 "name": "Android Phone",
                 "address": "+250788123123",
+                "type": "android",
                 "country": "RW",
                 "device": {
                     "name": "Nexus 5X",
@@ -2309,9 +2324,9 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
         POST /api/v2/messages.json
         {
             "contact": "d33e9ad5-5c35-414c-abd4-e7451c69ff1d",
-            "text": "Hi Bob",
+            "text": "Burger or pizza?",
             "attachments": [],
-            "quick_repies": [{"text": "Hey"}, {"text": "Hi"}]
+            "quick_repies": [{"text": "Burger", "extra": "With cheese"}, {"text": "Pizza"}]
 
         }
 
@@ -2327,9 +2342,9 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
             "type": "text",
             "status": "queued",
             "visibility": "visible",
-            "text": "Hi Bob",
+            "text": "Burger or pizza?",
             "attachments": [],
-            "quick_replies": [{"text": "Hey"}, {"text": "Hi"}],
+            "quick_replies": [{"text": "Burger", "extra": "With cheese"}, {"text": "Pizza"}],
             "labels": [],
             "flow": null,
             "created_on": "2023-01-06T15:33:00.813162Z",
@@ -2469,6 +2484,25 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
                 },
             ],
             "example": {"query": "folder=inbox&after=2014-01-01T00:00:00.000"},
+        }
+
+    @classmethod
+    def get_write_explorer(cls):
+        return {
+            "method": "POST",
+            "title": "Send Messages",
+            "url": reverse("api.v2.messages"),
+            "slug": "message-write",
+            "fields": [
+                {"name": "contact", "required": True, "help": "The UUID of the contact"},
+                {"name": "text", "required": False, "help": "The text of the message (string)"},
+                {"name": "attachments", "required": False, "help": "The attachments on the message (array of strings)"},
+                {
+                    "name": "quick_replies",
+                    "required": False,
+                    "help": "The quick replies on the message (array of objects)",
+                },
+            ],
         }
 
 
