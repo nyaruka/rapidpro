@@ -1,3 +1,7 @@
+v10.1.106 (2025-03-25)
+-------------------------
+ * Go back to init form on lookup_field_help
+
 v10.1.105 (2025-03-25)
 -------------------------
  * Add org limit for LLMs
