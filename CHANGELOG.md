@@ -1,3 +1,11 @@
+v10.1.105 (2025-03-25)
+-------------------------
+ * Add org limit for LLMs
+ * Update gunicorn to latest
+ * Fix upcoming links to triggers in contact read page
+ * Fix fetching scheduled broadcasts for contacts so we don't return dupes
+ * Add new AI app with LLM model
+
 v10.1.104 (2025-03-24)
 -------------------------
  * Add type slug to channels endpoint
