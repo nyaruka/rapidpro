@@ -76,15 +76,9 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
         team = Team.objects.get(name="Sales")
         self.assertEqual({sales}, set(team.topics.all()))
 
-        # try to create another now that we've reached the limit
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"name": "Training", "topics": [sales.id]},
-            form_errors={
-                "__all__": "This workspace has reached its limit of 1 teams. You must delete existing ones before you can create new ones."
-            },
-        )
+        # check we can't access this view now that we've reached the limit
+        response = self.requestView(create_url, self.admin)
+        self.assertRedirect(response, "/team/")
 
     def test_update(self):
         sales = Topic.create(self.org, self.admin, "Sales")
@@ -175,3 +169,9 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRequestDisallowed(list_url, [None, self.agent, self.editor])
 
         self.assertListFetch(list_url, [self.admin], context_objects=[self.org.default_ticket_team, team2, team1])
+        self.assertContentMenu(list_url, self.admin, ["New"])
+
+        with override_settings(ORG_LIMIT_DEFAULTS={"teams": 2}):
+            response = self.assertListFetch(list_url, [self.admin], context_object_count=3)
+            self.assertContains(response, "You have reached the per-workspace limit")
+            self.assertContentMenu(list_url, self.admin, [])

@@ -127,6 +127,8 @@ class RequireFeatureMixin:
         if set(request.org.features).isdisjoint(require_any):
             return HttpResponseRedirect(reverse("orgs.org_workspace"))
 
+        return super().pre_process(request, *args, **kwargs)
+
 
 class InferOrgMixin:
     """
