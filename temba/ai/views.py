@@ -14,7 +14,7 @@ class LLMCRUDL(SmartCRUDL):
     actions = ("list", "delete")
 
     class List(SpaMixin, ContextMenuMixin, BaseListView):
-        title = _("AI Models")
+        title = _("Artificial Intelligence")
         menu_path = "settings/ai"
         default_order = ("name",)
 
