@@ -93,12 +93,8 @@ class MtnTypeTest(TembaTest):
             )
 
             with override_settings(ORG_LIMIT_DEFAULTS={"channels": 1}):
-                response = self.client.post(url, post_data)
-                self.assertFormError(
-                    response.context["form"],
-                    None,
-                    "This workspace has reached its limit of 1 channels. You must delete existing ones before you can create new ones.",
-                )
+                response = self.client.get(url)
+                self.assertRedirect(response, "/org/workspace/")
 
             # release channel and deactivate the subscription
             channel.release(self.admin)
