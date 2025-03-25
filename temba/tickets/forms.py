@@ -97,21 +97,6 @@ class TopicForm(forms.ModelForm):
 
         return name
 
-    def clean(self):
-        cleaned_data = super().clean()
-
-        count, limit = Topic.get_org_limit_progress(self.org)
-        if limit is not None and count >= limit:
-            raise forms.ValidationError(
-                _(
-                    "This workspace has reached its limit of %(limit)d topics. "
-                    "You must delete existing ones before you can create new ones."
-                ),
-                params={"limit": limit},
-            )
-
-        return cleaned_data
-
     class Meta:
         model = Topic
         fields = ("name",)

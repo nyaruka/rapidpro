@@ -174,6 +174,18 @@ class TembaModel(TembaUUIDMixin, TembaNameMixin, SmartModel):
         return cls.get_active_for_org(org).filter(is_system=False).count(), limit
 
     @classmethod
+    def is_limit_reached(cls, org) -> bool:
+        """
+        Returns whether we've reached the org limit for this model
+        """
+
+        if cls.org_limit_key:
+            count, limit = cls.get_org_limit_progress(org)
+            return limit is not None and count >= limit
+
+        return False
+
+    @classmethod
     def import_def(cls, org, user, definition: dict, preview: bool = False) -> tuple:
         """
         Imports an exported definition returning the new or matching object and the import result.

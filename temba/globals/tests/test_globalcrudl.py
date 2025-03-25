@@ -33,6 +33,12 @@ class GlobalCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertListFetch(unused_url, [self.editor, self.admin], context_objects=[self.global2])
         self.assertContentMenu(list_url, self.admin, ["New"])
+        self.assertContentMenu(list_url, self.editor, ["New"])
+
+        with override_settings(ORG_LIMIT_DEFAULTS={"globals": 2}):
+            response = self.assertListFetch(list_url, [self.editor], context_object_count=2)
+            self.assertContains(response, "You have reached the per-workspace limit")
+            self.assertContentMenu(list_url, self.admin, [])
 
     @override_settings(ORG_LIMIT_DEFAULTS={"globals": 4})
     def test_create(self):
@@ -77,15 +83,9 @@ class GlobalCRUDLTest(TembaTest, CRUDLTestMixin):
             new_obj_query=Global.objects.filter(org=self.org, name="Secret2", value="[abc]"),
         )
 
-        # try to create another now that we've reached the limit
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"name": "Secret3", "value": "[abc]"},
-            form_errors={
-                "__all__": "This workspace has reached its limit of 4 globals. You must delete existing ones before you can create new ones."
-            },
-        )
+        # check we can't access this view now that we've reached the limit
+        response = self.requestView(create_url, self.admin)
+        self.assertRedirect(response, "/global/")
 
     def test_update(self):
         update_url = reverse("globals.global_update", args=[self.global1.id])

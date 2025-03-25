@@ -1,12 +1,12 @@
 from gettext import gettext as _
 
-from smartmin.views import SmartCreateView, SmartCRUDL, SmartUpdateView
+from smartmin.views import SmartCRUDL, SmartUpdateView
 
 from django import forms
 from django.urls import reverse
 
-from temba.orgs.views.base import BaseDependencyDeleteModal, BaseListView, BaseUsagesModal
-from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin
+from temba.orgs.views.base import BaseCreateModal, BaseDependencyDeleteModal, BaseListView, BaseUsagesModal
+from temba.orgs.views.mixins import OrgObjPermsMixin
 from temba.utils.fields import InputWidget
 from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, SpaMixin
 
@@ -19,21 +19,6 @@ class CreateGlobalForm(forms.ModelForm):
         del kwargs["org"]
 
         super().__init__(*args, **kwargs)
-
-    def clean(self):
-        cleaned_data = super().clean()
-
-        count, limit = Global.get_org_limit_progress(self.org)
-        if limit is not None and count >= limit:
-            raise forms.ValidationError(
-                _(
-                    "This workspace has reached its limit of %(limit)d globals. "
-                    "You must delete existing ones before you can create new ones."
-                ),
-                params={"limit": limit},
-            )
-
-        return cleaned_data
 
     def clean_name(self):
         name = self.cleaned_data["name"]
@@ -79,14 +64,9 @@ class GlobalCRUDL(SmartCRUDL):
     model = Global
     actions = ("create", "update", "delete", "list", "unused", "usages")
 
-    class Create(ModalFormMixin, OrgPermsMixin, SmartCreateView):
+    class Create(BaseCreateModal):
         form_class = CreateGlobalForm
         submit_button_name = _("Create")
-
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["org"] = self.derive_org()
-            return kwargs
 
         def form_valid(self, form):
             self.object = Global.get_or_create(
@@ -121,7 +101,7 @@ class GlobalCRUDL(SmartCRUDL):
         menu_path = "/flow/globals"
 
         def build_context_menu(self, menu):
-            if self.has_org_perm("globals.global_create"):
+            if self.has_org_perm("globals.global_create") and not self.is_limit_reached():
                 menu.add_modax(
                     _("New"),
                     "new-global",

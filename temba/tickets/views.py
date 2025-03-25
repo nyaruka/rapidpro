@@ -199,9 +199,12 @@ class TicketCRUDL(SmartCRUDL):
                 )
             )
             menu.append(self.create_modax_button(_("Export"), "tickets.ticket_export", icon="export"))
-            menu.append(
-                self.create_modax_button(_("New Topic"), "tickets.topic_create", icon="add", on_submit="refreshMenu()")
-            )
+            if not Topic.is_limit_reached(org):
+                menu.append(
+                    self.create_modax_button(
+                        _("New Topic"), "tickets.topic_create", icon="add", on_submit="refreshMenu()"
+                    )
+                )
 
             menu.append(self.create_divider())
 

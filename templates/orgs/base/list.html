@@ -6,6 +6,15 @@
   {% endblock modaxes %}
   {% block pre-table %}
   {% endblock pre-table %}
+  {% if limit_reached %}
+    <temba-alert level="warning" class="mb-4">
+      {% block limitwarning %}
+        {% blocktrans trimmed %}
+          You have reached the per-workspace limit and must delete existing ones before you can create new ones.
+        {% endblocktrans %}
+      {% endblock limitwarning %}
+    </temba-alert>
+  {% endif %}
   {% if view.search_fields %}
     {% block search-form %}
       <form method="get" action="{{ request.path }}" id="search-form" class="mb-4">

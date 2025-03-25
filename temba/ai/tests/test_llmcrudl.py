@@ -1,3 +1,4 @@
+from django.test import override_settings
 from django.urls import reverse
 
 from temba.ai.models import LLM
@@ -29,13 +30,10 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContentMenu(list_url, self.admin, ["New"])
         self.assertContentMenu(list_url, self.editor, [])
 
-        # create more models to hit the org limit
-        for i in range(8):
-            LLM.create(self.org, self.admin, OpenAIType.slug, f"Model {i}", {})
-
-        response = self.assertListFetch(list_url, [self.editor, self.admin], context_object_count=10)
-        self.assertContains(response, "You have reached the limit")
-        self.assertContentMenu(list_url, self.admin, [])
+        with override_settings(ORG_LIMIT_DEFAULTS={"llms": 2}):
+            response = self.assertListFetch(list_url, [self.editor, self.admin], context_object_count=2)
+            self.assertContains(response, "You have reached the per-workspace limit")
+            self.assertContentMenu(list_url, self.admin, [])
 
     def test_delete(self):
         list_url = reverse("ai.llm_list")

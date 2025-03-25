@@ -50,6 +50,10 @@ class BaseCreateModal(ComponentFormMixin, ModalFormMixin, OrgPermsMixin, SmartCr
     Base create modal view
     """
 
+    def pre_process(self, request, *args, **kwargs):
+        if self.model.is_limit_reached(self.request.org):
+            return HttpResponseRedirect(self.get_success_url())
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["org"] = self.request.org
@@ -113,6 +117,17 @@ class BaseListView(OrgPermsMixin, SmartListView):
             qs = qs.filter(is_active=True)
 
         return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["limit_reached"] = self.is_limit_reached()
+        return context
+
+    def is_limit_reached(self) -> bool:
+        """
+        Returns whether we've reached the org limit for this model
+        """
+        return self.model.is_limit_reached(self.request.org)
 
 
 class BaseMenuView(OrgPermsMixin, SmartTemplateView):

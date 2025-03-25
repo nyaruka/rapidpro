@@ -54,15 +54,9 @@ class TopicCRUDLTest(TembaTest, CRUDLTestMixin):
             success_status=302,
         )
 
-        # try to create another now that we've reached the limit
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"name": "Training"},
-            form_errors={
-                "__all__": "This workspace has reached its limit of 2 topics. You must delete existing ones before you can create new ones."
-            },
-        )
+        # check we can't access this view now that we've reached the limit
+        response = self.requestView(create_url, self.admin)
+        self.assertRedirect(response, "hide")
 
     def test_update(self):
         topic = Topic.create(self.org, self.admin, "Hot Topic")
