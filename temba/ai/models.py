@@ -50,6 +50,8 @@ class LLM(TembaModel, DependencyMixin):
     llm_type = models.CharField(max_length=16)
     config = models.JSONField()
 
+    org_limit_key = Org.LIMIT_LLMS
+
     @classmethod
     def create(cls, org, user, llm_type, name, config=None):
         if config is None:

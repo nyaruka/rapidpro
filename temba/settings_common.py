@@ -863,6 +863,7 @@ ORG_LIMIT_DEFAULTS = {
     "globals": 250,
     "groups": 250,
     "labels": 250,
+    "llms": 10,
     "teams": 50,
     "topics": 50,
 }
