@@ -285,6 +285,11 @@
                     "uuid": "81c0f323-7e06-4e0c-a960-19c20f17117c",
                     "name": "Parent Child Expiration",
                     "file": "parent_child_expiration.json"
+                },
+                {
+                    "uuid": "1ff89517-5735-466b-be31-682b49521cbf",
+                    "name": "Background",
+                    "file": "background.json"
                 }
             ],
             "campaigns": [
