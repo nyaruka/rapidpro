@@ -66,6 +66,8 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
         if self.folder:
             self.queryset = self.folder.get_queryset(request.org)
 
+        return super().pre_process(request, *args, **kwargs)
+
     def derive_folder(self):
         return self.folder
 

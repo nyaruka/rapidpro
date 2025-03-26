@@ -119,6 +119,15 @@ class BaseListView(LimitAwareMixin, OrgPermsMixin, SmartListView):
     Base list view for objects that belong to the current org
     """
 
+    search_max_length = 1_000
+
+    def pre_process(self, request, *args, **kwargs):
+        search = request.GET.get("search")
+        if search and len(search) > self.search_max_length:
+            return HttpResponse("Search query too long", status=413)
+
+        return super().pre_process(request, *args, **kwargs)
+
     def derive_queryset(self, **kwargs):
         qs = super().derive_queryset(**kwargs).filter(org=self.request.org)
 
