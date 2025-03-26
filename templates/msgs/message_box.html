@@ -1,127 +1,111 @@
-{% extends "smartmin/list.html" %}
-{% load smartmin sms temba compress contacts i18n humanize channels %}
+{% extends "orgs/base/list.html" %}
+{% load smartmin sms temba contacts i18n humanize channels %}
 
-{% block extra-style %}
-  {{ block.super }}
-  <style type="text/css">
-    temba-button {
-      display: block;
-    }
-  </style>
-{% endblock extra-style %}
-{% block content %}
+{% block modaxes %}
   <temba-modax header="{% trans "New Label" %}"
                endpoint="{% url 'msgs.label_create' %}"
                -temba-loaded="handleCreateLabelModalLoaded"
                -temba-submitted="handleCreateLabelModalSubmitted"
                id="create-label-modal">
   </temba-modax>
-  <form method="get" action="{{ request.path }}" id="search-form">
-    <temba-textinput placeholder="{% trans "Search" %}" name="search" value="{{ search }}" class="w-full">
-    </temba-textinput>
-    <input type="submit" class="hide">
-  </form>
-  <div class="mt-4 shadow rounded-lg rounded-bl-none rounded-br-none bg-white">{% include "includes/short_pagination.html" %}</div>
-  <div class="flex-grow overflow-y-auto shadow rounded-b-lg">
-    {% if has_messages %}
-      <table class="{% if org_perms.msgs.msg_update or org_perms.msgs.broadcast_create %}selectable{% endif %} list object-list lined scrolled">
-        <tbody>
-          {% for object in object_list %}
-            <tr data-object-id="{{ object.id }}"
-                data-sender-id="{{ object.contact.id }}"
-                data-sender-uuid="{{ object.contact.uuid }}"
-                onclick="handleRowClicked(event)"
-                href="{% url 'contacts.contact_read' object.contact.uuid %}"
-                class="sms object-row"
-                id="id-row-{{ object.id }}">
-              {% if actions %}
-                {% if org_perms.msgs.msg_update or org_perms.msgs.broadcast_create %}
-                  <td onclick="checkInner(event);" class="checkbox sms object-row-check">
-                    <temba-checkbox onclick="handleRowSelection(this)">
-                    </temba-checkbox>
-                  </td>
-                {% endif %}
+  <temba-dialog header="{{ _("Delete Selected Messages") |escapejs }}"
+                primaryButtonName="{{ _("Delete") |escapejs }}"
+                destructive="true"
+                class="hide"
+                id="delete-confirmation">
+    <div class="p-6">{% trans "Are you sure you want to delete the selected messages? This cannot be undone." %}</div>
+  </temba-dialog>
+{% endblock modaxes %}
+{% block table %}
+  {% if has_messages %}
+    <table class="{% if org_perms.msgs.msg_update or org_perms.msgs.broadcast_create %}selectable{% endif %} list object-list lined scrolled">
+      <tbody>
+        {% for object in object_list %}
+          <tr data-object-id="{{ object.id }}"
+              data-sender-id="{{ object.contact.id }}"
+              data-sender-uuid="{{ object.contact.uuid }}"
+              onclick="handleRowClicked(event)"
+              href="{% url 'contacts.contact_read' object.contact.uuid %}"
+              class="sms object-row"
+              id="id-row-{{ object.id }}">
+            {% if actions %}
+              {% if org_perms.msgs.msg_update or org_perms.msgs.broadcast_create %}
+                <td onclick="checkInner(event);" class="checkbox sms object-row-check">
+                  <temba-checkbox onclick="handleRowSelection(this)">
+                  </temba-checkbox>
+                </td>
               {% endif %}
-              <td class="whitespace-nowrap">{{ object.contact|name_or_urn:user_org|truncatechars:20 }}</td>
-              <td class="w-full">
-                <div class="flex flex-row flex-end items-center justify-end">
-                  {% if object.msg_type == "O" %}
-                    <div class="flex-grow optin flex">
-                      <temba-icon name="optin_requested" class="mr-2">
-                      </temba-icon>
-                      <div class="flex-grow">
-                        {% blocktrans trimmed with optin=object.optin.name %}
-                          Opt-in request for {{ optin }}
-                        {% endblocktrans %}
-                      </div>
+            {% endif %}
+            <td class="whitespace-nowrap">{{ object.contact|name_or_urn:user_org|truncatechars:20 }}</td>
+            <td class="w-full">
+              <div class="flex flex-row flex-end items-center justify-end">
+                {% if object.msg_type == "O" %}
+                  <div class="flex-grow optin flex">
+                    <temba-icon name="optin_requested" class="mr-2">
+                    </temba-icon>
+                    <div class="flex-grow">
+                      {% blocktrans trimmed with optin=object.optin.name %}
+                        Opt-in request for {{ optin }}
+                      {% endblocktrans %}
                     </div>
-                  {% else %}
-                    <div style="display: -webkit-box;
-                                -webkit-line-clamp: 1;
-                                -webkit-box-orient: vertical;
-                                overflow: hidden;
-                                word-break: break-all"
-                         class="flex-grow">{{ object.text }}</div>
-                  {% endif %}
-                  <div class="flex items-center flex-row">
-                    {% if 'label' in actions %}
-                      {% for label in object.labels.all %}
-                        <a href="{% url 'msgs.msg_filter' label.uuid %}" onclick="goto(event, this)">
-                          <temba-label data-id="{{ label.id }}" icon="label" clickable class="mx-1 my-1">
-                            {{ label.name }}
-                          </temba-label>
-                        </a>
-                      {% endfor %}
-                    {% endif %}
-                    {% if object.flow and object.flow.is_active %}
-                      <a href="{% url 'flows.flow_editor' object.flow.uuid %}" onclick="goto(event, this)">
-                        <temba-label icon="flow" primary clickable class="mx-1 my-1">
-                          {{ object.flow.name }}
+                  </div>
+                {% else %}
+                  <div style="display: -webkit-box;
+                              -webkit-line-clamp: 1;
+                              -webkit-box-orient: vertical;
+                              overflow: hidden;
+                              word-break: break-all"
+                       class="flex-grow">{{ object.text }}</div>
+                {% endif %}
+                <div class="flex items-center flex-row">
+                  {% if 'label' in actions %}
+                    {% for label in object.labels.all %}
+                      <a href="{% url 'msgs.msg_filter' label.uuid %}" onclick="goto(event, this)">
+                        <temba-label data-id="{{ label.id }}" icon="label" clickable class="mx-1 my-1">
+                          {{ label.name }}
                         </temba-label>
                       </a>
-                    {% endif %}
-                  </div>
-                </div>
-                {% if object.attachments %}
-                  <div style="margin-top: 5px" class="value-attachments">
-                    {% for attachment in object.attachments %}
-                      {% attachment_button attachment %}
                     {% endfor %}
-                  </div>
-                {% endif %}
-              </td>
-              <td>
-                <div class="flex w-full items-center justify-end pr-4">
-                  <div class="time whitespace-nowrap">
-                    {% block message_time %}
-                      {{ object.created_on|timedate }}
-                    {% endblock message_time %}
-                  </div>
-                  {% channel_log_link object %}
+                  {% endif %}
+                  {% if object.flow and object.flow.is_active %}
+                    <a href="{% url 'flows.flow_editor' object.flow.uuid %}" onclick="goto(event, this)">
+                      <temba-label icon="flow" primary clickable class="mx-1 my-1">
+                        {{ object.flow.name }}
+                      </temba-label>
+                    </a>
+                  {% endif %}
                 </div>
-              </td>
-            </tr>
-          {% empty %}
-            <tr class="empty_list">
-              <td colspan="99" class="text-center">{% trans "No messages" %}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% else %}
-      {% include "msgs/empty_include.html" %}
-    {% endif %}
-  </div>
-  {% if org_perms.msgs.msg_delete %}
-    <temba-dialog header="{{ _("Delete Selected Messages") |escapejs }}"
-                  primaryButtonName="{{ _("Delete") |escapejs }}"
-                  destructive="true"
-                  class="hide"
-                  id="delete-confirmation">
-      <div class="p-6">{% trans "Are you sure you want to delete the selected messages? This cannot be undone." %}</div>
-    </temba-dialog>
+              </div>
+              {% if object.attachments %}
+                <div style="margin-top: 5px" class="value-attachments">
+                  {% for attachment in object.attachments %}
+                    {% attachment_button attachment %}
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </td>
+            <td>
+              <div class="flex w-full items-center justify-end pr-4">
+                <div class="time whitespace-nowrap">
+                  {% block message_time %}
+                    {{ object.created_on|timedate }}
+                  {% endblock message_time %}
+                </div>
+                {% channel_log_link object %}
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr class="empty_list">
+            <td colspan="99" class="text-center">{% trans "No messages" %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    {% include "msgs/empty_include.html" %}
   {% endif %}
-{% endblock content %}
+{% endblock table %}
 {% block extra-script %}
   {{ block.super }}
   <script type="text/javascript">

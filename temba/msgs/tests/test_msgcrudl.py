@@ -64,8 +64,10 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(("archive", "label"), response.context["actions"])
 
         # test searching
-        response = self.client.get(inbox_url + "?search=joe")
-        self.assertEqual([msg2, msg1], list(response.context_data["object_list"]))
+        self.assertListFetch(inbox_url + "?search=joe", [self.editor, self.admin], context_objects=[msg2, msg1])
+
+        # error response if query too long
+        self.assertListFetch(inbox_url + "?search=" + "x" * 1001, [self.editor], status=413)
 
         # add some labels
         label1 = self.create_label("label1")
