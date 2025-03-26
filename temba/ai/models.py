@@ -90,8 +90,7 @@ class LLM(TembaModel, DependencyMixin):
         return {
             "uuid": str(self.uuid),
             "name": self.name,
-            "type": self.type,
-            "model": self.get_model(),
+            "type": self.llm_type,
         }
 
     def __str__(self):

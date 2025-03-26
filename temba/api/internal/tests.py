@@ -317,8 +317,8 @@ class EndpointsTest(APITestMixin, TembaTest):
     def test_llms(self):
         endpoint_url = reverse("api.internal.llms") + ".json"
 
-        self.basic = LLM.create(self.org, self.admin, OpenAIType.slug, "Basic", "api_key", "gpt-turbo-3.5")
-        self.advanced = LLM.create(self.org, self.admin, OpenAIType.slug, "Advanced", "api_key", "gpt-4o")
+        self.basic = LLM.create(self.org, self.admin, OpenAIType.slug, "Basic")
+        self.advanced = LLM.create(self.org, self.admin, OpenAIType.slug, "Advanced")
 
         self.assertGetNotPermitted(endpoint_url, [None])
         self.assertPostNotAllowed(endpoint_url)
@@ -329,13 +329,11 @@ class EndpointsTest(APITestMixin, TembaTest):
             [self.admin],
             results=[
                 {
-                    "model": "gpt-turbo-3.5",
                     "name": "Basic",
                     "type": "openai",
                     "uuid": str(self.basic.uuid),
                 },
                 {
-                    "model": "gpt-4o",
                     "name": "Advanced",
                     "type": "openai",
                     "uuid": str(self.advanced.uuid),
@@ -350,7 +348,6 @@ class EndpointsTest(APITestMixin, TembaTest):
             [self.admin],
             results=[
                 {
-                    "model": "gpt-turbo-3.5",
                     "name": "Basic",
                     "type": "openai",
                     "uuid": str(self.basic.uuid),
