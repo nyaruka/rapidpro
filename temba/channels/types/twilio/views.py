@@ -103,7 +103,7 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
         self.account = None
         self.client = None
 
-    def pre_process(self, *args, **kwargs):
+    def pre_process(self, request, *args, **kwargs):
         try:
             self.client = self.get_twilio_client()
             if not self.client:
@@ -116,7 +116,7 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
                 f'{reverse("channels.types.twilio.connect")}?claim_type={self.channel_type.slug}'
             )
 
-        return super().pre_process(*args, **kwargs)
+        return super().pre_process(request, *args, **kwargs)
 
     def get_search_countries_tuple(self):
         return SEARCH_COUNTRY_CHOICES
@@ -432,7 +432,7 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
     menu_path = "/settings/channels/new-channel"
     title = "Connect Twilio"
 
-    def pre_process(self, *args, **kwargs):
+    def pre_process(self, request, *args, **kwargs):
         reset_creds = self.request.GET.get("reset_creds", "")
         org = self.request.org
 
@@ -451,7 +451,7 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
 
             return HttpResponseRedirect(self.get_success_url())
 
-        return super().pre_process(*args, **kwargs)
+        return super().pre_process(request, *args, **kwargs)
 
     def get_success_url(self):
         claim_type = self.request.GET.get("claim_type", "twilio")

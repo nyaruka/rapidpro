@@ -66,7 +66,7 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
 
     form_class = Form
 
-    def pre_process(self, *args, **kwargs):
+    def pre_process(self, request, *args, **kwargs):
         auth_id = self.request.session.get(self.channel_type.CONFIG_AUTH_ID, None)
         auth_token = self.request.session.get(self.channel_type.CONFIG_AUTH_TOKEN, None)
 
@@ -79,7 +79,7 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
         if response.status_code != 200:
             return HttpResponseRedirect(reverse("channels.types.plivo.connect"))
 
-        return super().pre_process(*args, **kwargs)
+        return super().pre_process(request, *args, **kwargs)
 
     def is_valid_country(self, calling_code: int) -> bool:
         return calling_code in CALLING_CODES
@@ -293,7 +293,7 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
     def get_success_url(self):
         return reverse("channels.types.plivo.claim")
 
-    def pre_process(self, *args, **kwargs):
+    def pre_process(self, request, *args, **kwargs):
         reset_creds = self.request.GET.get("reset_creds", "")
 
         org = self.request.org
@@ -310,7 +310,7 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
             )
             return HttpResponseRedirect(self.get_success_url())
 
-        return super().pre_process(*args, **kwargs)
+        return super().pre_process(request, *args, **kwargs)
 
     def form_valid(self, form):
         auth_id = form.cleaned_data["auth_id"]

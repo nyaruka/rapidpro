@@ -37,7 +37,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             return TwilioClient(account_sid, account_token)
         return None
 
-    def pre_process(self, *args, **kwargs):
+    def pre_process(self, request, *args, **kwargs):
         try:
             self.client = self.get_twilio_client()
             if not self.client:
@@ -50,7 +50,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
                 f'{reverse("channels.types.twilio.connect")}?claim_type={self.channel_type.slug}'
             )
 
-        return super().pre_process(*args, **kwargs)
+        return super().pre_process(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

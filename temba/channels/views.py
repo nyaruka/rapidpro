@@ -800,12 +800,12 @@ class ChannelCRUDL(SmartCRUDL):
     class Configuration(SpaMixin, BaseReadView):
         slug_url_kwarg = "uuid"
 
-        def pre_process(self, *args, **kwargs):
+        def pre_process(self, request, *args, **kwargs):
             channel = self.get_object()
             if not channel.type.config_ui:
                 return HttpResponseRedirect(reverse("channels.channel_read", args=[channel.uuid]))
 
-            return super().pre_process(*args, **kwargs)
+            return super().pre_process(request, *args, **kwargs)
 
         def derive_menu_path(self):
             return f"/settings/channels/{self.object.uuid}"
