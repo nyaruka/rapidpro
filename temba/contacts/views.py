@@ -62,7 +62,7 @@ HISTORY_INCLUDE_EVENTS = {
 }
 
 
-class ContactListView(SpaMixin, OrgPermsMixin, BulkActionMixin, SmartListView):
+class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
     """
     Base class for contact list views with contact folders and groups listed by the side
     """
@@ -80,6 +80,7 @@ class ContactListView(SpaMixin, OrgPermsMixin, BulkActionMixin, SmartListView):
 
     search_fields = ("name",)  # so that search box is displayed
     search_error = None
+    search_max_length = ContactGroup.MAX_QUERY_LEN
 
     def pre_process(self, request, *args, **kwargs):
         """

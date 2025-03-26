@@ -19,7 +19,11 @@
     {% if view.search_fields %}
       {% block search-form %}
         <form method="get" action="{{ request.path }}" id="search-form" class="mb-4">
-          <temba-textinput placeholder="{% trans "Search" %}" name="search" value="{{ search }}" class="w-full">
+          <temba-textinput placeholder="{% trans "Search" %}"
+                           name="search"
+                           value="{{ search }}"
+                           maxlength="{{ view.search_max_length }}"
+                           class="w-full">
           </temba-textinput>
           <input type="submit" class="hide">
         </form>
