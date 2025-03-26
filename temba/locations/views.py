@@ -36,7 +36,7 @@ class BoundaryCRUDL(SmartCRUDL):
                     messages.warning(request, _("You must select a country for your workspace."))
                     return HttpResponseRedirect(reverse("orgs.org_workspace"))
 
-            return None
+            return super().pre_process(request, *args, **kwargs)
 
         def get_object(self, queryset=None):
             return self.request.org.country

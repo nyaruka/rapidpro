@@ -267,13 +267,13 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
 
     form_class = Form
 
-    def pre_process(self, *args, **kwargs):
+    def pre_process(self, request, *args, **kwargs):
         client = self.get_vonage_client()
 
-        if client:
-            return None
-        else:  # pragma: needs cover
+        if not client:
             return HttpResponseRedirect(reverse("channels.types.vonage.connect"))
+
+        return super().pre_process(request, *args, **kwargs)
 
     def get_vonage_client(self):
         api_key = self.request.session.get(self.channel_type.SESSION_API_KEY, None)
@@ -484,7 +484,7 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
     def get_success_url(self):
         return reverse("channels.types.vonage.claim")
 
-    def pre_process(self, *args, **kwargs):
+    def pre_process(self, request, *args, **kwargs):
         reset_creds = self.request.GET.get("reset_creds", "")
 
         org = self.request.org
@@ -501,7 +501,7 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
             )
             return HttpResponseRedirect(self.get_success_url())
 
-        return None
+        return super().pre_process(request, *args, **kwargs)
 
     def form_valid(self, form):
         api_key = form.cleaned_data["api_key"]
