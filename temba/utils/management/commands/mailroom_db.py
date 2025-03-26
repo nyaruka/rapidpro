@@ -10,6 +10,7 @@ from django.core.management import BaseCommand, CommandError, call_command
 from django.db import connection
 from django.utils import timezone
 
+from temba.ai.models import LLM
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.channels.models import Channel
 from temba.classifiers.models import Classifier
@@ -191,6 +192,7 @@ class Command(BaseCommand):
         self.create_classifiers(spec, org, superuser)
         self.create_topics(spec, org, superuser)
         self.create_teams(spec, org, superuser)
+        self.create_llms(spec, org, superuser)
         self.create_users(spec, org)
 
         return org
@@ -263,6 +265,22 @@ class Command(BaseCommand):
             )
             for topic in t["topics"]:
                 team.topics.add(Topic.objects.get(name=topic))
+
+        self._log(self.style.SUCCESS("OK") + "\n")
+
+    def create_llms(self, spec, org, user):
+        self._log(f"Creating {len(spec['llms'])} LLMs... ")
+
+        for t in spec["llms"]:
+            LLM.objects.create(
+                uuid=t["uuid"],
+                org=org,
+                name=t["name"],
+                llm_type=t["type"],
+                config=t["config"],
+                created_by=user,
+                modified_by=user,
+            )
 
         self._log(self.style.SUCCESS("OK") + "\n")
 
