@@ -1,0 +1,15 @@
+{% extends "includes/modax.html" %}
+{% load i18n %}
+
+{% block fields %}
+  {% if limit_reached %}
+    {% blocktrans trimmed %}
+      You have reached the per-workspace limit and must delete existing ones before you can create new ones.
+    {% endblocktrans %}
+  {% else %}
+    {{ block.super }}
+  {% endif %}
+{% endblock fields %}
+{% block form-buttons %}
+  {% if not limit_reached %}<input type="submit" value="{{ submit_button_name }}" class="btn btn-primary">{% endif %}
+{% endblock form-buttons %}

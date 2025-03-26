@@ -121,6 +121,6 @@ class GlobalsEndpointTest(APITest):
             endpoint_url,
             self.admin,
             {"name": "Website URL", "value": "http://example.com"},
-            errors={None: "Cannot create object because workspace has reached limit of 3."},
+            errors={None: "Cannot create object because workspace has reached limit."},
             status=409,
         )

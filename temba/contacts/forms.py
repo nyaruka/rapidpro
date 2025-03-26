@@ -163,16 +163,6 @@ class ContactGroupForm(forms.ModelForm):
         if existing and self.instance != existing:
             raise forms.ValidationError(_("Already used by another group."))
 
-        count, limit = ContactGroup.get_org_limit_progress(self.org)
-        if limit is not None and count >= limit:
-            raise forms.ValidationError(
-                _(
-                    "This workspace has reached its limit of %(limit)d groups. "
-                    "You must delete existing ones before you can create new ones."
-                ),
-                params={"limit": limit},
-            )
-
         return name
 
     def clean_query(self):

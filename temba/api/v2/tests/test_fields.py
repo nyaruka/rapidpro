@@ -154,6 +154,6 @@ class FieldsEndpointTest(APITest):
             endpoint_url,
             self.admin,
             {"label": "Age", "value_type": "numeric"},
-            errors={None: "Cannot create object because workspace has reached limit of 10."},
+            errors={None: "Cannot create object because workspace has reached limit."},
             status=409,
         )

@@ -216,6 +216,6 @@ class GroupsEndpointTest(APITest):
             endpoint_url,
             self.admin,
             {"name": "Reporters"},
-            errors={None: "Cannot create object because workspace has reached limit of 10."},
+            errors={None: "Cannot create object because workspace has reached limit."},
             status=409,
         )

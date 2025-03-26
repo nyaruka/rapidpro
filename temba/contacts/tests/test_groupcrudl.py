@@ -85,12 +85,10 @@ class ContactGroupCRUDLTest(TembaTest, CRUDLTestMixin):
             ContactGroup.create_manual(self.org, self.admin, "group%d" % i)
 
         self.assertEqual(10, ContactGroup.objects.filter(is_active=True, is_system=False).count())
-        response = self.client.post(url, {"name": "People"})
-        self.assertFormError(
-            response.context["form"],
-            "name",
-            "This workspace has reached its limit of 10 groups. You must delete existing ones before you can create new ones.",
-        )
+
+        # check we get the limit warning when we've reached the limit
+        response = self.requestView(url, self.admin)
+        self.assertContains(response, "You have reached the per-workspace limit")
 
     def test_create_disallow_duplicates(self):
         self.login(self.admin)

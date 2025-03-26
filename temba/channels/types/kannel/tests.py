@@ -12,19 +12,19 @@ from ...models import Channel
 class KannelTypeTest(TembaTest):
     @patch("socket.gethostbyname", return_value="123.123.123.123")
     def test_claim(self, mock_socket_hostname):
+        claim_url = reverse("channels.types.kannel.claim")
+
         Channel.objects.all().delete()
 
         with override_brand(name="Temba", domain="temba.io"):
             self.login(self.admin)
 
-            url = reverse("channels.types.kannel.claim")
-
             # should see the general channel claim page
             response = self.client.get(reverse("channels.channel_claim"))
-            self.assertContains(response, url)
+            self.assertContains(response, claim_url)
 
             # try to claim a channel
-            response = self.client.get(url)
+            response = self.client.get(claim_url)
             post_data = response.context["form"].initial
 
             post_data["number"] = "3071"
@@ -33,7 +33,7 @@ class KannelTypeTest(TembaTest):
             post_data["verify_ssl"] = False
             post_data["encoding"] = Channel.ENCODING_SMART
 
-            response = self.client.post(url, post_data)
+            response = self.client.post(claim_url, post_data)
 
             channel = Channel.objects.get()
 
@@ -60,9 +60,5 @@ class KannelTypeTest(TembaTest):
             self.assertContains(response, "https://temba.io" + reverse("courier.kn", args=[channel.uuid, "receive"]))
 
         with override_settings(ORG_LIMIT_DEFAULTS={"channels": 1}):
-            response = self.client.post(url, post_data)
-            self.assertFormError(
-                response.context["form"],
-                None,
-                "This workspace has reached its limit of 1 channels. You must delete existing ones before you can create new ones.",
-            )
+            response = self.client.get(claim_url)
+            self.assertRedirect(response, "/org/workspace/")

@@ -916,24 +916,8 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         with override_settings(ORG_LIMIT_DEFAULTS={"channels": 2}):
             response = self.client.get(reverse("channels.channel_claim"))
             self.assertEqual(200, response.status_code)
-
-            self.assertEqual(2, response.context["total_count"])
-            self.assertEqual(2, response.context["total_limit"])
-            self.assertContains(
-                response,
-                "You have reached the limit of 2 channels per workspace. Please remove channels that you are no longer using.",
-            )
-
-        with override_settings(ORG_LIMIT_DEFAULTS={"channels": 3}):
-            response = self.client.get(reverse("channels.channel_claim"))
-            self.assertEqual(200, response.status_code)
-
-            self.assertEqual(2, response.context["total_count"])
-            self.assertEqual(3, response.context["total_limit"])
-            self.assertContains(
-                response,
-                "You are approaching the limit of 3 channels per workspace. You should remove channels that you are no longer using.",
-            )
+            self.assertTrue(response.context["limit_reached"])
+            self.assertContains(response, "You have reached the per-workspace limit")
 
     def test_claim_all(self):
         claim_url = reverse("channels.channel_claim_all")
