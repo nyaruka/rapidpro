@@ -1273,6 +1273,8 @@ class ContactImportCRUDL(SmartCRUDL):
             if obj.started_on:
                 return HttpResponseRedirect(reverse("contacts.contactimport_read", args=[obj.id]))
 
+            return super().pre_process(*args, **kwargs)
+
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             context["num_records"] = self.get_object().num_records

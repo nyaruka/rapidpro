@@ -457,6 +457,7 @@ class TriggerCRUDL(SmartCRUDL):
             obj_count = super().get_queryset(*args, **kwargs).count()
             if obj_count == 0 and not request.GET.get("search", ""):
                 return HttpResponseRedirect(reverse("triggers.trigger_create"))
+
             return super().pre_process(request, *args, **kwargs)
 
         def get_queryset(self, *args, **kwargs):

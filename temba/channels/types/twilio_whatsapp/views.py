@@ -60,6 +60,8 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
                 f'{reverse("channels.types.twilio.connect")}?claim_type={self.channel_type.slug}'
             )
 
+        return super().pre_process(*args, **kwargs)
+
     def get_search_countries_tuple(self):
         return []
 

@@ -214,6 +214,8 @@ class ClearSessionToken(ChannelTypeMixin, OrgPermsMixin, SmartTemplateView):
         if self.channel_type.SESSION_USER_TOKEN in self.request.session:
             del self.request.session[self.channel_type.SESSION_USER_TOKEN]
 
+        return super().pre_process(*args, **kwargs)
+
     def render_to_response(self, context, **response_kwargs):
         return JsonResponse({})
 

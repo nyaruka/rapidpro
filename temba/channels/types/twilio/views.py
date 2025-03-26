@@ -116,6 +116,8 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
                 f'{reverse("channels.types.twilio.connect")}?claim_type={self.channel_type.slug}'
             )
 
+        return super().pre_process(*args, **kwargs)
+
     def get_search_countries_tuple(self):
         return SEARCH_COUNTRY_CHOICES
 
@@ -448,7 +450,8 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
             )
 
             return HttpResponseRedirect(self.get_success_url())
-        return None
+
+        return super().pre_process(*args, **kwargs)
 
     def get_success_url(self):
         claim_type = self.request.GET.get("claim_type", "twilio")

@@ -238,9 +238,6 @@ class AuthenticatedExternalCallbackClaimView(AuthenticatedExternalClaimView):
 
 
 class BaseClaimNumberMixin(ClaimViewMixin):
-    def pre_process(self, *args, **kwargs):  # pragma: needs cover
-        return None
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         org = self.request.org
