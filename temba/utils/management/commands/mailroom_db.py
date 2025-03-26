@@ -372,7 +372,7 @@ class Command(BaseCommand):
                         start_mode=e["start_mode"],
                     )
                 else:
-                    evt = CampaignEvent.create_message_event(
+                    CampaignEvent.create_message_event(
                         org,
                         user,
                         campaign,
@@ -384,8 +384,6 @@ class Command(BaseCommand):
                         delivery_hour=e.get("delivery_hour", -1),
                         start_mode=e["start_mode"],
                     )
-                    evt.flow.uuid = e["uuid"]
-                    evt.flow.save()
 
         # make events look like they've been scheduled
         CampaignEvent.objects.all().update(status=CampaignEvent.STATUS_READY, fire_version=1)
