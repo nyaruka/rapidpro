@@ -8,8 +8,8 @@ class LLMTest(TembaTest):
         super().setUp()
 
         # create some models
-        self.basic = LLM.create(self.org, self.admin, OpenAIType.slug, "Basic")
-        self.advanced = LLM.create(self.org, self.admin, OpenAIType.slug, "Advanced")
+        self.basic = LLM.create(self.org, self.admin, OpenAIType.slug, "Basic", {})
+        self.advanced = LLM.create(self.org, self.admin, OpenAIType.slug, "Advanced", {})
 
     def test_model(self):
         self.assertIsInstance(self.basic.type, OpenAIType)

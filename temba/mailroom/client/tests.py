@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from django.test import override_settings
 
+from temba.ai.models import LLM
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField
 from temba.flows.models import Flow
@@ -468,6 +469,27 @@ class MailroomClientTest(TembaTest):
                     "started_previously": False,
                     "not_seen_since_days": 30,
                 },
+            },
+        )
+
+    def test_llm_translate(self):
+        llm = LLM.create(self.org, self.admin, "openai", "GPT-4", {})
+
+        with patch("requests.post") as mock_post:
+            mock_post.return_value = MockJsonResponse(200, {"text": "Hola mundo"})
+            response = self.client.llm_translate(llm, from_language="eng", to_language="spa", text="Hello world")
+
+            self.assertEqual("Hola mundo", response)
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mr/llm/translate",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={
+                "org_id": self.org.id,
+                "llm_id": llm.id,
+                "from_language": "eng",
+                "to_language": "spa",
+                "text": "Hello world",
             },
         )
 
