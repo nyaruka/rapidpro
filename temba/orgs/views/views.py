@@ -1778,7 +1778,7 @@ class OrgCRUDL(SmartCRUDL):
             if User.get_by_email(self.invitation.email):
                 return HttpResponseRedirect(reverse("orgs.org_join", args=[self.kwargs["secret"]]))
 
-            return None
+            return super().pre_process(request, *args, **kwargs)
 
         def save(self, obj):
             email = self.invitation.email.lower()
@@ -1827,7 +1827,7 @@ class OrgCRUDL(SmartCRUDL):
             if not user or self.invitation.email != request.user.email:
                 return HttpResponseRedirect(reverse("orgs.org_join", args=[self.kwargs["secret"]]))
 
-            return None
+            return super().pre_process(request, *args, **kwargs)
 
         def save(self, obj):
             self.invitation.accept(self.request.user)
@@ -1914,8 +1914,7 @@ class OrgCRUDL(SmartCRUDL):
             if "signups" not in request.branding.get("features", []):  # pragma: needs cover
                 return HttpResponseRedirect(reverse("public.public_index"))
 
-            else:
-                return super().pre_process(request, *args, **kwargs)
+            return super().pre_process(request, *args, **kwargs)
 
         def derive_initial(self):
             initial = super().get_initial()

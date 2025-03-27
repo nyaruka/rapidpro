@@ -160,14 +160,10 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         active_contacts = self.org.active_contacts_group
 
-        # fetch with spa flag
-        response = self.client.get(list_url, content_type="application/json", HTTP_X_TEMBA_SPA="1")
-        self.assertEqual(response.context["base_template"], "spa.html")
-
+        # test with search query
         mr_mocks.contact_search("age = 18", contacts=[frank])
 
-        response = self.client.get(list_url + "?search=age+%3D+18")
-        self.assertEqual(list(response.context["object_list"]), [frank])
+        response = self.assertListFetch(list_url + "?search=age+%3D+18", [self.editor], context_objects=[frank])
         self.assertEqual(response.context["search"], "age = 18")
         self.assertEqual(response.context["save_dynamic_search"], True)
         self.assertIsNone(response.context["search_error"])
@@ -178,29 +174,21 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         mr_mocks.contact_search("age = 18", contacts=[frank], total=10020)
 
         # we return up to 10000 contacts when searching with ES, so last page is 200
-        url = f'{reverse("contacts.contact_list")}?{"search=age+%3D+18&page=200"}'
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, 200)
-
-        # when user requests page 201, we return a 404, page not found
-        url = f'{reverse("contacts.contact_list")}?{"search=age+%3D+18&page=201"}'
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, 404)
+        self.assertListFetch(list_url + "?search=age+%3D+18&page=200", [self.editor], status=200)
+        self.assertListFetch(list_url + "?search=age+%3D+18&page=201", [self.editor], status=404)
 
         mr_mocks.contact_search('age > 18 and home = "Kigali"', cleaned='age > 18 AND home = "Kigali"', contacts=[joe])
 
-        response = self.client.get(list_url + '?search=age+>+18+and+home+%3D+"Kigali"')
-        self.assertEqual(list(response.context["object_list"]), [joe])
+        response = self.assertListFetch(
+            list_url + '?search=age+>+18+and+home+%3D+"Kigali"', [self.editor], context_objects=[joe]
+        )
         self.assertEqual(response.context["search"], 'age > 18 AND home = "Kigali"')
         self.assertEqual(response.context["save_dynamic_search"], True)
         self.assertIsNone(response.context["search_error"])
 
         mr_mocks.contact_search("Joe", cleaned='name ~ "Joe"', contacts=[joe])
 
-        response = self.client.get(list_url + "?search=Joe")
-        self.assertEqual(list(response.context["object_list"]), [joe])
+        response = self.assertListFetch(list_url + "?search=Joe", [self.editor], context_objects=[joe])
         self.assertEqual(response.context["search"], 'name ~ "Joe"')
         self.assertEqual(response.context["save_dynamic_search"], True)
         self.assertIsNone(response.context["search_error"])
@@ -221,6 +209,10 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(list(response.context["object_list"]), [])
         self.assertEqual(response.context["search_error"], "Invalid query syntax.")
         self.assertContains(response, "Invalid query syntax.")
+
+        # error response if query too long
+        response = self.client.get(list_url + "?search=" + "x" * 10001)
+        self.assertEqual(413, response.status_code)
 
         self.login(self.admin)
 

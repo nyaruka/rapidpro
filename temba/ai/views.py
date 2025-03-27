@@ -18,26 +18,9 @@ class LLMCRUDL(SmartCRUDL):
         menu_path = "settings/ai"
         default_order = ("name",)
 
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-
-            count, limit = LLM.get_org_limit_progress(self.request.org)
-            context["llm_limit"] = limit
-            context["llm_count"] = count
-
-            return context
-
         def build_context_menu(self, menu):
-            count, limit = LLM.get_org_limit_progress(self.request.org)
-
-            if self.has_org_perm("ai.llm_connect") and count < limit:
-                menu.add_modax(
-                    _("New"),
-                    "new-llm",
-                    reverse("ai.types.openai.connect"),
-                    title="OpenAI",
-                    as_button=True,
-                )
+            if self.has_org_perm("ai.llm_connect") and not self.is_limit_reached():
+                menu.add_modax(_("New"), "new-llm", reverse("ai.types.openai.connect"), title="OpenAI", as_button=True)
 
     class Delete(BaseDependencyDeleteModal):
         cancel_url = "@ai.llm_list"

@@ -27,6 +27,7 @@ from temba.channels.models import Channel
 from temba.mailroom.events import Event
 from temba.notifications.views import NotificationTargetMixin
 from temba.orgs.views.base import (
+    BaseCreateModal,
     BaseDependencyDeleteModal,
     BaseExportModal,
     BaseListView,
@@ -61,7 +62,7 @@ HISTORY_INCLUDE_EVENTS = {
 }
 
 
-class ContactListView(SpaMixin, OrgPermsMixin, BulkActionMixin, SmartListView):
+class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
     """
     Base class for contact list views with contact folders and groups listed by the side
     """
@@ -79,6 +80,7 @@ class ContactListView(SpaMixin, OrgPermsMixin, BulkActionMixin, SmartListView):
 
     search_fields = ("name",)  # so that search box is displayed
     search_error = None
+    search_max_length = ContactGroup.MAX_QUERY_LEN
 
     def pre_process(self, request, *args, **kwargs):
         """
@@ -833,7 +835,7 @@ class ContactGroupCRUDL(SmartCRUDL):
     model = ContactGroup
     actions = ("create", "update", "usages", "delete")
 
-    class Create(ComponentFormMixin, ModalFormMixin, OrgPermsMixin, SmartCreateView):
+    class Create(BaseCreateModal):
         form_class = ContactGroupForm
         fields = ("name", "preselected_contacts", "group_query")
         success_url = "uuid@contacts.contact_group"
@@ -861,11 +863,6 @@ class ContactGroupCRUDL(SmartCRUDL):
             initial = super().derive_initial()
             initial["group_query"] = self.request.GET.get("search", "")
             return initial
-
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["org"] = self.request.org
-            return kwargs
 
     class Update(BaseUpdateModal):
         form_class = ContactGroupForm
@@ -981,37 +978,11 @@ class ContactFieldCRUDL(SmartCRUDL):
     model = ContactField
     actions = ("list", "create", "update", "update_priority", "delete", "usages")
 
-    class Create(ModalFormMixin, OrgPermsMixin, SmartCreateView):
-        class Form(ContactFieldForm):
-            def clean(self):
-                super().clean()
-
-                count, limit = ContactField.get_org_limit_progress(self.org)
-                if limit is not None and count >= limit:
-                    raise forms.ValidationError(
-                        _(
-                            "This workspace has reached its limit of %(limit)d fields. "
-                            "You must delete existing ones before you can create new ones."
-                        ),
-                        params={"limit": limit},
-                    )
-
+    class Create(BaseCreateModal):
         queryset = ContactField.user_fields
-        form_class = Form
+        form_class = ContactFieldForm
         success_url = "hide"
         submit_button_name = _("Create")
-
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["org"] = self.derive_org()
-            return kwargs
-
-        def get_context_data(self, **kwargs):
-            context_data = super().get_context_data(**kwargs)
-            org_count, org_limit = ContactField.get_org_limit_progress(self.request.org)
-            context_data["total_count"] = org_count
-            context_data["total_limit"] = org_limit
-            return context_data
 
         def form_valid(self, form):
             self.object = ContactField.create(
@@ -1071,10 +1042,9 @@ class ContactFieldCRUDL(SmartCRUDL):
     class List(SpaMixin, ContextMenuMixin, BaseListView):
         menu_path = "/contact/fields"
         title = _("Fields")
-        default_order = "name"
 
         def build_context_menu(self, menu):
-            if self.has_org_perm("contacts.contactfield_create"):
+            if self.has_org_perm("contacts.contactfield_create") and not self.is_limit_reached():
                 menu.add_modax(
                     _("New"),
                     "new-field",
@@ -1083,9 +1053,6 @@ class ContactFieldCRUDL(SmartCRUDL):
                     on_submit="handleFieldUpdated()",
                     as_button=True,
                 )
-
-        def derive_queryset(self, **kwargs):
-            return super().derive_queryset(**kwargs).filter(is_proxy=False)
 
     class Usages(FieldLookupMixin, BaseUsagesModal):
         permission = "contacts.contactfield_read"
@@ -1271,12 +1238,8 @@ class ContactImportCRUDL(SmartCRUDL):
                 if add_to_group:
                     group_mode = self.cleaned_data["group_mode"]
                     if group_mode == self.GROUP_MODE_NEW:
-                        group_count, group_limit = ContactGroup.get_org_limit_progress(self.org)
-                        if group_limit is not None and group_count >= group_limit:
-                            raise forms.ValidationError(
-                                _("This workspace has reached its limit of %(limit)d groups."),
-                                params={"limit": group_limit},
-                            )
+                        if ContactGroup.is_limit_reached(self.org):
+                            raise forms.ValidationError(_("This workspace has reached its limit of groups."))
 
                         new_group_name = self.cleaned_data.get("new_group_name")
                         if not new_group_name:
@@ -1310,6 +1273,8 @@ class ContactImportCRUDL(SmartCRUDL):
             # can't preview an import which has already started
             if obj.started_on:
                 return HttpResponseRedirect(reverse("contacts.contactimport_read", args=[obj.id]))
+
+            return super().pre_process(request, *args, **kwargs)
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)

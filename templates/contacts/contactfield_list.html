@@ -1,19 +1,19 @@
-{% extends "smartmin/base.html" %}
+{% extends "orgs/base/list.html" %}
 {% load i18n %}
 
-{% block content %}
-  {% block pre-tables %}
-    <temba-modax header="{{ _("Update Field") |escapejs }}" -temba-submitted="handleFieldUpdated" id="update-field">
-    </temba-modax>
-    <temba-modax header="{{ _("Delete Field") |escapejs }}" -temba-submitted="handleFieldUpdated" id="delete-modal">
-    </temba-modax>
-    <temba-modax header="{{ _("Usages") |escapejs }}" id="usages-modal">
-    </temba-modax>
-  {% endblock pre-tables %}
+{% block modaxes %}
+  <temba-modax header="{{ _("Update Field") |escapejs }}" -temba-submitted="handleFieldUpdated" id="update-field">
+  </temba-modax>
+  <temba-modax header="{{ _("Delete Field") |escapejs }}" -temba-submitted="handleFieldUpdated" id="delete-modal">
+  </temba-modax>
+  <temba-modax header="{{ _("Usages") |escapejs }}" id="usages-modal">
+  </temba-modax>
+{% endblock modaxes %}
+{% block manager %}
   <temba-field-manager priority-endpoint="{% url "contacts.contactfield_update_priority" %}"
                        -temba-selection="handleFieldClicked">
   </temba-field-manager>
-{% endblock content %}
+{% endblock manager %}
 {% block extra-script %}
   {{ block.super }}
   <script type="text/javascript">

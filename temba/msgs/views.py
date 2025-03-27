@@ -21,6 +21,7 @@ from temba.archives.models import Archive
 from temba.mailroom.client.types import Exclusions
 from temba.orgs.models import Org
 from temba.orgs.views.base import (
+    BaseCreateModal,
     BaseDependencyDeleteModal,
     BaseExportModal,
     BaseListView,
@@ -64,6 +65,8 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     def pre_process(self, request, *args, **kwargs):
         if self.folder:
             self.queryset = self.folder.get_queryset(request.org)
+
+        return super().pre_process(request, *args, **kwargs)
 
     def derive_folder(self):
         return self.folder
@@ -835,16 +838,6 @@ class BaseLabelForm(forms.ModelForm):
         if Label.get_active_for_org(self.org).filter(name__iexact=name).exclude(pk=existing_id).exists():
             raise forms.ValidationError(_("Must be unique."))
 
-        count, limit = Label.get_org_limit_progress(self.org)
-        if limit is not None and count >= limit:
-            raise forms.ValidationError(
-                _(
-                    "This workspace has reached its limit of %(limit)d labels. "
-                    "You must delete existing ones before you can create new ones."
-                ),
-                params={"limit": limit},
-            )
-
         return name
 
     class Meta:
@@ -868,16 +861,11 @@ class LabelCRUDL(SmartCRUDL):
     model = Label
     actions = ("create", "update", "usages", "delete")
 
-    class Create(ModalFormMixin, OrgPermsMixin, SmartCreateView):
+    class Create(BaseCreateModal):
         fields = ("name", "messages")
         success_url = "uuid@msgs.msg_filter"
         form_class = LabelForm
         submit_button_name = _("Create")
-
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["org"] = self.request.org
-            return kwargs
 
         def save(self, obj):
             self.object = Label.create(self.request.org, self.request.user, obj.name)

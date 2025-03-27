@@ -107,6 +107,6 @@ class LabelsEndpointTest(APITest):
                 endpoint_url,
                 self.admin,
                 {"name": "Interesting"},
-                errors={None: "Cannot create object because workspace has reached limit of 3."},
+                errors={None: "Cannot create object because workspace has reached limit."},
                 status=409,
             )

@@ -103,16 +103,10 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
             success_status=200,
         )
 
-        # simulate an org which has reached the limit for fields
+        # check we get the limit warning when we've reached the limit
         with override_settings(ORG_LIMIT_DEFAULTS={"fields": 2}):
-            self.assertCreateSubmit(
-                create_url,
-                self.admin,
-                {"name": "Sheep", "value_type": "T", "show_in_table": True, "agent_access": "E"},
-                form_errors={
-                    "__all__": "This workspace has reached its limit of 2 fields. You must delete existing ones before you can create new ones."
-                },
-            )
+            response = self.requestView(create_url, self.admin)
+            self.assertContains(response, "You have reached the per-workspace limit")
 
     def test_update(self):
         update_url = reverse("contacts.contactfield_update", args=[self.age.key])
@@ -237,29 +231,14 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         list_url = reverse("contacts.contactfield_list")
 
         self.assertRequestDisallowed(list_url, [None, self.agent])
-        self.assertListFetch(list_url, [self.editor, self.admin], context_objects=[self.age, self.gender, self.state])
+        self.assertListFetch(list_url, [self.editor, self.admin])
         self.assertContentMenu(list_url, self.editor, ["New"])
         self.assertContentMenu(list_url, self.admin, ["New"])
 
-    def test_create_warnings(self):
-        self.login(self.admin)
-        create_url = reverse("contacts.contactfield_create")
-        response = self.client.get(create_url)
-
-        self.assertEqual(3, response.context["total_count"])
-        self.assertEqual(250, response.context["total_limit"])
-        self.assertNotContains(response, "You have reached the limit")
-        self.assertNotContains(response, "You are approaching the limit")
-
-        with override_settings(ORG_LIMIT_DEFAULTS={"fields": 10}):
-            response = self.requestView(create_url, self.admin)
-
-            self.assertContains(response, "You are approaching the limit")
-
         with override_settings(ORG_LIMIT_DEFAULTS={"fields": 3}):
-            response = self.requestView(create_url, self.admin)
-
-            self.assertContains(response, "You have reached the limit")
+            response = self.assertListFetch(list_url, [self.admin])
+            self.assertContains(response, "You have reached the per-workspace limit")
+            self.assertContentMenu(list_url, self.admin, [])
 
     @mock_mailroom
     def test_usages(self, mr_mocks):

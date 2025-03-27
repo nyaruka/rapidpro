@@ -139,16 +139,12 @@ class TeamCRUDL(SmartCRUDL):
         menu_path = "/settings/teams"
 
         def derive_queryset(self, **kwargs):
-            return super().derive_queryset(**kwargs).filter(is_active=True).order_by(Lower("name"))
+            return super().derive_queryset(**kwargs).order_by(Lower("name"))
 
         def build_context_menu(self, menu):
-            if self.has_org_perm("tickets.team_create"):
+            if self.has_org_perm("tickets.team_create") and not self.is_limit_reached():
                 menu.add_modax(
-                    _("New"),
-                    "new-team",
-                    reverse("tickets.team_create"),
-                    title=_("New Team"),
-                    as_button=True,
+                    _("New"), "new-team", reverse("tickets.team_create"), title=_("New Team"), as_button=True
                 )
 
         def get_context_data(self, **kwargs):
@@ -199,9 +195,12 @@ class TicketCRUDL(SmartCRUDL):
                 )
             )
             menu.append(self.create_modax_button(_("Export"), "tickets.ticket_export", icon="export"))
-            menu.append(
-                self.create_modax_button(_("New Topic"), "tickets.topic_create", icon="add", on_submit="refreshMenu()")
-            )
+            if not Topic.is_limit_reached(org):
+                menu.append(
+                    self.create_modax_button(
+                        _("New Topic"), "tickets.topic_create", icon="add", on_submit="refreshMenu()"
+                    )
+                )
 
             menu.append(self.create_divider())
 

@@ -122,6 +122,6 @@ class TopicsEndpointTest(APITest):
                 endpoint_url,
                 self.admin,
                 {"name": "Interesting"},
-                errors={None: "Cannot create object because workspace has reached limit of 4."},
+                errors={None: "Cannot create object because workspace has reached limit."},
                 status=409,
             )

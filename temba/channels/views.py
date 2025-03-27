@@ -78,16 +78,6 @@ class ClaimViewMixin(ChannelTypeMixin, OrgPermsMixin, ComponentFormMixin):
             super().__init__(**kwargs)
 
         def clean(self):
-            count, limit = Channel.get_org_limit_progress(self.request.org)
-            if limit is not None and count >= limit:
-                raise forms.ValidationError(
-                    _(
-                        "This workspace has reached its limit of %(limit)d channels. "
-                        "You must delete existing ones before you can create new ones."
-                    ),
-                    params={"limit": limit},
-                )
-
             if self.channel_type.unique_addresses:
                 assert self.cleaned_data.get("address"), "channel type should specify an address in Form.clean method"
 
@@ -103,6 +93,12 @@ class ClaimViewMixin(ChannelTypeMixin, OrgPermsMixin, ComponentFormMixin):
                     raise forms.ValidationError(_("This channel is already connected in another workspace."))
 
             return super().clean()
+
+    def pre_process(self, request, *args, **kwargs):
+        if request.org and Channel.is_limit_reached(request.org):
+            return HttpResponseRedirect(reverse("orgs.org_workspace"))
+
+        return super().pre_process(request, *args, **kwargs)
 
     def get_template_names(self):
         return (
@@ -242,9 +238,6 @@ class AuthenticatedExternalCallbackClaimView(AuthenticatedExternalClaimView):
 
 
 class BaseClaimNumberMixin(ClaimViewMixin):
-    def pre_process(self, *args, **kwargs):  # pragma: needs cover
-        return None
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         org = self.request.org
@@ -778,10 +771,7 @@ class ChannelCRUDL(SmartCRUDL):
             org = self.request.org
 
             context["org_timezone"] = str(org.timezone)
-
-            channel_count, org_limit = Channel.get_org_limit_progress(org)
-            context["total_count"] = channel_count
-            context["total_limit"] = org_limit
+            context["limit_reached"] = Channel.is_limit_reached(org)
 
             # fetch channel types, sorted by category and name
             recommended_channels, types_by_category, only_regional_channels = self.channel_types_groups()
@@ -810,12 +800,12 @@ class ChannelCRUDL(SmartCRUDL):
     class Configuration(SpaMixin, BaseReadView):
         slug_url_kwarg = "uuid"
 
-        def pre_process(self, *args, **kwargs):
+        def pre_process(self, request, *args, **kwargs):
             channel = self.get_object()
             if not channel.type.config_ui:
                 return HttpResponseRedirect(reverse("channels.channel_read", args=[channel.uuid]))
 
-            return super().pre_process(*args, **kwargs)
+            return super().pre_process(request, *args, **kwargs)
 
         def derive_menu_path(self):
             return f"/settings/channels/{self.object.uuid}"

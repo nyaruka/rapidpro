@@ -36,16 +36,11 @@ class LabelCRUDLTest(TembaTest, CRUDLTestMixin):
             new_obj_query=Label.objects.filter(name="Spam 2"),
         )
 
-        # try creating a new label after reaching the limit on labels
+        # check we get the limit warning when we've reached the limit
         current_count = Label.get_active_for_org(self.org).count()
         with override_settings(ORG_LIMIT_DEFAULTS={"labels": current_count}):
-            response = self.client.post(create_url, {"name": "CoolStuff"})
-            self.assertFormError(
-                response.context["form"],
-                "name",
-                "This workspace has reached its limit of 2 labels. "
-                "You must delete existing ones before you can create new ones.",
-            )
+            response = self.requestView(create_url, self.admin)
+            self.assertContains(response, "You have reached the per-workspace limit")
 
     def test_update(self):
         label1 = self.create_label("Spam")

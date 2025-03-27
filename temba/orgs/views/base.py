@@ -27,6 +27,19 @@ from temba.utils.views.mixins import ComponentFormMixin, ModalFormMixin
 from .mixins import DependencyMixin, OrgObjPermsMixin, OrgPermsMixin
 
 
+class LimitAwareMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["limit_reached"] = self.is_limit_reached()
+        return context
+
+    def is_limit_reached(self) -> bool:
+        """
+        Returns whether we've reached the org limit for this model
+        """
+        return hasattr(self.model, "is_limit_reached") and self.model.is_limit_reached(self.request.org)
+
+
 class BaseReadView(OrgObjPermsMixin, SmartReadView):
     """
     Base detail view for an object that belong to the current org
@@ -45,7 +58,7 @@ class BaseReadView(OrgObjPermsMixin, SmartReadView):
         return qs.select_related("org")
 
 
-class BaseCreateModal(ComponentFormMixin, ModalFormMixin, OrgPermsMixin, SmartCreateView):
+class BaseCreateModal(ComponentFormMixin, ModalFormMixin, LimitAwareMixin, OrgPermsMixin, SmartCreateView):
     """
     Base create modal view
     """
@@ -101,10 +114,19 @@ class BaseDeleteModal(OrgObjPermsMixin, SmartDeleteView):
         return HttpResponseRedirect(self.get_redirect_url())
 
 
-class BaseListView(OrgPermsMixin, SmartListView):
+class BaseListView(LimitAwareMixin, OrgPermsMixin, SmartListView):
     """
     Base list view for objects that belong to the current org
     """
+
+    search_max_length = 1_000
+
+    def pre_process(self, request, *args, **kwargs):
+        search = request.GET.get("search")
+        if search and len(search) > self.search_max_length:
+            return HttpResponse("Search query too long", status=413)
+
+        return super().pre_process(request, *args, **kwargs)
 
     def derive_queryset(self, **kwargs):
         qs = super().derive_queryset(**kwargs).filter(org=self.request.org)

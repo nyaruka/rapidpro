@@ -6,23 +6,38 @@
   {% endblock modaxes %}
   {% block pre-table %}
   {% endblock pre-table %}
-  {% if view.search_fields %}
-    {% block search-form %}
-      <form method="get" action="{{ request.path }}" id="search-form" class="mb-4">
-        <temba-textinput placeholder="{% trans "Search" %}" name="search" value="{{ search }}" class="w-full">
-        </temba-textinput>
-        <input type="submit" class="hide">
-      </form>
-    {% endblock search-form %}
-    {% if search_error %}<div class="alert alert-error mb-4">{{ search_error }}</div>{% endif %}
+  {% if limit_reached %}
+    <temba-alert level="warning" class="mb-4">
+      {% block limitwarning %}
+        {% blocktrans trimmed %}
+          You have reached the per-workspace limit and must delete existing ones before you can create new ones.
+        {% endblocktrans %}
+      {% endblock limitwarning %}
+    </temba-alert>
   {% endif %}
-  {% if view.paginate_by %}
-    {% block pagination %}
-      <div class="shadow rounded-lg rounded-bl-none rounded-br-none bg-white">{% include "includes/short_pagination.html" %}</div>
-    {% endblock pagination %}
-  {% endif %}
-  <div class="flex-grow overflow-y-auto shadow">
-    {% block table %}
-    {% endblock table %}
-  </div>
+  {% block manager %}
+    {% if view.search_fields %}
+      {% block search-form %}
+        <form method="get" action="{{ request.path }}" id="search-form" class="mb-4">
+          <temba-textinput placeholder="{% trans "Search" %}"
+                           name="search"
+                           value="{{ search }}"
+                           maxlength="{{ view.search_max_length }}"
+                           class="w-full">
+          </temba-textinput>
+          <input type="submit" class="hide">
+        </form>
+      {% endblock search-form %}
+      {% if search_error %}<div class="alert alert-error mb-4">{{ search_error }}</div>{% endif %}
+    {% endif %}
+    {% if view.paginate_by %}
+      {% block pagination %}
+        <div class="shadow rounded-lg rounded-bl-none rounded-br-none bg-white">{% include "includes/short_pagination.html" %}</div>
+      {% endblock pagination %}
+    {% endif %}
+    <div class="flex-grow overflow-y-auto shadow">
+      {% block table %}
+      {% endblock table %}
+    </div>
+  {% endblock manager %}
 {% endblock content %}

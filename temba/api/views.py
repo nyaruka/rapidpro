@@ -193,10 +193,9 @@ class WriteAPIMixin:
             instance = None
 
             if issubclass(self.model, TembaModel):
-                org_count, org_limit = self.model.get_org_limit_progress(request.org)
-                if org_limit is not None and org_count >= org_limit:
+                if self.model.is_limit_reached(request.org):
                     return Response(
-                        {"detail": f"Cannot create object because workspace has reached limit of {org_limit}."},
+                        {"detail": "Cannot create object because workspace has reached limit."},
                         status=status.HTTP_409_CONFLICT,
                     )
 
