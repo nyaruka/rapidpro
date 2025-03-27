@@ -1,6 +1,8 @@
 from django.urls import reverse
 from django.utils import timezone
 
+from temba.ai.models import LLM
+from temba.ai.types.openai.type import OpenAIType
 from temba.api.tests.mixins import APITestMixin
 from temba.contacts.models import ContactExport
 from temba.notifications.types import ExportFinishedNotificationType
@@ -310,4 +312,45 @@ class EndpointsTest(APITestMixin, TembaTest):
                 },
             ],
             num_queries=NUM_BASE_QUERIES + 3,
+        )
+
+    def test_llms(self):
+        endpoint_url = reverse("api.internal.llms") + ".json"
+
+        self.basic = LLM.create(self.org, self.admin, OpenAIType.slug, "Basic")
+        self.advanced = LLM.create(self.org, self.admin, OpenAIType.slug, "Advanced")
+
+        self.assertGetNotPermitted(endpoint_url, [None])
+        self.assertPostNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        self.assertGet(
+            endpoint_url,
+            [self.admin],
+            results=[
+                {
+                    "name": "Advanced",
+                    "type": "openai",
+                    "uuid": str(self.advanced.uuid),
+                },
+                {
+                    "name": "Basic",
+                    "type": "openai",
+                    "uuid": str(self.basic.uuid),
+                },
+            ],
+        )
+
+        self.advanced.release(self.admin)
+
+        self.assertGet(
+            endpoint_url,
+            [self.admin],
+            results=[
+                {
+                    "name": "Basic",
+                    "type": "openai",
+                    "uuid": str(self.basic.uuid),
+                },
+            ],
         )

@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from django.db.models import Prefetch, Q
 
+from temba.ai.models import LLM
 from temba.channels.models import Channel
 from temba.locations.models import AdminBoundary
 from temba.notifications.models import Notification
@@ -13,7 +14,12 @@ from temba.tickets.models import Shortcut
 from temba.users.models import User
 
 from ..models import APIPermission, SSLPermission
-from ..support import APISessionAuthentication, CreatedOnCursorPagination, ModifiedOnCursorPagination
+from ..support import (
+    APISessionAuthentication,
+    CreatedOnCursorPagination,
+    ModifiedOnCursorPagination,
+    NameCursorPagination,
+)
 from ..views import BaseAPIView, ListAPIMixin
 from . import serializers
 
@@ -30,6 +36,19 @@ class BaseEndpoint(BaseAPIView):
 # ============================================================
 # Endpoints (A-Z)
 # ============================================================
+
+
+class LLMsEndpoint(ListAPIMixin, BaseEndpoint):
+    """
+    LLMs for the current user.
+    """
+
+    model = LLM
+    serializer_class = serializers.LLMReadSerializer
+    pagination_class = NameCursorPagination
+
+    def get_queryset(self):
+        return super().get_queryset().filter(org=self.request.org, is_active=True)
 
 
 class LocationsEndpoint(ListAPIMixin, BaseEndpoint):
