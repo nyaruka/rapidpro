@@ -4,6 +4,7 @@ from django.db import models
 from django.template import Engine
 from django.urls import re_path
 
+from temba import mailroom
 from temba.orgs.models import DependencyMixin, Org
 from temba.utils.models import TembaModel
 
@@ -53,10 +54,7 @@ class LLM(TembaModel, DependencyMixin):
     org_limit_key = Org.LIMIT_LLMS
 
     @classmethod
-    def create(cls, org, user, llm_type, name, config=None):
-        if config is None:
-            config = {}
-
+    def create(cls, org, user, llm_type: str, name: str, config: dict):
         return cls.objects.create(
             org=org,
             name=name,
@@ -77,6 +75,9 @@ class LLM(TembaModel, DependencyMixin):
         from .types import TYPES
 
         return TYPES[self.llm_type]
+
+    def translate(self, from_language: str, to_language: str, text: str) -> str:
+        return mailroom.get_client().llm_translate(self, from_language, to_language, text)["text"]
 
     def release(self, user):
         super().release(user)
