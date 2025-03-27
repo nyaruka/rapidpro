@@ -249,20 +249,26 @@
                 {
                     "uuid": "62c2bb93-f388-4c72-a2e6-25bee7282240",
                     "type": "openai",
-                    "name": "GPT-3.5 Turbo!",
-                    "config": {
-                        "app_key": "sesame1234",
-                        "model": "gpt-3.5-turbo"
-                    }
-                },
-                {
-                    "uuid": "43764a92-2545-4aa0-b005-6ade894acc96",
-                    "type": "openai",
-                    "name": "GPT-4",
+                    "name": "GPT-4o",
                     "config": {
                         "app_key": "sesame1234",
                         "model": "gpt-4o"
                     }
+                },
+                {
+                    "uuid": "43764a92-2545-4aa0-b005-6ade894acc96",
+                    "type": "anthropic",
+                    "name": "Claude",
+                    "config": {
+                        "app_key": "sesame1234",
+                        "model": "claude-3-7-sonnet"
+                    }
+                },
+                {
+                    "uuid": "e5d8900a-ef54-4d2a-8214-ff7d3e903502",
+                    "type": "test",
+                    "name": "Test",
+                    "config": {}
                 }
             ],
             "flows": [
