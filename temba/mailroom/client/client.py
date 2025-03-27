@@ -182,8 +182,8 @@ class MailroomClient:
 
         return RecipientsPreview(query=resp["query"], total=resp["total"])
 
-    def llm_translate(self, llm, from_language: str, to_language: str, text: str) -> str:
-        resp = self._request(
+    def llm_translate(self, llm, from_language: str, to_language: str, text: str) -> dict:
+        return self._request(
             "llm/translate",
             {
                 "org_id": llm.org_id,
@@ -193,8 +193,6 @@ class MailroomClient:
                 "text": text,
             },
         )
-
-        return resp["text"]
 
     def msg_broadcast(
         self,

@@ -60,6 +60,7 @@ class Mocks:
         self._contact_urns = []
         self._flow_inspect = []
         self._flow_start_preview = []
+        self._llm_translate = []
         self._msg_broadcast_preview = []
         self._exceptions = []
 
@@ -109,6 +110,9 @@ class Mocks:
             return mailroom.RecipientsPreview(query=query, total=total)
 
         self._flow_start_preview.append(mock)
+
+    def llm_translate(self, text):
+        self._llm_translate.append(text)
 
     def msg_broadcast_preview(self, query, total):
         def mock(org):
@@ -326,6 +330,12 @@ class TestClient(MailroomClient):
         mock = self.mocks._flow_start_preview.pop(0)
 
         return mock(org)
+
+    @_client_method
+    def llm_translate(self, llm, from_language: str, to_language: str, text: str) -> dict:
+        assert self.mocks._llm_translate, "missing llm_translate mock"
+
+        return {"text": self.mocks._llm_translate.pop(0)}
 
     @_client_method
     def msg_broadcast(

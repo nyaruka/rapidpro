@@ -6,7 +6,7 @@ from temba.ai.types.openai.views import ConnectView
 
 class OpenAIType(LLMType):
     """
-    Type for OpenAI models (GPT)
+    Type for OpenAI models (GPT etc)
     """
 
     name = "OpenAI"

@@ -4,6 +4,7 @@ from django.db import models
 from django.template import Engine
 from django.urls import re_path
 
+from temba import mailroom
 from temba.orgs.models import DependencyMixin, Org
 from temba.utils.models import TembaModel
 
@@ -74,6 +75,9 @@ class LLM(TembaModel, DependencyMixin):
         from .types import TYPES
 
         return TYPES[self.llm_type]
+
+    def translate(self, from_language: str, to_language: str, text: str) -> str:
+        return mailroom.get_client().llm_translate(self, from_language, to_language, text)["text"]
 
     def release(self, user):
         super().release(user)

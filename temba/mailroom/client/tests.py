@@ -479,7 +479,7 @@ class MailroomClientTest(TembaTest):
             mock_post.return_value = MockJsonResponse(200, {"text": "Hola mundo"})
             response = self.client.llm_translate(llm, from_language="eng", to_language="spa", text="Hello world")
 
-            self.assertEqual("Hola mundo", response)
+            self.assertEqual({"text": "Hola mundo"}, response)
 
         mock_post.assert_called_once_with(
             "http://localhost:8090/mr/llm/translate",

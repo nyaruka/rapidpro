@@ -337,7 +337,7 @@ PERMISSIONS = {
         "delete",  # can delete an object,
         "list",  # can view a list of the objects
     ),
-    "ai.llm": ("connect",),
+    "ai.llm": ("connect", "translate"),
     "api.apitoken": ("explorer",),
     "archives.archive": ("run", "message"),
     "campaigns.campaign": ("archive", "activate", "menu"),
@@ -394,10 +394,7 @@ GROUP_PERMISSIONS = {
     "Dashboard": ("orgs.org_dashboard",),
     "Granters": ("orgs.org_grant",),
     "Administrators": (
-        "ai.llm_connect",
-        "ai.llm_delete",
-        "ai.llm_list",
-        "ai.llm_read",
+        "ai.llm.*",
         "airtime.airtimetransfer_list",
         "airtime.airtimetransfer_read",
         "api.apitoken_explorer",
@@ -500,6 +497,7 @@ GROUP_PERMISSIONS = {
     "Editors": (
         "ai.llm_list",
         "ai.llm_read",
+        "ai.llm_translate",
         "airtime.airtimetransfer_list",
         "airtime.airtimetransfer_read",
         "api.apitoken_explorer",
@@ -837,6 +835,20 @@ CHANNEL_TYPES = [
     "temba.channels.types.test.TestType",
 ]
 
+LLM_TYPES = {
+    "temba.ai.types.openai.type.OpenAIType": {
+        "models": [
+            "gpt-4o",
+            "gpt-4o-mini",
+        ],
+    },
+    "temba.ai.types.anthropic.type.AnthropicType": {
+        "models": [
+            "claude-3-7-sonnet-latest",
+        ],
+    },
+}
+
 ANALYTICS_TYPES = [
     "temba.utils.analytics.ConsoleBackend",
 ]
@@ -919,21 +931,6 @@ WHATSAPP_FACEBOOK_BUSINESS_ID = os.environ.get("WHATSAPP_FACEBOOK_BUSINESS_ID", 
 #
 # You need to change these to real addresses to work with these.
 IP_ADDRESSES = ("172.16.10.10", "162.16.10.20")
-
-
-# -----------------------------------------------------------------------------------
-# LLM Configs
-# -----------------------------------------------------------------------------------
-
-LLM_TYPES = {
-    "temba.ai.types.openai.type.OpenAIType": {
-        "models": [
-            "gpt-4o",
-            "gpt-4o-mini",
-        ],
-    }
-}
-
 
 # -----------------------------------------------------------------------------------
 # AllAuth
