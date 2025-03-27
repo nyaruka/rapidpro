@@ -86,13 +86,6 @@ class LLM(TembaModel, DependencyMixin):
         self.modified_by = user
         self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))
 
-    def as_json(self):
-        return {
-            "uuid": str(self.uuid),
-            "name": self.name,
-            "type": self.llm_type,
-        }
-
     def __str__(self):
         return f"{self.name} ({self.llm_type})"
 

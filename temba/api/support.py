@@ -178,6 +178,11 @@ class DateJoinedCursorPagination(CursorPagination):
     offset_cutoff = 100000
 
 
+class NameCursorPagination(CursorPagination):
+    ordering = ("name", "id")
+    offset_cutoff = 100000
+
+
 class InvalidQueryError(APIException):
     """
     Exception class for invalid queries in list endpoints

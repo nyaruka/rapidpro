@@ -14,9 +14,13 @@ class ModelAsJsonSerializer(serializers.BaseSerializer):
         return instance.as_json()
 
 
-class LLMReadSerializer(ModelAsJsonSerializer):
+class LLMReadSerializer(serializers.ModelSerializer):
+
+    type = serializers.CharField(source="llm_type")
+
     class Meta:
         model = LLM
+        fields = ("uuid", "name", "type")
 
 
 class LocationReadSerializer(serializers.ModelSerializer):

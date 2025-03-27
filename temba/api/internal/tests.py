@@ -329,14 +329,14 @@ class EndpointsTest(APITestMixin, TembaTest):
             [self.admin],
             results=[
                 {
-                    "name": "Basic",
-                    "type": "openai",
-                    "uuid": str(self.basic.uuid),
-                },
-                {
                     "name": "Advanced",
                     "type": "openai",
                     "uuid": str(self.advanced.uuid),
+                },
+                {
+                    "name": "Basic",
+                    "type": "openai",
+                    "uuid": str(self.basic.uuid),
                 },
             ],
         )
