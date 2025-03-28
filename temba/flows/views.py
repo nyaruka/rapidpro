@@ -42,7 +42,7 @@ from temba.orgs.views.base import (
     BaseReadView,
     BaseUpdateModal,
 )
-from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin
+from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
 from temba.triggers.models import Trigger
 from temba.utils import analytics, gettext, json, languages
 from temba.utils.fields import (
@@ -68,25 +68,12 @@ from .models import (
 logger = logging.getLogger(__name__)
 
 
-class BaseFlowForm(forms.ModelForm):
+class BaseFlowForm(UniqueNameMixin, forms.ModelForm):
     def __init__(self, org, branding, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.org = org
         self.branding = branding
-
-    def clean_name(self):
-        name = self.cleaned_data["name"]
-
-        # make sure the name isn't already taken
-        existing = self.org.flows.filter(is_active=True, name__iexact=name).first()
-        if existing and self.instance != existing:
-            # TODO include link to flow, requires https://github.com/nyaruka/temba-components/issues/159
-            # existing_url = reverse("flows.flow_editor", args=[existing.uuid])
-            # mark_safe(_('Already used by <a href="%(url)s">another flow</a>.') % {"url": existing_url})
-            raise forms.ValidationError(_("Already used by another flow."))
-
-        return name
 
     def clean_keyword_triggers(self):
         value = self.data.getlist("keyword_triggers", [])
@@ -1606,7 +1593,7 @@ class PreprocessTest(FormView):  # pragma: no cover
         )
 
 
-class FlowLabelForm(forms.ModelForm):
+class FlowLabelForm(UniqueNameMixin, forms.ModelForm):
     name = forms.CharField(required=True, widget=InputWidget(), label=_("Name"))
     flows = forms.CharField(required=False, widget=forms.HiddenInput)
 
@@ -1614,12 +1601,6 @@ class FlowLabelForm(forms.ModelForm):
         self.org = org
 
         super().__init__(*args, **kwargs)
-
-    def clean_name(self):
-        name = self.cleaned_data["name"].strip()
-        if self.org.flow_labels.filter(name=name).exclude(id=self.instance.id).exists():
-            raise ValidationError(_("Must be unique."))
-        return name
 
     class Meta:
         model = FlowLabel

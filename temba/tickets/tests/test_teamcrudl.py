@@ -38,7 +38,7 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
             create_url,
             self.admin,
             {"name": "all topics", "topics": []},
-            form_errors={"name": "Team with this name already exists."},
+            form_errors={"name": "Must be unique."},
         )
 
         # try to create with name that has invalid characters
@@ -96,7 +96,7 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
             update_url,
             self.admin,
             {"name": "all topics"},
-            form_errors={"name": "Team with this name already exists."},
+            form_errors={"name": "Must be unique."},
             object_unchanged=team,
         )
 

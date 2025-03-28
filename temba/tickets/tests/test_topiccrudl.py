@@ -43,7 +43,7 @@ class TopicCRUDLTest(TembaTest, CRUDLTestMixin):
             create_url,
             self.admin,
             {"name": "sales"},
-            form_errors={"name": "Topic with this name already exists."},
+            form_errors={"name": "Must be unique."},
         )
 
         self.assertCreateSubmit(
@@ -72,7 +72,7 @@ class TopicCRUDLTest(TembaTest, CRUDLTestMixin):
             update_url,
             self.admin,
             {"name": "general"},
-            form_errors={"name": "Topic with this name already exists."},
+            form_errors={"name": "Must be unique."},
             object_unchanged=topic,
         )
 

@@ -1,34 +1,23 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from temba.orgs.views.mixins import UniqueNameMixin
+
 from .models import Shortcut, Team, Topic
 
 
-class ShortcutForm(forms.ModelForm):
+class ShortcutForm(UniqueNameMixin, forms.ModelForm):
     def __init__(self, org, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.org = org
-
-    def clean_name(self):
-        name = self.cleaned_data["name"]
-
-        # make sure the name isn't already taken
-        conflicts = self.org.shortcuts.filter(name__iexact=name)
-        if self.instance:
-            conflicts = conflicts.exclude(id=self.instance.id)
-
-        if conflicts.exists():
-            raise forms.ValidationError(_("Shortcut with this name already exists."))
-
-        return name
 
     class Meta:
         model = Shortcut
         fields = ("name", "text")
 
 
-class TeamForm(forms.ModelForm):
+class TeamForm(UniqueNameMixin, forms.ModelForm):
     topics = forms.ModelMultipleChoiceField(queryset=Topic.objects.none(), required=False)
 
     def __init__(self, org, *args, **kwargs):
@@ -36,19 +25,6 @@ class TeamForm(forms.ModelForm):
 
         self.org = org
         self.fields["topics"].queryset = org.topics.filter(is_active=True)
-
-    def clean_name(self):
-        name = self.cleaned_data["name"]
-
-        # make sure the name isn't already taken
-        conflicts = self.org.teams.filter(name__iexact=name)
-        if self.instance:
-            conflicts = conflicts.exclude(id=self.instance.id)
-
-        if conflicts.exists():
-            raise forms.ValidationError(_("Team with this name already exists."))
-
-        return name
 
     def clean_topics(self):
         topics = self.cleaned_data["topics"]
@@ -63,24 +39,11 @@ class TeamForm(forms.ModelForm):
         fields = ("name", "topics")
 
 
-class TopicForm(forms.ModelForm):
+class TopicForm(UniqueNameMixin, forms.ModelForm):
     def __init__(self, org, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.org = org
-
-    def clean_name(self):
-        name = self.cleaned_data["name"]
-
-        # make sure the name isn't already taken
-        conflicts = self.org.topics.filter(name__iexact=name)
-        if self.instance:
-            conflicts = conflicts.exclude(id=self.instance.id)
-
-        if conflicts.exists():
-            raise forms.ValidationError(_("Topic with this name already exists."))
-
-        return name
 
     class Meta:
         model = Topic

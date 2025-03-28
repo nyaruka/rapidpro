@@ -45,7 +45,7 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
             update_url,
             self.admin,
             {"name": "claude"},
-            form_errors={"name": "Model with this name already exists."},
+            form_errors={"name": "Must be unique."},
             object_unchanged=self.openai,
         )
 

@@ -36,7 +36,7 @@ from temba.orgs.views.base import (
     BaseUpdateModal,
     BaseUsagesModal,
 )
-from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin
+from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
 from temba.tickets.models import Topic
 from temba.users.models import User
 from temba.utils import json, on_transaction_commit
@@ -893,7 +893,7 @@ class ContactGroupCRUDL(SmartCRUDL):
         success_url = "@contacts.contact_list"
 
 
-class ContactFieldForm(forms.ModelForm):
+class ContactFieldForm(UniqueNameMixin, forms.ModelForm):
     def __init__(self, org, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -910,20 +910,13 @@ class ContactFieldForm(forms.ModelForm):
         )
 
     def clean_name(self):
-        name = self.cleaned_data["name"]
+        name = super().clean_name()
 
         if not ContactField.is_valid_name(name):
             raise forms.ValidationError(_("Can only contain letters, numbers and hypens."))
 
         if not ContactField.is_valid_key(ContactField.make_key(name)):
             raise forms.ValidationError(_("Can't be a reserved word."))
-
-        conflict = self.org.fields.filter(is_active=True, name__iexact=name.lower())
-        if self.instance:
-            conflict = conflict.exclude(id=self.instance.id)
-
-        if conflict.exists():
-            raise forms.ValidationError(_("Must be unique."))
 
         return name
 

@@ -28,7 +28,7 @@ from temba.orgs.views.base import (
     BaseMenuView,
     BaseUsagesModal,
 )
-from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin
+from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
 from temba.templates.models import Template
 from temba.utils import json
 from temba.utils.compose import compose_deserialize, compose_serialize
@@ -825,20 +825,11 @@ class MsgCRUDL(SmartCRUDL):
             )
 
 
-class BaseLabelForm(forms.ModelForm):
+class BaseLabelForm(UniqueNameMixin, forms.ModelForm):
     def __init__(self, org, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.org = org
-
-    def clean_name(self):
-        name = self.cleaned_data["name"]
-
-        existing_id = self.instance.id if self.instance else None
-        if Label.get_active_for_org(self.org).filter(name__iexact=name).exclude(pk=existing_id).exists():
-            raise forms.ValidationError(_("Must be unique."))
-
-        return name
 
     class Meta:
         model = Label

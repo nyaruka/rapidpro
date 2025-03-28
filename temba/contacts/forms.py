@@ -5,6 +5,7 @@ from django.db.models.functions import Upper
 from django.utils.translation import gettext_lazy as _
 
 from temba import mailroom
+from temba.orgs.views.mixins import UniqueNameMixin
 from temba.utils import languages
 from temba.utils.fields import InputWidget, SelectMultipleWidget, SelectWidget, TembaMultipleChoiceField
 
@@ -146,7 +147,7 @@ class UpdateContactForm(forms.ModelForm):
         fields = ("name", "status", "language", "groups")
 
 
-class ContactGroupForm(forms.ModelForm):
+class ContactGroupForm(UniqueNameMixin, forms.ModelForm):
     preselected_contacts = forms.CharField(required=False, widget=forms.HiddenInput)
     group_query = forms.CharField(required=False, widget=forms.HiddenInput)
 
@@ -154,16 +155,6 @@ class ContactGroupForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         self.org = org
-
-    def clean_name(self):
-        name = self.cleaned_data["name"]
-
-        # make sure the name isn't already taken
-        existing = self.org.groups.filter(is_active=True, name__iexact=name).first()
-        if existing and self.instance != existing:
-            raise forms.ValidationError(_("Already used by another group."))
-
-        return name
 
     def clean_query(self):
         try:

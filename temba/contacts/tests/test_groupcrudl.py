@@ -51,7 +51,7 @@ class ContactGroupCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # try to create with name that's already taken
         response = self.client.post(url, {"name": "Customers"})
-        self.assertFormError(response.context["form"], "name", "Already used by another group.")
+        self.assertFormError(response.context["form"], "name", "Must be unique.")
 
         # create with valid name (that will be trimmed)
         response = self.client.post(url, {"name": "first  "})
@@ -102,13 +102,13 @@ class ContactGroupCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(
             reverse("contacts.contactgroup_create"), dict(name="First Group", group_query="firsts")
         )
-        self.assertFormError(response.context["form"], "name", "Already used by another group.")
+        self.assertFormError(response.context["form"], "name", "Must be unique.")
 
         # try to create another group with same name, not dynamic, same thing
         response = self.client.post(
             reverse("contacts.contactgroup_create"), dict(name="First Group", group_query="firsts")
         )
-        self.assertFormError(response.context["form"], "name", "Already used by another group.")
+        self.assertFormError(response.context["form"], "name", "Must be unique.")
 
     @mock_mailroom
     def test_update(self, mr_mocks):
