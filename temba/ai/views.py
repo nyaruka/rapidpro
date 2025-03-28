@@ -9,10 +9,40 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from temba.orgs.views.base import BaseDependencyDeleteModal, BaseListView, BaseUpdateModal
-from temba.orgs.views.mixins import OrgObjPermsMixin, UniqueNameMixin
+from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
 from temba.utils.views.mixins import ContextMenuMixin, SpaMixin
+from temba.utils.views.wizard import SmartWizardView
 
 from .models import LLM
+
+
+class BaseConnectWizard(OrgPermsMixin, SmartWizardView):
+    class Form(forms.Form):
+        def __init__(self, llm_type, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+            self.llm_type = llm_type
+
+    permission = "ai.llm_connect"
+    menu_path = "/settings/ai/new-model"
+    template_name = "ai/llm_connect_form.html"
+    success_url = "@ai.llm_list"
+    llm_type = None
+
+    def __init__(self, llm_type, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.llm_type = llm_type
+
+    def get_form_kwargs(self, step=None):
+        kwargs = super().get_form_kwargs(step)
+        kwargs["llm_type"] = self.llm_type
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["form_blurb"] = self.llm_type.get_form_blurb()
+        return context
 
 
 class LLMCRUDL(SmartCRUDL):
