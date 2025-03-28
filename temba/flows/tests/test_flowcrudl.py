@@ -92,7 +92,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             create_url,
             self.admin,
             {"name": "Registration", "flow_type": "M", "base_language": "eng"},
-            form_errors={"name": "Already used by another flow."},
+            form_errors={"name": "Must be unique."},
         )
 
         response = self.assertCreateSubmit(

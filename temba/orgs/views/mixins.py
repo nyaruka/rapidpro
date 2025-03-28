@@ -288,3 +288,22 @@ class DependencyMixin:
 
                 dependents[type_key] = type_qs
         return dependents
+
+
+class UniqueNameMixin:
+    """
+    Model form mixin that ensures the name field is unique within the org.
+    """
+
+    def clean_name(self):
+        name = self.cleaned_data["name"]
+
+        # make sure the name isn't already taken
+        conflicts = self.Meta.model.objects.filter(org=self.org, is_active=True, name__iexact=name)
+        if self.instance:
+            conflicts = conflicts.exclude(id=self.instance.id)
+
+        if conflicts.exists():
+            raise forms.ValidationError(_("Must be unique."))
+
+        return name

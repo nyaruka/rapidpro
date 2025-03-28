@@ -6,14 +6,14 @@ from django import forms
 from django.urls import reverse
 
 from temba.orgs.views.base import BaseCreateModal, BaseDependencyDeleteModal, BaseListView, BaseUsagesModal
-from temba.orgs.views.mixins import OrgObjPermsMixin
+from temba.orgs.views.mixins import OrgObjPermsMixin, UniqueNameMixin
 from temba.utils.fields import InputWidget
 from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, SpaMixin
 
 from .models import Global
 
 
-class CreateGlobalForm(forms.ModelForm):
+class CreateGlobalForm(UniqueNameMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.org = kwargs["org"]
         del kwargs["org"]
@@ -21,15 +21,10 @@ class CreateGlobalForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
     def clean_name(self):
-        name = self.cleaned_data["name"]
+        name = super().clean_name()
 
         if not Global.is_valid_name(name):
             raise forms.ValidationError(_("Can only contain letters, numbers and hypens."))
-
-        exists = self.org.globals.filter(is_active=True, name__iexact=name.lower()).exists()
-
-        if self.instance.name != name and exists:
-            raise forms.ValidationError(_("Must be unique."))
 
         if not Global.is_valid_key(Global.make_key(name)):
             raise forms.ValidationError(_("Isn't a valid name"))

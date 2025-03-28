@@ -27,7 +27,7 @@ class ShortcutCRUDLTest(TembaTest, CRUDLTestMixin):
             create_url,
             self.admin,
             {"name": "reboot", "text": "Have you tried..."},
-            form_errors={"name": "Shortcut with this name already exists."},
+            form_errors={"name": "Must be unique."},
         )
 
         # try to create with name that has invalid characters
@@ -69,7 +69,7 @@ class ShortcutCRUDLTest(TembaTest, CRUDLTestMixin):
             update_url,
             self.admin,
             {"name": "trains", "text": "Trains are..."},
-            form_errors={"name": "Shortcut with this name already exists."},
+            form_errors={"name": "Must be unique."},
             object_unchanged=shortcut,
         )
 

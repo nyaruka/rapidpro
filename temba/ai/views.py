@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from temba.orgs.views.base import BaseDependencyDeleteModal, BaseListView, BaseUpdateModal
-from temba.orgs.views.mixins import OrgObjPermsMixin
+from temba.orgs.views.mixins import OrgObjPermsMixin, UniqueNameMixin
 from temba.utils.views.mixins import ContextMenuMixin, SpaMixin
 
 from .models import LLM
@@ -29,24 +29,11 @@ class LLMCRUDL(SmartCRUDL):
                 menu.add_modax(_("New"), "new-llm", reverse("ai.types.openai.connect"), title="OpenAI", as_button=True)
 
     class Update(BaseUpdateModal):
-        class Form(forms.ModelForm):
+        class Form(UniqueNameMixin, forms.ModelForm):
             def __init__(self, org, *args, **kwargs):
                 super().__init__(*args, **kwargs)
 
                 self.org = org
-
-            def clean_name(self):
-                name = self.cleaned_data["name"]
-
-                # make sure the name isn't already taken
-                conflicts = self.org.llms.filter(name__iexact=name, is_active=True)
-                if self.instance:
-                    conflicts = conflicts.exclude(id=self.instance.id)
-
-                if conflicts.exists():
-                    raise forms.ValidationError(_("Model with this name already exists."))
-
-                return name
 
             class Meta:
                 model = LLM
