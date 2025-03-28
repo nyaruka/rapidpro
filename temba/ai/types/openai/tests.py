@@ -44,12 +44,21 @@ class OpenAITypeTest(TembaTest, CRUDLTestMixin):
         response = self.process_wizard(
             "connect_view",
             connect_url,
-            {"connect": {"api_key": "good_key"}, "model": {"model": "gpt-4o"}, "name": {"name": "Basic Model"}},
+            {"connect": {"api_key": "good_key"}, "model": {"model": "gpt-4o"}, "name": {"name": "GPT-4"}},
         )
 
         # check that we created our model
-        llm = LLM.objects.get(name="Basic Model", llm_type=OpenAIType.slug)
+        llm = LLM.objects.get(name="GPT-4", llm_type=OpenAIType.slug)
 
         # check our config has what we need
         self.assertEqual("good_key", llm.config["api_key"])
         self.assertEqual("gpt-4o", llm.config["model"])
+
+        # try to create another model with same name
+        response = self.process_wizard(
+            "connect_view",
+            connect_url,
+            {"connect": {"api_key": "good_key"}, "model": {"model": "gpt-4o"}, "name": {"name": "GPT-4"}},
+        )
+
+        self.assertFormError(response.context["form"], "name", "Must be unique.")

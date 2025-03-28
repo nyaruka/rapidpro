@@ -318,9 +318,9 @@ class EndpointsTest(APITestMixin, TembaTest):
     def test_llms(self):
         endpoint_url = reverse("api.internal.llms") + ".json"
 
-        openai = LLM.create(self.org, self.admin, OpenAIType.slug, "GPT-4", {})
-        anthropic = LLM.create(self.org, self.admin, AnthropicType.slug, "Claude", {})
-        deleted = LLM.create(self.org, self.admin, AnthropicType.slug, "Claude", {})
+        openai = LLM.create(self.org, self.admin, OpenAIType, "GPT-4", {})
+        anthropic = LLM.create(self.org, self.admin, AnthropicType, "Claude", {})
+        deleted = LLM.create(self.org, self.admin, AnthropicType, "Claude", {})
         deleted.release(self.admin)
 
         self.assertGetNotPermitted(endpoint_url, [None])

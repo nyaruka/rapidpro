@@ -57,11 +57,11 @@ class LLM(TembaModel, DependencyMixin):
     org_limit_key = Org.LIMIT_LLMS
 
     @classmethod
-    def create(cls, org, user, llm_type: str, name: str, config: dict):
+    def create(cls, org, user, typ, name: str, config: dict):
         return cls.objects.create(
             org=org,
             name=name,
-            llm_type=llm_type,
+            llm_type=typ.slug,
             config=config,
             created_by=user,
             modified_by=user,
