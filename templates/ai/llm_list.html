@@ -1,7 +1,9 @@
 {% extends "orgs/base/list.html" %}
-{% load smartmin temba i18n humanize %}
+{% load smartmin temba i18n %}
 
 {% block modaxes %}
+  <temba-modax header="{{ _("Update Model") |escapejs }}" id="update-llm">
+  </temba-modax>
   <temba-modax header="{{ _("Delete Model") |escapejs }}" id="delete-llm">
   </temba-modax>
   <temba-modax header="{{ _("Usages") |escapejs }}" id="usages-llm">
@@ -18,13 +20,13 @@
   <table class="list lined scrolled">
     <tbody>
       {% for obj in object_list %}
-        <tr>
-          <td style="min-width: 50px">{{ obj.name }}</td>
-          <td style="">
-            <temba-icon style="display:inline-block;vertical-align:middle;margin-right:0.25em" name="{{ obj.type }}">
+        <tr {% if org_perms.ai.llm_update %}onclick="showUpdateLLMModal('{{ obj.uuid }}')" class="hover-linked update"{% endif %}>
+          <td style="width: 32px">
+            <temba-icon class="inline-block mr-1 align-middle" name="{{ obj.type.icon }}">
             </temba-icon>
-            {{ obj.config.model }}
           </td>
+          <td style="min-width: 50px">{{ obj.name }}</td>
+          <td>{{ obj.config.model }}</td>
           <td class="w-12">
             <div class="flex text-center">
               {% with usage_count=obj.usage_count %}
@@ -63,6 +65,12 @@
 {% block extra-script %}
   {{ block.super }}
   <script>
+    function showUpdateLLMModal(uuid) {
+      var modax = document.querySelector('#update-llm');
+      modax.endpoint = `/llm/update/${uuid}/`;
+      modax.open = true;
+    }
+
     function showDeleteLLMModal(uuid) {
       var modax = document.querySelector('#delete-llm');
       modax.endpoint = `/llm/delete/${uuid}/`;
