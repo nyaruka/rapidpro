@@ -1,9 +1,9 @@
-{% extends 'includes/modax.html' %}
+{% extends "includes/modax.html" %}
 {% load i18n smartmin %}
 
 {% block fields %}
   {% if hard_dependents %}
-    <span class="font-normal">{{ object.name }}</span>
+    <b>{{ object.name }}</b>
     {% trans "can't be deleted as it is still used by the following items:" %}
     <div class="dependents mt-4">
       {% for type_qs in hard_dependents.values %}
@@ -11,7 +11,7 @@
       {% endfor %}
     </div>
   {% elif soft_dependents %}
-    <span class="font-normal">{{ object.name }}</span>
+    <b>{{ object.name }}</b>
     {% trans "is used by the following items but can still be deleted:" %}
     <div class="dependents mt-4">
       {% for type_key, type_qs in soft_dependents.items %}
@@ -20,7 +20,7 @@
     </div>
   {% else %}
     {% trans "You are about to delete" %}
-    <span class="font-normal">{{ object.name }}.</span>
+    <b>{{ object.name }}.</b>
   {% endif %}
   {% if not hard_dependents %}
     <div class="mt-4">{% trans "There is no way to undo this. Are you sure?" %}</div>

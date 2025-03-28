@@ -33,6 +33,27 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertContains(response, "You have reached the per-workspace limit")
             self.assertContentMenu(list_url, self.admin, [])
 
+    def test_update(self):
+        update_url = reverse("ai.llm_update", args=[self.openai.uuid])
+
+        self.assertRequestDisallowed(update_url, [None, self.agent, self.editor, self.admin2])
+
+        self.assertUpdateFetch(update_url, [self.admin], form_fields={"name": "GPT-4"})
+
+        # names must be unique (case-insensitive)
+        self.assertUpdateSubmit(
+            update_url,
+            self.admin,
+            {"name": "claude"},
+            form_errors={"name": "Model with this name already exists."},
+            object_unchanged=self.openai,
+        )
+
+        self.assertUpdateSubmit(update_url, self.admin, {"name": "GPT-4-Turbo"}, success_status=302)
+
+        self.openai.refresh_from_db()
+        self.assertEqual(self.openai.name, "GPT-4-Turbo")
+
     @mock_mailroom
     def test_translate(self, mr_mocks):
         translate_url = reverse("ai.llm_translate", args=[self.openai.uuid])
