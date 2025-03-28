@@ -1,7 +1,6 @@
 import openai
 
 from django import forms
-from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
 
@@ -21,9 +20,9 @@ class ConnectForm(BaseConnectWizard.Form):
         api_key = self.data.get("connect-api_key")
         client = openai.OpenAI(api_key=api_key)
         try:
-            models = settings.LLM_TYPES.get("temba.ai.types.openai.type.OpenAIType").get("models", [])
+            allowed_models = self.llm_type.settings.get("models", [])
             available_models = client.models.list()
-            model_choices = [(model.id, model.id) for model in available_models if not models or model.id in models]
+            model_choices = [(m.id, m.id) for m in available_models if not allowed_models or m.id in allowed_models]
 
             # save our model choices as extra data
             self.extra_data = {"model_choices": model_choices}
@@ -32,9 +31,6 @@ class ConnectForm(BaseConnectWizard.Form):
             raise forms.ValidationError(_("Invalid API Key"))
 
         return api_key
-
-    def clean(self):
-        return self.cleaned_data
 
 
 class ModelForm(BaseConnectWizard.Form):

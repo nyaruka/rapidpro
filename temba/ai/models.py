@@ -1,5 +1,6 @@
 from abc import ABCMeta
 
+from django.conf import settings
 from django.db import models
 from django.template import Engine
 from django.urls import re_path
@@ -33,13 +34,15 @@ class LLMType(metaclass=ABCMeta):
         """
         Returns all the URLs this llm exposes to Django, the URL should be relative.
         """
-        return [self.get_connect_url()]
+        return [re_path(r"^connect", self.connect_view.as_view(llm_type=self), name="connect")]
 
-    def get_connect_url(self):
+    @property
+    def settings(self) -> dict:
         """
-        Gets the URL/view configuration for this llm's connect wizard
+        Gets the deployment level settings for this type
         """
-        return re_path(r"^connect", self.connect_view.as_view(llm_type=self), name="connect")
+
+        return settings.LLM_TYPES[self.__module__ + "." + self.__class__.__name__]
 
 
 class LLM(TembaModel, DependencyMixin):
