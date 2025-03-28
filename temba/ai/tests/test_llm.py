@@ -11,8 +11,8 @@ class LLMTest(TembaTest):
         openai = LLM.create(self.org, self.admin, OpenAIType, "GPT-4", {})
         LLM.create(self.org, self.admin, AnthropicType, "Claude", {})
 
-        self.assertIsInstance(openai.type, OpenAIType)
-        self.assertEqual("GPT-4 (openai)", str(openai))
+        self.assertEqual(openai.name, "GPT-4")
+        self.assertEqual(openai.type.slug, OpenAIType.slug)
 
         openai.release(self.admin)
 

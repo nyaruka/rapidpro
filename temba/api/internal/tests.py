@@ -320,7 +320,7 @@ class EndpointsTest(APITestMixin, TembaTest):
 
         openai = LLM.create(self.org, self.admin, OpenAIType, "GPT-4", {})
         anthropic = LLM.create(self.org, self.admin, AnthropicType, "Claude", {})
-        deleted = LLM.create(self.org, self.admin, AnthropicType, "Claude", {})
+        deleted = LLM.create(self.org, self.admin, AnthropicType, "Deleted", {})
         deleted.release(self.admin)
 
         self.assertGetNotPermitted(endpoint_url, [None])
