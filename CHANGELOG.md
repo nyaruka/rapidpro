@@ -1,3 +1,9 @@
+v10.1.111 (2025-03-28)
+-------------------------
+ * Enforce name uniqueness for LLMs
+ * Use form mixin to enforce name uniqueness
+ * Fix LLM list page to display icons and add update modal to allow name changes
+
 v10.1.109 (2025-03-26)
 -------------------------
  * Add autogrow webhook bodies

@@ -18,9 +18,10 @@ from .models import LLM
 
 class BaseConnectWizard(OrgPermsMixin, SmartWizardView):
     class Form(forms.Form):
-        def __init__(self, llm_type, *args, **kwargs):
+        def __init__(self, org, llm_type, *args, **kwargs):
             super().__init__(*args, **kwargs)
 
+            self.org = org
             self.llm_type = llm_type
 
     permission = "ai.llm_connect"
@@ -36,6 +37,7 @@ class BaseConnectWizard(OrgPermsMixin, SmartWizardView):
 
     def get_form_kwargs(self, step=None):
         kwargs = super().get_form_kwargs(step)
+        kwargs["org"] = self.request.org
         kwargs["llm_type"] = self.llm_type
         return kwargs
 

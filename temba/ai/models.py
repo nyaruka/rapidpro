@@ -2,6 +2,7 @@ from abc import ABCMeta
 
 from django.conf import settings
 from django.db import models
+from django.db.models.functions import Lower
 from django.template import Engine
 from django.urls import re_path
 
@@ -57,11 +58,11 @@ class LLM(TembaModel, DependencyMixin):
     org_limit_key = Org.LIMIT_LLMS
 
     @classmethod
-    def create(cls, org, user, llm_type: str, name: str, config: dict):
+    def create(cls, org, user, typ, name: str, config: dict):
         return cls.objects.create(
             org=org,
             name=name,
-            llm_type=llm_type,
+            llm_type=typ.slug,
             config=config,
             created_by=user,
             modified_by=user,
@@ -70,6 +71,12 @@ class LLM(TembaModel, DependencyMixin):
     @property
     def type(self) -> LLMType:
         return self.get_type_from_code()
+
+    @classmethod
+    def get_types(cls):
+        from .types import TYPES
+
+        return TYPES.values()
 
     def get_type_from_code(self):
         """
@@ -90,11 +97,5 @@ class LLM(TembaModel, DependencyMixin):
         self.modified_by = user
         self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))
 
-    def __str__(self):
-        return f"{self.name} ({self.llm_type})"
-
-    @classmethod
-    def get_types(cls):
-        from .types import TYPES
-
-        return TYPES.values()
+    class Meta:
+        constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_llm_names")]

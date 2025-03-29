@@ -17,18 +17,18 @@ class ConnectForm(BaseConnectWizard.Form):
     )
 
     def clean_api_key(self):
-        api_key = self.data.get("connect-api_key")
-        client = openai.OpenAI(api_key=api_key)
+        api_key = self.data["connect-api_key"]
+
         try:
-            allowed_models = self.llm_type.settings.get("models", [])
+            client = openai.OpenAI(api_key=api_key)
             available_models = client.models.list()
-            model_choices = [(m.id, m.id) for m in available_models if not allowed_models or m.id in allowed_models]
-
-            # save our model choices as extra data
-            self.extra_data = {"model_choices": model_choices}
-
         except openai.AuthenticationError:
             raise forms.ValidationError(_("Invalid API Key"))
+
+        allowed_models = self.llm_type.settings.get("models", [])
+        model_choices = [(m.id, m.id) for m in available_models if not allowed_models or m.id in allowed_models]
+
+        self.extra_data = {"model_choices": model_choices}  # save our model choices as extra data
 
         return api_key
 
@@ -46,13 +46,22 @@ class ModelForm(BaseConnectWizard.Form):
 
 class NameForm(BaseConnectWizard.Form):
     name = forms.CharField(
-        label=_("Name"), widget=InputWidget(), help_text=_("Give your model a memorable name."), required=False
+        label=_("Name"), widget=InputWidget(), help_text=_("Give your model a memorable name."), required=True
     )
 
-    def __init__(self, placeholder, *args, **kwargs):
+    def __init__(self, model_name, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields["name"].widget.attrs["placeholder"] = placeholder
+        self.fields["name"].initial = model_name.replace("gpt", "GPT").replace("-", " ")
+
+    def clean_name(self):
+        name = self.cleaned_data["name"]
+
+        # make sure the name isn't already taken
+        if self.org.llms.filter(is_active=True, name__iexact=name).exists():
+            raise forms.ValidationError(_("Must be unique."))
+
+        return name
 
 
 class ConnectView(BaseConnectWizard):
@@ -67,7 +76,7 @@ class ConnectView(BaseConnectWizard):
 
         if step == "name":
             step_data = self.storage.data["step_data"]
-            kwargs["placeholder"] = f"My {step_data.get("model", {}).get("model-model", [""])[0]} model (optional)"
+            kwargs["model_name"] = step_data.get("model", {}).get("model-model", [""])[0]
 
         return kwargs
 
@@ -79,7 +88,7 @@ class ConnectView(BaseConnectWizard):
         self.object = LLM.create(
             self.request.org,
             self.request.user,
-            self.llm_type.slug,
+            self.llm_type,
             name,
             {"api_key": connect_form.cleaned_data["api_key"], "model": model_form.cleaned_data["model"]},
         )
