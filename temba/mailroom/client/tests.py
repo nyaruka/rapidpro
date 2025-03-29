@@ -17,7 +17,13 @@ from temba.utils import json
 
 from .. import modifiers
 from .client import MailroomClient
-from .exceptions import FlowValidationException, QueryValidationException, RequestException, URNValidationException
+from .exceptions import (
+    AIReasoningException,
+    FlowValidationException,
+    QueryValidationException,
+    RequestException,
+    URNValidationException,
+)
 from .types import ContactSpec, Exclusions, Inclusions, RecipientsPreview, ScheduleSpec, URNResult
 
 
@@ -473,14 +479,14 @@ class MailroomClientTest(TembaTest):
             },
         )
 
-    def test_llm_translate(self):
+    @patch("requests.post")
+    def test_llm_translate(self, mock_post):
         llm = LLM.create(self.org, self.admin, OpenAIType, "GPT-4", {})
 
-        with patch("requests.post") as mock_post:
-            mock_post.return_value = MockJsonResponse(200, {"text": "Hola mundo"})
-            response = self.client.llm_translate(llm, from_language="eng", to_language="spa", text="Hello world")
+        mock_post.return_value = MockJsonResponse(200, {"text": "Hola mundo"})
+        response = self.client.llm_translate(llm, from_language="eng", to_language="spa", text="Hello world")
 
-            self.assertEqual({"text": "Hola mundo"}, response)
+        self.assertEqual({"text": "Hola mundo"}, response)
 
         mock_post.assert_called_once_with(
             "http://localhost:8090/mr/llm/translate",
@@ -493,6 +499,25 @@ class MailroomClientTest(TembaTest):
                 "text": "Hello world",
             },
         )
+
+        mock_post.return_value = MockJsonResponse(
+            422,
+            {
+                "code": "ai:reasoning",
+                "error": "not able to translate",
+                "extra": {"instructions": "Translate", "input": "Hi there", "response": "<CANT>"},
+            },
+        )
+
+        with self.assertRaises(AIReasoningException) as e:
+            self.client.llm_translate(llm, from_language="eng", to_language="spa", text="Hello world")
+
+        self.assertEqual("not able to translate", e.exception.error)
+        self.assertEqual("reasoning", e.exception.code)
+        self.assertEqual("Translate", e.exception.instructions)
+        self.assertEqual("Hi there", e.exception.input)
+        self.assertEqual("<CANT>", e.exception.response)
+        self.assertEqual("not able to translate", str(e.exception))
 
     @patch("requests.post")
     def test_msg_broadcast(self, mock_post):

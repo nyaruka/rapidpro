@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from temba.orgs.views.base import BaseDependencyDeleteModal, BaseListView, BaseUpdateModal
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
+from temba.tests import mailroom
 from temba.utils.views.mixins import ContextMenuMixin, SpaMixin
 from temba.utils.views.wizard import SmartWizardView
 
@@ -86,9 +87,12 @@ class LLMCRUDL(SmartCRUDL):
             self.object = self.get_object()
             data = json.loads(request.body)
 
-            return JsonResponse(
-                {"result": self.object.translate(data["lang"]["from"], data["lang"]["to"], data["text"])}
-            )
+            try:
+                translated = self.object.translate(data["lang"]["from"], data["lang"]["to"], data["text"])
+            except mailroom.AIReasoningException:  # pragma: no cover
+                return JsonResponse({"error": "LLM was not able to translate as requested"}, status=400)
+
+            return JsonResponse({"result": translated})
 
     class Delete(BaseDependencyDeleteModal):
         cancel_url = "@ai.llm_list"
