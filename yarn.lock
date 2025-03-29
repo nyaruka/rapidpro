@@ -75,10 +75,10 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@nyaruka/flow-editor@1.37.8":
-  version "1.37.8"
-  resolved "https://registry.yarnpkg.com/@nyaruka/flow-editor/-/flow-editor-1.37.8.tgz#2b8abae4b3f95ab7609c612842ddd91cf2518687"
-  integrity sha512-IwKdsSN0Hg9gy5pHWzEoct2yNj4enO+mGIU0enwJP/sGhtwmS1GH21REkTeSBf/0UpuXRGq1sCXWM+vrQiiqnQ==
+"@nyaruka/flow-editor@1.38.0":
+  version "1.38.0"
+  resolved "https://registry.yarnpkg.com/@nyaruka/flow-editor/-/flow-editor-1.38.0.tgz#58bf51acceceb35beeacb5ce05020fa94023da04"
+  integrity sha512-iZ9lX/vvqumQn4SazeQweKKEn8t8RAs7T5yW+QKVzCuXbekosnCpR/W9+injpf7jlApL3CAB1Aa2fYeuy3yLnw==
   dependencies:
     "@nyaruka/temba-components" "0.118.8"
     react "^16.8.6"
@@ -88,6 +88,25 @@
   version "0.118.8"
   resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.118.8.tgz#0c0e57a9845c6d86a43e23776cc75ed64d2cebdf"
   integrity sha512-KO6WvxfSNXKirAilWfbzoxOoS8aZEtAsCDkW97UNqXQW5I2/k5Uhqddtz4ofQvfcKU4Jrx+smYfVfa3BkJN63Q==
+  dependencies:
+    "@lit/localize" "^0.12.1"
+    color-hash "^2.0.2"
+    croppie "^2.6.5"
+    geojson "^0.5.0"
+    image-size "^1.1.1"
+    leaflet "1.5.1"
+    lit "3.1.2"
+    lit-element "^4.0.4"
+    lit-html "^3.1.2"
+    luxon "3.5"
+    remarkable "^2.0.1"
+    serialize-javascript "^6.0.2"
+    tiny-lru "^11.2.5"
+
+"@nyaruka/temba-components@0.119.0":
+  version "0.119.0"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.119.0.tgz#f7870a2bd59f1c90409ea2699974673147ffe862"
+  integrity sha512-7DDmGbY1Actx37duMqHsPA2ocL+XuCAOYdUxJ+wNjbYhZOCIykgvSgrj1rds0ABtlQTUqtRcwOrDE4GeCYUDzA==
   dependencies:
     "@lit/localize" "^0.12.1"
     color-hash "^2.0.2"
