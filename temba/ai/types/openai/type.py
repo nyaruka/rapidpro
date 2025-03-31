@@ -1,7 +1,8 @@
 from django.utils.translation import gettext_lazy as _
 
 from temba.ai.models import LLMType
-from temba.ai.types.openai.views import ConnectView
+
+from .views import ConnectView
 
 
 class OpenAIType(LLMType):
