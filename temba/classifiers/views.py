@@ -58,8 +58,6 @@ class ClassifierCRUDL(SmartCRUDL):
         def build_context_menu(self, menu):
             obj = self.get_object()
 
-            menu.add_link(_("Log"), reverse("request_logs.httplog_classifier", args=[obj.uuid]))
-
             if self.has_org_perm("classifiers.classifier_sync"):
                 menu.add_url_post(_("Sync"), reverse("classifiers.classifier_sync", args=[obj.id]))
 

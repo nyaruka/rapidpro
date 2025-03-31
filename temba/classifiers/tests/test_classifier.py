@@ -4,7 +4,6 @@ from django.utils import timezone
 
 from temba.classifiers.models import Classifier
 from temba.classifiers.types.wit import WitType
-from temba.request_logs.models import HTTPLog
 from temba.tests import MockResponse, TembaTest
 
 INTENT_RESPONSE = """
@@ -67,6 +66,3 @@ class ClassifierTest(TembaTest):
 
             # one inactive
             self.assertEqual(1, self.c1.intents.filter(is_active=False).count())
-
-            # one classifier log
-            self.assertEqual(1, HTTPLog.objects.filter(classifier=self.c1, org=self.org).count())

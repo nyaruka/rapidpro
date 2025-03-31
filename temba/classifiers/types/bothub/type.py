@@ -1,9 +1,5 @@
 import requests
 
-from django.utils import timezone
-
-from temba.request_logs.models import HTTPLog
-
 from ...models import ClassifierType, Intent
 from .views import ConnectView
 
@@ -33,16 +29,12 @@ class BothubType(ClassifierType):
     def get_active_intents_from_api(self, classifier):
         access_token = classifier.config[self.CONFIG_ACCESS_TOKEN]
 
-        start = timezone.now()
         try:
             response = requests.get(self.INTENT_URL, headers={"Authorization": f"Bearer {access_token}"})
             response.raise_for_status()
 
-            HTTPLog.from_response(HTTPLog.INTENTS_SYNCED, response, start, timezone.now(), classifier=classifier)
-
             response_json = response.json()
-        except requests.RequestException as e:
-            HTTPLog.from_exception(HTTPLog.INTENTS_SYNCED, e, start, classifier=classifier)
+        except requests.RequestException:
             return []
 
         intents = []

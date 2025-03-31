@@ -1,9 +1,5 @@
 import requests
 
-from django.utils import timezone
-
-from temba.request_logs.models import HTTPLog
-
 from ...models import ClassifierType, Intent
 from .client import Client
 from .views import ConnectView
@@ -37,15 +33,10 @@ class WitType(ClassifierType):
         fetch the possible values for that entity.
         """
         client = Client(classifier.config[self.CONFIG_ACCESS_TOKEN])
-        start = timezone.now()
 
         try:
-            intents, response = client.get_intents()
-
-            HTTPLog.from_response(HTTPLog.INTENTS_SYNCED, response, start, timezone.now(), classifier=classifier)
-
-        except requests.RequestException as e:
-            HTTPLog.from_exception(HTTPLog.INTENTS_SYNCED, e, start, classifier=classifier)
+            intents = client.get_intents()
+        except requests.RequestException:
             return []
 
         return [Intent(name=i["name"], external_id=i["id"]) for i in intents]
