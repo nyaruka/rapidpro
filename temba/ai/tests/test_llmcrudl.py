@@ -66,7 +66,7 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(
             translate_url, {"text": "Hello", "lang": {"from": "eng", "to": "spa"}}, content_type="application/json"
         )
-        self.assertEqual(response.json(), {"result": "Hola"})
+        self.assertEqual(response.json(), {"text": "Hola"})
 
     def test_delete(self):
         list_url = reverse("ai.llm_list")

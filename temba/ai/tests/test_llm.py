@@ -26,6 +26,6 @@ class LLMTest(TembaTest):
         openai = LLM.create(self.org, self.admin, OpenAIType, "GPT-4", {})
 
         mr_mocks.llm_translate("Hola")
-        self.assertEqual(openai.translate("eng", "spa", "Hello"), "Hola")
+        self.assertEqual(openai.translate("eng", "spa", "Hello"), {"text": "Hola"})
 
         self.assertEqual(call(openai, "eng", "spa", "Hello"), mr_mocks.calls["llm_translate"][-1])
