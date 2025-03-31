@@ -1,3 +1,9 @@
+v10.1.112 (2025-03-31)
+-------------------------
+ * Stop showing and writing http logs for all classifier requests
+ * Add anthropic as LLM option in UI
+ * Handle errors from LLM translation requests
+
 v10.1.111 (2025-03-28)
 -------------------------
  * Enforce name uniqueness for LLMs
