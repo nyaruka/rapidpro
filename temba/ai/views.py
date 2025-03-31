@@ -85,10 +85,13 @@ class LLMCRUDL(SmartCRUDL):
         def post(self, request, *args, **kwargs):
             self.object = self.get_object()
             data = json.loads(request.body)
+            response = self.object.translate(data["lang"]["from"], data["lang"]["to"], data["text"])
 
-            return JsonResponse(
-                {"result": self.object.translate(data["lang"]["from"], data["lang"]["to"], data["text"])}
-            )
+            # we don't want to expose prompts over the network
+            if "extra" in response:
+                del response["extra"]
+
+            return JsonResponse(response, status=422 if "error" in response else 200)
 
     class Delete(BaseDependencyDeleteModal):
         cancel_url = "@ai.llm_list"
