@@ -58,7 +58,7 @@ class ClassifierCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertNotContains(response, "book_hotel")
         self.assertContains(response, "book_car")
 
-        self.assertContentMenu(read_url, self.admin, ["Log", "Sync", "Delete"])
+        self.assertContentMenu(read_url, self.admin, ["Sync", "Delete"])
 
         self.c1.intents.all().delete()
 
@@ -86,7 +86,7 @@ class ClassifierCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertNotContains(response, "book_hotel")
         self.assertContains(response, "book_car")
 
-        self.assertContentMenu(read_url, self.admin, ["Log", "Sync", "Delete"])
+        self.assertContentMenu(read_url, self.admin, ["Sync", "Delete"])
 
     def test_delete(self):
         delete_url = reverse("classifiers.classifier_delete", args=[self.c2.uuid])

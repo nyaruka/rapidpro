@@ -6,7 +6,6 @@ from requests.exceptions import RequestException
 from django.urls import reverse
 
 from temba.classifiers.models import Classifier
-from temba.request_logs.models import HTTPLog
 from temba.tests import MockResponse, TembaTest
 
 from .client import AuthoringClient, PredictionClient
@@ -116,12 +115,10 @@ class LuisTypeTest(TembaTest):
         mock_get.side_effect = [MockResponse(400, '{"error": "yes"}')]
 
         c.get_type().get_active_intents_from_api(c)
-        self.assertEqual(HTTPLog.objects.filter(classifier=c).count(), 1)
 
         mock_get.side_effect = [MockResponse(100, "")]
 
         c.get_type().get_active_intents_from_api(c)
-        self.assertEqual(HTTPLog.objects.filter(classifier=c).count(), 2)
 
         mock_get.side_effect = [
             MockResponse(200, GET_APP_RESPONSE),
@@ -130,7 +127,6 @@ class LuisTypeTest(TembaTest):
 
         intents = c.get_type().get_active_intents_from_api(c)
 
-        self.assertEqual(HTTPLog.objects.filter(classifier=c).count(), 4)
         self.assertEqual(2, len(intents))
         self.assertEqual("Book Flight", intents[0].name)
         self.assertEqual("75d2e81c-e441-45ac", intents[0].external_id)

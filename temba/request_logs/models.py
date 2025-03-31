@@ -71,11 +71,11 @@ class HTTPLog(models.Model):
     channel = models.ForeignKey(Channel, related_name="http_logs", on_delete=models.PROTECT, null=True)
 
     @classmethod
-    def from_response(cls, log_type, response, created_on, ended_on, classifier=None, channel=None):
+    def from_response(cls, log_type, response, created_on, ended_on, channel):
         """
         Creates a new HTTPLog from an HTTP response
         """
-        org = (classifier or channel).org
+        org = channel.org
         http_log = HttpLog.from_response(response, created_on, ended_on)
         is_error = http_log.status_code >= 400
 
@@ -88,18 +88,17 @@ class HTTPLog(models.Model):
             is_error=is_error,
             created_on=created_on,
             request_time=http_log.elapsed_ms,
-            classifier=classifier,
             channel=channel,
         )
 
     @classmethod
-    def from_exception(cls, log_type, exception, created_on, classifier=None, channel=None):
+    def from_exception(cls, log_type, exception, created_on, channel):
         """
         Creates a new HTTPLog from a request exception (typically a timeout)
         """
         assert isinstance(exception, requests.RequestException)
 
-        org = (classifier or channel).org
+        org = channel.org
         http_log = HttpLog.from_request(exception.request, created_on, timezone.now())
 
         return cls.objects.create(
@@ -112,7 +111,6 @@ class HTTPLog(models.Model):
             created_on=created_on,
             request_time=http_log.elapsed_ms,
             channel=channel,
-            classifier=classifier,
         )
 
     def _get_redact_secrets(self) -> tuple:

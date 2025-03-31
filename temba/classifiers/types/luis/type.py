@@ -1,7 +1,5 @@
 import requests
 
-from temba.request_logs.models import HTTPLog
-
 from ...models import ClassifierType, Intent
 from .client import AuthoringClient
 from .views import ConnectView
@@ -52,10 +50,5 @@ class LuisType(ClassifierType):
                 intents = client.get_version_intents(app_id, version)
         except requests.RequestException:
             pass
-
-        for log in client.logs:
-            HTTPLog.from_response(
-                HTTPLog.INTENTS_SYNCED, log["response"], log["created_on"], log["ended_on"], classifier=classifier
-            )
 
         return [Intent(name=i["name"], external_id=i["id"]) for i in intents]
