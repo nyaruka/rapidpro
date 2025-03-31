@@ -10,7 +10,13 @@ from temba.msgs.models import Broadcast, QuickReply
 from temba.utils import json
 
 from ..modifiers import Modifier
-from .exceptions import FlowValidationException, QueryValidationException, RequestException, URNValidationException
+from .exceptions import (
+    AIReasoningException,
+    FlowValidationException,
+    QueryValidationException,
+    RequestException,
+    URNValidationException,
+)
 from .types import (
     ContactSpec,
     Exclusions,
@@ -384,6 +390,8 @@ class MailroomClient:
                 raise QueryValidationException(error, code, extra)
             elif domain == "urn":
                 raise URNValidationException(error, code, extra["index"])
+            elif domain == "ai":
+                raise AIReasoningException(error, code, extra["instructions"], extra["input"], extra["response"])
 
         elif 400 <= response.status_code < 600:
             raise RequestException(endpoint, payload, response)
