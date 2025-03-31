@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from temba.orgs.views.base import BaseDependencyDeleteModal, BaseListView, BaseUpdateModal
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
 from temba.tests import mailroom
+from temba.utils.fields import InputWidget
 from temba.utils.views.mixins import ContextMenuMixin, SpaMixin
 from temba.utils.views.wizard import SmartWizardView
 
@@ -48,6 +49,30 @@ class BaseConnectWizard(OrgPermsMixin, SmartWizardView):
         return context
 
 
+class NameForm(BaseConnectWizard.Form):
+    """
+    Reusable wizard form for giving a name to a model.
+    """
+
+    name = forms.CharField(
+        label=_("Name"), widget=InputWidget(), help_text=_("Give your model a memorable name."), required=True
+    )
+
+    def __init__(self, initial: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["name"].initial = initial
+
+    def clean_name(self):
+        name = self.cleaned_data["name"]
+
+        # make sure the name isn't already taken
+        if self.org.llms.filter(is_active=True, name__iexact=name).exists():
+            raise forms.ValidationError(_("Must be unique."))
+
+        return name
+
+
 class LLMCRUDL(SmartCRUDL):
     model = LLM
     actions = ("list", "update", "translate", "delete")
@@ -59,7 +84,10 @@ class LLMCRUDL(SmartCRUDL):
 
         def build_context_menu(self, menu):
             if self.has_org_perm("ai.llm_connect") and not self.is_limit_reached():
-                menu.add_modax(_("New"), "new-llm", reverse("ai.types.openai.connect"), title="OpenAI", as_button=True)
+                menu.add_modax(_("New OpenAI"), "new-openai", reverse("ai.types.openai.connect"), title="OpenAI")
+                menu.add_modax(
+                    _("New Anthropic"), "new-anthropic", reverse("ai.types.anthropic.connect"), title="Anthropic"
+                )
 
     class Update(BaseUpdateModal):
         class Form(UniqueNameMixin, forms.ModelForm):

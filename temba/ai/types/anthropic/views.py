@@ -1,4 +1,4 @@
-import openai
+import anthropic
 
 from django import forms
 from django.http import HttpResponseRedirect
@@ -13,22 +13,24 @@ class CredentialsForm(BaseConnectWizard.Form):
     api_key = forms.CharField(
         widget=InputWidget({"placeholder": "API Key", "widget_only": False, "label": "API Key", "value": ""}),
         label="",
-        help_text=_("You can find your API key at https://platform.openai.com/account/api-key"),
+        help_text=_("You can find your API key at https://console.anthropic.com/settings/keys"),
     )
 
     def clean_api_key(self):
         api_key = self.data["credentials-api_key"]
 
         try:
-            client = openai.OpenAI(api_key=api_key)
+            client = anthropic.Anthropic(api_key=api_key)
             available_models = client.models.list()
-        except openai.AuthenticationError:
+        except anthropic.AuthenticationError:
             raise forms.ValidationError(_("Invalid API Key"))
 
         allowed_models = self.llm_type.settings.get("models", [])
-        model_choices = [(m.id, m.id) for m in available_models if not allowed_models or m.id in allowed_models]
+        model_choices = [
+            (m.id, m.display_name) for m in available_models if not allowed_models or m.id in allowed_models
+        ]
 
-        self.extra_data = {"model_choices": model_choices}  # save our model choices as extra data
+        self.extra_data = {"model_choices": model_choices}
 
         return api_key
 
@@ -56,7 +58,9 @@ class ConnectView(BaseConnectWizard):
 
         if step == "name":
             step_data = self.storage.data["step_data"]
-            kwargs["initial"] = step_data["model"]["model-model"][0].replace("gpt", "GPT").replace("-", " ")
+            model_choices = step_data["credentials"]["model_choices"][0]
+            model_id = step_data["model"]["model-model"][0]
+            kwargs["initial"] = next((m[1] for m in model_choices if m[0] == model_id))
 
         return kwargs
 
