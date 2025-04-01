@@ -1,3 +1,8 @@
+v10.1.113 (2025-04-01)
+-------------------------
+ * Update flow editor
+ * Fix name suggestion when connecting LLM
+
 v10.1.112 (2025-03-31)
 -------------------------
  * Stop showing and writing http logs for all classifier requests
