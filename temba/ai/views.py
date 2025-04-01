@@ -1,6 +1,6 @@
 import json
 
-from smartmin.views import SmartCRUDL, SmartUpdateView
+from smartmin.views import SmartCRUDL, SmartReadView
 
 from django import forms
 from django.http import JsonResponse
@@ -8,11 +8,11 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
+from temba import mailroom
 from temba.orgs.views.base import BaseDependencyDeleteModal, BaseListView, BaseUpdateModal
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
-from temba.tests import mailroom
 from temba.utils.fields import InputWidget
-from temba.utils.views.mixins import ContextMenuMixin, SpaMixin
+from temba.utils.views.mixins import ContextMenuMixin, PostOnlyMixin, SpaMixin
 from temba.utils.views.wizard import SmartWizardView
 
 from .models import LLM
@@ -104,7 +104,7 @@ class LLMCRUDL(SmartCRUDL):
         slug_url_kwarg = "uuid"
         success_url = "@ai.llm_list"
 
-    class Translate(OrgObjPermsMixin, SmartUpdateView):
+    class Translate(PostOnlyMixin, OrgObjPermsMixin, SmartReadView):
         slug_url_kwarg = "uuid"
 
         @csrf_exempt
