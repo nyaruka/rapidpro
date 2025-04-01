@@ -1,3 +1,7 @@
+v10.1.114 (2025-04-01)
+-------------------------
+ * Prevent viewing of translate view as a form
+
 v10.1.113 (2025-04-01)
 -------------------------
  * Update flow editor
