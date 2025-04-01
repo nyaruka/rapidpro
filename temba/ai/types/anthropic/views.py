@@ -60,7 +60,7 @@ class ConnectView(BaseConnectWizard):
             step_data = self.storage.data["step_data"]
             model_choices = step_data["credentials"]["model_choices"][0]
             model_id = step_data["model"]["model-model"][0]
-            kwargs["initial"] = next((m[1] for m in model_choices if m[0] == model_id))
+            kwargs["model_name"] = next((m[1] for m in model_choices if m[0] == model_id))
 
         return kwargs
 
