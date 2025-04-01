@@ -836,12 +836,6 @@ CHANNEL_TYPES = [
 ]
 
 LLM_TYPES = {
-    "temba.ai.types.openai.type.OpenAIType": {
-        "models": [
-            "gpt-4o",
-            "gpt-4o-mini",
-        ],
-    },
     "temba.ai.types.anthropic.type.AnthropicType": {
         "models": [
             "claude-3-7-sonnet-20250219",
@@ -850,6 +844,13 @@ LLM_TYPES = {
             "claude-3-opus-20240229",
         ],
     },
+    "temba.ai.types.openai.type.OpenAIType": {
+        "models": [
+            "gpt-4o",
+            "gpt-4o-mini",
+        ],
+    },
+    "temba.ai.types.openai_azure.type.OpenAIAzureType": {},
 }
 
 ANALYTICS_TYPES = [
