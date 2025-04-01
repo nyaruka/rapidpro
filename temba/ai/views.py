@@ -58,10 +58,10 @@ class NameForm(BaseConnectWizard.Form):
         label=_("Name"), widget=InputWidget(), help_text=_("Give your model a memorable name."), required=True
     )
 
-    def __init__(self, initial: str, *args, **kwargs):
+    def __init__(self, model_name: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields["name"].initial = initial
+        self.fields["name"].initial = model_name
 
     def clean_name(self):
         name = self.cleaned_data["name"]
