@@ -61,7 +61,7 @@ class SomlengTypeTest(TembaTest):
             role="SR",
             account_sid="abcd1234",
             account_token="abcd1234",
-            max_concurrent_events=30,
+            max_concurrent_calls=30,
         )
         response = self.client.post(claim_url, form_data)
         channel = self.org.channels.filter(is_active=True).first()
@@ -73,7 +73,7 @@ class SomlengTypeTest(TembaTest):
             auth_token="abcd1234",
             send_url="https://twilio.com",
             account_sid="abcd1234",
-            max_concurrent_events=30,
+            max_concurrent_calls=30,
             callback_domain=channel.callback_domain,
         )
 
@@ -107,7 +107,7 @@ class SomlengTypeTest(TembaTest):
             auth_token="abcd1234",
             send_url="https://twilio.com",
             account_sid="abcd1234",
-            max_concurrent_events=None,
+            max_concurrent_calls=None,
             callback_domain=channel.callback_domain,
         )
 
@@ -134,7 +134,7 @@ class SomlengTypeTest(TembaTest):
             auth_token="abcd1234",
             send_url="https://twilio.com",
             account_sid=f"rapidpro_{channel.pk}",
-            max_concurrent_events=None,
+            max_concurrent_calls=None,
             callback_domain=channel.callback_domain,
         )
 

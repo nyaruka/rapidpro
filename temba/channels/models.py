@@ -262,7 +262,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     CONFIG_APPLICATION_SID = "application_sid"
     CONFIG_NUMBER_SID = "number_sid"
 
-    CONFIG_MAX_CONCURRENT_EVENTS = "max_concurrent_events"
+    CONFIG_MAX_CONCURRENT_CALLS = "max_concurrent_calls"
     CONFIG_ALLOW_INTERNATIONAL = "allow_international"
     CONFIG_MACHINE_DETECTION = "machine_detection"
 
