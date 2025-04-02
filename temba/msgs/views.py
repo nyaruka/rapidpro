@@ -59,6 +59,7 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     allow_export = False
     bulk_actions = ()
     bulk_action_permissions = {"resend": "msgs.msg_create", "delete": "msgs.msg_update"}
+    template_name = "msgs/msg_list.html"
     folder = None
     paginate_by = 100
 
@@ -701,7 +702,6 @@ class MsgCRUDL(SmartCRUDL):
 
     class Inbox(MsgListView):
         title = _("Inbox")
-        template_name = "msgs/message_box.html"
         folder = MsgFolder.INBOX
         bulk_actions = ("archive", "label")
         allow_export = True
@@ -717,7 +717,6 @@ class MsgCRUDL(SmartCRUDL):
 
     class Flow(MsgListView):
         title = _("Handled")
-        template_name = "msgs/message_box.html"
         folder = MsgFolder.HANDLED
         bulk_actions = ("archive", "label")
         allow_export = True
@@ -729,7 +728,6 @@ class MsgCRUDL(SmartCRUDL):
 
     class Archived(MsgListView):
         title = _("Archived")
-        template_name = "msgs/message_box.html"
         folder = MsgFolder.ARCHIVED
         bulk_actions = ("restore", "label", "delete")
         allow_export = True
@@ -740,7 +738,6 @@ class MsgCRUDL(SmartCRUDL):
 
     class Outbox(MsgListView):
         title = _("Outbox")
-        template_name = "msgs/message_box.html"
         folder = MsgFolder.OUTBOX
         bulk_actions = ()
         allow_export = True
@@ -761,7 +758,6 @@ class MsgCRUDL(SmartCRUDL):
 
     class Failed(MsgListView):
         title = _("Failed")
-        template_name = "msgs/message_box.html"
         folder = MsgFolder.FAILED
         allow_export = True
 
@@ -772,7 +768,6 @@ class MsgCRUDL(SmartCRUDL):
             return super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
 
     class Filter(MsgListView):
-        template_name = "msgs/message_box.html"
         bulk_actions = ("label",)
 
         def derive_menu_path(self):
