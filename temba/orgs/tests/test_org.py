@@ -548,24 +548,24 @@ class OrgDeleteTest(TembaTest):
         flow1.global_dependencies.add(global1)
 
         classifier1 = add(Classifier.create(org, user, WitType.slug, "Booker", {}, sync=False))
-        add(
-            HTTPLog.objects.create(
-                classifier=classifier1,
-                url="http://org2.bar/zap",
-                request="GET /zap",
-                response=" OK 200",
-                is_error=False,
-                log_type=HTTPLog.CLASSIFIER_CALLED,
-                request_time=10,
-                org=org,
-            )
-        )
         flow1.classifier_dependencies.add(classifier1)
 
         resthook = add(Resthook.get_or_create(org, "registration", user))
         resthook.subscribers.create(target_url="http://foo.bar", created_by=user, modified_by=user)
 
         add(WebHookEvent.objects.create(org=org, resthook=resthook, data={}))
+        add(
+            HTTPLog.objects.create(
+                flow=flow1,
+                url="http://org2.bar/zap",
+                request="GET /zap",
+                response=" OK 200",
+                is_error=False,
+                log_type=HTTPLog.WEBHOOK_CALLED,
+                request_time=10,
+                org=org,
+            )
+        )
 
         template = add(
             self.create_template(
