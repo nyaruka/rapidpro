@@ -1,3 +1,7 @@
+v10.1.118 (2025-04-02)
+-------------------------
+ * Fix checkbox events
+
 v10.1.117 (2025-04-02)
 -------------------------
  * Tweak migration to handle null values
