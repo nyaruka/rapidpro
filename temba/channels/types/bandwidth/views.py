@@ -48,7 +48,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             Channel.CONFIG_PASSWORD: data["password"],
             "account_id": data["account_id"],
             Channel.CONFIG_CALLBACK_DOMAIN: domain,
-            Channel.CONFIG_MAX_CONCURRENT_EVENTS: "100",
+            Channel.CONFIG_MAX_CONCURRENT_CALLS: 100,
         }
         role = data.get("role")
 
