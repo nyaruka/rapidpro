@@ -1,3 +1,8 @@
+v10.1.116 (2025-04-02)
+-------------------------
+ * Remove classifier HTTP logs (we no longer store these)
+ * Use channel config max_concurrent_calls key
+
 v10.1.115 (2025-04-02)
 -------------------------
  * Remove some unused templates and remove compress imports from templates that don't use it
