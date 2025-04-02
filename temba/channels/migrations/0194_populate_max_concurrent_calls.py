@@ -9,11 +9,14 @@ def populate_max_concurrent_calls(apps, schema_editor):
     channels = Channel.objects.filter(config__max_concurrent_events__isnull=False)
     num_updated = 0
     for channel in channels:
-        channel.config["max_concurrent_calls"] = int(channel.config.pop("max_concurrent_events"))
+        value = channel.config.pop("max_concurrent_events")
+        if value is not None:
+            channel.config["max_concurrent_calls"] = int(value)
         channel.save(update_fields=("config",))
         num_updated += 1
 
-    print(f"Updated {num_updated} channels")
+    if num_updated:
+        print(f"Updated {num_updated} channels")
 
 
 class Migration(migrations.Migration):

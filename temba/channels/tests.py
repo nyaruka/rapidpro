@@ -2142,30 +2142,16 @@ class PopulateMaxConcurrentCallsTest(MigrationTest):
         self.channel1 = self.create_channel("TG", "My Telegram", "75474745", config={})
         self.channel2 = self.create_channel("TG", "My Telegram", "75474745", config={"max_concurrent_events": "30"})
         self.channel3 = self.create_channel("TG", "My Telegram", "75474745", config={"max_concurrent_events": 20})
-        self.channel4 = self.create_channel("TG", "My Telegram", "75474745", config={"max_concurrent_calls": 25})
-
-        self.assertIsNone(self.channel1.config.get("max_concurrent_events"))
-        self.assertEqual("30", self.channel2.config.get("max_concurrent_events"))
-        self.assertEqual(20, self.channel3.config.get("max_concurrent_events"))
-        self.assertIsNone(self.channel4.config.get("max_concurrent_events"))
-
-        self.assertIsNone(self.channel1.config.get("max_concurrent_calls"))
-        self.assertIsNone(self.channel2.config.get("max_concurrent_calls"))
-        self.assertIsNone(self.channel3.config.get("max_concurrent_calls"))
-        self.assertEqual(25, self.channel4.config.get("max_concurrent_calls"))
+        self.channel4 = self.create_channel("TG", "My Telegram", "75474745", config={"max_concurrent_events": None})
+        self.channel5 = self.create_channel("TG", "My Telegram", "75474745", config={"max_concurrent_calls": 25})
 
     def test_migration(self):
-        self.channel1.refresh_from_db()
-        self.channel2.refresh_from_db()
-        self.channel3.refresh_from_db()
-        self.channel4.refresh_from_db()
+        def assert_config(ch, expected: dict):
+            ch.refresh_from_db()
+            self.assertEqual(expected, ch.config)
 
-        self.assertIsNone(self.channel1.config.get("max_concurrent_calls"))
-        self.assertEqual(30, self.channel2.config.get("max_concurrent_calls"))
-        self.assertEqual(20, self.channel3.config.get("max_concurrent_calls"))
-        self.assertEqual(25, self.channel4.config.get("max_concurrent_calls"))
-
-        self.assertIsNone(self.channel1.config.get("max_concurrent_events"))
-        self.assertIsNone(self.channel2.config.get("max_concurrent_events"))
-        self.assertIsNone(self.channel3.config.get("max_concurrent_events"))
-        self.assertIsNone(self.channel4.config.get("max_concurrent_events"))
+        assert_config(self.channel1, {})
+        assert_config(self.channel2, {"max_concurrent_calls": 30})
+        assert_config(self.channel3, {"max_concurrent_calls": 20})
+        assert_config(self.channel4, {})
+        assert_config(self.channel5, {"max_concurrent_calls": 25})
