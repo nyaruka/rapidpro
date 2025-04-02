@@ -1,3 +1,10 @@
+v10.1.115 (2025-04-02)
+-------------------------
+ * Remove some unused templates and remove compress imports from templates that don't use it
+ * Cleanup message list templates and let staff users view channel logs
+ * Add support for claiming BW voice channels
+ * Add skeleton LLM type for OpenAI via Azure
+
 v10.1.114 (2025-04-01)
 -------------------------
  * Prevent viewing of translate view as a form
