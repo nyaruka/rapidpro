@@ -17,7 +17,7 @@ def channel_log_link(context, obj):
     org = context["user_org"]
     logs_url = None
 
-    if user.has_org_perm(org, "channels.channellog_read"):
+    if user.has_org_perm(org, "channels.channellog_read") or user.is_staff:
         has_channel = obj.channel and obj.channel.is_active
 
         obj_age = timezone.now() - obj.created_on
