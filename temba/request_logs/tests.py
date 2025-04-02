@@ -20,7 +20,7 @@ class HTTPLogTest(TembaTest):
             request="GET /zap",
             response=" OK 200",
             is_error=False,
-            log_type=HTTPLog.INTENTS_SYNCED,
+            log_type=HTTPLog.WEBHOOK_CALLED,
             request_time=10,
             org=self.org,
             created_on=timezone.now() - timedelta(days=7),
@@ -30,7 +30,7 @@ class HTTPLogTest(TembaTest):
             request="GET /zap",
             response=" OK 200",
             is_error=False,
-            log_type=HTTPLog.CLASSIFIER_CALLED,
+            log_type=HTTPLog.WEBHOOK_CALLED,
             request_time=10,
             org=self.org,
         )

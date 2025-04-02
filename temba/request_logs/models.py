@@ -9,7 +9,6 @@ from django.utils.translation import gettext_lazy as _
 
 from temba.airtime.models import AirtimeTransfer
 from temba.channels.models import Channel
-from temba.classifiers.models import Classifier
 from temba.flows.models import Flow
 from temba.orgs.models import Org
 from temba.utils import redact
@@ -28,8 +27,6 @@ class HTTPLog(models.Model):
 
     # log type choices
     WEBHOOK_CALLED = "webhook_called"
-    INTENTS_SYNCED = "intents_synced"
-    CLASSIFIER_CALLED = "classifier_called"
     AIRTIME_TRANSFERRED = "airtime_transferred"
     WHATSAPP_TEMPLATES_SYNCED = "whatsapp_templates_synced"
     WHATSAPP_TOKENS_SYNCED = "whatsapp_tokens_synced"
@@ -39,8 +36,6 @@ class HTTPLog(models.Model):
     # possible log type choices and descriptive names
     LOG_TYPE_CHOICES = (
         (WEBHOOK_CALLED, "Webhook Called"),
-        (INTENTS_SYNCED, _("Intents Synced")),
-        (CLASSIFIER_CALLED, _("Classifier Called")),
         (AIRTIME_TRANSFERRED, _("Airtime Transferred")),
         (WHATSAPP_TEMPLATES_SYNCED, _("WhatsApp Templates Synced")),
         (WHATSAPP_TOKENS_SYNCED, _("WhatsApp Tokens Synced")),
@@ -64,9 +59,6 @@ class HTTPLog(models.Model):
 
     # foreign keys for fetching logs
     flow = models.ForeignKey(Flow, related_name="http_logs", on_delete=models.PROTECT, null=True)
-    classifier = models.ForeignKey(
-        Classifier, related_name="http_logs", on_delete=models.PROTECT, db_index=False, null=True
-    )
     airtime_transfer = models.ForeignKey(AirtimeTransfer, related_name="http_logs", on_delete=models.PROTECT, null=True)
     channel = models.ForeignKey(Channel, related_name="http_logs", on_delete=models.PROTECT, null=True)
 
@@ -138,8 +130,6 @@ class HTTPLog(models.Model):
 
     class Meta:
         indexes = (
-            # for classifier specific log view
-            Index(fields=("classifier", "-created_on")),
             # for webhook log view
             Index(name="httplog_org_flows_only", fields=("org", "-created_on"), condition=Q(flow__isnull=False)),
             # for webhook log view errors only
