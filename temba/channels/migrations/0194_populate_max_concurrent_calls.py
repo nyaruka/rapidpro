@@ -3,13 +3,17 @@
 from django.db import migrations
 
 
-def populate_max_concurrent_calls(apps, schema_editor):  # pragma: no cover
+def populate_max_concurrent_calls(apps, schema_editor):
     Channel = apps.get_model("channels", "Channel")
 
     channels = Channel.objects.filter(config__max_concurrent_events__isnull=False)
+    num_updated = 0
     for channel in channels:
-        channel.config["max_concurrent_calls"] = channel.config["max_concurrent_events"]
+        channel.config["max_concurrent_calls"] = int(channel.config.pop("max_concurrent_events"))
         channel.save(update_fields=("config",))
+        num_updated += 1
+
+    print(f"Updated {num_updated} channels")
 
 
 class Migration(migrations.Migration):

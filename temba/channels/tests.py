@@ -23,7 +23,7 @@ from temba.notifications.tasks import send_notification_emails
 from temba.orgs.models import Org
 from temba.request_logs.models import HTTPLog
 from temba.templates.models import TemplateTranslation
-from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom, override_brand
+from temba.tests import CRUDLTestMixin, MigrationTest, MockResponse, TembaTest, matchers, mock_mailroom, override_brand
 from temba.tests.crudl import StaffRedirect
 from temba.triggers.models import Trigger
 from temba.utils import json
@@ -2131,3 +2131,41 @@ class CourierTest(TembaTest):
         response = self.client.get(reverse("courier.t", args=[self.channel.uuid, "receive"]))
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.content, b"this URL should be mapped to a Courier instance")
+
+
+class PopulateMaxConcurrentCallsTest(MigrationTest):
+    app = "channels"
+    migrate_from = "0193_channel_is_enabled"
+    migrate_to = "0194_populate_max_concurrent_calls"
+
+    def setUpBeforeMigration(self, apps):
+        self.channel1 = self.create_channel("TG", "My Telegram", "75474745", config={})
+        self.channel2 = self.create_channel("TG", "My Telegram", "75474745", config={"max_concurrent_events": "30"})
+        self.channel3 = self.create_channel("TG", "My Telegram", "75474745", config={"max_concurrent_events": 20})
+        self.channel4 = self.create_channel("TG", "My Telegram", "75474745", config={"max_concurrent_calls": 25})
+
+        self.assertIsNone(self.channel1.config.get("max_concurrent_events"))
+        self.assertEqual("30", self.channel2.config.get("max_concurrent_events"))
+        self.assertEqual(20, self.channel3.config.get("max_concurrent_events"))
+        self.assertIsNone(self.channel4.config.get("max_concurrent_events"))
+
+        self.assertIsNone(self.channel1.config.get("max_concurrent_calls"))
+        self.assertIsNone(self.channel2.config.get("max_concurrent_calls"))
+        self.assertIsNone(self.channel3.config.get("max_concurrent_calls"))
+        self.assertEqual(25, self.channel4.config.get("max_concurrent_calls"))
+
+    def test_migration(self):
+        self.channel1.refresh_from_db()
+        self.channel2.refresh_from_db()
+        self.channel3.refresh_from_db()
+        self.channel4.refresh_from_db()
+
+        self.assertIsNone(self.channel1.config.get("max_concurrent_calls"))
+        self.assertEqual(30, self.channel2.config.get("max_concurrent_calls"))
+        self.assertEqual(20, self.channel3.config.get("max_concurrent_calls"))
+        self.assertEqual(25, self.channel4.config.get("max_concurrent_calls"))
+
+        self.assertIsNone(self.channel1.config.get("max_concurrent_events"))
+        self.assertIsNone(self.channel2.config.get("max_concurrent_events"))
+        self.assertIsNone(self.channel3.config.get("max_concurrent_events"))
+        self.assertIsNone(self.channel4.config.get("max_concurrent_events"))
