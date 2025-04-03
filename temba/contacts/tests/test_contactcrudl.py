@@ -1113,18 +1113,29 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             base_language="eng",
         )
         event2 = CampaignEvent.create_flow_event(self.org, self.admin, campaign, joined, 2, unit="D", flow=event2_flow)
+        # old fire version should not be displayed
+        ContactFire.objects.create(
+            org=self.org,
+            contact=contact1,
+            fire_type=ContactFire.TYPE_CAMPAIGN_EVENT,
+            scope=f"{event1.id}:{event1.fire_version}",  # old version
+            fire_on=timezone.now() + timedelta(days=2),
+        )
+        # update event
+        event1.fire_version += 1
+        event1.save()
         fire1 = ContactFire.objects.create(
             org=self.org,
             contact=contact1,
             fire_type=ContactFire.TYPE_CAMPAIGN_EVENT,
-            scope=f"{event1.id}:{event1.fire_version}",  # new style
+            scope=f"{event1.id}:{event1.fire_version}",  # latest version
             fire_on=timezone.now() + timedelta(days=2),
         )
         fire2 = ContactFire.objects.create(
             org=self.org,
             contact=contact1,
             fire_type=ContactFire.TYPE_CAMPAIGN_EVENT,
-            scope=f"{event2.id}",  # old style
+            scope=f"{event2.id}:{event2.fire_version}",
             fire_on=timezone.now() + timedelta(days=5),
         )
 
