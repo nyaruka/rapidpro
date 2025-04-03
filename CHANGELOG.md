@@ -1,3 +1,8 @@
+v10.1.119 (2025-04-03)
+-------------------------
+ * Add skeleton channel type for Chip
+ * Fix displaying scheduled campaign events with old fire versions
+
 v10.1.118 (2025-04-02)
 -------------------------
  * Fix checkbox events
