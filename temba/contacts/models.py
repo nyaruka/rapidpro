@@ -685,7 +685,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         merged = []
         for fire in fires:
             event = events_by_id.get(scope_to_event_id(fire.scope))
-            if event:
+            if event and fire.scope == f"{event.id}:{event.fire_version}":
                 obj = {
                     "type": "campaign_event",
                     "scheduled": fire.fire_on.isoformat(),
