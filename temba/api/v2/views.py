@@ -663,16 +663,11 @@ class CampaignsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
         return queryset.filter(is_active=True, is_archived=False)
 
     def filter_queryset(self, queryset):
-        params = self.request.query_params
-
         # filter by UUID (optional)
-        uuid = params.get("uuid")
-        if uuid:
+        if uuid := self.get_uuid_param("uuid"):
             queryset = queryset.filter(uuid=uuid)
 
-        queryset = queryset.prefetch_related(Prefetch("group", queryset=ContactGroup.objects.only("uuid", "name")))
-
-        return queryset
+        return queryset.prefetch_related(Prefetch("group", queryset=ContactGroup.objects.only("uuid", "name")))
 
     @classmethod
     def get_read_explorer(cls):
@@ -825,8 +820,7 @@ class CampaignEventsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEn
         org = self.request.org
 
         # filter by UUID (optional)
-        uuid = params.get("uuid")
-        if uuid:
+        if uuid := self.get_uuid_param("uuid"):
             queryset = queryset.filter(uuid=uuid)
 
         # filter by campaign name/uuid (optional)
@@ -841,13 +835,11 @@ class CampaignEventsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEn
             else:
                 queryset = queryset.filter(pk=-1)
 
-        queryset = queryset.prefetch_related(
+        return queryset.prefetch_related(
             Prefetch("campaign", queryset=Campaign.objects.only("uuid", "name")),
             Prefetch("flow", queryset=Flow.objects.only("uuid", "name")),
             Prefetch("relative_to", queryset=ContactField.objects.filter(is_active=True).only("key", "name")),
         )
-
-        return queryset
 
     @classmethod
     def get_read_explorer(cls):
@@ -979,13 +971,11 @@ class ChannelsEndpoint(ListAPIMixin, BaseEndpoint):
         queryset = queryset.filter(is_active=True)
 
         # filter by UUID (optional)
-        uuid = params.get("uuid")
-        if uuid:
+        if uuid := self.get_uuid_param("uuid"):
             queryset = queryset.filter(uuid=uuid)
 
         # filter by address (optional)
-        address = params.get("address")
-        if address:
+        if address := params.get("address"):
             queryset = queryset.filter(address=address)
 
         return queryset
@@ -1083,14 +1073,11 @@ class ClassifiersEndpoint(ListAPIMixin, BaseEndpoint):
     pagination_class = CreatedOnCursorPagination
 
     def filter_queryset(self, queryset):
-        params = self.request.query_params
         org = self.request.org
-
         queryset = queryset.filter(org=org, is_active=True)
 
         # filter by uuid (optional)
-        uuid = params.get("uuid")
-        if uuid:
+        if uuid := self.get_uuid_param("uuid"):
             queryset = queryset.filter(uuid=uuid)
 
         return self.filter_before_after(queryset, "created_on")
@@ -1267,13 +1254,11 @@ class ContactsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint
         queryset = queryset.filter(is_active=(not deleted_only))
 
         # filter by UUID (optional)
-        uuid = params.get("uuid")
-        if uuid:
+        if uuid := self.get_uuid_param("uuid"):
             queryset = queryset.filter(uuid=uuid)
 
         # filter by URN (optional)
-        urn = params.get("urn")
-        if urn:
+        if urn := params.get("urn"):
             queryset = queryset.filter(urns__identity=self.normalize_urn(urn))
 
         # filter by group name/uuid (optional)
@@ -1707,22 +1692,18 @@ class FlowsEndpoint(ListAPIMixin, BaseEndpoint):
 
     def filter_queryset(self, queryset):
         params = self.request.query_params
-
         queryset = queryset.exclude(is_active=False)
 
         # filter by UUID (optional)
-        uuid = params.get("uuid")
-        if uuid:
+        if uuid := self.get_uuid_param("uuid"):
             queryset = queryset.filter(uuid=uuid)
 
         # filter by type (optional)
-        flow_type = params.get("type")
-        if flow_type:
+        if flow_type := params.get("type"):
             queryset = queryset.filter(flow_type=self.FLOW_TYPES.get(flow_type))
 
         # filter by archived (optional)
-        archived = params.get("archived")
-        if archived:
+        if archived := params.get("archived"):
             queryset = queryset.filter(is_archived=str_to_bool(archived))
 
         queryset = queryset.prefetch_related("labels")
@@ -1999,13 +1980,11 @@ class GroupsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint):
         params = self.request.query_params
 
         # filter by UUID (optional)
-        uuid = params.get("uuid")
-        if uuid:
+        if uuid := self.get_uuid_param("uuid"):
             queryset = queryset.filter(uuid=uuid)
 
         # filter by name (optional)
-        name = params.get("name")
-        if name:
+        if name := params.get("name"):
             queryset = queryset.filter(name__iexact=name)
 
         return queryset.filter(is_active=True).exclude(status=ContactGroup.STATUS_INITIALIZING)
@@ -2157,13 +2136,11 @@ class LabelsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint):
         params = self.request.query_params
 
         # filter by UUID (optional)
-        uuid = params.get("uuid")
-        if uuid:
+        if uuid := self.get_uuid_param("uuid"):
             queryset = queryset.filter(uuid=uuid)
 
         # filter by name (optional)
-        name = params.get("name")
-        if name:
+        if name := params.get("name"):
             queryset = queryset.filter(name__iexact=name)
 
         return queryset.filter(is_active=True)
@@ -3002,13 +2979,11 @@ class RunsEndpoint(ListAPIMixin, BaseEndpoint):
                 queryset = queryset.filter(pk=-1)
 
         # filter by id (optional)
-        run_id = self.get_int_param("id")
-        if run_id:
+        if run_id := self.get_int_param("id"):
             queryset = queryset.filter(id=run_id)
 
         # filter by uuid (optional)
-        run_uuid = self.get_uuid_param("uuid")
-        if run_uuid:
+        if run_uuid := self.get_uuid_param("uuid"):
             queryset = queryset.filter(uuid=run_uuid)
 
         # filter by contact (optional)
@@ -3183,8 +3158,7 @@ class FlowStartsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
         queryset = queryset.exclude(created_by=None)
 
         # filter by UUID (optional)
-        uuid = self.get_uuid_param("uuid")
-        if uuid:
+        if uuid := self.get_uuid_param("uuid"):
             queryset = queryset.filter(uuid=uuid)
 
         # use prefetch rather than select_related for foreign keys to avoid joins
