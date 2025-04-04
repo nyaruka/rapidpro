@@ -1,3 +1,11 @@
+v10.1.120 (2025-04-04)
+-------------------------
+ * Merge pull request #5995 from nyaruka/fix-facebook
+ * Rename Viber templates
+ * Rename Facebook templates
+ * Merge pull request #5994 from nyaruka/somleng_fix
+ * Don't store max_concurrent_calls as null for Somleng channels
+
 v10.1.119 (2025-04-03)
 -------------------------
  * Add skeleton channel type for Chip
