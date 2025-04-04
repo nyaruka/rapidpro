@@ -1,3 +1,8 @@
+v10.1.121 (2025-04-04)
+-------------------------
+ * Always validate UUID query params on API endpoints before trying to filter by them
+ * Fix typos in templates
+
 v10.1.120 (2025-04-04)
 -------------------------
  * Merge pull request #5995 from nyaruka/fix-facebook
