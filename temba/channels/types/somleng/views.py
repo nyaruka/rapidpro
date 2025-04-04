@@ -68,11 +68,12 @@ class ClaimView(ClaimViewMixin, SmartFormView):
 
         config = {
             Channel.CONFIG_SEND_URL: url,
-            Channel.CONFIG_ACCOUNT_SID: data.get("account_sid", None),
+            Channel.CONFIG_ACCOUNT_SID: data.get("account_sid"),
             Channel.CONFIG_AUTH_TOKEN: data.get("account_token", str(uuid4())),
             Channel.CONFIG_CALLBACK_DOMAIN: org.get_brand_domain(),
-            Channel.CONFIG_MAX_CONCURRENT_CALLS: data.get("max_concurrent_calls", None),
         }
+        if max_concurrent_calls := data.get("max_concurrent_calls"):
+            config[Channel.CONFIG_MAX_CONCURRENT_CALLS] = max_concurrent_calls
 
         is_short_code = len(number) <= 6
 
