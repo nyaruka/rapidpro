@@ -1,3 +1,7 @@
+v10.1.122 (2025-04-07)
+-------------------------
+ * Update to flow spec 14.0
+
 v10.1.121 (2025-04-04)
 -------------------------
  * Always validate UUID query params on API endpoints before trying to filter by them
