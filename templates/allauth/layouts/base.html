@@ -3,6 +3,12 @@
 
 {% block extra-style %}
   <style>
+    .sso-providers {}
+
+    .password1_container .help-text {
+      display: none;
+    }
+
     .menu {
       padding-right: 5em;
       border-right: 1px solid #dee2e6;
@@ -14,20 +20,23 @@
     h1 {
       font-size: 1.5em;
       border-bottom: 1px solid #dee2e6;
-      padding-bottom: .75em;
+      padding-bottom: .25em;
       margin-bottom: 0.5em;
     }
 
     h2 {
-      font-size: 1.5em;
-      margin-bottom: 0.25em;
+      font-size: 1.2em;
+      margin-bottom: 0.5em;
+      margin-top: 0.5em;
     }
 
     section {
-      margin: 0em 0;
+      margin: 0.75em 0;
     }
 
-    p {}
+    p {
+      margin: 0.25em 0;
+    }
 
     button {
       display: block;
@@ -35,9 +44,8 @@
       color: white;
       padding: 0.75em 1em;
       border-radius: var(--curvature);
-      margin: 1.5em 0;
-      margin-right: 0.5em;
-      font-size: 1.1em;
+      margin-top: 0.75em;
+      font-size: 1em;
     }
 
     label {
@@ -56,14 +64,12 @@
     input[type="email"],
     input[type="password"] {
       box-shadow: var(--widget-box-shadow);
-
       border: 1px solid #dee2e6;
       border-radius: var(--curvature);
       padding: .75em 1em;
       width: 100%;
       margin-bottom: 0.25em;
       transition: all ease-in-out 200ms;
-
     }
 
     input:focus {
@@ -92,11 +98,6 @@
       font-size: 0.95em;
       color: #666;
 
-    }
-
-    section {
-      margin-bottom: 1.5em;
-      margin-top: 2em;
     }
 
     .errorlist {
@@ -169,6 +170,14 @@
     </style>
   {% endif %}
 {% endblock extra-style %}
+{% block top-right %}
+  {% if user.is_authenticated %}
+    <div class="-mt-10">
+      <temba-button class="inline-block" name="Workspace" href="{% url 'orgs.org_start' %}">
+      </temba-button>
+    </div>
+  {% endif %}
+{% endblock top-right %}
 {% block content-wrapper %}
   {% if messages %}
     <div class="mb-6">
@@ -196,8 +205,9 @@
                 </li>
               {% endif %}
               {% url 'account_change_password' as change_password_url_ %}
+              {% url 'account_set_password' as set_password_url_ %}
               {% if change_password_url_ %}
-                <li class="{% if request.path == change_password_url_ %}active{% endif %}">
+                <li class="{% if request.path == change_password_url_ or request.path == set_password_url_ %}active{% endif %}">
                   <a href="{{ change_password_url_ }}">{% trans "Change Password" %}</a>
                 </li>
               {% endif %}

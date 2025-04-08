@@ -1,7 +1,9 @@
 import pyotp
+import requests
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserManager as AuthUserManager
+from django.core.files.base import ContentFile
 from django.core.files.storage import storages
 from django.db import models
 from django.utils import timezone
@@ -267,6 +269,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     def as_engine_ref(self) -> dict:
         return {"email": self.email, "name": self.name}
 
+    def fetch_avatar(self, url: str):
+        # fetch the avatar from the url and store it locally
+        self.avatar.save(f"{self.pk}_profile.jpg", ContentFile(requests.get(url).content), save=True)
+
     def release(self, user):
         """
         Releases this user, and any orgs of which they are the sole owner.
@@ -277,6 +283,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.password = ""
         self.is_active = False
         self.save()
+
+        # cleanup allauth stuff
+        self.socialaccount_set.all().delete()
+        self.emailaddress_set.all().delete()
 
         # release any API tokens
         self.api_tokens.update(is_active=False)

@@ -239,8 +239,8 @@ INSTALLED_APPS = (
     "allauth",
     "allauth.account",
     "allauth.mfa",
-    # "allauth.socialaccount",
-    # "allauth.socialaccount.providers.google",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
     "formtools",
     "imagekit",
     "redis",
@@ -952,10 +952,14 @@ ACCOUNT_FORMS = {
 }
 
 ACCOUNT_ADAPTER = "temba.users.adapter.TembaAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "temba.users.adapter.TembaSocialAccountAdapter"
+
 MFA_ADAPTER = "temba.users.adapter.TembaMFAAdapter"
 
 SOCIALACCOUNT_PROVIDERS = {}
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
 ACCOUNT_LOGIN_METHODS = ("email",)
 ACCOUNT_EMAIL_REQUIRED = True

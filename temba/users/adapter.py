@@ -1,4 +1,7 @@
+from django.dispatch import receiver
 from allauth.account.adapter import DefaultAccountAdapter
+from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+from allauth.socialaccount.signals import social_account_added
 from allauth.core import context as allauth_context
 from allauth.mfa.adapter import DefaultMFAAdapter
 
@@ -19,6 +22,19 @@ class TembaAccountAdapter(DefaultAccountAdapter):
 
     def is_open_for_signup(self, request):
         return "signups" in request.branding.get("features")
+
+
+class TembaSocialAccountAdapter(DefaultSocialAccountAdapter):
+    def save_user(self, request, sociallogin, form=None):
+        user = super().save_user(request, sociallogin, form)
+        user.fetch_avatar(sociallogin.account.get_avatar_url())
+        return user
+
+
+@receiver(social_account_added)
+def update_user_profile_picture(request, sociallogin, **kwargs):
+    user = sociallogin.user
+    user.fetch_avatar(sociallogin.account.get_avatar_url())
 
 
 class TembaMFAAdapter(DefaultMFAAdapter):

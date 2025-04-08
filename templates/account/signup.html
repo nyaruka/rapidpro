@@ -32,7 +32,6 @@
 {% endelement %}
 {% endslot %}
 {% endelement %}
-<div class="sign-in-notice">{% blocktranslate %}Already have an account? {{ link }}Sign in{{ end_link }}{% endblocktranslate %}</div>
 {% endif %}
 {% if PASSKEY_SIGNUP_ENABLED %}
   {% element hr %}
@@ -44,6 +43,7 @@
 {% if SOCIALACCOUNT_ENABLED %}
   {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
 {% endif %}
+<div class="sign-in-notice">{% blocktranslate %}Already have an account? {{ link }}Sign in{{ end_link }}{% endblocktranslate %}</div>
 {% endblock content %}
 {% block extra-script %}
   <script src="{{ STATIC_URL }}lib/jsTimezoneDetect/jstz.js"></script>

@@ -95,7 +95,7 @@ def check_login(request):
     if request.user.is_authenticated:
         return HttpResponseRedirect(reverse("orgs.org_choose"))
     else:
-        return HttpResponseRedirect(reverse("orgs.login"))
+        return HttpResponseRedirect(reverse("account_login"))
 
 
 class IntegrationFormaxView(FormaxSectionMixin, ComponentFormMixin, OrgPermsMixin, SmartFormView):
@@ -1710,10 +1710,7 @@ class OrgCRUDL(SmartCRUDL):
                     return HttpResponseRedirect(reverse("orgs.org_start"))
 
             if not org:
-                # TODO: we should take to a workspace create page if permitted by deployment
-                messages.info(request, _("No workspaces for this account, please contact your administrator."))
-                logout(request)
-                return HttpResponseRedirect(settings.LOGIN_URL)
+                return HttpResponseRedirect(reverse("orgs.org_signup"))
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
@@ -1910,6 +1907,15 @@ class OrgCRUDL(SmartCRUDL):
             return "%s?start" % reverse("public.public_welcome")
 
         def pre_process(self, request, *args, **kwargs):
+
+            # only authenticated users can come here
+            if not request.user.is_authenticated:
+                return HttpResponseRedirect(reverse("account_signup"))
+
+            # if we already have an org, just go there
+            if request.org:
+                return HttpResponseRedirect(reverse("orgs.org_start"))
+
             # if our brand doesn't allow signups, then redirect to the homepage
             if "signups" not in request.branding.get("features", []):  # pragma: needs cover
                 return HttpResponseRedirect(reverse("public.public_index"))
@@ -1918,25 +1924,15 @@ class OrgCRUDL(SmartCRUDL):
 
         def derive_initial(self):
             initial = super().get_initial()
-            initial["email"] = self.request.POST.get("email", self.request.GET.get("email", None))
             return initial
 
         def save(self, obj):
-            new_user = User.create(
-                self.form.cleaned_data["email"],
-                self.form.cleaned_data["first_name"],
-                self.form.cleaned_data["last_name"],
-                self.form.cleaned_data["password"],
-                language=settings.DEFAULT_LANGUAGE,
-            )
-
-            self.object = Org.create(new_user, self.form.cleaned_data["name"], self.form.cleaned_data["timezone"])
-
-            analytics.identify(new_user, brand=self.request.branding, org=obj)
-            analytics.track(new_user, "temba.org_signup", properties=dict(org=self.object.name))
-
+            user = self.request.user
+            self.object = Org.create(user, self.form.cleaned_data["name"], self.form.cleaned_data["timezone"])
+            analytics.identify(user, brand=self.request.branding, org=obj)
+            analytics.track(user, "temba.org_signup", properties=dict(org=self.object.name))
             switch_to_org(self.request, obj)
-            login(self.request, new_user)
+
             return obj
 
     class Resthooks(SpaMixin, ComponentFormMixin, InferOrgMixin, OrgPermsMixin, SmartUpdateView):
