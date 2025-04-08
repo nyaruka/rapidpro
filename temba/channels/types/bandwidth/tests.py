@@ -69,7 +69,7 @@ class BandwidthTypeTest(TembaTest):
         self.assertEqual(mock_post.call_args_list[0][1]["auth"][1], "pass1")
         self.assertEqual(
             mock_post.call_args_list[0][1]["data"],
-            f"<Application><ServiceType>Voice-V2</ServiceType><AppName>app.rapidpro.io/{channel.uuid}</AppName><CallInitiatedCallbackUrl>https://app.rapidpro.io/mr/ivr/c/{channel.uuid}/incoming</CallInitiatedCallbackUrl><CallStatusCallbackUrl>https://app.rapidpro.io/mr/ivr/c/{channel.uuid}/status</CallStatusCallbackUrl></Application>",
+            f"<Application><ServiceType>Voice-V2</ServiceType><AppName>app.rapidpro.io/{channel.uuid}/voice</AppName><CallInitiatedCallbackUrl>https://app.rapidpro.io/mr/ivr/c/{channel.uuid}/incoming</CallInitiatedCallbackUrl><CallStatusCallbackUrl>https://app.rapidpro.io/mr/ivr/c/{channel.uuid}/status</CallStatusCallbackUrl></Application>",
         )
 
         with patch("requests.delete") as mock_delete:
@@ -141,7 +141,7 @@ class BandwidthTypeTest(TembaTest):
         self.assertEqual(mock_post.call_args_list[0][1]["auth"][1], "pass1")
         self.assertEqual(
             mock_post.call_args_list[0][1]["data"],
-            f"<Application><ServiceType>Messaging-V2</ServiceType><AppName>app.rapidpro.io/{channel.uuid}</AppName><InboundCallbackUrl>https://app.rapidpro.io/c/bw/{channel.uuid}/receive</InboundCallbackUrl><OutboundCallbackUrl>https://app.rapidpro.io/c/bw/{channel.uuid}/status</OutboundCallbackUrl><RequestedCallbackTypes><CallbackType>message-delivered</CallbackType><CallbackType>message-failed</CallbackType><CallbackType>message-sending</CallbackType></RequestedCallbackTypes></Application>",
+            f"<Application><ServiceType>Messaging-V2</ServiceType><AppName>app.rapidpro.io/{channel.uuid}/messaging</AppName><InboundCallbackUrl>https://app.rapidpro.io/c/bw/{channel.uuid}/receive</InboundCallbackUrl><OutboundCallbackUrl>https://app.rapidpro.io/c/bw/{channel.uuid}/status</OutboundCallbackUrl><RequestedCallbackTypes><CallbackType>message-delivered</CallbackType><CallbackType>message-failed</CallbackType><CallbackType>message-sending</CallbackType></RequestedCallbackTypes></Application>",
         )
 
         with patch("requests.delete") as mock_delete:
