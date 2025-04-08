@@ -17,7 +17,6 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         ROLES = (
             (Channel.ROLE_SEND + Channel.ROLE_RECEIVE, _("Messaging")),
             (Channel.ROLE_CALL + Channel.ROLE_ANSWER, _("Voice")),
-            (Channel.ROLE_SEND + Channel.ROLE_RECEIVE + Channel.ROLE_CALL + Channel.ROLE_ANSWER, _("Both")),
         )
         country = forms.ChoiceField(
             choices=ALL_COUNTRIES,
