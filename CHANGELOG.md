@@ -1,3 +1,8 @@
+v10.1.126 (2025-04-08)
+-------------------------
+ * Make LLM.model non-null and use for UI
+ * Data migration to populate LLM.model
+
 v10.1.125 (2025-04-08)
 -------------------------
  * Add .model to LLM and start populating for new LLM models
