@@ -1,10 +1,10 @@
-from django.dispatch import receiver
 from allauth.account.adapter import DefaultAccountAdapter
-from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
-from allauth.socialaccount.signals import social_account_added
 from allauth.core import context as allauth_context
 from allauth.mfa.adapter import DefaultMFAAdapter
+from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+from allauth.socialaccount.signals import social_account_added
 
+from django.dispatch import receiver
 from django.utils import timezone
 
 from temba.utils.email.send import EmailSender
