@@ -9,8 +9,8 @@ def migrate_bw_app_ids(apps, schema_editor):
     channels = Channel.objects.filter(channel_type="BW", is_active=True)
     num_updated = 0
     for channel in channels:
-        app_id = channel.config.pop("application_id")
-        if app_id is not None:
+        app_id = channel.config.pop("application_id", None)
+        if app_id:
             if channel.role == "SR":
                 channel.config["messaging_application_id"] = app_id
             if channel.role == "CA":
