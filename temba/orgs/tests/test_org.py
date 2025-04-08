@@ -8,6 +8,8 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from temba.ai.models import LLM
+from temba.ai.types.openai.type import OpenAIType
 from temba.api.models import Resthook, WebHookEvent
 from temba.archives.models import Archive
 from temba.campaigns.models import Campaign, CampaignEvent
@@ -549,6 +551,9 @@ class OrgDeleteTest(TembaTest):
 
         classifier1 = add(Classifier.create(org, user, WitType.slug, "Booker", {}, sync=False))
         flow1.classifier_dependencies.add(classifier1)
+
+        llm1 = add(LLM.create(org, user, OpenAIType, "GPT-4", {}))
+        flow1.llm_dependencies.add(llm1)
 
         resthook = add(Resthook.get_or_create(org, "registration", user))
         resthook.subscribers.create(target_url="http://foo.bar", created_by=user, modified_by=user)
