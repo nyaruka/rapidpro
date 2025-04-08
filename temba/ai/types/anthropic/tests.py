@@ -57,5 +57,5 @@ class AnthropicTypeTest(TembaTest, CRUDLTestMixin):
 
         # check that we created our model
         llm = LLM.objects.get(org=self.org, llm_type="anthropic", name="Claude")
+        self.assertEqual("claude-3-7-sonnet-20250219", llm.model)
         self.assertEqual("good_key", llm.config["api_key"])
-        self.assertEqual("claude-3-7-sonnet-20250219", llm.config["model"])

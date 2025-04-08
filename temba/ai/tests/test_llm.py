@@ -13,7 +13,7 @@ class LLMTest(TembaTest):
 
         self.assertEqual(openai.name, "GPT-4")
         self.assertEqual(openai.type.slug, OpenAIType.slug)
-        self.assertEqual(openai.config, {"model": "gpt-4o", "api_key": "sesame"})
+        self.assertEqual(openai.config, {"api_key": "sesame"})
 
         openai.release(self.admin)
 
