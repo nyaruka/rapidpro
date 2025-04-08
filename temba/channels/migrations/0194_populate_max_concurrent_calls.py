@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def populate_max_concurrent_calls(apps, schema_editor):
+def populate_max_concurrent_calls(apps, schema_editor):  # pragma: no cover
     Channel = apps.get_model("channels", "Channel")
 
     channels = Channel.objects.filter(config__max_concurrent_events__isnull=False)
