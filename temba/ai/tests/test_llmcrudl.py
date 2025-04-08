@@ -12,9 +12,9 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
     def setUp(self):
         super().setUp()
 
-        self.openai = LLM.create(self.org, self.admin, OpenAIType, "GPT-4", {})
-        self.anthropic = LLM.create(self.org, self.admin, AnthropicType, "Claude", {})
-        LLM.create(self.org2, self.admin2, OpenAIType, "Other Org", {})
+        self.openai = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {})
+        self.anthropic = LLM.create(self.org, self.admin, AnthropicType(), "claude-3-5-haiku-20241022", "Claude", {})
+        LLM.create(self.org2, self.admin2, OpenAIType(), "gpt-4o", "Other Org", {})
 
     def test_list(self):
         list_url = reverse("ai.llm_list")

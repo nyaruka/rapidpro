@@ -53,17 +53,21 @@ class LLM(TembaModel, DependencyMixin):
 
     org = models.ForeignKey(Org, related_name="llms", on_delete=models.PROTECT)
     llm_type = models.CharField(max_length=16)
+    model = models.CharField(max_length=64, null=True)
     config = models.JSONField()
 
     org_limit_key = Org.LIMIT_LLMS
 
     @classmethod
-    def create(cls, org, user, typ, name: str, config: dict):
+    def create(cls, org, user, typ, model: str, name: str, config: dict):
+        assert model in typ.settings["models"]
+
         return cls.objects.create(
             org=org,
             name=name,
             llm_type=typ.slug,
-            config=config,
+            model=model,
+            config=config | {"model": model},
             created_by=user,
             modified_by=user,
         )

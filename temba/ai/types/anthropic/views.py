@@ -69,8 +69,6 @@ class ConnectView(BaseConnectWizard):
         model = form_dict["model"].cleaned_data["model"]
         name = form_dict["name"].cleaned_data["name"]
 
-        self.object = LLM.create(
-            self.request.org, self.request.user, self.llm_type, name, {"api_key": api_key, "model": model}
-        )
+        self.object = LLM.create(self.request.org, self.request.user, self.llm_type, model, name, {"api_key": api_key})
 
         return HttpResponseRedirect(self.get_success_url())

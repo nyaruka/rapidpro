@@ -8,11 +8,12 @@ from temba.tests import TembaTest, mock_mailroom
 
 class LLMTest(TembaTest):
     def test_model(self):
-        openai = LLM.create(self.org, self.admin, OpenAIType, "GPT-4", {})
-        LLM.create(self.org, self.admin, AnthropicType, "Claude", {})
+        openai = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {"api_key": "sesame"})
+        LLM.create(self.org, self.admin, AnthropicType(), "claude-3-5-haiku-20241022", "Claude", {})
 
         self.assertEqual(openai.name, "GPT-4")
         self.assertEqual(openai.type.slug, OpenAIType.slug)
+        self.assertEqual(openai.config, {"model": "gpt-4o", "api_key": "sesame"})
 
         openai.release(self.admin)
 
@@ -23,7 +24,7 @@ class LLMTest(TembaTest):
 
     @mock_mailroom
     def test_translate(self, mr_mocks):
-        openai = LLM.create(self.org, self.admin, OpenAIType, "GPT-4", {})
+        openai = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {})
 
         mr_mocks.llm_translate("Hola")
         self.assertEqual(openai.translate("eng", "spa", "Hello"), "Hola")

@@ -277,6 +277,7 @@ class Command(BaseCommand):
                 org=org,
                 name=t["name"],
                 llm_type=t["type"],
+                model=t["model"],
                 config=t["config"],
                 created_by=user,
                 modified_by=user,
