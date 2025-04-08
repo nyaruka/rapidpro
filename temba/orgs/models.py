@@ -1169,6 +1169,9 @@ class Org(SmartModel):
             classifier.release(user)
             classifier.delete()
 
+        for llm in self.llms.all():
+            llm.delete()
+
         for flow in self.flows.all():
             flow.delete()
 
