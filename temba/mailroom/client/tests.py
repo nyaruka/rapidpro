@@ -481,7 +481,7 @@ class MailroomClientTest(TembaTest):
 
     @patch("requests.post")
     def test_llm_translate(self, mock_post):
-        llm = LLM.create(self.org, self.admin, OpenAIType, "GPT-4", {})
+        llm = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {})
 
         mock_post.return_value = MockJsonResponse(200, {"text": "Hola mundo"})
         response = self.client.llm_translate(llm, from_language="eng", to_language="spa", text="Hello world")

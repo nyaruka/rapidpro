@@ -552,7 +552,7 @@ class OrgDeleteTest(TembaTest):
         classifier1 = add(Classifier.create(org, user, WitType.slug, "Booker", {}, sync=False))
         flow1.classifier_dependencies.add(classifier1)
 
-        llm1 = add(LLM.create(org, user, OpenAIType, "GPT-4", {}))
+        llm1 = add(LLM.create(org, user, OpenAIType(), "gpt-4o", "GPT-4", {}))
         flow1.llm_dependencies.add(llm1)
 
         resthook = add(Resthook.get_or_create(org, "registration", user))
