@@ -1,3 +1,9 @@
+v10.1.123 (2025-04-08)
+-------------------------
+ * Fix importing flows with LLM references and deleting orgs with LLMs
+ * Add skeleton LLM type for DeepSeek
+ * Support one channel for both messaging and voice for BW channels
+
 v10.1.122 (2025-04-07)
 -------------------------
  * Update to flow spec 14.0
