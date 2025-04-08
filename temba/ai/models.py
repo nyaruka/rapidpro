@@ -67,7 +67,7 @@ class LLM(TembaModel, DependencyMixin):
             name=name,
             llm_type=typ.slug,
             model=model,
-            config=config | {"model": model},
+            config=config,
             created_by=user,
             modified_by=user,
         )
