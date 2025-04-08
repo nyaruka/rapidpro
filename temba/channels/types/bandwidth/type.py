@@ -58,7 +58,7 @@ class BandwidthType(ChannelType):
 
             channel.config["messaging_application_id"] = application_id_elt.text
 
-        elif channel.role in ["CA", "SRCA"]:
+        if channel.role in ["CA", "SRCA"]:
             incoming_call_url = "https://" + domain + f"/mr/ivr/c/{channel.uuid}/incoming"
             status_call_url = "https://" + domain + f"/mr/ivr/c/{channel.uuid}/status"
 
