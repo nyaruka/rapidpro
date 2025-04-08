@@ -845,11 +845,11 @@ LLM_TYPES = {
             "claude-3-opus-20240229",
         ],
     },
+    "temba.ai.types.deepseek.type.DeepSeekType": {
+        "models": ["deepseek-chat"],
+    },
     "temba.ai.types.openai.type.OpenAIType": {
-        "models": [
-            "gpt-4o",
-            "gpt-4o-mini",
-        ],
+        "models": ["gpt-4o", "gpt-4o-mini"],
     },
     "temba.ai.types.openai_azure.type.OpenAIAzureType": {},
 }
