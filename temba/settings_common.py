@@ -848,6 +848,9 @@ LLM_TYPES = {
     "temba.ai.types.deepseek.type.DeepSeekType": {
         "models": ["deepseek-chat"],
     },
+    "temba.ai.types.google.type.GoogleType": {
+        "models": ["gemini-2.0-flash", "gemini-1.5-flash"],
+    },
     "temba.ai.types.openai.type.OpenAIType": {
         "models": ["gpt-4o", "gpt-4o-mini"],
     },
