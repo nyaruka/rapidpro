@@ -1,3 +1,7 @@
+v10.1.124 (2025-04-08)
+-------------------------
+ * Fix migration
+
 v10.1.123 (2025-04-08)
 -------------------------
  * Fix importing flows with LLM references and deleting orgs with LLMs
