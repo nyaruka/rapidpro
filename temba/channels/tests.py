@@ -2133,25 +2133,30 @@ class CourierTest(TembaTest):
         self.assertEqual(response.content, b"this URL should be mapped to a Courier instance")
 
 
-class PopulateMaxConcurrentCallsTest(MigrationTest):
+class MigrateBandwidthAppIDConfigTest(MigrationTest):
     app = "channels"
-    migrate_from = "0193_channel_is_enabled"
-    migrate_to = "0194_populate_max_concurrent_calls"
+    migrate_from = "0194_populate_max_concurrent_calls"
+    migrate_to = "0195_migrate_bandwidth_app_ids"
 
     def setUpBeforeMigration(self, apps):
-        self.channel1 = self.create_channel("TG", "My Telegram", "75474745", config={})
-        self.channel2 = self.create_channel("TG", "My Telegram", "75474745", config={"max_concurrent_events": "30"})
-        self.channel3 = self.create_channel("TG", "My Telegram", "75474745", config={"max_concurrent_events": 20})
-        self.channel4 = self.create_channel("TG", "My Telegram", "75474745", config={"max_concurrent_events": None})
-        self.channel5 = self.create_channel("TG", "My Telegram", "75474745", config={"max_concurrent_calls": 25})
+        self.channel1 = self.create_channel(
+            "BW", "My Bandwith", "75474745", role="SR", config={"application_id": "foo-id"}
+        )
+        self.channel2 = self.create_channel(
+            "BW", "My Bandwith", "75474745", role="CA", config={"application_id": "bar-id"}
+        )
+
+        self.channel3 = self.create_channel(
+            "BW", "My Bandwith", "75474745", role="CA", config={"application_id": "baz-id"}
+        )
+        self.channel3.is_active = False
+        self.channel3.save()
 
     def test_migration(self):
         def assert_config(ch, expected: dict):
             ch.refresh_from_db()
             self.assertEqual(expected, ch.config)
 
-        assert_config(self.channel1, {})
-        assert_config(self.channel2, {"max_concurrent_calls": 30})
-        assert_config(self.channel3, {"max_concurrent_calls": 20})
-        assert_config(self.channel4, {})
-        assert_config(self.channel5, {"max_concurrent_calls": 25})
+        assert_config(self.channel1, {"messaging_application_id": "foo-id"})
+        assert_config(self.channel2, {"voice_application_id": "bar-id"})
+        assert_config(self.channel3, {"application_id": "baz-id"})

@@ -35,43 +35,64 @@ class BandwidthType(ChannelType):
         domain = channel.org.get_brand_domain()
         account_id = channel.config.get("account_id")
 
-        if channel.role == "SR":
+        url = f"https://dashboard.bandwidth.com/api/accounts/{account_id}/applications"
+
+        if channel.role in ["SR", "SRCA"]:
             receive_url = "https://" + domain + reverse("courier.bw", args=[channel.uuid, "receive"])
             status_url = "https://" + domain + reverse("courier.bw", args=[channel.uuid, "status"])
 
             application_xml = f"<Application><ServiceType>Messaging-V2</ServiceType><AppName>{domain}/{channel.uuid}</AppName><InboundCallbackUrl>{receive_url}</InboundCallbackUrl><OutboundCallbackUrl>{status_url}</OutboundCallbackUrl><RequestedCallbackTypes><CallbackType>message-delivered</CallbackType><CallbackType>message-failed</CallbackType><CallbackType>message-sending</CallbackType></RequestedCallbackTypes></Application>"
-        elif channel.role == "CA":
+
+            resp = requests.post(
+                url,
+                data=application_xml,
+                auth=(channel.config.get(Channel.CONFIG_USERNAME), channel.config.get(Channel.CONFIG_PASSWORD)),
+                headers={"Content-Type": "application/xml; charset=utf-8"},
+            )
+
+            if resp.status_code not in [200, 201, 202]:  # pragma: no cover
+                raise ValidationError(_("Unable to create bandwidth application"))
+
+            resp_root = ET.fromstring(resp.content)
+            application_id_elt = resp_root.find("Application").find("ApplicationId")
+
+            channel.config["messaging_application_id"] = application_id_elt.text
+
+        elif channel.role in ["CA", "SRCA"]:
             incoming_call_url = "https://" + domain + f"/mr/ivr/c/{channel.uuid}/incoming"
             status_call_url = "https://" + domain + f"/mr/ivr/c/{channel.uuid}/status"
 
             application_xml = f"<Application><ServiceType>Voice-V2</ServiceType><AppName>{domain}/{channel.uuid}</AppName><CallInitiatedCallbackUrl>{incoming_call_url}</CallInitiatedCallbackUrl><CallStatusCallbackUrl>{status_call_url}</CallStatusCallbackUrl></Application>"
 
-        url = f"https://dashboard.bandwidth.com/api/accounts/{account_id}/applications"
+            resp = requests.post(
+                url,
+                data=application_xml,
+                auth=(channel.config.get(Channel.CONFIG_USERNAME), channel.config.get(Channel.CONFIG_PASSWORD)),
+                headers={"Content-Type": "application/xml; charset=utf-8"},
+            )
 
-        resp = requests.post(
-            url,
-            data=application_xml,
-            auth=(channel.config.get(Channel.CONFIG_USERNAME), channel.config.get(Channel.CONFIG_PASSWORD)),
-            headers={"Content-Type": "application/xml; charset=utf-8"},
-        )
+            if resp.status_code not in [200, 201, 202]:  # pragma: no cover
+                raise ValidationError(_("Unable to create bandwidth application"))
 
-        if resp.status_code not in [200, 201, 202]:  # pragma: no cover
-            raise ValidationError(_("Unable to create bandwidth application"))
+            resp_root = ET.fromstring(resp.content)
+            application_id_elt = resp_root.find("Application").find("ApplicationId")
 
-        resp_root = ET.fromstring(resp.content)
-        application_id_elt = resp_root.find("Application").find("ApplicationId")
-
-        channel.config["application_id"] = application_id_elt.text
+            channel.config["voice_application_id"] = application_id_elt.text
 
         channel.save(update_fields=("config",))
 
     def deactivate(self, channel):
         account_id = channel.config.get("account_id")
-        application_id = channel.config.get("application_id")
+        messaging_application_id = channel.config.get("messaging_application_id")
+        voice_application_id = channel.config.get("voice_application_id")
 
-        url = f"https://dashboard.bandwidth.com/api/accounts/{account_id}/applications/{application_id}"
+        for application_id in [messaging_application_id, voice_application_id]:
+            if not application_id:
+                continue
 
-        resp = requests.delete(url)
+            url = f"https://dashboard.bandwidth.com/api/accounts/{account_id}/applications/{application_id}"
 
-        if resp.status_code != 200:  # pragma: no cover
-            raise ValidationError(_("Error removing the bandwidth application"))
+            resp = requests.delete(url)
+
+            if resp.status_code != 200:  # pragma: no cover
+                raise ValidationError(_("Error removing the bandwidth application"))
