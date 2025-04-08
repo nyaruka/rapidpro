@@ -53,7 +53,7 @@ class LLM(TembaModel, DependencyMixin):
 
     org = models.ForeignKey(Org, related_name="llms", on_delete=models.PROTECT)
     llm_type = models.CharField(max_length=16)
-    model = models.CharField(max_length=64, null=True)
+    model = models.CharField(max_length=64)
     config = models.JSONField()
 
     org_limit_key = Org.LIMIT_LLMS
