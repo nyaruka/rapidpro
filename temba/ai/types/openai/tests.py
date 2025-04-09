@@ -11,7 +11,7 @@ from temba.tests.crudl import CRUDLTestMixin
 
 class OpenAITypeTest(TembaTest, CRUDLTestMixin):
     @patch("openai.OpenAI")
-    def test_connect(self, mock_openai):
+    def test_connect(self, mock_client):
         connect_url = reverse("ai.types.openai.connect")
 
         self.assertRequestDisallowed(connect_url, [self.editor, self.agent])
@@ -20,17 +20,17 @@ class OpenAITypeTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "You can find your API key at https://platform.openai.com/account/api-key")
 
         # test with bad api key,
-        mock_openai.return_value.models.list.side_effect = openai.AuthenticationError(
+        mock_client.return_value.models.list.side_effect = openai.AuthenticationError(
             "Invalid API Key", response=Mock(request=None), body=None
         )
         response = self.process_wizard("connect_view", connect_url, {"credentials": {"api_key": "bad_key"}})
         self.assertContains(response, "Invalid API Key")
 
         # reset our mock
-        mock_openai.return_value.models.list.side_effect = None
+        mock_client.return_value.models.list.side_effect = None
 
         # get our model list from an api key
-        mock_openai.return_value.models.list.return_value = [Mock(id="gpt-4o"), Mock(id="gpt-turbo-3.5")]
+        mock_client.return_value.models.list.return_value = [Mock(id="gpt-4o"), Mock(id="gpt-turbo-3.5")]
         response = self.process_wizard("connect_view", connect_url, {"credentials": {"api_key": "good_key"}})
         self.assertEqual(response.context["form"].fields["model"].choices, [("gpt-4o", "gpt-4o")])
 
@@ -40,9 +40,11 @@ class OpenAITypeTest(TembaTest, CRUDLTestMixin):
             connect_url,
             {"credentials": {"api_key": "good_key"}, "model": {"model": "gpt-4o"}, "name": {"name": "GPT-4"}},
         )
+        self.assertRedirects(response, reverse("ai.llm_list"))
 
         # check that we created our model
-        llm = LLM.objects.get(org=self.org, llm_type="openai", name="GPT-4")
+        llm = LLM.objects.get(org=self.org, llm_type="openai")
+        self.assertEqual("GPT-4", llm.name)
         self.assertEqual("gpt-4o", llm.model)
         self.assertEqual("good_key", llm.config["api_key"])
 

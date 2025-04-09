@@ -104,6 +104,7 @@ class LLMCRUDL(SmartCRUDL):
                 menu.add_modax(
                     _("New Anthropic"), "new-anthropic", reverse("ai.types.anthropic.connect"), title="Anthropic"
                 )
+                menu.add_modax(_("New Google AI"), "new-google", reverse("ai.types.google.connect"), title="Google AI")
                 menu.add_modax(
                     _("New DeepSeek"), "new-deepseek", reverse("ai.types.deepseek.connect"), title="DeepSeek"
                 )

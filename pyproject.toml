@@ -51,7 +51,8 @@ dependencies = [
     "psycopg[pool] ~= 3.2.1",
     "django-allauth[mfa] (>=65.4.1,<66.0.0)",
     "openai (>=1.66.3,<2.0.0)",
-    "anthropic (>=0.49.0,<0.50.0)"
+    "anthropic (>=0.49.0,<0.50.0)",
+    "google-genai (>=1.10.0,<2.0.0)"
 ]
 
 [project.urls]
