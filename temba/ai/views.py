@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from temba import mailroom
 from temba.orgs.views.base import BaseDependencyDeleteModal, BaseListView, BaseUpdateModal
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
-from temba.utils.fields import InputWidget
+from temba.utils.fields import InputWidget, SelectWidget
 from temba.utils.views.mixins import ContextMenuMixin, PostOnlyMixin, SpaMixin
 from temba.utils.views.wizard import SmartWizardView
 
@@ -48,6 +48,21 @@ class BaseConnectWizard(OrgPermsMixin, SmartWizardView):
         context = super().get_context_data(**kwargs)
         context["form_blurb"] = self.llm_type.get_form_blurb()
         return context
+
+
+class ModelForm(BaseConnectWizard.Form):
+    """
+    Reusable wizard form for selecting a model.
+    """
+
+    model = forms.ChoiceField(
+        label=_("Model"), widget=SelectWidget(), help_text=_("Choose the model you would like to use.")
+    )
+
+    def __init__(self, model_choices, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["model"].choices = model_choices
 
 
 class NameForm(BaseConnectWizard.Form):

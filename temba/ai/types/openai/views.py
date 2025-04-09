@@ -5,8 +5,8 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
 
 from temba.ai.models import LLM
-from temba.ai.views import BaseConnectWizard, NameForm
-from temba.utils.fields import InputWidget, SelectWidget
+from temba.ai.views import BaseConnectWizard, ModelForm, NameForm
+from temba.utils.fields import InputWidget
 
 
 class CredentialsForm(BaseConnectWizard.Form):
@@ -31,17 +31,6 @@ class CredentialsForm(BaseConnectWizard.Form):
         self.extra_data = {"model_choices": model_choices}  # save our model choices as extra data
 
         return api_key
-
-
-class ModelForm(BaseConnectWizard.Form):
-    model = forms.ChoiceField(
-        label=_("Model"), widget=SelectWidget(), help_text=_("Choose the model you would like to use.")
-    )
-
-    def __init__(self, model_choices, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.fields["model"].choices = model_choices
 
 
 class ConnectView(BaseConnectWizard):
