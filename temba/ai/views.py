@@ -3,6 +3,7 @@ import json
 from smartmin.views import SmartCRUDL, SmartReadView
 
 from django import forms
+from django.db.models.functions import Lower
 from django.http import JsonResponse
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -80,13 +81,16 @@ class LLMCRUDL(SmartCRUDL):
     class List(SpaMixin, ContextMenuMixin, BaseListView):
         title = _("Artificial Intelligence")
         menu_path = "settings/ai"
-        default_order = ("name",)
+        default_order = (Lower("name"),)
 
         def build_context_menu(self, menu):
             if self.has_org_perm("ai.llm_connect") and not self.is_limit_reached():
                 menu.add_modax(_("New OpenAI"), "new-openai", reverse("ai.types.openai.connect"), title="OpenAI")
                 menu.add_modax(
                     _("New Anthropic"), "new-anthropic", reverse("ai.types.anthropic.connect"), title="Anthropic"
+                )
+                menu.add_modax(
+                    _("New DeepSeek"), "new-deepseek", reverse("ai.types.deepseek.connect"), title="DeepSeek"
                 )
 
     class Update(BaseUpdateModal):
