@@ -759,10 +759,7 @@ INTEGRATION_TYPES = [
 
 CLASSIFIER_TYPES = [
     "temba.classifiers.types.wit.WitType",
-    "temba.classifiers.types.luis.LuisType",
-    "temba.classifiers.types.bothub.BothubType",
 ]
-
 
 CHANNEL_TYPES = [
     "temba.channels.types.africastalking.AfricasTalkingType",

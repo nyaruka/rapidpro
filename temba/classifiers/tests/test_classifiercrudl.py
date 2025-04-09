@@ -4,7 +4,6 @@ from django.urls import reverse
 from django.utils import timezone
 
 from temba.classifiers.models import Classifier
-from temba.classifiers.types.luis import LuisType
 from temba.classifiers.types.wit import WitType
 from temba.tests import CRUDLTestMixin, TembaTest
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
@@ -31,7 +30,7 @@ class ClassifierCRUDLTest(TembaTest, CRUDLTestMixin):
         self.c3.save()
 
         # on another org
-        self.other_org = Classifier.create(self.org2, self.admin, LuisType.slug, "Org2 Booker", {}, sync=False)
+        self.other_org = Classifier.create(self.org2, self.admin, WitType.slug, "Org2 Booker", {}, sync=False)
 
         self.flow = self.create_flow("Color Flow")
         self.flow.classifier_dependencies.add(self.c1)

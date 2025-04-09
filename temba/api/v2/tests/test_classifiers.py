@@ -3,7 +3,6 @@ from django.utils import timezone
 
 from temba.api.v2.serializers import format_datetime
 from temba.classifiers.models import Classifier
-from temba.classifiers.types.luis import LuisType
 from temba.classifiers.types.wit import WitType
 
 from . import APITest
@@ -28,7 +27,7 @@ class ClassifiersEndpointTest(APITest):
         c2.save()
 
         # on another org
-        Classifier.create(self.org2, self.admin, LuisType.slug, "Org2 Booker", {})
+        Classifier.create(self.org2, self.admin, WitType.slug, "Org2 Booker", {})
 
         # no filtering
         self.assertGet(
