@@ -37,11 +37,11 @@ class BandwidthType(ChannelType):
 
         url = f"https://dashboard.bandwidth.com/api/accounts/{account_id}/applications"
 
-        if channel.role in ["SR", "SRCA"]:
+        if Channel.ROLE_SEND in channel.role:
             receive_url = "https://" + domain + reverse("courier.bw", args=[channel.uuid, "receive"])
             status_url = "https://" + domain + reverse("courier.bw", args=[channel.uuid, "status"])
 
-            application_xml = f"<Application><ServiceType>Messaging-V2</ServiceType><AppName>{domain}/{channel.uuid}</AppName><InboundCallbackUrl>{receive_url}</InboundCallbackUrl><OutboundCallbackUrl>{status_url}</OutboundCallbackUrl><RequestedCallbackTypes><CallbackType>message-delivered</CallbackType><CallbackType>message-failed</CallbackType><CallbackType>message-sending</CallbackType></RequestedCallbackTypes></Application>"
+            application_xml = f"<Application><ServiceType>Messaging-V2</ServiceType><AppName>{domain}/{channel.uuid}/messaging</AppName><InboundCallbackUrl>{receive_url}</InboundCallbackUrl><OutboundCallbackUrl>{status_url}</OutboundCallbackUrl><RequestedCallbackTypes><CallbackType>message-delivered</CallbackType><CallbackType>message-failed</CallbackType><CallbackType>message-sending</CallbackType></RequestedCallbackTypes></Application>"
 
             resp = requests.post(
                 url,
@@ -58,11 +58,11 @@ class BandwidthType(ChannelType):
 
             channel.config["messaging_application_id"] = application_id_elt.text
 
-        elif channel.role in ["CA", "SRCA"]:
+        if Channel.ROLE_CALL in channel.role:
             incoming_call_url = "https://" + domain + f"/mr/ivr/c/{channel.uuid}/incoming"
             status_call_url = "https://" + domain + f"/mr/ivr/c/{channel.uuid}/status"
 
-            application_xml = f"<Application><ServiceType>Voice-V2</ServiceType><AppName>{domain}/{channel.uuid}</AppName><CallInitiatedCallbackUrl>{incoming_call_url}</CallInitiatedCallbackUrl><CallStatusCallbackUrl>{status_call_url}</CallStatusCallbackUrl></Application>"
+            application_xml = f"<Application><ServiceType>Voice-V2</ServiceType><AppName>{domain}/{channel.uuid}/voice</AppName><CallInitiatedCallbackUrl>{incoming_call_url}</CallInitiatedCallbackUrl><CallStatusCallbackUrl>{status_call_url}</CallStatusCallbackUrl></Application>"
 
             resp = requests.post(
                 url,
