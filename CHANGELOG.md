@@ -1,3 +1,9 @@
+v10.1.127 (2025-04-09)
+-------------------------
+ * Make BW app name distinct for messaging and voice
+ * Stop writing LLM model name into config as well
+ * Add skeleton LLM type for Google Gemini
+
 v10.1.126 (2025-04-08)
 -------------------------
  * Make LLM.model non-null and use for UI
