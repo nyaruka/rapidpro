@@ -1,3 +1,8 @@
+v10.1.129 (2025-04-10)
+-------------------------
+ * Rework invitations to go through login and signup
+ * Add social account signup
+
 v10.1.128 (2025-04-10)
 -------------------------
  * Improvements to migrate_flows command
