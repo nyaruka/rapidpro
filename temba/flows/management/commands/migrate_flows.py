@@ -1,4 +1,5 @@
 import itertools
+import time
 import traceback
 
 from django.core.management.base import BaseCommand
@@ -7,30 +8,40 @@ from temba.flows.models import Flow
 
 
 class Command(BaseCommand):
-    help = "Migrates forward all flows which are not current version"
+    help = "Migrates forward all flows which are not current version."
 
-    def handle(self, *args, **options):
-        self.migrate_flows()
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--delay",
+            type=int,
+            action="store",
+            dest="delay_ms",
+            help="Delay in milliseconds between flow migrations",
+            default=100,
+        )
 
-    def migrate_flows(self):
-        flows_to_migrate = (
-            Flow.objects.filter(is_active=True)
+    def handle(self, delay_ms: int, *args, **options):
+        self.migrate_flows(delay_ms)
+
+    def migrate_flows(self, delay_ms: int):
+        flow_ids = list(
+            Flow.objects.filter(is_active=True, org__is_active=True)
             .exclude(version_number=Flow.CURRENT_SPEC_VERSION)
             .order_by("org_id", "id")
+            .values_list("id", flat=True)
         )
-        flow_ids = list(flows_to_migrate.values_list("id", flat=True))
         total = len(flow_ids)
 
         if total == 0:
             self.stdout.write("All flows up to date")
             return
-
-        self.stdout.write(f"Found {len(flow_ids)} flows to migrate...")
+        elif input(f"Migrate {total} flows? [y/N]: ") != "y":
+            return
 
         num_updated = 0
         num_errored = 0
 
-        for id_batch in itertools.batched(flow_ids, 1000):
+        for id_batch in itertools.batched(flow_ids, 100):
             for flow in Flow.objects.filter(id__in=id_batch):
                 try:
                     flow.ensure_current_version()
@@ -39,5 +50,7 @@ class Command(BaseCommand):
                     self.stderr.write(f"Unable to migrate flow {str(flow.uuid)}:")
                     self.stderr.write(traceback.format_exc())
                     num_errored += 1
+
+                time.sleep(delay_ms / 1000.0)  # don't DDOS mailroom
 
             self.stdout.write(f" > Flows migrated: {num_updated} of {total} ({num_errored} errored)")
