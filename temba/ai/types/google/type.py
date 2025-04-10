@@ -1,5 +1,7 @@
 from temba.ai.models import LLMType
 
+from .views import ConnectView
+
 
 class GoogleType(LLMType):
     """
@@ -10,8 +12,4 @@ class GoogleType(LLMType):
     slug = "google"
     icon = "google"
 
-    def get_urls(self):
-        """
-        TODO
-        """
-        return []
+    connect_view = ConnectView

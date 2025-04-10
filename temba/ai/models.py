@@ -60,7 +60,7 @@ class LLM(TembaModel, DependencyMixin):
 
     @classmethod
     def create(cls, org, user, typ, model: str, name: str, config: dict):
-        assert model in typ.settings["models"]
+        assert "models" not in typ.settings or model in typ.settings["models"]
 
         return cls.objects.create(
             org=org,

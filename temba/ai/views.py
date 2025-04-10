@@ -3,6 +3,7 @@ import json
 from smartmin.views import SmartCRUDL, SmartReadView
 
 from django import forms
+from django.db.models.functions import Lower
 from django.http import JsonResponse
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -11,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from temba import mailroom
 from temba.orgs.views.base import BaseDependencyDeleteModal, BaseListView, BaseUpdateModal
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
-from temba.utils.fields import InputWidget
+from temba.utils.fields import InputWidget, SelectWidget
 from temba.utils.views.mixins import ContextMenuMixin, PostOnlyMixin, SpaMixin
 from temba.utils.views.wizard import SmartWizardView
 
@@ -49,6 +50,21 @@ class BaseConnectWizard(OrgPermsMixin, SmartWizardView):
         return context
 
 
+class ModelForm(BaseConnectWizard.Form):
+    """
+    Reusable wizard form for selecting a model.
+    """
+
+    model = forms.ChoiceField(
+        label=_("Model"), widget=SelectWidget(), help_text=_("Choose the model you would like to use.")
+    )
+
+    def __init__(self, model_choices, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["model"].choices = model_choices
+
+
 class NameForm(BaseConnectWizard.Form):
     """
     Reusable wizard form for giving a name to a model.
@@ -80,14 +96,27 @@ class LLMCRUDL(SmartCRUDL):
     class List(SpaMixin, ContextMenuMixin, BaseListView):
         title = _("Artificial Intelligence")
         menu_path = "settings/ai"
-        default_order = ("name",)
+        default_order = (Lower("name"),)
 
         def build_context_menu(self, menu):
             if self.has_org_perm("ai.llm_connect") and not self.is_limit_reached():
-                menu.add_modax(_("New OpenAI"), "new-openai", reverse("ai.types.openai.connect"), title="OpenAI")
+                menu.add_modax(_("New OpenAI"), "new-openai", reverse("ai.types.openai.connect"), title=_("OpenAI"))
                 menu.add_modax(
-                    _("New Anthropic"), "new-anthropic", reverse("ai.types.anthropic.connect"), title="Anthropic"
+                    _("New Anthropic"), "new-anthropic", reverse("ai.types.anthropic.connect"), title=_("Anthropic")
                 )
+                if self.request.user.is_staff:  # until https://github.com/nyaruka/temba-components/issues/486
+                    menu.add_modax(
+                        _("New Google AI"), "new-google", reverse("ai.types.google.connect"), title=_("Google AI")
+                    )
+                    menu.add_modax(
+                        _("New DeepSeek"), "new-deepseek", reverse("ai.types.deepseek.connect"), title=_("DeepSeek")
+                    )
+                    menu.add_modax(
+                        _("New OpenAI (Azure)"),
+                        "new-openai_azure",
+                        reverse("ai.types.openai_azure.connect"),
+                        title=_("OpenAI via Azure"),
+                    )
 
     class Update(BaseUpdateModal):
         class Form(UniqueNameMixin, forms.ModelForm):

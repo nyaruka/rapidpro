@@ -26,6 +26,12 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertEqual("settings/ai", response.headers[TEMBA_MENU_SELECTION])
         self.assertContentMenu(list_url, self.admin, ["New OpenAI", "New Anthropic"])
+        self.assertContentMenu(
+            list_url,
+            self.customer_support,
+            ["New OpenAI", "New Anthropic", "New Google AI", "New DeepSeek", "New OpenAI (Azure)"],
+            choose_org=self.org,
+        )
         self.assertContentMenu(list_url, self.editor, [])
 
         with override_settings(ORG_LIMIT_DEFAULTS={"llms": 2}):

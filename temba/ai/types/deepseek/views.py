@@ -1,4 +1,4 @@
-import anthropic
+import openai
 
 from django import forms
 from django.http import HttpResponseRedirect
@@ -13,24 +13,22 @@ class CredentialsForm(BaseConnectWizard.Form):
     api_key = forms.CharField(
         widget=InputWidget({"placeholder": "API Key", "widget_only": False, "label": "API Key", "value": ""}),
         label="",
-        help_text=_("You can find your API key at https://console.anthropic.com/settings/keys"),
+        help_text=_("You can find your API key at https://platform.deepseek.com/api_keys"),
     )
 
     def clean_api_key(self):
         api_key = self.data["credentials-api_key"]
 
         try:
-            client = anthropic.Anthropic(api_key=api_key)
+            client = openai.OpenAI(base_url="https://api.deepseek.com", api_key=api_key)
             available_models = client.models.list()
-        except anthropic.AuthenticationError:
+        except openai.AuthenticationError:
             raise forms.ValidationError(_("Invalid API Key"))
 
         allowed_models = self.llm_type.settings.get("models", [])
-        model_choices = [
-            (m.id, m.display_name) for m in available_models if not allowed_models or m.id in allowed_models
-        ]
+        model_choices = [(m.id, m.id) for m in available_models if not allowed_models or m.id in allowed_models]
 
-        self.extra_data = {"model_choices": model_choices}
+        self.extra_data = {"model_choices": model_choices}  # save our model choices as extra data
 
         return api_key
 
@@ -47,9 +45,7 @@ class ConnectView(BaseConnectWizard):
 
         if step == "name":
             step_data = self.storage.data["step_data"]
-            model_choices = step_data["credentials"]["model_choices"][0]
-            model_id = step_data["model"]["model-model"][0]
-            kwargs["model_name"] = next((m[1] for m in model_choices if m[0] == model_id))
+            kwargs["model_name"] = "DeepSeek"
 
         return kwargs
 

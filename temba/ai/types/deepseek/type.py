@@ -1,5 +1,7 @@
 from temba.ai.models import LLMType
 
+from .views import ConnectView
+
 
 class DeepSeekType(LLMType):
     """
@@ -10,8 +12,4 @@ class DeepSeekType(LLMType):
     slug = "deepseek"
     icon = "deepseek"
 
-    def get_urls(self):
-        """
-        TODO
-        """
-        return []
+    connect_view = ConnectView
