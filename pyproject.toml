@@ -101,7 +101,7 @@ known_django = ["django"]
 
 [tool.djlint]
 blank_line_after_tag = "load"
-custom_blocks = "render"
+custom_blocks = "render,element,slot"
 custom_html = "temba-[a-z-]+"
 format_css = true
 format_js = true

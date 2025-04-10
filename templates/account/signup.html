@@ -9,23 +9,23 @@
   {{ form.errors }}
   {% if invite %}
     {% element h2 %}
-    {% trans "You're Invited!" %}
-  {% endelement %}
-  <div class="mb-2">
-    {% blocktrans trimmed with org=invite.org.name %}
-      Create an account below to accept your invitation and join the <b>{{ org }}</b> workspace.
-    {% endblocktrans %}
-  </div>
-{% else %}
-  {% element h2 %}
-  {% trans "Create Account" %}
-{% endelement %}
-<div class="mb-2">Creating a TextIt account is free and only takes a minute.</div>
-{% endif %}
-{% setvar link %}
-<a href="{{ login_url }}">
-{% endsetvar %}
-{% setvar end_link %}
+      {% trans "You're Invited!" %}
+    {% endelement %}
+    <div class="mb-2">
+      {% blocktrans trimmed with org=invite.org.name %}
+        Create an account below to accept your invitation and join the <b>{{ org }}</b> workspace.
+      {% endblocktrans %}
+    </div>
+  {% else %}
+    {% element h2 %}
+      {% trans "Create Account" %}
+    {% endelement %}
+    <div class="mb-2">Creating a TextIt account is free and only takes a minute.</div>
+  {% endif %}
+  {% setvar link %}
+  <a href="{{ login_url }}">
+  {% endsetvar %}
+  {% setvar end_link %}
 </a>
 {% endsetvar %}
 {% element p %}
@@ -34,29 +34,29 @@
 {% if not SOCIALACCOUNT_ONLY %}
   {% url 'account_signup' as action_url %}
   {% element form form=form method="post" action=action_url tags="entrance,signup" %}
-  {% slot body %}
-  {% csrf_token %}
-  {% element fields form=form unlabeled=True %}
-{% endelement %}
-{{ redirect_field }}
-{% endslot %}
-{% slot actions %}
-{% element button tags="prominent,signup" type="submit" %}
-{% if invite %}
-  {% trans "Accept Invitation" %}
-{% else %}
-  {% trans "Sign Up" %}
-{% endif %}
-{% endelement %}
-{% endslot %}
-{% endelement %}
+    {% slot body %}
+      {% csrf_token %}
+      {% element fields form=form unlabeled=True %}
+      {% endelement %}
+      {{ redirect_field }}
+    {% endslot %}
+    {% slot actions %}
+      {% element button tags="prominent,signup" type="submit" %}
+        {% if invite %}
+          {% trans "Accept Invitation" %}
+        {% else %}
+          {% trans "Sign Up" %}
+        {% endif %}
+      {% endelement %}
+    {% endslot %}
+  {% endelement %}
 {% endif %}
 {% if PASSKEY_SIGNUP_ENABLED %}
   {% element hr %}
-{% endelement %}
-{% element button href=signup_by_passkey_url tags="prominent,signup,outline,primary" %}
-{% trans "Sign up using a passkey" %}
-{% endelement %}
+  {% endelement %}
+  {% element button href=signup_by_passkey_url tags="prominent,signup,outline,primary" %}
+    {% trans "Sign up using a passkey" %}
+  {% endelement %}
 {% endif %}
 {% if SOCIALACCOUNT_ENABLED and not invite %}
   {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
