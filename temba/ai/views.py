@@ -100,14 +100,23 @@ class LLMCRUDL(SmartCRUDL):
 
         def build_context_menu(self, menu):
             if self.has_org_perm("ai.llm_connect") and not self.is_limit_reached():
-                menu.add_modax(_("New OpenAI"), "new-openai", reverse("ai.types.openai.connect"), title="OpenAI")
+                menu.add_modax(_("New OpenAI"), "new-openai", reverse("ai.types.openai.connect"), title=_("OpenAI"))
                 menu.add_modax(
-                    _("New Anthropic"), "new-anthropic", reverse("ai.types.anthropic.connect"), title="Anthropic"
+                    _("New Anthropic"), "new-anthropic", reverse("ai.types.anthropic.connect"), title=_("Anthropic")
                 )
-                menu.add_modax(_("New Google AI"), "new-google", reverse("ai.types.google.connect"), title="Google AI")
-                menu.add_modax(
-                    _("New DeepSeek"), "new-deepseek", reverse("ai.types.deepseek.connect"), title="DeepSeek"
-                )
+                if self.request.user.is_staff:  # until https://github.com/nyaruka/temba-components/issues/486
+                    menu.add_modax(
+                        _("New Google AI"), "new-google", reverse("ai.types.google.connect"), title=_("Google AI")
+                    )
+                    menu.add_modax(
+                        _("New DeepSeek"), "new-deepseek", reverse("ai.types.deepseek.connect"), title=_("DeepSeek")
+                    )
+                    menu.add_modax(
+                        _("New OpenAI (Azure)"),
+                        "new-openai_azure",
+                        reverse("ai.types.openai_azure.connect"),
+                        title=_("OpenAI via Azure"),
+                    )
 
     class Update(BaseUpdateModal):
         class Form(UniqueNameMixin, forms.ModelForm):

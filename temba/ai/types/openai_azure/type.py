@@ -1,17 +1,15 @@
 from temba.ai.models import LLMType
 
+from .views import ConnectView
+
 
 class OpenAIAzureType(LLMType):
     """
     Type for OpenAI via Microsoft Azure.
     """
 
-    name = "UNICEF OpenAI"
+    name = "OpenAI (Azure)"
     slug = "openai_azure"
-    icon = "unicef"
+    icon = "openai_azure"
 
-    def get_urls(self):
-        """
-        TODO
-        """
-        return []
+    connect_view = ConnectView
