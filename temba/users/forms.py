@@ -93,7 +93,9 @@ class TembaLoginForm(InviteFormMixin, LoginForm):
     def clean_login(self):
         if self.invite:
             return self.invite.email
-        return super().clean_login()
+
+        # this is tested by allauth
+        return super().clean_login()  # pragma: no cover
 
 
 class TembaChangePasswordForm(ChangePasswordForm):

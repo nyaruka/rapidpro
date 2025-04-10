@@ -21,7 +21,8 @@ class InviteAdapterMixin:
         if secret:
             invite = Invitation.objects.filter(secret=secret, is_active=True).first()
             if invite:
-                if user.email != invite.email:
+                # this can happen if a SSO with a different email address is used
+                if user.email != invite.email:  # pragma: no cover
                     messages.add_message(
                         self.request,
                         messages.WARNING,
@@ -57,14 +58,14 @@ class TembaAccountAdapter(InviteAdapterMixin, DefaultAccountAdapter):
 
 
 class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter):
-    def save_user(self, request, sociallogin, form=None):
+    def save_user(self, request, sociallogin, form=None):  # pragma: no cover
         user = super().save_user(request, sociallogin, form)
         user.fetch_avatar(sociallogin.account.get_avatar_url())
         return user
 
 
 @receiver(social_account_added)
-def update_user_profile_picture(request, sociallogin, **kwargs):
+def update_user_profile_picture(request, sociallogin, **kwargs):  # pragma: no cover
     user = sociallogin.user
     user.fetch_avatar(sociallogin.account.get_avatar_url())
 

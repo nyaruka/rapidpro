@@ -24,19 +24,12 @@ class TembaInviteMixin:
 
     def get_initial(self):
         initial = super().get_initial()
-
-        if self.request.method == "GET":
-            secret = self.request.GET.get("invite")
-
-        secret = self.request.session.get("invite_secret", None)
-        if secret:
-            self.invite = Invitation.objects.filter(secret=secret, is_active=True).first()
-            if not self.invite:
-                messages.add_message(
-                    self.request,
-                    messages.WARNING,
-                    _("Sorry, your invitation is no longer valid. Please request a new invite."),
-                )
+        if not self.invite:
+            messages.add_message(
+                self.request,
+                messages.WARNING,
+                _("Sorry, your invitation is no longer valid. Please request a new invite."),
+            )
 
         return initial
 

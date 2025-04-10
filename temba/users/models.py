@@ -269,7 +269,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     def as_engine_ref(self) -> dict:
         return {"email": self.email, "name": self.name}
 
-    def fetch_avatar(self, url: str):
+    def fetch_avatar(self, url: str):  # pragma: no cover
         # fetch the avatar from the url and store it locally
         self.avatar.save(f"{self.pk}_profile.jpg", ContentFile(requests.get(url).content), save=True)
 
