@@ -5,10 +5,23 @@
   {% trans "Signup" %}
 {% endblock head_title %}
 {% block content %}
+  {{ form.non_field_errors }}
+  {{ form.errors }}
+  {% if invite %}
+    {% element h2 %}
+    {% trans "You're Invited!" %}
+  {% endelement %}
+  <div class="mb-2">
+    {% blocktrans trimmed with org=invite.org.name %}
+      Create an account below to accept your invitation and join the <b>{{ org }}</b> workspace.
+    {% endblocktrans %}
+  </div>
+{% else %}
   {% element h2 %}
   {% trans "Create Account" %}
 {% endelement %}
 <div class="mb-2">Creating a TextIt account is free and only takes a minute.</div>
+{% endif %}
 {% setvar link %}
 <a href="{{ login_url }}">
 {% endsetvar %}
@@ -17,6 +30,7 @@
 {% endsetvar %}
 {% element p %}
 {% endelement %}
+{% if invite %}<input class="mt-4" style="color:#999;" type="text" disabled value="{{ invite.email }}" />{% endif %}
 {% if not SOCIALACCOUNT_ONLY %}
   {% url 'account_signup' as action_url %}
   {% element form form=form method="post" action=action_url tags="entrance,signup" %}
@@ -28,11 +42,14 @@
 {% endslot %}
 {% slot actions %}
 {% element button tags="prominent,signup" type="submit" %}
-{% trans "Sign Up" %}
+{% if invite %}
+  {% trans "Accept Invitation" %}
+{% else %}
+  {% trans "Sign Up" %}
+{% endif %}
 {% endelement %}
 {% endslot %}
 {% endelement %}
-<div class="sign-in-notice">{% blocktranslate %}Already have an account? {{ link }}Sign in{{ end_link }}{% endblocktranslate %}</div>
 {% endif %}
 {% if PASSKEY_SIGNUP_ENABLED %}
   {% element hr %}
@@ -41,8 +58,11 @@
 {% trans "Sign up using a passkey" %}
 {% endelement %}
 {% endif %}
-{% if SOCIALACCOUNT_ENABLED %}
+{% if SOCIALACCOUNT_ENABLED and not invite %}
   {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
+{% endif %}
+{% if not invite %}
+  <div class="sign-in-notice">{% blocktranslate %}Already have an account? {{ link }}Sign in{{ end_link }}{% endblocktranslate %}</div>
 {% endif %}
 {% endblock content %}
 {% block extra-script %}

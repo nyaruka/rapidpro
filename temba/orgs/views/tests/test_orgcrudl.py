@@ -1,7 +1,6 @@
 import smtplib
 from datetime import timezone as tzone
 from unittest.mock import patch
-from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
 from django.contrib.auth.models import Group
@@ -300,12 +299,13 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         invitation = Invitation.create(self.org, self.admin, "edwin@textit.com", OrgRole.EDITOR)
 
         join_url = reverse("orgs.org_join", args=[invitation.secret])
-        join_signup_url = reverse("orgs.org_join_signup", args=[invitation.secret])
+        signup_url = f"{reverse("account_signup")}?invite={invitation.secret}"
+        login_url = f"{reverse("account_login")}?invite={invitation.secret}"
         join_accept_url = reverse("orgs.org_join_accept", args=[invitation.secret])
 
         # if no user exists then we redirect to the join signup page
-        response = self.client.get(join_url)
-        self.assertRedirect(response, join_signup_url)
+        response = self.client.get(join_url, follow=True)
+        self.assertEqual(signup_url, response.wsgi_request.get_full_path())
 
         user = self.create_user("edwin@textit.com")
         self.login(user)
@@ -313,15 +313,19 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(join_url)
         self.assertRedirect(response, join_accept_url)
 
-        # but only if they're the currently logged in user
+        # three auth keys and our invite secret should be in the session
+        self.assertEqual(4, len(self.client.session.keys()))
+
+        # now login as a user not on the invite
         self.login(self.admin)
 
-        response = self.client.get(join_url)
-        self.assertContains(response, "Sign in to join the <b>Nyaruka</b> workspace")
-        self.assertContains(response, f"/accounts/login/?next={join_accept_url}")
+        # we should get logged out
+        response = self.client.get(join_url, follow=True)
+        self.assertEqual(login_url, response.wsgi_request.get_full_path())
+        self.assertContains(response, "Enter your password to accept your invitation to the <b>Nyaruka</b> workspace")
 
-        # should be logged out as the other user
-        self.assertEqual(0, len(self.client.session.keys()))
+        # should be logged out as the other user, so just our invite key now
+        self.assertEqual(1, len(self.client.session.keys()))
 
         # invitation with mismatching case email
         invitation2 = Invitation.create(self.org2, self.admin, "eDwin@textit.com", OrgRole.EDITOR)
@@ -337,45 +341,64 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         # but only if they're the currently logged in user
         self.login(self.admin)
 
-        response = self.client.get(join_url)
-        self.assertContains(response, "Sign in to join the <b>Trileet Inc.</b> workspace")
-        self.assertContains(response, f"/accounts/login/?next={join_accept_url}")
+        response = self.client.get(join_url, follow=True)
+        self.assertContains(
+            response, "Enter your password to accept your invitation to the <b>Trileet Inc.</b> workspace."
+        )
 
     def test_join_signup(self):
-        # if invitation secret is invalid, redirect to root
-        response = self.client.get(reverse("orgs.org_join_signup", args=["invalid"]))
-        self.assertRedirect(response, reverse("public.public_index"))
+        # if invitation secret is invalid, show a message
+        response = self.client.get(f"{reverse('account_signup')}?invite=invalid")
+        self.assertContains(response, "Sorry, your invitation is no longer valid. Please request a new invite.")
 
         invitation = Invitation.create(self.org, self.admin, "administrator@trileet.com", OrgRole.ADMINISTRATOR)
 
-        join_signup_url = reverse("orgs.org_join_signup", args=[invitation.secret])
+        login_url = f"{reverse('account_login')}?invite={invitation.secret}"
         join_url = reverse("orgs.org_join", args=[invitation.secret])
 
-        # if user already exists then we redirect back to join
-        response = self.client.get(join_signup_url)
-        self.assertRedirect(response, join_url)
+        # if user already exists, they should be at the login page
+        response = self.client.get(join_url, follow=True)
+        self.assertEqual(login_url, response.wsgi_request.get_full_path())
+        self.assertEqual(invitation.secret, self.client.session["invite_secret"])
 
+        # logging in should accept the invite
+        response = self.client.post(
+            login_url, {"login": "administrator@trileet.com", "password": self.default_password}
+        )
+        invitation.refresh_from_db()
+        self.assertFalse(invitation.is_active)
+        self.assertEqual(2, len(self.org.get_admins()))
+        self.assertEqual(1, self.admin.notifications.filter(notification_type="invitation:accepted").count())
+
+        # invite a new user as an editor
         invitation = Invitation.create(self.org, self.admin, "edwin@textit.com", OrgRole.EDITOR)
-
-        join_signup_url = reverse("orgs.org_join_signup", args=[invitation.secret])
+        signup_url = f"{reverse('account_signup')}?invite={invitation.secret}"
         join_url = reverse("orgs.org_join", args=[invitation.secret])
 
-        response = self.client.get(join_signup_url)
-        self.assertContains(response, "edwin@textit.com")
-        self.assertEqual(["first_name", "last_name", "password", "loc"], list(response.context["form"].fields.keys()))
+        # we don't exist, should take us to the signup page
+        response = self.client.get(join_url, follow=True)
+        self.assertEqual(signup_url, response.wsgi_request.get_full_path())
+        self.assertEqual(invitation.secret, self.client.session["invite_secret"])
 
-        response = self.client.post(join_signup_url, {})
-        self.assertFormError(response.context["form"], "first_name", "This field is required.")
-        self.assertFormError(response.context["form"], "last_name", "This field is required.")
-        self.assertFormError(response.context["form"], "password", "This field is required.")
+        # signing up should accept the invite, email address is hidden, but is protected against tampering
+        response = self.client.post(
+            signup_url,
+            {
+                "email": "canbeanything@temba.io",
+                "workspace": "Ignored",
+                "password1": self.default_password,
+                "first_name": "Edwin",
+                "last_name": "Kagabo",
+                "timezone": "Africa/Kigali",
+            },
+            follow=True,
+        )
 
-        response = self.client.post(join_signup_url, {"first_name": "Ed", "last_name": "Edits", "password": "Flows123"})
-        self.assertRedirect(response, "/org/start/")
-
+        self.assertEqual(reverse("msgs.msg_inbox"), response.wsgi_request.get_full_path())
         invitation.refresh_from_db()
         self.assertFalse(invitation.is_active)
 
-        self.assertEqual(1, self.admin.notifications.filter(notification_type="invitation:accepted").count())
+        self.assertEqual(2, self.admin.notifications.filter(notification_type="invitation:accepted").count())
         self.assertEqual(2, self.org.get_users(roles=[OrgRole.EDITOR]).count())
 
     def test_join_accept(self):
@@ -593,147 +616,51 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             response.context["form"], None, "This password is too short. It must contain at least 8 characters."
         )
 
-    @patch("temba.orgs.views.OrgCRUDL.Signup.pre_process")
-    def test_new_signup_with_user_logged_in(self, mock_pre_process):
-        mock_pre_process.return_value = None
-        signup_url = reverse("orgs.org_signup")
-        user1 = self.create_user("tito@textit.com")
-
-        self.login(user1)
-
-        response = self.client.get(signup_url)
-        self.assertEqual(response.status_code, 200)
-
-        response = self.client.post(
-            signup_url,
-            {
-                "first_name": "Kellan",
-                "last_name": "Alexander",
-                "email": "kellan@example.com",
-                "password": "HeyThere123",
-                "name": "AlexCom",
-                "timezone": "Africa/Kigali",
-            },
-        )
-        self.assertEqual(response.status_code, 302)
-
-        # should have a new user
-        user2 = User.objects.get(email="kellan@example.com")
-        self.assertEqual(user2.first_name, "Kellan")
-        self.assertEqual(user2.last_name, "Alexander")
-        self.assertEqual(user2.email, "kellan@example.com")
-        self.assertTrue(user2.check_password("HeyThere123"))
-
-        # should have a new org
-        org = Org.objects.get(name="AlexCom")
-        self.assertEqual(org.timezone, ZoneInfo("Africa/Kigali"))
-
-        # of which our user is an administrator
-        self.assertIn(user2, org.get_admins())
-
-        # not the logged in user at the signup time
-        self.assertNotIn(user1, org.get_admins())
-
-    @override_settings(
-        AUTH_PASSWORD_VALIDATORS=[
-            {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
-            {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-            {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
-        ]
-    )
     def test_signup(self):
         signup_url = reverse("orgs.org_signup")
 
-        response = self.client.get(signup_url + "?%s" % urlencode({"email": "address@example.com"}))
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("email", response.context["form"].fields)
-        self.assertEqual(response.context["view"].derive_initial()["email"], "address@example.com")
+        # if we are not logged in, we should redirect to full account signup
+        self.assertRedirect(self.client.get(signup_url), reverse("account_signup"))
 
+        # create a user without a workspace
+        user = User.create(
+            email="noworkspace@temba.io", first_name="Nelly", last_name="Noworkspace", password="Qwerty123"
+        )
+
+        # we don't have a workspace, redirect to signup to create one
+        self.login(user)
+        response = self.client.get(reverse("orgs.org_choose"))
+        self.assertRedirect(response, signup_url)
+
+        # fetch the signup url
         response = self.client.get(signup_url)
-        self.assertEqual(response.status_code, 200)
         self.assertIn("name", response.context["form"].fields)
 
         # submit with missing fields
         response = self.client.post(signup_url, {})
         self.assertFormError(response.context["form"], "name", "This field is required.")
-        self.assertFormError(response.context["form"], "first_name", "This field is required.")
-        self.assertFormError(response.context["form"], "last_name", "This field is required.")
-        self.assertFormError(response.context["form"], "email", "This field is required.")
-        self.assertFormError(response.context["form"], "password", "This field is required.")
         self.assertFormError(response.context["form"], "timezone", "This field is required.")
 
-        # submit with invalid password and email
+        # submit with valid form
         response = self.client.post(
             signup_url,
             {
-                "first_name": "Eugene",
-                "last_name": "Rwagasore",
-                "email": "bad_email",
-                "password": "badpass",
-                "name": "Your Face",
+                "name": "Signup Org",
                 "timezone": "Africa/Kigali",
             },
         )
-        self.assertFormError(response.context["form"], "email", "Enter a valid email address.")
-        self.assertFormError(
-            response.context["form"], "password", "This password is too short. It must contain at least 8 characters."
-        )
-
-        # submit with password that is too common
-        response = self.client.post(
-            signup_url,
-            {
-                "first_name": "Eugene",
-                "last_name": "Rwagasore",
-                "email": "eugene@temba.io",
-                "password": "password",
-                "name": "Your Face",
-                "timezone": "Africa/Kigali",
-            },
-        )
-        self.assertFormError(response.context["form"], "password", "This password is too common.")
-
-        # submit with password that is all numerical
-        response = self.client.post(
-            signup_url,
-            {
-                "first_name": "Eugene",
-                "last_name": "Rwagasore",
-                "email": "eugene@temba.io",
-                "password": "3464357358532",
-                "name": "Your Face",
-                "timezone": "Africa/Kigali",
-            },
-        )
-        self.assertFormError(response.context["form"], "password", "This password is entirely numeric.")
-
-        # submit with valid data (long email)
-        response = self.client.post(
-            signup_url,
-            {
-                "first_name": "Eugene",
-                "last_name": "Rwagasore",
-                "email": "myal12345678901234567890@relieves.org",
-                "password": "HelloWorld1",
-                "name": "Relieves World",
-                "timezone": "Africa/Kigali",
-            },
-        )
-        self.assertEqual(response.status_code, 302)
-
-        # should have a new user
-        user = User.objects.get(email="myal12345678901234567890@relieves.org")
-        self.assertEqual(user.first_name, "Eugene")
-        self.assertEqual(user.last_name, "Rwagasore")
-        self.assertEqual(user.email, "myal12345678901234567890@relieves.org")
-        self.assertTrue(user.check_password("HelloWorld1"))
 
         # should have a new org
-        org = Org.objects.get(name="Relieves World")
+        org = Org.objects.get(name="Signup Org")
         self.assertEqual(org.timezone, ZoneInfo("Africa/Kigali"))
-        self.assertEqual(str(org), "Relieves World")
+        self.assertEqual(str(org), "Signup Org")
 
-        # of which our user is an administrator
+        # now if we go to signup, we should redirect to the org start page
+        self.login(user)
+        response = self.client.get(signup_url)
+        self.assertRedirect(response, reverse("orgs.org_start"))
+
+        # our user should be an admin of the new org
         self.assertIn(user, org.get_admins())
 
         # check default org content was created correctly
@@ -749,25 +676,10 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         # should now be able to go to channels page
-        self.login(self.admin)
         response = self.client.get(reverse("channels.channel_claim"))
         self.assertEqual(200, response.status_code)
 
-        # can't signup again with same email
-        response = self.client.post(
-            signup_url,
-            {
-                "first_name": "Eugene",
-                "last_name": "Rwagasore",
-                "email": "myal12345678901234567890@relieves.org",
-                "password": "HelloWorld1",
-                "name": "Relieves World 2",
-                "timezone": "Africa/Kigali",
-            },
-        )
-        self.assertFormError(response.context["form"], "email", "That email address is already used")
-
-        # if we hit /login we'll be taken back to the channel page
+        # if we hit /login we'll get redirected
         response = self.client.get(reverse("orgs.check_login"))
         self.assertRedirect(response, reverse("orgs.org_choose"))
 
@@ -775,20 +687,11 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.client.logout()
 
         response = self.client.get(reverse("orgs.check_login"))
-        self.assertLoginRedirectLegacy(response)
+        self.assertLoginRedirect(response)
 
         # try going to the org home page, no dice
         response = self.client.get(reverse("orgs.org_workspace"))
         self.assertLoginRedirect(response)
-
-        # log in as the user
-        self.client.login(username="myal12345678901234567890@relieves.org", password="HelloWorld1")
-
-        # choose an org
-        self.client.get("/org/choose/")
-
-        response = self.client.get(reverse("orgs.org_workspace"))
-        self.assertEqual(200, response.status_code)
 
     def test_create_new(self):
         create_url = reverse("orgs.org_create")
@@ -1034,9 +937,9 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # users with no org are redirected back to the login page
         response = self.requestView(choose_url, self.non_org_user)
-        self.assertLoginRedirect(response)
-        response = self.client.get("/accounts/login/")
-        self.assertContains(response, "No workspaces for this account, please contact your administrator.")
+        self.assertRedirect(response, "/org/signup/")
+        response = self.client.get("/org/signup/")
+        self.assertContains(response, "You need a workspace to use RapidPro")
 
         # unless they are staff
         self.assertRedirect(self.requestView(choose_url, self.customer_support), "/staff/org/")

@@ -84,6 +84,7 @@ class TembaTest(SmartminTest):
 
         # setup a second org with a single admin
         self.admin2 = self.create_user("administrator@trileet.com")
+        EmailAddress.objects.create(user=self.admin2, email=self.admin2.email, verified=True, primary=True)
         self.org2 = Org.objects.create(
             name="Trileet Inc.",
             timezone=ZoneInfo("US/Pacific"),
