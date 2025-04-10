@@ -4,7 +4,6 @@ from urllib.parse import quote
 
 import iso8601
 import pyotp
-from allauth.account.models import EmailAddress
 from django_redis import get_redis_connection
 from packaging.version import Version
 from smartmin.views import (
@@ -20,7 +19,7 @@ from smartmin.views import (
 from django import forms
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import login, logout
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.views import LoginView as AuthLoginView
 from django.core.exceptions import ValidationError
@@ -978,7 +977,6 @@ class OrgCRUDL(SmartCRUDL):
         "edit",
         "update",
         "join",
-        "join_signup",
         "join_accept",
         "grant",
         "choose",
@@ -1731,9 +1729,9 @@ class OrgCRUDL(SmartCRUDL):
             analytics.identify(self.request.user, self.request.branding, org)
             return HttpResponseRedirect(reverse("orgs.org_start"))
 
-    class Join(NoNavMixin, InvitationMixin, SmartTemplateView):
+    class Join(InvitationMixin, SmartTemplateView):
         """
-        Invitation emails link here allowing users to join workspaces.
+        Redirects users to the appropriate place to accept an invitation.
         """
 
         permission = False
@@ -1747,54 +1745,16 @@ class OrgCRUDL(SmartCRUDL):
 
             # if user exists and is logged in then they just need to accept
             user = User.get_by_email(self.invitation.email)
+
             if user and request.user.is_authenticated and request.user.email.lower() == self.invitation.email.lower():
                 return HttpResponseRedirect(reverse("orgs.org_join_accept", args=[secret]))
 
             logout(request)
 
-            if not user:
-                return HttpResponseRedirect(reverse("orgs.org_join_signup", args=[secret]))
-
-    class JoinSignup(NoNavMixin, InvitationMixin, SmartUpdateView):
-        """
-        Sign up form for new users to accept a workspace invitations.
-        """
-
-        form_class = SignupForm
-        fields = ("first_name", "last_name", "password")
-        success_url = "@orgs.org_start"
-        submit_button_name = _("Sign Up")
-        permission = False
-
-        def pre_process(self, request, *args, **kwargs):
-            resp = super().pre_process(request, *args, **kwargs)
-            if resp:
-                return resp
-
-            # if user already exists, we shouldn't be here
-            if User.get_by_email(self.invitation.email):
-                return HttpResponseRedirect(reverse("orgs.org_join", args=[self.kwargs["secret"]]))
-
-            return super().pre_process(request, *args, **kwargs)
-
-        def save(self, obj):
-            email = self.invitation.email.lower()
-            password = self.form.cleaned_data["password"]
-            user = User.create(
-                email,
-                self.form.cleaned_data["first_name"],
-                self.form.cleaned_data["last_name"],
-                password=password,
-                language=obj.language,
-            )
-
-            # consider this email address verified
-            EmailAddress.objects.create(user=user, email=email, verified=True, primary=True)
-
-            # log the user in
-            user = authenticate(email=email, password=password)
-            login(self.request, user)
-            self.invitation.accept(user)
+            if user:
+                return HttpResponseRedirect(f"{reverse('account_login')}?invite={secret}")
+            else:
+                return HttpResponseRedirect(f"{reverse('account_signup')}?invite={secret}")
 
     class JoinAccept(NoNavMixin, InvitationMixin, SmartUpdateView):
         """

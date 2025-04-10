@@ -1,15 +1,29 @@
-from allauth.account.forms import AddEmailForm, ChangePasswordForm, SignupForm
+from allauth.account.forms import AddEmailForm, ChangePasswordForm, SignupForm, LoginForm
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
+from django.utils.functional import cached_property
 
-from temba.orgs.models import Org
+from temba.orgs.models import Invitation, Org
 from temba.users.models import User
 from temba.utils import analytics
 from temba.utils.timezones import TimeZoneFormField
 
 
-class TembaSignupForm(SignupForm):
+class InviteFormMixin:
+
+    def __init__(self, secret, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.secret = secret
+
+    @cached_property
+    def invite(self):
+        if self.secret:
+            return Invitation.objects.filter(secret=self.secret, is_active=True).first()
+        return None
+
+
+class TembaSignupForm(InviteFormMixin, SignupForm):
 
     first_name = forms.CharField(
         max_length=User._meta.get_field("first_name").max_length,
@@ -30,29 +44,56 @@ class TembaSignupForm(SignupForm):
     workspace = forms.CharField(
         label=_("Workspace"),
         help_text=_("A workspace is usually the name of a company or project"),
-        widget=forms.TextInput(
-            attrs={
-                "placeholder": _("My Company, Inc."),
-            }
-        ),
+        widget=forms.TextInput(attrs={"placeholder": _("My Company, Inc.")}),
     )
 
     timezone = TimeZoneFormField(widget=forms.widgets.HiddenInput())
 
     field_order = ["first_name", "last_name", "email", "password1", "workspace"]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["password1"].help_text = "At least 8 characters or more"
+    def __init__(self, secret, *args, **kwargs):
+        super().__init__(secret, *args, **kwargs)
+        if self.invite:
+            self.fields["email"].widget = forms.widgets.HiddenInput()
+            self.fields["workspace"].widget = forms.widgets.HiddenInput()
+            self.fields["workspace"].help_text = ""
+
+    def clean_email(self):
+        if self.invite:
+            return self.invite.email
+        return super().clean_email()
 
     def save(self, request):
+        # remove our invite from the session
+        del request.session["invite_secret"]
+
+        if self.invite:
+            request.session["account_verified_email"] = self.invite.email
         user = super(TembaSignupForm, self).save(request)
 
-        org = Org.create(user, self.cleaned_data["workspace"], self.cleaned_data["timezone"])
+        # if we have an invite, accept it
+        if self.invite:
+            self.invite.accept(user)
+            org = self.invite.org
+        else:
+            # otherwise, create a new org for us
+            org = Org.create(user, self.cleaned_data["workspace"], self.cleaned_data["timezone"])
+
         analytics.identify(user, brand=request.branding, org=org)
         analytics.track(user, "temba.org_signup", properties=dict(org=org.name))
-
         return user
+
+
+class TembaLoginForm(InviteFormMixin, LoginForm):
+    def __init__(self, secret, *args, **kwargs):
+        super().__init__(secret, *args, **kwargs)
+        if self.invite:
+            self.fields["login"].widget = forms.widgets.HiddenInput()
+
+    def clean_login(self):
+        if self.invite:
+            return self.invite.email
+        return super().clean_login()
 
 
 class TembaChangePasswordForm(ChangePasswordForm):

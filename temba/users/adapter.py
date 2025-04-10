@@ -6,11 +6,43 @@ from allauth.socialaccount.signals import social_account_added
 
 from django.dispatch import receiver
 from django.utils import timezone
+from django.contrib import messages
+from django.utils.translation import gettext_lazy as _
 
+from temba.orgs.models import Invitation
+from temba.orgs.views.views import switch_to_org
 from temba.utils.email.send import EmailSender
 
 
-class TembaAccountAdapter(DefaultAccountAdapter):
+class InviteAdapterMixin:
+    def post_login(self, request, user, *, email_verification, signal_kwargs, email, signup, redirect_url):
+        # if we are working with an invite, mark it as accepted
+        secret = request.session.pop("invite_secret", None)
+        if secret:
+            invite = Invitation.objects.filter(secret=secret, is_active=True).first()
+            if invite:
+                if user.email != invite.email:
+                    messages.add_message(
+                        self.request,
+                        messages.WARNING,
+                        _(f"To accept this invitation, please login with {invite.email}."),
+                    )
+                else:
+                    invite.accept(user)
+                    switch_to_org(request, user)
+
+        return super().post_login(
+            request,
+            user,
+            email_verification=email_verification,
+            signal_kwargs=signal_kwargs,
+            email=email,
+            signup=signup,
+            redirect_url=redirect_url,
+        )
+
+
+class TembaAccountAdapter(InviteAdapterMixin, DefaultAccountAdapter):
     def send_mail(self, template_prefix, email, context):
 
         # our emails need some additional context
@@ -24,7 +56,7 @@ class TembaAccountAdapter(DefaultAccountAdapter):
         return "signups" in request.branding.get("features")
 
 
-class TembaSocialAccountAdapter(DefaultSocialAccountAdapter):
+class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter):
     def save_user(self, request, sociallogin, form=None):
         user = super().save_user(request, sociallogin, form)
         user.fetch_avatar(sociallogin.account.get_avatar_url())
