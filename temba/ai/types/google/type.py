@@ -13,5 +13,3 @@ class GoogleType(LLMType):
     icon = "google"
 
     connect_view = ConnectView
-
-    CONFIG_API_KEY = "api_key"

@@ -13,5 +13,3 @@ class DeepSeekType(LLMType):
     icon = "deepseek"
 
     connect_view = ConnectView
-
-    CONFIG_API_KEY = "api_key"

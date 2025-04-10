@@ -13,5 +13,3 @@ class OpenAIType(LLMType):
     icon = "openai"
 
     connect_view = ConnectView
-
-    CONFIG_API_KEY = "api_key"

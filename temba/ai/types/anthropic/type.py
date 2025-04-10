@@ -13,5 +13,3 @@ class AnthropicType(LLMType):
     icon = "anthropic"
 
     connect_view = ConnectView
-
-    CONFIG_API_KEY = "api_key"
