@@ -1,8 +1,10 @@
-from allauth.account.views import SignupView, LoginView
-from temba.orgs.models import Invitation
-from django.utils.translation import gettext_lazy as _
+from allauth.account.views import LoginView, SignupView
+
 from django.contrib import messages
 from django.utils.functional import cached_property
+from django.utils.translation import gettext_lazy as _
+
+from temba.orgs.models import Invitation
 
 
 class TembaInviteMixin:

@@ -1,8 +1,8 @@
-from allauth.account.forms import AddEmailForm, ChangePasswordForm, SignupForm, LoginForm
+from allauth.account.forms import AddEmailForm, ChangePasswordForm, LoginForm, SignupForm
 
 from django import forms
-from django.utils.translation import gettext_lazy as _
 from django.utils.functional import cached_property
+from django.utils.translation import gettext_lazy as _
 
 from temba.orgs.models import Invitation, Org
 from temba.users.models import User
