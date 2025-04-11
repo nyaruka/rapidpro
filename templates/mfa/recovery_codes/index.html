@@ -1,6 +1,5 @@
 {% extends "mfa/recovery_codes/base.html" %}
-{% load i18n %}
-{% load allauth %}
+{% load i18n allauth %}
 
 {% block extra-style %}
   {{ block.super }}
@@ -12,13 +11,13 @@
 {% endblock extra-style %}
 {% block content %}
   {% element h1 %}
-  {% translate "Recovery Codes" %}
-{% endelement %}
-{% element p %}
-{% blocktranslate count unused_count=unused_codes|length %}There is {{ unused_count }} out of {{ total_count }} recovery codes available.{% plural %}There are {{ unused_count }} out of {{ total_count }} recovery codes available.{% endblocktranslate %}
-{% endelement %}
-{% element field id="recovery_codes" type="textarea" disabled=True rows=unused_codes|length readonly=True %}
-{% comment %} djlint:off {% endcomment %}
+    {% translate "Recovery Codes" %}
+  {% endelement %}
+  {% element p %}
+    {% blocktranslate count unused_count=unused_codes|length %}There is {{ unused_count }} out of {{ total_count }} recovery codes available.{% plural %}There are {{ unused_count }} out of {{ total_count }} recovery codes available.{% endblocktranslate %}
+  {% endelement %}
+  {% element field id="recovery_codes" type="textarea" disabled=True rows=unused_codes|length readonly=True %}
+    {% comment %} djlint:off {% endcomment %}
     {% slot value %}{% for code in unused_codes %}{% if forloop.counter0 %}
 {% endif %}{{ code }}{% endfor %}{% endslot %}
 {% comment %} djlint:on {% endcomment %}
