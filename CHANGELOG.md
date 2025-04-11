@@ -1,3 +1,7 @@
+v10.1.131 (2025-04-11)
+-------------------------
+ * Don't show socialaccount unless brand feature
+
 v10.1.130 (2025-04-11)
 -------------------------
  * Fix spurious invite warning
