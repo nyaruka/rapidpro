@@ -24,7 +24,7 @@ class TembaInviteMixin:
 
     def get_initial(self):
         initial = super().get_initial()
-        if not self.invite:
+        if self.request.session.get("invite_secret", None) and not self.invite:
             messages.add_message(
                 self.request,
                 messages.WARNING,
