@@ -1,3 +1,7 @@
+v10.1.130 (2025-04-11)
+-------------------------
+ * Fix spurious invite warning
+
 v10.1.129 (2025-04-10)
 -------------------------
  * Rework invitations to go through login and signup
