@@ -141,3 +141,9 @@ def format_datetime(context, dt, seconds: bool = False):
 @register.simple_tag(takes_context=True)
 def analytics_hook(context, name: str):
     return mark_safe(analytics.get_hook_html(name, context))
+
+
+@register.simple_tag(takes_context=True)
+def absolute_url(context, url_pattern):
+    request = context["request"]
+    return request.build_absolute_uri(reverse(url_pattern))
