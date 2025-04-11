@@ -64,7 +64,7 @@
     {% endif %}
   {% endelement %}
 {% endif %}
-{% if SOCIALACCOUNT_ENABLED %}
+{% if SOCIALACCOUNT_ENABLED and "sso" in request.branding.features %}
   {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
 {% endif %}
 {% if "signups" in request.branding.features and not invite %}

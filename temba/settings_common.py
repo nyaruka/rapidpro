@@ -313,7 +313,7 @@ BRAND = {
     "landing": {
         "hero": "brands/rapidpro/splash.jpg",
     },
-    "features": ["signups"],
+    "features": ["signups", "sso"],
 }
 
 FEATURES = {"locations"}
