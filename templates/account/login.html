@@ -64,13 +64,11 @@ Sign in with your email address and password
 {% endif %}
 {% endelement %}
 {% endif %}
-{% if "signups" in request.branding.features %}
-  {% if SOCIALACCOUNT_ENABLED %}
-    {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
-  {% endif %}
-  {% if not invite %}
-    <div class="sign-in-notice mt-4">{% blocktranslate %}Don't have an account yet? {{ link }}Sign up{{ end_link }}{% endblocktranslate %}</div>
-  {% endif %}
+{% if SOCIALACCOUNT_ENABLED and "sso" in request.branding.features %}
+  {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
+{% endif %}
+{% if "signups" in request.branding.features and not invite %}
+  <div class="sign-in-notice mt-4">{% blocktranslate %}Don't have an account yet? {{ link }}Sign up{{ end_link }}{% endblocktranslate %}</div>
 {% endif %}
 {% endblock content %}
 {% block extra_body %}

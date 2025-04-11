@@ -58,7 +58,7 @@
 {% trans "Sign up using a passkey" %}
 {% endelement %}
 {% endif %}
-{% if SOCIALACCOUNT_ENABLED and not invite %}
+{% if SOCIALACCOUNT_ENABLED and not invite and "sso" in request.branding.features %}
   {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
 {% endif %}
 {% if not invite %}
