@@ -198,7 +198,7 @@
           <div class="ajax-scripts"></div>
           <div class="flex-col">
             <div style="height:100vh;width:100%" class="flex flex-col">
-              {% include "includes/servicing.html" %}
+              {% include "includes/staff_header.html" %}
               <div style="height:100vh;width:100%;overflow:hidden" class="flex widget-container">
                 <div class="folders">
                   <temba-menu style="height:100%"
@@ -207,7 +207,6 @@
                               -temba-button-clicked="handleMenuClicked(event)"
                               -temba-ready="handleMenuReady"
                               -temba-selection="handleMenuListSelection"
-                              class="{% if servicing %}{% endif %}"
                               id="nav">
                     {% block menu-header %}
                     {% endblock menu-header %}

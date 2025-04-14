@@ -184,7 +184,6 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(service_url, {"other_org": self.org.id})
         self.assertRedirect(response, "/org/start/")
         self.assertEqual(self.org.id, self.client.session["org_id"])
-        self.assertTrue(self.client.session["servicing"])
 
         # specify redirect_url
         response = self.client.post(service_url, {"other_org": self.org.id, "next": "/flow/"})
@@ -215,15 +214,12 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         contact = Contact.objects.get(urns__path="+250788123123", org=self.org)
         self.assertEqual(self.customer_support, contact.created_by)
-
         self.assertEqual(self.org.id, self.client.session["org_id"])
-        self.assertTrue(self.client.session["servicing"])
 
         # stop servicing
         response = self.client.post(service_url, {})
         self.assertRedirect(response, reverse("staff.org_list"))
         self.assertIsNone(self.client.session["org_id"])
-        self.assertFalse(self.client.session["servicing"])
 
 
 class UserCRUDLTest(TembaTest, CRUDLTestMixin):

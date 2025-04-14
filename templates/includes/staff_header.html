@@ -1,0 +1,44 @@
+{% load i18n %}
+
+{% if request.user.is_staff %}
+  <div class="servicing flex p-2"
+       style="color: rgba(255,255,255,.8);
+              background: #{% if request.user.is_superuser %}ec0202{% else %}222{% endif %}">
+    <div>
+      <div class="flex align-middle">
+        <temba-icon class="mr-1" name="{% if request.is_servicing %}service{% else %}issue{% endif %}">
+        </temba-icon>
+        <div>
+          {% if request.is_servicing %}
+            {% trans "Servicing" %}
+          {% else %}
+            {% trans "Staff access" %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="flex-1">
+      <div class="flex justify-center">
+        {% if user_org %}
+          {% block staffheader-orginfo %}
+            <div class="font-bold">{{ user_org.name }}</div>
+          {% endblock staffheader-orginfo %}
+        {% endif %}
+      </div>
+    </div>
+    <div class="flex">
+      {% block staffheader-menu %}
+        {% if request.is_servicing %}
+          <a href="{% url 'staff.org_service' %}"
+             class="inline-flex"
+             onclick="handlePosterizeClick(event)"
+             style="color: inherit">
+            <temba-icon class="mr-1" name="logout">
+            </temba-icon>
+            <div>{% trans "End" %}</div>
+          </a>
+        {% endif %}
+      {% endblock staffheader-menu %}
+    </div>
+  </div>
+{% endif %}

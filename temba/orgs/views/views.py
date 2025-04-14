@@ -77,9 +77,8 @@ TWO_FACTOR_STARTED_SESSION_KEY = "_two_factor_started_on"
 TWO_FACTOR_LIMIT_SECONDS = 5 * 60
 
 
-def switch_to_org(request, org, *, servicing: bool = False):
+def switch_to_org(request, org):
     request.session["org_id"] = org.id if org else None
-    request.session["servicing"] = servicing
 
 
 def check_login(request):
