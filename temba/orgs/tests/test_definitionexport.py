@@ -67,13 +67,13 @@ class DefinitionExportTest(TembaTest):
         self.assertEqual([child, parent], response.context["buckets"][0])
 
     def test_import_voice_flows_expiration_time(self):
-        # import file has invalid expires for an IVR flow so it should get the default (5)
+        # import file has invalid expires for an IVR flow so it should get clamped to the maximum (15)
         self.get_flow("ivr")
 
         self.assertEqual(Flow.objects.filter(flow_type=Flow.TYPE_VOICE).count(), 1)
         voice_flow = Flow.objects.get(flow_type=Flow.TYPE_VOICE)
         self.assertEqual(voice_flow.name, "IVR Flow")
-        self.assertEqual(voice_flow.expires_after_minutes, 5)
+        self.assertEqual(voice_flow.expires_after_minutes, 15)
 
     def test_import(self):
         create_url = reverse("orgs.orgimport_create")
