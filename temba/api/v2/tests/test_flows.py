@@ -97,7 +97,7 @@ class FlowsEndpointTest(APITest):
                     "type": "survey",
                     "archived": False,
                     "labels": [],
-                    "expires": 10080,
+                    "expires": 0,
                     "runs": {"active": 0, "waiting": 0, "completed": 0, "interrupted": 0, "expired": 0, "failed": 0},
                     "results": [
                         {
