@@ -11,9 +11,9 @@ class TembaInviteMixin:
     def get_form_kwargs(self):
         if self.request.method == "GET":
             # update our session invite on GET
-            self.request.session["invite_secret"] = self.request.GET.get("invite")
+            self.request.session["invite_secret"] = self.request.GET.get("invite", None)
 
-        return {"secret": self.request.session["invite_secret"], **super().get_form_kwargs()}
+        return {"secret": self.request.session.get("invite_secret", None), **super().get_form_kwargs()}
 
     @cached_property
     def invite(self):
