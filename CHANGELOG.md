@@ -1,3 +1,7 @@
+v10.1.133 (2025-04-14)
+-------------------------
+ * Update to latest editor
+
 v10.1.132 (2025-04-14)
 -------------------------
  * Handle missing invite secret
