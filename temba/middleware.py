@@ -42,7 +42,7 @@ class OrgMiddleware:
     def __call__(self, request):
         assert hasattr(request, "user"), "must be called after django.contrib.auth.middleware.AuthenticationMiddleware"
 
-        request.org = self.determine_org(request)
+        request.org, request.is_servicing = self.determine_org(request)
 
         # if request has an org header, ensure it matches the current org (used to prevent cross-org form submissions)
         posted_org_id = request.headers.get(self.header_name)
@@ -60,33 +60,35 @@ class OrgMiddleware:
 
         return response
 
-    def determine_org(self, request):
+    def determine_org(self, request) -> tuple[Org, bool]:
+        """
+        Determines the org for this request and whether it's being accessed by staff servicing.
+        """
+
         user = request.user
 
-        if not user.is_authenticated:
-            return None
+        if user.is_authenticated:
+            # check for value in session
+            org_id = request.session.get(self.session_key, None)
 
-        # check for value in session
-        org_id = request.session.get(self.session_key, None)
+            # staff users alternatively can pass a service header
+            if user.is_staff:
+                org_id = request.headers.get(self.service_header_name, org_id)
 
-        # staff users alternatively can pass a service header
-        if user.is_staff:
-            org_id = request.headers.get(self.service_header_name, org_id)
+            if org_id:
+                org = Org.objects.filter(is_active=True, id=org_id).select_related(*self.select_related).first()
 
-        if org_id:
-            org = Org.objects.filter(is_active=True, id=org_id).select_related(*self.select_related).first()
+                if org:
+                    membership = org.get_membership(user)
+                    if membership:
+                        membership.record_seen()
+                        return org, False
 
-            if org:
-                membership = org.get_membership(user)
-                if membership:
-                    membership.record_seen()
-                    return org
+                    # staff users can access any org from servicing
+                    elif user.is_staff:
+                        return org, True
 
-                # staff users can access any org from servicing
-                elif user.is_staff:
-                    return org
-
-        return None
+        return None, False
 
 
 class TimezoneMiddleware:

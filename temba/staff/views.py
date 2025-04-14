@@ -251,7 +251,7 @@ class OrgCRUDL(SmartCRUDL):
 
         # valid form means we set our org and redirect to next
         def form_valid(self, form):
-            switch_to_org(self.request, form.cleaned_data["other_org"], servicing=True)
+            switch_to_org(self.request, form.cleaned_data["other_org"])
             success_url = form.cleaned_data["next"] or reverse("orgs.org_start")
             return HttpResponseRedirect(success_url)
 
