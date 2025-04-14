@@ -1,3 +1,7 @@
+v10.1.132 (2025-04-14)
+-------------------------
+ * Handle missing invite secret
+
 v10.1.131 (2025-04-11)
 -------------------------
  * Don't show socialaccount unless brand feature
