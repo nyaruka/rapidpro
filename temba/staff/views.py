@@ -1,11 +1,14 @@
 from collections import OrderedDict
 
+from allauth.account.models import EmailAddress
+from allauth.mfa.models import Authenticator
 from smartmin.views import SmartCRUDL, SmartDeleteView, SmartFormView, SmartListView, SmartReadView, SmartUpdateView
 
 from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import Group
+from django.db.models import Prefetch
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -334,7 +337,7 @@ class UserCRUDL(SmartCRUDL):
             return response
 
     class List(StaffOnlyMixin, SpaMixin, SmartListView):
-        fields = ("email", "name", "date_joined", "2fa")
+        fields = ("email", "name", "date_joined", "2fa", "verified")
         ordering = ("-date_joined",)
         search_fields = ("email__icontains", "first_name__icontains", "last_name__icontains")
         filters = (("all", _("All")), ("beta", _("Beta")), ("staff", _("Staff")))
@@ -347,6 +350,9 @@ class UserCRUDL(SmartCRUDL):
             return super().dispatch(*args, **kwargs)
 
         def derive_queryset(self, **kwargs):
+            verified_email_qs = EmailAddress.objects.filter(verified=True)
+            mfa_enabled_qs = Authenticator.objects.all()
+
             qs = super().derive_queryset(**kwargs).filter(is_active=True)
 
             obj_filter = self.request.GET.get("filter")
@@ -355,7 +361,10 @@ class UserCRUDL(SmartCRUDL):
             elif obj_filter == "staff":
                 qs = qs.filter(is_staff=True)
 
-            return qs
+            return qs.prefetch_related(
+                Prefetch("emailaddress_set", queryset=verified_email_qs, to_attr="email_verified"),
+                Prefetch("authenticator_set", queryset=mfa_enabled_qs, to_attr="mfa_enabled"),
+            )
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
@@ -364,4 +373,7 @@ class UserCRUDL(SmartCRUDL):
             return context
 
         def get_2fa(self, obj):
-            return _("Yes") if obj.two_factor_enabled else _("No")
+            return _("Yes") if obj.mfa_enabled else _("No")
+
+        def get_verified(self, obj):
+            return _("Yes") if obj.email_verified else _("No")

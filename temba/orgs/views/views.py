@@ -4,6 +4,8 @@ from urllib.parse import quote
 
 import iso8601
 import pyotp
+from allauth.account.models import EmailAddress
+from allauth.mfa.models import Authenticator
 from django_redis import get_redis_connection
 from packaging.version import Version
 from smartmin.views import (
@@ -23,7 +25,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.views import LoginView as AuthLoginView
 from django.core.exceptions import ValidationError
-from django.db.models import F, Q
+from django.db.models import F, Prefetch, Q
 from django.db.models.functions import Lower
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404
@@ -397,6 +399,9 @@ class UserCRUDL(SmartCRUDL):
         search_fields = ("email__icontains", "first_name__icontains", "last_name__icontains")
 
         def derive_queryset(self, **kwargs):
+            verified_email_qs = EmailAddress.objects.filter(verified=True)
+            mfa_enabled_qs = Authenticator.objects.all()
+
             qs = (
                 super(BaseListView, self)
                 .derive_queryset(**kwargs)
@@ -407,7 +412,10 @@ class UserCRUDL(SmartCRUDL):
             if not self.request.user.is_staff:
                 qs = qs.exclude(is_system=True)
 
-            return qs
+            return qs.prefetch_related(
+                Prefetch("emailaddress_set", queryset=verified_email_qs, to_attr="email_verified"),
+                Prefetch("authenticator_set", queryset=mfa_enabled_qs, to_attr="mfa_enabled"),
+            )
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
