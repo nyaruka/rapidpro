@@ -177,7 +177,7 @@ class ResultsExportTest(TembaTest):
         for run in (contact1_run1, contact2_run1, contact3_run1, contact1_run2, contact2_run2):
             run.refresh_from_db()
 
-        with self.assertNumQueries(23):
+        with self.assertNumQueries(24):
             workbook = self._export(
                 flow,
                 start_date=today - timedelta(days=7),
@@ -317,7 +317,7 @@ class ResultsExportTest(TembaTest):
         )
 
         # test without unresponded
-        with self.assertNumQueries(21):
+        with self.assertNumQueries(22):
             workbook = self._export(
                 flow,
                 start_date=today - timedelta(days=7),
@@ -392,7 +392,7 @@ class ResultsExportTest(TembaTest):
         )
 
         # test export with a contact field
-        with self.assertNumQueries(25):
+        with self.assertNumQueries(26):
             workbook = self._export(
                 flow,
                 start_date=today - timedelta(days=7),
@@ -557,7 +557,7 @@ class ResultsExportTest(TembaTest):
 
         contact1_run1, contact2_run1 = flow.runs.order_by("id")
 
-        with self.assertNumQueries(17):
+        with self.assertNumQueries(18):
             workbook = self._export(flow, start_date=today - timedelta(days=7), end_date=today)
 
         tz = self.org.timezone
@@ -606,7 +606,7 @@ class ResultsExportTest(TembaTest):
         )
 
         # test without unresponded
-        with self.assertNumQueries(10):
+        with self.assertNumQueries(11):
             workbook = self._export(
                 flow,
                 start_date=today - timedelta(days=7),
