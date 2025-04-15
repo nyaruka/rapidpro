@@ -15,6 +15,7 @@
         <th>{% trans "Name" %}</th>
         <th>{% trans "Role" %}</th>
         <th>{% trans "2FA" %}</th>
+        <th>{% trans "Verified" %}</th>
         <th></th>
       </tr>
     </thead>
@@ -28,7 +29,14 @@
             {% if obj.team and has_teams %}({{ obj.team.name }}){% endif %}
           </td>
           <td>
-            {% if obj.two_factor_enabled %}
+            {% if obj.mfa_enabled %}
+              {% trans "Yes" %}
+            {% else %}
+              {% trans "No" %}
+            {% endif %}
+          </td>
+          <td>
+            {% if obj.email_verified %}
               {% trans "Yes" %}
             {% else %}
               {% trans "No" %}
