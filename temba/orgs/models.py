@@ -40,7 +40,7 @@ from temba.utils import json, languages, on_transaction_commit
 from temba.utils.dates import datetime_to_str
 from temba.utils.email import EmailSender
 from temba.utils.models import JSONField, TembaUUIDMixin, delete_in_batches
-from temba.utils.models.counts import BaseScopedCount
+from temba.utils.models.counts import BaseDailyCount, BaseScopedCount
 from temba.utils.text import generate_secret
 from temba.utils.timezones import timezone_to_country_code
 from temba.utils.uuid import uuid4
@@ -1195,6 +1195,7 @@ class Org(SmartModel):
 
         # needs to come after deletion of other things as those insert new negative counts
         delete_in_batches(self.counts.all())
+        delete_in_batches(self.daily_counts.all())
 
         # now that contacts are no longer in the database, we can start de-indexing them from search
         mailroom.get_client().org_deindex(self)
@@ -1662,4 +1663,23 @@ class ItemCount(BaseScopedCount):
             models.Index("org", OpClass("scope", name="varchar_pattern_ops"), name="orgcount_org_scope"),
             # for squashing task
             models.Index(name="orgcount_unsquashed", fields=("org", "scope"), condition=Q(is_squashed=False)),
+        ]
+
+
+class DailyCount(BaseDailyCount):
+    """
+    Org-level daily counts of things.
+    """
+
+    squash_over = ("org_id", "day", "scope")
+
+    org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="daily_counts", db_index=False)  # indexed below
+
+    class Meta:
+        indexes = [
+            models.Index("org", "day", OpClass("scope", name="varchar_pattern_ops"), name="orgdailycount_org_scope"),
+            # for squashing task
+            models.Index(
+                name="orgdailycount_unsquashed", fields=("org", "day", "scope"), condition=Q(is_squashed=False)
+            ),
         ]

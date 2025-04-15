@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.db import connection, models
 from django.db.models import Q, Sum
 
@@ -122,9 +124,39 @@ class BaseScopedCount(BaseSquashableCount):
         abstract = True
 
 
+class DailyCountQuerySet(ScopedCountQuerySet):
+    """
+    Specialized queryset for scope + day + count models.
+    """
+
+    def day_totals(self, *, scoped: bool) -> dict[date | tuple, int]:
+        """
+        Sums counts grouped by day or day + scope.
+        """
+        if scoped:
+            counts = self.values_list("day", "scope").annotate(count_sum=Sum("count"))
+            return {(c[0], c[1]): c[2] for c in counts}
+        else:
+            counts = self.values_list("day").annotate(count_sum=Sum("count"))
+            return {c[0]: c[1] for c in counts}
+
+
+class BaseDailyCount(BaseScopedCount):
+    """
+    Base class for count models which have scope and day field.
+    """
+
+    day = models.DateField()
+
+    objects = DailyCountQuerySet.as_manager()
+
+    class Meta:
+        abstract = True
+
+
 class DailyCountModel(BaseSquashableCount):
     """
-    Base for daily scoped count squashable models
+    TODO replace by BaseDailyCount
     """
 
     squash_over = ("count_type", "scope", "day")
