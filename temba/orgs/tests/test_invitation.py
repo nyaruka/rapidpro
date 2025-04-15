@@ -20,7 +20,7 @@ class InvitationTest(TembaTest):
 
         self.assertEqual(1, len(mail.outbox))
         self.assertEqual(["invitededitor@textit.com"], mail.outbox[0].recipients())
-        self.assertEqual("RapidPro Invitation", mail.outbox[0].subject)
+        self.assertEqual("[RapidPro] Invitation", mail.outbox[0].subject)
         self.assertIn(f"https://app.rapidpro.io/org/join/{invitation.secret}/", mail.outbox[0].body)
 
         new_editor = User.create("invitededitor@textit.com", "Bob", "", "Qwerty123", "en-US")
