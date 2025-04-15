@@ -1341,7 +1341,7 @@ class Invitation(SmartModel):
                 "org": self.org,
                 "invitation": self,
             },
-            _("%(name)s Invitation") % self.org.branding,
+            _("[%(name)s] Invitation") % self.org.branding,
         )
 
     def accept(self, user):
