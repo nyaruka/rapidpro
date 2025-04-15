@@ -157,10 +157,12 @@ class Notification(models.Model):
     EMAIL_STATUS_PENDING = "P"
     EMAIL_STATUS_SENT = "S"
     EMAIL_STATUS_NONE = "N"
+    EMAIL_STATUS_UNVERIFIED = "U"
     EMAIL_STATUS_CHOICES = (
         (EMAIL_STATUS_PENDING, "Pending"),
         (EMAIL_STATUS_SENT, "Sent"),
         (EMAIL_STATUS_NONE, "None"),
+        (EMAIL_STATUS_UNVERIFIED, "Unverified"),
     )
 
     id = models.BigAutoField(primary_key=True)
@@ -198,6 +200,12 @@ class Notification(models.Model):
             )
 
     def send_email(self):
+        # skip sending email for unverified
+        if not self.user.emailaddress_set.filter(verified=True).exists():
+            self.email_status = Notification.EMAIL_STATUS_UNVERIFIED
+            self.save(update_fields=("email_status",))
+            return
+
         subject = self.type.get_email_subject(self)
         template = self.type.get_email_template(self)
         context = self.type.get_email_context(self, self.org.branding)

@@ -78,6 +78,50 @@ class NotificationTest(TembaTest):
 
         self.assertTrue(self.editor.notifications.get(export=export).is_seen)
 
+    def test_contact_export_finished_unverified_user(self):
+        self.unverifed_user = self.create_user("unverified@textit.com", first_name="Fred")
+        self.org.add_user(self.unverifed_user, OrgRole.ADMINISTRATOR)  # unverified admin will be skipped
+
+        export = ContactExport.create(self.org, self.unverifed_user)
+        export.perform()
+
+        ExportFinishedNotificationType.create(export)
+
+        self.assertFalse(self.unverifed_user.notifications.get(export=export).is_seen)
+
+        # we only notify the user that started the export
+        self.assert_notifications(
+            after=export.created_on,
+            expected_json={
+                "type": "export:finished",
+                "created_on": matchers.ISODate(),
+                "target_url": f"/export/download/{export.uuid}/",
+                "is_seen": False,
+                "export": {"type": "contact", "num_records": 0},
+            },
+            expected_users={self.unverifed_user},
+            email=True,
+        )
+
+        send_notification_emails()
+
+        # no email sent for unverified and notification email status is updated to unverified
+        self.assertEqual(0, len(mail.outbox))
+        self.assertTrue(
+            self.unverifed_user.notifications.get(export=export).email_status, Notification.EMAIL_STATUS_UNVERIFIED
+        )
+
+        # calling task again won't send any emails
+        send_notification_emails()
+
+        self.assertEqual(0, len(mail.outbox))
+
+        # if a user visits the export download page, their notification for that export is now read
+        self.login(self.unverifed_user)
+        self.client.get(reverse("orgs.export_download", args=[export.uuid]))
+
+        self.assertTrue(self.unverifed_user.notifications.get(export=export).is_seen)
+
     def test_message_export_finished(self):
         export = MessageExport.create(
             self.org, self.editor, start_date=date.today(), end_date=date.today(), folder=MsgFolder.INBOX
@@ -282,6 +326,9 @@ class NotificationTest(TembaTest):
     def test_channel_templates_failed(self):
         self.org.add_user(self.editor, OrgRole.ADMINISTRATOR)  # upgrade editor to administrator
 
+        self.unverifed_user = self.create_user("unverified@textit.com", first_name="Fred")
+        self.org.add_user(self.unverifed_user, OrgRole.ADMINISTRATOR)  # unverified admin will be skipped
+
         ChannelTemplatesFailedIncidentType.get_or_create(channel=self.channel)
 
         self.assert_notifications(
@@ -296,7 +343,7 @@ class NotificationTest(TembaTest):
                     "ended_on": None,
                 },
             },
-            expected_users={self.editor, self.admin},
+            expected_users={self.editor, self.admin, self.unverifed_user},
             email=True,
         )
 
@@ -316,6 +363,7 @@ class NotificationTest(TembaTest):
 
         self.assertTrue(self.editor.notifications.get().is_seen)
         self.assertFalse(self.admin.notifications.get().is_seen)
+        self.assertFalse(self.unverifed_user.notifications.get().is_seen)
 
     def test_incident_started(self):
         self.org.add_user(self.editor, OrgRole.ADMINISTRATOR)  # upgrade editor to administrator
