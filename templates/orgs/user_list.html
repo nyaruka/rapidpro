@@ -29,18 +29,10 @@
             {% if obj.team and has_teams %}({{ obj.team.name }}){% endif %}
           </td>
           <td>
-            {% if obj.mfa_enabled %}
-              {% trans "Yes" %}
-            {% else %}
-              {% trans "No" %}
-            {% endif %}
+            {% if obj.mfa_enabled %}✓{% endif %}
           </td>
           <td>
-            {% if obj.email_verified %}
-              {% trans "Yes" %}
-            {% else %}
-              {% trans "No" %}
-            {% endif %}
+            {% if obj.email_verified %}✓{% endif %}
           </td>
           <td class="w-10">
             {% if obj.role.code != "A" or admin_count > 1 %}

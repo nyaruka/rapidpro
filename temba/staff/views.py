@@ -373,7 +373,7 @@ class UserCRUDL(SmartCRUDL):
             return context
 
         def get_2fa(self, obj):
-            return _("Yes") if obj.mfa_enabled else _("No")
+            return _("✓") if obj.mfa_enabled else _("")
 
         def get_verified(self, obj):
-            return _("Yes") if obj.email_verified else _("No")
+            return _("✓") if obj.email_verified else _("")
