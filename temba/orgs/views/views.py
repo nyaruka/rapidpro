@@ -1,8 +1,6 @@
 from collections import OrderedDict
 from datetime import timedelta
-from urllib.parse import quote
 
-import iso8601
 import pyotp
 from allauth.account.models import EmailAddress
 from allauth.mfa.models import Authenticator
@@ -21,9 +19,8 @@ from smartmin.views import (
 from django import forms
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import logout
 from django.contrib.auth.password_validation import validate_password
-from django.contrib.auth.views import LoginView as AuthLoginView
 from django.core.exceptions import ValidationError
 from django.db.models import F, Prefetch, Q
 from django.db.models.functions import Lower
@@ -34,8 +31,6 @@ from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError, force_str
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
-from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import View
 
 from temba.api.models import Resthook
 from temba.campaigns.models import Campaign
@@ -130,247 +125,6 @@ class IntegrationFormaxView(FormaxSectionMixin, ComponentFormMixin, OrgPermsMixi
         response = self.render_to_response(self.get_context_data(form=form))
         response["REDIRECT"] = self.get_success_url()
         return response
-
-
-class LoginView(AuthLoginView):
-    """
-    Overrides the auth login view to add support for tracking failed logins and 2FA.
-    """
-
-    template_name = "orgs/login/login.html"
-    two_factor = True
-
-    def post(self, request, *args, **kwargs):
-        form = self.get_form()
-
-        form_is_valid = form.is_valid()  # clean form data
-
-        lockout_timeout = getattr(settings, "USER_LOCKOUT_TIMEOUT", 10)
-        failed_login_limit = getattr(settings, "USER_FAILED_LOGIN_LIMIT", 5)
-
-        username = self.get_username(form)
-        if not username:
-            return self.form_invalid(form)
-
-        user = User.objects.filter(email__iexact=username).first()
-        valid_password = False
-
-        # this could be a valid login by a user
-        if user:
-            # incorrect password?  create a failed login token
-            valid_password = user.check_password(form.cleaned_data.get("password"))
-
-        if not user or not valid_password:
-            FailedLogin.objects.create(username=username)
-
-        failures = FailedLogin.objects.filter(username__iexact=username)
-
-        # if the failures reset after a period of time, then limit our query to that interval
-        if lockout_timeout > 0:
-            bad_interval = timezone.now() - timedelta(minutes=lockout_timeout)
-            failures = failures.filter(failed_on__gt=bad_interval)
-
-        # if there are too many failed logins, take them to the failed page
-        if len(failures) >= failed_login_limit:
-            logout(request)
-
-            return HttpResponseRedirect(reverse("orgs.user_failed"))
-
-        # pass through the normal login process
-        if form_is_valid:
-            return self.form_valid(form)
-        else:
-            return self.form_invalid(form)
-
-    def form_valid(self, form):
-        user = form.get_user()
-
-        if self.two_factor and user.two_factor_enabled:
-            self.request.session[TWO_FACTOR_USER_SESSION_KEY] = str(user.id)
-            self.request.session[TWO_FACTOR_STARTED_SESSION_KEY] = timezone.now().isoformat()
-
-            verify_url = reverse("orgs.two_factor_verify")
-            redirect_url = self.get_redirect_url()
-            if redirect_url:
-                verify_url += f"?{self.redirect_field_name}={quote(redirect_url)}"
-
-            return HttpResponseRedirect(verify_url)
-
-        user.record_auth()
-
-        # clean up any failed logins for this username
-        FailedLogin.objects.filter(username__iexact=self.get_username(form)).delete()
-
-        return super().form_valid(form)
-
-    def get_username(self, form):
-        return form.cleaned_data.get("username")
-
-
-# This will be removed once we have fully switched to allauth
-class LogoutView(View):  # pragma: needs cover
-    """
-    Logouts user on a POST and redirects to the login page.
-    """
-
-    @csrf_exempt
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        logout(request)
-
-        return HttpResponseRedirect(reverse("orgs.login"))
-
-
-class BaseTwoFactorView(AuthLoginView):
-    def dispatch(self, request, *args, **kwargs):
-        # redirect back to login view if user hasn't completed that yet
-        user = self.get_user()
-        if not user:
-            return HttpResponseRedirect(reverse("orgs.login"))
-
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_user(self):
-        user_id = self.request.session.get(TWO_FACTOR_USER_SESSION_KEY)
-        started_on = self.request.session.get(TWO_FACTOR_STARTED_SESSION_KEY)
-        if user_id and started_on:
-            # only return user if two factor process was started recently
-            started_on = iso8601.parse_date(started_on)
-            if started_on >= timezone.now() - timedelta(seconds=TWO_FACTOR_LIMIT_SECONDS):
-                return User.objects.filter(id=user_id, is_active=True).first()
-        return None
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs["user"] = self.get_user()
-        return kwargs
-
-    def form_invalid(self, form):
-        user = self.get_user()
-
-        # apply the same limits on failed attempts that smartmin uses for regular logins
-        lockout_timeout = getattr(settings, "USER_LOCKOUT_TIMEOUT", 10)
-        failed_login_limit = getattr(settings, "USER_FAILED_LOGIN_LIMIT", 5)
-
-        FailedLogin.objects.create(username=user.email)
-
-        bad_interval = timezone.now() - timedelta(minutes=lockout_timeout)
-        failures = FailedLogin.objects.filter(username__iexact=user.email)
-
-        # if the failures reset after a period of time, then limit our query to that interval
-        if lockout_timeout > 0:
-            failures = failures.filter(failed_on__gt=bad_interval)
-
-        # if there are too many failed logins, take them to the failed page
-        if failures.count() >= failed_login_limit:
-            self.reset_user()
-
-            return HttpResponseRedirect(reverse("orgs.user_failed"))
-
-        return super().form_invalid(form)
-
-    def form_valid(self, form):
-        user = self.get_user()
-
-        # set the user as actually authenticated now
-        login(self.request, user)
-        user.record_auth()
-
-        # remove our session key so if the user comes back this page they'll get directed to the login view
-        self.reset_user()
-
-        # cleanup any failed logins
-        FailedLogin.objects.filter(username__iexact=user.email).delete()
-
-        return HttpResponseRedirect(self.get_success_url())
-
-    def reset_user(self):
-        self.request.session.pop(TWO_FACTOR_USER_SESSION_KEY, None)
-        self.request.session.pop(TWO_FACTOR_STARTED_SESSION_KEY, None)
-
-
-class TwoFactorVerifyView(BaseTwoFactorView):
-    """
-    View to let users with 2FA enabled verify their identity via an OTP from a device.
-    """
-
-    class Form(forms.Form):
-        otp = forms.CharField(max_length=6, required=True)
-
-        def __init__(self, request, user, *args, **kwargs):
-            self.user = user
-            super().__init__(*args, **kwargs)
-
-        def clean_otp(self):
-            data = self.cleaned_data["otp"]
-            if not self.user.verify_2fa(otp=data):
-                raise ValidationError(_("Incorrect OTP. Please try again."))
-            return data
-
-    form_class = Form
-    template_name = "orgs/login/two_factor_verify.html"
-
-
-class TwoFactorBackupView(BaseTwoFactorView):
-    """
-    View to let users with 2FA enabled verify their identity using a backup token.
-    """
-
-    class Form(forms.Form):
-        token = forms.CharField(max_length=8, required=True)
-
-        def __init__(self, request, user, *args, **kwargs):
-            self.user = user
-            super().__init__(*args, **kwargs)
-
-        def clean_token(self):
-            data = self.cleaned_data["token"]
-            if not self.user.verify_2fa(backup_token=data):
-                raise ValidationError(_("Invalid backup token. Please try again."))
-            return data
-
-    form_class = Form
-    template_name = "orgs/login/two_factor_backup.html"
-
-
-class ConfirmAccessView(LoginView):
-    """
-    Overrides the login view to provide a view for an already logged in user to re-authenticate.
-    """
-
-    class Form(forms.Form):
-        password = forms.CharField(
-            label=" ", widget=InputWidget(attrs={"placeholder": _("Password"), "password": True}), required=True
-        )
-
-        def __init__(self, request, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
-            self.user = request.user
-
-        def clean_password(self):
-            data = self.cleaned_data["password"]
-            if not self.user.check_password(data):
-                raise forms.ValidationError(_("Password incorrect."))
-            return data
-
-        def get_user(self):
-            return self.user
-
-    template_name = "orgs/login/confirm_access.html"
-    form_class = Form
-    two_factor = False
-
-    def dispatch(self, request, *args, **kwargs):
-        if not self.request.user.is_authenticated:
-            return HttpResponseRedirect(reverse("orgs.login"))
-
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_username(self, form):
-        return self.request.user.email
 
 
 class UserCRUDL(SmartCRUDL):
