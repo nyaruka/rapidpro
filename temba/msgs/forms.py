@@ -22,6 +22,8 @@ class ComposeForm(Form):
                 "quickreplies": True,
                 "optins": True,
                 "templates": True,
+                "maxlength": Msg.MAX_TEXT_LEN,
+                "maxAttachments": Msg.MAX_ATTACHMENTS,
             }
         ),
     )
