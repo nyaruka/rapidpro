@@ -157,10 +157,12 @@ class Notification(models.Model):
     EMAIL_STATUS_PENDING = "P"
     EMAIL_STATUS_SENT = "S"
     EMAIL_STATUS_NONE = "N"
+    EMAIL_STATUS_UNVERIFIED = "U"
     EMAIL_STATUS_CHOICES = (
         (EMAIL_STATUS_PENDING, "Pending"),
         (EMAIL_STATUS_SENT, "Sent"),
         (EMAIL_STATUS_NONE, "None"),
+        (EMAIL_STATUS_UNVERIFIED, "Unverified"),
     )
 
     id = models.BigAutoField(primary_key=True)
@@ -185,8 +187,24 @@ class Notification(models.Model):
     data = models.JSONField(null=True, default=dict)
 
     @classmethod
-    def create_all(cls, org, notification_type: str, *, scope: str, users, medium: str = MEDIUM_UI, **kwargs):
+    def create_all(
+        cls,
+        org,
+        notification_type: str,
+        *,
+        scope: str,
+        users,
+        medium: str = MEDIUM_UI,
+        **kwargs,
+    ):
         for user in users:
+
+            email_status = cls.EMAIL_STATUS_NONE
+            if cls.MEDIUM_EMAIL in medium:
+                email_status = cls.EMAIL_STATUS_PENDING
+                if not user.emailaddress_set.filter(verified=True).exists():
+                    email_status = cls.EMAIL_STATUS_UNVERIFIED
+
             cls.objects.get_or_create(
                 org=org,
                 notification_type=notification_type,
@@ -194,6 +212,7 @@ class Notification(models.Model):
                 user=user,
                 is_seen=cls.MEDIUM_UI not in medium,
                 medium=medium,
+                email_status=email_status,
                 defaults=kwargs,
             )
 

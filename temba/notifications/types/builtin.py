@@ -23,7 +23,6 @@ class ExportFinishedNotificationType(NotificationType):
             scope=export.get_notification_scope(),
             users=[export.created_by],
             medium=Notification.MEDIUM_UI + Notification.MEDIUM_EMAIL,
-            email_status=Notification.EMAIL_STATUS_PENDING,
             **{"export": export},
         )
 
@@ -80,7 +79,6 @@ class IncidentStartedNotificationType(NotificationType):
             scope=incident.type.get_notification_scope(incident),
             users=incident.org.get_admins(),
             medium=Notification.MEDIUM_UI + Notification.MEDIUM_EMAIL,
-            email_status=Notification.EMAIL_STATUS_PENDING,
             incident=incident,
         )
 
@@ -136,7 +134,6 @@ class UserEmailNotificationType(NotificationType):
             scope=str(user.id),
             users=[user],
             medium=Notification.MEDIUM_EMAIL,
-            email_status=Notification.EMAIL_STATUS_PENDING,
             email_address=prev_email,
         )
 
@@ -165,7 +162,6 @@ class UserPasswordNotificationType(NotificationType):
             scope=str(user.id),
             users=[user],
             medium=Notification.MEDIUM_EMAIL,
-            email_status=Notification.EMAIL_STATUS_PENDING,
         )
 
     def get_target_url(self, notification) -> str:
@@ -197,7 +193,6 @@ class InvitationAcceptedNotificationType(NotificationType):
             scope=str(invitation.id),
             users=invitation.org.get_admins().exclude(id=new_user.id),
             medium=Notification.MEDIUM_EMAIL,
-            email_status=Notification.EMAIL_STATUS_PENDING,
             data={"email": invitation.email},
         )
 

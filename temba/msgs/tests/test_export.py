@@ -114,7 +114,7 @@ class MessageExportTest(TembaTest):
         msg7.delete()
 
         # export all visible messages (i.e. not msg3) using export_all param
-        with self.assertNumQueries(18):
+        with self.assertNumQueries(19):
             workbook = self._export(None, None, date(2000, 9, 1), date(2022, 9, 1))
 
         expected_headers = [
@@ -439,7 +439,7 @@ class MessageExportTest(TembaTest):
         ]
 
         # export all visible messages (i.e. not msg3) using export_all param
-        with self.assertNumQueries(16):
+        with self.assertNumQueries(17):
             self.assertExcelSheet(
                 self._export(None, None, date(2000, 9, 1), date(2022, 9, 28)).worksheets[0],
                 [

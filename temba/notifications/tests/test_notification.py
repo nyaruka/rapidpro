@@ -78,6 +78,53 @@ class NotificationTest(TembaTest):
 
         self.assertTrue(self.editor.notifications.get(export=export).is_seen)
 
+    def test_contact_export_finished_unverified_user(self):
+        self.unverifed_user = self.create_user("unverified@textit.com", first_name="Fred")
+        self.org.add_user(self.unverifed_user, OrgRole.ADMINISTRATOR)  # unverified admin will be skipped
+
+        export = ContactExport.create(self.org, self.unverifed_user)
+        export.perform()
+
+        ExportFinishedNotificationType.create(export)
+
+        self.assertFalse(self.unverifed_user.notifications.get(export=export).is_seen)
+        self.assertEqual(
+            self.unverifed_user.notifications.get(export=export).email_status, Notification.EMAIL_STATUS_UNVERIFIED
+        )
+
+        # we only notify the user that started the export
+        self.assert_notifications(
+            after=export.created_on,
+            expected_json={
+                "type": "export:finished",
+                "created_on": matchers.ISODate(),
+                "target_url": f"/export/download/{export.uuid}/",
+                "is_seen": False,
+                "export": {"type": "contact", "num_records": 0},
+            },
+            expected_users={self.unverifed_user},
+            email=False,
+        )
+
+        send_notification_emails()
+
+        # no email sent for unverified and notification email status is updated to unverified
+        self.assertEqual(0, len(mail.outbox))
+        self.assertEqual(
+            self.unverifed_user.notifications.get(export=export).email_status, Notification.EMAIL_STATUS_UNVERIFIED
+        )
+
+        # calling task again won't send any emails
+        send_notification_emails()
+
+        self.assertEqual(0, len(mail.outbox))
+
+        # if a user visits the export download page, their notification for that export is now read
+        self.login(self.unverifed_user)
+        self.client.get(reverse("orgs.export_download", args=[export.uuid]))
+
+        self.assertTrue(self.unverifed_user.notifications.get(export=export).is_seen)
+
     def test_message_export_finished(self):
         export = MessageExport.create(
             self.org, self.editor, start_date=date.today(), end_date=date.today(), folder=MsgFolder.INBOX

@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 
+from django.core import mail
 from django.urls import reverse
 
 from temba.tests.base import TembaTest
@@ -38,6 +39,10 @@ class UserAuthTest(TembaTest):
         )
 
         self.assertRedirect(response, success_url)
+
+        self.assertEqual(1, len(mail.outbox))
+        self.assertEqual("Please Confirm Your Email Address", mail.outbox[0].subject)
+        self.assertEqual(["bobbyburgers@burgers.com"], mail.outbox[0].recipients())
 
     def test_change_password(self):
 
