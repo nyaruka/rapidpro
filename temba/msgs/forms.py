@@ -22,6 +22,7 @@ class ComposeForm(Form):
                 "quickreplies": True,
                 "optins": True,
                 "templates": True,
+                "maxlength": 10000,
             }
         ),
     )
