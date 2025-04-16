@@ -146,7 +146,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             {
                 "relative_to": planting_date.id,
                 "event_type": "M",
-                "eng": "x" * 4097,
+                "eng": "x" * 10001,
                 "direction": "A",
                 "offset": 1,
                 "unit": "W",
@@ -154,7 +154,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
                 "delivery_hour": 13,
                 "message_start_mode": "I",
             },
-            form_errors={"__all__": "Translation for 'English' exceeds the 4096 character limit."},
+            form_errors={"__all__": "Translation for 'English' exceeds the 10000 character limit."},
         )
 
         # can create an event with just a eng translation
