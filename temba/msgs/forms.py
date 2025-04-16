@@ -23,6 +23,7 @@ class ComposeForm(Form):
                 "optins": True,
                 "templates": True,
                 "maxlength": 10000,
+                "maxAttachments": 10,
             }
         ),
     )
