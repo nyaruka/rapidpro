@@ -144,6 +144,7 @@ class BroadcastCRUDL(SmartCRUDL):
         title = _("Broadcasts")
         menu_path = "/msg/broadcasts"
         paginate_by = 25
+        default_order = ("-created_on", "-id")
 
         def get_queryset(self, **kwargs):
             return (

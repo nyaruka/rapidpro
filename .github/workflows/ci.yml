@@ -7,7 +7,7 @@ jobs:
     env:
       python-version: '3.12.x'
       node-version: '20'
-      mailroom-version: '10.1.76'
+      mailroom-version: '10.1.87'
 
     services:
       redis:
