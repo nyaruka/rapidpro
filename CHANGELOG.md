@@ -1,3 +1,10 @@
+v10.1.136 (2025-04-16)
+-------------------------
+ * Fix text max length to be 10000 and attachments items to 10
+ * Disable sending notifications emails to unverified emails addresses
+ * Fix optin selection event
+ * Add verified column on users list
+
 v10.1.135 (2025-04-15)
 -------------------------
  * Add new generic model for daily counts to replace current ticket stats models
