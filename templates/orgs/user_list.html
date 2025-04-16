@@ -28,12 +28,8 @@
             {{ obj.role.display }}
             {% if obj.team and has_teams %}({{ obj.team.name }}){% endif %}
           </td>
-          <td>
-            {% if obj.mfa_enabled %}✓{% endif %}
-          </td>
-          <td>
-            {% if obj.email_verified %}✓{% endif %}
-          </td>
+          <td>{{ obj.mfa_enabled|yesno:"✓,-" }}</td>
+          <td>{{ obj.email_verified|yesno:"✓,-" }}</td>
           <td class="w-10">
             {% if obj.role.code != "A" or admin_count > 1 %}
               <temba-icon name="delete"
