@@ -1,3 +1,8 @@
+v10.1.137 (2025-04-16)
+-------------------------
+ * Tweak how we show user verified/2FA status on list pages
+ * Update to latest floweditor
+
 v10.1.136 (2025-04-16)
 -------------------------
  * Fix text max length to be 10000 and attachments items to 10
