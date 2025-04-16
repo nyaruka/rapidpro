@@ -1,3 +1,7 @@
+v10.1.138 (2025-04-16)
+-------------------------
+ * Tweak styling of user list again
+
 v10.1.137 (2025-04-16)
 -------------------------
  * Tweak how we show user verified/2FA status on list pages
