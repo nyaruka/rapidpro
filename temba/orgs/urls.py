@@ -2,14 +2,7 @@ from django.conf.urls import include
 from django.urls import re_path
 
 from .models import IntegrationType
-from .views import (
-    ExportCRUDL,
-    InvitationCRUDL,
-    OrgCRUDL,
-    OrgImportCRUDL,
-    UserCRUDL,
-    check_login,
-)
+from .views import ExportCRUDL, InvitationCRUDL, OrgCRUDL, OrgImportCRUDL, UserCRUDL, check_login
 
 urlpatterns = OrgCRUDL().as_urlpatterns()
 urlpatterns += OrgImportCRUDL().as_urlpatterns()
