@@ -529,7 +529,7 @@ class Msg(models.Model):
     MEDIA_AUDIO = "audio"
     MEDIA_TYPES = [MEDIA_AUDIO, MEDIA_GPS, MEDIA_IMAGE, MEDIA_VIDEO]
 
-    MAX_TEXT_LEN = 10000  # max chars allowed in a message
+    MAX_TEXT_LEN = 4096  # max chars allowed in a message
     MAX_ATTACHMENTS = 10  # max attachments allowed on a message
     MAX_QUICK_REPLIES = 10  # max quick replies allowed on a message
 

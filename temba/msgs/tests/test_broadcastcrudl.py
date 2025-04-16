@@ -144,9 +144,9 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.process_wizard(
             "create",
             create_url,
-            self._form_data(translations={"eng": {"text": "." * 10001}}, contacts=[self.joe]),
+            self._form_data(translations={"eng": {"text": "." * 4097}}, contacts=[self.joe]),
         )
-        self.assertFormError(response.context["form"], "compose", ["Maximum allowed text is 10000 characters."])
+        self.assertFormError(response.context["form"], "compose", ["Maximum allowed text is 4096 characters."])
 
         # too many attachments
         attachments = compose_deserialize_attachments([{"content_type": media.content_type, "url": media.url}])
