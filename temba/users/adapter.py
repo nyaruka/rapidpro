@@ -42,6 +42,15 @@ class InviteAdapterMixin:
             redirect_url=redirect_url,
         )
 
+    def is_open_for_signup(self, request):
+        # if we have a signup invite, we need to allow signups
+        secret = request.GET.get("invite", request.session.get("invite_secret", None))
+
+        if secret and Invitation.objects.filter(secret=secret, is_active=True).exists():
+            return True
+
+        return "signups" in request.branding.get("features")
+
 
 class TembaAccountAdapter(InviteAdapterMixin, DefaultAccountAdapter):
     def send_mail(self, template_prefix, email, context):
@@ -52,9 +61,6 @@ class TembaAccountAdapter(InviteAdapterMixin, DefaultAccountAdapter):
 
         sender = EmailSender.from_email_type(self.request.branding, "notifications")
         sender.send([email], template_prefix, context)
-
-    def is_open_for_signup(self, request):
-        return "signups" in request.branding.get("features")
 
 
 class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter):
