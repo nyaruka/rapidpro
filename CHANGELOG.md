@@ -1,3 +1,8 @@
+v10.1.139 (2025-04-17)
+-------------------------
+ * Allow signing up with invite with closed signups
+ * Remove legacy login views
+
 v10.1.138 (2025-04-16)
 -------------------------
  * Tweak styling of user list again
