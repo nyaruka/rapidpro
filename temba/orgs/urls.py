@@ -2,19 +2,7 @@ from django.conf.urls import include
 from django.urls import re_path
 
 from .models import IntegrationType
-from .views import (
-    ConfirmAccessView,
-    ExportCRUDL,
-    InvitationCRUDL,
-    LoginView,
-    LogoutView,
-    OrgCRUDL,
-    OrgImportCRUDL,
-    TwoFactorBackupView,
-    TwoFactorVerifyView,
-    UserCRUDL,
-    check_login,
-)
+from .views import ExportCRUDL, InvitationCRUDL, OrgCRUDL, OrgImportCRUDL, UserCRUDL, check_login
 
 urlpatterns = OrgCRUDL().as_urlpatterns()
 urlpatterns += OrgImportCRUDL().as_urlpatterns()
@@ -35,10 +23,5 @@ for integration in IntegrationType.get_all():
 
 urlpatterns += [
     re_path(r"^login/$", check_login, name="orgs.check_login"),
-    re_path(r"^legacy/login/$", LoginView.as_view(), name="orgs.login"),
-    re_path(r"^legacy/logout/$", LogoutView.as_view(), name="orgs.logout"),
-    re_path(r"^legacy/two-factor/verify/$", TwoFactorVerifyView.as_view(), name="orgs.two_factor_verify"),
-    re_path(r"^legacy/two-factor/backup/$", TwoFactorBackupView.as_view(), name="orgs.two_factor_backup"),
-    re_path(r"^legacy/confirm-access/$", ConfirmAccessView.as_view(), name="orgs.confirm_access"),
     re_path(r"^integrations/", include(integration_type_urls)),
 ]

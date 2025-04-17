@@ -2,17 +2,14 @@ import logging
 from datetime import timedelta
 
 from celery import shared_task
-from django_redis import get_redis_connection
 
 from django.conf import settings
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
 
 from temba.contacts.models import URN, ContactURN
 from temba.utils.crons import cron_task
-from temba.utils.email import EmailSender
 
-from .models import DailyCount, Export, Invitation, ItemCount, Org, OrgImport, OrgMembership, User
+from .models import DailyCount, Export, Invitation, ItemCount, Org, OrgImport, OrgMembership
 
 
 @cron_task()
@@ -36,36 +33,6 @@ def perform_export(export_id):
     Perform an export
     """
     Export.objects.select_related("org", "created_by").get(id=export_id).perform()
-
-
-@shared_task
-def send_user_verification_email(org_id, user_id):
-    r = get_redis_connection()
-    org = Org.objects.get(id=org_id)
-    user = User.objects.get(id=user_id)
-
-    assert user in org.get_users()
-
-    if user.email_status == User.STATUS_VERIFIED:
-        return
-
-    key = f"send_verification_email:{user.email}".lower()
-
-    if r.exists(key):
-        return
-
-    sender = EmailSender.from_email_type(org.branding, "notifications")
-    sender.send(
-        [user.email],
-        "orgs/email/email_verification",
-        {
-            "org": org,
-            "secret": user.email_verification_secret,
-        },
-        _("%(name)s Email Verification") % org.branding,
-    )
-
-    r.set(key, "1", ex=60 * 10)
 
 
 @shared_task
