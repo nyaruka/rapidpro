@@ -1,9 +1,12 @@
 from urllib.parse import urlencode
 
 from django.core import mail
+from django.test import override_settings
 from django.urls import reverse
 
+from temba.orgs.models import Invitation, OrgRole
 from temba.tests.base import TembaTest
+from temba.users.models import User
 
 
 class UserAuthTest(TembaTest):
@@ -90,3 +93,61 @@ class UserAuthTest(TembaTest):
         emails = self.admin.emailaddress_set.all()
         self.assertEqual(2, emails.count())
         self.assertTrue(emails.filter(email="newemail@temba.io").exists())
+
+    @override_settings(BRAND={"features": []})
+    def test_invite_with_closed_signups(self):
+
+        signup_url = reverse("account_signup")
+
+        # make sure we can't access the signup page
+        response = self.client.get(signup_url)
+        self.assertContains(response, "Sign Up Closed")
+
+        # we also need to ensure they can't post
+        response = self.client.post(
+            signup_url,
+            {
+                "first_name": "Bobby",
+                "last_name": "Burgers",
+                "workspace": "Bobby's Burgers",
+                "password1": "arstqwfp",
+                "email": "bobbyburgers@burgers.com",
+                "timezone": "America/New_York",
+            },
+        )
+        self.assertContains(response, "Sign Up Closed")
+
+        # but we still need to be able to accept an invite
+        invitation = Invitation.create(self.org, self.admin, "bob@textit.com", OrgRole.ADMINISTRATOR)
+        invite_signup = f"{signup_url}?invite={invitation.secret}"
+
+        response = self.client.get(invite_signup)
+        self.assertNotContains(response, "Sign Up Closed")
+
+        # and we should be able to post.. but we handle tampering with the invite
+        response = self.client.post(
+            invite_signup,
+            {
+                "first_name": "Bobby",
+                "last_name": "Burgers",
+                "email": "bobbyburgers@burgers.com",
+                "password1": "arstqwfp",
+                "workspace": "Bobby's Burgers",
+                "timezone": "America/New_York",
+            },
+            follow=True,
+        )
+
+        # should get signed up, logged in and redirected to inbox
+        self.assertNotContains(response, "Sign Up Closed")
+        self.assertContains(response, "Your Message Hub")
+
+        # make sure we didn't honor the tampered email
+        self.assertFalse(User.objects.filter(email="bobbyburgers@burgers.com").exists())
+
+        # we should now have a new user with the invitation email
+        user = User.objects.filter(email="bob@textit.com").first()
+        self.assertIsNotNone(user)
+
+        email = user.emailaddress_set.all().first()
+        self.assertTrue(email.verified)
