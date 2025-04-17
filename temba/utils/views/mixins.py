@@ -10,8 +10,6 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.urls import reverse
-from django.utils import timezone
 from django.utils.functional import cached_property
 
 from temba import __version__ as temba_version
@@ -49,24 +47,6 @@ class PostOnlyMixin:
 
     def get(self, *args, **kwargs):
         return HttpResponse("Method Not Allowed", status=405)
-
-
-class RequireRecentAuthMixin:
-    """
-    Mixin that redirects the user to a authentication page if they haven't authenticated recently.
-    """
-
-    recent_auth_seconds = 10 * 60
-    recent_auth_includes_formax = False
-
-    def pre_process(self, request, *args, **kwargs):
-        is_formax = "HTTP_X_FORMAX" in request.META
-        if not is_formax or self.recent_auth_includes_formax:
-            last_auth_on = request.user.last_auth_on
-            if not last_auth_on or (timezone.now() - last_auth_on).total_seconds() > self.recent_auth_seconds:
-                return HttpResponseRedirect(reverse("orgs.confirm_access") + f"?next={quote(request.path)}")
-
-        return super().pre_process(request, *args, **kwargs)
 
 
 class StaffOnlyMixin:
