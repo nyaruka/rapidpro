@@ -205,17 +205,6 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRedirect(response, reverse("orgs.org_choose"))
         self.assertEqual({self.editor, self.admin2, system_user}, set(self.org.get_users()))
 
-    def test_account(self):
-        self.login(self.agent)
-
-        response = self.client.get(reverse("orgs.user_account"))
-        self.assertEqual(1, len(response.context["formax"].sections))
-
-        self.login(self.admin)
-
-        response = self.client.get(reverse("orgs.user_account"))
-        self.assertEqual(1, len(response.context["formax"].sections))
-
     def test_edit(self):
         edit_url = reverse("orgs.user_edit")
 

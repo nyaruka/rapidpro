@@ -1,10 +1,8 @@
 from collections import OrderedDict
 from datetime import timedelta
 
-import pyotp
 from allauth.account.models import EmailAddress
 from allauth.mfa.models import Authenticator
-from django_redis import get_redis_connection
 from packaging.version import Version
 from smartmin.views import (
     SmartCreateView,
@@ -37,11 +35,9 @@ from temba.campaigns.models import Campaign
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin, FormaxSectionMixin
 from temba.notifications.mixins import NotificationTargetMixin
-from temba.orgs.tasks import send_user_verification_email
 from temba.tickets.models import Team
-from temba.users.models import BackupToken, FailedLogin, RecoveryToken
 from temba.utils import analytics, json, languages, on_transaction_commit, str_to_bool
-from temba.utils.email import EmailSender, parse_smtp_url
+from temba.utils.email import parse_smtp_url
 from temba.utils.fields import (
     ArbitraryJsonChoiceField,
     CheckboxWidget,
@@ -58,8 +54,6 @@ from temba.utils.views.mixins import (
     ModalFormMixin,
     NonAtomicMixin,
     NoNavMixin,
-    PostOnlyMixin,
-    RequireRecentAuthMixin,
     SpaMixin,
 )
 
@@ -135,15 +129,6 @@ class UserCRUDL(SmartCRUDL):
         "update",
         "delete",
         "edit",
-        "forget",
-        "recover",
-        "failed",
-        "two_factor_enable",
-        "two_factor_disable",
-        "two_factor_tokens",
-        "account",
-        "verify_email",
-        "send_verification_email",
     )
 
     class List(RequireFeatureMixin, SpaMixin, BaseListView):
@@ -327,134 +312,6 @@ class UserCRUDL(SmartCRUDL):
             # if current user no longer belongs to this org, redirect to org chooser
             return reverse("orgs.user_list") if still_in_org else reverse("orgs.org_choose")
 
-    class Forget(SmartFormView):
-        class Form(forms.Form):
-            email = forms.EmailField(
-                required=True, widget=InputWidget(attrs={"widget_only": True, "placeholder": _("Email address")})
-            )
-
-            def clean_email(self):
-                email = self.cleaned_data["email"].lower().strip()
-
-                self.user = User.objects.filter(email__iexact=email).first()
-
-                # error if we've sent a recovery email to this user recently to prevent flooding
-                five_mins_ago = timezone.now() - timedelta(minutes=5)
-                if self.user and self.user.recovery_tokens.filter(created_on__gt=five_mins_ago).exists():
-                    raise forms.ValidationError(_("A recovery email was already sent to this address recently."))
-
-                return email
-
-        form_class = Form
-        permission = None
-        title = _("Password Reset")
-        success_message = _("An email has been sent to your account with further instructions.")
-        success_url = "@orgs.login"
-        fields = ("email",)
-
-        def form_valid(self, form):
-            email = form.cleaned_data["email"]
-            user = form.user
-
-            if user:
-                # delete any previously generated recovery tokens and create a new one
-                user.recovery_tokens.all().delete()
-                token = user.recovery_tokens.create(token=generate_secret(32))
-
-                sender = EmailSender.from_email_type(self.request.branding, "notifications")
-                sender.send(
-                    [user.email],
-                    "orgs/email/user_forget",
-                    {
-                        "user": user,
-                        "path": reverse("orgs.user_recover", args=[token.token]),
-                    },
-                    _("Password Recovery Request"),
-                )
-            else:
-                # no user, check if we have an invite for the email and resend that
-                invite = Invitation.objects.filter(is_active=True, email__iexact=email).first()
-                if invite:
-                    invite.send()
-
-            return super().form_valid(form)
-
-    class Recover(ComponentFormMixin, SmartUpdateView):
-        class Form(forms.ModelForm):
-            new_password = forms.CharField(
-                validators=[validate_password],
-                widget=forms.PasswordInput(attrs={"widget_only": True, "placeholder": _("New password")}),
-                required=True,
-            )
-            confirm_password = forms.CharField(
-                widget=forms.PasswordInput(attrs={"widget_only": True, "placeholder": _("Confirm")}), required=True
-            )
-
-            def clean(self):
-                cleaned_data = super().clean()
-
-                if not self.errors:
-                    if cleaned_data.get("new_password") != cleaned_data.get("confirm_password"):
-                        raise forms.ValidationError(_("New password and confirmation don't match."))
-
-                return self.cleaned_data
-
-            class Meta:
-                model = User
-                fields = ("new_password", "confirm_password")
-
-        form_class = Form
-        permission = None
-        title = _("Password Reset")
-        success_url = "@orgs.login"
-        success_message = _("Your password has been updated successfully.")
-
-        @classmethod
-        def derive_url_pattern(cls, path, action):
-            return r"^%s/%s/(?P<token>\w+)/$" % (path, action)
-
-        def pre_process(self, request, *args, **kwargs):
-            # if token is too old, redirect to forget password
-            if self.token.created_on < timezone.now() - timedelta(hours=1):
-                messages.info(
-                    request,
-                    _("This link has expired. Please reinitiate the process by entering your email here."),
-                )
-                return HttpResponseRedirect(reverse("orgs.user_forget"))
-
-            return super().pre_process(request, args, kwargs)
-
-        @cached_property
-        def token(self):
-            return get_object_or_404(RecoveryToken, token=self.kwargs["token"])
-
-        def get_object(self):
-            return self.token.user
-
-        def save(self, obj):
-            obj.set_password(self.form.cleaned_data["new_password"])
-            obj.save(update_fields=("password",))
-            return obj
-
-        def post_save(self, obj):
-            obj = super().post_save(obj)
-
-            # delete all recovery tokens for this user
-            obj.recovery_tokens.all().delete()
-
-            # delete any failed login records
-            FailedLogin.objects.filter(username__iexact=obj.email).delete()
-
-            return obj
-
-    class Failed(SmartTemplateView):
-        permission = None
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-            context["lockout_timeout"] = getattr(settings, "USER_LOCKOUT_TIMEOUT", 10)
-            return context
-
     class Edit(ComponentFormMixin, InferUserMixin, SmartUpdateView):
 
         class Form(forms.ModelForm):
@@ -493,215 +350,6 @@ class UserCRUDL(SmartCRUDL):
             initial["language"] = self.object.language
             initial["avatar"] = self.object.avatar
             return initial
-
-    class SendVerificationEmail(SpaMixin, PostOnlyMixin, InferUserMixin, SmartUpdateView):
-        class Form(forms.ModelForm):
-            class Meta:
-                model = User
-                fields = ()
-
-        form_class = Form
-        submit_button_name = _("Send Verification Email")
-        menu_path = "/settings/account"
-        success_url = "@orgs.user_account"
-        success_message = _("Verification email sent")
-
-        def has_permission(self, request, *args, **kwargs):
-            return request.user.is_authenticated
-
-        def pre_process(self, request, *args, **kwargs):
-            r = get_redis_connection()
-            if request.user.email_status == User.STATUS_VERIFIED:
-                return HttpResponseRedirect(reverse("orgs.user_account"))
-            elif r.exists(f"send_verification_email:{request.user.email}".lower()):
-                messages.info(request, _("Verification email already sent. You can retry in 10 minutes."))
-                return HttpResponseRedirect(reverse("orgs.user_account"))
-
-            return super().pre_process(request, *args, **kwargs)
-
-        def form_valid(self, form):
-            send_user_verification_email.delay(self.request.org.id, self.object.id)
-
-            return super().form_valid(form)
-
-    class VerifyEmail(NoNavMixin, SmartReadView):
-        @classmethod
-        def derive_url_pattern(cls, path, action):
-            return r"^%s/%s/(?P<secret>\w+)/$" % (path, action)
-
-        def get_object(self, *args, **kwargs):
-            return self.request.user
-
-        def has_permission(self, request, *args, **kwargs):
-            return request.user.is_authenticated
-
-        @cached_property
-        def email_user(self, **kwargs):
-            return User.objects.filter(email_verification_secret=self.kwargs["secret"], is_active=True).first()
-
-        def pre_process(self, request, *args, **kwargs):
-            is_verified = self.request.user.email_status == User.STATUS_VERIFIED
-
-            if self.email_user == self.request.user and not is_verified:
-                self.request.user.email_status = User.STATUS_VERIFIED
-                self.request.user.save(update_fields=("email_status",))
-
-            return super().pre_process(request, *args, **kwargs)
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-            context["email_user"] = self.email_user
-            context["email_secret"] = self.kwargs["secret"]
-            return context
-
-    class TwoFactorEnable(SpaMixin, InferUserMixin, SmartUpdateView):
-        class Form(forms.ModelForm):
-            otp = forms.CharField(
-                label=_("The generated OTP"),
-                widget=InputWidget(attrs={"placeholder": _("6-digit code")}),
-                max_length=6,
-                required=True,
-            )
-            confirm_password = forms.CharField(
-                label=_("Your current login password"),
-                widget=InputWidget(attrs={"placeholder": _("Current password"), "password": True}),
-                required=True,
-            )
-
-            def __init__(self, user, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-
-                self.user = user
-
-            def clean_otp(self):
-                data = self.cleaned_data["otp"]
-                if not self.user.verify_2fa(otp=data):
-                    raise forms.ValidationError(_("OTP incorrect. Please try again."))
-                return data
-
-            def clean_confirm_password(self):
-                data = self.cleaned_data["confirm_password"]
-                if not self.user.check_password(data):
-                    raise forms.ValidationError(_("Password incorrect."))
-                return data
-
-            class Meta:
-                model = User
-                fields = ("otp", "confirm_password")
-
-        form_class = Form
-        menu_path = "/settings/account"
-        title = _("Enable Two-factor Authentication")
-        submit_button_name = _("Enable")
-        success_url = "@orgs.user_two_factor_tokens"
-
-        def has_permission(self, request, *args, **kwargs):
-            return self.request.user.is_authenticated
-
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["user"] = self.request.user
-            return kwargs
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-
-            brand = self.request.branding["name"]
-            user = self.request.user
-            secret_url = pyotp.TOTP(user.two_factor_secret).provisioning_uri(user.email, issuer_name=brand)
-
-            context["secret_url"] = secret_url
-            return context
-
-        def form_valid(self, form):
-            self.request.user.enable_2fa()
-            self.request.user.record_auth()
-
-            return super().form_valid(form)
-
-    class TwoFactorDisable(SpaMixin, InferUserMixin, SmartUpdateView):
-        class Form(forms.ModelForm):
-            confirm_password = forms.CharField(
-                label=" ",
-                widget=InputWidget(attrs={"placeholder": _("Current password"), "password": True}),
-                required=True,
-            )
-
-            def __init__(self, user, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-
-                self.user = user
-
-            def clean_confirm_password(self):
-                data = self.cleaned_data["confirm_password"]
-                if not self.user.check_password(data):
-                    raise forms.ValidationError(_("Password incorrect."))
-                return data
-
-            class Meta:
-                model = User
-                fields = ("confirm_password",)
-
-        form_class = Form
-        menu_path = "/settings/account"
-        title = _("Disable Two-factor Authentication")
-        submit_button_name = _("Disable")
-        success_url = "@orgs.user_account"
-
-        def has_permission(self, request, *args, **kwargs):
-            return self.request.user.is_authenticated
-
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["user"] = self.request.user
-            return kwargs
-
-        def form_valid(self, form):
-            self.request.user.disable_2fa()
-            self.request.user.record_auth()
-
-            return super().form_valid(form)
-
-    class TwoFactorTokens(SpaMixin, RequireRecentAuthMixin, SmartTemplateView):
-        title = _("Two-factor Authentication")
-        menu_path = "/settings/account"
-
-        def pre_process(self, request, *args, **kwargs):
-            # if 2FA isn't enabled for this user, take them to the enable view instead
-            if not self.request.user.two_factor_enabled:
-                return HttpResponseRedirect(reverse("orgs.user_two_factor_enable"))
-
-            return super().pre_process(request, *args, **kwargs)
-
-        def has_permission(self, request, *args, **kwargs):
-            return self.request.user.is_authenticated
-
-        def post(self, request, *args, **kwargs):
-            BackupToken.generate_for_user(self.request.user)
-            messages.info(request, _("Two-factor authentication backup tokens changed."))
-
-            return super().get(request, *args, **kwargs)
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-            context["backup_tokens"] = self.request.user.backup_tokens.order_by("id")
-            return context
-
-    class Account(SpaMixin, FormaxMixin, InferOrgMixin, OrgPermsMixin, SmartReadView):
-        title = _("Account")
-        menu_path = "/settings/account"
-
-        def has_permission(self, request):
-            return request.user.is_authenticated
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-            context["two_factor_enabled"] = self.request.user.two_factor_enabled
-            context["num_api_tokens"] = self.request.user.get_api_tokens(self.request.org).count()
-            return context
-
-        def derive_formax_sections(self, formax, context):
-            formax.add_section("profile", reverse("orgs.user_edit"), icon="user")
 
 
 class InvitationMixin:
