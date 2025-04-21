@@ -1,3 +1,7 @@
+v10.1.140 (2025-04-21)
+-------------------------
+ * Data migration to backfill new daily counts
+
 v10.1.139 (2025-04-17)
 -------------------------
  * Allow signing up with invite with closed signups
