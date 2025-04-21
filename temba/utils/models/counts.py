@@ -155,29 +155,3 @@ class BaseDailyCount(BaseScopedCount):
 
     class Meta:
         abstract = True
-
-
-class DailyCountModel(BaseSquashableCount):
-    """
-    TODO remove
-    """
-
-    squash_over = ("count_type", "scope", "day")
-
-    count_type = models.CharField(max_length=1)
-    scope = models.CharField(max_length=32)
-    day = models.DateField()
-
-    class Meta:
-        abstract = True
-
-
-class DailyTimingModel(DailyCountModel):
-    """
-    TODO remove
-    """
-
-    seconds = models.BigIntegerField()
-
-    class Meta:
-        abstract = True
