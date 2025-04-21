@@ -438,24 +438,8 @@ class TopicFolder(TicketFolder):
 
 class TicketDailyCount(DailyCountModel):
     """
-    Ticket activity daily counts by who did it and when. Mailroom writes these.
+    TODO remove
     """
-
-    TYPE_OPENING = "O"
-    TYPE_ASSIGNMENT = "A"  # includes tickets opened with assignment but excludes re-assignments
-    TYPE_REPLY = "R"
-
-    @classmethod
-    def get_by_org(cls, org, count_type: str, since=None, until=None):
-        return cls._get_count_set(count_type, {f"o:{org.id}": org}, since, until)
-
-    @classmethod
-    def get_by_teams(cls, teams, count_type: str, since=None, until=None):
-        return cls._get_count_set(count_type, {f"t:{t.id}": t for t in teams}, since, until)
-
-    @classmethod
-    def get_by_users(cls, org, users, count_type: str, since=None, until=None):
-        return cls._get_count_set(count_type, {f"o:{org.id}:u:{u.id}": u for u in users}, since, until)
 
     class Meta:
         indexes = [
@@ -470,15 +454,8 @@ class TicketDailyCount(DailyCountModel):
 
 class TicketDailyTiming(DailyTimingModel):
     """
-    Ticket activity daily timings. Mailroom writes these.
+    TODO remove
     """
-
-    TYPE_FIRST_REPLY = "R"
-    TYPE_LAST_CLOSE = "C"
-
-    @classmethod
-    def get_by_org(cls, org, count_type: str, since=None, until=None):
-        return cls._get_count_set(count_type, {f"o:{org.id}": org}, since, until)
 
     class Meta:
         indexes = [
