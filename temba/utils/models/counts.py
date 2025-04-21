@@ -129,6 +129,9 @@ class DailyCountQuerySet(ScopedCountQuerySet):
     Specialized queryset for scope + day + count models.
     """
 
+    def period(self, since, until):
+        return self.filter(day__gte=since, day__lt=until)
+
     def day_totals(self, *, scoped: bool) -> dict[date | tuple, int]:
         """
         Sums counts grouped by day or day + scope.

@@ -1,6 +1,7 @@
 import itertools
 import logging
 from abc import ABCMeta
+from collections import defaultdict
 from datetime import date
 
 import openpyxl
@@ -514,36 +515,45 @@ def export_ticket_stats(org: Org, since: date, until: date) -> openpyxl.Workbook
         sheet.cell(row=2, column=user_col + 1, value="Replies")
         user_col += 2
 
-    def by_day(cs: list) -> dict:
-        return {c[0]: c[1] for c in cs}
+    org_openings = org.daily_counts.period(since, until).filter(scope="tickets:opened").day_totals(scoped=False)
+    all_replies = org.daily_counts.period(since, until).prefix("msgs:ticketreplies:").day_totals(scoped=True)
+    all_assignments = org.daily_counts.period(since, until).prefix("tickets:assigned:").day_totals(scoped=True)
+    all_resptimes = org.daily_counts.period(since, until).prefix("ticketresptime:").day_totals(scoped=True)
 
-    org_openings = by_day(TicketDailyCount.get_by_org(org, TicketDailyCount.TYPE_OPENING, since, until).day_totals())
-    org_replies = by_day(TicketDailyCount.get_by_org(org, TicketDailyCount.TYPE_REPLY, since, until).day_totals())
-    org_avg_reply_time = by_day(
-        TicketDailyTiming.get_by_org(org, TicketDailyTiming.TYPE_FIRST_REPLY, since, until).day_averages(rounded=True)
-    )
+    user_assignments = defaultdict(dict)
+    for (day, scope), count in all_assignments.items():
+        user_id = int(scope.split(":")[-1])
+        user_assignments[user_id][day] = count
 
-    user_assignments = {}
-    user_replies = {}
-    for user in users:
-        user_assignments[user] = by_day(
-            TicketDailyCount.get_by_users(org, [user], TicketDailyCount.TYPE_ASSIGNMENT, since, until).day_totals()
-        )
-        user_replies[user] = by_day(
-            TicketDailyCount.get_by_users(org, [user], TicketDailyCount.TYPE_REPLY, since, until).day_totals()
-        )
+    org_replies = defaultdict(int)
+    user_replies = defaultdict(dict)
+    for (day, scope), count in all_replies.items():
+        user_id = int(scope.split(":")[-1])
+        user_replies[user_id][day] = count
+        org_replies[day] += count
+
+    org_resptimes, org_respcounts = defaultdict(int), defaultdict(int)
+    for (day, scope), count in all_resptimes.items():
+        if scope.endswith(":total"):
+            org_resptimes[day] += count
+        elif scope.endswith(":count"):
+            org_respcounts[day] += count
+
+    org_respavgs = {}
+    for day, total in org_resptimes.items():
+        org_respavgs[day] = total // org_respcounts[day]
 
     day_row = 3
     for day in date_range(since, until):
         sheet.cell(row=day_row, column=1, value=day)
         sheet.cell(row=day_row, column=2, value=org_openings.get(day, 0))
         sheet.cell(row=day_row, column=3, value=org_replies.get(day, 0))
-        sheet.cell(row=day_row, column=4, value=org_avg_reply_time.get(day, ""))
+        sheet.cell(row=day_row, column=4, value=org_respavgs.get(day, ""))
 
         user_col = 5
         for user in users:
-            sheet.cell(row=day_row, column=user_col, value=user_assignments[user].get(day, 0))
-            sheet.cell(row=day_row, column=user_col + 1, value=user_replies[user].get(day, 0))
+            sheet.cell(row=day_row, column=user_col, value=user_assignments[user.id].get(day, 0))
+            sheet.cell(row=day_row, column=user_col + 1, value=user_replies[user.id].get(day, 0))
             user_col += 2
 
         day_row += 1
