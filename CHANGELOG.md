@@ -1,3 +1,8 @@
+v10.1.141 (2025-04-21)
+-------------------------
+ * Remove unused code from old ticket statistics models
+ * Read ticket export statistics from new daily counts model
+
 v10.1.140 (2025-04-21)
 -------------------------
  * Data migration to backfill new daily counts
