@@ -271,12 +271,12 @@ class FlowCRUDL(SmartCRUDL):
                 definition = revision.get_migrated_definition(to_version=requested_version)
 
                 # get our metadata
-                flow_info = mailroom.get_client().flow_inspect(flow.org, definition)
+                info = mailroom.get_client().flow_inspect(flow.org, definition)
                 return JsonResponse(
                     {
                         "definition": definition,
-                        "issues": flow_info[Flow.INSPECT_ISSUES],
-                        "metadata": Flow.get_metadata(flow_info),
+                        "issues": info["issues"],
+                        "metadata": Flow.get_metadata(info),
                     }
                 )
 
@@ -555,6 +555,7 @@ class FlowCRUDL(SmartCRUDL):
 
             if "ivr_retry" in self.form.cleaned_data:
                 metadata[Flow.METADATA_IVR_RETRY] = int(self.form.cleaned_data["ivr_retry"])
+                obj.ivr_retry = int(self.form.cleaned_data["ivr_retry"])
 
             obj.metadata = metadata
             return obj

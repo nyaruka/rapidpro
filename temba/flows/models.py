@@ -70,12 +70,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
     METADATA_PARENT_REFS = "parent_refs"
     METADATA_IVR_RETRY = "ivr_retry"
 
-    # items in the response from mailroom flow inspection
-    INSPECT_RESULTS = "results"
-    INSPECT_DEPENDENCIES = "dependencies"
-    INSPECT_PARENT_REFS = "parent_refs"
-    INSPECT_ISSUES = "issues"
-
     # items in the flow definition JSON
     DEFINITION_UUID = "uuid"
     DEFINITION_NAME = "name"
@@ -116,7 +110,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
     FINAL_LEGACY_VERSION = legacy.VERSIONS[-1]
     INITIAL_GOFLOW_VERSION = "13.0.0"  # initial version of flow spec to use new engine
-    CURRENT_SPEC_VERSION = "14.1.0"  # current flow spec version
+    CURRENT_SPEC_VERSION = "14.2.0"  # current flow spec version
 
     EXPIRES_CHOICES = {
         TYPE_MESSAGE: (
@@ -157,6 +151,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
     is_archived = models.BooleanField(default=False)
     flow_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_MESSAGE)
     ignore_triggers = models.BooleanField(default=False, help_text=_("Ignore keyword triggers while in this flow."))
+    ivr_retry = models.IntegerField(null=True)
 
     # properties set from last revision
     expires_after_minutes = models.IntegerField(
@@ -171,7 +166,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
     version_number = models.CharField(default="0.0.0", max_length=8)  # no actual spec version until there's a revision
 
     # information from flow inspection
-    metadata = JSONAsTextField(null=True, default=dict)  # additional information about the flow, e.g. possible results
+    info = models.JSONField(null=True, default=dict)
     has_issues = models.BooleanField(default=False)
 
     saved_on = models.DateTimeField(auto_now_add=True)
@@ -192,6 +187,9 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
     user_dependencies = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="dependent_flows")
 
     soft_dependent_types = {"flow", "campaign_event", "trigger"}  # it's all soft for flows
+
+    # TODO replace by info and ivr_retry
+    metadata = JSONAsTextField(null=True, default=dict)
 
     @classmethod
     def create(
@@ -464,8 +462,8 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         definition = Flow.migrate_definition(definition, flow=None)
 
-        flow_info = mailroom.get_client().flow_inspect(self.org, definition)
-        dependencies = flow_info[Flow.INSPECT_DEPENDENCIES]
+        info = mailroom.get_client().flow_inspect(self.org, definition)
+        dependencies = info["dependencies"]
 
         # converts a dep ref {uuid|key, name, type, missing} to an importable partial definition {uuid|key, name}
         def ref_to_def(r: dict) -> dict:
@@ -645,9 +643,9 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
     @classmethod
     def get_metadata(cls, flow_info) -> dict:
         return {
-            Flow.METADATA_RESULTS: flow_info[Flow.INSPECT_RESULTS],
-            Flow.METADATA_DEPENDENCIES: flow_info[Flow.INSPECT_DEPENDENCIES],
-            Flow.METADATA_PARENT_REFS: flow_info[Flow.INSPECT_PARENT_REFS],
+            Flow.METADATA_RESULTS: flow_info["results"],
+            Flow.METADATA_DEPENDENCIES: flow_info["dependencies"],
+            Flow.METADATA_PARENT_REFS: flow_info["parent_refs"],
         }
 
     def ensure_current_version(self):
@@ -723,9 +721,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         definition[Flow.DEFINITION_EXPIRE_AFTER_MINUTES] = self.expires_after_minutes
 
         # inspect the flow (with optional validation)
-        flow_info = mailroom.get_client().flow_inspect(self.org, definition)
-        dependencies = flow_info[Flow.INSPECT_DEPENDENCIES]
-        issues = flow_info[Flow.INSPECT_ISSUES]
+        info = mailroom.get_client().flow_inspect(self.org, definition)
 
         if user is None:
             is_system_rev = True
@@ -734,7 +730,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             is_system_rev = False
 
         with transaction.atomic():
-            new_metadata = Flow.get_metadata(flow_info)
+            new_metadata = Flow.get_metadata(info)
 
             # IVR retry is the only value in metadata that doesn't come from flow inspection
             if self.metadata and Flow.METADATA_IVR_RETRY in self.metadata:
@@ -743,11 +739,12 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             # update our flow fields
             self.base_language = definition.get(Flow.DEFINITION_LANGUAGE, None)
             self.version_number = Flow.CURRENT_SPEC_VERSION
-            self.has_issues = len(issues) > 0
+            self.has_issues = len(info["issues"]) > 0
             self.metadata = new_metadata
+            self.info = info
             self.modified_by = user
             self.modified_on = timezone.now()
-            fields = ["base_language", "version_number", "has_issues", "metadata", "modified_by", "modified_on"]
+            fields = ["base_language", "version_number", "has_issues", "info", "metadata", "modified_by", "modified_on"]
 
             if not is_system_rev:
                 self.saved_by = user
@@ -764,9 +761,9 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
                 revision=revision,
             )
 
-            self.update_dependencies(dependencies)
+            self.update_dependencies(info["dependencies"])
 
-        return revision, issues
+        return revision, info["issues"]
 
     @classmethod
     def migrate_definition(cls, flow_def, flow, to_version=None):
