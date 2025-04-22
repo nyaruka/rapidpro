@@ -508,7 +508,9 @@ class FlowCRUDL(SmartCRUDL):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
 
-                self.fields["ivr_retry"].initial = self.instance.metadata.get("ivr_retry", 60)
+                self.fields["ivr_retry"].initial = (
+                    self.instance.ivr_retry if self.instance.ivr_retry is not None else 60
+                )
 
             class Meta:
                 model = Flow
