@@ -275,7 +275,7 @@ class FlowCRUDL(SmartCRUDL):
                 return JsonResponse(
                     {
                         "definition": definition,
-                        "info": flow.info,
+                        "info": info,
                         # deprecated, need to update editor to use info and info.issues
                         "issues": info["issues"],
                         "metadata": info,
