@@ -15,4 +15,9 @@ class Migration(migrations.Migration):
             name="info",
             field=models.JSONField(default=dict, null=True),
         ),
+        migrations.AddField(
+            model_name="flow",
+            name="ivr_retry",
+            field=models.IntegerField(null=True),
+        ),
     ]
