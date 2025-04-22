@@ -116,7 +116,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
     FINAL_LEGACY_VERSION = legacy.VERSIONS[-1]
     INITIAL_GOFLOW_VERSION = "13.0.0"  # initial version of flow spec to use new engine
-    CURRENT_SPEC_VERSION = "14.1.0"  # current flow spec version
+    CURRENT_SPEC_VERSION = "14.2.0"  # current flow spec version
 
     EXPIRES_CHOICES = {
         TYPE_MESSAGE: (
@@ -171,7 +171,8 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
     version_number = models.CharField(default="0.0.0", max_length=8)  # no actual spec version until there's a revision
 
     # information from flow inspection
-    metadata = JSONAsTextField(null=True, default=dict)  # additional information about the flow, e.g. possible results
+    info = models.JSONField(null=True, default=dict)
+    metadata = JSONAsTextField(null=True, default=dict)  # TODO replace by info and new field for IVR retries
     has_issues = models.BooleanField(default=False)
 
     saved_on = models.DateTimeField(auto_now_add=True)
@@ -745,9 +746,10 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             self.version_number = Flow.CURRENT_SPEC_VERSION
             self.has_issues = len(issues) > 0
             self.metadata = new_metadata
+            self.info = flow_info
             self.modified_by = user
             self.modified_on = timezone.now()
-            fields = ["base_language", "version_number", "has_issues", "metadata", "modified_by", "modified_on"]
+            fields = ["base_language", "version_number", "has_issues", "info", "metadata", "modified_by", "modified_on"]
 
             if not is_system_rev:
                 self.saved_by = user
