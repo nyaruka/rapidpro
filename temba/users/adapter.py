@@ -69,6 +69,9 @@ class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter)
         user.fetch_avatar(sociallogin.account.get_avatar_url())
         return user
 
+    def is_open_for_signup(self, request, sociallogin):  # pragma: no cover
+        return super().is_open_for_signup(request=request)
+
 
 @receiver(social_account_added)
 def update_user_profile_picture(request, sociallogin, **kwargs):  # pragma: no cover
