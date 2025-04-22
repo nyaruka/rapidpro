@@ -72,7 +72,7 @@ class ResultsExportTest(TembaTest):
         color_other = flow_nodes[3]
         orange_reply = flow_nodes[1]
 
-        flow.metadata["results"] = [
+        flow.info["results"] = [
             {
                 "key": "color",
                 "name": "Color",
@@ -86,7 +86,7 @@ class ResultsExportTest(TembaTest):
                 "node_uuids": ["773698ef-d512-477b-a404-437a2aa5b1c9"],
             },
         ]
-        flow.save(update_fields=("metadata",))
+        flow.save(update_fields=("info",))
 
         age = self.create_field("age", "Age")
         devs = self.create_group("Devs", [self.contact])

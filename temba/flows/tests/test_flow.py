@@ -336,7 +336,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
             self.assertTrue(found)
 
         flow = self.create_flow("Favorites")
-        flow.metadata = {
+        flow.info = {
             "results": [
                 {"key": "color", "name": "Color", "categories": ["Red", "Blue", "Green", "Other"]},
                 {"key": "beer", "name": "Beer", "categories": ["Primus" "Mutzig", "Turbo King", "Skol", "Other"]},
@@ -508,13 +508,13 @@ class FlowTest(TembaTest, CRUDLTestMixin):
             flow_def["nodes"][7]["actions"][0]["classifier"],
         )
 
-    def test_flow_metadata(self):
+    def test_flow_info(self):
         # test importing both old and new flow formats
         for flow_file in ("favorites", "favorites_v13"):
             flow = self.get_flow(flow_file)
 
             self.assertEqual(
-                flow.metadata["results"],
+                flow.info["results"],
                 [
                     {
                         "key": "color",
@@ -536,7 +536,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
                     },
                 ],
             )
-            self.assertEqual(len(flow.metadata["parent_refs"]), 0)
+            self.assertEqual(len(flow.info["parent_refs"]), 0)
 
     def test_group_send(self):
         # create an inactive group with the same name, to test that this doesn't blow up our import
