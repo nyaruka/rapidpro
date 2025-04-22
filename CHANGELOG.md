@@ -1,3 +1,8 @@
+v10.1.143 (2025-04-22)
+-------------------------
+ * Read from Flow.ivr_retry instead of Flow.metadata
+ * Backfill Flow.ivr_retry from metadata
+
 v10.1.142 (2025-04-22)
 -------------------------
  * Bump to flow spec 14.2
