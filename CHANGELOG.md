@@ -1,3 +1,9 @@
+v10.1.142 (2025-04-22)
+-------------------------
+ * Bump to flow spec 14.2
+ * Add new Flow.info and .ivry_retry fields to replace Flow.metadata
+ * Fix TembaSocialAccountAdapter is open to signups
+
 v10.1.141 (2025-04-21)
 -------------------------
  * Remove unused code from old ticket statistics models
