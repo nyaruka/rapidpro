@@ -236,8 +236,8 @@ class TicketTest(TembaTest):
         self.org.add_user(self.agent, OrgRole.AGENT, team=sales)
         self.org.add_user(self.editor, OrgRole.AGENT, team=sales)
 
-        self.org.daily_counts.create(day=date(2022, 4, 30), scope="tickets:opened", count=1)
-        self.org.daily_counts.create(day=date(2022, 5, 3), scope="tickets:opened", count=1)
+        self.org.daily_counts.create(day=date(2022, 4, 30), scope="tickets:opened:0", count=1)
+        self.org.daily_counts.create(day=date(2022, 5, 3), scope="tickets:opened:1", count=1)
         self.org.daily_counts.create(day=date(2022, 5, 3), scope=f"tickets:assigned:0:{self.admin.id}", count=1)
         self.org.daily_counts.create(day=date(2022, 5, 3), scope=f"msgs:ticketreplies:0:{self.admin.id}", count=1)
 
@@ -250,7 +250,7 @@ class TicketTest(TembaTest):
 
         self.org.daily_counts.create(day=date(2022, 5, 5), scope=f"msgs:ticketreplies:0:{self.admin.id}", count=1)
         self.org.daily_counts.create(day=date(2022, 5, 5), scope=f"msgs:ticketreplies:0:{self.admin.id}", count=1)
-        self.org.daily_counts.create(day=date(2022, 5, 5), scope="tickets:opened", count=1)
+        self.org.daily_counts.create(day=date(2022, 5, 5), scope="tickets:opened:0", count=1)
         self.org.daily_counts.create(
             day=date(2022, 5, 5), scope=f"msgs:ticketreplies:{sales.id}:{self.agent.id}", count=1
         )
