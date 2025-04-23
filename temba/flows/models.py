@@ -60,16 +60,6 @@ FLOW_LOCK_KEY = "org:%d:lock:flow:%d:definition"
 
 
 class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
-    CONTACT_CREATION = "contact_creation"
-    CONTACT_PER_RUN = "run"
-    CONTACT_PER_LOGIN = "login"
-
-    # items in metadata
-    METADATA_RESULTS = "results"
-    METADATA_DEPENDENCIES = "dependencies"
-    METADATA_PARENT_REFS = "parent_refs"
-    METADATA_IVR_RETRY = "ivr_retry"
-
     # items in the flow definition JSON
     DEFINITION_UUID = "uuid"
     DEFINITION_NAME = "name"
@@ -381,7 +371,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
     def get_category_counts(self):
         # get the possible results from the flow metadata
-        results_by_key = {r["key"]: r for r in self.metadata["results"]}
+        results_by_key = {r["key"]: r for r in self.info["results"]}
 
         counts = (
             self.result_counts.filter(result__in=results_by_key)
@@ -631,7 +621,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         """
         Get the dependencies of the given type from the flow metadata
         """
-        deps = self.metadata.get(Flow.METADATA_DEPENDENCIES, [])
+        deps = self.info["dependencies"]
         return [d for d in deps if d["type"] == type_name]
 
     def is_legacy(self) -> bool:
@@ -639,14 +629,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         Returns whether this flow still uses a legacy definition
         """
         return Version(self.version_number) < Version(Flow.INITIAL_GOFLOW_VERSION)
-
-    @classmethod
-    def get_metadata(cls, flow_info) -> dict:
-        return {
-            Flow.METADATA_RESULTS: flow_info["results"],
-            Flow.METADATA_DEPENDENCIES: flow_info["dependencies"],
-            Flow.METADATA_PARENT_REFS: flow_info["parent_refs"],
-        }
 
     def ensure_current_version(self):
         """
@@ -730,21 +712,14 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             is_system_rev = False
 
         with transaction.atomic():
-            new_metadata = Flow.get_metadata(info)
-
-            # IVR retry is the only value in metadata that doesn't come from flow inspection
-            if self.metadata and Flow.METADATA_IVR_RETRY in self.metadata:
-                new_metadata[Flow.METADATA_IVR_RETRY] = self.metadata[Flow.METADATA_IVR_RETRY]
-
             # update our flow fields
             self.base_language = definition.get(Flow.DEFINITION_LANGUAGE, None)
             self.version_number = Flow.CURRENT_SPEC_VERSION
             self.has_issues = len(info["issues"]) > 0
-            self.metadata = new_metadata
             self.info = info
             self.modified_by = user
             self.modified_on = timezone.now()
-            fields = ["base_language", "version_number", "has_issues", "info", "metadata", "modified_by", "modified_on"]
+            fields = ["base_language", "version_number", "has_issues", "info", "modified_by", "modified_on"]
 
             if not is_system_rev:
                 self.saved_by = user
@@ -1452,7 +1427,7 @@ class ResultsExport(ExportType):
 
         result_fields = []
         for flow in flows:
-            for result_field in flow.metadata["results"]:
+            for result_field in flow.info["results"]:
                 if not result_field["name"].startswith("_"):
                     result_field = result_field.copy()
                     result_field["flow_uuid"] = flow.uuid
