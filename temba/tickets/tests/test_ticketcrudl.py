@@ -399,6 +399,9 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_chart(self):
         opened_url = reverse("tickets.ticket_chart", args=["opened"])
 
+        cats = Topic.create(self.org, self.admin, "Cats")
+        dogs = Topic.create(self.org, self.admin, "Dogs")
+
         self.login(self.admin)
 
         response = self.client.get(opened_url + "?since=2024-03-01&until=2024-05-01")
@@ -406,21 +409,27 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(
             {
                 "period": ["2024-03-01", "2024-05-01"],
-                "data": {"all": []},
+                "data": {},
             },
             response.json(),
         )
 
-        self.org.daily_counts.create(day=date(2024, 4, 25), scope="tickets:opened", count=1)
-        self.org.daily_counts.create(day=date(2024, 4, 25), scope="tickets:opened", count=3)
-        self.org.daily_counts.create(day=date(2024, 4, 26), scope="tickets:opened", count=5)
-        self.org.daily_counts.create(day=date(2024, 5, 3), scope="tickets:opened", count=2)  # out of period
+        self.org.daily_counts.create(day=date(2024, 4, 25), scope="tickets:opened:0", count=1)
+        self.org.daily_counts.create(day=date(2024, 4, 25), scope=f"tickets:opened:{cats.id}", count=3)
+        self.org.daily_counts.create(day=date(2024, 4, 25), scope=f"tickets:opened:{dogs.id}", count=2)
+        self.org.daily_counts.create(day=date(2024, 4, 26), scope=f"tickets:opened:{cats.id}", count=5)
+        self.org.daily_counts.create(day=date(2024, 4, 26), scope=f"tickets:opened:{dogs.id}", count=4)
+        self.org.daily_counts.create(day=date(2024, 5, 3), scope="tickets:opened:0", count=2)  # out of period
 
         response = self.client.get(opened_url + "?since=2024-03-01&until=2024-05-01")
         self.assertEqual(
             {
                 "period": ["2024-03-01", "2024-05-01"],
-                "data": {"all": [["2024-04-25", 4], ["2024-04-26", 5]]},
+                "data": {
+                    "<Unknown>": [["2024-04-25", 1]],
+                    "Cats": [["2024-04-25", 3], ["2024-04-26", 5]],
+                    "Dogs": [["2024-04-25", 2], ["2024-04-26", 4]],
+                },
             },
             response.json(),
         )
@@ -430,7 +439,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(
             {
                 "period": [matchers.ISODate(), matchers.ISODate()],
-                "data": {"all": []},
+                "data": {},
             },
             response.json(),
         )

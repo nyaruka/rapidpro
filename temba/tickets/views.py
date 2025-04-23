@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import date, datetime, timedelta
 
 from smartmin.views import SmartCRUDL, SmartListView, SmartTemplateView, SmartUpdateView
@@ -526,22 +527,29 @@ class TicketCRUDL(SmartCRUDL):
             until = param("until", timezone.now().date() + timedelta(days=1))
             return since, until
 
+        def get_opened_chart(self, since, until) -> dict[str, list]:
+            topics_by_id = {t.id: t.name for t in self.request.org.topics.filter(is_active=True)}
+
+            counts = (
+                self.request.org.daily_counts.period(since, until).prefix("tickets:opened:").day_totals(scoped=True)
+            )
+            by_topic_name = defaultdict(list)
+            for (day, scope), count in counts.items():
+                topic_id = int(scope.split(":")[-1])
+                topic_name = topics_by_id.get(topic_id, "<Unknown>")
+                by_topic_name[topic_name].append((day, count))
+
+            for topic_name, counts in by_topic_name.items():
+                by_topic_name[topic_name] = list(sorted(counts, key=lambda x: x[0]))
+
+            return by_topic_name
+
         def render_to_response(self, context, **response_kwargs):
             chart = self.kwargs["chart"]
             since, until = self.get_period()
 
             if chart == "opened":
-                data = {
-                    "all": list(
-                        sorted(
-                            self.request.org.daily_counts.period(since, until)
-                            .filter(scope="tickets:opened")
-                            .day_totals(scoped=False)
-                            .items(),
-                            key=lambda x: x[0],
-                        )
-                    )
-                }
+                data = self.get_opened_chart(since, until)
 
             return JsonResponse({"period": [since, until], "data": data})
 
