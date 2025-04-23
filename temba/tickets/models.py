@@ -459,7 +459,7 @@ def export_ticket_stats(org: Org, since: date, until: date) -> openpyxl.Workbook
         sheet.cell(row=2, column=user_col + 1, value="Replies")
         user_col += 2
 
-    org_openings = org.daily_counts.period(since, until).filter(scope="tickets:opened").day_totals(scoped=False)
+    org_openings = org.daily_counts.period(since, until).prefix("tickets:opened:").day_totals(scoped=False)
     all_replies = org.daily_counts.period(since, until).prefix("msgs:ticketreplies:").day_totals(scoped=True)
     all_assignments = org.daily_counts.period(since, until).prefix("tickets:assigned:").day_totals(scoped=True)
     all_resptimes = org.daily_counts.period(since, until).prefix("ticketresptime:").day_totals(scoped=True)
