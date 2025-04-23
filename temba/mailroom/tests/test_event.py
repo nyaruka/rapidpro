@@ -28,7 +28,7 @@ class EventTest(TembaTest):
         self.assertEqual(
             {
                 "type": "msg_received",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "msg": {
                     "uuid": str(msg_in.uuid),
                     "id": msg_in.id,
@@ -51,7 +51,7 @@ class EventTest(TembaTest):
         self.assertEqual(
             {
                 "type": "msg_received",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "msg": {
                     "uuid": str(msg_in.uuid),
                     "id": msg_in.id,
@@ -74,7 +74,7 @@ class EventTest(TembaTest):
         self.assertEqual(
             {
                 "type": "msg_received",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "msg": {
                     "uuid": str(msg_in.uuid),
                     "id": msg_in.id,
@@ -98,7 +98,7 @@ class EventTest(TembaTest):
         self.assertEqual(
             {
                 "type": "msg_created",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "msg": {
                     "uuid": str(msg_out.uuid),
                     "id": msg_out.id,
@@ -125,7 +125,7 @@ class EventTest(TembaTest):
         self.assertEqual(
             {
                 "type": "msg_created",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "msg": {
                     "uuid": str(msg_out.uuid),
                     "id": msg_out.id,
@@ -148,7 +148,7 @@ class EventTest(TembaTest):
         self.assertEqual(
             {
                 "type": "ivr_created",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "msg": {
                     "uuid": str(ivr_out.uuid),
                     "id": ivr_out.id,
@@ -169,7 +169,7 @@ class EventTest(TembaTest):
         self.assertEqual(
             {
                 "type": "broadcast_created",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "translations": {"und": {"text": "Hi there"}},
                 "base_language": "und",
                 "msg": {
@@ -203,7 +203,7 @@ class EventTest(TembaTest):
         self.assertEqual(
             {
                 "type": "broadcast_created",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "translations": {"und": {"text": "Hi there"}},
                 "base_language": "und",
                 "msg": {
@@ -232,7 +232,7 @@ class EventTest(TembaTest):
         self.assertEqual(
             {
                 "type": "optin_requested",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "optin": {"uuid": str(optin.uuid), "name": "Polls"},
                 "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
                 "urn": "tel:+250979111111",
@@ -253,7 +253,7 @@ class EventTest(TembaTest):
         self.assertEqual(
             {
                 "type": "channel_event",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "event": {
                     "type": "mo_call",
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
@@ -277,7 +277,7 @@ class EventTest(TembaTest):
         self.assertEqual(
             {
                 "type": "channel_event",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "event": {
                     "type": "optin",
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
@@ -304,7 +304,7 @@ class EventTest(TembaTest):
         self.assertEqual(
             {
                 "type": "flow_entered",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "flow": {"uuid": str(flow.uuid), "name": "Colors"},
                 "logs_url": None,
             },
@@ -315,7 +315,7 @@ class EventTest(TembaTest):
         self.assertEqual(
             {
                 "type": "flow_entered",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "flow": {"uuid": str(flow.uuid), "name": "Colors"},
                 "logs_url": f"/flowsession/json/{run.session_uuid}/",
             },
@@ -344,12 +344,12 @@ class EventTest(TembaTest):
                 "assignee": None,
                 "ticket": {
                     "uuid": str(ticket.uuid),
-                    "opened_on": matchers.ISODate(),
+                    "opened_on": matchers.ISODatetime(),
                     "closed_on": None,
                     "status": "O",
                     "topic": {"uuid": str(self.org.default_ticket_topic.uuid), "name": "General"},
                 },
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "created_by": {
                     "id": self.agent.id,
                     "first_name": "Agnes",
@@ -373,12 +373,12 @@ class EventTest(TembaTest):
                 "assignee": None,
                 "ticket": {
                     "uuid": str(ticket.uuid),
-                    "opened_on": matchers.ISODate(),
+                    "opened_on": matchers.ISODatetime(),
                     "closed_on": None,
                     "status": "O",
                     "topic": {"uuid": str(self.org.default_ticket_topic.uuid), "name": "General"},
                 },
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "created_by": None,
             },
             Event.from_ticket_event(self.org, self.admin, event2),
@@ -401,7 +401,7 @@ class EventTest(TembaTest):
                 "type": "call_started",
                 "status": "I",
                 "status_display": "In Progress",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "logs_url": None,
             },
             Event.from_ivr_call(self.org, self.admin, call1),
@@ -412,7 +412,7 @@ class EventTest(TembaTest):
                 "type": "call_started",
                 "status": "E",
                 "status_display": "Errored (Busy)",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "logs_url": None,  # user can't see logs
             },
             Event.from_ivr_call(self.org, self.agent, call2),
@@ -422,7 +422,7 @@ class EventTest(TembaTest):
                 "type": "call_started",
                 "status": "E",
                 "status_display": "Errored (Busy)",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "logs_url": f"/channels/{call2.channel.uuid}/logs/call/{call2.id}/",
             },
             Event.from_ivr_call(self.org, self.admin, call2),

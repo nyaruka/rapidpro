@@ -139,10 +139,10 @@ class FlowRunTest(TembaTest):
 
         self.assertEqual(
             [
-                {"node": matchers.UUID4String(), "time": matchers.ISODate()},
-                {"node": matchers.UUID4String(), "time": matchers.ISODate()},
-                {"node": matchers.UUID4String(), "time": matchers.ISODate()},
-                {"node": matchers.UUID4String(), "time": matchers.ISODate()},
+                {"node": matchers.UUID4String(), "time": matchers.ISODatetime()},
+                {"node": matchers.UUID4String(), "time": matchers.ISODatetime()},
+                {"node": matchers.UUID4String(), "time": matchers.ISODatetime()},
+                {"node": matchers.UUID4String(), "time": matchers.ISODatetime()},
             ],
             run_json["path"],
         )
@@ -153,7 +153,7 @@ class FlowRunTest(TembaTest):
                     "category": "Other",
                     "name": "Color",
                     "node": matchers.UUID4String(),
-                    "time": matchers.ISODate(),
+                    "time": matchers.ISODatetime(),
                     "value": "green",
                     "input": "green",
                 }

@@ -733,14 +733,14 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             [
                 {
                     "user": {"email": "admin@textit.com", "name": "Andy"},
-                    "created_on": matchers.ISODate(),
+                    "created_on": matchers.ISODatetime(),
                     "id": revisions[0].id,
                     "version": Flow.CURRENT_SPEC_VERSION,
                     "revision": 2,
                 },
                 {
                     "user": {"email": "admin@textit.com", "name": "Andy"},
-                    "created_on": matchers.ISODate(),
+                    "created_on": matchers.ISODatetime(),
                     "id": revisions[1].id,
                     "version": "11.12",
                     "revision": 1,

@@ -68,7 +68,7 @@ class TopicsEndpointTest(APITest):
                 "name": "Food",
                 "counts": {"open": 0, "closed": 0},
                 "system": False,
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
             },
         )
 

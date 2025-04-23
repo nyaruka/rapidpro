@@ -84,18 +84,18 @@ class EndpointsTest(APITestMixin, TembaTest):
             results=[
                 {
                     "type": "incident:started",
-                    "created_on": matchers.ISODate(),
+                    "created_on": matchers.ISODatetime(),
                     "target_url": "/incident/",
                     "is_seen": False,
                     "incident": {
                         "type": "org:suspended",
-                        "started_on": matchers.ISODate(),
+                        "started_on": matchers.ISODatetime(),
                         "ended_on": None,
                     },
                 },
                 {
                     "type": "export:finished",
-                    "created_on": matchers.ISODate(),
+                    "created_on": matchers.ISODatetime(),
                     "target_url": f"/export/download/{export1.uuid}/",
                     "is_seen": False,
                     "export": {"type": "contact", "num_records": None},
@@ -110,7 +110,7 @@ class EndpointsTest(APITestMixin, TembaTest):
             results=[
                 {
                     "type": "export:finished",
-                    "created_on": matchers.ISODate(),
+                    "created_on": matchers.ISODatetime(),
                     "target_url": f"/export/download/{export2.uuid}/",
                     "is_seen": False,
                     "export": {"type": "ticket", "num_records": None},
@@ -153,13 +153,13 @@ class EndpointsTest(APITestMixin, TembaTest):
                     "uuid": str(shortcut2.uuid),
                     "name": "Trains",
                     "text": "Trains are...",
-                    "modified_on": matchers.ISODate(),
+                    "modified_on": matchers.ISODatetime(),
                 },
                 {
                     "uuid": str(shortcut1.uuid),
                     "name": "Planes",
                     "text": "Planes are...",
-                    "modified_on": matchers.ISODate(),
+                    "modified_on": matchers.ISODatetime(),
                 },
             ],
             num_queries=NUM_BASE_QUERIES + 1,
@@ -285,8 +285,8 @@ class EndpointsTest(APITestMixin, TembaTest):
                         "supported": True,
                         "compatible": True,
                     },
-                    "created_on": matchers.ISODate(),
-                    "modified_on": matchers.ISODate(),
+                    "created_on": matchers.ISODatetime(),
+                    "modified_on": matchers.ISODatetime(),
                 },
                 {
                     "uuid": str(tpl1.uuid),
@@ -308,8 +308,8 @@ class EndpointsTest(APITestMixin, TembaTest):
                         "supported": True,
                         "compatible": True,
                     },
-                    "created_on": matchers.ISODate(),
-                    "modified_on": matchers.ISODate(),
+                    "created_on": matchers.ISODatetime(),
+                    "modified_on": matchers.ISODatetime(),
                 },
             ],
             num_queries=NUM_BASE_QUERIES + 3,

@@ -51,7 +51,7 @@ class OptInEndpointTest(APITest):
             {
                 "uuid": str(alerts.uuid),
                 "name": "Alerts",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
             },
         )
 

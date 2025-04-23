@@ -52,7 +52,7 @@ class NotificationTest(TembaTest):
             after=export.created_on,
             expected_json={
                 "type": "export:finished",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "target_url": f"/export/download/{export.uuid}/",
                 "is_seen": False,
                 "export": {"type": "contact", "num_records": 0},
@@ -97,7 +97,7 @@ class NotificationTest(TembaTest):
             after=export.created_on,
             expected_json={
                 "type": "export:finished",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "target_url": f"/export/download/{export.uuid}/",
                 "is_seen": False,
                 "export": {"type": "contact", "num_records": 0},
@@ -140,7 +140,7 @@ class NotificationTest(TembaTest):
             after=export.created_on,
             expected_json={
                 "type": "export:finished",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "target_url": f"/export/download/{export.uuid}/",
                 "is_seen": False,
                 "export": {"type": "message", "num_records": 0},
@@ -191,7 +191,7 @@ class NotificationTest(TembaTest):
             after=export.created_on,
             expected_json={
                 "type": "export:finished",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "target_url": f"/export/download/{export.uuid}/",
                 "is_seen": False,
                 "export": {"type": "results", "num_records": 0},
@@ -230,7 +230,7 @@ class NotificationTest(TembaTest):
             after=export.created_on,
             expected_json={
                 "type": "export:finished",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "target_url": f"/export/download/{export.uuid}/",
                 "is_seen": False,
                 "export": {"type": "ticket", "num_records": 0},
@@ -267,7 +267,7 @@ class NotificationTest(TembaTest):
             after=imp.created_on,
             expected_json={
                 "type": "import:finished",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "target_url": f"/contactimport/read/{imp.id}/",
                 "is_seen": False,
                 "import": {"type": "contact", "num_records": 5},
@@ -289,7 +289,7 @@ class NotificationTest(TembaTest):
         self.assert_notifications(
             expected_json={
                 "type": "tickets:opened",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "target_url": "/ticket/unassigned/",
                 "is_seen": False,
             },
@@ -311,7 +311,7 @@ class NotificationTest(TembaTest):
         self.assert_notifications(
             expected_json={
                 "type": "tickets:activity",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "target_url": "/ticket/mine/",
                 "is_seen": False,
             },
@@ -334,12 +334,12 @@ class NotificationTest(TembaTest):
         self.assert_notifications(
             expected_json={
                 "type": "incident:started",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "target_url": f"/channels/channel/read/{self.channel.uuid}/",
                 "is_seen": False,
                 "incident": {
                     "type": "channel:templates_failed",
-                    "started_on": matchers.ISODate(),
+                    "started_on": matchers.ISODatetime(),
                     "ended_on": None,
                 },
             },
@@ -372,12 +372,12 @@ class NotificationTest(TembaTest):
         self.assert_notifications(
             expected_json={
                 "type": "incident:started",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "target_url": "/incident/",
                 "is_seen": False,
                 "incident": {
                     "type": "org:flagged",
-                    "started_on": matchers.ISODate(),
+                    "started_on": matchers.ISODatetime(),
                     "ended_on": None,
                 },
             },
@@ -407,7 +407,7 @@ class NotificationTest(TembaTest):
         self.assert_notifications(
             expected_json={
                 "type": "user:email",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "target_url": None,
                 "is_seen": True,
             },
@@ -428,7 +428,7 @@ class NotificationTest(TembaTest):
         self.assert_notifications(
             expected_json={
                 "type": "user:password",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "target_url": None,
                 "is_seen": True,
             },
@@ -453,7 +453,7 @@ class NotificationTest(TembaTest):
         self.assert_notifications(
             expected_json={
                 "type": "invitation:accepted",
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
                 "target_url": None,
                 "is_seen": True,
             },
