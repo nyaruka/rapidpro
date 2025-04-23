@@ -104,13 +104,13 @@ class LLMCRUDL(SmartCRUDL):
                 menu.add_modax(
                     _("New Anthropic"), "new-anthropic", reverse("ai.types.anthropic.connect"), title=_("Anthropic")
                 )
+                menu.add_modax(
+                    _("New Google AI"), "new-google", reverse("ai.types.google.connect"), title=_("Google AI")
+                )
+                menu.add_modax(
+                    _("New DeepSeek"), "new-deepseek", reverse("ai.types.deepseek.connect"), title=_("DeepSeek")
+                )
                 if self.request.user.is_staff:  # until https://github.com/nyaruka/temba-components/issues/486
-                    menu.add_modax(
-                        _("New Google AI"), "new-google", reverse("ai.types.google.connect"), title=_("Google AI")
-                    )
-                    menu.add_modax(
-                        _("New DeepSeek"), "new-deepseek", reverse("ai.types.deepseek.connect"), title=_("DeepSeek")
-                    )
                     menu.add_modax(
                         _("New OpenAI (Azure)"),
                         "new-openai_azure",
