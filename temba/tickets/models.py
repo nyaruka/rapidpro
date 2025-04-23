@@ -21,7 +21,6 @@ from temba.utils.dates import date_range
 from temba.utils.db.functions import SplitPart
 from temba.utils.export import MultiSheetExporter
 from temba.utils.models import TembaModel
-from temba.utils.models.counts import DailyCountModel, DailyTimingModel
 from temba.utils.uuid import is_uuid, uuid4
 
 logger = logging.getLogger(__name__)
@@ -434,38 +433,6 @@ class TopicFolder(TicketFolder):
 
     def get_queryset(self, org, user, *, ordered: bool):
         return super().get_queryset(org, user, ordered=ordered).filter(topic=self.topic)
-
-
-class TicketDailyCount(DailyCountModel):
-    """
-    TODO remove
-    """
-
-    class Meta:
-        indexes = [
-            models.Index(name="tickets_dailycount_type_scope", fields=("count_type", "scope", "day")),
-            models.Index(
-                name="tickets_dailycount_unsquashed",
-                fields=("count_type", "scope", "day"),
-                condition=Q(is_squashed=False),
-            ),
-        ]
-
-
-class TicketDailyTiming(DailyTimingModel):
-    """
-    TODO remove
-    """
-
-    class Meta:
-        indexes = [
-            models.Index(name="tickets_dailytiming_type_scope", fields=("count_type", "scope", "day")),
-            models.Index(
-                name="tickets_dailytiming_unsquashed",
-                fields=("count_type", "scope", "day"),
-                condition=Q(is_squashed=False),
-            ),
-        ]
 
 
 def export_ticket_stats(org: Org, since: date, until: date) -> openpyxl.Workbook:

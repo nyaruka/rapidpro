@@ -10,7 +10,7 @@ from django.db.models import Q, Sum
 # count_type=R scope=o:<orgid>:u:<userid> -> org=orgid scope=msgs:ticketreplies:<teamid>:<userid>
 
 
-def backfill_new_daily_counts(apps, schema_editor):
+def backfill_new_daily_counts(apps, schema_editor):  # pragma: no cover
     Org = apps.get_model("orgs", "Org")
     DailyCount = apps.get_model("orgs", "DailyCount")
 
@@ -34,7 +34,7 @@ def backfill_new_daily_counts(apps, schema_editor):
         print(f"Created {len(new_counts)} new daily counts for org '{org.name}'")
 
 
-def convert_old_counts(apps, org, user_teams: dict) -> list:
+def convert_old_counts(apps, org, user_teams: dict) -> list:  # pragma: no cover
     TicketDailyCount = apps.get_model("tickets", "TicketDailyCount")
     DailyCount = apps.get_model("orgs", "DailyCount")
 
