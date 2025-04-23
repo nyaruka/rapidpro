@@ -527,12 +527,10 @@ class TicketCRUDL(SmartCRUDL):
             until = param("until", timezone.now().date() + timedelta(days=1))
             return since, until
 
-        def get_opened_chart(self, since, until) -> dict[str, list]:
-            topics_by_id = {t.id: t.name for t in self.request.org.topics.filter(is_active=True)}
+        def get_opened_chart(self, org, since, until) -> dict[str, list]:
+            topics_by_id = {t.id: t.name for t in org.topics.filter(is_active=True)}
 
-            counts = (
-                self.request.org.daily_counts.period(since, until).prefix("tickets:opened:").day_totals(scoped=True)
-            )
+            counts = org.daily_counts.period(since, until).prefix("tickets:opened:").day_totals(scoped=True)
             by_topic_name = defaultdict(list)
             for (day, scope), count in counts.items():
                 topic_id = int(scope.split(":")[-1])
@@ -544,12 +542,29 @@ class TicketCRUDL(SmartCRUDL):
 
             return by_topic_name
 
+        def get_resptime_chart(self, org, since, until) -> dict[str, list]:
+            counts = org.daily_counts.period(since, until).prefix("ticketresptime:").day_totals(scoped=True)
+            totals_by_date, counts_by_date = {}, {}
+            for (day, scope), count in counts.items():
+                if scope.endswith(":total"):
+                    totals_by_date[day] = count
+                elif scope.endswith(":count"):
+                    counts_by_date[day] = count
+
+            avgs = []
+            for day, total in totals_by_date.items():
+                avgs.append((day, total // counts_by_date[day]))
+
+            return {"Seconds": avgs}
+
         def render_to_response(self, context, **response_kwargs):
             chart = self.kwargs["chart"]
             since, until = self.get_period()
 
             if chart == "opened":
-                data = self.get_opened_chart(since, until)
+                data = self.get_opened_chart(self.request.org, since, until)
+            elif chart == "resptime":
+                data = self.get_resptime_chart(self.request.org, since, until)
 
             return JsonResponse({"period": [since, until], "data": data})
 

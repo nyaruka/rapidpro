@@ -396,7 +396,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual(1, ticket.events.filter(event_type=TicketEvent.TYPE_NOTE_ADDED).count())
 
-    def test_chart(self):
+    def test_opened_chart(self):
         opened_url = reverse("tickets.ticket_chart", args=["opened"])
 
         cats = Topic.create(self.org, self.admin, "Cats")
@@ -440,6 +440,37 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             {
                 "period": [matchers.ISODate(), matchers.ISODate()],
                 "data": {},
+            },
+            response.json(),
+        )
+
+    def test_resptime_chart(self):
+        opened_url = reverse("tickets.ticket_chart", args=["resptime"])
+
+        self.login(self.admin)
+
+        response = self.client.get(opened_url + "?since=2024-03-01&until=2024-05-01")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "period": ["2024-03-01", "2024-05-01"],
+                "data": {"Seconds": []},
+            },
+            response.json(),
+        )
+
+        self.org.daily_counts.create(day=date(2024, 4, 25), scope="ticketresptime:total", count=1000)
+        self.org.daily_counts.create(day=date(2024, 4, 25), scope="ticketresptime:count", count=5)
+        self.org.daily_counts.create(day=date(2024, 4, 26), scope="ticketresptime:total", count=500)
+        self.org.daily_counts.create(day=date(2024, 4, 26), scope="ticketresptime:count", count=2)
+        self.org.daily_counts.create(day=date(2024, 5, 3), scope="ticketresptime:total", count=100)  # out of period
+        self.org.daily_counts.create(day=date(2024, 5, 3), scope="ticketresptime:count", count=3)
+
+        response = self.client.get(opened_url + "?since=2024-03-01&until=2024-05-01")
+        self.assertEqual(
+            {
+                "period": ["2024-03-01", "2024-05-01"],
+                "data": {"Seconds": [["2024-04-25", 200], ["2024-04-26", 250]]},
             },
             response.json(),
         )
