@@ -1,3 +1,10 @@
+v10.1.148 (2025-04-23)
+-------------------------
+ * Fix default name generation for Google LLMs
+ * Un staff-gate google AI and deepseek
+ * Latest editor and components
+ * Tweak daily count scope used for tickets opened to include topic id
+
 v10.1.147 (2025-04-23)
 -------------------------
  * Rename matchers.ISODate to matchers.ISODatetime
