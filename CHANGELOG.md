@@ -1,3 +1,8 @@
+v10.1.145 (2025-04-23)
+-------------------------
+ * Match expected payload for editor from revisions endpoint
+ * Default to empty list when flow info does not have results or parent_refs keys
+
 v10.1.144 (2025-04-23)
 -------------------------
  * Use Flow.info instead of Flow.metadata
