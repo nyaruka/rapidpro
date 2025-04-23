@@ -25,7 +25,7 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
             list_url, [self.editor, self.admin], context_objects=[self.anthropic, self.openai]
         )
         self.assertEqual("settings/ai", response.headers[TEMBA_MENU_SELECTION])
-        self.assertContentMenu(list_url, self.admin, ["New OpenAI", "New Anthropic"])
+        self.assertContentMenu(list_url, self.admin, ["New OpenAI", "New Anthropic", "New Google AI", "New DeepSeek"])
         self.assertContentMenu(
             list_url,
             self.customer_support,
