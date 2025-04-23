@@ -396,6 +396,45 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual(1, ticket.events.filter(event_type=TicketEvent.TYPE_NOTE_ADDED).count())
 
+    def test_chart(self):
+        opened_url = reverse("tickets.ticket_chart", args=["opened"])
+
+        self.login(self.admin)
+
+        response = self.client.get(opened_url + "?since=2024-03-01&until=2024-05-01")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "period": ["2024-03-01", "2024-05-01"],
+                "data": {"all": []},
+            },
+            response.json(),
+        )
+
+        self.org.daily_counts.create(day=date(2024, 4, 25), scope="tickets:opened", count=1)
+        self.org.daily_counts.create(day=date(2024, 4, 25), scope="tickets:opened", count=3)
+        self.org.daily_counts.create(day=date(2024, 4, 26), scope="tickets:opened", count=5)
+        self.org.daily_counts.create(day=date(2024, 5, 3), scope="tickets:opened", count=2)  # out of period
+
+        response = self.client.get(opened_url + "?since=2024-03-01&until=2024-05-01")
+        self.assertEqual(
+            {
+                "period": ["2024-03-01", "2024-05-01"],
+                "data": {"all": [["2024-04-25", 4], ["2024-04-26", 5]]},
+            },
+            response.json(),
+        )
+
+        # if date param not given or invalid, period defaults to last 90 days
+        response = self.client.get(opened_url + "?since=xyz")
+        self.assertEqual(
+            {
+                "period": [matchers.ISODate(), matchers.ISODate()],
+                "data": {"all": []},
+            },
+            response.json(),
+        )
+
     def test_export_stats(self):
         export_url = reverse("tickets.ticket_export_stats")
 

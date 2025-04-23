@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, datetime, timedelta
 
 from smartmin.views import SmartCRUDL, SmartListView, SmartTemplateView, SmartUpdateView
 
@@ -159,7 +159,7 @@ class TeamCRUDL(SmartCRUDL):
 
 class TicketCRUDL(SmartCRUDL):
     model = Ticket
-    actions = ("menu", "list", "folder", "update", "note", "export_stats", "export")
+    actions = ("menu", "list", "folder", "update", "note", "chart", "export_stats", "export")
 
     class Menu(BaseMenuView):
         def derive_menu(self):
@@ -506,7 +506,48 @@ class TicketCRUDL(SmartCRUDL):
             self.get_object().add_note(self.request.user, note=form.cleaned_data["note"])
             return self.render_modal_response(form)
 
+    class Chart(OrgPermsMixin, SmartTemplateView):
+        permission = "tickets.ticket_statistics"
+
+        @classmethod
+        def derive_url_pattern(cls, path, action):
+            return r"^%s/%s/(?P<chart>(opened|resptime))/$" % (path, action)
+
+        def get_period(self) -> tuple[date, date]:
+            def param(name: str, default: date):
+                if name in self.request.GET:
+                    try:
+                        return datetime.strptime(self.request.GET[name], r"%Y-%m-%d").date()
+                    except ValueError:
+                        pass
+                return default
+
+            since = param("since", timezone.now().date() - timedelta(days=90))
+            until = param("until", timezone.now().date() + timedelta(days=1))
+            return since, until
+
+        def render_to_response(self, context, **response_kwargs):
+            chart = self.kwargs["chart"]
+            since, until = self.get_period()
+
+            if chart == "opened":
+                data = {
+                    "all": list(
+                        sorted(
+                            self.request.org.daily_counts.period(since, until)
+                            .filter(scope="tickets:opened")
+                            .day_totals(scoped=False)
+                            .items(),
+                            key=lambda x: x[0],
+                        )
+                    )
+                }
+
+            return JsonResponse({"period": [since, until], "data": data})
+
     class ExportStats(OrgPermsMixin, SmartTemplateView):
+        permission = "tickets.ticket_statistics"
+
         def render_to_response(self, context, **response_kwargs):
             num_days = self.request.GET.get("days", 90)
             today = timezone.now().date()
