@@ -13,14 +13,14 @@ class MatchersTest(TembaTest):
         self.assertNotEqual("abcd", matchers.String(pattern=r"\w{3}$"))
 
     def test_isodate(self):
-        self.assertEqual("2013-02-01T07:08:09.100000+04:30", matchers.ISODate())
-        self.assertEqual("2018-02-21T20:34:07.198537686Z", matchers.ISODate())
-        self.assertEqual("2018-02-21T20:34:07.19853768Z", matchers.ISODate())
-        self.assertEqual("2018-02-21T20:34:07.198Z", matchers.ISODate())
-        self.assertEqual("2018-02-21T20:34:07Z", matchers.ISODate())
-        self.assertEqual("2013-02-01T07:08:09.100000Z", matchers.ISODate())
-        self.assertNotEqual(None, matchers.ISODate())
-        self.assertNotEqual("abc", matchers.ISODate())
+        self.assertEqual("2013-02-01T07:08:09.100000+04:30", matchers.ISODatetime())
+        self.assertEqual("2018-02-21T20:34:07.198537686Z", matchers.ISODatetime())
+        self.assertEqual("2018-02-21T20:34:07.19853768Z", matchers.ISODatetime())
+        self.assertEqual("2018-02-21T20:34:07.198Z", matchers.ISODatetime())
+        self.assertEqual("2018-02-21T20:34:07Z", matchers.ISODatetime())
+        self.assertEqual("2013-02-01T07:08:09.100000Z", matchers.ISODatetime())
+        self.assertNotEqual(None, matchers.ISODatetime())
+        self.assertNotEqual("abc", matchers.ISODatetime())
 
     def test_uuid4string(self):
         self.assertEqual("85ECBE45-E2DF-4785-8FC8-16FA941E0A79", matchers.UUID4String())

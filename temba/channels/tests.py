@@ -1415,7 +1415,7 @@ class ChannelLogTest(TembaTest):
                 ],
                 "errors": [{"code": "bad_response", "ext_code": "", "message": "response not right", "ref_url": None}],
                 "elapsed_ms": 0,
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
             },
             log.get_display(anonymize=False, urn=msg_out.contact_urn),
         )
@@ -1437,7 +1437,7 @@ class ChannelLogTest(TembaTest):
                 ],
                 "errors": [{"code": "bad_response", "ext_code": "", "message": "response n********", "ref_url": None}],
                 "elapsed_ms": 0,
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
             },
             log.get_display(anonymize=True, urn=msg_out.contact_urn),
         )
@@ -1460,7 +1460,7 @@ class ChannelLogTest(TembaTest):
                 ],
                 "errors": [{"code": "bad_response", "ext_code": "", "message": "response n********", "ref_url": None}],
                 "elapsed_ms": 0,
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
             },
             log.get_display(anonymize=True, urn=None),
         )
@@ -1509,7 +1509,7 @@ class ChannelLogTest(TembaTest):
                 ],
                 "errors": [{"code": "bad_response", "ext_code": "", "message": "response not right", "ref_url": None}],
                 "elapsed_ms": 0,
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
             },
             log.get_display(anonymize=False, urn=msg_out.contact_urn),
         )
@@ -1530,7 +1530,7 @@ class ChannelLogTest(TembaTest):
                 ],
                 "errors": [{"code": "bad_response", "ext_code": "", "message": "response n********", "ref_url": None}],
                 "elapsed_ms": 0,
-                "created_on": matchers.ISODate(),
+                "created_on": matchers.ISODatetime(),
             },
             log.get_display(anonymize=True, urn=msg_out.contact_urn),
         )

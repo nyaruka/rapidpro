@@ -41,7 +41,7 @@ class IncidentTest(TembaTest):
         self.assertEqual({self.admin}, set(n.user for n in incident.notifications.all()))
 
         self.assertEqual(
-            {"type": "org:flagged", "started_on": matchers.ISODate(), "ended_on": None}, incident.as_json()
+            {"type": "org:flagged", "started_on": matchers.ISODatetime(), "ended_on": None}, incident.as_json()
         )
 
         self.org.unflag()
@@ -58,7 +58,7 @@ class IncidentTest(TembaTest):
         self.assertEqual({self.admin}, set(n.user for n in incident.notifications.all()))
 
         self.assertEqual(
-            {"type": "org:suspended", "started_on": matchers.ISODate(), "ended_on": None}, incident.as_json()
+            {"type": "org:suspended", "started_on": matchers.ISODatetime(), "ended_on": None}, incident.as_json()
         )
 
         self.org.unsuspend()

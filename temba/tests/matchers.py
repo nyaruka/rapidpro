@@ -2,7 +2,7 @@ from datetime import datetime, timezone as tzone
 
 import regex
 
-from temba.tests.dates import FULL_ISO8601_REGEX
+from temba.tests.dates import FULL_ISO8601_REGEX, ISO_YYYY_MM_DD
 
 UUID4_REGEX = regex.compile(
     r"[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}", regex.IGNORECASE
@@ -32,6 +32,15 @@ class String(MatcherMixin, str):
 
 
 class ISODate(String):
+    """
+    Matches any ISO8601 formatted date string
+    """
+
+    def __new__(cls):
+        return super().__new__(cls, pattern=ISO_YYYY_MM_DD)
+
+
+class ISODatetime(String):
     """
     Matches any ISO8601 formatted datetime string
     """

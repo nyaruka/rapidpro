@@ -43,7 +43,7 @@ class MailroomQueueTest(TembaTest):
                     "exclusions": {},
                     "params": {"foo": "bar"},
                 },
-                "queued_on": matchers.ISODate(),
+                "queued_on": matchers.ISODatetime(),
             },
         )
 
@@ -57,7 +57,7 @@ class MailroomQueueTest(TembaTest):
             {
                 "type": "import_contact_batch",
                 "task": {"contact_import_batch_id": imp.batches.get().id},
-                "queued_on": matchers.ISODate(),
+                "queued_on": matchers.ISODatetime(),
             },
         )
 
@@ -71,7 +71,7 @@ class MailroomQueueTest(TembaTest):
             {
                 "type": "interrupt_channel",
                 "task": {"channel_id": self.channel.id},
-                "queued_on": matchers.ISODate(),
+                "queued_on": matchers.ISODatetime(),
             },
         )
 
@@ -87,7 +87,7 @@ class MailroomQueueTest(TembaTest):
             {
                 "type": "interrupt_sessions",
                 "task": {"contact_ids": [jim.id, bob.id]},
-                "queued_on": matchers.ISODate(),
+                "queued_on": matchers.ISODatetime(),
             },
         )
 
@@ -98,7 +98,7 @@ class MailroomQueueTest(TembaTest):
         self.assert_org_queued(self.org)
         self.assert_queued_batch_task(
             self.org,
-            {"type": "interrupt_sessions", "task": {"flow_ids": [flow.id]}, "queued_on": matchers.ISODate()},
+            {"type": "interrupt_sessions", "task": {"flow_ids": [flow.id]}, "queued_on": matchers.ISODatetime()},
         )
 
     def assert_org_queued(self, org):
