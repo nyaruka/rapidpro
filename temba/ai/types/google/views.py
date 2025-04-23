@@ -49,7 +49,9 @@ class ConnectView(BaseConnectWizard):
 
         if step == "name":
             step_data = self.storage.data["step_data"]
-            kwargs["model_name"] = step_data["model"]["model-model"][0].title().replace("-", " ")
+            kwargs["model_name"] = (
+                step_data["model"]["model-model"][0].removeprefix("models/").title().replace("-", " ")
+            )
 
         return kwargs
 
