@@ -270,13 +270,15 @@ class FlowCRUDL(SmartCRUDL):
                 revision = get_object_or_404(flow.revisions.filter(id=revision_id))
                 definition = revision.get_migrated_definition(to_version=requested_version)
 
-                # get our metadata
-                flow_info = mailroom.get_client().flow_inspect(flow.org, definition)
+                # inspect to get up to date info about the flow
+                info = mailroom.get_client().flow_inspect(flow.org, definition)
                 return JsonResponse(
                     {
                         "definition": definition,
-                        "issues": flow_info[Flow.INSPECT_ISSUES],
-                        "metadata": Flow.get_metadata(flow_info),
+                        "info": info,
+                        # deprecated, need to update editor to use info and info.issues
+                        "issues": info["issues"],
+                        "metadata": info,
                     }
                 )
 
@@ -296,8 +298,10 @@ class FlowCRUDL(SmartCRUDL):
                         "status": "success",
                         "saved_on": json.encode_datetime(flow.saved_on, micros=True),
                         "revision": revision.as_json(),
+                        "info": flow.info,
+                        # deprecated, need to update editor to use info and info.issues
                         "issues": issues,
-                        "metadata": flow.metadata,
+                        "metadata": flow.info,
                     }
                 )
 
@@ -443,23 +447,12 @@ class FlowCRUDL(SmartCRUDL):
                 widgets = {"name": InputWidget()}
 
         class SurveyForm(BaseForm):
-            contact_creation = forms.ChoiceField(
-                label=_("Create a contact "),
-                help_text=_("Whether surveyor logins should be used as the contact for each run"),
-                choices=((Flow.CONTACT_PER_RUN, _("For each run")), (Flow.CONTACT_PER_LOGIN, _("For each login"))),
-                widget=SelectWidget(attrs={"widget_only": False}),
-            )
-
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
 
-                self.fields["contact_creation"].initial = self.instance.metadata.get(
-                    Flow.CONTACT_CREATION, Flow.CONTACT_PER_RUN
-                )
-
             class Meta:
                 model = Flow
-                fields = ("name", "contact_creation")
+                fields = ("name",)
                 widgets = {"name": InputWidget()}
 
         class BaseOnlineForm(BaseFlowForm):
@@ -508,7 +501,9 @@ class FlowCRUDL(SmartCRUDL):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
 
-                self.fields["ivr_retry"].initial = self.instance.metadata.get("ivr_retry", 60)
+                self.fields["ivr_retry"].initial = (
+                    self.instance.ivr_retry if self.instance.ivr_retry is not None else 60
+                )
 
             class Meta:
                 model = Flow
@@ -548,15 +543,10 @@ class FlowCRUDL(SmartCRUDL):
 
         def pre_save(self, obj):
             obj = super().pre_save(obj)
-            metadata = obj.metadata
-
-            if Flow.CONTACT_CREATION in self.form.cleaned_data:
-                metadata[Flow.CONTACT_CREATION] = self.form.cleaned_data[Flow.CONTACT_CREATION]
 
             if "ivr_retry" in self.form.cleaned_data:
-                metadata[Flow.METADATA_IVR_RETRY] = int(self.form.cleaned_data["ivr_retry"])
+                obj.ivr_retry = int(self.form.cleaned_data["ivr_retry"])
 
-            obj.metadata = metadata
             return obj
 
         def post_save(self, obj):

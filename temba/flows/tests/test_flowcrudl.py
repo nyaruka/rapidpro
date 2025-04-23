@@ -517,13 +517,13 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("New Name", flow.name)
         self.assertEqual(10, flow.expires_after_minutes)
         self.assertTrue(flow.ignore_triggers)
-        self.assertEqual(30, flow.metadata.get("ivr_retry"))
+        self.assertEqual(30, flow.ivr_retry)
         self.assertEqual(1, flow.triggers.count())
         self.assertEqual(1, flow.triggers.filter(keywords=["test", "help"]).count())
 
         # check we still have that value after saving a new revision
         flow.save_revision(self.admin, flow.get_definition())
-        self.assertEqual(30, flow.metadata["ivr_retry"])
+        self.assertEqual(30, flow.ivr_retry)
 
     def test_update_surveyor_flow(self):
         flow = self.create_flow("Survey", flow_type=Flow.TYPE_SURVEY)
@@ -531,14 +531,13 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # we should only see name and contact creation option on form
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
-        self.assertUpdateFetch(update_url, [self.editor, self.admin], form_fields=["name", "contact_creation"])
+        self.assertUpdateFetch(update_url, [self.editor, self.admin], form_fields=["name"])
 
         # update name and contact creation option to be per login
-        self.assertUpdateSubmit(update_url, self.admin, {"name": "New Name", "contact_creation": "login"})
+        self.assertUpdateSubmit(update_url, self.admin, {"name": "New Name"})
 
         flow.refresh_from_db()
         self.assertEqual("New Name", flow.name)
-        self.assertEqual("login", flow.metadata.get("contact_creation"))
 
     def test_update_background_flow(self):
         flow = self.create_flow("Background", flow_type=Flow.TYPE_BACKGROUND)
@@ -1132,8 +1131,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.channel.save()
 
         # clear dependencies, this will cause our flow to look like it isn't using templates
-        flow.metadata["dependencies"] = []
-        flow.save(update_fields=("metadata",))
+        flow.info["dependencies"] = []
+        flow.save(update_fields=("info",))
 
         mr_mocks.flow_start_preview(query="age > 30", total=2)
         response = self.client.post(
@@ -1152,10 +1151,10 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         # make it look like we are using a template, but it doesn't exist
-        flow.metadata["dependencies"] = [
+        flow.info["dependencies"] = [
             {"type": "template", "uuid": "f712e05c-bbed-40f1-b3d9-671bb9b60775", "name": "affirmation"}
         ]
-        flow.save(update_fields=("metadata",))
+        flow.save(update_fields=("info",))
 
         # template doesn't exit, will be warned
         mr_mocks.flow_start_preview(query="age > 30", total=2)
@@ -1396,8 +1395,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual({"counts": []}, response.json())
 
         # simulate some category data
-        flow1.metadata["results"] = [{"key": "color", "name": "Color"}, {"key": "beer", "name": "Beer"}]
-        flow1.save(update_fields=("metadata",))
+        flow1.info["results"] = [{"key": "color", "name": "Color"}, {"key": "beer", "name": "Beer"}]
+        flow1.save(update_fields=("info",))
 
         flow1.result_counts.create(result="color", category="Red", count=3)
         flow1.result_counts.create(result="color", category="Blue", count=2)
