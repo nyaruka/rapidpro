@@ -1,3 +1,29 @@
+v10.1.145 (2025-04-23)
+-------------------------
+ * Match expected payload for editor from revisions endpoint
+ * Default to empty list when flow info does not have results or parent_refs keys
+
+v10.1.144 (2025-04-23)
+-------------------------
+ * Use Flow.info instead of Flow.metadata
+ * Drop old ticket daily counts and timings models
+
+v10.1.143 (2025-04-22)
+-------------------------
+ * Read from Flow.ivr_retry instead of Flow.metadata
+ * Backfill Flow.ivr_retry from metadata
+
+v10.1.142 (2025-04-22)
+-------------------------
+ * Bump to flow spec 14.2
+ * Add new Flow.info and .ivry_retry fields to replace Flow.metadata
+ * Fix TembaSocialAccountAdapter is open to signups
+
+v10.1.141 (2025-04-21)
+-------------------------
+ * Remove unused code from old ticket statistics models
+ * Read ticket export statistics from new daily counts model
+
 v10.1.140 (2025-04-21)
 -------------------------
  * Data migration to backfill new daily counts

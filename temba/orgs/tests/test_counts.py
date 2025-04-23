@@ -53,6 +53,10 @@ class DailyCountTest(TembaTest):
             {date(2025, 3, 20): 6, date(2025, 4, 5): 1, date(2025, 4, 15): 9},
             self.org.daily_counts.prefix("foo:").day_totals(scoped=False),
         )
+        self.assertEqual(
+            {date(2025, 3, 20): 6, date(2025, 4, 5): 1},
+            self.org.daily_counts.period(date(2025, 3, 1), date(2025, 4, 10)).day_totals(scoped=False),
+        )
         self.assertEqual(7, self.org.daily_counts.count())
 
         squash_item_counts()

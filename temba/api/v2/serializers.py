@@ -1047,10 +1047,10 @@ class FlowReadSerializer(ReadSerializer):
         return {key: counts[s] for s, key in self.RUN_STATUSES.items()}
 
     def get_results(self, obj):
-        return obj.metadata.get(Flow.METADATA_RESULTS, [])
+        return obj.info.get("results", [])
 
     def get_parent_refs(self, obj):
-        return obj.metadata.get(Flow.METADATA_PARENT_REFS, [])
+        return obj.info.get("parent_refs", [])
 
     class Meta:
         model = Flow
