@@ -1,3 +1,8 @@
+v10.1.144 (2025-04-23)
+-------------------------
+ * Use Flow.info instead of Flow.metadata
+ * Drop old ticket daily counts and timings models
+
 v10.1.143 (2025-04-22)
 -------------------------
  * Read from Flow.ivr_retry instead of Flow.metadata
