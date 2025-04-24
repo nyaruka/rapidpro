@@ -1,3 +1,7 @@
+v10.1.149 (2025-04-24)
+-------------------------
+ * Update editor
+
 v10.1.148 (2025-04-23)
 -------------------------
  * Fix default name generation for Google LLMs
