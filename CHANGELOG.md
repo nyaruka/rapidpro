@@ -1,3 +1,8 @@
+v10.1.150 (2025-04-24)
+-------------------------
+ * Fix link to remove custom email settings
+ * Add view to ticketcrudl to return data for tickets charts
+
 v10.1.149 (2025-04-24)
 -------------------------
  * Update editor
