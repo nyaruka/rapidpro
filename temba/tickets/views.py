@@ -1,4 +1,5 @@
-from datetime import timedelta
+from collections import defaultdict
+from datetime import date, datetime, timedelta
 
 from smartmin.views import SmartCRUDL, SmartListView, SmartTemplateView, SmartUpdateView
 
@@ -159,7 +160,7 @@ class TeamCRUDL(SmartCRUDL):
 
 class TicketCRUDL(SmartCRUDL):
     model = Ticket
-    actions = ("menu", "list", "folder", "update", "note", "export_stats", "export")
+    actions = ("menu", "list", "folder", "update", "note", "chart", "export_stats", "export")
 
     class Menu(BaseMenuView):
         def derive_menu(self):
@@ -506,7 +507,70 @@ class TicketCRUDL(SmartCRUDL):
             self.get_object().add_note(self.request.user, note=form.cleaned_data["note"])
             return self.render_modal_response(form)
 
+    class Chart(OrgPermsMixin, SmartTemplateView):
+        permission = "tickets.ticket_statistics"
+
+        @classmethod
+        def derive_url_pattern(cls, path, action):
+            return r"^%s/%s/(?P<chart>(opened|resptime))/$" % (path, action)
+
+        def get_period(self) -> tuple[date, date]:
+            def param(name: str, default: date):
+                if name in self.request.GET:
+                    try:
+                        return datetime.strptime(self.request.GET[name], r"%Y-%m-%d").date()
+                    except ValueError:
+                        pass
+                return default
+
+            since = param("since", timezone.now().date() - timedelta(days=90))
+            until = param("until", timezone.now().date() + timedelta(days=1))
+            return since, until
+
+        def get_opened_chart(self, org, since, until) -> dict[str, list]:
+            topics_by_id = {t.id: t.name for t in org.topics.filter(is_active=True)}
+
+            counts = org.daily_counts.period(since, until).prefix("tickets:opened:").day_totals(scoped=True)
+            by_topic_name = defaultdict(list)
+            for (day, scope), count in counts.items():
+                topic_id = int(scope.split(":")[-1])
+                topic_name = topics_by_id.get(topic_id, "<Unknown>")
+                by_topic_name[topic_name].append((day, count))
+
+            for topic_name, counts in by_topic_name.items():
+                by_topic_name[topic_name] = list(sorted(counts, key=lambda x: x[0]))
+
+            return by_topic_name
+
+        def get_resptime_chart(self, org, since, until) -> dict[str, list]:
+            counts = org.daily_counts.period(since, until).prefix("ticketresptime:").day_totals(scoped=True)
+            totals_by_date, counts_by_date = {}, {}
+            for (day, scope), count in counts.items():
+                if scope.endswith(":total"):
+                    totals_by_date[day] = count
+                elif scope.endswith(":count"):
+                    counts_by_date[day] = count
+
+            avgs = []
+            for day, total in totals_by_date.items():
+                avgs.append((day, total // counts_by_date[day]))
+
+            return {"Seconds": avgs}
+
+        def render_to_response(self, context, **response_kwargs):
+            chart = self.kwargs["chart"]
+            since, until = self.get_period()
+
+            if chart == "opened":
+                data = self.get_opened_chart(self.request.org, since, until)
+            elif chart == "resptime":
+                data = self.get_resptime_chart(self.request.org, since, until)
+
+            return JsonResponse({"period": [since, until], "data": data})
+
     class ExportStats(OrgPermsMixin, SmartTemplateView):
+        permission = "tickets.ticket_statistics"
+
         def render_to_response(self, context, **response_kwargs):
             num_days = self.request.GET.get("days", 90)
             today = timezone.now().date()
