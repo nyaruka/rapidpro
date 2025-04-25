@@ -4,7 +4,6 @@ from django.urls import reverse
 from temba.orgs.models import Org, OrgRole
 from temba.tests import CRUDLTestMixin, TembaTest
 from temba.tickets.models import Team
-from temba.users.models import RecoveryToken
 
 
 class UserCRUDLTest(TembaTest, CRUDLTestMixin):
@@ -208,9 +207,6 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_edit(self):
         edit_url = reverse("orgs.user_edit")
 
-        # generate a recovery token so we can check it's deleted when email changes
-        RecoveryToken.objects.create(user=self.admin, token="1234567")
-
         # no access if anonymous
         self.assertRequestDisallowed(edit_url, [None])
 
@@ -227,10 +223,6 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
                 [self.admin],
                 form_fields=["first_name", "last_name", "avatar"],
             )
-
-        self.admin.email_status = "V"  # mark user email as verified
-        self.admin.email_verification_secret = "old-email-secret"
-        self.admin.save()
 
         # try to submit without required fields
         self.assertUpdateSubmit(
@@ -260,9 +252,6 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.admin.refresh_from_db()
         self.assertEqual("Admin User", self.admin.name)
-        self.assertEqual("V", self.admin.email_status)  # unchanged
-        self.assertEqual("old-email-secret", self.admin.email_verification_secret)  # unchanged
-        self.assertEqual(1, RecoveryToken.objects.filter(user=self.admin).count())  # unchanged
         self.assertIsNotNone(self.admin.avatar)
         self.assertEqual("pt-br", self.admin.language)
 

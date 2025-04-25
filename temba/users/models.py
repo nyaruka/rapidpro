@@ -11,40 +11,8 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from temba.utils.fields import UploadToIdPathAndRename
-from temba.utils.text import generate_secret, generate_token
+from temba.utils.text import generate_secret
 from temba.utils.uuid import uuid4
-
-
-class RecoveryToken(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="recovery_tokens")
-    token = models.CharField(max_length=32, unique=True)
-    created_on = models.DateTimeField(default=timezone.now)
-
-
-class FailedLogin(models.Model):
-    username = models.CharField(max_length=256)
-    failed_on = models.DateTimeField(default=timezone.now)
-
-
-class BackupToken(models.Model):
-    """
-    A 2FA backup token for a user
-    """
-
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="backup_tokens", on_delete=models.PROTECT)
-    token = models.CharField(max_length=18, unique=True, default=generate_token)
-    is_used = models.BooleanField(default=False)
-    created_on = models.DateTimeField(default=timezone.now)
-
-    @classmethod
-    def generate_for_user(cls, user, count: int = 10):
-        # delete any existing tokens for this user
-        user.backup_tokens.all().delete()
-
-        return [cls.objects.create(user=user) for i in range(count)]
-
-    def __str__(self):
-        return self.token
 
 
 class UserManager(AuthUserManager):
@@ -199,41 +167,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         self.last_auth_on = timezone.now()
         self.save(update_fields=("last_auth_on",))
-
-    def enable_2fa(self):
-        """
-        Enables 2FA for this user
-        """
-
-        self.two_factor_enabled = True
-        self.save(update_fields=("two_factor_enabled",))
-
-        BackupToken.generate_for_user(self)
-
-    def disable_2fa(self):
-        """
-        Disables 2FA for this user
-        """
-
-        self.two_factor_enabled = False
-        self.save(update_fields=("two_factor_enabled",))
-
-        self.backup_tokens.all().delete()
-
-    def verify_2fa(self, *, otp: str = None, backup_token: str = None) -> bool:
-        """
-        Verifies a user using a 2FA mechanism (OTP or backup token)
-        """
-        if otp:
-            return pyotp.TOTP(self.two_factor_secret).verify(otp, valid_window=2)
-        elif backup_token:
-            token = self.backup_tokens.filter(token=backup_token, is_used=False).first()
-            if token:
-                token.is_used = True
-                token.save(update_fields=("is_used",))
-                return True
-
-        return False
 
     @cached_property
     def is_alpha(self) -> bool:

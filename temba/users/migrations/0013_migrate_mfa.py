@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.db import migrations
 
 
-def migration_mfa(apps, schema_editor):
+def migration_mfa(apps, schema_editor):  # pragma: no cover
     User = get_user_model()
 
     adapter = get_adapter()
@@ -15,7 +15,7 @@ def migration_mfa(apps, schema_editor):
 
     users = User.objects.filter(two_factor_enabled=True)
     for user in users:
-        if Authenticator.objects.filter(user=user).exists():  # pragma: no cover
+        if Authenticator.objects.filter(user=user).exists():
             continue
         backup_tokens = set(user.backup_tokens.filter(is_used=False).values_list("token", flat=True))
         totp_authenticator = Authenticator(
