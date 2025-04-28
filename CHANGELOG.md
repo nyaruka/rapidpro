@@ -1,3 +1,7 @@
+v10.1.152 (2025-04-28)
+-------------------------
+ * Update to latest floweditor
+
 v10.1.151 (2025-04-28)
 -------------------------
  * Remove more no longer used user code since move to allauth
