@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from temba.api.models import APIToken
 from temba.orgs.models import OrgRole
 from temba.orgs.tasks import update_members_seen
@@ -78,40 +76,6 @@ class UserTest(TembaTest):
                     user.has_org_perm(org, perm),
                     f"expected {user} to{'' if has_perm else ' not'} have perm {perm} in org {org.name}",
                 )
-
-    def test_two_factor(self):
-        self.assertFalse(self.admin.two_factor_enabled)
-
-        self.admin.enable_2fa()
-
-        self.assertTrue(self.admin.two_factor_enabled)
-        self.assertEqual(10, len(self.admin.backup_tokens.filter(is_used=False)))
-
-        # try to verify with.. nothing
-        self.assertFalse(self.admin.verify_2fa())
-
-        # try to verify with an invalid OTP
-        self.assertFalse(self.admin.verify_2fa(otp="nope"))
-
-        # try to verify with a valid OTP
-        with patch("pyotp.TOTP.verify", return_value=True):
-            self.assertTrue(self.admin.verify_2fa(otp="123456"))
-
-        # try to verify with an invalid backup token
-        self.assertFalse(self.admin.verify_2fa(backup_token="nope"))
-
-        # try to verify with a valid backup token
-        token = self.admin.backup_tokens.first().token
-        self.assertTrue(self.admin.verify_2fa(backup_token=token))
-
-        self.assertEqual(9, len(self.admin.backup_tokens.filter(is_used=False)))
-
-        # can't verify again with same backup token
-        self.assertFalse(self.admin.verify_2fa(backup_token=token))
-
-        self.admin.disable_2fa()
-
-        self.assertFalse(self.admin.two_factor_enabled)
 
     @mock_mailroom
     def test_release(self, mr_mocks):

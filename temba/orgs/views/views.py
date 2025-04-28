@@ -123,13 +123,7 @@ class IntegrationFormaxView(FormaxSectionMixin, ComponentFormMixin, OrgPermsMixi
 
 class UserCRUDL(SmartCRUDL):
     model = User
-    actions = (
-        "list",
-        "team",
-        "update",
-        "delete",
-        "edit",
-    )
+    actions = ("list", "team", "update", "delete", "edit")
 
     class List(RequireFeatureMixin, SpaMixin, BaseListView):
         require_feature = Org.FEATURE_USERS
