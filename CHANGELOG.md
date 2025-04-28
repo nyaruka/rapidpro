@@ -1,3 +1,8 @@
+v10.1.151 (2025-04-28)
+-------------------------
+ * Remove more no longer used user code since move to allauth
+ * Update to latest floweditor
+
 v10.1.150 (2025-04-24)
 -------------------------
  * Fix link to remove custom email settings
