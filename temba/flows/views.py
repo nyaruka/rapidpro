@@ -275,8 +275,9 @@ class FlowCRUDL(SmartCRUDL):
                 return JsonResponse(
                     {
                         "definition": definition,
-                        "issues": info["issues"],
-                        "metadata": self._get_metadata(info),
+                        "info": flow.info,
+                        "issues": info["issues"],  # deprecated
+                        "metadata": info,  # deprecated
                     }
                 )
 
@@ -296,8 +297,9 @@ class FlowCRUDL(SmartCRUDL):
                         "status": "success",
                         "saved_on": json.encode_datetime(flow.saved_on, micros=True),
                         "revision": revision.as_json(),
-                        "issues": issues,
-                        "metadata": self._get_metadata(flow.info),
+                        "info": flow.info,
+                        "issues": issues,  # deprecated
+                        "metadata": flow.info,  # deprecated
                     }
                 )
 
@@ -327,9 +329,6 @@ class FlowCRUDL(SmartCRUDL):
                 detail = None
 
             return JsonResponse({"status": "failure", "description": error, "detail": detail}, status=400)
-
-        def _get_metadata(self, info: dict) -> dict:
-            return ({k: v for k, v in info.items() if k in ["dependencies", "results", "parent_refs"]},)
 
     class Create(ModalFormMixin, OrgPermsMixin, SmartCreateView):
         class Form(BaseFlowForm):
