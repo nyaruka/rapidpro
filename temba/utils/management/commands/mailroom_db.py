@@ -34,14 +34,15 @@ LOCATIONS_FILE = "test-data/nigeria.bin"
 
 # database id sequences to be reset to make ids predictable
 RESET_SEQUENCES = (
-    "contacts_contact_id_seq",
-    "contacts_contacturn_id_seq",
-    "contacts_contactgroup_id_seq",
-    "flows_flow_id_seq",
-    "flows_flowrevision_id_seq",
-    "channels_channel_id_seq",
+    "ai_llm_id_seq",
     "campaigns_campaign_id_seq",
     "campaigns_campaignevent_id_seq",
+    "channels_channel_id_seq",
+    "contacts_contact_id_seq",
+    "contacts_contactgroup_id_seq",
+    "contacts_contacturn_id_seq",
+    "flows_flow_id_seq",
+    "flows_flowrevision_id_seq",
     "msgs_label_id_seq",
     "templates_template_id_seq",
     "templates_templatetranslation_id_seq",
