@@ -1,3 +1,8 @@
+v10.1.154 (2025-04-29)
+-------------------------
+ * Bump to flow spec 14.3
+ * Drop Flow.metadata
+
 v10.1.153 (2025-04-28)
 -------------------------
  * Update to latest floweditor
