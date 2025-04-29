@@ -324,17 +324,6 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         )
 
     def test_get_category_counts(self):
-        def assertCount(counts, result_key, category_name, truth):
-            found = False
-            for count in counts:
-                if count["key"] == result_key:
-                    categories = count["categories"]
-                    for category in categories:
-                        if category["name"] == category_name:
-                            found = True
-                            self.assertEqual(category["count"], truth)
-            self.assertTrue(found)
-
         flow = self.create_flow("Favorites")
         flow.info = {
             "results": [
@@ -343,7 +332,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
                 {"key": "name", "name": "Name", "categories": ["All Responses"]},
             ]
         }
-        flow.save(update_fields=("metadata",))
+        flow.save(update_fields=("info",))
 
         flow.result_counts.create(result="color", category="Blue", count=10)
         flow.result_counts.create(result="beer", category="Primus", count=10)

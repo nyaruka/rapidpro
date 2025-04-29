@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def backfill_ivr_retry(apps, schema_editor):
+def backfill_ivr_retry(apps, schema_editor):  # pragma: no cover
     Flow = apps.get_model("flows", "Flow")
 
     num_updated = 0

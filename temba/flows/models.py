@@ -178,9 +178,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
     soft_dependent_types = {"flow", "campaign_event", "trigger"}  # it's all soft for flows
 
-    # TODO replace by info and ivr_retry
-    metadata = JSONAsTextField(null=True, default=dict)
-
     @classmethod
     def create(
         cls,
