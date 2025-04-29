@@ -1,3 +1,7 @@
+v10.1.155 (2025-04-29)
+-------------------------
+ * Update the revisions endpoint response format to include the entire flow info blob
+
 v10.1.154 (2025-04-29)
 -------------------------
  * Bump to flow spec 14.3
