@@ -753,8 +753,11 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertReadFetch(f"{revisions_url}{revisions[0].id}/", [self.editor, self.admin])
 
         # make sure we can read the definition
-        definition = response.json()["definition"]
-        self.assertEqual("und", definition["language"])
+        resp_json = response.json()
+        self.assertEqual("und", resp_json["definition"]["language"])
+        self.assertEqual(
+            {"counts", "issues", "locals", "results", "parent_refs", "dependencies"}, set(resp_json["info"].keys())
+        )
 
         # fetch the legacy revision
         response = self.client.get(f"{revisions_url}{revisions[1].id}/")
