@@ -1,3 +1,9 @@
+v10.1.156 (2025-04-30)
+-------------------------
+ * Rework openai_azure LLM type to be a UNICEF specific type in the UI
+ * Update temba-components which changes AI icons
+ * Allow latest flow revision to be fetched without id
+
 v10.1.155 (2025-04-29)
 -------------------------
  * Update the revisions endpoint response format to include the entire flow info blob
