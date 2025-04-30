@@ -850,8 +850,9 @@ LLM_TYPES = {
     "temba.ai.types.openai.type.OpenAIType": {
         "models": ["gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"],
     },
-    "temba.ai.types.openai_azure.type.OpenAIAzureType": {},
 }
+if TESTING:
+    LLM_TYPES["temba.ai.types.openai_azure.type.OpenAIAzureType"] = {"models": ["gpt-35-turbo", "gpt-4"]}
 
 ANALYTICS_TYPES = [
     "temba.utils.analytics.ConsoleBackend",

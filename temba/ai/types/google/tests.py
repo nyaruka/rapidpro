@@ -19,7 +19,7 @@ class GoogleTypeTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(connect_url, self.admin, status=200)
         self.assertContains(response, "You can find your API key at https://aistudio.google.com/")
 
-        # test with bad api key,
+        # test with bad api key
         mock_client.return_value.models.list.side_effect = errors.ClientError(403, {})
         response = self.process_wizard("connect_view", connect_url, {"credentials": {"api_key": "bad_key"}})
         self.assertContains(response, "Invalid API Key")

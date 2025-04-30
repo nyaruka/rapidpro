@@ -19,7 +19,7 @@ class DeepSeekTypeTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(connect_url, self.admin, status=200)
         self.assertContains(response, "You can find your API key at https://platform.deepseek.com/api_keys")
 
-        # test with bad api key,
+        # test with bad api key
         mock_client.return_value.models.list.side_effect = openai.AuthenticationError(
             "Invalid API Key", response=Mock(request=None), body=None
         )

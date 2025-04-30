@@ -23,7 +23,7 @@ class CredentialsForm(BaseConnectWizard.Form):
             client = openai.OpenAI(base_url="https://api.deepseek.com", api_key=api_key)
             available_models = client.models.list()
         except openai.AuthenticationError:
-            raise forms.ValidationError(_("Invalid API Key"))
+            raise forms.ValidationError(_("Invalid API Key."))
 
         allowed_models = self.llm_type.settings.get("models", [])
         model_choices = [(m.id, m.id) for m in available_models if not allowed_models or m.id in allowed_models]

@@ -15,50 +15,31 @@ class OpenAIAzureTypeTest(TembaTest, CRUDLTestMixin):
         connect_url = reverse("ai.types.openai_azure.connect")
 
         self.assertRequestDisallowed(connect_url, [self.editor, self.agent])
-        self.assertCreateFetch(connect_url, [self.admin], form_fields=("endpoint", "api_key", "deployment"))
 
-        # test with bad endpoint
-        mock_client.return_value.chat.completions.create.side_effect = openai.APIConnectionError(request=Mock())
-        response = self.process_wizard(
-            "connect_view",
-            connect_url,
-            {"connect": {"endpoint": "http://nope", "api_key": "sesame", "deployment": "gpt-4"}},
-        )
-        self.assertContains(response, "Please check your endpoint URL.")
+        response = self.requestView(connect_url, self.admin, status=200)
+        self.assertContains(response, "API keys are provided")
 
         # test with bad api key
         mock_client.return_value.chat.completions.create.side_effect = openai.AuthenticationError(
             "Invalid API Key", response=Mock(request=None), body=None
         )
-        response = self.process_wizard(
-            "connect_view",
-            connect_url,
-            {"connect": {"endpoint": "http://azure", "api_key": "bad-key", "deployment": "gpt-4"}},
-        )
-        self.assertContains(response, "Please check your API key.")
-
-        # test with bad deployment name
-        mock_client.return_value.chat.completions.create.side_effect = openai.NotFoundError(
-            "Invalid Deployment", response=Mock(request=None), body=None
-        )
-        response = self.process_wizard(
-            "connect_view",
-            connect_url,
-            {"connect": {"endpoint": "http://azure", "api_key": "sesame", "deployment": "foo"}},
-        )
-        self.assertContains(response, "Please check your deployment name.")
+        response = self.process_wizard("connect_view", connect_url, {"credentials": {"api_key": "bad_key"}})
+        self.assertContains(response, "Invalid API Key")
 
         # reset our mock
         mock_client.return_value.chat.completions.create.side_effect = None
+
+        # get our model list
+        response = self.process_wizard("connect_view", connect_url, {"credentials": {"api_key": "good_key"}})
+        self.assertEqual(
+            response.context["form"].fields["model"].choices, [("gpt-35-turbo", "gpt-35-turbo"), ("gpt-4", "gpt-4")]
+        )
 
         # select a model and give it a name
         response = self.process_wizard(
             "connect_view",
             connect_url,
-            {
-                "connect": {"endpoint": "http://azure", "api_key": "sesame", "deployment": "gpt-4"},
-                "name": {"name": "Cool Model"},
-            },
+            {"credentials": {"api_key": "good_key"}, "model": {"model": "gpt-4"}, "name": {"name": "Cool Model"}},
         )
         self.assertRedirects(response, reverse("ai.llm_list"))
 
@@ -66,5 +47,5 @@ class OpenAIAzureTypeTest(TembaTest, CRUDLTestMixin):
         llm = LLM.objects.get(org=self.org, llm_type="openai_azure")
         self.assertEqual("Cool Model", llm.name)
         self.assertEqual("gpt-4", llm.model)
-        self.assertEqual("http://azure", llm.config["endpoint"])
-        self.assertEqual("sesame", llm.config["api_key"])
+        self.assertEqual("https://orgunit-ai-endpoints.azure-api.net/openai-gen-ai-poc", llm.config["endpoint"])
+        self.assertEqual("good_key", llm.config["api_key"])
