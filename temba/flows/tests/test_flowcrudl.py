@@ -759,6 +759,10 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             {"counts", "issues", "locals", "results", "parent_refs", "dependencies"}, set(resp_json["info"].keys())
         )
 
+        # we can also fetch the latest revision without knowing the id
+        response = self.client.get(f"{revisions_url}latest/")
+        self.assertEqual(resp_json, response.json())
+
         # fetch the legacy revision
         response = self.client.get(f"{revisions_url}{revisions[1].id}/")
 
