@@ -255,7 +255,7 @@ class FlowCRUDL(SmartCRUDL):
 
         @classmethod
         def derive_url_pattern(cls, path, action):
-            return r"^%s/%s/(?P<uuid>[0-9a-f-]+)/((?P<revision_id>\d+)/)?$" % (path, action)
+            return r"^%s/%s/(?P<uuid>[0-9a-f-]+)/((?P<revision_id>\d+|latest)/)?$" % (path, action)
 
         def get(self, request, *args, **kwargs):
             flow = self.get_object()
@@ -267,7 +267,11 @@ class FlowCRUDL(SmartCRUDL):
 
             # we are looking for a specific revision, fetch it and migrate it forward
             if revision_id:
-                revision = get_object_or_404(flow.revisions.filter(id=revision_id))
+                if revision_id == "latest":
+                    revision = flow.revisions.all().order_by("-revision").first()
+                else:
+                    revision = get_object_or_404(flow.revisions.filter(id=revision_id))
+
                 definition = revision.get_migrated_definition(to_version=requested_version)
 
                 # inspect to get up to date info about the flow
