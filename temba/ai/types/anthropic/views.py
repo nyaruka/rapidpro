@@ -23,7 +23,7 @@ class CredentialsForm(BaseConnectWizard.Form):
             client = anthropic.Anthropic(api_key=api_key)
             available_models = client.models.list()
         except anthropic.AuthenticationError:
-            raise forms.ValidationError(_("Invalid API Key"))
+            raise forms.ValidationError(_("Invalid API Key."))
 
         allowed_models = self.llm_type.settings.get("models", [])
         model_choices = [

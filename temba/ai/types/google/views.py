@@ -25,7 +25,7 @@ class CredentialsForm(BaseConnectWizard.Form):
             pager = client.models.list(config={"page_size": 10})
             available_models = list(pager)
         except errors.ClientError:
-            raise forms.ValidationError(_("Invalid API Key"))
+            raise forms.ValidationError(_("Invalid API Key."))
 
         allowed_models = [f"models/{m}" for m in self.llm_type.settings.get("models", [])]
         model_choices = [
