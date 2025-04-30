@@ -10,6 +10,6 @@ class GoogleType(LLMType):
 
     name = "Google"
     slug = "google"
-    icon = "google"
+    icon = "ai_google"
 
     connect_view = ConnectView
