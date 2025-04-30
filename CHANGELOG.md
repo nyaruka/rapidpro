@@ -1,3 +1,7 @@
+v10.1.157 (2025-04-30)
+-------------------------
+ * Add locals to completion
+
 v10.1.156 (2025-04-30)
 -------------------------
  * Rework openai_azure LLM type to be a UNICEF specific type in the UI
