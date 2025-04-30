@@ -10,6 +10,6 @@ class AnthropicType(LLMType):
 
     name = "Anthropic"
     slug = "anthropic"
-    icon = "anthropic"
+    icon = "ai_anthropic"
 
     connect_view = ConnectView

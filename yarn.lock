@@ -84,10 +84,10 @@
     react "^16.8.6"
     react-dom "^16.8.6"
 
-"@nyaruka/temba-components@0.120.3":
-  version "0.120.3"
-  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.120.3.tgz#f79199f0279a6b2f13723bafa178c3bf28bc97f1"
-  integrity sha512-wvX6XZ3ZSu7vlnMpZYgzP91MotmrUI+cKEOR/2eDaARclMwcGSMm+nypCVAtW9WxBOI361ZFOswyXT5OaH/Nbw==
+"@nyaruka/temba-components@0.120.4":
+  version "0.120.4"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.120.4.tgz#6f0a2ca199423ea0b17b668139c7d13fd0da967c"
+  integrity sha512-veIe8lYr46H/WZaajq34xYdNv5XDB/NSuSbmkGQH4EfF2hEMOUXlHWg9UX1mhN8vdci6y//YyeIzTtuPWWCTCA==
   dependencies:
     "@lit/localize" "^0.12.1"
     color-hash "^2.0.2"
@@ -103,10 +103,10 @@
     serialize-javascript "^6.0.2"
     tiny-lru "^11.2.5"
 
-"@nyaruka/temba-components@0.120.4":
-  version "0.120.4"
-  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.120.4.tgz#6f0a2ca199423ea0b17b668139c7d13fd0da967c"
-  integrity sha512-veIe8lYr46H/WZaajq34xYdNv5XDB/NSuSbmkGQH4EfF2hEMOUXlHWg9UX1mhN8vdci6y//YyeIzTtuPWWCTCA==
+"@nyaruka/temba-components@0.120.7":
+  version "0.120.7"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.120.7.tgz#f5a1a8275c2f326f8b3c7fb0255ab32da1a0b17d"
+  integrity sha512-iEM0Rz4MVWHrHyeaY1gigT1oBC2UsxphKwCjSJDMUGd11kFssfwFhJpKiY73od2F72oiAdY2w7ahf9olcXh7Nw==
   dependencies:
     "@lit/localize" "^0.12.1"
     color-hash "^2.0.2"

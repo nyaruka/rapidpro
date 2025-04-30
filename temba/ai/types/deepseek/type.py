@@ -10,6 +10,6 @@ class DeepSeekType(LLMType):
 
     name = "DeepSeek"
     slug = "deepseek"
-    icon = "deepseek"
+    icon = "ai_deepseek"
 
     connect_view = ConnectView

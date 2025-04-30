@@ -10,6 +10,6 @@ class OpenAIType(LLMType):
 
     name = "OpenAI"
     slug = "openai"
-    icon = "openai"
+    icon = "ai_openai"
 
     connect_view = ConnectView
