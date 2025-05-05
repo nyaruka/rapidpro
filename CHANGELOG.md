@@ -1,3 +1,7 @@
+v10.1.158 (2025-05-05)
+-------------------------
+ * Update LLM service exception
+
 v10.1.157 (2025-04-30)
 -------------------------
  * Add locals to completion
