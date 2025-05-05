@@ -18,7 +18,7 @@ from temba.utils import json
 from .. import modifiers
 from .client import MailroomClient
 from .exceptions import (
-    AIReasoningException,
+    AIServiceException,
     FlowValidationException,
     QueryValidationException,
     RequestException,
@@ -509,14 +509,13 @@ class MailroomClientTest(TembaTest):
             },
         )
 
-        with self.assertRaises(AIReasoningException) as e:
+        with self.assertRaises(AIServiceException) as e:
             self.client.llm_translate(llm, from_language="eng", to_language="spa", text="Hello world")
 
         self.assertEqual("not able to translate", e.exception.error)
         self.assertEqual("reasoning", e.exception.code)
         self.assertEqual("Translate", e.exception.instructions)
         self.assertEqual("Hi there", e.exception.input)
-        self.assertEqual("<CANT>", e.exception.response)
         self.assertEqual("not able to translate", str(e.exception))
 
     @patch("requests.post")

@@ -80,17 +80,16 @@ class URNValidationException(Exception):
         return self.error
 
 
-class AIReasoningException(Exception):
+class AIServiceException(Exception):
     """
-    Request that fails because an LLM can't (or won't) do what it was asked.
+    Request that fails because an LLM service error
     """
 
-    def __init__(self, error: str, code: str, instructions: str, input: str, response: str):
+    def __init__(self, error: str, code: str, instructions: str, input: str):
         self.error = error
         self.code = code
         self.instructions = instructions
         self.input = input
-        self.response = response
 
     def __str__(self):
         return self.error
