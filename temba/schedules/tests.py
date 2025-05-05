@@ -164,6 +164,24 @@ class ScheduleTest(TembaTest):
                 ],
                 display="each month on the 31st",
             ),
+            dict(
+                label="yearly repeating starting in the future",
+                trigger_date=datetime(2013, 1, 3, hour=10),
+                now=datetime(2013, 1, 3, hour=9),
+                repeat_period=Schedule.REPEAT_YEARLY,
+                first=datetime(2013, 1, 3, hour=10),
+                next=[datetime(2014, 1, 3, hour=10), datetime(2015, 1, 3, hour=10)],
+                display="each year on January 3rd",
+            ),
+            dict(
+                label="yearly repeating starting in the past",
+                trigger_date=datetime(2013, 1, 3, hour=8),
+                now=datetime(2013, 1, 3, hour=9),
+                repeat_period=Schedule.REPEAT_YEARLY,
+                first=datetime(2014, 1, 3, hour=8),
+                next=[datetime(2015, 1, 3, hour=8), datetime(2016, 1, 3, hour=8)],
+                display="each year on January 3rd",
+            ),
         ]
 
         for tc in tcs:

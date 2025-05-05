@@ -1,7 +1,7 @@
 import logging
 from abc import abstractmethod
 
-from django.contrib.auth.models import User
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 from django.urls import reverse
@@ -10,8 +10,8 @@ from django.utils import timezone
 from temba.channels.models import Channel
 from temba.contacts.models import ContactImport
 from temba.orgs.models import Export, Org
+from temba.users.models import User
 from temba.utils.email import EmailSender
-from temba.utils.models import SquashableModel
 
 logger = logging.getLogger(__name__)
 
@@ -157,15 +157,17 @@ class Notification(models.Model):
     EMAIL_STATUS_PENDING = "P"
     EMAIL_STATUS_SENT = "S"
     EMAIL_STATUS_NONE = "N"
+    EMAIL_STATUS_UNVERIFIED = "U"
     EMAIL_STATUS_CHOICES = (
         (EMAIL_STATUS_PENDING, "Pending"),
         (EMAIL_STATUS_SENT, "Sent"),
         (EMAIL_STATUS_NONE, "None"),
+        (EMAIL_STATUS_UNVERIFIED, "Unverified"),
     )
 
     id = models.BigAutoField(primary_key=True)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="notifications")
-    notification_type = models.CharField(max_length=16)
+    notification_type = models.CharField(max_length=32)
     medium = models.CharField(max_length=2)
 
     # The scope is what we maintain uniqueness of unseen notifications for within an org. For some notification types,
@@ -173,7 +175,7 @@ class Notification(models.Model):
     # types like channel alerts, it will be the UUID of an object.
     scope = models.CharField(max_length=36)
 
-    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="notifications")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="notifications")
     is_seen = models.BooleanField(default=False)
     email_address = models.EmailField(null=True)  # only used when dest email != current user email
     email_status = models.CharField(choices=EMAIL_STATUS_CHOICES, max_length=1, default=EMAIL_STATUS_NONE)
@@ -182,10 +184,27 @@ class Notification(models.Model):
     export = models.ForeignKey(Export, null=True, on_delete=models.PROTECT, related_name="notifications")
     contact_import = models.ForeignKey(ContactImport, null=True, on_delete=models.PROTECT, related_name="notifications")
     incident = models.ForeignKey(Incident, null=True, on_delete=models.PROTECT, related_name="notifications")
+    data = models.JSONField(null=True, default=dict)
 
     @classmethod
-    def create_all(cls, org, notification_type: str, *, scope: str, users, medium: str = MEDIUM_UI, **kwargs):
+    def create_all(
+        cls,
+        org,
+        notification_type: str,
+        *,
+        scope: str,
+        users,
+        medium: str = MEDIUM_UI,
+        **kwargs,
+    ):
         for user in users:
+
+            email_status = cls.EMAIL_STATUS_NONE
+            if cls.MEDIUM_EMAIL in medium:
+                email_status = cls.EMAIL_STATUS_PENDING
+                if not user.emailaddress_set.filter(verified=True).exists():
+                    email_status = cls.EMAIL_STATUS_UNVERIFIED
+
             cls.objects.get_or_create(
                 org=org,
                 notification_type=notification_type,
@@ -193,6 +212,7 @@ class Notification(models.Model):
                 user=user,
                 is_seen=cls.MEDIUM_UI not in medium,
                 medium=medium,
+                email_status=email_status,
                 defaults=kwargs,
             )
 
@@ -203,7 +223,7 @@ class Notification(models.Model):
 
         if subject and template:
             sender = EmailSender.from_email_type(self.org.branding, "notifications")
-            sender.send([self.email_address or self.user.email], f"[{self.org.name}] {subject}", template, context)
+            sender.send([self.email_address or self.user.email], template, context, f"[{self.org.name}] {subject}")
         else:  # pragma: no cover
             logger.error(f"pending emails for notification type {self.type.slug} not configured for email")
 
@@ -223,7 +243,7 @@ class Notification(models.Model):
 
     @classmethod
     def get_unseen_count(cls, org: Org, user: User) -> int:
-        return NotificationCount.get_total(org, user)
+        return org.counts.filter(scope=f"notifications:{user.id}:U").sum()
 
     @property
     def type(self):
@@ -260,33 +280,3 @@ class Notification(models.Model):
                 condition=Q(is_seen=False),
             ),
         ]
-
-
-class NotificationCount(SquashableModel):
-    """
-    A count of a user's unseen notifications in a specific org
-    """
-
-    squash_over = ("org_id", "user_id")
-
-    org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="notification_counts")
-    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="notification_counts")
-    count = models.IntegerField(default=0)
-
-    @classmethod
-    def get_squash_query(cls, distinct_set):
-        sql = """
-            WITH deleted as (
-                DELETE FROM %(table)s WHERE "org_id" = %%s AND "user_id" = %%s RETURNING "count"
-            )
-            INSERT INTO %(table)s("org_id", "user_id", "count", "is_squashed")
-            VALUES (%%s, %%s, GREATEST(0, (SELECT SUM("count") FROM deleted)), TRUE);
-            """ % {
-            "table": cls._meta.db_table
-        }
-
-        return sql, (distinct_set.org_id, distinct_set.user_id) * 2
-
-    @classmethod
-    def get_total(cls, org: Org, user: User) -> int:
-        return cls.sum(cls.objects.filter(org=org, user=user))

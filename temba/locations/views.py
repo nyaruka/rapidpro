@@ -8,16 +8,16 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from temba.locations.models import AdminBoundary, BoundaryAlias
-from temba.orgs.views import OrgPermsMixin, SpaMixin
+from temba.orgs.views.mixins import OrgPermsMixin
 from temba.utils import json
-from temba.utils.views import ContentMenuMixin
+from temba.utils.views.mixins import ContextMenuMixin, SpaMixin
 
 
 class BoundaryCRUDL(SmartCRUDL):
     actions = ("alias", "geometry", "boundaries")
     model = AdminBoundary
 
-    class Alias(SpaMixin, OrgPermsMixin, ContentMenuMixin, SmartReadView):
+    class Alias(SpaMixin, OrgPermsMixin, ContextMenuMixin, SmartReadView):
         menu_path = "/settings/workspace"
 
         @classmethod
@@ -36,7 +36,7 @@ class BoundaryCRUDL(SmartCRUDL):
                     messages.warning(request, _("You must select a country for your workspace."))
                     return HttpResponseRedirect(reverse("orgs.org_workspace"))
 
-            return None
+            return super().pre_process(request, *args, **kwargs)
 
         def get_object(self, queryset=None):
             return self.request.org.country
@@ -49,7 +49,7 @@ class BoundaryCRUDL(SmartCRUDL):
             return r"^%s/%s/(?P<osmId>\w+\.?\d+\.?\d?\_?\d?)/$" % (path, action)
 
         def get_object(self):
-            return AdminBoundary.geometries.get(osm_id=self.kwargs["osmId"])
+            return AdminBoundary.objects.get(osm_id=self.kwargs["osmId"])
 
         def render_to_response(self, context):
             if self.object.children.all().count() > 0:
@@ -68,7 +68,7 @@ class BoundaryCRUDL(SmartCRUDL):
             return r"^%s/%s/(?P<osmId>[\w\.]+)/$" % (path, action)
 
         def get_object(self):
-            return AdminBoundary.geometries.get(osm_id=self.kwargs["osmId"])
+            return AdminBoundary.objects.get(osm_id=self.kwargs["osmId"])
 
         def post(self, request, *args, **kwargs):
             # try to parse our body

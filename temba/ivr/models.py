@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 from django.contrib.postgres.fields import ArrayField
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -54,6 +53,7 @@ class Call(models.Model):
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="calls")
     direction = models.CharField(max_length=1, choices=DIRECTION_CHOICES)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
+    session_uuid = models.UUIDField(null=True)
 
     channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="calls")
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT, related_name="calls")
@@ -93,25 +93,8 @@ class Call(models.Model):
             status += f" ({self.get_error_reason_display()})"
         return status
 
-    def get_session(self):
-        """
-        There is a one-to-one relationship between flow sessions and call, but as call can be null
-        it can throw an exception
-        """
-        try:
-            return self.session
-        except ObjectDoesNotExist:  # pragma: no cover
-            return None
-
     def get_logs(self) -> list:
         return ChannelLog.get_by_uuid(self.channel, self.log_uuids or [])
-
-    def release(self):
-        session = self.get_session()
-        if session:
-            session.delete()
-
-        self.delete()
 
     class Meta:
         indexes = [

@@ -2,7 +2,6 @@ import functools
 import re
 from collections import defaultdict
 from dataclasses import asdict
-from datetime import timedelta
 from decimal import Decimal
 from functools import wraps
 from unittest.mock import call, patch
@@ -12,18 +11,18 @@ from django.db import connection
 from django.utils import timezone
 
 from temba import mailroom
-from temba.campaigns.models import CampaignEvent, EventFire
+from temba.campaigns.models import CampaignEvent
 from temba.channels.models import ChannelEvent
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactURN
 from temba.flows.models import FlowRun, FlowSession
 from temba.locations.models import AdminBoundary
 from temba.mailroom.client.client import MailroomClient
 from temba.mailroom.modifiers import Modifier
-from temba.msgs.models import Broadcast, Msg
+from temba.msgs.models import Broadcast, Msg, QuickReply
 from temba.schedules.models import Schedule
 from temba.tests.dates import parse_datetime
 from temba.tickets.models import Ticket, TicketEvent
-from temba.utils import get_anonymous_user, json
+from temba.utils import json
 
 event_units = {
     CampaignEvent.UNIT_MINUTES: "minutes",
@@ -61,6 +60,7 @@ class Mocks:
         self._contact_urns = []
         self._flow_inspect = []
         self._flow_start_preview = []
+        self._llm_translate = []
         self._msg_broadcast_preview = []
         self._exceptions = []
 
@@ -95,13 +95,12 @@ class Mocks:
     def contact_urns(self, urns: dict):
         self._contact_urns.append(urns)
 
-    def flow_inspect(self, *, dependencies=(), issues=(), results=(), waiting_exits=(), parent_refs=()):
+    def flow_inspect(self, *, dependencies=(), issues=(), results=(), parent_refs=()):
         self._flow_inspect.append(
             {
                 "dependencies": dependencies,
                 "issues": issues,
                 "results": results,
-                "waiting_exits": waiting_exits,
                 "parent_refs": parent_refs,
             }
         )
@@ -111,6 +110,9 @@ class Mocks:
             return mailroom.RecipientsPreview(query=query, total=total)
 
         self._flow_start_preview.append(mock)
+
+    def llm_translate(self, text):
+        self._llm_translate.append(text)
 
     def msg_broadcast_preview(self, query, total):
         def mock(org):
@@ -147,6 +149,7 @@ class TestClient(MailroomClient):
 
         super().__init__(settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN)
 
+    @_client_method
     def android_event(self, org, channel, phone: str, event_type: str, extra: dict, occurred_on):
         contact, contact_urn = contact_resolve(org, phone)
 
@@ -161,6 +164,7 @@ class TestClient(MailroomClient):
         )
         return {"id": event.id}
 
+    @_client_method
     def android_message(self, org, channel, phone: str, text: str, received_on):
         contact, contact_urn = contact_resolve(org, phone)
         text = text[: Msg.MAX_TEXT_LEN]
@@ -184,8 +188,17 @@ class TestClient(MailroomClient):
             direction=Msg.DIRECTION_IN,
             status=Msg.STATUS_PENDING,
             msg_type=Msg.TYPE_TEXT,
+            is_android=True,
         )
         return {"id": msg.id, "duplicate": False}
+
+    @_client_method
+    def android_sync(self, channel):
+        return {"id": channel.id}
+
+    @_client_method
+    def campaign_schedule_event(self, org, event):
+        pass
 
     @_client_method
     def contact_create(self, org, user, contact: mailroom.ContactSpec):
@@ -253,12 +266,12 @@ class TestClient(MailroomClient):
 
     @_client_method
     def contact_interrupt(self, org, user, contact) -> int:
-        # get the waiting session IDs
-        session_ids = list(contact.sessions.filter(status=FlowSession.STATUS_WAITING).values_list("id", flat=True))
+        # get the waiting session UUIDs
+        session_uuids = list(contact.sessions.filter(status=FlowSession.STATUS_WAITING).values_list("uuid", flat=True))
 
-        exit_sessions(session_ids, FlowSession.STATUS_INTERRUPTED)
+        exit_sessions(session_uuids, FlowSession.STATUS_INTERRUPTED)
 
-        return len(session_ids)
+        return len(session_uuids)
 
     @_client_method
     def contact_parse_query(self, org, query: str, parse_only: bool = False):
@@ -294,13 +307,21 @@ class TestClient(MailroomClient):
         return results
 
     @_client_method
+    def flow_clone(self, definition: dict, dependency_mapping):
+        # we replace UUIDs in production to ensure uniqueness but for tests it's nicer to know the UUIDs
+        return definition
+
+    @_client_method
     def flow_inspect(self, org, definition: dict):
         if self.mocks._flow_inspect:
             return self.mocks._flow_inspect.pop(0)
 
-        # fall back to the real client - note that this why mailroom has to be running during tests
-        # and is something we might want to change in the future
-        return super().flow_inspect(org, definition)
+        return {
+            "dependencies": [],
+            "issues": [],
+            "results": [],
+            "parent_refs": [],
+        }
 
     @_client_method
     def flow_start_preview(self, org, flow, include, exclude):
@@ -309,6 +330,12 @@ class TestClient(MailroomClient):
         mock = self.mocks._flow_start_preview.pop(0)
 
         return mock(org)
+
+    @_client_method
+    def llm_translate(self, llm, from_language: str, to_language: str, text: str) -> dict:
+        assert self.mocks._llm_translate, "missing llm_translate mock"
+
+        return {"text": self.mocks._llm_translate.pop(0)}
 
     @_client_method
     def msg_broadcast(
@@ -358,8 +385,8 @@ class TestClient(MailroomClient):
         return {"msg_ids": [m.id for m in msgs]}
 
     @_client_method
-    def msg_send(self, org, user, contact, text: str, attachments: list[str], ticket):
-        msg = send_to_contact(org, contact, text, attachments)
+    def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[QuickReply], ticket):
+        msg = send_to_contact(org, contact, text, attachments, quick_replies)
 
         return {
             "id": msg.id,
@@ -368,6 +395,7 @@ class TestClient(MailroomClient):
             "urn": str(msg.contact_urn) if msg.contact_urn else "",
             "text": msg.text,
             "attachments": msg.attachments,
+            "quick_replies": [qr.as_json() for qr in msg.get_quick_replies()],
             "status": msg.status,
             "created_on": msg.created_on.isoformat(),
             "modified_on": msg.modified_on.isoformat(),
@@ -380,10 +408,13 @@ class TestClient(MailroomClient):
     @_client_method
     def ticket_assign(self, org, user, tickets, assignee):
         now = timezone.now()
-        tickets = Ticket.objects.filter(org=org, id__in=[t.id for t in tickets]).exclude(assignee=assignee)
-        tickets.update(assignee=assignee, modified_on=now, last_activity_on=now)
+        tickets = list(Ticket.objects.filter(org=org, id__in=[t.id for t in tickets]).exclude(assignee=assignee))
 
         for ticket in tickets:
+            ticket.assignee = assignee
+            ticket.modified_on = now
+            ticket.last_activity_on = now
+            ticket.save(update_fields=("assignee", "modified_on", "last_activity_on"))
             ticket.events.create(
                 org=org,
                 contact=ticket.contact,
@@ -397,10 +428,12 @@ class TestClient(MailroomClient):
     @_client_method
     def ticket_add_note(self, org, user, tickets, note: str):
         now = timezone.now()
-        tickets = Ticket.objects.filter(org=org, id__in=[t.id for t in tickets])
-        tickets.update(modified_on=now, last_activity_on=now)
+        tickets = list(Ticket.objects.filter(org=org, id__in=[t.id for t in tickets]))
 
         for ticket in tickets:
+            ticket.modified_on = now
+            ticket.last_activity_on = now
+            ticket.save(update_fields=("modified_on", "last_activity_on"))
             ticket.events.create(
                 org=org,
                 contact=ticket.contact,
@@ -414,10 +447,13 @@ class TestClient(MailroomClient):
     @_client_method
     def ticket_change_topic(self, org, user, tickets, topic):
         now = timezone.now()
-        tickets = Ticket.objects.filter(org=org, id__in=[t.id for t in tickets]).exclude(topic=topic)
-        tickets.update(topic=topic, modified_on=now, last_activity_on=now)
+        tickets = list(Ticket.objects.filter(org=org, id__in=[t.id for t in tickets]).exclude(topic=topic))
 
         for ticket in tickets:
+            ticket.topic = topic
+            ticket.modified_on = now
+            ticket.last_activity_on = now
+            ticket.save(update_fields=("topic", "modified_on", "last_activity_on"))
             ticket.events.create(
                 org=org,
                 contact=ticket.contact,
@@ -429,21 +465,25 @@ class TestClient(MailroomClient):
         return {"changed_ids": [t.id for t in tickets]}
 
     @_client_method
-    def ticket_close(self, org, user, tickets, force: bool):
-        tickets = Ticket.objects.filter(org=org, id__in=[t.id for t in tickets], status=Ticket.STATUS_OPEN)
-        tickets.update(status=Ticket.STATUS_CLOSED, closed_on=timezone.now())
+    def ticket_close(self, org, user, tickets):
+        tickets = list(Ticket.objects.filter(org=org, id__in=[t.id for t in tickets], status=Ticket.STATUS_OPEN))
 
         for ticket in tickets:
+            ticket.status = Ticket.STATUS_CLOSED
+            ticket.closed_on = timezone.now()
+            ticket.save(update_fields=("status", "closed_on"))
             ticket.events.create(org=org, contact=ticket.contact, event_type=TicketEvent.TYPE_CLOSED, created_by=user)
 
         return {"changed_ids": [t.id for t in tickets]}
 
     @_client_method
     def ticket_reopen(self, org, user, tickets):
-        tickets = Ticket.objects.filter(org=org, id__in=[t.id for t in tickets], status=Ticket.STATUS_CLOSED)
-        tickets.update(status=Ticket.STATUS_OPEN, closed_on=None)
+        tickets = list(Ticket.objects.filter(org=org, id__in=[t.id for t in tickets], status=Ticket.STATUS_CLOSED))
 
         for ticket in tickets:
+            ticket.status = Ticket.STATUS_OPEN
+            ticket.closed_on = None
+            ticket.save(update_fields=("status", "closed_on"))
             ticket.events.create(org=org, contact=ticket.contact, event_type=TicketEvent.TYPE_REOPENED, created_by=user)
 
         return {"changed_ids": [t.id for t in tickets]}
@@ -569,8 +609,6 @@ def contact_urn_lookup(org, urn: str):
 
 
 def contact_resolve(org, phone: str) -> tuple:
-    user = get_anonymous_user()
-
     if not PHONE_REGEX.match(phone):
         raise mailroom.URNValidationException("not a number", "invalid", 0)
 
@@ -580,14 +618,14 @@ def contact_resolve(org, phone: str) -> tuple:
     if contact_urn:
         contact = contact_urn.contact
     else:
-        contact = create_contact_locally(org, user, name="", language="", urns=[urn], fields={}, group_uuids=[])
+        contact = create_contact_locally(org, None, name="", language="", urns=[urn], fields={}, group_uuids=[])
         contact_urn = contact_urn_lookup(org, urn)
 
     return contact, contact_urn
 
 
 def create_contact_locally(
-    org, user, name, language, urns, fields, group_uuids, status=Contact.STATUS_ACTIVE, last_seen_on=None
+    org, user, name, language, urns, fields, group_uuids, status=Contact.STATUS_ACTIVE, last_seen_on=None, **kwargs
 ):
     orphaned_urns = {}
 
@@ -608,6 +646,7 @@ def create_contact_locally(
         created_on=timezone.now(),
         status=status,
         last_seen_on=last_seen_on,
+        **kwargs,
     )
     update_urns_locally(contact, urns)
     update_fields_locally(user, contact, fields)
@@ -621,7 +660,6 @@ def update_fields_locally(user, contact, fields):
 
 
 def update_field_locally(user, contact, key, value, name=None):
-    org = contact.org
     field = ContactField.get_or_create(contact.org, user, key, name=name)
 
     field_uuid = str(field.uuid)
@@ -650,16 +688,6 @@ def update_field_locally(user, contact, key, value, name=None):
                 "UPDATE contacts_contact SET fields = COALESCE(fields,'{}'::jsonb) || %s::jsonb WHERE id = %s",
                 [json.dumps({field_uuid: contact.fields[field_uuid]}), contact.id],
             )
-
-    # very simplified version of mailroom's campaign event scheduling
-    events = CampaignEvent.objects.filter(relative_to=field, campaign__group__in=contact.groups.all())
-    for event in events:
-        EventFire.objects.filter(contact=contact, event=event).delete()
-        date_value = parse_datetime(org, value)
-        if date_value:
-            scheduled = date_value + timedelta(**{event_units[event.unit]: event.offset})
-            if scheduled > timezone.now():
-                EventFire.objects.create(contact=contact, event=event, scheduled=scheduled)
 
 
 def update_urns_locally(contact, urns: list[str]):
@@ -843,23 +871,21 @@ def find_boundary_by_name(org, name, level, parent):
     return boundary
 
 
-def exit_sessions(session_ids: list, status: str):
-    FlowRun.objects.filter(session_id__in=session_ids).update(
+def exit_sessions(session_uuids: list, status: str):
+    FlowRun.objects.filter(session_uuid__in=session_uuids).update(
         status=status, exited_on=timezone.now(), modified_on=timezone.now()
     )
-    FlowSession.objects.filter(id__in=session_ids).update(
+    FlowSession.objects.filter(uuid__in=session_uuids).update(
         status=status,
         ended_on=timezone.now(),
-        wait_started_on=None,
-        wait_expires_on=None,
-        timeout_on=None,
         current_flow_id=None,
     )
 
-    for session in FlowSession.objects.filter(id__in=session_ids):
+    for session in FlowSession.objects.filter(uuid__in=session_uuids):
+        session.contact.current_session_uuid = None
         session.contact.current_flow = None
         session.contact.modified_on = timezone.now()
-        session.contact.save(update_fields=("current_flow", "modified_on"))
+        session.contact.save(update_fields=("current_session_uuid", "current_flow", "modified_on"))
 
 
 def resolve_destination(org, contact, channel=None) -> tuple:
@@ -876,7 +902,7 @@ def resolve_destination(org, contact, channel=None) -> tuple:
     return None, None
 
 
-def send_to_contact(org, contact, text, attachments) -> Msg:
+def send_to_contact(org, contact, text: str, attachments: list[str], quick_replies: list[QuickReply]) -> Msg:
     channel, contact_urn = resolve_destination(org, contact)
 
     if contact_urn and channel:
@@ -898,7 +924,9 @@ def send_to_contact(org, contact, text, attachments) -> Msg:
         failed_reason=failed_reason,
         text=text or "",
         attachments=attachments or [],
+        quick_replies=[str(qr) for qr in quick_replies],
         msg_type=Msg.TYPE_TEXT,
+        is_android=False,
         created_on=timezone.now(),
         modified_on=timezone.now(),
     )

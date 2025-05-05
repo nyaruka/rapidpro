@@ -11,7 +11,7 @@ class MessagebirdTypeTest(TembaTest):
 
         self.channel = Channel.create(
             self.org,
-            self.user,
+            self.admin,
             "US",
             "MBD",
             name="Messagebird: 12345",

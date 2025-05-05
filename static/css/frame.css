@@ -155,7 +155,7 @@ temba-menu:defined {
 .spa-container {
   background: #f7f7f7;
   overflow-y: clip;
-  overflow-x: visible;
+  overflow-x: auto;
 }
 
 .spa-container.loading .spa-content {
@@ -263,14 +263,6 @@ temba-loading {
   background: #fff;
 }
 
-.button-action:hover,
-#gear-container .button-light:hover,
-#gear-container .button-light.dropdown-toggle:hover,
-#gear-container .button-light.dropdown-toggle:hover .icon-menu {
-  background: var(--color-primary-dark);
-  color: #fff !important;
-}
-
 #gear-container .button-light {
   padding-top: 0.62em;
   padding-bottom: 0.62em;
@@ -342,4 +334,8 @@ temba-menu.servicing {
   border-color: var(--color-focus);
   background: var(--color-widget-bg-focused);
   box-shadow: var(--widget-box-shadow-focused);
+}
+
+#error-dialog {
+  display: none;
 }

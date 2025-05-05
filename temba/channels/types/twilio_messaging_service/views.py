@@ -7,7 +7,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from temba.channels.types.twilio.views import COUNTRY_CHOICES
+from temba.channels.types.twilio.views import COUNTRY_CHOICES, UpdateForm as TwilioUpdateForm
 from temba.utils.fields import SelectWidget
 
 from ...models import Channel
@@ -37,7 +37,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             return TwilioClient(account_sid, account_token)
         return None
 
-    def pre_process(self, *args, **kwargs):
+    def pre_process(self, request, *args, **kwargs):
         try:
             self.client = self.get_twilio_client()
             if not self.client:
@@ -49,6 +49,8 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             return HttpResponseRedirect(
                 f'{reverse("channels.types.twilio.connect")}?claim_type={self.channel_type.slug}'
             )
+
+        return super().pre_process(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -87,3 +89,18 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         del self.request.session[self.channel_type.SESSION_AUTH_TOKEN]
 
         return super().form_valid(form)
+
+
+class UpdateForm(TwilioUpdateForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.add_config_field(
+            "link_shortening",
+            forms.BooleanField(
+                label=_("Twilio Link Shortening"),
+                required=False,
+                help_text=_("Whether the Twilio Link shortening is enabled on the channel"),
+            ),
+            default=False,
+        )

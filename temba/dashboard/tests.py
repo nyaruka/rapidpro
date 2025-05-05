@@ -23,7 +23,7 @@ class DashboardTest(TembaTest):
         response = self.client.get(dashboard_url, follow=True)
 
         # nope! cannot visit dashboard.
-        self.assertRedirects(response, "/users/login/?next=%s" % dashboard_url)
+        self.assertRedirects(response, "/accounts/login/?next=%s" % dashboard_url)
 
         self.login(self.admin)
         response = self.client.get(dashboard_url, follow=True)
@@ -38,7 +38,7 @@ class DashboardTest(TembaTest):
         response = self.client.get(url, follow=True)
 
         # nope!
-        self.assertRedirects(response, "/users/login/?next=%s" % url)
+        self.assertRedirects(response, "/accounts/login/?next=%s" % url)
 
         self.login(self.admin)
         self.create_activity()
@@ -81,13 +81,13 @@ class DashboardTest(TembaTest):
         response = self.client.get(url, follow=True)
 
         # nope!
-        self.assertRedirects(response, "/users/login/?next=%s" % url)
+        self.assertRedirects(response, "/accounts/login/?next=%s" % url)
 
         self.login(self.admin)
         self.create_activity()
 
-        types = ["T", "TWT", "FB", "NX", "AT", "KN"]
-        michael = self.create_contact("Michael", urns=["twitter:mjackson"])
+        types = ["T", "IG", "FBA", "NX", "AT", "KN"]
+        michael = self.create_contact("Michael", urns=["facebook:mjackson"])
         for t in types:
             channel = self.create_channel(t, f"Test Channel {t}", f"{t}:1234")
             self.create_outgoing_msg(michael, f"Message on {t}", channel=channel)

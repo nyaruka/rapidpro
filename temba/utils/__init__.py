@@ -1,5 +1,3 @@
-from itertools import islice
-
 from django.conf import settings
 from django.db import transaction
 
@@ -44,26 +42,6 @@ def format_number(val):
     return val
 
 
-def sizeof_fmt(num, suffix="b"):
-    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
-        if abs(num) < 1024.0:
-            return "%3.1f %s%s" % (num, unit, suffix)
-        num /= 1024.0
-    return "%.1f %s%s" % (num, "Y", suffix)
-
-
-def chunk_list(iterable, size):
-    """
-    Splits a very large list into evenly sized chunks.
-    Returns an iterator of lists that are no more than the size passed in.
-    """
-    it = iter(iterable)
-    item = list(islice(it, size))
-    while item:
-        yield item
-        item = list(islice(it, size))
-
-
 def on_transaction_commit(func):
     """
     Requests that the given function be called after the current transaction has been committed. However function will
@@ -101,19 +79,3 @@ def set_nested_key(nested_dict, key, value):
             level[key] = next_level
 
         level = next_level
-
-
-_anon_user = None
-
-
-def get_anonymous_user():
-    """
-    Returns the anonymous user id, originally created by django-guardian
-    """
-
-    global _anon_user
-    if _anon_user is None:
-        from django.contrib.auth.models import User
-
-        _anon_user = User.objects.get(username=settings.ANONYMOUS_USER_NAME)
-    return _anon_user

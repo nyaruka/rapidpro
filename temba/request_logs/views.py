@@ -6,17 +6,17 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from temba.channels.models import Channel
-from temba.classifiers.models import Classifier
-from temba.orgs.views import OrgObjPermsMixin, OrgPermsMixin
+from temba.orgs.views.base import BaseListView
+from temba.orgs.views.mixins import OrgObjPermsMixin
 from temba.utils import str_to_bool
-from temba.utils.views import ContentMenuMixin, SpaMixin
+from temba.utils.views.mixins import ContextMenuMixin, SpaMixin
 
 from .models import HTTPLog
 
 
 class BaseObjLogsView(SpaMixin, OrgObjPermsMixin, SmartListView):
     """
-    Base list view for logs associated with an object, e.g. classifier
+    Base list view for logs associated with an object, e.g. channel
     """
 
     paginate_by = 50
@@ -55,9 +55,9 @@ class BaseObjLogsView(SpaMixin, OrgObjPermsMixin, SmartListView):
 
 class HTTPLogCRUDL(SmartCRUDL):
     model = HTTPLog
-    actions = ("webhooks", "channel", "classifier", "read")
+    actions = ("webhooks", "channel", "read")
 
-    class Webhooks(SpaMixin, ContentMenuMixin, OrgPermsMixin, SmartListView):
+    class Webhooks(SpaMixin, ContextMenuMixin, BaseListView):
         default_order = ("-created_on",)
         select_related = ("flow",)
         fields = ("flow", "url", "status_code", "request_time", "created_on")
@@ -68,19 +68,19 @@ class HTTPLogCRUDL(SmartCRUDL):
                 return _("Failed Webhooks")
             return _("Webhooks")
 
-        def get_queryset(self, **kwargs):
-            qs = super().get_queryset(**kwargs).filter(org=self.request.org, flow__isnull=False)
+        def derive_queryset(self, **kwargs):
+            qs = super().derive_queryset(**kwargs).filter(flow__isnull=False)
             if str_to_bool(self.request.GET.get("error")):
                 qs = qs.filter(is_error=True)
             return qs
 
-        def build_content_menu(self, menu):
+        def build_context_menu(self, menu):
             if str_to_bool(self.request.GET.get("error")):
                 menu.add_link(_("All logs"), reverse("request_logs.httplog_webhooks"))
             else:
                 menu.add_link(_("Errors"), f'{reverse("request_logs.httplog_webhooks")}?error=1')
 
-    class Channel(ContentMenuMixin, BaseObjLogsView):
+    class Channel(ContextMenuMixin, BaseObjLogsView):
         source_field = "channel"
         source_url = "uuid@channels.channel_read"
         title = _("Template Fetch Logs")
@@ -91,17 +91,6 @@ class HTTPLogCRUDL(SmartCRUDL):
         def get_source(self, uuid):
             return Channel.objects.filter(uuid=uuid, is_active=True)
 
-    class Classifier(BaseObjLogsView):
-        source_field = "classifier"
-        source_url = "uuid@classifiers.classifier_read"
-        title = _("Classifier History")
-
-        def derive_menu_path(self):
-            return f"/settings/classifiers/{self.source.uuid}"
-
-        def get_source(self, uuid):
-            return Classifier.objects.filter(uuid=uuid, is_active=True)
-
     class Read(SpaMixin, OrgObjPermsMixin, SmartReadView):
         fields = ("description", "created_on")
 
@@ -111,7 +100,5 @@ class HTTPLogCRUDL(SmartCRUDL):
 
         def derive_menu_path(self):
             log = self.get_object()
-            if log.classifier:
-                return f"/settings/classifiers/{log.classifier.uuid}"
-            elif log.log_type == HTTPLog.WEBHOOK_CALLED:
+            if log.log_type == HTTPLog.WEBHOOK_CALLED:
                 return "/flow/history/webhooks"

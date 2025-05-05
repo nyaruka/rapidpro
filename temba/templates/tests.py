@@ -378,9 +378,7 @@ class TemplateCRUDLTest(CRUDLTestMixin, TembaTest):
         )
 
         self.assertRequestDisallowed(list_url, [None, self.agent])
-        response = self.assertListFetch(
-            list_url, [self.user, self.editor, self.admin], context_objects=[template2, template1]
-        )
+        response = self.assertListFetch(list_url, [self.editor, self.admin], context_objects=[template2, template1])
 
         self.assertContains(response, "goodbye")
         self.assertContains(response, "1 language,")
@@ -449,7 +447,7 @@ class TemplateCRUDLTest(CRUDLTestMixin, TembaTest):
         read_url = reverse("templates.template_read", args=[template1.uuid])
 
         self.assertRequestDisallowed(read_url, [None, self.agent, self.admin2])
-        response = self.assertReadFetch(read_url, [self.user, self.editor, self.admin], context_object=template1)
+        response = self.assertReadFetch(read_url, [self.editor, self.admin], context_object=template1)
 
         self.assertContains(response, "Hello <code>{{1}}</code>")
         self.assertContains(response, "Hola <code>{{1}}</code>")

@@ -4,7 +4,6 @@ from zipfile import ZipFile
 import geojson
 import regex
 
-from django.contrib.gis.geos import MultiPolygon, Polygon
 from django.core.management.base import BaseCommand
 from django.db import connection, transaction
 
@@ -92,18 +91,18 @@ class Command(BaseCommand):
 
             polygons = []
             if feature["geometry"]["type"] == "Polygon":
-                polygons.append(Polygon(*feature["geometry"]["coordinates"]))
+                polygons.append(geojson.Polygon(coordinates=feature["geometry"]["coordinates"]))
             elif feature["geometry"]["type"] == "MultiPolygon":
                 for polygon in feature["geometry"]["coordinates"]:
-                    polygons.append(Polygon(*polygon))
+                    polygons.append(geojson.Polygon(coordinates=polygon))
             else:
                 raise Exception("Error importing %s, unknown geometry type '%s'" % (name, feature["geometry"]["type"]))
 
-            geometry = MultiPolygon(polygons)
+            geometry = geojson.loads(geojson.dumps(geojson.MultiPolygon(polygons)))
 
             kwargs = dict(osm_id=osm_id, name=name, level=level, parent=parent)
             if is_simplified:
-                kwargs["simplified_geometry"] = geometry
+                kwargs["geometry"] = geometry
 
             # if this is an update, just update with those fields
             if boundary:

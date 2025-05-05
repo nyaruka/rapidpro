@@ -1,5 +1,5 @@
 {% extends "smartmin/read.html" %}
-{% load smartmin sms compress temba contacts i18n %}
+{% load smartmin sms temba contacts i18n %}
 
 {% block extra-style %}
   {{ block.super }}
@@ -28,12 +28,12 @@
       justify-content: center;
     }
 
-    #overview-charts {
+    #engagement-charts {
       justify-content: center;
       padding-top: 2em;
     }
 
-    #overview-charts>div {
+    #engagement-charts>div {
       margin-bottom: 6em;
       align-self: flex-start;
       flex-basis: 400px;
@@ -76,40 +76,18 @@
 
         var tabs = document.querySelector("temba-tabs");
         var runsTab = tabs.getTab(2);
-        runsTab.count = runCount;
-        tabs.requestUpdate();
+        if (runsTab) {
+          runsTab.count = runCount;
+          tabs.requestUpdate();
 
-        var runList = document.querySelector("temba-run-list");
-        runList.results = flow.results;
+          var runList = document.querySelector("temba-run-list");
+          runList.results = flow.results;
+        }
       }
     }
 
     function handleRunsRefreshed(evt) {
       document.querySelector("temba-flow-details").refresh();
-    }
-
-    function deleteRun(id) {
-      var dialog = document.getElementById("confirm-run-delete");
-      dialog.runId = id;
-      dialog.open = true;
-    }
-
-    function performDelete(evt) {
-      var dialog = document.getElementById("confirm-run-delete");
-      dialog.open = false;
-
-      if (evt.detail.button.destructive) {
-        fetchAjax('/flowrun/delete/' + dialog.runId + '/', {
-          method: 'POST',
-        }).then(function(response) {
-          var runList = document.querySelector("temba-run-list");
-          if (runList) {
-            runList.removeRun(dialog.runId);
-            var details = document.querySelector("temba-flow-details");
-            details.refresh();
-          }
-        });
-      }
     }
 
     function getChart(key, name) {
@@ -287,6 +265,12 @@
       }
     }
 
+    function updateEngagement() {
+      fetchAjax("{% url 'flows.flow_engagement' object.id %}", {
+        container: "#engagement-charts"
+      });
+    }
+
     function updateCharts() {
 
       var store = document.querySelector("temba-store");
@@ -296,7 +280,7 @@
         return;
       }
 
-      store.getUrl("/flow/category_counts/{{object.uuid}}/", {
+      store.getUrl("/flow/category_counts/{{object.id}}/", {
         force: true
       }).then(function(response) {
         var data = response.json;
@@ -326,33 +310,28 @@
           }
         }
       });
-
-      window.setTimeout(function() {
-        updateCharts();
-      }, 5000);
     }
 
     function handleTabChanged() {
       var tabs = document.querySelector("temba-tabs");
-
       if (!tabs) {
         return;
       }
 
       // runs are paused unless our tab is active
       var runs = document.querySelector("temba-run-list");
-      runs.paused = tabs.index != 2;
-
-      if (tabs.index == 0) {
-        fetchAjax('/flow/activity_chart/{{object.id}}/', {
-          container: "#overview-charts"
-        });
+      if (runs) {
+        runs.paused = tabs.index != 2;
       }
 
       if (tabs.index == 1) {
         updateCharts();
       }
     }
+
+    onSpload(function() {
+      updateEngagement();
+    });
   </script>
 {% endblock extra-script %}
 {% block content %}
@@ -366,8 +345,8 @@
               collapses="true"
               class="flex-grow"
               index="{{ request.GET.tab }}">
-    <temba-tab name="{{ _("Overview") |escapejs }}" icon="overview">
-      <div class="flex flex-wrap overflow-y-scroll overflow-x-hidden" id="overview-charts"></div>
+    <temba-tab name="{{ _("Engagement") |escapejs }}" icon="overview">
+      <div class="flex flex-wrap overflow-y-scroll overflow-x-hidden" id="engagement-charts"></div>
     </temba-tab>
     <temba-tab name="{{ _("Analytics") |escapejs }}" icon="analytics">
       <div class="flex flex-wrap overflow-y-scroll overflow-x-hidden" id="category-charts"></div>
@@ -379,11 +358,4 @@
       </temba-run-list>
     </temba-tab>
   </temba-tabs>
-  <temba-dialog header="{{ _("Delete Run") |escapejs }}"
-                primaryButtonName="{{ _("Delete") |escapejs }}"
-                destructive="true"
-                -temba-button-clicked="performDelete"
-                id="confirm-run-delete">
-    <div class="p-6">{% trans "Deleting this run will remove it from your flow's results. While the messages for the contact will remain, any record of this flow run will be gone forever." %}</div>
-  </temba-dialog>
 {% endblock content %}

@@ -46,20 +46,36 @@ class EmailSender:
 
         return cls(branding, connection, from_email)
 
-    def send(self, recipients: list, subject: str, template: str, context: dict):
+    def render_template(self, template_path: str, postfixes, context: dict):
+        for postfix in postfixes:
+            try:
+                template = loader.get_template(f"{template_path}{postfix}")
+                return template.render(context)
+            except loader.TemplateDoesNotExist:
+                pass
+        return None
+
+    def send(self, recipients: list, template: str, context: dict, subject: str = None):
         """
         Sends a multi-part email rendered from templates for the text and html parts. `template` should be the name of
         the template, without .html or .txt (e.g. 'channels/email/power_charging').
         """
-        html_template = loader.get_template(template + ".html")
-        text_template = loader.get_template(template + ".txt")
-
-        context["subject"] = subject
         context["branding"] = self.branding
         context["now"] = timezone.now()
 
-        html = html_template.render(context)
-        text = text_template.render(context)
+        if not subject:
+            subject = self.render_template(template, ["_subject.txt"], context)
+            if not subject:  # pragma: no cover
+                raise ValueError("No subject provided and subject template doesn't exist")
+
+        # make sure our subject is a single line
+        subject = " ".join(subject.splitlines()).strip()
+
+        text = self.render_template(template, [".txt"], context)
+        html = self.render_template(template, [".html", "_message.html"], context)
+
+        if not html:  # pragma: no cover
+            raise ValueError("Could not render message template for %s" % template)
 
         send_email(recipients, subject, text, html, self.from_email, self.connection)
 
@@ -68,16 +84,6 @@ def send_email(recipients: list, subject: str, text: str, html: str, from_email:
     """
     Actually sends the email. Having this as separate function makes testing multi-part emails easier
     """
-    if settings.SEND_EMAILS:
-        message = EmailMultiAlternatives(subject, text, from_email, recipients, connection=connection)
-        message.attach_alternative(html, "text/html")
-        message.send()
-    else:  # pragma: no cover
-        # just print to console if we aren't meant to send emails
-        print("------------- Skipping sending email, SEND_EMAILS is False -------------")
-        print(f"To: {', '.join(recipients)}")
-        print(f"From: {from_email}")
-        print(f"Subject: {subject}")
-        print()
-        print(text)
-        print("------------------------------------------------------------------------")
+    message = EmailMultiAlternatives(subject, text, from_email, recipients, connection=connection)
+    message.attach_alternative(html, "text/html")
+    message.send()

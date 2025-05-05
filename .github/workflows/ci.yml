@@ -5,9 +5,9 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     env:
-      python-version: '3.11.x'
+      python-version: '3.12.x'
       node-version: '20'
-      mailroom-version: '9.3.3'
+      mailroom-version: '10.1.101'
 
     services:
       redis:
@@ -15,7 +15,7 @@ jobs:
         ports:
           - 6379:6379
       postgres:
-        image: postgis/postgis:15-3.3-alpine
+        image: postgres:15-alpine
         env:
           POSTGRES_DB: temba
           POSTGRES_USER: temba
@@ -63,8 +63,10 @@ jobs:
           port: 6000
 
       - name: Initialize environment
+        env:
+          POSTGIS: 'off'
         run: |
-          poetry install
+          poetry install --no-root
           yarn install
           sudo yarn global add less
           ln -s ${{ github.workspace }}/temba/settings.py.dev ${{ github.workspace }}/temba/settings.py
@@ -85,6 +87,8 @@ jobs:
           poetry run python manage.py compress --extension=".html" --settings=temba.settings_compress
 
       - name: Run tests
+        env:
+          POSTGIS: 'off'
         run: |
           poetry run coverage run manage.py test --keepdb --noinput --verbosity=2
           poetry run coverage report -i

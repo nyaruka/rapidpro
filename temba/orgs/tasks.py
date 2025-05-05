@@ -2,17 +2,24 @@ import logging
 from datetime import timedelta
 
 from celery import shared_task
-from django_redis import get_redis_connection
 
 from django.conf import settings
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
 
 from temba.contacts.models import URN, ContactURN
 from temba.utils.crons import cron_task
-from temba.utils.email import EmailSender
 
-from .models import Export, Invitation, Org, OrgImport, User, UserSettings
+from .models import DailyCount, Export, Invitation, ItemCount, Org, OrgImport, OrgMembership
+
+
+@cron_task()
+def update_members_seen():
+    """
+    Updates last_seen_on for OrgMemberships. We do this in a task every 60 seconds rather than on every request
+    """
+    membership_ids = OrgMembership.get_seen()
+    if membership_ids:
+        OrgMembership.objects.filter(id__in=membership_ids).update(last_seen_on=timezone.now())
 
 
 @shared_task
@@ -26,33 +33,6 @@ def perform_export(export_id):
     Perform an export
     """
     Export.objects.select_related("org", "created_by").get(id=export_id).perform()
-
-
-@shared_task
-def send_user_verification_email(org_id, user_id):
-    r = get_redis_connection()
-    org = Org.objects.get(id=org_id)
-    user = User.objects.get(id=user_id)
-
-    assert user in org.get_users()
-
-    if user.settings.email_status == UserSettings.STATUS_VERIFIED:
-        return
-
-    key = f"send_verification_email:{user.email}".lower()
-
-    if r.exists(key):
-        return
-
-    sender = EmailSender.from_email_type(org.branding, "notifications")
-    sender.send(
-        [user.email],
-        _("%(name)s Email Verification") % org.branding,
-        "orgs/email/email_verification",
-        {"org": org, "secret": user.settings.email_verification_secret},
-    )
-
-    r.set(key, "1", ex=60 * 10)
 
 
 @shared_task
@@ -125,3 +105,9 @@ def delete_released_orgs():
         num_deleted += 1
 
     return {"deleted": num_deleted, "failed": num_failed}
+
+
+@cron_task(lock_timeout=7200)
+def squash_item_counts():
+    ItemCount.squash()
+    DailyCount.squash()

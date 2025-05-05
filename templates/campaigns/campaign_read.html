@@ -1,5 +1,5 @@
 {% extends "smartmin/read.html" %}
-{% load smartmin sms temba compress humanize i18n %}
+{% load smartmin sms temba humanize i18n %}
 
 {% block subtitle %}
   <div class="flex flex-col mb-4">
@@ -27,40 +27,48 @@
   {% endif %}
 {% endblock post-title %}
 {% block content %}
-  {% if not object.events.all %}
-    <table class="list">
-      <body>
-        <tr class="empty_list">
-          <td>{% trans "No events in this campaign yet." %}</td>
-        </tr>
-      </body>
-    </table>
-  {% else %}
-    <table class="list">
-      {% for event in object.get_sorted_events %}
-        {% ifchanged %}
-          <tr>
-            <th colspan="99">{{ event.relative_to }}</th>
-          </tr>
-        {% endifchanged %}
-        <tr valign="center" data-event-id="{{ event.pk }}" class="campaign-event">
-          <td class="whitespace-nowrap">
-            <a href="{% url 'campaigns.campaignevent_read' event.campaign.uuid event.pk %}" class="linked">{{ event.offset_display }} {{ event.relative_to.name }}</a>
-          </td>
+  <table class="list lined">
+    <thead>
+      <tr>
+        <th>{% trans "Field" %}</th>
+        <th>{% trans "When" %}</th>
+        <th></th>
+        <th>{% trans "Contacts" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for event in events %}
+        <tr onclick="goto(event, this)"
+            href="{% url 'campaigns.campaignevent_read' event.campaign.uuid event.id %}"
+            class="hover-linked">
+          <td class="whitespace-nowrap">{{ event.relative_to.name }}</td>
+          <td class="whitespace-nowrap">{{ event.offset_display }}</td>
           <td class="w-full">
             {% if event.event_type == 'M' %}
               <div class="message">
-                <div class="text">{{ event.get_message }}</div>
+                <div class="text">{{ event.get_message.text }}</div>
               </div>
             {% else %}
-              <div class="start-flow">
-                Start
-                <a href="{% url 'flows.flow_editor' event.flow.uuid %}" class="linked">{{ event.flow.name }}</a>
-              </div>
+              <a href="{% url 'flows.flow_editor' event.flow.uuid %}" onclick="goto(event, this)">
+                <temba-label icon="flow" primary clickable>
+                  {{ event.flow.name }}
+                </temba-label>
+              </a>
+            {% endif %}
+          </td>
+          <td class="whitespace-nowrap text-right">
+            {% if event.status == 'S' %}
+              <span class="text-gray-400">{% trans "Scheduling" %}</span>
+            {% else %}
+              {{ event.get_fire_count|intcomma }}
             {% endif %}
           </td>
         </tr>
+      {% empty %}
+        <tr class="empty_list">
+          <td colspan="99" class="text-center">{% trans "No events" %}</td>
+        </tr>
       {% endfor %}
-    </table>
-  {% endif %}
+    </tbody>
+  </table>
 {% endblock content %}

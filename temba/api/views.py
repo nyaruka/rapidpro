@@ -4,18 +4,19 @@ from uuid import UUID
 import iso8601
 from rest_framework import generics, mixins, status
 from rest_framework.response import Response
-from smartmin.views import SmartCRUDL, SmartDeleteView
+from smartmin.views import SmartCRUDL
 
 from django.db import transaction
 from django.http import HttpResponseRedirect
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from temba import mailroom
 from temba.api.support import InvalidQueryError
 from temba.contacts.models import URN
-from temba.orgs.views import ModalMixin, OrgObjPermsMixin
+from temba.orgs.views.base import BaseDeleteModal, BaseListView
 from temba.utils.models import TembaModel
-from temba.utils.views import NonAtomicMixin
+from temba.utils.views.mixins import ContextMenuMixin, NonAtomicMixin, SpaMixin
 
 from .models import APIToken, BulkActionFailure
 
@@ -192,10 +193,9 @@ class WriteAPIMixin:
             instance = None
 
             if issubclass(self.model, TembaModel):
-                org_count, org_limit = self.model.get_org_limit_progress(request.org)
-                if org_limit is not None and org_count >= org_limit:
+                if self.model.is_limit_reached(request.org):
                     return Response(
-                        {"detail": f"Cannot create object because workspace has reached limit of {org_limit}."},
+                        {"detail": "Cannot create object because workspace has reached limit."},
                         status=status.HTTP_409_CONFLICT,
                     )
 
@@ -278,13 +278,38 @@ class DeleteAPIMixin(mixins.DestroyModelMixin):
 
 class APITokenCRUDL(SmartCRUDL):
     model = APIToken
-    actions = ("delete",)
+    actions = ("list", "delete")
 
-    class Delete(ModalMixin, OrgObjPermsMixin, SmartDeleteView):
+    class List(SpaMixin, ContextMenuMixin, BaseListView):
+        title = _("API Tokens")
+        menu_path = "/settings/api-tokens"
+        paginate_by = None
+        token_limit = 3
+
+        def build_context_menu(self, menu):
+            if self.request.user.get_api_tokens(self.request.org).count() < self.token_limit:
+                menu.add_url_post(_("New"), reverse("api.apitoken_list"), as_button=True)
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            context["token_limit"] = self.token_limit
+            return context
+
+        def get_queryset(self, **kwargs):
+            return self.request.user.get_api_tokens(self.request.org).order_by("created")
+
+        def post(self, request, *args, **kwargs):
+            # there's no create view - just a POST to this view
+            if self.request.user.get_api_tokens(self.request.org).count() < self.token_limit:
+                APIToken.create(self.request.org, self.request.user)
+
+            return HttpResponseRedirect(reverse("api.apitoken_list"))
+
+    class Delete(BaseDeleteModal):
         slug_url_kwarg = "key"
         fields = ("key",)
-        cancel_url = "@orgs.user_tokens"
-        redirect_url = "@orgs.user_tokens"
+        cancel_url = "@api.apitoken_list"
+        redirect_url = "@api.apitoken_list"
         submit_button_name = _("Delete")
 
         def has_permission(self, request, *args, **kwargs):

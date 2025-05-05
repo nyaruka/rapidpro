@@ -9,7 +9,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from temba.orgs.models import Org, OrgRole, User
+from temba.orgs.models import Org, OrgRole
 from temba.utils.models import JSONAsTextField
 from temba.utils.text import generate_secret
 
@@ -72,9 +72,9 @@ class APIPermission(BasePermission):
 
         if request.auth:
             # auth token was used
-            role = org.get_user_role(request.auth.user)
+            role = org.get_user_role(request.user)
 
-            # only editors and administrators can use API tokens
+            # only editors, administrators can use API tokens
             if role not in APIToken.ALLOWED_ROLES:
                 return False
         elif org:
@@ -82,13 +82,15 @@ class APIPermission(BasePermission):
         else:
             return False
 
-        has_perm = role.has_api_perm(permission)
+        has_perm = request.user.is_staff or role.has_api_perm(permission)
+        if not has_perm:
+            return False
 
-        # viewers can only ever get from the API
-        if role == OrgRole.VIEWER:
-            return has_perm and request.method == "GET"
+        # servicing staff can only ever GET from the API
+        if request.user.is_staff and not role:
+            return request.method == "GET"
 
-        return has_perm
+        return True
 
 
 class SSLPermission(BasePermission):  # pragma: no cover
@@ -209,7 +211,7 @@ class APIToken(models.Model):
 
     key = models.CharField(max_length=40, primary_key=True)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="api_tokens")
-    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="api_tokens")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="api_tokens")
     created = models.DateTimeField(default=timezone.now)
     last_used_on = models.DateTimeField(null=True)
     is_active = models.BooleanField(default=True)

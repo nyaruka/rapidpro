@@ -11,7 +11,7 @@ from temba.contacts.models import URN
 from temba.utils.fields import ExternalURLField, SelectMultipleWidget, SelectWidget
 
 from ...models import Channel
-from ...views import ALL_COUNTRIES, ClaimViewMixin, UpdateTelChannelForm
+from ...views import ALL_COUNTRIES, ClaimViewMixin, UpdateChannelForm
 
 
 class ClaimView(ClaimViewMixin, SmartFormView):
@@ -231,7 +231,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         return super().form_valid(form)
 
 
-class UpdateForm(UpdateTelChannelForm):
+class UpdateForm(UpdateChannelForm):
     role = forms.MultipleChoiceField(
         choices=((Channel.ROLE_RECEIVE, _("Receive")), (Channel.ROLE_SEND, _("Send"))),
         widget=SelectMultipleWidget(attrs={"widget_only": True}),
@@ -242,6 +242,6 @@ class UpdateForm(UpdateTelChannelForm):
     def clean_role(self):
         return "".join(self.cleaned_data.get("role", []))
 
-    class Meta(UpdateTelChannelForm.Meta):
-        fields = "name", "role", "log_policy"
+    class Meta(UpdateChannelForm.Meta):
+        fields = "name", "role", "is_enabled", "log_policy"
         readonly = []

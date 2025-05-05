@@ -19,7 +19,7 @@ class InstagramTypeTest(TembaTest):
         self.long_life_page_token = f"page-long-life-{self.token}"
         self.channel = Channel.create(
             self.org,
-            self.user,
+            self.admin,
             None,
             "IG",
             name="Instagram",

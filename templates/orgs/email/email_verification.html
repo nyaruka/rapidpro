@@ -2,11 +2,11 @@
 {% load tz i18n %}
 
 {% block body %}
-    <p>
-        {% blocktrans trimmed with domain=branding.domain brand=branding.name secret=secret %}
-            Please verify your email for {{ brand }}
-            <br />
-            To verify the login account email, <a href='https://{{ domain }}/user/verify_email/{{ secret }}/'>click here</a>.
-        {% endblocktrans %}
-    </p>
+  <p>
+    {% blocktrans trimmed with domain=branding.domain brand=branding.name secret=secret %}
+      Please verify your email for {{ brand }}
+      <br />
+      To verify the login account email, <a href='https://{{ domain }}/user/verify_email/{{ secret }}/'>click here</a>.
+    {% endblocktrans %}
+  </p>
 {% endblock body %}

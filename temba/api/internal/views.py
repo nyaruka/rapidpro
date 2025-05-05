@@ -4,13 +4,22 @@ from rest_framework.response import Response
 
 from django.db.models import Prefetch, Q
 
+from temba.ai.models import LLM
 from temba.channels.models import Channel
 from temba.locations.models import AdminBoundary
 from temba.notifications.models import Notification
+from temba.orgs.models import Org
 from temba.templates.models import Template, TemplateTranslation
+from temba.tickets.models import Shortcut
+from temba.users.models import User
 
 from ..models import APIPermission, SSLPermission
-from ..support import APISessionAuthentication, CreatedOnCursorPagination, ModifiedOnCursorPagination
+from ..support import (
+    APISessionAuthentication,
+    CreatedOnCursorPagination,
+    ModifiedOnCursorPagination,
+    NameCursorPagination,
+)
 from ..views import BaseAPIView, ListAPIMixin
 from . import serializers
 
@@ -27,6 +36,19 @@ class BaseEndpoint(BaseAPIView):
 # ============================================================
 # Endpoints (A-Z)
 # ============================================================
+
+
+class LLMsEndpoint(ListAPIMixin, BaseEndpoint):
+    """
+    LLMs for the current user.
+    """
+
+    model = LLM
+    serializer_class = serializers.LLMReadSerializer
+    pagination_class = NameCursorPagination
+
+    def get_queryset(self):
+        return super().get_queryset().filter(org=self.request.org, is_active=True)
 
 
 class LocationsEndpoint(ListAPIMixin, BaseEndpoint):
@@ -83,6 +105,25 @@ class NotificationsEndpoint(ListAPIMixin, BaseEndpoint):
         Notification.mark_seen(self.request.org, self.request.user)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class OrgsEndpoint(ListAPIMixin, BaseEndpoint):
+    """
+    Orgs for the current user.
+    """
+
+    model = Org
+    serializer_class = serializers.OrgReadSerializer
+    pagination_class = ModifiedOnCursorPagination
+
+    def get_queryset(self):
+        return User.get_orgs_for_request(self.request)
+
+
+class ShortcutsEndpoint(ListAPIMixin, BaseEndpoint):
+    model = Shortcut
+    serializer_class = serializers.ShortcutReadSerializer
+    pagination_class = ModifiedOnCursorPagination
 
 
 class TemplatesEndpoint(ListAPIMixin, BaseEndpoint):

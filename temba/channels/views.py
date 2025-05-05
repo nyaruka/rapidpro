@@ -3,10 +3,10 @@ from collections import defaultdict
 from datetime import timedelta
 from typing import Any
 
-import nexmo
 import phonenumbers
 import requests
 import twilio.base.exceptions
+import vonage
 from smartmin.views import (
     SmartCRUDL,
     SmartFormView,
@@ -35,12 +35,13 @@ from temba.contacts.models import URN
 from temba.ivr.models import Call
 from temba.msgs.models import Msg
 from temba.notifications.views import NotificationTargetMixin
-from temba.orgs.views import DependencyDeleteModal, ModalMixin, OrgObjPermsMixin, OrgPermsMixin
+from temba.orgs.views.base import BaseDependencyDeleteModal, BaseReadView
+from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin
 from temba.utils import countries
 from temba.utils.fields import SelectWidget
 from temba.utils.json import EpochEncoder
 from temba.utils.models import patch_queryset_count
-from temba.utils.views import ComponentFormMixin, ContentMenuMixin, SpaMixin
+from temba.utils.views.mixins import ComponentFormMixin, ContextMenuMixin, ModalFormMixin, SpaMixin
 
 from .models import Channel, ChannelCount, ChannelLog
 
@@ -77,16 +78,6 @@ class ClaimViewMixin(ChannelTypeMixin, OrgPermsMixin, ComponentFormMixin):
             super().__init__(**kwargs)
 
         def clean(self):
-            count, limit = Channel.get_org_limit_progress(self.request.org)
-            if limit is not None and count >= limit:
-                raise forms.ValidationError(
-                    _(
-                        "This workspace has reached its limit of %(limit)d channels. "
-                        "You must delete existing ones before you can create new ones."
-                    ),
-                    params={"limit": limit},
-                )
-
             if self.channel_type.unique_addresses:
                 assert self.cleaned_data.get("address"), "channel type should specify an address in Form.clean method"
 
@@ -102,6 +93,12 @@ class ClaimViewMixin(ChannelTypeMixin, OrgPermsMixin, ComponentFormMixin):
                     raise forms.ValidationError(_("This channel is already connected in another workspace."))
 
             return super().clean()
+
+    def pre_process(self, request, *args, **kwargs):
+        if request.org and Channel.is_limit_reached(request.org):
+            return HttpResponseRedirect(reverse("orgs.org_workspace"))
+
+        return super().pre_process(request, *args, **kwargs)
 
     def get_template_names(self):
         return (
@@ -241,9 +238,6 @@ class AuthenticatedExternalCallbackClaimView(AuthenticatedExternalClaimView):
 
 
 class BaseClaimNumberMixin(ClaimViewMixin):
-    def pre_process(self, *args, **kwargs):  # pragma: needs cover
-        return None
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         org = self.request.org
@@ -374,8 +368,8 @@ class BaseClaimNumberMixin(ClaimViewMixin):
             return HttpResponseRedirect("%s?success" % reverse("public.public_welcome"))
 
         except (
-            nexmo.AuthenticationError,
-            nexmo.ClientError,
+            vonage.AuthenticationError,
+            vonage.ClientError,
             twilio.base.exceptions.TwilioRestException,
         ) as e:  # pragma: no cover
             logger.warning(f"Unable to claim a number: {str(e)}", exc_info=True)
@@ -448,15 +442,9 @@ class UpdateChannelForm(forms.ModelForm):
 
     class Meta:
         model = Channel
-        fields = ("name", "log_policy")
+        fields = ("name", "is_enabled", "log_policy")
         readonly = ()
-        labels = {}
-        helps = {}
-
-
-class UpdateTelChannelForm(UpdateChannelForm):
-    class Meta(UpdateChannelForm.Meta):
-        helps = {"address": _("Phone number of this channel")}
+        labels = {"is_enabled": _("Enabled")}
 
 
 class ChannelCRUDL(SmartCRUDL):
@@ -472,20 +460,17 @@ class ChannelCRUDL(SmartCRUDL):
         "facebook_whitelist",
     )
 
-    class Read(SpaMixin, OrgObjPermsMixin, ContentMenuMixin, NotificationTargetMixin, SmartReadView):
+    class Read(SpaMixin, ContextMenuMixin, NotificationTargetMixin, BaseReadView):
         slug_url_kwarg = "uuid"
         exclude = ("id", "is_active", "created_by", "modified_by", "modified_on")
 
         def derive_menu_path(self):
-            return f"/settings/channels/{self.get_object().uuid}"
-
-        def get_queryset(self):
-            return Channel.objects.filter(is_active=True)
+            return f"/settings/channels/{self.object.uuid}"
 
         def get_notification_scope(self) -> tuple:
             return "incident:started", str(self.object.id)
 
-        def build_content_menu(self, menu):
+        def build_context_menu(self, menu):
             obj = self.get_object()
 
             for item in obj.type.menu_items:
@@ -596,12 +581,9 @@ class ChannelCRUDL(SmartCRUDL):
 
             return context
 
-    class Chart(OrgObjPermsMixin, SmartReadView):
+    class Chart(BaseReadView):
         permission = "channels.channel_read"
         slug_url_kwarg = "uuid"
-
-        def get_queryset(self):
-            return Channel.objects.filter(is_active=True)
 
         def render_to_response(self, context, **response_kwargs):
             channel = self.object
@@ -662,7 +644,7 @@ class ChannelCRUDL(SmartCRUDL):
                 encoder=EpochEncoder,
             )
 
-    class FacebookWhitelist(ComponentFormMixin, ModalMixin, OrgObjPermsMixin, SmartModelActionView):
+    class FacebookWhitelist(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, SmartModelActionView):
         class DomainForm(forms.Form):
             whitelisted_domain = forms.URLField(
                 required=True,
@@ -698,7 +680,7 @@ class ChannelCRUDL(SmartCRUDL):
                 default_error = dict(message=_("An error occured contacting the Facebook API"))
                 raise ValidationError(response_json.get("error", default_error)["message"])
 
-    class Delete(DependencyDeleteModal, SpaMixin):
+    class Delete(BaseDependencyDeleteModal):
         cancel_url = "uuid@channels.channel_read"
         success_url = "@orgs.org_workspace"
         success_message = _("Your channel has been removed.")
@@ -719,7 +701,7 @@ class ChannelCRUDL(SmartCRUDL):
                 )
 
                 response = HttpResponse()
-                response["Temba-Success"] = self.cancel_url
+                response["X-Temba-Success"] = self.cancel_url
                 return response
 
             # override success message for Twilio channels
@@ -729,10 +711,16 @@ class ChannelCRUDL(SmartCRUDL):
                 messages.info(request, self.success_message)
 
             response = HttpResponse()
-            response["Temba-Success"] = self.get_success_url()
+            response["X-Temba-Success"] = self.get_success_url()
             return response
 
-    class Update(OrgObjPermsMixin, ComponentFormMixin, ModalMixin, SmartUpdateView):
+    class Update(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
+        field_config = {
+            "is_enabled": {
+                "help": _("Makes channel available for sending. Incoming messages will be archived if not enabled.")
+            }
+        }
+
         def derive_title(self):
             return _("%s Channel") % self.object.type.name
 
@@ -783,10 +771,7 @@ class ChannelCRUDL(SmartCRUDL):
             org = self.request.org
 
             context["org_timezone"] = str(org.timezone)
-
-            channel_count, org_limit = Channel.get_org_limit_progress(org)
-            context["total_count"] = channel_count
-            context["total_limit"] = org_limit
+            context["limit_reached"] = Channel.is_limit_reached(org)
 
             # fetch channel types, sorted by category and name
             recommended_channels, types_by_category, only_regional_channels = self.channel_types_groups()
@@ -812,15 +797,15 @@ class ChannelCRUDL(SmartCRUDL):
 
             return recommended_channels, types_by_category, False
 
-    class Configuration(SpaMixin, OrgObjPermsMixin, SmartReadView):
+    class Configuration(SpaMixin, BaseReadView):
         slug_url_kwarg = "uuid"
 
-        def pre_process(self, *args, **kwargs):
+        def pre_process(self, request, *args, **kwargs):
             channel = self.get_object()
             if not channel.type.config_ui:
                 return HttpResponseRedirect(reverse("channels.channel_read", args=[channel.uuid]))
 
-            return super().pre_process(*args, **kwargs)
+            return super().pre_process(request, *args, **kwargs)
 
         def derive_menu_path(self):
             return f"/settings/channels/{self.object.uuid}"

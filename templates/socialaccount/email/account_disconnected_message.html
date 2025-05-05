@@ -1,0 +1,12 @@
+{% extends "account/email/base_notification.html" %}
+{% load i18n %}
+
+{% block content %}
+  {% autoescape off %}
+    <div style="margin-top:1em">
+      {% blocktrans trimmed %}
+        A third-party account from {{ provider }} has been disconnected from your account.
+      {% endblocktrans %}
+    </div>
+  {% endautoescape %}
+{% endblock content %}

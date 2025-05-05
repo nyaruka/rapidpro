@@ -1,5 +1,5 @@
 {% extends "smartmin/read.html" %}
-{% load i18n humanize smartmin sms contacts compress temba channels %}
+{% load i18n humanize smartmin sms contacts temba %}
 
 {% block title %}
   <div class="hidden" id="title-text">{{ title|default:"Contact Details" }}</div>
@@ -13,7 +13,11 @@
               class="flex-grow -mt-2">
     <temba-tab class="chat" icon="message" name="{{ _("Chat") |escapejs }}">
       <div style="border-top-right-radius: var(--curvature);" class="flex flex-grow flex-col overflow-y-auto">
-        <temba-contact-chat contact="{{ object.uuid }}" monitor="true" avatar="{{ branding.logos.avatar }}">
+        <temba-contact-chat contact="{{ object.uuid }}"
+                            monitor="true"
+                            avatar="{{ branding.logos.avatar }}"
+                            {% if org_perms.contacts.contact_interrupt %}showInterrupt{% endif %}
+                            -temba-interrupt="handleInterruptContact">
         </temba-contact-chat>
       </div>
     </temba-tab>
@@ -43,17 +47,6 @@
         </temba-contact-pending>
       </div>
     </temba-tab>
-    <temba-tab icon="tickets" name="{{ _("Tickets") |escapejs }}" hideEmpty hidden>
-      <div style="border-top-right-radius: var(--curvature);" class="flex flex-grow flex-col overflow-y-auto">
-        <temba-contact-tickets agent="{{ user.email }}"
-                               contact="{{ object.uuid }}"
-                               -temba-refreshed="handleTicketsRefreshed"
-                               clickable="true"
-                               -temba-button-clicked="handleTicketClicked"
-                               class="m-4">
-        </temba-contact-tickets>
-      </div>
-    </temba-tab>
     <temba-tab icon="notes"
                name="{{ _("Notepad") }}"
                activity
@@ -80,6 +73,13 @@
 {% endblock extra-style %}
 {% block extra-script %}
   <script type="text/javascript">
+    function handleInterruptContact(event) {
+      const options = {
+        onSubmit: "contactUpdated()"
+      }
+      showModax("{{_('Interrupt Contact')|escapejs}}", "/contact/interrupt/" + event.detail.contact.uuid + "/", options);
+    }
+
     function contactUpdated(evt) {
       const details = document.querySelector("temba-contact-details");
       details.refresh();
@@ -102,8 +102,6 @@
       }
     }
 
-    function handleTicketsRefreshed(evt) {}
-
     function handleTabChanged() {
       var tab = document.querySelector("temba-tabs").index;
       window.history.replaceState({
@@ -116,18 +114,15 @@
       spaGet("/contact/?search=" + encodeURIComponent(evt.detail.key) + "+%3D+" + encodeURIComponent("\"" + evt.detail.value + "\""))
     }
 
-    function handleTicketClicked(evt) {
-      var ticket = evt.detail.ticket;
-      spaGet("/ticket/all/" + ticket.status + "/" + ticket.uuid + "/");
-    }
-
     function handlePendingClicked(evt) {
       var pending = evt.detail;
 
       if (pending.type == "campaign_event") {
         spaGet("/campaign/read/" + pending.campaign.uuid + "/");
+      } else if (pending.type == "scheduled_broadcast") {
+        spaGet("{% url 'msgs.broadcast_scheduled' %}");
       } else {
-        spaGet("/broadcast/scheduled/");
+        spaGet("{% url 'triggers.trigger_folder' 'schedule' %}");
       }
     }
   </script>

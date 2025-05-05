@@ -10,6 +10,7 @@ from django.core.management import BaseCommand, CommandError, call_command
 from django.db import connection
 from django.utils import timezone
 
+from temba.ai.models import LLM
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.channels.models import Channel
 from temba.classifiers.models import Classifier
@@ -18,9 +19,10 @@ from temba.flows.models import Flow
 from temba.globals.models import Global
 from temba.locations.models import AdminBoundary
 from temba.msgs.models import Label
-from temba.orgs.models import Org, OrgRole, User
+from temba.orgs.models import Org, OrgRole
 from temba.templates.models import Template, TemplateTranslation
 from temba.tickets.models import Team, Topic
+from temba.users.models import User
 
 SPECS_FILE = "temba/utils/management/commands/data/mailroom_db.json"
 
@@ -32,14 +34,15 @@ LOCATIONS_FILE = "test-data/nigeria.bin"
 
 # database id sequences to be reset to make ids predictable
 RESET_SEQUENCES = (
-    "contacts_contact_id_seq",
-    "contacts_contacturn_id_seq",
-    "contacts_contactgroup_id_seq",
-    "flows_flow_id_seq",
-    "flows_flowrevision_id_seq",
-    "channels_channel_id_seq",
+    "ai_llm_id_seq",
     "campaigns_campaign_id_seq",
     "campaigns_campaignevent_id_seq",
+    "channels_channel_id_seq",
+    "contacts_contact_id_seq",
+    "contacts_contactgroup_id_seq",
+    "contacts_contacturn_id_seq",
+    "flows_flow_id_seq",
+    "flows_flowrevision_id_seq",
     "msgs_label_id_seq",
     "templates_template_id_seq",
     "templates_templatetranslation_id_seq",
@@ -89,7 +92,7 @@ class Command(BaseCommand):
         self._log(self.style.SUCCESS("OK") + "\n")
 
         self._log("Creating superuser... ")
-        superuser = User.objects.create_superuser("root", "root@nyaruka.com", USER_PASSWORD)
+        superuser = User.objects.create_user("root", USER_PASSWORD, is_superuser=True)
         self._log(self.style.SUCCESS("OK") + "\n")
 
         mr_cmd = f'mailroom --port={mr_port} -db="postgres://{db_user}:temba@localhost/{db_name}?sslmode=disable" -uuid-seed=123'
@@ -190,6 +193,7 @@ class Command(BaseCommand):
         self.create_classifiers(spec, org, superuser)
         self.create_topics(spec, org, superuser)
         self.create_teams(spec, org, superuser)
+        self.create_llms(spec, org, superuser)
         self.create_users(spec, org)
 
         return org
@@ -265,16 +269,32 @@ class Command(BaseCommand):
 
         self._log(self.style.SUCCESS("OK") + "\n")
 
+    def create_llms(self, spec, org, user):
+        self._log(f"Creating {len(spec['llms'])} LLMs... ")
+
+        for t in spec["llms"]:
+            LLM.objects.create(
+                uuid=t["uuid"],
+                org=org,
+                name=t["name"],
+                llm_type=t["type"],
+                model=t["model"],
+                config=t["config"],
+                created_by=user,
+                modified_by=user,
+            )
+
+        self._log(self.style.SUCCESS("OK") + "\n")
+
     def create_users(self, spec, org):
         self._log(f"Creating {len(spec['users'])} users... ")
 
         for u in spec["users"]:
             user = User.objects.create_user(
-                u["email"], u["email"], USER_PASSWORD, first_name=u["first_name"], last_name=u["last_name"]
+                u["email"], USER_PASSWORD, first_name=u["first_name"], last_name=u["last_name"]
             )
-            org.add_user(user, OrgRole.from_code(u["role"]))
-            if u.get("team"):
-                user.set_team(Team.objects.get(name=u["team"]))
+            team = org.teams.get(name=u["team"]) if u.get("team") else None
+            org.add_user(user, OrgRole.from_code(u["role"]), team=team)
 
         self._log(self.style.SUCCESS("OK") + "\n")
 
@@ -372,20 +392,21 @@ class Command(BaseCommand):
                         start_mode=e["start_mode"],
                     )
                 else:
-                    evt = CampaignEvent.create_message_event(
+                    CampaignEvent.create_message_event(
                         org,
                         user,
                         campaign,
                         field,
                         e["offset"],
                         e["offset_unit"],
-                        e["message"],
-                        delivery_hour=e.get("delivery_hour", -1),
+                        e["translations"],
                         base_language=e["base_language"],
+                        delivery_hour=e.get("delivery_hour", -1),
                         start_mode=e["start_mode"],
                     )
-                    evt.flow.uuid = e["uuid"]
-                    evt.flow.save()
+
+        # make events look like they've been scheduled
+        CampaignEvent.objects.all().update(status=CampaignEvent.STATUS_READY, fire_version=1)
 
         self._log(self.style.SUCCESS("OK") + "\n")
 

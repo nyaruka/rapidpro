@@ -13,7 +13,7 @@ class FirebaseCloudMessagingTypeTest(TembaTest):
 
         self.channel = Channel.create(
             self.org,
-            self.user,
+            self.admin,
             None,
             "FCM",
             name="Firebase",

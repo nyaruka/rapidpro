@@ -1,12 +1,12 @@
 from django.utils.translation import gettext_lazy as _
 
 from temba.channels.types.twilio.type import TwilioType
-from temba.channels.types.twilio.views import SUPPORTED_COUNTRIES, UpdateForm
+from temba.channels.types.twilio.views import SUPPORTED_COUNTRIES
 from temba.contacts.models import URN
 from temba.utils.timezones import timezone_to_country_code
 
 from ...models import ChannelType, ConfigUI
-from .views import ClaimView
+from .views import ClaimView, UpdateForm
 
 
 class TwilioMessagingServiceType(ChannelType):
@@ -17,6 +17,7 @@ class TwilioMessagingServiceType(ChannelType):
     SESSION_ACCOUNT_SID = TwilioType.SESSION_ACCOUNT_SID
     SESSION_AUTH_TOKEN = TwilioType.SESSION_AUTH_TOKEN
     CONFIG_MESSAGING_SERVICE_SID = "messaging_service_sid"
+    CONFIG_SHORTEN_URLS = "link_shortening"
 
     code = "TMS"
     slug = "twilio_messaging_service"

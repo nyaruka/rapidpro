@@ -327,7 +327,7 @@ class TwilioTypeTest(TembaTest):
         self.login(self.admin)
         response = self.client.get(update_url)
         self.assertEqual(
-            ["name", "allow_international", "account_sid", "auth_token", "loc"],
+            ["name", "is_enabled", "allow_international", "account_sid", "auth_token", "loc"],
             list(response.context["form"].fields.keys()),
         )
 
@@ -354,7 +354,7 @@ class TwilioTypeTest(TembaTest):
         self.login(self.customer_support, choose_org=self.org)
         response = self.client.get(update_url)
         self.assertEqual(
-            ["name", "log_policy", "allow_international", "account_sid", "auth_token", "loc"],
+            ["name", "is_enabled", "log_policy", "allow_international", "account_sid", "auth_token", "loc"],
             list(response.context["form"].fields.keys()),
         )
 

@@ -7,13 +7,13 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from temba.orgs.views import OrgPermsMixin
+from temba.orgs.views.mixins import OrgPermsMixin
 from temba.utils import countries
 from temba.utils.fields import InputWidget, SelectWidget
 from temba.utils.models import generate_uuid
 
 from ...models import Channel
-from ...views import BaseClaimNumberMixin, ChannelTypeMixin, ClaimViewMixin, UpdateTelChannelForm
+from ...views import BaseClaimNumberMixin, ChannelTypeMixin, ClaimViewMixin
 from .client import VonageClient
 
 SUPPORTED_COUNTRIES = {
@@ -267,13 +267,13 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
 
     form_class = Form
 
-    def pre_process(self, *args, **kwargs):
+    def pre_process(self, request, *args, **kwargs):
         client = self.get_vonage_client()
 
-        if client:
-            return None
-        else:  # pragma: needs cover
+        if not client:
             return HttpResponseRedirect(reverse("channels.types.vonage.connect"))
+
+        return super().pre_process(request, *args, **kwargs)
 
     def get_vonage_client(self):
         api_key = self.request.session.get(self.channel_type.SESSION_API_KEY, None)
@@ -457,11 +457,6 @@ class SearchView(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
         return JsonResponse(numbers, safe=False)
 
 
-class UpdateForm(UpdateTelChannelForm):
-    class Meta(UpdateTelChannelForm.Meta):
-        readonly = ()
-
-
 class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
     class VonageConnectForm(forms.Form):
         api_key = forms.CharField(help_text=_("Your Vonage API key"), widget=InputWidget(), required=True)
@@ -489,7 +484,7 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
     def get_success_url(self):
         return reverse("channels.types.vonage.claim")
 
-    def pre_process(self, *args, **kwargs):
+    def pre_process(self, request, *args, **kwargs):
         reset_creds = self.request.GET.get("reset_creds", "")
 
         org = self.request.org
@@ -506,7 +501,7 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
             )
             return HttpResponseRedirect(self.get_success_url())
 
-        return None
+        return super().pre_process(request, *args, **kwargs)
 
     def form_valid(self, form):
         api_key = form.cleaned_data["api_key"]

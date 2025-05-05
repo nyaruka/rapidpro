@@ -5,13 +5,16 @@ from django.urls import reverse
 from temba.contacts.models import URN
 from temba.orgs.models import Org
 from temba.tests import CRUDLTestMixin, TembaTest
-from temba.utils import get_anonymous_user
+from temba.tests.mailroom import mock_mailroom
+from temba.users.models import User
 
 from ...models import Channel
 
 
 class AndroidTypeTest(TembaTest, CRUDLTestMixin):
-    def test_claim(self):
+
+    @mock_mailroom
+    def test_claim(self, mr_mocks):
         # remove our explicit country so it needs to be derived from channels
         self.org.country = None
         self.org.timezone = "UTC"
@@ -39,7 +42,7 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(android1.uuid, "uuid")
         self.assertTrue(android1.secret)
         self.assertTrue(android1.claim_code)
-        self.assertEqual(android1.created_by, get_anonymous_user())
+        self.assertEqual(android1.created_by, User.get_system_user())
 
         # check channel JSON in response
         response_json = response.json()
@@ -84,7 +87,7 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "https://app.rapidpro.io/android/")
 
         # try to claim as non-admin
-        self.login(self.user)
+        self.login(self.agent)
         response = self.client.post(
             reverse("channels.types.android.claim"), dict(claim_code=android1.claim_code, phone_number="0788123123")
         )
@@ -302,4 +305,6 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
         response = self.client.get(update_url)
-        self.assertEqual(["name", "allow_international", "loc"], list(response.context["form"].fields.keys()))
+        self.assertEqual(
+            ["name", "is_enabled", "allow_international", "loc"], list(response.context["form"].fields.keys())
+        )

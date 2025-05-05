@@ -158,7 +158,7 @@ class TembaTagLibraryTest(TembaTest):
         group = self.create_group("Testers", contacts=[])
 
         self.assertEqual(f"/flow/editor/{flow.uuid}/", tags.object_url(flow))
-        self.assertEqual(f"/contact/filter/{group.uuid}/", tags.object_url(group))
+        self.assertEqual(f"/contact/group/{group.uuid}/", tags.object_url(group))
 
     def test_object_class_plural(self):
         self.assertEqual("Flow", tags.object_class_name(Flow()))
@@ -209,3 +209,8 @@ class TembaTagLibraryTest(TembaTest):
             '<temba-date value="2024-04-03T14:45:30+00:00" display="timedate"></temba-date>',
             tags.timedate("2024-04-03T14:45:30+00:00"),
         )
+
+    def test_absolute_url(self):
+        # we need a context with a request
+        context = {"request": self.client.get("/").wsgi_request}
+        self.assertEqual(tags.absolute_url(context, "msgs.msg_inbox"), "http://testserver/msg/")

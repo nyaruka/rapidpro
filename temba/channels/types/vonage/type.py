@@ -6,7 +6,7 @@ from temba.contacts.models import URN
 from temba.utils.timezones import timezone_to_country_code
 
 from .client import VonageClient
-from .views import ClaimView, Connect, SearchView, UpdateForm
+from .views import ClaimView, Connect, SearchView
 
 RECOMMENDED_COUNTRIES = {
     "US",
@@ -34,7 +34,7 @@ class VonageType(ChannelType):
     """
     A Vonage (formerly Nexmo) channel
 
-    Callback status information (https://developer.nexmo.com/api/voice#status-values):
+    Callback status information (https://developer.vonage.com/en/api/voice#status-values):
 
         started: Platform has started the call.
         ringing: The user's handset is ringing.
@@ -70,7 +70,6 @@ class VonageType(ChannelType):
         "link": '<a target="_blank" href="https://www.vonage.com/">Vonage</a>'
     }
     claim_view = ClaimView
-    update_form = UpdateForm
 
     config_ui = ConfigUI(
         blurb=_(

@@ -6,9 +6,10 @@ from io import StringIO
 
 from django.conf import settings
 from django.contrib import messages
+from django.http import HttpResponseForbidden
 from django.utils import timezone, translation
 
-from temba.orgs.models import Org, User
+from temba.orgs.models import Org
 
 
 class ExceptionMiddleware:
@@ -41,10 +42,12 @@ class OrgMiddleware:
     def __call__(self, request):
         assert hasattr(request, "user"), "must be called after django.contrib.auth.middleware.AuthenticationMiddleware"
 
-        request.org = self.determine_org(request)
-        if request.org:
-            # set our current role for this org
-            request.role = request.org.get_user_role(request.user)
+        request.org, request.is_servicing = self.determine_org(request)
+
+        # if request has an org header, ensure it matches the current org (used to prevent cross-org form submissions)
+        posted_org_id = request.headers.get(self.header_name)
+        if posted_org_id and request.org and request.org.id != int(posted_org_id):
+            return HttpResponseForbidden()
 
         request.branding = settings.BRAND
 
@@ -57,32 +60,35 @@ class OrgMiddleware:
 
         return response
 
-    def determine_org(self, request):
+    def determine_org(self, request) -> tuple[Org, bool]:
+        """
+        Determines the org for this request and whether it's being accessed by staff servicing.
+        """
+
         user = request.user
 
-        if not user.is_authenticated:
-            return None
+        if user.is_authenticated:
+            # check for value in session
+            org_id = request.session.get(self.session_key, None)
 
-        # check for value in session
-        org_id = request.session.get(self.session_key, None)
+            # staff users alternatively can pass a service header
+            if user.is_staff:
+                org_id = request.headers.get(self.service_header_name, org_id)
 
-        # staff users alternatively can pass a service header
-        if user.is_staff:
-            org_id = request.headers.get(self.service_header_name, org_id)
+            if org_id:
+                org = Org.objects.filter(is_active=True, id=org_id).select_related(*self.select_related).first()
 
-        if org_id:
-            org = Org.objects.filter(is_active=True, id=org_id).select_related(*self.select_related).first()
+                if org:
+                    membership = org.get_membership(user)
+                    if membership:
+                        membership.record_seen()
+                        return org, False
 
-            # only use if user actually belongs to this org
-            if org and (user.is_staff or org.has_user(user)):
-                return org
+                    # staff users can access any org from servicing
+                    elif user.is_staff:
+                        return org, True
 
-        # otherwise if user only belongs to one org, we can use that
-        user_orgs = User.get_orgs_for_request(request)
-        if user_orgs.count() == 1:
-            return user_orgs[0]
-
-        return None
+        return None, False
 
 
 class TimezoneMiddleware:
@@ -121,7 +127,7 @@ class LanguageMiddleware:
             language = request.branding.get("language", settings.DEFAULT_LANGUAGE)
             translation.activate(language)
         else:
-            translation.activate(user.settings.language)
+            translation.activate(user.language)
 
         response = self.get_response(request)
         response.headers.setdefault("Content-Language", translation.get_language())

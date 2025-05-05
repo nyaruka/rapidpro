@@ -1,12 +1,14 @@
+from datetime import timedelta
+
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from django.utils import timezone
 
 from temba import __version__ as temba_version
 from temba.apks.models import Apk
+from temba.channels.models import ChannelEvent
 from temba.tests import TembaTest
-
-from .models import Lead, Video
 
 
 class PublicTest(TembaTest):
@@ -16,28 +18,49 @@ class PublicTest(TembaTest):
         self.assertEqual(response.request["PATH_INFO"], "/")
         self.assertContains(response, temba_version)
 
-        response = self.client.get(home_url + "?errors=&foo", follow=True)
-        self.assertEqual(response.request["PATH_INFO"], "/")
-        self.assertTrue(response.context["errors"])
-        self.assertFalse("error_msg" in response.context)
+    def test_forgetme(self):
+        contact = self.create_contact("Joe", phone="+250788111222")
+        e1 = ChannelEvent.objects.create(
+            org=self.org,
+            channel=self.channel,
+            event_type=ChannelEvent.TYPE_STOP_CONTACT,
+            contact=contact,
+            created_on=timezone.now() - timedelta(days=3),
+            occurred_on=timezone.now() - timedelta(days=3),
+        )
+        e2 = ChannelEvent.objects.create(
+            org=self.org,
+            channel=self.channel,
+            event_type=ChannelEvent.TYPE_DELETE_CONTACT,
+            contact=contact,
+            created_on=timezone.now() - timedelta(days=2),
+            occurred_on=timezone.now() - timedelta(days=3),
+        )
+        self.assertEqual(2, ChannelEvent.objects.all().count())
 
-        # try to create a lead from the homepage
-        lead_create_url = reverse("public.lead_create")
-        post_data = dict()
-        response = self.client.post(lead_create_url, post_data, follow=True)
-        self.assertEqual(response.request["PATH_INFO"], "/")
-        self.assertTrue(response.context["errors"])
-        self.assertEqual(response.context["error_msg"], "This field is required.")
+        # 404 for non delete request event type
+        forgetme_url = reverse("public.public_forgetme")
 
-        post_data["email"] = "wrong_email_format"
-        response = self.client.post(lead_create_url, post_data, follow=True)
-        self.assertEqual(response.request["PATH_INFO"], "/")
-        self.assertTrue(response.context["errors"])
-        self.assertEqual(response.context["error_msg"], "Enter a valid email address.")
+        response = self.client.get(forgetme_url)
+        self.assertEqual(200, response.status_code)
+        self.assertNotContains(response, "Incorrect code provided, try again")
 
-        post_data["email"] = "immortal@temba.com"
-        response = self.client.post(lead_create_url, post_data, follow=True)
-        self.assertEqual(response.request["PATH_INFO"], reverse("orgs.org_signup"))
+        # not valid uuid
+        post_data = dict(code="foo")
+        response = self.client.post(forgetme_url, post_data, follow=True)
+        self.assertFormError(response.context["form"], "code", ["Invalid confirmation code"])
+        self.assertNotContains(response, "Incorrect code provided, try again")
+
+        # invalid confirmation code for event of type delete request
+        post_data = dict(code=e1.uuid)
+        response = self.client.post(forgetme_url, post_data, follow=True)
+        self.assertContains(response, "Incorrect code provided, try again")
+
+        # valid confirmation code for event of type delete request
+        post_data = dict(code=e2.uuid)
+        response = self.client.post(forgetme_url, post_data, follow=True)
+        self.assertEqual(200, response.status_code)
+        self.assertContains(response, f"Confirmation code: {e2.uuid}")
 
     def test_android(self):
         android_url = reverse("public.public_android")
@@ -76,30 +99,11 @@ class PublicTest(TembaTest):
         welcome_url = reverse("public.public_welcome")
         response = self.client.get(welcome_url, follow=True)
         self.assertIn("next", response.request["QUERY_STRING"])
-        self.assertEqual(response.request["PATH_INFO"], reverse("users.user_login"))
+        self.assertEqual(response.request["PATH_INFO"], settings.LOGIN_URL)
 
-        self.login(self.user)
+        self.login(self.editor)
         response = self.client.get(welcome_url, follow=True)
         self.assertEqual(response.request["PATH_INFO"], reverse("public.public_welcome"))
-
-    def test_leads(self):
-        create_url = reverse("public.lead_create")
-
-        post_data = dict()
-        post_data["email"] = "eugene@temba.com"
-        response = self.client.post(create_url, post_data, follow=True)
-        self.assertEqual(len(Lead.objects.all()), 1)
-
-        # create mailing list with the same email again, we actually allow dupes now
-        post_data["email"] = "eugene@temba.com"
-        response = self.client.post(create_url, post_data, follow=True)
-        self.assertEqual(len(Lead.objects.all()), 2)
-
-        # invalid email
-        post_data["email"] = "asdfasdf"
-        response = self.client.post(create_url, post_data, follow=True)
-        self.assertEqual(response.request["PATH_INFO"], "/")
-        self.assertEqual(len(Lead.objects.all()), 2)
 
     def test_demo_coupon(self):
         coupon_url = reverse("demo.generate_coupon")
@@ -167,10 +171,7 @@ class PublicTest(TembaTest):
     def test_sitemaps(self):
         sitemap_url = reverse("public.sitemaps")
 
-        # number of fixed items (i.e. not videos, differs between configurations)
         response = self.client.get(sitemap_url)
-
-        # but first item is always home page
         self.assertEqual(
             response.context["urlset"][0],
             {
@@ -182,118 +183,3 @@ class PublicTest(TembaTest):
                 "alternates": [],
             },
         )
-
-        num_fixed_items = len(response.context["urlset"])
-
-        # adding a video will dynamically add a new item
-        Video.objects.create(
-            name="Item14",
-            summary="Unicorn",
-            description="Video of unicorns",
-            vimeo_id="1234",
-            order=0,
-            created_by=self.superuser,
-            modified_by=self.superuser,
-        )
-
-        response = self.client.get(sitemap_url)
-        self.assertEqual(len(response.context["urlset"]), num_fixed_items + 1)
-
-
-class VideoCRUDLTest(TembaTest):
-    def test_create_and_update(self):
-        create_url = reverse("public.video_create")
-
-        payload = {
-            "name": "Video One",
-            "description": "My description",
-            "summary": "My Summary",
-            "vimeo_id": "1234",
-            "order": 0,
-        }
-
-        # can't create if not logged in
-        response = self.client.post(create_url, payload)
-        self.assertLoginRedirect(response)
-
-        # can't create as org user
-        self.login(self.admin)
-        response = self.client.post(create_url, payload)
-        self.assertLoginRedirect(response)
-
-        # can create as superuser
-        self.login(self.superuser)
-        response = self.client.post(create_url, payload)
-        self.assertEqual(302, response.status_code)
-
-        video = Video.objects.get()
-        self.assertEqual("Video One", video.name)
-        self.assertEqual("My description", video.description)
-        self.assertEqual("My Summary", video.summary)
-        self.assertEqual("1234", video.vimeo_id)
-        self.assertEqual(0, video.order)
-
-        payload = {
-            "name": "Name 2",
-            "description": "Description 2",
-            "summary": "Summary 2",
-            "vimeo_id": "4567",
-            "order": 2,
-        }
-
-        update_url = reverse("public.video_update", args=[video.id])
-
-        self.client.logout()
-
-        # can't update if not logged in
-        response = self.client.post(update_url, payload)
-        self.assertLoginRedirect(response)
-
-        # can't update as org user
-        self.login(self.admin)
-        response = self.client.post(update_url, payload)
-        self.assertLoginRedirect(response)
-
-        # can update as superuser
-        self.login(self.superuser)
-        response = self.client.post(update_url, payload)
-        self.assertEqual(302, response.status_code)
-
-        video.refresh_from_db()
-        self.assertEqual("Name 2", video.name)
-        self.assertEqual("Description 2", video.description)
-        self.assertEqual("Summary 2", video.summary)
-        self.assertEqual("4567", video.vimeo_id)
-        self.assertEqual(2, video.order)
-
-    def test_read_and_list(self):
-        video1 = Video.objects.create(
-            name="Video One",
-            summary="Unicorn",
-            description="Video of unicorns",
-            vimeo_id="1234",
-            order=0,
-            created_by=self.superuser,
-            modified_by=self.superuser,
-        )
-        video2 = Video.objects.create(
-            name="Video One",
-            summary="Unicorn",
-            description="Video of unicorns",
-            vimeo_id="1234",
-            order=0,
-            created_by=self.superuser,
-            modified_by=self.superuser,
-        )
-
-        list_url = reverse("public.video_list")
-        read_url = reverse("public.video_read", args=[video1.id])
-
-        # don't need to be logged in to list
-        response = self.client.get(list_url)
-        self.assertEqual(200, response.status_code)
-        self.assertEqual([video1, video2], list(response.context["object_list"]))
-
-        # don't need to be logged in to read
-        response = self.client.get(read_url)
-        self.assertEqual(200, response.status_code)

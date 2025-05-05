@@ -13,7 +13,7 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from temba.orgs.views import OrgPermsMixin
+from temba.orgs.views.mixins import OrgPermsMixin
 from temba.utils import countries
 from temba.utils.fields import InputWidget, SelectWidget
 from temba.utils.timezones import timezone_to_country_code
@@ -103,7 +103,7 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
         self.account = None
         self.client = None
 
-    def pre_process(self, *args, **kwargs):
+    def pre_process(self, request, *args, **kwargs):
         try:
             self.client = self.get_twilio_client()
             if not self.client:
@@ -115,6 +115,8 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             return HttpResponseRedirect(
                 f'{reverse("channels.types.twilio.connect")}?claim_type={self.channel_type.slug}'
             )
+
+        return super().pre_process(request, *args, **kwargs)
 
     def get_search_countries_tuple(self):
         return SEARCH_COUNTRY_CHOICES
@@ -395,7 +397,7 @@ class UpdateForm(UpdateChannelForm):
         return super().clean()
 
     class Meta(UpdateChannelForm.Meta):
-        fields = ("name", "log_policy")
+        fields = ("name", "is_enabled", "log_policy")
 
 
 class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
@@ -430,7 +432,7 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
     menu_path = "/settings/channels/new-channel"
     title = "Connect Twilio"
 
-    def pre_process(self, *args, **kwargs):
+    def pre_process(self, request, *args, **kwargs):
         reset_creds = self.request.GET.get("reset_creds", "")
         org = self.request.org
 
@@ -448,7 +450,8 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
             )
 
             return HttpResponseRedirect(self.get_success_url())
-        return None
+
+        return super().pre_process(request, *args, **kwargs)
 
     def get_success_url(self):
         claim_type = self.request.GET.get("claim_type", "twilio")

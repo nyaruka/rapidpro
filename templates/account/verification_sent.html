@@ -1,0 +1,24 @@
+{% extends "account/base_entrance.html" %}
+{% load i18n %}
+{% load allauth %}
+
+{% block head_title %}
+  {% trans "Verify Email Address" %}
+{% endblock head_title %}
+{% block content %}
+  {% element h1 %}
+    {% trans "Verify Email Address" %}
+  {% endelement %}
+  {% element p %}
+    <div class="mb-4">
+      {% blocktrans trimmed %}
+        Your email must be verified before continuing. We have sent you an an email with a verification link.
+      {% endblocktrans %}
+    </div>
+    <div>
+      {% blocktrans trimmed %}
+        If you haven't received the email, check your spam folder or contact support for assistance.
+      {% endblocktrans %}
+    </div>
+  {% endelement %}
+{% endblock content %}

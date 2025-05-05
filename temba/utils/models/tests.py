@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import Group
 from django.core import checks
 from django.db import connection, models
 from django.test import TestCase
@@ -8,6 +8,7 @@ from django.test import TestCase
 from temba.contacts.models import Contact
 from temba.flows.models import Flow
 from temba.tests import TembaTest
+from temba.users.models import User
 
 from .base import delete_in_batches, patch_queryset_count, update_if_changed
 from .es import IDSliceQuerySet
@@ -86,10 +87,10 @@ class ModelsTest(TembaTest):
 class IDSliceQuerySetTest(TembaTest):
     def test_fields(self):
         # if we don't specify fields, we fetch *
-        users = IDSliceQuerySet(User, [self.user.id, self.editor.id], offset=0, total=3)
+        users = IDSliceQuerySet(User, [self.agent.id, self.editor.id], offset=0, total=3)
 
         self.assertEqual(
-            f"""SELECT t.* FROM auth_user t JOIN (VALUES (1, {self.user.id}), (2, {self.editor.id})) tmp_resultset (seq, model_id) ON t.id = tmp_resultset.model_id ORDER BY tmp_resultset.seq""",
+            f"""SELECT t.* FROM users_user t JOIN (VALUES (1, {self.agent.id}), (2, {self.editor.id})) tmp_resultset (seq, model_id) ON t.id = tmp_resultset.model_id ORDER BY tmp_resultset.seq""",
             users.raw_query,
         )
 
@@ -99,10 +100,10 @@ class IDSliceQuerySetTest(TembaTest):
             users[0].email
 
         # if we do specify fields, it's like only on a regular queryset
-        users = IDSliceQuerySet(User, [self.user.id, self.editor.id], only=("id", "first_name"), offset=0, total=3)
+        users = IDSliceQuerySet(User, [self.agent.id, self.editor.id], only=("id", "first_name"), offset=0, total=3)
 
         self.assertEqual(
-            f"""SELECT t.id, t.first_name FROM auth_user t JOIN (VALUES (1, {self.user.id}), (2, {self.editor.id})) tmp_resultset (seq, model_id) ON t.id = tmp_resultset.model_id ORDER BY tmp_resultset.seq""",
+            f"""SELECT t.id, t.first_name FROM users_user t JOIN (VALUES (1, {self.agent.id}), (2, {self.editor.id})) tmp_resultset (seq, model_id) ON t.id = tmp_resultset.model_id ORDER BY tmp_resultset.seq""",
             users.raw_query,
         )
 
@@ -115,8 +116,8 @@ class IDSliceQuerySetTest(TembaTest):
         empty = IDSliceQuerySet(User, [], offset=0, total=0)
         self.assertEqual(0, len(empty))
 
-        users = IDSliceQuerySet(User, [self.user.id, self.editor.id, self.admin.id], offset=0, total=3)
-        self.assertEqual(self.user.id, users[0].id)
+        users = IDSliceQuerySet(User, [self.agent.id, self.editor.id, self.admin.id], offset=0, total=3)
+        self.assertEqual(self.agent.id, users[0].id)
         self.assertEqual(self.editor.id, users[0:3][1].id)
         self.assertEqual(0, users.offset)
         self.assertEqual(3, users.total)
@@ -133,9 +134,9 @@ class IDSliceQuerySetTest(TembaTest):
         with self.assertRaises(TypeError):
             users["foo"]
 
-        users = IDSliceQuerySet(User, [self.user.id, self.editor.id, self.admin.id], offset=10, total=100)
-        self.assertEqual(self.user.id, users[10].id)
-        self.assertEqual(self.user.id, users[10:11][0].id)
+        users = IDSliceQuerySet(User, [self.agent.id, self.editor.id, self.admin.id], offset=10, total=100)
+        self.assertEqual(self.agent.id, users[10].id)
+        self.assertEqual(self.agent.id, users[10:11][0].id)
 
         with self.assertRaises(IndexError):
             users[0]
@@ -144,30 +145,30 @@ class IDSliceQuerySetTest(TembaTest):
             users[11:15]
 
     def test_filter(self):
-        users = IDSliceQuerySet(User, [self.user.id, self.editor.id, self.admin.id], offset=10, total=100)
+        users = IDSliceQuerySet(User, [self.agent.id, self.editor.id, self.admin.id], offset=10, total=100)
 
-        filtered = users.filter(pk=self.user.id)
+        filtered = users.filter(pk=self.agent.id)
         self.assertEqual(User, filtered.model)
-        self.assertEqual([self.user.id], filtered.ids)
+        self.assertEqual([self.agent.id], filtered.ids)
         self.assertEqual(0, filtered.offset)
         self.assertEqual(1, filtered.total)
 
-        filtered = users.filter(pk__in=[self.user.id, self.admin.id])
+        filtered = users.filter(pk__in=[self.agent.id, self.admin.id])
         self.assertEqual(User, filtered.model)
-        self.assertEqual([self.user.id, self.admin.id], filtered.ids)
+        self.assertEqual([self.agent.id, self.admin.id], filtered.ids)
         self.assertEqual(0, filtered.offset)
         self.assertEqual(2, filtered.total)
 
         # pks can be strings
-        filtered = users.filter(pk=str(self.user.id))
-        self.assertEqual([self.user.id], filtered.ids)
+        filtered = users.filter(pk=str(self.agent.id))
+        self.assertEqual([self.agent.id], filtered.ids)
 
         # only filtering by pk is supported
         with self.assertRaises(ValueError):
             users.filter(name="Bob")
 
     def test_none(self):
-        users = IDSliceQuerySet(User, [self.user.id, self.editor.id], offset=0, total=2)
+        users = IDSliceQuerySet(User, [self.agent.id, self.editor.id], offset=0, total=2)
         empty = users.none()
         self.assertEqual([], empty.ids)
         self.assertEqual(0, empty.total)

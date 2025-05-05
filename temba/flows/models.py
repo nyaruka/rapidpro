@@ -1,7 +1,10 @@
+import itertools
 import logging
 from array import array
 from collections import defaultdict
-from datetime import datetime, timezone as tzone
+from dataclasses import dataclass
+from datetime import date, datetime, timezone as tzone
+from uuid import UUID
 
 import iso8601
 from django_redis import get_redis_connection
@@ -9,6 +12,7 @@ from packaging.version import Version
 
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.indexes import OpClass
 from django.db import models, transaction
 from django.db.models import Max, Prefetch, Q, Sum
 from django.db.models.functions import Lower, TruncDate
@@ -16,6 +20,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from temba import mailroom
+from temba.ai.models import LLM
 from temba.channels.models import Channel
 from temba.classifiers.models import Classifier
 from temba.contacts.models import Contact, ContactField, ContactGroup
@@ -24,9 +29,10 @@ from temba.msgs.models import Label, OptIn
 from temba.orgs.models import DependencyMixin, Export, ExportType, Org, User
 from temba.templates.models import Template
 from temba.tickets.models import Topic
-from temba.utils import analytics, chunk_list, json, on_transaction_commit, s3
+from temba.utils import analytics, json, on_transaction_commit, s3
 from temba.utils.export.models import MultiSheetExporter
-from temba.utils.models import JSONAsTextField, LegacyUUIDMixin, SquashableModel, TembaModel, delete_in_batches
+from temba.utils.models import JSONAsTextField, LegacyUUIDMixin, TembaModel, delete_in_batches
+from temba.utils.models.counts import BaseScopedCount, BaseSquashableCount
 from temba.utils.uuid import uuid4
 
 from . import legacy
@@ -54,24 +60,6 @@ FLOW_LOCK_KEY = "org:%d:lock:flow:%d:definition"
 
 
 class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
-    CONTACT_CREATION = "contact_creation"
-    CONTACT_PER_RUN = "run"
-    CONTACT_PER_LOGIN = "login"
-
-    # items in metadata
-    METADATA_RESULTS = "results"
-    METADATA_DEPENDENCIES = "dependencies"
-    METADATA_WAITING_EXIT_UUIDS = "waiting_exit_uuids"
-    METADATA_PARENT_REFS = "parent_refs"
-    METADATA_IVR_RETRY = "ivr_retry"
-
-    # items in the response from mailroom flow inspection
-    INSPECT_RESULTS = "results"
-    INSPECT_DEPENDENCIES = "dependencies"
-    INSPECT_WAITING_EXITS = "waiting_exits"
-    INSPECT_PARENT_REFS = "parent_refs"
-    INSPECT_ISSUES = "issues"
-
     # items in the flow definition JSON
     DEFINITION_UUID = "uuid"
     DEFINITION_NAME = "name"
@@ -112,7 +100,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
     FINAL_LEGACY_VERSION = legacy.VERSIONS[-1]
     INITIAL_GOFLOW_VERSION = "13.0.0"  # initial version of flow spec to use new engine
-    CURRENT_SPEC_VERSION = "13.5.0"  # current flow spec version
+    CURRENT_SPEC_VERSION = "14.3.0"  # current flow spec version
 
     EXPIRES_CHOICES = {
         TYPE_MESSAGE: (
@@ -130,7 +118,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             (60 * 24 * 3, _("After 3 days")),
             (60 * 24 * 7, _("After 1 week")),
             (60 * 24 * 14, _("After 2 weeks")),
-            (60 * 24 * 30, _("After 30 days")),
         ),
         TYPE_VOICE: (
             (1, _("After 1 minute")),
@@ -143,7 +130,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         ),
     }
     EXPIRES_DEFAULTS = {
-        TYPE_MESSAGE: 60 * 24 * 7,  # 1 week
+        TYPE_MESSAGE: 60 * 24 * 3,  # 3 days
         TYPE_VOICE: 5,  # 5 minutes
         TYPE_BACKGROUND: 0,
         TYPE_SURVEY: 0,
@@ -154,6 +141,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
     is_archived = models.BooleanField(default=False)
     flow_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_MESSAGE)
     ignore_triggers = models.BooleanField(default=False, help_text=_("Ignore keyword triggers while in this flow."))
+    ivr_retry = models.IntegerField(null=True)
 
     # properties set from last revision
     expires_after_minutes = models.IntegerField(
@@ -168,11 +156,11 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
     version_number = models.CharField(default="0.0.0", max_length=8)  # no actual spec version until there's a revision
 
     # information from flow inspection
-    metadata = JSONAsTextField(null=True, default=dict)  # additional information about the flow, e.g. possible results
+    info = models.JSONField(null=True, default=dict)
     has_issues = models.BooleanField(default=False)
 
     saved_on = models.DateTimeField(auto_now_add=True)
-    saved_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="flow_saves")
+    saved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="flow_saves")
 
     # dependencies on other assets
     channel_dependencies = models.ManyToManyField(Channel, related_name="dependent_flows")
@@ -182,10 +170,11 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
     global_dependencies = models.ManyToManyField(Global, related_name="dependent_flows")
     group_dependencies = models.ManyToManyField(ContactGroup, related_name="dependent_flows")
     label_dependencies = models.ManyToManyField(Label, related_name="dependent_flows")
+    llm_dependencies = models.ManyToManyField(LLM, related_name="dependent_flows")
     optin_dependencies = models.ManyToManyField(OptIn, related_name="dependent_flows")
     template_dependencies = models.ManyToManyField(Template, related_name="dependent_flows")
     topic_dependencies = models.ManyToManyField(Topic, related_name="dependent_flows")
-    user_dependencies = models.ManyToManyField(User, related_name="dependent_flows")
+    user_dependencies = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="dependent_flows")
 
     soft_dependent_types = {"flow", "campaign_event", "trigger"}  # it's all soft for flows
 
@@ -231,16 +220,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             )
 
         analytics.track(user, "temba.flow_created", dict(name=name, uuid=flow.uuid))
-        return flow
-
-    @classmethod
-    def create_single_message(cls, org, user, message, base_language):
-        """
-        Creates a special 'single message' flow
-        """
-        name = "Single Message (%s)" % str(uuid4())
-        flow = Flow.create(org, user, name, flow_type=Flow.TYPE_BACKGROUND, is_system=True)
-        flow.update_single_message_flow(user, message, base_language)
         return flow
 
     @property
@@ -388,47 +367,48 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         return {"icon": self.TYPE_ICONS.get(self.flow_type, "flow"), "type": self.flow_type, "uuid": self.uuid}
 
     def get_category_counts(self):
-        keys = [r["key"] for r in self.metadata["results"]]
+        # get the possible results from the flow metadata
+        results_by_key = {r["key"]: r for r in self.info["results"]}
+
         counts = (
-            FlowCategoryCount.objects.filter(flow_id=self.id)
-            .filter(result_key__in=keys)
-            .values("result_key", "category_name")
-            .annotate(count=Sum("count"), result_name=Max("result_name"))
+            self.result_counts.filter(result__in=results_by_key)
+            .values("result", "category")
+            .annotate(total=Sum("count"))
         )
 
-        results = {}
+        # organize into dict of results keys to dicts of category names to counts
+        counts_by_key = defaultdict(dict)
         for count in counts:
-            key = count["result_key"]
-            result = results.get(key, {})
-            if "name" not in result:
-                if count["category_name"] == "All Responses":
-                    continue
-                result["key"] = key
-                result["name"] = count["result_name"]
-                result["categories"] = [dict(name=count["category_name"], count=count["count"])]
-                result["total"] = count["count"]
-            else:
-                result["categories"].append(dict(name=count["category_name"], count=count["count"]))
-                result["total"] += count["count"]
-            results[count["result_key"]] = result
+            counts_by_key[count["result"]][count["category"]] = count["total"]
 
-        for result_key, result_dict in results.items():
-            for cat in result_dict["categories"]:
-                if result_dict["total"]:
-                    cat["pct"] = float(cat["count"]) / float(result_dict["total"])
-                else:
-                    cat["pct"] = 0
+        results = []
+        for result_key, result in results_by_key.items():
+            category_counts = counts_by_key.get(result_key, {})
 
-            result_dict["categories"] = sorted(result_dict["categories"], key=lambda d: d["name"])
+            if not category_counts or (len(category_counts) == 1 and "All Responses" in category_counts):
+                continue
 
-        # order counts by their place on the flow
-        result_list = []
-        for key in keys:
-            result = results.get(key)
-            if result:
-                result_list.append(result)
+            result_total = sum(category_counts.values())
+            result_categories = []
+            for cat_name, cat_count in category_counts.items():
+                result_categories.append(
+                    {
+                        "name": cat_name,
+                        "count": cat_count,
+                        "pct": (float(cat_count) / float(result_total)) if result_total else 0,
+                    }
+                )
 
-        return result_list
+            result_summary = {
+                "key": result_key,
+                "name": result["name"],
+                "categories": sorted(result_categories, key=lambda c: c["name"]),
+                "total": result_total,
+            }
+
+            results.append(result_summary)
+
+        return results
 
     def lock(self):
         """
@@ -438,24 +418,19 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         lock_key = FLOW_LOCK_KEY % (self.org_id, self.id)
         return r.lock(lock_key, FLOW_LOCK_TTL)
 
-    def get_node_counts(self):
-        """
-        Gets the number of contacts at each node in the flow
-        """
-        return FlowNodeCount.get_totals(self)
-
-    def get_segment_counts(self):
-        """
-        Gets the number of contacts to have taken each flow segment.
-        """
-        return FlowPathCount.get_totals(self)
-
-    def get_activity(self):
+    def get_activity(self) -> tuple:
         """
         Get the activity summary for a flow as a tuple of the number of active runs
         at each step and a map of the previous visits
         """
-        return self.get_node_counts(), self.get_segment_counts()
+
+        counts = self.counts.prefix("node:").scope_totals()
+        by_node = {scope[5:]: count for scope, count in counts.items() if count}
+
+        counts = self.counts.prefix("segment:").scope_totals()
+        by_segment = {scope[8:]: count for scope, count in counts.items() if count}
+
+        return by_node, by_segment
 
     def get_active_start(self):
         """
@@ -474,8 +449,8 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         definition = Flow.migrate_definition(definition, flow=None)
 
-        flow_info = mailroom.get_client().flow_inspect(self.org, definition)
-        dependencies = flow_info[Flow.INSPECT_DEPENDENCIES]
+        info = mailroom.get_client().flow_inspect(self.org, definition)
+        dependencies = info["dependencies"]
 
         # converts a dep ref {uuid|key, name, type, missing} to an importable partial definition {uuid|key, name}
         def ref_to_def(r: dict) -> dict:
@@ -515,6 +490,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             "channel": self.org.channels.filter(is_active=True),
             "classifier": self.org.classifiers.filter(is_active=True),
             "flow": self.org.flows.filter(is_active=True),
+            "llm": self.org.llms.filter(is_active=True),
             "template": self.org.templates.all(),
         }
         for dep_type, org_objs in dep_types.items():
@@ -560,54 +536,27 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         self.modified_by = user
         self.save(update_fields=("is_archived", "modified_by", "modified_on"))
 
-    def update_single_message_flow(self, user, translations: dict, base_language: str):
-        assert translations and base_language in translations, "must include translation for base language"
+    @classmethod
+    def prefetch_run_counts(cls, flows, *, using="default"):
+        """
+        Prefetches the counts required by get_run_counts
+        """
 
-        translations = translations.copy()  # don't modify instance being saved on event object
-        action_uuid = str(uuid4())
-        base_text = translations.pop(base_language)
-        localization = {k: {action_uuid: {"text": [v]}} for k, v in translations.items()}
+        FlowActivityCount.prefetch_by_scope(flows, prefix="status:", to_attr="_status_counts", using=using)
 
-        definition = Flow.migrate_definition(
-            {
-                "uuid": "8ca44c09-791d-453a-9799-a70dd3303306",
-                "name": self.name,
-                "spec_version": "13.5.0",
-                "language": base_language,
-                "type": "messaging_background",
-                "localization": localization,
-                "nodes": [
-                    {
-                        "uuid": str(uuid4()),
-                        "actions": [{"uuid": action_uuid, "type": "send_msg", "text": base_text}],
-                        "exits": [{"uuid": "0c599307-8222-4386-b43c-e41654f03acf"}],
-                    }
-                ],
-            },
-            flow=self,
-        )
+    def get_run_counts(self) -> dict[str, int]:
+        """
+        Gets the counts of runs by status
+        """
 
-        self.save_revision(user, definition)
+        if hasattr(self, "_status_counts"):
+            counts = self._status_counts
+        else:
+            counts = self.counts.prefix("status:").scope_totals()
 
-    def get_run_stats(self):
-        totals_by_status = FlowRunStatusCount.get_totals(self)
-        total_runs = sum(totals_by_status.values())
-        completed = totals_by_status.get(FlowRun.STATUS_COMPLETED, 0)
+        return defaultdict(int, {scope[7:]: count for scope, count in counts.items()})
 
-        return {
-            "total": total_runs,
-            "status": {
-                "active": totals_by_status.get(FlowRun.STATUS_ACTIVE, 0),
-                "waiting": totals_by_status.get(FlowRun.STATUS_WAITING, 0),
-                "completed": completed,
-                "expired": totals_by_status.get(FlowRun.STATUS_EXPIRED, 0),
-                "interrupted": totals_by_status.get(FlowRun.STATUS_INTERRUPTED, 0),
-                "failed": totals_by_status.get(FlowRun.STATUS_FAILED, 0),
-            },
-            "completion": int(completed * 100 // total_runs) if total_runs else 0,
-        }
-
-    def get_recent_contacts(self, exit_uuid: str, dest_uuid: str) -> list:
+    def get_recent_contacts(self, exit_uuid: str, dest_uuid: str) -> list[dict]:
         r = get_redis_connection()
         key = f"recent_contacts:{exit_uuid}:{dest_uuid}"
 
@@ -617,7 +566,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         for member, score in r.zrange(key, start=0, end=-1, desc=True, withscores=True):
             rand, contact_id, operand = member.decode().split("|", maxsplit=2)
             contact_ids.add(int(contact_id))
-            raw.append((int(contact_id), operand, datetime.utcfromtimestamp(score).replace(tzinfo=tzone.utc)))
+            raw.append((int(contact_id), operand, datetime.fromtimestamp(score, tzone.utc)))
 
         # lookup all the referenced contacts
         contacts_by_id = {c.id: c for c in self.org.contacts.filter(id__in=contact_ids, is_active=True)}
@@ -625,8 +574,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         # if contact still exists, include in results
         recent = []
         for r in raw:
-            contact = contacts_by_id.get(r[0])
-            if contact:
+            if contact := contacts_by_id.get(r[0]):
                 recent.append(
                     {
                         "contact": {"uuid": str(contact.uuid), "name": contact.get_display(org=self.org)},
@@ -670,7 +618,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         """
         Get the dependencies of the given type from the flow metadata
         """
-        deps = self.metadata.get(Flow.METADATA_DEPENDENCIES, [])
+        deps = self.info["dependencies"]
         return [d for d in deps if d["type"] == type_name]
 
     def is_legacy(self) -> bool:
@@ -678,15 +626,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         Returns whether this flow still uses a legacy definition
         """
         return Version(self.version_number) < Version(Flow.INITIAL_GOFLOW_VERSION)
-
-    @classmethod
-    def get_metadata(cls, flow_info) -> dict:
-        return {
-            Flow.METADATA_RESULTS: flow_info[Flow.INSPECT_RESULTS],
-            Flow.METADATA_DEPENDENCIES: flow_info[Flow.INSPECT_DEPENDENCIES],
-            Flow.METADATA_WAITING_EXIT_UUIDS: flow_info[Flow.INSPECT_WAITING_EXITS],
-            Flow.METADATA_PARENT_REFS: flow_info[Flow.INSPECT_PARENT_REFS],
-        }
 
     def ensure_current_version(self):
         """
@@ -761,9 +700,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         definition[Flow.DEFINITION_EXPIRE_AFTER_MINUTES] = self.expires_after_minutes
 
         # inspect the flow (with optional validation)
-        flow_info = mailroom.get_client().flow_inspect(self.org, definition)
-        dependencies = flow_info[Flow.INSPECT_DEPENDENCIES]
-        issues = flow_info[Flow.INSPECT_ISSUES]
+        info = mailroom.get_client().flow_inspect(self.org, definition)
 
         if user is None:
             is_system_rev = True
@@ -772,20 +709,14 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             is_system_rev = False
 
         with transaction.atomic():
-            new_metadata = Flow.get_metadata(flow_info)
-
-            # IVR retry is the only value in metadata that doesn't come from flow inspection
-            if self.metadata and Flow.METADATA_IVR_RETRY in self.metadata:
-                new_metadata[Flow.METADATA_IVR_RETRY] = self.metadata[Flow.METADATA_IVR_RETRY]
-
             # update our flow fields
             self.base_language = definition.get(Flow.DEFINITION_LANGUAGE, None)
             self.version_number = Flow.CURRENT_SPEC_VERSION
-            self.has_issues = len(issues) > 0
-            self.metadata = new_metadata
+            self.has_issues = len(info["issues"]) > 0
+            self.info = info
             self.modified_by = user
             self.modified_on = timezone.now()
-            fields = ["base_language", "version_number", "has_issues", "metadata", "modified_by", "modified_on"]
+            fields = ["base_language", "version_number", "has_issues", "info", "modified_by", "modified_on"]
 
             if not is_system_rev:
                 self.saved_by = user
@@ -802,9 +733,9 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
                 revision=revision,
             )
 
-            self.update_dependencies(dependencies)
+            self.update_dependencies(info["dependencies"])
 
-        return revision, issues
+        return revision, info["issues"]
 
     @classmethod
     def migrate_definition(cls, flow_def, flow, to_version=None):
@@ -861,6 +792,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             "global": self.org.globals.filter(is_active=True, key__in=identifiers["global"]),
             "group": ContactGroup.get_groups(self.org).filter(uuid__in=identifiers["group"]),
             "label": Label.get_active_for_org(self.org).filter(uuid__in=identifiers["label"]),
+            "llm": self.org.llms.filter(is_active=True, uuid__in=identifiers["llm"]),
             "optin": OptIn.get_active_for_org(self.org).filter(uuid__in=identifiers["optin"]),
             "template": self.org.templates.filter(uuid__in=identifiers["template"]),
             "topic": self.org.topics.filter(is_active=True, uuid__in=identifiers["topic"]),
@@ -878,6 +810,54 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         dependents["campaign_event"] = self.campaign_events.filter(is_active=True)
         dependents["trigger"] = self.triggers.filter(is_active=True)
         return dependents
+
+    def get_engagement_start(self) -> date:
+        """
+        Gets earliest date of recorded engagement (i.e. messages in) for this flow.
+        """
+        first = self.counts.prefix("msgsin:date:").order_by("scope").first()
+        return date.fromisoformat(first.scope[12:]) if first else None
+
+    def get_engagement_by_date(self, truncate: str) -> list[tuple]:
+        dates = (
+            self.counts.prefix("msgsin:date:")
+            .extra({"date": f"date_trunc('{truncate}', split_part(scope, ':', 3)::date)"})
+            .values("date")
+            .annotate(count=Sum("count"))
+            .order_by("date")
+        )
+        return [(d["date"], d["count"]) for d in dates]
+
+    def get_engagement_by_weekday(self) -> dict[int, int]:
+        """
+        Gets engagement counts (i.e. messages in) by day of the week.
+        """
+
+        def parse(scope: str) -> int:
+            """
+            e.g. "msgsin:dow:3" -> 3, "msgsin:dow:7" -> 0
+            """
+            iso_dow = int(scope[11:])  # 1-7 Mon-Sun
+            return 0 if iso_dow == 7 else iso_dow  # 0-6 Sun-Sat
+
+        counts = self.counts.prefix("msgsin:dow:").scope_totals()
+        return {parse(scope): count for scope, count in counts.items()}
+
+    def get_engagement_by_hour(self, tz) -> dict[int, int]:
+        """
+        Gets engagement counts (i.e. messages in) by hour of the day.
+        """
+
+        offset = tz.utcoffset(timezone.now()).total_seconds() // 3600  # hour counts are stored in UTC
+
+        def parse(scope: str) -> int:
+            """
+            e.g. "msgsin:hour:7" -> 7
+            """
+            return (int(scope[12:]) + offset) % 24
+
+        counts = self.counts.prefix("msgsin:hour:").scope_totals()
+        return {parse(scope): count for scope, count in counts.items()}
 
     def release(self, user, *, interrupt_sessions: bool = True):
         """
@@ -913,6 +893,8 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         self.topic_dependencies.clear()
         self.user_dependencies.clear()
 
+        self.counts.all().delete()
+
         # queue mailroom to interrupt sessions where contact is currently in this flow
         if interrupt_sessions:
             mailroom.queue_interrupt(self.org, flow=self)
@@ -933,11 +915,10 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         for start in self.starts.all():
             start.delete()
 
-        delete_in_batches(self.category_counts.all())
-        delete_in_batches(self.path_counts.all())
-        delete_in_batches(self.node_counts.all())
-        delete_in_batches(self.status_counts.all())
         self.labels.clear()
+
+        delete_in_batches(self.counts.all())
+        delete_in_batches(self.result_counts.all())
 
         super().delete()
 
@@ -959,7 +940,6 @@ class FlowSession(models.Model):
     STATUS_INTERRUPTED = "I"
     STATUS_EXPIRED = "X"
     STATUS_FAILED = "F"
-
     STATUS_CHOICES = (
         (STATUS_WAITING, "Waiting"),
         (STATUS_COMPLETED, "Completed"),
@@ -970,18 +950,15 @@ class FlowSession(models.Model):
 
     id = models.BigAutoField(primary_key=True)
     uuid = models.UUIDField(unique=True)
-    org = models.ForeignKey(Org, related_name="sessions", on_delete=models.PROTECT)
     contact = models.ForeignKey("contacts.Contact", on_delete=models.PROTECT, related_name="sessions")
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
+    last_sprint_uuid = models.UUIDField(null=True)  # last sprint in this session
 
     # the modality of this session
     session_type = models.CharField(max_length=1, choices=Flow.TYPE_CHOICES, default=Flow.TYPE_MESSAGE)
 
     # the call used for flow sessions over IVR
     call = models.OneToOneField("ivr.Call", on_delete=models.PROTECT, null=True, related_name="session")
-
-    # whether the contact has responded in this session
-    responded = models.BooleanField(default=False)
 
     # the engine output of this session (either stored in this field or at the URL pointed to by output_url)
     output = JSONAsTextField(null=True, default=dict)
@@ -990,12 +967,6 @@ class FlowSession(models.Model):
     # when this session was created and ended
     created_on = models.DateTimeField(default=timezone.now)
     ended_on = models.DateTimeField(null=True)
-
-    # if session is waiting for input...
-    wait_started_on = models.DateTimeField(null=True)  # when it started waiting
-    timeout_on = models.DateTimeField(null=True)  # when it should timeout (set by courier when last msg is sent)
-    wait_expires_on = models.DateTimeField(null=True)  # when waiting run can be expired
-    wait_resume_on_expire = models.BooleanField()  # whether wait expiration can resume a parent run
 
     # the flow of the waiting run
     current_flow = models.ForeignKey("flows.Flow", related_name="sessions", null=True, on_delete=models.PROTECT)
@@ -1016,44 +987,15 @@ class FlowSession(models.Model):
         else:
             return self.output
 
-    def delete(self):
-        for run in self.runs.all():
-            run.delete()
-
-        super().delete()
-
     def __repr__(self):  # pragma: no cover
         return f"<FlowSession: id={self.id} contact={self.contact.id}>"
 
     class Meta:
         indexes = [
-            # for finding the waiting session for a contact
-            models.Index(name="flowsessions_contact_waiting", fields=("contact_id",), condition=Q(status="W")),
-            # for finding wait timeouts to be resumed
-            models.Index(
-                name="flowsessions_timed_out",
-                fields=("timeout_on",),
-                condition=Q(timeout_on__isnull=False, status="W"),
-            ),
             # for trimming ended sessions
             models.Index(name="flowsessions_ended", fields=("ended_on",), condition=Q(ended_on__isnull=False)),
-            models.Index(
-                name="flows_session_message_expires",
-                fields=("wait_expires_on",),
-                condition=Q(session_type=Flow.TYPE_MESSAGE, status="W", wait_expires_on__isnull=False),
-            ),
-            models.Index(
-                name="flows_session_voice_expires",
-                fields=("wait_expires_on",),
-                condition=Q(session_type=Flow.TYPE_VOICE, status="W", wait_expires_on__isnull=False),
-            ),
         ]
         constraints = [
-            # ensure that waiting sessions have a wait started and expires
-            models.CheckConstraint(
-                check=~Q(status="W") | Q(wait_started_on__isnull=False, wait_expires_on__isnull=False),
-                name="flows_session_waiting_has_started_and_expires",
-            ),
             # ensure that non-waiting sessions have an ended_on
             models.CheckConstraint(
                 check=Q(status="W") | Q(ended_on__isnull=False), name="flows_session_non_waiting_has_ended_on"
@@ -1102,12 +1044,10 @@ class FlowRun(models.Model):
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="runs", db_index=False)
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="runs")
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
+    session_uuid = models.UUIDField(null=True)
 
     # contact isn't an index because we have flows_flowrun_contact_inc_flow below
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT, related_name="runs", db_index=False)
-
-    # session this run belongs to (can be null if session has been trimmed)
-    session = models.ForeignKey(FlowSession, on_delete=models.PROTECT, related_name="runs", null=True)
 
     # when this run was created, last modified and exited
     created_on = models.DateTimeField(default=timezone.now)
@@ -1124,28 +1064,35 @@ class FlowRun(models.Model):
     results = JSONAsTextField(null=True, default=dict)
 
     # path taken by this run through the flow
-    path = JSONAsTextField(null=True, default=list)
+    path = JSONAsTextField(null=True, default=list)  # to be replaced by path_nodes and path_times
+    path_nodes = ArrayField(models.UUIDField(), null=True)
+    path_times = ArrayField(models.DateTimeField(), null=True)
 
     # current node location of this run in the flow
     current_node_uuid = models.UUIDField(null=True)
 
-    # set when deleting to signal to db triggers that result category counts should be decremented
-    delete_from_results = models.BooleanField(null=True)
+    @dataclass
+    class Step:
+        node: UUID
+        time: datetime
+
+    def get_path(self):
+        if self.path_nodes is not None and self.path_times is not None:
+            return [self.Step(node=n, time=t) for n, t in zip(self.path_nodes, self.path_times)]
+        else:
+            return [self.Step(node=UUID(s["node_uuid"]), time=iso8601.parse_date(s["arrived_on"])) for s in self.path]
 
     def as_archive_json(self):
         from temba.api.v2.views import FlowRunReadSerializer
-
-        def convert_step(step):
-            return {"node": step["node_uuid"], "time": step["arrived_on"]}
 
         def convert_result(result):
             return {
                 "name": result.get("name"),
                 "node": result.get("node_uuid"),
                 "time": result["created_on"],
-                "input": result.get("input"),
                 "value": result["value"],
                 "category": result.get("category"),
+                "input": result.get("input"),
             }
 
         return {
@@ -1154,26 +1101,13 @@ class FlowRun(models.Model):
             "flow": {"uuid": str(self.flow.uuid), "name": self.flow.name},
             "contact": {"uuid": str(self.contact.uuid), "name": self.contact.name},
             "responded": self.responded,
-            "path": [convert_step(s) for s in self.path],
+            "path": [{"node": str(s.node), "time": s.time.isoformat()} for s in self.get_path()],
             "values": {k: convert_result(r) for k, r in self.results.items()} if self.results else {},
             "created_on": self.created_on.isoformat(),
             "modified_on": self.modified_on.isoformat(),
             "exited_on": self.exited_on.isoformat() if self.exited_on else None,
             "exit_type": FlowRunReadSerializer.EXIT_TYPES.get(self.status),
         }
-
-    def delete(self, interrupt: bool = True):
-        """
-        Deletes this run, decrementing it from result category counts
-        """
-        with transaction.atomic():
-            self.delete_from_results = True
-            self.save(update_fields=("delete_from_results",))
-
-            if interrupt and self.session and self.session.status == FlowSession.STATUS_WAITING:
-                mailroom.queue_interrupt(self.org, sessions=[self.session])
-
-            super().delete()
 
     def __repr__(self):  # pragma: no cover
         return f"<FlowRun: id={self.id} flow={self.flow.name}>"
@@ -1200,13 +1134,10 @@ class FlowRun(models.Model):
             ),
             # for indexing contacts with their flow history
             models.Index(name="flows_flowrun_contact_inc_flow", fields=("contact",), include=("flow",)),
+            # for interrupts
+            models.Index(name="flowruns_by_session", fields=("session_uuid",), condition=Q(status__in=("A", "W"))),
         ]
         constraints = [
-            # all active/waiting runs must have a session
-            models.CheckConstraint(
-                check=~Q(status__in=("A", "W")) | Q(session__isnull=False),
-                name="flows_run_active_or_waiting_has_session",
-            ),
             # all non-active/waiting runs must have an exited_on
             models.CheckConstraint(
                 check=Q(status__in=("A", "W")) | Q(exited_on__isnull=False),
@@ -1236,7 +1167,7 @@ class FlowRevision(models.Model):
     definition = JSONAsTextField(default=dict)
     spec_version = models.CharField(default=Flow.FINAL_LEGACY_VERSION, max_length=8)
     revision = models.IntegerField()
-    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="revisions")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="revisions")
     created_on = models.DateTimeField(default=timezone.now)
 
     @classmethod
@@ -1367,193 +1298,58 @@ class FlowRevision(models.Model):
         self.delete()
 
 
-class FlowCategoryCount(SquashableModel):
+class FlowActivityCount(BaseScopedCount):
     """
-    Maintains counts for categories across all possible results in a flow
+    Flow-level counts of activity.
     """
 
-    squash_over = ("flow_id", "node_uuid", "result_key", "result_name", "category_name")
+    squash_over = ("flow_id", "scope")
 
-    flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="category_counts")
-
-    # the UUID of the node where this result was created
-    node_uuid = models.UUIDField(db_index=True)
-
-    # the key and name of the result in the flow
-    result_key = models.CharField(max_length=128)
-    result_name = models.CharField(max_length=128)
-
-    # the name of the category
-    category_name = models.CharField(max_length=128)
-
-    # the number of results with this category
-    count = models.IntegerField(default=0)
+    flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="counts", db_index=False)  # indexed below
 
     @classmethod
-    def get_squash_query(cls, distinct_set):
-        sql = """
-        WITH removed as (
-          DELETE FROM %(table)s WHERE "id" IN (
-            SELECT "id" FROM %(table)s
-              WHERE "flow_id" = %%s AND "node_uuid" = %%s AND "result_key" = %%s AND "result_name" = %%s AND "category_name" = %%s
-              LIMIT 10000
-          ) RETURNING "count"
+    def prefetch_by_scope(cls, flows, *, prefix: str, to_attr: str, using: str):
+        counts = (
+            cls.objects.using(using)
+            .filter(flow__in=flows)
+            .prefix(prefix)
+            .values_list("flow_id", "scope")
+            .annotate(total=Sum("count"))
         )
-        INSERT INTO %(table)s("flow_id", "node_uuid", "result_key", "result_name", "category_name", "count", "is_squashed")
-        VALUES (%%s, %%s, %%s, %%s, %%s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
-        """ % {
-            "table": cls._meta.db_table
-        }
+        by_flow = defaultdict(dict)
+        for count in counts:
+            by_flow[count[0]][count[1]] = count[2]
 
-        params = (
-            distinct_set.flow_id,
-            distinct_set.node_uuid,
-            distinct_set.result_key,
-            distinct_set.result_name,
-            distinct_set.category_name,
-        ) * 2
-        return sql, params
-
-    def __str__(self):
-        return "%s: %s" % (self.category_name, self.count)
+        for flow in flows:
+            setattr(flow, to_attr, by_flow[flow.id])
 
     class Meta:
         indexes = [
-            models.Index(
-                fields=("flow", "node_uuid", "result_key", "result_name", "category_name"),
-                condition=Q(is_squashed=False),
-                name="flowcategorycounts_unsquashed",
-            ),
-        ]
-
-
-class FlowPathCount(SquashableModel):
-    """
-    Maintains hourly counts of flow paths
-    """
-
-    squash_over = ("flow_id", "from_uuid", "to_uuid", "period")
-
-    flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="path_counts")
-
-    # the exit UUID of the node this path segment starts with
-    from_uuid = models.UUIDField()
-
-    # the UUID of the node this path segment ends with
-    to_uuid = models.UUIDField()
-
-    # the hour in which this activity occurred
-    period = models.DateTimeField()
-
-    # the number of runs that tooks this path segment in that period
-    count = models.IntegerField(default=0)
-
-    @classmethod
-    def get_squash_query(cls, distinct_set):
-        sql = """
-        WITH removed as (
-            DELETE FROM %(table)s WHERE "flow_id" = %%s AND "from_uuid" = %%s AND "to_uuid" = %%s AND "period" = date_trunc('hour', %%s) RETURNING "count"
-        )
-        INSERT INTO %(table)s("flow_id", "from_uuid", "to_uuid", "period", "count", "is_squashed")
-        VALUES (%%s, %%s, %%s, date_trunc('hour', %%s), GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
-        """ % {
-            "table": cls._meta.db_table
-        }
-
-        params = (distinct_set.flow_id, distinct_set.from_uuid, distinct_set.to_uuid, distinct_set.period) * 2
-        return sql, params
-
-    @classmethod
-    def get_totals(cls, flow):
-        counts = cls.objects.filter(flow=flow)
-        totals = list(counts.values_list("from_uuid", "to_uuid").annotate(replies=Sum("count")))
-        return {"%s:%s" % (t[0], t[1]): t[2] for t in totals}
-
-    class Meta:
-        indexes = [
-            models.Index(
-                fields=("flow", "from_uuid", "to_uuid", "period"),
-                condition=Q(is_squashed=False),
-                name="flowpathcounts_unsquashed",
-            ),
-        ]
-
-
-class FlowNodeCount(SquashableModel):
-    """
-    Maintains counts of unique contacts at each flow node.
-    """
-
-    squash_over = ("node_uuid",)
-
-    flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="node_counts")
-
-    # the UUID of the node
-    node_uuid = models.UUIDField(db_index=True)
-
-    # the number of contacts/runs currently at that node
-    count = models.IntegerField(default=0)
-
-    @classmethod
-    def get_squash_query(cls, distinct_set):
-        sql = """
-        WITH removed as (
-            DELETE FROM %(table)s WHERE "node_uuid" = %%s RETURNING "count"
-        )
-        INSERT INTO %(table)s("flow_id", "node_uuid", "count", "is_squashed")
-        VALUES (%%s, %%s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
-        """ % {
-            "table": cls._meta.db_table
-        }
-
-        return sql, (distinct_set.node_uuid, distinct_set.flow_id, distinct_set.node_uuid)
-
-    @classmethod
-    def get_totals(cls, flow):
-        totals = list(cls.objects.filter(flow=flow).values_list("node_uuid").annotate(replies=Sum("count")))
-        return {str(t[0]): t[1] for t in totals if t[1]}
-
-    class Meta:
-        indexes = [
-            models.Index(
-                fields=("flow", "node_uuid"), condition=Q(is_squashed=False), name="flownodecounts_unsquashed"
-            ),
-        ]
-
-
-class FlowRunStatusCount(SquashableModel):
-    """
-    Maintains counts of different statuses of flow runs for all flows. These are inserted via triggers on the database.
-    """
-
-    squash_over = ("flow_id", "status")
-
-    flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="status_counts")
-    status = models.CharField(max_length=1, choices=FlowRun.STATUS_CHOICES)
-    count = models.IntegerField(default=0)
-
-    @classmethod
-    def get_squash_query(cls, distinct_set):
-        sql = r"""
-        WITH removed as (
-            DELETE FROM flows_flowrunstatuscount WHERE "flow_id" = %s AND "status" = %s RETURNING "count"
-        )
-        INSERT INTO flows_flowrunstatuscount("flow_id", "status", "count", "is_squashed")
-        VALUES (%s, %s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
-        """
-
-        return sql, (distinct_set.flow_id, distinct_set.status) * 2
-
-    @classmethod
-    def get_totals(cls, flow):
-        totals = list(cls.objects.filter(flow=flow).values_list("status").annotate(total=Sum("count")))
-        return {t[0]: t[1] for t in totals}
-
-    class Meta:
-        indexes = [
-            models.Index(fields=("flow", "status")),
+            models.Index("flow", OpClass("scope", name="varchar_pattern_ops"), name="flowactivitycount_flow_scope"),
             # for squashing task
-            models.Index(name="flowrun_count_unsquashed", fields=("flow", "status"), condition=Q(is_squashed=False)),
+            models.Index(name="flowactivitycount_unsquashed", fields=("flow", "scope"), condition=Q(is_squashed=False)),
+        ]
+
+
+class FlowResultCount(BaseSquashableCount):
+    """
+    Maintains counts for categories across results in a flow.
+    """
+
+    squash_over = ("flow_id", "result", "category")
+
+    flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="result_counts")
+    result = models.CharField(max_length=64)
+    category = models.CharField(max_length=64)
+
+    class Meta:
+        indexes = [
+            # for squashing task
+            models.Index(
+                name="flowresultcount_unsquashed",
+                fields=("flow", "result", "category"),
+                condition=Q(is_squashed=False),
+            ),
         ]
 
 
@@ -1628,7 +1424,7 @@ class ResultsExport(ExportType):
 
         result_fields = []
         for flow in flows:
-            for result_field in flow.metadata["results"]:
+            for result_field in flow.info["results"]:
                 if not result_field["name"].startswith("_"):
                     result_field = result_field.copy()
                     result_field["flow_uuid"] = flow.uuid
@@ -1678,7 +1474,7 @@ class ResultsExport(ExportType):
         )
         seen = set()
 
-        for record_batch in chunk_list(records, 1000):
+        for record_batch in itertools.batched(records, 1000):
             matching = []
             for record in record_batch:
                 seen.add(record["id"])
@@ -1699,7 +1495,7 @@ class ResultsExport(ExportType):
             f"Results export #{export.id} for org #{export.org.id}: found {len(run_ids)} runs in database to export"
         )
 
-        for id_batch in chunk_list(run_ids, 1000):
+        for id_batch in itertools.batched(run_ids, 1000):
             run_batch = (
                 FlowRun.objects.filter(id__in=id_batch)
                 .order_by("modified_on", "id")
@@ -1833,9 +1629,6 @@ class FlowStart(models.Model):
     query = models.TextField(null=True)
     exclusions = models.JSONField(default=dict, null=True)
 
-    campaign_event = models.ForeignKey(
-        "campaigns.CampaignEvent", null=True, on_delete=models.PROTECT, related_name="flow_starts"
-    )
     calls = models.ManyToManyField("ivr.Call", related_name="starts")
 
     params = models.JSONField(null=True, default=dict)
@@ -1860,13 +1653,11 @@ class FlowStart(models.Model):
         query=None,
         exclusions=None,
         params=None,
-        campaign_event=None,
     ):
         start = cls.objects.create(
             org=flow.org,
             flow=flow,
             start_type=start_type,
-            campaign_event=campaign_event,
             urns=list(urns),
             query=query,
             exclusions=exclusions or {},
@@ -1947,7 +1738,7 @@ class FlowStart(models.Model):
         ]
 
 
-class FlowStartCount(SquashableModel):
+class FlowStartCount(BaseSquashableCount):
     """
     Maintains count of how many runs a FlowStart has created.
     """
@@ -1955,25 +1746,10 @@ class FlowStartCount(SquashableModel):
     squash_over = ("start_id",)
 
     start = models.ForeignKey(FlowStart, on_delete=models.PROTECT, related_name="counts", db_index=True)
-    count = models.IntegerField(default=0)
-
-    @classmethod
-    def get_squash_query(cls, distinct_set):
-        sql = """
-        WITH deleted as (
-            DELETE FROM %(table)s WHERE "start_id" = %%s RETURNING "count"
-        )
-        INSERT INTO %(table)s("start_id", "count", "is_squashed")
-        VALUES (%%s, GREATEST(0, (SELECT SUM("count") FROM deleted)), TRUE);
-        """ % {
-            "table": cls._meta.db_table
-        }
-
-        return sql, (distinct_set.start_id,) * 2
 
     @classmethod
     def get_count(cls, start):
-        return cls.sum(start.counts.all())
+        return start.counts.all().sum()
 
     @classmethod
     def bulk_annotate(cls, starts):

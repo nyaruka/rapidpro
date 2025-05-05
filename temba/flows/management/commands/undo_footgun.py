@@ -1,3 +1,4 @@
+import itertools
 from collections import defaultdict
 
 from django.core.management.base import BaseCommand, CommandError
@@ -5,7 +6,6 @@ from django.utils import timezone
 
 from temba.contacts.models import Contact, ContactGroup
 from temba.flows.models import FlowRun, FlowSession, FlowStart
-from temba.utils import chunk_list
 
 
 class Command(BaseCommand):
@@ -43,8 +43,8 @@ class Command(BaseCommand):
         num_fixed = 0
 
         # process runs in batches
-        for run_id_batch in chunk_list(run_ids, self.batch_size):
-            run_batch = list(FlowRun.objects.filter(id__in=run_id_batch).only("id", "contact_id", "session_id"))
+        for run_id_batch in itertools.batched(run_ids, self.batch_size):
+            run_batch = list(FlowRun.objects.filter(id__in=run_id_batch).only("id", "contact_id", "session_uuid"))
 
             self.undo_for_batch(run_batch, undoers, dry_run)
             num_fixed += len(run_batch)
@@ -57,12 +57,12 @@ class Command(BaseCommand):
 
     def undo_for_batch(self, runs: list, undoers: dict, dry_run: bool):
         contact_ids = {r.contact_id for r in runs}
-        session_ids = {r.session_id for r in runs}
+        session_uuids = {r.session_uuid for r in runs}
 
         if undoers:
             contacts_by_uuid = {str(c.uuid): c for c in Contact.objects.filter(id__in=contact_ids)}
 
-            for session in FlowSession.objects.filter(id__in=session_ids):
+            for session in FlowSession.objects.filter(uuid__in=session_uuids):
                 contact = contacts_by_uuid[str(session.contact.uuid)]
                 for run in reversed(session.output_json["runs"]):
                     for event in reversed(run["events"]):

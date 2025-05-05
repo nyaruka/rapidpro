@@ -12,7 +12,7 @@ class VKTypeTest(TembaTest):
 
         self.channel = Channel.create(
             self.org,
-            self.user,
+            self.admin,
             None,
             "VK",
             name="VK Community",

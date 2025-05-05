@@ -1,3 +1,4 @@
+import itertools
 import logging
 from abc import ABCMeta
 from dataclasses import dataclass
@@ -8,10 +9,8 @@ from uuid import uuid4
 import phonenumbers
 from django_countries.fields import CountryField
 from phonenumbers import NumberParseException
-from smartmin.models import SmartModel
 from twilio.base.exceptions import TwilioRestException
 
-from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Q, Sum
@@ -23,16 +22,18 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
+from temba import mailroom
 from temba.orgs.models import DependencyMixin, Org
-from temba.utils import analytics, dynamo, get_anonymous_user, on_transaction_commit, redact
+from temba.utils import analytics, dynamo, on_transaction_commit, redact
 from temba.utils.models import (
     JSONAsTextField,
     LegacyUUIDMixin,
-    SquashableModel,
     TembaModel,
+    TembaUUIDMixin,
     delete_in_batches,
     generate_uuid,
 )
+from temba.utils.models.counts import BaseSquashableCount
 from temba.utils.text import generate_secret
 
 logger = logging.getLogger(__name__)
@@ -261,7 +262,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     CONFIG_APPLICATION_SID = "application_sid"
     CONFIG_NUMBER_SID = "number_sid"
 
-    CONFIG_MAX_CONCURRENT_EVENTS = "max_concurrent_events"
+    CONFIG_MAX_CONCURRENT_CALLS = "max_concurrent_calls"
     CONFIG_ALLOW_INTERNATIONAL = "allow_international"
     CONFIG_MACHINE_DETECTION = "machine_detection"
 
@@ -335,6 +336,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     role = models.CharField(max_length=4, default=DEFAULT_ROLE)
     log_policy = models.CharField(max_length=1, default=LOG_POLICY_ALL, choices=LOG_POLICY_CHOICES)
     tps = models.IntegerField(null=True)
+    is_enabled = models.BooleanField(default=True)
 
     # Android relayer specific fields
     claim_code = models.CharField(max_length=16, blank=True, null=True, unique=True)
@@ -549,9 +551,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
                 # the number may be alphanumeric in the case of short codes
                 pass
 
-        elif URN.TWITTER_SCHEME in self.schemes:
-            return "@%s" % self.address
-
         elif URN.FACEBOOK_SCHEME in self.schemes:
             return "%s (%s)" % (self.config.get(Channel.CONFIG_PAGE_NAME, self.name), self.address)
 
@@ -644,7 +643,11 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         # any triggers associated with our channel get archived and released
         for trigger in self.triggers.filter(is_active=True):
-            trigger.archive(user)
+            try:
+                trigger.archive(user)
+            except Exception as e:
+                logger.error(f"Unable to deactivate a channel trigger: {str(e)}", exc_info=True)
+
             trigger.release(user)
 
         # any open incidents are ended
@@ -674,14 +677,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         """
 
         assert self.is_android, "can only trigger syncs on Android channels"
-
-        from .tasks import sync_channel_fcm_task
-
-        # androids sync via FCM
-        fcm_id = self.config.get(Channel.CONFIG_FCM_ID)
-
-        if fcm_id and settings.ANDROID_FCM_PROJECT_ID and settings.ANDROID_CREDENTIALS_FILE:
-            on_transaction_commit(lambda: sync_channel_fcm_task.delay(fcm_id, channel_id=self.id))
+        mailroom.get_client().android_sync(self)
 
     def get_count(self, count_types, since=None):
         qs = ChannelCount.objects.filter(channel=self, count_type__in=count_types)
@@ -712,7 +708,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         ]
 
 
-class ChannelCount(SquashableModel):
+class ChannelCount(BaseSquashableCount):
     """
     This model is maintained by Postgres triggers and maintains the daily counts of messages and ivr interactions
     on each day. This allows for fast visualizations of activity on the channel read page as well as summaries
@@ -742,16 +738,14 @@ class ChannelCount(SquashableModel):
     channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="counts")
     count_type = models.CharField(choices=COUNT_TYPE_CHOICES, max_length=2)
     day = models.DateField(null=True)
-    count = models.IntegerField(default=0)
 
     @classmethod
     def get_day_count(cls, channel, count_type, day):
-        counts = cls.objects.filter(channel=channel, count_type=count_type, day=day).order_by("day", "count_type")
-        return cls.sum(counts)
+        return cls.objects.filter(channel=channel, count_type=count_type, day=day).order_by("day", "count_type").sum()
 
     @classmethod
-    def get_squash_query(cls, distinct_set):
-        if distinct_set.day:
+    def get_squash_query(cls, distinct_set: dict) -> tuple:
+        if distinct_set["day"]:
             sql = """
             WITH removed as (
                 DELETE FROM %(table)s WHERE "channel_id" = %%s AND "count_type" = %%s AND "day" = %%s RETURNING "count"
@@ -762,7 +756,7 @@ class ChannelCount(SquashableModel):
                 "table": cls._meta.db_table
             }
 
-            params = (distinct_set.channel_id, distinct_set.count_type, distinct_set.day) * 2
+            params = (distinct_set["channel_id"], distinct_set["count_type"], distinct_set["day"]) * 2
         else:
             sql = """
             WITH removed as (
@@ -774,7 +768,7 @@ class ChannelCount(SquashableModel):
                 "table": cls._meta.db_table
             }
 
-            params = (distinct_set.channel_id, distinct_set.count_type) * 2
+            params = (distinct_set["channel_id"], distinct_set["count_type"]) * 2
 
         return sql, params
 
@@ -784,7 +778,7 @@ class ChannelCount(SquashableModel):
         ]
 
 
-class ChannelEvent(models.Model):
+class ChannelEvent(TembaUUIDMixin, models.Model):
     """
     An event other than a message that occurs between a channel and a contact. Can be used to trigger flows etc.
     """
@@ -799,6 +793,7 @@ class ChannelEvent(models.Model):
     TYPE_WELCOME_MESSAGE = "welcome_message"
     TYPE_OPTIN = "optin"
     TYPE_OPTOUT = "optout"
+    TYPE_DELETE_CONTACT = "delete_contact"
 
     # single char flag, human readable name, API readable name
     TYPE_CONFIG = (
@@ -812,6 +807,7 @@ class ChannelEvent(models.Model):
         (TYPE_WELCOME_MESSAGE, _("Welcome Message"), "welcome-message"),
         (TYPE_OPTIN, _("Opt In"), "optin"),
         (TYPE_OPTOUT, _("Opt Out"), "optout"),
+        (TYPE_DELETE_CONTACT, _("Delete Contact"), "delete-contact"),
     )
 
     TYPE_CHOICES = [(t[0], t[1]) for t in TYPE_CONFIG]
@@ -904,24 +900,28 @@ class ChannelLog(models.Model):
             return []
 
         client = dynamo.get_client()
-        resp = client.batch_get_item(
-            RequestItems={dynamo.table_name(cls.DYNAMO_TABLE): {"Keys": [{"UUID": {"S": str(u)}} for u in uuids]}}
-        )
-
         logs = []
-        for log in resp["Responses"][dynamo.table_name(cls.DYNAMO_TABLE)]:
-            data = dynamo.load_jsongz(log["DataGZ"]["B"])
-            logs.append(
-                ChannelLog(
-                    uuid=log["UUID"]["S"],
-                    channel=channel,
-                    log_type=log["Type"]["S"],
-                    http_logs=data["http_logs"],
-                    errors=data["errors"],
-                    elapsed_ms=int(log["ElapsedMS"]["N"]),
-                    created_on=datetime.fromtimestamp(int(log["CreatedOn"]["N"]), tz=tzone.utc),
-                )
+
+        for uuid_batch in itertools.batched(uuids, 100):
+            resp = client.batch_get_item(
+                RequestItems={
+                    dynamo.table_name(cls.DYNAMO_TABLE): {"Keys": [{"UUID": {"S": str(u)}} for u in uuid_batch]}
+                }
             )
+
+            for log in resp["Responses"][dynamo.table_name(cls.DYNAMO_TABLE)]:
+                data = dynamo.load_jsongz(log["DataGZ"]["B"])
+                logs.append(
+                    ChannelLog(
+                        uuid=log["UUID"]["S"],
+                        channel=channel,
+                        log_type=log["Type"]["S"],
+                        http_logs=data["http_logs"],
+                        errors=data["errors"],
+                        elapsed_ms=int(log["ElapsedMS"]["N"]),
+                        created_on=datetime.fromtimestamp(int(log["CreatedOn"]["N"]), tz=tzone.utc),
+                    )
+                )
 
         return sorted(logs, key=lambda l: l.uuid)
 
@@ -951,7 +951,9 @@ class ChannelLog(models.Model):
         # out of an abundance of caution, check that we're not returning one of our own credential values
         for log in data["http_logs"]:
             for secret in self.channel.type.get_redact_values(self.channel):
-                assert secret not in log["url"] and secret not in log["request"] and secret not in log["response"]
+                assert (
+                    secret not in log["url"] and secret not in log["request"] and secret not in log.get("response", "")
+                )
 
         return data
 
@@ -989,7 +991,7 @@ class ChannelLog(models.Model):
         indexes = [models.Index(name="channellogs_by_channel", fields=("channel", "-created_on"))]
 
 
-class SyncEvent(SmartModel):
+class SyncEvent(models.Model):
     """
     A record of a sync from an Android channel
     """
@@ -1034,6 +1036,8 @@ class SyncEvent(SmartModel):
     incoming_command_count = models.IntegerField(default=0)
     outgoing_command_count = models.IntegerField(default=0)
 
+    created_on = models.DateTimeField(default=timezone.now)
+
     @classmethod
     def create(cls, channel, cmd, incoming_commands):
         # update country, device and OS on our channel
@@ -1046,24 +1050,17 @@ class SyncEvent(SmartModel):
             channel.os = os
             channel.save(update_fields=["device", "os"])
 
-        args = dict()
+        sync_event = SyncEvent.objects.create(
+            channel=channel,
+            power_source=cmd.get("p_src", cmd.get("power_source")),
+            power_status=cmd.get("p_sts", cmd.get("power_status")),
+            power_level=cmd.get("p_lvl", cmd.get("power_level")),
+            network_type=cmd.get("net", cmd.get("network_type")),
+            pending_message_count=len(cmd.get("pending", cmd.get("pending_messages"))),
+            retry_message_count=len(cmd.get("retry", cmd.get("retry_messages"))),
+            incoming_command_count=max(len(incoming_commands) - 2, 0),
+        )
 
-        args["power_source"] = cmd.get("p_src", cmd.get("power_source"))
-        args["power_status"] = cmd.get("p_sts", cmd.get("power_status"))
-        args["power_level"] = cmd.get("p_lvl", cmd.get("power_level"))
-
-        args["network_type"] = cmd.get("net", cmd.get("network_type"))
-
-        args["pending_message_count"] = len(cmd.get("pending", cmd.get("pending_messages")))
-        args["retry_message_count"] = len(cmd.get("retry", cmd.get("retry_messages")))
-        args["incoming_command_count"] = max(len(incoming_commands) - 2, 0)
-
-        anon_user = get_anonymous_user()
-        args["channel"] = channel
-        args["created_by"] = anon_user
-        args["modified_by"] = anon_user
-
-        sync_event = SyncEvent.objects.create(**args)
         sync_event.pending_messages = cmd.get("pending", cmd.get("pending_messages"))
         sync_event.retry_messages = cmd.get("retry", cmd.get("retry_messages"))
 

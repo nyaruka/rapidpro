@@ -8,9 +8,6 @@ import pycountry
 import regex
 from rest_framework import serializers
 
-from django.conf import settings
-from django.contrib.auth.models import User
-
 from temba import mailroom
 from temba.archives.models import Archive
 from temba.campaigns.models import Campaign, CampaignEvent
@@ -21,9 +18,10 @@ from temba.flows.models import Flow, FlowRun, FlowStart
 from temba.globals.models import Global
 from temba.locations.models import AdminBoundary
 from temba.mailroom import modifiers
-from temba.msgs.models import Broadcast, Label, Media, Msg, OptIn
+from temba.msgs.models import Broadcast, Label, Media, Msg, OptIn, QuickReply
 from temba.orgs.models import Org, OrgRole
 from temba.tickets.models import Ticket, Topic
+from temba.users.models import User
 from temba.utils import json
 from temba.utils.fields import NameValidator
 
@@ -32,6 +30,7 @@ from ..validators import UniqueForOrgValidator
 from . import fields
 
 INVALID_EXTRA_KEY_CHARS = regex.compile(r"[^a-zA-Z0-9_]")
+FLOW_START_EXTRA_SIZE = 256  # used for extra passed to flow start API endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +67,7 @@ def _normalize_extra(extra, count):
         for k, v in extra.items():
             (normalized[normalize_key(k)], count) = _normalize_extra(v, count)
 
-            if count >= settings.FLOW_START_PARAMS_SIZE:
+            if count >= FLOW_START_EXTRA_SIZE:
                 break
 
         return normalized, count
@@ -79,7 +78,7 @@ def _normalize_extra(extra, count):
         for i, v in enumerate(extra):
             (normalized[str(i)], count) = _normalize_extra(v, count)
 
-            if count >= settings.FLOW_START_PARAMS_SIZE:
+            if count >= FLOW_START_EXTRA_SIZE:
                 break
 
         return normalized, count
@@ -127,7 +126,6 @@ class WriteSerializer(serializers.Serializer):
 class AdminBoundaryReadSerializer(ReadSerializer):
     parent = serializers.SerializerMethodField()
     aliases = serializers.SerializerMethodField()
-    geometry = serializers.SerializerMethodField()
 
     def get_parent(self, obj):
         return {"osm_id": obj.parent.osm_id, "name": obj.parent.name} if obj.parent else None
@@ -135,18 +133,13 @@ class AdminBoundaryReadSerializer(ReadSerializer):
     def get_aliases(self, obj):
         return [alias.name for alias in obj.aliases.all()]
 
-    def get_geometry(self, obj):
-        if self.context["include_geometry"] and obj.simplified_geometry:
-            return json.loads(obj.simplified_geometry.geojson)
-        else:
-            return None
-
     class Meta:
         model = AdminBoundary
         fields = ("osm_id", "name", "parent", "level", "aliases", "geometry")
 
 
 class ArchiveReadSerializer(ReadSerializer):
+    type = serializers.CharField(source="archive_type")
     period = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
 
@@ -160,7 +153,7 @@ class ArchiveReadSerializer(ReadSerializer):
 
     class Meta:
         model = Archive
-        fields = ("archive_type", "start_date", "period", "record_count", "size", "hash", "download_url")
+        fields = ("type", "start_date", "period", "record_count", "size", "hash", "download_url", "archive_type")
 
 
 class BroadcastReadSerializer(ReadSerializer):
@@ -180,6 +173,7 @@ class BroadcastReadSerializer(ReadSerializer):
     groups = fields.ContactGroupField(many=True)
     text = serializers.SerializerMethodField()
     attachments = serializers.SerializerMethodField()
+    quick_replies = serializers.SerializerMethodField()
     base_language = fields.LanguageField()
     created_on = serializers.DateTimeField(default_timezone=tzone.utc)
 
@@ -188,6 +182,9 @@ class BroadcastReadSerializer(ReadSerializer):
 
     def get_attachments(self, obj):
         return {lang: trans.get("attachments", []) for lang, trans in obj.translations.items()}
+
+    def get_quick_replies(self, obj):
+        return {lang: trans.get("quick_replies", []) for lang, trans in obj.translations.items()}
 
     def get_status(self, obj):
         return self.STATUSES[obj.status]
@@ -212,6 +209,7 @@ class BroadcastReadSerializer(ReadSerializer):
             "groups",
             "text",
             "attachments",
+            "quick_replies",
             "base_language",
             "created_on",
         )
@@ -223,11 +221,13 @@ class BroadcastWriteSerializer(WriteSerializer):
     groups = fields.ContactGroupField(many=True, required=False)
     text = fields.TranslatedTextField(required=False, max_length=Msg.MAX_TEXT_LEN)
     attachments = fields.TranslatedAttachmentsField(required=False)
+    quick_replies = fields.TranslatedQuickRepliesField(required=False)
     base_language = fields.LanguageField(required=False)
 
     def validate(self, data):
         text = data.get("text")
         attachments = data.get("attachments")
+        quick_replies = data.get("quick_replies")
         base_language = data.get("base_language")
 
         if not (data.get("text") or data.get("attachments")):
@@ -243,6 +243,9 @@ class BroadcastWriteSerializer(WriteSerializer):
             if attachments and base_language not in attachments:
                 raise serializers.ValidationError("No attachment translations provided in base language.")
 
+            if quick_replies and base_language not in quick_replies:
+                raise serializers.ValidationError("No quick_replies translations provided in base language.")
+
         return data
 
     def save(self):
@@ -253,6 +256,7 @@ class BroadcastWriteSerializer(WriteSerializer):
 
         text = self.validated_data.get("text")
         attachments = self.validated_data.get("attachments", {})
+        quick_replies = self.validated_data.get("quick_replies", {})
 
         # merge text and attachments into single dict of translations
         translations = {}
@@ -266,6 +270,13 @@ class BroadcastWriteSerializer(WriteSerializer):
 
                 # TODO update broadcast sending to allow media objects to stay as UUIDs for longer
                 translations[lang]["attachments"] = [str(m) for m in atts]
+
+        if quick_replies:
+            for lang, qrs in quick_replies.items():
+                if lang not in translations:
+                    translations[lang] = {}
+
+                translations[lang]["quick_replies"] = [qr.as_json() for qr in qrs]
 
         if not base_language:
             base_language = next(iter(translations))
@@ -331,9 +342,14 @@ class CampaignWriteSerializer(WriteSerializer):
         group = self.validated_data.get("group")
 
         if self.instance:
+            needs_scheduling = self.instance.group != group
+
             self.instance.name = name
             self.instance.group = group
             self.instance.save(update_fields=("name", "group"))
+
+            if needs_scheduling:
+                self.instance.schedule_async()
         else:
             self.instance = Campaign.create(self.context["org"], self.context["user"], name, group)
 
@@ -350,6 +366,7 @@ class CampaignEventReadSerializer(ReadSerializer):
 
     campaign = fields.CampaignField()
     flow = serializers.SerializerMethodField()
+    message = serializers.SerializerMethodField()
     relative_to = fields.ContactFieldField()
     unit = serializers.SerializerMethodField()
     created_on = serializers.DateTimeField(default_timezone=tzone.utc)
@@ -357,6 +374,12 @@ class CampaignEventReadSerializer(ReadSerializer):
     def get_flow(self, obj):
         if obj.event_type == CampaignEvent.TYPE_FLOW:
             return {"uuid": obj.flow.uuid, "name": obj.flow.name}
+        else:
+            return None
+
+    def get_message(self, obj):
+        if obj.event_type == CampaignEvent.TYPE_MESSAGE:
+            return {lang: t["text"] for lang, t in obj.translations.items()}
         else:
             return None
 
@@ -407,6 +430,9 @@ class CampaignEventWriteSerializer(WriteSerializer):
         message = data.get("message")
         flow = data.get("flow")
 
+        if self.instance and self.instance.status == CampaignEvent.STATUS_SCHEDULING:
+            raise serializers.ValidationError("Cannot modify events which are currently being scheduled.")
+
         if (message and flow) or (not message and not flow):
             raise serializers.ValidationError("Flow or a message text required.")
 
@@ -430,55 +456,63 @@ class CampaignEventWriteSerializer(WriteSerializer):
         flow = self.validated_data.get("flow")
 
         if self.instance:
-            self.instance = self.instance.recreate()  # don't update but re-create to invalidate existing event fires
+            needs_scheduling = (
+                self.instance.offset != offset
+                or self.instance.unit != unit
+                or self.instance.delivery_hour != delivery_hour
+                or self.instance.relative_to != relative_to
+            )
 
             # we are being set to a flow
             if flow:
-                self.instance.flow = flow
                 self.instance.event_type = CampaignEvent.TYPE_FLOW
-                self.instance.message = None
+                self.instance.flow = flow
+                self.instance.translations = None
+                self.instance.base_language = None
 
             # we are being set to a message
             else:
-                self.instance.message = message
+                self.instance.event_type = CampaignEvent.TYPE_MESSAGE
+                self.instance.flow = None
+                self.instance.translations = {lang: {"text": text} for lang, text in message.items()}
+                self.instance.base_language = base_language
 
-                # if we aren't currently a message event, we need to create our hidden message flow
-                if self.instance.event_type != CampaignEvent.TYPE_MESSAGE:
-                    self.instance.flow = Flow.create_single_message(org, user, message, base_language)
-                    self.instance.event_type = CampaignEvent.TYPE_MESSAGE
-
-                # otherwise, we can just update that flow
-                else:
-                    # set our single message on our flow
-                    self.instance.flow.update_single_message_flow(user, message, base_language)
-
-            # update our other attributes
+            # update scheduling attributes
             self.instance.offset = offset
             self.instance.unit = unit
             self.instance.delivery_hour = delivery_hour
             self.instance.relative_to = relative_to
             self.instance.save()
-            self.instance.update_flow_name()
 
         else:
+            needs_scheduling = True
+
             if flow:
                 self.instance = CampaignEvent.create_flow_event(
                     org, user, campaign, relative_to, offset, unit, flow, delivery_hour
                 )
             else:
                 self.instance = CampaignEvent.create_message_event(
-                    org, user, campaign, relative_to, offset, unit, message, delivery_hour, base_language
+                    org,
+                    user,
+                    campaign,
+                    relative_to,
+                    offset,
+                    unit,
+                    translations={lang: {"text": text} for lang, text in message.items()},
+                    base_language=base_language,
+                    delivery_hour=delivery_hour,
                 )
 
-            self.instance.update_flow_name()
-
         # create our event fires for this event in the background
-        self.instance.schedule_async()
+        if needs_scheduling:
+            self.instance.schedule_async()
 
         return self.instance
 
 
 class ChannelReadSerializer(ReadSerializer):
+    type = serializers.CharField(source="type.slug")
     country = serializers.SerializerMethodField()
     device = serializers.SerializerMethodField()
     created_on = serializers.DateTimeField(default_timezone=tzone.utc)
@@ -501,7 +535,7 @@ class ChannelReadSerializer(ReadSerializer):
 
     class Meta:
         model = Channel
-        fields = ("uuid", "name", "address", "country", "device", "last_seen", "created_on")
+        fields = ("uuid", "name", "address", "type", "country", "device", "last_seen", "created_on")
 
 
 class ClassifierReadSerializer(ReadSerializer):
@@ -983,6 +1017,14 @@ class FlowReadSerializer(ReadSerializer):
         Flow.TYPE_BACKGROUND: "background",
         Flow.TYPE_SURVEY: "survey",
     }
+    RUN_STATUSES = {
+        FlowRun.STATUS_ACTIVE: "active",
+        FlowRun.STATUS_WAITING: "waiting",
+        FlowRun.STATUS_COMPLETED: "completed",
+        FlowRun.STATUS_EXPIRED: "expired",
+        FlowRun.STATUS_INTERRUPTED: "interrupted",
+        FlowRun.STATUS_FAILED: "failed",
+    }
 
     type = serializers.SerializerMethodField()
     archived = serializers.ReadOnlyField(source="is_archived")
@@ -1001,13 +1043,14 @@ class FlowReadSerializer(ReadSerializer):
         return [{"uuid": str(lb.uuid), "name": lb.name} for lb in obj.labels.all()]
 
     def get_runs(self, obj):
-        return obj.get_run_stats()["status"]
+        counts = obj.get_run_counts()
+        return {key: counts[s] for s, key in self.RUN_STATUSES.items()}
 
     def get_results(self, obj):
-        return obj.metadata.get(Flow.METADATA_RESULTS, [])
+        return obj.info.get("results", [])
 
     def get_parent_refs(self, obj):
-        return obj.metadata.get(Flow.METADATA_PARENT_REFS, [])
+        return obj.info.get("parent_refs", [])
 
     class Meta:
         model = Flow
@@ -1051,21 +1094,16 @@ class FlowRunReadSerializer(ReadSerializer):
         if not self.context["include_paths"]:
             return None
 
-        def convert_step(step):
-            arrived_on = iso8601.parse_date(step["arrived_on"])
-            return {"node": step["node_uuid"], "time": format_datetime(arrived_on)}
-
-        return [convert_step(s) for s in obj.path]
+        return [{"node": str(s.node), "time": format_datetime(s.time)} for s in obj.get_path()]
 
     def get_values(self, obj):
         def convert_result(result):
             return {
+                "name": result.get("name"),
                 "value": result["value"],
                 "category": result.get("category"),
                 "node": result["node_uuid"],
                 "time": format_datetime(iso8601.parse_date(result["created_on"])),
-                "input": result.get("input"),
-                "name": result.get("name"),
             }
 
         return {k: convert_result(r) for k, r in obj.results.items()}
@@ -1148,6 +1186,8 @@ class FlowStartReadSerializer(ReadSerializer):
 
 
 class FlowStartWriteSerializer(WriteSerializer):
+    PARAMS_MAX_LENGTH = 10_000
+
     flow = fields.FlowField()
     contacts = fields.ContactField(many=True, required=False)
     groups = fields.ContactGroupField(many=True, required=False)
@@ -1166,7 +1206,13 @@ class FlowStartWriteSerializer(WriteSerializer):
         return normalize_extra(value)
 
     def validate_params(self, value):
-        return self.validate_extra(value)
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Must be a valid JSON object")
+
+        if len(json.dumps(value)) > self.PARAMS_MAX_LENGTH:
+            raise serializers.ValidationError("Cannot exceed 10,000 characters encoded.")
+
+        return value
 
     def validate(self, data):
         # need at least one of urns, groups or contacts
@@ -1324,6 +1370,7 @@ class MsgReadSerializer(ReadSerializer):
     direction = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     attachments = serializers.SerializerMethodField()
+    quick_replies = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     archived = serializers.SerializerMethodField()
     visibility = serializers.SerializerMethodField()
@@ -1348,6 +1395,9 @@ class MsgReadSerializer(ReadSerializer):
 
     def get_attachments(self, obj):
         return [a.as_json() for a in obj.get_attachments()]
+
+    def get_quick_replies(self, obj):
+        return [q.as_json() for q in obj.get_quick_replies()]
 
     def get_media(self, obj):
         return obj.attachments[0] if obj.attachments else None
@@ -1382,6 +1432,7 @@ class MsgReadSerializer(ReadSerializer):
             "labels",
             "flow",
             "attachments",
+            "quick_replies",
             "created_on",
             "sent_on",
             "modified_on",
@@ -1393,6 +1444,9 @@ class MsgWriteSerializer(WriteSerializer):
     contact = fields.ContactField()
     text = serializers.CharField(required=False, max_length=Msg.MAX_TEXT_LEN)
     attachments = fields.MediaField(required=False, many=True, max_items=Msg.MAX_ATTACHMENTS)
+    quick_replies = serializers.ListField(
+        required=False, child=fields.QuickReplySerializer(), max_length=Msg.MAX_QUICK_REPLIES
+    )
     ticket = fields.TicketField(required=False)
 
     def validate(self, data):
@@ -1407,9 +1461,10 @@ class MsgWriteSerializer(WriteSerializer):
         contact = self.validated_data["contact"]
         text = self.validated_data.get("text")
         attachments = [str(m) for m in self.validated_data.get("attachments", [])]
+        quick_replies = self.validated_data.get("quick_replies", [])
         ticket = self.validated_data.get("ticket")
 
-        resp = mailroom.get_client().msg_send(org, user, contact, text or "", attachments, ticket)
+        resp = mailroom.get_client().msg_send(org, user, contact, text or "", attachments, quick_replies, ticket)
 
         # to avoid fetching the new msg from the database, construct transient instances to pass to the serializer
         channel = Channel(uuid=resp["channel"]["uuid"], name=resp["channel"]["name"]) if resp.get("channel") else None
@@ -1420,6 +1475,8 @@ class MsgWriteSerializer(WriteSerializer):
             contact_urn = ContactURN(scheme=urn_scheme, path=urn_path, display=urn_display)
         else:
             contact_urn = None
+
+        msg_quick_replies = [str(QuickReply(qr["text"], qr.get("extra"))) for qr in resp.get("quick_replies")]
 
         return Msg(
             id=resp["id"],
@@ -1433,6 +1490,7 @@ class MsgWriteSerializer(WriteSerializer):
             visibility=Msg.VISIBILITY_VISIBLE,
             text=resp.get("text"),
             attachments=resp.get("attachments"),
+            quick_replies=msg_quick_replies,
             created_on=iso8601.parse_date(resp["created_on"]),
             modified_on=iso8601.parse_date(resp["modified_on"]),
         )
@@ -1656,7 +1714,7 @@ class TicketBulkActionSerializer(WriteSerializer):
 
     tickets = fields.TicketField(many=True)
     action = serializers.ChoiceField(required=True, choices=ACTION_CHOICES)
-    assignee = fields.UserField(required=False, allow_null=True, assignable_only=True)
+    assignee = fields.UserField(required=False, allow_null=True)
     topic = fields.TopicField(required=False)
     note = serializers.CharField(required=False, max_length=Ticket.MAX_NOTE_LENGTH)
 
@@ -1682,15 +1740,18 @@ class TicketBulkActionSerializer(WriteSerializer):
         topic = self.validated_data.get("topic")
 
         if action == self.ACTION_ASSIGN:
-            Ticket.bulk_assign(org, user, tickets, assignee=assignee)
+            changed = Ticket.bulk_assign(org, user, tickets, assignee=assignee)
         elif action == self.ACTION_ADD_NOTE:
-            Ticket.bulk_add_note(org, user, tickets, note=note)
+            changed = Ticket.bulk_add_note(org, user, tickets, note=note)
         elif action == self.ACTION_CHANGE_TOPIC:
-            Ticket.bulk_change_topic(org, user, tickets, topic=topic)
+            changed = Ticket.bulk_change_topic(org, user, tickets, topic=topic)
         elif action == self.ACTION_CLOSE:
-            Ticket.bulk_close(org, user, tickets)
+            changed = Ticket.bulk_close(org, user, tickets)
         elif action == self.ACTION_REOPEN:
-            Ticket.bulk_reopen(org, user, tickets)
+            changed = Ticket.bulk_reopen(org, user, tickets)
+
+        failed = [t.uuid for t in tickets if t not in changed]
+        return BulkActionFailure(failed) if failed else None
 
 
 class TopicReadSerializer(ReadSerializer):
@@ -1734,25 +1795,27 @@ class UserReadSerializer(ReadSerializer):
     ROLES = {
         OrgRole.ADMINISTRATOR: "administrator",
         OrgRole.EDITOR: "editor",
-        OrgRole.VIEWER: "viewer",
         OrgRole.AGENT: "agent",
     }
 
     avatar = serializers.SerializerMethodField()
     role = serializers.SerializerMethodField()
+    team = serializers.SerializerMethodField()
     created_on = serializers.DateTimeField(default_timezone=tzone.utc, source="date_joined")
 
     def get_avatar(self, obj):
-        settings = obj.settings
-        return settings.avatar.url if settings and settings.avatar else None
+        return obj.avatar.url if obj.avatar else None
 
     def get_role(self, obj):
-        role = self.context["user_roles"][obj]
-        return self.ROLES[role]
+        return self.ROLES[self.context["memberships"][obj].role]
+
+    def get_team(self, obj):
+        team = self.context["memberships"][obj].team
+        return {"uuid": str(team.uuid), "name": team.name} if team else None
 
     class Meta:
         model = User
-        fields = ("email", "first_name", "last_name", "role", "created_on", "avatar")
+        fields = ("email", "first_name", "last_name", "role", "team", "created_on", "avatar")
 
 
 class WorkspaceReadSerializer(ReadSerializer):

@@ -1,50 +1,45 @@
 {% extends "smartmin/base.html" %}
-{% load i18n compress temba %}
+{% load i18n temba %}
 
 {% block title-text %}
   {% trans "New Channel" %}
 {% endblock title-text %}
 {% block content %}
-  {% blocktrans trimmed with name=branding.name %}
-    To send and receive messages you need to add a channel to your workspace. A channel is a phone number or social network
-    account which {{ name }} can use to send and receive messages on your behalf.
-  {% endblocktrans %}
-  {% if total_count >= total_limit %}
+  <div class="mb-4">
+    {% blocktrans trimmed with name=branding.name %}
+      To send and receive messages you need to add a channel to your workspace. A channel is a phone number or social network
+      account which {{ name }} can use to send and receive messages on your behalf.
+    {% endblocktrans %}
+  </div>
+  {% if limit_reached %}
     <div class="mb-4">
       <temba-alert level="warning">
-        {% blocktrans trimmed with limit=total_limit %}
-          You have reached the limit of {{ limit }} channels per workspace. Please remove channels that you are no longer using.
+        {% blocktrans trimmed %}
+          You have reached the per-workspace limit and must delete existing channels before you can create new ones.
         {% endblocktrans %}
       </temba-alert>
     </div>
-  {% elif total_count >= total_limit|add:-1 %}
-    <div class="mb-4">
-      <temba-alert level="warning">
-        {% blocktrans trimmed with limit=total_limit %}
-          You are approaching the limit of {{ limit }} channels per workspace. You should remove channels that you are no longer using.
-        {% endblocktrans %}
-      </temba-alert>
-    </div>
-  {% endif %}
-  <div class="mt-8">
+  {% else %}
     {% if recommended_channels %}
-      <div class="title">{% trans "Recommendations" %}</div>
-      {% for ch_type in recommended_channels %}
-        <div href="{% url 'channels.types.'|add:ch_type.slug|add:'.claim' %}"
-             onclick="goto(event, this)"
-             class="card link">
-          <div class="relative">
-            <temba-icon name="{{ ch_type.icon }}" class="text-base absolute text-gray-100 bg-icon">
-            </temba-icon>
+      <div class="mb-4">
+        <div class="title">{% trans "Recommendations" %}</div>
+        {% for ch_type in recommended_channels %}
+          <div href="{% url 'channels.types.'|add:ch_type.slug|add:'.claim' %}"
+               onclick="goto(event, this)"
+               class="card link">
+            <div class="relative">
+              <temba-icon name="{{ ch_type.icon }}" class="text-base absolute text-gray-100 bg-icon">
+              </temba-icon>
+            </div>
+            <div class="flex flex-col mx-20 relative">
+              <div class="title">{{ ch_type.name }}</div>
+              <div class="mt-2">{% include ch_type.get_claim_blurb %}</div>
+            </div>
           </div>
-          <div class="flex flex-col mx-20 relative">
-            <div class="title">{{ ch_type.name }}</div>
-            <div class="mt-2">{% include ch_type.get_claim_blurb %}</div>
-          </div>
-        </div>
-      {% endfor %}
+        {% endfor %}
+      </div>
     {% endif %}
-    <div class="mt-8">
+    <div class="mb-4">
       <div class="title">{% trans "Social Network Channels" %}</div>
       {% for ch_type in channel_types.SOCIAL_MEDIA %}
         <div href="{% url 'channels.types.'|add:ch_type.slug|add:'.claim' %}"
@@ -61,8 +56,8 @@
         </div>
       {% endfor %}
     </div>
-    <div class="mt-8">
-      <div class="title mb-4 mt-8">{% trans "SMS and Voice Channels" %}</div>
+    <div class="mb-4">
+      <div class="title">{% trans "SMS and Voice Channels" %}</div>
       {% for ch_type in channel_types.PHONE %}
         <div href="{% url 'channels.types.'|add:ch_type.slug|add:'.claim' %}"
              onclick="goto(event, this)"
@@ -78,7 +73,7 @@
         </div>
       {% endfor %}
     </div>
-    <div class="mt-8">
+    <div class="mb-4">
       <div class="title">{% trans "API Channels" %}</div>
       {% for ch_type in channel_types.API %}
         <div href="{% url 'channels.types.'|add:ch_type.slug|add:'.claim' %}"
@@ -96,14 +91,14 @@
       {% endfor %}
     </div>
     {% if only_regional_channels %}
-      <div class="mt-8">
+      <div class="mb-4">
         {% url 'channels.channel_claim_all' as claim_all_url %}
         {% blocktrans trimmed %}
           The channels above are the available channels for your region, but you can also <a class="inline" href="{{ claim_all_url }}">view all channels</a>.
         {% endblocktrans %}
       </div>
     {% endif %}
-  </div>
+  {% endif %}
 {% endblock content %}
 {% block form-buttons %}
 {% endblock form-buttons %}

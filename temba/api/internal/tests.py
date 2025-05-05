@@ -1,14 +1,17 @@
 from django.urls import reverse
 from django.utils import timezone
 
-from temba.api.tests import APITestMixin
+from temba.ai.models import LLM
+from temba.ai.types.anthropic.type import AnthropicType
+from temba.ai.types.openai.type import OpenAIType
+from temba.api.tests.mixins import APITestMixin
 from temba.contacts.models import ContactExport
 from temba.notifications.types import ExportFinishedNotificationType
 from temba.templates.models import TemplateTranslation
 from temba.tests import TembaTest, matchers
-from temba.tickets.models import TicketExport
+from temba.tickets.models import Shortcut, TicketExport
 
-NUM_BASE_QUERIES = 4  # number of queries required for any request (internal API is session only)
+NUM_BASE_QUERIES = 3  # number of queries required for any request (internal API is session only)
 
 
 class EndpointsTest(APITestMixin, TembaTest):
@@ -35,7 +38,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         )
         self.assertGet(
             endpoint_url + "?level=district",
-            [self.user],
+            [self.editor],
             results=[
                 {"osm_id": "R1711131", "name": "Gatsibo", "path": "Rwanda > Eastern Province > Gatsibo"},
                 {"osm_id": "1711163", "name": "Kayônza", "path": "Rwanda > Eastern Province > Kayônza"},
@@ -81,18 +84,18 @@ class EndpointsTest(APITestMixin, TembaTest):
             results=[
                 {
                     "type": "incident:started",
-                    "created_on": matchers.ISODate(),
+                    "created_on": matchers.ISODatetime(),
                     "target_url": "/incident/",
                     "is_seen": False,
                     "incident": {
                         "type": "org:suspended",
-                        "started_on": matchers.ISODate(),
+                        "started_on": matchers.ISODatetime(),
                         "ended_on": None,
                     },
                 },
                 {
                     "type": "export:finished",
-                    "created_on": matchers.ISODate(),
+                    "created_on": matchers.ISODatetime(),
                     "target_url": f"/export/download/{export1.uuid}/",
                     "is_seen": False,
                     "export": {"type": "contact", "num_records": None},
@@ -107,7 +110,7 @@ class EndpointsTest(APITestMixin, TembaTest):
             results=[
                 {
                     "type": "export:finished",
-                    "created_on": matchers.ISODate(),
+                    "created_on": matchers.ISODatetime(),
                     "target_url": f"/export/download/{export2.uuid}/",
                     "is_seen": False,
                     "export": {"type": "ticket", "num_records": None},
@@ -121,6 +124,46 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertEqual(0, self.admin.notifications.filter(is_seen=False).count())
         self.assertEqual(2, self.admin.notifications.filter(is_seen=True).count())
         self.assertEqual(1, self.editor.notifications.filter(is_seen=False).count())
+
+    def test_orgs(self):
+        endpoint_url = reverse("api.internal.orgs") + ".json"
+        self.assertGet(
+            endpoint_url,
+            [self.agent, self.editor, self.admin],
+            results=[{"id": self.org.id, "name": "Nyaruka"}],
+            num_queries=NUM_BASE_QUERIES + 1,
+        )
+
+    def test_shortcuts(self):
+        endpoint_url = reverse("api.internal.shortcuts") + ".json"
+
+        self.assertGetNotPermitted(endpoint_url, [None])
+        self.assertPostNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        shortcut1 = Shortcut.create(self.org, self.admin, "Planes", "Planes are...")
+        shortcut2 = Shortcut.create(self.org, self.admin, "Trains", "Trains are...")
+        Shortcut.create(self.org2, self.admin, "Cars", "Other org")
+
+        self.assertGet(
+            endpoint_url,
+            [self.admin],
+            results=[
+                {
+                    "uuid": str(shortcut2.uuid),
+                    "name": "Trains",
+                    "text": "Trains are...",
+                    "modified_on": matchers.ISODatetime(),
+                },
+                {
+                    "uuid": str(shortcut1.uuid),
+                    "name": "Planes",
+                    "text": "Planes are...",
+                    "modified_on": matchers.ISODatetime(),
+                },
+            ],
+            num_queries=NUM_BASE_QUERIES + 1,
+        )
 
     def test_templates(self):
         endpoint_url = reverse("api.internal.templates") + ".json"
@@ -220,7 +263,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         # no filtering
         self.assertGet(
             endpoint_url,
-            [self.user, self.editor],
+            [self.editor, self.admin],
             results=[
                 {
                     "uuid": str(tpl2.uuid),
@@ -242,8 +285,8 @@ class EndpointsTest(APITestMixin, TembaTest):
                         "supported": True,
                         "compatible": True,
                     },
-                    "created_on": matchers.ISODate(),
-                    "modified_on": matchers.ISODate(),
+                    "created_on": matchers.ISODatetime(),
+                    "modified_on": matchers.ISODatetime(),
                 },
                 {
                     "uuid": str(tpl1.uuid),
@@ -265,9 +308,38 @@ class EndpointsTest(APITestMixin, TembaTest):
                         "supported": True,
                         "compatible": True,
                     },
-                    "created_on": matchers.ISODate(),
-                    "modified_on": matchers.ISODate(),
+                    "created_on": matchers.ISODatetime(),
+                    "modified_on": matchers.ISODatetime(),
                 },
             ],
             num_queries=NUM_BASE_QUERIES + 3,
+        )
+
+    def test_llms(self):
+        endpoint_url = reverse("api.internal.llms") + ".json"
+
+        openai = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {})
+        anthropic = LLM.create(self.org, self.admin, AnthropicType(), "claude-3-5-haiku-20241022", "Claude", {})
+        deleted = LLM.create(self.org, self.admin, AnthropicType(), "claude-3-5-haiku-20241022", "Deleted", {})
+        deleted.release(self.admin)
+
+        self.assertGetNotPermitted(endpoint_url, [None])
+        self.assertPostNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        self.assertGet(
+            endpoint_url,
+            [self.admin],
+            results=[
+                {
+                    "uuid": str(anthropic.uuid),
+                    "name": "Claude",
+                    "type": "anthropic",
+                },
+                {
+                    "uuid": str(openai.uuid),
+                    "name": "GPT-4",
+                    "type": "openai",
+                },
+            ],
         )

@@ -15,22 +15,13 @@ class AnalyticsTest(TembaTest):
         super().setUp()
 
     @patch("temba.utils.analytics.base.get_backends")
-    def test_gauges(self, mock_get_backends):
-        good = MagicMock()
-        mock_get_backends.return_value = [BadBackend(), good]
-
-        analytics.gauges({"foo_level": 123})
-
-        good.gauges.assert_called_once_with({"foo_level": 123})
-
-    @patch("temba.utils.analytics.base.get_backends")
     def test_track(self, mock_get_backends):
         good = MagicMock()
         mock_get_backends.return_value = [BadBackend(), good]
 
-        analytics.track(self.user, "foo_created", {"foo_id": 234})
+        analytics.track(self.editor, "foo_created", {"foo_id": 234})
 
-        good.track.assert_called_once_with(self.user, "foo_created", {"foo_id": 234})
+        good.track.assert_called_once_with(self.editor, "foo_created", {"foo_id": 234})
         good.track.reset_mock()
 
         # anonymous user is a noop
@@ -43,18 +34,18 @@ class AnalyticsTest(TembaTest):
         good = MagicMock()
         mock_get_backends.return_value = [BadBackend(), good]
 
-        analytics.identify(self.user, {"name": "Cool"}, self.org)
+        analytics.identify(self.editor, {"name": "Cool"}, self.org)
 
-        good.identify.assert_called_once_with(self.user, {"name": "Cool"}, self.org)
+        good.identify.assert_called_once_with(self.editor, {"name": "Cool"}, self.org)
 
     @patch("temba.utils.analytics.base.get_backends")
     def test_change_consent(self, mock_get_backends):
         good = MagicMock()
         mock_get_backends.return_value = [BadBackend(), good]
 
-        analytics.change_consent(self.user, True)
+        analytics.change_consent(self.editor, True)
 
-        good.change_consent.assert_called_once_with(self.user, True)
+        good.change_consent.assert_called_once_with(self.editor, True)
 
     @patch("temba.utils.analytics.base.get_backends")
     def test_get_hook_html(self, mock_get_backends):
@@ -91,9 +82,6 @@ class AnalyticsTest(TembaTest):
 class BadBackend(AnalyticsBackend):
     slug = "bad"
     hook_templates = {"frame-top": "bad/frame_top.html"}
-
-    def gauges(self, values: dict):
-        raise ValueError("boom")
 
     def track(self, user, event: str, properties: dict):
         raise ValueError("boom")

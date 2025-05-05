@@ -1,0 +1,8 @@
+{% extends "account/email/base_notification.html" %}
+{% load i18n %}
+
+{% block notification_message %}
+  {% blocktrans trimmed %}
+    A new set of Two-Factor Authentication recovery codes has been generated.
+  {% endblocktrans %}
+{% endblock notification_message %}

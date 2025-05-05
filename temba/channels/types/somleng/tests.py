@@ -61,7 +61,7 @@ class SomlengTypeTest(TembaTest):
             role="SR",
             account_sid="abcd1234",
             account_token="abcd1234",
-            max_concurrent_events=30,
+            max_concurrent_calls=30,
         )
         response = self.client.post(claim_url, form_data)
         channel = self.org.channels.filter(is_active=True).first()
@@ -73,7 +73,7 @@ class SomlengTypeTest(TembaTest):
             auth_token="abcd1234",
             send_url="https://twilio.com",
             account_sid="abcd1234",
-            max_concurrent_events=30,
+            max_concurrent_calls=30,
             callback_domain=channel.callback_domain,
         )
 
@@ -88,30 +88,31 @@ class SomlengTypeTest(TembaTest):
     def test_channel_claim_form_valid_data_shortcode(self, mock_socket_hostname):
         claim_url = reverse("channels.types.somleng.claim")
 
-        form_data = dict(
-            country="US",
-            number="8080",
-            url="https://twilio.com",
-            role="SR",
-            account_sid="abcd1234",
-            account_token="abcd1234",
+        response = self.client.post(
+            claim_url,
+            {
+                "country": "US",
+                "number": "8080",
+                "url": "https://twilio.com",
+                "role": "SR",
+                "account_sid": "abcd1234",
+                "account_token": "abcd1234",
+            },
         )
-        response = self.client.post(claim_url, form_data)
 
         channel = self.org.channels.filter(is_active=True).first()
 
         self.assertRedirects(response, reverse("channels.channel_configuration", args=[channel.uuid]))
         self.assertEqual(channel.channel_type, "TW")
-
-        expected_data = dict(
-            auth_token="abcd1234",
-            send_url="https://twilio.com",
-            account_sid="abcd1234",
-            max_concurrent_events=None,
-            callback_domain=channel.callback_domain,
+        self.assertEqual(
+            channel.config,
+            {
+                "auth_token": "abcd1234",
+                "send_url": "https://twilio.com",
+                "account_sid": "abcd1234",
+                "callback_domain": channel.callback_domain,
+            },
         )
-
-        self.assertEqual(channel.config, expected_data)
 
         response = self.client.get(reverse("channels.channel_configuration", args=[channel.uuid]))
         self.assertContains(response, reverse("courier.tw", args=[channel.uuid, "receive"]))
@@ -122,23 +123,31 @@ class SomlengTypeTest(TembaTest):
     def test_channel_claim_form_without_account_sid(self, mock_socket_hostname):
         claim_url = reverse("channels.types.somleng.claim")
 
-        form_data = dict(country="US", number="8080", url="https://twilio.com", role="SR", account_token="abcd1234")
-        response = self.client.post(claim_url, form_data)
+        response = self.client.post(
+            claim_url,
+            {
+                "country": "US",
+                "number": "8080",
+                "url": "https://twilio.com",
+                "role": "SR",
+                "account_token": "abcd1234",
+            },
+        )
 
         channel = self.org.channels.filter(is_active=True).first()
 
         self.assertRedirects(response, reverse("channels.channel_configuration", args=[channel.uuid]))
         self.assertEqual(channel.channel_type, "TW")
 
-        expected_data = dict(
-            auth_token="abcd1234",
-            send_url="https://twilio.com",
-            account_sid=f"rapidpro_{channel.pk}",
-            max_concurrent_events=None,
-            callback_domain=channel.callback_domain,
+        self.assertEqual(
+            channel.config,
+            {
+                "auth_token": "abcd1234",
+                "send_url": "https://twilio.com",
+                "account_sid": f"rapidpro_{channel.id}",
+                "callback_domain": channel.callback_domain,
+            },
         )
-
-        self.assertEqual(channel.config, expected_data)
 
         response = self.client.get(reverse("channels.channel_configuration", args=[channel.uuid]))
         self.assertContains(response, reverse("courier.tw", args=[channel.uuid, "receive"]))

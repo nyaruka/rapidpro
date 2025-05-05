@@ -1,17 +1,20 @@
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone as tzone
+
+from django_redis import get_redis_connection
 from smartmin.models import SmartModel
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Sum
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _, ngettext
 
 from temba import mailroom
-from temba.contacts.models import Contact, ContactField, ContactGroup
+from temba.contacts.models import ContactField, ContactGroup
 from temba.flows.models import Flow
-from temba.msgs.models import Msg
 from temba.orgs.models import Org
-from temba.utils import json, on_transaction_commit
-from temba.utils.models import TembaModel, TembaUUIDMixin, TranslatableField, delete_in_batches
+from temba.utils import json, languages, on_transaction_commit
+from temba.utils.models import TembaModel, TembaUUIDMixin, delete_in_batches
 
 
 class Campaign(TembaModel):
@@ -25,27 +28,19 @@ class Campaign(TembaModel):
 
         return cls.objects.create(org=org, name=name, group=group, created_by=user, modified_by=user)
 
+    def schedule_async(self):
+        """
+        Schedules or reschedules all the events in this campaign. Required on creation or when group changes.
+        """
+
+        for event in self.get_events().order_by("id"):
+            event.schedule_async()
+
     def archive(self, user):
         self.is_archived = True
         self.modified_by = user
         self.modified_on = timezone.now()
         self.save(update_fields=("is_archived", "modified_by", "modified_on"))
-
-    def recreate_events(self):
-        """
-        Recreates all the events in this campaign - called when something like the group changes.
-        """
-
-        for event in self.get_events():
-            event.recreate()
-
-    def schedule_events_async(self):
-        """
-        Schedules all the events in this campaign - called when something like the group changes.
-        """
-
-        for event in self.get_events():
-            event.schedule_async()
 
     @classmethod
     def import_campaigns(cls, org, user, campaign_defs, same_site=False) -> list:
@@ -129,19 +124,18 @@ class Campaign(TembaModel):
                     if base_language not in message:  # pragma: needs cover
                         base_language = next(iter(message))
 
-                    event = CampaignEvent.create_message_event(
+                    CampaignEvent.create_message_event(
                         org,
                         user,
                         campaign,
                         relative_to,
                         event_spec["offset"],
                         event_spec["unit"],
-                        message,
-                        event_spec["delivery_hour"],
+                        {lang: {"text": val} for lang, val in message.items()},
                         base_language=base_language,
+                        delivery_hour=event_spec["delivery_hour"],
                         start_mode=start_mode,
                     )
-                    event.update_flow_name()
                 else:
                     flow = Flow.objects.filter(
                         org=org, is_active=True, is_system=False, uuid=event_spec["flow"]["uuid"]
@@ -182,10 +176,34 @@ class Campaign(TembaModel):
             for event in events:
                 event.flow.restore(user)
 
-            campaign.schedule_events_async()
+            campaign.schedule_async()
 
     def get_events(self):
-        return self.events.filter(is_active=True).order_by("id")
+        return self.events.filter(is_active=True).select_related("flow", "relative_to")
+
+    def get_sorted_events(self):
+        """
+        Gets events sorted by relative_to+offset and with fire counts prefetched.
+        """
+
+        events = sorted(self.get_events(), key=lambda e: (e.relative_to.name, e.get_offset()))
+        self.prefetch_fire_counts(events)
+        return events
+
+    def prefetch_fire_counts(self, events):
+        """
+        Prefetches contact fire counts for all events
+        """
+
+        scopes = [f"campfires:{e.id}:{e.fire_version}" for e in events]
+        counts = self.org.counts.filter(scope__in=scopes).values_list("scope").annotate(total=Sum("count"))
+        by_event = defaultdict(int)
+        for count in counts:
+            event_id = int(count[0].split(":")[1])
+            by_event[event_id] = count[1]
+
+        for event in events:
+            setattr(event, "_fire_count", by_event[event.id])
 
     def as_export_def(self):
         """
@@ -201,7 +219,6 @@ class Campaign(TembaModel):
                 "unit": event.unit,
                 "event_type": event.event_type,
                 "delivery_hour": event.delivery_hour,
-                "message": event.message,
                 "relative_to": dict(label=event.relative_to.name, key=event.relative_to.key),  # TODO should be key/name
                 "start_mode": event.start_mode,
             }
@@ -210,9 +227,10 @@ class Campaign(TembaModel):
             if event.event_type == CampaignEvent.TYPE_FLOW:
                 event_definition["flow"] = event.flow.as_export_ref()
 
-            # include the flow base language for message flows
+            # include the translations and base language for message flows
             elif event.event_type == CampaignEvent.TYPE_MESSAGE:
-                event_definition["base_language"] = event.flow.base_language
+                event_definition["message"] = {lang: t["text"] for lang, t in event.translations.items()}
+                event_definition["base_language"] = event.base_language
 
             events.append(event_definition)
 
@@ -223,20 +241,12 @@ class Campaign(TembaModel):
             "events": events,
         }
 
-    def get_sorted_events(self):
-        """
-        Returns campaign events sorted by their actual offset with event flow definitions on the current export version
-        """
-        events = list(self.events.filter(is_active=True))
-
-        return sorted(events, key=lambda e: (e.relative_to.id, e.minute_offset()))
-
     def delete(self):
         """
         Deletes this campaign completely
         """
-        for event in self.events.all():
-            event.delete()
+
+        delete_in_batches(self.events.all())
 
         super().delete()
 
@@ -253,6 +263,10 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     TYPE_FLOW = "F"
     TYPE_MESSAGE = "M"
     TYPE_CHOICES = ((TYPE_FLOW, "Flow Event"), (TYPE_MESSAGE, "Message Event"))
+
+    STATUS_SCHEDULING = "S"
+    STATUS_READY = "R"
+    STATUS_CHOICES = ((STATUS_SCHEDULING, _("Scheduling")), (STATUS_READY, _("Ready")))
 
     UNIT_MINUTES = "M"
     UNIT_HOURS = "H"
@@ -271,29 +285,23 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     START_MODES_CHOICES = ((MODE_INTERRUPT, "Interrupt"), (MODE_SKIP, "Skip"), (MODE_PASSIVE, "Passive"))
 
     campaign = models.ForeignKey(Campaign, on_delete=models.PROTECT, related_name="events")
-
     event_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_FLOW)
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_READY)
+    fire_version = models.IntegerField(default=0)  # updated when the scheduling values below are changed
 
-    # the contact specific date value this is event is based on
+    # the schedule: a datetime field and an offset
     relative_to = models.ForeignKey(ContactField, on_delete=models.PROTECT, related_name="campaign_events")
+    offset = models.IntegerField(default=0)  # offset from that date value (positive is after, negative is before)
+    unit = models.CharField(max_length=1, choices=UNIT_CHOICES, default=UNIT_DAYS)  # the unit for the offset
+    delivery_hour = models.IntegerField(default=-1)  # can also specify the hour during the day
 
-    # offset from that date value (positive is after, negative is before)
-    offset = models.IntegerField(default=0)
-
-    # the unit for the offset, e.g. days, weeks
-    unit = models.CharField(max_length=1, choices=UNIT_CHOICES, default=UNIT_DAYS)
-
-    # the flow that will be triggered by this event
-    flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="campaign_events")
+    # the content: either a flow or message translations
+    flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="campaign_events", null=True, blank=True)
+    translations = models.JSONField(null=True)
+    base_language = models.CharField(max_length=3, null=True)  # ISO-639-3
 
     # what should happen to other runs when this event is triggered
     start_mode = models.CharField(max_length=1, choices=START_MODES_CHOICES, default=MODE_INTERRUPT)
-
-    # when sending single message events, we store the message here (as well as on the flow) for convenience
-    message = TranslatableField(max_length=Msg.MAX_TEXT_LEN, null=True)
-
-    # can also specify the hour during the day that the even should be triggered
-    delivery_hour = models.IntegerField(default=-1)
 
     @classmethod
     def create_message_event(
@@ -304,23 +312,20 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
         relative_to,
         offset,
         unit,
-        message,
+        translations: dict[str, dict],
+        *,
+        base_language: str,
         delivery_hour=-1,
-        base_language=None,
         start_mode=MODE_INTERRUPT,
     ):
         assert campaign.org == org, "org mismatch"
+        assert base_language and languages.get_name(base_language), f"{base_language} is not a valid language code"
+        assert base_language in translations, "no translation for base language"
 
         if relative_to.value_type != ContactField.TYPE_DATETIME:
             raise ValueError(
                 f"Contact fields for CampaignEvents must have a datetime type, got {relative_to.value_type}."
             )
-
-        if isinstance(message, str):
-            base_language = org.flow_languages[0]
-            message = {base_language: message}
-
-        flow = Flow.create_single_message(org, user, message, base_language)
 
         return cls.objects.create(
             campaign=campaign,
@@ -328,8 +333,8 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             offset=offset,
             unit=unit,
             event_type=cls.TYPE_MESSAGE,
-            message=message,
-            flow=flow,
+            translations=translations,
+            base_language=base_language,
             delivery_hour=delivery_hour,
             start_mode=start_mode,
             created_by=user,
@@ -378,48 +383,34 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     def name(self):
         return f"{self.campaign.name} ({self.offset_display} {self.relative_to.name})"
 
-    def get_message(self, contact=None):
-        if not self.message:
-            return None
-
-        message = None
-        if contact and contact.language and contact.language in self.message:
-            message = self.message[contact.language]
-
-        if not message:
-            message = self.message[self.flow.base_language]
-
-        return message
-
-    def update_flow_name(self):
+    def get_message(self, contact=None) -> dict:
         """
-        Updates our flow name to include our Event id, keeps flow names from colliding. No-op for non-message events.
+        For message type events returns the message translation
         """
-        if self.event_type != self.TYPE_MESSAGE:
-            return
+        assert self.event_type == self.TYPE_MESSAGE, "can only call get_message on message type events"
 
-        self.flow.name = "Single Message (%d)" % self.id
-        self.flow.save(update_fields=["name"])
+        translation = None
+        if contact and contact.language and contact.language in self.translations:
+            translation = self.translations[contact.language]
 
-    def minute_offset(self):
+        if not translation:
+            translation = self.translations[self.base_language]
+
+        return translation
+
+    def get_offset(self) -> timedelta:
         """
-        Returns an offset that can be used to sort events that go against the same relative_to variable.
+        Converts offset and unit into a timedelta object
         """
-        # by default our offset is in minutes
-        offset = self.offset
 
-        if self.unit == self.UNIT_HOURS:  # pragma: needs cover
-            offset = self.offset * 60
+        if self.unit == self.UNIT_MINUTES:
+            return timedelta(minutes=self.offset)
+        if self.unit == self.UNIT_HOURS:
+            return timedelta(hours=self.offset)
         elif self.unit == self.UNIT_DAYS:
-            offset = self.offset * 60 * 24
+            return timedelta(days=self.offset)
         elif self.unit == self.UNIT_WEEKS:
-            offset = self.offset * 60 * 24 * 7
-
-        # if there is a specified hour, use that
-        if self.delivery_hour != -1:
-            offset += self.delivery_hour * 60
-
-        return offset
+            return timedelta(days=7 * self.offset)
 
     @property
     def offset_display(self):
@@ -449,115 +440,61 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             return _("on")
 
     def schedule_async(self):
-        on_transaction_commit(lambda: mailroom.queue_schedule_campaign_event(self))
+        self.delete_fire_counts()  # new counts will be created with new fire version
 
-    def recreate(self):
-        """
-        Cleaning up millions of event fires would be expensive so instead we treat campaign events as immutable objects
-        and when a change is made that would invalidate existing event fires, we deactivate the event and recreate it.
-        The event fire handling code knows to ignore event fires for deactivated event.
-        """
-        self.release(self.created_by)
+        self.fire_version += 1
+        self.status = self.STATUS_SCHEDULING
+        self.save(update_fields=("fire_version", "status"))
 
-        # clone our event into a new event
-        if self.event_type == CampaignEvent.TYPE_FLOW:
-            return CampaignEvent.create_flow_event(
-                self.campaign.org,
-                self.created_by,
-                self.campaign,
-                self.relative_to,
-                self.offset,
-                self.unit,
-                self.flow,
-                self.delivery_hour,
-                self.start_mode,
-            )
+        on_transaction_commit(lambda: mailroom.get_client().campaign_schedule_event(self.campaign.org, self))
 
-        elif self.event_type == CampaignEvent.TYPE_MESSAGE:
-            return CampaignEvent.create_message_event(
-                self.campaign.org,
-                self.created_by,
-                self.campaign,
-                self.relative_to,
-                self.offset,
-                self.unit,
-                self.message,
-                self.delivery_hour,
-                self.flow.base_language,
-                self.start_mode,
-            )
+    def get_recent_fires(self) -> list[dict]:
+        r = get_redis_connection()
+        key = f"recent_campaign_fires:{self.id}"
+
+        # fetch members of the sorted set from redis and save as tuples of (contact_id, operand, time)
+        contact_ids = set()
+        raw = []
+        for member, score in r.zrange(key, start=0, end=-1, desc=True, withscores=True):
+            rand, contact_id = member.decode().split("|", maxsplit=2)
+            contact_ids.add(int(contact_id))
+            raw.append((int(contact_id), datetime.fromtimestamp(score, tzone.utc)))
+
+        # lookup all the referenced contacts
+        contacts_by_id = {c.id: c for c in self.campaign.org.contacts.filter(id__in=contact_ids, is_active=True)}
+
+        # if contact still exists, include in results
+        recent = []
+        for r in raw:
+            if contact := contacts_by_id.get(r[0]):
+                recent.append({"contact": contact, "time": r[1]})
+
+        return recent
+
+    def get_fire_count(self) -> int:
+        if hasattr(self, "_fire_count"):  # use prefetched value if available
+            return self._fire_count
+
+        return self.campaign.org.counts.filter(scope=f"campfires:{self.id}:{self.fire_version}").sum()
+
+    def delete_fire_counts(self):
+        self.campaign.org.counts.filter(scope__startswith=f"campfires:{self.id}:").delete()
 
     def release(self, user):
         """
         Marks the event inactive and releases flows for single message flows
         """
-        # we need to be inactive so our fires are noops
+
         self.is_active = False
         self.modified_by = user
+        self.modified_on = timezone.now()
         self.save(update_fields=("is_active", "modified_by", "modified_on"))
 
-        # if flow isn't a user created flow we can delete it too
-        if self.event_type == CampaignEvent.TYPE_MESSAGE:
-            self.flow.release(user)
-
-    def delete(self):
-        """
-        Deletes this event completely along with associated fires and starts.
-        """
-
-        delete_in_batches(self.fires.all())
-
-        for start in self.flow_starts.all():
-            start.delete()
-
-        # and ourselves
-        super().delete()
+        self.delete_fire_counts()
 
     def __repr__(self):
-        return f'<Event: id={self.id} relative_to={self.relative_to.key} offset={self.offset} flow="{self.flow.name}">'
+        return f"<Event: id={self.id} relative_to={self.relative_to.key} offset={self.get_offset()}>"
 
     class Meta:
         verbose_name = _("Campaign Event")
         verbose_name_plural = _("Campaign Events")
-
-
-class EventFire(models.Model):
-    """
-    A scheduled firing of a campaign event for a particular contact
-    """
-
-    RESULT_FIRED = "F"
-    RESULT_SKIPPED = "S"
-    RESULTS = ((RESULT_FIRED, "Fired"), (RESULT_SKIPPED, "Skipped"))
-
-    event = models.ForeignKey(CampaignEvent, on_delete=models.PROTECT, related_name="fires")
-
-    contact = models.ForeignKey(Contact, on_delete=models.PROTECT, related_name="campaign_fires")
-
-    # when the event should be fired for this contact
-    scheduled = models.DateTimeField()
-
-    # when the event was fired fir this contact or null if we haven't been fired
-    fired = models.DateTimeField(null=True)
-
-    # result of this event fire or null if we haven't been fired
-    fired_result = models.CharField(max_length=1, null=True, choices=RESULTS)
-
-    def get_relative_to_value(self):
-        value = self.contact.get_field_value(self.event.relative_to)
-        return value.replace(second=0, microsecond=0) if value else None
-
-    def __str__(self):  # pragma: no cover
-        return f"EventFire[event={self.event.uuid}, contact={self.contact.uuid}, scheduled={self.scheduled}]"
-
-    class Meta:
-        ordering = ("scheduled",)
-        indexes = [
-            models.Index(name="eventfires_unfired", fields=("scheduled",), condition=Q(fired=None)),
-        ]
-        constraints = [
-            # used to prevent adding duplicate fires for the same event and contact
-            models.UniqueConstraint(
-                name="eventfires_unfired_unique", fields=("event_id", "contact_id"), condition=Q(fired=None)
-            )
-        ]

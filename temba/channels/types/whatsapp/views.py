@@ -10,10 +10,9 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from temba.channels.views import ChannelTypeMixin
-from temba.orgs.views import ModalMixin, OrgObjPermsMixin, OrgPermsMixin
+from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin
 from temba.utils.fields import InputWidget
 from temba.utils.text import truncate
-from temba.utils.views import ContentMenuMixin
 
 from ...models import Channel
 from ...views import ClaimViewMixin
@@ -215,11 +214,13 @@ class ClearSessionToken(ChannelTypeMixin, OrgPermsMixin, SmartTemplateView):
         if self.channel_type.SESSION_USER_TOKEN in self.request.session:
             del self.request.session[self.channel_type.SESSION_USER_TOKEN]
 
+        return super().pre_process(request, *args, **kwargs)
+
     def render_to_response(self, context, **response_kwargs):
         return JsonResponse({})
 
 
-class RequestCode(ChannelTypeMixin, ModalMixin, ContentMenuMixin, OrgObjPermsMixin, SmartModelActionView):
+class RequestCode(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, SmartFormView):
     class Form(forms.Form):
         pass
 
@@ -239,11 +240,6 @@ class RequestCode(ChannelTypeMixin, ModalMixin, ContentMenuMixin, OrgObjPermsMix
 
     def derive_menu_path(self):
         return f"/settings/channels/{self.get_object().uuid}"
-
-    def build_content_menu(self, menu):
-        obj = self.get_object()
-
-        menu.add_link(_("Channel"), reverse("channels.channel_read", args=[obj.uuid]))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -283,7 +279,7 @@ class RequestCode(ChannelTypeMixin, ModalMixin, ContentMenuMixin, OrgObjPermsMix
                 )
 
 
-class VerifyCode(ChannelTypeMixin, ModalMixin, ContentMenuMixin, OrgObjPermsMixin, SmartModelActionView):
+class VerifyCode(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, SmartFormView):
     class Form(forms.Form):
         code = forms.CharField(
             min_length=6, required=True, help_text=_("The 6-digits number verification code"), widget=InputWidget()
@@ -297,11 +293,6 @@ class VerifyCode(ChannelTypeMixin, ModalMixin, ContentMenuMixin, OrgObjPermsMixi
     template_name = "channels/types/whatsapp/verify_code.html"
     title = _("Verify Number")
     submit_button_name = _("Verify Number")
-
-    def build_content_menu(self, menu):
-        obj = self.get_object()
-
-        menu.add_link(_("Channel"), reverse("channels.channel_read", args=[obj.uuid]))
 
     def get_queryset(self):
         return Channel.objects.filter(is_active=True, org=self.request.org, channel_type=self.channel_type.code)
@@ -393,7 +384,7 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
 
             return self.cleaned_data
 
-    permission = "channels.types.whatsapp.connect"
+    permission = "channels.channel_claim"
     form_class = WhatsappCloudConnectForm
     success_url = "@channels.types.whatsapp.claim"
     field_config = dict(api_key=dict(label=""), api_secret=dict(label=""))
@@ -403,8 +394,8 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
     menu_path = "/settings/workspace"
     title = "Connect WhatsApp"
 
-    def has_org_perm(self, permission):
-        return self.get_user().is_beta  # only beta users are allowed
+    def has_permission(self, request, *args, **kwargs) -> bool:
+        return super().has_permission(request, *args, **kwargs) and self.request.user.is_beta
 
     def pre_process(self, request, *args, **kwargs):
         session_token = self.request.session.get(self.channel_type.SESSION_USER_TOKEN, None)

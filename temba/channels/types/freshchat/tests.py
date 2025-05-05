@@ -11,7 +11,7 @@ class FreshChatTypeTest(TembaTest):
 
         self.channel = Channel.create(
             self.org,
-            self.user,
+            self.admin,
             None,
             "FC",
             name="FreshChat",

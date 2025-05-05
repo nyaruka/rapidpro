@@ -4,6 +4,12 @@ from unittest.mock import patch
 
 from django.test import override_settings
 
+from temba.ai.models import LLM
+from temba.ai.types.openai.type import OpenAIType
+from temba.campaigns.models import Campaign, CampaignEvent
+from temba.contacts.models import ContactField
+from temba.flows.models import Flow
+from temba.msgs.models import QuickReply
 from temba.schedules.models import Schedule
 from temba.tests import MockJsonResponse, MockResponse, TembaTest
 from temba.tickets.models import Topic
@@ -11,7 +17,13 @@ from temba.utils import json
 
 from .. import modifiers
 from .client import MailroomClient
-from .exceptions import FlowValidationException, QueryValidationException, RequestException, URNValidationException
+from .exceptions import (
+    AIReasoningException,
+    FlowValidationException,
+    QueryValidationException,
+    RequestException,
+    URNValidationException,
+)
 from .types import ContactSpec, Exclusions, Inclusions, RecipientsPreview, ScheduleSpec, URNResult
 
 
@@ -78,6 +90,40 @@ class MailroomClientTest(TembaTest):
                 "text": "hello",
                 "received_on": "2024-04-01T16:28:30+00:00",
             },
+        )
+
+    @patch("requests.post")
+    def test_android_sync(self, mock_post):
+        mock_post.return_value = MockJsonResponse(200, {"id": 12345})
+        response = self.client.android_sync(self.channel)
+
+        self.assertEqual({"id": 12345}, response)
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mr/android/sync",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={"channel_id": self.channel.id},
+        )
+
+    @patch("requests.post")
+    def test_campaign_schedule_event(self, mock_post):
+        farmers = self.create_group("Farmers", [])
+        campaign = Campaign.create(self.org, self.admin, "Reminders", farmers)
+        planting_date = self.create_field("planting_date", "Planting Date", value_type=ContactField.TYPE_DATETIME)
+        flow = Flow.create(self.org, self.admin, "Flow")
+        event = CampaignEvent.create_flow_event(
+            self.org, self.admin, campaign, planting_date, offset=1, unit="W", flow=flow, delivery_hour=13
+        )
+
+        mock_post.return_value = MockJsonResponse(200, {})
+        response = self.client.campaign_schedule_event(self.org, event)
+
+        self.assertIsNone(response)
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mr/campaign/schedule_event",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={"org_id": self.org.id, "event_id": event.id},
         )
 
     @patch("requests.post")
@@ -434,6 +480,46 @@ class MailroomClientTest(TembaTest):
         )
 
     @patch("requests.post")
+    def test_llm_translate(self, mock_post):
+        llm = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {})
+
+        mock_post.return_value = MockJsonResponse(200, {"text": "Hola mundo"})
+        response = self.client.llm_translate(llm, from_language="eng", to_language="spa", text="Hello world")
+
+        self.assertEqual({"text": "Hola mundo"}, response)
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mr/llm/translate",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={
+                "org_id": self.org.id,
+                "llm_id": llm.id,
+                "from_language": "eng",
+                "to_language": "spa",
+                "text": "Hello world",
+            },
+        )
+
+        mock_post.return_value = MockJsonResponse(
+            422,
+            {
+                "code": "ai:reasoning",
+                "error": "not able to translate",
+                "extra": {"instructions": "Translate", "input": "Hi there", "response": "<CANT>"},
+            },
+        )
+
+        with self.assertRaises(AIReasoningException) as e:
+            self.client.llm_translate(llm, from_language="eng", to_language="spa", text="Hello world")
+
+        self.assertEqual("not able to translate", e.exception.error)
+        self.assertEqual("reasoning", e.exception.code)
+        self.assertEqual("Translate", e.exception.instructions)
+        self.assertEqual("Hi there", e.exception.input)
+        self.assertEqual("<CANT>", e.exception.response)
+        self.assertEqual("not able to translate", str(e.exception))
+
+    @patch("requests.post")
     def test_msg_broadcast(self, mock_post):
         ann = self.create_contact("Ann", urns=["tel:+12340000001"])
         bob = self.create_contact("Bob", urns=["tel:+12340000002"])
@@ -559,7 +645,9 @@ class MailroomClientTest(TembaTest):
         ann = self.create_contact("Ann", urns=["tel:+12340000001"])
         ticket = self.create_ticket(ann)
         mock_post.return_value = MockJsonResponse(200, {"id": 12345})
-        response = self.client.msg_send(self.org, self.admin, ann, "hi", [], ticket)
+        response = self.client.msg_send(
+            self.org, self.admin, ann, "hi", [], [QuickReply("Yes", "Let's go!"), QuickReply("No", None)], ticket
+        )
 
         self.assertEqual({"id": 12345}, response)
 
@@ -572,6 +660,7 @@ class MailroomClientTest(TembaTest):
                 "contact_id": ann.id,
                 "text": "hi",
                 "attachments": [],
+                "quick_replies": [{"text": "Yes", "extra": "Let's go!"}, {"text": "No"}],
                 "ticket_id": ticket.id,
             },
         )
@@ -697,18 +786,13 @@ class MailroomClientTest(TembaTest):
         ticket2 = self.create_ticket(bob)
 
         mock_post.return_value = MockJsonResponse(200, {"changed_ids": [ticket1.id]})
-        response = self.client.ticket_close(self.org, self.admin, [ticket1, ticket2], force=True)
+        response = self.client.ticket_close(self.org, self.admin, [ticket1, ticket2])
 
         self.assertEqual({"changed_ids": [ticket1.id]}, response)
         mock_post.assert_called_once_with(
             "http://localhost:8090/mr/ticket/close",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
-            json={
-                "org_id": self.org.id,
-                "user_id": self.admin.id,
-                "ticket_ids": [ticket1.id, ticket2.id],
-                "force": True,
-            },
+            json={"org_id": self.org.id, "user_id": self.admin.id, "ticket_ids": [ticket1.id, ticket2.id]},
         )
 
     @patch("requests.post")

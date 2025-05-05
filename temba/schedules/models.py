@@ -24,11 +24,13 @@ class Schedule(models.Model):
     REPEAT_DAILY = "D"
     REPEAT_WEEKLY = "W"
     REPEAT_MONTHLY = "M"
+    REPEAT_YEARLY = "Y"
     REPEAT_CHOICES = (
         (REPEAT_NEVER, _("Never")),
         (REPEAT_DAILY, _("Daily")),
         (REPEAT_WEEKLY, _("Weekly")),
         (REPEAT_MONTHLY, _("Monthly")),
+        (REPEAT_YEARLY, _("Yearly")),
     )
 
     REPEAT_DAYS_CHOICES = (
@@ -169,6 +171,15 @@ class Schedule(models.Model):
                 )
 
             return next_fire
+        elif self.repeat_period == Schedule.REPEAT_YEARLY:
+            while next_fire <= now:
+                next_fire = (
+                    (next_fire.astimezone(tzone.utc) + relativedelta(years=1))
+                    .astimezone(tz)
+                    .replace(hour=hour, minute=minute)
+                )
+
+            return next_fire
 
     def get_repeat_days_display(self):
         return [Schedule.DAYS_OF_WEEK_DISPLAY[d] for d in self.repeat_days_of_week] if self.repeat_days_of_week else []
@@ -184,6 +195,11 @@ class Schedule(models.Model):
             return _("each week on %(daysofweek)s" % {"daysofweek": ", ".join(days)})
         elif self.repeat_period == self.REPEAT_MONTHLY:
             return _("each month on the %(dayofmonth)s" % {"dayofmonth": ordinal(self.repeat_day_of_month)})
+        elif self.repeat_period == self.REPEAT_YEARLY:
+            return _(
+                "each year on %(month)s %(day)s"
+                % {"month": self.next_fire.strftime("%B"), "day": ordinal(self.next_fire.strftime("%d"))}
+            )
 
     @staticmethod
     def _day_of_week(d):

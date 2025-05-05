@@ -12,7 +12,7 @@ class LineTypeTest(TembaTest):
 
         self.channel = Channel.create(
             self.org,
-            self.user,
+            self.admin,
             None,
             "LN",
             name="LINE",

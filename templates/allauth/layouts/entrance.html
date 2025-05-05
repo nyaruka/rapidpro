@@ -1,0 +1,46 @@
+{% extends "allauth/layouts/entrance.html" %}
+{% block extra-style %}
+  {{ block.super }}
+  <style>
+    label {
+      display: none;
+    }
+
+    .field {
+      margin-top: 1em;
+    }
+
+    .help-text {
+      margin-left: 0.5em;
+    }
+
+    .field.first_name_container,
+    .field.last_name_container {
+      display: inline-block;
+      width: 166px;
+    }
+
+    .field.first_name_container {
+      margin-right: 2%;
+    }
+
+    .field.last_name_container {
+      right: 0px;
+    }
+
+    h1 {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+
+    form[action="/accounts/login/"] button[type="submit"],
+    form[action="/accounts/2fa/authenticate/"] button[type="submit"] {
+      display: block;
+      width: 100%;
+    }
+
+    form[action="/accounts/2fa/authenticate/"] button[form="logout-from-stage"] {
+      display: none;
+    }
+  </style>
+{% endblock extra-style %}

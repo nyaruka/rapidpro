@@ -12,7 +12,7 @@ class Client:
     def __init__(self, access_token: str):
         self.access_token = access_token
 
-    def get_intents(self) -> tuple[list, requests.Response]:
+    def get_intents(self) -> list:
         return self._request("intents")
 
     def _request(self, endpoint: str):
@@ -21,4 +21,4 @@ class Client:
         )
 
         response.raise_for_status()
-        return response.json(), response
+        return response.json()

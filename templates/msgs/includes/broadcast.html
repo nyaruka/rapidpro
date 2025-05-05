@@ -24,9 +24,9 @@
         <div class="text">
           {{ translation.text }}
           <br />
-          {% for reply in translation.quick_replies %}
+          {% for qr in translation.quick_replies %}
             <temba-label class="mr-2 mt-2" backgroundcolor="#fafafa">
-              {{ reply }}
+              {{ qr.text }}
             </temba-label>
           {% endfor %}
           {% if broadcast.optin or broadcast.template %}

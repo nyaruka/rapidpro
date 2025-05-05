@@ -1,6 +1,7 @@
 from django.utils import timezone
 
-from temba.utils import countries, get_anonymous_user
+from temba.users.models import User
+from temba.utils import countries
 from temba.utils.models import generate_uuid
 from temba.utils.text import generate_secret
 
@@ -62,12 +63,11 @@ def get_or_create_channel(registration_data, status):
     # generate random secret and claim code
     claim_code = generate_claim_code()
     secret = Channel.generate_secret()
-    anon = get_anonymous_user()
     config = {Channel.CONFIG_FCM_ID: fcm_id}
 
     return Channel.create(
         None,
-        anon,
+        User.get_system_user(),
         country,
         Channel.get_type_from_code("A"),
         name=device[:64] if device else "Android",

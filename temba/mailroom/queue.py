@@ -15,7 +15,6 @@ class BatchTask(Enum):
     START_FLOW = "start_flow"
     INTERRUPT_SESSIONS = "interrupt_sessions"
     POPULATE_DYNAMIC_GROUP = "populate_dynamic_group"
-    SCHEDULE_CAMPAIGN_EVENT = "schedule_campaign_event"
     IMPORT_CONTACT_BATCH = "import_contact_batch"
     INTERRUPT_CHANNEL = "interrupt_channel"
 
@@ -27,17 +26,6 @@ def queue_populate_dynamic_group(group):
     task = {"group_id": group.id, "query": group.query, "org_id": group.org_id}
 
     _queue_batch_task(group.org_id, BatchTask.POPULATE_DYNAMIC_GROUP, task, HIGH_PRIORITY)
-
-
-def queue_schedule_campaign_event(event):
-    """
-    Queues a task to schedule a new campaign event for all contacts in the campaign
-    """
-
-    org_id = event.campaign.org_id
-    task = {"org_id": org_id, "campaign_event_id": event.id}
-
-    _queue_batch_task(org_id, BatchTask.SCHEDULE_CAMPAIGN_EVENT, task, HIGH_PRIORITY)
 
 
 def queue_flow_start(start):
@@ -84,20 +72,18 @@ def queue_interrupt_channel(org, channel):
     _queue_batch_task(org.id, BatchTask.INTERRUPT_CHANNEL, task, HIGH_PRIORITY)
 
 
-def queue_interrupt(org, *, contacts=None, flow=None, sessions=None):
+def queue_interrupt(org, *, contacts=None, flow=None):
     """
     Queues an interrupt task for handling by mailroom
     """
 
-    assert contacts or flow or sessions, "must specify either a set of contacts or a flow or sessions"
+    assert contacts or flow, "must specify either a set of contacts or a flow"
 
     task = {}
     if contacts:
         task["contact_ids"] = [c.id for c in contacts]
     if flow:
         task["flow_ids"] = [flow.id]
-    if sessions:
-        task["session_ids"] = [s.id for s in sessions]
 
     _queue_batch_task(org.id, BatchTask.INTERRUPT_SESSIONS, task, HIGH_PRIORITY)
 

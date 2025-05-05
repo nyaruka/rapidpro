@@ -1,0 +1,47 @@
+{% extends "no_nav.html" %}
+{% load i18n smartmin temba %}
+
+{% block head-title %}
+  {% trans "Data deletion request" %}
+{% endblock head-title %}
+{% block page-top %}
+{% endblock page-top %}
+{% block content %}
+  <div class="mb-8">
+    {% blocktrans  %}
+      Please enter a valid confirmation code below
+    {% endblocktrans %}
+  </div>
+  <div class="mb-4">
+    {% if event %}
+      <div class="flex flex-col h-full">
+        <div class="inner">
+          <div class="page-title mb-2">{% trans "Data deletion request received" %}</div>
+          <div class="centered mt-8">{% trans "Confirmation code" %}: {{ event.uuid }}</div>
+        </div>
+      </div>
+    {% else %}
+      <form method="post" class="mb-4">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="alert alert-error form-errors">{{ form.non_field_errors }}</div>{% endif %}
+        {% if unknown_code %}
+          <div class="alert alert-error form-errors">{% trans "Incorrect code provided, try again" %}</div>
+        {% endif %}
+        {% render_field 'code' %}
+        <input type="submit" value="{{ submit_button_name }}" class="button-primary">
+      </form>
+    {% endif %}
+  </div>
+{% endblock content %}
+{% block extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    input {
+      width: 100%;
+    }
+
+    .content-card {
+      width: 28em;
+    }
+  </style>
+{% endblock extra-style %}

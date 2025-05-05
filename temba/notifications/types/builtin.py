@@ -23,7 +23,6 @@ class ExportFinishedNotificationType(NotificationType):
             scope=export.get_notification_scope(),
             users=[export.created_by],
             medium=Notification.MEDIUM_UI + Notification.MEDIUM_EMAIL,
-            email_status=Notification.EMAIL_STATUS_PENDING,
             **{"export": export},
         )
 
@@ -80,7 +79,6 @@ class IncidentStartedNotificationType(NotificationType):
             scope=incident.type.get_notification_scope(incident),
             users=incident.org.get_admins(),
             medium=Notification.MEDIUM_UI + Notification.MEDIUM_EMAIL,
-            email_status=Notification.EMAIL_STATUS_PENDING,
             incident=incident,
         )
 
@@ -136,7 +134,6 @@ class UserEmailNotificationType(NotificationType):
             scope=str(user.id),
             users=[user],
             medium=Notification.MEDIUM_EMAIL,
-            email_status=Notification.EMAIL_STATUS_PENDING,
             email_address=prev_email,
         )
 
@@ -165,7 +162,6 @@ class UserPasswordNotificationType(NotificationType):
             scope=str(user.id),
             users=[user],
             medium=Notification.MEDIUM_EMAIL,
-            email_status=Notification.EMAIL_STATUS_PENDING,
         )
 
     def get_target_url(self, notification) -> str:
@@ -176,3 +172,35 @@ class UserPasswordNotificationType(NotificationType):
 
     def get_email_template(self, notification) -> str:
         return "notifications/email/user_password"
+
+
+class InvitationAcceptedNotificationType(NotificationType):
+    """
+    Notification that a user accepted an invitation to join the workspace.
+    """
+
+    slug = "invitation:accepted"
+
+    @classmethod
+    def create(cls, invitation, new_user):
+        """
+        Creates a user joined notification for all admins in the workspace.
+        """
+
+        Notification.create_all(
+            invitation.org,
+            cls.slug,
+            scope=str(invitation.id),
+            users=invitation.org.get_admins().exclude(id=new_user.id),
+            medium=Notification.MEDIUM_EMAIL,
+            data={"email": invitation.email},
+        )
+
+    def get_target_url(self, notification) -> str:
+        pass
+
+    def get_email_subject(self, notification) -> str:
+        return _("New user joined your workspace")
+
+    def get_email_template(self, notification) -> str:
+        return "notifications/email/invitation_accepted"

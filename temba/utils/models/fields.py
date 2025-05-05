@@ -2,40 +2,10 @@ from collections import OrderedDict
 
 from django.contrib.postgres.fields import HStoreField
 from django.core import checks
-from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import JSONField as DjangoJSONField
-from django.utils.functional import cached_property
 
 from temba.utils import json
-
-
-class TranslatableField(HStoreField):
-    """
-    Model field which is a set of language code and translation pairs stored as HSTORE
-    """
-
-    class Validator:
-        def __init__(self, max_length):
-            self.max_length = max_length
-
-        def __call__(self, value):
-            for lang, translation in value.items():
-                if lang != "base" and len(lang) != 3:
-                    raise ValidationError("'%s' is not a valid language code." % lang)
-                if len(translation) > self.max_length:
-                    raise ValidationError(
-                        "Translation for '%s' exceeds the %d character limit." % (lang, self.max_length)
-                    )
-
-    def __init__(self, max_length, **kwargs):
-        super().__init__(**kwargs)
-
-        self.max_length = max_length
-
-    @cached_property
-    def validators(self):
-        return super().validators + [TranslatableField.Validator(self.max_length)]
 
 
 class CheckFieldDefaultMixin:
@@ -135,3 +105,14 @@ class JSONField(DjangoJSONField):
         kwargs["encoder"] = json.TembaEncoder
         kwargs["decoder"] = json.TembaDecoder
         super().__init__(*args, **kwargs)
+
+
+class TranslatableField(HStoreField):
+    """
+    TODO remove once migrations squashed (this is the last place we use HStoreField)
+    """
+
+    def __init__(self, max_length, **kwargs):
+        super().__init__(**kwargs)
+
+        self.max_length = max_length

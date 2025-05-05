@@ -118,11 +118,17 @@ class TwilioMessagingServiceTypeTest(TembaTest):
         self.login(self.admin)
         response = self.client.get(update_url)
         self.assertEqual(
-            ["name", "allow_international", "account_sid", "auth_token", "loc"],
+            ["name", "is_enabled", "allow_international", "account_sid", "auth_token", "link_shortening", "loc"],
             list(response.context["form"].fields.keys()),
         )
 
-        post_data = dict(name="Foo channel", allow_international=False, account_sid="ACC_SID", auth_token="ACC_Token")
+        post_data = dict(
+            name="Foo channel",
+            allow_international=False,
+            account_sid="ACC_SID",
+            auth_token="ACC_Token",
+            link_shortening=True,
+        )
 
         response = self.client.post(update_url, post_data)
 
@@ -133,6 +139,7 @@ class TwilioMessagingServiceTypeTest(TembaTest):
         # we used the primary credentials returned on the account fetch even though we submit the others
         self.assertEqual(tms_channel.config[Channel.CONFIG_ACCOUNT_SID], "AccountSid")
         self.assertEqual(tms_channel.config[Channel.CONFIG_AUTH_TOKEN], "AccountToken")
+        self.assertTrue(tms_channel.config["link_shortening"])
         self.assertTrue(tms_channel.check_credentials())
 
         with patch(

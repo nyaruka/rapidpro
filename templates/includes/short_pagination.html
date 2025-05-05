@@ -11,27 +11,29 @@
     <div class="list-buttons-container hide">
       <div class="list-buttons flex items-center h-full -mx-1">
         {% if 'label' in actions %}
-          <temba-dropdown offsety="8" offsetx="-8" class="ml-4">
-            <temba-tip position="top" text="{{ _("Labels") |escapejs }}" slot="toggle">
-              <temba-icon name="label" clickable="true">
-              </temba-icon>
-            </temba-tip>
-            <div slot="dropdown" style="min-width:200px" class="label-menu px-6 py-4">
-              {% for label in labels %}
-                <div onclick="labelObjectRows({{ label.id }}, false, refreshMenu)"
-                     data-id="{{ label.id }}"
-                     class="lbl-menu">
-                  <div class="flex items-center py-1 hover-linked">
-                    <temba-checkbox size="1.1" class="mr-1">
-                    </temba-checkbox>
-                    <div class="name px-1">{{ label.name }}</div>
-                  </div>
+          <temba-dropdown class="ml-4">
+            <temba-icon name="label" clickable="true" slot="toggle">
+            </temba-icon>
+            <div slot="dropdown">
+              <div style="min-width:200px; border-radius:var(--curvature); overflow:hidden">
+                <div class="labels px-4 py-4" style="max-height:300px; overflow-y:auto;  ">
+                  {% for label in labels %}
+                    <div onclick="labelObjectRows({{ label.id }}, false, refreshMenu)"
+                         data-id="{{ label.id }}"
+                         class="lbl-menu">
+                      <div class="flex items-center py-1 hover-linked">
+                        <temba-checkbox size="1.1" class="mr-1">
+                        </temba-checkbox>
+                        <div class="name px-1">{{ label.name }}</div>
+                      </div>
+                    </div>
+                  {% endfor %}
                 </div>
-              {% endfor %}
-              {% if org_perms.msgs.label_create %}
-                {% if labels %}<div class="separator -mx-4 border-b my-3"></div>{% endif %}
-                <div onclick="handleAddLabelClicked()" class="lbl-menu add-label linked">{% trans "New Label..." %}</div>
-              {% endif %}
+                {% if org_perms.msgs.label_create %}
+                  {% if labels %}<div class="separator border-b"></div>{% endif %}
+                  <div onclick="handleAddLabelClicked()" class="p-4 lbl-menu add-label linked">{% trans "New Label..." %}</div>
+                {% endif %}
+              </div>
             </div>
           </temba-dropdown>
         {% endif %}
