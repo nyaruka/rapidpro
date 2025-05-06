@@ -11,7 +11,7 @@ from temba.utils import json
 
 from ..modifiers import Modifier
 from .exceptions import (
-    AIReasoningException,
+    AIServiceException,
     FlowValidationException,
     QueryValidationException,
     RequestException,
@@ -391,7 +391,7 @@ class MailroomClient:
             elif domain == "urn":
                 raise URNValidationException(error, code, extra["index"])
             elif domain == "ai":
-                raise AIReasoningException(error, code, extra["instructions"], extra["input"], extra["response"])
+                raise AIServiceException(error, code, extra["instructions"], extra["input"])
 
         elif 400 <= response.status_code < 600:
             raise RequestException(endpoint, payload, response)

@@ -75,25 +75,26 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@nyaruka/flow-editor@1.43.1":
-  version "1.43.1"
-  resolved "https://registry.yarnpkg.com/@nyaruka/flow-editor/-/flow-editor-1.43.1.tgz#6cd8e6979bcb79e47644bea4f990ec2111d0ac8b"
-  integrity sha512-3plT+mBBkPogV7ygnqqBwL2fM4CpVvoMcCJC9GRPRxT8ID4WH/tDi2Vpr2GKWWrOcUqObUwxFWokUN4jVomAUg==
+"@nyaruka/flow-editor@1.43.3":
+  version "1.43.3"
+  resolved "https://registry.yarnpkg.com/@nyaruka/flow-editor/-/flow-editor-1.43.3.tgz#6fd27c4cf652b713ac7ee8f8321e397a3cd89a4f"
+  integrity sha512-61uzJAFtUIQn70akgYKI1cIjaXX4U3x0isBmeNdKfCiz5JOd1LNWKOMcVcE7bHzH22bBmC764EBxeOEa4W3LEQ==
   dependencies:
-    "@nyaruka/temba-components" "0.120.8"
+    "@nyaruka/temba-components" "0.121.1"
     react "^16.8.6"
     react-dom "^16.8.6"
 
-"@nyaruka/temba-components@0.120.8":
-  version "0.120.8"
-  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.120.8.tgz#7b10864fba416cab7d97dad6dfd0c6ce3bec5897"
-  integrity sha512-g8EpZ0bh6ItuvVyDA6BaQoW1ZRxB4uGzo2b4W6obNisLt+qBcJemnLMutDy/JKHgFkvYjORvllj+al+voRlpxA==
+"@nyaruka/temba-components@0.121.1":
+  version "0.121.1"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.121.1.tgz#1139dcf26e2b794ef25d9c2b774b2f754c7c4921"
+  integrity sha512-jaSs8vt8jfRbZ6Lh3m7wo5w2HM8JgAL0UbiDiQoDbaQPIz1uKyppfv+mDsRoSKd5qv/s2qWISgiCe+qRUZJkjg==
   dependencies:
     "@lit/localize" "^0.12.1"
     color-hash "^2.0.2"
     croppie "^2.6.5"
     geojson "^0.5.0"
     image-size "^1.1.1"
+    immer "10"
     leaflet "1.5.1"
     lit "3.1.2"
     lit-element "^4.0.4"
@@ -102,6 +103,28 @@
     remarkable "^2.0.1"
     serialize-javascript "^6.0.2"
     tiny-lru "^11.2.5"
+    zustand "^5.0.3"
+
+"@nyaruka/temba-components@0.121.2":
+  version "0.121.2"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.121.2.tgz#d505c025ad1fe844ec18b685236c5d4a5ba862e9"
+  integrity sha512-JXR++8x+uelJXTESpCwCzGsq96O92SsQH+zLA90qRyFwaU9f0TZ/EGQ6Udc0KAucbhXJgqv1/SZHAOtfbon4iA==
+  dependencies:
+    "@lit/localize" "^0.12.1"
+    color-hash "^2.0.2"
+    croppie "^2.6.5"
+    geojson "^0.5.0"
+    image-size "^1.1.1"
+    immer "10"
+    leaflet "1.5.1"
+    lit "3.1.2"
+    lit-element "^4.0.4"
+    lit-html "^3.1.2"
+    luxon "3.5"
+    remarkable "^2.0.1"
+    serialize-javascript "^6.0.2"
+    tiny-lru "^11.2.5"
+    zustand "^5.0.3"
 
 "@sindresorhus/merge-streams@^2.1.0":
   version "2.3.0"
@@ -621,6 +644,11 @@ image-size@~0.5.0:
   version "0.5.5"
   resolved "https://registry.npmjs.org/image-size/-/image-size-0.5.5.tgz#09dfd4ab9d20e29eb1c3e80b8990378df9e3cb9c"
   integrity sha512-6TDAlDPZxUFCv+fuOkIoXT/V/f3Qbq8e37p+YOiYrUv3v9cc3/6x78VdfPgFVaB9dZYeLUfKgHRebpkm/oP2VQ==
+
+immer@10:
+  version "10.1.1"
+  resolved "https://registry.yarnpkg.com/immer/-/immer-10.1.1.tgz#206f344ea372d8ea176891545ee53ccc062db7bc"
+  integrity sha512-s2MPrmjovJcoMaHtx6K11Ra7oD05NT97w1IC5zpMkT6Atjr7H8LjaDd81iIxUYpMKSRRNMJE703M1Fhr/TctHw==
 
 import-fresh@^3.2.1:
   version "3.3.0"
@@ -1498,3 +1526,8 @@ yargs@^17.0.0:
     string-width "^4.2.3"
     y18n "^5.0.5"
     yargs-parser "^21.1.1"
+
+zustand@^5.0.3:
+  version "5.0.4"
+  resolved "https://registry.yarnpkg.com/zustand/-/zustand-5.0.4.tgz#33af161f1e337854ccd8b711ef9e92545d6ae53f"
+  integrity sha512-39VFTN5InDtMd28ZhjLyuTnlytDr9HfwO512Ai4I8ZABCoyAj4F1+sr7sD1jP/+p7k77Iko0Pb5NhgBFDCX0kQ==

@@ -136,7 +136,7 @@ class LLMCRUDL(SmartCRUDL):
 
             try:
                 translated = self.object.translate(data["lang"]["from"], data["lang"]["to"], data["text"])
-            except mailroom.AIReasoningException:  # pragma: no cover
+            except mailroom.AIServiceException:  # pragma: no cover
                 return JsonResponse({"error": "LLM was not able to translate as requested"}, status=400)
 
             return JsonResponse({"result": translated})

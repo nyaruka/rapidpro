@@ -1522,8 +1522,9 @@ class OrgCRUDL(SmartCRUDL):
             return context
 
         def get(self, request, *args, **kwargs):
-            if self.request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest" and not self.request.META.get(
-                "HTTP_X_FORMAX", False
+            if self.request.headers.get("Accept") == "application/json" or (
+                self.request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest"
+                and not self.request.META.get("HTTP_X_FORMAX", False)
             ):
                 initial = self.request.GET.get("initial", "").split(",")
                 matches = []
