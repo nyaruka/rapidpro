@@ -826,7 +826,12 @@ class Org(SmartModel):
         """
         formats = self.get_datetime_formats(seconds=seconds)
         format = formats[1] if show_time else formats[0]
-        return datetime_to_str(d, format, self.timezone)
+
+        try:
+            date_str = datetime_to_str(d, format, self.timezone)
+        except OverflowError:
+            date_str = ""
+        return date_str
 
     def get_users(self, *, roles: list = None):
         """
