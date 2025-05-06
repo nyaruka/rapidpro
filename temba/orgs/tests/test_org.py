@@ -1,5 +1,5 @@
 import io
-from datetime import date, timedelta, timezone as tzone
+from datetime import date, datetime, timedelta, timezone as tzone
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
@@ -88,6 +88,18 @@ class OrgTest(TembaTest):
 
         # finally defaulting to org creator
         self.assertEqual(self.agent, self.org.get_owner())
+
+    def test_format_datetime(self):
+        self.org.timezone = ZoneInfo("America/Mexico_City")
+        self.org.save()
+
+        date1 = datetime(2000, 1, 1, tzinfo=tzone.utc)
+
+        self.assertEqual(self.org.format_datetime(date1), "31-12-1999 18:00")
+
+        invalid_date = datetime(1, 1, 1, 0, 0, tzinfo=tzone(timedelta(days=-1, seconds=62640), "-06:36"))
+
+        self.assertEqual(self.org.format_datetime(invalid_date), "")
 
     def test_get_unique_slug(self):
         self.org.slug = "allo"
