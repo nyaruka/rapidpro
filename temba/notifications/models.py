@@ -75,6 +75,9 @@ class Incident(models.Model):
         self.ended_on = timezone.now()
         self.save(update_fields=("ended_on",))
 
+        # mark unseen notifications as seen for ended incident
+        self.notifications.filter(is_seen=False).update(is_seen=True)
+
     @property
     def template(self) -> str:
         return f"notifications/incidents/{self.incident_type.replace(':', '_')}.html"
