@@ -1,3 +1,9 @@
+v10.1.159 (2025-05-06)
+-------------------------
+ * Fix globals and fields completion
+ * Move editor errors above fields
+ * Fix split by result and languages endpoint
+
 v10.1.158 (2025-05-05)
 -------------------------
  * Update LLM service exception
