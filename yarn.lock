@@ -35,6 +35,11 @@
   dependencies:
     purgecss "^3.1.3"
 
+"@jsplumb/browser-ui@^6.2.10":
+  version "6.2.10"
+  resolved "https://registry.yarnpkg.com/@jsplumb/browser-ui/-/browser-ui-6.2.10.tgz#86b85ed42110563d2816e3712677cdbbbf33366f"
+  integrity sha512-trk++mK5q6hceJL79teemzcilJ+8DrZT/lMK0+B80AtHqZHr0YwMCf+so2JBb2Z/MDZ0fUEU9MbELY6OPhhs5g==
+
 "@lit-labs/ssr-dom-shim@^1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@lit-labs/ssr-dom-shim/-/ssr-dom-shim-1.2.0.tgz#353ce4a76c83fadec272ea5674ede767650762fd"
@@ -75,20 +80,21 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@nyaruka/flow-editor@1.43.3":
-  version "1.43.3"
-  resolved "https://registry.yarnpkg.com/@nyaruka/flow-editor/-/flow-editor-1.43.3.tgz#6fd27c4cf652b713ac7ee8f8321e397a3cd89a4f"
-  integrity sha512-61uzJAFtUIQn70akgYKI1cIjaXX4U3x0isBmeNdKfCiz5JOd1LNWKOMcVcE7bHzH22bBmC764EBxeOEa4W3LEQ==
+"@nyaruka/flow-editor@1.43.4":
+  version "1.43.4"
+  resolved "https://registry.yarnpkg.com/@nyaruka/flow-editor/-/flow-editor-1.43.4.tgz#551eedd1c46d2388b91bd430eef43fdfab0dd375"
+  integrity sha512-9e/swuAEYGrOBi4xhgvN4v1tXqtONqGPFun/bGiV7UryQrGc9RXHTsu9g6zbi35RvQQjDSdjRG3IRdWxZ3W4Yw==
   dependencies:
-    "@nyaruka/temba-components" "0.121.1"
+    "@nyaruka/temba-components" "0.121.4"
     react "^16.8.6"
     react-dom "^16.8.6"
 
-"@nyaruka/temba-components@0.121.1":
-  version "0.121.1"
-  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.121.1.tgz#1139dcf26e2b794ef25d9c2b774b2f754c7c4921"
-  integrity sha512-jaSs8vt8jfRbZ6Lh3m7wo5w2HM8JgAL0UbiDiQoDbaQPIz1uKyppfv+mDsRoSKd5qv/s2qWISgiCe+qRUZJkjg==
+"@nyaruka/temba-components@0.121.4":
+  version "0.121.4"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.121.4.tgz#767c247363159f4e84f811d0b663f1acf9c0925e"
+  integrity sha512-r//30MRt4LuWFIEe4gaMl8g15suF8QrJ38OmSpQvSGV5SBABi2FhSac2myInRUFWjWZacYhbavXtMOHmqp8D6g==
   dependencies:
+    "@jsplumb/browser-ui" "^6.2.10"
     "@lit/localize" "^0.12.1"
     color-hash "^2.0.2"
     croppie "^2.6.5"
@@ -105,11 +111,12 @@
     tiny-lru "^11.2.5"
     zustand "^5.0.3"
 
-"@nyaruka/temba-components@0.121.2":
-  version "0.121.2"
-  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.121.2.tgz#d505c025ad1fe844ec18b685236c5d4a5ba862e9"
-  integrity sha512-JXR++8x+uelJXTESpCwCzGsq96O92SsQH+zLA90qRyFwaU9f0TZ/EGQ6Udc0KAucbhXJgqv1/SZHAOtfbon4iA==
+"@nyaruka/temba-components@0.121.5":
+  version "0.121.5"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.121.5.tgz#ed89261bd0f3dd637171c4e348b15a7ac36eeea9"
+  integrity sha512-u4yN9gwu2C5hR853LzxtM9OZ1iQ/fpEzJzQ7dmqIHTVT9CtzuyZur0kxtHW+OfifOu77AYHUA/TWfmfwL1/ZkA==
   dependencies:
+    "@jsplumb/browser-ui" "^6.2.10"
     "@lit/localize" "^0.12.1"
     color-hash "^2.0.2"
     croppie "^2.6.5"

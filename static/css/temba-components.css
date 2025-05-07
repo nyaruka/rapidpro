@@ -61,6 +61,7 @@ html {
   --color-button-destructive: rgb(var(--error-rgb));
   --color-button-destructive-text: var(--color-text-light);
   --color-button-attention: #3ca96a;
+  --color-connectors: #95cbef;
   --color-label-primary: var(--color-primary-dark);
   --color-label-primary-text: var(--color-text-light);
   --color-label-secondary: var(--color-secondary-dark);
