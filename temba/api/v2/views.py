@@ -2222,8 +2222,8 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
     attributes:
 
      * **id** - the ID of the message (int), filterable as `id`.
-     * **broadcast** - the id of the broadcast (int), filterable as `broadcast`.
-     * **contact** - the UUID and name of the contact (object), filterable as `contact` with UUID.
+     * **broadcast** - the id of the broadcast (int).
+     * **contact** - the UUID and name of the contact (object).
      * **urn** - the URN of the sender or receiver, depending on direction (string).
      * **channel** - the UUID and name of the channel that handled this message (object).
      * **direction** - the direction of the message (one of `incoming` or `outgoing`).
@@ -2241,14 +2241,13 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
      * **text** - the text of the message received (string). Note this is the logical view and the message may have been received as multiple physical messages.
      * **attachments** - the attachments on the message (array of objects).
      * **quick_replies** - the quick_replies on the message (array of objects).
-     * **labels** - any labels set on this message (array of objects), filterable as `label` with label name or UUID.
+     * **labels** - any labels set on this message (array of objects).
      * **flow** - the UUID and name of the flow if message was part of a flow (object, optional).
      * **created_on** - when this message was either received by the channel or created (datetime) (filterable as `before` and `after`).
      * **sent_on** - for outgoing messages, when the channel sent the message (null if not yet sent or an incoming message) (datetime).
      * **modified_on** - when the message was last modified (datetime).
 
     You can also filter by `folder` where folder is one of `inbox`, `flows`, `archived`, `outbox`, `sent` or `failed`.
-    Note that you cannot filter by more than one of `contact`, `folder`, `label` or `broadcast` at the same time.
 
     The sort order for the `sent` folder is the sent date. All other requests are sorted by the message creation date.
 
