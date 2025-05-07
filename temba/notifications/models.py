@@ -75,8 +75,7 @@ class Incident(models.Model):
         self.ended_on = timezone.now()
         self.save(update_fields=("ended_on",))
 
-        # mark unseen notifications as seen for ended incident
-        self.notifications.filter(is_seen=False).update(is_seen=True)
+        Notification.mark_seen(self.org, user=None, incident=self)
 
     @property
     def template(self) -> str:
@@ -234,13 +233,19 @@ class Notification(models.Model):
         self.save(update_fields=("email_status",))
 
     @classmethod
-    def mark_seen(cls, org, user, notification_type: str = None, *, scope: str = None):
-        notifications = cls.objects.filter(org_id=org.id, user=user, is_seen=False)
+    def mark_seen(cls, org, user, notification_type: str = None, *, scope: str = None, incident: Incident = None):
+        assert user or incident, "need a valid user or incident"
 
+        notifications = cls.objects.filter(org_id=org.id, is_seen=False)
+
+        if user is not None:
+            notifications = notifications.filter(user=user)
         if notification_type:
             notifications = notifications.filter(notification_type=notification_type)
         if scope is not None:
             notifications = notifications.filter(scope=scope)
+        if incident is not None:
+            notifications = notifications.filter(incident=incident)
 
         notifications.update(is_seen=True)
 
