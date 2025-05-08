@@ -2,5 +2,7 @@
 {% load i18n %}
 
 {% block notification-body %}
-  <p>{% blocktrans with url=read_url %}Your export is ready! Download it here: {{ url }}{% endblocktrans %}</p>
+  <p>
+    {% blocktrans with url=read_url %}Your export is ready! Click <a href="{{ url }}">here</a> to download it.{% endblocktrans %}
+  </p>
 {% endblock notification-body %}
