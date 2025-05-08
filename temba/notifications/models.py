@@ -132,16 +132,18 @@ class NotificationType:
         return ""
 
     def get_email_context(self, notification, branding: dict):
+        read_url = reverse("notifications.notification_read", args=[notification.id])
         return {
             "notification": notification,
-            "target_url": f"https://{branding['domain']}{self.get_target_url(notification)}",
+            "read_url": f"https://{branding['domain']}{read_url}",
         }
 
     def as_json(self, notification) -> dict:
         return {
             "type": notification.type.slug,
             "created_on": notification.created_on.isoformat(),
-            "target_url": self.get_target_url(notification),
+            "url": reverse("notifications.notification_read", args=[notification.id]),
+            "target_url": self.get_target_url(notification),  # deprecated
             "is_seen": notification.is_seen,
         }
 

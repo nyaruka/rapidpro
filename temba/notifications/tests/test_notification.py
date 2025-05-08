@@ -32,7 +32,10 @@ class NotificationTest(TembaTest):
         actual_users = set()
 
         for notification in notifications:
-            self.assertEqual(expected_json, notification.as_json())
+            expected = expected_json.copy()
+            expected["url"] = reverse("notifications.notification_read", args=[notification.id])
+
+            self.assertEqual(expected, notification.as_json())
             self.assertEqual(email, notification.email_status == Notification.EMAIL_STATUS_PENDING)
             actual_users.add(notification.user)
 
