@@ -7,7 +7,11 @@ from django.utils import timezone
 from temba.contacts.models import ContactExport, ContactImport
 from temba.flows.models import ResultsExport
 from temba.msgs.models import MessageExport, MsgFolder
-from temba.notifications.incidents.builtin import ChannelTemplatesFailedIncidentType, OrgFlaggedIncidentType
+from temba.notifications.incidents.builtin import (
+    ChannelDisconnectedIncidentType,
+    ChannelTemplatesFailedIncidentType,
+    OrgFlaggedIncidentType,
+)
 from temba.notifications.models import Notification
 from temba.notifications.tasks import send_notification_emails, trim_notifications
 from temba.notifications.types.builtin import (
@@ -326,6 +330,79 @@ class NotificationTest(TembaTest):
         self.assertTrue(self.agent.notifications.get().is_seen)
         self.assertFalse(self.editor.notifications.get().is_seen)
 
+    def test_channel_disconnected(self):
+        self.org.add_user(self.editor, OrgRole.ADMINISTRATOR)  # upgrade editor to administrator
+
+        incident = ChannelDisconnectedIncidentType.get_or_create(channel=self.channel)
+
+        self.assert_notifications(
+            expected_json={
+                "type": "incident:started",
+                "created_on": matchers.ISODatetime(),
+                "target_url": f"/channels/channel/read/{self.channel.uuid}/",
+                "is_seen": False,
+                "incident": {
+                    "type": "channel:disconnected",
+                    "started_on": matchers.ISODatetime(),
+                    "ended_on": None,
+                },
+            },
+            expected_users={self.editor, self.admin},
+            email=True,
+        )
+        send_notification_emails()
+
+        self.assertEqual(2, len(mail.outbox))
+
+        self.assertEqual(2, len(mail.outbox))
+        self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[0].subject)
+        self.assertEqual(["admin@textit.com"], mail.outbox[0].recipients())
+        self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[1].subject)
+        self.assertEqual(["editor@textit.com"], mail.outbox[1].recipients())
+
+        self.assertEqual(1, self.editor.notifications.filter(is_seen=False).count())
+        self.assertEqual(0, self.editor.notifications.filter(is_seen=True).count())
+        self.assertEqual(1, self.admin.notifications.filter(is_seen=False).count())
+        self.assertEqual(0, self.admin.notifications.filter(is_seen=True).count())
+
+        # try having a new incident will not create new notifications
+        incident2 = ChannelDisconnectedIncidentType.get_or_create(channel=self.channel)
+        self.assertEqual(incident.pk, incident2.pk)
+        send_notification_emails()
+        self.assertEqual(2, len(mail.outbox))
+
+        self.assertEqual(2, len(mail.outbox))
+        self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[0].subject)
+        self.assertEqual(["admin@textit.com"], mail.outbox[0].recipients())
+        self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[1].subject)
+        self.assertEqual(["editor@textit.com"], mail.outbox[1].recipients())
+
+        # end incident before the user visits the page
+        incident.end()
+
+        self.assertEqual(1, self.editor.notifications.filter(is_seen=False).count())
+        self.assertEqual(0, self.editor.notifications.filter(is_seen=True).count())
+        self.assertEqual(1, self.admin.notifications.filter(is_seen=False).count())
+        self.assertEqual(0, self.admin.notifications.filter(is_seen=True).count())
+
+        # a new incident after the first was ended
+        incident3 = ChannelDisconnectedIncidentType.get_or_create(channel=self.channel)
+        self.assertNotEqual(incident.pk, incident3.pk)
+
+        send_notification_emails()
+        self.assertEqual(4, len(mail.outbox))
+
+        self.assertEqual(4, len(mail.outbox))
+        self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[0].subject)
+        self.assertEqual(["admin@textit.com"], mail.outbox[0].recipients())
+        self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[1].subject)
+        self.assertEqual(["editor@textit.com"], mail.outbox[1].recipients())
+
+        self.assertEqual(2, self.editor.notifications.filter(is_seen=False).count())
+        self.assertEqual(0, self.editor.notifications.filter(is_seen=True).count())
+        self.assertEqual(2, self.admin.notifications.filter(is_seen=False).count())
+        self.assertEqual(0, self.admin.notifications.filter(is_seen=True).count())
+
     def test_channel_templates_failed(self):
         self.org.add_user(self.editor, OrgRole.ADMINISTRATOR)  # upgrade editor to administrator
 
@@ -490,7 +567,7 @@ class NotificationTest(TembaTest):
         assert_count(self.org2, self.agent, 0)
         assert_count(self.org2, self.editor, 1)
 
-        Notification.mark_seen(self.org, self.agent, "tickets:activity", scope="")
+        Notification.mark_seen(self.org, self.agent, "tickets:activity", scopes=[""])
 
         assert_count(self.org, self.agent, 1)
         assert_count(self.org, self.editor, 3)

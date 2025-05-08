@@ -11,13 +11,13 @@ class NotificationTargetMixin:
     notification_scope = ""
 
     def get_notification_scope(self) -> tuple[str, str]:  # pragma: no cover
-        return self.notification_type, self.notification_scope
+        return self.notification_type, [self.notification_scope] if self.notification_scope is not None else []
 
     def get(self, request, *args, **kwargs):
         response = super().get(request, *args, **kwargs)
 
-        notification_type, scope = self.get_notification_scope()
+        notification_type, scopes = self.get_notification_scope()
         if request.org and notification_type and request.user.is_authenticated:
-            Notification.mark_seen(request.org, request.user, notification_type, scope=scope)
+            Notification.mark_seen(request.org, request.user, notification_type, scopes=scopes)
 
         return response

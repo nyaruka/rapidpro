@@ -19,9 +19,6 @@ class ChannelDisconnectedIncidentType(IncidentType):
         """
         return Incident.get_or_create(channel.org, cls.slug, scope=str(channel.id), channel=channel)
 
-    def get_notification_scope(self, incident) -> str:
-        return str(incident.channel.id)
-
     def get_notification_target_url(self, incident) -> str:
         return reverse("channels.channel_read", args=[str(incident.channel.uuid)])
 
@@ -40,9 +37,6 @@ class ChannelOutdatedAppIncidentType(IncidentType):
         Creates a channel outdated app incident if one is not already ongoing
         """
         return Incident.get_or_create(channel.org, cls.slug, scope=str(channel.id), channel=channel)
-
-    def get_notification_scope(self, incident) -> str:
-        return str(incident.channel.id)
 
 
 class OrgFlaggedIncidentType(IncidentType):
@@ -100,9 +94,6 @@ class ChannelTemplatesFailedIncidentType(IncidentType):
         Creates a channel disconnected incident if one is not already ongoing
         """
         return Incident.get_or_create(channel.org, cls.slug, scope=str(channel.id), channel=channel)
-
-    def get_notification_scope(self, incident) -> str:
-        return str(incident.channel.id)
 
     def get_notification_target_url(self, incident) -> str:
         return reverse("channels.channel_read", args=[str(incident.channel.uuid)])

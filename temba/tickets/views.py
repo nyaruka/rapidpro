@@ -233,10 +233,10 @@ class TicketCRUDL(SmartCRUDL):
             folder, status, ticket, in_page = self.tickets_path
 
             if folder.slug == UnassignedFolder.slug and status == Ticket.STATUS_OPEN:
-                return "tickets:opened", ""
+                return "tickets:opened", [""]
             elif folder.slug == MineFolder.slug and status == Ticket.STATUS_OPEN:
-                return "tickets:activity", ""
-            return "", ""
+                return "tickets:activity", [""]
+            return "", [""]
 
         def derive_menu_path(self):
             folder, status, ticket, in_page = self.tickets_path

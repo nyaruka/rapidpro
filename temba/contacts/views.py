@@ -1310,7 +1310,7 @@ class ContactImportCRUDL(SmartCRUDL):
         title = _("Contact Import")
 
         def get_notification_scope(self) -> tuple:
-            return "import:finished", f"contact:{self.object.id}"
+            return "import:finished", [f"contact:{self.object.id}"]
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)

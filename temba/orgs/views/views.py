@@ -1749,4 +1749,4 @@ class ExportCRUDL(SmartCRUDL):
             return context
 
         def get_notification_scope(self) -> tuple[str, str]:
-            return "export:finished", self.get_object().get_notification_scope()
+            return "export:finished", [self.get_object().get_notification_scope()]

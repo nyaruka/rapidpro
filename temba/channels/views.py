@@ -468,7 +468,8 @@ class ChannelCRUDL(SmartCRUDL):
             return f"/settings/channels/{self.object.uuid}"
 
         def get_notification_scope(self) -> tuple:
-            return "incident:started", str(self.object.id)
+            incidents = self.object.incidents.filter(ended_on=None)
+            return "incident:started", [str(elt.pk) for elt in incidents]
 
         def build_context_menu(self, menu):
             obj = self.get_object()
