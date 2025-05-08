@@ -230,6 +230,13 @@ class Notification(models.Model):
         self.email_status = Notification.EMAIL_STATUS_SENT
         self.save(update_fields=("email_status",))
 
+    def get_target_url(self) -> str:
+        return self.type.get_target_url(self)
+
+    def clear(self):
+        self.is_seen = True
+        self.save(update_fields=("is_seen",))
+
     @classmethod
     def mark_seen(cls, org, user, notification_type: str = None, *, scope: str = None):
         notifications = cls.objects.filter(org_id=org.id, user=user, is_seen=False)

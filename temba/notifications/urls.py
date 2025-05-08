@@ -1,3 +1,4 @@
-from .views import IncidentCRUDL
+from .views import IncidentCRUDL, NotificationCRUDL
 
 urlpatterns = IncidentCRUDL().as_urlpatterns()
+urlpatterns += NotificationCRUDL().as_urlpatterns()
