@@ -143,7 +143,6 @@ class NotificationType:
             "type": notification.type.slug,
             "created_on": notification.created_on.isoformat(),
             "url": reverse("notifications.notification_read", args=[notification.id]),
-            "target_url": self.get_target_url(notification),  # deprecated
             "is_seen": notification.is_seen,
         }
 
