@@ -132,16 +132,18 @@ class NotificationType:
         return ""
 
     def get_email_context(self, notification, branding: dict):
+        read_url = reverse("notifications.notification_read", args=[notification.id])
         return {
             "notification": notification,
-            "target_url": f"https://{branding['domain']}{self.get_target_url(notification)}",
+            "read_url": f"https://{branding['domain']}{read_url}",
         }
 
     def as_json(self, notification) -> dict:
         return {
             "type": notification.type.slug,
             "created_on": notification.created_on.isoformat(),
-            "target_url": self.get_target_url(notification),
+            "url": reverse("notifications.notification_read", args=[notification.id]),
+            "target_url": self.get_target_url(notification),  # deprecated
             "is_seen": notification.is_seen,
         }
 
@@ -229,6 +231,13 @@ class Notification(models.Model):
 
         self.email_status = Notification.EMAIL_STATUS_SENT
         self.save(update_fields=("email_status",))
+
+    def get_target_url(self) -> str:
+        return self.type.get_target_url(self)
+
+    def clear(self):
+        self.is_seen = True
+        self.save(update_fields=("is_seen",))
 
     @classmethod
     def mark_seen(cls, org, user, notification_type: str = None, *, scope: str = None):

@@ -78,6 +78,10 @@ class EndpointsTest(APITestMixin, TembaTest):
         # and org being suspended
         self.org.suspend()
 
+        export1_notification = export1.notifications.get()
+        export2_notification = export2.notifications.get()
+        suspended_notification = self.admin.notifications.get(notification_type="incident:started")
+
         self.assertGet(
             endpoint_url,
             [self.admin],
@@ -85,7 +89,8 @@ class EndpointsTest(APITestMixin, TembaTest):
                 {
                     "type": "incident:started",
                     "created_on": matchers.ISODatetime(),
-                    "target_url": "/incident/",
+                    "url": f"/notification/read/{suspended_notification.id}/",
+                    "target_url": "/incident/",  # deprecated
                     "is_seen": False,
                     "incident": {
                         "type": "org:suspended",
@@ -96,6 +101,7 @@ class EndpointsTest(APITestMixin, TembaTest):
                 {
                     "type": "export:finished",
                     "created_on": matchers.ISODatetime(),
+                    "url": f"/notification/read/{export1_notification.id}/",
                     "target_url": f"/export/download/{export1.uuid}/",
                     "is_seen": False,
                     "export": {"type": "contact", "num_records": None},
@@ -111,7 +117,8 @@ class EndpointsTest(APITestMixin, TembaTest):
                 {
                     "type": "export:finished",
                     "created_on": matchers.ISODatetime(),
-                    "target_url": f"/export/download/{export2.uuid}/",
+                    "url": f"/notification/read/{export2_notification.id}/",
+                    "target_url": f"/export/download/{export2.uuid}/",  # deprecated
                     "is_seen": False,
                     "export": {"type": "ticket", "num_records": None},
                 },

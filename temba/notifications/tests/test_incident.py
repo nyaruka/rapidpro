@@ -1,5 +1,6 @@
 from datetime import datetime, timezone as tzone
 
+from temba.notifications.incidents.builtin import ChannelDisconnectedIncidentType
 from temba.notifications.models import Incident, Notification
 from temba.tests import TembaTest, matchers
 
@@ -82,4 +83,20 @@ class IncidentTest(TembaTest):
                 "ended_on": None,
             },
             incident.as_json(),
+        )
+
+    def test_channel_disconnected(self):
+        ChannelDisconnectedIncidentType.get_or_create(self.channel)
+        incident = Incident.objects.get()
+
+        self.assertEqual(
+            {
+                "type": "channel:disconnected",
+                "started_on": matchers.ISODatetime(),
+                "ended_on": None,
+            },
+            incident.as_json(),
+        )
+        self.assertEqual(
+            f"/channels/channel/read/{self.channel.uuid}/", incident.type.get_notification_target_url(incident)
         )
