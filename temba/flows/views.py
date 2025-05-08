@@ -160,6 +160,7 @@ class FlowCRUDL(SmartCRUDL):
         "import_translation",
         "export_results",
         "editor",
+        "next",
         "results",
         "category_counts",
         "preview_start",
@@ -832,6 +833,9 @@ class FlowCRUDL(SmartCRUDL):
 
                 if self.has_org_perm("flows.flow_update"):
                     menu.add_link(_("Import Translation"), reverse("flows.flow_import_translation", args=[obj.id]))
+
+    class Next(StaffOnlyMixin, Editor, SpaMixin):
+        template_name = "flows/flow_next.html"
 
     class ChangeLanguage(OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.Form):
