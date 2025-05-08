@@ -2,5 +2,5 @@
 {% load i18n %}
 
 {% block notification-body %}
-{% blocktrans with url=read_url %}Your export is ready! Download it here: {{ url }}{% endblocktrans %}
+{% blocktrans with url=read_url %}Your export is ready! Click here to download it: {{ url }}{% endblocktrans %}
 {% endblock notification-body %}
