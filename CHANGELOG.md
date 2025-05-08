@@ -1,3 +1,11 @@
+v10.1.160 (2025-05-08)
+-------------------------
+ * Update to latest Django 5.1.x
+ * Add notification view to clear the notification and redirect to the target URL
+ * Igrore invalid date when formating datetime
+ * Unpublicize filtering by contact and label on messages API endpoint
+ * Add flow view for next gen editor
+
 v10.1.159 (2025-05-06)
 -------------------------
  * Fix globals and fields completion
