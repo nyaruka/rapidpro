@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from django.core import mail
 from django.urls import reverse
@@ -22,7 +22,7 @@ from temba.tickets.models import TicketExport
 
 
 class NotificationTest(TembaTest):
-    def assert_notifications(self, *, after: datetime = None, expected_json: dict, expected_users: set, email: True):
+    def assert_notifications(self, *, after=None, expected_json, expected_target, expected_users, email):
         notifications = Notification.objects.all()
         if after:
             notifications = notifications.filter(created_on__gt=after)
@@ -36,6 +36,7 @@ class NotificationTest(TembaTest):
             expected["url"] = reverse("notifications.notification_read", args=[notification.id])
 
             self.assertEqual(expected, notification.as_json())
+            self.assertEqual(expected_target, notification.get_target_url())
             self.assertEqual(email, notification.email_status == Notification.EMAIL_STATUS_PENDING)
             actual_users.add(notification.user)
 
@@ -56,10 +57,10 @@ class NotificationTest(TembaTest):
             expected_json={
                 "type": "export:finished",
                 "created_on": matchers.ISODatetime(),
-                "target_url": f"/export/download/{export.uuid}/",
                 "is_seen": False,
                 "export": {"type": "contact", "num_records": 0},
             },
+            expected_target=f"/export/download/{export.uuid}/",
             expected_users={self.editor},
             email=True,
         )
@@ -74,12 +75,6 @@ class NotificationTest(TembaTest):
         send_notification_emails()
 
         self.assertEqual(1, len(mail.outbox))
-
-        # if a user visits the export download page, their notification for that export is now read
-        self.login(self.editor)
-        self.client.get(reverse("orgs.export_download", args=[export.uuid]))
-
-        self.assertTrue(self.editor.notifications.get(export=export).is_seen)
 
     def test_contact_export_finished_unverified_user(self):
         self.unverifed_user = self.create_user("unverified@textit.com", first_name="Fred")
@@ -101,10 +96,10 @@ class NotificationTest(TembaTest):
             expected_json={
                 "type": "export:finished",
                 "created_on": matchers.ISODatetime(),
-                "target_url": f"/export/download/{export.uuid}/",
                 "is_seen": False,
                 "export": {"type": "contact", "num_records": 0},
             },
+            expected_target=f"/export/download/{export.uuid}/",
             expected_users={self.unverifed_user},
             email=False,
         )
@@ -122,12 +117,6 @@ class NotificationTest(TembaTest):
 
         self.assertEqual(0, len(mail.outbox))
 
-        # if a user visits the export download page, their notification for that export is now read
-        self.login(self.unverifed_user)
-        self.client.get(reverse("orgs.export_download", args=[export.uuid]))
-
-        self.assertTrue(self.unverifed_user.notifications.get(export=export).is_seen)
-
     def test_message_export_finished(self):
         export = MessageExport.create(
             self.org, self.editor, start_date=date.today(), end_date=date.today(), folder=MsgFolder.INBOX
@@ -144,10 +133,10 @@ class NotificationTest(TembaTest):
             expected_json={
                 "type": "export:finished",
                 "created_on": matchers.ISODatetime(),
-                "target_url": f"/export/download/{export.uuid}/",
                 "is_seen": False,
                 "export": {"type": "message", "num_records": 0},
             },
+            expected_target=f"/export/download/{export.uuid}/",
             expected_users={self.editor},
             email=True,
         )
@@ -162,12 +151,6 @@ class NotificationTest(TembaTest):
         send_notification_emails()
 
         self.assertEqual(1, len(mail.outbox))
-
-        # if a user visits the export download page, their notification for that export is now read
-        self.login(self.editor)
-        self.client.get(reverse("orgs.export_download", args=[export.uuid]))
-
-        self.assertTrue(self.editor.notifications.get(export=export).is_seen)
 
     def test_results_export_finished(self):
         flow1 = self.create_flow("Test Flow 1")
@@ -195,10 +178,10 @@ class NotificationTest(TembaTest):
             expected_json={
                 "type": "export:finished",
                 "created_on": matchers.ISODatetime(),
-                "target_url": f"/export/download/{export.uuid}/",
                 "is_seen": False,
                 "export": {"type": "results", "num_records": 0},
             },
+            expected_target=f"/export/download/{export.uuid}/",
             expected_users={self.editor},
             email=True,
         )
@@ -214,12 +197,6 @@ class NotificationTest(TembaTest):
 
         self.assertEqual(1, len(mail.outbox))
 
-        # if a user visits the export download page, their notification for that export is now read
-        self.login(self.editor)
-        self.client.get(reverse("orgs.export_download", args=[export.uuid]))
-
-        self.assertTrue(self.editor.notifications.get(export=export).is_seen)
-
     def test_export_finished(self):
         export = TicketExport.create(self.org, self.editor, start_date=date.today(), end_date=date.today())
         export.perform()
@@ -234,10 +211,10 @@ class NotificationTest(TembaTest):
             expected_json={
                 "type": "export:finished",
                 "created_on": matchers.ISODatetime(),
-                "target_url": f"/export/download/{export.uuid}/",
                 "is_seen": False,
                 "export": {"type": "ticket", "num_records": 0},
             },
+            expected_target=f"/export/download/{export.uuid}/",
             expected_users={self.editor},
             email=True,
         )
@@ -247,12 +224,6 @@ class NotificationTest(TembaTest):
         self.assertEqual(1, len(mail.outbox))
         self.assertEqual("[Nyaruka] Your ticket export is ready", mail.outbox[0].subject)
         self.assertEqual(["editor@textit.com"], mail.outbox[0].recipients())
-
-        # if a user visits the export download page, their notification for that export is now read
-        self.login(self.editor)
-        self.client.get(reverse("orgs.export_download", args=[export.uuid]))
-
-        self.assertTrue(self.editor.notifications.get(export=export).is_seen)
 
     def test_import_finished(self):
         imp = ContactImport.objects.create(
@@ -271,19 +242,13 @@ class NotificationTest(TembaTest):
             expected_json={
                 "type": "import:finished",
                 "created_on": matchers.ISODatetime(),
-                "target_url": f"/contactimport/read/{imp.id}/",
                 "is_seen": False,
                 "import": {"type": "contact", "num_records": 5},
             },
+            expected_target=f"/contactimport/read/{imp.id}/",
             expected_users={self.editor},
             email=False,
         )
-
-        # if a user visits the import read page, their notification for that import is now read
-        self.login(self.editor)
-        self.client.get(reverse("contacts.contactimport_read", args=[imp.id]))
-
-        self.assertTrue(self.editor.notifications.get(contact_import=imp).is_seen)
 
     def test_tickets_opened(self):
         # mailroom will create these notifications
@@ -293,19 +258,12 @@ class NotificationTest(TembaTest):
             expected_json={
                 "type": "tickets:opened",
                 "created_on": matchers.ISODatetime(),
-                "target_url": "/ticket/unassigned/",
                 "is_seen": False,
             },
+            expected_target="/ticket/unassigned/",
             expected_users={self.agent, self.editor},
             email=False,
         )
-
-        # if a user visits the unassigned tickets page, their notification is now read
-        self.login(self.agent)
-        self.client.get("/ticket/unassigned/")
-
-        self.assertTrue(self.agent.notifications.get().is_seen)
-        self.assertFalse(self.editor.notifications.get().is_seen)
 
     def test_tickets_activity(self):
         # mailroom will create these notifications
@@ -315,19 +273,12 @@ class NotificationTest(TembaTest):
             expected_json={
                 "type": "tickets:activity",
                 "created_on": matchers.ISODatetime(),
-                "target_url": "/ticket/mine/",
                 "is_seen": False,
             },
+            expected_target="/ticket/mine/",
             expected_users={self.agent, self.editor},
             email=False,
         )
-
-        # if a user visits their assigned tickets page, their notification is now read
-        self.login(self.agent)
-        self.client.get("/ticket/mine/")
-
-        self.assertTrue(self.agent.notifications.get().is_seen)
-        self.assertFalse(self.editor.notifications.get().is_seen)
 
     def test_channel_templates_failed(self):
         self.org.add_user(self.editor, OrgRole.ADMINISTRATOR)  # upgrade editor to administrator
@@ -338,7 +289,6 @@ class NotificationTest(TembaTest):
             expected_json={
                 "type": "incident:started",
                 "created_on": matchers.ISODatetime(),
-                "target_url": f"/channels/channel/read/{self.channel.uuid}/",
                 "is_seen": False,
                 "incident": {
                     "type": "channel:templates_failed",
@@ -346,6 +296,7 @@ class NotificationTest(TembaTest):
                     "ended_on": None,
                 },
             },
+            expected_target=f"/channels/channel/read/{self.channel.uuid}/",
             expected_users={self.editor, self.admin},
             email=True,
         )
@@ -360,13 +311,6 @@ class NotificationTest(TembaTest):
         self.assertEqual("[Nyaruka] Incident: WhatsApp Templates Sync Failed", mail.outbox[1].subject)
         self.assertEqual(["editor@textit.com"], mail.outbox[1].recipients())
 
-        # if a user visits the incident page, all incident notifications are now read
-        self.login(self.editor)
-        self.client.get(f"/channels/channel/read/{self.channel.uuid}/")
-
-        self.assertTrue(self.editor.notifications.get().is_seen)
-        self.assertFalse(self.admin.notifications.get().is_seen)
-
     def test_incident_started(self):
         self.org.add_user(self.editor, OrgRole.ADMINISTRATOR)  # upgrade editor to administrator
 
@@ -376,7 +320,6 @@ class NotificationTest(TembaTest):
             expected_json={
                 "type": "incident:started",
                 "created_on": matchers.ISODatetime(),
-                "target_url": "/incident/",
                 "is_seen": False,
                 "incident": {
                     "type": "org:flagged",
@@ -384,6 +327,7 @@ class NotificationTest(TembaTest):
                     "ended_on": None,
                 },
             },
+            expected_target="/incident/",
             expected_users={self.editor, self.admin},
             email=True,
         )
@@ -397,13 +341,6 @@ class NotificationTest(TembaTest):
         recipients = set(mail.outbox[0].recipients()).union(mail.outbox[1].recipients())
         self.assertEqual({self.admin.email, self.editor.email}, recipients)
 
-        # if a user visits the incident page, all incident notifications are now read
-        self.login(self.editor)
-        self.client.get("/incident/")
-
-        self.assertTrue(self.editor.notifications.get().is_seen)
-        self.assertFalse(self.admin.notifications.get().is_seen)
-
     def test_user_email(self):
         UserEmailNotificationType.create(self.org, self.editor, "prevaddr@trileet.com")
 
@@ -411,9 +348,9 @@ class NotificationTest(TembaTest):
             expected_json={
                 "type": "user:email",
                 "created_on": matchers.ISODatetime(),
-                "target_url": None,
                 "is_seen": True,
             },
+            expected_target=None,
             expected_users={self.editor},
             email=True,
         )
@@ -432,9 +369,9 @@ class NotificationTest(TembaTest):
             expected_json={
                 "type": "user:password",
                 "created_on": matchers.ISODatetime(),
-                "target_url": None,
                 "is_seen": True,
             },
+            expected_target=None,
             expected_users={self.editor},
             email=True,
         )
@@ -457,9 +394,9 @@ class NotificationTest(TembaTest):
             expected_json={
                 "type": "invitation:accepted",
                 "created_on": matchers.ISODatetime(),
-                "target_url": None,
                 "is_seen": True,
             },
+            expected_target=None,
             expected_users={self.admin},
             email=True,
         )

@@ -34,7 +34,6 @@ from temba.api.models import Resthook
 from temba.campaigns.models import Campaign
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin, FormaxSectionMixin
-from temba.notifications.mixins import NotificationTargetMixin
 from temba.tickets.models import Team
 from temba.utils import analytics, json, languages, on_transaction_commit, str_to_bool
 from temba.utils.email import parse_smtp_url
@@ -1723,7 +1722,7 @@ class ExportCRUDL(SmartCRUDL):
     model = Export
     actions = ("download",)
 
-    class Download(SpaMixin, ContextMenuMixin, NotificationTargetMixin, OrgObjPermsMixin, SmartReadView):
+    class Download(SpaMixin, ContextMenuMixin, OrgObjPermsMixin, SmartReadView):
         slug_url_kwarg = "uuid"
         menu_path = "/settings/workspace"
         title = _("Export")
@@ -1747,6 +1746,3 @@ class ExportCRUDL(SmartCRUDL):
             context["extension"] = self.object.path.rsplit(".", 1)[1]
             context.update(**self.object.type.get_download_context(self.object))
             return context
-
-        def get_notification_scope(self) -> tuple[str, str]:
-            return "export:finished", self.get_object().get_notification_scope()

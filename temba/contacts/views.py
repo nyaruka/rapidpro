@@ -25,7 +25,6 @@ from temba import mailroom
 from temba.archives.models import Archive
 from temba.channels.models import Channel
 from temba.mailroom.events import Event
-from temba.notifications.views import NotificationTargetMixin
 from temba.orgs.views.base import (
     BaseCreateModal,
     BaseDependencyDeleteModal,
@@ -1305,12 +1304,9 @@ class ContactImportCRUDL(SmartCRUDL):
             obj.start_async()
             return obj
 
-    class Read(SpaMixin, OrgObjPermsMixin, NotificationTargetMixin, SmartReadView):
+    class Read(SpaMixin, OrgObjPermsMixin, SmartReadView):
         menu_path = "/contact/import"
         title = _("Contact Import")
-
-        def get_notification_scope(self) -> tuple:
-            return "import:finished", f"contact:{self.object.id}"
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)

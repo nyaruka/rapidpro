@@ -90,7 +90,6 @@ class EndpointsTest(APITestMixin, TembaTest):
                     "type": "incident:started",
                     "created_on": matchers.ISODatetime(),
                     "url": f"/notification/read/{suspended_notification.id}/",
-                    "target_url": "/incident/",  # deprecated
                     "is_seen": False,
                     "incident": {
                         "type": "org:suspended",
@@ -102,7 +101,6 @@ class EndpointsTest(APITestMixin, TembaTest):
                     "type": "export:finished",
                     "created_on": matchers.ISODatetime(),
                     "url": f"/notification/read/{export1_notification.id}/",
-                    "target_url": f"/export/download/{export1.uuid}/",
                     "is_seen": False,
                     "export": {"type": "contact", "num_records": None},
                 },
@@ -118,7 +116,6 @@ class EndpointsTest(APITestMixin, TembaTest):
                     "type": "export:finished",
                     "created_on": matchers.ISODatetime(),
                     "url": f"/notification/read/{export2_notification.id}/",
-                    "target_url": f"/export/download/{export2.uuid}/",  # deprecated
                     "is_seen": False,
                     "export": {"type": "ticket", "num_records": None},
                 },
