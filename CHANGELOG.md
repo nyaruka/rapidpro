@@ -1,3 +1,8 @@
+v10.1.161 (2025-05-08)
+-------------------------
+ * Update to latest temba components
+ * Tweak export finished email templates
+
 v10.1.160 (2025-05-08)
 -------------------------
  * Update to latest Django 5.1.x
