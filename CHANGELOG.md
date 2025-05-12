@@ -1,3 +1,9 @@
+v10.1.162 (2025-05-12)
+-------------------------
+ * Adjust channel incident notification scope
+ * Update phonenumbers
+ * Remove old target view based functionality for clearing notifications
+
 v10.1.161 (2025-05-08)
 -------------------------
  * Update to latest temba components
