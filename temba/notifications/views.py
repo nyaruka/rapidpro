@@ -7,7 +7,6 @@ from temba.orgs.views.base import BaseReadView
 from temba.orgs.views.mixins import OrgPermsMixin
 from temba.utils.views.mixins import SpaMixin
 
-from .mixins import NotificationTargetMixin
 from .models import Incident, Notification
 
 
@@ -33,12 +32,10 @@ class IncidentCRUDL(SmartCRUDL):
     model = Incident
     actions = ("list",)
 
-    class List(OrgPermsMixin, SpaMixin, NotificationTargetMixin, SmartListView):
+    class List(OrgPermsMixin, SpaMixin, SmartListView):
         default_order = "-started_on"
         title = _("Incidents")
         menu_path = "/settings/incidents"
-        notification_type = "incident:started"
-        notification_scope = None  # clear all incident started notifications
 
         def get_queryset(self, **kwargs):
             return super().get_queryset(**kwargs).filter(org=self.request.org).exclude(ended_on=None)

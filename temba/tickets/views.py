@@ -13,7 +13,6 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from temba.msgs.models import Msg
-from temba.notifications.views import NotificationTargetMixin
 from temba.orgs.models import Org
 from temba.orgs.views.base import (
     BaseCreateModal,
@@ -219,7 +218,7 @@ class TicketCRUDL(SmartCRUDL):
 
             return menu
 
-    class List(SpaMixin, ContextMenuMixin, OrgPermsMixin, NotificationTargetMixin, SmartListView):
+    class List(SpaMixin, ContextMenuMixin, OrgPermsMixin, SmartListView):
         """
         Placeholder view for the ticketing frontend components which fetch tickets from the folders view below.
         """
@@ -228,15 +227,6 @@ class TicketCRUDL(SmartCRUDL):
         def derive_url_pattern(cls, path, action):
             folders = "|".join(TicketFolder.all().keys())
             return rf"^ticket/((?P<folder>{folders}|{UUID_REGEX.pattern})/((?P<status>open|closed)/((?P<uuid>[a-z0-9\-]+)/)?)?)?$"
-
-        def get_notification_scope(self) -> tuple:
-            folder, status, ticket, in_page = self.tickets_path
-
-            if folder.slug == UnassignedFolder.slug and status == Ticket.STATUS_OPEN:
-                return "tickets:opened", ""
-            elif folder.slug == MineFolder.slug and status == Ticket.STATUS_OPEN:
-                return "tickets:activity", ""
-            return "", ""
 
         def derive_menu_path(self):
             folder, status, ticket, in_page = self.tickets_path

@@ -1162,14 +1162,6 @@ class ChannelIncidentsTest(TembaTest):
             self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[0].subject)
             self.assertEqual("support@mybrand.com", mail.outbox[0].from_email)
 
-        # if we go to the read page of the channel, notification will be marked as seen
-        read_url = reverse("channels.channel_read", args=[self.channel.uuid])
-        self.login(self.admin)
-        self.client.get(read_url)
-
-        notification.refresh_from_db()
-        self.assertTrue(notification.is_seen)
-
         # call task again
         check_android_channels()
 
