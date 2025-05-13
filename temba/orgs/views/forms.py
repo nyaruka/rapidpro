@@ -3,9 +3,10 @@ from email.utils import parseaddr
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.utils.translation import gettext_lazy as _
 
-from temba.utils.email import EmailSender, is_valid_address, make_smtp_url, parse_smtp_url
+from temba.utils.email import EmailSender, make_smtp_url, parse_smtp_url
 from temba.utils.fields import InputWidget
 from temba.utils.timezones import TimeZoneFormField
 
@@ -60,8 +61,11 @@ class SMTPForm(forms.Form):
 
     def clean_from_email(self):
         data = self.cleaned_data["from_email"]
-        if data and not is_valid_address(parseaddr(data)[1]):
-            raise forms.ValidationError(_("Not a valid email address."))
+        if data:
+            try:
+                validate_email(parseaddr(data)[1])
+            except ValidationError:
+                raise forms.ValidationError(_("Not a valid email address."))
         return data
 
     def clean(self):
