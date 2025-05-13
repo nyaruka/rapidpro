@@ -1,3 +1,9 @@
+v10.1.164 (2025-05-13)
+-------------------------
+ * Fix old migration to not import User directly
+ * Add new table definitions to migrate_dynamo command
+ * Add User.uuid and remove population of no longer used fields in User.save
+
 v10.1.163 (2025-05-13)
 -------------------------
  * Update to latest floweditor
