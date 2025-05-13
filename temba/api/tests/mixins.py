@@ -79,7 +79,6 @@ class APITestMixin:
             ("uuid", lambda o: str(o.uuid)),
             ("id", lambda o: o.id),
             ("key", lambda o: o.key),
-            ("email", lambda o: o.email),
             ("hash", lambda o: o.hash),
         )
 
