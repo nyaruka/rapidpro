@@ -60,6 +60,12 @@ class EmailTest(TembaTest):
             "example@%s.%s.atm" % ("a" * 63, "b" * 10),
             '"\\\011"@here.com',
             "a@%s.us" % ("a" * 63),
+            "email@xn--4ca9at.com",
+            "email@öäü.com",
+            "email@עִתוֹן.example.il",
+            "email@މިހާރު.example.mv",
+            "email@漢字.example.com",
+            "editor@މިހާރު.example.mv",
         ]
 
         invalid_emails = [
@@ -102,6 +108,14 @@ class EmailTest(TembaTest):
             "example@inv-.alid-.com",
             "example@inv-.-alid.com",
             'test@example.com\n\n<script src="x.js">',
+            "@domain.com",
+            "email.domain.com",
+            "email@domain@domain.com",
+            "email@domain..com",
+            "email@.domain.com",
+            "email@-domain.com",
+            "email@domain-.com",
+            "email@domain.com-",
             # Quoted-string format (CR not allowed)
             '"\\\012"@here.com',
             "trailingdot@shouldfail.com.",

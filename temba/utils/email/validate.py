@@ -10,11 +10,6 @@ class TembaEmailValidator(EmailValidator):
         r'|^"([\001-\010\013\014\016-\[\]-\177]|\\[\001-\011\013\014\016-\177])*"\Z)',  # quoted-string
         re.IGNORECASE,
     )
-    domain_regex = re.compile(
-        # max length for domain name labels is 63 characters per RFC 1034
-        r"(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,63}|[A-Z0-9-]{2,}(?<!-))\Z",
-        re.IGNORECASE,
-    )
 
 
 temba_validate_email = TembaEmailValidator()
