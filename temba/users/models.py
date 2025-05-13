@@ -1,4 +1,3 @@
-import pyotp
 import requests
 
 from django.conf import settings
@@ -11,7 +10,6 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from temba.utils.fields import UploadToIdPathAndRename
-from temba.utils.text import generate_secret
 from temba.utils.uuid import uuid4
 
 
@@ -74,25 +72,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     external_id = models.CharField(max_length=128, null=True)
     verification_token = models.CharField(max_length=64, null=True)
 
-    # TODO remove these after next migration squash since users/0013_migrate_mfa imports this model
-    email_status = models.CharField(max_length=1, default=STATUS_UNVERIFIED, choices=STATUS_CHOICES)
-    email_verification_secret = models.CharField(max_length=64, db_index=True)
-    two_factor_enabled = models.BooleanField(default=False)
-    two_factor_secret = models.CharField(max_length=16)
-
     objects = UserManager()
 
     def clean(self):
         super().clean()
 
         self.email = self.__class__.objects.normalize_email(self.email)
-
-    def save(self, **kwargs):
-        if not self.id:
-            self.two_factor_secret = pyotp.random_base32()
-            self.email_verification_secret = generate_secret(64)
-
-        return super().save(**kwargs)
 
     @classmethod
     def create(cls, email: str, first_name: str, last_name: str, password: str, language: str = None):
