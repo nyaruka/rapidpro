@@ -7,12 +7,40 @@ from temba.utils import dynamo
 
 TABLES = [
     {
-        "TableName": "ChannelLogs",
+        "TableName": "Main",
+        "KeySchema": [
+            {"AttributeName": "PK", "KeyType": "HASH"},
+            {"AttributeName": "SK", "KeyType": "RANGE"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "PK", "AttributeType": "S"},
+            {"AttributeName": "SK", "AttributeType": "S"},
+        ],
+        "TimeToLiveSpecification": {"AttributeName": "TTL", "Enabled": True},
+        "TableClass": "STANDARD",
+        "BillingMode": "PAY_PER_REQUEST",
+    },
+    {
+        "TableName": "History",
+        "KeySchema": [
+            {"AttributeName": "PK", "KeyType": "HASH"},
+            {"AttributeName": "SK", "KeyType": "RANGE"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "PK", "AttributeType": "S"},
+            {"AttributeName": "SK", "AttributeType": "S"},
+        ],
+        "TimeToLiveSpecification": {"AttributeName": "TTL", "Enabled": True},
+        "TableClass": "STANDARD_INFREQUENT_ACCESS",
+        "BillingMode": "PAY_PER_REQUEST",
+    },
+    {
+        "TableName": "ChannelLogs",  # will be replaced by Main
         "KeySchema": [{"AttributeName": "UUID", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "UUID", "AttributeType": "S"}],
         "TimeToLiveSpecification": {"AttributeName": "ExpiresOn", "Enabled": True},
         "BillingMode": "PAY_PER_REQUEST",
-    }
+    },
 ]
 
 
