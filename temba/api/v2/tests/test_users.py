@@ -18,6 +18,7 @@ class UsersEndpointTest(APITest):
             [self.agent, self.editor, self.admin],
             results=[
                 {
+                    "uuid": str(self.agent.uuid),
                     "email": "agent@textit.com",
                     "first_name": "Agnes",
                     "last_name": "",
@@ -27,6 +28,7 @@ class UsersEndpointTest(APITest):
                     "avatar": None,
                 },
                 {
+                    "uuid": str(self.editor.uuid),
                     "email": "editor@textit.com",
                     "first_name": "Ed",
                     "last_name": "McEdits",
@@ -36,6 +38,7 @@ class UsersEndpointTest(APITest):
                     "avatar": None,
                 },
                 {
+                    "uuid": str(self.admin.uuid),
                     "email": "admin@textit.com",
                     "first_name": "Andy",
                     "last_name": "",
