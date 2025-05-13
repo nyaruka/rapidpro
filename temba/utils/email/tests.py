@@ -34,13 +34,8 @@ class EmailTest(TembaTest):
             "disposable.style.email.with+symbol@example.com",
             "other.email-with-dash@example.com",
             "x@example.com",
-            '"much.more unusual"@example.com',
-            '"very.unusual.@.unusual.com"@example.com'
-            '"very.(),:;<>[]".VERY."very@\\ "very".unusual"@strange.example.com',
             "example-indeed@strange-example.com",
             "#!$%&'*+-/=?^_`{}|~@example.org",
-            '"()<>[]:,;@\\"!#$%&\'-/=?^_`{}| ~.a"@example.org',
-            '" "@example.org',
             "example@localhost",
             "example@s.solutions",
             # Cases from Django tests
@@ -119,6 +114,12 @@ class EmailTest(TembaTest):
             # Quoted-string format (CR not allowed)
             '"\\\012"@here.com',
             "trailingdot@shouldfail.com.",
+            # Quoted string but still invalid with invalid characters such as space or @
+            '"much.more unusual"@example.com',
+            '"very.unusual.@.unusual.com"@example.com'
+            '"very.(),:;<>[]".VERY."very@\\ "very".unusual"@strange.example.com',
+            '"()<>[]:,;@\\"!#$%&\'-/=?^_`{}| ~.a"@example.org',
+            '" "@example.org',
             # Max length of domain name labels is 63 characters per RFC 1034.
             "a@%s.us" % ("a" * 64),
             # Trailing newlines in username or domain not allowed
