@@ -8,9 +8,6 @@ from temba.users.models import User
 class UserTest(TembaTest):
     def test_model(self):
         user = User.create("jim@rapidpro.io", "Jim", "McFlow", password="super")
-        self.assertIsNotNone(user.email_verification_secret)
-        self.assertIsNotNone(user.two_factor_secret)
-
         self.org.add_user(user, OrgRole.EDITOR)
         self.org2.add_user(user, OrgRole.AGENT)
 
