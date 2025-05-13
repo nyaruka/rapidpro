@@ -269,7 +269,9 @@ class FlowStartsEndpointTest(APITest):
         self.assertGet(endpoint_url + f"?uuid={start2.uuid}", [self.admin], results=[start2])
 
         # check filtering by in invalid UUID
-        self.assertGet(endpoint_url + "?uuid=xyz", [self.editor], errors={None: "Value for uuid must be a valid UUID"})
+        self.assertGet(
+            endpoint_url + "?uuid=xyz", [self.editor], errors={None: "Param 'uuid': xyz is not a valid UUID."}
+        )
 
         response = self.assertPost(
             endpoint_url,

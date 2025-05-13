@@ -1815,7 +1815,7 @@ class UserReadSerializer(ReadSerializer):
 
     class Meta:
         model = User
-        fields = ("email", "first_name", "last_name", "role", "team", "created_on", "avatar")
+        fields = ("uuid", "email", "first_name", "last_name", "role", "team", "created_on", "avatar")
 
 
 class WorkspaceReadSerializer(ReadSerializer):

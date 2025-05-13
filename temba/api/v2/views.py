@@ -3452,10 +3452,11 @@ class UsersEndpoint(ListAPIMixin, BaseEndpoint):
 
     A **GET** returns the users in your workspace, ordered by newest created first.
 
-     * **email** - the email address of the user (string), filterable as `email`.
+     * **uuid** - the UUID of the user (string), filterable as `uuid`.
+     * **email** - the email address of the user (string).
      * **first_name** - the first name of the user (string).
      * **last_name** - the last name of the user (string).
-     * **role** - the role of the user (string), filterable as `role`.
+     * **role** - the role of the user (string).
      * **team** - team user belongs to (object).
      * **created_on** - when this user was created (datetime).
 
@@ -3499,9 +3500,12 @@ class UsersEndpoint(ListAPIMixin, BaseEndpoint):
         return org.get_users(roles=roles)
 
     def filter_queryset(self, queryset):
-        # filter by email if specified
-        emails = self.request.query_params.getlist("email")
-        if emails:
+        # filter by UUID if specified
+        if uuids := self.get_uuid_param("uuid", list=True):
+            queryset = queryset.filter(uuid__in=uuids)
+
+        # filter by email (undocumented)
+        if emails := self.request.query_params.getlist("email"):
             queryset = queryset.filter(or_list([Q(email__iexact=e) for e in emails]))
 
         return queryset

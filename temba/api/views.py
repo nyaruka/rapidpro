@@ -76,12 +76,18 @@ class BaseAPIView(NonAtomicMixin, generics.GenericAPIView):
         except ValueError:
             raise InvalidQueryError("Value for %s must be an integer" % name)
 
-    def get_uuid_param(self, name):
-        param = self.request.query_params.get(name)
-        try:
-            return UUID(param) if param is not None else None
-        except ValueError:
-            raise InvalidQueryError("Value for %s must be a valid UUID" % name)
+    def get_uuid_param(self, name, *, list: bool = False):
+        vals = self.request.query_params.getlist(name)
+        if len(vals) > 100:
+            raise InvalidQueryError(f"Param '{name}' can have a maximum of 100 values.")
+
+        for i, val in enumerate(vals):
+            try:
+                vals[i] = UUID(val)
+            except ValueError:
+                raise InvalidQueryError(f"Param '{name}': {val} is not a valid UUID.")
+
+        return vals if list else vals[0] if len(vals) >= 1 else None
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

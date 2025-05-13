@@ -1,6 +1,7 @@
 from django.urls import reverse
 
 from temba.api.v2.serializers import format_datetime
+from temba.utils.uuid import uuid4
 
 from . import APITest
 
@@ -18,6 +19,7 @@ class UsersEndpointTest(APITest):
             [self.agent, self.editor, self.admin],
             results=[
                 {
+                    "uuid": str(self.agent.uuid),
                     "email": "agent@textit.com",
                     "first_name": "Agnes",
                     "last_name": "",
@@ -27,6 +29,7 @@ class UsersEndpointTest(APITest):
                     "avatar": None,
                 },
                 {
+                    "uuid": str(self.editor.uuid),
                     "email": "editor@textit.com",
                     "first_name": "Ed",
                     "last_name": "McEdits",
@@ -36,6 +39,7 @@ class UsersEndpointTest(APITest):
                     "avatar": None,
                 },
                 {
+                    "uuid": str(self.admin.uuid),
                     "email": "admin@textit.com",
                     "first_name": "Andy",
                     "last_name": "",
@@ -47,6 +51,23 @@ class UsersEndpointTest(APITest):
             ],
             # one query per user for their settings
             num_queries=self.BASE_SESSION_QUERIES + 2,
+        )
+
+        # filter by UUID
+        self.assertGet(
+            f"{endpoint_url}?uuid={self.editor.uuid}&uuid={self.admin.uuid}",
+            [self.agent],
+            results=[self.editor, self.admin],
+            num_queries=self.BASE_SESSION_QUERIES + 2,
+        )
+
+        self.assertGet(
+            endpoint_url + "?uuid=xyz", [self.editor], errors={None: "Param 'uuid': xyz is not a valid UUID."}
+        )
+        self.assertGet(
+            endpoint_url + "?" + "&".join([f"uuid={uuid4()}" for i in range(101)]),
+            [self.editor],
+            errors={None: "Param 'uuid' can have a maximum of 100 values."},
         )
 
         # filter by email
