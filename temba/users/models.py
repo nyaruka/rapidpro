@@ -10,6 +10,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from temba.utils.fields import UploadToIdPathAndRename
+from temba.utils.models.base import TembaUUIDMixin
 from temba.utils.uuid import uuid4
 
 
@@ -40,7 +41,7 @@ class UserManager(AuthUserManager):
         return user
 
 
-class User(AbstractBaseUser, PermissionsMixin):
+class User(TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
     SYSTEM = {"email": "system", "first_name": "System"}
 
     STATUS_UNVERIFIED = "U"
@@ -55,6 +56,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     EMAIL_FIELD = "email"
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
+
+    uuid = models.UUIDField(null=True, default=uuid4)
 
     first_name = models.CharField(_("first name"), max_length=150, blank=True)
     last_name = models.CharField(_("last name"), max_length=150, blank=True)
