@@ -57,7 +57,7 @@ class User(TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
-    uuid = models.UUIDField(null=True)
+    uuid = models.UUIDField(null=True, default=uuid4)
 
     first_name = models.CharField(_("first name"), max_length=150, blank=True)
     last_name = models.CharField(_("last name"), max_length=150, blank=True)
@@ -74,12 +74,6 @@ class User(TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
     # optional customer support fields
     external_id = models.CharField(max_length=128, null=True)
     verification_token = models.CharField(max_length=64, null=True)
-
-    # TODO remove these after next migration squash since users/0013_migrate_mfa imports this model
-    email_status = models.CharField(max_length=1, default=STATUS_UNVERIFIED, choices=STATUS_CHOICES)
-    email_verification_secret = models.CharField(max_length=64, db_index=True)
-    two_factor_enabled = models.BooleanField(default=False)
-    two_factor_secret = models.CharField(max_length=16)
 
     objects = UserManager()
 

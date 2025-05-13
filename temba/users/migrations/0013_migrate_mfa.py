@@ -3,12 +3,11 @@ from allauth.account.models import EmailAddress
 from allauth.mfa.adapter import get_adapter
 from allauth.mfa.models import Authenticator
 
-from django.contrib.auth import get_user_model
 from django.db import migrations
 
 
 def migration_mfa(apps, schema_editor):  # pragma: no cover
-    User = get_user_model()
+    User = apps.get_model("users", "User")
 
     adapter = get_adapter()
     authenticators = []
