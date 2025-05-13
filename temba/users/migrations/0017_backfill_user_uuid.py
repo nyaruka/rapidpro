@@ -8,7 +8,7 @@ from temba.utils.uuid import uuid4
 def backfill_user_uuid(apps, schema_editor):  # pragma: no cover
     User = apps.get_model("users", "User")
 
-    for user in User.objects.exclude(uuid=None):
+    for user in User.objects.filter(uuid=None):
         user.uuid = uuid4()
         user.save(update_fields=("uuid",))
 
