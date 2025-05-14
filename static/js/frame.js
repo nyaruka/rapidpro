@@ -274,6 +274,7 @@ function fetchAjax(url, options, fullPage = false) {
   var controller = new AbortController();
   pendingRequests.push(controller);
   options['signal'] = controller.signal;
+  options['redirect'] = 'follow';
   var toFetch = url;
 
   return fetch(toFetch, options)

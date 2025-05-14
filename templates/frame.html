@@ -68,10 +68,11 @@
       }
 
       function handleMenuListSelection(evt) {
-        const selected = evt.detail.selected;
         document.activeElement.blur();
-        if (selected.target_url) {
-          spaGet(evt.detail.selected.target_url);
+
+        const selected = evt.detail.selected;
+        if (selected.url) {
+          spaGet(selected.url);
         } else if (selected.type == "workspace") {
           handleWorkspaceChanged(selected.id);
         }
