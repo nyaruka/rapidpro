@@ -1,3 +1,9 @@
+v10.1.165 (2025-05-14)
+-------------------------
+ * Fix dropdown blurring and editor result names
+ * Allow filtering by UUID on users API endpoint
+ * Migration to backfill User.uuid and then make non-null.
+
 v10.1.164 (2025-05-13)
 -------------------------
  * Fix old migration to not import User directly
