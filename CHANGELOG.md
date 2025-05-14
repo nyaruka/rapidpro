@@ -1,3 +1,9 @@
+v10.1.166 (2025-05-14)
+-------------------------
+ * Include user UUID in assignee field of ticket modifiers
+ * Use standard django email validator
+ * Update to support django 5.2
+
 v10.1.165 (2025-05-14)
 -------------------------
  * Fix dropdown blurring and editor result names
