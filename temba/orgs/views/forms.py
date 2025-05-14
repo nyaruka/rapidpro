@@ -60,6 +60,7 @@ class SMTPForm(forms.Form):
         self.fields["password"].initial = password
 
     def clean_from_email(self):
+        # clean the from email, that can contain a name, e.g. Jane Doe <jane@example.org>
         data = self.cleaned_data["from_email"]
         if data:
             try:
