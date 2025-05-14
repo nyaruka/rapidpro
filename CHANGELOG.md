@@ -1,3 +1,15 @@
+v10.1.166 (2025-05-14)
+-------------------------
+ * Include user UUID in assignee field of ticket modifiers
+ * Use standard django email validator
+ * Update to support django 5.2
+
+v10.1.165 (2025-05-14)
+-------------------------
+ * Fix dropdown blurring and editor result names
+ * Allow filtering by UUID on users API endpoint
+ * Migration to backfill User.uuid and then make non-null.
+
 v10.1.164 (2025-05-13)
 -------------------------
  * Fix old migration to not import User directly
