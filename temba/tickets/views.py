@@ -159,7 +159,7 @@ class TeamCRUDL(SmartCRUDL):
 
 class TicketCRUDL(SmartCRUDL):
     model = Ticket
-    actions = ("menu", "list", "folder", "update", "note", "chart", "export_stats", "export")
+    actions = ("menu", "list", "folder", "update", "note", "chart", "export_stats", "export", "analytics")
 
     class Menu(BaseMenuView):
         def derive_menu(self):
@@ -218,7 +218,19 @@ class TicketCRUDL(SmartCRUDL):
 
             return menu
 
+<<<<<<< Updated upstream
     class List(SpaMixin, ContextMenuMixin, OrgPermsMixin, SmartListView):
+=======
+    class Analytics(OrgPermsMixin, SmartTemplateView):
+        permission = "tickets.ticket_analytics"
+        title = _("Ticket Analytics")
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            return context
+
+    class List(SpaMixin, ContextMenuMixin, OrgPermsMixin, NotificationTargetMixin, SmartListView):
+>>>>>>> Stashed changes
         """
         Placeholder view for the ticketing frontend components which fetch tickets from the folders view below.
         """
