@@ -1013,7 +1013,9 @@ class Contact(LegacyUUIDMixin, SmartModel):
         """
         mod = modifiers.Ticket(
             topic=modifiers.TopicRef(uuid=str(topic.uuid), name=topic.name),
-            assignee=modifiers.UserRef(email=assignee.email, name=assignee.name) if assignee else None,
+            assignee=(
+                modifiers.UserRef(uuid=assignee.uuid, name=assignee.name, email=assignee.email) if assignee else None
+            ),
             note=note,
         )
         self.modify(user, [mod], refresh=False)
