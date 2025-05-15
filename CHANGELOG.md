@@ -1,3 +1,7 @@
+v10.1.167 (2025-05-15)
+-------------------------
+ * Remove 'facebook' as an editor feature which is only used for FB topics
+
 v10.1.166 (2025-05-14)
 -------------------------
  * Include user UUID in assignee field of ticket modifiers
