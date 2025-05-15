@@ -218,9 +218,6 @@ class TicketCRUDL(SmartCRUDL):
 
             return menu
 
-<<<<<<< Updated upstream
-    class List(SpaMixin, ContextMenuMixin, OrgPermsMixin, SmartListView):
-=======
     class Analytics(OrgPermsMixin, SmartTemplateView):
         permission = "tickets.ticket_analytics"
         title = _("Ticket Analytics")
@@ -229,8 +226,7 @@ class TicketCRUDL(SmartCRUDL):
             context = super().get_context_data(**kwargs)
             return context
 
-    class List(SpaMixin, ContextMenuMixin, OrgPermsMixin, NotificationTargetMixin, SmartListView):
->>>>>>> Stashed changes
+    class List(SpaMixin, ContextMenuMixin, OrgPermsMixin, SmartListView):
         """
         Placeholder view for the ticketing frontend components which fetch tickets from the folders view below.
         """
