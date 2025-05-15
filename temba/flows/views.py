@@ -766,7 +766,6 @@ class FlowCRUDL(SmartCRUDL):
             whatsapp_channel = org.get_channel(Channel.ROLE_SEND, scheme=URN.WHATSAPP_SCHEME)
 
             if facebook_channel:
-                features.append("facebook")
                 features.append("optins")
             if whatsapp_channel:
                 features.append("whatsapp")
