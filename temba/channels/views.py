@@ -34,8 +34,10 @@ from django.utils.translation import gettext_lazy as _
 from temba.contacts.models import URN
 from temba.ivr.models import Call
 from temba.msgs.models import Msg
+from temba.notifications.incidents.builtin import ChannelTemplatesFailedIncidentType
 from temba.orgs.views.base import BaseDependencyDeleteModal, BaseReadView
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin
+from temba.templates.models import TemplateTranslation
 from temba.utils import countries
 from temba.utils.fields import SelectWidget
 from temba.utils.json import EpochEncoder
@@ -457,7 +459,47 @@ class ChannelCRUDL(SmartCRUDL):
         "delete",
         "configuration",
         "facebook_whitelist",
+        "sync_templates",
     )
+
+    class SyncTemplates(SpaMixin, ContextMenuMixin, OrgObjPermsMixin, SmartUpdateView):
+        fields = ()
+        slug_url_kwarg = "uuid"
+        success_url = "uuid@channels.channel_read"
+        permission = "channels.channel_claim"
+        success_message = _("Your channel templates have been synced.")
+        title = _("Sync Templates")
+        submit_button_name = _("Sync Templates")
+
+        def derive_menu_path(self):
+            return f"/settings/channels/{self.object.uuid}"
+
+        def get_queryset(self):
+            # get all active channels for types that use templates
+            channel_types = [t.code for t in Channel.get_types() if t.template_type]
+            return self.request.org.channels.filter(
+                is_active=True,
+                channel_type__in=channel_types,
+                org__is_active=True,
+                org__is_suspended=False,
+            )
+
+        def post(self, *args, **kwargs):
+            self.object = self.get_object()
+            try:
+                raw_templates = self.object.type.fetch_templates(self.object)
+
+                TemplateTranslation.update_local(self.object, raw_templates)
+
+                # if we have an ongoing template incident, end it
+                ongoing = self.object.incidents.filter(
+                    incident_type=ChannelTemplatesFailedIncidentType.slug, ended_on=None
+                ).first()
+                if ongoing:
+                    ongoing.end()
+            except Exception:
+                pass
+            return HttpResponseRedirect(self.get_success_url())
 
     class Read(SpaMixin, ContextMenuMixin, BaseReadView):
         slug_url_kwarg = "uuid"
@@ -479,6 +521,7 @@ class ChannelCRUDL(SmartCRUDL):
 
             if obj.type.template_type:
                 menu.add_link(_("Template Logs"), reverse("request_logs.httplog_channel", args=[obj.uuid]))
+                menu.add_url_post(_("Template Sync"), reverse("channels.channel_sync_templates", args=[obj.uuid]))
 
             if self.has_org_perm("channels.channel_update"):
                 menu.add_modax(
