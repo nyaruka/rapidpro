@@ -1,3 +1,7 @@
+v10.1.168 (2025-05-16)
+-------------------------
+ * Fix for nodes without actions
+
 v10.1.167 (2025-05-15)
 -------------------------
  * Remove 'facebook' as an editor feature which is only used for FB topics
