@@ -6,6 +6,8 @@ from datetime import date, datetime, timedelta, timezone as tzone
 from unittest.mock import patch
 from urllib.parse import quote
 
+import requests
+
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core import mail
@@ -17,7 +19,11 @@ from django.utils.encoding import force_bytes
 from temba.apks.models import Apk
 from temba.contacts.models import URN, Contact
 from temba.msgs.models import Msg
-from temba.notifications.incidents.builtin import ChannelDisconnectedIncidentType, ChannelOutdatedAppIncidentType
+from temba.notifications.incidents.builtin import (
+    ChannelDisconnectedIncidentType,
+    ChannelOutdatedAppIncidentType,
+    ChannelTemplatesFailedIncidentType,
+)
 from temba.notifications.models import Incident
 from temba.notifications.tasks import send_notification_emails
 from temba.orgs.models import Org
@@ -957,6 +963,93 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][2].code, "IG")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][-2].code, "WA")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][-1].code, "ZVW")
+
+    @patch("temba.templates.models.TemplateTranslation.update_local")
+    @patch("temba.channels.types.dialog360.Dialog360Type.fetch_templates")
+    def test_sync_templates(self, mock_d3c_fetch_templates, mock_update_local):
+        d3c_channel = self.create_channel(
+            "D3C",
+            "360Dialog channel",
+            address="1234",
+            country="BR",
+            config={
+                Channel.CONFIG_BASE_URL: "https://waba-v2.360dialog.io",
+                Channel.CONFIG_AUTH_TOKEN: "123456789",
+            },
+        )
+
+        other_channel = self.create_channel(
+            "D3C",
+            "360Dialog channel",
+            address="3456",
+            country="BR",
+            config={
+                Channel.CONFIG_BASE_URL: "https://waba-v2.360dialog.io",
+                Channel.CONFIG_AUTH_TOKEN: "00123456789",
+            },
+            org=self.org2,
+        )
+
+        ex_sync_templates_url = reverse("channels.channel_sync_templates", args=[self.ex_channel.uuid])
+        d3c_sync_templates_url = reverse("channels.channel_sync_templates", args=[d3c_channel.uuid])
+        other_sync_templates_url = reverse("channels.channel_sync_templates", args=[other_channel.uuid])
+
+        # can't view configuration if not logged in
+        self.assertRequestDisallowed(ex_sync_templates_url, [None, self.agent])
+        self.assertRequestDisallowed(d3c_sync_templates_url, [None, self.agent])
+        self.assertRequestDisallowed(other_sync_templates_url, [None, self.agent])
+
+        self.login(self.admin)
+
+        self.assertRequestDisallowed(ex_sync_templates_url, [self.admin])
+        self.assertRequestDisallowed(other_sync_templates_url, [self.admin])
+
+        response = self.client.get(d3c_sync_templates_url)
+        self.assertContains(response, "You can sync message templates right now to fetch the lastest templates.")
+
+        def mock_fetch(ch):
+            HTTPLog.objects.create(
+                org=ch.org, channel=ch, log_type=HTTPLog.WHATSAPP_TEMPLATES_SYNCED, request_time=0, is_error=False
+            )
+            return [{"name": "hello"}]
+
+        def mock_fail_fetch(ch):
+            HTTPLog.objects.create(
+                org=ch.org, channel=ch, log_type=HTTPLog.WHATSAPP_TEMPLATES_SYNCED, request_time=0, is_error=True
+            )
+            raise requests.ConnectionError("timeout")
+
+        ChannelTemplatesFailedIncidentType.get_or_create(d3c_channel)
+        self.assertEqual(
+            1,
+            Incident.objects.filter(
+                incident_type=ChannelTemplatesFailedIncidentType.slug, channel=d3c_channel, ended_on=None
+            ).count(),
+        )
+
+        mock_d3c_fetch_templates.side_effect = mock_fetch
+        mock_update_local.return_value = None
+
+        response = self.client.post(d3c_sync_templates_url, {}, follow=True)
+        self.assertEqual(200, response.status_code)
+
+        self.assertEqual(1, mock_d3c_fetch_templates.call_count)
+        self.assertEqual(1, mock_update_local.call_count)
+        self.assertEqual(
+            0,
+            Incident.objects.filter(
+                incident_type=ChannelTemplatesFailedIncidentType.slug, channel=d3c_channel, ended_on=None
+            ).count(),
+        )
+
+        # if one channel fails, others continue
+        mock_d3c_fetch_templates.side_effect = mock_fail_fetch
+
+        response = self.client.post(d3c_sync_templates_url, {}, follow=True)
+        self.assertEqual(200, response.status_code)
+
+        self.assertEqual(2, mock_d3c_fetch_templates.call_count)
+        self.assertEqual(1, mock_update_local.call_count)
 
     def test_configuration(self):
         config_url = reverse("channels.channel_configuration", args=[self.ex_channel.uuid])
