@@ -1,3 +1,7 @@
+v10.1.169 (2025-05-19)
+-------------------------
+ * Fix opening ticket from UI with assignee
+
 v10.1.168 (2025-05-16)
 -------------------------
  * Fix for nodes without actions
