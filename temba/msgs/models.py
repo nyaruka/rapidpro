@@ -583,7 +583,7 @@ class Msg(models.Model):
 
     log_uuids = ArrayField(models.UUIDField(), null=True)
 
-    # deprecated - only used now for Facebook topic
+    # TODO drop once mailroom no longer writing this
     metadata = JSONAsTextField(null=True, default=dict)
 
     def as_archive_json(self):
