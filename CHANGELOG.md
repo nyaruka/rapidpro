@@ -1,3 +1,7 @@
+v10.1.170 (2025-05-19)
+-------------------------
+ * Add trigger field to Call model to allow starting calls without FlowStart
+
 v10.1.169 (2025-05-19)
 -------------------------
  * Fix opening ticket from UI with assignee
