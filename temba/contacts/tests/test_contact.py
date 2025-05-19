@@ -5,6 +5,7 @@ from uuid import UUID
 
 from django.db.models import Value as DbValue
 from django.db.models.functions import Concat, Substr
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -18,7 +19,7 @@ from temba.mailroom import modifiers
 from temba.msgs.models import Msg, MsgFolder
 from temba.orgs.models import Org
 from temba.schedules.models import Schedule
-from temba.tests import TembaTest, mock_mailroom
+from temba.tests import MockJsonResponse, TembaTest, mock_mailroom
 from temba.tests.engine import MockSessionWriter
 from temba.tickets.models import Ticket
 
@@ -76,16 +77,30 @@ class ContactTest(TembaTest):
             mr_mocks.calls["contact_modify"],
         )
 
-    @mock_mailroom
-    def test_open_ticket(self, mock_contact_modify):
-        mock_contact_modify.return_value = {self.joe.id: {"contact": {}, "events": []}}
+    @override_settings(MAILROOM_URL="http://mailroom:8090")
+    @patch("requests.post")
+    def test_open_ticket(self, mock_post):
+        mock_post.return_value = MockJsonResponse(200, {"modified": {self.joe.id: {"contact": {}, "events": []}}})
 
-        ticket = self.joe.open_ticket(
-            self.admin, topic=self.org.default_ticket_topic, assignee=self.agent, note="Looks sus"
+        self.joe.open_ticket(self.admin, topic=self.org.default_ticket_topic, assignee=self.agent, note="Looks sus")
+
+        mock_post.assert_called_once_with(
+            "http://mailroom:8090/mr/contact/modify",
+            headers={"User-Agent": "Temba"},
+            json={
+                "org_id": self.org.id,
+                "user_id": self.admin.id,
+                "contact_ids": [self.joe.id],
+                "modifiers": [
+                    {
+                        "type": "ticket",
+                        "topic": {"uuid": str(self.org.default_ticket_topic.uuid), "name": "General"},
+                        "assignee": {"uuid": str(self.agent.uuid), "name": "Agnes"},
+                        "note": "Looks sus",
+                    }
+                ],
+            },
         )
-
-        self.assertEqual(self.org.default_ticket_topic, ticket.topic)
-        self.assertEqual("Looks sus", ticket.events.get(event_type="O").note)
 
     @mock_mailroom
     def test_interrupt(self, mr_mocks):

@@ -24,7 +24,6 @@ class TopicRef:
 class UserRef:
     uuid: str
     name: str
-    email: str  # deprecated
 
 
 @dataclass(frozen=True)
