@@ -1,0 +1,13 @@
+{% extends "smartmin/form.html" %}
+{% load i18n %}
+
+{% block pre-fields %}
+  {% blocktrans trimmed %}
+    You can refresh message templates right now to fetch the latest templates.
+  {% endblocktrans %}
+{% endblock pre-fields %}
+{% block form-buttons %}
+  <div class="form-actions mt-4">
+    <input type="submit" value="{{ submit_button_name }}" class="button-primary">
+  </div>
+{% endblock form-buttons %}
