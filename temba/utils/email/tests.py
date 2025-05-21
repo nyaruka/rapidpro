@@ -16,7 +16,7 @@ class EmailTest(TembaTest):
         sender = EmailSender.from_email_type(branding, "marketing")
         self.assertEqual(branding, sender.branding)
         self.assertIsNone(sender.connection)
-        self.assertEqual("server@temba.io", sender.from_email)  # from settings
+        self.assertEqual("Temba <server@temba.io>", sender.from_email)  # from settings
 
         # test full SMTP url in branding
         branding = {"name": "Test", "emails": {"spam": "smtp://foo:sesame@acme.com/?tls=true&from=no-reply%40acme.com"}}
