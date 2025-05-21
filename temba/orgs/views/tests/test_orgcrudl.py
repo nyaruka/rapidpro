@@ -185,8 +185,10 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # orgs without SMTP settings see default from address
         response = self.client.get(settings_url)
-        self.assertContains(response, "Emails sent from flows will be sent from <b>no-reply@temba.io</b>.")
-        self.assertEqual("no-reply@temba.io", response.context["from_email_default"])  # from settings
+        self.assertContains(
+            response, "Emails sent from flows will be sent from <b>Temba &lt;no-reply@temba.io&gt;</b>."
+        )
+        self.assertEqual("Temba <no-reply@temba.io>", response.context["from_email_default"])  # from settings
         self.assertEqual(None, response.context["from_email_custom"])
 
         # make org a child to a parent that alsos doesn't have SMTP settings
@@ -195,7 +197,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(config_url)
         self.assertContains(response, "You can add your own SMTP settings for emails sent from flows.")
-        self.assertEqual("no-reply@temba.io", response.context["from_email_default"])
+        self.assertEqual("Temba <no-reply@temba.io>", response.context["from_email_default"])
         self.assertIsNone(response.context["from_email_custom"])
 
         # give parent custom SMTP settings
