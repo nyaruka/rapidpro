@@ -513,7 +513,7 @@ class TemplateCRUDLTest(CRUDLTestMixin, TembaTest):
         self.login(self.admin)
 
         response = self.client.get(sync_templates_url)
-        self.assertContains(response, "You can refresh message templates right now to fetch the latest templates.")
+        self.assertContains(response, "Refresh")
 
         ChannelTemplatesFailedIncidentType.get_or_create(d3c_channel)
         self.assertEqual(
@@ -542,6 +542,7 @@ class TemplateCRUDLTest(CRUDLTestMixin, TembaTest):
 
         response = self.client.post(sync_templates_url, {}, follow=True)
         self.assertEqual(200, response.status_code)
+        self.assertToast(response, "info", "Your templates have been fetched and refreshed.")
 
         self.assertEqual(1, mock_d3c_fetch_templates.call_count)
         self.assertEqual(1, mock_d3_fetch_templates.call_count)
@@ -559,6 +560,7 @@ class TemplateCRUDLTest(CRUDLTestMixin, TembaTest):
 
         response = self.client.post(sync_templates_url, {}, follow=True)
         self.assertEqual(200, response.status_code)
+        self.assertToast(response, "error", "Unable to refresh all templates. See the log for details.")
 
         self.assertEqual(2, mock_d3c_fetch_templates.call_count)
         self.assertEqual(2, mock_d3_fetch_templates.call_count)

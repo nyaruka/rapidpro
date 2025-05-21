@@ -1,9 +1,8 @@
-import logging
-
 import requests
 from smartmin.views import SmartCRUDL, SmartFormView, SmartReadView
 
 from django import forms
+from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -11,11 +10,9 @@ from django.utils.translation import gettext_lazy as _
 from temba.channels.models import Channel
 from temba.orgs.views.base import BaseListView, BaseUsagesModal
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin
-from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, SpaMixin
+from temba.utils.views.mixins import ContextMenuMixin, SpaMixin
 
 from .models import Template, TemplateTranslation
-
-logger = logging.getLogger(__name__)
 
 
 class TemplateCRUDL(SmartCRUDL):
@@ -34,12 +31,7 @@ class TemplateCRUDL(SmartCRUDL):
             )
 
         def build_context_menu(self, menu):
-            menu.add_modax(
-                _("Refresh"),
-                "refresh-templates",
-                reverse("templates.template_refresh"),
-                title=_("Refresh Templates"),
-            )
+            menu.add_url_post(_("Refresh Templates"), reverse("templates.template_refresh"))
 
     class Read(SpaMixin, OrgObjPermsMixin, SmartReadView):
         slug_url_kwarg = "uuid"
@@ -70,7 +62,7 @@ class TemplateCRUDL(SmartCRUDL):
     class Usages(BaseUsagesModal):
         permission = "templates.template_read"
 
-    class Refresh(ModalFormMixin, OrgPermsMixin, SmartFormView):
+    class Refresh(SpaMixin, OrgPermsMixin, SmartFormView):
         class RefreshForm(forms.Form):
             pass
 
@@ -90,10 +82,15 @@ class TemplateCRUDL(SmartCRUDL):
                 channel_type__in=channel_types,
             )
 
+            has_errors = False
             for channel in channels:
                 try:
                     channel.refresh_templates()
                 except requests.RequestException:
-                    pass
+                    has_errors = True
 
+            if has_errors:
+                messages.error(self.request, _("Unable to refresh all templates. See the log for details."))
+            else:
+                messages.info(self.request, self.success_message)
             return HttpResponseRedirect(self.get_success_url())
