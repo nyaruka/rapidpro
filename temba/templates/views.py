@@ -31,7 +31,7 @@ class TemplateCRUDL(SmartCRUDL):
             )
 
         def build_context_menu(self, menu):
-            menu.add_url_post(_("Refresh Templates"), reverse("templates.template_refresh"))
+            menu.add_url_post(_("Refresh"), reverse("templates.template_refresh"), as_button=True)
 
     class Read(SpaMixin, OrgObjPermsMixin, SmartReadView):
         slug_url_kwarg = "uuid"
