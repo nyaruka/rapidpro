@@ -1,3 +1,8 @@
+v10.1.171 (2025-05-21)
+-------------------------
+ * Make refresh a button on the template list page and remove mention of automatic syncing
+ * Add templates view to initiate templates sync by admin
+
 v10.1.170 (2025-05-19)
 -------------------------
  * Add trigger field to Call model to allow starting calls without FlowStart
