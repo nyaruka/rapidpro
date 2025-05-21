@@ -63,10 +63,10 @@ class TemplateCRUDL(SmartCRUDL):
         permission = "templates.template_read"
 
     class Refresh(SpaMixin, OrgPermsMixin, SmartFormView):
-        class RefreshForm(forms.Form):
+        class Form(forms.Form):
             pass
 
-        form_class = RefreshForm
+        form_class = Form
         fields = ()
         permission = "templates.template_list"
         success_url = "@templates.template_list"
@@ -77,10 +77,7 @@ class TemplateCRUDL(SmartCRUDL):
         def post(self, *args, **kwargs):
             # get all active channels for types that use templates
             channel_types = [t.code for t in Channel.get_types() if t.template_type]
-            channels = self.request.org.channels.filter(
-                is_active=True,
-                channel_type__in=channel_types,
-            )
+            channels = self.request.org.channels.filter(is_active=True, channel_type__in=channel_types)
 
             has_errors = False
             for channel in channels:
@@ -93,4 +90,5 @@ class TemplateCRUDL(SmartCRUDL):
                 messages.error(self.request, _("Unable to refresh all templates. See the log for details."))
             else:
                 messages.info(self.request, self.success_message)
+
             return HttpResponseRedirect(self.get_success_url())
