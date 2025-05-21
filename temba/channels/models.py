@@ -7,7 +7,9 @@ from enum import Enum
 from uuid import uuid4
 
 import phonenumbers
+import requests
 from django_countries.fields import CountryField
+from django_redis import get_redis_connection
 from phonenumbers import NumberParseException
 from twilio.base.exceptions import TwilioRestException
 
@@ -35,6 +37,7 @@ from temba.utils.models import (
 )
 from temba.utils.models.counts import BaseSquashableCount
 from temba.utils.text import generate_secret
+from temba.utils.whatsapp import update_api_version
 
 logger = logging.getLogger(__name__)
 
@@ -441,6 +444,46 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         from temba.templates.types import TYPES
 
         return TYPES.get(self.type.template_type)
+
+    def refresh_templates(self):
+        from temba.notifications.incidents.builtin import ChannelTemplatesFailedIncidentType
+        from temba.request_logs.models import HTTPLog
+        from temba.templates.models import TemplateTranslation
+
+        r = get_redis_connection()
+
+        key = "refresh_channel_templates_%d" % self.id
+
+        # we need to make sure the channel is not syncing the templates
+        if r.get(key):  # pragma: no cover
+            return
+
+        with r.lock(key, 60):
+            # for channels which have version in their config, refresh it
+            if self.config.get("version"):
+                update_api_version(self)
+
+            try:
+                raw_templates = self.type.fetch_templates(self)
+
+                TemplateTranslation.update_local(self, raw_templates)
+
+                # if we have an ongoing template incident, end it
+                ongoing = self.incidents.filter(
+                    incident_type=ChannelTemplatesFailedIncidentType.slug, ended_on=None
+                ).first()
+                if ongoing:
+                    ongoing.end()
+            except requests.RequestException as e:
+                # if last 5 sync attempts have been errors, create an incident
+                recent_is_errors = list(
+                    self.http_logs.filter(log_type=HTTPLog.WHATSAPP_TEMPLATES_SYNCED)
+                    .order_by("-id")
+                    .values_list("is_error", flat=True)[:5]
+                )
+                if len(recent_is_errors) >= 5 and all(recent_is_errors):
+                    ChannelTemplatesFailedIncidentType.get_or_create(self)
+                raise e
 
     @classmethod
     def add_authenticated_external_channel(
