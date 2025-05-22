@@ -44,15 +44,6 @@ class UserManager(AuthUserManager):
 class User(TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
     SYSTEM = {"email": "system", "first_name": "System"}
 
-    STATUS_UNVERIFIED = "U"
-    STATUS_VERIFIED = "V"
-    STATUS_FAILING = "F"
-    STATUS_CHOICES = (
-        (STATUS_UNVERIFIED, _("Unverified")),
-        (STATUS_VERIFIED, _("Verified")),
-        (STATUS_FAILING, _("Failing")),
-    )
-
     EMAIL_FIELD = "email"
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
@@ -145,6 +136,21 @@ class User(TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
             if not org.users.exclude(id=self.id).exists():
                 owned_orgs.append(org)
         return owned_orgs
+
+    def is_verified(self) -> bool:
+        """
+        Returns whether this user has a verified email address.
+        """
+        return self.emailaddress_set.filter(primary=True, verified=True).exists()
+
+    def set_verified(self, verified: bool):
+        """
+        Manually verify or unverify this user's email address.
+        """
+
+        self.emailaddress_set.update_or_create(
+            primary=True, defaults={"email": self.email, "primary": True, "verified": verified}
+        )
 
     def record_auth(self):
         """

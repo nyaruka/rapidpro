@@ -16,6 +16,17 @@ class UserTest(TembaTest):
         self.assertFalse(user.is_beta)
         self.assertEqual({"email": "jim@rapidpro.io", "name": "Jim McFlow"}, user.as_engine_ref())
         self.assertEqual([self.org, self.org2], list(user.get_orgs().order_by("id")))
+        self.assertFalse(user.is_verified())
+        self.assertEqual(0, user.emailaddress_set.count())
+
+        user.set_verified(True)
+        self.assertTrue(user.is_verified())
+        self.assertTrue(user.emailaddress_set.filter(email="jim@rapidpro.io", primary=True, verified=True).exists())
+
+        user.set_verified(False)
+        self.assertFalse(user.is_verified())
+        self.assertEqual(1, user.emailaddress_set.count())
+        self.assertTrue(user.emailaddress_set.filter(email="jim@rapidpro.io", primary=True, verified=False).exists())
 
         user.last_name = ""
         user.save(update_fields=("last_name",))

@@ -199,12 +199,10 @@ class Notification(models.Model):
         **kwargs,
     ):
         for user in users:
-
+            # send email if notification type supports it and user's email is verified
             email_status = cls.EMAIL_STATUS_NONE
             if cls.MEDIUM_EMAIL in medium:
-                email_status = cls.EMAIL_STATUS_PENDING
-                if not user.emailaddress_set.filter(verified=True).exists():
-                    email_status = cls.EMAIL_STATUS_UNVERIFIED
+                email_status = cls.EMAIL_STATUS_PENDING if user.is_verified() else cls.EMAIL_STATUS_UNVERIFIED
 
             cls.objects.get_or_create(
                 org=org,
