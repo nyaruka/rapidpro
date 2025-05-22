@@ -1,3 +1,9 @@
+v10.1.172 (2025-05-22)
+-------------------------
+ * Add option to staff user read page to manually verify/unverify users
+ * Adjust invite email subject and include workspace name
+ * Adjust from email names to include brand name
+
 v10.1.171 (2025-05-21)
 -------------------------
  * Make refresh a button on the template list page and remove mention of automatic syncing
