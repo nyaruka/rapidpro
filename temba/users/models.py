@@ -143,11 +143,14 @@ class User(TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         """
         return self.emailaddress_set.filter(primary=True, verified=True).exists()
 
-    def set_verified(self, verified: bool):  # pragma: no cover
+    def set_verified(self, verified: bool):
         """
         Manually verify or unverify this user's email address.
         """
-        self.emailaddress_set.filter(primary=True).update(verified=verified)
+
+        self.emailaddress_set.update_or_create(
+            primary=True, defaults={"email": self.email, "primary": True, "verified": verified}
+        )
 
     def record_auth(self):
         """
