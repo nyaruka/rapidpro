@@ -52,6 +52,9 @@ class Archive(models.Model):
     # when this archive's records where deleted (if any)
     deleted_on = models.DateTimeField(null=True)
 
+    # whether the archives was copied (not generated)
+    imported = models.BooleanField(default=False)
+
     @classmethod
     def storage(cls):
         return storages["archives"]
