@@ -15,6 +15,8 @@ class ItemCountTest(TembaTest):
 
         self.assertEqual(9, self.org.counts.filter(scope__in=("foo:1", "foo:3")).sum())
         self.assertEqual(10, self.org.counts.prefix("foo:").sum())
+        self.assertEqual(10, self.org.counts.prefix(["foo:"]).sum())
+        self.assertEqual(0, self.org.counts.prefix([]).sum())
         self.assertEqual(4, self.org.counts.count())
 
         squash_item_counts()
