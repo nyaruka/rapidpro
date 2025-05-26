@@ -1,3 +1,7 @@
+v10.1.173 (2025-05-26)
+-------------------------
+ * Fix ticket menu for users with access to zero topics
+
 v10.1.172 (2025-05-22)
 -------------------------
  * Add option to staff user read page to manually verify/unverify users
