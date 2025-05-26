@@ -919,6 +919,8 @@ files = [
 [package.dependencies]
 asgiref = ">=3.8.1"
 Django = ">=4.2.16"
+fido2 = {version = ">=1.1.2,<3", optional = true, markers = "extra == \"mfa\""}
+qrcode = {version = ">=7.0.0,<9", optional = true, markers = "extra == \"mfa\""}
 
 [package.extras]
 mfa = ["fido2 (>=1.1.2,<3)", "qrcode (>=7.0.0,<9)"]
@@ -2530,6 +2532,26 @@ files = [
 ]
 
 [[package]]
+name = "qrcode"
+version = "8.2"
+description = "QR Code image generator"
+optional = false
+python-versions = "<4.0,>=3.9"
+groups = ["main"]
+files = [
+    {file = "qrcode-8.2-py3-none-any.whl", hash = "sha256:16e64e0716c14960108e85d853062c9e8bba5ca8252c0b4d0231b9df4060ff4f"},
+    {file = "qrcode-8.2.tar.gz", hash = "sha256:35c3f2a4172b33136ab9f6b3ef1c00260dd2f66f858f24d88418a015f446506c"},
+]
+
+[package.dependencies]
+colorama = {version = "*", markers = "sys_platform == \"win32\""}
+
+[package.extras]
+all = ["pillow (>=9.1.0)", "pypng"]
+pil = ["pillow (>=9.1.0)"]
+png = ["pypng"]
+
+[[package]]
 name = "rcssmin"
 version = "1.1.2"
 description = "CSS Minifier"
@@ -3431,4 +3453,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.13"
-content-hash = "d28304b0347b021ebb0dbf7393db572fbd5ac0357d405652c3b1247077362194"
+content-hash = "15f0a30d4bad125f54821c4823496689df3569f7e56793214d0fe100c7daa4c3"
