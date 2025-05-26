@@ -26,7 +26,7 @@ def get_client():
         else:  # pragma: no cover
             session = boto3.Session()
 
-        _client = session.client(
+        _client = session.resource(
             "dynamodb", endpoint_url=settings.DYNAMO_ENDPOINT_URL, config=Config(retries={"max_attempts": 3})
         )
 
