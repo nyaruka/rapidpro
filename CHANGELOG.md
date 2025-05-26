@@ -1,3 +1,7 @@
+v10.1.174 (2025-05-26)
+-------------------------
+ * Remove no longer used fields on FlowStart and Msg models
+
 v10.1.173 (2025-05-26)
 -------------------------
  * Fix ticket menu for users with access to zero topics
