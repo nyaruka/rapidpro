@@ -1347,11 +1347,14 @@ class ChannelEventTest(TembaTest):
 class ChannelLogTest(TembaTest):
     def test_get_by_uuid(self):
         log1 = self.create_channel_log(
+            self.channel,
             ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[{"url": "https://foo.bar/send1"}],
             errors=[{"code": "bad_response", "message": "response not right"}],
+            new_table=True,
         )
         log2 = self.create_channel_log(
+            self.channel,
             ChannelLog.LOG_TYPE_MSG_STATUS,
             http_logs=[{"url": "https://foo.bar/send2"}],
             errors=[],
@@ -1364,6 +1367,10 @@ class ChannelLogTest(TembaTest):
         self.assertEqual(log1.uuid, logs[0].uuid)
         self.assertEqual(self.channel, logs[0].channel)
         self.assertEqual(ChannelLog.LOG_TYPE_MSG_SEND, logs[0].log_type)
+        self.assertEqual([{"url": "https://foo.bar/send1"}], logs[0].http_logs)
+        self.assertEqual([{"code": "bad_response", "message": "response not right"}], logs[0].errors)
+        self.assertEqual(log1.created_on.replace(microsecond=0), logs[0].created_on)
+
         self.assertEqual(log2.uuid, logs[1].uuid)
         self.assertEqual(self.channel, logs[1].channel)
         self.assertEqual(ChannelLog.LOG_TYPE_MSG_STATUS, logs[1].log_type)
@@ -1558,6 +1565,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         contact = self.create_contact("Fred", phone="+12067799191")
 
         log1 = self.create_channel_log(
+            self.channel,
             ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[
                 {
@@ -1572,6 +1580,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             ],
         )
         log2 = self.create_channel_log(
+            self.channel,
             ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[
                 {
@@ -1589,6 +1598,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # create another msg and log that shouldn't be included
         log3 = self.create_channel_log(
+            self.channel,
             ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[
                 {
@@ -1620,6 +1630,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         flow = self.create_flow("IVR")
 
         log1 = self.create_channel_log(
+            self.channel,
             ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[
                 {
@@ -1634,6 +1645,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             ],
         )
         log2 = self.create_channel_log(
+            self.channel,
             ChannelLog.LOG_TYPE_IVR_START,
             http_logs=[
                 {
@@ -1651,6 +1663,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # create another call and log that shouldn't be included
         log3 = self.create_channel_log(
+            self.channel,
             ChannelLog.LOG_TYPE_IVR_START,
             http_logs=[
                 {
@@ -1771,6 +1784,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         contact = self.create_contact("Fred Jones", urns=[urn])
         channel = self.create_channel("TG", "Test TG Channel", "234567")
         log = self.create_channel_log(
+            channel,
             ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[
                 {
@@ -1815,6 +1829,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         contact = self.create_contact("Fred Jones", urns=[urn])
         channel = self.create_channel("TG", "Test TG Channel", "234567")
         log = self.create_channel_log(
+            channel,
             ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[
                 {
@@ -1848,6 +1863,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         contact = self.create_contact("Fred Jones", urns=[urn])
         channel = self.create_channel("TG", "Test TG Channel", "234567")
         log = self.create_channel_log(
+            channel,
             ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[
                 {
@@ -1881,6 +1897,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         contact = self.create_contact("Fred Jones", urns=[urn])
         channel = self.create_channel("FB", "Test FB Channel", "54764868534")
         log = self.create_channel_log(
+            channel,
             ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[
                 {
@@ -1917,6 +1934,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         contact = self.create_contact("Fred Jones", urns=[urn])
         channel = self.create_channel("FB", "Test FB Channel", "54764868534")
         log = self.create_channel_log(
+            channel,
             ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[
                 {
@@ -1949,6 +1967,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         contact = self.create_contact("Fred Jones", phone="+593979099111")
         channel = self.create_channel("T", "Test Twilio Channel", "+12345")
         log = self.create_channel_log(
+            channel,
             ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[
                 {
