@@ -259,12 +259,10 @@ def _msg_in(obj) -> dict:
 
 
 def _msg_out(obj) -> dict:
-    metadata = obj.metadata or {}
-    quick_replies = metadata.get("quick_replies", [])
     d = _base_msg(obj)
 
-    if quick_replies:
-        d["quick_replies"] = quick_replies
+    if obj.quick_replies:
+        d["quick_replies"] = obj.quick_replies
 
     return d
 

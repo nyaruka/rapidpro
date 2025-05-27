@@ -954,7 +954,7 @@ class ChannelLog(models.Model):
             )
 
             for log in resp["Responses"][dynamo.table_name(cls.OLD_TABLE)]:
-                data = dynamo.load_jsongz(bytes(log["DataGZ"]))
+                data = dynamo.load_jsongz(log["DataGZ"])
                 logs.append(
                     ChannelLog(
                         uuid=log["UUID"],
@@ -962,7 +962,7 @@ class ChannelLog(models.Model):
                         log_type=log["Type"],
                         http_logs=data["http_logs"],
                         errors=data["errors"],
-                        elapsed_ms=log["ElapsedMS"],
+                        elapsed_ms=int(log["ElapsedMS"]),
                         created_on=datetime.fromtimestamp(int(log["CreatedOn"]), tz=tzone.utc),
                     )
                 )
@@ -981,7 +981,7 @@ class ChannelLog(models.Model):
 
     @staticmethod
     def _get_key(channel, uuid: str) -> tuple[str, str]:
-        return f"cha#{channel.uuid}#{uuid[-1]}", f"log#{uuid}"
+        return f"cha#{channel.uuid}#{str(uuid)[-1]}", f"log#{uuid}"
 
     @classmethod
     def _from_item(cls, channel, item: dict):

@@ -1605,13 +1605,11 @@ class FlowStart(models.Model):
     TYPE_MANUAL = "M"
     TYPE_API = "A"
     TYPE_API_ZAPIER = "Z"
-    TYPE_FLOW_ACTION = "F"
     TYPE_TRIGGER = "T"
     TYPE_CHOICES = (
         (TYPE_MANUAL, "Manual"),
         (TYPE_API, "API"),
         (TYPE_API_ZAPIER, "Zapier"),
-        (TYPE_FLOW_ACTION, "Flow Action"),
         (TYPE_TRIGGER, "Trigger"),
     )
 
@@ -1629,11 +1627,7 @@ class FlowStart(models.Model):
     query = models.TextField(null=True)
     exclusions = models.JSONField(default=dict, null=True)
 
-    calls = models.ManyToManyField("ivr.Call", related_name="starts")
-
     params = models.JSONField(null=True, default=dict)
-    parent_summary = models.JSONField(null=True)
-    session_history = models.JSONField(null=True)
 
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, related_name="+")
     created_on = models.DateTimeField(default=timezone.now)
@@ -1709,7 +1703,6 @@ class FlowStart(models.Model):
 
         self.groups.clear()
         self.contacts.clear()
-        self.calls.clear()
         self.counts.all().delete()
 
         FlowRun.objects.filter(start=self).update(start=None)

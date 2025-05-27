@@ -1,6 +1,6 @@
 [project]
 name = "temba"
-version = "10.1.173"
+version = "10.1.175"
 description = "Hosted service for visually building interactive messaging applications"
 authors = [
     {"name" = "Nyaruka", "email" = "code@nyaruka.com"}
@@ -49,10 +49,11 @@ dependencies = [
     "iso639-lang ~= 2.2.3",
     "google-auth ~= 2.32.0",
     "psycopg[pool] ~= 3.2.1",
-    "django-allauth[mfa] (>=65.4.1,<66.0.0)",
+    "django-allauth[mfa] (>=65.8.1,<66.0.0)",
     "openai (>=1.66.3,<2.0.0)",
     "anthropic (>=0.49.0,<0.50.0)",
-    "google-genai (>=1.10.0,<2.0.0)"
+    "google-genai (>=1.10.0,<2.0.0)",
+    "fido2 (>=2.0.0,<3.0.0)"
 ]
 
 [project.urls]

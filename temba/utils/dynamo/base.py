@@ -2,6 +2,7 @@ import json
 import zlib
 
 import boto3
+from boto3.dynamodb.types import Binary
 from botocore.client import Config
 
 from django.conf import settings
@@ -11,7 +12,7 @@ _client = None
 
 def get_client():
     """
-    Returns our shared DynamoDB client
+    Returns our shared DynamoDB resource service client
     """
 
     global _client
@@ -40,11 +41,11 @@ def table_name(logical_name: str) -> str:
     return settings.DYNAMO_TABLE_PREFIX + logical_name
 
 
-def load_jsongz(data: bytes) -> dict:
+def load_jsongz(data: Binary) -> dict:
     """
     Loads a value from gzipped JSON
     """
-    return json.loads(zlib.decompress(data, wbits=zlib.MAX_WBITS | 16))
+    return json.loads(zlib.decompress(bytes(data), wbits=zlib.MAX_WBITS | 16))
 
 
 def dump_jsongz(value: dict) -> bytes:
