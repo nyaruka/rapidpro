@@ -85,7 +85,7 @@ def track(user, event: str, properties: dict = None):
     Tracks the passed in event for the passed in user in all configured analytics backends.
     """
 
-    if not user.is_authenticated:  # no op for anon user
+    if not user.is_authenticated or user.is_system:  # no op for anon user or system user
         return
 
     for backend in get_backends():
