@@ -985,6 +985,8 @@ class ChannelLog(models.Model):
 
     @classmethod
     def _from_item(cls, channel, item: dict):
+        assert item["OrgID"] == channel.org_id, "org ID mismatch for channel log"
+
         return cls(
             uuid=item["SK"].split("#")[1],
             channel=channel,
