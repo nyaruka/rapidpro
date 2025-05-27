@@ -1539,7 +1539,7 @@ class FlowCRUDL(SmartCRUDL):
         def form_valid(self, form):
             contact_search = form.cleaned_data["contact_search"]
             flow = form.cleaned_data["flow"]
-            analytics.track(self.request.user, "temba.flow_start", contact_search)
+            analytics.track(self.request.user, "temba.flow_start", {"advanced": contact_search.get("advanced", False)})
 
             recipients = contact_search.get("recipients", [])
             groups, contacts = ContactSearchWidget.parse_recipients(self.request.org, recipients)
