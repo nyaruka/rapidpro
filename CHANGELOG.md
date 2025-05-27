@@ -1,3 +1,7 @@
+v10.1.177 (2025-05-27)
+-------------------------
+ * Read created_on of channel log as ISO formatted date instead of timestamp
+
 v10.1.176 (2025-05-27)
 -------------------------
  * Add analytics identify when accepting invites, and ignore tracking for system user
