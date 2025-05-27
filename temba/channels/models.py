@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone as tzone
 from enum import Enum
 from uuid import uuid4
 
+import iso8601
 import phonenumbers
 import requests
 from django_countries.fields import CountryField
@@ -994,7 +995,7 @@ class ChannelLog(models.Model):
             http_logs=[dynamo.load_jsongz(bytes(l)) for l in item["Data"]["http_logs"]],
             errors=item["Data"]["errors"],
             elapsed_ms=int(item["Data"]["elapsed_ms"]),
-            created_on=datetime.fromtimestamp(int(item["Data"]["created_on"]), tz=tzone.utc),
+            created_on=iso8601.parse_date(item["Data"]["created_on"]),
         )
 
     def get_display(self, *, anonymize: bool, urn) -> dict:
