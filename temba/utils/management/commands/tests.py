@@ -11,9 +11,9 @@ class MigrateDynamoTest(TembaTest):
     def tearDown(self):
         client = dynamo.get_client()
 
-        for table_name in client.list_tables()["TableNames"]:
-            if table_name.startswith("Temp"):
-                client.delete_table(TableName=table_name)
+        for table in client.tables.all():
+            if table.name.startswith("Temp"):
+                table.delete()
 
         return super().tearDown()
 
@@ -30,8 +30,8 @@ class MigrateDynamoTest(TembaTest):
         self.assertIn("Creating TempChannelLogs", out.getvalue())
 
         client = dynamo.get_client()
-        desc = client.describe_table(TableName="TempChannelLogs")
-        self.assertEqual("ACTIVE", desc["Table"]["TableStatus"])
+        table = client.Table("TempChannelLogs")
+        self.assertEqual("ACTIVE", table.table_status)
 
         out = StringIO()
         call_command("migrate_dynamo", stdout=out)

@@ -947,22 +947,20 @@ class ChannelLog(models.Model):
 
         for uuid_batch in itertools.batched(uuids, 100):
             resp = client.batch_get_item(
-                RequestItems={
-                    dynamo.table_name(cls.DYNAMO_TABLE): {"Keys": [{"UUID": {"S": str(u)}} for u in uuid_batch]}
-                }
+                RequestItems={dynamo.table_name(cls.DYNAMO_TABLE): {"Keys": [{"UUID": str(u)} for u in uuid_batch]}}
             )
 
             for log in resp["Responses"][dynamo.table_name(cls.DYNAMO_TABLE)]:
-                data = dynamo.load_jsongz(log["DataGZ"]["B"])
+                data = dynamo.load_jsongz(log["DataGZ"])
                 logs.append(
                     ChannelLog(
-                        uuid=log["UUID"]["S"],
+                        uuid=log["UUID"],
                         channel=channel,
-                        log_type=log["Type"]["S"],
+                        log_type=log["Type"],
                         http_logs=data["http_logs"],
                         errors=data["errors"],
-                        elapsed_ms=int(log["ElapsedMS"]["N"]),
-                        created_on=datetime.fromtimestamp(int(log["CreatedOn"]["N"]), tz=tzone.utc),
+                        elapsed_ms=int(log["ElapsedMS"]),
+                        created_on=datetime.fromtimestamp(int(log["CreatedOn"]), tz=tzone.utc),
                     )
                 )
 

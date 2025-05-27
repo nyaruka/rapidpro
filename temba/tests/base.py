@@ -680,15 +680,14 @@ class TembaTest(SmartminTest):
         expires_on = created_on + timezone.timedelta(days=7)
 
         client = dynamo.get_client()
-        client.put_item(
-            TableName=dynamo.table_name(ChannelLog.DYNAMO_TABLE),
+        client.Table(dynamo.table_name(ChannelLog.DYNAMO_TABLE)).put_item(
             Item={
-                "UUID": {"S": str(uuid)},
-                "Type": {"S": log_type},
-                "DataGZ": {"B": dynamo.dump_jsongz({"http_logs": http_logs, "errors": errors})},
-                "ElapsedMS": {"N": "12"},
-                "CreatedOn": {"N": str(int(created_on.timestamp()))},
-                "ExpiresOn": {"N": str(int(expires_on.timestamp()))},
+                "UUID": str(uuid),
+                "Type": log_type,
+                "DataGZ": dynamo.dump_jsongz({"http_logs": http_logs, "errors": errors}),
+                "ElapsedMS": 12,
+                "CreatedOn": int(created_on.timestamp()),
+                "ExpiresOn": int(expires_on.timestamp()),
             },
         )
 

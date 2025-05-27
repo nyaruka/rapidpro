@@ -1,4 +1,4 @@
-import time
+from botocore.exceptions import ClientError
 
 from django.conf import settings
 from django.core.management import BaseCommand
@@ -64,9 +64,8 @@ class Command(BaseCommand):
     def _migrate_table(self, table: dict):
         name = table["TableName"]
         real_name = dynamo.table_name(name)
-        status = self._table_status(real_name)
 
-        if status == "":
+        if not self._table_exists(real_name):
             spec = table.copy()
             spec["TableName"] = real_name
 
@@ -79,35 +78,25 @@ class Command(BaseCommand):
             self.stdout.write(f"Creating {real_name}...", ending="")
             self.stdout.flush()
 
-            self._create_table(spec)
+            table = self.client.create_table(**spec)
+            table.wait_until_exists()
 
             self.stdout.write(self.style.SUCCESS(" OK"))
 
             if ttlSpec:
-                self.client.update_time_to_live(TableName=real_name, TimeToLiveSpecification=ttlSpec)
+                self.client.meta.client.update_time_to_live(TableName=real_name, TimeToLiveSpecification=ttlSpec)
 
                 self.stdout.write(f"Updated TTL for {real_name}")
         else:
             self.stdout.write(f"Skipping {real_name} which already exists")
 
-    def _create_table(self, spec: dict):
+    def _table_exists(self, real_name: str) -> bool:
         """
-        Creates the given table and waits for it to become active.
+        Returns whether the given table exists.
         """
-        self.client.create_table(**spec)
 
-        while True:
-            time.sleep(1.0)
-
-            if self._table_status(spec["TableName"]) == "ACTIVE":
-                break
-
-    def _table_status(self, real_name: str) -> str:
-        """
-        Returns the status of a table, or an empty string if it doesn't exist.
-        """
         try:
-            desc = self.client.describe_table(TableName=real_name)
-            return desc["Table"]["TableStatus"]
-        except self.client.exceptions.ResourceNotFoundException:
-            return ""
+            self.client.Table(real_name).table_status
+            return True
+        except ClientError:
+            return False
