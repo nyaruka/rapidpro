@@ -695,7 +695,7 @@ class TembaTest(SmartminTest):
                         "errors": errors,
                         "http_logs": [dynamo.dump_jsongz(log) for log in http_logs],
                         "elapsed_ms": 12,
-                        "created_on": int(created_on.timestamp()),
+                        "created_on": created_on.isoformat(),
                     },
                 },
             )

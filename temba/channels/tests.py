@@ -1369,7 +1369,7 @@ class ChannelLogTest(TembaTest):
         self.assertEqual(ChannelLog.LOG_TYPE_MSG_SEND, logs[0].log_type)
         self.assertEqual([{"url": "https://foo.bar/send1"}], logs[0].http_logs)
         self.assertEqual([{"code": "bad_response", "message": "response not right"}], logs[0].errors)
-        self.assertEqual(log1.created_on.replace(microsecond=0), logs[0].created_on)
+        self.assertEqual(log1.created_on, logs[0].created_on)
 
         self.assertEqual(log2.uuid, logs[1].uuid)
         self.assertEqual(self.channel, logs[1].channel)
