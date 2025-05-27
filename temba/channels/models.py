@@ -992,7 +992,7 @@ class ChannelLog(models.Model):
             uuid=item["SK"].split("#")[1],
             channel=channel,
             log_type=item["Data"]["type"],
-            http_logs=[dynamo.load_jsongz(bytes(l)) for l in item["Data"]["http_logs"]],
+            http_logs=dynamo.load_jsongz(item["Data"]["http_logs"]),
             errors=item["Data"]["errors"],
             elapsed_ms=int(item["Data"]["elapsed_ms"]),
             created_on=iso8601.parse_date(item["Data"]["created_on"]),

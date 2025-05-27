@@ -693,7 +693,7 @@ class TembaTest(SmartminTest):
                     "Data": {
                         "type": log_type,
                         "errors": errors,
-                        "http_logs": [dynamo.dump_jsongz(log) for log in http_logs],
+                        "http_logs": dynamo.dump_jsongz(http_logs),
                         "elapsed_ms": 12,
                         "created_on": created_on.isoformat(),
                     },
