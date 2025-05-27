@@ -9,9 +9,12 @@ from django.test.utils import override_settings
 from django.urls import reverse
 
 from temba import mailroom
+from temba.api.models import Resthook
 from temba.campaigns.models import Campaign, CampaignEvent
+from temba.classifiers.models import Classifier
 from temba.contacts.models import URN
 from temba.flows.models import Flow, FlowLabel, FlowStart, FlowUserConflictException, ResultsExport
+from temba.orgs.integrations.dtone.type import DTOneType
 from temba.orgs.models import Export
 from temba.templates.models import TemplateTranslation
 from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
@@ -1096,6 +1099,41 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             },
             response.json(),
         )
+
+    def test_editor_feature_filters(self):
+        flow = self.create_flow("Test")
+
+        self.login(self.admin)
+
+        def assert_features(features: set):
+            response = self.client.get(reverse("flows.flow_editor", args=[flow.uuid]))
+            self.assertEqual(features, set(json.loads(response.context["feature_filters"])))
+
+        # add a resthook
+        Resthook.objects.create(org=flow.org, created_by=self.admin, modified_by=self.admin)
+        assert_features({"resthook"})
+
+        # add an NLP classifier
+        Classifier.objects.create(org=flow.org, config="", created_by=self.admin, modified_by=self.admin)
+        assert_features({"classifier", "resthook"})
+
+        # add a DT One integration
+        DTOneType().connect(flow.org, self.admin, "login", "token")
+        assert_features({"airtime", "classifier", "resthook"})
+
+        # change our channel to use a whatsapp scheme
+        self.channel.schemes = [URN.WHATSAPP_SCHEME]
+        self.channel.save()
+        assert_features({"whatsapp", "airtime", "classifier", "resthook"})
+
+        # change our channel to use a facebook scheme
+        self.channel.schemes = [URN.FACEBOOK_SCHEME]
+        self.channel.save()
+        assert_features({"optins", "airtime", "classifier", "resthook"})
+
+        self.setUpLocations()
+
+        assert_features({"optins", "airtime", "classifier", "resthook", "locations"})
 
     @mock_mailroom
     def test_template_warnings(self, mr_mocks):

@@ -54,6 +54,7 @@ class Call(models.Model):
     direction = models.CharField(max_length=1, choices=DIRECTION_CHOICES)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
     session_uuid = models.UUIDField(null=True)
+    trigger = models.JSONField(null=True)  # the trigger to start the flow session if outgoing call
 
     channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="calls")
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT, related_name="calls")

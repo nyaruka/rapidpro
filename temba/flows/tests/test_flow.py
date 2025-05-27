@@ -2,18 +2,14 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from temba.api.models import Resthook
 from temba.campaigns.models import Campaign, CampaignEvent
-from temba.classifiers.models import Classifier
-from temba.contacts.models import URN, ContactField, ContactGroup
+from temba.contacts.models import ContactField, ContactGroup
 from temba.flows.models import Flow, FlowStart, FlowStartCount, FlowUserConflictException, FlowVersionConflictException
 from temba.flows.tasks import squash_flow_counts
 from temba.globals.models import Global
-from temba.orgs.integrations.dtone import DTOneType
 from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
 from temba.tests.engine import MockSessionWriter
 from temba.triggers.models import Trigger
-from temba.utils import json
 
 
 class FlowTest(TembaTest, CRUDLTestMixin):
@@ -205,41 +201,6 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(response.context["mutable"])
         self.assertFalse(response.context["can_start"])
         self.assertFalse(response.context["can_simulate"])
-
-    def test_editor_feature_filters(self):
-        flow = self.create_flow("Test")
-
-        self.login(self.admin)
-
-        def assert_features(features: set):
-            response = self.client.get(reverse("flows.flow_editor", args=[flow.uuid]))
-            self.assertEqual(features, set(json.loads(response.context["feature_filters"])))
-
-        # add a resthook
-        Resthook.objects.create(org=flow.org, created_by=self.admin, modified_by=self.admin)
-        assert_features({"resthook"})
-
-        # add an NLP classifier
-        Classifier.objects.create(org=flow.org, config="", created_by=self.admin, modified_by=self.admin)
-        assert_features({"classifier", "resthook"})
-
-        # add a DT One integration
-        DTOneType().connect(flow.org, self.admin, "login", "token")
-        assert_features({"airtime", "classifier", "resthook"})
-
-        # change our channel to use a whatsapp scheme
-        self.channel.schemes = [URN.WHATSAPP_SCHEME]
-        self.channel.save()
-        assert_features({"whatsapp", "airtime", "classifier", "resthook"})
-
-        # change our channel to use a facebook scheme
-        self.channel.schemes = [URN.FACEBOOK_SCHEME]
-        self.channel.save()
-        assert_features({"facebook", "optins", "airtime", "classifier", "resthook"})
-
-        self.setUpLocations()
-
-        assert_features({"facebook", "optins", "airtime", "classifier", "resthook", "locations"})
 
     def test_save_revision(self):
         self.login(self.admin)

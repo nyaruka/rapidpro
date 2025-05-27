@@ -1,3 +1,42 @@
+v10.1.175 (2025-05-26)
+-------------------------
+ * Update allath from 65.4.1 to 65.8.1
+
+v10.1.174 (2025-05-26)
+-------------------------
+ * Remove no longer used fields on FlowStart and Msg models
+
+v10.1.173 (2025-05-26)
+-------------------------
+ * Fix ticket menu for users with access to zero topics
+
+v10.1.172 (2025-05-22)
+-------------------------
+ * Add option to staff user read page to manually verify/unverify users
+ * Adjust invite email subject and include workspace name
+ * Adjust from email names to include brand name
+
+v10.1.171 (2025-05-21)
+-------------------------
+ * Make refresh a button on the template list page and remove mention of automatic syncing
+ * Add templates view to initiate templates sync by admin
+
+v10.1.170 (2025-05-19)
+-------------------------
+ * Add trigger field to Call model to allow starting calls without FlowStart
+
+v10.1.169 (2025-05-19)
+-------------------------
+ * Fix opening ticket from UI with assignee
+
+v10.1.168 (2025-05-16)
+-------------------------
+ * Fix for nodes without actions
+
+v10.1.167 (2025-05-15)
+-------------------------
+ * Remove 'facebook' as an editor feature which is only used for FB topics
+
 v10.1.166 (2025-05-14)
 -------------------------
  * Include user UUID in assignee field of ticket modifiers

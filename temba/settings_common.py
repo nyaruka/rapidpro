@@ -152,14 +152,14 @@ MEDIA_URL = "/media/"
 # -----------------------------------------------------------------------------------
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_HOST_USER = "server@temba.io"
-DEFAULT_FROM_EMAIL = "server@temba.io"
+DEFAULT_FROM_EMAIL = "Temba <server@temba.io>"
 EMAIL_HOST_PASSWORD = "mypassword"
 EMAIL_USE_TLS = True
 EMAIL_TIMEOUT = 10
 
 # Used when sending email from within a flow and the user hasn't configured
 # their own SMTP server.
-FLOW_FROM_EMAIL = "no-reply@temba.io"
+FLOW_FROM_EMAIL = "Temba <no-reply@temba.io>"
 
 # -----------------------------------------------------------------------------------
 # Templates
@@ -688,7 +688,7 @@ CELERY_BEAT_SCHEDULE = {
     "expire-invitations": {"task": "expire_invitations", "schedule": crontab(hour=0, minute=10)},
     "fail-old-android-messages": {"task": "fail_old_android_messages", "schedule": crontab(hour=0, minute=0)},
     "refresh-whatsapp-tokens": {"task": "refresh_whatsapp_tokens", "schedule": crontab(hour=6, minute=0)},
-    "refresh-templates": {"task": "refresh_templates", "schedule": timedelta(seconds=900)},
+    "refresh-templates": {"task": "refresh_templates", "schedule": timedelta(minutes=30)},
     "send-notification-emails": {"task": "send_notification_emails", "schedule": timedelta(seconds=60)},
     "squash-channel-counts": {"task": "squash_channel_counts", "schedule": timedelta(seconds=60)},
     "squash-group-counts": {"task": "squash_group_counts", "schedule": timedelta(seconds=60)},
@@ -963,18 +963,16 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
 ACCOUNT_LOGIN_METHODS = ("email",)
-ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_EMAIL_NOTIFICATIONS = True
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_CHANGE_EMAIL = True
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_SESSION_REMEMBER = True
-
-ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = False
 
 
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1"]

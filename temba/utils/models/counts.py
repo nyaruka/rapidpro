@@ -99,7 +99,10 @@ class ScopedCountQuerySet(CountQuerySet):
         Filters by the given scope prefix or list of prefixes.
         """
         if isinstance(match, list):
-            return self.filter(or_list([Q(scope__startswith=p) for p in match]))
+            if match:
+                return self.filter(or_list([Q(scope__startswith=p) for p in match]))
+            else:
+                return self.none()
 
         return self.filter(scope__startswith=match)
 

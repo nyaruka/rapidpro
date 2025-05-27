@@ -454,3 +454,115 @@ class TemplateCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertContains(response, "Uses unsupported component types.")
         self.assertContains(response, "Variable parameters don't match.")
         self.assertNotContains(response, "Goodbye")
+
+    @patch("temba.templates.models.TemplateTranslation.update_local")
+    @patch("temba.channels.types.twilio_whatsapp.TwilioWhatsappType.fetch_templates")
+    @patch("temba.channels.types.dialog360.Dialog360Type.fetch_templates")
+    @patch("temba.channels.types.dialog360_legacy.Dialog360LegacyType.fetch_templates")
+    def test_refresh_templates(
+        self, mock_d3_fetch_templates, mock_d3c_fetch_templates, mock_twa_fetch_templates, mock_update_local
+    ):
+        d3c_channel = self.create_channel(
+            "D3C",
+            "360Dialog channel",
+            address="1234",
+            country="BR",
+            config={
+                Channel.CONFIG_BASE_URL: "https://waba-v2.360dialog.io",
+                Channel.CONFIG_AUTH_TOKEN: "123456789",
+            },
+        )
+        self.create_channel(
+            "D3",
+            "360Dialog channel",
+            address="1234",
+            country="BR",
+            config={
+                Channel.CONFIG_BASE_URL: "https://example.com/whatsapp",
+                Channel.CONFIG_AUTH_TOKEN: "123456789",
+            },
+        )
+
+        self.create_channel(
+            "TWA",
+            "TWilio WhatsAPp channel",
+            address="1234",
+            country="US",
+            config={
+                Channel.CONFIG_BASE_URL: "https://example.com/whatsapp",
+                Channel.CONFIG_AUTH_TOKEN: "123456789",
+            },
+        )
+
+        self.create_channel(
+            "D3C",
+            "360Dialog channel",
+            address="3456",
+            country="BR",
+            config={
+                Channel.CONFIG_BASE_URL: "https://waba-v2.360dialog.io",
+                Channel.CONFIG_AUTH_TOKEN: "00123456789",
+            },
+            org=self.org2,
+        )
+
+        sync_templates_url = reverse("templates.template_refresh")
+
+        self.assertRequestDisallowed(sync_templates_url, [None, self.agent])
+
+        self.login(self.admin)
+
+        response = self.client.get(sync_templates_url)
+        self.assertContains(response, "Refresh")
+
+        ChannelTemplatesFailedIncidentType.get_or_create(d3c_channel)
+        self.assertEqual(
+            1,
+            Incident.objects.filter(
+                incident_type=ChannelTemplatesFailedIncidentType.slug, channel=d3c_channel, ended_on=None
+            ).count(),
+        )
+
+        def mock_fetch(ch):
+            HTTPLog.objects.create(
+                org=ch.org, channel=ch, log_type=HTTPLog.WHATSAPP_TEMPLATES_SYNCED, request_time=0, is_error=False
+            )
+            return [{"name": "hello"}]
+
+        def mock_fail_fetch(ch):
+            HTTPLog.objects.create(
+                org=ch.org, channel=ch, log_type=HTTPLog.WHATSAPP_TEMPLATES_SYNCED, request_time=0, is_error=True
+            )
+            raise requests.ConnectionError("timeout")
+
+        mock_d3_fetch_templates.side_effect = mock_fetch
+        mock_d3c_fetch_templates.side_effect = mock_fetch
+        mock_twa_fetch_templates.side_effect = mock_fetch
+        mock_update_local.return_value = None
+
+        response = self.client.post(sync_templates_url, {}, follow=True)
+        self.assertEqual(200, response.status_code)
+        self.assertToast(response, "info", "Your templates have been fetched and refreshed.")
+
+        self.assertEqual(1, mock_d3c_fetch_templates.call_count)
+        self.assertEqual(1, mock_d3_fetch_templates.call_count)
+        self.assertEqual(1, mock_twa_fetch_templates.call_count)
+        self.assertEqual(3, mock_update_local.call_count)
+        self.assertEqual(
+            0,
+            Incident.objects.filter(
+                incident_type=ChannelTemplatesFailedIncidentType.slug, channel=d3c_channel, ended_on=None
+            ).count(),
+        )
+
+        # if one channel fails, others continue
+        mock_d3c_fetch_templates.side_effect = mock_fail_fetch
+
+        response = self.client.post(sync_templates_url, {}, follow=True)
+        self.assertEqual(200, response.status_code)
+        self.assertToast(response, "error", "Unable to refresh all templates. See the log for details.")
+
+        self.assertEqual(2, mock_d3c_fetch_templates.call_count)
+        self.assertEqual(2, mock_d3_fetch_templates.call_count)
+        self.assertEqual(2, mock_twa_fetch_templates.call_count)
+        self.assertEqual(5, mock_update_local.call_count)

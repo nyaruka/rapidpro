@@ -253,8 +253,12 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         # this is a customer support only view
         self.assertStaffOnly(read_url)
 
-        response = self.requestView(read_url, self.customer_support)
-        self.assertEqual(200, response.status_code)
+        # we should have option to unverify
+        self.assertContentMenu(read_url, self.customer_support, ["Edit", "Unverify", "Delete"])
+
+        self.editor.set_verified(False)
+
+        self.assertContentMenu(read_url, self.customer_support, ["Edit", "Verify", "Delete"])
 
     def test_update(self):
         update_url = reverse("staff.user_update", args=[self.editor.id])
@@ -305,6 +309,16 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("Edward", self.editor.first_name)
         self.assertEqual("", self.editor.last_name)
         self.assertEqual({granters}, set(self.editor.groups.all()))
+
+        # unverify user
+        self.client.post(update_url, {"action": "unverify"})
+        self.editor.refresh_from_db()
+        self.assertFalse(self.editor.is_verified())
+
+        # verify user
+        self.client.post(update_url, {"action": "verify"})
+        self.editor.refresh_from_db()
+        self.assertTrue(self.editor.is_verified())
 
     @mock_mailroom
     def test_delete(self, mr_mocks):

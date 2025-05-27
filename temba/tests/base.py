@@ -339,10 +339,6 @@ class TembaTest(SmartminTest):
         if status in (Msg.STATUS_WIRED, Msg.STATUS_SENT, Msg.STATUS_DELIVERED) and not sent_on:
             sent_on = timezone.now()
 
-        metadata = {}
-        if quick_replies:
-            metadata["quick_replies"] = quick_replies
-
         return self._create_msg(
             contact,
             text,
@@ -358,7 +354,6 @@ class TembaTest(SmartminTest):
             high_priority=high_priority,
             flow=flow,
             ticket=ticket,
-            metadata=metadata,
             next_attempt=next_attempt,
             failed_reason=failed_reason,
             logs=logs,
@@ -403,7 +398,6 @@ class TembaTest(SmartminTest):
         broadcast=None,
         optin=None,
         locale=None,
-        metadata=None,
         next_attempt=None,
         failed_reason=None,
         logs=None,
@@ -444,7 +438,6 @@ class TembaTest(SmartminTest):
             optin=optin,
             flow=flow,
             ticket=ticket,
-            metadata=metadata,
             next_attempt=next_attempt,
             failed_reason=failed_reason,
             log_uuids=[l.uuid for l in logs or []],

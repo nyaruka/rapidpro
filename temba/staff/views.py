@@ -282,11 +282,19 @@ class UserCRUDL(SmartCRUDL):
                 as_button=True,
             )
 
+            if not obj.is_verified():
+                menu.add_url_post(_("Verify"), f"{reverse('staff.user_update', args=[obj.id])}?action=verify")
+            else:
+                menu.add_url_post(_("Unverify"), f"{reverse('staff.user_update', args=[obj.id])}?action=unverify")
+
             menu.add_modax(
                 _("Delete"), "user-delete", reverse("staff.user_delete", args=[obj.id]), title=_("Delete User")
             )
 
     class Update(StaffOnlyMixin, ModalFormMixin, ComponentFormMixin, ContextMenuMixin, SmartUpdateView):
+        ACTION_VERIFY = "verify"
+        ACTION_UNVERIFY = "unverify"
+
         class Form(forms.ModelForm):
             groups = forms.ModelMultipleChoiceField(
                 widget=SelectMultipleWidget(
@@ -304,6 +312,20 @@ class UserCRUDL(SmartCRUDL):
         form_class = Form
         success_message = "User updated successfully."
         title = "Update User"
+
+        def post(self, request, *args, **kwargs):
+            if "action" in request.POST:
+                action = request.POST["action"]
+                obj = self.get_object()
+
+                if action == self.ACTION_VERIFY:
+                    obj.set_verified(True)
+                elif action == self.ACTION_UNVERIFY:
+                    obj.set_verified(False)
+
+                return HttpResponseRedirect(reverse("staff.user_read", args=[obj.id]))
+
+            return super().post(request, *args, **kwargs)
 
         def post_save(self, obj):
             """

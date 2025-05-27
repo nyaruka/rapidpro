@@ -28,7 +28,7 @@ from temba.orgs.models import DependencyMixin, Export, ExportType, Org
 from temba.schedules.models import Schedule
 from temba.utils import languages, on_transaction_commit
 from temba.utils.export.models import MultiSheetExporter
-from temba.utils.models import JSONAsTextField, TembaModel
+from temba.utils.models import TembaModel
 from temba.utils.models.counts import BaseSquashableCount
 from temba.utils.s3 import public_file_storage
 from temba.utils.uuid import uuid4
@@ -582,9 +582,6 @@ class Msg(models.Model):
     external_id = models.CharField(max_length=255, null=True)
 
     log_uuids = ArrayField(models.UUIDField(), null=True)
-
-    # deprecated - only used now for Facebook topic
-    metadata = JSONAsTextField(null=True, default=dict)
 
     def as_archive_json(self):
         """
