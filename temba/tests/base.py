@@ -692,11 +692,10 @@ class TembaTest(SmartminTest):
                     "TTL": int(expires_on.timestamp()),
                     "Data": {
                         "type": log_type,
-                        "errors": errors,
-                        "http_logs": dynamo.dump_jsongz(http_logs),
                         "elapsed_ms": 12,
                         "created_on": created_on.isoformat(),
                     },
+                    "DataGZ": dynamo.dump_jsongz({"http_logs": http_logs, "errors": errors}),
                 },
             )
         else:

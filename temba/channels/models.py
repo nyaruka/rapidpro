@@ -988,14 +988,16 @@ class ChannelLog(models.Model):
     def _from_item(cls, channel, item: dict):
         assert item["OrgID"] == channel.org_id, "org ID mismatch for channel log"
 
+        data = item["Data"] | dynamo.load_jsongz(item["DataGZ"])
+
         return cls(
             uuid=item["SK"].split("#")[1],
             channel=channel,
-            log_type=item["Data"]["type"],
-            http_logs=dynamo.load_jsongz(item["Data"]["http_logs"]),
-            errors=item["Data"]["errors"],
-            elapsed_ms=int(item["Data"]["elapsed_ms"]),
-            created_on=iso8601.parse_date(item["Data"]["created_on"]),
+            log_type=data["type"],
+            http_logs=data["http_logs"],
+            errors=data["errors"],
+            elapsed_ms=int(data["elapsed_ms"]),
+            created_on=iso8601.parse_date(data["created_on"]),
         )
 
     def get_display(self, *, anonymize: bool, urn) -> dict:
