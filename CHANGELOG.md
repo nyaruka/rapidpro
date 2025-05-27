@@ -1,3 +1,9 @@
+v10.1.176 (2025-05-27)
+-------------------------
+ * Add analytics identify when accepting invites, and ignore tracking for system user
+ * Use high level resource client for DynamoDB instead of low level API client
+ * Start reading channel logs from new Dynamo table as well as current
+
 v10.1.175 (2025-05-26)
 -------------------------
  * Update allath from 65.4.1 to 65.8.1
