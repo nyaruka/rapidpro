@@ -1,3 +1,7 @@
+v10.1.178 (2025-05-27)
+-------------------------
+ * Tweak encoding of http logs in channel logs
+
 v10.1.177 (2025-05-27)
 -------------------------
  * Read created_on of channel log as ISO formatted date instead of timestamp
