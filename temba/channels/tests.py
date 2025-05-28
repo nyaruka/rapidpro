@@ -1351,7 +1351,6 @@ class ChannelLogTest(TembaTest):
             ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[{"url": "https://foo.bar/send1"}],
             errors=[{"code": "bad_response", "message": "response not right"}],
-            new_table=True,
         )
         log2 = self.create_channel_log(
             self.channel,

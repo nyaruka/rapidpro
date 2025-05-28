@@ -2,7 +2,7 @@ import itertools
 import logging
 from abc import ABCMeta
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone as tzone
+from datetime import timedelta
 from enum import Enum
 from uuid import uuid4
 
@@ -888,7 +888,6 @@ class ChannelLog(models.Model):
     A log of an interaction with a channel
     """
 
-    OLD_TABLE = "ChannelLogs"
     DYNAMO_TABLE = "Main"  # unprefixed table name
     REDACT_MASK = "*" * 8  # used to mask redacted values
 
@@ -949,26 +948,6 @@ class ChannelLog(models.Model):
         logs = []
 
         for uuid_batch in itertools.batched(uuids, 100):
-            # first try reading from old table
-            resp = client.batch_get_item(
-                RequestItems={dynamo.table_name(cls.OLD_TABLE): {"Keys": [{"UUID": str(u)} for u in uuid_batch]}}
-            )
-
-            for log in resp["Responses"][dynamo.table_name(cls.OLD_TABLE)]:
-                data = dynamo.load_jsongz(log["DataGZ"])
-                logs.append(
-                    ChannelLog(
-                        uuid=log["UUID"],
-                        channel=channel,
-                        log_type=log["Type"],
-                        http_logs=data["http_logs"],
-                        errors=data["errors"],
-                        elapsed_ms=int(log["ElapsedMS"]),
-                        created_on=datetime.fromtimestamp(int(log["CreatedOn"]), tz=tzone.utc),
-                    )
-                )
-
-            # and then from new table
             keys = []
             for uuid in uuid_batch:
                 pk, sk = cls._get_key(channel, uuid)
