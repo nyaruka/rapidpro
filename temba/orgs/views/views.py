@@ -1192,6 +1192,7 @@ class OrgCRUDL(SmartCRUDL):
             self.invitation.accept(self.request.user)
 
             switch_to_org(self.request, obj)
+            analytics.identify(self.request.user, self.request.branding, obj)
 
     class Grant(SpaMixin, ComponentFormMixin, NonAtomicMixin, SmartCreateView):
         class Form(forms.ModelForm):

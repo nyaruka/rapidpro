@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone as tzone
 from enum import Enum
 from uuid import uuid4
 
+import iso8601
 import phonenumbers
 import requests
 from django_countries.fields import CountryField
@@ -887,7 +888,8 @@ class ChannelLog(models.Model):
     A log of an interaction with a channel
     """
 
-    DYNAMO_TABLE = "ChannelLogs"  # unprefixed table name
+    OLD_TABLE = "ChannelLogs"
+    DYNAMO_TABLE = "Main"  # unprefixed table name
     REDACT_MASK = "*" * 8  # used to mask redacted values
 
     LOG_TYPE_UNKNOWN = "unknown"
@@ -943,30 +945,60 @@ class ChannelLog(models.Model):
             return []
 
         client = dynamo.get_client()
+        table_name = dynamo.table_name(cls.DYNAMO_TABLE)
         logs = []
 
         for uuid_batch in itertools.batched(uuids, 100):
+            # first try reading from old table
             resp = client.batch_get_item(
-                RequestItems={
-                    dynamo.table_name(cls.DYNAMO_TABLE): {"Keys": [{"UUID": {"S": str(u)}} for u in uuid_batch]}
-                }
+                RequestItems={dynamo.table_name(cls.OLD_TABLE): {"Keys": [{"UUID": str(u)} for u in uuid_batch]}}
             )
 
-            for log in resp["Responses"][dynamo.table_name(cls.DYNAMO_TABLE)]:
-                data = dynamo.load_jsongz(log["DataGZ"]["B"])
+            for log in resp["Responses"][dynamo.table_name(cls.OLD_TABLE)]:
+                data = dynamo.load_jsongz(log["DataGZ"])
                 logs.append(
                     ChannelLog(
-                        uuid=log["UUID"]["S"],
+                        uuid=log["UUID"],
                         channel=channel,
-                        log_type=log["Type"]["S"],
+                        log_type=log["Type"],
                         http_logs=data["http_logs"],
                         errors=data["errors"],
-                        elapsed_ms=int(log["ElapsedMS"]["N"]),
-                        created_on=datetime.fromtimestamp(int(log["CreatedOn"]["N"]), tz=tzone.utc),
+                        elapsed_ms=int(log["ElapsedMS"]),
+                        created_on=datetime.fromtimestamp(int(log["CreatedOn"]), tz=tzone.utc),
                     )
                 )
 
+            # and then from new table
+            keys = []
+            for uuid in uuid_batch:
+                pk, sk = cls._get_key(channel, uuid)
+                keys.append({"PK": pk, "SK": sk})
+
+            resp = client.batch_get_item(RequestItems={table_name: {"Keys": keys}})
+            for item in resp["Responses"][table_name]:
+                logs.append(cls._from_item(channel, item))
+
         return sorted(logs, key=lambda l: l.uuid)
+
+    @staticmethod
+    def _get_key(channel, uuid: str) -> tuple[str, str]:
+        return f"cha#{channel.uuid}#{str(uuid)[-1]}", f"log#{uuid}"
+
+    @classmethod
+    def _from_item(cls, channel, item: dict):
+        assert item["OrgID"] == channel.org_id, "org ID mismatch for channel log"
+
+        data = item["Data"] | dynamo.load_jsongz(item["DataGZ"])
+
+        return cls(
+            uuid=item["SK"].split("#")[1],
+            channel=channel,
+            log_type=data["type"],
+            http_logs=data["http_logs"],
+            errors=data["errors"],
+            elapsed_ms=int(data["elapsed_ms"]),
+            created_on=iso8601.parse_date(data["created_on"]),
+        )
 
     def get_display(self, *, anonymize: bool, urn) -> dict:
         """

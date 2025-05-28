@@ -674,23 +674,42 @@ class TembaTest(SmartminTest):
             modified_by=self.admin,
         )
 
-    def create_channel_log(self, log_type: str, *, http_logs=(), errors=()) -> dict:
+    def create_channel_log(self, channel, log_type: str, *, http_logs=(), errors=(), new_table=False) -> dict:
         uuid = uuid7()
         created_on = timezone.now()
         expires_on = created_on + timezone.timedelta(days=7)
 
         client = dynamo.get_client()
-        client.put_item(
-            TableName=dynamo.table_name(ChannelLog.DYNAMO_TABLE),
-            Item={
-                "UUID": {"S": str(uuid)},
-                "Type": {"S": log_type},
-                "DataGZ": {"B": dynamo.dump_jsongz({"http_logs": http_logs, "errors": errors})},
-                "ElapsedMS": {"N": "12"},
-                "CreatedOn": {"N": str(int(created_on.timestamp()))},
-                "ExpiresOn": {"N": str(int(expires_on.timestamp()))},
-            },
-        )
+
+        if new_table:
+            pk, sk = ChannelLog._get_key(channel, uuid)
+            table = client.Table(dynamo.table_name(ChannelLog.DYNAMO_TABLE))
+            table.put_item(
+                Item={
+                    "PK": pk,
+                    "SK": sk,
+                    "OrgID": channel.org_id,
+                    "TTL": int(expires_on.timestamp()),
+                    "Data": {
+                        "type": log_type,
+                        "elapsed_ms": 12,
+                        "created_on": created_on.isoformat(),
+                    },
+                    "DataGZ": dynamo.dump_jsongz({"http_logs": http_logs, "errors": errors}),
+                },
+            )
+        else:
+            table = client.Table(dynamo.table_name(ChannelLog.OLD_TABLE))
+            table.put_item(
+                Item={
+                    "UUID": str(uuid),
+                    "Type": log_type,
+                    "DataGZ": dynamo.dump_jsongz({"http_logs": http_logs, "errors": errors}),
+                    "ElapsedMS": 12,
+                    "CreatedOn": int(created_on.timestamp()),
+                    "ExpiresOn": int(expires_on.timestamp()),
+                },
+            )
 
         return namedtuple("ChannelLog", ["uuid", "created_on"])(uuid, created_on)
 
