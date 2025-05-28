@@ -194,6 +194,18 @@ class TicketCRUDL(SmartCRUDL):
                     href="tickets.shortcut_list",
                 )
             )
+
+            if self.has_org_perm("tickets.ticket_analytics"):
+                menu.append(
+                    self.create_menu_item(
+                        menu_id="analytics",
+                        name=_("Analytics"),
+                        icon="analytics",
+                        href="tickets.ticket_analytics",
+                    )
+                )
+
+            menu.append(self.create_space())
             menu.append(self.create_modax_button(_("Export"), "tickets.ticket_export", icon="export"))
             if not Topic.is_limit_reached(org):
                 menu.append(
@@ -218,9 +230,11 @@ class TicketCRUDL(SmartCRUDL):
 
             return menu
 
-    class Analytics(OrgPermsMixin, SmartTemplateView):
+    class Analytics(SpaMixin, OrgPermsMixin, SmartTemplateView):
         permission = "tickets.ticket_analytics"
-        title = _("Ticket Analytics")
+        title = _("Analytics")
+
+        menu_path = "/ticket/analytics"
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
@@ -525,20 +539,33 @@ class TicketCRUDL(SmartCRUDL):
             until = param("until", timezone.now().date() + timedelta(days=1))
             return since, until
 
-        def get_opened_chart(self, org, since, until) -> dict[str, list]:
+        def get_opened_chart(self, org, since, until) -> dict:
             topics_by_id = {t.id: t.name for t in org.topics.filter(is_active=True)}
 
             counts = org.daily_counts.period(since, until).prefix("tickets:opened:").day_totals(scoped=True)
-            by_topic_name = defaultdict(list)
+
+            # collect all dates and values by topic
+            dates_set = set()
+            values_by_topic = defaultdict(dict)
+
             for (day, scope), count in counts.items():
                 topic_id = int(scope.split(":")[-1])
                 topic_name = topics_by_id.get(topic_id, "<Unknown>")
-                by_topic_name[topic_name].append((day, count))
+                dates_set.add(day)
+                values_by_topic[topic_name][day] = count
 
-            for topic_name, counts in by_topic_name.items():
-                by_topic_name[topic_name] = list(sorted(counts, key=lambda x: x[0]))
+            # create sorted list of dates
+            labels = sorted(list(dates_set))
 
-            return by_topic_name
+            # create arrays of values for each topic, using 0 for missing dates
+            datasets = []
+            for topic_name, date_counts in values_by_topic.items():
+                datasets.append({"label": topic_name, "data": [date_counts.get(date, 0) for date in labels]})
+
+            return {
+                "labels": [d.strftime("%Y-%m-%d") for d in labels],
+                "datasets": datasets,
+            }
 
         def get_resptime_chart(self, org, since, until) -> dict[str, list]:
             counts = org.daily_counts.period(since, until).prefix("ticketresptime:").day_totals(scoped=True)
