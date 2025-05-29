@@ -974,6 +974,20 @@ class ChannelLog(models.Model):
 
         return sorted(logs, key=lambda l: l.uuid)
 
+    @classmethod
+    def get_by_channel(cls, channel, limit=50, after_uuid=None) -> tuple[list, str]:
+        """
+        Gets latest channel logs for given channel. Returns page of logs and the resume UUID to fetch the next page.
+        """
+
+        pks = [f"cha#{channel.uuid}#{b}" for b in "0123456789abcdef"]  # each channel has 16 partitions
+        start_sk = f"log#{after_uuid}" if after_uuid else None
+        items, resume_sk = dynamo.merged_page_query(dynamo.MAIN, pks, forward=False, limit=limit, start_sk=start_sk)
+
+        last_uuid = resume_sk.split("#")[-1] if resume_sk else None
+
+        return [cls._from_item(channel, item) for item in items], last_uuid
+
     @staticmethod
     def _get_key(channel, uuid: str) -> tuple[str, str]:
         return f"cha#{channel.uuid}#{str(uuid)[-1]}", f"log#{uuid}"

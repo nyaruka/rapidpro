@@ -28,10 +28,11 @@ def merged_page_query(table, pks: list, *, forward=True, limit=50, start_sk=None
 
     for pk in pks:
         kwargs = dict(
+            Select="ALL_ATTRIBUTES",
             KeyConditionExpression="PK = :pk",
             ExpressionAttributeValues={":pk": pk},
             ScanIndexForward=forward,
-            Limit=limit,
+            Limit=limit + 1,  # +1 to check if there is a next page
         )
         if start_sk:
             kwargs["ExclusiveStartKey"] = {"PK": pk, "SK": start_sk}
@@ -41,7 +42,10 @@ def merged_page_query(table, pks: list, *, forward=True, limit=50, start_sk=None
         merged.extend(response["Items"])
 
     merged.sort(key=lambda x: x["SK"], reverse=not forward)
-    page = merged[:limit]
-    last_sk = page[-1]["SK"] if page else None
 
-    return page, last_sk
+    has_next_page = len(merged) > limit
+
+    page = merged[:limit]
+    resume_sk = page[-1]["SK"] if page and has_next_page else None
+
+    return page, resume_sk

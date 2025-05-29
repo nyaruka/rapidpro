@@ -1375,6 +1375,31 @@ class ChannelLogTest(TembaTest):
         self.assertEqual(self.channel, logs[1].channel)
         self.assertEqual(ChannelLog.LOG_TYPE_MSG_STATUS, logs[1].log_type)
 
+    def test_get_by_channel(self):
+        channel = self.create_channel("TG", "Telegram", "mybot")
+        log1 = self.create_channel_log(
+            channel, ChannelLog.LOG_TYPE_MSG_SEND, http_logs=[{"url": "https://foo.bar/send1"}], new_table=True
+        )
+        log2 = self.create_channel_log(
+            channel, ChannelLog.LOG_TYPE_MSG_STATUS, http_logs=[{"url": "https://foo.bar/send2"}], new_table=True
+        )
+        log3 = self.create_channel_log(
+            channel, ChannelLog.LOG_TYPE_MSG_STATUS, http_logs=[{"url": "https://foo.bar/send2"}], new_table=True
+        )
+        self.create_channel_log(
+            self.channel, ChannelLog.LOG_TYPE_MSG_STATUS, http_logs=[{"url": "https://foo.bar/send2"}], new_table=True
+        )
+
+        logs, resume_uuid = ChannelLog.get_by_channel(channel, limit=2)
+
+        self.assertEqual([log3.uuid, log2.uuid], [l.uuid for l in logs])
+        self.assertEqual(str(log2.uuid), resume_uuid)
+
+        logs, resume_uuid = ChannelLog.get_by_channel(channel, limit=2, after_uuid=resume_uuid)
+
+        self.assertEqual([log1.uuid], [l.uuid for l in logs])
+        self.assertIsNone(resume_uuid)
+
     def test_get_display(self):
         channel = self.create_channel("TG", "Telegram", "mybot")
         contact = self.create_contact("Fred Jones", urns=["telegram:74747474"])
