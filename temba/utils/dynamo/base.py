@@ -2,6 +2,7 @@ import boto3
 from botocore.client import Config
 
 from django.conf import settings
+from django.utils.functional import SimpleLazyObject
 
 _client = None
 
@@ -30,16 +31,5 @@ def get_client():
     return _client
 
 
-def table_name(logical_name: str) -> str:
-    """
-    Add optional prefix to name to allow multiple deploys in same region
-    """
-    return settings.DYNAMO_TABLE_PREFIX + logical_name
-
-
-def MAIN():
-    return get_client().Table(table_name("Main"))
-
-
-def HISTORY():
-    return get_client().Table(table_name("History"))
+MAIN = SimpleLazyObject(lambda: get_client().Table(settings.DYNAMO_TABLE_PREFIX + "Main"))
+HISTORY = SimpleLazyObject(lambda: get_client().Table(settings.DYNAMO_TABLE_PREFIX + "History"))

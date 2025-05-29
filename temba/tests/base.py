@@ -681,7 +681,7 @@ class TembaTest(SmartminTest):
 
         if new_table:
             pk, sk = ChannelLog._get_key(channel, uuid)
-            dynamo.MAIN().put_item(
+            dynamo.MAIN.put_item(
                 Item={
                     "PK": pk,
                     "SK": sk,
@@ -697,7 +697,7 @@ class TembaTest(SmartminTest):
             )
 
         else:
-            table = dynamo.get_client().Table(dynamo.table_name(ChannelLog.OLD_TABLE))
+            table = dynamo.get_client().Table(settings.DYNAMO_TABLE_PREFIX + "ChannelLogs")
             table.put_item(
                 Item={
                     "UUID": str(uuid),
