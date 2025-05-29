@@ -18,8 +18,6 @@ from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Q, Sum
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
 from django.template import Engine
 from django.urls import re_path
 from django.utils import timezone
@@ -1100,7 +1098,7 @@ class SyncEvent(models.Model):
         (STATUS_CHARGING, "Charging"),
         (STATUS_DISCHARGING, "Discharging"),
         (STATUS_NOT_CHARGING, "Not Charging"),
-        (STATUS_FULL, "FUL"),
+        (STATUS_FULL, "Full"),
     )
 
     channel = models.ForeignKey(Channel, related_name="sync_events", on_delete=models.PROTECT)
@@ -1111,7 +1109,6 @@ class SyncEvent(models.Model):
     power_level = models.IntegerField()
 
     network_type = models.CharField(max_length=128)
-    lifetime = models.IntegerField(null=True, blank=True, default=0)
 
     # counts of what was synced
     pending_message_count = models.IntegerField(default=0)
@@ -1120,6 +1117,9 @@ class SyncEvent(models.Model):
     outgoing_command_count = models.IntegerField(default=0)
 
     created_on = models.DateTimeField(default=timezone.now)
+
+    # TODO drop
+    lifetime = models.IntegerField(null=True)
 
     @classmethod
     def create(cls, channel, cmd, incoming_commands):
@@ -1154,16 +1154,3 @@ class SyncEvent(models.Model):
 
     def get_retry_messages(self):
         return getattr(self, "retry_messages", [])
-
-
-@receiver(pre_save, sender=SyncEvent)
-def pre_save(sender, instance, **kwargs):
-    if kwargs["raw"]:  # pragma: no cover
-        return
-
-    if not instance.pk:
-        last_sync_event = SyncEvent.objects.filter(channel=instance.channel).order_by("-created_on").first()
-        if last_sync_event:
-            td = timezone.now() - last_sync_event.created_on
-            last_sync_event.lifetime = td.seconds + td.days * 24 * 3600
-            last_sync_event.save()
