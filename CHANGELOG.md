@@ -1,3 +1,7 @@
+v10.1.180 (2025-05-29)
+-------------------------
+ * Stop writing SyncEvent.lifetime which isn't used for anything
+
 v10.1.179 (2025-05-29)
 -------------------------
  * Add ChannelLog.get_by_channel
