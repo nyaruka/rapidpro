@@ -1,3 +1,24 @@
+import itertools
+
+
+def batch_get(table, keys: list[tuple]) -> list:
+    """
+    Performs a batch get item operation on the given table for the provided keys.
+    """
+    if not keys:
+        return []
+
+    items = []
+
+    for key_batch in itertools.batched(keys, 100):
+        key_attrs = [{"PK": pk, "SK": sk} for pk, sk in keys]
+        response = table.meta.client.batch_get_item(RequestItems={table.name: {"Keys": key_attrs}})
+
+        items.extend(response.get("Responses", {}).get(table.name, []))
+
+    return items
+
+
 def merged_page_query(table, pks: list, *, forward=True, limit=50, start_sk=None) -> tuple[list, str | None]:
     """
     Performs a paginated query across multiple partition keys merging the results into a single page. Returns the page

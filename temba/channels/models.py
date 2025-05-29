@@ -1,4 +1,3 @@
-import itertools
 import logging
 from abc import ABCMeta
 from dataclasses import dataclass
@@ -943,19 +942,11 @@ class ChannelLog(models.Model):
         if not uuids:
             return []
 
-        client = dynamo.get_client()
-        table_name = dynamo.table_name(cls.DYNAMO_TABLE)
+        keys = [cls._get_key(channel, uuid) for uuid in uuids]
         logs = []
 
-        for uuid_batch in itertools.batched(uuids, 100):
-            keys = []
-            for uuid in uuid_batch:
-                pk, sk = cls._get_key(channel, uuid)
-                keys.append({"PK": pk, "SK": sk})
-
-            resp = client.batch_get_item(RequestItems={table_name: {"Keys": keys}})
-            for item in resp["Responses"][table_name]:
-                logs.append(cls._from_item(channel, item))
+        for item in dynamo.batch_get(dynamo.MAIN, keys):
+            logs.append(cls._from_item(channel, item))
 
         return sorted(logs, key=lambda l: l.uuid)
 

@@ -7,7 +7,7 @@ jobs:
     env:
       python-version: '3.12.x'
       node-version: '20'
-      mailroom-version: '10.1.101'
+      mailroom-version: '10.1.130'
 
     services:
       redis:
@@ -24,7 +24,7 @@ jobs:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
       minio:
-        image: bitnami/minio:latest
+        image: bitnami/minio:2025.4.22 # https://github.com/bitnami/containers/issues/81605
         env:
           MINIO_ROOT_USER: root
           MINIO_ROOT_PASSWORD: tembatemba

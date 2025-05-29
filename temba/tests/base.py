@@ -678,8 +678,8 @@ class TembaTest(SmartminTest):
         uuid = uuid7()
         created_on = timezone.now()
         expires_on = created_on + timezone.timedelta(days=7)
-
         pk, sk = ChannelLog._get_key(channel, uuid)
+
         dynamo.MAIN.put_item(
             Item={
                 "PK": pk,

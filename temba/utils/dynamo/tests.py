@@ -17,13 +17,29 @@ class DynamoTest(TembaTest):
         client2 = dynamo.get_client()
         self.assertIs(client1, client2)
 
-    def test_table_name(self):
-        self.assertEqual("TestThings", dynamo.table_name("Things"))
+        self.assertEqual("TestMain", dynamo.MAIN.name)
+        self.assertEqual("TestHistory", dynamo.HISTORY.name)
 
     def test_jsongz(self):
         data = dynamo.dump_jsongz({"foo": "barbarbarbarbarbarbarbarbarbarbarbarbarbarbarbar"})
         self.assertEqual(36, len(data))
         self.assertEqual({"foo": "barbarbarbarbarbarbarbarbarbarbarbarbarbarbarbar"}, dynamo.load_jsongz(data))
+
+    def test_batch_get(self):
+        dynamo.MAIN.put_item(Item={"PK": "foo#3", "SK": "bar#100", "OrgID": Decimal(1), "Data": {}})
+        dynamo.MAIN.put_item(Item={"PK": "foo#1", "SK": "bar#101", "OrgID": Decimal(1), "Data": {}})
+        dynamo.MAIN.put_item(Item={"PK": "foo#2", "SK": "bar#102", "OrgID": Decimal(1), "Data": {}})
+
+        self.assertEqual([], dynamo.batch_get(dynamo.MAIN, []))
+
+        items = dynamo.batch_get(dynamo.MAIN, [("foo#1", "bar#101"), ("foo#3", "bar#100")])
+        self.assertEqual(
+            [
+                {"PK": "foo#1", "SK": "bar#101", "OrgID": Decimal(1), "Data": {}},
+                {"PK": "foo#3", "SK": "bar#100", "OrgID": Decimal(1), "Data": {}},
+            ],
+            items,
+        )
 
     def test_merged_page_query(self):
         dynamo.MAIN.put_item(Item={"PK": "foo#3", "SK": "bar#100", "OrgID": Decimal(1), "Data": {}})
