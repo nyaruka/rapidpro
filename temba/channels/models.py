@@ -1118,9 +1118,6 @@ class SyncEvent(models.Model):
 
     created_on = models.DateTimeField(default=timezone.now)
 
-    # TODO drop
-    lifetime = models.IntegerField(null=True)
-
     @classmethod
     def create(cls, channel, cmd, incoming_commands):
         # update country, device and OS on our channel
