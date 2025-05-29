@@ -12,6 +12,6 @@ class DynamoTest(TembaTest):
         self.assertEqual("TestThings", dynamo.table_name("Things"))
 
     def test_jsongz(self):
-        data = dynamo.dump_jsongz({"foo": "bar"})
-        self.assertEqual(34, len(data))
-        self.assertEqual({"foo": "bar"}, dynamo.load_jsongz(data))
+        data = dynamo.dump_jsongz({"foo": "barbarbarbarbarbarbarbarbarbarbarbarbarbarbarbar"})
+        self.assertEqual(36, len(data))
+        self.assertEqual({"foo": "barbarbarbarbarbarbarbarbarbarbarbarbarbarbarbar"}, dynamo.load_jsongz(data))

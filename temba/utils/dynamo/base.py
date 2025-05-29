@@ -1,8 +1,4 @@
-import json
-import zlib
-
 import boto3
-from boto3.dynamodb.types import Binary
 from botocore.client import Config
 
 from django.conf import settings
@@ -39,17 +35,3 @@ def table_name(logical_name: str) -> str:
     Add optional prefix to name to allow multiple deploys in same region
     """
     return settings.DYNAMO_TABLE_PREFIX + logical_name
-
-
-def load_jsongz(data: Binary) -> dict:
-    """
-    Loads a value from gzipped JSON
-    """
-    return json.loads(zlib.decompress(bytes(data), wbits=zlib.MAX_WBITS | 16))
-
-
-def dump_jsongz(value: dict) -> bytes:
-    """
-    Dumps a value to gzipped JSON
-    """
-    return zlib.compress(json.dumps(value).encode("utf-8"), wbits=zlib.MAX_WBITS | 16)
