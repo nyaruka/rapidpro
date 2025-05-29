@@ -679,11 +679,9 @@ class TembaTest(SmartminTest):
         created_on = timezone.now()
         expires_on = created_on + timezone.timedelta(days=7)
 
-        client = dynamo.get_client()
-
         if new_table:
             pk, sk = ChannelLog._get_key(channel, uuid)
-            table = client.Table(dynamo.table_name(ChannelLog.DYNAMO_TABLE))
+            table = dynamo.get_client().Table(dynamo.table_name(ChannelLog.DYNAMO_TABLE))
             table.put_item(
                 Item={
                     "PK": pk,
@@ -699,8 +697,7 @@ class TembaTest(SmartminTest):
                 },
             )
         else:
-            table = client.Table(dynamo.table_name(ChannelLog.OLD_TABLE))
-            table.put_item(
+            dynamo.MAIN.put_item(
                 Item={
                     "UUID": str(uuid),
                     "Type": log_type,
