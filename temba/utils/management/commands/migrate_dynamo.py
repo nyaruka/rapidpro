@@ -63,7 +63,7 @@ class Command(BaseCommand):
 
     def _migrate_table(self, table: dict):
         name = table["TableName"]
-        real_name = dynamo.table_name(name)
+        real_name = settings.DYNAMO_TABLE_PREFIX + name
 
         if not self._table_exists(real_name):
             spec = table.copy()

@@ -14,6 +14,7 @@ from django_redis import get_redis_connection
 from phonenumbers import NumberParseException
 from twilio.base.exceptions import TwilioRestException
 
+from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Q, Sum
@@ -888,7 +889,6 @@ class ChannelLog(models.Model):
     A log of an interaction with a channel
     """
 
-    OLD_TABLE = "ChannelLogs"
     DYNAMO_TABLE = "Main"  # unprefixed table name
     REDACT_MASK = "*" * 8  # used to mask redacted values
 
@@ -945,16 +945,14 @@ class ChannelLog(models.Model):
             return []
 
         client = dynamo.get_client()
-        table_name = dynamo.table_name(cls.DYNAMO_TABLE)
         logs = []
 
+        # first try reading from old table
         for uuid_batch in itertools.batched(uuids, 100):
-            # first try reading from old table
-            resp = client.batch_get_item(
-                RequestItems={dynamo.table_name(cls.OLD_TABLE): {"Keys": [{"UUID": str(u)} for u in uuid_batch]}}
-            )
+            old_table = settings.DYNAMO_TABLE_PREFIX + "ChannelLogs"
+            resp = client.batch_get_item(RequestItems={old_table: {"Keys": [{"UUID": str(u)} for u in uuid_batch]}})
 
-            for log in resp["Responses"][dynamo.table_name(cls.OLD_TABLE)]:
+            for log in resp["Responses"][old_table]:
                 data = dynamo.load_jsongz(log["DataGZ"])
                 logs.append(
                     ChannelLog(
@@ -968,15 +966,11 @@ class ChannelLog(models.Model):
                     )
                 )
 
-            # and then from new table
-            keys = []
-            for uuid in uuid_batch:
-                pk, sk = cls._get_key(channel, uuid)
-                keys.append({"PK": pk, "SK": sk})
+        # and then from new table
+        keys = [cls._get_key(channel, uuid) for uuid in uuids]
 
-            resp = client.batch_get_item(RequestItems={table_name: {"Keys": keys}})
-            for item in resp["Responses"][table_name]:
-                logs.append(cls._from_item(channel, item))
+        for item in dynamo.batch_get(dynamo.MAIN, keys):
+            logs.append(cls._from_item(channel, item))
 
         return sorted(logs, key=lambda l: l.uuid)
 
