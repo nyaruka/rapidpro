@@ -947,8 +947,8 @@ class ChannelLog(models.Model):
         client = dynamo.get_client()
         logs = []
 
+        # first try reading from old table
         for uuid_batch in itertools.batched(uuids, 100):
-            # first try reading from old table
             old_table = settings.DYNAMO_TABLE_PREFIX + "ChannelLogs"
             resp = client.batch_get_item(RequestItems={old_table: {"Keys": [{"UUID": str(u)} for u in uuid_batch]}})
 
@@ -966,15 +966,11 @@ class ChannelLog(models.Model):
                     )
                 )
 
-            # and then from new table
-            keys = []
-            for uuid in uuid_batch:
-                pk, sk = cls._get_key(channel, uuid)
-                keys.append({"PK": pk, "SK": sk})
+        # and then from new table
+        keys = [cls._get_key(channel, uuid) for uuid in uuids]
 
-            resp = client.batch_get_item(RequestItems={dynamo.MAIN.name: {"Keys": keys}})
-            for item in resp["Responses"][dynamo.MAIN.name]:
-                logs.append(cls._from_item(channel, item))
+        for item in dynamo.batch_get(dynamo.MAIN, keys):
+            logs.append(cls._from_item(channel, item))
 
         return sorted(logs, key=lambda l: l.uuid)
 
