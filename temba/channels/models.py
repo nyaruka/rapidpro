@@ -741,19 +741,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     def get_log_count(self, since=None):
         return self.get_count([ChannelCount.SUCCESS_LOG_TYPE, ChannelCount.ERROR_LOG_TYPE])
 
-    def get_logs(self, limit=50, after_uuid=None) -> tuple[list, str]:
-        """
-        Gets latest channel logs for this channel. Returns a page of logs and the last UUID to fetch the next page.
-        """
-
-        pks = [f"cha#{self.uuid}#{b}" for b in "0123456789abcdef"]  # each channel has 16 partitions
-        start_sk = f"log#{after_uuid}" if after_uuid else None
-        items, last_sk = dynamo.merged_page_query(dynamo.MAIN, pks, forward=False, limit=limit, start_sk=start_sk)
-
-        last_uuid = last_sk.split("#")[-1] if last_sk else None
-
-        return [ChannelLog._from_item(self, item) for item in items], last_uuid
-
     class Meta:
         ordering = ("-last_seen", "-pk")
 
@@ -990,14 +977,14 @@ class ChannelLog(models.Model):
     @classmethod
     def get_by_channel(cls, channel, limit=50, after_uuid=None) -> tuple[list, str]:
         """
-        Gets latest channel logs for this channel. Returns a page of logs and the last UUID to fetch the next page.
+        Gets latest channel logs for given channel. Returns page of logs and the resume UUID to fetch the next page.
         """
 
         pks = [f"cha#{channel.uuid}#{b}" for b in "0123456789abcdef"]  # each channel has 16 partitions
         start_sk = f"log#{after_uuid}" if after_uuid else None
-        items, last_sk = dynamo.merged_page_query(dynamo.MAIN, pks, forward=False, limit=limit, start_sk=start_sk)
+        items, resume_sk = dynamo.merged_page_query(dynamo.MAIN, pks, forward=False, limit=limit, start_sk=start_sk)
 
-        last_uuid = last_sk.split("#")[-1] if last_sk else None
+        last_uuid = resume_sk.split("#")[-1] if resume_sk else None
 
         return [cls._from_item(channel, item) for item in items], last_uuid
 

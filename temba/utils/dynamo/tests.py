@@ -71,11 +71,7 @@ class DynamoTest(TembaTest):
             ],
             page2,
         )
-        self.assertEqual("bar#105", cursor2)
-
-        page3, cursor3 = dynamo.merged_page_query(dynamo.MAIN, pks, forward=True, limit=4, start_sk=cursor2)
-        self.assertEqual([], page3)
-        self.assertIsNone(cursor3)
+        self.assertIsNone(cursor2)  # no more items
 
         # now do the same queries in reverse order
         page1, cursor1 = dynamo.merged_page_query(dynamo.MAIN, pks, forward=False, limit=4)
@@ -98,8 +94,4 @@ class DynamoTest(TembaTest):
             ],
             page2,
         )
-        self.assertEqual("bar#100", cursor2)
-
-        page3, cursor3 = dynamo.merged_page_query(dynamo.MAIN, pks, forward=False, limit=4, start_sk=cursor2)
-        self.assertEqual([], page3)
-        self.assertIsNone(cursor3)
+        self.assertIsNone(cursor2)  # no more items
