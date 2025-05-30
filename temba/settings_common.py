@@ -383,7 +383,7 @@ PERMISSIONS = {
         "workspace",
     ),
     "request_logs.httplog": ("webhooks", "classifier"),
-    "tickets.ticket": ("assign", "menu", "note", "statistics", "export", "analytics"),
+    "tickets.ticket": ("assign", "menu", "note", "export", "analytics"),
     "triggers.trigger": ("archived", "type", "menu"),
 }
 

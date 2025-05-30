@@ -520,7 +520,7 @@ class TicketCRUDL(SmartCRUDL):
             return self.render_modal_response(form)
 
     class Chart(OrgPermsMixin, SmartTemplateView):
-        permission = "tickets.ticket_statistics"
+        permission = "tickets.ticket_analytics"
 
         @classmethod
         def derive_url_pattern(cls, path, action):
@@ -594,7 +594,7 @@ class TicketCRUDL(SmartCRUDL):
             return JsonResponse({"period": [since, until], "data": data})
 
     class ExportStats(OrgPermsMixin, SmartTemplateView):
-        permission = "tickets.ticket_statistics"
+        permission = "tickets.ticket_analytics"
 
         def render_to_response(self, context, **response_kwargs):
             num_days = self.request.GET.get("days", 90)
