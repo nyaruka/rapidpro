@@ -36,24 +36,29 @@ def merged_page_query(table, pks: list, *, desc=False, limit=50, after_sk=None) 
 
     if after_sk:
         # if we're not on the first page, query backwards to find the after for the previous page
-        merged = _merged_partition_query(table, pks, limit=limit, desc=not desc, after_sk=after_sk)
+        merged = _merged_partition_query(table, pks, limit=limit, desc=not desc, after_sk=after_sk, sks_only=True)
         if len(merged) >= limit:
             prev_after_sk = merged[-1]["SK"]
 
     return page, prev_after_sk, next_after_sk
 
 
-def _merged_partition_query(table, pks: list, *, limit: int, desc: bool, after_sk: str | None):
+def _merged_partition_query(table, pks: list, *, limit: int, desc: bool, after_sk: str | None, sks_only=False):
     merged = []
 
     for pk in pks:
         kwargs = dict(
-            Select="ALL_ATTRIBUTES",
             KeyConditionExpression="PK = :pk",
             ExpressionAttributeValues={":pk": pk},
             ScanIndexForward=not desc,
             Limit=limit,
         )
+
+        if sks_only:
+            kwargs["ProjectionExpression"] = "SK"
+        else:
+            kwargs["Select"] = "ALL_ATTRIBUTES"
+
         if after_sk:
             kwargs["ExclusiveStartKey"] = {"PK": pk, "SK": after_sk}
 
