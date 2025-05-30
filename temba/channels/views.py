@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 from datetime import timedelta
 from typing import Any
+from uuid import UUID
 
 import phonenumbers
 import requests
@@ -23,7 +24,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db.models import Sum
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template import Context, Engine, TemplateDoesNotExist
 from django.urls import reverse
@@ -839,7 +840,7 @@ class ChannelCRUDL(SmartCRUDL):
 class ChannelLogCRUDL(SmartCRUDL):
     model = ChannelLog
     path = "logs"  # urls like /channels/logs/
-    actions = ("list", "read", "msg", "call")
+    actions = ("list", "list_next", "read", "read_next", "msg", "call")
 
     class List(SpaMixin, OrgPermsMixin, SmartListView):
         fields = ("channel", "description", "created_on")
@@ -872,9 +873,42 @@ class ChannelLogCRUDL(SmartCRUDL):
             context["channel"] = self.channel
             return context
 
+    class ListNext(SpaMixin, OrgPermsMixin, SmartTemplateView):
+        permission = "channels.channellog_list"
+        paginate_by = 50
+
+        def derive_menu_path(self):
+            return f"/settings/channels/{self.channel.uuid}"
+
+        @classmethod
+        def derive_url_pattern(cls, path, action):
+            return r"^%s/(?P<channel_uuid>[^/]+)/next/$" % path
+
+        @cached_property
+        def channel(self):
+            return get_object_or_404(Channel, uuid=self.kwargs["channel_uuid"], is_active=True)
+
+        def derive_org(self):
+            return self.channel.org
+
+        def get_objects(self):
+            after_uuid = self.request.GET.get("after")
+            if after_uuid:
+                after_uuid = UUID(after_uuid)  # make sure it's a valid UUID
+
+            return ChannelLog.get_by_channel(self.channel, limit=self.paginate_by, after_uuid=after_uuid)
+
+        def get_context_data(self, **kwargs):
+            objects, next_after, prev_after = self.get_objects()
+
+            context = super().get_context_data(**kwargs)
+            context["object_list"] = objects
+            context["pagination"] = {"next_after": next_after, "prev_after": prev_after}
+            return context
+
     class Read(SpaMixin, OrgObjPermsMixin, SmartReadView):
         """
-        Detail view for a single channel log (that is in the database rather than S3).
+        Detail view for a single channel log (that is in the database).
         """
 
         def derive_menu_path(self):
@@ -889,6 +923,39 @@ class ChannelLogCRUDL(SmartCRUDL):
             anonymize = self.request.org.is_anon and not (self.request.GET.get("break") and self.request.user.is_staff)
 
             context["log"] = self.object.get_display(anonymize=anonymize, urn=None)
+            return context
+
+    class ReadNext(SpaMixin, OrgObjPermsMixin, SmartTemplateView):
+        """
+        Detail view for a single channel log (that is in DynamoDB).
+        """
+
+        permission = "channels.channellog_read"
+
+        def derive_menu_path(self):
+            return f"/settings/channels/{self.object.channel.uuid}"
+
+        @classmethod
+        def derive_url_pattern(cls, path, action):
+            return r"^%s/(?P<channel_uuid>[^/]+)/read_next/(?P<uuid>[^/]+)/$" % path
+
+        @cached_property
+        def channel(self):
+            return get_object_or_404(Channel, uuid=self.kwargs["channel_uuid"], is_active=True)
+
+        def get_object_org(self):
+            return self.channel.org
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+
+            anonymize = self.request.org.is_anon and not (self.request.GET.get("break") and self.request.user.is_staff)
+
+            logs = ChannelLog.get_by_uuid(self.channel, [self.kwargs["uuid"]])
+            if not logs:
+                raise Http404()
+
+            context["log"] = logs[0].get_display(anonymize=anonymize, urn=None)
             return context
 
     class BaseOwned(SpaMixin, OrgObjPermsMixin, SmartListView):
