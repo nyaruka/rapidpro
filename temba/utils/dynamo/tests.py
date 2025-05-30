@@ -42,56 +42,46 @@ class DynamoTest(TembaTest):
         )
 
     def test_merged_page_query(self):
-        dynamo.MAIN.put_item(Item={"PK": "foo#3", "SK": "bar#100", "OrgID": Decimal(1), "Data": {}})
-        dynamo.MAIN.put_item(Item={"PK": "foo#1", "SK": "bar#101", "OrgID": Decimal(1), "Data": {}})
-        dynamo.MAIN.put_item(Item={"PK": "foo#2", "SK": "bar#102", "OrgID": Decimal(1), "Data": {}})
-        dynamo.MAIN.put_item(Item={"PK": "foo#2", "SK": "bar#103", "OrgID": Decimal(1), "Data": {}})
-        dynamo.MAIN.put_item(Item={"PK": "foo#1", "SK": "bar#104", "OrgID": Decimal(1), "Data": {}})
-        dynamo.MAIN.put_item(Item={"PK": "foo#1", "SK": "bar#105", "OrgID": Decimal(1), "Data": {}})
+        # insert 10 items across 3 partition keys
+        items = [
+            {"PK": "foo#3", "SK": "bar#100", "OrgID": Decimal(1), "Data": {}},
+            {"PK": "foo#1", "SK": "bar#101", "OrgID": Decimal(1), "Data": {}},
+            {"PK": "foo#2", "SK": "bar#102", "OrgID": Decimal(1), "Data": {}},
+            {"PK": "foo#2", "SK": "bar#103", "OrgID": Decimal(1), "Data": {}},
+            {"PK": "foo#1", "SK": "bar#104", "OrgID": Decimal(1), "Data": {}},
+            {"PK": "foo#1", "SK": "bar#105", "OrgID": Decimal(1), "Data": {}},
+            {"PK": "foo#2", "SK": "bar#106", "OrgID": Decimal(1), "Data": {}},
+            {"PK": "foo#2", "SK": "bar#107", "OrgID": Decimal(1), "Data": {}},
+            {"PK": "foo#3", "SK": "bar#108", "OrgID": Decimal(1), "Data": {}},
+            {"PK": "foo#3", "SK": "bar#109", "OrgID": Decimal(1), "Data": {}},
+        ]
+        with dynamo.MAIN.batch_writer() as batch:
+            for item in items:
+                batch.put_item(Item=item)
 
         pks = ["foo#1", "foo#2", "foo#3", "foo#4"]
 
-        page1, cursor1 = dynamo.merged_page_query(dynamo.MAIN, pks, forward=True, limit=4)
-        self.assertEqual(
-            [
-                {"PK": "foo#3", "SK": "bar#100", "OrgID": Decimal(1), "Data": {}},
-                {"PK": "foo#1", "SK": "bar#101", "OrgID": Decimal(1), "Data": {}},
-                {"PK": "foo#2", "SK": "bar#102", "OrgID": Decimal(1), "Data": {}},
-                {"PK": "foo#2", "SK": "bar#103", "OrgID": Decimal(1), "Data": {}},
-            ],
-            page1,
-        )
-        self.assertEqual("bar#103", cursor1)
+        page, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, limit=4)
+        self.assertEqual([items[0], items[1], items[2], items[3]], page)
+        self.assertEqual("bar#103", next_after_sk)
 
-        page2, cursor2 = dynamo.merged_page_query(dynamo.MAIN, pks, forward=True, limit=4, start_sk=cursor1)
-        self.assertEqual(
-            [
-                {"PK": "foo#1", "SK": "bar#104", "OrgID": Decimal(1), "Data": {}},
-                {"PK": "foo#1", "SK": "bar#105", "OrgID": Decimal(1), "Data": {}},
-            ],
-            page2,
-        )
-        self.assertIsNone(cursor2)  # no more items
+        page, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, limit=4, after_sk=next_after_sk)
+        self.assertEqual([items[4], items[5], items[6], items[7]], page)
+        self.assertEqual("bar#107", next_after_sk)
+
+        page, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, limit=4, after_sk=next_after_sk)
+        self.assertEqual([items[8], items[9]], page)
+        self.assertIsNone(next_after_sk)  # no more items
 
         # now do the same queries in reverse order
-        page1, cursor1 = dynamo.merged_page_query(dynamo.MAIN, pks, forward=False, limit=4)
-        self.assertEqual(
-            [
-                {"PK": "foo#1", "SK": "bar#105", "OrgID": Decimal(1), "Data": {}},
-                {"PK": "foo#1", "SK": "bar#104", "OrgID": Decimal(1), "Data": {}},
-                {"PK": "foo#2", "SK": "bar#103", "OrgID": Decimal(1), "Data": {}},
-                {"PK": "foo#2", "SK": "bar#102", "OrgID": Decimal(1), "Data": {}},
-            ],
-            page1,
-        )
-        self.assertEqual("bar#102", cursor1)
+        page, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, desc=True, limit=4)
+        self.assertEqual([items[9], items[8], items[7], items[6]], page)
+        self.assertEqual("bar#106", next_after_sk)
 
-        page2, cursor2 = dynamo.merged_page_query(dynamo.MAIN, pks, forward=False, limit=4, start_sk=cursor1)
-        self.assertEqual(
-            [
-                {"PK": "foo#1", "SK": "bar#101", "OrgID": Decimal(1), "Data": {}},
-                {"PK": "foo#3", "SK": "bar#100", "OrgID": Decimal(1), "Data": {}},
-            ],
-            page2,
-        )
-        self.assertIsNone(cursor2)  # no more items
+        page, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, desc=True, limit=4, after_sk=next_after_sk)
+        self.assertEqual([items[5], items[4], items[3], items[2]], page)
+        self.assertEqual("bar#102", next_after_sk)
+
+        page, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, desc=True, limit=4, after_sk=next_after_sk)
+        self.assertEqual([items[1], items[0]], page)
+        self.assertIsNone(next_after_sk)  # no more items
