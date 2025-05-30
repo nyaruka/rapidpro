@@ -61,27 +61,37 @@ class DynamoTest(TembaTest):
 
         pks = ["foo#1", "foo#2", "foo#3", "foo#4"]
 
-        page, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, limit=4)
+        page, prev_after_sk, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, limit=4)
         self.assertEqual([items[0], items[1], items[2], items[3]], page)
+        self.assertIsNone(prev_after_sk)  # no prev page
         self.assertEqual("bar#103", next_after_sk)
 
-        page, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, limit=4, after_sk=next_after_sk)
+        page, prev_after_sk, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, limit=4, after_sk=next_after_sk)
         self.assertEqual([items[4], items[5], items[6], items[7]], page)
+        self.assertIsNone(prev_after_sk)  # prev page has no after
         self.assertEqual("bar#107", next_after_sk)
 
-        page, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, limit=4, after_sk=next_after_sk)
+        page, prev_after_sk, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, limit=4, after_sk=next_after_sk)
         self.assertEqual([items[8], items[9]], page)
-        self.assertIsNone(next_after_sk)  # no more items
+        self.assertEqual("bar#103", prev_after_sk)
+        self.assertIsNone(next_after_sk)  # no next page
 
         # now do the same queries in reverse order
-        page, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, desc=True, limit=4)
+        page, prev_after_sk, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, desc=True, limit=4)
         self.assertEqual([items[9], items[8], items[7], items[6]], page)
+        self.assertIsNone(prev_after_sk)  # no prev page
         self.assertEqual("bar#106", next_after_sk)
 
-        page, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, desc=True, limit=4, after_sk=next_after_sk)
+        page, prev_after_sk, next_after_sk = dynamo.merged_page_query(
+            dynamo.MAIN, pks, desc=True, limit=4, after_sk=next_after_sk
+        )
         self.assertEqual([items[5], items[4], items[3], items[2]], page)
+        self.assertIsNone(prev_after_sk)  # prev page has no after
         self.assertEqual("bar#102", next_after_sk)
 
-        page, next_after_sk = dynamo.merged_page_query(dynamo.MAIN, pks, desc=True, limit=4, after_sk=next_after_sk)
+        page, prev_after_sk, next_after_sk = dynamo.merged_page_query(
+            dynamo.MAIN, pks, desc=True, limit=4, after_sk=next_after_sk
+        )
         self.assertEqual([items[1], items[0]], page)
-        self.assertIsNone(next_after_sk)  # no more items
+        self.assertEqual("bar#106", prev_after_sk)
+        self.assertIsNone(next_after_sk)  # no next page
