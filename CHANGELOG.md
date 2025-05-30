@@ -1,3 +1,8 @@
+v10.1.181 (2025-05-30)
+-------------------------
+ * Support two way paging of DynamoDB queries
+ * Add ticket analytics view
+
 v10.1.180 (2025-05-29)
 -------------------------
  * Stop writing SyncEvent.lifetime which isn't used for anything
