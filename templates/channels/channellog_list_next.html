@@ -1,0 +1,29 @@
+{% extends "smartmin/list.html" %}
+{% load i18n humanize temba %}
+
+{% block title-text %}
+  {% trans "Channel Logs" %}
+{% endblock title-text %}
+{% block content %}
+  <div class="mt-4">
+    {% blocktrans trimmed with days=7 %}
+      Logs are kept for {{ days }} days.
+    {% endblocktrans %}
+  </div>
+  <div class="mt-4 shadow rounded-lg rounded-bl-none rounded-br-none bg-white">{% include "includes/short_pagination.html" %}</div>
+  <div class="flex-grow overflow-y-auto shadow bg-white">
+    {% for obj in object_list %}
+      <div class="flex mx-4 my-2">
+        <div class="description">
+          <div onclick="goto(event)"
+               href="{% url "channels.channellog_read_next" obj.channel.uuid obj.uuid %}"
+               class="hover-linked truncate w-64">{{ obj.get_log_type_display }}</div>
+        </div>
+        <div class="elapsed mx-2 text-right mr-4 flex-grow">
+          <span>{{ obj.elapsed_ms|intcomma }}ms</span>
+        </div>
+        <div style="text-align: right" nowrap="true" class="created_on whitespace-nowrap">{{ obj.created_on|timedate }}</div>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock content %}

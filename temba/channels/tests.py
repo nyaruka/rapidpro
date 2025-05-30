@@ -1796,6 +1796,27 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(reverse("channels.channellog_list", args=["invalid-uuid"]))
         self.assertEqual(404, response.status_code)
 
+    def test_list_next(self):
+        list_url = reverse("channels.channellog_list_next", args=[self.channel.uuid])
+
+        channel = self.create_channel("TG", "Telegram", "mybot")
+        log1 = self.create_channel_log(
+            channel, ChannelLog.LOG_TYPE_MSG_SEND, http_logs=[{"url": "https://foo.bar/send1"}], new_table=True
+        )
+        log2 = self.create_channel_log(
+            channel, ChannelLog.LOG_TYPE_MSG_STATUS, http_logs=[{"url": "https://foo.bar/send2"}], new_table=True
+        )
+        log3 = self.create_channel_log(
+            channel, ChannelLog.LOG_TYPE_MSG_STATUS, http_logs=[{"url": "https://foo.bar/send2"}], new_table=True
+        )
+        self.create_channel_log(
+            self.channel, ChannelLog.LOG_TYPE_MSG_STATUS, http_logs=[{"url": "https://foo.bar/send2"}], new_table=True
+        )
+
+        self.assertRequestDisallowed(list_url, [None, self.editor, self.agent, self.admin2])
+        response = self.assertListFetch(list_url, [self.admin], context_objects=[log3, log2, log1])
+        self.assertEqual(f"/settings/channels/{self.channel.uuid}", response.headers[TEMBA_MENU_SELECTION])
+
     def assertRedacted(self, response, values: tuple):
         for value in values:
             self.assertNotContains(response, value)
