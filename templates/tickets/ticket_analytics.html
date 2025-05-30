@@ -1,0 +1,5 @@
+{% extends "smartmin/read.html" %}
+{% block content %}
+  <temba-chart header="Tickets Opened" url="{% url 'tickets.ticket_chart' 'opened' %}" dataname="Topics" config>
+  </temba-chart>
+{% endblock content %}

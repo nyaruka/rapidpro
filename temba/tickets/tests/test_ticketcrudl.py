@@ -139,6 +139,21 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         ticket.refresh_from_db()
         self.assertEqual(user_topic, ticket.topic)
 
+    def test_analytics(self):
+        analytics_url = reverse("tickets.ticket_analytics")
+
+        self.assertRequestDisallowed(analytics_url, [None, self.agent])
+
+        # should be able to fetch analytics
+        response = self.assertReadFetch(analytics_url, [self.editor, self.admin])
+        self.assertEqual(200, response.status_code)
+        self.assertContains(response, "Analytics")
+        self.assertContains(response, "Tickets Opened")
+
+        # should not be able to post to it
+        response = self.client.post(analytics_url)
+        self.assertEqual(405, response.status_code)
+
     def test_menu(self):
         menu_url = reverse("tickets.ticket_menu")
 
@@ -156,6 +171,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
                 "Unassigned (1)",
                 "All (3)",
                 "Shortcuts (0)",
+                "Analytics",
                 "Export",
                 "New Topic",
                 "General (2)",
@@ -409,7 +425,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(
             {
                 "period": ["2024-03-01", "2024-05-01"],
-                "data": {},
+                "data": {"datasets": [], "labels": []},
             },
             response.json(),
         )
@@ -426,9 +442,12 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             {
                 "period": ["2024-03-01", "2024-05-01"],
                 "data": {
-                    "<Unknown>": [["2024-04-25", 1]],
-                    "Cats": [["2024-04-25", 3], ["2024-04-26", 5]],
-                    "Dogs": [["2024-04-25", 2], ["2024-04-26", 4]],
+                    "labels": ["2024-04-25", "2024-04-26"],
+                    "datasets": [
+                        {"label": "<Unknown>", "data": [1, 0]},
+                        {"label": "Cats", "data": [3, 5]},
+                        {"label": "Dogs", "data": [2, 4]},
+                    ],
                 },
             },
             response.json(),
@@ -439,7 +458,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(
             {
                 "period": [matchers.ISODate(), matchers.ISODate()],
-                "data": {},
+                "data": {"datasets": [], "labels": []},
             },
             response.json(),
         )
