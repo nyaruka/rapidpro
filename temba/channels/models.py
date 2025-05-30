@@ -1,8 +1,7 @@
-import itertools
 import logging
 from abc import ABCMeta
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone as tzone
+from datetime import timedelta
 from enum import Enum
 from uuid import uuid4
 
@@ -14,7 +13,6 @@ from django_redis import get_redis_connection
 from phonenumbers import NumberParseException
 from twilio.base.exceptions import TwilioRestException
 
-from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Q, Sum
@@ -942,30 +940,8 @@ class ChannelLog(models.Model):
         if not uuids:
             return []
 
-        client = dynamo.get_client()
-        logs = []
-
-        # first try reading from old table
-        for uuid_batch in itertools.batched(uuids, 100):
-            old_table = settings.DYNAMO_TABLE_PREFIX + "ChannelLogs"
-            resp = client.batch_get_item(RequestItems={old_table: {"Keys": [{"UUID": str(u)} for u in uuid_batch]}})
-
-            for log in resp["Responses"][old_table]:
-                data = dynamo.load_jsongz(log["DataGZ"])
-                logs.append(
-                    ChannelLog(
-                        uuid=log["UUID"],
-                        channel=channel,
-                        log_type=log["Type"],
-                        http_logs=data["http_logs"],
-                        errors=data["errors"],
-                        elapsed_ms=int(log["ElapsedMS"]),
-                        created_on=datetime.fromtimestamp(int(log["CreatedOn"]), tz=tzone.utc),
-                    )
-                )
-
-        # and then from new table
         keys = [cls._get_key(channel, uuid) for uuid in uuids]
+        logs = []
 
         for item in dynamo.batch_get(dynamo.MAIN, keys):
             logs.append(cls._from_item(channel, item))
