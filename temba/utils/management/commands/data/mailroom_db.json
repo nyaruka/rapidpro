@@ -117,6 +117,15 @@
                         "page_name": "Cat Facts",
                         "auth_token": "sesame"
                     }
+                },
+                {
+                    "uuid": "8e7b62ee-2e84-4601-8fef-2e44c490b43e",
+                    "name": "Android",
+                    "channel_type": "A",
+                    "address": "+593123456789",
+                    "scheme": "tel",
+                    "role": "SR",
+                    "config": {}
                 }
             ],
             "globals": [
@@ -224,9 +233,9 @@
                 },
                 {
                     "uuid": "9709c157-4606-4d41-9df3-9e9c9b4ae2d4",
-                    "name": "Alexandia",
+                    "name": "Alexandra",
                     "urns": [
-                        "tel:+1605574444"
+                        "tel:+593999123456"
                     ],
                     "created_on": "2020-12-31T16:45:30Z"
                 }

@@ -14,11 +14,10 @@ from django_redis import get_redis_connection
 from phonenumbers import NumberParseException
 from twilio.base.exceptions import TwilioRestException
 
+from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Q, Sum
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
 from django.template import Engine
 from django.urls import re_path
 from django.utils import timezone
@@ -888,7 +887,6 @@ class ChannelLog(models.Model):
     A log of an interaction with a channel
     """
 
-    OLD_TABLE = "ChannelLogs"
     DYNAMO_TABLE = "Main"  # unprefixed table name
     REDACT_MASK = "*" * 8  # used to mask redacted values
 
@@ -945,16 +943,14 @@ class ChannelLog(models.Model):
             return []
 
         client = dynamo.get_client()
-        table_name = dynamo.table_name(cls.DYNAMO_TABLE)
         logs = []
 
+        # first try reading from old table
         for uuid_batch in itertools.batched(uuids, 100):
-            # first try reading from old table
-            resp = client.batch_get_item(
-                RequestItems={dynamo.table_name(cls.OLD_TABLE): {"Keys": [{"UUID": str(u)} for u in uuid_batch]}}
-            )
+            old_table = settings.DYNAMO_TABLE_PREFIX + "ChannelLogs"
+            resp = client.batch_get_item(RequestItems={old_table: {"Keys": [{"UUID": str(u)} for u in uuid_batch]}})
 
-            for log in resp["Responses"][dynamo.table_name(cls.OLD_TABLE)]:
+            for log in resp["Responses"][old_table]:
                 data = dynamo.load_jsongz(log["DataGZ"])
                 logs.append(
                     ChannelLog(
@@ -968,17 +964,27 @@ class ChannelLog(models.Model):
                     )
                 )
 
-            # and then from new table
-            keys = []
-            for uuid in uuid_batch:
-                pk, sk = cls._get_key(channel, uuid)
-                keys.append({"PK": pk, "SK": sk})
+        # and then from new table
+        keys = [cls._get_key(channel, uuid) for uuid in uuids]
 
-            resp = client.batch_get_item(RequestItems={table_name: {"Keys": keys}})
-            for item in resp["Responses"][table_name]:
-                logs.append(cls._from_item(channel, item))
+        for item in dynamo.batch_get(dynamo.MAIN, keys):
+            logs.append(cls._from_item(channel, item))
 
         return sorted(logs, key=lambda l: l.uuid)
+
+    @classmethod
+    def get_by_channel(cls, channel, limit=50, after_uuid=None) -> tuple[list, str]:
+        """
+        Gets latest channel logs for given channel. Returns page of logs and the resume UUID to fetch the next page.
+        """
+
+        pks = [f"cha#{channel.uuid}#{b}" for b in "0123456789abcdef"]  # each channel has 16 partitions
+        start_sk = f"log#{after_uuid}" if after_uuid else None
+        items, resume_sk = dynamo.merged_page_query(dynamo.MAIN, pks, forward=False, limit=limit, start_sk=start_sk)
+
+        last_uuid = resume_sk.split("#")[-1] if resume_sk else None
+
+        return [cls._from_item(channel, item) for item in items], last_uuid
 
     @staticmethod
     def _get_key(channel, uuid: str) -> tuple[str, str]:
@@ -1092,7 +1098,7 @@ class SyncEvent(models.Model):
         (STATUS_CHARGING, "Charging"),
         (STATUS_DISCHARGING, "Discharging"),
         (STATUS_NOT_CHARGING, "Not Charging"),
-        (STATUS_FULL, "FUL"),
+        (STATUS_FULL, "Full"),
     )
 
     channel = models.ForeignKey(Channel, related_name="sync_events", on_delete=models.PROTECT)
@@ -1103,7 +1109,6 @@ class SyncEvent(models.Model):
     power_level = models.IntegerField()
 
     network_type = models.CharField(max_length=128)
-    lifetime = models.IntegerField(null=True, blank=True, default=0)
 
     # counts of what was synced
     pending_message_count = models.IntegerField(default=0)
@@ -1112,6 +1117,9 @@ class SyncEvent(models.Model):
     outgoing_command_count = models.IntegerField(default=0)
 
     created_on = models.DateTimeField(default=timezone.now)
+
+    # TODO drop
+    lifetime = models.IntegerField(null=True)
 
     @classmethod
     def create(cls, channel, cmd, incoming_commands):
@@ -1146,16 +1154,3 @@ class SyncEvent(models.Model):
 
     def get_retry_messages(self):
         return getattr(self, "retry_messages", [])
-
-
-@receiver(pre_save, sender=SyncEvent)
-def pre_save(sender, instance, **kwargs):
-    if kwargs["raw"]:  # pragma: no cover
-        return
-
-    if not instance.pk:
-        last_sync_event = SyncEvent.objects.filter(channel=instance.channel).order_by("-created_on").first()
-        if last_sync_event:
-            td = timezone.now() - last_sync_event.created_on
-            last_sync_event.lifetime = td.seconds + td.days * 24 * 3600
-            last_sync_event.save()

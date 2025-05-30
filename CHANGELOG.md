@@ -1,3 +1,13 @@
+v10.1.180 (2025-05-29)
+-------------------------
+ * Stop writing SyncEvent.lifetime which isn't used for anything
+
+v10.1.179 (2025-05-29)
+-------------------------
+ * Add ChannelLog.get_by_channel
+ * Tweak mailroom_db to have an Android contact
+ * Add more utils for working with DynamoDB
+
 v10.1.178 (2025-05-27)
 -------------------------
  * Tweak encoding of http logs in channel logs
