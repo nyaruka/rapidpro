@@ -1390,15 +1390,17 @@ class ChannelLogTest(TembaTest):
             self.channel, ChannelLog.LOG_TYPE_MSG_STATUS, http_logs=[{"url": "https://foo.bar/send2"}], new_table=True
         )
 
-        logs, resume_uuid = ChannelLog.get_by_channel(channel, limit=2)
+        logs, prev_after, next_after = ChannelLog.get_by_channel(channel, limit=2)
 
         self.assertEqual([log3.uuid, log2.uuid], [l.uuid for l in logs])
-        self.assertEqual(str(log2.uuid), resume_uuid)
+        self.assertIsNone(prev_after)
+        self.assertEqual(str(log2.uuid), next_after)
 
-        logs, resume_uuid = ChannelLog.get_by_channel(channel, limit=2, after_uuid=resume_uuid)
+        logs, prev_after, next_after = ChannelLog.get_by_channel(channel, limit=2, after_uuid=next_after)
 
         self.assertEqual([log1.uuid], [l.uuid for l in logs])
-        self.assertIsNone(resume_uuid)
+        self.assertIsNone(prev_after)
+        self.assertIsNone(next_after)
 
     def test_get_display(self):
         channel = self.create_channel("TG", "Telegram", "mybot")

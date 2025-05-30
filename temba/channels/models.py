@@ -979,12 +979,15 @@ class ChannelLog(models.Model):
         """
 
         pks = [f"cha#{channel.uuid}#{b}" for b in "0123456789abcdef"]  # each channel has 16 partitions
-        start_sk = f"log#{after_uuid}" if after_uuid else None
-        items, resume_sk = dynamo.merged_page_query(dynamo.MAIN, pks, forward=False, limit=limit, start_sk=start_sk)
+        after_sk = f"log#{after_uuid}" if after_uuid else None
+        items, prev_after_sk, next_after_sk = dynamo.merged_page_query(
+            dynamo.MAIN, pks, desc=True, limit=limit, after_sk=after_sk
+        )
 
-        last_uuid = resume_sk.split("#")[-1] if resume_sk else None
+        prev_after_uuid = prev_after_sk.split("#")[-1] if prev_after_sk else None
+        next_after_uuid = next_after_sk.split("#")[-1] if next_after_sk else None
 
-        return [cls._from_item(channel, item) for item in items], last_uuid
+        return [cls._from_item(channel, item) for item in items], prev_after_uuid, next_after_uuid
 
     @staticmethod
     def _get_key(channel, uuid: str) -> tuple[str, str]:
