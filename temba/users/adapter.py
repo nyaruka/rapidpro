@@ -66,6 +66,12 @@ class TembaAccountAdapter(InviteAdapterMixin, DefaultAccountAdapter):
 class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter):
     def save_user(self, request, sociallogin, form=None):  # pragma: no cover
         user = super().save_user(request, sociallogin, form)
+
+        # some backdown options for email
+        if not user.email:
+            extra = sociallogin.account.extra_data
+            user.email = extra.get("email") or extra.get("preferred_username") or extra.get("upn") or ""
+
         avatar_url = sociallogin.account.get_avatar_url()
 
         # some social accounts may not have an avatar URL
