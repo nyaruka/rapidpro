@@ -70,7 +70,7 @@ class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter)
 
         # some social accounts may not have an avatar URL
         if avatar_url:
-            user.fetch_avatar(sociallogin.account.get_avatar_url())
+            user.fetch_avatar(avatar_url)
         return user
 
     def is_open_for_signup(self, request, sociallogin):  # pragma: no cover
