@@ -20,12 +20,12 @@
     {% endblocktrans %}
   </div>
   <div class="mt-4 shadow rounded-lg rounded-bl-none rounded-br-none bg-white">{% include "includes/short_pagination.html" %}</div>
-  <div class="flex-grow overflow-y-auto shadow bg-white shadow">
+  <div class="flex-grow overflow-y-auto shadow bg-white">
     {% for obj in object_list %}
       <div class="{% if obj.is_error %}log-error{% endif %} flex mx-4 my-2">
         <div class="description">
           <div onclick="goto(event)"
-               href="{% url "channels.channellog_read" obj.id %}"
+               href="{% url "channels.channel_logs_read" channel.uuid 'log' obj.uuid %}"
                class="hover-linked truncate w-64">{{ obj.get_log_type_display }}</div>
         </div>
         <div class="elapsed mx-2 text-right mr-4 flex-grow">

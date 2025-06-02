@@ -85,7 +85,11 @@ class Event:
         logs_url = None
         if obj.channel and obj_age < settings.RETENTION_PERIODS["channellog"]:
             logs_url = _url_for_user(
-                org, user, "channels.channellog_msg", args=[obj.channel.uuid, obj.id], perm="channels.channellog_read"
+                org,
+                user,
+                "channels.channel_logs_read",
+                args=[obj.channel.uuid, "msg", obj.id],
+                perm="channels.channel_logs",
             )
 
         if obj.direction == Msg.DIRECTION_IN:
@@ -178,7 +182,11 @@ class Event:
         logs_url = None
         if obj_age < settings.RETENTION_PERIODS["channellog"]:
             logs_url = _url_for_user(
-                org, user, "channels.channellog_call", args=[obj.channel.uuid, obj.id], perm="channels.channellog_read"
+                org,
+                user,
+                "channels.channel_logs_read",
+                args=[obj.channel.uuid, "call", obj.id],
+                perm="channels.channel_logs",
             )
 
         return {
