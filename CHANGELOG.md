@@ -1,3 +1,8 @@
+v10.1.184 (2025-06-02)
+-------------------------
+ * Replace existing clog read views with new read view in channel CRUDL
+ * Use perm attached to Channel model for logs access
+
 v10.1.183 (2025-06-02)
 -------------------------
  * Tweaks for testing Azure AD logins
