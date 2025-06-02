@@ -1,3 +1,8 @@
+v10.1.182 (2025-06-02)
+-------------------------
+ * Remove SyncEvent.lifetime
+ * Remove old ChannelLogs DynamoDB table
+
 v10.1.181 (2025-05-30)
 -------------------------
  * Support two way paging of DynamoDB queries
