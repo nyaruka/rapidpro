@@ -1,6 +1,5 @@
 import copy
 import os
-from collections import namedtuple
 from datetime import datetime
 from functools import wraps
 from io import BytesIO
@@ -679,23 +678,18 @@ class TembaTest(SmartminTest):
         created_on = timezone.now()
         expires_on = created_on + timezone.timedelta(days=7)
         pk, sk = ChannelLog._get_key(channel, uuid)
+        item = {
+            "PK": pk,
+            "SK": sk,
+            "OrgID": channel.org_id,
+            "TTL": int(expires_on.timestamp()),
+            "Data": {"type": log_type, "elapsed_ms": 12, "created_on": created_on.isoformat()},
+            "DataGZ": dynamo.dump_jsongz({"http_logs": http_logs, "errors": errors}),
+        }
 
-        dynamo.MAIN.put_item(
-            Item={
-                "PK": pk,
-                "SK": sk,
-                "OrgID": channel.org_id,
-                "TTL": int(expires_on.timestamp()),
-                "Data": {
-                    "type": log_type,
-                    "elapsed_ms": 12,
-                    "created_on": created_on.isoformat(),
-                },
-                "DataGZ": dynamo.dump_jsongz({"http_logs": http_logs, "errors": errors}),
-            },
-        )
+        dynamo.MAIN.put_item(Item=item)
 
-        return namedtuple("ChannelLog", ["uuid", "created_on"])(uuid, created_on)
+        return ChannelLog._from_item(channel, item)
 
     def create_channel_event(self, channel, urn, event_type, occurred_on=None, optin=None, extra=None):
         urn_obj = contact_urn_lookup(channel.org, urn)

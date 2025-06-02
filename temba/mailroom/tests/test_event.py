@@ -115,7 +115,7 @@ class EventTest(TembaTest):
                 },
                 "optin": None,
                 "status": "E",
-                "logs_url": f"/channels/{str(self.channel.uuid)}/logs/msg/{msg_out.id}/",
+                "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out.id}/",
             },
             Event.from_msg(self.org, self.admin, msg_out),
         )
@@ -158,7 +158,7 @@ class EventTest(TembaTest):
                 },
                 "created_by": None,
                 "status": "S",
-                "logs_url": f"/channels/{str(self.channel.uuid)}/logs/msg/{ivr_out.id}/",
+                "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{ivr_out.id}/",
             },
             Event.from_msg(self.org, self.admin, ivr_out),
         )
@@ -188,7 +188,7 @@ class EventTest(TembaTest):
                 "optin": None,
                 "status": "S",
                 "recipient_count": 2,
-                "logs_url": f"/channels/{str(self.channel.uuid)}/logs/msg/{msg_out2.id}/",
+                "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out2.id}/",
             },
             Event.from_msg(self.org, self.admin, msg_out2),
         )
@@ -222,7 +222,7 @@ class EventTest(TembaTest):
                 "optin": {"uuid": str(optin.uuid), "name": "Polls"},
                 "status": "S",
                 "recipient_count": 2,
-                "logs_url": f"/channels/{str(self.channel.uuid)}/logs/msg/{msg_out3.id}/",
+                "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out3.id}/",
             },
             Event.from_msg(self.org, self.admin, msg_out3),
         )
@@ -238,7 +238,7 @@ class EventTest(TembaTest):
                 "urn": "tel:+250979111111",
                 "created_by": None,
                 "status": "S",
-                "logs_url": f"/channels/{str(self.channel.uuid)}/logs/msg/{msg_out4.id}/",
+                "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out4.id}/",
             },
             Event.from_msg(self.org, self.admin, msg_out4),
         )
@@ -423,7 +423,7 @@ class EventTest(TembaTest):
                 "status": "E",
                 "status_display": "Errored (Busy)",
                 "created_on": matchers.ISODatetime(),
-                "logs_url": f"/channels/{call2.channel.uuid}/logs/call/{call2.id}/",
+                "logs_url": f"/channels/channel/logs/{call2.channel.uuid}/call/{call2.id}/",
             },
             Event.from_ivr_call(self.org, self.admin, call2),
         )

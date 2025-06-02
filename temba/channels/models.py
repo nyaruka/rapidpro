@@ -944,12 +944,13 @@ class ChannelLog(models.Model):
         logs = []
 
         for item in dynamo.batch_get(dynamo.MAIN, keys):
-            logs.append(cls._from_item(channel, item))
+            if item["OrgID"] == channel.org_id:
+                logs.append(cls._from_item(channel, item))
 
         return sorted(logs, key=lambda l: l.uuid)
 
     @classmethod
-    def get_by_channel(cls, channel, limit=50, after_uuid=None) -> tuple[list, str]:
+    def get_by_channel(cls, channel, limit=50, after_uuid=None) -> tuple[list, str, str]:
         """
         Gets latest channel logs for given channel. Returns page of logs and the resume UUID to fetch the next page.
         """
@@ -1046,6 +1047,9 @@ class ChannelLog(models.Model):
             return original[:10] + self.REDACT_MASK
 
         return redacted
+
+    def __repr__(self):  # pragma: no cover
+        return f"<ChanneLog: uuid={self.uuid} type={self.log_type}>"
 
     class Meta:
         indexes = [models.Index(name="channellogs_by_channel", fields=("channel", "-created_on"))]
