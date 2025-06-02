@@ -1,3 +1,7 @@
+v10.1.183 (2025-06-02)
+-------------------------
+ * Tweaks for testing Azure AD logins
+
 v10.1.182 (2025-06-02)
 -------------------------
  * Remove SyncEvent.lifetime
