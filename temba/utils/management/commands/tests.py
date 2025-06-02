@@ -27,13 +27,15 @@ class MigrateDynamoTest(TembaTest):
         out = StringIO()
         call_command("migrate_dynamo", stdout=out)
 
-        self.assertIn("Creating TempChannelLogs", out.getvalue())
+        self.assertIn("Creating TempMain", out.getvalue())
+        self.assertIn("Creating TempHistory", out.getvalue())
 
         client = dynamo.get_client()
-        table = client.Table("TempChannelLogs")
+        table = client.Table("TempMain")
         self.assertEqual("ACTIVE", table.table_status)
 
         out = StringIO()
         call_command("migrate_dynamo", stdout=out)
 
-        self.assertIn("Skipping TempChannelLogs", out.getvalue())
+        self.assertIn("Skipping TempMain", out.getvalue())
+        self.assertIn("Skipping TempHistory", out.getvalue())

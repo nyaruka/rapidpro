@@ -1351,7 +1351,6 @@ class ChannelLogTest(TembaTest):
             ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[{"url": "https://foo.bar/send1"}],
             errors=[{"code": "bad_response", "message": "response not right"}],
-            new_table=True,
         )
         log2 = self.create_channel_log(
             self.channel,
@@ -1378,16 +1377,16 @@ class ChannelLogTest(TembaTest):
     def test_get_by_channel(self):
         channel = self.create_channel("TG", "Telegram", "mybot")
         log1 = self.create_channel_log(
-            channel, ChannelLog.LOG_TYPE_MSG_SEND, http_logs=[{"url": "https://foo.bar/send1"}], new_table=True
+            channel, ChannelLog.LOG_TYPE_MSG_SEND, http_logs=[{"url": "https://foo.bar/send1"}]
         )
         log2 = self.create_channel_log(
-            channel, ChannelLog.LOG_TYPE_MSG_STATUS, http_logs=[{"url": "https://foo.bar/send2"}], new_table=True
+            channel, ChannelLog.LOG_TYPE_MSG_STATUS, http_logs=[{"url": "https://foo.bar/send2"}]
         )
         log3 = self.create_channel_log(
-            channel, ChannelLog.LOG_TYPE_MSG_STATUS, http_logs=[{"url": "https://foo.bar/send2"}], new_table=True
+            channel, ChannelLog.LOG_TYPE_MSG_STATUS, http_logs=[{"url": "https://foo.bar/send2"}]
         )
         self.create_channel_log(
-            self.channel, ChannelLog.LOG_TYPE_MSG_STATUS, http_logs=[{"url": "https://foo.bar/send2"}], new_table=True
+            self.channel, ChannelLog.LOG_TYPE_MSG_STATUS, http_logs=[{"url": "https://foo.bar/send2"}]
         )
 
         logs, prev_after, next_after = ChannelLog.get_by_channel(channel, limit=2)
