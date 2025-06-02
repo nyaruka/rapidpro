@@ -456,6 +456,7 @@ class ChannelCRUDL(SmartCRUDL):
         "read",
         "delete",
         "configuration",
+        "log",
         "facebook_whitelist",
     )
 
@@ -835,6 +836,17 @@ class ChannelCRUDL(SmartCRUDL):
 
             return context
 
+    class Log(SpaMixin, OrgObjPermsMixin, SmartReadView):
+        permission = "channels.channel_logs"
+        slug_url_kwarg = "uuid"
+
+        @classmethod
+        def derive_url_pattern(cls, path, action):
+            return r"^%s/%s/(?P<uuid>[0-9a-f-]{32})/(?P<log_uuid>[0-9a-f-]{32})/$" % (path, action)
+
+        def derive_menu_path(self):
+            return f"/settings/channels/{self.object.uuid}"
+
 
 class ChannelLogCRUDL(SmartCRUDL):
     model = ChannelLog
@@ -842,6 +854,7 @@ class ChannelLogCRUDL(SmartCRUDL):
     actions = ("list", "read", "msg", "call")
 
     class List(SpaMixin, OrgPermsMixin, SmartListView):
+        permission = "channels.channel_logs"
         fields = ("channel", "description", "created_on")
         link_fields = ("channel", "description", "created_on")
         paginate_by = 50
@@ -877,6 +890,8 @@ class ChannelLogCRUDL(SmartCRUDL):
         Detail view for a single channel log (that is in the database rather than S3).
         """
 
+        permission = "channels.channel_logs"
+
         def derive_menu_path(self):
             return f"/settings/channels/{self.object.channel.uuid}"
 
@@ -892,7 +907,7 @@ class ChannelLogCRUDL(SmartCRUDL):
             return context
 
     class BaseOwned(SpaMixin, OrgObjPermsMixin, SmartListView):
-        permission = "channels.channellog_read"
+        permission = "channels.channel_logs"
 
         @classmethod
         def derive_url_pattern(cls, path, action):
