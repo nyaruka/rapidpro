@@ -1,3 +1,8 @@
+v10.1.185 (2025-06-03)
+-------------------------
+ * Add ChannelCRUDL.LogsList to replace ChannelCRUDL completely
+ * Only delete invite secret in session if present
+
 v10.1.184 (2025-06-02)
 -------------------------
  * Replace existing clog read views with new read view in channel CRUDL
