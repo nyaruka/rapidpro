@@ -1061,6 +1061,40 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             choose_org=self.org,
         )
 
+    def test_logs_list(self):
+        channel = self.create_channel("T", "My Channel", "+250785551212")
+
+        logs = []
+        for i in range(55):
+            logs.append(
+                self.create_channel_log(
+                    channel,
+                    ChannelLog.LOG_TYPE_MSG_SEND,
+                    http_logs=[{"request": f"GET https://foo.bar/send{i}"}],
+                    errors=[],
+                )
+            )
+
+        self.create_channel_log(  # other channel
+            self.channel,
+            ChannelLog.LOG_TYPE_MSG_STATUS,
+            http_logs=[{"request": "GET https://foo.bar/send3"}],
+            errors=[],
+        )
+
+        log1_url = reverse("channels.channel_logs_list", args=[channel.uuid])
+
+        self.assertRequestDisallowed(log1_url, [None, self.agent, self.editor, self.admin2])
+        response = self.assertReadFetch(log1_url, [self.admin], context_object=channel)
+        self.assertEqual(logs[54].uuid, response.context["logs"][0].uuid)
+        self.assertEqual(logs[5].uuid, response.context["logs"][-1].uuid)
+        self.assertContains(response, "Message Send")
+        self.assertContains(response, f"after={logs[5].uuid}")
+
+        response = self.assertReadFetch(log1_url + f"?after={logs[5].uuid}", [self.admin], context_object=channel)
+        self.assertEqual(logs[4].uuid, response.context["logs"][0].uuid)
+        self.assertEqual(logs[0].uuid, response.context["logs"][-1].uuid)
+
     def test_logs_read(self):
         log1 = self.create_channel_log(
             self.channel,
@@ -1747,82 +1781,6 @@ class ChannelLogTest(TembaTest):
 
 
 class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
-    def test_list(self):
-        self.channel.role = "CASR"
-        self.channel.save(update_fields=("role",))
-
-        contact = self.create_contact("Fred Jones", phone="+12067799191")
-
-        # create unrelated incoming message
-        self.create_incoming_msg(contact, "incoming msg")
-
-        # create sent outgoing message with success channel log
-        success_log = ChannelLog.objects.create(
-            channel=self.channel,
-            log_type=ChannelLog.LOG_TYPE_MSG_SEND,
-            is_error=False,
-            http_logs=[
-                {
-                    "url": "https://foo.bar/send?msg=message",
-                    "status_code": 200,
-                    "request": "POST /send?msg=message\r\n\r\n{}",
-                    "response": 'HTTP/1.0 200 OK\r\r\r\n{"ok":true}',
-                    "elapsed_ms": 12,
-                    "retries": 0,
-                    "created_on": "2022-01-01T00:00:00Z",
-                }
-            ],
-        )
-        self.create_outgoing_msg(contact, "success message", status="D", logs=[success_log])
-
-        # create failed outgoing message with error channel log
-        failed_log = ChannelLog.objects.create(
-            channel=self.channel,
-            log_type=ChannelLog.LOG_TYPE_MSG_SEND,
-            is_error=True,
-            http_logs=[
-                {
-                    "url": "https://foo.bar/send?msg=failed+message",
-                    "status_code": 400,
-                    "request": "POST /send?msg=failed+message\r\n\r\n{}",
-                    "response": "HTTP/1.0 200 OK\r\r\r\n",
-                    "elapsed_ms": 12,
-                    "retries": 0,
-                    "created_on": "2022-01-01T00:00:00Z",
-                }
-            ],
-            errors=[{"message": "invalid credentials", "code": ""}],
-        )
-        self.create_outgoing_msg(contact, "failed message", logs=[failed_log])
-
-        # create a non-message, non-call other log
-        other_log = ChannelLog.objects.create(
-            channel=self.channel,
-            log_type=ChannelLog.LOG_TYPE_PAGE_SUBSCRIBE,
-            is_error=False,
-            http_logs=[
-                {
-                    "url": "https://foo.bar/page",
-                    "status_code": 400,
-                    "request": "POST /send?msg=failed+message\r\n\r\n{}",
-                    "response": "HTTP/1.0 200 OK\r\r\r\n",
-                    "elapsed_ms": 12,
-                    "retries": 0,
-                    "created_on": "2022-01-01T00:00:00Z",
-                }
-            ],
-        )
-
-        list_url = reverse("channels.channellog_list", args=[self.channel.uuid])
-
-        self.assertRequestDisallowed(list_url, [None, self.editor, self.agent, self.admin2])
-        response = self.assertListFetch(list_url, [self.admin], context_objects=[other_log, failed_log, success_log])
-        self.assertEqual(f"/settings/channels/{self.channel.uuid}", response.headers[TEMBA_MENU_SELECTION])
-
-        # invalid channel UUID returns 404
-        response = self.client.get(reverse("channels.channellog_list", args=["invalid-uuid"]))
-        self.assertEqual(404, response.status_code)
-
     def assertRedacted(self, response, values: tuple):
         for value in values:
             self.assertNotContains(response, value)

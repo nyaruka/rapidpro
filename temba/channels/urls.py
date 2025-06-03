@@ -5,7 +5,7 @@ from temba.utils.views import CourierURLHandler
 
 from .android.views import register, sync
 from .models import Channel
-from .views import ChannelCRUDL, ChannelLogCRUDL
+from .views import ChannelCRUDL
 
 # we iterate all our channel types, finding all the URLs they want to wire in
 courier_urls = []
@@ -27,7 +27,7 @@ for ch_type in Channel.get_types():
 
 
 urlpatterns = [
-    re_path(r"^channels/", include(ChannelCRUDL().as_urlpatterns() + ChannelLogCRUDL().as_urlpatterns())),
+    re_path(r"^channels/", include(ChannelCRUDL().as_urlpatterns())),
     re_path(r"^c/", include(courier_urls)),
     re_path(r"^channels/types/", include(type_urls)),
     re_path(r"^relayers/relayer/sync/(\d+)/$", sync, {}, "sync"),

@@ -11,7 +11,6 @@ import vonage
 from smartmin.views import (
     SmartCRUDL,
     SmartFormView,
-    SmartListView,
     SmartModelActionView,
     SmartReadView,
     SmartTemplateView,
@@ -40,7 +39,6 @@ from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin
 from temba.utils import countries
 from temba.utils.fields import SelectWidget
 from temba.utils.json import EpochEncoder
-from temba.utils.models import patch_queryset_count
 from temba.utils.views.mixins import ComponentFormMixin, ContextMenuMixin, ModalFormMixin, SpaMixin
 
 from .models import Channel, ChannelCount, ChannelLog
@@ -457,6 +455,7 @@ class ChannelCRUDL(SmartCRUDL):
         "read",
         "delete",
         "configuration",
+        "logs_list",
         "logs_read",
         "facebook_whitelist",
     )
@@ -477,7 +476,7 @@ class ChannelCRUDL(SmartCRUDL):
             if obj.type.config_ui:
                 menu.add_link(_("Configuration"), reverse("channels.channel_configuration", args=[obj.uuid]))
 
-            menu.add_link(_("Logs"), reverse("channels.channellog_list", args=[obj.uuid]))
+            menu.add_link(_("Logs"), reverse("channels.channel_logs_list", args=[obj.uuid]))
 
             if obj.type.template_type:
                 menu.add_link(_("Template Logs"), reverse("request_logs.httplog_channel", args=[obj.uuid]))
@@ -837,9 +836,42 @@ class ChannelCRUDL(SmartCRUDL):
 
             return context
 
+    class LogsList(SpaMixin, OrgObjPermsMixin, SmartReadView):
+        permission = "channels.channel_logs"
+        slug_url_kwarg = "uuid"
+        paginate_by = 50
+        title = _("Channel Logs")
+
+        @classmethod
+        def derive_url_pattern(cls, path, action):
+            return r"^%s/logs/(?P<uuid>[0-9a-f-]{36})/$" % path
+
+        def derive_menu_path(self):
+            return f"/settings/channels/{self.kwargs['uuid']}"
+
+        def get_context_data(self, **kwargs):
+            this_after = self.request.GET.get("after")
+            if this_after:
+                this_after = UUID(this_after)
+
+            logs, prev_after, next_after = ChannelLog.get_by_channel(
+                self.object, limit=self.paginate_by, after_uuid=this_after
+            )
+
+            context = super().get_context_data(**kwargs)
+            context["logs"] = logs
+            context["page_obj"] = {
+                "previous_page_after": prev_after,
+                "next_page_after": next_after,
+                "has_previous": bool(this_after),
+                "has_next": bool(next_after),
+            }
+            return context
+
     class LogsRead(SpaMixin, OrgObjPermsMixin, SmartReadView):
         permission = "channels.channel_logs"
         slug_url_kwarg = "uuid"
+        title = _("Channel Log")
 
         @classmethod
         def derive_url_pattern(cls, path, action):
@@ -874,42 +906,4 @@ class ChannelCRUDL(SmartCRUDL):
             context["msg"] = self.owner if isinstance(self.owner, Msg) else None
             context["call"] = self.owner if isinstance(self.owner, Call) else None
             context["logs"] = logs
-            return context
-
-
-class ChannelLogCRUDL(SmartCRUDL):
-    model = ChannelLog
-    path = "logs"  # urls like /channels/logs/
-    actions = ("list",)
-
-    class List(SpaMixin, OrgPermsMixin, SmartListView):
-        permission = "channels.channel_logs"
-        fields = ("channel", "description", "created_on")
-        link_fields = ("channel", "description", "created_on")
-        paginate_by = 50
-
-        def derive_menu_path(self):
-            return f"/settings/channels/{self.channel.uuid}"
-
-        @classmethod
-        def derive_url_pattern(cls, path, action):
-            return r"^%s/(?P<channel_uuid>[^/]+)/$" % path
-
-        @cached_property
-        def channel(self):
-            return get_object_or_404(Channel, uuid=self.kwargs["channel_uuid"])
-
-        def derive_org(self):
-            return self.channel.org
-
-        def derive_queryset(self, **kwargs):
-            qs = self.channel.logs.order_by("-created_on")
-
-            patch_queryset_count(qs, self.channel.get_log_count)
-
-            return qs
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-            context["channel"] = self.channel
             return context
