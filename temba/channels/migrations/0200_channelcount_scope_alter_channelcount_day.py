@@ -12,9 +12,9 @@ DROP FUNCTION temba_insert_channelcount(INTEGER, VARCHAR(2), DATE, INT);
 CREATE OR REPLACE FUNCTION temba_msg_channel_countscope(_msg msgs_msg) RETURNS TEXT STABLE AS $$
 BEGIN
   IF _msg.direction = 'I' THEN
-    IF _msg.msg_type = 'V' THEN RETURN 'in-voice'; ELSE RETURN 'in-text'; END IF;
+    IF _msg.msg_type = 'V' THEN RETURN 'voice:in'; ELSE RETURN 'text:in'; END IF;
   ELSE
-    IF _msg.msg_type = 'V' THEN RETURN 'out-voice'; ELSE RETURN 'out-text'; END IF;
+    IF _msg.msg_type = 'V' THEN RETURN 'voice:out'; ELSE RETURN 'text:out'; END IF;
   END IF;
   RETURN NULL;
 END;
