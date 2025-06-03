@@ -114,16 +114,18 @@
       </div>
     </div>
   </div>
-  <div class="paging-range mr-4">
-    {% blocktrans trimmed with start=page_obj.start_index|intcomma end=page_obj.end_index|intcomma total=paginator.count|intcomma %}
-      {{ start }} - {{ end }} of {{ total }}
-    {% endblocktrans %}
-  </div>
+  {% if paginator %}
+    <div class="paging-range mr-4">
+      {% blocktrans trimmed with start=page_obj.start_index|intcomma end=page_obj.end_index|intcomma total=paginator.count|intcomma %}
+        {{ start }} - {{ end }} of {{ total }}
+      {% endblocktrans %}
+    </div>
+  {% endif %}
   <div style="margin-top:2px;" class="paging-controls flex flex-row mr-2">
     <div class="paging-previous mr-2">
       {% if page_obj.has_previous %}
         <div onclick="goto(event, this)"
-             href="{{ request.path }}{{ url_params|safe }}page={{ page_obj.previous_page_number }}"
+             href="{{ request.path }}{% if paginator %}{% querystring page=page_obj.previous_page_number %}{% else %}{% querystring after=page_obj.previous_page_after %}{% endif %}"
              class="linked">
           <temba-icon size="1.2" name="arrow_left" clickable="true">
           </temba-icon>
@@ -138,7 +140,7 @@
     <div class="paging-next">
       {% if page_obj.has_next %}
         <div onclick="goto(event, this)"
-             href="{{ request.path }}{{ url_params|safe }}page={{ page_obj.next_page_number }}"
+             href="{{ request.path }}{% if paginator %}{% querystring page=page_obj.next_page_number %}{% else %}{% querystring after=page_obj.next_page_after %}{% endif %}"
              class="linked">
           <temba-icon size="1.2" name="arrow_right" clickable="true">
           </temba-icon>

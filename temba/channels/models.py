@@ -734,9 +734,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     def get_ivr_count(self, since=None):
         return self.get_count([ChannelCount.INCOMING_IVR_TYPE, ChannelCount.OUTGOING_IVR_TYPE])
 
-    def get_log_count(self, since=None):
-        return self.get_count([ChannelCount.SUCCESS_LOG_TYPE, ChannelCount.ERROR_LOG_TYPE])
-
     class Meta:
         ordering = ("-last_seen", "-pk")
 

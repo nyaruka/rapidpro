@@ -2,56 +2,56 @@
 {% load i18n contacts %}
 
 {% block content %}
-  <div class="bg-white rounded-lg shadow flex mt-0 flex-shrink-0 mb-4">
-    <div class="p-4">
-      {% if msg %}
-        <div class="inline-flex items-center">
-          <div style="font-size:1.5em" class="mr-4">{{ msg|msg_status_badge }}</div>
-          <div class="summary">
-            <span>{{ msg.get_direction_display }}</span>
-            <span>{% trans "message" %}</span>
-            <span>
-              {% if msg.direction == "I" %}
-                {% trans "from" %}
-              {% else %}
-                {% trans "to" %}
-              {% endif %}
-            </span>
-            <span>
-              <temba-anchor href="{% url "contacts.contact_read" msg.contact.uuid %}">
-                {{ msg.contact_urn.get_display }}
-              </temba-anchor>
-            </span>
-            <span>{% trans "on" %}</span>
-            <span>{{ msg.created_on|datetime }}</span>
+  {% if msg or call %}
+    <div class="bg-white rounded-lg shadow flex mt-0 flex-shrink-0 mb-4">
+      <div class="p-4">
+        {% if msg %}
+          <div class="inline-flex items-center">
+            <div style="font-size:1.5em" class="mr-4">{{ msg|msg_status_badge }}</div>
+            <div class="summary">
+              <span>{{ msg.get_direction_display }}</span>
+              <span>{% trans "message" %}</span>
+              <span>
+                {% if msg.direction == "I" %}
+                  {% trans "from" %}
+                {% else %}
+                  {% trans "to" %}
+                {% endif %}
+              </span>
+              <span>
+                <temba-anchor href="{% url "contacts.contact_read" msg.contact.uuid %}">
+                  {{ msg.contact_urn.get_display }}
+                </temba-anchor>
+              </span>
+              <span>{% trans "on" %}</span>
+              <span>{{ msg.created_on|datetime }}</span>
+            </div>
           </div>
-        </div>
-      {% elif call %}
-        <div class="inline-flex mr-8">
-          <div class="font-normal mr-2">{% trans "Recipient" %}</div>
-          <temba-anchor href="{% url "contacts.contact_read" call.contact.uuid %}">
-            {{ call.contact_urn.get_display }}
-          </temba-anchor>
-        </div>
-        <div class="inline-flex mr-8">
-          <div class="font-normal mr-2">{% trans "Duration" %}</div>
-          {{ call.get_duration }}
-        </div>
-        <div class="inline-flex mr-8">
-          <div class="font-normal mr-2">{% trans "Date" %}</div>
-          {{ call.created_on|datetime }}
-        </div>
-        <div class="inline-flex mr-8">
-          <div class="font-normal mr-2">{% trans "Status" %}</div>
-          {{ call.get_status_display }}
-        </div>
-      {% else %}
-        {% trans "Channel Log" %}
-      {% endif %}
+        {% elif call %}
+          <div class="inline-flex mr-8">
+            <div class="font-normal mr-2">{% trans "Recipient" %}</div>
+            <temba-anchor href="{% url "contacts.contact_read" call.contact.uuid %}">
+              {{ call.contact_urn.get_display }}
+            </temba-anchor>
+          </div>
+          <div class="inline-flex mr-8">
+            <div class="font-normal mr-2">{% trans "Duration" %}</div>
+            {{ call.get_duration }}
+          </div>
+          <div class="inline-flex mr-8">
+            <div class="font-normal mr-2">{% trans "Date" %}</div>
+            {{ call.created_on|datetime }}
+          </div>
+          <div class="inline-flex mr-8">
+            <div class="font-normal mr-2">{% trans "Status" %}</div>
+            {{ call.get_status_display }}
+          </div>
+        {% endif %}
+      </div>
     </div>
-  </div>
+  {% endif %}
   {% for log in logs %}
-    {% include "channels/channellog.html" with log=log %}
+    {% include "channels/includes/channellog.html" with log=log %}
   {% endfor %}
 {% endblock content %}
 {% block extra-script %}
