@@ -13,7 +13,7 @@ from temba.utils.analytics import track
 from temba.utils.crons import cron_task
 from temba.utils.models import delete_in_batches
 
-from .models import Channel, ChannelCount, ChannelEvent, ChannelLog, SyncEvent
+from .models import Channel, ChannelCount, ChannelEvent, SyncEvent
 from .types.android import AndroidType
 
 logger = logging.getLogger(__name__)
@@ -92,23 +92,6 @@ def trim_channel_sync_events():
 
         SyncEvent.objects.filter(id__in=event_ids).delete()
         num_deleted += len(event_ids)
-
-    return {"deleted": num_deleted}
-
-
-@cron_task(lock_timeout=7200)
-def trim_channel_logs():
-    """
-    Trims old channel logs
-    """
-
-    trim_before = timezone.now() - settings.RETENTION_PERIODS["channellog"]
-    start = timezone.now()
-
-    def can_continue():
-        return (timezone.now() - start) < timedelta(hours=1)
-
-    num_deleted = delete_in_batches(ChannelLog.objects.filter(created_on__lte=trim_before), post_delete=can_continue)
 
     return {"deleted": num_deleted}
 

@@ -36,7 +36,6 @@ from .tasks import (
     squash_channel_counts,
     track_org_channel_counts,
     trim_channel_events,
-    trim_channel_logs,
     trim_channel_sync_events,
 )
 
@@ -1753,31 +1752,6 @@ class ChannelLogTest(TembaTest):
             },
             log.get_display(anonymize=True, urn=msg_out.contact_urn),
         )
-
-    def test_trim_task(self):
-        ChannelLog.objects.create(
-            channel=self.channel,
-            log_type=ChannelLog.LOG_TYPE_MSG_SEND,
-            is_error=False,
-            http_logs=[],
-            errors=[],
-            created_on=timezone.now() - timedelta(days=15),
-        )
-        l2 = ChannelLog.objects.create(
-            channel=self.channel,
-            log_type=ChannelLog.LOG_TYPE_MSG_SEND,
-            is_error=False,
-            http_logs=[],
-            errors=[],
-            created_on=timezone.now() - timedelta(days=2),
-        )
-
-        results = trim_channel_logs()
-        self.assertEqual({"deleted": 1}, results)
-
-        # should only have one log remaining and should be l2
-        self.assertEqual(1, ChannelLog.objects.all().count())
-        self.assertTrue(ChannelLog.objects.filter(id=l2.id))
 
 
 class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
