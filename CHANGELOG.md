@@ -1,3 +1,10 @@
+v10.1.186 (2025-06-03)
+-------------------------
+ * Remove unused channel count squashing code
+ * Remove no longer needed track_org_channel_counts task
+ * Remove task to trim channel logs
+ * Remove db triggers for tracking channel log counts
+
 v10.1.185 (2025-06-03)
 -------------------------
  * Add ChannelCRUDL.LogsList to replace ChannelCRUDL completely
