@@ -65,7 +65,8 @@ class TembaSignupForm(InviteFormMixin, SignupForm):
 
     def save(self, request):
         # remove our invite from the session
-        del request.session["invite_secret"]
+        if "invite_secret" in request.session:
+            del request.session["invite_secret"]
 
         if self.invite:
             request.session["account_verified_email"] = self.invite.email
