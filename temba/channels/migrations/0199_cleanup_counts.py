@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def cleanup_counts(apps, schema_editor):
+def cleanup_counts(apps, schema_editor):  # pragma: no cover
     ChannelCount = apps.get_model("channels", "ChannelCount")
 
     num_deleted, _ = ChannelCount.objects.exclude(count_type__in=("IM", "OM", "IV", "OV")).delete()
