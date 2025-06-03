@@ -777,30 +777,17 @@ class ChannelCount(BaseSquashableCount):
 
     @classmethod
     def get_squash_query(cls, distinct_set: dict) -> tuple:
-        if distinct_set["day"]:
-            sql = """
-            WITH removed as (
-                DELETE FROM %(table)s WHERE "channel_id" = %%s AND "count_type" = %%s AND "day" = %%s RETURNING "count"
-            )
-            INSERT INTO %(table)s("channel_id", "count_type", "day", "count", "is_squashed")
-            VALUES (%%s, %%s, %%s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
-            """ % {
-                "table": cls._meta.db_table
-            }
+        sql = """
+        WITH removed as (
+            DELETE FROM %(table)s WHERE "channel_id" = %%s AND "count_type" = %%s AND "day" = %%s RETURNING "count"
+        )
+        INSERT INTO %(table)s("channel_id", "count_type", "day", "count", "is_squashed")
+        VALUES (%%s, %%s, %%s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
+        """ % {
+            "table": cls._meta.db_table
+        }
 
-            params = (distinct_set["channel_id"], distinct_set["count_type"], distinct_set["day"]) * 2
-        else:
-            sql = """
-            WITH removed as (
-                DELETE FROM %(table)s WHERE "channel_id" = %%s AND "count_type" = %%s AND "day" IS NULL RETURNING "count"
-            )
-            INSERT INTO %(table)s("channel_id", "count_type", "day", "count", "is_squashed")
-            VALUES (%%s, %%s, NULL, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
-            """ % {
-                "table": cls._meta.db_table
-            }
-
-            params = (distinct_set["channel_id"], distinct_set["count_type"]) * 2
+        params = (distinct_set["channel_id"], distinct_set["count_type"], distinct_set["day"]) * 2
 
         return sql, params
 
