@@ -674,6 +674,14 @@ class TembaTest(SmartminTest):
         )
 
     def create_channel_log(self, channel, log_type: str, *, http_logs=(), errors=()) -> dict:
+        def is_error():
+            if len(errors) > 0:
+                return True
+            for hlog in http_logs:
+                if hlog.get("status_code", 0) >= 400:
+                    return True
+            return False
+
         uuid = uuid7()
         created_on = timezone.now()
         expires_on = created_on + timezone.timedelta(days=7)
@@ -683,7 +691,7 @@ class TembaTest(SmartminTest):
             "SK": sk,
             "OrgID": channel.org_id,
             "TTL": int(expires_on.timestamp()),
-            "Data": {"type": log_type, "elapsed_ms": 12, "created_on": created_on.isoformat()},
+            "Data": {"type": log_type, "elapsed_ms": 12, "created_on": created_on.isoformat(), "is_error": is_error()},
             "DataGZ": dynamo.dump_jsongz({"http_logs": http_logs, "errors": errors}),
         }
 

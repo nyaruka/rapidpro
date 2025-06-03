@@ -1543,10 +1543,9 @@ class ChannelLogTest(TembaTest):
     def test_get_display(self):
         channel = self.create_channel("TG", "Telegram", "mybot")
         contact = self.create_contact("Fred Jones", urns=["telegram:74747474"])
-        log = ChannelLog.objects.create(
-            channel=channel,
-            log_type=ChannelLog.LOG_TYPE_MSG_SEND,
-            is_error=True,
+        log = self.create_channel_log(
+            channel,
+            ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[
                 {
                     "url": "https://telegram.com/send?to=74747474",
@@ -1579,7 +1578,7 @@ class ChannelLogTest(TembaTest):
                 ],
                 "errors": [{"code": "bad_response", "ext_code": "", "message": "response not right", "ref_url": None}],
                 "is_error": True,
-                "elapsed_ms": 0,
+                "elapsed_ms": 12,
                 "created_on": matchers.ISODatetime(),
             },
             log.get_display(anonymize=False, urn=msg_out.contact_urn),
@@ -1602,7 +1601,7 @@ class ChannelLogTest(TembaTest):
                 ],
                 "errors": [{"code": "bad_response", "ext_code": "", "message": "response n********", "ref_url": None}],
                 "is_error": True,
-                "elapsed_ms": 0,
+                "elapsed_ms": 12,
                 "created_on": matchers.ISODatetime(),
             },
             log.get_display(anonymize=True, urn=msg_out.contact_urn),
@@ -1626,7 +1625,7 @@ class ChannelLogTest(TembaTest):
                 ],
                 "errors": [{"code": "bad_response", "ext_code": "", "message": "response n********", "ref_url": None}],
                 "is_error": True,
-                "elapsed_ms": 0,
+                "elapsed_ms": 12,
                 "created_on": matchers.ISODatetime(),
             },
             log.get_display(anonymize=True, urn=None),
@@ -1644,10 +1643,9 @@ class ChannelLogTest(TembaTest):
             },
         )
         contact = self.create_contact("Bob", urns=["whatsapp:75757575"])
-        log = ChannelLog.objects.create(
-            channel=channel,
-            log_type=ChannelLog.LOG_TYPE_MSG_SEND,
-            is_error=True,
+        log = self.create_channel_log(
+            channel,
+            ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[
                 {
                     "url": "https://waba-v2.360dialog.io/send?to=75757575",
@@ -1676,7 +1674,7 @@ class ChannelLogTest(TembaTest):
                 ],
                 "errors": [{"code": "bad_response", "ext_code": "", "message": "response not right", "ref_url": None}],
                 "is_error": True,
-                "elapsed_ms": 0,
+                "elapsed_ms": 12,
                 "created_on": matchers.ISODatetime(),
             },
             log.get_display(anonymize=False, urn=msg_out.contact_urn),
@@ -1698,7 +1696,7 @@ class ChannelLogTest(TembaTest):
                 ],
                 "errors": [{"code": "bad_response", "ext_code": "", "message": "response n********", "ref_url": None}],
                 "is_error": True,
-                "elapsed_ms": 0,
+                "elapsed_ms": 12,
                 "created_on": matchers.ISODatetime(),
             },
             log.get_display(anonymize=True, urn=msg_out.contact_urn),

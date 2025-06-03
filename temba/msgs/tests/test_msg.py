@@ -3,7 +3,6 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from temba.channels.models import ChannelLog
 from temba.flows.models import Flow
 from temba.msgs.models import Msg, MsgFolder
 from temba.msgs.tasks import fail_old_android_messages
@@ -226,9 +225,6 @@ class MsgTest(TembaTest, CRUDLTestMixin):
 
     def test_big_ids(self):
         # create an incoming message with big id
-        log = ChannelLog.objects.create(
-            id=3_000_000_000, channel=self.channel, is_error=True, log_type=ChannelLog.LOG_TYPE_MSG_RECEIVE
-        )
         msg = Msg.objects.create(
             id=3_000_000_000,
             org=self.org,
@@ -241,7 +237,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
             msg_type="T",
             is_android=False,
             visibility="V",
-            log_uuids=[log.uuid],
+            log_uuids=[],
             created_on=timezone.now(),
             modified_on=timezone.now(),
         )
