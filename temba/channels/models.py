@@ -760,17 +760,11 @@ class ChannelCount(BaseSquashableCount):
     OUTGOING_MSG_TYPE = "OM"
     INCOMING_IVR_TYPE = "IV"
     OUTGOING_IVR_TYPE = "OV"
-
-    SUCCESS_LOG_TYPE = "LS"  # ChannelLog record
-    ERROR_LOG_TYPE = "LE"  # ChannelLog record that is an error
-
     COUNT_TYPE_CHOICES = (
         (INCOMING_MSG_TYPE, _("Incoming Message")),
         (OUTGOING_MSG_TYPE, _("Outgoing Message")),
         (INCOMING_IVR_TYPE, _("Incoming Voice")),
         (OUTGOING_IVR_TYPE, _("Outgoing Voice")),
-        (SUCCESS_LOG_TYPE, _("Success Log Record")),
-        (ERROR_LOG_TYPE, _("Error Log Record")),
     )
 
     channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="counts")
@@ -783,30 +777,17 @@ class ChannelCount(BaseSquashableCount):
 
     @classmethod
     def get_squash_query(cls, distinct_set: dict) -> tuple:
-        if distinct_set["day"]:
-            sql = """
-            WITH removed as (
-                DELETE FROM %(table)s WHERE "channel_id" = %%s AND "count_type" = %%s AND "day" = %%s RETURNING "count"
-            )
-            INSERT INTO %(table)s("channel_id", "count_type", "day", "count", "is_squashed")
-            VALUES (%%s, %%s, %%s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
-            """ % {
-                "table": cls._meta.db_table
-            }
+        sql = """
+        WITH removed as (
+            DELETE FROM %(table)s WHERE "channel_id" = %%s AND "count_type" = %%s AND "day" = %%s RETURNING "count"
+        )
+        INSERT INTO %(table)s("channel_id", "count_type", "day", "count", "is_squashed")
+        VALUES (%%s, %%s, %%s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
+        """ % {
+            "table": cls._meta.db_table
+        }
 
-            params = (distinct_set["channel_id"], distinct_set["count_type"], distinct_set["day"]) * 2
-        else:
-            sql = """
-            WITH removed as (
-                DELETE FROM %(table)s WHERE "channel_id" = %%s AND "count_type" = %%s AND "day" IS NULL RETURNING "count"
-            )
-            INSERT INTO %(table)s("channel_id", "count_type", "day", "count", "is_squashed")
-            VALUES (%%s, %%s, NULL, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
-            """ % {
-                "table": cls._meta.db_table
-            }
-
-            params = (distinct_set["channel_id"], distinct_set["count_type"]) * 2
+        params = (distinct_set["channel_id"], distinct_set["count_type"], distinct_set["day"]) * 2
 
         return sql, params
 
@@ -920,7 +901,7 @@ class ChannelLog(models.Model):
 
     id = models.BigAutoField(primary_key=True)
     uuid = models.UUIDField(default=uuid4, db_index=True)
-    channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="logs", db_index=False)  # index below
+    channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="logs", db_index=False)
 
     log_type = models.CharField(max_length=16, choices=LOG_TYPE_CHOICES)
     http_logs = models.JSONField(null=True)
@@ -979,6 +960,7 @@ class ChannelLog(models.Model):
             log_type=data["type"],
             http_logs=data["http_logs"],
             errors=data["errors"],
+            is_error=data.get("is_error", False),
             elapsed_ms=int(data["elapsed_ms"]),
             created_on=iso8601.parse_date(data["created_on"]),
         )
@@ -999,6 +981,7 @@ class ChannelLog(models.Model):
             "type": self.log_type,
             "http_logs": [h.copy() for h in self.http_logs or []],
             "errors": errors,
+            "is_error": self.is_error,
             "elapsed_ms": self.elapsed_ms,
             "created_on": self.created_on.isoformat(),
         }

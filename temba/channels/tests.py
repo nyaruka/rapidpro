@@ -23,7 +23,7 @@ from temba.notifications.tasks import send_notification_emails
 from temba.orgs.models import Org
 from temba.request_logs.models import HTTPLog
 from temba.templates.models import TemplateTranslation
-from temba.tests import CRUDLTestMixin, MigrationTest, MockResponse, TembaTest, matchers, mock_mailroom, override_brand
+from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom, override_brand
 from temba.tests.crudl import StaffRedirect
 from temba.triggers.models import Trigger
 from temba.utils import json
@@ -31,14 +31,7 @@ from temba.utils.models import generate_uuid
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
 from .models import Channel, ChannelCount, ChannelEvent, ChannelLog, SyncEvent
-from .tasks import (
-    check_android_channels,
-    squash_channel_counts,
-    track_org_channel_counts,
-    trim_channel_events,
-    trim_channel_logs,
-    trim_channel_sync_events,
-)
+from .tasks import check_android_channels, squash_channel_counts, trim_channel_events, trim_channel_sync_events
 
 
 class ChannelTest(TembaTest, CRUDLTestMixin):
@@ -1461,54 +1454,6 @@ class ChannelCountTest(TembaTest):
         Msg.bulk_delete([Msg.objects.get(text="B")])
         self.assertDailyCount(self.channel, 2, ChannelCount.INCOMING_MSG_TYPE, date(2023, 6, 1))
 
-    def test_log_counts(self):
-        contact = self.create_contact("Joe", phone="+250788111222")
-
-        self.assertEqual(0, ChannelCount.objects.count())
-
-        # ok, test outgoing now
-        log = ChannelLog.objects.create(channel=self.channel, log_type=ChannelLog.LOG_TYPE_MSG_SEND, is_error=True)
-        msg3 = self.create_outgoing_msg(contact, "Real Message", channel=self.channel, logs=[log])
-
-        # squash our counts
-        squash_channel_counts()
-
-        self.assertDailyCount(self.channel, 1, ChannelCount.OUTGOING_MSG_TYPE, msg3.created_on.date())
-        self.assertEqual(ChannelCount.objects.filter(count_type=ChannelCount.SUCCESS_LOG_TYPE).count(), 0)
-        self.assertEqual(ChannelCount.objects.filter(count_type=ChannelCount.ERROR_LOG_TYPE).count(), 1)
-
-        # delete our log, should decrement our count
-        log.delete()
-        self.assertEqual(0, self.channel.get_count([ChannelCount.ERROR_LOG_TYPE]))
-
-        # deleting a message doesn't decrement the count
-        msg3.delete()
-        self.assertDailyCount(self.channel, 1, ChannelCount.OUTGOING_MSG_TYPE, msg3.created_on.date())
-
-        ChannelCount.objects.all().delete()
-
-        # incoming IVR
-        msg4 = self.create_incoming_msg(contact, "Test Message", voice=True)
-        self.assertDailyCount(self.channel, 1, ChannelCount.INCOMING_IVR_TYPE, msg4.created_on.date())
-        msg4.delete()
-        self.assertDailyCount(self.channel, 1, ChannelCount.INCOMING_IVR_TYPE, msg4.created_on.date())
-
-        ChannelCount.objects.all().delete()
-
-        # outgoing ivr
-        msg5 = self.create_outgoing_msg(contact, "Real Voice", voice=True)
-        self.assertDailyCount(self.channel, 1, ChannelCount.OUTGOING_IVR_TYPE, msg5.created_on.date())
-        msg5.delete()
-        self.assertDailyCount(self.channel, 1, ChannelCount.OUTGOING_IVR_TYPE, msg5.created_on.date())
-
-        with patch("temba.channels.tasks.track") as mock:
-            self.create_incoming_msg(contact, "Test Message")
-
-            with self.assertNumQueries(6):
-                track_org_channel_counts(now=timezone.now() + timedelta(days=1))
-                self.assertEqual(2, mock.call_count)
-                mock.assert_called_with(self.admin, "temba.ivr_outgoing", {"count": 1})
-
 
 class ChannelEventTest(TembaTest):
     def test_trim_task(self):
@@ -1598,10 +1543,9 @@ class ChannelLogTest(TembaTest):
     def test_get_display(self):
         channel = self.create_channel("TG", "Telegram", "mybot")
         contact = self.create_contact("Fred Jones", urns=["telegram:74747474"])
-        log = ChannelLog.objects.create(
-            channel=channel,
-            log_type=ChannelLog.LOG_TYPE_MSG_SEND,
-            is_error=True,
+        log = self.create_channel_log(
+            channel,
+            ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[
                 {
                     "url": "https://telegram.com/send?to=74747474",
@@ -1633,7 +1577,8 @@ class ChannelLogTest(TembaTest):
                     }
                 ],
                 "errors": [{"code": "bad_response", "ext_code": "", "message": "response not right", "ref_url": None}],
-                "elapsed_ms": 0,
+                "is_error": True,
+                "elapsed_ms": 12,
                 "created_on": matchers.ISODatetime(),
             },
             log.get_display(anonymize=False, urn=msg_out.contact_urn),
@@ -1655,7 +1600,8 @@ class ChannelLogTest(TembaTest):
                     }
                 ],
                 "errors": [{"code": "bad_response", "ext_code": "", "message": "response n********", "ref_url": None}],
-                "elapsed_ms": 0,
+                "is_error": True,
+                "elapsed_ms": 12,
                 "created_on": matchers.ISODatetime(),
             },
             log.get_display(anonymize=True, urn=msg_out.contact_urn),
@@ -1678,7 +1624,8 @@ class ChannelLogTest(TembaTest):
                     }
                 ],
                 "errors": [{"code": "bad_response", "ext_code": "", "message": "response n********", "ref_url": None}],
-                "elapsed_ms": 0,
+                "is_error": True,
+                "elapsed_ms": 12,
                 "created_on": matchers.ISODatetime(),
             },
             log.get_display(anonymize=True, urn=None),
@@ -1696,10 +1643,9 @@ class ChannelLogTest(TembaTest):
             },
         )
         contact = self.create_contact("Bob", urns=["whatsapp:75757575"])
-        log = ChannelLog.objects.create(
-            channel=channel,
-            log_type=ChannelLog.LOG_TYPE_MSG_SEND,
-            is_error=True,
+        log = self.create_channel_log(
+            channel,
+            ChannelLog.LOG_TYPE_MSG_SEND,
             http_logs=[
                 {
                     "url": "https://waba-v2.360dialog.io/send?to=75757575",
@@ -1727,7 +1673,8 @@ class ChannelLogTest(TembaTest):
                     }
                 ],
                 "errors": [{"code": "bad_response", "ext_code": "", "message": "response not right", "ref_url": None}],
-                "elapsed_ms": 0,
+                "is_error": True,
+                "elapsed_ms": 12,
                 "created_on": matchers.ISODatetime(),
             },
             log.get_display(anonymize=False, urn=msg_out.contact_urn),
@@ -1748,36 +1695,12 @@ class ChannelLogTest(TembaTest):
                     }
                 ],
                 "errors": [{"code": "bad_response", "ext_code": "", "message": "response n********", "ref_url": None}],
-                "elapsed_ms": 0,
+                "is_error": True,
+                "elapsed_ms": 12,
                 "created_on": matchers.ISODatetime(),
             },
             log.get_display(anonymize=True, urn=msg_out.contact_urn),
         )
-
-    def test_trim_task(self):
-        ChannelLog.objects.create(
-            channel=self.channel,
-            log_type=ChannelLog.LOG_TYPE_MSG_SEND,
-            is_error=False,
-            http_logs=[],
-            errors=[],
-            created_on=timezone.now() - timedelta(days=15),
-        )
-        l2 = ChannelLog.objects.create(
-            channel=self.channel,
-            log_type=ChannelLog.LOG_TYPE_MSG_SEND,
-            is_error=False,
-            http_logs=[],
-            errors=[],
-            created_on=timezone.now() - timedelta(days=2),
-        )
-
-        results = trim_channel_logs()
-        self.assertEqual({"deleted": 1}, results)
-
-        # should only have one log remaining and should be l2
-        self.assertEqual(1, ChannelLog.objects.all().count())
-        self.assertTrue(ChannelLog.objects.filter(id=l2.id))
 
 
 class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
@@ -2136,32 +2059,3 @@ class CourierTest(TembaTest):
         response = self.client.get(reverse("courier.t", args=[self.channel.uuid, "receive"]))
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.content, b"this URL should be mapped to a Courier instance")
-
-
-class MigrateBandwidthAppIDConfigTest(MigrationTest):
-    app = "channels"
-    migrate_from = "0194_populate_max_concurrent_calls"
-    migrate_to = "0195_migrate_bandwidth_app_ids"
-
-    def setUpBeforeMigration(self, apps):
-        self.channel1 = self.create_channel(
-            "BW", "My Bandwith", "75474745", role="SR", config={"application_id": "foo-id"}
-        )
-        self.channel2 = self.create_channel(
-            "BW", "My Bandwith", "75474745", role="CA", config={"application_id": "bar-id"}
-        )
-
-        self.channel3 = self.create_channel(
-            "BW", "My Bandwith", "75474745", role="CA", config={"application_id": "baz-id"}
-        )
-        self.channel3.is_active = False
-        self.channel3.save()
-
-    def test_migration(self):
-        def assert_config(ch, expected: dict):
-            ch.refresh_from_db()
-            self.assertEqual(expected, ch.config)
-
-        assert_config(self.channel1, {"messaging_application_id": "foo-id"})
-        assert_config(self.channel2, {"voice_application_id": "bar-id"})
-        assert_config(self.channel3, {"application_id": "baz-id"})

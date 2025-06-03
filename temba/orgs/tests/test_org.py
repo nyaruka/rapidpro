@@ -13,7 +13,7 @@ from temba.ai.types.openai.type import OpenAIType
 from temba.api.models import Resthook, WebHookEvent
 from temba.archives.models import Archive
 from temba.campaigns.models import Campaign, CampaignEvent
-from temba.channels.models import ChannelLog, SyncEvent
+from temba.channels.models import SyncEvent
 from temba.classifiers.models import Classifier
 from temba.classifiers.types.wit import WitType
 from temba.contacts.models import ContactExport, ContactField, ContactFire, ContactImport, ContactImportBatch
@@ -494,7 +494,6 @@ class OrgDeleteTest(TembaTest):
             )
         )
         add(ChannelDisconnectedIncidentType.get_or_create(channel2))
-        add(ChannelLog.objects.create(channel=channel1, log_type=ChannelLog.LOG_TYPE_MSG_SEND))
         add(
             HTTPLog.objects.create(
                 org=org, channel=channel2, log_type=HTTPLog.WHATSAPP_TEMPLATES_SYNCED, request_time=10, is_error=False
