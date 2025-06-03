@@ -1117,7 +1117,7 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
                 }
             ],
         )
-        msg1 = self.create_outgoing_msg(contact, "success message", channel=self.channel, status="D", logs=[log1, log2])
+        msg1 = self.create_outgoing_msg(contact, "Message 1", channel=self.channel, status="D", logs=[log1, log2])
 
         # create another msg and log that shouldn't be included
         log3 = self.create_channel_log(
@@ -1135,7 +1135,7 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
                 }
             ],
         )
-        self.create_outgoing_msg(contact, "success message", status="D", logs=[log3])
+        self.create_outgoing_msg(contact, "Message 2", status="D", logs=[log3])
 
         logs_url = reverse("channels.channel_logs_read", args=[self.channel.uuid, "msg", msg1.id])
 
@@ -1147,6 +1147,17 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(logs_url)
         self.assertEqual(f"/settings/channels/{self.channel.uuid}", response.headers[TEMBA_MENU_SELECTION])
+
+        # try to lookup log from different org using channel from this org
+        org2_contact = self.create_contact("Alice", phone="+250788382382", org=self.org2)
+        org2_channel = self.create_channel("A", "Other Channel", "+250785551212", org=self.org2)
+        org2_log = self.create_channel_log(org2_channel, ChannelLog.LOG_TYPE_MSG_SEND, http_logs=[])
+        org2_msg2 = self.create_outgoing_msg(
+            org2_contact, "Message 3", status="D", channel=org2_channel, logs=[org2_log]
+        )
+
+        logs_url = reverse("channels.channel_logs_read", args=[self.channel.uuid, "msg", org2_msg2.id])
+        self.assertRequestDisallowed(logs_url, [None, self.editor, self.agent, self.admin, self.admin2])
 
     def test_logs_call(self):
         contact = self.create_contact("Fred", phone="+12067799191")
