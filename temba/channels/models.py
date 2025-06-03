@@ -721,8 +721,8 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         assert self.is_android, "can only trigger syncs on Android channels"
         mailroom.get_client().android_sync(self)
 
-    def get_count(self, count_types, since=None):
-        qs = ChannelCount.objects.filter(channel=self, count_type__in=count_types)
+    def get_count(self, scopes, since=None):
+        qs = ChannelCount.objects.filter(channel=self, scope__in=scopes)
         if since:
             qs = qs.filter(day__gte=since)
 
@@ -730,10 +730,10 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         return 0 if count is None else count
 
     def get_msg_count(self, since=None):
-        return self.get_count([ChannelCount.INCOMING_MSG_TYPE, ChannelCount.OUTGOING_MSG_TYPE], since)
+        return self.get_count([ChannelCount.SCOPE_TEXT_IN, ChannelCount.SCOPE_TEXT_OUT], since)
 
     def get_ivr_count(self, since=None):
-        return self.get_count([ChannelCount.INCOMING_IVR_TYPE, ChannelCount.OUTGOING_IVR_TYPE])
+        return self.get_count([ChannelCount.SCOPE_VOICE_IN, ChannelCount.SCOPE_VOICE_OUT])
 
     class Meta:
         ordering = ("-last_seen", "-pk")
@@ -756,6 +756,11 @@ class ChannelCount(BaseSquashableCount):
 
     squash_over = ("channel_id", "count_type", "day", "scope")
 
+    SCOPE_TEXT_IN = "text:in"
+    SCOPE_TEXT_OUT = "text:out"
+    SCOPE_VOICE_IN = "voice:in"
+    SCOPE_VOICE_OUT = "voice:out"
+
     # tracked from insertions into the message table
     INCOMING_MSG_TYPE = "IM"
     OUTGOING_MSG_TYPE = "OM"
@@ -776,14 +781,14 @@ class ChannelCount(BaseSquashableCount):
     count_type = models.CharField(choices=COUNT_TYPE_CHOICES, max_length=2)
 
     @classmethod
-    def get_day_count(cls, channel, count_type, day):
-        return cls.objects.filter(channel=channel, count_type=count_type, day=day).order_by("day", "count_type").sum()
+    def get_day_count(cls, channel, scope, day):
+        return cls.objects.filter(channel=channel, scope=scope, day=day).order_by("day", "scope").sum()
 
     @classmethod
     def get_squash_query(cls, distinct_set: dict) -> tuple:
         sql = """
         WITH removed as (
-            DELETE FROM %(table)s WHERE "channel_id" = %%s AND "count_type" = %%s AND "day" = %%s RETURNING "count"
+            DELETE FROM %(table)s WHERE "channel_id" = %%s AND "scope" = %%s AND "day" = %%s RETURNING "count"
         )
         INSERT INTO %(table)s("channel_id", "count_type", "day", "scope", "count", "is_squashed")
         VALUES (%%s, %%s, %%s, %%s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
@@ -793,7 +798,7 @@ class ChannelCount(BaseSquashableCount):
 
         params = (
             distinct_set["channel_id"],
-            distinct_set["count_type"],
+            distinct_set["scope"],
             distinct_set["day"],
             distinct_set["channel_id"],
             distinct_set["count_type"],

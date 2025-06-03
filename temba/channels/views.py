@@ -529,16 +529,16 @@ class ChannelCRUDL(SmartCRUDL):
             monthly_totals = list(
                 ChannelCount.objects.filter(channel=channel, day__gte=month_start)
                 .filter(
-                    count_type__in=[
-                        ChannelCount.INCOMING_MSG_TYPE,
-                        ChannelCount.OUTGOING_MSG_TYPE,
-                        ChannelCount.INCOMING_IVR_TYPE,
-                        ChannelCount.OUTGOING_IVR_TYPE,
+                    scope__in=[
+                        ChannelCount.SCOPE_TEXT_IN,
+                        ChannelCount.SCOPE_TEXT_OUT,
+                        ChannelCount.SCOPE_VOICE_IN,
+                        ChannelCount.SCOPE_VOICE_OUT,
                     ]
                 )
                 .extra({"month": "date_trunc('month', day)"})
-                .values("month", "count_type")
-                .order_by("month", "count_type")
+                .values("month", "scope")
+                .order_by("month", "scope")
                 .annotate(count_sum=Sum("count"))
             )
 
@@ -551,13 +551,13 @@ class ChannelCRUDL(SmartCRUDL):
 
                 while monthly_totals and monthly_totals[0]["month"] == month_start:
                     monthly_total = monthly_totals.pop(0)
-                    if monthly_total["count_type"] == ChannelCount.INCOMING_MSG_TYPE:
+                    if monthly_total["count_type"] == ChannelCount.SCOPE_TEXT_IN:
                         msg_in = monthly_total["count_sum"]
-                    elif monthly_total["count_type"] == ChannelCount.OUTGOING_MSG_TYPE:
+                    elif monthly_total["count_type"] == ChannelCount.SCOPE_TEXT_OUT:
                         msg_out = monthly_total["count_sum"]
-                    elif monthly_total["count_type"] == ChannelCount.INCOMING_IVR_TYPE:
+                    elif monthly_total["count_type"] == ChannelCount.SCOPE_VOICE_IN:
                         ivr_in = monthly_total["count_sum"]
-                    elif monthly_total["count_type"] == ChannelCount.OUTGOING_IVR_TYPE:
+                    elif monthly_total["count_type"] == ChannelCount.SCOPE_VOICE_OUT:
                         ivr_out = monthly_total["count_sum"]
 
                 message_stats_table.append(
@@ -606,15 +606,15 @@ class ChannelCRUDL(SmartCRUDL):
             daily_counts = list(
                 channel.counts.filter(
                     day__gte=start_date,
-                    count_type__in=[
-                        ChannelCount.INCOMING_MSG_TYPE,
-                        ChannelCount.OUTGOING_MSG_TYPE,
-                        ChannelCount.INCOMING_IVR_TYPE,
-                        ChannelCount.OUTGOING_IVR_TYPE,
+                    scope__in=[
+                        ChannelCount.SCOPE_TEXT_IN,
+                        ChannelCount.SCOPE_TEXT_OUT,
+                        ChannelCount.SCOPE_VOICE_IN,
+                        ChannelCount.SCOPE_VOICE_OUT,
                     ],
                 )
-                .values("day", "count_type")
-                .order_by("day", "count_type")
+                .values("day", "scope")
+                .order_by("day", "scope")
                 .annotate(count_sum=Sum("count"))
             )
 
@@ -625,13 +625,13 @@ class ChannelCRUDL(SmartCRUDL):
                     daily_count = daily_counts.pop(0)
 
                     point = [daily_count["day"], daily_count["count_sum"]]
-                    if daily_count["count_type"] == ChannelCount.INCOMING_MSG_TYPE:
+                    if daily_count["scope"] == ChannelCount.SCOPE_TEXT_IN:
                         msg_in.append(point)
-                    elif daily_count["count_type"] == ChannelCount.OUTGOING_MSG_TYPE:
+                    elif daily_count["scope"] == ChannelCount.SCOPE_TEXT_OUT:
                         msg_out.append(point)
-                    elif daily_count["count_type"] == ChannelCount.INCOMING_IVR_TYPE:
+                    elif daily_count["scope"] == ChannelCount.SCOPE_TEXT_OUT:
                         ivr_in.append(point)
-                    elif daily_count["count_type"] == ChannelCount.OUTGOING_IVR_TYPE:
+                    elif daily_count["scope"] == ChannelCount.SCOPE_VOICE_OUT:
                         ivr_out.append(point)
                 current = current + timedelta(days=1)
 

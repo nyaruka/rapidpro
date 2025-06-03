@@ -61,9 +61,9 @@ class MessageHistory(OrgPermsMixin, SmartTemplateView):
 
         # get all our counts for that period
         daily_counts = ChannelCount.objects.filter(
-            count_type__in=[
-                ChannelCount.INCOMING_MSG_TYPE,
-                ChannelCount.OUTGOING_MSG_TYPE,
+            scope__in=[
+                ChannelCount.SCOPE_TEXT_IN,
+                ChannelCount.SCOPE_TEXT_OUT,
             ]
         )
 
@@ -145,9 +145,9 @@ class WorkspaceStats(OrgPermsMixin, SmartTemplateView):
 
         # get all our counts for that period
         daily_counts = ChannelCount.objects.filter(
-            count_type__in=[
-                ChannelCount.INCOMING_MSG_TYPE,
-                ChannelCount.OUTGOING_MSG_TYPE,
+            scope__in=[
+                ChannelCount.SCOPE_TEXT_IN,
+                ChannelCount.SCOPE_TEXT_OUT,
             ]
         )
 
@@ -163,8 +163,8 @@ class WorkspaceStats(OrgPermsMixin, SmartTemplateView):
         for org in orgs:
             org_daily_counts = list(
                 daily_counts.filter(channel__org_id=org.id)
-                .values("count_type")
-                .order_by("count_type")
+                .values("scope")
+                .order_by("scope")
                 .annotate(count_sum=Sum("count"))
             )
 
@@ -175,9 +175,9 @@ class WorkspaceStats(OrgPermsMixin, SmartTemplateView):
             inbound_count, outbound_count = 0, 0
 
             for count in org_daily_counts:
-                if count["count_type"] == ChannelCount.INCOMING_MSG_TYPE:
+                if count["scope"] == ChannelCount.SCOPE_TEXT_IN:
                     inbound_count = count["count_sum"]
-                elif count["count_type"] == ChannelCount.OUTGOING_MSG_TYPE:
+                elif count["scope"] == ChannelCount.SCOPE_TEXT_OUT:
                     outbound_count = count["count_sum"]
 
             categories.append(org.name)
@@ -216,16 +216,16 @@ class RangeDetails(OrgPermsMixin, SmartTemplateView):
             if org:
                 orgs = Org.objects.filter(Q(id=org.id) | Q(parent=org))
 
-            count_types = []
+            scopes = []
             if "O" in direction:
-                count_types = [ChannelCount.OUTGOING_MSG_TYPE, ChannelCount.OUTGOING_IVR_TYPE]
+                scopes = [ChannelCount.SCOPE_TEXT_OUT, ChannelCount.SCOPE_VOICE_OUT]
 
             if "I" in direction:
-                count_types += [ChannelCount.INCOMING_MSG_TYPE, ChannelCount.INCOMING_IVR_TYPE]
+                scopes += [ChannelCount.SCOPE_TEXT_IN, ChannelCount.SCOPE_VOICE_IN]
 
             # get all our counts for that period
             daily_counts = (
-                ChannelCount.objects.filter(count_type__in=count_types)
+                ChannelCount.objects.filter(scope__in=scopes)
                 .filter(day__gte=begin)
                 .filter(day__lte=end)
                 .exclude(channel__org=None)
@@ -240,7 +240,7 @@ class RangeDetails(OrgPermsMixin, SmartTemplateView):
             )
 
             channel_types = (
-                ChannelCount.objects.filter(count_type__in=count_types)
+                ChannelCount.objects.filter(scopes__in=scopes)
                 .filter(day__gte=begin)
                 .filter(day__lte=end)
                 .exclude(channel__org=None)

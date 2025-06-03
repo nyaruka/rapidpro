@@ -1368,8 +1368,8 @@ class ChannelIncidentsTest(TembaTest):
 
 
 class ChannelCountTest(TembaTest):
-    def assertDailyCount(self, channel, assert_count, count_type, day):
-        calculated_count = ChannelCount.get_day_count(channel, count_type, day)
+    def assertDailyCount(self, channel, assert_count, scope, day):
+        calculated_count = ChannelCount.get_day_count(channel, scope, day)
         self.assertEqual(assert_count, calculated_count)
 
     def test_msg_counts(self):
@@ -1427,32 +1427,32 @@ class ChannelCountTest(TembaTest):
             ]
         )
 
-        self.assertDailyCount(self.channel, 1, ChannelCount.INCOMING_MSG_TYPE, date(2023, 5, 31))
-        self.assertDailyCount(self.channel, 0, ChannelCount.INCOMING_IVR_TYPE, date(2023, 5, 31))
-        self.assertDailyCount(self.channel, 2, ChannelCount.INCOMING_MSG_TYPE, date(2023, 6, 1))
-        self.assertDailyCount(self.channel, 1, ChannelCount.INCOMING_IVR_TYPE, date(2023, 6, 1))
-        self.assertDailyCount(self.channel, 3, ChannelCount.OUTGOING_MSG_TYPE, date(2023, 6, 1))
-        self.assertDailyCount(self.channel, 1, ChannelCount.OUTGOING_IVR_TYPE, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 1, ChannelCount.SCOPE_TEXT_IN, date(2023, 5, 31))
+        self.assertDailyCount(self.channel, 0, ChannelCount.SCOPE_VOICE_IN, date(2023, 5, 31))
+        self.assertDailyCount(self.channel, 2, ChannelCount.SCOPE_TEXT_IN, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 1, ChannelCount.SCOPE_VOICE_IN, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 3, ChannelCount.SCOPE_TEXT_OUT, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 1, ChannelCount.SCOPE_VOICE_OUT, date(2023, 6, 1))
 
         # squash our counts
         squash_channel_counts()
 
         self.assertEqual(ChannelCount.objects.all().count(), 5)
 
-        self.assertDailyCount(self.channel, 1, ChannelCount.INCOMING_MSG_TYPE, date(2023, 5, 31))
-        self.assertDailyCount(self.channel, 0, ChannelCount.INCOMING_IVR_TYPE, date(2023, 5, 31))
-        self.assertDailyCount(self.channel, 2, ChannelCount.INCOMING_MSG_TYPE, date(2023, 6, 1))
-        self.assertDailyCount(self.channel, 1, ChannelCount.INCOMING_IVR_TYPE, date(2023, 6, 1))
-        self.assertDailyCount(self.channel, 3, ChannelCount.OUTGOING_MSG_TYPE, date(2023, 6, 1))
-        self.assertDailyCount(self.channel, 1, ChannelCount.OUTGOING_IVR_TYPE, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 1, ChannelCount.SCOPE_TEXT_IN, date(2023, 5, 31))
+        self.assertDailyCount(self.channel, 0, ChannelCount.SCOPE_VOICE_IN, date(2023, 5, 31))
+        self.assertDailyCount(self.channel, 2, ChannelCount.SCOPE_TEXT_IN, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 1, ChannelCount.SCOPE_VOICE_IN, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 3, ChannelCount.SCOPE_TEXT_OUT, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 1, ChannelCount.SCOPE_VOICE_OUT, date(2023, 6, 1))
 
         # soft deleting a message doesn't decrement the count
         Msg.bulk_soft_delete([Msg.objects.get(text="A")])
-        self.assertDailyCount(self.channel, 1, ChannelCount.INCOMING_MSG_TYPE, date(2023, 5, 31))
+        self.assertDailyCount(self.channel, 1, ChannelCount.SCOPE_TEXT_IN, date(2023, 5, 31))
 
         # nor hard deleting
         Msg.bulk_delete([Msg.objects.get(text="B")])
-        self.assertDailyCount(self.channel, 2, ChannelCount.INCOMING_MSG_TYPE, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 2, ChannelCount.SCOPE_TEXT_IN, date(2023, 6, 1))
 
 
 class ChannelEventTest(TembaTest):
