@@ -1,3 +1,7 @@
+v10.1.187 (2025-06-03)
+-------------------------
+ * Data migration to remove old LS LE channel counts
+
 v10.1.186 (2025-06-03)
 -------------------------
  * Remove unused channel count squashing code
