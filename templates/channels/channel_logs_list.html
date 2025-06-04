@@ -1,0 +1,41 @@
+{% extends "smartmin/read.html" %}
+{% load i18n smartmin humanize temba %}
+
+{% block title-text %}
+  {% trans "Logs" %}
+{% endblock title-text %}
+{% block extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    .log-error {
+      color: rgb(var(--error-rgb));
+    }
+  </style>
+{% endblock extra-style %}
+{% block content %}
+  <div class="mb-4">
+    {% blocktrans trimmed with days=7 %}
+      These are kept for {{ days }} days.
+    {% endblocktrans %}
+  </div>
+  <div class="mt-4 shadow rounded-lg rounded-bl-none rounded-br-none bg-white">{% include "includes/short_pagination.html" %}</div>
+  <div class="flex-grow overflow-y-auto shadow rounded-b-lg">
+    <table class="list lined scrolled">
+      <tbody>
+        {% for obj in logs %}
+          <tr onclick="goto(event)"
+              href="{% url "channels.channel_logs_read" channel.uuid 'log' obj.uuid %}"
+              class="hover-linked {% if obj.is_error %}log-error{% endif %}">
+            <td>{{ obj.get_log_type_display }}</td>
+            <td>{{ obj.elapsed_ms|intcomma }}ms</td>
+            <td class="text-right">{{ obj.created_on|timedate }}</td>
+          </tr>
+        {% empty %}
+          <tr class="empty_list">
+            <td colspan="99" class="text-center">{% trans "No logs" %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock content %}

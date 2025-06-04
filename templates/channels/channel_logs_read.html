@@ -1,0 +1,92 @@
+{% extends "smartmin/read.html" %}
+{% load i18n contacts %}
+
+{% block content %}
+  {% if msg or call %}
+    <div class="bg-white rounded-lg shadow flex mt-0 flex-shrink-0 mb-4">
+      <div class="p-4">
+        {% if msg %}
+          <div class="inline-flex items-center">
+            <div style="font-size:1.5em" class="mr-4">{{ msg|msg_status_badge }}</div>
+            <div class="summary">
+              <span>{{ msg.get_direction_display }}</span>
+              <span>{% trans "message" %}</span>
+              <span>
+                {% if msg.direction == "I" %}
+                  {% trans "from" %}
+                {% else %}
+                  {% trans "to" %}
+                {% endif %}
+              </span>
+              <span>
+                <temba-anchor href="{% url "contacts.contact_read" msg.contact.uuid %}">
+                  {{ msg.contact_urn.get_display }}
+                </temba-anchor>
+              </span>
+              <span>{% trans "on" %}</span>
+              <span>{{ msg.created_on|datetime }}</span>
+            </div>
+          </div>
+        {% elif call %}
+          <div class="inline-flex mr-8">
+            <div class="font-normal mr-2">{% trans "Recipient" %}</div>
+            <temba-anchor href="{% url "contacts.contact_read" call.contact.uuid %}">
+              {{ call.contact_urn.get_display }}
+            </temba-anchor>
+          </div>
+          <div class="inline-flex mr-8">
+            <div class="font-normal mr-2">{% trans "Duration" %}</div>
+            {{ call.get_duration }}
+          </div>
+          <div class="inline-flex mr-8">
+            <div class="font-normal mr-2">{% trans "Date" %}</div>
+            {{ call.created_on|datetime }}
+          </div>
+          <div class="inline-flex mr-8">
+            <div class="font-normal mr-2">{% trans "Status" %}</div>
+            {{ call.get_status_display }}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+  {% for log in logs %}
+    {% include "channels/includes/channellog.html" with log=log %}
+  {% endfor %}
+{% endblock content %}
+{% block extra-script %}
+  {{ block.super }}
+  <script type="text/javascript">
+    onSpload(function() {
+      prettyPrint();
+    });
+  </script>
+{% endblock extra-script %}
+{% block extra-style %}
+  {{ block.super }}
+  <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}rest_framework/css/prettify.css" />
+  <style type="text/css">
+    table.http-log tbody tr:first-child td {
+      padding: 1.5rem;
+    }
+
+    pre.prettyprint {
+      margin: 0;
+      border: 0;
+      max-height: none !important;
+      padding: 1.5rem;
+    }
+
+    pre.prettyprint.request {
+      background: #ffffff;
+    }
+
+    .page-content {
+      max-width: 100%;
+    }
+
+    .log-error {
+      color: rgb(var(--error-rgb));
+    }
+  </style>
+{% endblock extra-style %}

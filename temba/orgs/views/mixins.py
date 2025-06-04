@@ -31,10 +31,7 @@ class OrgPermsMixin:
         user = self.request.user
 
         # can't have an org perm without an org
-        if not org:
-            return False
-
-        if user.is_anonymous:
+        if not org or user.is_anonymous:
             return False
 
         return user.is_staff or user.has_org_perm(org, permission)

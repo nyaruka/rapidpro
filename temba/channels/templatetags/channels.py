@@ -17,15 +17,15 @@ def channel_log_link(context, obj):
     org = context["user_org"]
     logs_url = None
 
-    if user.has_org_perm(org, "channels.channellog_read") or user.is_staff:
+    if user.has_org_perm(org, "channels.channel_logs") or user.is_staff:
         has_channel = obj.channel and obj.channel.is_active
 
         obj_age = timezone.now() - obj.created_on
 
         if has_channel and obj_age < settings.RETENTION_PERIODS["channellog"]:
             if isinstance(obj, Call):
-                logs_url = reverse("channels.channellog_call", args=[obj.channel.uuid, obj.id])
+                logs_url = reverse("channels.channel_logs_read", args=[obj.channel.uuid, "call", obj.id])
             if isinstance(obj, Msg):
-                logs_url = reverse("channels.channellog_msg", args=[obj.channel.uuid, obj.id])
+                logs_url = reverse("channels.channel_logs_read", args=[obj.channel.uuid, "msg", obj.id])
 
     return {"logs_url": logs_url}
