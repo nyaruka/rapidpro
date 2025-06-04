@@ -29,7 +29,7 @@ from temba.msgs.models import Label, OptIn
 from temba.orgs.models import DependencyMixin, Export, ExportType, Org, User
 from temba.templates.models import Template
 from temba.tickets.models import Topic
-from temba.utils import analytics, json, on_transaction_commit, s3
+from temba.utils import json, on_transaction_commit, s3
 from temba.utils.export.models import MultiSheetExporter
 from temba.utils.models import JSONAsTextField, LegacyUUIDMixin, TembaModel, delete_in_batches
 from temba.utils.models.counts import BaseScopedCount, BaseSquashableCount
@@ -219,7 +219,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
                 },
             )
 
-        analytics.track(user, "temba.flow_created", dict(name=name, uuid=flow.uuid))
         return flow
 
     @property

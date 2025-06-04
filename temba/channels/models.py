@@ -25,7 +25,7 @@ from django.utils.translation import gettext_lazy as _
 
 from temba import mailroom
 from temba.orgs.models import DependencyMixin, Org
-from temba.utils import analytics, dynamo, on_transaction_commit, redact
+from temba.utils import dynamo, on_transaction_commit, redact
 from temba.utils.models import (
     JSONAsTextField,
     LegacyUUIDMixin,
@@ -402,9 +402,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         # normalize any telephone numbers that we may now have a clue as to country
         if org and country and "tel" in schemes and normalize_urns:
             org.normalize_contact_tels()
-
-        # track our creation
-        analytics.track(user, "temba.channel_created", dict(channel_type=channel_type.code))
 
         if channel_type.async_activation:
             on_transaction_commit(lambda: channel_type.activate(channel))

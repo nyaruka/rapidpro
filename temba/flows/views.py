@@ -44,7 +44,7 @@ from temba.orgs.views.base import (
 )
 from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
 from temba.triggers.models import Trigger
-from temba.utils import analytics, gettext, json, languages
+from temba.utils import gettext, json, languages
 from temba.utils.fields import (
     CheckboxWidget,
     ContactSearchWidget,
@@ -1009,8 +1009,6 @@ class FlowCRUDL(SmartCRUDL):
                 updated_defs = Flow.import_translation(self.object.org, [self.object], language, po_data)
                 self.object.save_revision(self.request.user, updated_defs[str(self.object.uuid)])
 
-                analytics.track(self.request.user, "temba.flow_po_imported")
-
             return HttpResponseRedirect(self.get_success_url())
 
         @cached_property
@@ -1256,8 +1254,6 @@ class FlowCRUDL(SmartCRUDL):
 
             flow = self.get_object()
             client = mailroom.get_client()
-
-            analytics.track(request.user, "temba.flow_simulated", dict(flow=flow.name, uuid=flow.uuid))
 
             channel_uuid = "440099cf-200c-4d45-a8e7-4a564f4a0e8b"
             channel_name = "Test Channel"
@@ -1539,7 +1535,6 @@ class FlowCRUDL(SmartCRUDL):
         def form_valid(self, form):
             contact_search = form.cleaned_data["contact_search"]
             flow = form.cleaned_data["flow"]
-            analytics.track(self.request.user, "temba.flow_start", {"advanced": contact_search.get("advanced", False)})
 
             recipients = contact_search.get("recipients", [])
             groups, contacts = ContactSearchWidget.parse_recipients(self.request.org, recipients)
