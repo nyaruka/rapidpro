@@ -1,3 +1,7 @@
+v10.1.192 (2025-06-04)
+-------------------------
+ * Convert ChannelCount to extend BaseDailyCount
+
 v10.1.191 (2025-06-04)
 -------------------------
  * Stop writing ChannelCount.count_type
