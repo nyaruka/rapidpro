@@ -23,7 +23,7 @@ from temba.notifications.tasks import send_notification_emails
 from temba.orgs.models import Org
 from temba.request_logs.models import HTTPLog
 from temba.templates.models import TemplateTranslation
-from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom, override_brand
+from temba.tests import CRUDLTestMixin, MigrationTest, MockResponse, TembaTest, matchers, mock_mailroom, override_brand
 from temba.tests.crudl import StaffRedirect
 from temba.triggers.models import Trigger
 from temba.utils import json
@@ -2059,3 +2059,55 @@ class CourierTest(TembaTest):
         response = self.client.get(reverse("courier.t", args=[self.channel.uuid, "receive"]))
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.content, b"this URL should be mapped to a Courier instance")
+
+
+class BackfillChannelCountScope(MigrationTest):
+    app = "channels"
+    migrate_from = "0200_channelcount_scope_alter_channelcount_day"
+    migrate_to = "0201_backfill_channelcount_scope"
+
+    def setUpBeforeMigration(self, apps):
+        ChannelCount = apps.get_model("channels", "ChannelCount")
+
+        self.cc1 = ChannelCount.objects.create(
+            channel_id=self.channel.id,
+            count_type="IM",
+            day=date(2023, 5, 31),
+            count=1,
+        )
+        self.cc2 = ChannelCount.objects.create(
+            channel_id=self.channel.id,
+            count_type="OM",
+            day=date(2023, 6, 1),
+            count=2,
+        )
+        self.cc3 = ChannelCount.objects.create(
+            channel_id=self.channel.id,
+            count_type="IV",
+            day=date(2023, 6, 1),
+            count=3,
+        )
+        self.cc4 = ChannelCount.objects.create(
+            channel_id=self.channel.id,
+            count_type="OV",
+            day=date(2023, 6, 1),
+            count=4,
+        )
+        self.cc5 = ChannelCount.objects.create(  # one with scope already set
+            channel_id=self.channel.id,
+            count_type="OV",
+            scope="voice:out",
+            day=date(2023, 6, 1),
+            count=5,
+        )
+
+    def test_migration(self):
+        def assert_scope(cc, expected: str):
+            cc.refresh_from_db()
+            self.assertEqual(expected, cc.scope)
+
+        assert_scope(self.cc1, "text:in")
+        assert_scope(self.cc2, "text:out")
+        assert_scope(self.cc3, "voice:in")
+        assert_scope(self.cc4, "voice:out")
+        assert_scope(self.cc5, "voice:out")
