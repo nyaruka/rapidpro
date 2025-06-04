@@ -470,10 +470,11 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(opened_url + "?since=2024-03-01&until=2024-05-01")
         self.assertEqual(200, response.status_code)
+
         self.assertEqual(
             {
                 "period": ["2024-03-01", "2024-05-01"],
-                "data": {"Seconds": []},
+                "data": {"labels": [], "datasets": [{"label": "Response Time", "data": []}]},
             },
             response.json(),
         )
@@ -489,7 +490,10 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(
             {
                 "period": ["2024-03-01", "2024-05-01"],
-                "data": {"Seconds": [["2024-04-25", 200], ["2024-04-26", 250]]},
+                "data": {
+                    "labels": ["2024-04-25", "2024-04-26"],
+                    "datasets": [{"label": "Response Time", "data": [200, 250]}],
+                },
             },
             response.json(),
         )
