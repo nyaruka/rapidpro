@@ -16,7 +16,7 @@ from twilio.base.exceptions import TwilioRestException
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.indexes import OpClass
 from django.db import models
-from django.db.models import Q, Sum
+from django.db.models import Q
 from django.template import Engine
 from django.urls import re_path
 from django.utils import timezone
@@ -34,7 +34,7 @@ from temba.utils.models import (
     delete_in_batches,
     generate_uuid,
 )
-from temba.utils.models.counts import BaseSquashableCount
+from temba.utils.models.counts import BaseDailyCount
 from temba.utils.text import generate_secret
 from temba.utils.whatsapp import update_api_version
 
@@ -721,19 +721,15 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         assert self.is_android, "can only trigger syncs on Android channels"
         mailroom.get_client().android_sync(self)
 
-    def get_count(self, scopes, since=None):
-        qs = ChannelCount.objects.filter(channel=self, scope__in=scopes)
-        if since:
-            qs = qs.filter(day__gte=since)
-
-        count = qs.aggregate(Sum("count")).get("count__sum", 0)
-        return 0 if count is None else count
-
     def get_msg_count(self, since=None):
-        return self.get_count([ChannelCount.SCOPE_TEXT_IN, ChannelCount.SCOPE_TEXT_OUT], since)
+        counts = self.counts.filter(scope__in=[ChannelCount.SCOPE_TEXT_IN, ChannelCount.SCOPE_TEXT_OUT])
+        if since:
+            counts = counts.filter(day__gte=since)
 
-    def get_ivr_count(self, since=None):
-        return self.get_count([ChannelCount.SCOPE_VOICE_IN, ChannelCount.SCOPE_VOICE_OUT])
+        return counts.sum()
+
+    def get_ivr_count(self):
+        return self.counts.filter(scope__in=[ChannelCount.SCOPE_VOICE_IN, ChannelCount.SCOPE_VOICE_OUT]).sum()
 
     class Meta:
         ordering = ("-last_seen", "-pk")
@@ -747,11 +743,9 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         ]
 
 
-class ChannelCount(BaseSquashableCount):
+class ChannelCount(BaseDailyCount):
     """
-    This model is maintained by Postgres triggers and maintains the daily counts of messages and ivr interactions
-    on each day. This allows for fast visualizations of activity on the channel read page as well as summaries
-    of message usage over the course of time.
+    Tracks counts of messages in/out every day.
     """
 
     squash_over = ("channel_id", "day", "scope")
@@ -761,32 +755,7 @@ class ChannelCount(BaseSquashableCount):
     SCOPE_VOICE_IN = "voice:in"
     SCOPE_VOICE_OUT = "voice:out"
 
-    channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="counts")  # indexed below
-    scope = models.CharField(max_length=128, null=True)
-    day = models.DateField()
-
-    # TODO replace with scope field, then convert to BaseDailyCount
-    count_type = models.CharField(null=True)
-
-    @classmethod
-    def get_day_count(cls, channel, scope, day):
-        return cls.objects.filter(channel=channel, scope=scope, day=day).order_by("day", "scope").sum()
-
-    @classmethod
-    def get_squash_query(cls, distinct_set: dict) -> tuple:
-        sql = """
-        WITH removed as (
-            DELETE FROM %(table)s WHERE "channel_id" = %%s AND "day" = %%s AND "scope" = %%s RETURNING "count"
-        )
-        INSERT INTO %(table)s("channel_id", "day", "scope", "count", "is_squashed")
-        VALUES (%%s, %%s, %%s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
-        """ % {
-            "table": cls._meta.db_table
-        }
-
-        params = (distinct_set["channel_id"], distinct_set["day"], distinct_set["scope"]) * 2
-
-        return sql, params
+    channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="counts", db_index=False)
 
     class Meta:
         indexes = [
