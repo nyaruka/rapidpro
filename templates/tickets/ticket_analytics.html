@@ -1,5 +1,16 @@
 {% extends "smartmin/read.html" %}
 {% block content %}
-  <temba-chart header="Tickets Opened" url="{% url 'tickets.ticket_chart' 'opened' %}" dataname="Topics" config>
+  <temba-chart header="Tickets Opened"
+               url="{% url 'tickets.ticket_chart' 'opened' %}"
+               dataname="Topics"
+               config
+               legend>
+  </temba-chart>
+  <temba-chart header="Response Time"
+               url="{% url 'tickets.ticket_chart' 'resptime' %}"
+               dataname="Average Response"
+               single
+               colorIndex="2"
+               formatduration>
   </temba-chart>
 {% endblock content %}
