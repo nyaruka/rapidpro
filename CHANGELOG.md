@@ -1,3 +1,9 @@
+v10.1.190 (2025-06-04)
+-------------------------
+ * Remove unneeded index on ChannelCount
+ * Remove count_type from ChannelCount squashing
+ * Read channel counts using scope instead of count type
+
 v10.1.189 (2025-06-04)
 -------------------------
  * Data migration to backfill ChannelCount.scope
