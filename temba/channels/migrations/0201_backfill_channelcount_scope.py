@@ -10,7 +10,7 @@ TYPE_TO_SCOPE = {
 }
 
 
-def backfill_channelcount_scope(apps, schema_editor):
+def backfill_channelcount_scope(apps, schema_editor):  # pragma: no cover
     ChannelCount = apps.get_model("channels", "ChannelCount")
 
     num_updated = 0
