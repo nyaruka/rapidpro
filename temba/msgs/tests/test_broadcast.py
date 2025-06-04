@@ -2,7 +2,6 @@ from django.conf import settings
 from django.utils import timezone
 
 from temba import mailroom
-from temba.channels.models import ChannelCount
 from temba.msgs.models import Broadcast, LabelCount, Media, Msg, MsgFolder
 from temba.schedules.models import Schedule
 from temba.tests import TembaTest, mock_mailroom
@@ -65,10 +64,9 @@ class BroadcastTest(TembaTest):
         self.assertEqual(msg_counts[MsgFolder.FAILED], 1)
 
         today = timezone.now().date()
-        self.assertEqual(ChannelCount.get_day_count(self.channel, ChannelCount.SCOPE_TEXT_IN, today), 3)
-        self.assertEqual(ChannelCount.get_day_count(self.channel, ChannelCount.SCOPE_TEXT_OUT, today), 6)
-        self.assertEqual(ChannelCount.get_day_count(self.facebook_channel, ChannelCount.SCOPE_TEXT_IN, today), 0)
-        self.assertEqual(ChannelCount.get_day_count(self.facebook_channel, ChannelCount.SCOPE_TEXT_OUT, today), 1)
+
+        self.assertEqual({(today, "text:in"): 3, (today, "text:out"): 6}, self.channel.counts.day_totals(scoped=True))
+        self.assertEqual({(today, "text:out"): 1}, self.facebook_channel.counts.day_totals(scoped=True))
 
         # delete all our messages save for our flow incoming message
         for m in Msg.objects.exclude(id=msg_in3.id):
@@ -88,10 +86,8 @@ class BroadcastTest(TembaTest):
         self.assertEqual(0, LabelCount.get_totals([label])[label])
 
         # but daily channel counts should be unchanged
-        self.assertEqual(3, ChannelCount.get_day_count(self.channel, ChannelCount.SCOPE_TEXT_IN, today))
-        self.assertEqual(6, ChannelCount.get_day_count(self.channel, ChannelCount.SCOPE_TEXT_OUT, today))
-        self.assertEqual(0, ChannelCount.get_day_count(self.facebook_channel, ChannelCount.SCOPE_TEXT_IN, today))
-        self.assertEqual(1, ChannelCount.get_day_count(self.facebook_channel, ChannelCount.SCOPE_TEXT_OUT, today))
+        self.assertEqual({(today, "text:in"): 3, (today, "text:out"): 6}, self.channel.counts.day_totals(scoped=True))
+        self.assertEqual({(today, "text:out"): 1}, self.facebook_channel.counts.day_totals(scoped=True))
 
     @mock_mailroom
     def test_model(self, mr_mocks):
