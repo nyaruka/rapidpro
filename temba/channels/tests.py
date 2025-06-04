@@ -1758,9 +1758,9 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             self.assertNotRedacted(response, ("3527065", "Nic", "Pottier"))
 
     def test_redaction_for_telegram_with_invalid_json(self):
-        urn = "telegram:3527065"
-        contact = self.create_contact("Fred Jones", urns=[urn])
-        channel = self.create_channel("TG", "Test TG Channel", "234567")
+        urn = "telegram:3527066"  # Use different URN to avoid conflicts
+        contact = self.create_contact("Jane Smith", urns=[urn])  # Use different name to avoid conflicts
+        channel = self.create_channel("TG", "Test TG Channel Invalid JSON", "234568")  # Use different name/address
         log = self.create_channel_log(
             channel,
             ChannelLog.LOG_TYPE_MSG_SEND,
@@ -1768,26 +1768,27 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
                 {
                     "url": "https://api.telegram.org/65474/sendMessage",
                     "status_code": 200,
-                    "request": "POST /65474/sendMessage HTTP/1.1\r\nHost: api.telegram.org\r\nUser-Agent: Courier/1.2.159\r\nContent-Length: 231\r\nContent-Type: application/x-www-form-urlencoded\r\nAccept-Encoding: gzip\r\n\r\nchat_id=3527065&reply_markup=%7B%22resize_keyboard%22%3Atrue%2C%22one_time_keyboard%22%3Atrue%2C%22keyboard%22%3A%5B%5B%7B%22text%22%3A%22blackjack%22%7D%2C%7B%22text%22%3A%22balance%22%7D%5D%5D%7D&text=Your+balance+is+now+%246.00.",
-                    "response": 'HTTP/1.1 200 OK\r\nContent-Length: 298\r\nContent-Type: application/json\r\n\r\n{"bad_json":true, "first_name": "Nic"',
+                    "request": "POST /65474/sendMessage HTTP/1.1\r\nHost: api.telegram.org\r\nUser-Agent: Courier/1.2.159\r\nContent-Length: 231\r\nContent-Type: application/x-www-form-urlencoded\r\nAccept-Encoding: gzip\r\n\r\nchat_id=3527066&reply_markup=%7B%22resize_keyboard%22%3Atrue%2C%22one_time_keyboard%22%3Atrue%2C%22keyboard%22%3A%5B%5B%7B%22text%22%3A%22blackjack%22%7D%2C%7B%22text%22%3A%22balance%22%7D%5D%5D%7D&text=Your+balance+is+now+%246.00.",
+                    "response": 'HTTP/1.1 200 OK\r\nContent-Length: 298\r\nContent-Type: application/json\r\n\r\n{"bad_json":true, "first_name": "Jane"',
                     "elapsed_ms": 12,
                     "retries": 0,
                     "created_on": "2022-01-01T00:00:00Z",
                 }
             ],
         )
-        msg = self.create_incoming_msg(contact, "incoming msg", channel=channel, logs=[log])
+        msg = self.create_incoming_msg(contact, "test invalid json redaction", channel=channel, logs=[log])
         read_url = reverse("channels.channel_logs_read", args=[channel.uuid, "msg", msg.id])
 
         # check read page shows un-redacted content for a regular org
         self.login(self.admin)
         response = self.client.get(read_url)
-        self.assertNotRedacted(response, ("3527065", "Nic"))
+        self.assertEqual(1, len(response.context["logs"]))
+        self.assertNotRedacted(response, ("3527066", "Jane"))
 
         # but for anon org we see redaction...
         with self.anonymous(self.org):
             response = self.client.get(read_url)
-            self.assertRedacted(response, ("3527065", "Nic"))
+            self.assertRedacted(response, ("3527066", "Jane"))
 
     def test_redaction_for_telegram_when_no_match(self):
         urn = "telegram:3527065"
