@@ -1,3 +1,7 @@
+v10.1.189 (2025-06-04)
+-------------------------
+ * Data migration to backfill ChannelCount.scope
+
 v10.1.188 (2025-06-04)
 -------------------------
  * Rework ChannelCount so it can be converted to scoped daily count
