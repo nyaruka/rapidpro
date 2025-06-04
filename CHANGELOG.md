@@ -1,3 +1,7 @@
+v10.1.193 (2025-06-04)
+-------------------------
+ * Make ticket status appear above ticket list
+
 v10.1.192 (2025-06-04)
 -------------------------
  * Convert ChannelCount to extend BaseDailyCount
