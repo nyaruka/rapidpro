@@ -551,13 +551,13 @@ class ChannelCRUDL(SmartCRUDL):
 
                 while monthly_totals and monthly_totals[0]["month"] == month_start:
                     monthly_total = monthly_totals.pop(0)
-                    if monthly_total["count_type"] == ChannelCount.SCOPE_TEXT_IN:
+                    if monthly_total["scope"] == ChannelCount.SCOPE_TEXT_IN:
                         msg_in = monthly_total["count_sum"]
-                    elif monthly_total["count_type"] == ChannelCount.SCOPE_TEXT_OUT:
+                    elif monthly_total["scope"] == ChannelCount.SCOPE_TEXT_OUT:
                         msg_out = monthly_total["count_sum"]
-                    elif monthly_total["count_type"] == ChannelCount.SCOPE_VOICE_IN:
+                    elif monthly_total["scope"] == ChannelCount.SCOPE_VOICE_IN:
                         ivr_in = monthly_total["count_sum"]
-                    elif monthly_total["count_type"] == ChannelCount.SCOPE_VOICE_OUT:
+                    elif monthly_total["scope"] == ChannelCount.SCOPE_VOICE_OUT:
                         ivr_out = monthly_total["count_sum"]
 
                 message_stats_table.append(

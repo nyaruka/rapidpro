@@ -240,7 +240,7 @@ class RangeDetails(OrgPermsMixin, SmartTemplateView):
             )
 
             channel_types = (
-                ChannelCount.objects.filter(scopes__in=scopes)
+                ChannelCount.objects.filter(scope__in=scopes)
                 .filter(day__gte=begin)
                 .filter(day__lte=end)
                 .exclude(channel__org=None)
