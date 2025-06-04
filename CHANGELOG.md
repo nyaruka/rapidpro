@@ -1,3 +1,9 @@
+v10.1.191 (2025-06-04)
+-------------------------
+ * Stop writing ChannelCount.count_type
+ * Update temba components
+ * Add ticket response time chart
+
 v10.1.190 (2025-06-04)
 -------------------------
  * Remove unneeded index on ChannelCount
