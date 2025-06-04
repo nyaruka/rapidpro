@@ -567,7 +567,7 @@ class TicketCRUDL(SmartCRUDL):
                 "datasets": datasets,
             }
 
-        def get_resptime_chart(self, org, since, until) -> dict[str, list]:
+        def get_resptime_chart(self, org, since, until) -> dict:
             counts = org.daily_counts.period(since, until).prefix("ticketresptime:").day_totals(scoped=True)
             totals_by_date, counts_by_date = {}, {}
             for (day, scope), count in counts.items():
@@ -576,11 +576,22 @@ class TicketCRUDL(SmartCRUDL):
                 elif scope.endswith(":count"):
                     counts_by_date[day] = count
 
-            avgs = []
-            for day, total in totals_by_date.items():
-                avgs.append((day, total // counts_by_date[day]))
+            # collect all dates
+            dates_set = set(totals_by_date.keys()) | set(counts_by_date.keys())
+            labels = sorted(list(dates_set))
 
-            return {"Seconds": avgs}
+            # calculate averages for each date, use 0 if missing
+            data = []
+            for d in labels:
+                total = totals_by_date.get(d, 0)
+                count = counts_by_date.get(d, 0)
+                avg = (total // count) if count else 0
+                data.append(avg)
+
+            return {
+                "labels": [d.strftime("%Y-%m-%d") for d in labels],
+                "datasets": [{"label": "Response Time", "data": data}],
+            }
 
         def render_to_response(self, context, **response_kwargs):
             chart = self.kwargs["chart"]
