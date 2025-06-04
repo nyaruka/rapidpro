@@ -65,10 +65,10 @@ class BroadcastTest(TembaTest):
         self.assertEqual(msg_counts[MsgFolder.FAILED], 1)
 
         today = timezone.now().date()
-        self.assertEqual(ChannelCount.get_day_count(self.channel, ChannelCount.INCOMING_MSG_TYPE, today), 3)
-        self.assertEqual(ChannelCount.get_day_count(self.channel, ChannelCount.OUTGOING_MSG_TYPE, today), 6)
-        self.assertEqual(ChannelCount.get_day_count(self.facebook_channel, ChannelCount.INCOMING_MSG_TYPE, today), 0)
-        self.assertEqual(ChannelCount.get_day_count(self.facebook_channel, ChannelCount.OUTGOING_MSG_TYPE, today), 1)
+        self.assertEqual(ChannelCount.get_day_count(self.channel, ChannelCount.SCOPE_TEXT_IN, today), 3)
+        self.assertEqual(ChannelCount.get_day_count(self.channel, ChannelCount.SCOPE_TEXT_OUT, today), 6)
+        self.assertEqual(ChannelCount.get_day_count(self.facebook_channel, ChannelCount.SCOPE_TEXT_IN, today), 0)
+        self.assertEqual(ChannelCount.get_day_count(self.facebook_channel, ChannelCount.SCOPE_TEXT_OUT, today), 1)
 
         # delete all our messages save for our flow incoming message
         for m in Msg.objects.exclude(id=msg_in3.id):
@@ -88,10 +88,10 @@ class BroadcastTest(TembaTest):
         self.assertEqual(0, LabelCount.get_totals([label])[label])
 
         # but daily channel counts should be unchanged
-        self.assertEqual(3, ChannelCount.get_day_count(self.channel, ChannelCount.INCOMING_MSG_TYPE, today))
-        self.assertEqual(6, ChannelCount.get_day_count(self.channel, ChannelCount.OUTGOING_MSG_TYPE, today))
-        self.assertEqual(0, ChannelCount.get_day_count(self.facebook_channel, ChannelCount.INCOMING_MSG_TYPE, today))
-        self.assertEqual(1, ChannelCount.get_day_count(self.facebook_channel, ChannelCount.OUTGOING_MSG_TYPE, today))
+        self.assertEqual(3, ChannelCount.get_day_count(self.channel, ChannelCount.SCOPE_TEXT_IN, today))
+        self.assertEqual(6, ChannelCount.get_day_count(self.channel, ChannelCount.SCOPE_TEXT_OUT, today))
+        self.assertEqual(0, ChannelCount.get_day_count(self.facebook_channel, ChannelCount.SCOPE_TEXT_IN, today))
+        self.assertEqual(1, ChannelCount.get_day_count(self.facebook_channel, ChannelCount.SCOPE_TEXT_OUT, today))
 
     @mock_mailroom
     def test_model(self, mr_mocks):

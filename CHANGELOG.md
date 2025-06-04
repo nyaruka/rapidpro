@@ -1,3 +1,17 @@
+v10.1.190 (2025-06-04)
+-------------------------
+ * Remove unneeded index on ChannelCount
+ * Remove count_type from ChannelCount squashing
+ * Read channel counts using scope instead of count type
+
+v10.1.189 (2025-06-04)
+-------------------------
+ * Data migration to backfill ChannelCount.scope
+
+v10.1.188 (2025-06-04)
+-------------------------
+ * Rework ChannelCount so it can be converted to scoped daily count
+
 v10.1.187 (2025-06-03)
 -------------------------
  * Data migration to remove old LS LE channel counts
