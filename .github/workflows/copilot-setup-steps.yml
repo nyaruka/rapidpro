@@ -1,0 +1,125 @@
+name: 'Copilot Setup Steps'
+
+# Triggers: Run on pull requests and pushes to prepare environment for agent tasks
+on:
+  pull_request:
+  push:
+
+jobs:
+  copilot-setup-steps:
+    # Only run when push is initiated by the Copilot agent (GitHub Actions bot)
+    # This avoids unnecessary runs on regular developer pushes
+    if: github.actor == 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    env:
+      python-version: '3.12.x'
+      node-version: '20'
+      mailroom-version: '10.1.130'
+
+    services:
+      redis:
+        image: redis:6.2-alpine
+        ports:
+          - 6379:6379
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: temba
+          POSTGRES_USER: temba
+          POSTGRES_PASSWORD: temba
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      minio:
+        image: bitnami/minio:2025.4.22
+        env:
+          MINIO_ROOT_USER: root
+          MINIO_ROOT_PASSWORD: tembatemba
+          MINIO_DEFAULT_BUCKETS: test-default,test-attachments:public,test-sessions,test-logs,test-archives
+        ports:
+          - 9000:9000
+        options: --health-cmd "mc ready local" --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      # Checkout the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install Linux packages required for the project
+      - name: Install Linux packages
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends libgdal-dev ffmpeg
+
+      # Setup Python environment
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.python-version }}
+
+      # Install Poetry for Python dependency management
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-in-project: true
+
+      # Setup Node.js environment
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.node-version }}
+
+      # Cache Poetry dependencies to speed up future runs
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            .venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      # Cache yarn dependencies to speed up future runs
+      - name: Cache yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.yarn
+            node_modules
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      # Install and start DynamoDB for testing
+      - name: Install and start DynamoDB
+        uses: rrainn/dynamodb-action@v4.0.0
+        with:
+          port: 6000
+
+      # Initialize the project environment
+      - name: Initialize environment
+        env:
+          POSTGIS: 'off'
+        run: |
+          poetry install --no-root
+          yarn install
+          sudo yarn global add less
+          ln -s ${{ github.workspace }}/temba/settings.py.dev ${{ github.workspace }}/temba/settings.py
+          poetry run python manage.py migrate
+          poetry run python manage.py migrate_dynamo --testing
+          # fetch, extract and start mailroom
+          wget https://github.com/${{ github.repository_owner }}/mailroom/releases/download/v${{ env.mailroom-version }}/mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz
+          tar -xvf mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz mailroom
+          # start mailroom but use different redis db so that it doesn't actually handle tasks
+          ./mailroom -db=postgres://temba:temba@localhost:5432/temba?sslmode=disable -redis=redis://localhost:6379/15 -log-level=info > mailroom.log &
+
+      # Run pre-setup checks to ensure environment is ready
+      - name: Validate environment setup
+        run: |
+          # test that everything is well formatted, no missing migrations etc
+          poetry run python code_check.py --debug
+          # check we can collect and compress all static files
+          poetry run python manage.py collectstatic --noinput --verbosity=0
+          poetry run python manage.py compress --extension=".html" --settings=temba.settings_compress
