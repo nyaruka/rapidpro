@@ -1368,8 +1368,8 @@ class ChannelIncidentsTest(TembaTest):
 
 
 class ChannelCountTest(TembaTest):
-    def assertDailyCount(self, channel, assert_count, count_type, day):
-        calculated_count = ChannelCount.get_day_count(channel, count_type, day)
+    def assertDailyCount(self, channel, assert_count, scope, day):
+        calculated_count = ChannelCount.get_day_count(channel, scope, day)
         self.assertEqual(assert_count, calculated_count)
 
     def test_msg_counts(self):
@@ -1427,32 +1427,32 @@ class ChannelCountTest(TembaTest):
             ]
         )
 
-        self.assertDailyCount(self.channel, 1, ChannelCount.INCOMING_MSG_TYPE, date(2023, 5, 31))
-        self.assertDailyCount(self.channel, 0, ChannelCount.INCOMING_IVR_TYPE, date(2023, 5, 31))
-        self.assertDailyCount(self.channel, 2, ChannelCount.INCOMING_MSG_TYPE, date(2023, 6, 1))
-        self.assertDailyCount(self.channel, 1, ChannelCount.INCOMING_IVR_TYPE, date(2023, 6, 1))
-        self.assertDailyCount(self.channel, 3, ChannelCount.OUTGOING_MSG_TYPE, date(2023, 6, 1))
-        self.assertDailyCount(self.channel, 1, ChannelCount.OUTGOING_IVR_TYPE, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 1, ChannelCount.SCOPE_TEXT_IN, date(2023, 5, 31))
+        self.assertDailyCount(self.channel, 0, ChannelCount.SCOPE_VOICE_IN, date(2023, 5, 31))
+        self.assertDailyCount(self.channel, 2, ChannelCount.SCOPE_TEXT_IN, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 1, ChannelCount.SCOPE_VOICE_IN, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 3, ChannelCount.SCOPE_TEXT_OUT, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 1, ChannelCount.SCOPE_VOICE_OUT, date(2023, 6, 1))
 
         # squash our counts
         squash_channel_counts()
 
         self.assertEqual(ChannelCount.objects.all().count(), 5)
 
-        self.assertDailyCount(self.channel, 1, ChannelCount.INCOMING_MSG_TYPE, date(2023, 5, 31))
-        self.assertDailyCount(self.channel, 0, ChannelCount.INCOMING_IVR_TYPE, date(2023, 5, 31))
-        self.assertDailyCount(self.channel, 2, ChannelCount.INCOMING_MSG_TYPE, date(2023, 6, 1))
-        self.assertDailyCount(self.channel, 1, ChannelCount.INCOMING_IVR_TYPE, date(2023, 6, 1))
-        self.assertDailyCount(self.channel, 3, ChannelCount.OUTGOING_MSG_TYPE, date(2023, 6, 1))
-        self.assertDailyCount(self.channel, 1, ChannelCount.OUTGOING_IVR_TYPE, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 1, ChannelCount.SCOPE_TEXT_IN, date(2023, 5, 31))
+        self.assertDailyCount(self.channel, 0, ChannelCount.SCOPE_VOICE_IN, date(2023, 5, 31))
+        self.assertDailyCount(self.channel, 2, ChannelCount.SCOPE_TEXT_IN, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 1, ChannelCount.SCOPE_VOICE_IN, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 3, ChannelCount.SCOPE_TEXT_OUT, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 1, ChannelCount.SCOPE_VOICE_OUT, date(2023, 6, 1))
 
         # soft deleting a message doesn't decrement the count
         Msg.bulk_soft_delete([Msg.objects.get(text="A")])
-        self.assertDailyCount(self.channel, 1, ChannelCount.INCOMING_MSG_TYPE, date(2023, 5, 31))
+        self.assertDailyCount(self.channel, 1, ChannelCount.SCOPE_TEXT_IN, date(2023, 5, 31))
 
         # nor hard deleting
         Msg.bulk_delete([Msg.objects.get(text="B")])
-        self.assertDailyCount(self.channel, 2, ChannelCount.INCOMING_MSG_TYPE, date(2023, 6, 1))
+        self.assertDailyCount(self.channel, 2, ChannelCount.SCOPE_TEXT_IN, date(2023, 6, 1))
 
 
 class ChannelEventTest(TembaTest):
@@ -2061,22 +2061,53 @@ class CourierTest(TembaTest):
         self.assertEqual(response.content, b"this URL should be mapped to a Courier instance")
 
 
-class CleanupCountsTest(MigrationTest):
+class BackfillChannelCountScope(MigrationTest):
     app = "channels"
-    migrate_from = "0198_alter_channelcount_count_type"
-    migrate_to = "0199_cleanup_counts"
+    migrate_from = "0200_channelcount_scope_alter_channelcount_day"
+    migrate_to = "0201_backfill_channelcount_scope"
 
     def setUpBeforeMigration(self, apps):
         ChannelCount = apps.get_model("channels", "ChannelCount")
-        ChannelCount.objects.create(channel_id=self.channel.id, count_type="IM", day=date(2023, 5, 31), count=3)
-        ChannelCount.objects.create(channel_id=self.channel.id, count_type="OM", day=date(2023, 5, 31), count=4)
-        ChannelCount.objects.create(channel_id=self.channel.id, count_type="IV", day=date(2023, 5, 31), count=5)
-        ChannelCount.objects.create(channel_id=self.channel.id, count_type="OV", day=date(2023, 5, 31), count=6)
-        ChannelCount.objects.create(channel_id=self.channel.id, count_type="XX", day=date(2023, 5, 31), count=7)
+
+        self.cc1 = ChannelCount.objects.create(
+            channel_id=self.channel.id,
+            count_type="IM",
+            day=date(2023, 5, 31),
+            count=1,
+        )
+        self.cc2 = ChannelCount.objects.create(
+            channel_id=self.channel.id,
+            count_type="OM",
+            day=date(2023, 6, 1),
+            count=2,
+        )
+        self.cc3 = ChannelCount.objects.create(
+            channel_id=self.channel.id,
+            count_type="IV",
+            day=date(2023, 6, 1),
+            count=3,
+        )
+        self.cc4 = ChannelCount.objects.create(
+            channel_id=self.channel.id,
+            count_type="OV",
+            day=date(2023, 6, 1),
+            count=4,
+        )
+        self.cc5 = ChannelCount.objects.create(  # one with scope already set
+            channel_id=self.channel.id,
+            count_type="OV",
+            scope="voice:out",
+            day=date(2023, 6, 1),
+            count=5,
+        )
 
     def test_migration(self):
-        self.assertEqual(3, ChannelCount.get_day_count(self.channel, "IM", date(2023, 5, 31)))
-        self.assertEqual(4, ChannelCount.get_day_count(self.channel, "OM", date(2023, 5, 31)))
-        self.assertEqual(5, ChannelCount.get_day_count(self.channel, "IV", date(2023, 5, 31)))
-        self.assertEqual(6, ChannelCount.get_day_count(self.channel, "OV", date(2023, 5, 31)))
-        self.assertEqual(0, ChannelCount.get_day_count(self.channel, "XX", date(2023, 5, 31)))
+        def assert_scope(cc, expected: str):
+            cc.refresh_from_db()
+            self.assertEqual(expected, cc.scope)
+
+        assert_scope(self.cc1, "text:in")
+        assert_scope(self.cc2, "text:out")
+        assert_scope(self.cc3, "voice:in")
+        assert_scope(self.cc4, "voice:out")
+        assert_scope(self.cc5, "voice:out")
