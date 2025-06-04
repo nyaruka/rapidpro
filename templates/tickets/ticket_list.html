@@ -540,7 +540,11 @@
                                 id="topic-content-menu">
             </temba-content-menu>
           </div>
-          <temba-select name="ticket-status" onchange="handleStatusFilterChanged(event)" value="{{ status }}" class="mb-2">
+          <temba-select style="z-index:2"
+                        name="ticket-status"
+                        onchange="handleStatusFilterChanged(event)"
+                        value="{{ status }}"
+                        class="mb-2">
             <temba-option name="Open" value="open" icon="tickets_open">
             </temba-option>
             <temba-option name="Closed" value="closed" icon="tickets_closed">
