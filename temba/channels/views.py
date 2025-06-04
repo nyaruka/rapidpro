@@ -629,7 +629,7 @@ class ChannelCRUDL(SmartCRUDL):
                         msg_in.append(point)
                     elif daily_count["scope"] == ChannelCount.SCOPE_TEXT_OUT:
                         msg_out.append(point)
-                    elif daily_count["scope"] == ChannelCount.SCOPE_TEXT_OUT:
+                    elif daily_count["scope"] == ChannelCount.SCOPE_VOICE_IN:
                         ivr_in.append(point)
                     elif daily_count["scope"] == ChannelCount.SCOPE_VOICE_OUT:
                         ivr_out.append(point)

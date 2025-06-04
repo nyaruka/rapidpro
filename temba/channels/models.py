@@ -797,8 +797,6 @@ class ChannelCount(BaseSquashableCount):
             models.Index(
                 name="channelcount_unsquashed", fields=("channel", "day", "scope"), condition=Q(is_squashed=False)
             ),
-            # TODO remove
-            models.Index(fields=("channel", "count_type", "day", "is_squashed")),
         ]
 
 
