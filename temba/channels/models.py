@@ -14,6 +14,7 @@ from phonenumbers import NumberParseException
 from twilio.base.exceptions import TwilioRestException
 
 from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.indexes import OpClass
 from django.db import models
 from django.db.models import Q, Sum
 from django.template import Engine
@@ -753,7 +754,7 @@ class ChannelCount(BaseSquashableCount):
     of message usage over the course of time.
     """
 
-    squash_over = ("channel_id", "count_type", "day")
+    squash_over = ("channel_id", "count_type", "day", "scope")
 
     # tracked from insertions into the message table
     INCOMING_MSG_TYPE = "IM"
@@ -767,9 +768,12 @@ class ChannelCount(BaseSquashableCount):
         (OUTGOING_IVR_TYPE, _("Outgoing Voice")),
     )
 
-    channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="counts")
+    channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="counts")  # indexed below
+    scope = models.CharField(max_length=128, null=True)
+    day = models.DateField()
+
+    # TODO replace with scope field, then convert to BaseDailyCount
     count_type = models.CharField(choices=COUNT_TYPE_CHOICES, max_length=2)
-    day = models.DateField(null=True)
 
     @classmethod
     def get_day_count(cls, channel, count_type, day):
@@ -781,18 +785,34 @@ class ChannelCount(BaseSquashableCount):
         WITH removed as (
             DELETE FROM %(table)s WHERE "channel_id" = %%s AND "count_type" = %%s AND "day" = %%s RETURNING "count"
         )
-        INSERT INTO %(table)s("channel_id", "count_type", "day", "count", "is_squashed")
-        VALUES (%%s, %%s, %%s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
+        INSERT INTO %(table)s("channel_id", "count_type", "day", "scope", "count", "is_squashed")
+        VALUES (%%s, %%s, %%s, %%s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
         """ % {
             "table": cls._meta.db_table
         }
 
-        params = (distinct_set["channel_id"], distinct_set["count_type"], distinct_set["day"]) * 2
+        params = (
+            distinct_set["channel_id"],
+            distinct_set["count_type"],
+            distinct_set["day"],
+            distinct_set["channel_id"],
+            distinct_set["count_type"],
+            distinct_set["day"],
+            distinct_set["scope"],
+        )
 
         return sql, params
 
     class Meta:
         indexes = [
+            models.Index(
+                "channel", "day", OpClass("scope", name="varchar_pattern_ops"), name="channelcount_channel_scope"
+            ),
+            # for squashing task
+            models.Index(
+                name="channelcount_unsquashed", fields=("channel", "day", "scope"), condition=Q(is_squashed=False)
+            ),
+            # TODO remove
             models.Index(fields=("channel", "count_type", "day", "is_squashed")),
         ]
 

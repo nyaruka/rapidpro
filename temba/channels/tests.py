@@ -23,7 +23,7 @@ from temba.notifications.tasks import send_notification_emails
 from temba.orgs.models import Org
 from temba.request_logs.models import HTTPLog
 from temba.templates.models import TemplateTranslation
-from temba.tests import CRUDLTestMixin, MigrationTest, MockResponse, TembaTest, matchers, mock_mailroom, override_brand
+from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom, override_brand
 from temba.tests.crudl import StaffRedirect
 from temba.triggers.models import Trigger
 from temba.utils import json
@@ -2059,24 +2059,3 @@ class CourierTest(TembaTest):
         response = self.client.get(reverse("courier.t", args=[self.channel.uuid, "receive"]))
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.content, b"this URL should be mapped to a Courier instance")
-
-
-class CleanupCountsTest(MigrationTest):
-    app = "channels"
-    migrate_from = "0198_alter_channelcount_count_type"
-    migrate_to = "0199_cleanup_counts"
-
-    def setUpBeforeMigration(self, apps):
-        ChannelCount = apps.get_model("channels", "ChannelCount")
-        ChannelCount.objects.create(channel_id=self.channel.id, count_type="IM", day=date(2023, 5, 31), count=3)
-        ChannelCount.objects.create(channel_id=self.channel.id, count_type="OM", day=date(2023, 5, 31), count=4)
-        ChannelCount.objects.create(channel_id=self.channel.id, count_type="IV", day=date(2023, 5, 31), count=5)
-        ChannelCount.objects.create(channel_id=self.channel.id, count_type="OV", day=date(2023, 5, 31), count=6)
-        ChannelCount.objects.create(channel_id=self.channel.id, count_type="XX", day=date(2023, 5, 31), count=7)
-
-    def test_migration(self):
-        self.assertEqual(3, ChannelCount.get_day_count(self.channel, "IM", date(2023, 5, 31)))
-        self.assertEqual(4, ChannelCount.get_day_count(self.channel, "OM", date(2023, 5, 31)))
-        self.assertEqual(5, ChannelCount.get_day_count(self.channel, "IV", date(2023, 5, 31)))
-        self.assertEqual(6, ChannelCount.get_day_count(self.channel, "OV", date(2023, 5, 31)))
-        self.assertEqual(0, ChannelCount.get_day_count(self.channel, "XX", date(2023, 5, 31)))
