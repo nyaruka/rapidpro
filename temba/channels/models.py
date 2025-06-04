@@ -754,31 +754,19 @@ class ChannelCount(BaseSquashableCount):
     of message usage over the course of time.
     """
 
-    squash_over = ("channel_id", "count_type", "day", "scope")
+    squash_over = ("channel_id", "day", "scope")
 
     SCOPE_TEXT_IN = "text:in"
     SCOPE_TEXT_OUT = "text:out"
     SCOPE_VOICE_IN = "voice:in"
     SCOPE_VOICE_OUT = "voice:out"
 
-    # tracked from insertions into the message table
-    INCOMING_MSG_TYPE = "IM"
-    OUTGOING_MSG_TYPE = "OM"
-    INCOMING_IVR_TYPE = "IV"
-    OUTGOING_IVR_TYPE = "OV"
-    COUNT_TYPE_CHOICES = (
-        (INCOMING_MSG_TYPE, _("Incoming Message")),
-        (OUTGOING_MSG_TYPE, _("Outgoing Message")),
-        (INCOMING_IVR_TYPE, _("Incoming Voice")),
-        (OUTGOING_IVR_TYPE, _("Outgoing Voice")),
-    )
-
     channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="counts")  # indexed below
     scope = models.CharField(max_length=128, null=True)
     day = models.DateField()
 
     # TODO replace with scope field, then convert to BaseDailyCount
-    count_type = models.CharField(choices=COUNT_TYPE_CHOICES, max_length=2)
+    count_type = models.CharField(null=True)
 
     @classmethod
     def get_day_count(cls, channel, scope, day):
@@ -788,23 +776,15 @@ class ChannelCount(BaseSquashableCount):
     def get_squash_query(cls, distinct_set: dict) -> tuple:
         sql = """
         WITH removed as (
-            DELETE FROM %(table)s WHERE "channel_id" = %%s AND "scope" = %%s AND "day" = %%s RETURNING "count"
+            DELETE FROM %(table)s WHERE "channel_id" = %%s AND "day" = %%s AND "scope" = %%s RETURNING "count"
         )
-        INSERT INTO %(table)s("channel_id", "count_type", "day", "scope", "count", "is_squashed")
-        VALUES (%%s, %%s, %%s, %%s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
+        INSERT INTO %(table)s("channel_id", "day", "scope", "count", "is_squashed")
+        VALUES (%%s, %%s, %%s, GREATEST(0, (SELECT SUM("count") FROM removed)), TRUE);
         """ % {
             "table": cls._meta.db_table
         }
 
-        params = (
-            distinct_set["channel_id"],
-            distinct_set["scope"],
-            distinct_set["day"],
-            distinct_set["channel_id"],
-            distinct_set["count_type"],
-            distinct_set["day"],
-            distinct_set["scope"],
-        )
+        params = (distinct_set["channel_id"], distinct_set["day"], distinct_set["scope"]) * 2
 
         return sql, params
 
