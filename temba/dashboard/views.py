@@ -60,12 +60,7 @@ class MessageHistory(OrgPermsMixin, SmartTemplateView):
             orgs = Org.objects.filter(Q(id=org.id) | Q(parent=org))
 
         # get all our counts for that period
-        daily_counts = ChannelCount.objects.filter(
-            scope__in=[
-                ChannelCount.SCOPE_TEXT_IN,
-                ChannelCount.SCOPE_TEXT_OUT,
-            ]
-        )
+        daily_counts = ChannelCount.objects.filter(scope__in=[ChannelCount.SCOPE_TEXT_IN, ChannelCount.SCOPE_TEXT_OUT])
 
         daily_counts = daily_counts.filter(day__gt="2013-02-01").filter(day__lte=timezone.now())
 
@@ -73,7 +68,7 @@ class MessageHistory(OrgPermsMixin, SmartTemplateView):
             daily_counts = daily_counts.filter(channel__org__in=orgs)
 
         daily_counts = list(
-            daily_counts.values("day", "count_type").order_by("day", "count_type").annotate(count_sum=Sum("count"))
+            daily_counts.values("day", "scope").order_by("day", "scope").annotate(count_sum=Sum("count"))
         )
 
         msgs_in = []
@@ -106,12 +101,11 @@ class MessageHistory(OrgPermsMixin, SmartTemplateView):
 
         msgs_total = []
         for count in daily_counts:
-            direction = count["count_type"][0]
             day = get_timestamp(count)
 
-            if direction == "I":
+            if count["scope"] == ChannelCount.SCOPE_TEXT_IN:
                 record_count(msgs_in, day, count)
-            elif direction == "O":
+            else:
                 record_count(msgs_out, day, count)
 
             # we create one extra series that is the combination of both in and out
