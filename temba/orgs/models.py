@@ -36,7 +36,7 @@ from temba import mailroom
 from temba.archives.models import Archive
 from temba.locations.models import AdminBoundary
 from temba.users.models import User
-from temba.utils import json, languages, on_transaction_commit
+from temba.utils import analytics, json, languages, on_transaction_commit
 from temba.utils.dates import datetime_to_str
 from temba.utils.email import EmailSender
 from temba.utils.models import JSONField, TembaUUIDMixin, delete_in_batches
@@ -371,6 +371,7 @@ class Org(SmartModel):
         )
 
         org.add_user(user, OrgRole.ADMINISTRATOR)
+        analytics.identify(user, brand={}, org=org)
         org.initialize()
         return org
 
@@ -398,6 +399,7 @@ class Org(SmartModel):
         )
 
         org.add_user(user, OrgRole.ADMINISTRATOR)
+        analytics.identify(user, brand={}, org=org)
         org.initialize()
         return org
 
