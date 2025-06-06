@@ -85,41 +85,19 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@nyaruka/flow-editor@1.43.7":
-  version "1.43.7"
-  resolved "https://registry.yarnpkg.com/@nyaruka/flow-editor/-/flow-editor-1.43.7.tgz#135163c234cda251976528fa67ce2e86ff783414"
-  integrity sha512-Vu7njGHuFxzFKXfpjgZOPH8YWo38C3LAXghLT27tT/BgF+8T5bNvwIsEJ4CBBVYqcSpH8rH86EPIhfxoit3LrA==
+"@nyaruka/flow-editor@1.44.0":
+  version "1.44.0"
+  resolved "https://registry.yarnpkg.com/@nyaruka/flow-editor/-/flow-editor-1.44.0.tgz#8919dad83dc1d929d4a2b63844198b447bbcd249"
+  integrity sha512-lQZivyYhpY2SZYjj8VdIpA/KceRPsmsqCR/CvLwrrCb8Lwc4M0ycyXzalzjrN9PXTsp+Drh3kJAyrlYr9xbrpA==
   dependencies:
-    "@nyaruka/temba-components" "0.121.4"
+    "@nyaruka/temba-components" "0.124"
     react "^16.8.6"
     react-dom "^16.8.6"
 
-"@nyaruka/temba-components@0.121.4":
-  version "0.121.4"
-  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.121.4.tgz#767c247363159f4e84f811d0b663f1acf9c0925e"
-  integrity sha512-r//30MRt4LuWFIEe4gaMl8g15suF8QrJ38OmSpQvSGV5SBABi2FhSac2myInRUFWjWZacYhbavXtMOHmqp8D6g==
-  dependencies:
-    "@jsplumb/browser-ui" "^6.2.10"
-    "@lit/localize" "^0.12.1"
-    color-hash "^2.0.2"
-    croppie "^2.6.5"
-    geojson "^0.5.0"
-    image-size "^1.1.1"
-    immer "10"
-    leaflet "1.5.1"
-    lit "3.1.2"
-    lit-element "^4.0.4"
-    lit-html "^3.1.2"
-    luxon "3.5"
-    remarkable "^2.0.1"
-    serialize-javascript "^6.0.2"
-    tiny-lru "^11.2.5"
-    zustand "^5.0.3"
-
-"@nyaruka/temba-components@0.123.0":
-  version "0.123.0"
-  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.123.0.tgz#f8f7a49d10e4cf239a63773522a5efd1d3e03518"
-  integrity sha512-bbjpv9wuK5l/FkAfjZHHdxThOHtcgHIfP2GPcqTGp3Ip4yn/1c5/QNNMT8jF1Rv1I50WoZct9LepAQWF8Xssnw==
+"@nyaruka/temba-components@0.124", "@nyaruka/temba-components@0.124.0":
+  version "0.124.0"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.124.0.tgz#bbe704a3d6f46410c3b6d03dcad55666fb455379"
+  integrity sha512-rpDKjI1/UKCRO16ysDGy0q9U4sO7e/16YKCJofFh2Eb2RHnrOCVeye03bsr5UUK58hQ1lycXobxffVNwJmlNmw==
   dependencies:
     "@jsplumb/browser-ui" "^6.2.10"
     "@lit/localize" "^0.12.1"
