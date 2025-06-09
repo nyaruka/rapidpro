@@ -1,0 +1,4 @@
+- Don't put any placeholder text in `__init__.py` files.
+- When putting commments in code, if it is more than one sentence use standard case and punctuation. However for short comments, all lowercase is preferred.
+- Don't use lazy imports inside functions or methods unless necessary for to avoid cyclic dependencies.
+- Run `./code_check.py` before committing which will check formatting and for missing database migrations.
