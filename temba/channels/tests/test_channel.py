@@ -6,10 +6,6 @@ from datetime import datetime, timedelta, timezone as tzone
 from unittest.mock import patch
 from urllib.parse import quote
 
-from django.conf import settings
-from django.contrib.auth.models import Group
-from django.core import mail
-from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -19,19 +15,16 @@ from temba.contacts.models import URN, Contact
 from temba.msgs.models import Msg
 from temba.notifications.incidents.builtin import ChannelDisconnectedIncidentType, ChannelOutdatedAppIncidentType
 from temba.notifications.models import Incident
-from temba.notifications.tasks import send_notification_emails
-from temba.orgs.models import Org
-from temba.request_logs.models import HTTPLog
 from temba.templates.models import TemplateTranslation
-from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom, override_brand
+from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom
 from temba.tests.crudl import StaffRedirect
 from temba.triggers.models import Trigger
 from temba.utils import json
 from temba.utils.models import generate_uuid
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
-from ..models import Channel, ChannelCount, ChannelEvent, ChannelLog, SyncEvent
-from ..tasks import check_android_channels, squash_channel_counts, trim_channel_events, trim_channel_sync_events
+from ..models import Channel, ChannelEvent, SyncEvent
+from ..tasks import trim_channel_sync_events
 
 
 class ChannelTest(TembaTest, CRUDLTestMixin):
