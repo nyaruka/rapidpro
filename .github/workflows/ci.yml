@@ -52,10 +52,30 @@ jobs:
         with:
           virtualenvs-in-project: true
 
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            .venv
+            ~/.cache/pypoetry
+          key: poetry-${{ env.python-version }}-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            poetry-${{ env.python-version }}-
+
       - name: Install Node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.node-version }}
+
+      - name: Cache Yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/yarn
+          key: yarn-${{ env.node-version }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            yarn-${{ env.node-version }}-
 
       - name: Install and start DynamoDB
         uses: rrainn/dynamodb-action@v4.0.0
