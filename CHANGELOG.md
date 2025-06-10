@@ -1,3 +1,7 @@
+v10.1.195 (2025-06-10)
+-------------------------
+ * Remove no longer used analytics.track and change_consent
+
 v10.1.194 (2025-06-10)
 -------------------------
  * Remove unused analytics events
