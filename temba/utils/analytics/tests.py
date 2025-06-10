@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock, patch
 
-from django.contrib.auth.models import AnonymousUser
 from django.template import Engine, Template
 from django.urls import reverse
 
@@ -15,21 +14,6 @@ class AnalyticsTest(TembaTest):
         super().setUp()
 
     @patch("temba.utils.analytics.base.get_backends")
-    def test_track(self, mock_get_backends):
-        good = MagicMock()
-        mock_get_backends.return_value = [BadBackend(), good]
-
-        analytics.track(self.editor, "foo_created", {"foo_id": 234})
-
-        good.track.assert_called_once_with(self.editor, "foo_created", {"foo_id": 234})
-        good.track.reset_mock()
-
-        # anonymous user is a noop
-        analytics.track(AnonymousUser(), "foo_created", {"foo_id": 234})
-
-        good.track.assert_not_called()
-
-    @patch("temba.utils.analytics.base.get_backends")
     def test_identify(self, mock_get_backends):
         good = MagicMock()
         mock_get_backends.return_value = [BadBackend(), good]
@@ -37,15 +21,6 @@ class AnalyticsTest(TembaTest):
         analytics.identify(self.editor, {"name": "Cool"}, self.org)
 
         good.identify.assert_called_once_with(self.editor, {"name": "Cool"}, self.org)
-
-    @patch("temba.utils.analytics.base.get_backends")
-    def test_change_consent(self, mock_get_backends):
-        good = MagicMock()
-        mock_get_backends.return_value = [BadBackend(), good]
-
-        analytics.change_consent(self.editor, True)
-
-        good.change_consent.assert_called_once_with(self.editor, True)
 
     @patch("temba.utils.analytics.base.get_backends")
     def test_get_hook_html(self, mock_get_backends):
@@ -83,11 +58,5 @@ class BadBackend(AnalyticsBackend):
     slug = "bad"
     hook_templates = {"frame-top": "bad/frame_top.html"}
 
-    def track(self, user, event: str, properties: dict):
-        raise ValueError("boom")
-
     def identify(self, user, brand, org):
-        raise ValueError("boom")
-
-    def change_consent(self, user, consent: bool):
         raise ValueError("boom")

@@ -1,7 +1,6 @@
 import abc
 import logging
 
-from django.conf import settings
 from django.template import Context, Engine
 from django.utils.safestring import mark_safe
 
@@ -12,19 +11,9 @@ class AnalyticsBackend(metaclass=abc.ABCMeta):
     slug: str = None
     hook_templates = {}
 
-    def track(self, user, event: str, properties: dict):
-        """
-        Tracks a user event
-        """
-
     def identify(self, user, brand: dict, org):
         """
         Creates and identifies a new user
-        """
-
-    def change_consent(self, user, consent: bool):
-        """
-        Notifies of a user's consent status.
         """
 
     def get_hook_template(self, name: str) -> str:
@@ -47,10 +36,6 @@ class ConsoleBackend(AnalyticsBackend):
 
     slug = "console"
 
-    def track(self, user, event: str, properties: dict):
-        if not settings.TESTING:  # pragma: no cover
-            print(f"[analytics] event={event} user={user.email}")
-
 
 def get_backends() -> list:
     from . import backends
@@ -67,32 +52,6 @@ def identify(user, brand, org):
             backend.identify(user, brand, org)
         except Exception:
             logger.exception(f"error identifying user on {backend.slug}")
-
-
-def change_consent(user, consent: bool):
-    """
-    Notifies analytics backends of a user's consent status.
-    """
-    for backend in get_backends():
-        try:
-            backend.change_consent(user, consent)
-        except Exception:
-            logger.exception(f"error changing consent on {backend.slug}")
-
-
-def track(user, event: str, properties: dict = None):
-    """
-    Tracks the passed in event for the passed in user in all configured analytics backends.
-    """
-
-    if not user.is_authenticated or user.is_system:  # no op for anon user or system user
-        return
-
-    for backend in get_backends():
-        try:
-            backend.track(user, event, properties or {})
-        except Exception:
-            logger.exception(f"error tracking event on {backend.slug}")
 
 
 def get_hook_html(name: str, context) -> str:
