@@ -1,3 +1,8 @@
+v10.1.194 (2025-06-10)
+-------------------------
+ * Remove unused analytics events
+ * Bump django from 5.2.1 to 5.2.2
+
 v10.1.193 (2025-06-04)
 -------------------------
  * Make ticket status appear above ticket list
