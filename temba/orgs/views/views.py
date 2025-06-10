@@ -35,7 +35,7 @@ from temba.campaigns.models import Campaign
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin, FormaxSectionMixin
 from temba.tickets.models import Team
-from temba.utils import analytics, json, languages, on_transaction_commit, str_to_bool
+from temba.utils import json, languages, on_transaction_commit, str_to_bool
 from temba.utils.email import parse_smtp_url
 from temba.utils.fields import (
     ArbitraryJsonChoiceField,
@@ -60,10 +60,7 @@ from ..models import DefinitionExport, Export, IntegrationType, Invitation, Org,
 from .base import BaseDeleteModal, BaseListView, BaseMenuView
 from .forms import SignupForm, SMTPForm
 from .mixins import InferOrgMixin, InferUserMixin, OrgObjPermsMixin, OrgPermsMixin, RequireFeatureMixin
-
-
-def switch_to_org(request, org):
-    request.session["org_id"] = org.id if org else None
+from .utils import switch_to_org
 
 
 def check_login(request):
@@ -1099,9 +1096,8 @@ class OrgCRUDL(SmartCRUDL):
                         org = membership.org
 
                 if org:
-                    # record our org on our session
                     switch_to_org(self.request, org)
-                    analytics.identify(user, self.request.branding, org)
+
                     return HttpResponseRedirect(reverse("orgs.org_start"))
 
             if not org:
@@ -1123,7 +1119,7 @@ class OrgCRUDL(SmartCRUDL):
         def form_valid(self, form):
             org = form.cleaned_data["organization"]
             switch_to_org(self.request, org)
-            analytics.identify(self.request.user, self.request.branding, org)
+
             return HttpResponseRedirect(reverse("orgs.org_start"))
 
     class Join(InvitationMixin, SmartTemplateView):
@@ -1187,7 +1183,6 @@ class OrgCRUDL(SmartCRUDL):
             self.invitation.accept(self.request.user)
 
             switch_to_org(self.request, obj)
-            analytics.identify(self.request.user, self.request.branding, obj)
 
     class Grant(SpaMixin, ComponentFormMixin, NonAtomicMixin, SmartCreateView):
         class Form(forms.ModelForm):
@@ -1287,7 +1282,7 @@ class OrgCRUDL(SmartCRUDL):
         def save(self, obj):
             user = self.request.user
             self.object = Org.create(user, self.form.cleaned_data["name"], self.form.cleaned_data["timezone"])
-            analytics.identify(user, brand=self.request.branding, org=obj)
+
             switch_to_org(self.request, obj)
 
             return obj
