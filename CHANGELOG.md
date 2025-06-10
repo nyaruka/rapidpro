@@ -1,3 +1,7 @@
+v10.1.196 (2025-06-10)
+-------------------------
+ * Remove old 2FA constants no longer used
+
 v10.1.195 (2025-06-10)
 -------------------------
  * Remove no longer used analytics.track and change_consent
