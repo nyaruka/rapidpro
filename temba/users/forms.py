@@ -81,7 +81,6 @@ class TembaSignupForm(InviteFormMixin, SignupForm):
             org = Org.create(user, self.cleaned_data["workspace"], self.cleaned_data["timezone"])
 
         analytics.identify(user, brand=request.branding, org=org)
-        analytics.track(user, "temba.org_signup", properties=dict(org=org.name))
         return user
 
 

@@ -1293,7 +1293,6 @@ class OrgCRUDL(SmartCRUDL):
             user = self.request.user
             self.object = Org.create(user, self.form.cleaned_data["name"], self.form.cleaned_data["timezone"])
             analytics.identify(user, brand=self.request.branding, org=obj)
-            analytics.track(user, "temba.org_signup", properties=dict(org=self.object.name))
             switch_to_org(self.request, obj)
 
             return obj
