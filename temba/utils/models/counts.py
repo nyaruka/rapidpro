@@ -146,6 +146,20 @@ class DailyCountQuerySet(ScopedCountQuerySet):
             counts = self.values_list("day").annotate(count_sum=Sum("count"))
             return {c[0]: c[1] for c in counts}
 
+    def month_totals(self, *, scoped: bool) -> dict[date | tuple, int]:
+        """
+        Sums counts grouped by month or month + scope.
+        """
+
+        with_month = self.extra({"month": "date_trunc('month', day)::date"})
+
+        if scoped:
+            counts = with_month.values_list("month", "scope").annotate(count_sum=Sum("count"))
+            return {(c[0], c[1]): c[2] for c in counts}
+        else:
+            counts = with_month.values_list("month").annotate(count_sum=Sum("count"))
+            return {c[0]: c[1] for c in counts}
+
 
 class BaseDailyCount(BaseScopedCount):
     """
