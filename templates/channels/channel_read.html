@@ -154,7 +154,7 @@
       <tbody>
         {% for month_data in monthly_counts %}
           <tr>
-            <td>{{ month_data.month_start|utc|date:"F Y" }}</td>
+            <td>{{ month_data.month_start|date:"F Y" }}</td>
             <td>{{ month_data.text_in|intcomma }}</td>
             <td>{{ month_data.text_out|intcomma }}</td>
             {% if ivr_count %}
