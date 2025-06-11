@@ -4,7 +4,6 @@ from django.template import Engine, Template
 from django.urls import reverse
 
 from temba.tests import TembaTest
-from temba.utils import analytics
 
 from .base import AnalyticsBackend
 
@@ -12,15 +11,6 @@ from .base import AnalyticsBackend
 class AnalyticsTest(TembaTest):
     def setUp(self):
         super().setUp()
-
-    @patch("temba.utils.analytics.base.get_backends")
-    def test_identify(self, mock_get_backends):
-        good = MagicMock()
-        mock_get_backends.return_value = [BadBackend(), good]
-
-        analytics.identify(self.editor, {"name": "Cool"}, self.org)
-
-        good.identify.assert_called_once_with(self.editor, {"name": "Cool"}, self.org)
 
     @patch("temba.utils.analytics.base.get_backends")
     def test_get_hook_html(self, mock_get_backends):
@@ -57,6 +47,3 @@ class AnalyticsTest(TembaTest):
 class BadBackend(AnalyticsBackend):
     slug = "bad"
     hook_templates = {"frame-top": "bad/frame_top.html"}
-
-    def identify(self, user, brand, org):
-        raise ValueError("boom")

@@ -11,11 +11,6 @@ class AnalyticsBackend(metaclass=abc.ABCMeta):
     slug: str = None
     hook_templates = {}
 
-    def identify(self, user, brand: dict, org):
-        """
-        Creates and identifies a new user
-        """
-
     def get_hook_template(self, name: str) -> str:
         """
         Gets template name for named hook
@@ -41,17 +36,6 @@ def get_backends() -> list:
     from . import backends
 
     return list(backends.values())
-
-
-def identify(user, brand, org):
-    """
-    Creates and identifies a new user to our analytics backends
-    """
-    for backend in get_backends():
-        try:
-            backend.identify(user, brand, org)
-        except Exception:
-            logger.exception(f"error identifying user on {backend.slug}")
 
 
 def get_hook_html(name: str, context) -> str:
