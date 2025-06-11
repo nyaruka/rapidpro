@@ -29,12 +29,12 @@ if TESTING:
 
 if os.getenv("REMOTE_CONTAINERS") == "true":
     _db_host = "postgres"
-    _redis_host = "redis"
+    _valkey_host = "valkey"
     _minio_host = "minio"
     _dynamo_host = "dynamo"
 else:
     _db_host = "localhost"
-    _redis_host = "localhost"
+    _valkey_host = "localhost"
     _minio_host = "localhost"
     _dynamo_host = "localhost"
 
@@ -656,12 +656,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 # -----------------------------------------------------------------------------------
 # Cache
 # -----------------------------------------------------------------------------------
-_redis_url = f"redis://{_redis_host}:6379/{10 if TESTING else 15}"
+_valkey_url = f"redis://{_valkey_host}:6379/{10 if TESTING else 15}"
 
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": _redis_url,
+        "LOCATION": _valkey_url,
         "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
     }
 }
@@ -673,7 +673,7 @@ SESSION_CACHE_ALIAS = "default"
 # Celery
 # -----------------------------------------------------------------------------------
 
-CELERY_BROKER_URL = _redis_url
+CELERY_BROKER_URL = _valkey_url
 CELERY_RESULT_BACKEND = None
 CELERY_TASK_TRACK_STARTED = True
 
