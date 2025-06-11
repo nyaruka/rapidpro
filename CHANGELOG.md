@@ -1,3 +1,10 @@
+v10.1.199 (2025-06-11)
+-------------------------
+ * Switch to valkey 8 for testing
+ * Update channel count charts to use temba-chart component
+ * Fix for multi select display issue when filtering
+ * Bump codemirror from 5.18.2 to 5.58.2
+
 v10.1.198 (2025-06-11)
 -------------------------
  * Remove no longer used analytics backends
