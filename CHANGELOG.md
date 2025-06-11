@@ -1,3 +1,8 @@
+v10.1.197 (2025-06-11)
+-------------------------
+ * Update some deps
+ * Cleanup unused analytics code
+
 v10.1.196 (2025-06-10)
 -------------------------
  * Remove old 2FA constants no longer used
