@@ -585,27 +585,13 @@ class ChannelCRUDL(SmartCRUDL):
         def render_to_response(self, context, **response_kwargs):
             channel = self.object
 
-            end_date = (timezone.now() + timedelta(days=1)).date()
-            start_date = end_date - timedelta(days=30)
+            # default period is last month
+            since = timezone.now().date() - timedelta(days=30)
+            until = timezone.now().date() + timedelta(days=1)
 
-            message_stats = []
-            msg_in = []
-            msg_out = []
-            ivr_in = []
-            ivr_out = []
-
-            message_stats.append(dict(name=_("Incoming Text"), data=msg_in, yAxis=1))
-            message_stats.append(dict(name=_("Outgoing Text"), data=msg_out, yAxis=1))
-
-            ivr_count = channel.get_ivr_count()
-            if ivr_count:
-                message_stats.append(dict(name=_("Incoming IVR"), data=ivr_in, yAxis=1))
-                message_stats.append(dict(name=_("Outgoing IVR"), data=ivr_out, yAxis=1))
-
-            # get all our counts for that period
-            daily_counts = list(
-                channel.counts.filter(
-                    day__gte=start_date,
+            counts = (
+                channel.counts.period(since, until)
+                .filter(
                     scope__in=[
                         ChannelCount.SCOPE_TEXT_IN,
                         ChannelCount.SCOPE_TEXT_OUT,
@@ -613,31 +599,36 @@ class ChannelCRUDL(SmartCRUDL):
                         ChannelCount.SCOPE_VOICE_OUT,
                     ],
                 )
-                .values("day", "scope")
-                .order_by("day", "scope")
-                .annotate(count_sum=Sum("count"))
+                .day_totals(scoped=True)
             )
 
-            current = start_date
-            while current <= end_date:
-                # for every date we care about
-                while daily_counts and daily_counts[0]["day"] == current:
-                    daily_count = daily_counts.pop(0)
+            msg_in = []
+            msg_out = []
+            ivr_in = []
+            ivr_out = []
 
-                    point = [daily_count["day"], daily_count["count_sum"]]
-                    if daily_count["scope"] == ChannelCount.SCOPE_TEXT_IN:
-                        msg_in.append(point)
-                    elif daily_count["scope"] == ChannelCount.SCOPE_TEXT_OUT:
-                        msg_out.append(point)
-                    elif daily_count["scope"] == ChannelCount.SCOPE_VOICE_IN:
-                        ivr_in.append(point)
-                    elif daily_count["scope"] == ChannelCount.SCOPE_VOICE_OUT:
-                        ivr_out.append(point)
-                current = current + timedelta(days=1)
+            for (day, scope), count in counts.items():
+                if scope == ChannelCount.SCOPE_TEXT_IN:
+                    msg_in.append([day, count])
+                elif scope == ChannelCount.SCOPE_TEXT_OUT:
+                    msg_out.append([day, count])
+                elif scope == ChannelCount.SCOPE_VOICE_IN:
+                    ivr_in.append([day, count])
+                elif scope == ChannelCount.SCOPE_VOICE_OUT:
+                    ivr_out.append([day, count])
+
+            series = [
+                {"name": _("Incoming Text"), "data": msg_in, "yAxis": 1},
+                {"name": _("Outgoing Text"), "data": msg_out, "yAxis": 1},
+            ]
+
+            ivr_count = channel.get_ivr_count()
+            if ivr_count:
+                series.append({"name": _("Incoming IVR"), "data": ivr_in, "yAxis": 1})
+                series.append({"name": _("Outgoing IVR"), "data": ivr_out, "yAxis": 1})
 
             return JsonResponse(
-                {"start_date": start_date, "end_date": end_date, "series": message_stats},
-                json_dumps_params={"indent": 2},
+                {"start_date": since, "end_date": until, "series": series},
                 encoder=EpochEncoder,
             )
 
