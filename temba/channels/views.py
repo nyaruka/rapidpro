@@ -38,7 +38,6 @@ from temba.orgs.views.base import BaseDependencyDeleteModal, BaseReadView
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin
 from temba.utils import countries
 from temba.utils.fields import SelectWidget
-from temba.utils.json import EpochEncoder
 from temba.utils.views.mixins import ComponentFormMixin, ContextMenuMixin, ModalFormMixin, SpaMixin
 
 from .models import Channel, ChannelCount, ChannelLog
@@ -602,35 +601,54 @@ class ChannelCRUDL(SmartCRUDL):
                 .day_totals(scoped=True)
             )
 
-            msg_in = []
-            msg_out = []
-            ivr_in = []
-            ivr_out = []
+            # collect all dates and values by scope
+            dates_set = set()
+            values_by_scope = {
+                ChannelCount.SCOPE_TEXT_IN: {},
+                ChannelCount.SCOPE_TEXT_OUT: {},
+                ChannelCount.SCOPE_VOICE_IN: {},
+                ChannelCount.SCOPE_VOICE_OUT: {},
+            }
 
             for (day, scope), count in counts.items():
-                if scope == ChannelCount.SCOPE_TEXT_IN:
-                    msg_in.append([day, count])
-                elif scope == ChannelCount.SCOPE_TEXT_OUT:
-                    msg_out.append([day, count])
-                elif scope == ChannelCount.SCOPE_VOICE_IN:
-                    ivr_in.append([day, count])
-                elif scope == ChannelCount.SCOPE_VOICE_OUT:
-                    ivr_out.append([day, count])
+                dates_set.add(day)
+                values_by_scope[scope][day] = count
 
-            series = [
-                {"name": _("Incoming Text"), "data": msg_in, "yAxis": 1},
-                {"name": _("Outgoing Text"), "data": msg_out, "yAxis": 1},
+            # create sorted list of dates
+            labels = sorted(list(dates_set))
+
+            # create datasets with fixed splits for Msg In, Msg Out, Voice In, Voice Out
+            datasets = [
+                {
+                    "label": _("Msg In"),
+                    "data": [values_by_scope[ChannelCount.SCOPE_TEXT_IN].get(date, 0) for date in labels]
+                },
+                {
+                    "label": _("Msg Out"),
+                    "data": [values_by_scope[ChannelCount.SCOPE_TEXT_OUT].get(date, 0) for date in labels]
+                },
             ]
 
             ivr_count = channel.get_ivr_count()
             if ivr_count:
-                series.append({"name": _("Incoming IVR"), "data": ivr_in, "yAxis": 1})
-                series.append({"name": _("Outgoing IVR"), "data": ivr_out, "yAxis": 1})
+                datasets.extend([
+                    {
+                        "label": _("Voice In"),
+                        "data": [values_by_scope[ChannelCount.SCOPE_VOICE_IN].get(date, 0) for date in labels]
+                    },
+                    {
+                        "label": _("Voice Out"),
+                        "data": [values_by_scope[ChannelCount.SCOPE_VOICE_OUT].get(date, 0) for date in labels]
+                    },
+                ])
 
-            return JsonResponse(
-                {"start_date": since, "end_date": until, "series": series},
-                encoder=EpochEncoder,
-            )
+            return JsonResponse({
+                "period": [since, until],
+                "data": {
+                    "labels": [d.strftime("%Y-%m-%d") for d in labels],
+                    "datasets": datasets,
+                }
+            })
 
     class FacebookWhitelist(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, SmartModelActionView):
         class DomainForm(forms.Form):

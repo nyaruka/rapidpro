@@ -120,9 +120,12 @@
         </div>
       {% endif %}
     {% endif %}
-    <div class="card pt-8 flex-shrink-0">
-      <div id="channel-chart"></div>
-    </div>
+    <temba-chart header="{% trans 'Messages' %}"
+                 url="{% url 'channels.channel_chart' object.uuid %}"
+                 dataname="Messages"
+                 config
+                 legend>
+    </temba-chart>
     {% if ivr_count %}
       <div class="minutes-disclaimer">
         {% blocktrans trimmed %}
@@ -212,86 +215,4 @@
 {% endblock content %}
 {% block extra-script %}
   {{ block.super }}
-  <script type="text/javascript">
-    var chartUrl = "{% url 'channels.channel_chart' object.uuid %}";
-    var chart;
-    onSpload(function() {
-
-      var store = document.querySelector('temba-store');
-      store.getUrl(chartUrl, {
-        force: true
-      }).then(function(response) {
-        var chartData = response.json;
-        if (chartData.start_date) {
-          window.setTimeout(function() {
-            chart = new Highcharts.Chart({
-              credits: {
-                enabled: false
-              },
-              colors: ['#80b9fb',
-                '#2980b9',
-                '#CD76F0',
-                '#8e44ad',
-                '#633077'
-              ],
-              chart: {
-                renderTo: 'channel-chart',
-                zoomType: 'x',
-                type: 'column'
-              },
-              title: {
-                text: null
-              },
-              xAxis: {
-                type: 'datetime',
-                min: chartData.start_date,
-                max: chartData.end_date,
-                dateTimeLabelFormats: {
-                  millisecond: '%H:%M:%S.%L',
-                  second: '%H:%M:%S',
-                  minute: '%H:%M',
-                  hour: '%H:%M',
-                  day: '%b %e',
-                  week: '%e. %b',
-                  month: '%b \'%y',
-                  year: '%Y'
-                },
-
-              },
-              yAxis: [{
-                title: {
-                  text: ''
-                },
-                opposite: false,
-                min: 0,
-                allowDecimals: false,
-              }, {
-                title: {
-                  text: '{{ _("Messages")|escapejs }}'
-                },
-                opposite: true,
-                min: 0,
-                allowDecimals: false,
-              }],
-              plotOptions: {
-                series: {
-                  pointPadding: .1,
-                  groupPadding: .1,
-                  stacking: 'normal'
-                }
-              },
-              tooltip: {
-                formatter: function() {
-                  return '<b>' + this.series.name + '</b>: ' + this.y + '<br />' +
-                    Highcharts.dateFormat('%b %e, %Y', this.x);
-                }
-              },
-              series: chartData.series
-            });
-
-          }, 500);
-        }
-      });
-    });
-  </script>
 {% endblock extra-script %}
