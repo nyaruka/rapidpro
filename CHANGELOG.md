@@ -1,3 +1,8 @@
+v10.1.198 (2025-06-11)
+-------------------------
+ * Remove no longer used analytics backends
+ * Update to latest components and editor
+
 v10.1.197 (2025-06-11)
 -------------------------
  * Update some deps
