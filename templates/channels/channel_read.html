@@ -120,28 +120,34 @@
         </div>
       {% endif %}
     {% endif %}
-    <temba-chart header="{% trans 'Messages' %}"
+    <temba-chart class="mb-6"
                  url="{% url 'channels.channel_chart' object.uuid %}"
                  dataname="Messages"
-                 config
-                 legend>
+                 legend
+                 showall
+                 colorIndex="0">
     </temba-chart>
-    {% if ivr_count %}
-      <div class="minutes-disclaimer">
-        {% blocktrans trimmed %}
-          In many cases operators round up to the nearest minute for billing. Minutes shown here are only a usage guideline.
-        {% endblocktrans %}
-      </div>
-    {% endif %}
     <table class="list lined">
       <thead>
         <tr>
           <th>{% trans "Month" %}</th>
-          <th>{% trans "Incoming Text Messages" %}</th>
-          <th>{% trans "Outgoing Text Messages" %}</th>
+          <th>
+            {% if ivr_count %}
+              {% trans "Incoming Text" %}
+            {% else %}
+              {% trans "Incoming" %}
+            {% endif %}
+          </th>
+          <th>
+            {% if ivr_count %}
+              {% trans "Outgoing Text" %}
+            {% else %}
+              {% trans "Outgoing" %}
+            {% endif %}
+          </th>
           {% if ivr_count %}
-            <th>{% trans "Incoming IVR Messages" %}</th>
-            <th>{% trans "Outgoing IVR Messages" %}</th>
+            <th>{% trans "Incoming Voice" %}</th>
+            <th>{% trans "Outgoing Voice" %}</th>
           {% endif %}
         </tr>
       </thead>

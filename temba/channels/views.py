@@ -617,38 +617,43 @@ class ChannelCRUDL(SmartCRUDL):
             # create sorted list of dates
             labels = sorted(list(dates_set))
 
+            ivr_count = channel.get_ivr_count()
+
             # create datasets with fixed splits for Msg In, Msg Out, Voice In, Voice Out
             datasets = [
                 {
-                    "label": _("Msg In"),
-                    "data": [values_by_scope[ChannelCount.SCOPE_TEXT_IN].get(date, 0) for date in labels]
+                    "label": _("Incoming") if not ivr_count else _("Incoming Text"),
+                    "data": [values_by_scope[ChannelCount.SCOPE_TEXT_IN].get(date, 0) for date in labels],
                 },
                 {
-                    "label": _("Msg Out"),
-                    "data": [values_by_scope[ChannelCount.SCOPE_TEXT_OUT].get(date, 0) for date in labels]
+                    "label": _("Outgoing") if not ivr_count else _("Outgoing Text"),
+                    "data": [values_by_scope[ChannelCount.SCOPE_TEXT_OUT].get(date, 0) for date in labels],
                 },
             ]
 
-            ivr_count = channel.get_ivr_count()
             if ivr_count:
-                datasets.extend([
-                    {
-                        "label": _("Voice In"),
-                        "data": [values_by_scope[ChannelCount.SCOPE_VOICE_IN].get(date, 0) for date in labels]
-                    },
-                    {
-                        "label": _("Voice Out"),
-                        "data": [values_by_scope[ChannelCount.SCOPE_VOICE_OUT].get(date, 0) for date in labels]
-                    },
-                ])
+                datasets.extend(
+                    [
+                        {
+                            "label": _("Incoming Voice"),
+                            "data": [values_by_scope[ChannelCount.SCOPE_VOICE_IN].get(date, 0) for date in labels],
+                        },
+                        {
+                            "label": _("Outgoing Voice"),
+                            "data": [values_by_scope[ChannelCount.SCOPE_VOICE_OUT].get(date, 0) for date in labels],
+                        },
+                    ]
+                )
 
-            return JsonResponse({
-                "period": [since, until],
-                "data": {
-                    "labels": [d.strftime("%Y-%m-%d") for d in labels],
-                    "datasets": datasets,
+            return JsonResponse(
+                {
+                    "period": [since, until],
+                    "data": {
+                        "labels": [d.strftime("%Y-%m-%d") for d in labels],
+                        "datasets": datasets,
+                    },
                 }
-            })
+            )
 
     class FacebookWhitelist(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, SmartModelActionView):
         class DomainForm(forms.Form):
