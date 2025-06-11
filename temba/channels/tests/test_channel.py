@@ -341,13 +341,13 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
             chart = response.json()
 
             # an entry for each incoming and outgoing
-            self.assertEqual(2, len(chart["series"]))
+            self.assertEqual(2, len(chart["data"]["datasets"]))
 
             # one incoming message in the first entry
-            self.assertEqual(1, chart["series"][0]["data"][0][1])
+            self.assertEqual(1, chart["data"]["datasets"][0]["data"][0])
 
             # two outgoing messages in the second entry
-            self.assertEqual(2, chart["series"][1]["data"][0][1])
+            self.assertEqual(2, chart["data"]["datasets"][1]["data"][0])
 
     def test_read(self):
         # now send the channel's updates
@@ -457,7 +457,7 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
             response = self.requestView(chart_url, self.admin)
 
             # incoming, outgoing for both text and our ivr messages
-            self.assertEqual(4, len(response.json()["series"]))
+            self.assertEqual(4, len(response.json()["data"]["datasets"]))
 
         # as staff
         self.requestView(tel_channel_read_url, self.customer_support, checks=[StaffRedirect()])
