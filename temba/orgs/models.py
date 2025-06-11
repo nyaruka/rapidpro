@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 
 import pycountry
 import pytz
-from django_redis import get_redis_connection
+from django_valkey import get_valkey_connection
 from packaging.version import Version
 from smartmin.models import SmartModel
 from timezone_field import TimeZoneField
@@ -1247,12 +1247,12 @@ class OrgMembership(models.Model):
         return OrgRole.from_code(self.role_code)
 
     def record_seen(self):
-        r = get_redis_connection()
+        r = get_valkey_connection()
         r.sadd("org_members_seen", self.id)
 
     @classmethod
     def get_seen(self) -> list:
-        r = get_redis_connection()
+        r = get_valkey_connection()
         return [k.decode() for k in r.spop("org_members_seen", r.scard("org_members_seen"))]
 
     class Meta:

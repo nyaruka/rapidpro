@@ -660,9 +660,8 @@ _valkey_url = f"redis://{_valkey_host}:6379/{10 if TESTING else 15}"
 
 CACHES = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
+        "BACKEND": "django_valkey.cache.ValkeyCache",
         "LOCATION": _valkey_url,
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
     }
 }
 

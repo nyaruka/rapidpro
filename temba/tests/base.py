@@ -8,7 +8,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from allauth.account.models import EmailAddress
-from django_redis import get_redis_connection
+from django_valkey import get_valkey_connection
 from PIL import Image, ImageDraw
 from smartmin.tests import SmartminTest
 
@@ -142,7 +142,7 @@ class TembaTest(SmartminTest):
     def tearDown(self):
         super().tearDown()
 
-        r = get_redis_connection()
+        r = get_valkey_connection()
         r.flushdb()
 
     def login(self, user, *, update_last_auth_on: bool = True, choose_org=None):

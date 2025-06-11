@@ -1,7 +1,7 @@
 import time
 from enum import Enum
 
-from django_redis import get_redis_connection
+from django_valkey import get_valkey_connection
 
 from django.utils import timezone
 
@@ -93,7 +93,7 @@ def _queue_batch_task(org_id, task_type, task, priority):
     Adds the passed in task to the mailroom batch queue
     """
 
-    r = get_redis_connection("default")
+    r = get_valkey_connection()
     pipe = r.pipeline()
     _queue_task(pipe, org_id, task_type, task, priority)
     pipe.execute()

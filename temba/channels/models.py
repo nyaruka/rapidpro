@@ -9,7 +9,7 @@ import iso8601
 import phonenumbers
 import requests
 from django_countries.fields import CountryField
-from django_redis import get_redis_connection
+from django_valkey import get_valkey_connection
 from phonenumbers import NumberParseException
 from twilio.base.exceptions import TwilioRestException
 
@@ -446,7 +446,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         from temba.request_logs.models import HTTPLog
         from temba.templates.models import TemplateTranslation
 
-        r = get_redis_connection()
+        r = get_valkey_connection()
 
         key = "refresh_channel_templates_%d" % self.id
 

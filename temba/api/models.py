@@ -1,6 +1,6 @@
 import logging
 
-from django_redis import get_redis_connection
+from django_valkey import get_valkey_connection
 from rest_framework.permissions import BasePermission
 from smartmin.models import SmartModel
 
@@ -227,12 +227,12 @@ class APIToken(models.Model):
         return cls.objects.create(user=user, org=org, key=generate_secret(40))
 
     def record_used(self):
-        r = get_redis_connection()
+        r = get_valkey_connection()
         r.sadd("api_tokens_used", self.key)
 
     @classmethod
     def get_used_keys(self) -> list:
-        r = get_redis_connection()
+        r = get_valkey_connection()
         return [k.decode() for k in r.spop("api_tokens_used", r.scard("api_tokens_used"))]
 
     def release(self):

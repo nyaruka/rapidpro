@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta, timezone as tzone
 from decimal import Decimal
 from unittest.mock import patch
 
-from django_redis import get_redis_connection
+from django_valkey import get_valkey_connection
 
 from django.test.utils import override_settings
 from django.urls import reverse
@@ -1398,7 +1398,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual([], response.json())
 
         def add_recent_contact(exit_uuid: str, dest_uuid: str, contact, text: str, ts: float):
-            r = get_redis_connection()
+            r = get_valkey_connection()
             member = f"{uuid4()}|{contact.id}|{text}"  # text is prefixed with a random value to keep it unique
             r.zadd(f"recent_contacts:{exit_uuid}:{dest_uuid}", mapping={member: ts})
 

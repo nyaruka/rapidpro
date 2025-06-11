@@ -1,7 +1,7 @@
 from functools import wraps
 
 from celery import shared_task
-from django_redis import get_redis_connection
+from django_valkey import get_valkey_connection
 
 from django.utils import timezone
 
@@ -20,7 +20,7 @@ def cron_task(*task_args, **task_kwargs):
     def _cron_task(task_func):
         @wraps(task_func)
         def wrapper(*exec_args, **exec_kwargs):
-            r = get_redis_connection()
+            r = get_valkey_connection()
 
             task_name = task_kwargs.get("name", task_func.__name__)
             lock_key = "celery-task-lock:" + task_name
