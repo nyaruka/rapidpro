@@ -59,6 +59,19 @@ class DailyCountTest(TembaTest):
             {date(2025, 3, 20): 6, date(2025, 4, 5): 1},
             self.org.daily_counts.period(date(2025, 3, 1), date(2025, 4, 10)).day_totals(scoped=False),
         )
+        self.assertEqual(
+            {
+                (date(2025, 3, 1), "foo:a"): 5,
+                (date(2025, 3, 1), "foo:b"): 1,
+                (date(2025, 4, 1), "foo:a"): 8,
+                (date(2025, 4, 1), "foo:b"): 2,
+            },
+            self.org.daily_counts.prefix("foo:").month_totals(scoped=True),
+        )
+        self.assertEqual(
+            {date(2025, 3, 1): 6, date(2025, 4, 1): 10},
+            self.org.daily_counts.prefix("foo:").month_totals(scoped=False),
+        )
         self.assertEqual(7, self.org.daily_counts.count())
 
         squash_item_counts()

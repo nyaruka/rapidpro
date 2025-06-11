@@ -415,12 +415,12 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
             joe = self.create_contact("Joe", phone="+2501234567890")
 
             # we have one row for the message stats table
-            self.assertEqual(1, len(response.context["message_stats_table"]))
+            self.assertEqual(1, len(response.context["monthly_counts"]))
             # only one outgoing message
-            self.assertEqual(0, response.context["message_stats_table"][0]["incoming_messages_count"])
-            self.assertEqual(1, response.context["message_stats_table"][0]["outgoing_messages_count"])
-            self.assertEqual(0, response.context["message_stats_table"][0]["incoming_ivr_count"])
-            self.assertEqual(0, response.context["message_stats_table"][0]["outgoing_ivr_count"])
+            self.assertEqual(0, response.context["monthly_counts"][0]["text_in"])
+            self.assertEqual(1, response.context["monthly_counts"][0]["text_out"])
+            self.assertEqual(0, response.context["monthly_counts"][0]["voice_in"])
+            self.assertEqual(0, response.context["monthly_counts"][0]["voice_out"])
 
             # send messages
             self.create_incoming_msg(joe, "This incoming message will be counted", channel=self.tel_channel)
@@ -431,11 +431,11 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
             self.assertEqual(200, response.status_code)
 
             # message stats table have an inbound and two outbounds in the last month
-            self.assertEqual(1, len(response.context["message_stats_table"]))
-            self.assertEqual(1, response.context["message_stats_table"][0]["incoming_messages_count"])
-            self.assertEqual(2, response.context["message_stats_table"][0]["outgoing_messages_count"])
-            self.assertEqual(0, response.context["message_stats_table"][0]["incoming_ivr_count"])
-            self.assertEqual(0, response.context["message_stats_table"][0]["outgoing_ivr_count"])
+            self.assertEqual(1, len(response.context["monthly_counts"]))
+            self.assertEqual(1, response.context["monthly_counts"][0]["text_in"])
+            self.assertEqual(2, response.context["monthly_counts"][0]["text_out"])
+            self.assertEqual(0, response.context["monthly_counts"][0]["voice_in"])
+            self.assertEqual(0, response.context["monthly_counts"][0]["voice_out"])
 
             # test cases for IVR messaging, make our relayer accept calls
             self.tel_channel.role = "SCAR"
@@ -446,11 +446,11 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
             self.create_outgoing_msg(joe, "outgoing ivr", channel=self.tel_channel, voice=True)
             response = self.requestView(tel_channel_read_url, self.admin)
 
-            self.assertEqual(1, len(response.context["message_stats_table"]))
-            self.assertEqual(1, response.context["message_stats_table"][0]["incoming_messages_count"])
-            self.assertEqual(2, response.context["message_stats_table"][0]["outgoing_messages_count"])
-            self.assertEqual(1, response.context["message_stats_table"][0]["incoming_ivr_count"])
-            self.assertEqual(1, response.context["message_stats_table"][0]["outgoing_ivr_count"])
+            self.assertEqual(1, len(response.context["monthly_counts"]))
+            self.assertEqual(1, response.context["monthly_counts"][0]["text_in"])
+            self.assertEqual(2, response.context["monthly_counts"][0]["text_out"])
+            self.assertEqual(1, response.context["monthly_counts"][0]["voice_in"])
+            self.assertEqual(1, response.context["monthly_counts"][0]["voice_out"])
 
             # look at the chart for our messages
             chart_url = reverse("channels.channel_chart", args=[self.tel_channel.uuid])

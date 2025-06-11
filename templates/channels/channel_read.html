@@ -152,14 +152,14 @@
         </tr>
       </thead>
       <tbody>
-        {% for month_data in message_stats_table %}
+        {% for month_data in monthly_counts %}
           <tr>
             <td>{{ month_data.month_start|utc|date:"F Y" }}</td>
-            <td>{{ month_data.incoming_messages_count|intcomma }}</td>
-            <td>{{ month_data.outgoing_messages_count|intcomma }}</td>
+            <td>{{ month_data.text_in|intcomma }}</td>
+            <td>{{ month_data.text_out|intcomma }}</td>
             {% if ivr_count %}
-              <td>{{ month_data.incoming_ivr_count|intcomma }}</td>
-              <td>{{ month_data.outgoing_ivr_count|intcomma }}</td>
+              <td>{{ month_data.voice_in|intcomma }}</td>
+              <td>{{ month_data.voice_out|intcomma }}</td>
             {% endif %}
           </tr>
         {% endfor %}

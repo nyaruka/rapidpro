@@ -22,7 +22,6 @@ from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template import Context, Engine, TemplateDoesNotExist
@@ -519,14 +518,17 @@ class ChannelCRUDL(SmartCRUDL):
                 if unsent_msgs:
                     context["unsent_msgs_count"] = unsent_msgs.count()
 
-            message_stats_table = []
+            context["monthly_counts"] = self.get_monthly_counts()
+            return context
 
-            # we'll show totals for every month since this channel was started
-            month_start = channel.created_on.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        def get_monthly_counts(self) -> list:
+            # for every month since this channel was started
+            since = self.object.created_on.replace(day=1).date()
+            until = timezone.now().date() + timedelta(days=1)
 
-            # get our totals grouped by month
-            monthly_totals = list(
-                ChannelCount.objects.filter(channel=channel, day__gte=month_start)
+            # get our totals grouped by month+scope
+            counts = (
+                self.object.counts.period(since, until)
                 .filter(
                     scope__in=[
                         ChannelCount.SCOPE_TEXT_IN,
@@ -535,47 +537,27 @@ class ChannelCRUDL(SmartCRUDL):
                         ChannelCount.SCOPE_VOICE_OUT,
                     ]
                 )
-                .extra({"month": "date_trunc('month', day)"})
-                .values("month", "scope")
-                .order_by("month", "scope")
-                .annotate(count_sum=Sum("count"))
+                .month_totals(scoped=True)
             )
 
-            now = timezone.now()
-            while month_start < now:
-                msg_in = 0
-                msg_out = 0
-                ivr_in = 0
-                ivr_out = 0
-
-                while monthly_totals and monthly_totals[0]["month"] == month_start:
-                    monthly_total = monthly_totals.pop(0)
-                    if monthly_total["scope"] == ChannelCount.SCOPE_TEXT_IN:
-                        msg_in = monthly_total["count_sum"]
-                    elif monthly_total["scope"] == ChannelCount.SCOPE_TEXT_OUT:
-                        msg_out = monthly_total["count_sum"]
-                    elif monthly_total["scope"] == ChannelCount.SCOPE_VOICE_IN:
-                        ivr_in = monthly_total["count_sum"]
-                    elif monthly_total["scope"] == ChannelCount.SCOPE_VOICE_OUT:
-                        ivr_out = monthly_total["count_sum"]
-
-                message_stats_table.append(
+            # covert into a table of totals by month
+            by_month = []
+            month = since
+            while month < until:
+                by_month.append(
                     dict(
-                        month_start=month_start,
-                        incoming_messages_count=msg_in,
-                        outgoing_messages_count=msg_out,
-                        incoming_ivr_count=ivr_in,
-                        outgoing_ivr_count=ivr_out,
+                        month_start=month,
+                        text_in=counts.get((month, ChannelCount.SCOPE_TEXT_IN), 0),
+                        text_out=counts.get((month, ChannelCount.SCOPE_TEXT_OUT), 0),
+                        voice_in=counts.get((month, ChannelCount.SCOPE_VOICE_IN), 0),
+                        voice_out=counts.get((month, ChannelCount.SCOPE_VOICE_OUT), 0),
                     )
                 )
-
-                month_start = (month_start + timedelta(days=32)).replace(day=1)
+                month = (month + timedelta(days=32)).replace(day=1)
 
             # reverse our table so most recent is first
-            message_stats_table.reverse()
-            context["message_stats_table"] = message_stats_table
-
-            return context
+            by_month.reverse()
+            return by_month
 
     class Chart(BaseReadView):
         permission = "channels.channel_read"
