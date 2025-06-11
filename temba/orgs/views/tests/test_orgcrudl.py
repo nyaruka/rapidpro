@@ -954,7 +954,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRedirect(self.requestView(choose_url, self.editor), "/org/start/")
 
         # try to submit for an org we don't belong to
-        response = self.client.post(choose_url, {"organization": org4.id})
+        response = self.requestView(choose_url, self.editor, post_data={"organization": org4.id})
         self.assertFormError(
             response.context["form"],
             "organization",
@@ -962,7 +962,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         # user clicks org 2...
-        response = self.client.post(choose_url, {"organization": self.org2.id})
+        response = self.requestView(choose_url, self.editor, post_data={"organization": self.org2.id})
         self.assertRedirect(response, "/org/start/")
 
     def test_edit(self):
