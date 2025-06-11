@@ -9,7 +9,7 @@ from django.views.generic import RedirectView, View
 from temba import __version__ as temba_version
 from temba.apks.models import Apk
 from temba.channels.models import ChannelEvent
-from temba.utils import analytics, json
+from temba.utils import json
 from temba.utils.text import generate_secret
 from temba.utils.uuid import is_uuid
 from temba.utils.views.mixins import ComponentFormMixin, NoNavMixin, SpaMixin
@@ -100,18 +100,6 @@ class Welcome(SpaMixin, SmartTemplateView):
     template_name = "public/public_welcome.html"
     menu_path = "/settings"
     title = _("Getting Started")
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        user = self.request.user
-        org = self.request.org
-        brand = self.request.branding
-
-        if org:
-            analytics.identify(user, brand, org=org)
-
-        return context
 
     def has_permission(self, request, *args, **kwargs):
         return request.user.is_authenticated

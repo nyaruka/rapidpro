@@ -5,8 +5,8 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from temba.orgs.models import Invitation, Org
+from temba.orgs.views.utils import switch_to_org
 from temba.users.models import User
-from temba.utils import analytics
 from temba.utils.timezones import TimeZoneFormField
 
 
@@ -80,7 +80,7 @@ class TembaSignupForm(InviteFormMixin, SignupForm):
             # otherwise, create a new org for us
             org = Org.create(user, self.cleaned_data["workspace"], self.cleaned_data["timezone"])
 
-        analytics.identify(user, brand=request.branding, org=org)
+        switch_to_org(request, org)
         return user
 
 
