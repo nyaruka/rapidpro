@@ -1,3 +1,8 @@
+v10.1.201 (2025-06-12)
+-------------------------
+ * Update chart styling
+ * Replace django-redis with django-valkey
+
 v10.1.200 (2025-06-11)
 -------------------------
  * Fix month display on channel read page
