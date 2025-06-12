@@ -7,7 +7,7 @@ from datetime import date, datetime, timezone as tzone
 from uuid import UUID
 
 import iso8601
-from django_redis import get_redis_connection
+from django_valkey import get_valkey_connection
 from packaging.version import Version
 
 from django.conf import settings
@@ -413,7 +413,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         """
         Locks on this flow to let us make changes to the definition in a thread safe way
         """
-        r = get_redis_connection()
+        r = get_valkey_connection()
         lock_key = FLOW_LOCK_KEY % (self.org_id, self.id)
         return r.lock(lock_key, FLOW_LOCK_TTL)
 
@@ -556,7 +556,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         return defaultdict(int, {scope[7:]: count for scope, count in counts.items()})
 
     def get_recent_contacts(self, exit_uuid: str, dest_uuid: str) -> list[dict]:
-        r = get_redis_connection()
+        r = get_valkey_connection()
         key = f"recent_contacts:{exit_uuid}:{dest_uuid}"
 
         # fetch members of the sorted set from redis and save as tuples of (contact_id, operand, time)

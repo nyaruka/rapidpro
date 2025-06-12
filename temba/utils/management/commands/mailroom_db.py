@@ -3,7 +3,7 @@ import subprocess
 import time
 from zoneinfo import ZoneInfo
 
-from django_redis import get_redis_connection
+from django_valkey import get_valkey_connection
 
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError, call_command
@@ -87,7 +87,7 @@ class Command(BaseCommand):
 
         # this is a new database so clear out redis
         self._log("Clearing out Redis cache... ")
-        r = get_redis_connection()
+        r = get_valkey_connection()
         r.flushdb()
         self._log(self.style.SUCCESS("OK") + "\n")
 

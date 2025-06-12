@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone as tzone
 
-from django_redis import get_redis_connection
+from django_valkey import get_valkey_connection
 from smartmin.models import SmartModel
 
 from django.db import models
@@ -449,7 +449,7 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
         on_transaction_commit(lambda: mailroom.get_client().campaign_schedule_event(self.campaign.org, self))
 
     def get_recent_fires(self) -> list[dict]:
-        r = get_redis_connection()
+        r = get_valkey_connection()
         key = f"recent_campaign_fires:{self.id}"
 
         # fetch members of the sorted set from redis and save as tuples of (contact_id, operand, time)

@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from django_redis import get_redis_connection
+from django_valkey import get_valkey_connection
 
 from temba.flows.models import FlowStart
 from temba.mailroom.queue import queue_interrupt
@@ -102,7 +102,7 @@ class MailroomQueueTest(TembaTest):
         )
 
     def assert_org_queued(self, org):
-        r = get_redis_connection()
+        r = get_valkey_connection()
 
         # check we have one org with active tasks
         self.assertEqual(r.zcard("tasks:batch:active"), 1)
@@ -112,7 +112,7 @@ class MailroomQueueTest(TembaTest):
         self.assertEqual(queued_org, org.id)
 
     def assert_queued_batch_task(self, org, expected_task):
-        r = get_redis_connection()
+        r = get_valkey_connection()
 
         # check we have one task in the org's queue
         self.assertEqual(r.zcard(f"tasks:batch:{org.id}"), 1)

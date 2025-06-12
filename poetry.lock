@@ -1057,22 +1057,6 @@ django-js-asset = "*"
 tests = ["coverage[toml]", "mock-django"]
 
 [[package]]
-name = "django-redis"
-version = "4.12.1"
-description = "Full featured redis cache backend for Django."
-optional = false
-python-versions = ">=3.5"
-groups = ["main"]
-files = [
-    {file = "django-redis-4.12.1.tar.gz", hash = "sha256:306589c7021e6468b2656edc89f62b8ba67e8d5a1c8877e2688042263daa7a63"},
-    {file = "django_redis-4.12.1-py3-none-any.whl", hash = "sha256:1133b26b75baa3664164c3f44b9d5d133d1b8de45d94d79f38d1adc5b1d502e5"},
-]
-
-[package.dependencies]
-Django = ">=2.2"
-redis = ">=3.0.0"
-
-[[package]]
 name = "django-storages"
 version = "1.14.4"
 description = "Support for many storage backends in Django"
@@ -1110,6 +1094,29 @@ files = [
 
 [package.dependencies]
 Django = ">=3.2,<6.0"
+
+[[package]]
+name = "django-valkey"
+version = "0.2.1"
+description = "a valkey backend for django"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "django_valkey-0.2.1-py3-none-any.whl", hash = "sha256:24c3296eba78eae0543f21517dab297995e4b2f65dafd75cd2ded42b25f7d6e7"},
+    {file = "django_valkey-0.2.1.tar.gz", hash = "sha256:747e35609f7d0af906d3d1af8a0f8edfd9a872998e4750c299d1d5a17d0496a9"},
+]
+
+[package.dependencies]
+django = ">=4.2.20"
+valkey = ">=6.0.2"
+
+[package.extras]
+brotli = ["brotli (>=1.1.0,<2.0.0)"]
+libvalkey = ["libvalkey (>=4.0.1,<5.0.0)"]
+lz4 = ["lz4 (>=4.3.3,<5.0.0)"]
+msgpack = ["msgpack (>=1.1.0,<2.0.0)"]
+pyzstd = ["pyzstd (>=0.16.2,<0.17.0)"]
 
 [[package]]
 name = "djangorestframework"
@@ -2610,19 +2617,20 @@ files = [
 
 [[package]]
 name = "redis"
-version = "5.2.1"
+version = "6.2.0"
 description = "Python client for Redis database and key-value store"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "redis-5.2.1-py3-none-any.whl", hash = "sha256:ee7e1056b9aea0f04c6c2ed59452947f34c4940ee025f5dd83e6a6418b6989e4"},
-    {file = "redis-5.2.1.tar.gz", hash = "sha256:16f2e22dff21d5125e8481515e386711a34cbec50f0e44413dd7d9c060a54e0f"},
+    {file = "redis-6.2.0-py3-none-any.whl", hash = "sha256:c8ddf316ee0aab65f04a11229e94a64b2618451dab7a67cb2f77eb799d872d5e"},
+    {file = "redis-6.2.0.tar.gz", hash = "sha256:e821f129b75dde6cb99dd35e5c76e8c49512a5a0d8dfdc560b2fbd44b85ca977"},
 ]
 
 [package.extras]
-hiredis = ["hiredis (>=3.0.0)"]
-ocsp = ["cryptography (>=36.0.1)", "pyopenssl (==23.2.1)", "requests (>=2.31.0)"]
+hiredis = ["hiredis (>=3.2.0)"]
+jwt = ["pyjwt (>=2.9.0)"]
+ocsp = ["cryptography (>=36.0.1)", "pyopenssl (>=20.0.1)", "requests (>=2.31.0)"]
 
 [[package]]
 name = "regex"
@@ -3083,6 +3091,22 @@ socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
 zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
+name = "valkey"
+version = "6.1.0"
+description = "Python client for Valkey forked from redis-py"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "valkey-6.1.0-py3-none-any.whl", hash = "sha256:cfe769edae894f74ac946eff1e93f7d7f466032c3030ba7e9d089a742459ac9c"},
+    {file = "valkey-6.1.0.tar.gz", hash = "sha256:a652df15ed89c41935ffae6dfd09c56f4a9ab80b592e5ed9204d538e2ddad6d3"},
+]
+
+[package.extras]
+libvalkey = ["libvalkey (>=4.0.1)"]
+ocsp = ["cryptography (>=36.0.1)", "pyopenssl (==23.2.1)", "requests (>=2.31.0)"]
+
+[[package]]
 name = "vine"
 version = "5.1.0"
 description = "Python promises."
@@ -3453,4 +3477,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.13"
-content-hash = "15f0a30d4bad125f54821c4823496689df3569f7e56793214d0fe100c7daa4c3"
+content-hash = "926e0947b4750970001b505ded536ac1143352638cbedfe279fe196780a6e980"

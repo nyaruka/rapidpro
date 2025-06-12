@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone as tzone
 
-from django_redis import get_redis_connection
+from django_valkey import get_valkey_connection
 
 from django.utils import timezone
 
@@ -147,7 +147,7 @@ class CampaignEventTest(TembaTest):
         )
 
         def add_recent_contact(event, contact, ts: float):
-            r = get_redis_connection()
+            r = get_valkey_connection()
             member = f"{uuid4()}|{contact.id}"
             r.zadd(f"recent_campaign_fires:{event.id}", mapping={member: ts})
 

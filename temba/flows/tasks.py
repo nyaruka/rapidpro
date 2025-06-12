@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone as tzone
 
-from django_redis import get_redis_connection
+from django_valkey import get_valkey_connection
 
 from django.conf import settings
 from django.utils import timezone
@@ -24,7 +24,7 @@ def squash_flow_counts():
 @cron_task()
 def trim_flow_revisions():
     # get when the last time we trimmed was
-    r = get_redis_connection()
+    r = get_valkey_connection()
     last_trim = r.get(FlowRevision.LAST_TRIM_KEY)
     if not last_trim:
         last_trim = 0

@@ -9,7 +9,7 @@ from typing import Any
 import iso8601
 import phonenumbers
 import regex
-from django_redis import get_redis_connection
+from django_valkey import get_valkey_connection
 from openpyxl import load_workbook
 from smartmin.models import SmartModel
 
@@ -2222,7 +2222,7 @@ class ContactImport(SmartModel):
                 urns.extend(spec.get("urns", []))
 
         # set redis key which mailroom batch tasks can decrement to know when import has completed
-        r = get_redis_connection()
+        r = get_valkey_connection()
         r.set(f"contact_import_batches_remaining:{self.id}", len(batches), ex=24 * 60 * 60)
 
         # start each batch...

@@ -4,7 +4,7 @@ import time
 
 import requests
 from celery import shared_task
-from django_redis import get_redis_connection
+from django_valkey import get_valkey_connection
 
 from django.utils import timezone
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 @shared_task
 def refresh_whatsapp_contacts(channel_id):
-    r = get_redis_connection()
+    r = get_valkey_connection()
     key = "refresh_whatsapp_contacts_%d" % channel_id
 
     # we can't use our non-overlapping task decorator as it creates a loop in the celery resolver when registering
