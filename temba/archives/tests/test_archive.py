@@ -43,7 +43,7 @@ class ArchiveTest(TembaTest):
 
         self.assertEqual(
             [
-                ("GetObject", {"Bucket": bucket, "Key": key}),
+                ("GetObject", {"Bucket": bucket, "Key": key, "ChecksumMode": "ENABLED"}),
                 (
                     "SelectObjectContent",
                     {
