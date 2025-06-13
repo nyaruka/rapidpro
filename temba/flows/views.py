@@ -1199,6 +1199,54 @@ class FlowCRUDL(SmartCRUDL):
         def render_to_response(self, context, **response_kwargs):
             return JsonResponse({"counts": self.object.get_category_counts()})
 
+    class Chart(BaseReadView):
+        """
+        Individual chart data for analytics tab of results page.
+        """
+
+        permission = "flows.flow_results"
+
+        @classmethod
+        def derive_url_pattern(cls, path, action):
+            return r"^%s/%s/(?P<result_key>\w+)/$" % (path, action)
+
+        def render_to_response(self, context, **response_kwargs):
+            result_key = self.kwargs["result_key"]
+            flow = self.object
+            
+            # get category counts for this specific result
+            counts = flow.get_category_counts()
+            result_data = None
+            
+            for count_data in counts:
+                if count_data["key"] == result_key:
+                    result_data = count_data
+                    break
+            
+            if not result_data:
+                return JsonResponse({"data": {"labels": [], "datasets": []}})
+            
+            # convert to chart.js format
+            labels = []
+            data = []
+            
+            # sort categories by count (descending), but put "Other" last
+            categories = sorted(
+                result_data["categories"],
+                key=lambda c: (c["name"] == "Other", -c["count"])
+            )
+            
+            for category in categories:
+                labels.append(category["name"])
+                data.append(category["count"])
+            
+            chart_data = {
+                "labels": labels,
+                "datasets": [{"label": result_data["name"], "data": data}]
+            }
+            
+            return JsonResponse({"data": chart_data})
+
     class Results(SpaMixin, ContextMenuMixin, BaseReadView):
         def build_context_menu(self, menu):
             obj = self.get_object()
@@ -1216,6 +1264,7 @@ class FlowCRUDL(SmartCRUDL):
         def get_context_data(self, *args, **kwargs):
             context = super().get_context_data(*args, **kwargs)
             context["utcoffset"] = int(datetime.now(self.request.org.timezone).utcoffset().total_seconds() // 60)
+            context["category_counts"] = self.object.get_category_counts()
             return context
 
     class Activity(BaseReadView):

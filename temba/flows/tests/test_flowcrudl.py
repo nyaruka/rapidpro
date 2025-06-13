@@ -1475,6 +1475,43 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             response.json(),
         )
 
+    def test_chart(self):
+        flow1 = self.create_flow("Test 1")
+
+        # chart URL with a result key
+        chart_url = reverse("flows.flow_chart", args=[flow1.id, "color"])
+
+        self.assertRequestDisallowed(chart_url, [None, self.agent])
+
+        # check with no data
+        response = self.assertReadFetch(chart_url, [self.editor, self.admin])
+        self.assertEqual({"data": {"labels": [], "datasets": []}}, response.json())
+
+        # simulate some category data
+        flow1.info["results"] = [{"key": "color", "name": "Color"}, {"key": "beer", "name": "Beer"}]
+        flow1.save(update_fields=("info",))
+
+        flow1.result_counts.create(result="color", category="Red", count=3)
+        flow1.result_counts.create(result="color", category="Blue", count=2)
+        flow1.result_counts.create(result="color", category="Other", count=1)
+        flow1.result_counts.create(result="beer", category="Primus", count=7)
+
+        response = self.assertReadFetch(chart_url, [self.editor, self.admin])
+        self.assertEqual(
+            {
+                "data": {
+                    "labels": ["Red", "Blue", "Other"],
+                    "datasets": [{"label": "Color", "data": [3, 2, 1]}]
+                }
+            },
+            response.json(),
+        )
+
+        # test non-existent result key
+        chart_url_invalid = reverse("flows.flow_chart", args=[flow1.id, "nonexistent"])
+        response = self.assertReadFetch(chart_url_invalid, [self.editor, self.admin])
+        self.assertEqual({"data": {"labels": [], "datasets": []}}, response.json())
+
     def test_results(self):
         flow = self.create_flow("Test 1")
 
