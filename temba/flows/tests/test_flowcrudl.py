@@ -1392,7 +1392,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         seg1_url = reverse("flows.flow_recent_contacts", args=[flow.uuid, node1_exit1_uuid, node2_uuid])
 
-        # nothing set in redis just means empty list
+        # nothing set in valkey just means empty list
         self.assertRequestDisallowed(seg1_url, [None, self.agent, self.admin2])
         response = self.assertReadFetch(seg1_url, [self.editor, self.admin])
         self.assertEqual([], response.json())

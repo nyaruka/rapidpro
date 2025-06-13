@@ -5,7 +5,7 @@
 # The following are requirements:
 #     - a postgreSQL database named 'temba', with a user name 'temba' and
 #       password 'temba' (with postgis extensions installed)
-#     - a redis instance listening on localhost
+#     - a valkey instance listening on localhost
 # -----------------------------------------------------------------------------------
 
 import warnings

@@ -2221,7 +2221,7 @@ class ContactImport(SmartModel):
             for spec in batch_specs:
                 urns.extend(spec.get("urns", []))
 
-        # set redis key which mailroom batch tasks can decrement to know when import has completed
+        # set valkey key which mailroom batch tasks can decrement to know when import has completed
         r = get_valkey_connection()
         r.set(f"contact_import_batches_remaining:{self.id}", len(batches), ex=24 * 60 * 60)
 
