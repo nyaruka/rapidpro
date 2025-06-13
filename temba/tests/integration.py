@@ -16,8 +16,8 @@ class Messenger:
     This test utility installs a EX channel which points to a local server. For message sending and flows to function
     correctly you need to be running both mailroom and courier against the same database and redis instance, e.g.
 
-    mailroom -db="postgres://temba:temba@localhost:5432/temba?sslmode=disable" -redis=redis://localhost:6379/15
-    courier -db="postgres://temba:temba@localhost:5432/temba?sslmode=disable" -redis=redis://localhost:6379/15 -spool-dir="."
+    mailroom -db="postgres://temba:temba@localhost:5432/temba?sslmode=disable" -valkey=valkey://localhost:6379/15
+    courier -db="postgres://temba:temba@localhost:5432/temba?sslmode=disable" -valkey=valkey://localhost:6379/15 -spool-dir="."
     """
 
     CHANNEL_NAME = "Testing"
