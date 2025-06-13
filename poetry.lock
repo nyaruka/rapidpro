@@ -376,7 +376,10 @@ click = ">=8.1.2,<9.0"
 click-didyoumean = ">=0.3.0"
 click-plugins = ">=1.1.1"
 click-repl = ">=0.2.0"
-kombu = ">=5.5.2,<5.6"
+kombu = [
+    {version = ">=5.5.2,<5.6"},
+    {version = "*", extras = ["redis"], optional = true, markers = "extra == \"redis\""},
+]
 python-dateutil = ">=2.8.2"
 vine = ">=5.1.0,<6.0"
 
@@ -1713,6 +1716,7 @@ files = [
 [package.dependencies]
 amqp = ">=5.1.1,<6.0.0"
 packaging = "*"
+redis = {version = ">=4.5.2,<4.5.5 || >4.5.5,<5.0.2 || >5.0.2,<=5.2.1", optional = true, markers = "extra == \"redis\""}
 tzdata = {version = ">=2025.2", markers = "python_version >= \"3.9\""}
 vine = "5.1.0"
 
@@ -2631,20 +2635,19 @@ files = [
 
 [[package]]
 name = "redis"
-version = "6.2.0"
+version = "5.2.1"
 description = "Python client for Redis database and key-value store"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "redis-6.2.0-py3-none-any.whl", hash = "sha256:c8ddf316ee0aab65f04a11229e94a64b2618451dab7a67cb2f77eb799d872d5e"},
-    {file = "redis-6.2.0.tar.gz", hash = "sha256:e821f129b75dde6cb99dd35e5c76e8c49512a5a0d8dfdc560b2fbd44b85ca977"},
+    {file = "redis-5.2.1-py3-none-any.whl", hash = "sha256:ee7e1056b9aea0f04c6c2ed59452947f34c4940ee025f5dd83e6a6418b6989e4"},
+    {file = "redis-5.2.1.tar.gz", hash = "sha256:16f2e22dff21d5125e8481515e386711a34cbec50f0e44413dd7d9c060a54e0f"},
 ]
 
 [package.extras]
-hiredis = ["hiredis (>=3.2.0)"]
-jwt = ["pyjwt (>=2.9.0)"]
-ocsp = ["cryptography (>=36.0.1)", "pyopenssl (>=20.0.1)", "requests (>=2.31.0)"]
+hiredis = ["hiredis (>=3.0.0)"]
+ocsp = ["cryptography (>=36.0.1)", "pyopenssl (==23.2.1)", "requests (>=2.31.0)"]
 
 [[package]]
 name = "regex"
@@ -2955,20 +2958,18 @@ testing = ["Flask (>=1,<2)", "Flask-Sockets (>=0.2,<1)", "Jinja2 (==3.0.3)", "We
 
 [[package]]
 name = "smartmin"
-version = "5.2.0"
+version = "5.2.2"
 description = "Scaffolding system for Django object management."
 optional = false
 python-versions = "<4.0,>=3.11"
 groups = ["main"]
 files = [
-    {file = "smartmin-5.2.0-py3-none-any.whl", hash = "sha256:50e76b24728f38a26c2b82caba2f5b10d69b6e253307eadc2063625fe51dc5e2"},
-    {file = "smartmin-5.2.0.tar.gz", hash = "sha256:9e64d19045ef682954e2e0677683838ce1b15497763b615997d926407182b90d"},
+    {file = "smartmin-5.2.2-py3-none-any.whl", hash = "sha256:d1248ac7dc0108918883d7b354f167b54dacf6c744b07051f0f433a0c932cab4"},
+    {file = "smartmin-5.2.2.tar.gz", hash = "sha256:c06078386e0819f5fa198e89cc0a4333ad6b1f5a0781df1906e2e42976188599"},
 ]
 
 [package.dependencies]
-celery = ">=5.1"
 Django = ">=5.1,<5.3"
-redis = ">=3.5.3"
 sqlparse = ">=0.4.1,<0.6.0"
 xlrd = ">=1.2.0"
 xlwt = ">=1.3.0"
@@ -3470,4 +3471,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.13"
-content-hash = "e62a2317a671a3b3dd51d6face2322e4a3f0df97d5251cc62182ecfb2a014d8e"
+content-hash = "011f351d4e0cf3b44ca7d4e07bb3704f87ce285a4a53d02e9e69595e025f8f97"

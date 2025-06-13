@@ -90,7 +90,7 @@ class FlowRevisionTest(TembaTest):
         self.assertEqual(2, FlowRevision.objects.filter(flow=flow2).count())
         self.assertEqual(31, FlowRevision.objects.filter(flow=flow1).count())
 
-        # call again (testing reading redis key)
+        # call again (testing reading cache key)
         trim_flow_revisions()
         self.assertEqual(2, FlowRevision.objects.filter(flow=flow2).count())
         self.assertEqual(31, FlowRevision.objects.filter(flow=flow1).count())

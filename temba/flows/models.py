@@ -559,7 +559,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         r = get_valkey_connection()
         key = f"recent_contacts:{exit_uuid}:{dest_uuid}"
 
-        # fetch members of the sorted set from redis and save as tuples of (contact_id, operand, time)
+        # fetch members of the sorted set from valkey and save as tuples of (contact_id, operand, time)
         contact_ids = set()
         raw = []
         for member, score in r.zrange(key, start=0, end=-1, desc=True, withscores=True):
