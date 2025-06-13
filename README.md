@@ -10,7 +10,7 @@ applications. To see what it can do, signup for a free trial account at [textit.
 ## Technology Stack
 
 - [PostgreSQL](https://www.postgresql.org)
-- [Redis](https://redis.io)
+- [Valkey](https://valkey.io)
 - [Elasticsearch](https://www.elastic.co/elasticsearch)
 - [S3](https://aws.amazon.com/s3/)
 - [DynamoDB](https://aws.amazon.com/dynamodb/)
