@@ -1208,7 +1208,7 @@ class FlowCRUDL(SmartCRUDL):
 
         @classmethod
         def derive_url_pattern(cls, path, action):
-            return r"^%s/%s/(?P<result_key>\w+)/$" % (path, action)
+            return r"^%s/%s/(?P<result_key>[\w\-]+)/$" % (path, action)
 
         def render_to_response(self, context, **response_kwargs):
             result_key = self.kwargs["result_key"]
