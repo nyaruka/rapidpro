@@ -104,7 +104,7 @@ def _queue_task(pipe, org_id, task_type, task, priority):
     Queues a task to mailroom
 
     Args:
-        pipe: an open redis pipe
+        pipe: an open valkey pipe
         org_id: the id of the org for this task
         queue: the queue the task should be added to
         task_type: the type of the task

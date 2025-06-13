@@ -7,14 +7,13 @@ from django.utils import timezone
 
 from .signals import post_cron_exec
 
-# for tasks using a redis lock to prevent overlapping this is the default timeout for the lock
+# for tasks using a lock to prevent overlapping this is the default timeout for the lock
 DEFAULT_TASK_LOCK_TIMEOUT = 900
 
 
 def cron_task(*task_args, **task_kwargs):
     """
-    Decorator to create an task suitable for a cron schedule, whose executions are prevented from overlapping by a
-    redis lock
+    Decorator to create an task suitable for a cron schedule, whose executions are prevented from overlapping by a lock.
     """
 
     def _cron_task(task_func):

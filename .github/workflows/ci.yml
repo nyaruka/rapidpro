@@ -7,7 +7,7 @@ jobs:
     env:
       python-version: '3.12.x'
       node-version: '20'
-      mailroom-version: '10.1.130'
+      mailroom-version: '10.1.136'
 
     services:
       valkey:
@@ -76,7 +76,7 @@ jobs:
           wget https://github.com/${{ github.repository_owner }}/mailroom/releases/download/v${{ env.mailroom-version }}/mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz
           tar -xvf mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz mailroom
           # start mailroom but use different valkey db so that it doesn't actually handle tasks
-          ./mailroom -db=postgres://temba:temba@localhost:5432/temba?sslmode=disable -redis=redis://localhost:6379/15 -log-level=info > mailroom.log &
+          ./mailroom -db=postgres://temba:temba@localhost:5432/temba?sslmode=disable -valkey=valkey://localhost:6379/15 -log-level=info > mailroom.log &
 
       - name: Run pre-test checks
         run: |
