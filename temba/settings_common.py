@@ -347,7 +347,7 @@ PERMISSIONS = {
     "contacts.contactfield": ("update_priority",),
     "contacts.contactgroup": ("menu",),
     "contacts.contactimport": ("preview",),
-    "flows.flow": ("assets", "copy", "editor", "export", "menu", "next", "results", "start"),
+    "flows.flow": ("assets", "copy", "editor", "export", "menu", "next", "results", "chart", "start"),
     "flows.flowstart": ("interrupt", "status"),
     "flows.flowsession": ("json",),
     "globals.global": ("unused",),
