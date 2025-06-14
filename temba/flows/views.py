@@ -162,6 +162,7 @@ class FlowCRUDL(SmartCRUDL):
         "editor",
         "next",
         "results",
+        "chart",
         "category_counts",
         "preview_start",
         "start",
@@ -1205,46 +1206,41 @@ class FlowCRUDL(SmartCRUDL):
         """
 
         permission = "flows.flow_results"
+        slug_url_kwarg = "uuid"
 
         @classmethod
         def derive_url_pattern(cls, path, action):
-            return r"^%s/%s/(?P<result_key>[\w\-]+)/$" % (path, action)
+            return r"^%s/%s/(?P<uuid>[^/]+)/(?P<result_key>[\w\-]+)/$" % (path, action)
 
         def render_to_response(self, context, **response_kwargs):
             result_key = self.kwargs["result_key"]
             flow = self.object
-            
+
             # get category counts for this specific result
             counts = flow.get_category_counts()
             result_data = None
-            
+
             for count_data in counts:
                 if count_data["key"] == result_key:
                     result_data = count_data
                     break
-            
+
             if not result_data:
                 return JsonResponse({"data": {"labels": [], "datasets": []}})
-            
+
             # convert to chart.js format
             labels = []
             data = []
-            
+
             # sort categories by count (descending), but put "Other" last
-            categories = sorted(
-                result_data["categories"],
-                key=lambda c: (c["name"] == "Other", -c["count"])
-            )
-            
+            categories = sorted(result_data["categories"], key=lambda c: (c["name"] == "Other", -c["count"]))
+
             for category in categories:
                 labels.append(category["name"])
                 data.append(category["count"])
-            
-            chart_data = {
-                "labels": labels,
-                "datasets": [{"label": result_data["name"], "data": data}]
-            }
-            
+
+            chart_data = {"labels": labels, "datasets": [{"label": result_data["name"], "data": data}]}
+
             return JsonResponse({"data": chart_data})
 
     class Results(SpaMixin, ContextMenuMixin, BaseReadView):

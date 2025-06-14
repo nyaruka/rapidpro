@@ -84,14 +84,21 @@
       <div class="flex flex-wrap overflow-y-scroll overflow-x-hidden" id="engagement-charts"></div>
     </temba-tab>
     <temba-tab name="{{ _("Analytics") |escapejs }}" icon="analytics">
-      <div class="flex flex-wrap overflow-y-scroll overflow-x-hidden p-4 gap-6">
+      <div class="flex flex-wrap overflow-y-scroll overflow-x-hidden p-6 gap-6">
         {% for result in category_counts %}
-          <temba-chart header="{{ result.name }}"
-                       url="{% url 'flows.flow_chart' object.id result.key %}"
-                       dataname="Categories"
-                       config
-                       legend
-                       style="min-width: 400px; flex: 1 1 400px;">
+          <temba-chart class="m-1"
+                       colorIndex="{{ forloop.counter0 }}"
+                       header="{{ result.name }}"
+                       single
+                       percent
+                       dataname="Responses"
+                       url="{% url 'flows.flow_chart' object.uuid result.key %}"
+                       style="min-width: 400px;
+                              flex: 1 1 400px;
+                              border: 0px solid #e5e7eb;
+                              border-radius: 10px;
+                              background: #fbfbfb;
+                              padding: 2em">
           </temba-chart>
         {% endfor %}
       </div>
