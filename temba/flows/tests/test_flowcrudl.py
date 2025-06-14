@@ -1498,12 +1498,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.assertReadFetch(chart_url, [self.editor, self.admin])
         self.assertEqual(
-            {
-                "data": {
-                    "labels": ["Red", "Blue", "Other"],
-                    "datasets": [{"label": "Color", "data": [3, 2, 1]}]
-                }
-            },
+            {"data": {"labels": ["Red", "Blue", "Other"], "datasets": [{"label": "Color", "data": [3, 2, 1]}]}},
             response.json(),
         )
 
