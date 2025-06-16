@@ -162,8 +162,7 @@ class FlowCRUDL(SmartCRUDL):
         "editor",
         "next",
         "results",
-        "chart",
-        "category_counts",
+        "result_chart",
         "preview_start",
         "start",
         "activity",
@@ -1190,17 +1189,7 @@ class FlowCRUDL(SmartCRUDL):
                 encoder=json.EpochEncoder,
             )
 
-    class CategoryCounts(BaseReadView):
-        """
-        Data for charts on analytics tab of results page.
-        """
-
-        permission = "flows.flow_results"
-
-        def render_to_response(self, context, **response_kwargs):
-            return JsonResponse({"counts": self.object.get_category_counts()})
-
-    class Chart(BaseReadView):
+    class ResultChart(BaseReadView):
         """
         Individual chart data for analytics tab of results page.
         """

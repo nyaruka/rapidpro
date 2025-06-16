@@ -1475,11 +1475,11 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             response.json(),
         )
 
-    def test_chart(self):
+    def test_result_chart(self):
         flow1 = self.create_flow("Test 1")
 
         # chart URL with a result key
-        chart_url = reverse("flows.flow_chart", args=[flow1.uuid, "color"])
+        chart_url = reverse("flows.flow_result_chart", args=[flow1.id, "color"])
 
         self.assertRequestDisallowed(chart_url, [None, self.agent])
 
@@ -1515,7 +1515,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         # test non-existent result key
-        chart_url_invalid = reverse("flows.flow_chart", args=[flow1.uuid, "nonexistent"])
+        chart_url_invalid = reverse("flows.flow_result_chart", args=[flow1.id, "nonexistent"])
         response = self.assertReadFetch(chart_url_invalid, [self.editor, self.admin])
         self.assertEqual({"data": {"labels": [], "datasets": []}}, response.json())
 
