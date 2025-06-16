@@ -365,9 +365,14 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
     def get_attrs(self):
         return {"icon": self.TYPE_ICONS.get(self.flow_type, "flow"), "type": self.flow_type, "uuid": self.uuid}
 
-    def get_category_counts(self):
+    def get_category_counts(self, result_key=None):
+
         # get the possible results from the flow metadata
         results_by_key = {r["key"]: r for r in self.info["results"]}
+
+        # if we have a specific result_key, filter to just that result
+        if result_key:
+            results_by_key = {result_key: results_by_key[result_key]} if result_key in results_by_key else {}
 
         counts = (
             self.result_counts.filter(result__in=results_by_key)

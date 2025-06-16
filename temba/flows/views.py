@@ -1206,7 +1206,7 @@ class FlowCRUDL(SmartCRUDL):
             flow = self.object
 
             # get category counts for this specific result
-            counts = flow.get_category_counts()
+            counts = flow.get_category_counts(result_key)
             result_data = None
 
             for count_data in counts:
