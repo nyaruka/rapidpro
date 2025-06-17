@@ -243,7 +243,6 @@ INSTALLED_APPS = (
     "allauth.socialaccount.providers.google",
     "formtools",
     "imagekit",
-    "redis",
     "rest_framework",
     "rest_framework.authtoken",
     "compressor",
@@ -676,7 +675,7 @@ CELERY_BROKER_URL = _valkey_url
 CELERY_RESULT_BACKEND = None
 CELERY_TASK_TRACK_STARTED = True
 
-# by default, celery doesn't have any timeout on our redis connections, this fixes that
+# by default, celery doesn't have any timeout on our valkey connections, this fixes that
 CELERY_BROKER_TRANSPORT_OPTIONS = {"socket_timeout": 5}
 
 CELERY_BEAT_SCHEDULE = {

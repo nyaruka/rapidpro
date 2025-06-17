@@ -85,8 +85,8 @@ class Command(BaseCommand):
         # run our migrations to put our database in the right state
         call_command("migrate")
 
-        # this is a new database so clear out redis
-        self._log("Clearing out Redis cache... ")
+        # this is a new database so clear out valkey
+        self._log("Clearing out Valkey cache... ")
         r = get_valkey_connection()
         r.flushdb()
         self._log(self.style.SUCCESS("OK") + "\n")
