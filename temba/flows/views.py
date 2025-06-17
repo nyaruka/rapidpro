@@ -167,7 +167,7 @@ class FlowCRUDL(SmartCRUDL):
         "start",
         "activity",
         "engagement_timeline",
-        "engagement_completion",
+        "engagement_progress",
         "engagement_dow",
         "engagement_hod",
         "filter",
@@ -797,7 +797,7 @@ class FlowCRUDL(SmartCRUDL):
                 )
 
             if self.has_org_perm("flows.flow_results"):
-                menu.add_link(_("Results"), reverse("flows.flow_results", args=[obj.id]))
+                menu.add_link(_("Results"), reverse("flows.flow_results", args=[obj.uuid]))
 
             menu.new_group()
 
@@ -1092,13 +1092,11 @@ class FlowCRUDL(SmartCRUDL):
                 extra_urns=form.cleaned_data.get("extra_urns", []),
             )
 
-    class EngagementTimeline(BaseReadView):
-        """
-        Timeline chart data for engagement tab.
-        """
-
+    class BaseResultsView(BaseReadView):
         permission = "flows.flow_results"
+        slug_url_kwarg = "uuid"
 
+    class EngagementTimeline(BaseResultsView):
         def render_to_response(self, context, **response_kwargs):
             today = timezone.now().date()
             timeline_min = self.object.get_engagement_start()
@@ -1131,13 +1129,7 @@ class FlowCRUDL(SmartCRUDL):
 
             return JsonResponse({"data": chart_data})
 
-    class EngagementCompletion(BaseReadView):
-        """
-        Completion pie chart data for engagement tab.
-        """
-
-        permission = "flows.flow_results"
-
+    class EngagementProgress(BaseResultsView):
         def render_to_response(self, context, **response_kwargs):
             runs = self.object.get_run_counts()
 
@@ -1165,13 +1157,7 @@ class FlowCRUDL(SmartCRUDL):
 
             return JsonResponse({"data": chart_data})
 
-    class EngagementDow(BaseReadView):
-        """
-        Day of week chart data for engagement tab.
-        """
-
-        permission = "flows.flow_results"
-
+    class EngagementDow(BaseResultsView):
         def render_to_response(self, context, **response_kwargs):
             dow_counts = self.object.get_engagement_by_weekday()
 
@@ -1181,7 +1167,7 @@ class FlowCRUDL(SmartCRUDL):
 
             for day_index in range(0, 7):
                 base_date = datetime(2023, 1, 1)  # Sunday
-                count = dow_counts.get(day_index)
+                count = dow_counts.get(day_index, 0)
                 day_date = base_date + timedelta(days=day_index)
                 labels.append(day_date)
                 data.append(count)
@@ -1193,13 +1179,7 @@ class FlowCRUDL(SmartCRUDL):
 
             return JsonResponse({"data": chart_data})
 
-    class EngagementHod(BaseReadView):
-        """
-        Hour of day chart data for engagement tab.
-        """
-
-        permission = "flows.flow_results"
-
+    class EngagementHod(BaseResultsView):
         def render_to_response(self, context, **response_kwargs):
             hod_counts = self.object.get_engagement_by_hour(self.request.org.timezone)
 
@@ -1218,13 +1198,10 @@ class FlowCRUDL(SmartCRUDL):
 
             return JsonResponse({"data": chart_data})
 
-    class ResultChart(BaseReadView):
+    class ResultChart(BaseResultsView):
         """
         Individual chart data for analytics tab of results page.
         """
-
-        permission = "flows.flow_results"
-        slug_url_kwarg = "uuid"
 
         @classmethod
         def derive_url_pattern(cls, path, action):
@@ -1261,7 +1238,7 @@ class FlowCRUDL(SmartCRUDL):
 
             return JsonResponse({"data": chart_data})
 
-    class Results(SpaMixin, ContextMenuMixin, BaseReadView):
+    class Results(SpaMixin, ContextMenuMixin, BaseResultsView):
         def build_context_menu(self, menu):
             obj = self.get_object()
 

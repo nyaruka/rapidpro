@@ -310,7 +310,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRedirect(response, reverse("flows.flow_editor", args=[flow3.uuid]))
 
         # can see results for a flow
-        response = self.client.get(reverse("flows.flow_results", args=[flow.id]))
+        response = self.client.get(reverse("flows.flow_results", args=[flow.uuid]))
         self.assertEqual(200, response.status_code)
 
         # check flow listing
@@ -1475,7 +1475,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_results(self):
         flow = self.create_flow("Test 1")
 
-        results_url = reverse("flows.flow_results", args=[flow.id])
+        results_url = reverse("flows.flow_results", args=[flow.uuid])
 
         self.assertRequestDisallowed(results_url, [None, self.agent])
         self.assertReadFetch(results_url, [self.editor, self.admin])
@@ -1486,214 +1486,11 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(404, response.status_code)
 
     @patch("django.utils.timezone.now")
-    def test_engagement(self, mock_now):
-        # this test runs as if it's 2024-11-25 12:05:00
-        mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
-
-        flow1 = self.create_flow("Test 1")
-
-        engagement_url = reverse("flows.flow_engagement", args=[flow1.id])
-
-        # check fetching as template
-        self.assertRequestDisallowed(engagement_url, [None, self.agent])
-        self.assertReadFetch(engagement_url, [self.editor, self.admin])
-
-        # check fetching as chart data (when there's no data)
-        response = self.requestView(engagement_url, self.admin, HTTP_ACCEPT="application/json")
-        self.assertEqual(
-            {
-                "timeline": {
-                    "data": [],
-                    "xmin": 1729900800000,  # 2024-10-26
-                    "xmax": 1732492800000,  # 2024-11-25
-                    "ymax": 0,
-                },
-                "dow": {
-                    "data": [
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                    ]
-                },
-                "hod": {"data": [[i, 0] for i in range(24)]},
-                "completion": {
-                    "summary": [
-                        {"name": "Active", "y": 0, "drilldown": None, "color": "#2387CA"},
-                        {"name": "Completed", "y": 0, "drilldown": None, "color": "#8FC93A"},
-                        {
-                            "name": "Interrupted, Expired and Failed",
-                            "y": 0,
-                            "drilldown": "incomplete",
-                            "color": "#CCC",
-                        },
-                    ],
-                    "drilldown": [
-                        {
-                            "name": "Interrupted, Expired and Failed",
-                            "id": "incomplete",
-                            "innerSize": "50%",
-                            "data": [
-                                {"name": "Expired", "y": 0, "color": "#CCC"},
-                                {"name": "Interrupted", "y": 0, "color": "#EEE"},
-                                {"name": "Failed", "y": 0, "color": "#FEE"},
-                            ],
-                        }
-                    ],
-                },
-            },
-            response.json(),
-        )
-
-        def engagement(flow, when, count):
-            flow.counts.create(scope=f"msgsin:hour:{when.hour}", count=count)
-            flow.counts.create(scope=f"msgsin:dow:{when.isoweekday()}", count=count)
-            flow.counts.create(scope=f"msgsin:date:{when.date().isoformat()}", count=count)
-
-        engagement(flow1, datetime(2024, 11, 24, 9, 0, 0, tzinfo=tzone.utc), 3)  # 2024-11-24 09:00 (Sun)
-        engagement(flow1, datetime(2024, 11, 25, 12, 0, 0, tzinfo=tzone.utc), 2)  # 2024-11-25 12:00 (Mon)
-        engagement(flow1, datetime(2024, 11, 26, 9, 0, 0, tzinfo=tzone.utc), 4)  # 2024-11-26 09:00 (Tue)
-        engagement(flow1, datetime(2024, 11, 26, 23, 0, 0, tzinfo=tzone.utc), 1)  # 2024-11-26 23:00 (Tue)
-
-        flow1.counts.create(scope="status:W", count=4)
-        flow1.counts.create(scope="status:C", count=3)
-        flow1.counts.create(scope="status:X", count=2)
-        flow1.counts.create(scope="status:I", count=1)
-
-        response = self.requestView(engagement_url, self.admin, HTTP_ACCEPT="application/json")
-        self.assertEqual(
-            {
-                "timeline": {
-                    "data": [[1732406400000, 3], [1732492800000, 2], [1732579200000, 5]],
-                    "xmin": 1729900800000,  # 2024-10-26
-                    "xmax": 1732492800000,
-                    "ymax": 5,
-                },
-                "dow": {
-                    "data": [
-                        {"msgs": 3, "y": 30.0},
-                        {"msgs": 2, "y": 20.0},
-                        {"msgs": 5, "y": 50.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                    ]
-                },
-                "hod": {
-                    "data": [
-                        [0, 0],
-                        [1, 1],  # 23:00 UTC is 01:00 in Kigali
-                        [2, 0],
-                        [3, 0],
-                        [4, 0],
-                        [5, 0],
-                        [6, 0],
-                        [7, 0],
-                        [8, 0],
-                        [9, 0],
-                        [10, 0],
-                        [11, 7],
-                        [12, 0],
-                        [13, 0],
-                        [14, 2],
-                        [15, 0],
-                        [16, 0],
-                        [17, 0],
-                        [18, 0],
-                        [19, 0],
-                        [20, 0],
-                        [21, 0],
-                        [22, 0],
-                        [23, 0],
-                    ]
-                },
-                "completion": {
-                    "summary": [
-                        {"name": "Active", "y": 4, "drilldown": None, "color": "#2387CA"},
-                        {"name": "Completed", "y": 3, "drilldown": None, "color": "#8FC93A"},
-                        {
-                            "name": "Interrupted, Expired and Failed",
-                            "y": 3,
-                            "drilldown": "incomplete",
-                            "color": "#CCC",
-                        },
-                    ],
-                    "drilldown": [
-                        {
-                            "name": "Interrupted, Expired and Failed",
-                            "id": "incomplete",
-                            "innerSize": "50%",
-                            "data": [
-                                {"name": "Expired", "y": 2, "color": "#CCC"},
-                                {"name": "Interrupted", "y": 1, "color": "#EEE"},
-                                {"name": "Failed", "y": 0, "color": "#FEE"},
-                            ],
-                        }
-                    ],
-                },
-            },
-            response.json(),
-        )
-
-        # simulate having some data from 6 months ago
-        engagement(flow1, datetime(2024, 5, 1, 12, 0, 0, tzinfo=tzone.utc), 4)  # 2024-05-01 12:00 (Wed)
-
-        response = self.requestView(engagement_url, self.admin, HTTP_ACCEPT="application/json")
-        resp_json = response.json()
-        self.assertEqual(1714521600000, resp_json["timeline"]["xmin"])  # 2024-05-01
-        self.assertEqual(
-            [[1714521600000, 4], [1732406400000, 3], [1732492800000, 2], [1732579200000, 5]],
-            resp_json["timeline"]["data"],
-        )
-
-        # simulate having some data from 18 months ago (should trigger bucketing by week)
-        engagement(flow1, datetime(2023, 5, 1, 12, 0, 0, tzinfo=tzone.utc), 3)  # 2023-05-01 12:00 (Mon)
-
-        response = self.requestView(engagement_url, self.admin, HTTP_ACCEPT="application/json")
-        resp_json = response.json()
-        self.assertEqual(1682899200000, resp_json["timeline"]["xmin"])  # 2023-05-01
-        self.assertEqual(
-            [
-                [1682899200000, 3],  # 2023-05-01 (Mon)
-                [1714348800000, 4],  # 2024-04-29 (Mon)
-                [1731888000000, 3],  # 2024-11-18 (Mon)
-                [1732492800000, 7],  # 2024-11-25 (Mon)
-            ],
-            resp_json["timeline"]["data"],
-        )
-
-        # simulate having some data from 4 years ago (should trigger bucketing by month)
-        engagement(flow1, datetime(2020, 11, 25, 12, 0, 0, tzinfo=tzone.utc), 6)  # 2020-11-25 12:00 (Wed)
-
-        response = self.requestView(engagement_url, self.admin, HTTP_ACCEPT="application/json")
-        resp_json = response.json()
-        self.assertEqual(1606262400000, resp_json["timeline"]["xmin"])  # 2020-11-25
-        self.assertEqual(
-            [
-                [1604188800000, 6],  # 2020-11-01
-                [1682899200000, 3],  # 2023-05-01
-                [1714521600000, 4],  # 2024-05-01
-                [1730419200000, 10],  # 2024-11-01
-            ],
-            resp_json["timeline"]["data"],
-        )
-
-        # check 404 for inactive flow
-        flow1.release(self.admin)
-
-        response = self.requestView(engagement_url, self.admin)
-        self.assertEqual(404, response.status_code)
-
-    @patch("django.utils.timezone.now")
     def test_engagement_timeline(self, mock_now):
         mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
 
         flow1 = self.create_flow("Test 1")
-        timeline_url = reverse("flows.flow_engagement_timeline", args=[flow1.id])
+        timeline_url = reverse("flows.flow_engagement_timeline", args=[flow1.uuid])
 
         # check permissions
         self.assertRequestDisallowed(timeline_url, [None, self.agent])
@@ -1704,7 +1501,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # with engagement data
         def engagement(flow, when, count):
-            flow.counts.create(scope=f"msg_received_by_date:{when.strftime('%Y-%m-%d')}", count=count)
+            flow.counts.create(scope=f"msgsin:date:{when.strftime('%Y-%m-%d')}", count=count)
 
         engagement(flow1, datetime(2024, 11, 24, 9, 0, 0, tzinfo=tzone.utc), 3)
         engagement(flow1, datetime(2024, 11, 25, 12, 0, 0, tzinfo=tzone.utc), 2)
@@ -1715,22 +1512,22 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual([3, 2], resp_data["datasets"][0]["data"])
 
     @patch("django.utils.timezone.now")
-    def test_engagement_completion(self, mock_now):
+    def test_engagement_progress(self, mock_now):
         mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
 
         flow1 = self.create_flow("Test 1")
-        completion_url = reverse("flows.flow_engagement_completion", args=[flow1.id])
+        progress_url = reverse("flows.flow_engagement_progress", args=[flow1.uuid])
 
         # check permissions
-        self.assertRequestDisallowed(completion_url, [None, self.agent])
+        self.assertRequestDisallowed(progress_url, [None, self.agent])
 
-        # empty completion
-        response = self.requestView(completion_url, self.admin)
+        # empty progress
+        response = self.requestView(progress_url, self.admin)
         self.assertEqual(
             {
                 "data": {
-                    "labels": ["Active", "Completed", "Interrupted, Expired and Failed"],
-                    "datasets": [{"label": "Completion", "data": [0, 0, 0]}],
+                    "labels": ["Ongoing", "Completed", "Expired", "Interrupted", "Failed"],
+                    "datasets": [{"label": "Progress", "data": [0, 0, 0, 0, 0]}],
                 }
             },
             response.json(),
@@ -1739,20 +1536,20 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # with run data
         from temba.flows.models import FlowRun
 
-        flow1.counts.create(scope=f"run_status:{FlowRun.STATUS_ACTIVE}", count=5)
-        flow1.counts.create(scope=f"run_status:{FlowRun.STATUS_COMPLETED}", count=3)
-        flow1.counts.create(scope=f"run_status:{FlowRun.STATUS_EXPIRED}", count=1)
+        flow1.counts.create(scope=f"status:{FlowRun.STATUS_ACTIVE}", count=5)
+        flow1.counts.create(scope=f"status:{FlowRun.STATUS_COMPLETED}", count=3)
+        flow1.counts.create(scope=f"status:{FlowRun.STATUS_EXPIRED}", count=1)
 
-        response = self.requestView(completion_url, self.admin)
+        response = self.requestView(progress_url, self.admin)
         resp_data = response.json()["data"]
-        self.assertEqual([5, 3, 1], resp_data["datasets"][0]["data"])
+        self.assertEqual([5, 3, 1, 0, 0], resp_data["datasets"][0]["data"])
 
     @patch("django.utils.timezone.now")
     def test_engagement_dow(self, mock_now):
         mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
 
         flow1 = self.create_flow("Test 1")
-        dow_url = reverse("flows.flow_engagement_dow", args=[flow1.id])
+        dow_url = reverse("flows.flow_engagement_dow", args=[flow1.uuid])
 
         # check permissions
         self.assertRequestDisallowed(dow_url, [None, self.agent])
@@ -1764,8 +1561,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual([0, 0, 0, 0, 0, 0, 0], resp_data["datasets"][0]["data"])
 
         # with dow data
-        flow1.counts.create(scope="msg_received_by_dow:0", count=4)  # Sunday
-        flow1.counts.create(scope="msg_received_by_dow:1", count=2)  # Monday
+        flow1.counts.create(scope="msgsin:dow:0", count=4)  # Sunday
+        flow1.counts.create(scope="msgsin:dow:1", count=2)  # Monday
 
         response = self.requestView(dow_url, self.admin)
         resp_data = response.json()["data"]
@@ -1776,7 +1573,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
 
         flow1 = self.create_flow("Test 1")
-        hod_url = reverse("flows.flow_engagement_hod", args=[flow1.id])
+        hod_url = reverse("flows.flow_engagement_hod", args=[flow1.uuid])
 
         # check permissions
         self.assertRequestDisallowed(hod_url, [None, self.agent])
@@ -1787,9 +1584,10 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(24, len(resp_data["labels"]))  # 24 hours
         self.assertEqual([0] * 24, resp_data["datasets"][0]["data"])
 
-        # with hod data
-        flow1.counts.create(scope="msg_received_by_hod:9", count=5)  # 9 AM
-        flow1.counts.create(scope="msg_received_by_hod:12", count=3)  # 12 PM
+        # hod data is stored in UTC, so we need to adjust for the timezone
+        kigali_offset = 2
+        flow1.counts.create(scope=f"msgsin:hour:{9-kigali_offset}", count=5)  # 9a in Kigali
+        flow1.counts.create(scope=f"msgsin:hour:{12-kigali_offset}", count=3)  # 12p in Kigali
 
         response = self.requestView(hod_url, self.admin)
         resp_data = response.json()["data"]
@@ -2260,7 +2058,7 @@ msgstr "Azul"
 
         # add a single category count
         flow.result_counts.create(result="feedback", category="Yes", count=5)
-        results_url = reverse("flows.flow_results", args=[flow.id])
+        results_url = reverse("flows.flow_results", args=[flow.uuid])
 
         self.login(self.admin)
         response = self.client.get(results_url)

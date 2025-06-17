@@ -59,7 +59,7 @@
         <div class="flex flex-wrap p-6 gap-6">
           <temba-chart class="m-1"
                        header="{% trans 'Responses' %}"
-                       url="{% url 'flows.flow_engagement_timeline' flow.id %}"
+                       url="{% url 'flows.flow_engagement_timeline' flow.uuid %}"
                        dataname="Responses"
                        xtype="time"
                        single
@@ -72,7 +72,7 @@
           </temba-chart>
           <temba-chart class="m-1"
                        header="{% trans 'Progress' %}"
-                       url="{% url 'flows.flow_engagement_completion' flow.id %}"
+                       url="{% url 'flows.flow_engagement_progress' flow.uuid %}"
                        dataname="Runs"
                        single
                        percent
@@ -86,7 +86,7 @@
           </temba-chart>
           <temba-chart class="m-1"
                        header="{% trans 'Day of Week' %}"
-                       url="{% url 'flows.flow_engagement_dow' flow.id %}"
+                       url="{% url 'flows.flow_engagement_dow' flow.uuid %}"
                        dataname="Responses"
                        single
                        colorIndex="2"
@@ -101,7 +101,7 @@
           </temba-chart>
           <temba-chart class="m-1"
                        header="{% trans 'Time of Day' %} ({{ user_org.timezone }})"
-                       url="{% url 'flows.flow_engagement_hod' flow.id %}"
+                       url="{% url 'flows.flow_engagement_hod' flow.uuid %}"
                        dataname="Responses"
                        colorIndex="3"
                        single
