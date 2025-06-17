@@ -1250,6 +1250,7 @@ class FlowCRUDL(SmartCRUDL):
             context = super().get_context_data(*args, **kwargs)
             context["utcoffset"] = int(datetime.now(self.request.org.timezone).utcoffset().total_seconds() // 60)
             context["category_counts"] = self.object.get_category_counts()
+            context["results"] = [r for r in self.object.info.get("results") if len(r.get("categories", [])) > 1]
             return context
 
     class Activity(BaseReadView):
