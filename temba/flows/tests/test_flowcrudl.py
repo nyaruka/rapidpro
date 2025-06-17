@@ -2141,3 +2141,21 @@ msgstr "Azul"
 
         # should have a new revision
         self.assertEqual(2, flow.revisions.count())
+
+    def test_open_ended_no_chart(self):
+        flow = self.create_flow("Open Ended Flow")
+
+        # define a result that ends up with only one category
+        flow.info["results"] = [{"key": "feedback", "name": "Feedback"}]
+        flow.save(update_fields=("info",))
+
+        # add a single category count
+        flow.result_counts.create(result="feedback", category="Yes", count=5)
+        results_url = reverse("flows.flow_results", args=[flow.id])
+
+        self.login(self.admin)
+        response = self.client.get(results_url)
+        self.assertEqual(200, response.status_code)
+
+        # page should not include any temba-chart elements
+        self.assertNotContains(response, "<temba-chart")

@@ -85,7 +85,7 @@
     </temba-tab>
     <temba-tab name="{{ _("Analytics") |escapejs }}" icon="analytics">
       <div class="flex flex-wrap overflow-y-scroll overflow-x-hidden p-6 gap-6">
-        {% for result in flow.info.results %}
+        {% for result in results %}
           <temba-chart class="m-1"
                        colorIndex="{{ forloop.counter0 }}"
                        header="{{ result.name }}"
