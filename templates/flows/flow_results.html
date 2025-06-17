@@ -86,20 +86,22 @@
     <temba-tab name="{{ _("Analytics") |escapejs }}" icon="analytics">
       <div class="flex flex-wrap overflow-y-scroll overflow-x-hidden p-6 gap-6">
         {% for result in flow.info.results %}
-          <temba-chart class="m-1"
-                       colorIndex="{{ forloop.counter0 }}"
-                       header="{{ result.name }}"
-                       single
-                       percent
-                       dataname="Responses"
-                       url="{% url 'flows.flow_result_chart' object.uuid result.key %}"
-                       style="min-width: 400px;
-                              flex: 1 1 400px;
-                              border: 0px solid #e5e7eb;
-                              border-radius: 10px;
-                              background: #fbfbfb;
-                              padding: 2em">
-          </temba-chart>
+          {% if result.categories|length > 1 %}
+            <temba-chart class="m-1"
+                         colorIndex="{{ forloop.counter0 }}"
+                         header="{{ result.name }}"
+                         single
+                         percent
+                         dataname="Responses"
+                         url="{% url 'flows.flow_result_chart' object.uuid result.key %}"
+                         style="min-width: 400px;
+                                flex: 1 1 400px;
+                                border: 0px solid #e5e7eb;
+                                border-radius: 10px;
+                                background: #fbfbfb;
+                                padding: 2em">
+            </temba-chart>
+          {% endif %}
         {% endfor %}
       </div>
     </temba-tab>
