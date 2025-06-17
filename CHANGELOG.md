@@ -1,3 +1,8 @@
+v10.1.204 (2025-06-17)
+-------------------------
+ * Update to latest smartmin
+ * temba-chart replacement for flow results Analytics tab
+
 v10.1.203 (2025-06-13)
 -------------------------
  * Update valkey env var name
