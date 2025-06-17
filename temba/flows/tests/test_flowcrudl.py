@@ -1428,16 +1428,17 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             response.json(),
         )
 
-    def test_category_counts(self):
+    def test_result_chart(self):
         flow1 = self.create_flow("Test 1")
 
-        counts_url = reverse("flows.flow_category_counts", args=[flow1.id])
+        # chart URL with a result key
+        chart_url = reverse("flows.flow_result_chart", args=[flow1.uuid, "color"])
 
-        self.assertRequestDisallowed(counts_url, [None, self.agent])
+        self.assertRequestDisallowed(chart_url, [None, self.agent])
 
         # check with no data
-        response = self.assertReadFetch(counts_url, [self.editor, self.admin])
-        self.assertEqual({"counts": []}, response.json())
+        response = self.assertReadFetch(chart_url, [self.editor, self.admin])
+        self.assertEqual({"data": {"labels": [], "datasets": []}}, response.json())
 
         # simulate some category data
         flow1.info["results"] = [{"key": "color", "name": "Color"}, {"key": "beer", "name": "Beer"}]
@@ -1448,32 +1449,28 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         flow1.result_counts.create(result="color", category="Other", count=1)
         flow1.result_counts.create(result="beer", category="Primus", count=7)
 
-        response = self.assertReadFetch(counts_url, [self.editor, self.admin])
+        response = self.assertReadFetch(chart_url, [self.editor, self.admin])
         self.assertEqual(
-            {
-                "counts": [
-                    {
-                        "key": "color",
-                        "name": "Color",
-                        "categories": [
-                            {"name": "Blue", "count": 2, "pct": 0.3333333333333333},
-                            {"name": "Other", "count": 1, "pct": 0.16666666666666666},
-                            {"name": "Red", "count": 3, "pct": 0.5},
-                        ],
-                        "total": 6,
-                    },
-                    {
-                        "key": "beer",
-                        "name": "Beer",
-                        "categories": [
-                            {"name": "Primus", "count": 7, "pct": 1.0},
-                        ],
-                        "total": 7,
-                    },
-                ]
-            },
+            {"data": {"labels": ["Red", "Blue", "Other"], "datasets": [{"label": "Color", "data": [3, 2, 1]}]}},
             response.json(),
         )
+
+        # test "Other" category sorting - "Other" should come last even with higher count
+        flow1.result_counts.filter(result="color").delete()
+        flow1.result_counts.create(result="color", category="Red", count=1)
+        flow1.result_counts.create(result="color", category="Other", count=5)
+        flow1.result_counts.create(result="color", category="Blue", count=3)
+
+        response = self.assertReadFetch(chart_url, [self.editor, self.admin])
+        self.assertEqual(
+            {"data": {"labels": ["Blue", "Red", "Other"], "datasets": [{"label": "Color", "data": [3, 1, 5]}]}},
+            response.json(),
+        )
+
+        # test non-existent result key
+        chart_url_invalid = reverse("flows.flow_result_chart", args=[flow1.uuid, "nonexistent"])
+        response = self.assertReadFetch(chart_url_invalid, [self.editor, self.admin])
+        self.assertEqual({"data": {"labels": [], "datasets": []}}, response.json())
 
     def test_results(self):
         flow = self.create_flow("Test 1")

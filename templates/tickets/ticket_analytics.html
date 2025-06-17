@@ -4,6 +4,7 @@
                url="{% url 'tickets.ticket_chart' 'opened' %}"
                dataname="Topics"
                config
+               xtype="time"
                legend>
   </temba-chart>
   <temba-chart class="mt-6"
@@ -12,6 +13,7 @@
                dataname="Average Response"
                single
                colorIndex="2"
-               formatduration>
+               xtype="time"
+               ytype="duration">
   </temba-chart>
 {% endblock content %}
