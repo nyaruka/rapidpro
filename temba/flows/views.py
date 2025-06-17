@@ -167,6 +167,10 @@ class FlowCRUDL(SmartCRUDL):
         "start",
         "activity",
         "engagement",
+        "engagement_timeline",
+        "engagement_completion",
+        "engagement_dow",
+        "engagement_hod",
         "filter",
         "revisions",
         "recent_contacts",
@@ -1188,6 +1192,127 @@ class FlowCRUDL(SmartCRUDL):
                 json_dumps_params={"indent": 2},
                 encoder=json.EpochEncoder,
             )
+
+    class EngagementTimeline(BaseReadView):
+        """
+        Timeline chart data for engagement tab.
+        """
+
+        permission = "flows.flow_results"
+
+        def render_to_response(self, context, **response_kwargs):
+            today = timezone.now().date()
+            timeline_min = self.object.get_engagement_start()
+
+            # if we have no data or it's all from the last 30 days, use that as the min date
+            if not timeline_min or timeline_min > today - timedelta(days=30):
+                timeline_min = today - timedelta(days=30)
+
+            # bucket dates into months or weeks depending on the range
+            if timeline_min < today - timedelta(days=365 * 3):
+                truncate = "month"
+            elif timeline_min < today - timedelta(days=365):
+                truncate = "week"
+            else:
+                truncate = "day"
+
+            timeline_data = self.object.get_engagement_by_date(truncate)
+
+            # convert to chart.js format
+            labels = []
+            data = []
+            for timestamp_ms, count in timeline_data:
+                # Convert timestamp milliseconds to date string
+                date_obj = datetime.fromtimestamp(timestamp_ms / 1000, tz=timezone.utc).date()
+                labels.append(date_obj.strftime("%Y-%m-%d"))
+                data.append(count)
+
+            chart_data = {
+                "labels": labels,
+                "datasets": [{"label": _("Messages"), "data": data}],
+            }
+
+            return JsonResponse({"data": chart_data})
+
+    class EngagementCompletion(BaseReadView):
+        """
+        Completion pie chart data for engagement tab.
+        """
+
+        permission = "flows.flow_results"
+
+        def render_to_response(self, context, **response_kwargs):
+            runs = self.object.get_run_counts()
+
+            # convert to chart.js format
+            labels = [
+                _("Active"),
+                _("Completed"),
+                _("Interrupted, Expired and Failed"),
+            ]
+            data = [
+                runs[FlowRun.STATUS_ACTIVE] + runs[FlowRun.STATUS_WAITING],
+                runs[FlowRun.STATUS_COMPLETED],
+                runs[FlowRun.STATUS_EXPIRED] + runs[FlowRun.STATUS_INTERRUPTED] + runs[FlowRun.STATUS_FAILED],
+            ]
+
+            chart_data = {
+                "labels": labels,
+                "datasets": [{"label": _("Completion"), "data": data}],
+            }
+
+            return JsonResponse({"data": chart_data})
+
+    class EngagementDow(BaseReadView):
+        """
+        Day of week chart data for engagement tab.
+        """
+
+        permission = "flows.flow_results"
+
+        def render_to_response(self, context, **response_kwargs):
+            dow_counts = self.object.get_engagement_by_weekday()
+
+            # convert to chart.js format
+            days = [_("Sunday"), _("Monday"), _("Tuesday"), _("Wednesday"), _("Thursday"), _("Friday"), _("Saturday")]
+            labels = []
+            data = []
+
+            for d in range(0, 7):
+                labels.append(days[d])
+                data.append(dow_counts.get(d, 0))
+
+            chart_data = {
+                "labels": labels,
+                "datasets": [{"label": _("Messages"), "data": data}],
+            }
+
+            return JsonResponse({"data": chart_data})
+
+    class EngagementHod(BaseReadView):
+        """
+        Hour of day chart data for engagement tab.
+        """
+
+        permission = "flows.flow_results"
+
+        def render_to_response(self, context, **response_kwargs):
+            hod_counts = self.object.get_engagement_by_hour(self.request.org.timezone)
+
+            # convert to chart.js format
+            labels = []
+            data = []
+
+            for x in range(0, 24):
+                labels.append(f"{x:02d}:00")
+                data.append(hod_counts.get(x, 0))
+
+            chart_data = {
+                "labels": labels,
+                "datasets": [{"label": _("Messages"), "data": data}],
+            }
+
+            return JsonResponse({"data": chart_data})
 
     class ResultChart(BaseReadView):
         """

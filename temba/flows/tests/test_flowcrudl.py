@@ -1688,6 +1688,115 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(engagement_url, self.admin)
         self.assertEqual(404, response.status_code)
 
+    @patch("django.utils.timezone.now")
+    def test_engagement_timeline(self, mock_now):
+        mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
+
+        flow1 = self.create_flow("Test 1")
+        timeline_url = reverse("flows.flow_engagement_timeline", args=[flow1.id])
+
+        # check permissions
+        self.assertRequestDisallowed(timeline_url, [None, self.agent])
+
+        # empty timeline
+        response = self.requestView(timeline_url, self.admin)
+        self.assertEqual({"data": {"labels": [], "datasets": [{"label": "Messages", "data": []}]}}, response.json())
+
+        # with engagement data
+        def engagement(flow, when, count):
+            flow.counts.create(scope=f"msg_received_by_date:{when.strftime('%Y-%m-%d')}", count=count)
+
+        engagement(flow1, datetime(2024, 11, 24, 9, 0, 0, tzinfo=tzone.utc), 3)
+        engagement(flow1, datetime(2024, 11, 25, 12, 0, 0, tzinfo=tzone.utc), 2)
+
+        response = self.requestView(timeline_url, self.admin)
+        resp_data = response.json()["data"]
+        self.assertEqual(["2024-11-24", "2024-11-25"], resp_data["labels"])
+        self.assertEqual([3, 2], resp_data["datasets"][0]["data"])
+
+    @patch("django.utils.timezone.now")
+    def test_engagement_completion(self, mock_now):
+        mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
+
+        flow1 = self.create_flow("Test 1")
+        completion_url = reverse("flows.flow_engagement_completion", args=[flow1.id])
+
+        # check permissions
+        self.assertRequestDisallowed(completion_url, [None, self.agent])
+
+        # empty completion
+        response = self.requestView(completion_url, self.admin)
+        self.assertEqual(
+            {
+                "data": {
+                    "labels": ["Active", "Completed", "Interrupted, Expired and Failed"],
+                    "datasets": [{"label": "Completion", "data": [0, 0, 0]}],
+                }
+            },
+            response.json(),
+        )
+
+        # with run data
+        from temba.flows.models import FlowRun
+
+        flow1.counts.create(scope=f"run_status:{FlowRun.STATUS_ACTIVE}", count=5)
+        flow1.counts.create(scope=f"run_status:{FlowRun.STATUS_COMPLETED}", count=3)
+        flow1.counts.create(scope=f"run_status:{FlowRun.STATUS_EXPIRED}", count=1)
+
+        response = self.requestView(completion_url, self.admin)
+        resp_data = response.json()["data"]
+        self.assertEqual([5, 3, 1], resp_data["datasets"][0]["data"])
+
+    @patch("django.utils.timezone.now")
+    def test_engagement_dow(self, mock_now):
+        mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
+
+        flow1 = self.create_flow("Test 1")
+        dow_url = reverse("flows.flow_engagement_dow", args=[flow1.id])
+
+        # check permissions
+        self.assertRequestDisallowed(dow_url, [None, self.agent])
+
+        # empty dow
+        response = self.requestView(dow_url, self.admin)
+        resp_data = response.json()["data"]
+        self.assertEqual(7, len(resp_data["labels"]))  # 7 days
+        self.assertEqual([0, 0, 0, 0, 0, 0, 0], resp_data["datasets"][0]["data"])
+
+        # with dow data
+        flow1.counts.create(scope="msg_received_by_dow:0", count=4)  # Sunday
+        flow1.counts.create(scope="msg_received_by_dow:1", count=2)  # Monday
+
+        response = self.requestView(dow_url, self.admin)
+        resp_data = response.json()["data"]
+        self.assertEqual([4, 2, 0, 0, 0, 0, 0], resp_data["datasets"][0]["data"])
+
+    @patch("django.utils.timezone.now")
+    def test_engagement_hod(self, mock_now):
+        mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
+
+        flow1 = self.create_flow("Test 1")
+        hod_url = reverse("flows.flow_engagement_hod", args=[flow1.id])
+
+        # check permissions
+        self.assertRequestDisallowed(hod_url, [None, self.agent])
+
+        # empty hod
+        response = self.requestView(hod_url, self.admin)
+        resp_data = response.json()["data"]
+        self.assertEqual(24, len(resp_data["labels"]))  # 24 hours
+        self.assertEqual([0] * 24, resp_data["datasets"][0]["data"])
+
+        # with hod data
+        flow1.counts.create(scope="msg_received_by_hod:9", count=5)  # 9 AM
+        flow1.counts.create(scope="msg_received_by_hod:12", count=3)  # 12 PM
+
+        response = self.requestView(hod_url, self.admin)
+        resp_data = response.json()["data"]
+        # Check that hour 9 and 12 have the right values
+        self.assertEqual(5, resp_data["datasets"][0]["data"][9])
+        self.assertEqual(3, resp_data["datasets"][0]["data"][12])
+
     def test_activity(self):
         flow1 = self.create_flow("Test 1")
         flow2 = self.create_flow("Test 2")
