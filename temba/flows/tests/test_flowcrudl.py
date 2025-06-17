@@ -1428,53 +1428,6 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             response.json(),
         )
 
-    def test_category_counts(self):
-        flow1 = self.create_flow("Test 1")
-
-        counts_url = reverse("flows.flow_category_counts", args=[flow1.id])
-
-        self.assertRequestDisallowed(counts_url, [None, self.agent])
-
-        # check with no data
-        response = self.assertReadFetch(counts_url, [self.editor, self.admin])
-        self.assertEqual({"counts": []}, response.json())
-
-        # simulate some category data
-        flow1.info["results"] = [{"key": "color", "name": "Color"}, {"key": "beer", "name": "Beer"}]
-        flow1.save(update_fields=("info",))
-
-        flow1.result_counts.create(result="color", category="Red", count=3)
-        flow1.result_counts.create(result="color", category="Blue", count=2)
-        flow1.result_counts.create(result="color", category="Other", count=1)
-        flow1.result_counts.create(result="beer", category="Primus", count=7)
-
-        response = self.assertReadFetch(counts_url, [self.editor, self.admin])
-        self.assertEqual(
-            {
-                "counts": [
-                    {
-                        "key": "color",
-                        "name": "Color",
-                        "categories": [
-                            {"name": "Blue", "count": 2, "pct": 0.3333333333333333},
-                            {"name": "Other", "count": 1, "pct": 0.16666666666666666},
-                            {"name": "Red", "count": 3, "pct": 0.5},
-                        ],
-                        "total": 6,
-                    },
-                    {
-                        "key": "beer",
-                        "name": "Beer",
-                        "categories": [
-                            {"name": "Primus", "count": 7, "pct": 1.0},
-                        ],
-                        "total": 7,
-                    },
-                ]
-            },
-            response.json(),
-        )
-
     def test_result_chart(self):
         flow1 = self.create_flow("Test 1")
 
