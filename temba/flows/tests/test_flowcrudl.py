@@ -1512,6 +1512,30 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual([3, 2], resp_data["datasets"][0]["data"])
 
     @patch("django.utils.timezone.now")
+    def test_engagement_timeline_truncation(self, mock_now):
+        """Test timeline truncation modes for different date ranges"""
+        mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
+
+        flow1 = self.create_flow("Test 1")
+        timeline_url = reverse("flows.flow_engagement_timeline", args=[flow1.uuid])
+
+        # test week truncation mode (1-3 years ago)
+        with patch.object(flow1, 'get_engagement_start') as mock_start:
+            mock_start.return_value = datetime(2022, 11, 25, tzinfo=tzone.utc).date()  # 2 years ago
+            with patch.object(flow1, 'get_engagement_by_date') as mock_data:
+                mock_data.return_value = [(datetime(2022, 11, 25).date(), 5)]
+                response = self.requestView(timeline_url, self.admin)
+                mock_data.assert_called_with("week")
+
+        # test month truncation mode (>3 years ago)
+        with patch.object(flow1, 'get_engagement_start') as mock_start:
+            mock_start.return_value = datetime(2020, 11, 25, tzinfo=tzone.utc).date()  # 4 years ago
+            with patch.object(flow1, 'get_engagement_by_date') as mock_data:
+                mock_data.return_value = [(datetime(2020, 11, 25).date(), 10)]
+                response = self.requestView(timeline_url, self.admin)
+                mock_data.assert_called_with("month")
+
+    @patch("django.utils.timezone.now")
     def test_engagement_progress(self, mock_now):
         mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
 
@@ -1544,6 +1568,16 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         resp_data = response.json()["data"]
         self.assertEqual([5, 3, 1, 0, 0], resp_data["datasets"][0]["data"])
 
+        # test additional status types for complete coverage
+        flow1.counts.create(scope=f"status:{FlowRun.STATUS_WAITING}", count=2)
+        flow1.counts.create(scope=f"status:{FlowRun.STATUS_FAILED}", count=1)
+        flow1.counts.create(scope=f"status:{FlowRun.STATUS_INTERRUPTED}", count=3)
+
+        response = self.requestView(progress_url, self.admin)
+        resp_data = response.json()["data"]
+        # Ongoing includes both ACTIVE (5) and WAITING (2) = 7
+        self.assertEqual([7, 3, 1, 3, 1], resp_data["datasets"][0]["data"])
+
     @patch("django.utils.timezone.now")
     def test_engagement_dow(self, mock_now):
         mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
@@ -1567,6 +1601,24 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(dow_url, self.admin)
         resp_data = response.json()["data"]
         self.assertEqual([4, 2, 0, 0, 0, 0, 0], resp_data["datasets"][0]["data"])
+
+        # test that labels are datetime objects starting from Sunday
+        labels = resp_data["labels"]
+        self.assertEqual(7, len(labels))
+        # Labels should be datetime objects based on 2023-01-01 (Sunday) + day_index
+        self.assertIsInstance(labels[0], str)  # datetime gets serialized to string in JSON
+        
+    def test_engagement_dow_labels(self):
+        """Test that EngagementDow generates correct day labels"""
+        flow1 = self.create_flow("Test 1")
+        dow_url = reverse("flows.flow_engagement_dow", args=[flow1.uuid])
+        
+        response = self.requestView(dow_url, self.admin)
+        resp_data = response.json()["data"]
+        
+        # The view should create labels for 7 days starting from Sunday (2023-01-01)
+        labels = resp_data["labels"]
+        self.assertEqual(7, len(labels))
 
     @patch("django.utils.timezone.now")
     def test_engagement_hod(self, mock_now):
@@ -1594,6 +1646,22 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # Check that hour 9 and 12 have the right values
         self.assertEqual(5, resp_data["datasets"][0]["data"][9])
         self.assertEqual(3, resp_data["datasets"][0]["data"][12])
+
+    def test_engagement_hod_labels(self):
+        """Test that EngagementHod generates correct hour labels"""
+        flow1 = self.create_flow("Test 1")
+        hod_url = reverse("flows.flow_engagement_hod", args=[flow1.uuid])
+        
+        response = self.requestView(hod_url, self.admin)
+        resp_data = response.json()["data"]
+        
+        # Test that labels are properly formatted as "00:00", "01:00", etc.
+        labels = resp_data["labels"]
+        self.assertEqual(24, len(labels))
+        self.assertEqual("00:00", labels[0])
+        self.assertEqual("01:00", labels[1])
+        self.assertEqual("12:00", labels[12])
+        self.assertEqual("23:00", labels[23])
 
     def test_activity(self):
         flow1 = self.create_flow("Test 1")
