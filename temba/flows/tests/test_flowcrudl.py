@@ -2053,7 +2053,7 @@ msgstr "Azul"
         flow = self.create_flow("Open Ended Flow")
 
         # define a result that ends up with only one category
-        flow.info["results"] = [{"key": "feedback", "name": "Feedback"}]
+        flow.info["results"] = [{"key": "feedback", "name": "Feedback", "categories": ["All Responses"]}]
         flow.save(update_fields=("info",))
 
         # add a single category count
@@ -2064,5 +2064,5 @@ msgstr "Azul"
         response = self.client.get(results_url)
         self.assertEqual(200, response.status_code)
 
-        # page should not include any temba-chart elements
-        self.assertNotContains(response, "<temba-chart")
+        # page should not include a chart for feedback
+        self.assertNotContains(response, "Feedback")
