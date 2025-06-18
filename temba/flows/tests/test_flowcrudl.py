@@ -1487,6 +1487,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     @patch("django.utils.timezone.now")
     def test_engagement_timeline(self, mock_now):
+        """Test timeline rollup modes for different date ranges"""
         mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
 
         flow1 = self.create_flow("Test 1")
@@ -1496,44 +1497,34 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRequestDisallowed(timeline_url, [None, self.agent])
 
         # empty timeline
-        response = self.requestView(timeline_url, self.admin)
-        self.assertEqual({"data": {"labels": [], "datasets": [{"label": "Messages", "data": []}]}}, response.json())
+        response = self.requestView(timeline_url, self.admin).json()
 
-        # with engagement data
-        def engagement(flow, when, count):
-            flow.counts.create(scope=f"msgsin:date:{when.strftime('%Y-%m-%d')}", count=count)
+        # should default to 30 days of 0s
+        self.assertEqual(response["rollup_by"], "day")
+        self.assertEqual(len(response["data"]["labels"]), 30)
+        self.assertEqual(response["data"]["datasets"][0]["data"].count(0), 30)
 
-        engagement(flow1, datetime(2024, 11, 24, 9, 0, 0, tzinfo=tzone.utc), 3)
-        engagement(flow1, datetime(2024, 11, 25, 12, 0, 0, tzinfo=tzone.utc), 2)
+        # test week rollup mode (1-3 years ago)
+        flow1.counts.create(scope="msgsin:date:2022-11-25", count=5)
+        flow1.counts.create(scope="msgsin:date:2022-11-29", count=50)
+        flow1.counts.create(scope="msgsin:date:2022-12-1", count=8)
+        response = self.requestView(timeline_url, self.admin).json()
 
-        response = self.requestView(timeline_url, self.admin)
-        resp_data = response.json()["data"]
-        self.assertEqual(["2024-11-24", "2024-11-25"], resp_data["labels"])
-        self.assertEqual([3, 2], resp_data["datasets"][0]["data"])
+        self.assertEqual("week", response["rollup_by"])
+        self.assertEqual(["2022-11-21", "2022-11-28"], response["data"]["labels"][0:2])
+        self.assertEqual(5, response["data"]["datasets"][0]["data"][0])
+        self.assertEqual(58, response["data"]["datasets"][0]["data"][1])
+        flow1.counts.all().delete()
 
-    @patch("django.utils.timezone.now")
-    def test_engagement_timeline_truncation(self, mock_now):
-        """Test timeline truncation modes for different date ranges"""
-        mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
-
-        flow1 = self.create_flow("Test 1")
-        timeline_url = reverse("flows.flow_engagement_timeline", args=[flow1.uuid])
-
-        # test week truncation mode (1-3 years ago)
-        with patch.object(flow1, "get_engagement_start") as mock_start:
-            mock_start.return_value = datetime(2022, 11, 25, tzinfo=tzone.utc).date()  # 2 years ago
-            with patch.object(flow1, "get_engagement_by_date") as mock_data:
-                mock_data.return_value = [(datetime(2022, 11, 25).date(), 5)]
-                self.requestView(timeline_url, self.admin)
-                mock_data.assert_called_with("week")
-
-        # test month truncation mode (>3 years ago)
-        with patch.object(flow1, "get_engagement_start") as mock_start:
-            mock_start.return_value = datetime(2020, 11, 25, tzinfo=tzone.utc).date()  # 4 years ago
-            with patch.object(flow1, "get_engagement_by_date") as mock_data:
-                mock_data.return_value = [(datetime(2020, 11, 25).date(), 10)]
-                self.requestView(timeline_url, self.admin)
-                mock_data.assert_called_with("month")
+        # test month rollup mode (>3 years ago)
+        flow1.counts.create(scope="msgsin:date:2020-11-25", count=10)
+        flow1.counts.create(scope="msgsin:date:2020-12-26", count=5)
+        flow1.counts.create(scope="msgsin:date:2020-12-27", count=6)
+        response = self.requestView(timeline_url, self.admin).json()
+        self.assertEqual("month", response["rollup_by"])
+        self.assertEqual(["2020-11-01", "2020-12-01"], response["data"]["labels"][0:2])
+        self.assertEqual(10, response["data"]["datasets"][0]["data"][0])
+        self.assertEqual(11, response["data"]["datasets"][0]["data"][1])
 
     @patch("django.utils.timezone.now")
     def test_engagement_progress(self, mock_now):

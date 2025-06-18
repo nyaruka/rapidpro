@@ -1098,36 +1098,19 @@ class FlowCRUDL(SmartCRUDL):
 
     class EngagementTimeline(BaseResultsView):
         def render_to_response(self, context, **response_kwargs):
-            today = timezone.now().date()
-            timeline_min = self.object.get_engagement_start()
+            start_date = self.object.get_engagement_start()
+            end_date = timezone.now().date()
 
-            # if we have no data or it's all from the last 30 days, use that as the min date
-            if not timeline_min or timeline_min > today - timedelta(days=30):
-                timeline_min = today - timedelta(days=30)
+            if not start_date:
+                start_date = end_date - timedelta(days=29)
 
-            # bucket dates into months or weeks depending on the range
-            if timeline_min < today - timedelta(days=365 * 3):
-                truncate = "month"
-            elif timeline_min < today - timedelta(days=365):
-                truncate = "week"
-            else:
-                truncate = "day"
-
-            timeline_data = self.object.get_engagement_by_date(truncate)
-
-            # convert to chart.js format
-            labels = []
-            data = []
-            for date, count in timeline_data:
-                labels.append(date.strftime("%Y-%m-%d"))
-                data.append(count)
-
+            timeline_data = self.object.get_engagement_timeline(start_date, end_date)
             chart_data = {
-                "labels": labels,
-                "datasets": [{"label": _("Messages"), "data": data}],
+                "labels": timeline_data["dates"],
+                "datasets": [{"label": _("Messages"), "data": timeline_data["counts"]}],
             }
 
-            return JsonResponse({"data": chart_data})
+            return JsonResponse({"data": chart_data, "rollup_by": timeline_data["rollup_by"]})
 
     class EngagementProgress(BaseResultsView):
         def render_to_response(self, context, **response_kwargs):

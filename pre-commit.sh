@@ -17,7 +17,7 @@ if [ -n "$FILES" ]; then
 fi
 
 if [ -n "$FILES" ]; then
-    ruff_errors=$(ruff check temba --exit-zero $FILES)
+    ruff_errors=$(ruff temba --exit-zero $FILES)
 
     if [ ! -z "$ruff_errors" ]; then
         rm -f .commit
