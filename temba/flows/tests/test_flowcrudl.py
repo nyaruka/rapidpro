@@ -1524,7 +1524,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             mock_start.return_value = datetime(2022, 11, 25, tzinfo=tzone.utc).date()  # 2 years ago
             with patch.object(flow1, "get_engagement_by_date") as mock_data:
                 mock_data.return_value = [(datetime(2022, 11, 25).date(), 5)]
-                response = self.requestView(timeline_url, self.admin)
+                self.requestView(timeline_url, self.admin)
                 mock_data.assert_called_with("week")
 
         # test month truncation mode (>3 years ago)
@@ -1532,7 +1532,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             mock_start.return_value = datetime(2020, 11, 25, tzinfo=tzone.utc).date()  # 4 years ago
             with patch.object(flow1, "get_engagement_by_date") as mock_data:
                 mock_data.return_value = [(datetime(2020, 11, 25).date(), 10)]
-                response = self.requestView(timeline_url, self.admin)
+                self.requestView(timeline_url, self.admin)
                 mock_data.assert_called_with("month")
 
     @patch("django.utils.timezone.now")
