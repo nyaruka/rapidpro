@@ -704,7 +704,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         delete_in_batches(self.sync_events.all())
         delete_in_batches(self.http_logs.all())
         delete_in_batches(self.template_translations.all())
-        delete_in_batches(self.counts.all())  # needs to be after log deletion
+        delete_in_batches(self.counts.all())
 
         super().delete()
 
@@ -998,7 +998,7 @@ class ChannelLog:
         return redacted
 
     def __repr__(self):  # pragma: no cover
-        return f"<ChanneLog: uuid={self.uuid} type={self.log_type}>"
+        return f"<ChannelLog: uuid={self.uuid} type={self.log_type}>"
 
 
 class SyncEvent(models.Model):
