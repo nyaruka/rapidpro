@@ -131,7 +131,7 @@ class CampaignsEndpointTest(APITest):
         self.assertEqual(campaign3.group, other_group)
 
         self.assertEqual(campaign3.events.filter(status="S").count(), 2)  # events should be scheduling
-        self.assertEqual([call(self.org, event1), call(self.org, event2)], mr_mocks.calls["campaign_schedule_event"])
+        self.assertEqual([call(self.org, event1), call(self.org, event2)], mr_mocks.calls["campaign_schedule"])
 
         # can't update campaign in other org
         self.assertPost(
