@@ -7,6 +7,7 @@ from datetime import date, datetime, timezone as tzone
 from uuid import UUID
 
 import iso8601
+from dateutil.relativedelta import relativedelta
 from django_valkey import get_valkey_connection
 from packaging.version import Version
 
@@ -820,17 +821,52 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         Gets earliest date of recorded engagement (i.e. messages in) for this flow.
         """
         first = self.counts.prefix("msgsin:date:").order_by("scope").first()
-        return date.fromisoformat(first.scope[12:]) if first else None
 
-    def get_engagement_by_date(self, truncate: str) -> list[tuple]:
+        utc_timezone = tzone.utc
+
+        return datetime.fromisoformat(first.scope[12:]).replace(tzinfo=utc_timezone).date() if first else None
+
+    def get_engagement_timeline(self, since, until) -> dict:
+
+        rollup_by = "day"
+        rollup_diff = relativedelta(days=1)
+
+        # bucket dates into months or weeks depending on the range
+        if since < until - relativedelta(years=3):
+            rollup_by = "month"
+            rollup_diff = relativedelta(months=1)
+        elif since < until - relativedelta(years=1):
+            rollup_by = "week"
+            rollup_diff = relativedelta(weeks=1)
+
         dates = (
             self.counts.prefix("msgsin:date:")
-            .extra({"date": f"date_trunc('{truncate}', split_part(scope, ':', 3)::date)"})
+            .extra({"date": f"date_trunc('{rollup_by}', split_part(scope, ':', 3)::date)"})
             .values("date")
             .annotate(count=Sum("count"))
             .order_by("date")
         )
-        return [(d["date"], d["count"]) for d in dates]
+
+        since = dates[0]["date"].date() if len(dates) > 0 else since
+
+        all_dates = []
+        counts = []
+        current_date = since
+
+        rollup_dates = iter(dates)
+        rollup_date = next(rollup_dates, None)
+
+        while current_date <= until:
+            count = 0
+            if rollup_date and rollup_date["date"].date() == current_date:
+                count = rollup_date["count"]
+                rollup_date = next(rollup_dates, None)
+
+            all_dates.append(current_date)
+            counts.append(count)
+            current_date += rollup_diff
+
+        return {"dates": all_dates, "counts": counts, "rollup_by": rollup_by}
 
     def get_engagement_by_weekday(self) -> dict[int, int]:
         """

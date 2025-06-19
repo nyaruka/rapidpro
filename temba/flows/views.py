@@ -166,7 +166,10 @@ class FlowCRUDL(SmartCRUDL):
         "preview_start",
         "start",
         "activity",
-        "engagement",
+        "engagement_timeline",
+        "engagement_progress",
+        "engagement_dow",
+        "engagement_hod",
         "filter",
         "revisions",
         "recent_contacts",
@@ -794,7 +797,7 @@ class FlowCRUDL(SmartCRUDL):
                 )
 
             if self.has_org_perm("flows.flow_results"):
-                menu.add_link(_("Results"), reverse("flows.flow_results", args=[obj.id]))
+                menu.add_link(_("Results"), reverse("flows.flow_results", args=[obj.uuid]))
 
             menu.new_group()
 
@@ -1089,113 +1092,99 @@ class FlowCRUDL(SmartCRUDL):
                 extra_urns=form.cleaned_data.get("extra_urns", []),
             )
 
-    class Engagement(BaseReadView):
-        """
-        Data for charts on engagement tab of results page.
-        """
-
+    class BaseResultsView(BaseReadView):
         permission = "flows.flow_results"
+        slug_url_kwarg = "uuid"
 
+    class EngagementTimeline(BaseResultsView):
         def render_to_response(self, context, **response_kwargs):
-            # if this isn't a request for the chart data, return the normal template view
-            if self.request.headers.get("Accept") != "application/json":
-                return super().render_to_response(context, **response_kwargs)
+            start_date = self.object.get_engagement_start()
+            end_date = timezone.now().date()
 
-            today = timezone.now().date()
-            hod_counts = self.object.get_engagement_by_hour(self.request.org.timezone)
-            hod_data = []
-            for x in range(0, 24):
-                hod_data.append([x, hod_counts.get(x, 0)])
+            if not start_date:
+                start_date = end_date - timedelta(days=29)
 
-            dow_counts = self.object.get_engagement_by_weekday()
-            msgsin_total = sum(dow_counts.values())
+            timeline_data = self.object.get_engagement_timeline(start_date, end_date)
+            chart_data = {
+                "labels": timeline_data["dates"],
+                "datasets": [{"label": _("Messages"), "data": timeline_data["counts"]}],
+            }
 
-            dow_data = []
-            for d in range(0, 7):
-                day_count = dow_counts.get(d, 0)
-                dow_data.append(
-                    {"msgs": day_count, "y": 100 * float(day_count) / float(msgsin_total) if msgsin_total else 0.0}
-                )
+            return JsonResponse({"data": chart_data, "rollup_by": timeline_data["rollup_by"]})
 
-            timeline_min = self.object.get_engagement_start()
-
-            # if we have no data or it's all from the last 30 days, use that as the min date
-            if not timeline_min or timeline_min > today - timedelta(days=30):
-                timeline_min = today - timedelta(days=30)
-
-            # bucket dates into months or weeks depending on the range
-            if timeline_min < today - timedelta(days=365 * 3):
-                truncate = "month"
-            elif timeline_min < today - timedelta(days=365):
-                truncate = "week"
-            else:
-                truncate = "day"
-
-            timeline_data = self.object.get_engagement_by_date(truncate)
+    class EngagementProgress(BaseResultsView):
+        def render_to_response(self, context, **response_kwargs):
             runs = self.object.get_run_counts()
 
-            return JsonResponse(
-                {
-                    "timeline": {
-                        "data": timeline_data,
-                        "xmin": timeline_min,
-                        "xmax": today,
-                        "ymax": max([d[1] for d in timeline_data] or [0]),
-                    },
-                    "dow": {
-                        "data": dow_data,
-                    },
-                    "hod": {
-                        "data": hod_data,
-                    },
-                    "completion": {
-                        "summary": [
-                            {
-                                "name": _("Active"),
-                                "y": runs[FlowRun.STATUS_ACTIVE] + runs[FlowRun.STATUS_WAITING],
-                                "drilldown": None,
-                                "color": "#2387CA",
-                            },
-                            {
-                                "name": _("Completed"),
-                                "y": runs[FlowRun.STATUS_COMPLETED],
-                                "drilldown": None,
-                                "color": "#8FC93A",
-                            },
-                            {
-                                "name": _("Interrupted, Expired and Failed"),
-                                "y": runs[FlowRun.STATUS_EXPIRED]
-                                + runs[FlowRun.STATUS_INTERRUPTED]
-                                + runs[FlowRun.STATUS_FAILED],
-                                "drilldown": "incomplete",
-                                "color": "#CCC",
-                            },
-                        ],
-                        "drilldown": [
-                            {
-                                "name": "Interrupted, Expired and Failed",
-                                "id": "incomplete",
-                                "innerSize": "50%",
-                                "data": [
-                                    {"name": _("Expired"), "y": runs[FlowRun.STATUS_EXPIRED], "color": "#CCC"},
-                                    {"name": _("Interrupted"), "y": runs[FlowRun.STATUS_INTERRUPTED], "color": "#EEE"},
-                                    {"name": _("Failed"), "y": runs[FlowRun.STATUS_FAILED], "color": "#FEE"},
-                                ],
-                            }
-                        ],
-                    },
-                },
-                json_dumps_params={"indent": 2},
-                encoder=json.EpochEncoder,
-            )
+            # convert to chart.js format
+            labels = [
+                _("Ongoing"),
+                _("Completed"),
+                _("Expired"),
+                _("Interrupted"),
+                _("Failed"),
+            ]
 
-    class ResultChart(BaseReadView):
+            data = [
+                runs[FlowRun.STATUS_ACTIVE] + runs[FlowRun.STATUS_WAITING],
+                runs[FlowRun.STATUS_COMPLETED],
+                runs[FlowRun.STATUS_EXPIRED],
+                runs[FlowRun.STATUS_INTERRUPTED],
+                runs[FlowRun.STATUS_FAILED],
+            ]
+
+            chart_data = {
+                "labels": labels,
+                "datasets": [{"label": _("Progress"), "data": data}],
+            }
+
+            return JsonResponse({"data": chart_data})
+
+    class EngagementDow(BaseResultsView):
+        def render_to_response(self, context, **response_kwargs):
+            dow_counts = self.object.get_engagement_by_weekday()
+
+            # convert to chart.js format
+            labels = []
+            data = []
+
+            for day_index in range(0, 7):
+                base_date = datetime(2023, 1, 1)  # Sunday
+                count = dow_counts.get(day_index, 0)
+                day_date = base_date + timedelta(days=day_index)
+                labels.append(day_date)
+                data.append(count)
+
+            chart_data = {
+                "labels": labels,
+                "datasets": [{"label": _("Messages"), "data": data}],
+            }
+
+            return JsonResponse({"data": chart_data})
+
+    class EngagementHod(BaseResultsView):
+        def render_to_response(self, context, **response_kwargs):
+            hod_counts = self.object.get_engagement_by_hour(self.request.org.timezone)
+
+            # convert to chart.js format
+            labels = []
+            data = []
+
+            for x in range(0, 24):
+                labels.append(f"{x:02d}:00")
+                data.append(hod_counts.get(x, 0))
+
+            chart_data = {
+                "labels": labels,
+                "datasets": [{"label": _("Messages"), "data": data}],
+            }
+
+            return JsonResponse({"data": chart_data})
+
+    class ResultChart(BaseResultsView):
         """
         Individual chart data for analytics tab of results page.
         """
-
-        permission = "flows.flow_results"
-        slug_url_kwarg = "uuid"
 
         @classmethod
         def derive_url_pattern(cls, path, action):
@@ -1232,7 +1221,7 @@ class FlowCRUDL(SmartCRUDL):
 
             return JsonResponse({"data": chart_data})
 
-    class Results(SpaMixin, ContextMenuMixin, BaseReadView):
+    class Results(SpaMixin, ContextMenuMixin, BaseResultsView):
         def build_context_menu(self, menu):
             obj = self.get_object()
 

@@ -7,22 +7,6 @@
     .modal .modal-body {
       max-height: 450px;
     }
-
-    #engagement-charts {
-      justify-content: center;
-      padding-top: 2em;
-    }
-
-    #engagement-charts>div {
-      margin-bottom: 6em;
-      align-self: flex-start;
-      flex-basis: 400px;
-    }
-
-    h4 {
-      font-weight: 300;
-      text-align: center;
-    }
   </style>
 {% endblock extra-style %}
 {% block extra-script %}
@@ -49,12 +33,6 @@
       document.querySelector("temba-flow-details").refresh();
     }
 
-    function updateEngagement() {
-      fetchAjax("{% url 'flows.flow_engagement' object.id %}", {
-        container: "#engagement-charts"
-      });
-    }
-
     function handleTabChanged() {
       var tabs = document.querySelector("temba-tabs");
       if (!tabs) {
@@ -67,10 +45,6 @@
         runs.paused = tabs.index != 2;
       }
     }
-
-    onSpload(function() {
-      updateEngagement();
-    });
   </script>
 {% endblock extra-script %}
 {% block content %}
@@ -81,7 +55,65 @@
               class="flex-grow"
               index="{{ request.GET.tab }}">
     <temba-tab name="{{ _("Engagement") |escapejs }}" icon="overview">
-      <div class="flex flex-wrap overflow-y-scroll overflow-x-hidden" id="engagement-charts"></div>
+      <div class="flex flex-wrap overflow-y-scroll overflow-x-hidden" id="engagement-charts">
+        <div class="flex flex-wrap p-6 gap-6">
+          <temba-chart class="m-1"
+                       header="{% trans 'Responses' %}"
+                       url="{% url 'flows.flow_engagement_timeline' flow.uuid %}"
+                       dataname="Responses"
+                       xtype="time"
+                       single
+                       style="min-width: 400px;
+                              flex: 1 1 400px;
+                              border: 0px solid #e5e7eb;
+                              border-radius: 10px;
+                              background: #fbfbfb;
+                              padding: 2em">
+          </temba-chart>
+          <temba-chart class="m-1"
+                       header="{% trans 'Progress' %}"
+                       url="{% url 'flows.flow_engagement_progress' flow.uuid %}"
+                       dataname="Runs"
+                       single
+                       percent
+                       colorIndex="1"
+                       style="min-width: 400px;
+                              flex: 1 1 400px;
+                              border: 0px solid #e5e7eb;
+                              border-radius: 10px;
+                              background: #fbfbfb;
+                              padding: 2em">
+          </temba-chart>
+          <temba-chart class="m-1"
+                       header="{% trans 'Day of Week' %}"
+                       url="{% url 'flows.flow_engagement_dow' flow.uuid %}"
+                       dataname="Responses"
+                       single
+                       colorIndex="2"
+                       xtype="time"
+                       xformat="EEE"
+                       style="min-width: 400px;
+                              flex: 1 1 400px;
+                              border: 0px solid #e5e7eb;
+                              border-radius: 10px;
+                              background: #fbfbfb;
+                              padding: 2em">
+          </temba-chart>
+          <temba-chart class="m-1"
+                       header="{% trans 'Time of Day' %} ({{ user_org.timezone }})"
+                       url="{% url 'flows.flow_engagement_hod' flow.uuid %}"
+                       dataname="Responses"
+                       colorIndex="3"
+                       single
+                       style="min-width: 400px;
+                              flex: 1 1 400px;
+                              border: 0px solid #e5e7eb;
+                              border-radius: 10px;
+                              background: #fbfbfb;
+                              padding: 2em">
+          </temba-chart>
+        </div>
+      </div>
     </temba-tab>
     <temba-tab name="{{ _("Analytics") |escapejs }}" icon="analytics">
       <div class="flex flex-wrap overflow-y-scroll overflow-x-hidden p-6 gap-6">

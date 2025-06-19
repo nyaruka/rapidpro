@@ -81,7 +81,7 @@
           <td class="whitespace-nowrap text-right">{{ object.num_runs_ongoing|intcomma }}</td>
           <td class="whitespace-nowrap text-right">
             {% if object.num_runs_total %}
-              <a href="{% url "flows.flow_results" object.id %}">{{ object.completion_pct }}%</a>
+              <a href="{% url "flows.flow_results" object.uuid %}">{{ object.completion_pct }}%</a>
             {% else %}
               --
             {% endif %}

@@ -310,7 +310,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRedirect(response, reverse("flows.flow_editor", args=[flow3.uuid]))
 
         # can see results for a flow
-        response = self.client.get(reverse("flows.flow_results", args=[flow.id]))
+        response = self.client.get(reverse("flows.flow_results", args=[flow.uuid]))
         self.assertEqual(200, response.status_code)
 
         # check flow listing
@@ -1475,7 +1475,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_results(self):
         flow = self.create_flow("Test 1")
 
-        results_url = reverse("flows.flow_results", args=[flow.id])
+        results_url = reverse("flows.flow_results", args=[flow.uuid])
 
         self.assertRequestDisallowed(results_url, [None, self.agent])
         self.assertReadFetch(results_url, [self.editor, self.admin])
@@ -1486,207 +1486,173 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(404, response.status_code)
 
     @patch("django.utils.timezone.now")
-    def test_engagement(self, mock_now):
-        # this test runs as if it's 2024-11-25 12:05:00
+    def test_engagement_timeline(self, mock_now):
+        """Test timeline rollup modes for different date ranges"""
         mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
 
         flow1 = self.create_flow("Test 1")
+        timeline_url = reverse("flows.flow_engagement_timeline", args=[flow1.uuid])
 
-        engagement_url = reverse("flows.flow_engagement", args=[flow1.id])
+        # check permissions
+        self.assertRequestDisallowed(timeline_url, [None, self.agent])
 
-        # check fetching as template
-        self.assertRequestDisallowed(engagement_url, [None, self.agent])
-        self.assertReadFetch(engagement_url, [self.editor, self.admin])
+        # empty timeline
+        response = self.requestView(timeline_url, self.admin).json()
 
-        # check fetching as chart data (when there's no data)
-        response = self.requestView(engagement_url, self.admin, HTTP_ACCEPT="application/json")
+        # should default to 30 days of 0s
+        self.assertEqual(response["rollup_by"], "day")
+        self.assertEqual(len(response["data"]["labels"]), 30)
+        self.assertEqual(response["data"]["datasets"][0]["data"].count(0), 30)
+
+        # test week rollup mode (1-3 years ago)
+        flow1.counts.create(scope="msgsin:date:2022-11-25", count=5)
+        flow1.counts.create(scope="msgsin:date:2022-11-29", count=50)
+        flow1.counts.create(scope="msgsin:date:2022-12-1", count=8)
+        response = self.requestView(timeline_url, self.admin).json()
+
+        self.assertEqual("week", response["rollup_by"])
+        self.assertEqual(["2022-11-21", "2022-11-28"], response["data"]["labels"][0:2])
+        self.assertEqual(5, response["data"]["datasets"][0]["data"][0])
+        self.assertEqual(58, response["data"]["datasets"][0]["data"][1])
+        flow1.counts.all().delete()
+
+        # test month rollup mode (>3 years ago)
+        flow1.counts.create(scope="msgsin:date:2020-11-25", count=10)
+        flow1.counts.create(scope="msgsin:date:2020-12-26", count=5)
+        flow1.counts.create(scope="msgsin:date:2020-12-27", count=6)
+        response = self.requestView(timeline_url, self.admin).json()
+        self.assertEqual("month", response["rollup_by"])
+        self.assertEqual(["2020-11-01", "2020-12-01"], response["data"]["labels"][0:2])
+        self.assertEqual(10, response["data"]["datasets"][0]["data"][0])
+        self.assertEqual(11, response["data"]["datasets"][0]["data"][1])
+
+    @patch("django.utils.timezone.now")
+    def test_engagement_progress(self, mock_now):
+        mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
+
+        flow1 = self.create_flow("Test 1")
+        progress_url = reverse("flows.flow_engagement_progress", args=[flow1.uuid])
+
+        # check permissions
+        self.assertRequestDisallowed(progress_url, [None, self.agent])
+
+        # empty progress
+        response = self.requestView(progress_url, self.admin)
         self.assertEqual(
             {
-                "timeline": {
-                    "data": [],
-                    "xmin": 1729900800000,  # 2024-10-26
-                    "xmax": 1732492800000,  # 2024-11-25
-                    "ymax": 0,
-                },
-                "dow": {
-                    "data": [
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                    ]
-                },
-                "hod": {"data": [[i, 0] for i in range(24)]},
-                "completion": {
-                    "summary": [
-                        {"name": "Active", "y": 0, "drilldown": None, "color": "#2387CA"},
-                        {"name": "Completed", "y": 0, "drilldown": None, "color": "#8FC93A"},
-                        {
-                            "name": "Interrupted, Expired and Failed",
-                            "y": 0,
-                            "drilldown": "incomplete",
-                            "color": "#CCC",
-                        },
-                    ],
-                    "drilldown": [
-                        {
-                            "name": "Interrupted, Expired and Failed",
-                            "id": "incomplete",
-                            "innerSize": "50%",
-                            "data": [
-                                {"name": "Expired", "y": 0, "color": "#CCC"},
-                                {"name": "Interrupted", "y": 0, "color": "#EEE"},
-                                {"name": "Failed", "y": 0, "color": "#FEE"},
-                            ],
-                        }
-                    ],
-                },
+                "data": {
+                    "labels": ["Ongoing", "Completed", "Expired", "Interrupted", "Failed"],
+                    "datasets": [{"label": "Progress", "data": [0, 0, 0, 0, 0]}],
+                }
             },
             response.json(),
         )
 
-        def engagement(flow, when, count):
-            flow.counts.create(scope=f"msgsin:hour:{when.hour}", count=count)
-            flow.counts.create(scope=f"msgsin:dow:{when.isoweekday()}", count=count)
-            flow.counts.create(scope=f"msgsin:date:{when.date().isoformat()}", count=count)
+        # with run data
+        from temba.flows.models import FlowRun
 
-        engagement(flow1, datetime(2024, 11, 24, 9, 0, 0, tzinfo=tzone.utc), 3)  # 2024-11-24 09:00 (Sun)
-        engagement(flow1, datetime(2024, 11, 25, 12, 0, 0, tzinfo=tzone.utc), 2)  # 2024-11-25 12:00 (Mon)
-        engagement(flow1, datetime(2024, 11, 26, 9, 0, 0, tzinfo=tzone.utc), 4)  # 2024-11-26 09:00 (Tue)
-        engagement(flow1, datetime(2024, 11, 26, 23, 0, 0, tzinfo=tzone.utc), 1)  # 2024-11-26 23:00 (Tue)
+        flow1.counts.create(scope=f"status:{FlowRun.STATUS_ACTIVE}", count=5)
+        flow1.counts.create(scope=f"status:{FlowRun.STATUS_COMPLETED}", count=3)
+        flow1.counts.create(scope=f"status:{FlowRun.STATUS_EXPIRED}", count=1)
 
-        flow1.counts.create(scope="status:W", count=4)
-        flow1.counts.create(scope="status:C", count=3)
-        flow1.counts.create(scope="status:X", count=2)
-        flow1.counts.create(scope="status:I", count=1)
+        response = self.requestView(progress_url, self.admin)
+        resp_data = response.json()["data"]
+        self.assertEqual([5, 3, 1, 0, 0], resp_data["datasets"][0]["data"])
 
-        response = self.requestView(engagement_url, self.admin, HTTP_ACCEPT="application/json")
-        self.assertEqual(
-            {
-                "timeline": {
-                    "data": [[1732406400000, 3], [1732492800000, 2], [1732579200000, 5]],
-                    "xmin": 1729900800000,  # 2024-10-26
-                    "xmax": 1732492800000,
-                    "ymax": 5,
-                },
-                "dow": {
-                    "data": [
-                        {"msgs": 3, "y": 30.0},
-                        {"msgs": 2, "y": 20.0},
-                        {"msgs": 5, "y": 50.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                        {"msgs": 0, "y": 0.0},
-                    ]
-                },
-                "hod": {
-                    "data": [
-                        [0, 0],
-                        [1, 1],  # 23:00 UTC is 01:00 in Kigali
-                        [2, 0],
-                        [3, 0],
-                        [4, 0],
-                        [5, 0],
-                        [6, 0],
-                        [7, 0],
-                        [8, 0],
-                        [9, 0],
-                        [10, 0],
-                        [11, 7],
-                        [12, 0],
-                        [13, 0],
-                        [14, 2],
-                        [15, 0],
-                        [16, 0],
-                        [17, 0],
-                        [18, 0],
-                        [19, 0],
-                        [20, 0],
-                        [21, 0],
-                        [22, 0],
-                        [23, 0],
-                    ]
-                },
-                "completion": {
-                    "summary": [
-                        {"name": "Active", "y": 4, "drilldown": None, "color": "#2387CA"},
-                        {"name": "Completed", "y": 3, "drilldown": None, "color": "#8FC93A"},
-                        {
-                            "name": "Interrupted, Expired and Failed",
-                            "y": 3,
-                            "drilldown": "incomplete",
-                            "color": "#CCC",
-                        },
-                    ],
-                    "drilldown": [
-                        {
-                            "name": "Interrupted, Expired and Failed",
-                            "id": "incomplete",
-                            "innerSize": "50%",
-                            "data": [
-                                {"name": "Expired", "y": 2, "color": "#CCC"},
-                                {"name": "Interrupted", "y": 1, "color": "#EEE"},
-                                {"name": "Failed", "y": 0, "color": "#FEE"},
-                            ],
-                        }
-                    ],
-                },
-            },
-            response.json(),
-        )
+        # test additional status types for complete coverage
+        flow1.counts.create(scope=f"status:{FlowRun.STATUS_WAITING}", count=2)
+        flow1.counts.create(scope=f"status:{FlowRun.STATUS_FAILED}", count=1)
+        flow1.counts.create(scope=f"status:{FlowRun.STATUS_INTERRUPTED}", count=3)
 
-        # simulate having some data from 6 months ago
-        engagement(flow1, datetime(2024, 5, 1, 12, 0, 0, tzinfo=tzone.utc), 4)  # 2024-05-01 12:00 (Wed)
+        response = self.requestView(progress_url, self.admin)
+        resp_data = response.json()["data"]
+        # Ongoing includes both ACTIVE (5) and WAITING (2) = 7
+        self.assertEqual([7, 3, 1, 3, 1], resp_data["datasets"][0]["data"])
 
-        response = self.requestView(engagement_url, self.admin, HTTP_ACCEPT="application/json")
-        resp_json = response.json()
-        self.assertEqual(1714521600000, resp_json["timeline"]["xmin"])  # 2024-05-01
-        self.assertEqual(
-            [[1714521600000, 4], [1732406400000, 3], [1732492800000, 2], [1732579200000, 5]],
-            resp_json["timeline"]["data"],
-        )
+    @patch("django.utils.timezone.now")
+    def test_engagement_dow(self, mock_now):
+        mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
 
-        # simulate having some data from 18 months ago (should trigger bucketing by week)
-        engagement(flow1, datetime(2023, 5, 1, 12, 0, 0, tzinfo=tzone.utc), 3)  # 2023-05-01 12:00 (Mon)
+        flow1 = self.create_flow("Test 1")
+        dow_url = reverse("flows.flow_engagement_dow", args=[flow1.uuid])
 
-        response = self.requestView(engagement_url, self.admin, HTTP_ACCEPT="application/json")
-        resp_json = response.json()
-        self.assertEqual(1682899200000, resp_json["timeline"]["xmin"])  # 2023-05-01
-        self.assertEqual(
-            [
-                [1682899200000, 3],  # 2023-05-01 (Mon)
-                [1714348800000, 4],  # 2024-04-29 (Mon)
-                [1731888000000, 3],  # 2024-11-18 (Mon)
-                [1732492800000, 7],  # 2024-11-25 (Mon)
-            ],
-            resp_json["timeline"]["data"],
-        )
+        # check permissions
+        self.assertRequestDisallowed(dow_url, [None, self.agent])
 
-        # simulate having some data from 4 years ago (should trigger bucketing by month)
-        engagement(flow1, datetime(2020, 11, 25, 12, 0, 0, tzinfo=tzone.utc), 6)  # 2020-11-25 12:00 (Wed)
+        # empty dow
+        response = self.requestView(dow_url, self.admin)
+        resp_data = response.json()["data"]
+        self.assertEqual(7, len(resp_data["labels"]))  # 7 days
+        self.assertEqual([0, 0, 0, 0, 0, 0, 0], resp_data["datasets"][0]["data"])
 
-        response = self.requestView(engagement_url, self.admin, HTTP_ACCEPT="application/json")
-        resp_json = response.json()
-        self.assertEqual(1606262400000, resp_json["timeline"]["xmin"])  # 2020-11-25
-        self.assertEqual(
-            [
-                [1604188800000, 6],  # 2020-11-01
-                [1682899200000, 3],  # 2023-05-01
-                [1714521600000, 4],  # 2024-05-01
-                [1730419200000, 10],  # 2024-11-01
-            ],
-            resp_json["timeline"]["data"],
-        )
+        # with dow data
+        flow1.counts.create(scope="msgsin:dow:0", count=4)  # Sunday
+        flow1.counts.create(scope="msgsin:dow:1", count=2)  # Monday
 
-        # check 404 for inactive flow
-        flow1.release(self.admin)
+        response = self.requestView(dow_url, self.admin)
+        resp_data = response.json()["data"]
+        self.assertEqual([4, 2, 0, 0, 0, 0, 0], resp_data["datasets"][0]["data"])
 
-        response = self.requestView(engagement_url, self.admin)
-        self.assertEqual(404, response.status_code)
+        # test that labels are datetime objects starting from Sunday
+        labels = resp_data["labels"]
+        self.assertEqual(7, len(labels))
+        # Labels should be datetime objects based on 2023-01-01 (Sunday) + day_index
+        self.assertIsInstance(labels[0], str)  # datetime gets serialized to string in JSON
+
+    def test_engagement_dow_labels(self):
+        """Test that EngagementDow generates correct day labels"""
+        flow1 = self.create_flow("Test 1")
+        dow_url = reverse("flows.flow_engagement_dow", args=[flow1.uuid])
+
+        response = self.requestView(dow_url, self.admin)
+        resp_data = response.json()["data"]
+
+        # The view should create labels for 7 days starting from Sunday (2023-01-01)
+        labels = resp_data["labels"]
+        self.assertEqual(7, len(labels))
+
+    @patch("django.utils.timezone.now")
+    def test_engagement_hod(self, mock_now):
+        mock_now.return_value = datetime(2024, 11, 25, 12, 5, 0, tzinfo=tzone.utc)
+
+        flow1 = self.create_flow("Test 1")
+        hod_url = reverse("flows.flow_engagement_hod", args=[flow1.uuid])
+
+        # check permissions
+        self.assertRequestDisallowed(hod_url, [None, self.agent])
+
+        # empty hod
+        response = self.requestView(hod_url, self.admin)
+        resp_data = response.json()["data"]
+        self.assertEqual(24, len(resp_data["labels"]))  # 24 hours
+        self.assertEqual([0] * 24, resp_data["datasets"][0]["data"])
+
+        # hod data is stored in UTC, so we need to adjust for the timezone
+        kigali_offset = 2
+        flow1.counts.create(scope=f"msgsin:hour:{9-kigali_offset}", count=5)  # 9a in Kigali
+        flow1.counts.create(scope=f"msgsin:hour:{12-kigali_offset}", count=3)  # 12p in Kigali
+
+        response = self.requestView(hod_url, self.admin)
+        resp_data = response.json()["data"]
+        # Check that hour 9 and 12 have the right values
+        self.assertEqual(5, resp_data["datasets"][0]["data"][9])
+        self.assertEqual(3, resp_data["datasets"][0]["data"][12])
+
+    def test_engagement_hod_labels(self):
+        """Test that EngagementHod generates correct hour labels"""
+        flow1 = self.create_flow("Test 1")
+        hod_url = reverse("flows.flow_engagement_hod", args=[flow1.uuid])
+
+        response = self.requestView(hod_url, self.admin)
+        resp_data = response.json()["data"]
+
+        # Test that labels are properly formatted as "00:00", "01:00", etc.
+        labels = resp_data["labels"]
+        self.assertEqual(24, len(labels))
+        self.assertEqual("00:00", labels[0])
+        self.assertEqual("01:00", labels[1])
+        self.assertEqual("12:00", labels[12])
+        self.assertEqual("23:00", labels[23])
 
     def test_activity(self):
         flow1 = self.create_flow("Test 1")
@@ -2146,16 +2112,16 @@ msgstr "Azul"
         flow = self.create_flow("Open Ended Flow")
 
         # define a result that ends up with only one category
-        flow.info["results"] = [{"key": "feedback", "name": "Feedback"}]
+        flow.info["results"] = [{"key": "feedback", "name": "Feedback", "categories": ["All Responses"]}]
         flow.save(update_fields=("info",))
 
         # add a single category count
         flow.result_counts.create(result="feedback", category="Yes", count=5)
-        results_url = reverse("flows.flow_results", args=[flow.id])
+        results_url = reverse("flows.flow_results", args=[flow.uuid])
 
         self.login(self.admin)
         response = self.client.get(results_url)
         self.assertEqual(200, response.status_code)
 
-        # page should not include any temba-chart elements
-        self.assertNotContains(response, "<temba-chart")
+        # page should not include a chart for feedback
+        self.assertNotContains(response, "Feedback")
