@@ -141,7 +141,7 @@ class DefinitionExportTest(TembaTest):
             # trigger import failed, new flows that were added should get rolled back
             self.assertIsNone(Flow.objects.filter(org=self.org, name="New Mother").first())
 
-    @patch("temba.mailroom.client.client.MailroomClient.campaign_schedule_event")
+    @patch("temba.mailroom.client.client.MailroomClient.campaign_schedule")
     def test_import_campaign_with_translations(self, mock_schedule):
         self.import_file("test_flows/campaign_import_with_translations.json")
 
@@ -154,7 +154,7 @@ class DefinitionExportTest(TembaTest):
         # base language for this event is 'swa' despite our org languages being unset
         self.assertEqual(event.base_language, "swa")
 
-    @patch("temba.mailroom.client.client.MailroomClient.campaign_schedule_event")
+    @patch("temba.mailroom.client.client.MailroomClient.campaign_schedule")
     def test_reimport(self, mock_schedule):
         self.import_file("test_flows/survey_campaign.json")
 
@@ -424,7 +424,7 @@ class DefinitionExportTest(TembaTest):
         )
         self.assertEqual(restored_trigger.pk, flow_trigger.pk)
 
-    @patch("temba.mailroom.client.client.MailroomClient.campaign_schedule_event")
+    @patch("temba.mailroom.client.client.MailroomClient.campaign_schedule")
     def test_export_import(self, mock_schedule):
         def assert_object_counts():
             self.assertEqual(

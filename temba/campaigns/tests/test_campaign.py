@@ -68,7 +68,7 @@ class CampaignTest(TembaTest):
         self.assertEqual(event2.fire_version, 1)
 
         # should have called mailroom to schedule our events
-        self.assertEqual([call(self.org, event1), call(self.org, event2)], mr_mocks.calls["campaign_schedule_event"])
+        self.assertEqual([call(self.org, event1), call(self.org, event2)], mr_mocks.calls["campaign_schedule"])
 
     def test_get_offset_display(self):
         campaign = Campaign.create(self.org, self.admin, Campaign.get_unique_name(self.org, "Reminders"), self.farmers)

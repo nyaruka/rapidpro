@@ -1,3 +1,10 @@
+v10.1.206 (2025-06-19)
+-------------------------
+ * Update temba-chart to support xtype and xformat
+ * Bump urllib3 from 2.3.0 to 2.5.0
+ * Use uuids for flow results endpoints
+ * Cleanup engagement charts, remove old engagement
+
 v10.1.205 (2025-06-17)
 -------------------------
  * Don't show charts for single category results

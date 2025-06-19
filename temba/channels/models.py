@@ -1,9 +1,8 @@
 import logging
 from abc import ABCMeta
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import Enum
-from uuid import uuid4
 
 import iso8601
 import phonenumbers
@@ -703,10 +702,9 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         delete_in_batches(self.incidents.all())
         delete_in_batches(self.sync_events.all())
-        delete_in_batches(self.logs.all())
         delete_in_batches(self.http_logs.all())
         delete_in_batches(self.template_translations.all())
-        delete_in_batches(self.counts.all())  # needs to be after log deletion
+        delete_in_batches(self.counts.all())
 
         super().delete()
 
@@ -827,7 +825,8 @@ class ChannelEvent(TembaUUIDMixin, models.Model):
         return event_type in cls.ALL_TYPES
 
 
-class ChannelLog(models.Model):
+@dataclass
+class ChannelLog:
     """
     A log of an interaction with a channel
     """
@@ -850,34 +849,32 @@ class ChannelLog(models.Model):
     LOG_TYPE_TOKEN_REFRESH = "token_refresh"
     LOG_TYPE_PAGE_SUBSCRIBE = "page_subscribe"
     LOG_TYPE_WEBHOOK_VERIFY = "webhook_verify"
-    LOG_TYPE_CHOICES = (
-        (LOG_TYPE_UNKNOWN, _("Other Event")),
-        (LOG_TYPE_MSG_SEND, _("Message Send")),
-        (LOG_TYPE_MSG_STATUS, _("Message Status")),
-        (LOG_TYPE_MSG_RECEIVE, _("Message Receive")),
-        (LOG_TYPE_EVENT_RECEIVE, _("Event Receive")),
-        (LOG_TYPE_MULTI_RECEIVE, _("Events Receive")),
-        (LOG_TYPE_IVR_START, _("IVR Start")),
-        (LOG_TYPE_IVR_INCOMING, _("IVR Incoming")),
-        (LOG_TYPE_IVR_CALLBACK, _("IVR Callback")),
-        (LOG_TYPE_IVR_STATUS, _("IVR Status")),
-        (LOG_TYPE_IVR_HANGUP, _("IVR Hangup")),
-        (LOG_TYPE_ATTACHMENT_FETCH, _("Attachment Fetch")),
-        (LOG_TYPE_TOKEN_REFRESH, _("Token Refresh")),
-        (LOG_TYPE_PAGE_SUBSCRIBE, _("Page Subscribe")),
-        (LOG_TYPE_WEBHOOK_VERIFY, _("Webhook Verify")),
-    )
+    LOG_TYPE_DISPLAY = {
+        LOG_TYPE_UNKNOWN: _("Other Event"),
+        LOG_TYPE_MSG_SEND: _("Message Send"),
+        LOG_TYPE_MSG_STATUS: _("Message Status"),
+        LOG_TYPE_MSG_RECEIVE: _("Message Receive"),
+        LOG_TYPE_EVENT_RECEIVE: _("Event Receive"),
+        LOG_TYPE_MULTI_RECEIVE: _("Events Receive"),
+        LOG_TYPE_IVR_START: _("IVR Start"),
+        LOG_TYPE_IVR_INCOMING: _("IVR Incoming"),
+        LOG_TYPE_IVR_CALLBACK: _("IVR Callback"),
+        LOG_TYPE_IVR_STATUS: _("IVR Status"),
+        LOG_TYPE_IVR_HANGUP: _("IVR Hangup"),
+        LOG_TYPE_ATTACHMENT_FETCH: _("Attachment Fetch"),
+        LOG_TYPE_TOKEN_REFRESH: _("Token Refresh"),
+        LOG_TYPE_PAGE_SUBSCRIBE: _("Page Subscribe"),
+        LOG_TYPE_WEBHOOK_VERIFY: _("Webhook Verify"),
+    }
 
-    id = models.BigAutoField(primary_key=True)
-    uuid = models.UUIDField(default=uuid4, db_index=True)
-    channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="logs", db_index=False)
-
-    log_type = models.CharField(max_length=16, choices=LOG_TYPE_CHOICES)
-    http_logs = models.JSONField(null=True)
-    errors = models.JSONField(null=True)
-    is_error = models.BooleanField(default=False)
-    elapsed_ms = models.IntegerField(default=0)
-    created_on = models.DateTimeField(default=timezone.now)
+    uuid: str
+    channel: Channel
+    log_type: str
+    http_logs: list[dict]
+    errors: list[dict]
+    is_error: bool
+    elapsed_ms: int
+    created_on: datetime
 
     @classmethod
     def get_by_uuid(cls, channel, uuids: list) -> list:
@@ -933,6 +930,9 @@ class ChannelLog(models.Model):
             elapsed_ms=int(data["elapsed_ms"]),
             created_on=iso8601.parse_date(data["created_on"]),
         )
+
+    def get_log_type_display(self) -> str:
+        return self.LOG_TYPE_DISPLAY.get(self.log_type, self.log_type)
 
     def get_display(self, *, anonymize: bool, urn) -> dict:
         """
@@ -998,10 +998,7 @@ class ChannelLog(models.Model):
         return redacted
 
     def __repr__(self):  # pragma: no cover
-        return f"<ChanneLog: uuid={self.uuid} type={self.log_type}>"
-
-    class Meta:
-        indexes = [models.Index(name="channellogs_by_channel", fields=("channel", "-created_on"))]
+        return f"<ChannelLog: uuid={self.uuid} type={self.log_type}>"
 
 
 class SyncEvent(models.Model):

@@ -446,7 +446,7 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
         self.status = self.STATUS_SCHEDULING
         self.save(update_fields=("fire_version", "status"))
 
-        on_transaction_commit(lambda: mailroom.get_client().campaign_schedule_event(self.campaign.org, self))
+        on_transaction_commit(lambda: mailroom.get_client().campaign_schedule(self.campaign.org, self))
 
     def get_recent_fires(self) -> list[dict]:
         r = get_valkey_connection()

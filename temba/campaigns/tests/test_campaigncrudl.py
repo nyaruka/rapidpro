@@ -113,7 +113,7 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(group1, campaign.group)
 
         # won't have rescheduled the campaign's event for just a name change
-        self.assertEqual([], mr_mocks.calls["campaign_schedule_event"])
+        self.assertEqual([], mr_mocks.calls["campaign_schedule"])
 
         # submit with group change
         self.assertUpdateSubmit(update_url, self.admin, {"name": "Greetings", "group": group2.id}, success_status=200)
@@ -124,7 +124,7 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # should have called mailroom reschedule the campaign's event
         self.assertEqual(
-            [call(self.org, campaign.events.filter(is_active=True).get())], mr_mocks.calls["campaign_schedule_event"]
+            [call(self.org, campaign.events.filter(is_active=True).get())], mr_mocks.calls["campaign_schedule"]
         )
 
         # can't update archived campaign
