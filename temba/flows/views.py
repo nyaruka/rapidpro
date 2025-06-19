@@ -1116,21 +1116,19 @@ class FlowCRUDL(SmartCRUDL):
         def render_to_response(self, context, **response_kwargs):
             runs = self.object.get_run_counts()
 
-            # convert to chart.js format
+            # convert to temba-chart format
             labels = [
                 _("Ongoing"),
                 _("Completed"),
                 _("Expired"),
                 _("Interrupted"),
-                _("Failed"),
             ]
 
             data = [
                 runs[FlowRun.STATUS_ACTIVE] + runs[FlowRun.STATUS_WAITING],
                 runs[FlowRun.STATUS_COMPLETED],
                 runs[FlowRun.STATUS_EXPIRED],
-                runs[FlowRun.STATUS_INTERRUPTED],
-                runs[FlowRun.STATUS_FAILED],
+                runs.get(FlowRun.STATUS_INTERRUPTED, 0) + runs.get(FlowRun.STATUS_FAILED, 0),
             ]
 
             chart_data = {
@@ -1211,7 +1209,9 @@ class FlowCRUDL(SmartCRUDL):
             data = []
 
             # sort categories by count (descending), but put "Other" last
-            categories = sorted(result_data["categories"], key=lambda c: (c["name"] == "Other", -c["count"]))
+            categories = sorted(
+                result_data["categories"], key=lambda c: (c["name"] == "No Response", c["name"] == "Other", -c["count"])
+            )
 
             for category in categories:
                 labels.append(category["name"])

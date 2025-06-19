@@ -1499,10 +1499,10 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # empty timeline
         response = self.requestView(timeline_url, self.admin).json()
 
-        # should default to 30 days of 0s
+        # should be empty
         self.assertEqual(response["rollup_by"], "day")
-        self.assertEqual(len(response["data"]["labels"]), 30)
-        self.assertEqual(response["data"]["datasets"][0]["data"].count(0), 30)
+        self.assertEqual(len(response["data"]["labels"]), 0)
+        self.assertEqual(response["data"]["datasets"][0]["data"], [])
 
         # test week rollup mode (1-3 years ago)
         flow1.counts.create(scope="msgsin:date:2022-11-25", count=5)
@@ -1541,8 +1541,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(
             {
                 "data": {
-                    "labels": ["Ongoing", "Completed", "Expired", "Interrupted", "Failed"],
-                    "datasets": [{"label": "Progress", "data": [0, 0, 0, 0, 0]}],
+                    "labels": ["Ongoing", "Completed", "Expired", "Interrupted"],
+                    "datasets": [{"label": "Progress", "data": [0, 0, 0, 0]}],
                 }
             },
             response.json(),
@@ -1557,7 +1557,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.requestView(progress_url, self.admin)
         resp_data = response.json()["data"]
-        self.assertEqual([5, 3, 1, 0, 0], resp_data["datasets"][0]["data"])
+        self.assertEqual([5, 3, 1, 0], resp_data["datasets"][0]["data"])
 
         # test additional status types for complete coverage
         flow1.counts.create(scope=f"status:{FlowRun.STATUS_WAITING}", count=2)
@@ -1567,7 +1567,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(progress_url, self.admin)
         resp_data = response.json()["data"]
         # Ongoing includes both ACTIVE (5) and WAITING (2) = 7
-        self.assertEqual([7, 3, 1, 3, 1], resp_data["datasets"][0]["data"])
+        self.assertEqual([7, 3, 1, 4], resp_data["datasets"][0]["data"])
 
     @patch("django.utils.timezone.now")
     def test_engagement_dow(self, mock_now):
