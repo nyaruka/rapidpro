@@ -822,20 +822,20 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         """
         first = self.counts.prefix("msgsin:date:").order_by("scope").first()
 
-        utc_timezone = timezone.get_default_timezone()
+        utc_timezone = tzone.utc
 
         return datetime.fromisoformat(first.scope[12:]).replace(tzinfo=utc_timezone).date() if first else None
 
-    def get_engagement_timeline(self, start_date, end_date) -> dict:
+    def get_engagement_timeline(self, since, until) -> dict:
 
         rollup_by = "day"
         rollup_diff = relativedelta(days=1)
 
         # bucket dates into months or weeks depending on the range
-        if start_date < end_date - relativedelta(years=3):
+        if since < until - relativedelta(years=3):
             rollup_by = "month"
             rollup_diff = relativedelta(months=1)
-        elif start_date < end_date - relativedelta(years=1):
+        elif since < until - relativedelta(years=1):
             rollup_by = "week"
             rollup_diff = relativedelta(weeks=1)
 
@@ -847,16 +847,16 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             .order_by("date")
         )
 
-        start_date = dates[0]["date"].date() if len(dates) > 0 else start_date
+        since = dates[0]["date"].date() if len(dates) > 0 else since
 
         all_dates = []
         counts = []
-        current_date = start_date
+        current_date = since
 
         rollup_dates = iter(dates)
         rollup_date = next(rollup_dates, None)
 
-        while current_date <= end_date:
+        while current_date <= until:
             count = 0
             if rollup_date and rollup_date["date"].date() == current_date:
                 count = rollup_date["count"]
