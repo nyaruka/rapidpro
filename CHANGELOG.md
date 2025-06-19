@@ -1,3 +1,9 @@
+v10.1.207 (2025-06-19)
+-------------------------
+ * Tweak engagement charts
+ * Tweak mailroom endpoint used to schedule campaign events/points
+ * Convert ChanneLog into a non-model dataclass
+
 v10.1.206 (2025-06-19)
 -------------------------
  * Update temba-chart to support xtype and xformat
