@@ -826,7 +826,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         return datetime.fromisoformat(first.scope[12:]).replace(tzinfo=utc_timezone).date() if first else None
 
-    def get_engagement_timeline(self, start_date, end_date) -> list[tuple]:
+    def get_engagement_timeline(self, start_date, end_date) -> dict:
 
         rollup_by = "day"
         rollup_diff = relativedelta(days=1)
@@ -857,15 +857,11 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         rollup_date = next(rollup_dates, None)
 
         while current_date <= end_date:
-            # find the count for this date
+            count = 0
             if rollup_date and rollup_date["date"].date() == current_date:
                 count = rollup_date["count"]
                 rollup_date = next(rollup_dates, None)
-            else:
-                # if we don't have a date for this, use 0
-                count = 0
 
-            # count = next((d["count"] for d in dates if d["date"].date() == current_date), 0)
             all_dates.append(current_date)
             counts.append(count)
             current_date += rollup_diff
