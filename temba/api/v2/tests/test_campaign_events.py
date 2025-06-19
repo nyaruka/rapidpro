@@ -257,7 +257,7 @@ class CampaignEventsEndpointTest(APITest):
         self.assertEqual(event2.flow, flow)
 
         # make sure we called mailroom to schedule this event
-        self.assertEqual(call(self.org, event2), mr_mocks.calls["campaign_schedule_event"][-1])
+        self.assertEqual(call(self.org, event2), mr_mocks.calls["campaign_schedule"][-1])
 
         # can't update an event which is being scheduled
         self.assertPost(

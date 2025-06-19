@@ -106,7 +106,7 @@ class MailroomClientTest(TembaTest):
         )
 
     @patch("requests.post")
-    def test_campaign_schedule_event(self, mock_post):
+    def test_campaign_schedule(self, mock_post):
         farmers = self.create_group("Farmers", [])
         campaign = Campaign.create(self.org, self.admin, "Reminders", farmers)
         planting_date = self.create_field("planting_date", "Planting Date", value_type=ContactField.TYPE_DATETIME)
@@ -116,14 +116,14 @@ class MailroomClientTest(TembaTest):
         )
 
         mock_post.return_value = MockJsonResponse(200, {})
-        response = self.client.campaign_schedule_event(self.org, event)
+        response = self.client.campaign_schedule(self.org, event)
 
         self.assertIsNone(response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/campaign/schedule_event",
+            "http://localhost:8090/mr/campaign/schedule",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
-            json={"org_id": self.org.id, "event_id": event.id},
+            json={"org_id": self.org.id, "point_id": event.id},
         )
 
     @patch("requests.post")

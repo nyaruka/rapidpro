@@ -197,7 +197,7 @@ class TestClient(MailroomClient):
         return {"id": channel.id}
 
     @_client_method
-    def campaign_schedule_event(self, org, event):
+    def campaign_schedule(self, org, event):
         pass
 
     @_client_method
