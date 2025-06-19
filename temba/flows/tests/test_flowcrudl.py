@@ -1499,10 +1499,10 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # empty timeline
         response = self.requestView(timeline_url, self.admin).json()
 
-        # should default to 30 days of 0s
+        # should be empty
         self.assertEqual(response["rollup_by"], "day")
-        self.assertEqual(len(response["data"]["labels"]), 30)
-        self.assertEqual(response["data"]["datasets"][0]["data"].count(0), 30)
+        self.assertEqual(len(response["data"]["labels"]), 0)
+        self.assertEqual(response["data"]["datasets"][0]["data"], [])
 
         # test week rollup mode (1-3 years ago)
         flow1.counts.create(scope="msgsin:date:2022-11-25", count=5)

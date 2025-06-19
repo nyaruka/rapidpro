@@ -829,15 +829,12 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
     def get_engagement_timeline(self, since, until) -> dict:
 
         rollup_by = "day"
-        rollup_diff = relativedelta(days=1)
 
         # bucket dates into months or weeks depending on the range
         if since < until - relativedelta(years=3):
             rollup_by = "month"
-            rollup_diff = relativedelta(months=1)
         elif since < until - relativedelta(years=1):
             rollup_by = "week"
-            rollup_diff = relativedelta(weeks=1)
 
         dates = (
             self.counts.prefix("msgsin:date:")
@@ -851,20 +848,10 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         all_dates = []
         counts = []
-        current_date = since
 
-        rollup_dates = iter(dates)
-        rollup_date = next(rollup_dates, None)
-
-        while current_date <= until:
-            count = 0
-            if rollup_date and rollup_date["date"].date() == current_date:
-                count = rollup_date["count"]
-                rollup_date = next(rollup_dates, None)
-
-            all_dates.append(current_date)
-            counts.append(count)
-            current_date += rollup_diff
+        for d in dates:
+            all_dates.append(d["date"].date())
+            counts.append(d["count"])
 
         return {"dates": all_dates, "counts": counts, "rollup_by": rollup_by}
 
