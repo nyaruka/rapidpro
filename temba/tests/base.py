@@ -556,6 +556,7 @@ class TembaTest(SmartminTest):
         Create something that looks like an incoming IVR call handled by mailroom
         """
         call = Call.objects.create(
+            uuid=uuid4(),
             org=self.org,
             channel=self.channel,
             direction=Call.DIRECTION_IN,
