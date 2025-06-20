@@ -99,6 +99,10 @@
   {{ block.super }}
   <script type="text/javascript">
     function handleRowClicked(event) {
+      if (event.target.tagName == "A" || event.target.tagName == "BUTTON") {
+        return;
+      }
+
       if (event.target.tagName == "TEMBA-CHECKBOX") {
         return;
       }
