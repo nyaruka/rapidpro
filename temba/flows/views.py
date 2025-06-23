@@ -1266,16 +1266,22 @@ class FlowCRUDL(SmartCRUDL):
             return HttpResponseRedirect(reverse("flows.flow_editor", args=[self.get_object().uuid]))
 
         def post(self, request, *args, **kwargs):
-            try:
-                json_dict = json.loads(request.body)
-            except Exception as e:  # pragma: needs cover
-                return JsonResponse(dict(status="error", description="Error parsing JSON: %s" % str(e)), status=400)
-
             if not settings.MAILROOM_URL:  # pragma: no cover
                 return JsonResponse(
                     dict(status="error", description="mailroom not configured, cannot simulate"), status=500
                 )
 
+            try:
+                json_dict = json.loads(request.body)
+            except Exception as e:  # pragma: needs cover
+                return JsonResponse(dict(status="error", description="Error parsing JSON: %s" % str(e)), status=400)
+
+            try:
+                return JsonResponse(self._simulate(json_dict))
+            except mailroom.RequestException:
+                return JsonResponse(dict(status="error", description="mailroom error"), status=500)
+
+        def _simulate(self, json_dict: dict) -> dict:
             flow = self.get_object()
             client = mailroom.get_client()
 
@@ -1288,6 +1294,7 @@ class FlowCRUDL(SmartCRUDL):
                 "country": "US",
             }
             test_call = "01979e0b-3072-7345-ae19-879750caaaf6"
+            test_urn = "tel:+12065551212"
 
             # build our request body, which includes any assets that mailroom should fake
             payload = {"org_id": flow.org_id, "assets": {"channels": [test_channel]}}
@@ -1297,7 +1304,7 @@ class FlowCRUDL(SmartCRUDL):
                 payload["call"] = {
                     "uuid": test_call,
                     "channel": {"uuid": test_channel["uuid"], "name": test_channel["name"]},
-                    "urn": "tel:+12065551212",
+                    "urn": test_urn,
                 }
 
             if "flow" in json_dict:
@@ -1314,10 +1321,7 @@ class FlowCRUDL(SmartCRUDL):
                 payload["trigger"]["environment"] = flow.org.as_environment_def()  # deprecated
                 payload["trigger"]["user"] = self.request.user.as_engine_ref()
 
-                try:
-                    return JsonResponse(client.sim_start(payload))
-                except mailroom.RequestException:
-                    return JsonResponse(dict(status="error", description="mailroom error"), status=500)
+                return client.sim_start(payload)
 
             # otherwise we are resuming
             elif "resume" in json_dict:
@@ -1325,10 +1329,7 @@ class FlowCRUDL(SmartCRUDL):
                 payload["resume"]["environment"] = flow.org.as_environment_def()  # deprecated
                 payload["session"] = json_dict["session"]
 
-                try:
-                    return JsonResponse(client.sim_resume(payload))
-                except mailroom.RequestException:
-                    return JsonResponse(dict(status="error", description="mailroom error"), status=500)
+                return client.sim_resume(payload)
 
     class PreviewStart(BaseReadView):
         permission = "flows.flow_start"
