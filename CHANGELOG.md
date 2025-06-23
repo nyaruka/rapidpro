@@ -1,3 +1,7 @@
+v10.1.210 (2025-06-23)
+-------------------------
+ * Log mailroom simulator request errors
+
 v10.1.209 (2025-06-23)
 -------------------------
  * Update to latest editor
