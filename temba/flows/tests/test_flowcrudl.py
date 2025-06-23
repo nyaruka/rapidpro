@@ -1848,11 +1848,14 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_simulate(self):
         flow = self.create_flow("Test")
 
-        # create our payload
-        payload = dict(version=2, trigger={}, flow={})
+        payload = {
+            "contact": {"uuid": "8ada55d2-2f5e-4d56-8f10-26971332cd1c"},
+            "trigger": {},
+            "flow": {},
+        }
 
         self.login(self.admin)
-        simulate_url = reverse("flows.flow_simulate", args=[flow.pk])
+        simulate_url = reverse("flows.flow_simulate", args=[flow.id])
 
         with override_settings(MAILROOM_AUTH_TOKEN="sesame", MAILROOM_URL="https://mailroom.temba.io"):
             with patch("requests.post") as mock_post:
@@ -1881,8 +1884,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
             # try a resume
             payload = {
-                "version": 2,
-                "session": {"contact": {"fields": {"age": Decimal("39")}}},
+                "contact": {"uuid": "8ada55d2-2f5e-4d56-8f10-26971332cd1c", "fields": {"age": Decimal("39")}},
+                "session": {"uuid": "01979ebb-044a-7768-a0d0-0455ef356441", "status": "waiting"},
                 "resume": {},
                 "flow": {},
             }
@@ -1920,7 +1923,9 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             with patch("requests.post") as mock_post:
                 mock_post.return_value = MockJsonResponse(200, {"session": {}})
                 response = self.client.post(
-                    simulate_url, {"version": 2, "trigger": {}, "flow": {}}, content_type="application/json"
+                    simulate_url,
+                    {"contact": {"uuid": "8ada55d2-2f5e-4d56-8f10-26971332cd1c"}, "trigger": {}, "flow": {}},
+                    content_type="application/json",
                 )
 
                 self.assertEqual(response.status_code, 200)

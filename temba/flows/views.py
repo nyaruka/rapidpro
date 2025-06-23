@@ -1283,7 +1283,7 @@ class FlowCRUDL(SmartCRUDL):
 
                 return JsonResponse(dict(status="error", description="mailroom error"), status=500)
 
-        def _simulate(self, json_dict: dict) -> dict:
+        def _simulate(self, req_json: dict) -> dict:
             flow = self.get_object()
             client = mailroom.get_client()
 
@@ -1299,7 +1299,11 @@ class FlowCRUDL(SmartCRUDL):
             test_urn = "tel:+12065551212"
 
             # build our request body, which includes any assets that mailroom should fake
-            payload = {"org_id": flow.org_id, "assets": {"channels": [test_channel]}}
+            payload = {
+                "org_id": flow.org_id,
+                "contact": req_json["contact"],
+                "assets": {"channels": [test_channel]},
+            }
 
             # ivr flows need a call
             if flow.flow_type == Flow.TYPE_VOICE:
@@ -1309,12 +1313,12 @@ class FlowCRUDL(SmartCRUDL):
                     "urn": test_urn,
                 }
 
-            if "flow" in json_dict:
-                payload["flows"] = [{"uuid": flow.uuid, "definition": json_dict["flow"]}]
+            if "flow" in req_json:
+                payload["flows"] = [{"uuid": flow.uuid, "definition": req_json["flow"]}]
 
             # check if we are triggering a new session
-            if "trigger" in json_dict:
-                payload["trigger"] = json_dict["trigger"]
+            if "trigger" in req_json:
+                payload["trigger"] = req_json["trigger"]
 
                 # ivr flows need a call
                 if flow.flow_type == Flow.TYPE_VOICE:
@@ -1326,10 +1330,10 @@ class FlowCRUDL(SmartCRUDL):
                 return client.sim_start(payload)
 
             # otherwise we are resuming
-            elif "resume" in json_dict:
-                payload["resume"] = json_dict["resume"]
+            elif "resume" in req_json:
+                payload["resume"] = req_json["resume"]
                 payload["resume"]["environment"] = flow.org.as_environment_def()  # deprecated
-                payload["session"] = json_dict["session"]
+                payload["session"] = req_json["session"]
 
                 return client.sim_resume(payload)
 
