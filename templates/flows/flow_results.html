@@ -55,69 +55,66 @@
               class="flex-grow"
               index="{{ request.GET.tab }}">
     <temba-tab name="{{ _("Engagement") |escapejs }}" icon="overview">
-      <div class="flex flex-wrap overflow-y-scroll overflow-x-hidden" id="engagement-charts">
-        <div class="flex flex-wrap p-6 gap-6">
-          <temba-chart class="m-1"
-                       header="{% trans 'Responses' %}"
-                       url="{% url 'flows.flow_engagement_timeline' flow.uuid %}"
-                       dataname="Responses"
-                       xtype="time"
-                       single
-                       style="min-width: 400px;
-                              flex: 1 1 400px;
-                              border: 0px solid #e5e7eb;
-                              border-radius: 10px;
-                              background: #fbfbfb;
-                              padding: 2em">
-          </temba-chart>
-          <temba-chart class="m-1"
-                       header="{% trans 'Progress' %}"
-                       url="{% url 'flows.flow_engagement_progress' flow.uuid %}"
-                       dataname="Runs"
-                       single
-                       percent
-                       colorIndex="1"
-                       style="min-width: 400px;
-                              flex: 1 1 400px;
-                              border: 0px solid #e5e7eb;
-                              border-radius: 10px;
-                              background: #fbfbfb;
-                              padding: 2em">
-          </temba-chart>
-          <temba-chart class="m-1"
-                       header="{% trans 'Day of Week' %}"
-                       url="{% url 'flows.flow_engagement_dow' flow.uuid %}"
-                       dataname="Responses"
-                       single
-                       colorIndex="2"
-                       xtype="time"
-                       xformat="EEE"
-                       percent
-                       style="min-width: 400px;
-                              flex: 1 1 400px;
-                              border: 0px solid #e5e7eb;
-                              border-radius: 10px;
-                              background: #fbfbfb;
-                              padding: 2em">
-          </temba-chart>
-          <temba-chart class="m-1"
-                       header="{% trans 'Time of Day' %} ({{ user_org.timezone }})"
-                       url="{% url 'flows.flow_engagement_hod' flow.uuid %}"
-                       dataname="Responses"
-                       colorIndex="3"
-                       single
-                       style="min-width: 400px;
-                              flex: 1 1 400px;
-                              border: 0px solid #e5e7eb;
-                              border-radius: 10px;
-                              background: #fbfbfb;
-                              padding: 2em">
-          </temba-chart>
-        </div>
+      <div class="flex flex-wrap overflow-y-scroll overflow-x-hidden p-4 gap-2">
+        <temba-chart class="m-1"
+                     header="{% trans 'Responses' %}"
+                     url="{% url 'flows.flow_engagement_timeline' flow.uuid %}"
+                     dataname="Responses"
+                     xtype="time"
+                     single
+                     style="flex: 1 1 300px;
+                            overflow: hidden;
+                            border-radius: 10px;
+                            background: #fbfbfb;
+                            padding: 2em">
+        </temba-chart>
+        <temba-chart class="m-1"
+                     header='{% trans "Progress" %}'
+                     url="{% url 'flows.flow_engagement_progress' flow.uuid %}"
+                     dataname="Runs"
+                     single
+                     percent
+                     colorIndex="1"
+                     style="flex: 1 1 300px;
+                            overflow: hidden;
+                            border: 0px solid #e5e7eb;
+                            border-radius: 10px;
+                            background: #fbfbfb;
+                            padding: 2em">
+        </temba-chart>
+        <temba-chart class="m-1"
+                     header='{% trans "Day of Week" %}'
+                     url="{% url 'flows.flow_engagement_dow' flow.uuid %}"
+                     dataname="Responses"
+                     single
+                     colorIndex="2"
+                     xtype="time"
+                     xformat="EEE"
+                     percent
+                     style="flex: 1 1 300px;
+                            overflow: hidden;
+                            border: 0px solid #e5e7eb;
+                            border-radius: 10px;
+                            background: #fbfbfb;
+                            padding: 2em">
+        </temba-chart>
+        <temba-chart class="m-1"
+                     header='{% trans "Time of Day" %} ({{ user_org.timezone }})'
+                     url="{% url 'flows.flow_engagement_hod' flow.uuid %}"
+                     dataname="Responses"
+                     colorIndex="3"
+                     single
+                     style="flex: 1 1 300px;
+                            overflow: hidden;
+                            border: 0px solid #e5e7eb;
+                            border-radius: 10px;
+                            background: #fbfbfb;
+                            padding: 2em">
+        </temba-chart>
       </div>
     </temba-tab>
     <temba-tab name="{{ _("Analytics") |escapejs }}" icon="analytics">
-      <div class="flex flex-wrap overflow-y-scroll overflow-x-hidden p-6 gap-6">
+      <div class="flex flex-wrap overflow-y-scroll overflow-x-hidden p-4 gap-2">
         {% for result in results %}
           <temba-chart class="m-1"
                        colorIndex="{{ forloop.counter0 }}"
@@ -126,8 +123,8 @@
                        percent
                        dataname="Responses"
                        url="{% url 'flows.flow_result_chart' object.uuid result.key %}"
-                       style="min-width: 400px;
-                              flex: 1 1 400px;
+                       style="flex: 1 1 400px;
+                              overflow: hidden;
                               border: 0px solid #e5e7eb;
                               border-radius: 10px;
                               background: #fbfbfb;
