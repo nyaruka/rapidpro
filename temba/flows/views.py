@@ -1279,6 +1279,8 @@ class FlowCRUDL(SmartCRUDL):
             try:
                 return JsonResponse(self._simulate(json_dict))
             except mailroom.RequestException:
+                logger.error("Mailroom request failed", exc_info=True)
+
                 return JsonResponse(dict(status="error", description="mailroom error"), status=500)
 
         def _simulate(self, json_dict: dict) -> dict:
