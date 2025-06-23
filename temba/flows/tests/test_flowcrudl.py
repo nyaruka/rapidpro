@@ -1926,10 +1926,20 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.json(), {"session": {}})
 
-                # since this is an IVR flow, the session trigger will have a connection
+                # since this is an IVR flow, we need to include a call
+                payload = json.loads(mock_post.call_args[1]["data"])
+                self.assertEqual(
+                    {
+                        "uuid": "01979e0b-3072-7345-ae19-879750caaaf6",
+                        "channel": {"uuid": "440099cf-200c-4d45-a8e7-4a564f4a0e8b", "name": "Test Channel"},
+                        "urn": "tel:+12065551212",
+                    },
+                    payload["call"],
+                )
                 self.assertEqual(
                     {
                         "call": {
+                            "uuid": "01979e0b-3072-7345-ae19-879750caaaf6",
                             "channel": {"uuid": "440099cf-200c-4d45-a8e7-4a564f4a0e8b", "name": "Test Channel"},
                             "urn": "tel:+12065551212",
                         },
@@ -1944,7 +1954,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                         },
                         "user": {"email": "admin@textit.com", "name": "Andy"},
                     },
-                    json.loads(mock_post.call_args[1]["data"])["trigger"],
+                    payload["trigger"],
                 )
 
     def test_export_and_download_translation(self):
