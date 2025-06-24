@@ -1850,8 +1850,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         payload = {
             "contact": {"uuid": "8ada55d2-2f5e-4d56-8f10-26971332cd1c"},
-            "trigger": {},
-            "flow": {},
+            "trigger": {"type": "manual"},
+            "flow": {"uuid": "5c5d5ba9-adb9-41c2-9da9-590e90b3cf01", "name": "Test"},
         }
 
         self.login(self.admin)
@@ -1876,7 +1876,10 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
                 self.assertEqual(actual_url, "https://mailroom.temba.io/mr/sim/start")
                 self.assertEqual(actual_payload["org_id"], flow.org_id)
-                self.assertEqual(actual_payload["trigger"]["environment"]["date_format"], "DD-MM-YYYY")
+                self.assertEqual(
+                    {"type": "manual", "user": {"uuid": str(self.admin.uuid), "name": "Andy"}},
+                    actual_payload["trigger"],
+                )
                 self.assertEqual(len(actual_payload["assets"]["channels"]), 1)  # fake channel
                 self.assertEqual(len(actual_payload["flows"]), 1)
                 self.assertEqual(actual_headers["Authorization"], "Token sesame")
@@ -1907,7 +1910,6 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
                 self.assertEqual(actual_url, "https://mailroom.temba.io/mr/sim/resume")
                 self.assertEqual(actual_payload["org_id"], flow.org_id)
-                self.assertEqual(actual_payload["resume"]["environment"]["date_format"], "DD-MM-YYYY")
                 self.assertEqual(len(actual_payload["assets"]["channels"]), 1)  # fake channel
                 self.assertEqual(len(actual_payload["flows"]), 1)
                 self.assertEqual(actual_headers["Authorization"], "Token sesame")
@@ -1924,7 +1926,11 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                 mock_post.return_value = MockJsonResponse(200, {"session": {}})
                 response = self.client.post(
                     simulate_url,
-                    {"contact": {"uuid": "8ada55d2-2f5e-4d56-8f10-26971332cd1c"}, "trigger": {}, "flow": {}},
+                    {
+                        "contact": {"uuid": "8ada55d2-2f5e-4d56-8f10-26971332cd1c"},
+                        "trigger": {"type": "manual"},
+                        "flow": {},
+                    },
                     content_type="application/json",
                 )
 
@@ -1943,21 +1949,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                 )
                 self.assertEqual(
                     {
-                        "call": {
-                            "uuid": "01979e0b-3072-7345-ae19-879750caaaf6",
-                            "channel": {"uuid": "440099cf-200c-4d45-a8e7-4a564f4a0e8b", "name": "Test Channel"},
-                            "urn": "tel:+12065551212",
-                        },
-                        "environment": {
-                            "date_format": "DD-MM-YYYY",
-                            "time_format": "tt:mm",
-                            "timezone": "Africa/Kigali",
-                            "allowed_languages": ["eng", "kin"],
-                            "default_country": "RW",
-                            "redaction_policy": "none",
-                            "input_collation": "default",
-                        },
-                        "user": {"email": "admin@textit.com", "name": "Andy"},
+                        "type": "manual",
+                        "user": {"uuid": str(self.admin.uuid), "name": "Andy"},
                     },
                     payload["trigger"],
                 )

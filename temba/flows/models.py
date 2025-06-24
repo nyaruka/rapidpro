@@ -1315,7 +1315,7 @@ class FlowRevision(models.Model):
     def as_json(self):
         return {
             "id": self.id,
-            "user": self.created_by.as_engine_ref(),
+            "user": {"email": self.created_by.email, "name": self.created_by.name},
             "created_on": self.created_on.isoformat(),
             "version": self.spec_version,
             "revision": self.revision,

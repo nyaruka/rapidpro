@@ -190,7 +190,7 @@ class User(TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         return self.api_tokens.filter(org=org, is_active=True)
 
     def as_engine_ref(self) -> dict:
-        return {"email": self.email, "name": self.name}
+        return {"uuid": str(self.uuid), "name": self.name}
 
     def fetch_avatar(self, url: str):  # pragma: no cover
         # fetch the avatar from the url and store it locally
