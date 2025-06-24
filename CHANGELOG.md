@@ -1,3 +1,8 @@
+v10.1.214 (2025-06-24)
+-------------------------
+ * Update to latest flow editor
+ * Remove unused fields on simulator paylaods and switch user references to be by UUID
+
 v10.1.213 (2025-06-24)
 -------------------------
  * Update editor
