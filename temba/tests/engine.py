@@ -62,7 +62,6 @@ class MockSessionWriter:
         self.output = {
             "uuid": str(uuid4()),
             "type": Flow.GOFLOW_TYPES[flow.flow_type],
-            "environment": self.org.as_environment_def(),
             "trigger": {
                 "type": "manual",
                 "flow": flow.as_export_ref(),
