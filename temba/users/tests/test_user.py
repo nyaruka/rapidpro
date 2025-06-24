@@ -14,7 +14,7 @@ class UserTest(TembaTest):
         self.assertEqual("Jim McFlow", user.name)
         self.assertFalse(user.is_alpha)
         self.assertFalse(user.is_beta)
-        self.assertEqual({"email": "jim@rapidpro.io", "name": "Jim McFlow"}, user.as_engine_ref())
+        self.assertEqual({"uuid": str(user.uuid), "name": "Jim McFlow"}, user.as_engine_ref())
         self.assertEqual([self.org, self.org2], list(user.get_orgs().order_by("id")))
         self.assertFalse(user.is_verified())
         self.assertEqual(0, user.emailaddress_set.count())
@@ -32,7 +32,7 @@ class UserTest(TembaTest):
         user.save(update_fields=("last_name",))
 
         self.assertEqual("Jim", user.name)
-        self.assertEqual({"email": "jim@rapidpro.io", "name": "Jim"}, user.as_engine_ref())
+        self.assertEqual({"uuid": str(user.uuid), "name": "Jim"}, user.as_engine_ref())
 
         self.assertEqual(user, User.objects.get_by_natural_key("jim@rapidpro.io"))
         self.assertEqual(user, User.objects.get_by_natural_key("JIM@rapidpro.io"))

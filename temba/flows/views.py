@@ -1319,12 +1319,6 @@ class FlowCRUDL(SmartCRUDL):
             # check if we are triggering a new session
             if "trigger" in req_json:
                 payload["trigger"] = req_json["trigger"]
-
-                # ivr flows need a call
-                if flow.flow_type == Flow.TYPE_VOICE:
-                    payload["trigger"]["call"] = payload["call"]  # deprecated
-
-                payload["trigger"]["environment"] = flow.org.as_environment_def()  # deprecated
                 payload["trigger"]["user"] = self.request.user.as_engine_ref()
 
                 return client.sim_start(payload)
@@ -1332,7 +1326,6 @@ class FlowCRUDL(SmartCRUDL):
             # otherwise we are resuming
             elif "resume" in req_json:
                 payload["resume"] = req_json["resume"]
-                payload["resume"]["environment"] = flow.org.as_environment_def()  # deprecated
                 payload["session"] = req_json["session"]
 
                 return client.sim_resume(payload)
