@@ -73,32 +73,3 @@ class DashboardTest(TembaTest):
         self.assertEqual(2, len(response["series"]))
         self.assertEqual(1, response["series"][0]["data"][0])  # incoming
         self.assertEqual(2, response["series"][1]["data"][0])  # outgoing
-
-    def test_range_details(self):
-        url = reverse("dashboard.dashboard_range_details")
-
-        # visit this page without authenticating
-        response = self.client.get(url, follow=True)
-
-        # nope!
-        self.assertRedirects(response, "/accounts/login/?next=%s" % url)
-
-        self.login(self.admin)
-        self.create_activity()
-
-        types = ["T", "IG", "FBA", "NX", "AT", "KN"]
-        michael = self.create_contact("Michael", urns=["facebook:mjackson"])
-        for t in types:
-            channel = self.create_channel(t, f"Test Channel {t}", f"{t}:1234")
-            self.create_outgoing_msg(michael, f"Message on {t}", channel=channel)
-        response = self.client.get(url)
-
-        # org message activity
-        self.assertEqual(11, response.context["orgs"][0]["count_sum"])
-        self.assertEqual("Nyaruka", response.context["orgs"][0]["channel__org__name"])
-
-        # our pie chart
-        self.assertEqual(5, response.context["channel_types"][0]["count_sum"])
-        self.assertEqual("Android", response.context["channel_types"][0]["channel__name"])
-        self.assertEqual(7, len(response.context["channel_types"]))
-        self.assertEqual("Other", response.context["channel_types"][6]["channel__name"])

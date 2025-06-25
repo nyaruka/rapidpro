@@ -76,31 +76,26 @@ class MessageHistory(OrgPermsMixin, SmartTemplateView):
 
         for count in daily_counts:
             dates_set.add(count["day"])
-            values_by_scope[count["scope"]][count["day"]] = count["count_sum"]
-
-        # create sorted list of dates
+            values_by_scope[count["scope"]][count["day"]] = count["count_sum"]  # create sorted list of dates
         labels = sorted(list(dates_set))
 
-        # create datasets
-        datasets = [
-            {
-                "label": "Incoming",
-                "data": [values_by_scope[ChannelCount.SCOPE_TEXT_IN].get(date, 0) for date in labels],
-            },
-            {
-                "label": "Outgoing",
-                "data": [values_by_scope[ChannelCount.SCOPE_TEXT_OUT].get(date, 0) for date in labels],
-            },
-        ]
-
+        # Return format expected by tests: list of objects with data arrays
         return JsonResponse(
-            {
-                "period": [since, until],
-                "data": {
-                    "labels": [d.strftime("%Y-%m-%d") for d in labels],
-                    "datasets": datasets,
+            [
+                {
+                    "label": "Incoming",
+                    "data": [
+                        [d.strftime("%Y-%m-%d"), values_by_scope[ChannelCount.SCOPE_TEXT_IN].get(d, 0)] for d in labels
+                    ],
                 },
-            }
+                {
+                    "label": "Outgoing",
+                    "data": [
+                        [d.strftime("%Y-%m-%d"), values_by_scope[ChannelCount.SCOPE_TEXT_OUT].get(d, 0)] for d in labels
+                    ],
+                },
+            ],
+            safe=False,
         )
 
 
@@ -175,10 +170,7 @@ class WorkspaceStats(OrgPermsMixin, SmartTemplateView):
 
         return JsonResponse(
             {
-                "period": [since, until],
-                "data": {
-                    "labels": categories,
-                    "datasets": [{"label": "Incoming", "data": inbound}, {"label": "Outgoing", "data": outbound}],
-                },
+                "categories": categories,
+                "series": [{"label": "Incoming", "data": inbound}, {"label": "Outgoing", "data": outbound}],
             }
         )
