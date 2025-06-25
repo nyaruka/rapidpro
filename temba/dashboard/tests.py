@@ -45,14 +45,18 @@ class DashboardTest(TembaTest):
         self.create_activity()
         response = self.client.get(url).json()
 
-        # in, out
-        self.assertEqual(2, len(response))
+        # check the new temba-chart format
+        self.assertIn("data", response)
+        data = response["data"]
+        self.assertEqual(2, len(data["datasets"]))
 
         # incoming messages
-        self.assertEqual(1, response[0]["data"][0][1])
+        self.assertEqual("Incoming", data["datasets"][0]["label"])
+        self.assertEqual(1, data["datasets"][0]["data"][0])
 
         # outgoing messages
-        self.assertEqual(2, response[1]["data"][0][1])  # test with since and until parameters
+        self.assertEqual("Outgoing", data["datasets"][1]["label"])
+        self.assertEqual(2, data["datasets"][1]["data"][0])  # test with since and until parameters
         today = timezone.now().date()
         yesterday = today - timedelta(days=1)
         tomorrow = today + timedelta(days=1)
@@ -61,18 +65,20 @@ class DashboardTest(TembaTest):
         response = self.client.get(url, {"since": yesterday.isoformat(), "until": tomorrow.isoformat()}).json()
 
         # should still get the same data since messages are from today
-        self.assertEqual(2, len(response))
-        self.assertEqual(1, response[0]["data"][0][1])  # incoming
-        self.assertEqual(2, response[1]["data"][0][1])  # outgoing
+        data = response["data"]
+        self.assertEqual(2, len(data["datasets"]))
+        self.assertEqual(1, data["datasets"][0]["data"][0])  # incoming
+        self.assertEqual(2, data["datasets"][1]["data"][0])  # outgoing
 
         # test with date range that excludes our messages
         old_date = today - timedelta(days=10)
         response = self.client.get(url, {"since": old_date.isoformat(), "until": yesterday.isoformat()}).json()
 
         # should get empty data
-        self.assertEqual(2, len(response))
-        self.assertEqual(0, len(response[0]["data"]))  # no incoming data
-        self.assertEqual(0, len(response[1]["data"]))  # no outgoing data
+        data = response["data"]
+        self.assertEqual(2, len(data["datasets"]))
+        self.assertEqual(0, len(data["datasets"][0]["data"]))  # no incoming data
+        self.assertEqual(0, len(data["datasets"][1]["data"]))  # no outgoing data
 
     def test_workspace_stats(self):
         stats_url = reverse("dashboard.dashboard_workspace_stats")
@@ -90,10 +96,14 @@ class DashboardTest(TembaTest):
         self.login(self.admin, choose_org=self.org)
         response = self.client.get(stats_url).json()
 
-        self.assertEqual(["Nyaruka"], response["categories"])
-        self.assertEqual(2, len(response["series"]))
-        self.assertEqual(1, response["series"][0]["data"][0])  # incoming
-        self.assertEqual(2, response["series"][1]["data"][0])  # outgoing
+        # check the new temba-chart format
+        data = response["data"]
+        self.assertEqual(["Nyaruka"], data["labels"])
+        self.assertEqual(2, len(data["datasets"]))
+        self.assertEqual("Incoming", data["datasets"][0]["label"])
+        self.assertEqual("Outgoing", data["datasets"][1]["label"])
+        self.assertEqual(1, data["datasets"][0]["data"][0])  # incoming
+        self.assertEqual(2, data["datasets"][1]["data"][0])  # outgoing
 
         # test with since and until parameters
         today = timezone.now().date()
@@ -104,17 +114,19 @@ class DashboardTest(TembaTest):
         response = self.client.get(stats_url, {"since": yesterday.isoformat(), "until": tomorrow.isoformat()}).json()
 
         # should get the same data since messages are from today
-        self.assertEqual(["Nyaruka"], response["categories"])
-        self.assertEqual(2, len(response["series"]))
-        self.assertEqual(1, response["series"][0]["data"][0])  # incoming
-        self.assertEqual(2, response["series"][1]["data"][0])  # outgoing
+        data = response["data"]
+        self.assertEqual(["Nyaruka"], data["labels"])
+        self.assertEqual(2, len(data["datasets"]))
+        self.assertEqual(1, data["datasets"][0]["data"][0])  # incoming
+        self.assertEqual(2, data["datasets"][1]["data"][0])  # outgoing
 
         # test with date range that excludes our messages
         old_date = today - timedelta(days=10)
         response = self.client.get(stats_url, {"since": old_date.isoformat(), "until": yesterday.isoformat()}).json()
 
         # should get empty data since no activity in that range
-        self.assertEqual([], response["categories"])
-        self.assertEqual(2, len(response["series"]))
-        self.assertEqual([], response["series"][0]["data"])  # no incoming data
-        self.assertEqual([], response["series"][1]["data"])  # no outgoing data
+        data = response["data"]
+        self.assertEqual([], data["labels"])
+        self.assertEqual(2, len(data["datasets"]))
+        self.assertEqual([], data["datasets"][0]["data"])  # no incoming data
+        self.assertEqual([], data["datasets"][1]["data"])  # no outgoing data
