@@ -10,7 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from temba.channels.models import ChannelCount
 from temba.orgs.models import Org
 from temba.orgs.views.mixins import OrgPermsMixin
-from temba.utils.views.mixins import SpaMixin
+from temba.utils.views.mixins import ChartViewMixin, SpaMixin
 
 
 class Home(SpaMixin, OrgPermsMixin, SmartTemplateView):
@@ -24,37 +24,19 @@ class Home(SpaMixin, OrgPermsMixin, SmartTemplateView):
     menu_path = "/settings/dashboard"
 
 
-class MessageHistory(OrgPermsMixin, SmartTemplateView):
+class MessageHistory(OrgPermsMixin, ChartViewMixin, SmartTemplateView):
     """
     Endpoint to expose message history by day as JSON for temba-chart
     """
 
     permission = "orgs.org_dashboard"
+    default_chart_period = (-timedelta(days=30), timedelta(days=1))
 
-    def get_period(self):
-        """Get the date range from request parameters or use defaults"""
-        since = self.request.GET.get("since")
-        until = self.request.GET.get("until")
-
-        if since:
-            since = datetime.fromisoformat(since.replace("Z", "+00:00")).date()
-        else:
-            since = timezone.now().date() - timedelta(days=30)
-
-        if until:
-            until = datetime.fromisoformat(until.replace("Z", "+00:00")).date()
-        else:
-            until = timezone.now().date()
-
-        return since, until
-
-    def render_to_response(self, context, **response_kwargs):
+    def get_chart_data(self, since, until) -> tuple[list, list]:
         orgs = []
         org = self.derive_org()
         if org:
             orgs = Org.objects.filter(Q(id=org.id) | Q(parent=org))
-
-        since, until = self.get_period()
 
         # get all our counts for that period
         daily_counts = ChannelCount.objects.filter(scope__in=[ChannelCount.SCOPE_TEXT_IN, ChannelCount.SCOPE_TEXT_OUT])
@@ -79,25 +61,16 @@ class MessageHistory(OrgPermsMixin, SmartTemplateView):
             values_by_scope[count["scope"]][count["day"]] = count["count_sum"]  # create sorted list of dates
         labels = sorted(list(dates_set))
 
-        # Return format expected by temba-chart
-        return JsonResponse(
+        return [d.strftime("%Y-%m-%d") for d in labels], [
             {
-                "period": [since, until],
-                "data": {
-                    "labels": [d.strftime("%Y-%m-%d") for d in labels],
-                    "datasets": [
-                        {
-                            "label": "Incoming",
-                            "data": [values_by_scope[ChannelCount.SCOPE_TEXT_IN].get(d, 0) for d in labels],
-                        },
-                        {
-                            "label": "Outgoing",
-                            "data": [values_by_scope[ChannelCount.SCOPE_TEXT_OUT].get(d, 0) for d in labels],
-                        },
-                    ],
-                },
-            }
-        )
+                "label": "Incoming",
+                "data": [values_by_scope[ChannelCount.SCOPE_TEXT_IN].get(d, 0) for d in labels],
+            },
+            {
+                "label": "Outgoing",
+                "data": [values_by_scope[ChannelCount.SCOPE_TEXT_OUT].get(d, 0) for d in labels],
+            },
+        ]
 
 
 class WorkspaceStats(OrgPermsMixin, SmartTemplateView):

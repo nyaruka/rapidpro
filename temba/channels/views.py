@@ -22,7 +22,7 @@ from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.template import Context, Engine, TemplateDoesNotExist
 from django.urls import reverse
@@ -37,7 +37,7 @@ from temba.orgs.views.base import BaseDependencyDeleteModal, BaseReadView
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin
 from temba.utils import countries
 from temba.utils.fields import SelectWidget
-from temba.utils.views.mixins import ComponentFormMixin, ContextMenuMixin, ModalFormMixin, SpaMixin
+from temba.utils.views.mixins import ChartViewMixin, ComponentFormMixin, ContextMenuMixin, ModalFormMixin, SpaMixin
 
 from .models import Channel, ChannelCount, ChannelLog
 
@@ -559,19 +559,14 @@ class ChannelCRUDL(SmartCRUDL):
             by_month.reverse()
             return by_month
 
-    class Chart(BaseReadView):
+    class Chart(ChartViewMixin, BaseReadView):
         permission = "channels.channel_read"
         slug_url_kwarg = "uuid"
+        default_chart_period = (-timedelta(days=30), timedelta(days=1))
 
-        def render_to_response(self, context, **response_kwargs):
-            channel = self.object
-
-            # default period is last month
-            since = timezone.now().date() - timedelta(days=30)
-            until = timezone.now().date() + timedelta(days=1)
-
+        def get_chart_data(self, since, until) -> tuple[list, list]:
             counts = (
-                channel.counts.period(since, until)
+                self.object.counts.period(since, until)
                 .filter(
                     scope__in=[
                         ChannelCount.SCOPE_TEXT_IN,
@@ -599,7 +594,7 @@ class ChannelCRUDL(SmartCRUDL):
             # create sorted list of dates
             labels = sorted(list(dates_set))
 
-            ivr_count = channel.get_ivr_count()
+            ivr_count = self.object.get_ivr_count()
 
             # create datasets with fixed splits for Msg In, Msg Out, Voice In, Voice Out
             datasets = [
@@ -627,15 +622,7 @@ class ChannelCRUDL(SmartCRUDL):
                     ]
                 )
 
-            return JsonResponse(
-                {
-                    "period": [since, until],
-                    "data": {
-                        "labels": [d.strftime("%Y-%m-%d") for d in labels],
-                        "datasets": datasets,
-                    },
-                }
-            )
+            return [d.strftime("%Y-%m-%d") for d in labels], datasets
 
     class FacebookWhitelist(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, SmartModelActionView):
         class DomainForm(forms.Form):

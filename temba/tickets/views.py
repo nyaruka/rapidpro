@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import timedelta
 
 from smartmin.views import SmartCRUDL, SmartListView, SmartTemplateView, SmartUpdateView
 
@@ -27,7 +27,7 @@ from temba.utils.dates import datetime_to_timestamp, timestamp_to_datetime
 from temba.utils.export import response_from_workbook
 from temba.utils.fields import InputWidget
 from temba.utils.uuid import UUID_REGEX
-from temba.utils.views.mixins import ComponentFormMixin, ContextMenuMixin, ModalFormMixin, SpaMixin
+from temba.utils.views.mixins import ChartViewMixin, ComponentFormMixin, ContextMenuMixin, ModalFormMixin, SpaMixin
 
 from .forms import ShortcutForm, TeamForm, TopicForm
 from .models import (
@@ -519,27 +519,15 @@ class TicketCRUDL(SmartCRUDL):
             self.get_object().add_note(self.request.user, note=form.cleaned_data["note"])
             return self.render_modal_response(form)
 
-    class Chart(OrgPermsMixin, SmartTemplateView):
+    class Chart(OrgPermsMixin, ChartViewMixin, SmartTemplateView):
         permission = "tickets.ticket_analytics"
+        default_chart_period = (-timedelta(days=90), timedelta(days=1))
 
         @classmethod
         def derive_url_pattern(cls, path, action):
             return r"^%s/%s/(?P<chart>(opened|resptime))/$" % (path, action)
 
-        def get_period(self) -> tuple[date, date]:
-            def param(name: str, default: date):
-                if name in self.request.GET:
-                    try:
-                        return datetime.strptime(self.request.GET[name], r"%Y-%m-%d").date()
-                    except ValueError:
-                        pass
-                return default
-
-            since = param("since", timezone.now().date() - timedelta(days=90))
-            until = param("until", timezone.now().date() + timedelta(days=1))
-            return since, until
-
-        def get_opened_chart(self, org, since, until) -> dict:
+        def get_opened_chart(self, org, since, until) -> tuple:
             topics_by_id = {t.id: t.name for t in org.topics.filter(is_active=True)}
 
             counts = org.daily_counts.period(since, until).prefix("tickets:opened:").day_totals(scoped=True)
@@ -562,12 +550,9 @@ class TicketCRUDL(SmartCRUDL):
             for topic_name, date_counts in values_by_topic.items():
                 datasets.append({"label": topic_name, "data": [date_counts.get(date, 0) for date in labels]})
 
-            return {
-                "labels": [d.strftime("%Y-%m-%d") for d in labels],
-                "datasets": datasets,
-            }
+            return [d.strftime("%Y-%m-%d") for d in labels], datasets
 
-        def get_resptime_chart(self, org, since, until) -> dict:
+        def get_resptime_chart(self, org, since, until) -> tuple:
             counts = org.daily_counts.period(since, until).prefix("ticketresptime:").day_totals(scoped=True)
             totals_by_date, counts_by_date = {}, {}
             for (day, scope), count in counts.items():
@@ -588,21 +573,14 @@ class TicketCRUDL(SmartCRUDL):
                 avg = (total // count) if count else 0
                 data.append(avg)
 
-            return {
-                "labels": [d.strftime("%Y-%m-%d") for d in labels],
-                "datasets": [{"label": "Response Time", "data": data}],
-            }
+            return [d.strftime("%Y-%m-%d") for d in labels], [{"label": "Response Time", "data": data}]
 
-        def render_to_response(self, context, **response_kwargs):
+        def get_chart_data(self, since, until) -> tuple[list, list]:
             chart = self.kwargs["chart"]
-            since, until = self.get_period()
-
             if chart == "opened":
-                data = self.get_opened_chart(self.request.org, since, until)
+                return self.get_opened_chart(self.request.org, since, until)
             elif chart == "resptime":
-                data = self.get_resptime_chart(self.request.org, since, until)
-
-            return JsonResponse({"period": [since, until], "data": data})
+                return self.get_resptime_chart(self.request.org, since, until)
 
     class ExportStats(OrgPermsMixin, SmartTemplateView):
         permission = "tickets.ticket_analytics"
