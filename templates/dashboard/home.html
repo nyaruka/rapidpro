@@ -1,219 +1,58 @@
 {% extends "smartmin/base.html" %}
 {% load smartmin temba i18n humanize tz %}
 
+{% block extra-style %}
+  {{ block.super }}
+  <style>
+    temba-range-picker {
+      padding: 0.5em;
+    }
+  </style>
+{% endblock extra-style %}
 {% block content %}
-  <script src="https://rawgit.com/highcharts/rounded-corners/master/rounded-corners.js"></script>
-  <div class="card scrollable flex-shrink-0" id="range-group">
-    <div style="min-height:2.55em"
-         class="bg-gray-700 text-gray-400 -mx-6 -mt-6 px-4 py-2 border-b range-header"
-         id="range-header">
-      <div class="flex opacity-0 transition-opacity" id="message-chart-dates">
-        <div class="flex-grow" id="message-chart-range-from"></div>
-        <div id="message-chart-range-to"></div>
-      </div>
-    </div>
-    <div id="message-chart"></div>
-    <div id="workspace-chart"></div>
+  <div class="flex px-4 rounded-lg mb-6 bg-white">
+    <div class="flex-grow"></div>
+    <temba-range-picker min="{{ request.org.created_on|date:"Y-m-d" }}">
+    </temba-range-picker>
+  </div>
+  <div class="p-8 bg-white rounded-lg">
+    <temba-chart header="Message History"
+                 url="{% url 'dashboard.dashboard_message_history' %}"
+                 dataname="Messages"
+                 legend
+                 showall
+                 xtype="time"
+                 palette="qualitative-paired"
+                 colorIndex="0">
+    </temba-chart>
+    <temba-chart class="pt-8 block"
+                 header="Workspace Statistics"
+                 url="{% url 'dashboard.dashboard_workspace_stats' %}"
+                 dataname="Workspaces"
+                 legend
+                 showall
+                 xtype="category"
+                 palette="qualitative-paired"
+                 horizontal
+                 colorIndex="2">
+    </temba-chart>
   </div>
 {% endblock content %}
 {% block extra-script %}
   {{ block.super }}
   <script type="text/javascript">
-    var redrawMarker = null;
-
-    var store = document.querySelector("temba-store");
-
-    function setChartOptions(chart, begin, end, direction) {
-      var chartID = chart.renderTo.id;
-      var from = Highcharts.dateFormat('%A, %B %e, %Y', begin);
-      var to = Highcharts.dateFormat('%A, %B %e, %Y', end)
-      document.querySelector("#" + chartID + "-dates").classList.add("opacity-100");
-      document.querySelector("#" + chartID + "-range-from").innerText = from;
-      document.querySelector("#" + chartID + "-range-to").innerText = to;
-    }
-
-    function createChart(container, data) {
-      return Highcharts.chart(container, {
-        title: {
-          text: "Channel types"
-
-        },
-        xAxis: {
-          tickLength: 0,
-          labels: {
-            enabled: false
-          }
-        },
-        colors: [
-          "#335c81",
-          "#65afff",
-          "#50ffb1",
-          "#3c896d",
-          "#ddb892",
-          "#7f5539",
-          "#b5c99a",
-          "#87986a",
-          "#ff5858",
-          "#ff9090",
-          "#cc9c00",
-          "#ffcb1f",
-        ],
-
-        plotOptions: {
-          column: {
-            stacking: 'normal'
-          }
-        },
-        tooltip: {
-          formatter: function() {
-            return this.series.name + ": <b>" + this.y + "</b>";
-          }
-        },
-        series: data,
-      })
-    }
-
-    var handleUpdatedRange = function(e) {
-      const chart = e.target;
-      const range = chart.xAxis[0];
-
-      var direction = "";
-      if (chart.series[0].visible) {
-        direction += "I";
-      }
-
-      if (chart.series[1].visible) {
-        direction += "O";
-      }
-
-      var axis = chart.xAxis[0];
-
-      store.getUrl(`/dashboard/workspace_stats/?min=${axis.min / 1000}&max=${axis.max / 1000}`).then(function(response) {
-        var data = response.json;
-
-        Highcharts.chart('workspace-chart', {
-
-          chart: {
-            type: 'bar',
-          },
-          title: {
-            text: 'Workspaces'
-          },
-          xAxis: {
-            categories: data.categories
-          },
-          yAxis: {
-            min: 0,
-          },
-
-          tooltip: {
-            pointFormat: '{series.name}: <b>{point.y}</b>'
-          },
-          plotOptions: {
-            series: {
-              stacking: 'normal',
-              dataLabels: {
-                enabled: true,
-                color: '#000000',
-                inside: false,
-                formatter: function(e) {
-                  if (this.point.series.index == 0) {
-                    return this.point.stackTotal.toLocaleString();
-                  }
-                }
-              }
-            }
-          },
-          series: data.series
-
+    onSpload(function() {
+      const rangePicker = document.querySelector("temba-range-picker");
+      rangePicker.addEventListener("temba-date-range-changed", function(e) {
+        const {
+          start,
+          end
+        } = e.detail;
+        document.querySelectorAll("temba-chart").forEach(function(chart) {
+          chart.setAttribute("start", start);
+          chart.setAttribute("end", end);
         });
       });
-
-      setChartOptions(chart, axis.min, axis.max, direction);
-    }
-
-    function createStockChart(container, data) {
-      return Highcharts.stockChart(container, {
-        chart: {
-          zoomType: 'x',
-          events: {
-            redraw: handleUpdatedRange,
-            load: handleUpdatedRange
-          }
-        },
-        plotOptions: {
-          series: {
-            showInLegend: true,
-            showInNavigator: true,
-          },
-          column: {
-            stacking: 'normal',
-          },
-          line: {
-            cumulative: true,
-            tooltip: {
-              pointFormat: '{series.name}: <b>{point.cumulativeSum:.0f}</b>'
-            }
-          }
-
-        },
-        legend: {
-          enabled: true
-        },
-        rangeSelector: {
-          buttons: [{
-            type: 'week',
-            count: 1,
-            text: 'W'
-          }, {
-            type: 'month',
-            count: 1,
-            text: 'M'
-          }, {
-            type: 'year',
-            count: 1,
-            text: 'Y'
-          }, {
-            type: 'all',
-            count: 1,
-            text: 'all'
-          }],
-          inputEnabled: false,
-          selected: 1
-        },
-        xAxis: {
-          minRange: 3600000 * 24
-        },
-        credits: {
-          enabled: false
-        },
-        navigator: {
-          series: {
-            type: 'line'
-          }
-        },
-        series: data
-      });
-    }
-
-    function loadCharts() {
-      Highcharts.setOptions({
-        lang: {
-          thousandsSep: ','
-        }
-      });
-
-
-      store.getUrl('/dashboard/message_history/').then(function(response) {
-        var data = response.json;
-        // Create the chart
-        window.setTimeout(function() {
-          createStockChart('message-chart', data);
-        }, 500);
-      });
-
-    }
-
-    onSpload(loadCharts);
+    });
   </script>
 {% endblock extra-script %}

@@ -1,6 +1,7 @@
-from datetime import timezone as tzone
+from datetime import timedelta, timezone as tzone
 
 from django.urls import reverse
+from django.utils import timezone
 
 from temba.orgs.models import Org
 from temba.tests import TembaTest
@@ -51,7 +52,27 @@ class DashboardTest(TembaTest):
         self.assertEqual(1, response[0]["data"][0][1])
 
         # outgoing messages
-        self.assertEqual(2, response[1]["data"][0][1])
+        self.assertEqual(2, response[1]["data"][0][1])  # test with since and until parameters
+        today = timezone.now().date()
+        yesterday = today - timedelta(days=1)
+        tomorrow = today + timedelta(days=1)
+
+        # test with specific date range
+        response = self.client.get(url, {"since": yesterday.isoformat(), "until": tomorrow.isoformat()}).json()
+
+        # should still get the same data since messages are from today
+        self.assertEqual(2, len(response))
+        self.assertEqual(1, response[0]["data"][0][1])  # incoming
+        self.assertEqual(2, response[1]["data"][0][1])  # outgoing
+
+        # test with date range that excludes our messages
+        old_date = today - timedelta(days=10)
+        response = self.client.get(url, {"since": old_date.isoformat(), "until": yesterday.isoformat()}).json()
+
+        # should get empty data
+        self.assertEqual(2, len(response))
+        self.assertEqual(0, len(response[0]["data"]))  # no incoming data
+        self.assertEqual(0, len(response[1]["data"]))  # no outgoing data
 
     def test_workspace_stats(self):
         stats_url = reverse("dashboard.dashboard_workspace_stats")
@@ -74,31 +95,26 @@ class DashboardTest(TembaTest):
         self.assertEqual(1, response["series"][0]["data"][0])  # incoming
         self.assertEqual(2, response["series"][1]["data"][0])  # outgoing
 
-    def test_range_details(self):
-        url = reverse("dashboard.dashboard_range_details")
+        # test with since and until parameters
+        today = timezone.now().date()
+        yesterday = today - timedelta(days=1)
+        tomorrow = today + timedelta(days=1)
 
-        # visit this page without authenticating
-        response = self.client.get(url, follow=True)
+        # test with specific date range that includes our data
+        response = self.client.get(stats_url, {"since": yesterday.isoformat(), "until": tomorrow.isoformat()}).json()
 
-        # nope!
-        self.assertRedirects(response, "/accounts/login/?next=%s" % url)
+        # should get the same data since messages are from today
+        self.assertEqual(["Nyaruka"], response["categories"])
+        self.assertEqual(2, len(response["series"]))
+        self.assertEqual(1, response["series"][0]["data"][0])  # incoming
+        self.assertEqual(2, response["series"][1]["data"][0])  # outgoing
 
-        self.login(self.admin)
-        self.create_activity()
+        # test with date range that excludes our messages
+        old_date = today - timedelta(days=10)
+        response = self.client.get(stats_url, {"since": old_date.isoformat(), "until": yesterday.isoformat()}).json()
 
-        types = ["T", "IG", "FBA", "NX", "AT", "KN"]
-        michael = self.create_contact("Michael", urns=["facebook:mjackson"])
-        for t in types:
-            channel = self.create_channel(t, f"Test Channel {t}", f"{t}:1234")
-            self.create_outgoing_msg(michael, f"Message on {t}", channel=channel)
-        response = self.client.get(url)
-
-        # org message activity
-        self.assertEqual(11, response.context["orgs"][0]["count_sum"])
-        self.assertEqual("Nyaruka", response.context["orgs"][0]["channel__org__name"])
-
-        # our pie chart
-        self.assertEqual(5, response.context["channel_types"][0]["count_sum"])
-        self.assertEqual("Android", response.context["channel_types"][0]["channel__name"])
-        self.assertEqual(7, len(response.context["channel_types"]))
-        self.assertEqual("Other", response.context["channel_types"][6]["channel__name"])
+        # should get empty data since no activity in that range
+        self.assertEqual([], response["categories"])
+        self.assertEqual(2, len(response["series"]))
+        self.assertEqual([], response["series"][0]["data"])  # no incoming data
+        self.assertEqual([], response["series"][1]["data"])  # no outgoing data

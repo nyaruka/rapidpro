@@ -118,10 +118,10 @@
     tiny-lru "^11.2.5"
     zustand "^5.0.3"
 
-"@nyaruka/temba-components@0.128.0":
-  version "0.128.0"
-  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.128.0.tgz#1e36cf75c3fe188b842079bf603ece53d62411ca"
-  integrity sha512-1j35XYmz/ejzoMGjc7FksNw0p7hTGfPlE6Pf6pAHG57PdCKX6yNAgurvMeHyNvxbgBbm0XzxSxx6OoG132GRoA==
+"@nyaruka/temba-components@0.129.1":
+  version "0.129.1"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.129.1.tgz#7fa19b5664cb66a8c8e08f67c9410c02095552e5"
+  integrity sha512-cej2Ltcl47gEDeonvAZFe4Is8QK8T8YMmhJUS+grUOF0cCsjINP9qcr4GIDJ08z9v5I6NTRA+RsyBXQChQ7M2w==
   dependencies:
     "@jsplumb/browser-ui" "^6.2.10"
     "@lit/localize" "^0.12.1"
@@ -651,11 +651,6 @@ has@^1.0.3:
   integrity sha512-f2dvO0VU6Oej7RkWJGrehjbzMAjFp5/VKPp5tTpWIV4JHHZK1/BxbFRtf/siA2SWTe09caDmVtYYzWEIbBS4zw==
   dependencies:
     function-bind "^1.1.1"
-
-highcharts@9.3.0:
-  version "9.3.0"
-  resolved "https://registry.npmjs.org/highcharts/-/highcharts-9.3.0.tgz#999496c8af677d5f08e41e2e708d3eb7baf56640"
-  integrity sha512-nQ7yW5ni7wFiPgDN2IWrS6o6NjL1gK/OhZjrdpyB3FQuefMkTQngygP+JqZFMx7PDrP3YAvfejx0M5IgkC01ow==
 
 html-tags@^3.1.0:
   version "3.3.1"
