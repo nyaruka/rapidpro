@@ -1,3 +1,8 @@
+v10.1.216 (2025-06-25)
+-------------------------
+ * Add mixin for chart views
+ * Fix dashboard view format
+
 v10.1.215 (2025-06-25)
 -------------------------
  * Update dashboard charts, remove highcharts
