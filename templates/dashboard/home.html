@@ -6,8 +6,6 @@
   <style>
     temba-range-picker {
       padding: 0.5em;
-      --scolor-widget-border: #333;
-      --scolor-widget-hover: rgba(255, 255, 255, 0.2);
     }
   </style>
 {% endblock extra-style %}
@@ -45,45 +43,15 @@
   <script type="text/javascript">
     onSpload(function() {
       const rangePicker = document.querySelector("temba-range-picker");
-      const messageChart = document.querySelector("temba-chart:first-of-type");
-      const workspaceChart = document.querySelector("temba-chart:last-of-type");
-
-      // Set initial start and end dates (30 days back to today)
-      const today = new Date();
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(today.getDate() - 30);
-
-      const initialStart = thirtyDaysAgo.toISOString().split('T')[0];
-      const initialEnd = today.toISOString().split('T')[0];
-
-      messageChart.setAttribute("start", initialStart);
-      messageChart.setAttribute("end", initialEnd);
-      workspaceChart.setAttribute("start", initialStart);
-      workspaceChart.setAttribute("end", initialEnd);
-
       rangePicker.addEventListener("temba-date-range-changed", function(e) {
         const {
           start,
           end
         } = e.detail;
-
-        // Set start and end attributes on both chrts
-        messageChart.setAttribute("start", start);
-        messageChart.setAttribute("end", end);
-        workspaceChart.setAttribute("start", start);
-        workspaceChart.setAttribute("end", end);
-
-        // Format dates as ISO strings for the backend
-
-        // Update the message history chart URL with date parameters
-        const messageHistoryUrl = "{% url 'dashboard.dashboard_message_history' %}" +
-          `?since=${encodeURIComponent(start)}&until=${encodeURIComponent(end)}`;
-        messageChart.setAttribute("url", messageHistoryUrl);
-
-        // Update the workspace stats chart URL with date parameters  
-        const workspaceStatsUrl = "{% url 'dashboard.dashboard_workspace_stats' %}" +
-          `?since=${encodeURIComponent(start)}&until=${encodeURIComponent(end)}`;
-        workspaceChart.setAttribute("url", workspaceStatsUrl);
+        document.querySelectorAll("temba-chart").forEach(function(chart) {
+          chart.setAttribute("start", start);
+          chart.setAttribute("end", end);
+        });
       });
     });
   </script>
