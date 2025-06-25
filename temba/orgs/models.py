@@ -1213,21 +1213,6 @@ class Org(SmartModel):
 
         return counts
 
-    def as_environment_def(self):
-        """
-        Returns this org as an environment definition as used by the flow engine
-        """
-
-        return {
-            "date_format": Org.DATE_FORMATS_ENGINE.get(self.date_format),
-            "time_format": "tt:mm",
-            "timezone": str(self.timezone),
-            "allowed_languages": self.flow_languages,
-            "default_country": self.default_country_code,
-            "redaction_policy": "urns" if self.is_anon else "none",
-            "input_collation": self.input_collation,
-        }
-
     def __repr__(self):
         return f'<Org: id={self.id} name="{self.name}">'
 
