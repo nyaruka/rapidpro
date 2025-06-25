@@ -79,23 +79,24 @@ class MessageHistory(OrgPermsMixin, SmartTemplateView):
             values_by_scope[count["scope"]][count["day"]] = count["count_sum"]  # create sorted list of dates
         labels = sorted(list(dates_set))
 
-        # Return format expected by tests: list of objects with data arrays
+        # Return format expected by temba-chart
         return JsonResponse(
-            [
-                {
-                    "label": "Incoming",
-                    "data": [
-                        [d.strftime("%Y-%m-%d"), values_by_scope[ChannelCount.SCOPE_TEXT_IN].get(d, 0)] for d in labels
+            {
+                "period": [since, until],
+                "data": {
+                    "labels": [d.strftime("%Y-%m-%d") for d in labels],
+                    "datasets": [
+                        {
+                            "label": "Incoming",
+                            "data": [values_by_scope[ChannelCount.SCOPE_TEXT_IN].get(d, 0) for d in labels],
+                        },
+                        {
+                            "label": "Outgoing",
+                            "data": [values_by_scope[ChannelCount.SCOPE_TEXT_OUT].get(d, 0) for d in labels],
+                        },
                     ],
                 },
-                {
-                    "label": "Outgoing",
-                    "data": [
-                        [d.strftime("%Y-%m-%d"), values_by_scope[ChannelCount.SCOPE_TEXT_OUT].get(d, 0)] for d in labels
-                    ],
-                },
-            ],
-            safe=False,
+            }
         )
 
 
@@ -170,7 +171,10 @@ class WorkspaceStats(OrgPermsMixin, SmartTemplateView):
 
         return JsonResponse(
             {
-                "categories": categories,
-                "series": [{"label": "Incoming", "data": inbound}, {"label": "Outgoing", "data": outbound}],
+                "period": [since, until],
+                "data": {
+                    "labels": categories,
+                    "datasets": [{"label": "Incoming", "data": inbound}, {"label": "Outgoing", "data": outbound}],
+                },
             }
         )
