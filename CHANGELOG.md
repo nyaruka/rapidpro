@@ -1,3 +1,7 @@
+v10.1.215 (2025-06-25)
+-------------------------
+ * Update dashboard charts, remove highcharts
+
 v10.1.214 (2025-06-24)
 -------------------------
  * Update to latest flow editor
