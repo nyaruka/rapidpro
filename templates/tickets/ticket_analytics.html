@@ -1,19 +1,62 @@
 {% extends "smartmin/read.html" %}
+{% block extra-style %}
+  {{ block.super }}
+  <style>
+    temba-range-picker {
+      padding: 0.5em;
+    }
+
+    temba-chart {
+      background: #fff;
+      padding: 2em;
+      border-radius: var(--curvature);
+    }
+  </style>
+{% endblock extra-style %}
 {% block content %}
+  <div class="flex px-4 rounded-lg mb-6 bg-white">
+    <div class="flex-grow"></div>
+    <temba-range-picker min="{{ request.org.created_on|date:"Y-m-d" }}">
+    </temba-range-picker>
+  </div>
   <temba-chart header="Tickets Opened"
                url="{% url 'tickets.ticket_chart' 'opened' %}"
                dataname="Topics"
-               config
                xtype="time"
+               config
+               requireWindow
                legend>
   </temba-chart>
   <temba-chart class="mt-6"
                header="Response Time"
                url="{% url 'tickets.ticket_chart' 'resptime' %}"
                dataname="Average Response"
-               single
                colorIndex="2"
                xtype="time"
-               ytype="duration">
+               ytype="duration"
+               single
+               requireWindow>
   </temba-chart>
 {% endblock content %}
+{% block extra-script %}
+  {{ block.super }}
+  <script type="text/javascript">
+    onSpload(function() {
+      const rangePicker = document.querySelector("temba-range-picker");
+      document.querySelectorAll("temba-chart").forEach(function(chart) {
+        chart.setAttribute("start", rangePicker.startDate);
+        chart.setAttribute("end", rangePicker.endDate);
+      });
+      rangePicker.addEventListener("temba-date-range-changed", function(e) {
+        const {
+          start,
+          end
+        } = e.detail;
+        document.querySelectorAll("temba-chart").forEach(function(chart) {
+          chart.setAttribute("start", start);
+          chart.setAttribute("end", end);
+        });
+      });
+    });
+  </script>
+{% endblock extra-script %}
