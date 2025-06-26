@@ -559,14 +559,10 @@ class Org(SmartModel):
 
         # with all the flows and dependencies committed, we can now have mailroom do full validation
         for flow in new_flows:
-            info = mailroom.get_client().flow_inspect(self, flow.get_definition())
-            # if we still have issues try updating the dependencies first and try the validation again
-            if len(info["issues"]) > 0:
-                flow.update_dependencies(info["dependencies"])
-                info = mailroom.get_client().flow_inspect(self, flow.get_definition())
-
-            flow.has_issues = len(info["issues"]) > 0
-            flow.save(update_fields=("has_issues",))
+            revision = flow.get_current_revision()
+            flow_def = revision.get_migrated_definition()
+            flow.save_revision(user=None, definition=flow_def)
+            flow.refresh_from_db()
 
     def clean_import(self, import_def):
         from temba.triggers.models import Trigger
