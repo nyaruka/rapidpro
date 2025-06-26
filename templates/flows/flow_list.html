@@ -55,7 +55,7 @@
                   </div>
                   <div class="flex-grow">
                     {{ object.name }}
-                    {% if object.has_issues %}
+                    {% if object.info and object.info.issues|length > 0 %}
                       <div class="inline-block mr-2">
                         <temba-tip position="top" text="{{ _("Has issues") |escapejs }}" slot="toggle">
                           <temba-icon name="issue">
