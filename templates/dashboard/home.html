@@ -21,6 +21,7 @@
                  dataname="Messages"
                  legend
                  showall
+                 requireWindow
                  xtype="time"
                  palette="qualitative-paired"
                  colorIndex="0">
@@ -43,6 +44,12 @@
   <script type="text/javascript">
     onSpload(function() {
       const rangePicker = document.querySelector("temba-range-picker");
+
+      document.querySelectorAll("temba-chart").forEach(function(chart) {
+        chart.setAttribute("start", rangePicker.startDate);
+        chart.setAttribute("end", rangePicker.endDate);
+      });
+
       rangePicker.addEventListener("temba-date-range-changed", function(e) {
         const {
           start,

@@ -74,6 +74,11 @@
 {% block fields %}
 {% endblock fields %}
 {% block content %}
+  <div class="flex px-4 rounded-lg mb-6 bg-white">
+    <div class="flex-grow"></div>
+    <temba-range-picker min="{{ object.created_on|date:"Y-m-d" }}">
+    </temba-range-picker>
+  </div>
   {% block charts-zone %}
     {% if object.is_android %}
       {% if last_sync %}
@@ -125,6 +130,7 @@
                  dataname="Messages"
                  legend
                  showall
+                 requireWindow
                  xtype="time"
                  palette="qualitative-paired"
                  colorIndex="0">
@@ -223,4 +229,39 @@
 {% endblock content %}
 {% block extra-script %}
   {{ block.super }}
+  <script type="text/javascript">
+    onSpload(function() {
+      const rangePicker = document.querySelector("temba-range-picker");
+
+      document.querySelectorAll("temba-chart").forEach(function(chart) {
+        chart.setAttribute("start", rangePicker.startDate);
+        chart.setAttribute("end", rangePicker.endDate);
+      });
+
+      rangePicker.addEventListener("temba-date-range-changed", function(e) {
+        const {
+          start,
+          end
+        } = e.detail;
+        document.querySelectorAll("temba-chart").forEach(function(chart) {
+          chart.setAttribute("start", start);
+          chart.setAttribute("end", end);
+        });
+      });
+    });
+  </script>
 {% endblock extra-script %}
+{% block extra-style %}
+  {{ block.super }}
+  <style>
+    temba-range-picker {
+      padding: 0.5em;
+    }
+
+    temba-chart {
+      background: #fff;
+      padding: 2em;
+      border-radius: var(--curvature);
+    }
+  </style>
+{% endblock extra-style %}
