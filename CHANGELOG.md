@@ -1,3 +1,7 @@
+v10.1.217 (2025-06-26)
+-------------------------
+ * Add range picker to ticket and channel charts
+
 v10.1.216 (2025-06-25)
 -------------------------
  * Add mixin for chart views
