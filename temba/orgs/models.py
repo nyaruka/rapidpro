@@ -559,7 +559,7 @@ class Org(SmartModel):
 
         # with all the flows and dependencies committed, we can now have mailroom do full validation
         for flow in new_flows:
-            info = mailroom.get_client().flow_inspect(self, flow.get_definition())
+            info = mailroom.get_client().flow_inspect(self, flow.get_definition(), refresh=True)
             flow.has_issues = len(info["issues"]) > 0
             flow.save(update_fields=("has_issues",))
 
