@@ -312,7 +312,7 @@ class TestClient(MailroomClient):
         return definition
 
     @_client_method
-    def flow_inspect(self, org, definition: dict, refresh=False):
+    def flow_inspect(self, org, definition: dict, is_import=False):
         if self.mocks._flow_inspect:
             return self.mocks._flow_inspect.pop(0)
 

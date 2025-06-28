@@ -155,8 +155,8 @@ class MailroomClient:
     def flow_clone(self, definition: dict, dependency_mapping):
         return self._request("flow/clone", {"flow": definition, "dependency_mapping": dependency_mapping})
 
-    def flow_inspect(self, org, definition: dict, refresh=False):
-        payload = {"flow": definition, "refresh": refresh}
+    def flow_inspect(self, org, definition: dict, is_import=False):
+        payload = {"flow": definition, "is_import": is_import}
 
         # can't do dependency checking during tests because mailroom can't see unit test data created in a transaction
         if not settings.TESTING:
