@@ -1,5 +1,7 @@
 from datetime import date, datetime, timezone as tzone
 
+from django.utils import timezone
+
 from temba.msgs.models import Msg
 from temba.tests import TembaTest
 
@@ -22,7 +24,11 @@ class ChannelCountTest(TembaTest):
         self.create_incoming_msg(contact, "B", created_on=datetime(2023, 6, 1, 13, 0, 30, 0, tzone.utc))
         self.create_incoming_msg(contact, "C", created_on=datetime(2023, 6, 1, 13, 0, 30, 0, tzone.utc))
         self.create_incoming_msg(contact, "D", created_on=datetime(2023, 6, 1, 13, 0, 30, 0, tzone.utc), voice=True)
-        self.create_outgoing_msg(contact, "E", created_on=datetime(2023, 6, 1, 13, 0, 30, 0, tzone.utc))
+
+        msg = self.create_outgoing_msg(contact, "E", created_on=datetime(2023, 6, 1, 13, 0, 30, 0, tzone.utc))
+        msg.status = "D"
+        msg.modified_on = timezone.now()
+        msg.save(update_fields=("status", "modified_on"))
 
         # and 3 in bulk
         Msg.objects.bulk_create(
@@ -63,11 +69,28 @@ class ChannelCountTest(TembaTest):
             ]
         )
 
+        # create an outgoing message that is failed
+        self.create_outgoing_msg(
+            contact,
+            "I",
+            created_on=datetime(2023, 6, 1, 13, 0, 30, 0, tzone.utc),
+            failed_reason=Msg.FAILED_LOOPING,
+        )
+
+        # create an outgoing message that is later marked as failed
+        msg = self.create_outgoing_msg(
+            contact, "J", created_on=datetime(2023, 6, 1, 13, 0, 30, 0, tzone.utc), status="W"
+        )
+        msg.status = "F"
+        msg.modified_on = timezone.now()
+        msg.save(update_fields=("status", "modified_on"))
+
         self.assertEqual(
             {
                 (date(2023, 5, 31), "text:in"): 1,
                 (date(2023, 6, 1), "text:in"): 2,
-                (date(2023, 6, 1), "text:out"): 3,
+                (date(2023, 6, 1), "text:out"): 5,
+                (date(2023, 6, 1), "text:failed"): 2,
                 (date(2023, 6, 1), "voice:in"): 1,
                 (date(2023, 6, 1), "voice:out"): 1,
             },
@@ -77,13 +100,14 @@ class ChannelCountTest(TembaTest):
         # squash our counts
         squash_channel_counts()
 
-        self.assertEqual(ChannelCount.objects.all().count(), 5)
+        self.assertEqual(ChannelCount.objects.all().count(), 6)
 
         self.assertEqual(
             {
                 (date(2023, 5, 31), "text:in"): 1,
                 (date(2023, 6, 1), "text:in"): 2,
-                (date(2023, 6, 1), "text:out"): 3,
+                (date(2023, 6, 1), "text:out"): 5,
+                (date(2023, 6, 1), "text:failed"): 2,
                 (date(2023, 6, 1), "voice:in"): 1,
                 (date(2023, 6, 1), "voice:out"): 1,
             },
@@ -97,7 +121,8 @@ class ChannelCountTest(TembaTest):
             {
                 (date(2023, 5, 31), "text:in"): 1,
                 (date(2023, 6, 1), "text:in"): 2,
-                (date(2023, 6, 1), "text:out"): 3,
+                (date(2023, 6, 1), "text:out"): 5,
+                (date(2023, 6, 1), "text:failed"): 2,
                 (date(2023, 6, 1), "voice:in"): 1,
                 (date(2023, 6, 1), "voice:out"): 1,
             },
@@ -111,7 +136,8 @@ class ChannelCountTest(TembaTest):
             {
                 (date(2023, 5, 31), "text:in"): 1,
                 (date(2023, 6, 1), "text:in"): 2,
-                (date(2023, 6, 1), "text:out"): 3,
+                (date(2023, 6, 1), "text:out"): 5,
+                (date(2023, 6, 1), "text:failed"): 2,
                 (date(2023, 6, 1), "voice:in"): 1,
                 (date(2023, 6, 1), "voice:out"): 1,
             },
