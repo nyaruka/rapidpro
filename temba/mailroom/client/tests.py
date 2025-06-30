@@ -421,7 +421,7 @@ class MailroomClientTest(TembaTest):
             {"User-Agent": "Temba", "Authorization": "Token sesame", "Content-Type": "application/json"},
             call[1]["headers"],
         )
-        self.assertEqual({"org_id": self.org.id, "flow": flow_def}, json.loads(call[1]["data"]))
+        self.assertEqual({"org_id": self.org.id, "flow": flow_def, "is_import": False}, json.loads(call[1]["data"]))
 
     def test_flow_migrate(self):
         flow_def = {"nodes": [{"val": Decimal("1.23")}]}
