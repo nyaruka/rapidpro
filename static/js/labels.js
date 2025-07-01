@@ -54,7 +54,7 @@ function runActionOnObjectRows(action, options = {}) {
 }
 
 function unlabelObjectRows(labelId) {
-  runActionOnObjectRows('unlabel', { label: labelId, add: false });
+  runActionOnObjectRows('unlabel', { label: labelId });
 }
 
 function labelObjectRows(labelId, forceRemove) {

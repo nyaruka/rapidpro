@@ -618,6 +618,9 @@ class ContactCRUDL(SmartCRUDL):
                 actions += ("start-flow",)
             return actions
 
+        def get_bulk_action_labels(self):
+            return ContactGroup.get_groups(self.request.org, manual_only=True)
+
         def get_context_data(self, *args, **kwargs):
             context = super().get_context_data(*args, **kwargs)
             context["current_group"] = self.group
