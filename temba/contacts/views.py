@@ -593,7 +593,6 @@ class ContactCRUDL(SmartCRUDL):
 
     class Group(OrgObjPermsMixin, ContextMenuMixin, ContactListView):
         template_name = "contacts/contact_group.html"
-        menu_path = "/contact/active"
 
         def build_context_menu(self, menu):
             if not self.group.is_system and self.has_org_perm("contacts.contactgroup_update"):
