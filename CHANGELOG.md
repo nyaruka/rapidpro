@@ -1,3 +1,7 @@
+v10.2.0 (2025-07-01)
+-------------------------
+ * Prep for 10.2.0 release
+
 v10.1.219 (2025-07-01)
 -------------------------
  * Fix not being able to bulk remove contacts from a group
