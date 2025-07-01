@@ -1,3 +1,8 @@
+v10.1.219 (2025-07-01)
+-------------------------
+ * Fix not being able to bulk remove contacts from a group
+ * Fix contact group menu reload issue
+
 v10.1.218 (2025-06-30)
 -------------------------
  * Force assets refresh for flow inspect for imports
