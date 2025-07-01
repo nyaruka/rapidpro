@@ -433,6 +433,11 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(["block", "archive", "send", "start-flow"], list(response.context["actions"]))
         self.assertContains(response, "age &gt; 40")
 
+        # try unlabel bulk action
+        self.client.post(group1_url, {"action": "unlabel", "objects": frank.id, "label": group1.id})
+        response = self.client.get(group1_url)
+        self.assertEqual([joe], list(response.context["object_list"]))
+
         # can access system group like any other except no options to edit or delete
         response = self.assertReadFetch(open_tickets_url, [self.editor])
         self.assertEqual([], list(response.context["object_list"]))

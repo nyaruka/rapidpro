@@ -96,7 +96,7 @@
           </div>
         {% endif %}
         {% if 'unlabel' in actions %}
-          <div onclick="unlabelObjectRows({{ current_group.pk }}, refreshMenu);" class="linked ml-4">
+          <div onclick="unlabelObjectRows({{ current_group.id }}, refreshMenu);" class="linked ml-4">
             <temba-tip position="top" text="{{ _("Remove from group") |escapejs }}">
               <temba-icon name="group_exclude" clickable="true" class="show-loading">
               </temba-icon>
