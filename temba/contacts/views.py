@@ -266,9 +266,7 @@ class ContactCRUDL(SmartCRUDL):
                 )
 
             if group_items:
-                menu.append(
-                    {"id": "filter", "icon": "users", "name": _("Groups"), "items": group_items, "inline": True}
-                )
+                menu.append({"id": "group", "icon": "users", "name": _("Groups"), "items": group_items, "inline": True})
 
             return JsonResponse({"results": menu})
 
@@ -595,6 +593,7 @@ class ContactCRUDL(SmartCRUDL):
 
     class Group(OrgObjPermsMixin, ContextMenuMixin, ContactListView):
         template_name = "contacts/contact_group.html"
+        menu_path = "/contact/active"
 
         def build_context_menu(self, menu):
             if not self.group.is_system and self.has_org_perm("contacts.contactgroup_update"):
@@ -630,7 +629,7 @@ class ContactCRUDL(SmartCRUDL):
             return r"^%s/%s/(?P<uuid>[^/]+)/$" % (path, action)
 
         def derive_menu_path(self):
-            return self.kwargs["uuid"]
+            return f"/contact/group/{self.kwargs["uuid"]}"
 
         def get_object_org(self):
             return self.group.org
