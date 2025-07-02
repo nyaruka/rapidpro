@@ -64,6 +64,13 @@ class TembaAccountAdapter(InviteAdapterMixin, DefaultAccountAdapter):
 
 
 class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter):
+    def pre_social_login(self, request, sociallogin):
+        # just printing this out since I want to push a branch to track something down
+        print("PRE SOCIAL LOGIN HIT")
+        print(f"User: {sociallogin.user}")
+        print(f"Extra data: {sociallogin.account.extra_data}")
+        print(f"Is existing: {sociallogin.is_existing}")
+
     def save_user(self, request, sociallogin, form=None):  # pragma: no cover
         user = super().save_user(request, sociallogin, form)
 
