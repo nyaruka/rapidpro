@@ -1,6 +1,5 @@
 from collections import OrderedDict
 
-from django.contrib.postgres.fields import HStoreField
 from django.core import checks
 from django.db import models
 from django.db.models import JSONField as DjangoJSONField
@@ -105,14 +104,3 @@ class JSONField(DjangoJSONField):
         kwargs["encoder"] = json.TembaEncoder
         kwargs["decoder"] = json.TembaDecoder
         super().__init__(*args, **kwargs)
-
-
-class TranslatableField(HStoreField):
-    """
-    TODO remove once migrations squashed (this is the last place we use HStoreField)
-    """
-
-    def __init__(self, max_length, **kwargs):
-        super().__init__(**kwargs)
-
-        self.max_length = max_length

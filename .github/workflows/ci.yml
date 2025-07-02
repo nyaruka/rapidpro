@@ -63,8 +63,6 @@ jobs:
           port: 6000
 
       - name: Initialize environment
-        env:
-          POSTGIS: 'off'
         run: |
           poetry install --no-root
           yarn install
@@ -87,8 +85,6 @@ jobs:
           poetry run python manage.py compress --extension=".html" --settings=temba.settings_compress
 
       - name: Run tests
-        env:
-          POSTGIS: 'off'
         run: |
           poetry run coverage run manage.py test --keepdb --noinput --verbosity=2
           poetry run coverage report -i
