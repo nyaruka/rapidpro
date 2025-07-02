@@ -71,6 +71,7 @@ class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter)
         if not user.email:
             extra = sociallogin.account.extra_data
             user.email = extra.get("email") or extra.get("preferred_username") or extra.get("upn") or ""
+            user.save(update_fields=["email"])
 
         avatar_url = sociallogin.account.get_avatar_url()
 
