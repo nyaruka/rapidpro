@@ -88,15 +88,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="webhookevent",
             name="org",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.PROTECT, to="orgs.org"
-            ),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="orgs.org"),
         ),
         migrations.AddField(
             model_name="webhookevent",
             name="resthook",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.PROTECT, to="api.resthook"
-            ),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="api.resthook"),
         ),
     ]

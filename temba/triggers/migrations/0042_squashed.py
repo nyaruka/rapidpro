@@ -85,9 +85,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "contacts",
-                    models.ManyToManyField(
-                        related_name="triggers", to="contacts.contact"
-                    ),
+                    models.ManyToManyField(related_name="triggers", to="contacts.contact"),
                 ),
             ],
             options={

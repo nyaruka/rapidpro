@@ -32,9 +32,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="trigger",
             name="exclude_groups",
-            field=models.ManyToManyField(
-                related_name="triggers_excluded", to="contacts.contactgroup"
-            ),
+            field=models.ManyToManyField(related_name="triggers_excluded", to="contacts.contactgroup"),
         ),
         migrations.AddField(
             model_name="trigger",
@@ -48,9 +46,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="trigger",
             name="groups",
-            field=models.ManyToManyField(
-                related_name="triggers_included", to="contacts.contactgroup"
-            ),
+            field=models.ManyToManyField(related_name="triggers_included", to="contacts.contactgroup"),
         ),
         migrations.AddField(
             model_name="trigger",

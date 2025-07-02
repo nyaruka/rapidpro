@@ -40,9 +40,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="boundaryalias",
             name="org",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.PROTECT, to="orgs.org"
-            ),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="orgs.org"),
         ),
         migrations.AddIndex(
             model_name="adminboundary",

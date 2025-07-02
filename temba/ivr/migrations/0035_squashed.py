@@ -31,9 +31,7 @@ class Migration(migrations.Migration):
                 ("uuid", models.UUIDField(null=True)),
                 (
                     "direction",
-                    models.CharField(
-                        choices=[("I", "Incoming"), ("O", "Outgoing")], max_length=1
-                    ),
+                    models.CharField(choices=[("I", "Incoming"), ("O", "Outgoing")], max_length=1),
                 ),
                 (
                     "status",
@@ -78,9 +76,7 @@ class Migration(migrations.Migration):
                 ("next_attempt", models.DateTimeField(null=True)),
                 (
                     "log_uuids",
-                    django.contrib.postgres.fields.ArrayField(
-                        base_field=models.UUIDField(), null=True, size=None
-                    ),
+                    django.contrib.postgres.fields.ArrayField(base_field=models.UUIDField(), null=True, size=None),
                 ),
                 (
                     "channel",

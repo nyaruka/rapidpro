@@ -245,9 +245,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="ticketevent",
-            index=models.Index(
-                fields=["contact", "created_on"], name="ticketevents_contact_created"
-            ),
+            index=models.Index(fields=["contact", "created_on"], name="ticketevents_contact_created"),
         ),
         migrations.AddIndex(
             model_name="ticket",
@@ -273,15 +271,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="ticket",
-            index=models.Index(
-                fields=["org", "-modified_on", "-id"], name="tickets_api_by_org"
-            ),
+            index=models.Index(fields=["org", "-modified_on", "-id"], name="tickets_api_by_org"),
         ),
         migrations.AddIndex(
             model_name="ticket",
-            index=models.Index(
-                fields=["contact", "-modified_on", "-id"], name="tickets_api_by_contact"
-            ),
+            index=models.Index(fields=["contact", "-modified_on", "-id"], name="tickets_api_by_contact"),
         ),
         migrations.AddConstraint(
             model_name="team",

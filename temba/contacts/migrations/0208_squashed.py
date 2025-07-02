@@ -145,9 +145,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="contactgroup",
             name="query_fields",
-            field=models.ManyToManyField(
-                related_name="dependent_groups", to="contacts.contactfield"
-            ),
+            field=models.ManyToManyField(related_name="dependent_groups", to="contacts.contactfield"),
         ),
         migrations.AddField(
             model_name="contactgroupcount",
@@ -271,9 +269,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="contact",
-            index=models.Index(
-                fields=["org", "-modified_on"], name="contacts_contact_org_modified"
-            ),
+            index=models.Index(fields=["org", "-modified_on"], name="contacts_contact_org_modified"),
         ),
         migrations.AddIndex(
             model_name="contact",
@@ -312,9 +308,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="contacturn",
             constraint=models.CheckConstraint(
-                condition=models.Q(
-                    ("scheme", ""), ("path", ""), _connector="OR", _negated=True
-                ),
+                condition=models.Q(("scheme", ""), ("path", ""), _connector="OR", _negated=True),
                 name="non_empty_scheme_and_path",
             ),
         ),
@@ -324,9 +318,7 @@ class Migration(migrations.Migration):
                 condition=models.Q(
                     (
                         "identity",
-                        django.db.models.functions.text.Concat(
-                            models.F("scheme"), models.Value(":"), models.F("path")
-                        ),
+                        django.db.models.functions.text.Concat(models.F("scheme"), models.Value(":"), models.F("path")),
                     )
                 ),
                 name="identity_matches_scheme_and_path",

@@ -8,8 +8,7 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
@@ -26,9 +25,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "archive_type",
-                    models.CharField(
-                        choices=[("message", "Message"), ("run", "Run")], max_length=16
-                    ),
+                    models.CharField(choices=[("message", "Message"), ("run", "Run")], max_length=16),
                 ),
                 ("created_on", models.DateTimeField(default=django.utils.timezone.now)),
                 (

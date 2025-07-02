@@ -62,9 +62,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="channelevent",
             name="channel",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.PROTECT, to="channels.channel"
-            ),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="channels.channel"),
         ),
         migrations.AddField(
             model_name="channelevent",
@@ -98,9 +96,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="channelevent",
             name="org",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.PROTECT, to="orgs.org"
-            ),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="orgs.org"),
         ),
         migrations.AddField(
             model_name="syncevent",
@@ -128,9 +124,7 @@ class Migration(migrations.Migration):
             index=models.Index(
                 models.F("channel"),
                 models.F("day"),
-                django.contrib.postgres.indexes.OpClass(
-                    "scope", name="varchar_pattern_ops"
-                ),
+                django.contrib.postgres.indexes.OpClass("scope", name="varchar_pattern_ops"),
                 name="channelcount_channel_scope",
             ),
         ),

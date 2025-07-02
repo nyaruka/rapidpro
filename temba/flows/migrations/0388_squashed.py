@@ -38,37 +38,27 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="flow",
             name="field_dependencies",
-            field=models.ManyToManyField(
-                related_name="dependent_flows", to="contacts.contactfield"
-            ),
+            field=models.ManyToManyField(related_name="dependent_flows", to="contacts.contactfield"),
         ),
         migrations.AddField(
             model_name="flow",
             name="flow_dependencies",
-            field=models.ManyToManyField(
-                related_name="dependent_flows", to="flows.flow"
-            ),
+            field=models.ManyToManyField(related_name="dependent_flows", to="flows.flow"),
         ),
         migrations.AddField(
             model_name="flow",
             name="global_dependencies",
-            field=models.ManyToManyField(
-                related_name="dependent_flows", to="globals.global"
-            ),
+            field=models.ManyToManyField(related_name="dependent_flows", to="globals.global"),
         ),
         migrations.AddField(
             model_name="flow",
             name="group_dependencies",
-            field=models.ManyToManyField(
-                related_name="dependent_flows", to="contacts.contactgroup"
-            ),
+            field=models.ManyToManyField(related_name="dependent_flows", to="contacts.contactgroup"),
         ),
         migrations.AddField(
             model_name="flow",
             name="label_dependencies",
-            field=models.ManyToManyField(
-                related_name="dependent_flows", to="msgs.label"
-            ),
+            field=models.ManyToManyField(related_name="dependent_flows", to="msgs.label"),
         ),
         migrations.AddField(
             model_name="flow",
@@ -88,9 +78,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="flow",
             name="optin_dependencies",
-            field=models.ManyToManyField(
-                related_name="dependent_flows", to="msgs.optin"
-            ),
+            field=models.ManyToManyField(related_name="dependent_flows", to="msgs.optin"),
         ),
         migrations.AddField(
             model_name="flow",
@@ -113,23 +101,17 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="flow",
             name="template_dependencies",
-            field=models.ManyToManyField(
-                related_name="dependent_flows", to="templates.template"
-            ),
+            field=models.ManyToManyField(related_name="dependent_flows", to="templates.template"),
         ),
         migrations.AddField(
             model_name="flow",
             name="topic_dependencies",
-            field=models.ManyToManyField(
-                related_name="dependent_flows", to="tickets.topic"
-            ),
+            field=models.ManyToManyField(related_name="dependent_flows", to="tickets.topic"),
         ),
         migrations.AddField(
             model_name="flow",
             name="user_dependencies",
-            field=models.ManyToManyField(
-                related_name="dependent_flows", to=settings.AUTH_USER_MODEL
-            ),
+            field=models.ManyToManyField(related_name="dependent_flows", to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
             model_name="flowactivitycount",
@@ -331,9 +313,7 @@ class Migration(migrations.Migration):
             model_name="flowactivitycount",
             index=models.Index(
                 models.F("flow"),
-                django.contrib.postgres.indexes.OpClass(
-                    "scope", name="varchar_pattern_ops"
-                ),
+                django.contrib.postgres.indexes.OpClass("scope", name="varchar_pattern_ops"),
                 name="flowactivitycount_flow_scope",
             ),
         ),
@@ -380,9 +360,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="flowsession",
             constraint=models.CheckConstraint(
-                condition=models.Q(
-                    ("status", "W"), ("ended_on__isnull", False), _connector="OR"
-                ),
+                condition=models.Q(("status", "W"), ("ended_on__isnull", False), _connector="OR"),
                 name="flows_session_non_waiting_has_ended_on",
             ),
         ),
@@ -422,9 +400,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="flowrun",
-            index=models.Index(
-                fields=["flow", "-modified_on", "-id"], name="flowruns_api_by_flow"
-            ),
+            index=models.Index(fields=["flow", "-modified_on", "-id"], name="flowruns_api_by_flow"),
         ),
         migrations.AddIndex(
             model_name="flowrun",
@@ -436,9 +412,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="flowrun",
-            index=models.Index(
-                fields=["org", "-modified_on", "-id"], name="flowruns_api_by_org"
-            ),
+            index=models.Index(fields=["org", "-modified_on", "-id"], name="flowruns_api_by_org"),
         ),
         migrations.AddIndex(
             model_name="flowrun",

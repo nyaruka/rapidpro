@@ -166,9 +166,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="orgmembership",
             name="org",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="orgs.org"
-            ),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="orgs.org"),
         ),
         migrations.AddField(
             model_name="orgmembership",
@@ -182,9 +180,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="orgmembership",
             name="user",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
-            ),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
             model_name="org",
@@ -199,9 +195,7 @@ class Migration(migrations.Migration):
             model_name="itemcount",
             index=models.Index(
                 models.F("org"),
-                django.contrib.postgres.indexes.OpClass(
-                    "scope", name="varchar_pattern_ops"
-                ),
+                django.contrib.postgres.indexes.OpClass("scope", name="varchar_pattern_ops"),
                 name="orgcount_org_scope",
             ),
         ),
@@ -218,9 +212,7 @@ class Migration(migrations.Migration):
             index=models.Index(
                 models.F("org"),
                 models.F("day"),
-                django.contrib.postgres.indexes.OpClass(
-                    "scope", name="varchar_pattern_ops"
-                ),
+                django.contrib.postgres.indexes.OpClass("scope", name="varchar_pattern_ops"),
                 name="orgdailycount_org_scope",
             ),
         ),

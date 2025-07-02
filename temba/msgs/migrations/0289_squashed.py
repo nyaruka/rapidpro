@@ -36,9 +36,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="broadcast",
             name="groups",
-            field=models.ManyToManyField(
-                related_name="addressed_broadcasts", to="contacts.contactgroup"
-            ),
+            field=models.ManyToManyField(related_name="addressed_broadcasts", to="contacts.contactgroup"),
         ),
         migrations.AddField(
             model_name="broadcast",
@@ -138,9 +136,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="media",
             name="created_by",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL
-            ),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
             model_name="media",
@@ -291,9 +287,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="broadcast",
             name="optin",
-            field=models.ForeignKey(
-                null=True, on_delete=django.db.models.deletion.PROTECT, to="msgs.optin"
-            ),
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.PROTECT, to="msgs.optin"),
         ),
         migrations.AddConstraint(
             model_name="label",
@@ -321,15 +315,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="msg",
-            index=models.Index(
-                fields=["org", "-created_on", "-id"], name="msgs_by_org"
-            ),
+            index=models.Index(fields=["org", "-created_on", "-id"], name="msgs_by_org"),
         ),
         migrations.AddIndex(
             model_name="msg",
-            index=models.Index(
-                fields=["contact", "-created_on", "-id"], name="msgs_by_contact"
-            ),
+            index=models.Index(fields=["contact", "-created_on", "-id"], name="msgs_by_contact"),
         ),
         migrations.AddIndex(
             model_name="msg",
@@ -439,9 +429,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="msg",
             constraint=models.CheckConstraint(
-                condition=models.Q(
-                    ("direction", "I"), ("direction", "O"), _connector="OR"
-                ),
+                condition=models.Q(("direction", "I"), ("direction", "O"), _connector="OR"),
                 name="direction_is_in_or_out",
             ),
         ),
@@ -450,9 +438,7 @@ class Migration(migrations.Migration):
             constraint=models.CheckConstraint(
                 condition=models.Q(
                     ("direction", "O"),
-                    models.Q(
-                        ("channel__isnull", False), ("contact_urn__isnull", False)
-                    ),
+                    models.Q(("channel__isnull", False), ("contact_urn__isnull", False)),
                     _connector="OR",
                 ),
                 name="incoming_has_channel_and_urn",

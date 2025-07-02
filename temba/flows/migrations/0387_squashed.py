@@ -2,12 +2,13 @@
 
 import django.contrib.postgres.fields
 import django.utils.timezone
+from django.db import migrations, models
+
 import temba.orgs.models
 import temba.utils.fields
 import temba.utils.models.base
 import temba.utils.models.fields
 import temba.utils.uuid
-from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
@@ -25,9 +26,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.BigAutoField(
-                        auto_created=True, primary_key=True, serialize=False
-                    ),
+                    models.BigAutoField(auto_created=True, primary_key=True, serialize=False),
                 ),
                 ("count", models.IntegerField()),
                 ("is_squashed", models.BooleanField(default=False)),
@@ -74,9 +73,7 @@ class Migration(migrations.Migration):
                 ("uuid", models.UUIDField(default=temba.utils.uuid.uuid4, unique=True)),
                 (
                     "name",
-                    models.CharField(
-                        max_length=64, validators=[temba.utils.fields.NameValidator(64)]
-                    ),
+                    models.CharField(max_length=64, validators=[temba.utils.fields.NameValidator(64)]),
                 ),
                 ("is_system", models.BooleanField(default=False)),
             ],
@@ -86,9 +83,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.BigAutoField(
-                        auto_created=True, primary_key=True, serialize=False
-                    ),
+                    models.BigAutoField(auto_created=True, primary_key=True, serialize=False),
                 ),
                 ("count", models.IntegerField()),
                 ("is_squashed", models.BooleanField(default=False)),
@@ -151,15 +146,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "path_nodes",
-                    django.contrib.postgres.fields.ArrayField(
-                        base_field=models.UUIDField(), null=True, size=None
-                    ),
+                    django.contrib.postgres.fields.ArrayField(base_field=models.UUIDField(), null=True, size=None),
                 ),
                 (
                     "path_times",
-                    django.contrib.postgres.fields.ArrayField(
-                        base_field=models.DateTimeField(), null=True, size=None
-                    ),
+                    django.contrib.postgres.fields.ArrayField(base_field=models.DateTimeField(), null=True, size=None),
                 ),
                 ("current_node_uuid", models.UUIDField(null=True)),
             ],
@@ -248,9 +239,7 @@ class Migration(migrations.Migration):
                 ("contact_count", models.IntegerField(default=0, null=True)),
                 (
                     "urns",
-                    django.contrib.postgres.fields.ArrayField(
-                        base_field=models.TextField(), null=True, size=None
-                    ),
+                    django.contrib.postgres.fields.ArrayField(base_field=models.TextField(), null=True, size=None),
                 ),
                 ("query", models.TextField(null=True)),
                 ("exclusions", models.JSONField(default=dict, null=True)),
@@ -267,9 +256,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.BigAutoField(
-                        auto_created=True, primary_key=True, serialize=False
-                    ),
+                    models.BigAutoField(auto_created=True, primary_key=True, serialize=False),
                 ),
                 ("count", models.IntegerField()),
                 ("is_squashed", models.BooleanField(default=False)),
@@ -325,9 +312,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "name",
-                    models.CharField(
-                        max_length=64, validators=[temba.utils.fields.NameValidator(64)]
-                    ),
+                    models.CharField(max_length=64, validators=[temba.utils.fields.NameValidator(64)]),
                 ),
                 ("is_system", models.BooleanField(default=False)),
                 ("is_archived", models.BooleanField(default=False)),
@@ -373,15 +358,11 @@ class Migration(migrations.Migration):
                 ("saved_on", models.DateTimeField(auto_now_add=True)),
                 (
                     "channel_dependencies",
-                    models.ManyToManyField(
-                        related_name="dependent_flows", to="channels.channel"
-                    ),
+                    models.ManyToManyField(related_name="dependent_flows", to="channels.channel"),
                 ),
                 (
                     "classifier_dependencies",
-                    models.ManyToManyField(
-                        related_name="dependent_flows", to="classifiers.classifier"
-                    ),
+                    models.ManyToManyField(related_name="dependent_flows", to="classifiers.classifier"),
                 ),
             ],
             options={
