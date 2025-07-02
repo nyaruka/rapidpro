@@ -1,3 +1,7 @@
+v10.2.1 (2025-07-02)
+-------------------------
+ * Add placeholder migration files for squashed migrations
+
 v10.2.0 (2025-07-01)
 -------------------------
  * Prep for 10.2.0 release
