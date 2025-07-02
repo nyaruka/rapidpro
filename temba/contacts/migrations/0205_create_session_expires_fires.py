@@ -7,7 +7,7 @@ from django.db import migrations
 from django.db.models import Exists, OuterRef
 
 
-def create_session_expires_fires(apps, schema_editor):
+def create_session_expires_fires(apps, schema_editor):  # pragma: no cover
     Contact = apps.get_model("contacts", "Contact")
     ContactFire = apps.get_model("contacts", "ContactFire")
     FlowSession = apps.get_model("flows", "FlowSession")

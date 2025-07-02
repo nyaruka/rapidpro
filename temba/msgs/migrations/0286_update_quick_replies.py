@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def update_quick_replies(apps, schema_editor):
+def update_quick_replies(apps, schema_editor):  # pragma: no cover
     Broadcast = apps.get_model("msgs", "Broadcast")
 
     num_updated = 0

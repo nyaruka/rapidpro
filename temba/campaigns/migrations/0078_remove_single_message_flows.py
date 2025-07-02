@@ -6,11 +6,11 @@ from django.utils import timezone
 from temba.utils.uuid import uuid4
 
 
-def _deleted_name(flow) -> str:
+def _deleted_name(flow) -> str:  # pragma: no cover
     return f"deleted-{uuid4()}-{flow.name}"[:64]
 
 
-def remove_single_message_flows(apps, schema_editor):
+def remove_single_message_flows(apps, schema_editor):  # pragma: no cover
     CampaignEvent = apps.get_model("campaigns", "CampaignEvent")
     Flow = apps.get_model("flows", "Flow")
 
