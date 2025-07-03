@@ -73,6 +73,9 @@ class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter)
     def is_auto_signup_allowed(self, request, sociallogin):
         return True
 
+    def is_email_verified(self, request, email):
+        return True
+
     def populate_user(self, request, sociallogin, data):
         user = super().populate_user(request, sociallogin, data)
         extra = sociallogin.account.extra_data
