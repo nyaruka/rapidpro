@@ -172,13 +172,24 @@
 {% endblock extra-style %}
 {% block top-right %}
   {% if user.is_authenticated %}
-    <div class="-mt-10">
-      <temba-button class="inline-block" name="Workspace" href="{% url 'orgs.org_start' %}">
-      </temba-button>
-    </div>
+    {% if org %}
+      <div class="-mt-10">
+        <temba-button class="inline-block" name="Workspace" href="{% url 'orgs.org_start' %}">
+        </temba-button>
+      </div>
+    {% endif %}
   {% endif %}
 {% endblock top-right %}
 {% block content-wrapper %}
+  {% if not org %}
+    <div class="mb-6">
+      <temba-alert>
+        {% blocktrans trimmed %}
+          You are not a member of any workspaces and need an invitation to continue.
+        {% endblocktrans %}
+      </temba-alert>
+    </div>
+  {% endif %}
   {% if messages %}
     <div class="mb-6">
       <temba-alert>

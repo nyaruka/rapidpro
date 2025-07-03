@@ -1269,9 +1269,9 @@ class OrgCRUDL(SmartCRUDL):
             if request.org:
                 return HttpResponseRedirect(reverse("orgs.org_start"))
 
-            # if our brand doesn't allow signups, then redirect to the homepage
+            # if our brand doesn't allow signups, then redirect to the account page
             if "signups" not in request.branding.get("features", []):  # pragma: needs cover
-                return HttpResponseRedirect(reverse("public.public_index"))
+                return HttpResponseRedirect(reverse("orgs.user_edit"))
 
             return super().pre_process(request, *args, **kwargs)
 

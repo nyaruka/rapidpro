@@ -9,7 +9,7 @@
   {{ form.errors }}
   {% if invite %}
     {% element h2 %}
-      {% trans "You're Invited!" %}
+      {% trans "You're Invited!" %}arst
     {% endelement %}
     <div class="mb-2">
       {% blocktrans trimmed with org=invite.org.name %}
@@ -58,7 +58,7 @@
     {% trans "Sign up using a passkey" %}
   {% endelement %}
 {% endif %}
-{% if SOCIALACCOUNT_ENABLED and not invite and "sso" in request.branding.features %}
+{% if SOCIALACCOUNT_ENABLED and "sso" in request.branding.features %}
   {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
 {% endif %}
 {% if not invite %}
