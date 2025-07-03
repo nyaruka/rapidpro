@@ -10,9 +10,9 @@ from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from temba.users.models import User
 from temba.orgs.models import Invitation
 from temba.orgs.views.views import switch_to_org
+from temba.users.models import User
 from temba.utils.email.send import EmailSender
 
 
