@@ -1,3 +1,7 @@
+v10.2.3 (2025-07-03)
+-------------------------
+ * Allow invite acceptance via sso
+
 v10.2.1 (2025-07-02)
 -------------------------
  * Add placeholder migration files for squashed migrations
