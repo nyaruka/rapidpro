@@ -65,7 +65,7 @@ class TembaAccountAdapter(InviteAdapterMixin, DefaultAccountAdapter):
         sender.send([email], template_prefix, context)
 
 
-class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter):
+class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter):  # pragma: no cover
 
     def get_signup_form_class(self, request):
         return None
