@@ -145,7 +145,7 @@ class TembaTest(SmartminTest):
         r = get_valkey_connection()
         r.flushdb()
 
-    def login(self, user, *, update_last_auth_on: bool = True, choose_org=None):
+    def login(self, user, *, choose_org=None):
         self.assertTrue(
             self.client.login(username=user.email, password=self.default_password),
             f"couldn't login as {user.email}:{self.default_password}",
@@ -154,9 +154,6 @@ class TembaTest(SmartminTest):
         # infer our org if we weren't handed one
         if not choose_org:
             choose_org = user.orgs.filter(is_active=True).order_by("-created_on").first()
-
-        if update_last_auth_on:
-            user.record_auth()
 
         if choose_org:
             session = self.client.session
