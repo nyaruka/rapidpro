@@ -1,3 +1,7 @@
+v10.2.4 (2025-07-04)
+-------------------------
+ * Make SSO invite accept buttons more clear
+
 v10.2.3 (2025-07-03)
 -------------------------
  * Allow invite acceptance via sso
