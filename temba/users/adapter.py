@@ -5,7 +5,6 @@ from allauth.mfa.adapter import DefaultMFAAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.signals import social_account_added
 
-
 from django.contrib import messages
 from django.dispatch import receiver
 from django.utils import timezone
