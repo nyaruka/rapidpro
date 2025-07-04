@@ -67,15 +67,6 @@ class TembaAccountAdapter(InviteAdapterMixin, DefaultAccountAdapter):
 
 class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter):  # pragma: no cover
 
-    def get_signup_form_class(self, request):
-        return None
-
-    def is_auto_signup_allowed(self, request, sociallogin):
-        return True
-
-    def is_email_verified(self, request, email):
-        return True
-
     def populate_user(self, request, sociallogin, data):
         user = super().populate_user(request, sociallogin, data)
         extra = sociallogin.account.extra_data
@@ -98,17 +89,26 @@ class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter)
         return user
 
     def pre_social_login(self, request, sociallogin):
-        if sociallogin.is_existing:
-            return
-        email = sociallogin.account.extra_data.get("email") or sociallogin.account.extra_data.get("upn")
-        if not email:
-            return
+        # extract email from various possible fields
+        email = None
+        if hasattr(sociallogin, "account") and hasattr(sociallogin.account, "extra_data"):
+            extra_data = sociallogin.account.extra_data
+            # check multiple possible email fields
+            email = (
+                extra_data.get("email")
+                or extra_data.get("upn")  # azure ad uses upn
+                or extra_data.get("preferred_username")
+            )
 
-        try:
-            user = User.objects.get(email=email)
-            sociallogin.connect(request, user)
-        except User.DoesNotExist:
-            pass
+        # if we have an email but no email_addresses set, create one
+        if email and not sociallogin.email_addresses:
+            sociallogin.email_addresses = [EmailAddress(email=email, verified=True, primary=True)]
+
+        # if user exists, connect the social account
+        if email and not sociallogin.is_existing:
+            user = User.objects.filter(email=email).first()
+            if user:
+                sociallogin.connect(request, user)
 
 
 @receiver(social_account_added)
