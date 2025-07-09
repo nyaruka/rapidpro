@@ -282,6 +282,10 @@ class TestClient(MailroomClient):
         return mailroom.ParsedQuery(query=query, metadata=mock_inspect_query(org, query))
 
     @_client_method
+    def contact_populate_group(self, org, group):
+        pass
+
+    @_client_method
     def contact_search(self, org, group, query: str, sort: str, offset=0, limit=50, exclude_ids=()):
         mock = self.mocks._contact_search.get(query or "")
 

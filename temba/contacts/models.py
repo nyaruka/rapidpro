@@ -25,7 +25,7 @@ from django.utils.translation import gettext_lazy as _
 from temba import mailroom
 from temba.channels.models import Channel
 from temba.locations.models import AdminBoundary
-from temba.mailroom import ContactSpec, modifiers, queue_populate_dynamic_group
+from temba.mailroom import ContactSpec, modifiers
 from temba.orgs.models import DependencyMixin, Export, ExportType, Org, OrgRole
 from temba.utils import format_number, on_transaction_commit
 from temba.utils.export import MultiSheetExporter
@@ -1576,7 +1576,7 @@ class ContactGroup(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         # start background task to re-evaluate who belongs in this group
         if reevaluate:
-            on_transaction_commit(lambda: queue_populate_dynamic_group(self))
+            on_transaction_commit(lambda: mailroom.get_client().contact_populate_group(self.org, self))
 
     @classmethod
     def get_member_counts(cls, groups) -> dict:
