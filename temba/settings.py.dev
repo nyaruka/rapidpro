@@ -14,8 +14,11 @@ from .settings_common import *  # noqa
 
 DEBUG = True
 
-# allow all hosts in dev
-ALLOWED_HOSTS = ["*"]
+# allow all hosts in dev, but can be overridden by environment variable
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",") if os.environ.get("DJANGO_ALLOWED_HOSTS") else ["*"]
+
+# CSRF trusted origins can be configured via environment variable
+CSRF_TRUSTED_ORIGINS = os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS") else []
 
 INTERNAL_IPS = ("127.0.0.1",)
 
