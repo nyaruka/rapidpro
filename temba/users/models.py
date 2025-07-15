@@ -149,7 +149,7 @@ class User(TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         """
 
         self.emailaddress_set.update_or_create(
-            primary=True, defaults={"email": self.email, "primary": True, "verified": verified}
+            email=self.email, defaults={"email": self.email, "primary": True, "verified": verified}
         )
 
     def record_auth(self):
