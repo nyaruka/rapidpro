@@ -630,11 +630,8 @@ INVITATION_VALIDITY = timedelta(days=30)
 # Database
 # -----------------------------------------------------------------------------------
 
-# temp workaround to allow running migrations without PostGIS
-POSTGIS = os.getenv("POSTGIS", "") != "off"
-
 _default_database_config = {
-    "ENGINE": "django.contrib.gis.db.backends.postgis" if POSTGIS else "django.db.backends.postgresql",
+    "ENGINE": "django.db.backends.postgresql",
     "NAME": "temba",
     "USER": "temba",
     "PASSWORD": "temba",
