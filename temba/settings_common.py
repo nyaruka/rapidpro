@@ -150,12 +150,13 @@ MEDIA_URL = "/media/"
 # -----------------------------------------------------------------------------------
 # Email
 # -----------------------------------------------------------------------------------
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_HOST_USER = "server@temba.io"
-DEFAULT_FROM_EMAIL = "Temba <server@temba.io>"
-EMAIL_HOST_PASSWORD = "mypassword"
-EMAIL_USE_TLS = True
-EMAIL_TIMEOUT = 10
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "server@temba.io")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", f"Temba <{os.environ.get('EMAIL_HOST_USER', 'server@temba.io')}>")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "mypassword")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes", "on")
+EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "10"))
 
 # Used when sending email from within a flow and the user hasn't configured
 # their own SMTP server.
@@ -637,8 +638,8 @@ _default_database_config = {
     "ENGINE": "django.contrib.gis.db.backends.postgis" if POSTGIS else "django.db.backends.postgresql",
     "NAME": "temba",
     "USER": "temba",
-    "PASSWORD": "temba",
-    "HOST": _db_host,
+    "PASSWORD": "<your password here>",
+    "HOST": "<your host here>",
     "PORT": "5432",
     "ATOMIC_REQUESTS": True,
     "CONN_MAX_AGE": 60,
