@@ -1,3 +1,9 @@
+v10.3.0 (2025-07-17)
+-------------------------
+ * Remove no longer needed POSTGIS env var
+ * Remove no longer used TranslatableField type
+ * Replace placeholder migrations with real squashed migrations
+
 v10.2.4 (2025-07-04)
 -------------------------
  * Make SSO invite accept buttons more clear
