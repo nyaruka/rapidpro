@@ -1,0 +1,34 @@
+{% load allauth socialaccount %}
+
+{% get_providers as socialaccount_providers %}
+{% if socialaccount_providers %}
+  <ul class="socialaccount_providers sso-providers">
+    {% for provider in socialaccount_providers %}
+      {% if provider.id == "openid" %}
+        {% for brand in provider.get_brands %}
+          {% provider_login_url provider openid=brand.openid_url process=process as brand_login_url %}
+          <li>
+            <a type="button" title="{{ brand.name }}" href="{{ brand_login_url }}">
+              {% if invite %}
+                Accept Invitation with {{ brand.name }}
+              {% else %}
+                Sign In with {{ brand.name }}
+              {% endif %}
+            </a>
+          </li>
+        {% endfor %}
+      {% else %}
+        {% provider_login_url provider process=process scope=scope auth_params=auth_params as login_url %}
+        <li>
+          <a type="button" title="{{ provider.name }}" href="{{ login_url }}">
+            {% if invite %}
+              Accept Invitation with {{ provider.name }}
+            {% else %}
+              Sign In with {{ provider.name }}
+            {% endif %}
+          </a>
+        </li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+{% endif %}
