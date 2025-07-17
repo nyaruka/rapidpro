@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import call
 
 from django.test.utils import override_settings
 from django.urls import reverse
@@ -65,6 +66,9 @@ class ContactGroupCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # create a dynamic group using a query
         self.client.post(url, {"name": "Frank", "group_query": "tel = 1234"})
+        group = ContactGroup.objects.get(org=self.org, name="Frank")
+
+        self.assertEqual([call(self.org, group)], mr_mocks.calls["contact_populate_group"])
 
         ContactGroup.objects.get(org=self.org, name="Frank", query="tel = 1234")
 

@@ -123,6 +123,9 @@ class MailroomClient:
 
         return ParsedQuery(query=resp["query"], metadata=QueryMetadata(**resp.get("metadata", {})))
 
+    def contact_populate_group(self, org, group):
+        self._request("contact/populate_group", {"org_id": org.id, "group_id": group.id})
+
     def contact_search(self, org, group, query: str, sort: str, offset=0, limit=50, exclude_ids=()) -> SearchResults:
         resp = self._request(
             "contact/search",

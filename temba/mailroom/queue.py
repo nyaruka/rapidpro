@@ -14,18 +14,8 @@ DEFAULT_PRIORITY = 0
 class BatchTask(Enum):
     START_FLOW = "start_flow"
     INTERRUPT_SESSIONS = "interrupt_sessions"
-    POPULATE_DYNAMIC_GROUP = "populate_dynamic_group"
     IMPORT_CONTACT_BATCH = "import_contact_batch"
     INTERRUPT_CHANNEL = "interrupt_channel"
-
-
-def queue_populate_dynamic_group(group):
-    """
-    Queues a task to populate the contacts for a dynamic group
-    """
-    task = {"group_id": group.id, "query": group.query, "org_id": group.org_id}
-
-    _queue_batch_task(group.org_id, BatchTask.POPULATE_DYNAMIC_GROUP, task, HIGH_PRIORITY)
 
 
 def queue_flow_start(start):

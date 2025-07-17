@@ -339,6 +339,19 @@ class MailroomClientTest(TembaTest):
             self.client.contact_parse_query(self.org, "age > 10")
 
     @patch("requests.post")
+    def test_contact_populate_group(self, mock_post):
+        group = self.create_group("Doctors", contacts=[])
+
+        mock_post.return_value = MockJsonResponse(200, {})
+        self.client.contact_populate_group(self.org, group)
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mr/contact/populate_group",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={"org_id": self.org.id, "group_id": group.id},
+        )
+
+    @patch("requests.post")
     def test_contact_search(self, mock_post):
         group = self.create_group("Doctors", contacts=[])
 
