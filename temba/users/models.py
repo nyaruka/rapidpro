@@ -55,7 +55,6 @@ class User(TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
     avatar = models.ImageField(upload_to=UploadToIdPathAndRename("avatars/"), storage=storages["public"], null=True)
 
     date_joined = models.DateTimeField(default=timezone.now)
-    last_auth_on = models.DateTimeField(null=True)
     is_system = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
@@ -151,14 +150,6 @@ class User(TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         self.emailaddress_set.update_or_create(
             email=self.email, defaults={"email": self.email, "primary": True, "verified": verified}
         )
-
-    def record_auth(self):
-        """
-        Records that this user authenticated
-        """
-
-        self.last_auth_on = timezone.now()
-        self.save(update_fields=("last_auth_on",))
 
     @cached_property
     def is_alpha(self) -> bool:
