@@ -314,9 +314,13 @@ class UserCRUDL(SmartCRUDL):
         title = "Update User"
 
         def post(self, request, *args, **kwargs):
+            obj = self.get_object()
+            if "email" in request.POST:
+                if obj.email != request.POST["email"]:
+                    obj.emailaddress_set.all().delete()
+
             if "action" in request.POST:
                 action = request.POST["action"]
-                obj = self.get_object()
 
                 if action == self.ACTION_VERIFY:
                     obj.set_verified(True)
