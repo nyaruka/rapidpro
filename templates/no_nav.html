@@ -46,11 +46,13 @@
         {% block content-wrapper %}
           {% block alert-messages %}
             {% if messages %}
-              {% for msg in messages %}
-                <temba-alert class="mb-3">
-                  {{ msg }}
-                </temba-alert>
-              {% endfor %}
+              <div class="px-4 pb-4">
+                {% for msg in messages %}
+                  <temba-alert class="mb-3">
+                    {{ msg }}
+                  </temba-alert>
+                {% endfor %}
+              </div>
             {% endif %}
           {% endblock alert-messages %}
           {% block content %}

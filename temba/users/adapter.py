@@ -1,4 +1,5 @@
 from allauth.account.adapter import DefaultAccountAdapter
+from allauth.account.models import EmailAddress
 from allauth.core import context as allauth_context
 from allauth.mfa.adapter import DefaultMFAAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
@@ -11,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 
 from temba.orgs.models import Invitation
 from temba.orgs.views.views import switch_to_org
+from temba.users.models import User
 from temba.utils.email.send import EmailSender
 
 
@@ -42,7 +44,7 @@ class InviteAdapterMixin:
             redirect_url=redirect_url,
         )
 
-    def is_open_for_signup(self, request):
+    def is_open_for_signup(self, request, sociallogin=None):
         # if we have a signup invite, we need to allow signups
         secret = request.GET.get("invite", request.session.get("invite_secret", None))
 
@@ -63,24 +65,50 @@ class TembaAccountAdapter(InviteAdapterMixin, DefaultAccountAdapter):
         sender.send([email], template_prefix, context)
 
 
-class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter):
-    def save_user(self, request, sociallogin, form=None):  # pragma: no cover
-        user = super().save_user(request, sociallogin, form)
+class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter):  # pragma: no cover
 
-        # some backdown options for email
+    def populate_user(self, request, sociallogin, data):
+        user = super().populate_user(request, sociallogin, data)
+        extra = sociallogin.account.extra_data
+        email = extra.get("email") or extra.get("preferred_username") or extra.get("upn")
         if not user.email:
-            extra = sociallogin.account.extra_data
-            user.email = extra.get("email") or extra.get("preferred_username") or extra.get("upn") or ""
-
-        avatar_url = sociallogin.account.get_avatar_url()
-
-        # some social accounts may not have an avatar URL
-        if avatar_url:
-            user.fetch_avatar(avatar_url)
+            user.email = email
+        if "email" not in data and email:
+            data["email"] = email
         return user
 
-    def is_open_for_signup(self, request, sociallogin):  # pragma: no cover
-        return super().is_open_for_signup(request=request)
+    def save_user(self, request, sociallogin, form=None):
+        user = super().save_user(request, sociallogin, form)
+        email = user.email
+        if email:
+            EmailAddress.objects.update_or_create(
+                user=user,
+                email=email,
+                defaults={"verified": True, "primary": True},
+            )
+        return user
+
+    def pre_social_login(self, request, sociallogin):
+        # extract email from various possible fields
+        email = None
+        if hasattr(sociallogin, "account") and hasattr(sociallogin.account, "extra_data"):
+            extra_data = sociallogin.account.extra_data
+            # check multiple possible email fields
+            email = (
+                extra_data.get("email")
+                or extra_data.get("upn")  # azure ad uses upn
+                or extra_data.get("preferred_username")
+            )
+
+        # if we have an email but no email_addresses set, create one
+        if email and not sociallogin.email_addresses:
+            sociallogin.email_addresses = [EmailAddress(email=email, verified=True, primary=True)]
+
+        # if user exists, connect the social account
+        if email and not sociallogin.is_existing:
+            user = User.objects.filter(email=email).first()
+            if user:
+                sociallogin.connect(request, user)
 
 
 @receiver(social_account_added)

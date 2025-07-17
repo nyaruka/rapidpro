@@ -30,7 +30,7 @@ need to upgrade to `7.4.2` before upgrading to `8.0`.
 
 The set of versions that make up the latest stable release are:
 
-- [RapidPro 10.2.0](https://github.com/nyaruka/rapidpro/releases/tag/v10.2.0)
+- [RapidPro 10.2.1](https://github.com/nyaruka/rapidpro/releases/tag/v10.2.1)
 - [Mailroom 10.2.0](https://github.com/nyaruka/mailroom/releases/tag/v10.2.0)
 - [Courier 10.2.0](https://github.com/nyaruka/courier/releases/tag/v10.2.0)
 - [Indexer 10.2.0](https://github.com/nyaruka/rp-indexer/releases/tag/v10.2.0)
