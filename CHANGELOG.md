@@ -1,3 +1,10 @@
+v10.3.1 (2025-07-17)
+-------------------------
+ * Bump aiohttp from 3.11.11 to 3.12.14
+ * Email update by staff should be reverified
+ * Populate dynamic groups via endpoint instead of queueing task
+ * Remove no longer used User.last_auth_on field
+
 v10.3.0 (2025-07-17)
 -------------------------
  * Remove no longer needed POSTGIS env var
