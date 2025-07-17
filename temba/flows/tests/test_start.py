@@ -1,13 +1,34 @@
+from unittest.mock import call
+
 from temba import mailroom
 from temba.flows.models import FlowStart
 from temba.tests import TembaTest, mock_mailroom
 
 
 class FlowStartTest(TembaTest):
-    def test_model(self):
+    @mock_mailroom
+    def test_model(self, mr_mocks):
         flow = self.create_flow("Test Flow")
         contact = self.create_contact("Bob", phone="+1234567890")
         start = FlowStart.create(flow, self.admin, contacts=[contact])
+
+        self.assertEqual(
+            mr_mocks.calls["flow_start"],
+            [
+                call(
+                    self.org,
+                    self.admin,
+                    typ="M",
+                    flow=flow,
+                    groups=[],
+                    contacts=[contact],
+                    urns=[],
+                    query=None,
+                    exclude=None,
+                    params={},
+                )
+            ],
+        )
 
         self.assertEqual(f'<FlowStart: id={start.id} flow="{start.flow.uuid}">', repr(start))
         self.assertTrue(FlowStart.has_unfinished(self.org))

@@ -2,51 +2,12 @@ from unittest.mock import patch
 
 from django_valkey import get_valkey_connection
 
-from temba.flows.models import FlowStart
 from temba.mailroom.queue import queue_interrupt
 from temba.tests import TembaTest, matchers
 from temba.utils import json
 
 
 class MailroomQueueTest(TembaTest):
-    def test_queue_flow_start(self):
-        flow = self.create_flow("Test")
-        jim = self.create_contact("Jim", phone="+12065551212")
-        bobs = self.create_group("Bobs", [self.create_contact("Bob", phone="+12065551313")])
-
-        start = FlowStart.create(
-            flow,
-            self.admin,
-            groups=[bobs],
-            contacts=[jim],
-            urns=["tel:+1234567890", "twitter:bobby"],
-            params={"foo": "bar"},
-        )
-
-        start.async_start()
-
-        self.assert_org_queued(self.org)
-        self.assert_queued_batch_task(
-            self.org,
-            {
-                "type": "start_flow",
-                "task": {
-                    "start_id": start.id,
-                    "start_type": "M",
-                    "org_id": self.org.id,
-                    "created_by_id": self.admin.id,
-                    "flow_id": flow.id,
-                    "contact_ids": [jim.id],
-                    "group_ids": [bobs.id],
-                    "urns": ["tel:+1234567890", "twitter:bobby"],
-                    "query": None,
-                    "exclusions": {},
-                    "params": {"foo": "bar"},
-                },
-                "queued_on": matchers.ISODatetime(),
-            },
-        )
-
     def test_queue_contact_import_batch(self):
         imp = self.create_contact_import("media/test_imports/simple.xlsx")
         imp.start()

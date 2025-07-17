@@ -1,7 +1,7 @@
 import io
 from datetime import date, datetime, timedelta, timezone as tzone
 from decimal import Decimal
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from django_valkey import get_valkey_connection
 
@@ -1292,16 +1292,23 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             {"flow": flow.id, "contact_search": get_contact_search(query="frank")},
         )
 
-        start = FlowStart.objects.get()
-        self.assertEqual(flow, start.flow)
-        self.assertEqual(FlowStart.STATUS_PENDING, start.status)
-        self.assertEqual({}, start.exclusions)
-        self.assertEqual('name ~ "frank"', start.query)
-
-        self.assertEqual(1, len(mr_mocks.queued_batch_tasks))
-        self.assertEqual("start_flow", mr_mocks.queued_batch_tasks[0]["type"])
-
-        FlowStart.objects.all().delete()
+        self.assertEqual(
+            mr_mocks.calls["flow_start"],
+            [
+                call(
+                    self.org,
+                    self.admin,
+                    typ="M",
+                    flow=flow,
+                    groups=[],
+                    contacts=[],
+                    urns=[],
+                    query='name ~ "frank"',
+                    exclude={},
+                    params={},
+                )
+            ],
+        )
 
         # create flow start with a bogus query
         mr_mocks.exception(mailroom.QueryValidationException("query contains an error", "syntax"))
@@ -1341,21 +1348,24 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             {"flow": flow.id, "contact_search": get_contact_search(query=query)},
         )
 
-        start = FlowStart.objects.get()
-
-        self.assertEqual(query, start.query)
-        self.assertEqual(flow, start.flow)
-        self.assertEqual(FlowStart.TYPE_MANUAL, start.start_type)
-        self.assertEqual(FlowStart.STATUS_PENDING, start.status)
-        self.assertEqual({}, start.exclusions)
-
-        self.assertEqual(2, len(mr_mocks.queued_batch_tasks))
-        self.assertEqual("start_flow", mr_mocks.queued_batch_tasks[1]["type"])
-
-        FlowStart.objects.all().delete()
+        self.assertEqual(
+            mr_mocks.calls["flow_start"][-1],
+            call(
+                self.org,
+                self.admin,
+                typ="M",
+                flow=flow,
+                groups=[],
+                contacts=[],
+                urns=[],
+                query=query,
+                exclude={},
+                params={},
+            ),
+        )
 
     @mock_mailroom
-    def test_broadcast_background_flow(self, mr_mocks):
+    def test_start_background_flow(self, mr_mocks):
         flow = self.create_flow("Background", flow_type=Flow.TYPE_BACKGROUND)
 
         # create flow start with a query
@@ -1366,11 +1376,21 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             start_url, self.admin, {"flow": flow.id, "contact_search": get_contact_search(query="frank")}
         )
 
-        start = FlowStart.objects.get()
-        self.assertEqual(flow, start.flow)
-        self.assertEqual(FlowStart.STATUS_PENDING, start.status)
-        self.assertEqual({}, start.exclusions)
-        self.assertEqual('name ~ "frank"', start.query)
+        self.assertEqual(
+            mr_mocks.calls["flow_start"][-1],
+            call(
+                self.org,
+                self.admin,
+                typ="M",
+                flow=flow,
+                groups=[],
+                contacts=[],
+                urns=[],
+                query='name ~ "frank"',
+                exclude={},
+                params={},
+            ),
+        )
 
     def test_copy_view(self):
         flow = self.get_flow("color_v13")

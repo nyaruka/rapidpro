@@ -3174,10 +3174,6 @@ class FlowStartsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
         context["is_zapier"] = "Zapier" in self.request.META.get("HTTP_USER_AGENT", "")
         return context
 
-    def post_save(self, instance):
-        # actually start our flow
-        instance.async_start()
-
     def prepare_for_serialization(self, object_list, using: str):
         FlowStartCount.bulk_annotate(object_list)
 

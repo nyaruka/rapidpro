@@ -25,7 +25,7 @@ from django.utils import timezone
 from temba.archives.models import Archive, jsonlgz_encode
 from temba.channels.models import Channel, ChannelEvent, ChannelLog
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactImport
-from temba.flows.models import Flow, FlowRun, FlowSession
+from temba.flows.models import Flow, FlowRun, FlowSession, FlowStart
 from temba.ivr.models import Call
 from temba.locations.models import AdminBoundary, BoundaryAlias
 from temba.msgs.models import Broadcast, Label, Msg, OptIn
@@ -40,6 +40,7 @@ from .mailroom import (
     contact_urn_lookup,
     create_broadcast,
     create_contact_locally,
+    create_flowstart,
     resolve_destination,
     update_field_locally,
 )
@@ -545,6 +546,31 @@ class TembaTest(SmartminTest):
         flow.save_revision(self.admin, definition)
 
         return flow
+
+    def create_flowstart(
+        self,
+        flow,
+        user,
+        typ=FlowStart.TYPE_MANUAL,
+        groups=(),
+        contacts=(),
+        urns=(),
+        query="",
+        exclude=None,
+        params=None,
+    ):
+        return create_flowstart(
+            flow.org,
+            user,
+            typ=typ,
+            flow=flow,
+            groups=groups,
+            contacts=contacts,
+            urns=urns,
+            query=query,
+            exclude=exclude,
+            params=params or {},
+        )
 
     def create_incoming_call(
         self, flow, contact, status=Call.STATUS_COMPLETED, error_reason=None, created_on=None, logs=()
