@@ -6,6 +6,7 @@ import requests
 from django.conf import settings
 
 from temba.contacts.models import Contact
+from temba.flows.models import FlowStart
 from temba.msgs.models import Broadcast, QuickReply
 from temba.utils import json
 
@@ -177,6 +178,37 @@ class MailroomClient:
             to_version = Flow.CURRENT_SPEC_VERSION
 
         return self._request("flow/migrate", {"flow": definition, "to_version": to_version}, encode_json=True)
+
+    def flow_start(
+        self,
+        org,
+        user,
+        typ: str,
+        flow,
+        groups,
+        contacts,
+        urns: list,
+        query: str,
+        exclude: Exclusions,
+        params: dict,
+    ):
+        resp = self._request(
+            "flow/start",
+            {
+                "org_id": org.id,
+                "user_id": user.id,
+                "type": typ,
+                "flow_id": flow.id,
+                "group_ids": [g.id for g in groups],
+                "contact_ids": [c.id for c in contacts],
+                "urns": urns,
+                "query": query,
+                "exclude": asdict(exclude) if exclude else None,
+                "params": params,
+            },
+        )
+
+        return FlowStart.objects.get(id=resp["id"])
 
     def flow_start_preview(self, org, flow, include: Inclusions, exclude: Exclusions) -> RecipientsPreview:
         resp = self._request(

@@ -12,34 +12,9 @@ DEFAULT_PRIORITY = 0
 
 
 class BatchTask(Enum):
-    START_FLOW = "start_flow"
     INTERRUPT_SESSIONS = "interrupt_sessions"
     IMPORT_CONTACT_BATCH = "import_contact_batch"
     INTERRUPT_CHANNEL = "interrupt_channel"
-
-
-def queue_flow_start(start):
-    """
-    Queues the passed in flow start for starting by mailroom
-    """
-
-    org_id = start.flow.org_id
-
-    task = {
-        "start_id": start.id,
-        "start_type": start.start_type,
-        "org_id": org_id,
-        "created_by_id": start.created_by_id,
-        "flow_id": start.flow_id,
-        "contact_ids": list(start.contacts.values_list("id", flat=True)),
-        "group_ids": list(start.groups.values_list("id", flat=True)),
-        "urns": start.urns or [],
-        "query": start.query,
-        "exclusions": start.exclusions,
-        "params": start.params,
-    }
-
-    _queue_batch_task(org_id, BatchTask.START_FLOW, task, HIGH_PRIORITY)
 
 
 def queue_contact_import_batch(batch):

@@ -1,16 +1,18 @@
-from unittest.mock import patch
+from unittest.mock import call
 
 from django.urls import reverse
 
 from temba.api.v2.serializers import format_datetime
 from temba.flows.models import FlowStart
+from temba.mailroom.client.types import Exclusions
+from temba.tests import mock_mailroom
 
 from . import APITest
 
 
 class FlowStartsEndpointTest(APITest):
-    @patch("temba.flows.models.FlowStart.async_start")
-    def test_endpoint(self, mock_async_start):
+    @mock_mailroom
+    def test_endpoint(self, mr_mocks):
         endpoint_url = reverse("api.v2.flow_starts") + ".json"
 
         self.assertGetNotPermitted(endpoint_url, [None, self.agent])
@@ -26,16 +28,25 @@ class FlowStartsEndpointTest(APITest):
         joe = self.create_contact("Joe Blow", phone="+250788123123")
         response = self.assertPost(endpoint_url, self.editor, {"flow": flow.uuid, "contacts": [joe.uuid]}, status=201)
 
-        start1 = flow.starts.get(id=response.json()["id"])
-        self.assertEqual(start1.flow, flow)
-        self.assertEqual(set(start1.contacts.all()), {joe})
-        self.assertEqual(set(start1.groups.all()), set())
-        self.assertEqual(start1.exclusions, {"in_a_flow": False, "started_previously": False})
-        self.assertEqual(start1.params, {})
-
-        # check we tried to start the new flow start
-        mock_async_start.assert_called_once()
-        mock_async_start.reset_mock()
+        self.assertEqual(
+            mr_mocks.calls["flow_start"],
+            [
+                call(
+                    self.org,
+                    self.editor,
+                    typ="A",
+                    flow=flow,
+                    groups=[],
+                    contacts=[joe],
+                    urns=[],
+                    query=None,
+                    exclude=Exclusions(
+                        non_active=False, in_a_flow=False, started_previously=False, not_seen_since_days=0
+                    ),
+                    params={},
+                )
+            ],
+        )
 
         # start a flow with all parameters
         hans = self.create_contact("Hans Gruber", phone="+4921551511")
@@ -54,20 +65,23 @@ class FlowStartsEndpointTest(APITest):
             status=201,
         )
 
-        # assert our new start
-        start2 = flow.starts.get(id=response.json()["id"])
-        self.assertEqual(start2.flow, flow)
-        self.assertEqual(start2.start_type, FlowStart.TYPE_API)
-        self.assertEqual(["tel:+12067791212"], start2.urns)
-        self.assertEqual({joe}, set(start2.contacts.all()))
-        self.assertEqual({hans_group}, set(start2.groups.all()))
-        self.assertEqual(start2.exclusions, {"in_a_flow": False, "started_previously": True})
-        self.assertEqual(start2.params, {"first_name": "Ryan", "last_name": "Lewis"})
+        self.assertEqual(
+            mr_mocks.calls["flow_start"][-1],
+            call(
+                self.org,
+                self.admin,
+                typ="A",
+                flow=flow,
+                groups=[hans_group],
+                contacts=[joe],
+                urns=["tel:+12067791212"],
+                query=None,
+                exclude=Exclusions(non_active=False, in_a_flow=False, started_previously=True, not_seen_since_days=0),
+                params={"first_name": "Ryan", "last_name": "Lewis"},
+            ),
+        )
 
-        # check we tried to start the new flow start
-        mock_async_start.assert_called_once()
-        mock_async_start.reset_mock()
-
+        # if both params and extra are provided, params should be used
         response = self.assertPost(
             endpoint_url,
             self.admin,
@@ -83,18 +97,21 @@ class FlowStartsEndpointTest(APITest):
             status=201,
         )
 
-        # assert our new start
-        start3 = flow.starts.get(id=response.json()["id"])
-        self.assertEqual(start3.flow, flow)
-        self.assertEqual(["tel:+12067791212"], start3.urns)
-        self.assertEqual({joe}, set(start3.contacts.all()))
-        self.assertEqual({hans_group}, set(start3.groups.all()))
-        self.assertEqual(start3.exclusions, {"in_a_flow": False, "started_previously": True})
-        self.assertEqual(start3.params, {"first_name": "Bob", "last_name": "Marley"})
-
-        # check we tried to start the new flow start
-        mock_async_start.assert_called_once()
-        mock_async_start.reset_mock()
+        self.assertEqual(
+            mr_mocks.calls["flow_start"][-1],
+            call(
+                self.org,
+                self.admin,
+                typ="A",
+                flow=flow,
+                groups=[hans_group],
+                contacts=[joe],
+                urns=["tel:+12067791212"],
+                query=None,
+                exclude=Exclusions(non_active=False, in_a_flow=False, started_previously=True, not_seen_since_days=0),
+                params={"first_name": "Bob", "last_name": "Marley"},
+            ),
+        )
 
         # calls from Zapier have user-agent set to Zapier
         response = self.assertPost(
@@ -105,9 +122,21 @@ class FlowStartsEndpointTest(APITest):
             status=201,
         )
 
-        # assert our new start has start_type of Zapier
-        start4 = flow.starts.get(id=response.json()["id"])
-        self.assertEqual(FlowStart.TYPE_API_ZAPIER, start4.start_type)
+        self.assertEqual(
+            mr_mocks.calls["flow_start"][-1],
+            call(
+                self.org,
+                self.admin,
+                typ="Z",
+                flow=flow,
+                groups=[],
+                contacts=[joe],
+                urns=[],
+                query=None,
+                exclude=Exclusions(non_active=False, in_a_flow=False, started_previously=False, not_seen_since_days=0),
+                params={},
+            ),
+        )
 
         # try to start a flow with no contact/group/URN
         self.assertPost(
@@ -238,6 +267,8 @@ class FlowStartsEndpointTest(APITest):
             errors={"groups": "Ensure this field has no more than 100 elements."},
         )
 
+        start1, start2, start3, start4 = FlowStart.objects.order_by("id")
+
         # check fetching with no filtering
         response = self.assertGet(
             endpoint_url,
@@ -272,41 +303,3 @@ class FlowStartsEndpointTest(APITest):
         self.assertGet(
             endpoint_url + "?uuid=xyz", [self.editor], errors={None: "Param 'uuid': xyz is not a valid UUID."}
         )
-
-        response = self.assertPost(
-            endpoint_url,
-            self.editor,
-            {
-                "urns": ["tel:+12067791212"],
-                "contacts": [joe.uuid],
-                "groups": [hans_group.uuid],
-                "flow": flow.uuid,
-                "restart_participants": True,
-                "exclude_active": False,
-                "extra": {"first_name": "Ryan", "last_name": "Lewis"},
-                "params": {"first_name": "Bob", "last_name": "Marley"},
-            },
-            status=201,
-        )
-
-        start4 = flow.starts.get(id=response.json()["id"])
-        self.assertEqual({"started_previously": False, "in_a_flow": False}, start4.exclusions)
-
-        response = self.assertPost(
-            endpoint_url,
-            self.editor,
-            {
-                "urns": ["tel:+12067791212"],
-                "contacts": [joe.uuid],
-                "groups": [hans_group.uuid],
-                "flow": flow.uuid,
-                "restart_participants": True,
-                "exclude_active": True,
-                "extra": {"first_name": "Ryan", "last_name": "Lewis"},
-                "params": {"first_name": "Bob", "last_name": "Marley"},
-            },
-            status=201,
-        )
-
-        start5 = flow.starts.get(id=response.json()["id"])
-        self.assertEqual({"started_previously": False, "in_a_flow": True}, start5.exclusions)

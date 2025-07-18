@@ -1561,13 +1561,12 @@ class FlowCRUDL(SmartCRUDL):
             recipients = contact_search.get("recipients", [])
             groups, contacts = ContactSearchWidget.parse_recipients(self.request.org, recipients)
 
-            # queue the flow start to be started by mailroom
-            flow.async_start(
+            flow.start(
                 self.request.user,
                 groups=groups,
                 contacts=contacts,
                 query=contact_search["parsed_query"] if "parsed_query" in contact_search else None,
-                exclusions=contact_search.get("exclusions", {}),
+                exclude=contact_search.get("exclusions", {}),
             )
             return super().form_valid(form)
 

@@ -14,7 +14,7 @@ from temba import mailroom
 from temba.campaigns.models import CampaignEvent
 from temba.channels.models import ChannelEvent
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactURN
-from temba.flows.models import FlowRun, FlowSession
+from temba.flows.models import FlowRun, FlowSession, FlowStart
 from temba.locations.models import AdminBoundary
 from temba.mailroom.client.client import MailroomClient
 from temba.mailroom.modifiers import Modifier
@@ -326,6 +326,10 @@ class TestClient(MailroomClient):
             "results": [],
             "parent_refs": [],
         }
+
+    @_client_method
+    def flow_start(self, org, user, typ, flow, groups, contacts, urns, query, exclude, params):
+        return create_flowstart(org, user, typ, flow, groups, contacts, urns, query, exclude, params)
 
     @_client_method
     def flow_start_preview(self, org, flow, include, exclude):
@@ -983,3 +987,24 @@ def create_broadcast(
         bcast.contacts.add(*contacts)
 
     return bcast
+
+
+def create_flowstart(org, user, typ, flow, groups, contacts, urns, query, exclude, params) -> FlowStart:
+    start = FlowStart.objects.create(
+        org=org,
+        flow=flow,
+        start_type=typ,
+        urns=list(urns),
+        query=query,
+        exclusions=asdict(exclude) if exclude else None,
+        created_by=user,
+        params=params,
+    )
+
+    for contact in contacts:
+        start.contacts.add(contact)
+
+    for group in groups:
+        start.groups.add(group)
+
+    return start

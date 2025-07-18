@@ -3,7 +3,6 @@ import iso8601
 from django.urls import reverse
 
 from temba.api.v2.serializers import format_datetime
-from temba.flows.models import FlowStart
 from temba.tests.engine import MockSessionWriter
 
 from . import APITest
@@ -27,7 +26,7 @@ class RunsEndpointTest(APITest):
 
         joe = self.create_contact("Joe Blow", phone="+250788123123")
         frank = self.create_contact("Frank", urns=["tel:123456"])
-        start1 = FlowStart.create(flow1, self.admin, contacts=[joe])
+        start1 = self.create_flowstart(flow1, self.admin, contacts=[joe])
         joe_msg = self.create_incoming_msg(joe, "it is blue")
         frank_msg = self.create_incoming_msg(frank, "Indigo")
 

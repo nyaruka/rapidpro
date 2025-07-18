@@ -8,7 +8,7 @@ from temba.ai.models import LLM
 from temba.ai.types.openai.type import OpenAIType
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField
-from temba.flows.models import Flow
+from temba.flows.models import Flow, FlowStart
 from temba.msgs.models import QuickReply
 from temba.schedules.models import Schedule
 from temba.tests import MockJsonResponse, MockResponse, TembaTest
@@ -453,6 +453,52 @@ class MailroomClientTest(TembaTest):
             call[1]["headers"],
         )
         self.assertEqual({"flow": flow_def, "to_version": "13.1.0"}, json.loads(call[1]["data"]))
+
+    @patch("requests.post")
+    def test_flow_start(self, mock_post):
+        ann = self.create_contact("Ann", urns=["tel:+12340000001"])
+        bob = self.create_contact("Bob", urns=["tel:+12340000002"])
+        group = self.create_group("Doctors", contacts=[])
+        flow = Flow.create(self.org, self.admin, "Flow")
+        start = self.create_flowstart(flow, self.admin)
+
+        mock_post.return_value = MockJsonResponse(200, {"id": start.id})
+        result = self.client.flow_start(
+            self.org,
+            self.admin,
+            FlowStart.TYPE_MANUAL,
+            flow,
+            [group],
+            [ann, bob],
+            ["tel:1234"],
+            "age > 20",
+            Exclusions(in_a_flow=True),
+            params={"foo": "bar"},
+        )
+
+        self.assertEqual(start, result)
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mr/flow/start",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={
+                "org_id": self.org.id,
+                "user_id": self.admin.id,
+                "type": "M",
+                "flow_id": flow.id,
+                "group_ids": [group.id],
+                "contact_ids": [ann.id, bob.id],
+                "urns": ["tel:1234"],
+                "query": "age > 20",
+                "exclude": {
+                    "in_a_flow": True,
+                    "non_active": False,
+                    "not_seen_since_days": 0,
+                    "started_previously": False,
+                },
+                "params": {"foo": "bar"},
+            },
+        )
 
     def test_flow_start_preview(self):
         flow = self.create_flow("Test Flow")
