@@ -1,3 +1,7 @@
+v10.3.2 (2025-07-21)
+-------------------------
+ * Call mailroom endpoint to create flow starts
+
 v10.3.1 (2025-07-17)
 -------------------------
  * Bump aiohttp from 3.11.11 to 3.12.14
