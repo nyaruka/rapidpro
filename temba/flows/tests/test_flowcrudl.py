@@ -14,6 +14,7 @@ from temba.campaigns.models import Campaign, CampaignEvent
 from temba.classifiers.models import Classifier
 from temba.contacts.models import URN
 from temba.flows.models import Flow, FlowLabel, FlowStart, FlowUserConflictException, ResultsExport
+from temba.mailroom.client.types import Exclusions
 from temba.orgs.integrations.dtone.type import DTOneType
 from temba.orgs.models import Export
 from temba.templates.models import TemplateTranslation
@@ -1304,7 +1305,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                     contacts=[],
                     urns=[],
                     query='name ~ "frank"',
-                    exclude={},
+                    exclude=Exclusions(),
                     params={},
                 )
             ],
@@ -1359,7 +1360,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                 contacts=[],
                 urns=[],
                 query=query,
-                exclude={},
+                exclude=Exclusions(),
                 params={},
             ),
         )
@@ -1387,7 +1388,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                 contacts=[],
                 urns=[],
                 query='name ~ "frank"',
-                exclude={},
+                exclude=Exclusions(),
                 params={},
             ),
         )

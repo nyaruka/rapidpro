@@ -16,6 +16,7 @@ from temba.contacts.models import URN, Contact, ContactExport, ContactField, Con
 from temba.flows.models import FlowSession
 from temba.ivr.models import Call
 from temba.locations.models import AdminBoundary
+from temba.mailroom.client.types import Exclusions
 from temba.msgs.models import Msg
 from temba.orgs.models import Export, OrgRole
 from temba.schedules.models import Schedule
@@ -1374,7 +1375,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                     contacts=[],
                     urns=[],
                     query=f"uuid='{contact.uuid}'",
-                    exclude={},
+                    exclude=Exclusions(),
                     params={},
                 )
             ],

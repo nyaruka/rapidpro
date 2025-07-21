@@ -33,6 +33,7 @@ from temba.channels.models import Channel
 from temba.contacts.models import URN
 from temba.flows.models import Flow, FlowSession, FlowStart
 from temba.ivr.models import Call
+from temba.mailroom.client.types import Exclusions
 from temba.orgs.models import IntegrationType, Org
 from temba.orgs.views.base import (
     BaseDependencyDeleteModal,
@@ -1566,7 +1567,7 @@ class FlowCRUDL(SmartCRUDL):
                 groups=groups,
                 contacts=contacts,
                 query=contact_search["parsed_query"] if "parsed_query" in contact_search else None,
-                exclude=contact_search.get("exclusions", {}),
+                exclude=Exclusions(**contact_search.get("exclusions", {})),
             )
             return super().form_valid(form)
 
