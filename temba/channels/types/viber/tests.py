@@ -69,7 +69,7 @@ class ViberTypeTest(TembaTest, CRUDLTestMixin):
     @patch("requests.post")
     def test_release(self, mock_post):
         mock_post.side_effect = [MockResponse(200, json.dumps({"status": 0, "status_message": "ok"}))]
-        self.channel.release(self.admin)
+        self.channel.release(self.admin, interrupt=False)
 
         self.assertEqual(mock_post.call_args[0][0], "https://chatapi.viber.com/pa/set_webhook")
 

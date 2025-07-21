@@ -97,7 +97,7 @@ class MtnTypeTest(TembaTest):
                 self.assertRedirect(response, "/org/workspace/")
 
             # release channel and deactivate the subscription
-            channel.release(self.admin)
+            channel.release(self.admin, interrupt=False)
             self.assertEqual(mock_delete.call_count, 1)
 
             self.assertEqual(

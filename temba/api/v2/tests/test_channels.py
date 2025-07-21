@@ -17,7 +17,7 @@ class ChannelEndpointTest(APITest):
 
         # create deleted channel
         deleted = self.create_channel("JC", "Deleted", "nyaruka")
-        deleted.release(self.admin)
+        deleted.release(self.admin, interrupt=False)
 
         # create channel for other org
         self.create_channel("FBA", "Facebook Channel", "nyaruka", org=self.org2)

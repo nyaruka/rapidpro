@@ -334,7 +334,7 @@ class InstagramTypeTest(TembaTest):
     @patch("requests.delete")
     def test_release(self, mock_delete):
         mock_delete.return_value = MockResponse(200, json.dumps({"success": True}))
-        self.channel.release(self.admin)
+        self.channel.release(self.admin, interrupt=False)
 
         mock_delete.assert_called_once_with(
             "https://graph.facebook.com/v18.0/019283/subscribed_apps",
