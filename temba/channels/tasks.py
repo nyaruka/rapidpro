@@ -47,9 +47,10 @@ def check_android_channels():
 @shared_task
 def interrupt_channel_task(channel_id):
     channel = Channel.objects.get(pk=channel_id)
+
     # interrupt the channel, any sessions using this channel for calls,
     # fail pending/queued messages and clear courier messages
-    mailroom.queue_interrupt_channel(channel.org, channel=channel)
+    mailroom.get_client().channel_interrupt(channel.org, channel)
 
 
 @cron_task(lock_timeout=7200)

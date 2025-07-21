@@ -667,7 +667,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
             # proceed with removing this channel but log the problem
             logger.error(f"Unable to deactivate a channel: {str(e)}", exc_info=True)
 
-        # delay mailroom task for 5 seconds, so mailroom assets cache expires
+        # delay mailroom call for 5 seconds, so mailroom assets cache expires
         interrupt_channel_task.apply_async((self.id,), countdown=5)
 
         # make the channel inactive

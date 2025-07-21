@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from django_valkey import get_valkey_connection
 
 from temba.mailroom.queue import queue_interrupt
@@ -18,20 +16,6 @@ class MailroomQueueTest(TembaTest):
             {
                 "type": "import_contact_batch",
                 "task": {"contact_import_batch_id": imp.batches.get().id},
-                "queued_on": matchers.ISODatetime(),
-            },
-        )
-
-    @patch("temba.channels.models.Channel.trigger_sync")
-    def test_queue_interrupt_channel(self, mock_trigger_sync):
-        self.channel.release(self.admin)
-
-        self.assert_org_queued(self.org)
-        self.assert_queued_batch_task(
-            self.org,
-            {
-                "type": "interrupt_channel",
-                "task": {"channel_id": self.channel.id},
                 "queued_on": matchers.ISODatetime(),
             },
         )
