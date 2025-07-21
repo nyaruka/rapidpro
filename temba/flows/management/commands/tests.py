@@ -2,7 +2,6 @@ from django.core.management import call_command
 from django.utils import timezone
 
 from temba.contacts.models import Contact
-from temba.flows.models import FlowStart
 from temba.tests import TembaTest
 from temba.tests.engine import MockSessionWriter
 
@@ -87,7 +86,7 @@ class UndoFootgunTest(TembaTest):
         group3 = self.create_group("Group 3", contacts=[contact1, contact2])
 
         # simulate a flow start which adds contacts 1 and 2 to groups 1 and 2, and removes them from group 3
-        start1 = FlowStart.create(flow, self.admin, contacts=[contact1, contact2])
+        start1 = self.create_flowstart(flow, self.admin, contacts=[contact1, contact2])
         (
             MockSessionWriter(contact1, flow, start=start1)
             .visit(nodes[0])
@@ -106,7 +105,7 @@ class UndoFootgunTest(TembaTest):
         )
 
         # and another which adds contact 3 to group 3
-        start2 = FlowStart.create(flow, self.admin, contacts=[contact3])
+        start2 = self.create_flowstart(flow, self.admin, contacts=[contact3])
         MockSessionWriter(contact3, flow, start=start2).visit(nodes[0]).add_contact_groups([group3]).complete().save()
 
         t0 = timezone.now()
@@ -144,7 +143,7 @@ class UndoFootgunTest(TembaTest):
         contact3 = self.create_contact("Anne", phone="3456")
 
         # simulate a flow start which adds blocks contact1 and stops contact2
-        start1 = FlowStart.create(flow, self.admin, contacts=[contact1, contact2])
+        start1 = self.create_flowstart(flow, self.admin, contacts=[contact1, contact2])
         (
             MockSessionWriter(contact1, flow, start=start1)
             .visit(nodes[0])

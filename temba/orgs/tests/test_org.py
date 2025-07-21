@@ -223,9 +223,8 @@ class OrgTest(TembaTest):
 
         self.assertIsNone(self.org.default_country)
 
-    @patch("temba.flows.models.FlowStart.async_start")
     @mock_mailroom
-    def test_org_flagging_and_suspending(self, mr_mocks, mock_async_start):
+    def test_org_flagging_and_suspending(self, mr_mocks):
         self.login(self.admin)
 
         mark = self.create_contact("Mark", phone="+12065551212")
@@ -300,7 +299,7 @@ class OrgTest(TembaTest):
 
         # still no messages or flow starts
         self.assertEqual(Msg.objects.all().count(), 0)
-        mock_async_start.assert_not_called()
+        self.assertEqual(mr_mocks.calls["flow_start"], [])
 
         # unsuspend our org and start a flow
         self.org.is_suspended = False
@@ -311,7 +310,7 @@ class OrgTest(TembaTest):
             {"flow": flow.id, "contact_search": get_contact_search(query='uuid="{mark.uuid}"')},
         )
 
-        mock_async_start.assert_called_once()
+        self.assertEqual(len(mr_mocks.calls["flow_start"]), 1)
 
     def test_resthooks(self):
         resthook_url = reverse("orgs.org_resthooks")
