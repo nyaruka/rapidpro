@@ -201,6 +201,10 @@ class TestClient(MailroomClient):
         pass
 
     @_client_method
+    def channel_interrupt(self, org, channel):
+        pass
+
+    @_client_method
     def contact_create(self, org, user, contact: mailroom.ContactSpec):
         status = {v: k for k, v in Contact.ENGINE_STATUSES.items()}[contact.status]
         return create_contact_locally(

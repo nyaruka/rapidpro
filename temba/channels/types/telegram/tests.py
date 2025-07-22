@@ -82,7 +82,7 @@ class TelegramTypeTest(TembaTest):
 
     @patch("requests.post")
     def test_release(self, mock_post):
-        self.channel.release(self.admin)
+        self.channel.release(self.admin, interrupt=False)
 
         mock_post.assert_called_once_with(
             f"https://api.telegram.org/bot{self.channel.config['auth_token']}/deleteWebhook"

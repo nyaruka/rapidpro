@@ -5,6 +5,7 @@ from django import forms
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from temba import mailroom
 from temba.apks.models import Apk
 from temba.utils import countries
 
@@ -99,6 +100,6 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         claim_channel(org, self.object, self.form.cleaned_data["phone_number"])
 
         # trigger a sync
-        self.object.trigger_sync()
+        mailroom.get_client().android_sync(self.object)
 
         return super().form_valid(form)

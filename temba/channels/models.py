@@ -410,7 +410,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
             except Exception as e:
                 # release our channel, raise error upwards
-                channel.release(user)
+                channel.release(user, interrupt=False)
                 raise e
 
         return channel
@@ -650,7 +650,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     def check_credentials(self) -> bool:
         return self.type.check_credentials(self.config)
 
-    def release(self, user, *, trigger_sync: bool = True):
+    def release(self, user, *, trigger_sync: bool = True, interrupt: bool = True):
         """
         Releases this channel making it inactive
         """
@@ -667,17 +667,18 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
             # proceed with removing this channel but log the problem
             logger.error(f"Unable to deactivate a channel: {str(e)}", exc_info=True)
 
-        # delay mailroom task for 5 seconds, so mailroom assets cache expires
-        interrupt_channel_task.apply_async((self.id,), countdown=5)
-
         # make the channel inactive
         self.modified_by = user
         self.is_active = False
         self.save(update_fields=("is_active", "modified_by", "modified_on"))
 
+        if interrupt:
+            # delay mailroom call for 5 seconds, so mailroom assets cache expires
+            interrupt_channel_task.apply_async((self.id,), countdown=5)
+
         # trigger the orphaned channel
         if trigger_sync and self.is_android:
-            self.trigger_sync()
+            mailroom.get_client().android_sync(self)
 
         # any triggers associated with our channel get archived and released
         for trigger in self.triggers.filter(is_active=True):
@@ -707,14 +708,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         delete_in_batches(self.counts.all())
 
         super().delete()
-
-    def trigger_sync(self):  # pragma: no cover
-        """
-        Sends a FCM command to trigger a sync on the client
-        """
-
-        assert self.is_android, "can only trigger syncs on Android channels"
-        mailroom.get_client().android_sync(self)
 
     def get_msg_count(self, since=None):
         counts = self.counts.filter(scope__in=[ChannelCount.SCOPE_TEXT_IN, ChannelCount.SCOPE_TEXT_OUT])

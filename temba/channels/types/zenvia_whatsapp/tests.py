@@ -81,7 +81,7 @@ class ZenviaWhatsAppTypeTest(TembaTest):
             mock_delete.return_value = MockResponse(204, "")
 
             # deactivate our channel
-            channel.release(self.admin)
+            channel.release(self.admin, interrupt=False)
 
             self.assertEqual(2, mock_delete.call_count)
             self.assertEqual("https://api.zenvia.com/v2/subscriptions/message_123", mock_delete.call_args_list[0][0][0])
@@ -117,7 +117,7 @@ class ZenviaWhatsAppTypeTest(TembaTest):
             mock_delete.return_value = MockResponse(400, "Error")
 
             # deactivate our channel
-            channel.release(self.admin)
+            channel.release(self.admin, interrupt=False)
 
             self.assertEqual(2, mock_delete.call_count)
             self.assertEqual("https://api.zenvia.com/v2/subscriptions/message_123", mock_delete.call_args_list[0][0][0])

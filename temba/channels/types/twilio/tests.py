@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from temba.channels.models import Channel
 from temba.contacts.models import URN
-from temba.tests import TembaTest
+from temba.tests import TembaTest, mock_mailroom
 from temba.tests.twilio import MockRequestValidator, MockTwilioClient
 
 from .type import TwilioType
@@ -16,7 +16,8 @@ class TwilioTypeTest(TembaTest):
     @patch("temba.channels.types.twilio.views.TwilioClient", MockTwilioClient)
     @patch("temba.channels.types.twilio.type.TwilioClient", MockTwilioClient)
     @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
-    def test_claim(self):
+    @mock_mailroom
+    def test_claim(self, mr_mocks):
         self.login(self.admin)
 
         claim_twilio = reverse("channels.types.twilio.claim")
@@ -378,7 +379,7 @@ class TwilioTypeTest(TembaTest):
             )
 
             # releasing shouldn't blow up on auth failures
-            twilio_channel.release(self.admin)
+            twilio_channel.release(self.admin, interrupt=False)
             twilio_channel.refresh_from_db()
             self.assertFalse(twilio_channel.is_active)
 

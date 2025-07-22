@@ -127,6 +127,19 @@ class MailroomClientTest(TembaTest):
         )
 
     @patch("requests.post")
+    def test_channel_interrupt(self, mock_post):
+        mock_post.return_value = MockJsonResponse(200, {})
+        response = self.client.channel_interrupt(self.org, self.channel)
+
+        self.assertIsNone(response)
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mr/channel/interrupt",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={"org_id": self.org.id, "channel_id": self.channel.id},
+        )
+
+    @patch("requests.post")
     def test_contact_create(self, mock_post):
         ann = self.create_contact("Ann", urns=["tel:+12340000001"])
         bob = self.create_contact("Bob", urns=["tel:+12340000002"])

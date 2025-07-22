@@ -80,6 +80,9 @@ class MailroomClient:
     def campaign_schedule(self, org, event):
         self._request("campaign/schedule", {"org_id": org.id, "point_id": event.id})
 
+    def channel_interrupt(self, org, channel):
+        self._request("channel/interrupt", {"org_id": org.id, "channel_id": channel.id})
+
     def contact_create(self, org, user, contact: ContactSpec) -> Contact:
         resp = self._request("contact/create", {"org_id": org.id, "user_id": user.id, "contact": asdict(contact)})
 
