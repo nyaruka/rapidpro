@@ -252,7 +252,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         msg = self.create_outgoing_msg(contact, "Hi", flow=flow, ticket=ticket)
 
         # both Msg.flow and Msg.ticket are unconstrained so we shuld be able to delete these
-        flow.release(self.admin)
+        flow.release(self.admin, interrupt_sessions=False)
         flow.delete()
         ticket.delete()
 

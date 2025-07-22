@@ -1,6 +1,5 @@
 from django_valkey import get_valkey_connection
 
-from temba.mailroom.queue import queue_interrupt
 from temba.tests import TembaTest, matchers
 from temba.utils import json
 
@@ -18,32 +17,6 @@ class MailroomQueueTest(TembaTest):
                 "task": {"contact_import_batch_id": imp.batches.get().id},
                 "queued_on": matchers.ISODatetime(),
             },
-        )
-
-    def test_queue_interrupt_by_contacts(self):
-        jim = self.create_contact("Jim", phone="+12065551212")
-        bob = self.create_contact("Bob", phone="+12065551313")
-
-        queue_interrupt(self.org, contacts=[jim, bob])
-
-        self.assert_org_queued(self.org)
-        self.assert_queued_batch_task(
-            self.org,
-            {
-                "type": "interrupt_sessions",
-                "task": {"contact_ids": [jim.id, bob.id]},
-                "queued_on": matchers.ISODatetime(),
-            },
-        )
-
-    def test_queue_interrupt_by_flow(self):
-        flow = self.create_flow("Test")
-        flow.archive(self.admin)
-
-        self.assert_org_queued(self.org)
-        self.assert_queued_batch_task(
-            self.org,
-            {"type": "interrupt_sessions", "task": {"flow_ids": [flow.id]}, "queued_on": matchers.ISODatetime()},
         )
 
     def assert_org_queued(self, org):

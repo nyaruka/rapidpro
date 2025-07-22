@@ -1024,7 +1024,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         Interrupts this contact's current flow
         """
         if self.current_flow:
-            return mailroom.get_client().contact_interrupt(self.org, user, self) > 0
+            return mailroom.get_client().contact_interrupt(self.org, user, [self]) > 0
 
         return False
 
@@ -1179,6 +1179,16 @@ class Contact(LegacyUUIDMixin, SmartModel):
             return {}
 
         return mailroom.get_client().contact_inspect(contacts[0].org, contacts)
+
+    @classmethod
+    def bulk_interrupt(cls, user, contacts):
+        """
+        Interrupts sessions for the given contacts.
+        """
+        if not contacts:
+            return
+
+        return mailroom.get_client().contact_interrupt(contacts[0].org, user, contacts)
 
     def get_groups(self, *, manual_only=False):
         """

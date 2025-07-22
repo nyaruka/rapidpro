@@ -269,9 +269,13 @@ class TestClient(MailroomClient):
         return {c: inspect(c) for c in contacts}
 
     @_client_method
-    def contact_interrupt(self, org, user, contact) -> int:
+    def contact_interrupt(self, org, user, contacts) -> int:
         # get the waiting session UUIDs
-        session_uuids = list(contact.sessions.filter(status=FlowSession.STATUS_WAITING).values_list("uuid", flat=True))
+        session_uuids = []
+        for contact in contacts:
+            session_uuids.extend(
+                contact.sessions.filter(status=FlowSession.STATUS_WAITING).values_list("uuid", flat=True)
+            )
 
         exit_sessions(session_uuids, FlowSession.STATUS_INTERRUPTED)
 
@@ -330,6 +334,10 @@ class TestClient(MailroomClient):
             "results": [],
             "parent_refs": [],
         }
+
+    @_client_method
+    def flow_interrupt(self, org, flow):
+        pass
 
     @_client_method
     def flow_start(self, org, user, typ, flow, groups, contacts, urns, query, exclude, params):

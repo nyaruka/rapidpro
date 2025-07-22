@@ -106,8 +106,10 @@ class MailroomClient:
 
         return {c: resp[str(c.id)] for c in contacts}
 
-    def contact_interrupt(self, org, user, contact) -> int:
-        resp = self._request("contact/interrupt", {"org_id": org.id, "user_id": user.id, "contact_id": contact.id})
+    def contact_interrupt(self, org, user, contacts) -> int:
+        resp = self._request(
+            "contact/interrupt", {"org_id": org.id, "user_id": user.id, "contact_ids": [c.id for c in contacts]}
+        )
 
         return resp["sessions"]
 
@@ -170,6 +172,9 @@ class MailroomClient:
             payload["org_id"] = org.id
 
         return self._request("flow/inspect", payload, encode_json=True)
+
+    def flow_interrupt(self, org, flow):
+        self._request("flow/interrupt", {"org_id": org.id, "flow_id": flow.id})
 
     def flow_migrate(self, definition: dict, to_version=None):
         """

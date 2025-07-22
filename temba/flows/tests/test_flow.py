@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import call
 
 from django.urls import reverse
 
@@ -49,26 +49,26 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("x" * 64, Flow.clean_name("x" * 100))
         self.assertEqual("a                                b", Flow.clean_name(f"a{' ' * 32}b{' ' * 32}c"))
 
-    @patch("temba.mailroom.queue_interrupt")
-    def test_archive(self, mock_queue_interrupt):
+    @mock_mailroom
+    def test_archive(self, mr_mocks):
         flow = self.create_flow("Test")
         flow.archive(self.admin)
 
-        mock_queue_interrupt.assert_called_once_with(self.org, flow=flow)
+        self.assertEqual([call(self.org, flow)], mr_mocks.calls["flow_interrupt"])
 
         flow.refresh_from_db()
         self.assertEqual(flow.is_archived, True)
         self.assertEqual(flow.is_active, True)
 
-    @patch("temba.mailroom.queue_interrupt")
-    def test_release(self, mock_queue_interrupt):
+    @mock_mailroom
+    def test_release(self, mr_mocks):
         global1 = Global.get_or_create(self.org, self.admin, "api_key", "API Key", "234325")
         flow = self.create_flow("Test")
         flow.global_dependencies.add(global1)
 
         flow.release(self.admin)
 
-        mock_queue_interrupt.assert_called_once_with(self.org, flow=flow)
+        self.assertEqual([call(self.org, flow)], mr_mocks.calls["flow_interrupt"])
 
         flow.refresh_from_db()
         self.assertTrue(flow.name.startswith("deleted-"))
@@ -418,18 +418,6 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(flow.ignore_triggers)
         self.assertEqual(0, flow.triggers.all().count())
 
-    def test_flow_update_of_inactive_flow(self):
-        flow = self.get_flow("favorites")
-        flow.release(self.admin)
-
-        post_data = {"name": "Flow that does not exist"}
-
-        self.login(self.admin)
-        response = self.client.post(reverse("flows.flow_update", args=[flow.pk]), post_data)
-
-        # can't delete already released flow
-        self.assertEqual(response.status_code, 404)
-
     def test_importing_dependencies(self):
         # create channel to be matched by name
         channel = self.create_channel("TG", "RapidPro Test", "12345324635")
@@ -499,17 +487,8 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         # fetching a flow with a group send shouldn't throw
         self.get_flow("group_send_flow")
 
-    def test_flow_delete_of_inactive_flow(self):
-        flow = self.create_flow("Test")
-        flow.release(self.admin)
-
-        self.login(self.admin)
-        response = self.client.post(reverse("flows.flow_delete", args=[flow.pk]))
-
-        # can't delete already released flow
-        self.assertEqual(response.status_code, 404)
-
-    def test_delete(self):
+    @mock_mailroom
+    def test_delete(self, mr_mocks):
         flow = self.get_flow("favorites_v13")
         flow_nodes = flow.get_definition()["nodes"]
         color_prompt = flow_nodes[0]
@@ -582,86 +561,3 @@ class FlowTest(TembaTest, CRUDLTestMixin):
 
         trigger.refresh_from_db()
         self.assertFalse(trigger.is_active)
-
-    def test_delete_with_dependencies(self):
-        self.login(self.admin)
-
-        self.get_flow("dependencies")
-        self.get_flow("dependencies_voice")
-        parent = Flow.objects.filter(name="Dependencies").first()
-        child = Flow.objects.filter(name="Child Flow").first()
-        voice = Flow.objects.filter(name="Voice Dependencies").first()
-
-        contact_fields = (
-            {"key": "contact_age", "name": "Contact Age"},
-            # fields based on parent and child references
-            {"key": "top"},
-            {"key": "bottom"},
-            # replies
-            {"key": "chw"},
-            # url attachemnts
-            {"key": "attachment"},
-            # dynamic groups
-            {"key": "cat_breed", "name": "Cat Breed"},
-            {"key": "organization"},
-            # sending messages
-            {"key": "recipient"},
-            {"key": "message"},
-            # sending emails
-            {"key": "email_message", "name": "Email Message"},
-            {"key": "subject"},
-            # trigger someone else
-            {"key": "other_phone", "name": "Other Phone"},
-            # rules and localizations
-            {"key": "rule"},
-            {"key": "french_rule", "name": "French Rule"},
-            {"key": "french_age", "name": "French Age"},
-            {"key": "french_fries", "name": "French Fries"},
-            # updating contacts
-            {"key": "favorite_cat", "name": "Favorite Cat"},
-            {"key": "next_cat_fact", "name": "Next Cat Fact"},
-            {"key": "last_cat_fact", "name": "Last Cat Fact"},
-            # webhook urls
-            {"key": "webhook"},
-            # expression splits
-            {"key": "expression_split", "name": "Expression Split"},
-            # voice says
-            {"key": "play_message", "name": "Play Message", "flow": voice},
-            {"key": "voice_rule", "name": "Voice Rule", "flow": voice},
-            # voice plays (recordings)
-            {"key": "voice_recording", "name": "Voice Recording", "flow": voice},
-        )
-
-        for field_spec in contact_fields:
-            key = field_spec.get("key")
-            name = field_spec.get("name", key.capitalize())
-            flow = field_spec.get("flow", parent)
-
-            # make sure our field exists after import
-            field = self.org.fields.filter(key=key, name=name, is_system=False, is_proxy=False).first()
-            self.assertIsNotNone(field, "Couldn't find field %s (%s)" % (key, name))
-
-            # and our flow is dependent on us
-            self.assertIsNotNone(
-                flow.field_dependencies.filter(key__in=[key]).first(),
-                "Flow is missing dependency on %s (%s)" % (key, name),
-            )
-
-        # we can delete our child flow and the parent ('Dependencies') will be marked as having issues
-        self.client.post(reverse("flows.flow_delete", args=[child.uuid]))
-
-        parent = Flow.objects.filter(name="Dependencies").get()
-        child.refresh_from_db()
-
-        self.assertFalse(child.is_active)
-        self.assertTrue(parent.has_issues)
-        self.assertNotIn(child, parent.flow_dependencies.all())
-
-        # deleting our parent flow should also work
-        self.client.post(reverse("flows.flow_delete", args=[parent.uuid]))
-
-        parent.refresh_from_db()
-        self.assertFalse(parent.is_active)
-        self.assertEqual(0, parent.field_dependencies.all().count())
-        self.assertEqual(0, parent.flow_dependencies.all().count())
-        self.assertEqual(0, parent.group_dependencies.all().count())

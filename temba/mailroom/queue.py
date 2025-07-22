@@ -7,12 +7,10 @@ from django.utils import timezone
 
 from temba.utils import json
 
-HIGH_PRIORITY = -10000000
 DEFAULT_PRIORITY = 0
 
 
 class BatchTask(Enum):
-    INTERRUPT_SESSIONS = "interrupt_sessions"
     IMPORT_CONTACT_BATCH = "import_contact_batch"
 
 
@@ -24,22 +22,6 @@ def queue_contact_import_batch(batch):
     task = {"contact_import_batch_id": batch.id}
 
     _queue_batch_task(batch.contact_import.org.id, BatchTask.IMPORT_CONTACT_BATCH, task, DEFAULT_PRIORITY)
-
-
-def queue_interrupt(org, *, contacts=None, flow=None):
-    """
-    Queues an interrupt task for handling by mailroom
-    """
-
-    assert contacts or flow, "must specify either a set of contacts or a flow"
-
-    task = {}
-    if contacts:
-        task["contact_ids"] = [c.id for c in contacts]
-    if flow:
-        task["flow_ids"] = [flow.id]
-
-    _queue_batch_task(org.id, BatchTask.INTERRUPT_SESSIONS, task, HIGH_PRIORITY)
 
 
 def _queue_batch_task(org_id, task_type, task, priority):
