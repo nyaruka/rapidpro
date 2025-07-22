@@ -524,17 +524,18 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         # won't see any new database objects
         self.save_revision(user, cloned_definition)
 
-    def archive(self, user):
+    def archive(self, user, *, interrupt_sessions: bool = True):
         self.is_archived = True
         self.modified_by = user
         self.save(update_fields=("is_archived", "modified_by", "modified_on"))
 
-        # queue mailroom to interrupt sessions where contact is currently in this flow
-        mailroom.queue_interrupt(self.org, flow=self)
-
         # archive our triggers as well
         for trigger in self.triggers.filter(is_active=True):
             trigger.archive(user)
+
+        if interrupt_sessions:
+            # call mailroom to interrupt sessions where contact is currently in this flow
+            mailroom.get_client().flow_interrupt(self.org, self)
 
     def restore(self, user):
         self.is_archived = False
@@ -920,9 +921,9 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         self.counts.all().delete()
 
-        # queue mailroom to interrupt sessions where contact is currently in this flow
+        # call mailroom to interrupt sessions where contact is currently in this flow
         if interrupt_sessions:
-            mailroom.queue_interrupt(self.org, flow=self)
+            mailroom.get_client().flow_interrupt(self.org, self)
 
     def delete(self):
         """

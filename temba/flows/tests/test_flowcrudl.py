@@ -816,20 +816,6 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(revisions_url, definition, content_type="application/json")
         self.assertResponseError(response, "description", "Your flow has been upgraded to the latest version")
 
-    def test_inactive_flow(self):
-        flow = self.create_flow("Deleted")
-        flow.release(self.admin)
-
-        self.login(self.admin)
-
-        response = self.client.get(reverse("flows.flow_revisions", args=[flow.uuid]))
-
-        self.assertEqual(404, response.status_code)
-
-        response = self.client.get(reverse("flows.flow_activity", args=[flow.uuid]))
-
-        self.assertEqual(404, response.status_code)
-
     @mock_mailroom
     def test_preview_start(self, mr_mocks):
         flow = self.create_flow("Test Flow")
@@ -1493,7 +1479,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertReadFetch(chart_url_invalid, [self.editor, self.admin])
         self.assertEqual({"data": {"labels": [], "datasets": []}}, response.json())
 
-    def test_results(self):
+    @mock_mailroom
+    def test_results(self, mr_mocks):
         flow = self.create_flow("Test 1")
 
         results_url = reverse("flows.flow_results", args=[flow.uuid])
@@ -1710,6 +1697,21 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             },
             response.json(),
         )
+
+    @mock_mailroom
+    def test_activity_inactive_flow(self, mr_mocks):
+        flow = self.create_flow("Deleted")
+        flow.release(self.admin)
+
+        self.login(self.admin)
+
+        response = self.client.get(reverse("flows.flow_revisions", args=[flow.uuid]))
+
+        self.assertEqual(404, response.status_code)
+
+        response = self.client.get(reverse("flows.flow_activity", args=[flow.uuid]))
+
+        self.assertEqual(404, response.status_code)
 
     def test_write_protection(self):
         flow = self.get_flow("favorites_v13")
@@ -1975,6 +1977,45 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                     },
                     payload["trigger"],
                 )
+
+    @mock_mailroom
+    def test_delete(self, mr_mocks):
+        child = self.create_flow("Child")
+        parent = self.create_flow("Parent")
+        parent.field_dependencies.add(self.create_field("age", "Age"))
+        parent.flow_dependencies.add(child)
+
+        flow1_delete_url = reverse("flows.flow_delete", args=[child.uuid])
+        flow2_delete_url = reverse("flows.flow_delete", args=[parent.uuid])
+
+        self.assertRequestDisallowed(flow1_delete_url, [None, self.agent, self.admin2])
+        self.assertDeleteFetch(flow1_delete_url, [self.editor, self.admin])
+        self.assertDeleteSubmit(flow1_delete_url, self.admin, object_deactivated=child, success_status=200)
+
+        # parent flow should now be marked as having issues
+        parent.refresh_from_db()
+        self.assertTrue(parent.is_active)
+        self.assertTrue(parent.has_issues)
+        self.assertNotIn(set(), set(parent.flow_dependencies.all()))
+
+        # deleting our parent flow should also work
+        self.assertDeleteFetch(flow2_delete_url, [self.editor, self.admin])
+        self.assertDeleteSubmit(flow2_delete_url, self.admin, object_deactivated=parent, success_status=200)
+
+        parent.refresh_from_db()
+        self.assertEqual(0, parent.field_dependencies.all().count())
+        self.assertEqual(0, parent.flow_dependencies.all().count())
+
+    @mock_mailroom
+    def test_delete_of_inactive_flow(self, mr_mocks):
+        flow = self.create_flow("Test")
+        flow.release(self.admin)
+
+        self.login(self.admin)
+        response = self.client.post(reverse("flows.flow_delete", args=[flow.pk]))
+
+        # can't delete already released flow
+        self.assertEqual(response.status_code, 404)
 
     def test_export_and_download_translation(self):
         self.org.set_flow_languages(self.admin, ["spa"])

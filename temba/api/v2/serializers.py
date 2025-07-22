@@ -999,7 +999,7 @@ class ContactBulkActionSerializer(WriteSerializer):
         elif action == self.REMOVE:
             Contact.bulk_change_group(user, contacts, group, add=False)
         elif action == self.INTERRUPT:
-            mailroom.queue_interrupt(self.context["org"], contacts=contacts)
+            Contact.bulk_interrupt(user, contacts)
         elif action == self.ARCHIVE_MESSAGES or action == self.ARCHIVE:
             Msg.archive_all_for_contacts(contacts)
         elif action == self.BLOCK:

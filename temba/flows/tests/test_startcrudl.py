@@ -2,11 +2,12 @@ from django.urls import reverse
 
 from temba.flows.models import FlowStart, FlowStartCount
 from temba.mailroom.client.types import Exclusions
-from temba.tests import CRUDLTestMixin, TembaTest
+from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
 
 
 class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
-    def test_list(self):
+    @mock_mailroom
+    def test_list(self, mr_mocks):
         list_url = reverse("flows.flowstart_list")
 
         flow1 = self.create_flow("Test Flow 1")

@@ -19,7 +19,7 @@ class FlowsEndpointTest(APITest):
         survey = self.get_flow("media_survey")
         color = self.get_flow("color_v13")
         archived = self.get_flow("favorites")
-        archived.archive(self.admin)
+        archived.archive(self.admin, interrupt_sessions=False)
 
         # add a flow label
         reporting = FlowLabel.create(self.org, self.admin, "Reporting")

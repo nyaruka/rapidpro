@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import call
 
 from django.urls import reverse
 
@@ -175,15 +175,14 @@ class ContactActionsEndpointTest(APITest):
         self.assertEqual(set(self.org.contacts.filter(status=Contact.STATUS_BLOCKED)), {contact2, contact3, contact4})
 
         # interrupt any active runs of contacts 1 and 2
-        with patch("temba.mailroom.queue_interrupt") as mock_queue_interrupt:
-            self.assertPost(
-                endpoint_url,
-                self.admin,
-                {"contacts": [contact1.uuid, contact2.uuid], "action": "interrupt"},
-                status=204,
-            )
+        self.assertPost(
+            endpoint_url,
+            self.admin,
+            {"contacts": [contact1.uuid, contact2.uuid], "action": "interrupt"},
+            status=204,
+        )
 
-            mock_queue_interrupt.assert_called_once_with(self.org, contacts=[contact1, contact2])
+        self.assertEqual([call(self.org, self.admin, [contact1, contact2])], mr_mocks.calls["contact_interrupt"])
 
         # archive all messages for contacts 1 and 2
         self.assertPost(

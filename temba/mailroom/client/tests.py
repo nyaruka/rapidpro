@@ -256,15 +256,16 @@ class MailroomClientTest(TembaTest):
     @patch("requests.post")
     def test_contact_interrupt(self, mock_post):
         ann = self.create_contact("Ann", urns=["tel:+12340000001"])
-        mock_post.return_value = MockJsonResponse(200, {"sessions": 1})
+        bob = self.create_contact("Bob", urns=["tel:+12340000002"])
+        mock_post.return_value = MockJsonResponse(200, {"sessions": 2})
 
-        result = self.client.contact_interrupt(self.org, self.admin, ann)
+        result = self.client.contact_interrupt(self.org, self.admin, [ann, bob])
 
-        self.assertEqual(1, result)
+        self.assertEqual(2, result)
         mock_post.assert_called_once_with(
             "http://localhost:8090/mr/contact/interrupt",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
-            json={"org_id": self.org.id, "user_id": self.admin.id, "contact_id": ann.id},
+            json={"org_id": self.org.id, "user_id": self.admin.id, "contact_ids": [ann.id, bob.id]},
         )
 
     @patch("requests.post")
