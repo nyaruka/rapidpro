@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from unittest.mock import patch
+from unittest.mock import call, patch
 from zoneinfo import ZoneInfo
 
 from django.core.validators import ValidationError
@@ -189,18 +189,8 @@ class ContactImportTest(TembaTest):
             batches[0].specs,
         )
 
-        # check batch was queued for import by mailroom
-        self.assertEqual(
-            [
-                {
-                    "type": "import_contact_batch",
-                    "org_id": self.org.id,
-                    "task": {"contact_import_batch_id": batches[0].id},
-                    "queued_on": matchers.Datetime(),
-                },
-            ],
-            mr_mocks.queued_batch_tasks,
-        )
+        # check import was passed to mailroom for processing
+        self.assertEqual([call(self.org, imp)], mr_mocks.calls["contact_import"])
 
         # records are batched if they exceed batch size
         with patch("temba.contacts.models.ContactImport.BATCH_SIZE", 2):
@@ -554,7 +544,8 @@ class ContactImportTest(TembaTest):
         self.org.refresh_from_db()
         self.assertFalse(self.org.is_flagged)
 
-    def test_data_types(self):
+    @mock_mailroom
+    def test_data_types(self, mr_mocks):
         imp = self.create_contact_import("media/test_imports/data_formats.xlsx")
         imp.start()
         batch = imp.batches.get()

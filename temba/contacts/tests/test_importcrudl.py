@@ -8,7 +8,8 @@ from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
 
 
 class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
-    def test_create_and_preview(self):
+    @mock_mailroom
+    def test_create_and_preview(self, mr_mocks):
         create_url = reverse("contacts.contactimport_create")
 
         self.assertRequestDisallowed(create_url, [None, self.agent])
@@ -136,7 +137,8 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         imp.refresh_from_db()
         self.assertEqual(doctors, imp.group)
 
-    def test_preview_with_mappings(self):
+    @mock_mailroom
+    def test_preview_with_mappings(self, mr_mocks):
         self.create_field("age", "Age", ContactField.TYPE_NUMBER)
 
         imp = self.create_contact_import("media/test_imports/extra_fields_and_group.xlsx")
@@ -263,7 +265,8 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
     @patch("temba.contacts.models.ContactImport.BATCH_SIZE", 2)
-    def test_read(self):
+    @mock_mailroom
+    def test_read(self, mr_mocks):
         imp = self.create_contact_import("media/test_imports/simple.xlsx")
         imp.start()
 
