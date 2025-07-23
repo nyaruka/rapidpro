@@ -1,3 +1,7 @@
+v10.3.6 (2025-07-23)
+-------------------------
+ * Update to latest floweditor
+
 v10.3.5 (2025-07-23)
 -------------------------
  * Perform contact imports by calling mailroom endpoint
