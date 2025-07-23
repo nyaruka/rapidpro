@@ -64,8 +64,6 @@ class Mocks:
         self._msg_broadcast_preview = []
         self._exceptions = []
 
-        self.queued_batch_tasks = []
-
     def contact_parse_query(self, query, *, cleaned=None, fields=None):
         def mock(org):
             return mailroom.ParsedQuery(
@@ -235,6 +233,10 @@ class TestClient(MailroomClient):
             return self.mocks._contact_export_preview.pop(0)
 
         return group.get_member_count()
+
+    @_client_method
+    def contact_import(self, org, imp) -> int:
+        return imp.batches.count()
 
     @_client_method
     def contact_modify(self, org, user, contacts, modifiers: list[Modifier]):
@@ -509,7 +511,7 @@ class TestClient(MailroomClient):
         return {"changed_ids": [t.id for t in tickets]}
 
 
-def mock_mailroom(method=None, *, client=True, queue=True):
+def mock_mailroom(method=None):
     """
     Convenience decorator to make a test method use a mocked version of the mailroom client
     """
@@ -517,42 +519,26 @@ def mock_mailroom(method=None, *, client=True, queue=True):
     def actual_decorator(f):
         @wraps(f)
         def wrapper(instance, *args, **kwargs):
-            _wrap_test_method(f, client, queue, instance, *args, **kwargs)
+            _wrap_test_method(f, instance, *args, **kwargs)
 
         return wrapper
 
     return actual_decorator(method) if method else actual_decorator
 
 
-def _wrap_test_method(f, mock_client: bool, mock_queue: bool, instance, *args, **kwargs):
+def _wrap_test_method(f, instance, *args, **kwargs):
     mocks = Mocks()
 
     patch_get_client = None
-    patch_queue_batch_task = None
 
     try:
-        if mock_client:
-            patch_get_client = patch("temba.mailroom.get_client")
-            mock_get_client = patch_get_client.start()
-            mock_get_client.return_value = TestClient(mocks)
-
-        if mock_queue:
-            patch_queue_batch_task = patch("temba.mailroom.queue._queue_batch_task")
-            mock_queue_batch_task = patch_queue_batch_task.start()
-
-            def queue_batch_task(org_id, task_type, task, priority):
-                mocks.queued_batch_tasks.append(
-                    {"type": task_type.value, "org_id": org_id, "task": task, "queued_on": timezone.now()}
-                )
-
-            mock_queue_batch_task.side_effect = queue_batch_task
+        patch_get_client = patch("temba.mailroom.get_client")
+        mock_get_client = patch_get_client.start()
+        mock_get_client.return_value = TestClient(mocks)
 
         return f(instance, mocks, *args, **kwargs)
     finally:
-        if patch_get_client:
-            patch_get_client.stop()
-        if patch_queue_batch_task:
-            patch_queue_batch_task.stop()
+        patch_get_client.stop()
 
 
 def apply_modifiers(org, user, contacts, modifiers: list):

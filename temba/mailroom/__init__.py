@@ -2,7 +2,6 @@ from django.conf import settings
 
 from .client.exceptions import *  # noqa
 from .client.types import *  # noqa
-from .queue import *  # noqa
 
 
 def get_client():

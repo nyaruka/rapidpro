@@ -101,6 +101,11 @@ class MailroomClient:
 
         return resp["total"]
 
+    def contact_import(self, org, imp) -> int:
+        resp = self._request("contact/import", {"org_id": org.id, "import_id": imp.id})
+
+        return resp["batches"]
+
     def contact_inspect(self, org, contacts) -> dict:
         resp = self._request("contact/inspect", {"org_id": org.id, "contact_ids": [c.id for c in contacts]})
 

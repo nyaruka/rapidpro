@@ -9,7 +9,6 @@ from typing import Any
 import iso8601
 import phonenumbers
 import regex
-from django_valkey import get_valkey_connection
 from openpyxl import load_workbook
 from smartmin.models import SmartModel
 
@@ -2231,13 +2230,8 @@ class ContactImport(SmartModel):
             for spec in batch_specs:
                 urns.extend(spec.get("urns", []))
 
-        # set valkey key which mailroom batch tasks can decrement to know when import has completed
-        r = get_valkey_connection()
-        r.set(f"contact_import_batches_remaining:{self.id}", len(batches), ex=24 * 60 * 60)
-
-        # start each batch...
-        for batch in batches:
-            batch.import_async()
+        # tell mailroom to perform the import
+        mailroom.get_client().contact_import(self.org, self)
 
         # flag org if the set of imported URNs looks suspicious
         if not self.org.is_verified and self._detect_spamminess(urns):
@@ -2459,6 +2453,3 @@ class ContactImportBatch(models.Model):
     num_errored = models.IntegerField(default=0)
     errors = models.JSONField(default=list)
     finished_on = models.DateTimeField(null=True)
-
-    def import_async(self):
-        mailroom.queue_contact_import_batch(self)
