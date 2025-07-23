@@ -2215,7 +2215,7 @@ class ContactImport(SmartModel):
             self.group = ContactGroup.create_manual(self.org, self.created_by, name=self.group_name)
             self.save(update_fields=("group",))
 
-        # parse each row, creating batch tasks for mailroom
+        # parse each row, creating batches
         workbook = load_workbook(filename=self.file, read_only=True, data_only=True)
         ws = workbook.active
         ws.reset_dimensions()  # see https://openpyxl.readthedocs.io/en/latest/optimized.html#worksheet-dimensions
