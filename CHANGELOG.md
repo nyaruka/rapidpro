@@ -1,3 +1,8 @@
+v10.3.5 (2025-07-23)
+-------------------------
+ * Perform contact imports by calling mailroom endpoint
+ * Tweak mailroom_db to reset more db sequences
+
 v10.3.4 (2025-07-22)
 -------------------------
  * Call mailroom endpoints to interrupt by flow, contacts or channel
