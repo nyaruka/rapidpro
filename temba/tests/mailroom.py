@@ -237,6 +237,10 @@ class TestClient(MailroomClient):
         return group.get_member_count()
 
     @_client_method
+    def contact_import(self, org, imp) -> int:
+        return imp.batches.count()
+
+    @_client_method
     def contact_modify(self, org, user, contacts, modifiers: list[Modifier]):
         apply_modifiers(org, user, contacts, modifiers)
 

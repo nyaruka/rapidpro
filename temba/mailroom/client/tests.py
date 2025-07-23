@@ -7,7 +7,7 @@ from django.test import override_settings
 from temba.ai.models import LLM
 from temba.ai.types.openai.type import OpenAIType
 from temba.campaigns.models import Campaign, CampaignEvent
-from temba.contacts.models import ContactField
+from temba.contacts.models import ContactField, ContactImport
 from temba.flows.models import Flow, FlowStart
 from temba.msgs.models import QuickReply
 from temba.schedules.models import Schedule
@@ -236,6 +236,19 @@ class MailroomClientTest(TembaTest):
             "http://localhost:8090/mr/contact/export_preview",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "group_id": group.id, "query": "age = 42"},
+        )
+
+    @patch("requests.post")
+    def test_contact_import(self, mock_post):
+        mock_post.return_value = MockJsonResponse(200, {"batches": 2})
+
+        result = self.client.contact_import(self.org, ContactImport(id=1234))
+
+        self.assertEqual(2, result)
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mr/contact/import",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={"org_id": self.org.id, "import_id": 1234},
         )
 
     @patch("requests.post")
