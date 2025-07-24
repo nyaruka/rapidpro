@@ -1147,13 +1147,16 @@ class ContactImportCRUDL(SmartCRUDL):
                 group_limit_reached = ContactGroup.is_limit_reached(org)
 
                 # Modify group mode choices and initial value if group limit reached
-                group_choices = [(self.GROUP_MODE_NEW, _("new group")), (self.GROUP_MODE_EXISTING, _("existing group"))]
-                group_initial = self.GROUP_MODE_NEW
-
                 if group_limit_reached:
                     # If group limit reached, only allow existing groups and default to that
                     group_choices = [(self.GROUP_MODE_EXISTING, _("existing group"))]
                     group_initial = self.GROUP_MODE_EXISTING
+                else:
+                    group_choices = [
+                        (self.GROUP_MODE_NEW, _("new group")),
+                        (self.GROUP_MODE_EXISTING, _("existing group")),
+                    ]
+                    group_initial = self.GROUP_MODE_NEW
 
                 # Update the group_mode field with potentially modified choices
                 self.fields["group_mode"].choices = group_choices
@@ -1269,11 +1272,6 @@ class ContactImportCRUDL(SmartCRUDL):
                 if add_to_group:
                     group_mode = self.cleaned_data["group_mode"]
                     if group_mode == self.GROUP_MODE_NEW:
-                        # Validate group limit
-                        current_group_count = self.org.groups.filter(is_active=True).count()
-                        group_limit = self.org.get_limit(Org.LIMIT_GROUPS)
-                        if current_group_count + 1 > group_limit:  # pragma: no cover
-                            raise forms.ValidationError(_("This workspace has reached its limit of groups."))
                         new_group_name = self.cleaned_data.get("new_group_name")
                         if not new_group_name:
                             self.add_error("new_group_name", _("Required."))
