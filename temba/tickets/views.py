@@ -4,8 +4,10 @@ from datetime import timedelta
 from smartmin.views import SmartCRUDL, SmartListView, SmartTemplateView, SmartUpdateView
 
 from django import forms
+from django.db import models
+from django.db.models import F, Sum, Value
 from django.db.models.aggregates import Max
-from django.db.models.functions import Lower
+from django.db.models.functions import Cast, Lower, SplitPart
 from django.http import Http404, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
@@ -580,23 +582,26 @@ class TicketCRUDL(SmartCRUDL):
             # Add default team (id=0) for users not assigned to specific teams
             teams_by_id[0] = "No Team"
 
-            counts = org.daily_counts.period(since, until).prefix("msgs:ticketreplies:").day_totals(scoped=True)
+            # Follow the pattern from get_topic_counts - use database aggregation instead of Python processing
+            # scope format: msgs:ticketreplies:{team_id}:{user_id} - team_id is at position 3 (1-indexed)
+            counts = (
+                org.daily_counts.period(since, until)
+                .prefix("msgs:ticketreplies:")
+                .annotate(team_id=Cast(SplitPart(F("scope"), Value(":"), Value(3)), output_field=models.IntegerField()))
+                .values_list("day", "team_id")
+                .annotate(count_sum=Sum("count"))
+            )
 
             # collect all dates and values by team
             dates_set = set()
             values_by_team = defaultdict(dict)
 
-            for (day, scope), count in counts.items():
-                # scope format: msgs:ticketreplies:{team_id}:{user_id}
-                # we want to group by team_id
-                scope_parts = scope.split(":")
-                if len(scope_parts) >= 3:
-                    team_id = int(scope_parts[2])
-                    team_name = teams_by_id.get(team_id, f"Team {team_id}")
-                    dates_set.add(day)
-                    if team_name not in values_by_team:
-                        values_by_team[team_name] = defaultdict(int)
-                    values_by_team[team_name][day] += count
+            for day, team_id, count in counts:
+                team_name = teams_by_id.get(team_id, f"Team {team_id}")
+                dates_set.add(day)
+                if team_name not in values_by_team:
+                    values_by_team[team_name] = defaultdict(int)
+                values_by_team[team_name][day] += count
 
             # create sorted list of dates
             labels = sorted(list(dates_set))

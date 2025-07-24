@@ -518,10 +518,18 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # Create some test data - msgs:ticketreplies:{team_id}:{user_id}
         self.org.daily_counts.create(day=date(2024, 4, 25), scope="msgs:ticketreplies:0:1", count=2)  # No Team
-        self.org.daily_counts.create(day=date(2024, 4, 25), scope=f"msgs:ticketreplies:{sales_team.id}:2", count=3)  # Sales team
-        self.org.daily_counts.create(day=date(2024, 4, 25), scope=f"msgs:ticketreplies:{support_team.id}:3", count=1)  # Support team
-        self.org.daily_counts.create(day=date(2024, 4, 26), scope=f"msgs:ticketreplies:{sales_team.id}:2", count=5)  # Sales team next day
-        self.org.daily_counts.create(day=date(2024, 4, 26), scope=f"msgs:ticketreplies:{sales_team.id}:4", count=2)  # Sales team, different user
+        self.org.daily_counts.create(
+            day=date(2024, 4, 25), scope=f"msgs:ticketreplies:{sales_team.id}:2", count=3
+        )  # Sales team
+        self.org.daily_counts.create(
+            day=date(2024, 4, 25), scope=f"msgs:ticketreplies:{support_team.id}:3", count=1
+        )  # Support team
+        self.org.daily_counts.create(
+            day=date(2024, 4, 26), scope=f"msgs:ticketreplies:{sales_team.id}:2", count=5
+        )  # Sales team next day
+        self.org.daily_counts.create(
+            day=date(2024, 4, 26), scope=f"msgs:ticketreplies:{sales_team.id}:4", count=2
+        )  # Sales team, different user
         self.org.daily_counts.create(day=date(2024, 5, 3), scope="msgs:ticketreplies:0:1", count=1)  # out of period
 
         response = self.client.get(replies_url + "?since=2024-03-01&until=2024-05-01")
