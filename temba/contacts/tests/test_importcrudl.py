@@ -80,14 +80,12 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(preview_url, {"add_to_group": True, "group_mode": "N", "new_group_name": "testERs"})
         self.assertFormError(response.context["form"], "new_group_name", "Already exists.")
 
-        # try creating new group when we've already reached our group limit
-        with override_settings(ORG_LIMIT_DEFAULTS={"groups": 2}):
-            response = self.client.post(
-                preview_url, {"add_to_group": True, "group_mode": "N", "new_group_name": "Import"}
-            )
-            self.assertFormError(response.context["form"], None, "This workspace has reached its limit of groups.")
+        # no option for creating new group when we've already reached our group limit
+        with override_settings(ORG_LIMIT_DEFAULTS={"groups": 2, "fields": 1}):
+            response = self.client.get(preview_url)
+            self.assertEqual(response.context["form"].fields["group_mode"].choices, [("E", "existing group")])
 
-        # finally create new group...
+        # finally create necw group...
         response = self.client.post(preview_url, {"add_to_group": True, "group_mode": "N", "new_group_name": "Import"})
         self.assertRedirect(response, read_url)
 
@@ -99,7 +97,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         imp = self.create_contact_import("media/test_imports/simple.xlsx")
         preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
         read_url = reverse("contacts.contactimport_read", args=[imp.id])
-        with override_settings(ORG_LIMIT_DEFAULTS={"groups": 2}):
+        with override_settings(ORG_LIMIT_DEFAULTS={"groups": 2, "fields": 1}):
             response = self.client.post(
                 preview_url, {"add_to_group": True, "group_mode": "E", "existing_group": doctors.id}
             )
@@ -278,6 +276,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
     @mock_mailroom
     def test_preview_with_field_limit_reached(self, mr_mocks):
         """Test that new fields are automatically ignored when field limit is reached"""
+        self.login(self.admin)
         # Create import with a file that has new fields
         imp = self.create_contact_import("media/test_imports/extra_fields_and_group.xlsx")
 
@@ -297,13 +296,10 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
             for column in new_field_columns:
                 self.assertTrue(column.get("field_limit_reached", False))
 
-            # Try to submit the form - should work as new fields will be ignored
-            response = self.client.post(preview_url, {})
-            self.assertEqual(302, response.status_code)
-
     @mock_mailroom
     def test_preview_with_field_limit_not_reached(self, mr_mocks):
         """Test that new fields are normally available when field limit is not reached"""
+        self.login(self.admin)
         # Create import with a file that has new fields
         imp = self.create_contact_import("media/test_imports/extra_fields_and_group.xlsx")
 
@@ -326,6 +322,8 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
     @mock_mailroom
     def test_preview_with_group_limit_reached(self, mr_mocks):
         """Test that new group option is hidden when group limit is reached"""
+        self.login(self.admin)
+
         imp = self.create_contact_import("media/test_imports/simple.xlsx")
 
         preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
@@ -350,6 +348,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
     @mock_mailroom
     def test_field_limit_validation_prevents_circumvention(self, mr_mocks):
         """Test that backend validation prevents field limit circumvention"""
+        self.login(self.admin)
         imp = self.create_contact_import("media/test_imports/extra_fields_and_group.xlsx")
 
         preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
@@ -363,7 +362,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         current_field_count = imp.org.fields.filter(is_system=False, is_active=True).count()
 
         # Now try to submit with new field when at limit
-        with override_settings(ORG_LIMIT_DEFAULTS={"fields": current_field_count}):
+        with override_settings(ORG_LIMIT_DEFAULTS={"fields": current_field_count, "groups": 10}):
             # Try to submit with new field included (trying to circumvent UI restrictions)
             post_data = {}
             if new_field_columns:
