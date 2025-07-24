@@ -355,20 +355,16 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
 
         preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
 
-        # Create a scenario where we try to submit new fields when at limit
-        with patch("temba.contacts.models.ContactField.is_limit_reached", return_value=False):
-            # Get the form to see what fields are available
-            response = self.client.get(preview_url)
-            form = response.context["form"]
-            new_field_columns = [col for col in form.columns if col["mapping"]["type"] == "new_field"]
+        # Get the form to see what fields are available when limit not reached
+        response = self.client.get(preview_url)
+        form = response.context["form"]
+        new_field_columns = [col for col in form.columns if col["mapping"]["type"] == "new_field"]
 
-        # Now mock the limit as reached and try to submit with fields enabled
-        with (
-            patch.object(ContactField, "is_limit_reached", return_value=True),
-            patch.object(Org, "get_limit", return_value=1),
-            patch.object(imp.org.fields.filter(is_system=False, is_active=True), "count", return_value=1),
-        ):
-
+        # Set field limit to current count so we're at the limit
+        current_field_count = imp.org.fields.filter(is_system=False, is_active=True).count()
+        
+        # Now try to submit with new field when at limit  
+        with override_settings(ORG_LIMIT_DEFAULTS={"fields": current_field_count}):
             # Try to submit with new field included (trying to circumvent UI restrictions)
             post_data = {}
             if new_field_columns:
