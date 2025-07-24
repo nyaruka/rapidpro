@@ -276,7 +276,6 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
     @mock_mailroom
     def test_preview_with_field_limit_reached(self, mr_mocks):
         """Test that new fields are automatically ignored when field limit is reached"""
-        self.login(self.admin)
         # Create import with a file that has new fields
         imp = self.create_contact_import("media/test_imports/extra_fields_and_group.xlsx")
 
@@ -284,8 +283,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # Mock field limit as reached
         with patch("temba.contacts.models.ContactField.is_limit_reached", return_value=True):
-            response = self.client.get(preview_url)
-            self.assertEqual(200, response.status_code)
+            response = self.assertReadFetch(preview_url, [self.admin])
 
             # Check that new field checkboxes are disabled when limit is reached
             form = response.context["form"]
@@ -299,7 +297,6 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
     @mock_mailroom
     def test_preview_with_field_limit_not_reached(self, mr_mocks):
         """Test that new fields are normally available when field limit is not reached"""
-        self.login(self.admin)
         # Create import with a file that has new fields
         imp = self.create_contact_import("media/test_imports/extra_fields_and_group.xlsx")
 
@@ -307,8 +304,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # Mock field limit as NOT reached
         with patch("temba.contacts.models.ContactField.is_limit_reached", return_value=False):
-            response = self.client.get(preview_url)
-            self.assertEqual(200, response.status_code)
+            response = self.assertReadFetch(preview_url, [self.admin])
 
             # Check that new field checkboxes are enabled when limit is not reached
             form = response.context["form"]
@@ -322,7 +318,6 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
     @mock_mailroom
     def test_preview_with_group_limit_reached(self, mr_mocks):
         """Test that new group option is hidden when group limit is reached"""
-        self.login(self.admin)
 
         imp = self.create_contact_import("media/test_imports/simple.xlsx")
 
@@ -330,8 +325,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # Mock group limit as reached
         with patch("temba.contacts.models.ContactGroup.is_limit_reached", return_value=True):
-            response = self.client.get(preview_url)
-            self.assertEqual(200, response.status_code)
+            response = self.assertReadFetch(preview_url, [self.admin])
 
             # Check that form only has existing group option
             form = response.context["form"]
@@ -345,13 +339,12 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
     @mock_mailroom
     def test_field_limit_validation_prevents_circumvention(self, mr_mocks):
         """Test that backend validation prevents field limit circumvention"""
-        self.login(self.admin)
         imp = self.create_contact_import("media/test_imports/extra_fields_and_group.xlsx")
 
         preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
 
         # Get the form to see what fields are available when limit not reached
-        response = self.client.get(preview_url)
+        response = self.assertReadFetch(preview_url, [self.admin])
         form = response.context["form"]
         new_field_columns = [col for col in form.columns if col["mapping"]["type"] == "new_field"]
 
