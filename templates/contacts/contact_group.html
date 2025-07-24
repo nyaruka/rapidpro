@@ -3,7 +3,13 @@
 
 {% block pre-table %}
   {% if current_group.is_smart %}
-    {% if current_group.status != 'R' %}
+    {% if current_group.status == 'X' %}
+      <temba-alert level="warning" class="mb-4">
+        {% blocktrans trimmed %}
+          This group has an invalid query.
+        {% endblocktrans %}
+      </temba-alert>
+    {% elif current_group.status != 'R' %}
       <temba-alert level="info" class="mb-4">
         {% blocktrans trimmed %}
           This group is in the process of being populated.

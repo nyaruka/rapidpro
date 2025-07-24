@@ -1,3 +1,8 @@
+v10.3.7 (2025-07-24)
+-------------------------
+ * Clear field dependencies for deleted groups
+ * Add INVALID(X) status to contact group
+
 v10.3.6 (2025-07-23)
 -------------------------
  * Update to latest floweditor

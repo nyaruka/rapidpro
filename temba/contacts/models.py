@@ -1619,7 +1619,8 @@ class ContactGroup(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         from .tasks import release_group_task
 
-        # delete all triggers for this group
+        self.query_fields.clear()
+
         for trigger in self.triggers.filter(is_active=True):
             trigger.release(user)
 
