@@ -274,3 +274,53 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(read_url, [None, self.agent, self.admin2])
         self.assertReadFetch(read_url, [self.editor, self.admin], context_object=imp)
+
+    @mock_mailroom
+    def test_preview_with_field_limit_reached(self, mr_mocks):
+        """Test that new fields are automatically ignored when field limit is reached"""
+        # Create import with a file that has new fields
+        imp = self.create_contact_import("media/test_imports/extra_fields_and_group.xlsx")
+        
+        preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
+        
+        # Mock field limit as reached
+        with patch("temba.contacts.models.ContactField.is_limit_reached", return_value=True):
+            response = self.client.get(preview_url)
+            self.assertEqual(200, response.status_code)
+            
+            # Check that context indicates field limit reached
+            self.assertTrue(response.context["field_limit_reached"])
+            
+            # Check that new field columns have field_limit_reached flag
+            form = response.context["form"]
+            new_field_columns = [col for col in form.columns if col["mapping"]["type"] == "new_field"]
+            for column in new_field_columns:
+                self.assertTrue(column.get("field_limit_reached", False))
+                
+            # Try to submit the form - should work as new fields will be ignored
+            response = self.client.post(preview_url, {})
+            self.assertEqual(302, response.status_code)
+
+    @mock_mailroom  
+    def test_preview_with_group_limit_reached(self, mr_mocks):
+        """Test that new group option is hidden when group limit is reached"""
+        imp = self.create_contact_import("media/test_imports/simple.xlsx")
+        
+        preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
+        
+        # Mock group limit as reached
+        with patch("temba.contacts.models.ContactGroup.is_limit_reached", return_value=True):
+            response = self.client.get(preview_url)
+            self.assertEqual(200, response.status_code)
+            
+            # Check that context indicates group limit reached
+            self.assertTrue(response.context["group_limit_reached"])
+            
+            # Check that form only has existing group option
+            form = response.context["form"]
+            group_mode_choices = form.fields["group_mode"].choices
+            self.assertEqual(len(group_mode_choices), 1)
+            self.assertEqual(group_mode_choices[0][0], form.GROUP_MODE_EXISTING)
+            
+            # Initial value should be existing group mode
+            self.assertEqual(form.fields["group_mode"].initial, form.GROUP_MODE_EXISTING)

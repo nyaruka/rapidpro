@@ -48,6 +48,7 @@ from temba.utils.views.mixins import ComponentFormMixin, ContextMenuMixin, Modal
 from .forms import ContactGroupForm, CreateContactForm, UpdateContactForm
 from .models import URN, Contact, ContactExport, ContactField, ContactGroup, ContactImport
 from .omnibox import omnibox_query, omnibox_serialize
+from temba.orgs.models import Org
 
 logger = logging.getLogger(__name__)
 
@@ -1141,14 +1142,37 @@ class ContactImportCRUDL(SmartCRUDL):
                 self.org = org
                 super().__init__(*args, **kwargs)
 
+                # Check if limits are reached
+                field_limit_reached = ContactField.is_limit_reached(org)
+                group_limit_reached = ContactGroup.is_limit_reached(org)
+
+                # Modify group mode choices and initial value if group limit reached
+                group_choices = [(self.GROUP_MODE_NEW, _("new group")), (self.GROUP_MODE_EXISTING, _("existing group"))]
+                group_initial = self.GROUP_MODE_NEW
+                
+                if group_limit_reached:
+                    # If group limit reached, only allow existing groups and default to that
+                    group_choices = [(self.GROUP_MODE_EXISTING, _("existing group"))]
+                    group_initial = self.GROUP_MODE_EXISTING
+
+                # Update the group_mode field with potentially modified choices
+                self.fields["group_mode"].choices = group_choices
+                self.fields["group_mode"].initial = group_initial
+
                 self.columns = []
                 for i, item in enumerate(self.instance.mappings):
                     mapping = item["mapping"]
                     column = item.copy()
 
                     if mapping["type"] == "new_field":
+                        # If field limit is reached, auto-ignore new fields
+                        initial_include = not field_limit_reached
+                        widget_attrs = {"widget_only": True}
+                        if field_limit_reached:
+                            widget_attrs["disabled"] = True
+
                         include_field = forms.BooleanField(
-                            label=" ", required=False, initial=True, widget=CheckboxWidget(attrs={"widget_only": True})
+                            label=" ", required=False, initial=initial_include, widget=CheckboxWidget(attrs=widget_attrs)
                         )
                         name_field = forms.CharField(
                             label=" ", initial=mapping["name"], required=False, widget=InputWidget()
@@ -1171,6 +1195,7 @@ class ContactImportCRUDL(SmartCRUDL):
                         self.fields.update(column_controls)
 
                         column["controls"] = list(column_controls.keys())
+                        column["field_limit_reached"] = field_limit_reached
 
                     self.columns.append(column)
 
@@ -1198,7 +1223,9 @@ class ContactImportCRUDL(SmartCRUDL):
                 org_fields = self.org.fields.filter(is_system=False, is_active=True)
                 existing_field_keys = {f.key for f in org_fields}
                 used_field_keys = set()
+                new_fields_to_create = []  # Track new fields that will be created
                 form_values = self.get_form_values()
+                
                 for data, item in zip(form_values, self.instance.mappings):
                     header, mapping = item["header"], item["mapping"]
 
@@ -1226,6 +1253,17 @@ class ContactImportCRUDL(SmartCRUDL):
                                 )
 
                             used_field_keys.add(field_key)
+                            new_fields_to_create.append(field_name)
+
+                # Check if adding new fields would exceed the field limit
+                if new_fields_to_create:
+                    current_field_count = org_fields.count()
+                    field_limit = self.org.get_limit(Org.LIMIT_FIELDS)
+                    if current_field_count + len(new_fields_to_create) > field_limit:
+                        raise forms.ValidationError(
+                            _("This workspace has reached its limit of fields. Cannot create %(count)d new field(s)."),
+                            params={"count": len(new_fields_to_create)}
+                        )
 
                 add_to_group = self.cleaned_data["add_to_group"]
                 if add_to_group:
@@ -1272,6 +1310,8 @@ class ContactImportCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             context["num_records"] = self.get_object().num_records
+            context["field_limit_reached"] = ContactField.is_limit_reached(self.request.org)
+            context["group_limit_reached"] = ContactGroup.is_limit_reached(self.request.org)
             return context
 
         def pre_save(self, obj):
