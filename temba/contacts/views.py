@@ -1269,6 +1269,11 @@ class ContactImportCRUDL(SmartCRUDL):
                 if add_to_group:
                     group_mode = self.cleaned_data["group_mode"]
                     if group_mode == self.GROUP_MODE_NEW:
+                        # Validate group limit
+                        current_group_count = self.org.groups.filter(is_active=True).count()
+                        group_limit = self.org.get_limit(Org.LIMIT_GROUPS)
+                        if current_group_count + 1 > group_limit:
+                            raise forms.ValidationError(_("This workspace has reached its limit of groups."))
                         new_group_name = self.cleaned_data.get("new_group_name")
                         if not new_group_name:
                             self.add_error("new_group_name", _("Required."))
