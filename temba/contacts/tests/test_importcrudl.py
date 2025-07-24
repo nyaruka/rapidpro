@@ -4,7 +4,6 @@ from django.test.utils import override_settings
 from django.urls import reverse
 
 from temba.contacts.models import ContactField, ContactGroup, ContactImport
-from temba.orgs.models import Org
 from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
 
 
@@ -362,8 +361,8 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # Set field limit to current count so we're at the limit
         current_field_count = imp.org.fields.filter(is_system=False, is_active=True).count()
-        
-        # Now try to submit with new field when at limit  
+
+        # Now try to submit with new field when at limit
         with override_settings(ORG_LIMIT_DEFAULTS={"fields": current_field_count}):
             # Try to submit with new field included (trying to circumvent UI restrictions)
             post_data = {}
