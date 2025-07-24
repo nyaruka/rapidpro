@@ -1260,10 +1260,7 @@ class ContactImportCRUDL(SmartCRUDL):
                     current_field_count = org_fields.count()
                     field_limit = self.org.get_limit(Org.LIMIT_FIELDS)
                     if current_field_count + len(new_fields_to_create) > field_limit:
-                        raise forms.ValidationError(
-                            _("This workspace has reached its limit of fields. Cannot create %(count)d new field(s)."),
-                            params={"count": len(new_fields_to_create)}
-                        )
+                        raise forms.ValidationError(_("This workspace has reached its limit of fields."))
 
                 add_to_group = self.cleaned_data["add_to_group"]
                 if add_to_group:
