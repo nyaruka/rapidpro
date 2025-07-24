@@ -25,6 +25,7 @@ from temba import mailroom
 from temba.archives.models import Archive
 from temba.channels.models import Channel
 from temba.mailroom.events import Event
+from temba.orgs.models import Org
 from temba.orgs.views.base import (
     BaseCreateModal,
     BaseDependencyDeleteModal,
@@ -48,7 +49,6 @@ from temba.utils.views.mixins import ComponentFormMixin, ContextMenuMixin, Modal
 from .forms import ContactGroupForm, CreateContactForm, UpdateContactForm
 from .models import URN, Contact, ContactExport, ContactField, ContactGroup, ContactImport
 from .omnibox import omnibox_query, omnibox_serialize
-from temba.orgs.models import Org
 
 logger = logging.getLogger(__name__)
 
@@ -1149,7 +1149,7 @@ class ContactImportCRUDL(SmartCRUDL):
                 # Modify group mode choices and initial value if group limit reached
                 group_choices = [(self.GROUP_MODE_NEW, _("new group")), (self.GROUP_MODE_EXISTING, _("existing group"))]
                 group_initial = self.GROUP_MODE_NEW
-                
+
                 if group_limit_reached:
                     # If group limit reached, only allow existing groups and default to that
                     group_choices = [(self.GROUP_MODE_EXISTING, _("existing group"))]
@@ -1172,7 +1172,10 @@ class ContactImportCRUDL(SmartCRUDL):
                             widget_attrs["disabled"] = True
 
                         include_field = forms.BooleanField(
-                            label=" ", required=False, initial=initial_include, widget=CheckboxWidget(attrs=widget_attrs)
+                            label=" ",
+                            required=False,
+                            initial=initial_include,
+                            widget=CheckboxWidget(attrs=widget_attrs),
                         )
                         name_field = forms.CharField(
                             label=" ", initial=mapping["name"], required=False, widget=InputWidget()
@@ -1225,7 +1228,7 @@ class ContactImportCRUDL(SmartCRUDL):
                 used_field_keys = set()
                 new_fields_to_create = []  # Track new fields that will be created
                 form_values = self.get_form_values()
-                
+
                 for data, item in zip(form_values, self.instance.mappings):
                     header, mapping = item["header"], item["mapping"]
 
