@@ -912,6 +912,7 @@ class ContactGroupReadSerializer(ReadSerializer):
         ContactGroup.STATUS_INITIALIZING: "initializing",
         ContactGroup.STATUS_EVALUATING: "evaluating",
         ContactGroup.STATUS_READY: "ready",
+        ContactGroup.STATUS_INVALID: "invalid",
     }
 
     def get_status(self, obj):

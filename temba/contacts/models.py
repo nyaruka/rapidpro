@@ -1397,10 +1397,12 @@ class ContactGroup(LegacyUUIDMixin, TembaModel, DependencyMixin):
     STATUS_INITIALIZING = "I"  # group has been created but not yet (re)evaluated
     STATUS_EVALUATING = "V"  # a task is currently (re)evaluating this group
     STATUS_READY = "R"  # group is ready for use
+    STATUS_INVALID = "X"  # group query is invalid
     STATUS_CHOICES = (
         (STATUS_INITIALIZING, _("Initializing")),
         (STATUS_EVALUATING, _("Evaluating")),
         (STATUS_READY, _("Ready")),
+        (STATUS_INVALID, _("Invalid")),
     )
 
     MAX_QUERY_LEN = 10_000
