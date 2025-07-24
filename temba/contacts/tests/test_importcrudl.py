@@ -287,11 +287,14 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.client.get(preview_url)
             self.assertEqual(200, response.status_code)
 
-            # Check that new field columns have field_limit_reached flag
+            # Check that new field checkboxes are disabled when limit is reached
             form = response.context["form"]
             new_field_columns = [col for col in form.columns if col["mapping"]["type"] == "new_field"]
             for column in new_field_columns:
-                self.assertTrue(column.get("field_limit_reached", False))
+                include_field_name = column["controls"][0]  # First control is the include checkbox
+                include_field = form.fields[include_field_name]
+                self.assertFalse(include_field.initial)  # Should be initially unchecked
+                self.assertTrue(include_field.widget.attrs.get("disabled", False))  # Should be disabled
 
     @mock_mailroom
     def test_preview_with_field_limit_not_reached(self, mr_mocks):
@@ -307,11 +310,14 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.client.get(preview_url)
             self.assertEqual(200, response.status_code)
 
-            # Check that new field columns don't have field_limit_reached flag
+            # Check that new field checkboxes are enabled when limit is not reached
             form = response.context["form"]
             new_field_columns = [col for col in form.columns if col["mapping"]["type"] == "new_field"]
             for column in new_field_columns:
-                self.assertFalse(column.get("field_limit_reached", False))
+                include_field_name = column["controls"][0]  # First control is the include checkbox
+                include_field = form.fields[include_field_name]
+                self.assertTrue(include_field.initial)  # Should be initially checked
+                self.assertFalse(include_field.widget.attrs.get("disabled", False))  # Should not be disabled
 
     @mock_mailroom
     def test_preview_with_group_limit_reached(self, mr_mocks):

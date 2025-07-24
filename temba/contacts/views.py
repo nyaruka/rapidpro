@@ -1122,8 +1122,8 @@ class ContactImportCRUDL(SmartCRUDL):
             )
             group_mode = forms.ChoiceField(
                 required=False,
-                choices=((GROUP_MODE_NEW, _("new group")), (GROUP_MODE_EXISTING, _("existing group"))),
-                initial=GROUP_MODE_NEW,
+                choices=(),
+                initial=None,
                 widget=SelectWidget(attrs={"widget_only": True}),
             )
             new_group_name = forms.CharField(
@@ -1201,7 +1201,6 @@ class ContactImportCRUDL(SmartCRUDL):
                         self.fields.update(column_controls)
 
                         column["controls"] = list(column_controls.keys())
-                        column["field_limit_reached"] = field_limit_reached
 
                     self.columns.append(column)
 
