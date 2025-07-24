@@ -498,6 +498,48 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             response.json(),
         )
 
+    def test_replies_chart(self):
+        replies_url = reverse("tickets.ticket_chart", args=["replies"])
+
+        sales_team = Team.create(self.org, self.admin, "Sales")
+        support_team = Team.create(self.org, self.admin, "Support")
+
+        self.login(self.admin)
+
+        response = self.client.get(replies_url + "?since=2024-03-01&until=2024-05-01")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "period": ["2024-03-01", "2024-05-01"],
+                "data": {"datasets": [], "labels": []},
+            },
+            response.json(),
+        )
+
+        # Create some test data - msgs:ticketreplies:{team_id}:{user_id}
+        self.org.daily_counts.create(day=date(2024, 4, 25), scope="msgs:ticketreplies:0:1", count=2)  # No Team
+        self.org.daily_counts.create(day=date(2024, 4, 25), scope=f"msgs:ticketreplies:{sales_team.id}:2", count=3)  # Sales team
+        self.org.daily_counts.create(day=date(2024, 4, 25), scope=f"msgs:ticketreplies:{support_team.id}:3", count=1)  # Support team
+        self.org.daily_counts.create(day=date(2024, 4, 26), scope=f"msgs:ticketreplies:{sales_team.id}:2", count=5)  # Sales team next day
+        self.org.daily_counts.create(day=date(2024, 4, 26), scope=f"msgs:ticketreplies:{sales_team.id}:4", count=2)  # Sales team, different user
+        self.org.daily_counts.create(day=date(2024, 5, 3), scope="msgs:ticketreplies:0:1", count=1)  # out of period
+
+        response = self.client.get(replies_url + "?since=2024-03-01&until=2024-05-01")
+        self.assertEqual(
+            {
+                "period": ["2024-03-01", "2024-05-01"],
+                "data": {
+                    "labels": ["2024-04-25", "2024-04-26"],
+                    "datasets": [
+                        {"label": "No Team", "data": [2, 0]},
+                        {"label": "Sales", "data": [3, 7]},  # 5 + 2 from different users
+                        {"label": "Support", "data": [1, 0]},
+                    ],
+                },
+            },
+            response.json(),
+        )
+
     def test_export_stats(self):
         export_url = reverse("tickets.ticket_export_stats")
 

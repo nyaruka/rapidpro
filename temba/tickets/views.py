@@ -525,7 +525,7 @@ class TicketCRUDL(SmartCRUDL):
 
         @classmethod
         def derive_url_pattern(cls, path, action):
-            return r"^%s/%s/(?P<chart>(opened|resptime))/$" % (path, action)
+            return r"^%s/%s/(?P<chart>(opened|resptime|replies))/$" % (path, action)
 
         def get_opened_chart(self, org, since, until) -> tuple:
             topics_by_id = {t.id: t.name for t in org.topics.filter(is_active=True)}
@@ -575,12 +575,47 @@ class TicketCRUDL(SmartCRUDL):
 
             return [d.strftime("%Y-%m-%d") for d in labels], [{"label": "Response Time", "data": data}]
 
+        def get_replies_chart(self, org, since, until) -> tuple:
+            teams_by_id = {t.id: t.name for t in org.teams.filter(is_active=True)}
+            # Add default team (id=0) for users not assigned to specific teams
+            teams_by_id[0] = "No Team"
+
+            counts = org.daily_counts.period(since, until).prefix("msgs:ticketreplies:").day_totals(scoped=True)
+
+            # collect all dates and values by team
+            dates_set = set()
+            values_by_team = defaultdict(dict)
+
+            for (day, scope), count in counts.items():
+                # scope format: msgs:ticketreplies:{team_id}:{user_id}
+                # we want to group by team_id
+                scope_parts = scope.split(":")
+                if len(scope_parts) >= 2:
+                    team_id = int(scope_parts[1])
+                    team_name = teams_by_id.get(team_id, f"Team {team_id}")
+                    dates_set.add(day)
+                    if team_name not in values_by_team:
+                        values_by_team[team_name] = defaultdict(int)
+                    values_by_team[team_name][day] += count
+
+            # create sorted list of dates
+            labels = sorted(list(dates_set))
+
+            # create arrays of values for each team, using 0 for missing dates
+            datasets = []
+            for team_name, date_counts in values_by_team.items():
+                datasets.append({"label": team_name, "data": [date_counts.get(date, 0) for date in labels]})
+
+            return [d.strftime("%Y-%m-%d") for d in labels], datasets
+
         def get_chart_data(self, since, until) -> tuple[list, list]:
             chart = self.kwargs["chart"]
             if chart == "opened":
                 return self.get_opened_chart(self.request.org, since, until)
             elif chart == "resptime":
                 return self.get_resptime_chart(self.request.org, since, until)
+            elif chart == "replies":
+                return self.get_replies_chart(self.request.org, since, until)
 
     class ExportStats(OrgPermsMixin, SmartTemplateView):
         permission = "tickets.ticket_analytics"
