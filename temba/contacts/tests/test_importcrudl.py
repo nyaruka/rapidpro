@@ -287,9 +287,6 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.client.get(preview_url)
             self.assertEqual(200, response.status_code)
 
-            # Check that context indicates field limit reached
-            self.assertTrue(response.context["field_limit_reached"])
-
             # Check that new field columns have field_limit_reached flag
             form = response.context["form"]
             new_field_columns = [col for col in form.columns if col["mapping"]["type"] == "new_field"]
@@ -310,9 +307,6 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.client.get(preview_url)
             self.assertEqual(200, response.status_code)
 
-            # Check that context indicates field limit NOT reached
-            self.assertFalse(response.context["field_limit_reached"])
-
             # Check that new field columns don't have field_limit_reached flag
             form = response.context["form"]
             new_field_columns = [col for col in form.columns if col["mapping"]["type"] == "new_field"]
@@ -332,9 +326,6 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         with patch("temba.contacts.models.ContactGroup.is_limit_reached", return_value=True):
             response = self.client.get(preview_url)
             self.assertEqual(200, response.status_code)
-
-            # Check that context indicates group limit reached
-            self.assertTrue(response.context["group_limit_reached"])
 
             # Check that form only has existing group option
             form = response.context["form"]

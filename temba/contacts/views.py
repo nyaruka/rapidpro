@@ -1269,9 +1269,6 @@ class ContactImportCRUDL(SmartCRUDL):
                 if add_to_group:
                     group_mode = self.cleaned_data["group_mode"]
                     if group_mode == self.GROUP_MODE_NEW:
-                        if ContactGroup.is_limit_reached(self.org):
-                            raise forms.ValidationError(_("This workspace has reached its limit of groups."))
-
                         new_group_name = self.cleaned_data.get("new_group_name")
                         if not new_group_name:
                             self.add_error("new_group_name", _("Required."))
@@ -1310,8 +1307,6 @@ class ContactImportCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             context["num_records"] = self.get_object().num_records
-            context["field_limit_reached"] = ContactField.is_limit_reached(self.request.org)
-            context["group_limit_reached"] = ContactGroup.is_limit_reached(self.request.org)
             return context
 
         def pre_save(self, obj):
