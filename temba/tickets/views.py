@@ -590,8 +590,8 @@ class TicketCRUDL(SmartCRUDL):
                 # scope format: msgs:ticketreplies:{team_id}:{user_id}
                 # we want to group by team_id
                 scope_parts = scope.split(":")
-                if len(scope_parts) >= 2:
-                    team_id = int(scope_parts[1])
+                if len(scope_parts) >= 3:
+                    team_id = int(scope_parts[2])
                     team_name = teams_by_id.get(team_id, f"Team {team_id}")
                     dates_set.add(day)
                     if team_name not in values_by_team:
