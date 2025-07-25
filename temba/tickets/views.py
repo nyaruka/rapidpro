@@ -7,7 +7,7 @@ from django import forms
 from django.db import models
 from django.db.models import F, Sum, Value
 from django.db.models.aggregates import Max
-from django.db.models.functions import Cast, Lower, SplitPart
+from django.db.models.functions import Cast, Lower
 from django.http import Http404, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
@@ -26,6 +26,7 @@ from temba.orgs.views.base import (
 )
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, RequireFeatureMixin
 from temba.utils.dates import datetime_to_timestamp, timestamp_to_datetime
+from temba.utils.db.functions import SplitPart
 from temba.utils.export import response_from_workbook
 from temba.utils.fields import InputWidget
 from temba.utils.uuid import UUID_REGEX
