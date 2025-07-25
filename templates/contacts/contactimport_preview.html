@@ -17,10 +17,10 @@
     <div class="card w-full">
       {% block fields %}
         <fieldset>
-          <table>
+          <div class="mapping-container">
             {% for column in form.columns %}
-              <tr class="mapping w-full items-center">
-                <td class="mapping-include pt-2">
+              <div class="mapping-row">
+                <div class="mapping-include">
                   {% if column.controls %}
                     {% render_field column.controls.0 %}
                   {% elif column.mapping.type == "ignore" %}
@@ -30,23 +30,22 @@
                     <temba-checkbox checked="true" disabled="true">
                     </temba-checkbox>
                   {% endif %}
-                </td>
-                <td class="mapping-header p-1 pr-4">
+                </div>
+                <div class="mapping-header">
                   <b>{{ column.header }}</b>
-                </td>
-                <td class="mapping-as p-1 whitespace-nowrap">
+                </div>
+                <div class="mapping-as gap-1">
                   {% if column.mapping.type == "ignore" %}
                     {% trans "will be ignored" %}
                   {% else %}
                     {% trans "as" %}
                     {% if column.mapping.type == "new_field" %}
                       {% trans "new field" %}
-                      <div class="name-control">{% render_field column.controls.1 %}</div>
+                      {% render_field column.controls.1 %}
                       {% trans "of type" %}
-                      <div class="value-type-control">{% render_field column.controls.2 %}</div>
+                      {% render_field column.controls.2 %}
                     {% elif column.mapping.type == "field" %}
-                      {% trans "field" %}
-                      <strong>{{ column.mapping.name }}</strong>
+                      {% trans "field" %} <strong>{{ column.mapping.name }}</strong>
                     {% elif column.mapping.type == "scheme" %}
                       {% blocktrans trimmed with scheme=column.mapping.scheme %}
                         a <strong>{{ scheme }}</strong> URN
@@ -54,29 +53,25 @@
                     {% else %}
                       <strong>{{ column.mapping.name }}</strong>
                     {% endif %}
-                  {% endif %}
-                </td>
-              </tr>
+                  </div>
+                {% endif %}
+              </div>
             {% endfor %}
-          </table>
+          </div>
         </fieldset>
       {% endblock fields %}
     </div>
     <div class="mb-5">
-      <div class="inline-flex">
-        <div class="flex-none pl-1 pt-2 pr-2">{% render_field 'add_to_group' %}</div>
-        <div class="flex-none pr-2 pt-2">{% trans "Add contacts to" %}</div>
-        <div class="flex-none">
-          <div class="inline-flex">
-            <div class="flex-none">{% render_field 'group_mode' %}</div>
-            <div class="flex-none">
-              <div class="inline-flex new-group-controls">
-                <div class="flex-none p-2">{% trans "called" %}</div>
-                <div class="flex-none">{% render_field 'new_group_name' %}</div>
-              </div>
-            </div>
-            <div class="flex-none existing-group-controls pl-2 hide">{% render_field 'existing_group' %}</div>
+      <div class="group-selection">
+        <div class="group-checkbox">{% render_field 'add_to_group' %}</div>
+        <div class="group-label">{% trans "Add contacts to" %}</div>
+        <div class="group-controls">
+          <div class="group-mode">{% render_field 'group_mode' %}</div>
+          <div class="new-group-controls">
+            <div class="group-called">{% trans "called" %}</div>
+            <div class="group-name">{% render_field 'new_group_name' %}</div>
           </div>
+          <div class="existing-group-controls hide">{% render_field 'existing_group' %}</div>
         </div>
       </div>
     </div>
@@ -133,46 +128,120 @@
 {% block extra-style %}
   {{ block.super }}
   <style type="text/css">
+    .control-group {
+      margin-bottom: 0;
+    }
+
     .page-content {
       align-self: auto;
       max-width: 1024px;
     }
 
-    .mapping .checkbox-label {
+    .mapping-container {
+      width: 100%;
+    }
+
+    .mapping-row {
+      display: flex;
+      align-items: center;
+      min-height: 3rem;
+    }
+
+    .mapping-include {
+      flex: 0 0 auto;
+      margin-right: 0.5rem;
+    }
+
+    .mapping-header {
+      flex: 0 0;
+      font-weight: bold;
+      margin-right: 0.5rem;
+    }
+
+    .mapping-as {
+      display: flex;
+      align-items: center;
+    }
+
+    .mapping-as .control-group {
+      margin-bottom: 0.7rem;
+      margin-right: 0.5rem;
+      margin-left: 0.5rem;
+    }
+
+    .mapping-as .control-group temba-select {
+      margin-bottom: -0.6rem;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    temba-select {
+      width: 10rem;
+    }
+
+    /* Basic styling for controls */
+    .checkbox-label {
       display: none;
     }
 
-    .mapping .inline-block {
-      padding: 0 5px;
-    }
-
-    .mapping .control-group {
-      margin-bottom: 0;
-    }
-
-    .mapping .name-control {
-      display: inline-block;
+    .name-control {
       width: 200px;
-      margin: 0 3px;
+      margin-right: 0.5rem;
     }
 
-    .mapping .value-type-control {
-      display: inline-block;
+    .value-type-control {
       width: 120px;
-      margin: 0 3px;
     }
 
-    .field_group_mode {
-      width: 160px;
+    /* Group selection section */
+    .group-selection {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-left: 1.5rem;
+      margin-top: 1.5rem;
+
     }
 
-    .field_new_group_name {
-      width: 200px;
-      margin-top: -4px;
+    .group-checkbox {
+      display: flex;
+      align-items: center;
     }
 
-    .field_existing_group {
-      width: 200px;
+    .group-label {
+      display: flex;
+      align-items: center;
+    }
+
+    .group-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .new-group-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .group-called {
+      display: flex;
+      align-items: center;
+    }
+
+    .group-controls temba-select {
+      margin-top: -0.5rem;
+    }
+
+    .group-controls temba-textinput {
+      margin-top: -0.75rem;
     }
   </style>
 {% endblock extra-style %}
