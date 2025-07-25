@@ -9,6 +9,7 @@
 .ruff_cache
 .vscode/
 .venv
+venv
 *.sublime*
 manage.sh
 
