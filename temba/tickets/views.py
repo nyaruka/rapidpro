@@ -582,7 +582,7 @@ class TicketCRUDL(SmartCRUDL):
             # Add default team (id=0) for users not assigned to specific teams
             teams_by_id[0] = "No Team"
 
-            # Follow the pattern from get_topic_counts - use database aggregation instead of Python processing
+            # Use database aggregation instead of Python processing to improve performance and scalability
             # scope format: msgs:ticketreplies:{team_id}:{user_id} - team_id is at position 3 (1-indexed)
             counts = (
                 org.daily_counts.period(since, until)
