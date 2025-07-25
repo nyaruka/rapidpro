@@ -38,6 +38,11 @@ else:
     _minio_host = "localhost"
     _dynamo_host = "localhost"
 
+# Database credentials - can be overridden by environment variables
+_db_user = os.getenv("POSTGRES_USER", "temba")
+_db_password = os.getenv("POSTGRES_PASSWORD", "temba")
+_db_name = os.getenv("POSTGRES_DB", "temba")
+
 # -----------------------------------------------------------------------------------
 # AWS
 # -----------------------------------------------------------------------------------
@@ -150,12 +155,13 @@ MEDIA_URL = "/media/"
 # -----------------------------------------------------------------------------------
 # Email
 # -----------------------------------------------------------------------------------
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_HOST_USER = "server@temba.io"
-DEFAULT_FROM_EMAIL = "Temba <server@temba.io>"
-EMAIL_HOST_PASSWORD = "mypassword"
-EMAIL_USE_TLS = True
-EMAIL_TIMEOUT = 10
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "server@temba.io")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", f"Temba <{os.environ.get('EMAIL_HOST_USER', 'server@temba.io')}>")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "mypassword")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes", "on")
+EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "10"))
 
 # Used when sending email from within a flow and the user hasn't configured
 # their own SMTP server.
@@ -635,9 +641,9 @@ POSTGIS = os.getenv("POSTGIS", "") != "off"
 
 _default_database_config = {
     "ENGINE": "django.contrib.gis.db.backends.postgis" if POSTGIS else "django.db.backends.postgresql",
-    "NAME": "temba",
-    "USER": "temba",
-    "PASSWORD": "temba",
+    "NAME": _db_name,
+    "USER": _db_user,
+    "PASSWORD": _db_password,
     "HOST": _db_host,
     "PORT": "5432",
     "ATOMIC_REQUESTS": True,
@@ -967,3 +973,4 @@ ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1"]
+
