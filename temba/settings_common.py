@@ -38,6 +38,11 @@ else:
     _minio_host = "localhost"
     _dynamo_host = "localhost"
 
+# Database credentials - can be overridden by environment variables
+_db_user = os.getenv("POSTGRES_USER", "temba")
+_db_password = os.getenv("POSTGRES_PASSWORD", "temba")
+_db_name = os.getenv("POSTGRES_DB", "temba")
+
 # -----------------------------------------------------------------------------------
 # AWS
 # -----------------------------------------------------------------------------------
@@ -636,10 +641,10 @@ POSTGIS = os.getenv("POSTGIS", "") != "off"
 
 _default_database_config = {
     "ENGINE": "django.contrib.gis.db.backends.postgis" if POSTGIS else "django.db.backends.postgresql",
-    "NAME": "temba",
-    "USER": "temba",
-    "PASSWORD": "<your password here>",
-    "HOST": "<your host here>",
+    "NAME": _db_name,
+    "USER": _db_user,
+    "PASSWORD": _db_password,
+    "HOST": _db_host,
     "PORT": "5432",
     "ATOMIC_REQUESTS": True,
     "CONN_MAX_AGE": 60,
@@ -968,3 +973,4 @@ ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1"]
+
