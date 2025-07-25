@@ -37,6 +37,16 @@
                single
                requireWindow>
   </temba-chart>
+  <temba-chart class="mt-6"
+               header="Response Count"
+               url="{% url 'tickets.ticket_chart' 'replies' %}"
+               dataname="Teams"
+               colorIndex="1"
+               xtype="time"
+               config
+               requireWindow
+               legend>
+  </temba-chart>
 {% endblock content %}
 {% block extra-script %}
   {{ block.super }}

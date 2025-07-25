@@ -4,8 +4,10 @@ from datetime import timedelta
 from smartmin.views import SmartCRUDL, SmartListView, SmartTemplateView, SmartUpdateView
 
 from django import forms
+from django.db import models
+from django.db.models import F, Sum, Value
 from django.db.models.aggregates import Max
-from django.db.models.functions import Lower
+from django.db.models.functions import Cast, Lower
 from django.http import Http404, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
@@ -24,6 +26,7 @@ from temba.orgs.views.base import (
 )
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, RequireFeatureMixin
 from temba.utils.dates import datetime_to_timestamp, timestamp_to_datetime
+from temba.utils.db.functions import SplitPart
 from temba.utils.export import response_from_workbook
 from temba.utils.fields import InputWidget
 from temba.utils.uuid import UUID_REGEX
@@ -525,7 +528,7 @@ class TicketCRUDL(SmartCRUDL):
 
         @classmethod
         def derive_url_pattern(cls, path, action):
-            return r"^%s/%s/(?P<chart>(opened|resptime))/$" % (path, action)
+            return r"^%s/%s/(?P<chart>(opened|resptime|replies))/$" % (path, action)
 
         def get_opened_chart(self, org, since, until) -> tuple:
             topics_by_id = {t.id: t.name for t in org.topics.filter(is_active=True)}
@@ -575,12 +578,51 @@ class TicketCRUDL(SmartCRUDL):
 
             return [d.strftime("%Y-%m-%d") for d in labels], [{"label": "Response Time", "data": data}]
 
+        def get_replies_chart(self, org, since, until) -> tuple:
+            teams_by_id = {t.id: t.name for t in org.teams.filter(is_active=True)}
+            # Add default team (id=0) for users not assigned to specific teams
+            teams_by_id[0] = "No Team"
+
+            # Follow the pattern from get_topic_counts - use database aggregation to extract team_id
+            # scope format: msgs:ticketreplies:{team_id}:{user_id} - team_id is at position 3 (1-indexed)
+            daily_counts = org.daily_counts.period(since, until).prefix("msgs:ticketreplies:")
+
+            counts = (
+                daily_counts.annotate(
+                    team_id=Cast(SplitPart(F("scope"), Value(":"), Value(3)), output_field=models.IntegerField())
+                )
+                .values_list("day", "team_id")
+                .annotate(count_sum=Sum("count"))
+            )
+
+            # collect all dates and values by team
+            dates_set = set()
+            values_by_team = defaultdict(lambda: defaultdict(int))
+
+            for day, team_id, count_sum in counts:
+                team_name = teams_by_id.get(team_id, f"Team {team_id}")
+                dates_set.add(day)
+                values_by_team[team_name][day] += count_sum
+
+            # create sorted list of dates
+            labels = sorted(list(dates_set))
+
+            # create arrays of values for each team, using 0 for missing dates
+            datasets = []
+            for team_name in sorted(values_by_team.keys()):
+                date_counts = values_by_team[team_name]
+                datasets.append({"label": team_name, "data": [date_counts.get(date, 0) for date in labels]})
+
+            return [d.strftime("%Y-%m-%d") for d in labels], datasets
+
         def get_chart_data(self, since, until) -> tuple[list, list]:
             chart = self.kwargs["chart"]
             if chart == "opened":
                 return self.get_opened_chart(self.request.org, since, until)
             elif chart == "resptime":
                 return self.get_resptime_chart(self.request.org, since, until)
+            elif chart == "replies":
+                return self.get_replies_chart(self.request.org, since, until)
 
     class ExportStats(OrgPermsMixin, SmartTemplateView):
         permission = "tickets.ticket_analytics"
