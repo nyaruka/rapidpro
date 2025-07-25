@@ -923,9 +923,17 @@ class ContactFieldForm(UniqueNameMixin, forms.ModelForm):
     def clean_value_type(self):
         value_type = self.cleaned_data["value_type"]
 
-        if self.instance and self.instance.id and self.instance.campaign_events.filter(is_active=True).exists():
-            if value_type != ContactField.TYPE_DATETIME:
+        if self.instance and self.instance.id:
+            if (
+                self.instance.campaign_events.filter(is_active=True).exists()
+                and value_type != ContactField.TYPE_DATETIME
+            ):
                 raise forms.ValidationError(_("Can't change type of date field being used by campaign events."))
+            if (
+                self.instance.dependent_groups.filter(is_active=True).exists()
+                and value_type != self.instance.value_type
+            ):
+                raise forms.ValidationError(_("Can't change type of field being used by a smart group."))
 
         return value_type
 
