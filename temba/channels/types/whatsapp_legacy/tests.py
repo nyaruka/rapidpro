@@ -177,7 +177,7 @@ class WhatsAppLegacyTypeTest(CRUDLTestMixin, TembaTest):
         refresh_templates()
 
         # deactivate our channel
-        channel.release(self.admin)
+        channel.release(self.admin, interrupt=False)
 
     @patch("socket.gethostbyname", return_value="123.123.123.123")
     @patch("temba.channels.types.whatsapp_legacy.WhatsAppLegacyType.check_health")

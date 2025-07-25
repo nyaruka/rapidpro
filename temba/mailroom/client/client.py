@@ -6,6 +6,7 @@ import requests
 from django.conf import settings
 
 from temba.contacts.models import Contact
+from temba.flows.models import FlowStart
 from temba.msgs.models import Broadcast, QuickReply
 from temba.utils import json
 
@@ -79,6 +80,9 @@ class MailroomClient:
     def campaign_schedule(self, org, event):
         self._request("campaign/schedule", {"org_id": org.id, "point_id": event.id})
 
+    def channel_interrupt(self, org, channel):
+        self._request("channel/interrupt", {"org_id": org.id, "channel_id": channel.id})
+
     def contact_create(self, org, user, contact: ContactSpec) -> Contact:
         resp = self._request("contact/create", {"org_id": org.id, "user_id": user.id, "contact": asdict(contact)})
 
@@ -97,13 +101,20 @@ class MailroomClient:
 
         return resp["total"]
 
+    def contact_import(self, org, imp) -> int:
+        resp = self._request("contact/import", {"org_id": org.id, "import_id": imp.id})
+
+        return resp["batches"]
+
     def contact_inspect(self, org, contacts) -> dict:
         resp = self._request("contact/inspect", {"org_id": org.id, "contact_ids": [c.id for c in contacts]})
 
         return {c: resp[str(c.id)] for c in contacts}
 
-    def contact_interrupt(self, org, user, contact) -> int:
-        resp = self._request("contact/interrupt", {"org_id": org.id, "user_id": user.id, "contact_id": contact.id})
+    def contact_interrupt(self, org, user, contacts) -> int:
+        resp = self._request(
+            "contact/interrupt", {"org_id": org.id, "user_id": user.id, "contact_ids": [c.id for c in contacts]}
+        )
 
         return resp["sessions"]
 
@@ -122,6 +133,9 @@ class MailroomClient:
         resp = self._request("contact/parse_query", {"org_id": org.id, "query": query, "parse_only": parse_only})
 
         return ParsedQuery(query=resp["query"], metadata=QueryMetadata(**resp.get("metadata", {})))
+
+    def contact_populate_group(self, org, group):
+        self._request("contact/populate_group", {"org_id": org.id, "group_id": group.id})
 
     def contact_search(self, org, group, query: str, sort: str, offset=0, limit=50, exclude_ids=()) -> SearchResults:
         resp = self._request(
@@ -164,6 +178,9 @@ class MailroomClient:
 
         return self._request("flow/inspect", payload, encode_json=True)
 
+    def flow_interrupt(self, org, flow):
+        self._request("flow/interrupt", {"org_id": org.id, "flow_id": flow.id})
+
     def flow_migrate(self, definition: dict, to_version=None):
         """
         Migrates a flow definition to the specified spec version
@@ -174,6 +191,37 @@ class MailroomClient:
             to_version = Flow.CURRENT_SPEC_VERSION
 
         return self._request("flow/migrate", {"flow": definition, "to_version": to_version}, encode_json=True)
+
+    def flow_start(
+        self,
+        org,
+        user,
+        typ: str,
+        flow,
+        groups,
+        contacts,
+        urns: list,
+        query: str,
+        exclude: Exclusions,
+        params: dict,
+    ):
+        resp = self._request(
+            "flow/start",
+            {
+                "org_id": org.id,
+                "user_id": user.id,
+                "type": typ,
+                "flow_id": flow.id,
+                "group_ids": [g.id for g in groups],
+                "contact_ids": [c.id for c in contacts],
+                "urns": urns,
+                "query": query,
+                "exclude": asdict(exclude) if exclude else None,
+                "params": params,
+            },
+        )
+
+        return FlowStart.objects.get(id=resp["id"])
 
     def flow_start_preview(self, org, flow, include: Inclusions, exclude: Exclusions) -> RecipientsPreview:
         resp = self._request(

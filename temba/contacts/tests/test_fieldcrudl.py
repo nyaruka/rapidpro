@@ -108,7 +108,8 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.requestView(create_url, self.admin)
             self.assertContains(response, "You have reached the per-workspace limit")
 
-    def test_update(self):
+    @mock_mailroom
+    def test_update(self, mr_mocks):
         update_url = reverse("contacts.contactfield_update", args=[self.age.key])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
@@ -226,6 +227,39 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("Registered On", registered.name)
         self.assertEqual("D", registered.value_type)
         self.assertFalse(registered.show_in_table)
+
+        # create a number field used in a query group
+        birth = self.create_field("birth", "Birth", value_type="N")
+        self.create_group("Smart Group", query="birth > 18")
+
+        update_url = reverse("contacts.contactfield_update", args=[birth.key])
+
+        self.assertUpdateFetch(
+            update_url,
+            [self.editor, self.admin],
+            form_fields={"name": "Birth", "value_type": "N", "show_in_table": False, "agent_access": "V"},
+        )
+
+        # try to submit with different type
+        self.assertUpdateSubmit(
+            update_url,
+            self.admin,
+            {"name": "Birth", "value_type": "T", "show_in_table": False, "agent_access": "V"},
+            form_errors={"value_type": "Can't change type of field being used by a smart group."},
+            object_unchanged=birth,
+        )
+
+        # submit with only a different name
+        self.assertUpdateSubmit(
+            update_url,
+            self.admin,
+            {"name": "YearsOld", "value_type": "N", "show_in_table": False, "agent_access": "V"},
+            success_status=200,
+        )
+        birth.refresh_from_db()
+        self.assertEqual("YearsOld", birth.name)
+        self.assertEqual("N", birth.value_type)
+        self.assertFalse(birth.show_in_table)
 
     def test_list(self):
         list_url = reverse("contacts.contactfield_list")

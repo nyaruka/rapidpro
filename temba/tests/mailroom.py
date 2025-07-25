@@ -14,7 +14,7 @@ from temba import mailroom
 from temba.campaigns.models import CampaignEvent
 from temba.channels.models import ChannelEvent
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactURN
-from temba.flows.models import FlowRun, FlowSession
+from temba.flows.models import FlowRun, FlowSession, FlowStart
 from temba.locations.models import AdminBoundary
 from temba.mailroom.client.client import MailroomClient
 from temba.mailroom.modifiers import Modifier
@@ -63,8 +63,6 @@ class Mocks:
         self._llm_translate = []
         self._msg_broadcast_preview = []
         self._exceptions = []
-
-        self.queued_batch_tasks = []
 
     def contact_parse_query(self, query, *, cleaned=None, fields=None):
         def mock(org):
@@ -201,6 +199,10 @@ class TestClient(MailroomClient):
         pass
 
     @_client_method
+    def channel_interrupt(self, org, channel):
+        pass
+
+    @_client_method
     def contact_create(self, org, user, contact: mailroom.ContactSpec):
         status = {v: k for k, v in Contact.ENGINE_STATUSES.items()}[contact.status]
         return create_contact_locally(
@@ -231,6 +233,10 @@ class TestClient(MailroomClient):
             return self.mocks._contact_export_preview.pop(0)
 
         return group.get_member_count()
+
+    @_client_method
+    def contact_import(self, org, imp) -> int:
+        return imp.batches.count()
 
     @_client_method
     def contact_modify(self, org, user, contacts, modifiers: list[Modifier]):
@@ -265,9 +271,13 @@ class TestClient(MailroomClient):
         return {c: inspect(c) for c in contacts}
 
     @_client_method
-    def contact_interrupt(self, org, user, contact) -> int:
+    def contact_interrupt(self, org, user, contacts) -> int:
         # get the waiting session UUIDs
-        session_uuids = list(contact.sessions.filter(status=FlowSession.STATUS_WAITING).values_list("uuid", flat=True))
+        session_uuids = []
+        for contact in contacts:
+            session_uuids.extend(
+                contact.sessions.filter(status=FlowSession.STATUS_WAITING).values_list("uuid", flat=True)
+            )
 
         exit_sessions(session_uuids, FlowSession.STATUS_INTERRUPTED)
 
@@ -280,6 +290,10 @@ class TestClient(MailroomClient):
             return mock(org)
 
         return mailroom.ParsedQuery(query=query, metadata=mock_inspect_query(org, query))
+
+    @_client_method
+    def contact_populate_group(self, org, group):
+        pass
 
     @_client_method
     def contact_search(self, org, group, query: str, sort: str, offset=0, limit=50, exclude_ids=()):
@@ -322,6 +336,14 @@ class TestClient(MailroomClient):
             "results": [],
             "parent_refs": [],
         }
+
+    @_client_method
+    def flow_interrupt(self, org, flow):
+        pass
+
+    @_client_method
+    def flow_start(self, org, user, typ, flow, groups, contacts, urns, query, exclude, params):
+        return create_flowstart(org, user, typ, flow, groups, contacts, urns, query, exclude, params)
 
     @_client_method
     def flow_start_preview(self, org, flow, include, exclude):
@@ -489,7 +511,7 @@ class TestClient(MailroomClient):
         return {"changed_ids": [t.id for t in tickets]}
 
 
-def mock_mailroom(method=None, *, client=True, queue=True):
+def mock_mailroom(method=None):
     """
     Convenience decorator to make a test method use a mocked version of the mailroom client
     """
@@ -497,42 +519,26 @@ def mock_mailroom(method=None, *, client=True, queue=True):
     def actual_decorator(f):
         @wraps(f)
         def wrapper(instance, *args, **kwargs):
-            _wrap_test_method(f, client, queue, instance, *args, **kwargs)
+            _wrap_test_method(f, instance, *args, **kwargs)
 
         return wrapper
 
     return actual_decorator(method) if method else actual_decorator
 
 
-def _wrap_test_method(f, mock_client: bool, mock_queue: bool, instance, *args, **kwargs):
+def _wrap_test_method(f, instance, *args, **kwargs):
     mocks = Mocks()
 
     patch_get_client = None
-    patch_queue_batch_task = None
 
     try:
-        if mock_client:
-            patch_get_client = patch("temba.mailroom.get_client")
-            mock_get_client = patch_get_client.start()
-            mock_get_client.return_value = TestClient(mocks)
-
-        if mock_queue:
-            patch_queue_batch_task = patch("temba.mailroom.queue._queue_batch_task")
-            mock_queue_batch_task = patch_queue_batch_task.start()
-
-            def queue_batch_task(org_id, task_type, task, priority):
-                mocks.queued_batch_tasks.append(
-                    {"type": task_type.value, "org_id": org_id, "task": task, "queued_on": timezone.now()}
-                )
-
-            mock_queue_batch_task.side_effect = queue_batch_task
+        patch_get_client = patch("temba.mailroom.get_client")
+        mock_get_client = patch_get_client.start()
+        mock_get_client.return_value = TestClient(mocks)
 
         return f(instance, mocks, *args, **kwargs)
     finally:
-        if patch_get_client:
-            patch_get_client.stop()
-        if patch_queue_batch_task:
-            patch_queue_batch_task.stop()
+        patch_get_client.stop()
 
 
 def apply_modifiers(org, user, contacts, modifiers: list):
@@ -979,3 +985,24 @@ def create_broadcast(
         bcast.contacts.add(*contacts)
 
     return bcast
+
+
+def create_flowstart(org, user, typ, flow, groups, contacts, urns, query, exclude, params) -> FlowStart:
+    start = FlowStart.objects.create(
+        org=org,
+        flow=flow,
+        start_type=typ,
+        urns=list(urns),
+        query=query,
+        exclusions=asdict(exclude) if exclude else None,
+        created_by=user,
+        params=params,
+    )
+
+    for contact in contacts:
+        start.contacts.add(contact)
+
+    for group in groups:
+        start.groups.add(group)
+
+    return start

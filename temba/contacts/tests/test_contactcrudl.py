@@ -13,9 +13,10 @@ from temba.airtime.models import AirtimeTransfer
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.channels.models import ChannelEvent
 from temba.contacts.models import URN, Contact, ContactExport, ContactField, ContactFire
-from temba.flows.models import FlowSession, FlowStart
+from temba.flows.models import FlowSession
 from temba.ivr.models import Call
 from temba.locations.models import AdminBoundary
+from temba.mailroom.client.types import Exclusions
 from temba.msgs.models import Msg
 from temba.orgs.models import Export, OrgRole
 from temba.schedules.models import Schedule
@@ -1362,11 +1363,20 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             start_url, self.admin, {"flow": background_flow.id, "contact_search": json.dumps(contact_search)}
         )
 
-        # should now have a flow start
-        start = FlowStart.objects.get()
-        self.assertEqual(background_flow, start.flow)
-        self.assertEqual(contact_search["query"], start.query)
-        self.assertEqual({}, start.exclusions)
-
-        # that has been queued to mailroom
-        self.assertEqual("start_flow", mr_mocks.queued_batch_tasks[-1]["type"])
+        self.assertEqual(
+            mr_mocks.calls["flow_start"],
+            [
+                call(
+                    self.org,
+                    self.admin,
+                    typ="M",
+                    flow=background_flow,
+                    groups=[],
+                    contacts=[],
+                    urns=[],
+                    query=f"uuid='{contact.uuid}'",
+                    exclude=Exclusions(),
+                    params={},
+                )
+            ],
+        )

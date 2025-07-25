@@ -502,6 +502,16 @@ class ContactTest(TembaTest):
         )
 
     @mock_mailroom
+    def test_bulk_interrupt(self, mr_mocks):
+        Contact.bulk_interrupt(self.admin, [])
+
+        self.assertEqual([], mr_mocks.calls["contact_interrupt"])
+
+        Contact.bulk_interrupt(self.admin, [self.joe, self.billy])
+
+        self.assertEqual([call(self.org, self.admin, [self.joe, self.billy])], mr_mocks.calls["contact_interrupt"])
+
+    @mock_mailroom
     def test_omnibox(self, mr_mocks):
         omnibox_url = reverse("contacts.contact_omnibox")
 

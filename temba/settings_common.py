@@ -158,7 +158,9 @@ MEDIA_URL = "/media/"
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "server@temba.io")
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", f"Temba <{os.environ.get('EMAIL_HOST_USER', 'server@temba.io')}>")
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DEFAULT_FROM_EMAIL", f"Temba <{os.environ.get('EMAIL_HOST_USER', 'server@temba.io')}>"
+)
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "mypassword")
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes", "on")
 EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "10"))
@@ -636,9 +638,6 @@ INVITATION_VALIDITY = timedelta(days=30)
 # Database
 # -----------------------------------------------------------------------------------
 
-# temp workaround to allow running migrations without PostGIS
-POSTGIS = os.getenv("POSTGIS", "") != "off"
-
 _default_database_config = {
     "ENGINE": "django.contrib.gis.db.backends.postgis" if POSTGIS else "django.db.backends.postgresql",
     "NAME": _db_name,
@@ -973,4 +972,3 @@ ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1"]
-

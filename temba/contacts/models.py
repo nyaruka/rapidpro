@@ -9,7 +9,6 @@ from typing import Any
 import iso8601
 import phonenumbers
 import regex
-from django_valkey import get_valkey_connection
 from openpyxl import load_workbook
 from smartmin.models import SmartModel
 
@@ -25,7 +24,7 @@ from django.utils.translation import gettext_lazy as _
 from temba import mailroom
 from temba.channels.models import Channel
 from temba.locations.models import AdminBoundary
-from temba.mailroom import ContactSpec, modifiers, queue_populate_dynamic_group
+from temba.mailroom import ContactSpec, modifiers
 from temba.orgs.models import DependencyMixin, Export, ExportType, Org, OrgRole
 from temba.utils import format_number, on_transaction_commit
 from temba.utils.export import MultiSheetExporter
@@ -1024,7 +1023,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         Interrupts this contact's current flow
         """
         if self.current_flow:
-            return mailroom.get_client().contact_interrupt(self.org, user, self) > 0
+            return mailroom.get_client().contact_interrupt(self.org, user, [self]) > 0
 
         return False
 
@@ -1179,6 +1178,16 @@ class Contact(LegacyUUIDMixin, SmartModel):
             return {}
 
         return mailroom.get_client().contact_inspect(contacts[0].org, contacts)
+
+    @classmethod
+    def bulk_interrupt(cls, user, contacts):
+        """
+        Interrupts sessions for the given contacts.
+        """
+        if not contacts:
+            return
+
+        return mailroom.get_client().contact_interrupt(contacts[0].org, user, contacts)
 
     def get_groups(self, *, manual_only=False):
         """
@@ -1388,10 +1397,12 @@ class ContactGroup(LegacyUUIDMixin, TembaModel, DependencyMixin):
     STATUS_INITIALIZING = "I"  # group has been created but not yet (re)evaluated
     STATUS_EVALUATING = "V"  # a task is currently (re)evaluating this group
     STATUS_READY = "R"  # group is ready for use
+    STATUS_INVALID = "X"  # group query is invalid
     STATUS_CHOICES = (
         (STATUS_INITIALIZING, _("Initializing")),
         (STATUS_EVALUATING, _("Evaluating")),
         (STATUS_READY, _("Ready")),
+        (STATUS_INVALID, _("Invalid")),
     )
 
     MAX_QUERY_LEN = 10_000
@@ -1576,7 +1587,7 @@ class ContactGroup(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         # start background task to re-evaluate who belongs in this group
         if reevaluate:
-            on_transaction_commit(lambda: queue_populate_dynamic_group(self))
+            on_transaction_commit(lambda: mailroom.get_client().contact_populate_group(self.org, self))
 
     @classmethod
     def get_member_counts(cls, groups) -> dict:
@@ -1608,7 +1619,8 @@ class ContactGroup(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         from .tasks import release_group_task
 
-        # delete all triggers for this group
+        self.query_fields.clear()
+
         for trigger in self.triggers.filter(is_active=True):
             trigger.release(user)
 
@@ -2206,7 +2218,7 @@ class ContactImport(SmartModel):
             self.group = ContactGroup.create_manual(self.org, self.created_by, name=self.group_name)
             self.save(update_fields=("group",))
 
-        # parse each row, creating batch tasks for mailroom
+        # parse each row, creating batches
         workbook = load_workbook(filename=self.file, read_only=True, data_only=True)
         ws = workbook.active
         ws.reset_dimensions()  # see https://openpyxl.readthedocs.io/en/latest/optimized.html#worksheet-dimensions
@@ -2221,13 +2233,8 @@ class ContactImport(SmartModel):
             for spec in batch_specs:
                 urns.extend(spec.get("urns", []))
 
-        # set valkey key which mailroom batch tasks can decrement to know when import has completed
-        r = get_valkey_connection()
-        r.set(f"contact_import_batches_remaining:{self.id}", len(batches), ex=24 * 60 * 60)
-
-        # start each batch...
-        for batch in batches:
-            batch.import_async()
+        # tell mailroom to perform the import
+        mailroom.get_client().contact_import(self.org, self)
 
         # flag org if the set of imported URNs looks suspicious
         if not self.org.is_verified and self._detect_spamminess(urns):
@@ -2449,6 +2456,3 @@ class ContactImportBatch(models.Model):
     num_errored = models.IntegerField(default=0)
     errors = models.JSONField(default=list)
     finished_on = models.DateTimeField(null=True)
-
-    def import_async(self):
-        mailroom.queue_contact_import_batch(self)

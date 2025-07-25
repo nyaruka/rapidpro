@@ -1,11 +1,13 @@
 from django.urls import reverse
 
 from temba.flows.models import FlowStart, FlowStartCount
-from temba.tests import CRUDLTestMixin, TembaTest
+from temba.mailroom.client.types import Exclusions
+from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
 
 
 class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
-    def test_list(self):
+    @mock_mailroom
+    def test_list(self, mr_mocks):
         list_url = reverse("flows.flowstart_list")
 
         flow1 = self.create_flow("Test Flow 1")
@@ -13,11 +15,11 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
 
         contact = self.create_contact("Bob", phone="+1234567890")
         group = self.create_group("Testers", contacts=[contact])
-        start1 = FlowStart.create(flow1, self.admin, contacts=[contact])
-        start2 = FlowStart.create(
-            flow1, self.admin, query="name ~ Bob", start_type="A", exclusions={"started_previously": True}
+        start1 = self.create_flowstart(flow1, self.admin, contacts=[contact])
+        start2 = self.create_flowstart(
+            flow1, self.admin, query="name ~ Bob", typ="A", exclude=Exclusions(started_previously=True)
         )
-        start3 = FlowStart.create(flow2, self.admin, groups=[group], start_type="Z", exclusions={"in_a_flow": True})
+        start3 = self.create_flowstart(flow2, self.admin, groups=[group], typ="Z", exclude=Exclusions(in_a_flow=True))
 
         flow2.release(self.admin)
 
@@ -25,7 +27,7 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
         FlowStartCount.objects.create(start=start3, count=234)
 
         other_org_flow = self.create_flow("Test", org=self.org2)
-        FlowStart.create(other_org_flow, self.admin2)
+        self.create_flowstart(other_org_flow, self.admin2)
 
         self.assertRequestDisallowed(list_url, [None, self.agent])
         response = self.assertListFetch(list_url, [self.editor, self.admin], context_objects=[start3, start2, start1])
@@ -44,8 +46,7 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_status(self):
         flow = self.create_flow("Test Flow 1")
-        contact = self.create_contact("Bob", phone="+1234567890")
-        start = FlowStart.create(flow, self.admin, contacts=[contact])
+        start = self.create_flowstart(flow, self.admin)
 
         status_url = f"{reverse('flows.flowstart_status')}?id={start.id}&status=P"
         self.assertRequestDisallowed(status_url, [self.agent])
@@ -56,8 +57,7 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_interrupt(self):
         flow = self.create_flow("Test Flow 1")
-        contact = self.create_contact("Bob", phone="+1234567890")
-        start = FlowStart.create(flow, self.admin, contacts=[contact])
+        start = self.create_flowstart(flow, self.admin)
 
         interrupt_url = reverse("flows.flowstart_interrupt", args=[start.id])
         self.assertRequestDisallowed(interrupt_url, [None, self.agent])

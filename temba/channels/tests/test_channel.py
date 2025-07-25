@@ -3,7 +3,7 @@ import hashlib
 import hmac
 import time
 from datetime import datetime, timedelta, timezone as tzone
-from unittest.mock import patch
+from unittest.mock import call, patch
 from urllib.parse import quote
 
 from django.urls import reverse
@@ -16,7 +16,7 @@ from temba.msgs.models import Msg
 from temba.notifications.incidents.builtin import ChannelDisconnectedIncidentType, ChannelOutdatedAppIncidentType
 from temba.notifications.models import Incident
 from temba.templates.models import TemplateTranslation
-from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom
+from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, mock_mailroom
 from temba.tests.crudl import StaffRedirect
 from temba.triggers.models import Trigger
 from temba.utils import json
@@ -226,16 +226,8 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(0, channel1.incidents.filter(ended_on=None).count())
         self.assertEqual(0, channel1.template_translations.count())
 
-        # check that we queued a task to interrupt sessions tied to this channel
-        self.assertEqual(
-            {
-                "org_id": self.org.id,
-                "type": "interrupt_channel",
-                "queued_on": matchers.Datetime(),
-                "task": {"channel_id": channel1.id},
-            },
-            mr_mocks.queued_batch_tasks[-1],
-        )
+        # check that we called mailroom to interrupt sessions tied to this channel
+        self.assertEqual([call(self.org, channel1)], mr_mocks.calls["channel_interrupt"])
 
         # other channel should be unaffected
         self.assertEqual(1, channel2.msgs.filter(status="E").count())

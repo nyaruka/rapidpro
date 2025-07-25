@@ -30,7 +30,7 @@ from temba.msgs.models import Label, OptIn
 from temba.orgs.models import DependencyMixin, Export, ExportType, Org, User
 from temba.templates.models import Template
 from temba.tickets.models import Topic
-from temba.utils import json, on_transaction_commit, s3
+from temba.utils import json, s3
 from temba.utils.export.models import MultiSheetExporter
 from temba.utils.models import JSONAsTextField, LegacyUUIDMixin, TembaModel, delete_in_batches
 from temba.utils.models.counts import BaseScopedCount, BaseSquashableCount
@@ -524,17 +524,18 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         # won't see any new database objects
         self.save_revision(user, cloned_definition)
 
-    def archive(self, user):
+    def archive(self, user, *, interrupt_sessions: bool = True):
         self.is_archived = True
         self.modified_by = user
         self.save(update_fields=("is_archived", "modified_by", "modified_on"))
 
-        # queue mailroom to interrupt sessions where contact is currently in this flow
-        mailroom.queue_interrupt(self.org, flow=self)
-
         # archive our triggers as well
         for trigger in self.triggers.filter(is_active=True):
             trigger.archive(user)
+
+        if interrupt_sessions:
+            # call mailroom to interrupt sessions where contact is currently in this flow
+            mailroom.get_client().flow_interrupt(self.org, self)
 
     def restore(self, user):
         self.is_archived = False
@@ -590,24 +591,22 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         return recent
 
-    def async_start(self, user, groups, contacts, query=None, exclusions=None):
+    def start(self, user, groups, contacts, query=None, exclude=None):
         """
-        Causes us to schedule a flow to start in a background thread.
+        Starts this flow (asynchronously via mailroom).
         """
 
         assert not self.org.is_flagged and not self.org.is_suspended, "flagged and suspended orgs can't start flows"
 
-        start = FlowStart.create(
+        return FlowStart.create(
             self,
             user,
             start_type=FlowStart.TYPE_MANUAL,
             groups=groups,
             contacts=contacts,
             query=query,
-            exclusions=exclusions,
+            exclude=exclude,
         )
-
-        start.async_start()
 
     def get_export_dependencies(self):
         """
@@ -922,9 +921,9 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         self.counts.all().delete()
 
-        # queue mailroom to interrupt sessions where contact is currently in this flow
+        # call mailroom to interrupt sessions where contact is currently in this flow
         if interrupt_sessions:
-            mailroom.queue_interrupt(self.org, flow=self)
+            mailroom.get_client().flow_interrupt(self.org, self)
 
     def delete(self):
         """
@@ -1672,27 +1671,21 @@ class FlowStart(models.Model):
         contacts=(),
         urns=(),
         query=None,
-        exclusions=None,
+        exclude=None,
         params=None,
     ):
-        start = cls.objects.create(
-            org=flow.org,
+        return mailroom.get_client().flow_start(
+            flow.org,
+            user,
+            typ=start_type,
             flow=flow,
-            start_type=start_type,
+            groups=list(groups),
+            contacts=list(contacts),
             urns=list(urns),
             query=query,
-            exclusions=exclusions or {},
+            exclude=exclude,
             params=params or {},
-            created_by=user,
         )
-
-        for contact in contacts:
-            start.contacts.add(contact)
-
-        for group in groups:
-            start.groups.add(group)
-
-        return start
 
     @classmethod
     def preview(cls, flow, *, include: mailroom.Inclusions, exclude: mailroom.Exclusions) -> tuple[str, int]:
@@ -1710,9 +1703,6 @@ class FlowStart(models.Model):
     @classmethod
     def has_unfinished(cls, org) -> bool:
         return org.flow_starts.filter(status__in=(cls.STATUS_PENDING, cls.STATUS_STARTED)).exists()
-
-    def async_start(self):
-        on_transaction_commit(lambda: mailroom.queue_flow_start(self))
 
     def interrupt(self, user):
         """

@@ -114,7 +114,7 @@ class SignalWireTest(TembaTest):
                 )
 
         # deactivate our channel
-        channel.release(self.admin)
+        channel.release(self.admin, interrupt=False)
 
     def test_get_error_ref_url(self):
         self.assertEqual(

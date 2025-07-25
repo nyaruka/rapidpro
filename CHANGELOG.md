@@ -1,3 +1,48 @@
+v10.3.8 (2025-07-25)
+-------------------------
+ * Do not allow changing field type for fields used in groups
+ * Adjust alert for invalid query groups
+ * Implement field and group limit enforcement in import preview
+
+v10.3.7 (2025-07-24)
+-------------------------
+ * Clear field dependencies for deleted groups
+ * Add INVALID(X) status to contact group
+
+v10.3.6 (2025-07-23)
+-------------------------
+ * Update to latest floweditor
+
+v10.3.5 (2025-07-23)
+-------------------------
+ * Perform contact imports by calling mailroom endpoint
+ * Tweak mailroom_db to reset more db sequences
+
+v10.3.4 (2025-07-22)
+-------------------------
+ * Call mailroom endpoints to interrupt by flow, contacts or channel
+
+v10.3.3 (2025-07-21)
+-------------------------
+ * Fix flow starting
+
+v10.3.2 (2025-07-21)
+-------------------------
+ * Call mailroom endpoint to create flow starts
+
+v10.3.1 (2025-07-17)
+-------------------------
+ * Bump aiohttp from 3.11.11 to 3.12.14
+ * Email update by staff should be reverified
+ * Populate dynamic groups via endpoint instead of queueing task
+ * Remove no longer used User.last_auth_on field
+
+v10.3.0 (2025-07-17)
+-------------------------
+ * Remove no longer needed POSTGIS env var
+ * Remove no longer used TranslatableField type
+ * Replace placeholder migrations with real squashed migrations
+
 v10.2.4 (2025-07-04)
 -------------------------
  * Make SSO invite accept buttons more clear

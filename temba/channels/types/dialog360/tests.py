@@ -83,7 +83,7 @@ class Dialog360TypeTest(CRUDLTestMixin, TembaTest):
                 pass
 
         # deactivate our channel
-        channel.release(self.admin)
+        channel.release(self.admin, interrupt=False)
 
     @patch("requests.get")
     def test_fetch_templates(self, mock_get):

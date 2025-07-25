@@ -25,7 +25,7 @@ from django.utils import timezone
 from temba.archives.models import Archive, jsonlgz_encode
 from temba.channels.models import Channel, ChannelEvent, ChannelLog
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactImport
-from temba.flows.models import Flow, FlowRun, FlowSession
+from temba.flows.models import Flow, FlowRun, FlowSession, FlowStart
 from temba.ivr.models import Call
 from temba.locations.models import AdminBoundary, BoundaryAlias
 from temba.msgs.models import Broadcast, Label, Msg, OptIn
@@ -40,6 +40,7 @@ from .mailroom import (
     contact_urn_lookup,
     create_broadcast,
     create_contact_locally,
+    create_flowstart,
     resolve_destination,
     update_field_locally,
 )
@@ -145,7 +146,7 @@ class TembaTest(SmartminTest):
         r = get_valkey_connection()
         r.flushdb()
 
-    def login(self, user, *, update_last_auth_on: bool = True, choose_org=None):
+    def login(self, user, *, choose_org=None):
         self.assertTrue(
             self.client.login(username=user.email, password=self.default_password),
             f"couldn't login as {user.email}:{self.default_password}",
@@ -154,9 +155,6 @@ class TembaTest(SmartminTest):
         # infer our org if we weren't handed one
         if not choose_org:
             choose_org = user.orgs.filter(is_active=True).order_by("-created_on").first()
-
-        if update_last_auth_on:
-            user.record_auth()
 
         if choose_org:
             session = self.client.session
@@ -548,6 +546,31 @@ class TembaTest(SmartminTest):
         flow.save_revision(self.admin, definition)
 
         return flow
+
+    def create_flowstart(
+        self,
+        flow,
+        user,
+        typ=FlowStart.TYPE_MANUAL,
+        groups=(),
+        contacts=(),
+        urns=(),
+        query="",
+        exclude=None,
+        params=None,
+    ):
+        return create_flowstart(
+            flow.org,
+            user,
+            typ=typ,
+            flow=flow,
+            groups=groups,
+            contacts=contacts,
+            urns=urns,
+            query=query,
+            exclude=exclude,
+            params=params or {},
+        )
 
     def create_incoming_call(
         self, flow, contact, status=Call.STATUS_COMPLETED, error_reason=None, created_on=None, logs=()

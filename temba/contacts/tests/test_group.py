@@ -36,7 +36,7 @@ class ContactGroupTest(TembaTest):
         age = self.org.fields.get(key="age")
         gender = self.org.fields.get(key="gender")
 
-        # create a dynamic group using a query
+        # create a group using a query
         query = '(Age < 18 and gender = "male") or (Age > 18 and gender = "female")'
 
         group = ContactGroup.create_smart(self.org, self.admin, "Group two", query)
@@ -53,6 +53,7 @@ class ContactGroupTest(TembaTest):
 
         self.assertEqual(group.query, 'age > 18 AND name ~ "Mary"')
         self.assertEqual(set(group.query_fields.all()), {age})
+        self.assertEqual({group}, set(age.dependent_groups.all()))
         self.assertEqual(group.status, ContactGroup.STATUS_INITIALIZING)
 
         # try to update group query to something invalid
@@ -60,13 +61,13 @@ class ContactGroupTest(TembaTest):
         with self.assertRaises(ValueError):
             group.update_query("age ~ Mary")
 
-        # can't create a dynamic group with empty query
+        # can't create a query group with empty query
         self.assertRaises(AssertionError, ContactGroup.create_smart, self.org, self.admin, "Empty", "")
 
-        # can't create a dynamic group with id attribute
+        # can't create a query group with id attribute
         self.assertRaises(ValueError, ContactGroup.create_smart, self.org, self.admin, "Bose", "id = 123")
 
-        # dynamic group should not have remove to group button
+        # query group should not have remove to group button
         self.login(self.admin)
         filter_url = reverse("contacts.contact_group", args=[group.uuid])
         self.client.get(filter_url)
@@ -75,12 +76,16 @@ class ContactGroupTest(TembaTest):
         group.status = ContactGroup.STATUS_EVALUATING
         group.save(update_fields=("status",))
 
-        # dynamic groups should get their own icon
+        # query groups should get their own icon
         self.assertEqual(group.get_attrs(), {"icon": "group_smart"})
 
         # can't update query again while it is in this state
         with self.assertRaises(AssertionError):
             group.update_query("age = 18")
+
+        group.release(self.admin)
+
+        self.assertEqual(set(), set(age.dependent_groups.all()))
 
     def test_get_or_create(self):
         group = ContactGroup.get_or_create(self.org, self.editor, "first")

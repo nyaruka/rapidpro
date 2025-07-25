@@ -2,7 +2,7 @@ from django.contrib.auth.models import Group
 from django.test.utils import override_settings
 from django.urls import reverse
 
-from temba.tests import CRUDLTestMixin, TembaTest
+from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
 from ..models import Channel, ChannelLog
@@ -404,7 +404,8 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("https://foo.bar/call1", response.context["logs"][0]["http_logs"][0]["url"])
         self.assertEqual("https://foo.bar/call2", response.context["logs"][1]["http_logs"][0]["url"])
 
-    def test_delete(self):
+    @mock_mailroom
+    def test_delete(self, mr_mocks):
         delete_url = reverse("channels.channel_delete", args=[self.ex_channel.uuid])
 
         self.assertRequestDisallowed(delete_url, [None, self.agent, self.admin2])

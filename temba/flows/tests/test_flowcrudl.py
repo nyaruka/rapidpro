@@ -1,7 +1,7 @@
 import io
 from datetime import date, datetime, timedelta, timezone as tzone
 from decimal import Decimal
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from django_valkey import get_valkey_connection
 
@@ -14,6 +14,7 @@ from temba.campaigns.models import Campaign, CampaignEvent
 from temba.classifiers.models import Classifier
 from temba.contacts.models import URN
 from temba.flows.models import Flow, FlowLabel, FlowStart, FlowUserConflictException, ResultsExport
+from temba.mailroom.client.types import Exclusions
 from temba.orgs.integrations.dtone.type import DTOneType
 from temba.orgs.models import Export
 from temba.templates.models import TemplateTranslation
@@ -815,20 +816,6 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(revisions_url, definition, content_type="application/json")
         self.assertResponseError(response, "description", "Your flow has been upgraded to the latest version")
 
-    def test_inactive_flow(self):
-        flow = self.create_flow("Deleted")
-        flow.release(self.admin)
-
-        self.login(self.admin)
-
-        response = self.client.get(reverse("flows.flow_revisions", args=[flow.uuid]))
-
-        self.assertEqual(404, response.status_code)
-
-        response = self.client.get(reverse("flows.flow_activity", args=[flow.uuid]))
-
-        self.assertEqual(404, response.status_code)
-
     @mock_mailroom
     def test_preview_start(self, mr_mocks):
         flow = self.create_flow("Test Flow")
@@ -1292,16 +1279,23 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             {"flow": flow.id, "contact_search": get_contact_search(query="frank")},
         )
 
-        start = FlowStart.objects.get()
-        self.assertEqual(flow, start.flow)
-        self.assertEqual(FlowStart.STATUS_PENDING, start.status)
-        self.assertEqual({}, start.exclusions)
-        self.assertEqual('name ~ "frank"', start.query)
-
-        self.assertEqual(1, len(mr_mocks.queued_batch_tasks))
-        self.assertEqual("start_flow", mr_mocks.queued_batch_tasks[0]["type"])
-
-        FlowStart.objects.all().delete()
+        self.assertEqual(
+            mr_mocks.calls["flow_start"],
+            [
+                call(
+                    self.org,
+                    self.admin,
+                    typ="M",
+                    flow=flow,
+                    groups=[],
+                    contacts=[],
+                    urns=[],
+                    query='name ~ "frank"',
+                    exclude=Exclusions(),
+                    params={},
+                )
+            ],
+        )
 
         # create flow start with a bogus query
         mr_mocks.exception(mailroom.QueryValidationException("query contains an error", "syntax"))
@@ -1341,21 +1335,24 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             {"flow": flow.id, "contact_search": get_contact_search(query=query)},
         )
 
-        start = FlowStart.objects.get()
-
-        self.assertEqual(query, start.query)
-        self.assertEqual(flow, start.flow)
-        self.assertEqual(FlowStart.TYPE_MANUAL, start.start_type)
-        self.assertEqual(FlowStart.STATUS_PENDING, start.status)
-        self.assertEqual({}, start.exclusions)
-
-        self.assertEqual(2, len(mr_mocks.queued_batch_tasks))
-        self.assertEqual("start_flow", mr_mocks.queued_batch_tasks[1]["type"])
-
-        FlowStart.objects.all().delete()
+        self.assertEqual(
+            mr_mocks.calls["flow_start"][-1],
+            call(
+                self.org,
+                self.admin,
+                typ="M",
+                flow=flow,
+                groups=[],
+                contacts=[],
+                urns=[],
+                query=query,
+                exclude=Exclusions(),
+                params={},
+            ),
+        )
 
     @mock_mailroom
-    def test_broadcast_background_flow(self, mr_mocks):
+    def test_start_background_flow(self, mr_mocks):
         flow = self.create_flow("Background", flow_type=Flow.TYPE_BACKGROUND)
 
         # create flow start with a query
@@ -1366,11 +1363,21 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             start_url, self.admin, {"flow": flow.id, "contact_search": get_contact_search(query="frank")}
         )
 
-        start = FlowStart.objects.get()
-        self.assertEqual(flow, start.flow)
-        self.assertEqual(FlowStart.STATUS_PENDING, start.status)
-        self.assertEqual({}, start.exclusions)
-        self.assertEqual('name ~ "frank"', start.query)
+        self.assertEqual(
+            mr_mocks.calls["flow_start"][-1],
+            call(
+                self.org,
+                self.admin,
+                typ="M",
+                flow=flow,
+                groups=[],
+                contacts=[],
+                urns=[],
+                query='name ~ "frank"',
+                exclude=Exclusions(),
+                params={},
+            ),
+        )
 
     def test_copy_view(self):
         flow = self.get_flow("color_v13")
@@ -1472,7 +1479,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertReadFetch(chart_url_invalid, [self.editor, self.admin])
         self.assertEqual({"data": {"labels": [], "datasets": []}}, response.json())
 
-    def test_results(self):
+    @mock_mailroom
+    def test_results(self, mr_mocks):
         flow = self.create_flow("Test 1")
 
         results_url = reverse("flows.flow_results", args=[flow.uuid])
@@ -1689,6 +1697,21 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             },
             response.json(),
         )
+
+    @mock_mailroom
+    def test_activity_inactive_flow(self, mr_mocks):
+        flow = self.create_flow("Deleted")
+        flow.release(self.admin)
+
+        self.login(self.admin)
+
+        response = self.client.get(reverse("flows.flow_revisions", args=[flow.uuid]))
+
+        self.assertEqual(404, response.status_code)
+
+        response = self.client.get(reverse("flows.flow_activity", args=[flow.uuid]))
+
+        self.assertEqual(404, response.status_code)
 
     def test_write_protection(self):
         flow = self.get_flow("favorites_v13")
@@ -1954,6 +1977,45 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                     },
                     payload["trigger"],
                 )
+
+    @mock_mailroom
+    def test_delete(self, mr_mocks):
+        child = self.create_flow("Child")
+        parent = self.create_flow("Parent")
+        parent.field_dependencies.add(self.create_field("age", "Age"))
+        parent.flow_dependencies.add(child)
+
+        flow1_delete_url = reverse("flows.flow_delete", args=[child.uuid])
+        flow2_delete_url = reverse("flows.flow_delete", args=[parent.uuid])
+
+        self.assertRequestDisallowed(flow1_delete_url, [None, self.agent, self.admin2])
+        self.assertDeleteFetch(flow1_delete_url, [self.editor, self.admin])
+        self.assertDeleteSubmit(flow1_delete_url, self.admin, object_deactivated=child, success_status=200)
+
+        # parent flow should now be marked as having issues
+        parent.refresh_from_db()
+        self.assertTrue(parent.is_active)
+        self.assertTrue(parent.has_issues)
+        self.assertNotIn(set(), set(parent.flow_dependencies.all()))
+
+        # deleting our parent flow should also work
+        self.assertDeleteFetch(flow2_delete_url, [self.editor, self.admin])
+        self.assertDeleteSubmit(flow2_delete_url, self.admin, object_deactivated=parent, success_status=200)
+
+        parent.refresh_from_db()
+        self.assertEqual(0, parent.field_dependencies.all().count())
+        self.assertEqual(0, parent.flow_dependencies.all().count())
+
+    @mock_mailroom
+    def test_delete_of_inactive_flow(self, mr_mocks):
+        flow = self.create_flow("Test")
+        flow.release(self.admin)
+
+        self.login(self.admin)
+        response = self.client.post(reverse("flows.flow_delete", args=[flow.pk]))
+
+        # can't delete already released flow
+        self.assertEqual(response.status_code, 404)
 
     def test_export_and_download_translation(self):
         self.org.set_flow_languages(self.admin, ["spa"])

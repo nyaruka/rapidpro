@@ -18,6 +18,7 @@ from temba.flows.models import Flow, FlowRun, FlowStart
 from temba.globals.models import Global
 from temba.locations.models import AdminBoundary
 from temba.mailroom import modifiers
+from temba.mailroom.client.types import Exclusions
 from temba.msgs.models import Broadcast, Label, Media, Msg, OptIn, QuickReply
 from temba.orgs.models import Org, OrgRole
 from temba.tickets.models import Ticket, Topic
@@ -911,6 +912,7 @@ class ContactGroupReadSerializer(ReadSerializer):
         ContactGroup.STATUS_INITIALIZING: "initializing",
         ContactGroup.STATUS_EVALUATING: "evaluating",
         ContactGroup.STATUS_READY: "ready",
+        ContactGroup.STATUS_INVALID: "invalid",
     }
 
     def get_status(self, obj):
@@ -998,7 +1000,7 @@ class ContactBulkActionSerializer(WriteSerializer):
         elif action == self.REMOVE:
             Contact.bulk_change_group(user, contacts, group, add=False)
         elif action == self.INTERRUPT:
-            mailroom.queue_interrupt(self.context["org"], contacts=contacts)
+            Contact.bulk_interrupt(user, contacts)
         elif action == self.ARCHIVE_MESSAGES or action == self.ARCHIVE:
             Msg.archive_all_for_contacts(contacts)
         elif action == self.BLOCK:
@@ -1226,10 +1228,10 @@ class FlowStartWriteSerializer(WriteSerializer):
         urns = self.validated_data.get("urns", [])
         contacts = self.validated_data.get("contacts", [])
         groups = self.validated_data.get("groups", [])
-        exclusions = {
-            FlowStart.EXCLUSION_STARTED_PREVIOUSLY: not self.validated_data.get("restart_participants", True),
-            FlowStart.EXCLUSION_IN_A_FLOW: self.validated_data.get("exclude_active", False),
-        }
+        exclude = Exclusions(
+            started_previously=not self.validated_data.get("restart_participants", True),
+            in_a_flow=self.validated_data.get("exclude_active", False),
+        )
         params = self.validated_data.get("params") or self.validated_data.get("extra")
 
         # ok, let's go create our flow start, the actual starting will happen in our view
@@ -1240,7 +1242,7 @@ class FlowStartWriteSerializer(WriteSerializer):
             contacts=contacts,
             groups=groups,
             urns=urns,
-            exclusions=exclusions,
+            exclude=exclude,
             params=params,
         )
 

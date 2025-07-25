@@ -74,7 +74,7 @@ class BandwidthTypeTest(TembaTest):
 
         with patch("requests.delete") as mock_delete:
             mock_delete.side_effect = [MockResponse(200, "")]
-            channel.release(self.admin)
+            channel.release(self.admin, interrupt=False)
 
             self.assertEqual(
                 mock_delete.call_args[0][0],
@@ -146,7 +146,7 @@ class BandwidthTypeTest(TembaTest):
 
         with patch("requests.delete") as mock_delete:
             mock_delete.side_effect = [MockResponse(200, "")]
-            channel.release(self.admin)
+            channel.release(self.admin, interrupt=False)
 
             self.assertEqual(
                 mock_delete.call_args[0][0],

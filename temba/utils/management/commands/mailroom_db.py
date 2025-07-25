@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 from django_valkey import get_valkey_connection
 
+from django.apps import apps
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError, call_command
 from django.db import connection
@@ -31,23 +32,6 @@ USER_PASSWORD = "Qwerty123"
 
 # database dump containing admin boundary records
 LOCATIONS_FILE = "test-data/nigeria.bin"
-
-# database id sequences to be reset to make ids predictable
-RESET_SEQUENCES = (
-    "ai_llm_id_seq",
-    "campaigns_campaign_id_seq",
-    "campaigns_campaignevent_id_seq",
-    "channels_channel_id_seq",
-    "contacts_contact_id_seq",
-    "contacts_contactgroup_id_seq",
-    "contacts_contacturn_id_seq",
-    "flows_flow_id_seq",
-    "flows_flowrevision_id_seq",
-    "msgs_label_id_seq",
-    "templates_template_id_seq",
-    "templates_templatetranslation_id_seq",
-    "triggers_trigger_id_seq",
-)
 
 PG_CONTAINER_NAME = "textit-postgres-1"
 MAILROOM_PORT = 8092
@@ -159,8 +143,12 @@ class Command(BaseCommand):
 
     def reset_id_sequences(self, start: int):
         with connection.cursor() as cursor:
-            for seq_name in RESET_SEQUENCES:
-                cursor.execute(f"ALTER SEQUENCE {seq_name} RESTART WITH {start}")
+            for mod in apps.get_models():
+                if hasattr(mod, "id") and (
+                    hasattr(mod, "org_id") or hasattr(mod, "flow_id") or hasattr(mod, "campaign_id")
+                ):
+                    seq_name = f"{mod._meta.db_table}_id_seq"
+                    cursor.execute(f"ALTER SEQUENCE {seq_name} RESTART WITH {start}")
 
     def create_org(self, spec, superuser, country):
         self._log(f"\nCreating org {spec['name']}...\n")
@@ -175,10 +163,11 @@ class Command(BaseCommand):
             created_by=superuser,
             modified_by=superuser,
         )
-        org.initialize(sample_flows=False)
 
         # set our sequences to make ids stable across orgs
         self.reset_id_sequences(spec["sequence_start"])
+
+        org.initialize(sample_flows=False)
 
         self.create_channels(spec, org, superuser)
         self.create_fields(spec, org, superuser)
