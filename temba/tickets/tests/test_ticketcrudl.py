@@ -21,12 +21,12 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # create other agent users in teams with limited topic access
         self.agent2 = self.create_user("agent2@textit.com")
-        sales_only = Team.create(self.org, self.admin, "Sales", topics=[self.sales])
-        self.org.add_user(self.agent2, OrgRole.AGENT, team=sales_only)
+        self.sales_only = Team.create(self.org, self.admin, "Sales", topics=[self.sales])
+        self.org.add_user(self.agent2, OrgRole.AGENT, team=self.sales_only)
 
         self.agent3 = self.create_user("agent3@textit.com")
-        support_only = Team.create(self.org, self.admin, "Support", topics=[self.support])
-        self.org.add_user(self.agent3, OrgRole.AGENT, team=support_only)
+        self.support_only = Team.create(self.org, self.admin, "Support", topics=[self.support])
+        self.org.add_user(self.agent3, OrgRole.AGENT, team=self.support_only)
 
     def test_list(self):
         list_url = reverse("tickets.ticket_list")
@@ -501,9 +501,6 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_replies_chart(self):
         replies_url = reverse("tickets.ticket_chart", args=["replies"])
 
-        sales_team = Team.create(self.org, self.admin, "Sales")
-        support_team = Team.create(self.org, self.admin, "Support")
-
         self.login(self.admin)
 
         response = self.client.get(replies_url + "?since=2024-03-01&until=2024-05-01")
@@ -519,16 +516,16 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         # Create some test data - msgs:ticketreplies:{team_id}:{user_id}
         self.org.daily_counts.create(day=date(2024, 4, 25), scope="msgs:ticketreplies:0:1", count=2)  # No Team
         self.org.daily_counts.create(
-            day=date(2024, 4, 25), scope=f"msgs:ticketreplies:{sales_team.id}:2", count=3
+            day=date(2024, 4, 25), scope=f"msgs:ticketreplies:{self.sales_only.id}:2", count=3
         )  # Sales team
         self.org.daily_counts.create(
-            day=date(2024, 4, 25), scope=f"msgs:ticketreplies:{support_team.id}:3", count=1
+            day=date(2024, 4, 25), scope=f"msgs:ticketreplies:{self.support_only.id}:3", count=1
         )  # Support team
         self.org.daily_counts.create(
-            day=date(2024, 4, 26), scope=f"msgs:ticketreplies:{sales_team.id}:2", count=5
+            day=date(2024, 4, 26), scope=f"msgs:ticketreplies:{self.sales_only.id}:2", count=5
         )  # Sales team next day
         self.org.daily_counts.create(
-            day=date(2024, 4, 26), scope=f"msgs:ticketreplies:{sales_team.id}:4", count=2
+            day=date(2024, 4, 26), scope=f"msgs:ticketreplies:{self.sales_only.id}:4", count=2
         )  # Sales team, different user
         self.org.daily_counts.create(day=date(2024, 5, 3), scope="msgs:ticketreplies:0:1", count=1)  # out of period
 
