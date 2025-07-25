@@ -1,3 +1,9 @@
+v10.3.8 (2025-07-25)
+-------------------------
+ * Do not allow changing field type for fields used in groups
+ * Adjust alert for invalid query groups
+ * Implement field and group limit enforcement in import preview
+
 v10.3.7 (2025-07-24)
 -------------------------
  * Clear field dependencies for deleted groups
