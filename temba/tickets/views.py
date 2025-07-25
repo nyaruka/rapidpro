@@ -583,11 +583,12 @@ class TicketCRUDL(SmartCRUDL):
             # Add default team (id=0) for users not assigned to specific teams
             teams_by_id[0] = "No Team"
 
-            # Use database aggregation instead of Python processing to improve performance and scalability
+            # Follow the pattern from get_topic_counts - use database aggregation to extract team_id
             # scope format: msgs:ticketreplies:{team_id}:{user_id} - team_id is at position 3 (1-indexed)
+            daily_counts = org.daily_counts.period(since, until).prefix("msgs:ticketreplies:")
+            
             counts = (
-                org.daily_counts.period(since, until)
-                .prefix("msgs:ticketreplies:")
+                daily_counts
                 .annotate(team_id=Cast(SplitPart(F("scope"), Value(":"), Value(3)), output_field=models.IntegerField()))
                 .values_list("day", "team_id")
                 .annotate(count_sum=Sum("count"))
@@ -595,21 +596,20 @@ class TicketCRUDL(SmartCRUDL):
 
             # collect all dates and values by team
             dates_set = set()
-            values_by_team = defaultdict(dict)
+            values_by_team = defaultdict(lambda: defaultdict(int))
 
-            for day, team_id, count in counts:
+            for day, team_id, count_sum in counts:
                 team_name = teams_by_id.get(team_id, f"Team {team_id}")
                 dates_set.add(day)
-                if team_name not in values_by_team:
-                    values_by_team[team_name] = defaultdict(int)
-                values_by_team[team_name][day] += count
+                values_by_team[team_name][day] += count_sum
 
             # create sorted list of dates
             labels = sorted(list(dates_set))
 
             # create arrays of values for each team, using 0 for missing dates
             datasets = []
-            for team_name, date_counts in values_by_team.items():
+            for team_name in sorted(values_by_team.keys()):
+                date_counts = values_by_team[team_name]
                 datasets.append({"label": team_name, "data": [date_counts.get(date, 0) for date in labels]})
 
             return [d.strftime("%Y-%m-%d") for d in labels], datasets
