@@ -586,10 +586,11 @@ class TicketCRUDL(SmartCRUDL):
             # Follow the pattern from get_topic_counts - use database aggregation to extract team_id
             # scope format: msgs:ticketreplies:{team_id}:{user_id} - team_id is at position 3 (1-indexed)
             daily_counts = org.daily_counts.period(since, until).prefix("msgs:ticketreplies:")
-            
+
             counts = (
-                daily_counts
-                .annotate(team_id=Cast(SplitPart(F("scope"), Value(":"), Value(3)), output_field=models.IntegerField()))
+                daily_counts.annotate(
+                    team_id=Cast(SplitPart(F("scope"), Value(":"), Value(3)), output_field=models.IntegerField())
+                )
                 .values_list("day", "team_id")
                 .annotate(count_sum=Sum("count"))
             )
