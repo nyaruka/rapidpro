@@ -284,10 +284,6 @@ function fetchAjax(url, options, fullPage = false) {
         return;
       }
 
-      if (!options.ignoreHistory) {
-        addToHistory(url);
-      }
-
       const toasts = response.headers.get('X-Temba-Toasts');
       if (toasts) {
         const toastEle = document.querySelector('temba-toast');
@@ -351,6 +347,10 @@ function fetchAjax(url, options, fullPage = false) {
           if (body.startsWith('<!DOCTYPE HTML>')) {
             document.location.href = response.url;
             return;
+          }
+
+          if (!options.ignoreHistory) {
+            addToHistory(url);
           }
 
           var containerEle = document.querySelector(container);
