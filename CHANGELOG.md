@@ -1,3 +1,9 @@
+v10.3.9 (2025-07-28)
+-------------------------
+ * Alignment tweaks on contact import preview
+ * Don't populate URL history until page is fetched
+ * Add response count chart grouped by team for ticket analytics
+
 v10.3.8 (2025-07-25)
 -------------------------
  * Do not allow changing field type for fields used in groups
