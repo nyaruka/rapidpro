@@ -338,11 +338,9 @@ function fetchAjax(url, options, fullPage = false) {
             return;
           }
 
-          // if we got redirected when updating our container, make sure reflect it in the url
-          if (response.redirected) {
-            if (response.url) {
-              url = response.url;
-            }
+          // honor rederict respones urls
+          if (response.redirected && response.url) {
+            url = response.url;
           }
 
           if (!options.ignoreHistory) {
