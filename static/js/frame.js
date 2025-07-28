@@ -323,17 +323,6 @@ function fetchAjax(url, options, fullPage = false) {
       }
 
       if (container) {
-        // if we got redirected when updating our container, make sure reflect it in the url
-        if (response.redirected) {
-          if (response.url) {
-            window.history.replaceState(
-              { url: response.url },
-              '',
-              response.url
-            );
-          }
-        }
-
         // special case for spa content, break out into a full page load
         if (
           container === '.spa-content' &&
@@ -347,6 +336,11 @@ function fetchAjax(url, options, fullPage = false) {
           if (body.startsWith('<!DOCTYPE HTML>')) {
             document.location.href = response.url;
             return;
+          }
+
+          // honor rederict respones urls
+          if (response.redirected && response.url) {
+            url = response.url;
           }
 
           if (!options.ignoreHistory) {
