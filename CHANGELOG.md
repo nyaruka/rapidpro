@@ -1,3 +1,7 @@
+v10.3.10 (2025-07-28)
+-------------------------
+ * Honor redirection url on history push
+
 v10.3.9 (2025-07-28)
 -------------------------
  * Alignment tweaks on contact import preview
