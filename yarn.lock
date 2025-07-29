@@ -118,10 +118,10 @@
     tiny-lru "^11.2.5"
     zustand "^5.0.3"
 
-"@nyaruka/temba-components@0.129.2":
-  version "0.129.2"
-  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.129.2.tgz#400fda01ca4c3c27fd1634f85589c6f9e5a3b6a5"
-  integrity sha512-E0H2I14YhLs/ZQFys0rFHovyDJt5hOwXPH0B2dcy7lT5D86ddmO6t0R45dwBLSMlBHizx2wC4JEZTBwgcHBExA==
+"@nyaruka/temba-components@0.129.3":
+  version "0.129.3"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.129.3.tgz#b43021c05386ebd8291ea6189b0235f60e14778e"
+  integrity sha512-RFFRzyfx4wSIMa4vQpaD3CV2FxX9wF120sEcaGPqlPCtOBLU/Kda8Flu+w2UgpU3HqRuq/UFOu1hthQc3FptTw==
   dependencies:
     "@jsplumb/browser-ui" "^6.2.10"
     "@lit/localize" "^0.12.1"
@@ -141,6 +141,7 @@
     remarkable "^2.0.1"
     serialize-javascript "^6.0.2"
     tiny-lru "^11.2.5"
+    uuid "^11.1.0"
     zustand "^5.0.3"
 
 "@sindresorhus/merge-streams@^2.1.0":
@@ -1491,6 +1492,11 @@ util-deprecate@^1.0.2:
   version "1.0.2"
   resolved "https://registry.npmjs.org/util-deprecate/-/util-deprecate-1.0.2.tgz#450d4dc9fa70de732762fbd2d4a28981419a0ccf"
   integrity sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==
+
+uuid@^11.1.0:
+  version "11.1.0"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-11.1.0.tgz#9549028be1753bb934fc96e2bca09bb4105ae912"
+  integrity sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==
 
 watch@0.13.0:
   version "0.13.0"
