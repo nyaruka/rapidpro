@@ -1,3 +1,7 @@
+v10.3.11 (2025-07-29)
+-------------------------
+ * Fix schedule trigger update contact list
+
 v10.3.10 (2025-07-28)
 -------------------------
  * Honor redirection url on history push
