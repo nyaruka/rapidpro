@@ -727,8 +727,10 @@ class OrgCRUDL(SmartCRUDL):
             org = self.get_object()
             user = self.request.user
 
-            flow_ids = [elt for elt in self.request.POST.getlist("flows") if elt]
-            campaign_ids = [elt for elt in self.request.POST.getlist("campaigns") if elt]
+            json_body = json.loads(request.body.decode("utf-8"))
+
+            flow_ids = [elt for elt in json_body.get("flows", []) if elt]
+            campaign_ids = [elt for elt in json_body.get("campaigns", []) if elt]
 
             # fetch the selected flows and campaigns
             flows = Flow.objects.filter(id__in=flow_ids, org=org, is_active=True)
