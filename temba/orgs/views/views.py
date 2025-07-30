@@ -727,11 +727,26 @@ class OrgCRUDL(SmartCRUDL):
             org = self.get_object()
             user = self.request.user
 
-            json_body = json.loads(request.body.decode("utf-8"))
+            try:
+                json_body = json.loads(request.body.decode("utf-8"))
+            except json.JSONDecodeError:
+                return JsonResponse({"error": _("Invalid JSON format.")}, status=400)
 
-            flow_ids = [elt for elt in json_body.get("flows", []) if elt]
-            campaign_ids = [elt for elt in json_body.get("campaigns", []) if elt]
+            # Validate the structure and content of the JSON
+            if not isinstance(json_body, dict):
+                return JsonResponse({"error": _("JSON body must be an object.")}, status=400)
 
+            flows = json_body.get("flows", [])
+            campaigns = json_body.get("campaigns", [])
+
+            if not isinstance(flows, list) or not all(isinstance(elt, int) for elt in flows):
+                return JsonResponse({"error": _("'flows' must be a list of integers.")}, status=400)
+
+            if not isinstance(campaigns, list) or not all(isinstance(elt, int) for elt in campaigns):
+                return JsonResponse({"error": _("'campaigns' must be a list of integers.")}, status=400)
+
+            flow_ids = [elt for elt in flows if elt]
+            campaign_ids = [elt for elt in campaigns if elt]
             # fetch the selected flows and campaigns
             flows = Flow.objects.filter(id__in=flow_ids, org=org, is_active=True)
             campaigns = Campaign.objects.filter(id__in=campaign_ids, org=org, is_active=True)
