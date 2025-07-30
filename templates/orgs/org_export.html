@@ -127,14 +127,13 @@
         })
         .then(response => {
           if (response.ok) {
-            alert("Export successful!");
+            console.log("Export successful!");
           } else {
-            alert("Export failed. Please try again.");
+            console.error("Export failed.");
           }
         })
         .catch(error => {
           console.error("Export error:", error);
-          alert("An error occurred during the export. Please try again later.");
         });
 
       }
