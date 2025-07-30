@@ -1,3 +1,7 @@
+v10.3.12 (2025-07-30)
+-------------------------
+ * Update flow editor
+
 v10.3.11 (2025-07-29)
 -------------------------
  * Fix schedule trigger update contact list
