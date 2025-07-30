@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from datetime import timedelta
+from json import decoder
 
 from allauth.account.models import EmailAddress
 from allauth.mfa.models import Authenticator
@@ -729,7 +730,7 @@ class OrgCRUDL(SmartCRUDL):
 
             try:
                 json_body = json.loads(request.body.decode("utf-8"))
-            except json.JSONDecodeError:
+            except decoder.JSONDecodeError:
                 return JsonResponse({"error": _("Invalid JSON format.")}, status=400)
 
             # Validate the structure and content of the JSON
