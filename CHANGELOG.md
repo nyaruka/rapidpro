@@ -1,3 +1,7 @@
+v10.3.13 (2025-07-30)
+-------------------------
+ * Fix import preview group selection
+
 v10.3.12 (2025-07-30)
 -------------------------
  * Update flow editor
