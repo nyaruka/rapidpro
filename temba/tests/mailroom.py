@@ -510,6 +510,13 @@ class TestClient(MailroomClient):
 
         return {"changed_ids": [t.id for t in tickets]}
 
+    def system_queues(self) -> dict:
+        return {
+            "batch": {"queued": {}, "active": {}, "paused": {}},
+            "realtime": {"queued": {}, "active": {}, "paused": {}},
+            "throttled": {"queued": {}, "active": {}, "paused": {}},
+        }
+
 
 def mock_mailroom(method=None):
     """

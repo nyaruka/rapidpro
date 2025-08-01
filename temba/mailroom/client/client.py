@@ -401,7 +401,7 @@ class MailroomClient:
     def system_errors(self, log, ret, panic):  # pragma: no cover
         return self._request("system/errors", {"log": log, "ret": ret, "panic": panic})
 
-    def system_queues(self):  # pragma: no cover
+    def system_queues(self) -> dict:  # pragma: no cover
         return self._request("system/queues", {}, post=False)
 
     def _request(self, endpoint, payload=None, files=None, post=True, encode_json=False):
