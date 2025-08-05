@@ -19,7 +19,7 @@ def batch_get(table, keys: list[tuple]) -> list:
     return items
 
 
-def merged_page_query(table, pks: list, *, desc=False, limit=50, after_sk=None) -> tuple[list, str | None]:
+def merged_page_query(table, pks: list, *, desc=False, limit=50, after_sk=None) -> tuple[list, str | None, str | None]:
     """
     Performs a paginated query across multiple partition keys merging the results into a single page. Returns a tuple
     of the results for the page, the previous page's after SK (if any), and the next page's after SK (if any).
