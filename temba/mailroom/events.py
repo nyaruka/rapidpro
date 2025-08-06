@@ -105,7 +105,7 @@ class Event:
                 KeyConditionExpression="PK = :pk AND SK BETWEEN :after_sk AND :before_sk",
                 ExpressionAttributeValues={":pk": pk, ":after_sk": after_sk, ":before_sk": before_sk},
                 ScanIndexForward=False,
-                Limit=limit,
+                Limit=50,
                 Select="ALL_ATTRIBUTES",
             )
 
