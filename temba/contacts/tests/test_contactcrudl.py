@@ -1,4 +1,3 @@
-import io
 from datetime import timedelta, timezone as tzone
 from decimal import Decimal
 from unittest.mock import call, patch
@@ -13,7 +12,6 @@ from temba.airtime.models import AirtimeTransfer
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.channels.models import ChannelEvent
 from temba.contacts.models import URN, Contact, ContactExport, ContactField, ContactFire
-from temba.flows.models import FlowSession
 from temba.ivr.models import Call
 from temba.locations.models import AdminBoundary
 from temba.mailroom.client.types import Exclusions
@@ -24,7 +22,7 @@ from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, mock_mailroom
 from temba.tests.engine import MockSessionWriter
 from temba.tickets.models import Topic
 from temba.triggers.models import Trigger
-from temba.utils import json, s3
+from temba.utils import json
 from temba.utils.dates import datetime_to_timestamp
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
@@ -630,16 +628,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             assignee=self.admin,
         )
 
-        # set an output URL on our session so we fetch from there
-        s = FlowSession.objects.get(contact=joe)
-        s3.client().put_object(
-            Bucket="test-sessions", Key="c/session.json", Body=io.BytesIO(json.dumps(s.output).encode())
-        )
-        FlowSession.objects.filter(id=s.id).update(output_url="http://minio:9000/test-sessions/c/session.json")
-
         # fetch our contact history
         self.login(self.admin)
-        with self.assertNumQueries(22):
+        with self.assertNumQueries(21):
             response = self.client.get(history_url + "?limit=100")
 
         # history should include all messages in the last 90 days, the channel event, the call, and the flow run
@@ -669,9 +660,6 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             history, 11, "msg_created", msg__text="A beautiful broadcast", created_by__email="editor@textit.com"
         )
         assertHistoryEvent(history, -1, "msg_received", msg__text="Inbound message 11")
-
-        # revert back to reading only from DB
-        FlowSession.objects.filter(id=s.id).update(output_url=None)
 
         # can filter by ticket to only all ticket events from that ticket rather than some events from all tickets
         response = self.client.get(history_url + f"?ticket={ticket.uuid}&limit=100")
@@ -780,26 +768,38 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
     def test_history_session_events(self):
         joe = self.create_contact(name="Joe Blow", urns=["twitter:blow80", "tel:+250781111111"])
 
-        history_url = reverse("contacts.contact_history", args=[joe.uuid])
+        events = [
+            {
+                "uuid": "019880eb-e422-7d67-993f-cdec64636851",
+                "type": "contact_urns_changed",
+                "created_on": "2025-08-06T21:35:19.927099+00:00",
+                "urns": ["twitter:blow80", "tel:+250781111111", "twitter:joey"],
+            },
+            {
+                "uuid": "019880eb-e488-7652-beb6-0051d9cd64f2",
+                "type": "contact_field_changed",
+                "created_on": "2025-08-06T21:35:19.927105+00:00",
+                "field": {"key": "gender", "name": "Gender"},
+                "value": {"text": "M"},
+            },
+            {
+                "uuid": "019880eb-e488-76d2-a8c4-872e95772583",
+                "type": "contact_field_changed",
+                "created_on": "2025-08-06T21:35:19.927107+00:00",
+                "field": {"key": "age", "name": "Age"},
+                "value": None,
+            },
+            {
+                "uuid": "019880eb-e4f1-761b-bc99-750003cf8fd4",
+                "type": "contact_language_changed",
+                "created_on": "2025-08-06T21:35:19.927108+00:00",
+                "language": "spa",
+            },
+        ]
+        for event in events:
+            self.write_history_event(joe, event)
 
-        flow = self.get_flow("color_v13")
-        nodes = flow.get_definition()["nodes"]
-        (
-            MockSessionWriter(joe, flow)
-            .visit(nodes[0])
-            .add_contact_urn("twitter", "joey")
-            .set_contact_field("gender", "Gender", "M")
-            .set_contact_field("age", "Age", "")
-            .set_contact_language("spa")
-            .set_contact_language("")
-            .set_contact_name("Joe")
-            .set_contact_name("")
-            .set_result("Color", "red", "Red", "it's red")
-            .send_email(["joe@textit.com"], "Test", "Hello there Joe")
-            .error("unable to send email")
-            .fail("this is a failure")
-            .save()
-        )
+        history_url = reverse("contacts.contact_history", args=[joe.uuid])
 
         self.login(self.editor)
 
@@ -807,18 +807,13 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(200, response.status_code)
 
         resp_json = response.json()
-        self.assertEqual(9, len(resp_json["events"]))
+        self.assertEqual(4, len(resp_json["events"]))
         self.assertEqual(
             [
-                "flow_exited",
-                "contact_name_changed",
-                "contact_name_changed",
-                "contact_language_changed",
                 "contact_language_changed",
                 "contact_field_changed",
                 "contact_field_changed",
                 "contact_urns_changed",
-                "flow_entered",
             ],
             [e["type"] for e in resp_json["events"]],
         )

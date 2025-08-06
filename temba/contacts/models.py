@@ -720,13 +720,13 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
         return sorted(merged, key=lambda k: k["scheduled"])
 
-    def get_history(self, after, before, include_event_types: set, ticket, limit: int, dynamo=False) -> list:
+    def get_history(self, after, before, *, ticket, limit: int) -> list:
         """
         Gets this contact's history of messages, calls, runs etc in the given time window
         """
         from temba.flows.models import FlowExit
         from temba.ivr.models import Call
-        from temba.mailroom.events import get_event_time
+        from temba.mailroom.events import Event, get_event_time
         from temba.msgs.models import Msg
         from temba.tickets.models import TicketEvent
 
@@ -784,12 +784,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
             :limit
         ]
 
-        if dynamo:  # pragma: no cover
-            from temba.mailroom.events import Event
-
-            session_events = Event.get_by_contact(self, after=after, before=before, limit=limit)
-        else:
-            session_events = self.get_session_events(after, before, include_event_types)
+        engine_events = Event.get_by_contact(self, after=after, before=before, limit=limit)
 
         # chain all items together, sort by their event time, and slice
         items = chain(
@@ -800,31 +795,11 @@ class Contact(LegacyUUIDMixin, SmartModel):
             channel_events,
             calls,
             transfers,
-            session_events,
+            engine_events,
         )
 
         # sort and slice
         return sorted(items, key=get_event_time, reverse=True)[:limit]
-
-    def get_session_events(self, after: datetime, before: datetime, types: set) -> list:
-        """
-        Extracts events from this contacts sessions that overlap with the given time window
-        """
-
-        # limit to 100 sessions at a time to prevent melting when a contact has a lot of sessions
-        sessions = self.sessions.filter(
-            Q(created_on__gte=after, created_on__lt=before) | Q(ended_on__gte=after, ended_on__lt=before)
-        ).order_by("-created_on")[:100]
-        events = []
-        for session in sessions:
-            for run in session.output_json.get("runs", []):
-                for event in run.get("events", []):
-                    event["session_uuid"] = str(session.uuid)
-                    event_time = iso8601.parse_date(event["created_on"])
-                    if event["type"] in types and after <= event_time < before:
-                        events.append(event)
-
-        return events
 
     def get_field_serialized(self, field) -> str:
         """

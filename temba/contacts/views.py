@@ -52,15 +52,6 @@ from .omnibox import omnibox_query, omnibox_serialize
 
 logger = logging.getLogger(__name__)
 
-# events from sessions to include in contact history
-HISTORY_INCLUDE_EVENTS = {
-    Event.TYPE_CONTACT_LANGUAGE_CHANGED,
-    Event.TYPE_CONTACT_FIELD_CHANGED,
-    Event.TYPE_CONTACT_GROUPS_CHANGED,
-    Event.TYPE_CONTACT_NAME_CHANGED,
-    Event.TYPE_CONTACT_URNS_CHANGED,
-}
-
 
 class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
     """
@@ -375,7 +366,6 @@ class ContactCRUDL(SmartCRUDL):
             before = int(self.request.GET.get("before", 0))
             after = int(self.request.GET.get("after", 0))
             limit = int(self.request.GET.get("limit", 50))
-            dynamo = int(self.request.GET.get("dynamo", 0)) == 1
 
             ticket_uuid = self.request.GET.get("ticket")
             ticket = contact.org.tickets.filter(uuid=ticket_uuid).first()
@@ -397,9 +387,7 @@ class ContactCRUDL(SmartCRUDL):
             history = []
             fetch_before = before
             while True:
-                history += contact.get_history(
-                    after, fetch_before, HISTORY_INCLUDE_EVENTS, ticket=ticket, limit=limit, dynamo=dynamo
-                )
+                history += contact.get_history(after, fetch_before, ticket=ticket, limit=limit)
                 if recent_only or len(history) >= 20 or after == contact_creation:
                     break
                 else:
@@ -415,9 +403,7 @@ class ContactCRUDL(SmartCRUDL):
             # check if there are more pages to fetch
             context["has_older"] = False
             if not recent_only and before > contact.created_on:
-                context["has_older"] = bool(
-                    contact.get_history(contact_creation, after, HISTORY_INCLUDE_EVENTS, ticket=ticket, limit=1)
-                )
+                context["has_older"] = bool(contact.get_history(contact_creation, after, ticket=ticket, limit=1))
 
             context["recent_only"] = recent_only
             context["next_before"] = datetime_to_timestamp(after)
