@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
+import iso8601
 from allauth.account.models import EmailAddress
 from django_valkey import get_valkey_connection
 from PIL import Image, ImageDraw
@@ -28,6 +29,7 @@ from temba.contacts.models import URN, Contact, ContactField, ContactGroup, Cont
 from temba.flows.models import Flow, FlowRun, FlowSession, FlowStart
 from temba.ivr.models import Call
 from temba.locations.models import AdminBoundary, BoundaryAlias
+from temba.mailroom.events import Event
 from temba.msgs.models import Broadcast, Label, Msg, OptIn
 from temba.orgs.models import Org, OrgRole
 from temba.templates.models import Template
@@ -811,6 +813,22 @@ class TembaTest(SmartminTest):
 
     def set_contact_field(self, contact, key, value):
         update_field_locally(self.admin, contact, key, value)
+
+    def write_history_event(self, contact, event: dict):
+        data = event.copy()
+        uuid = data.pop("uuid")
+        expires_on = iso8601.parse_date(event["created_on"]) + timezone.timedelta(days=14)
+        pk, sk = Event._get_key(contact, uuid)
+
+        dynamo.HISTORY.put_item(
+            Item={
+                "PK": pk,
+                "SK": sk,
+                "OrgID": contact.org_id,
+                "TTL": int(expires_on.timestamp()),
+                "Data": data,
+            }
+        )
 
     def assertLoginRedirectLegacy(self, response, msg=None):
         self.assertRedirect(response, reverse("orgs.login"), msg=msg)
