@@ -720,7 +720,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
         return sorted(merged, key=lambda k: k["scheduled"])
 
-    def get_history(self, after: datetime, before: datetime, include_event_types: set, ticket, limit: int) -> list:
+    def get_history(self, after, before, include_event_types: set, ticket, limit: int, dynamo=False) -> list:
         """
         Gets this contact's history of messages, calls, runs etc in the given time window
         """
@@ -784,7 +784,12 @@ class Contact(LegacyUUIDMixin, SmartModel):
             :limit
         ]
 
-        session_events = self.get_session_events(after, before, include_event_types)
+        if dynamo:  # pragma: no cover
+            from temba.mailroom.events import Event
+
+            session_events = Event.get_by_contact(self, after=after, before=before, limit=limit)
+        else:
+            session_events = self.get_session_events(after, before, include_event_types)
 
         # chain all items together, sort by their event time, and slice
         items = chain(

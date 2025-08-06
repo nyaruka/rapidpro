@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import iso8601
 
@@ -15,6 +15,7 @@ from temba.msgs.models import Msg, OptIn
 from temba.orgs.models import Org
 from temba.tickets.models import Ticket, TicketEvent, Topic
 from temba.users.models import User
+from temba.utils import dynamo
 
 
 class Event:
@@ -62,6 +63,79 @@ class Event:
         TicketEvent.TYPE_CLOSED: TYPE_TICKET_CLOSED,
         TicketEvent.TYPE_REOPENED: TYPE_TICKET_REOPENED,
     }
+
+    @staticmethod
+    def _get_key(contact, uuid: str) -> tuple[str, str]:
+        return f"con#{contact.uuid}", f"evt#{uuid}"
+
+    @classmethod
+    def _from_item(cls, contact, item: dict) -> dict:
+        assert item["OrgID"] == contact.org_id, "org ID mismatch for contact event"
+
+        data = item["Data"]
+        if dataGZ := item.get("DataGZ"):
+            data |= dynamo.load_jsongz(dataGZ)
+
+        data["uuid"] = item["SK"][4:]  # remove "evt#" prefix
+        return data
+
+    @classmethod
+    def get_by_contact(cls, contact, *, after: datetime, before: datetime, limit: int) -> list[dict]:
+        """
+        Eventually contact history will be paged by event UUIDs but for now we are given microsecond accuracy
+        datetimes and have to infer approximate UUIDs and then filter the results to the given range.
+        """
+        if after >= before:  # otherwise DynamoDb blows up
+            return []
+
+        after_uuid = cls._time_to_uuid(after)
+        before_uuid = cls._time_to_uuid(before + timedelta(milliseconds=1))
+
+        pk, before_sk = cls._get_key(contact, before_uuid)
+        after_sk = f"evt#{after_uuid}"
+
+        events = []
+        next_before_sk = None
+        num_fetches = 0
+
+        while True:
+            assert num_fetches < 100, "too many fetches for contact history"
+
+            kwargs = dict(
+                KeyConditionExpression="PK = :pk AND SK BETWEEN :after_sk AND :before_sk",
+                ExpressionAttributeValues={":pk": pk, ":after_sk": after_sk, ":before_sk": before_sk},
+                ScanIndexForward=False,
+                Limit=limit,
+                Select="ALL_ATTRIBUTES",
+            )
+
+            if next_before_sk:
+                kwargs["ExclusiveStartKey"] = {"PK": pk, "SK": next_before_sk}
+
+            response = dynamo.HISTORY.query(**kwargs)
+            num_fetches += 1
+
+            for item in response.get("Items", []):
+                event = cls._from_item(contact, item)
+                event_time = iso8601.parse_date(event["created_on"])
+
+                if event_time >= after and event_time < before:
+                    events.append(event)
+
+                    if len(events) == limit:
+                        return events
+
+            next_before_sk = response.get("LastEvaluatedKey", {}).get("SK")
+            if not next_before_sk:
+                break
+
+        return events
+
+    @staticmethod
+    def _time_to_uuid(dt: datetime) -> str:
+        ts_millis = int(dt.timestamp() * 1_000)
+        ts_as_hex = "%012x" % (ts_millis & 0xFFFFFFFFFFFF)
+        return f"{ts_as_hex[:8]}-{ts_as_hex[8:12]}-7000-0000-000000000000"
 
     @classmethod
     def from_history_item(cls, org: Org, user: User, item) -> dict:
