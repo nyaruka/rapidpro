@@ -1,3 +1,8 @@
+v10.3.15 (2025-08-06)
+-------------------------
+ * Add dynamo flag to contact history retrieval
+ * Add Event.get_by_contact to fetch contact events from DynamoDB
+
 v10.3.14 (2025-08-01)
 -------------------------
  * Add mailroom client method for system/queues
