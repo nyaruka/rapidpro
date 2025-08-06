@@ -375,6 +375,7 @@ class ContactCRUDL(SmartCRUDL):
             before = int(self.request.GET.get("before", 0))
             after = int(self.request.GET.get("after", 0))
             limit = int(self.request.GET.get("limit", 50))
+            dynamo = int(self.request.GET.get("dynamo", 0)) == 1
 
             ticket_uuid = self.request.GET.get("ticket")
             ticket = contact.org.tickets.filter(uuid=ticket_uuid).first()
@@ -396,7 +397,9 @@ class ContactCRUDL(SmartCRUDL):
             history = []
             fetch_before = before
             while True:
-                history += contact.get_history(after, fetch_before, HISTORY_INCLUDE_EVENTS, ticket=ticket, limit=limit)
+                history += contact.get_history(
+                    after, fetch_before, HISTORY_INCLUDE_EVENTS, ticket=ticket, limit=limit, dynamo=dynamo
+                )
                 if recent_only or len(history) >= 20 or after == contact_creation:
                     break
                 else:
