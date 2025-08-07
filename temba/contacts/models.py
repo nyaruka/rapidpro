@@ -1106,7 +1106,6 @@ class Contact(LegacyUUIDMixin, SmartModel):
                 Msg.bulk_delete(msg_batch)
 
             delete_in_batches(self.runs.all())
-            delete_in_batches(self.sessions.all())
             delete_in_batches(self.channel_events.all())
             delete_in_batches(self.calls.all())
             delete_in_batches(self.fires.all())

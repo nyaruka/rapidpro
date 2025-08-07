@@ -275,9 +275,12 @@ class TestClient(MailroomClient):
         # get the waiting session UUIDs
         session_uuids = []
         for contact in contacts:
-            session_uuids.extend(
-                contact.sessions.filter(status=FlowSession.STATUS_WAITING).values_list("uuid", flat=True)
-            )
+            if contact.current_session_uuid:
+                session = FlowSession.objects.filter(
+                    uuid=contact.current_session_uuid, status=FlowSession.STATUS_WAITING
+                ).first()
+                if session:
+                    session_uuids.append(session.uuid)
 
         exit_sessions(session_uuids, FlowSession.STATUS_INTERRUPTED)
 
@@ -888,17 +891,20 @@ def exit_sessions(session_uuids: list, status: str):
     FlowRun.objects.filter(session_uuid__in=session_uuids).update(
         status=status, exited_on=timezone.now(), modified_on=timezone.now()
     )
+
+    contact_uuids = set(FlowSession.objects.filter(uuid__in=session_uuids).values_list("contact_uuid", flat=True))
+
     FlowSession.objects.filter(uuid__in=session_uuids).update(
         status=status,
         ended_on=timezone.now(),
         current_flow_id=None,
     )
 
-    for session in FlowSession.objects.filter(uuid__in=session_uuids):
-        session.contact.current_session_uuid = None
-        session.contact.current_flow = None
-        session.contact.modified_on = timezone.now()
-        session.contact.save(update_fields=("current_session_uuid", "current_flow", "modified_on"))
+    Contact.objects.filter(uuid__in=contact_uuids).update(
+        current_session_uuid=None,
+        current_flow=None,
+        modified_on=timezone.now(),
+    )
 
 
 def resolve_destination(org, contact, channel=None) -> tuple:

@@ -529,14 +529,12 @@ class OrgDeleteTest(TembaTest):
                 groups=groups,
             )
         )
-        session1 = add(
-            FlowSession.objects.create(
-                uuid=uuid4(),
-                contact=contacts[0],
-                current_flow=flow1,
-                status=FlowSession.STATUS_WAITING,
-                output_url="http://sessions.com/123.json",
-            )
+        session1 = FlowSession.objects.create(
+            uuid=uuid4(),
+            contact_uuid=contacts[0].uuid,
+            current_flow=flow1,
+            status=FlowSession.STATUS_WAITING,
+            output_url="http://sessions.com/123.json",
         )
         add(
             FlowRun.objects.create(
