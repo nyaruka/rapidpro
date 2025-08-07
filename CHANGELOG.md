@@ -1,3 +1,7 @@
+v10.3.17 (2025-08-07)
+-------------------------
+ * Add FlowSession.contact_uuid to replace FlowSession.contact foreign key
+
 v10.3.16 (2025-08-07)
 -------------------------
  * Always fetch engine events for contact history from DynamoDB
