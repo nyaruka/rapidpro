@@ -976,7 +976,7 @@ class FlowSession(models.Model):
 
     id = models.BigAutoField(primary_key=True)
     uuid = models.UUIDField(unique=True)
-    contact = models.ForeignKey("contacts.Contact", on_delete=models.PROTECT, related_name="sessions")
+    contact_uuid = models.UUIDField(null=True)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
     last_sprint_uuid = models.UUIDField(null=True)  # last sprint in this session
 
@@ -984,7 +984,7 @@ class FlowSession(models.Model):
     session_type = models.CharField(max_length=1, choices=Flow.TYPE_CHOICES, default=Flow.TYPE_MESSAGE)
 
     # the call used for flow sessions over IVR
-    call = models.OneToOneField("ivr.Call", on_delete=models.PROTECT, null=True, related_name="session")
+    call = models.OneToOneField("ivr.Call", on_delete=models.SET_NULL, null=True, related_name="session")
 
     # the engine output of this session (either stored in this field or at the URL pointed to by output_url)
     output = JSONAsTextField(null=True, default=dict)
@@ -995,7 +995,10 @@ class FlowSession(models.Model):
     ended_on = models.DateTimeField(null=True)
 
     # the flow of the waiting run
-    current_flow = models.ForeignKey("flows.Flow", related_name="sessions", null=True, on_delete=models.PROTECT)
+    current_flow = models.ForeignKey("flows.Flow", on_delete=models.SET_NULL, null=True, related_name="sessions")
+
+    # TODO remove
+    contact = models.ForeignKey("contacts.Contact", on_delete=models.SET_NULL, null=True)
 
     @property
     def output_json(self):
@@ -1014,7 +1017,7 @@ class FlowSession(models.Model):
             return self.output
 
     def __repr__(self):  # pragma: no cover
-        return f"<FlowSession: id={self.id} contact={self.contact.id}>"
+        return f"<FlowSession: uuid={self.uuid} contact={self.contact_uuid}>"
 
     class Meta:
         indexes = [
