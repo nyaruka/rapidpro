@@ -1,3 +1,7 @@
+v10.3.16 (2025-08-07)
+-------------------------
+ * Always fetch engine events for contact history from DynamoDB
+
 v10.3.15 (2025-08-06)
 -------------------------
  * Add dynamo flag to contact history retrieval
