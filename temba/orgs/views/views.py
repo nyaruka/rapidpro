@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from datetime import timedelta
+from json import JSONDecodeError
 
 from allauth.account.models import EmailAddress
 from allauth.mfa.models import Authenticator
@@ -727,9 +728,36 @@ class OrgCRUDL(SmartCRUDL):
             org = self.get_object()
             user = self.request.user
 
-            flow_ids = [elt for elt in self.request.POST.getlist("flows") if elt]
-            campaign_ids = [elt for elt in self.request.POST.getlist("campaigns") if elt]
+            try:
+                json_body = json.loads(request.body.decode("utf-8"))
+            except JSONDecodeError:
+                return JsonResponse({"error": _("Invalid JSON format.")}, status=400)
 
+            # Validate the structure and content of the JSON
+            if not isinstance(json_body, dict):
+                return JsonResponse({"error": _("JSON body must be an object.")}, status=400)
+
+            flows = json_body.get("flows", [])
+            campaigns = json_body.get("campaigns", [])
+
+            if not isinstance(flows, list):
+                return JsonResponse({"error": _("'flows' must be a list.")}, status=400)
+
+            try:
+                flows = [int(elt) for elt in flows]
+            except (ValueError, TypeError):
+                return JsonResponse({"error": _("'flows' must be a list of integers.")}, status=400)
+
+            if not isinstance(campaigns, list):
+                return JsonResponse({"error": _("'campaigns' must be a list.")}, status=400)
+
+            try:
+                campaigns = [int(elt) for elt in campaigns]
+            except (ValueError, TypeError):
+                return JsonResponse({"error": _("'campaigns' must contain only integers.")}, status=400)
+
+            flow_ids = [elt for elt in flows if elt]
+            campaign_ids = [elt for elt in campaigns if elt]
             # fetch the selected flows and campaigns
             flows = Flow.objects.filter(id__in=flow_ids, org=org, is_active=True)
             campaigns = Campaign.objects.filter(id__in=campaign_ids, org=org, is_active=True)

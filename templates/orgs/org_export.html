@@ -99,10 +99,7 @@
       </div>
       <div class="flex mt-4 justify-end">
         <div class="button-light select-all mr-4">{% trans "Select All" %}</div>
-        <input type="submit"
-               style="height: 100%"
-               value="{{ _("Export") |escapejs }}"
-               class="button-primary submit">
+        <div class="button-primary form-submit">{% trans "Export" %}</div>
       </div>
     </form>
   </div>
@@ -111,6 +108,29 @@
   {{ block.super }}
   <script type="text/javascript">
     onSpload(function() {
+      function exportSubmit(event) {
+        event.preventDefault();
+        var form = document.querySelector('form')
+        var formData = new FormData(form);
+
+        var jsonData = {
+          "flows": formData.getAll('flows'),
+          "campaigns": formData.getAll('campaigns')
+        };
+
+        fetchAjax(form.action, {
+          "body": JSON.stringify(jsonData),
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          showErrors: true
+        });
+
+      }
+      document.querySelector('.form-submit').addEventListener('click', exportSubmit);
+
+
       function selectExportables(bucket, type = "", checked = true) {
         var selector = 'temba-checkbox[data-bucket]';
         if (bucket) {
