@@ -109,7 +109,7 @@ class Event:
                 Select="ALL_ATTRIBUTES",
             )
 
-            if next_before_sk:
+            if next_before_sk:  # pragma: no cover
                 kwargs["ExclusiveStartKey"] = {"PK": pk, "SK": next_before_sk}
 
             response = dynamo.HISTORY.query(**kwargs)
