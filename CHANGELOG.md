@@ -1,3 +1,7 @@
+v10.3.18 (2025-08-08)
+-------------------------
+ * Fix parsing of events which don't have Data field in DynamoDB item
+
 v10.3.17 (2025-08-07)
 -------------------------
  * Add FlowSession.contact_uuid to replace FlowSession.contact foreign key
