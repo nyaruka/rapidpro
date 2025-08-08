@@ -26,6 +26,7 @@ class EventTest(TembaTest):
                 "OrgID": self.org.id,
                 "TTL": 1747571456,
                 "Data": {
+                    "_user_id": self.admin.id,
                     "type": "contact_field_changed",
                     "created_on": "2025-05-04T12:30:56.123456789Z",
                     "field": {"key": "age", "name": "Age"},
@@ -40,6 +41,7 @@ class EventTest(TembaTest):
                 "created_on": "2025-05-04T12:30:56.123456789Z",
                 "field": {"key": "age", "name": "Age"},
                 "value": {"text": "44"},
+                "_user_id": self.admin.id,
             },
             event,
         )
@@ -51,7 +53,6 @@ class EventTest(TembaTest):
                 "SK": "evt#01969b47-672b-76f8-bebe-b4a1f677cf4c",
                 "OrgID": self.org.id,
                 "TTL": 1747571471,
-                "Data": {"_user_id": self.admin.id},
                 "DataGZ": Binary(
                     base64.b64decode(
                         "H4sIAAAAAAAA/6RVTW/cNhD9KwKvFVt+U9KpToC0RdGLm0PiNBCG5HBDRCu5EmXHCfa/F9TKGzdNiwAFdJBI4s17bx5Hn8i6pkA6wnhrWqcsNVY4ak1sqEOH1Cng0Vjro/KkJvnhFklHFlyWNI19ntPhgDMGUhM/I2QM/TSSjggmNGWaMvWSi07yjvPvuZBKG9u0N6QmS8bbfq/tpXLG20AjMEOVNpK2AiQNRjXgjHLeO1KTOEz3pLswdtZHFhpJI/ctVZx72poYqNecg/IRGlNojXAsjK/xkJY8Q07TWL0oSKea+GnM4PNCujcX2EawqFshqZSmwHpDnfSBQtTWeuaCcs1n2GeTI6e3NcEPfliLJQvpPp1qMq9jv6zHI8wPhfJeaHv9u02MUcYp4y8Z67anmBMTDqEgEfA53W2k+zy9x7GsZfyQSUdevXpFX79+TW9uboqWmOYl92dalzPPcCx7M9z3ochPZw777i/VkO6wSmN1gAXcVI4uGfKGsL+Q63sYA1R/rIxJrH5NBxhS9Tzlh5KGM86/HzmdanKYp/X2bPFu2u/rfIcP1dUaEo4eSf3ovQAIgkdDJXOWKuE1dcFGyp0VzHOtGm7Jqb4APSlV/YZHh/PyGSzYGFVjBW2FbKjSItI2yIaKqHUTEZoW2da7cnrPZk0GGA8rHAo6jgdSFpbcL4jjpWNm65h4yXXHVMf0zZM44Fj9DOVKbP4UD9eFdOc2FqE5HfHjNJazV0eck4cfflrhAf5c01CozyVAb0jGofuOC2a01lxwUTIBHt00ve84F0JKpbQ2xtqmhPEIachT53D88Qj+/YDHad6q3aeccS4b/btHWm8vDjlojYs2UucFUNVYScF6S4VWgbfCeoVyi9Z+8XaRV8NQXfm8hf2C1XhQyrOW2pYHqrQE2tq2pWBZCFIyKZnZoojLOuQt2yKCz9O8XQrIeJjKXSFlkuxf/TB5GNJHDPv6f04YYfcJU/qBH/IMpBvXYahJGm/XfIbYJYgX59I1GaeAj3MoaudaZ4Fap5Eq7SVtIkNquFPYagyRSVKTOxjWAiKVkcoIpYzUQm9Gwd00p4y9n4Z/CLs+T8mvabv+hgEqxLfLe7HzqJ5vPP6XyjLcT6evZfnLPwfncv9ztJ45KhhXIXhrWauKOe/SkqfzOLyFGcfcfwnAdCPPAIA20tg4oaRXbYya1ARGjwVhIR1/8tUvafTY7yaw0+mvAAAA//+R/as+0wYAAA=="
@@ -61,7 +62,6 @@ class EventTest(TembaTest):
         )
         self.assertEqual("01969b47-672b-76f8-bebe-b4a1f677cf4c", event["uuid"])
         self.assertEqual("session_triggered", event["type"])
-        self.assertEqual(self.admin.id, event["_user_id"])
 
     def test_get_by_contact(self):
         contact = self.create_contact("Jim", phone="+593979111111")

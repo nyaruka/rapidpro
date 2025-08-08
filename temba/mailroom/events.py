@@ -72,7 +72,7 @@ class Event:
     def _from_item(cls, contact, item: dict) -> dict:
         assert item["OrgID"] == contact.org_id, "org ID mismatch for contact event"
 
-        data = item["Data"]
+        data = item.get("Data", {})
         if dataGZ := item.get("DataGZ"):
             data |= dynamo.load_jsongz(dataGZ)
 
