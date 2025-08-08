@@ -57,6 +57,18 @@ class Event:
         TicketEvent.TYPE_REOPENED: TYPE_TICKET_REOPENED,
     }
 
+    # as we migrate event types over to DynamoDB:
+    #  1. we start mailroom writing that type to DynamoDB
+    #  2. we backfill existing events of that type from Postgres to DynamoDB
+    #  3. we switch to reading that type from DynamoDB by adding it here
+    dynamo_types = {
+        TYPE_CONTACT_FIELD_CHANGED,
+        TYPE_CONTACT_GROUPS_CHANGED,
+        TYPE_CONTACT_LANGUAGE_CHANGED,
+        TYPE_CONTACT_NAME_CHANGED,
+        TYPE_CONTACT_URNS_CHANGED,
+    }
+
     @staticmethod
     def _get_key(contact, uuid: str) -> tuple[str, str]:
         return f"con#{contact.uuid}", f"evt#{uuid}"
@@ -78,7 +90,7 @@ class Event:
         Eventually contact history will be paged by event UUIDs but for now we are given microsecond accuracy
         datetimes and have to infer approximate UUIDs and then filter the results to the given range.
         """
-        if after >= before:  # otherwise DynamoDb blows up
+        if after >= before:  # otherwise DynamoDB blows up
             return []
 
         after_uuid = cls._time_to_uuid(after)
@@ -112,7 +124,7 @@ class Event:
                 event = cls._from_item(contact, item)
                 event_time = iso8601.parse_date(event["created_on"])
 
-                if event_time >= after and event_time < before:
+                if event_time >= after and event_time < before and event["type"] in cls.dynamo_types:
                     events.append(event)
 
                     if len(events) == limit:

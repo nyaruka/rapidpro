@@ -97,18 +97,28 @@ class EventTest(TembaTest):
             contact,
             {
                 "uuid": "019880eb-e4f1-761b-bc99-750003cf8004",  # 4
-                "type": "contact_status_changed",
+                "type": "contact_name_changed",
                 "created_on": "2025-08-06T19:46:39.985439836Z",
-                "status": "blocked",
+                "name": "Bob",
             },
         )
         self.write_history_event(
             contact,
             {
                 "uuid": "019880eb-e555-7ce9-9ea3-95bf693ee005",  # 5
-                "type": "contact_status_changed",
+                "type": "contact_name_changed",
                 "created_on": "2025-08-06T19:46:40.085871336Z",
-                "status": "active",
+                "name": "Robert",
+            },
+        )
+
+        self.write_history_event(
+            contact,
+            {
+                "uuid": "01988abd-1dad-7309-b8b4-adb8380ef531",  # 6
+                "type": "contact_status_changed",  # not a supported type for now
+                "created_on": "2025-08-06T19:47:40.085871336Z",
+                "status": "blocked",
             },
         )
 
