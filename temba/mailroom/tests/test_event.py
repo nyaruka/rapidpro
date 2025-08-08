@@ -159,11 +159,10 @@ class EventTest(TembaTest):
 
         self.assertEqual(
             {
+                "uuid": str(msg_in.uuid),
                 "type": "msg_received",
                 "created_on": matchers.ISODatetime(),
                 "msg": {
-                    "uuid": str(msg_in.uuid),
-                    "id": msg_in.id,
                     "urn": "tel:+250979111111",
                     "text": "Hello",
                     "attachments": ["image:http://a.jpg"],
@@ -182,11 +181,10 @@ class EventTest(TembaTest):
 
         self.assertEqual(
             {
+                "uuid": str(msg_in.uuid),
                 "type": "msg_received",
                 "created_on": matchers.ISODatetime(),
                 "msg": {
-                    "uuid": str(msg_in.uuid),
-                    "id": msg_in.id,
                     "urn": "tel:+250979111111",
                     "text": "",
                     "attachments": [],
@@ -205,11 +203,10 @@ class EventTest(TembaTest):
 
         self.assertEqual(
             {
+                "uuid": str(msg_in.uuid),
                 "type": "msg_received",
                 "created_on": matchers.ISODatetime(),
                 "msg": {
-                    "uuid": str(msg_in.uuid),
-                    "id": msg_in.id,
                     "urn": "tel:+250979111111",
                     "text": "",
                     "attachments": [],
@@ -229,11 +226,10 @@ class EventTest(TembaTest):
 
         self.assertEqual(
             {
+                "uuid": str(msg_out.uuid),
                 "type": "msg_created",
                 "created_on": matchers.ISODatetime(),
                 "msg": {
-                    "uuid": str(msg_out.uuid),
-                    "id": msg_out.id,
                     "urn": "tel:+250979111111",
                     "text": "Hello",
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
@@ -256,11 +252,10 @@ class EventTest(TembaTest):
 
         self.assertEqual(
             {
+                "uuid": str(msg_out.uuid),
                 "type": "msg_created",
                 "created_on": matchers.ISODatetime(),
                 "msg": {
-                    "uuid": str(msg_out.uuid),
-                    "id": msg_out.id,
                     "urn": None,
                     "text": "Hello",
                     "channel": None,
@@ -279,11 +274,10 @@ class EventTest(TembaTest):
 
         self.assertEqual(
             {
+                "uuid": str(ivr_out.uuid),
                 "type": "ivr_created",
                 "created_on": matchers.ISODatetime(),
                 "msg": {
-                    "uuid": str(ivr_out.uuid),
-                    "id": ivr_out.id,
                     "urn": "tel:+250979111111",
                     "text": "Hello",
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
@@ -300,13 +294,12 @@ class EventTest(TembaTest):
 
         self.assertEqual(
             {
+                "uuid": str(msg_out2.uuid),
                 "type": "broadcast_created",
                 "created_on": matchers.ISODatetime(),
                 "translations": {"und": {"text": "Hi there"}},
                 "base_language": "und",
                 "msg": {
-                    "uuid": str(msg_out2.uuid),
-                    "id": msg_out2.id,
                     "urn": "tel:+250979111111",
                     "text": "Hi there",
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
@@ -334,13 +327,12 @@ class EventTest(TembaTest):
 
         self.assertEqual(
             {
+                "uuid": str(msg_out3.uuid),
                 "type": "broadcast_created",
                 "created_on": matchers.ISODatetime(),
                 "translations": {"und": {"text": "Hi there"}},
                 "base_language": "und",
                 "msg": {
-                    "uuid": str(msg_out3.uuid),
-                    "id": msg_out3.id,
                     "urn": "tel:+250979111111",
                     "text": "Hi there",
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
@@ -363,6 +355,7 @@ class EventTest(TembaTest):
         msg_out4 = self.create_optin_request(contact1, self.channel, optin)
         self.assertEqual(
             {
+                "uuid": str(msg_out4.uuid),
                 "type": "optin_requested",
                 "created_on": matchers.ISODatetime(),
                 "optin": {"uuid": str(optin.uuid), "name": "Polls"},
@@ -384,6 +377,7 @@ class EventTest(TembaTest):
 
         self.assertEqual(
             {
+                "uuid": str(event1.uuid),
                 "type": "channel_event",
                 "created_on": matchers.ISODatetime(),
                 "event": {
@@ -408,6 +402,7 @@ class EventTest(TembaTest):
 
         self.assertEqual(
             {
+                "uuid": str(event2.uuid),
                 "type": "channel_event",
                 "created_on": matchers.ISODatetime(),
                 "event": {

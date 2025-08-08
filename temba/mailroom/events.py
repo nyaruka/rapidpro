@@ -31,27 +31,20 @@ class Event:
     TYPE_CONTACT_LANGUAGE_CHANGED = "contact_language_changed"
     TYPE_CONTACT_NAME_CHANGED = "contact_name_changed"
     TYPE_CONTACT_URNS_CHANGED = "contact_urns_changed"
-    TYPE_EMAIL_SENT = "email_sent"
-    TYPE_ERROR = "error"
-    TYPE_FAILURE = "failure"
     TYPE_FLOW_ENTERED = "flow_entered"
-    TYPE_INPUT_LABELS_ADDED = "input_labels_added"
     TYPE_IVR_CREATED = "ivr_created"
     TYPE_MSG_CREATED = "msg_created"
     TYPE_MSG_RECEIVED = "msg_received"
     TYPE_OPTIN_REQUESTED = "optin_requested"
-    TYPE_RUN_RESULT_CHANGED = "run_result_changed"
     TYPE_TICKET_ASSIGNED = "ticket_assigned"
     TYPE_TICKET_CLOSED = "ticket_closed"
     TYPE_TICKET_NOTE_ADDED = "ticket_note_added"
     TYPE_TICKET_TOPIC_CHANGED = "ticket_topic_changed"
     TYPE_TICKET_OPENED = "ticket_opened"
     TYPE_TICKET_REOPENED = "ticket_reopened"
-    TYPE_WEBHOOK_CALLED = "webhook_called"
 
     # additional events
     TYPE_CALL_STARTED = "call_started"
-    TYPE_CAMPAIGN_FIRED = "campaign_fired"
     TYPE_CHANNEL_EVENT = "channel_event"
     TYPE_FLOW_EXITED = "flow_exited"
 
@@ -168,6 +161,7 @@ class Event:
 
         if obj.direction == Msg.DIRECTION_IN:
             return {
+                "uuid": str(obj.uuid),
                 "type": cls.TYPE_MSG_RECEIVED,
                 "created_on": get_event_time(obj).isoformat(),
                 "msg": _msg_in(obj),
@@ -178,6 +172,7 @@ class Event:
             }
         elif obj.broadcast and obj.broadcast.get_message_count() > 1:
             return {
+                "uuid": str(obj.uuid),
                 "type": cls.TYPE_BROADCAST_CREATED,
                 "created_on": get_event_time(obj).isoformat(),
                 "translations": obj.broadcast.translations,
@@ -195,12 +190,14 @@ class Event:
 
             if obj.msg_type == Msg.TYPE_VOICE:
                 msg_event = {
+                    "uuid": str(obj.uuid),
                     "type": cls.TYPE_IVR_CREATED,
                     "created_on": get_event_time(obj).isoformat(),
                     "msg": _msg_out(obj),
                 }
             elif obj.msg_type == Msg.TYPE_OPTIN and obj.optin:
                 msg_event = {
+                    "uuid": str(obj.uuid),
                     "type": cls.TYPE_OPTIN_REQUESTED,
                     "created_on": get_event_time(obj).isoformat(),
                     "optin": _optin(obj.optin),
@@ -209,6 +206,7 @@ class Event:
                 }
             else:
                 msg_event = {
+                    "uuid": str(obj.uuid),
                     "type": cls.TYPE_MSG_CREATED,
                     "created_on": get_event_time(obj).isoformat(),
                     "msg": _msg_out(obj),
@@ -273,9 +271,8 @@ class Event:
 
     @classmethod
     def from_airtime_transfer(cls, org: Org, user: User, obj: AirtimeTransfer) -> dict:
-        logs_url = _url_for_user(org, user, "airtime.airtimetransfer_read", args=[obj.id])
-
         return {
+            "uuid": str(obj.uuid),
             "type": cls.TYPE_AIRTIME_TRANSFERRED,
             "created_on": get_event_time(obj).isoformat(),
             "sender": obj.sender,
@@ -283,8 +280,6 @@ class Event:
             "currency": obj.currency,
             "desired_amount": obj.desired_amount,
             "actual_amount": obj.actual_amount,
-            # additional properties
-            "logs_url": logs_url,
         }
 
     @classmethod
@@ -317,6 +312,7 @@ class Event:
             ch_event["optin"] = _optin(obj.optin) if obj.optin else None
 
         return {
+            "uuid": str(obj.uuid),
             "type": cls.TYPE_CHANNEL_EVENT,
             "created_on": get_event_time(obj).isoformat(),
             "event": ch_event,
@@ -352,8 +348,6 @@ def _msg_out(obj) -> dict:
 def _base_msg(obj) -> dict:
     redact = obj.visibility in (Msg.VISIBILITY_DELETED_BY_USER, Msg.VISIBILITY_DELETED_BY_SENDER)
     d = {
-        "uuid": str(obj.uuid),
-        "id": obj.id,
         "urn": str(obj.contact_urn) if obj.contact_urn else None,
         "channel": _channel(obj.channel) if obj.channel else None,
         "text": obj.text if not redact else "",
