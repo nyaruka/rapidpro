@@ -31,27 +31,20 @@ class Event:
     TYPE_CONTACT_LANGUAGE_CHANGED = "contact_language_changed"
     TYPE_CONTACT_NAME_CHANGED = "contact_name_changed"
     TYPE_CONTACT_URNS_CHANGED = "contact_urns_changed"
-    TYPE_EMAIL_SENT = "email_sent"
-    TYPE_ERROR = "error"
-    TYPE_FAILURE = "failure"
     TYPE_FLOW_ENTERED = "flow_entered"
-    TYPE_INPUT_LABELS_ADDED = "input_labels_added"
     TYPE_IVR_CREATED = "ivr_created"
     TYPE_MSG_CREATED = "msg_created"
     TYPE_MSG_RECEIVED = "msg_received"
     TYPE_OPTIN_REQUESTED = "optin_requested"
-    TYPE_RUN_RESULT_CHANGED = "run_result_changed"
     TYPE_TICKET_ASSIGNED = "ticket_assigned"
     TYPE_TICKET_CLOSED = "ticket_closed"
     TYPE_TICKET_NOTE_ADDED = "ticket_note_added"
     TYPE_TICKET_TOPIC_CHANGED = "ticket_topic_changed"
     TYPE_TICKET_OPENED = "ticket_opened"
     TYPE_TICKET_REOPENED = "ticket_reopened"
-    TYPE_WEBHOOK_CALLED = "webhook_called"
 
     # additional events
     TYPE_CALL_STARTED = "call_started"
-    TYPE_CAMPAIGN_FIRED = "campaign_fired"
     TYPE_CHANNEL_EVENT = "channel_event"
     TYPE_FLOW_EXITED = "flow_exited"
 
@@ -62,6 +55,18 @@ class Event:
         TicketEvent.TYPE_TOPIC_CHANGED: TYPE_TICKET_TOPIC_CHANGED,
         TicketEvent.TYPE_CLOSED: TYPE_TICKET_CLOSED,
         TicketEvent.TYPE_REOPENED: TYPE_TICKET_REOPENED,
+    }
+
+    # as we migrate event types over to DynamoDB:
+    #  1. we start mailroom writing that type to DynamoDB
+    #  2. we backfill existing events of that type from Postgres to DynamoDB
+    #  3. we switch to reading that type from DynamoDB by adding it here
+    dynamo_types = {
+        TYPE_CONTACT_FIELD_CHANGED,
+        TYPE_CONTACT_GROUPS_CHANGED,
+        TYPE_CONTACT_LANGUAGE_CHANGED,
+        TYPE_CONTACT_NAME_CHANGED,
+        TYPE_CONTACT_URNS_CHANGED,
     }
 
     @staticmethod
@@ -85,7 +90,7 @@ class Event:
         Eventually contact history will be paged by event UUIDs but for now we are given microsecond accuracy
         datetimes and have to infer approximate UUIDs and then filter the results to the given range.
         """
-        if after >= before:  # otherwise DynamoDb blows up
+        if after >= before:  # otherwise DynamoDB blows up
             return []
 
         after_uuid = cls._time_to_uuid(after)
@@ -119,7 +124,7 @@ class Event:
                 event = cls._from_item(contact, item)
                 event_time = iso8601.parse_date(event["created_on"])
 
-                if event_time >= after and event_time < before:
+                if event_time >= after and event_time < before and event["type"] in cls.dynamo_types:
                     events.append(event)
 
                     if len(events) == limit:
@@ -168,6 +173,7 @@ class Event:
 
         if obj.direction == Msg.DIRECTION_IN:
             return {
+                "uuid": str(obj.uuid),
                 "type": cls.TYPE_MSG_RECEIVED,
                 "created_on": get_event_time(obj).isoformat(),
                 "msg": _msg_in(obj),
@@ -178,6 +184,7 @@ class Event:
             }
         elif obj.broadcast and obj.broadcast.get_message_count() > 1:
             return {
+                "uuid": str(obj.uuid),
                 "type": cls.TYPE_BROADCAST_CREATED,
                 "created_on": get_event_time(obj).isoformat(),
                 "translations": obj.broadcast.translations,
@@ -195,12 +202,14 @@ class Event:
 
             if obj.msg_type == Msg.TYPE_VOICE:
                 msg_event = {
+                    "uuid": str(obj.uuid),
                     "type": cls.TYPE_IVR_CREATED,
                     "created_on": get_event_time(obj).isoformat(),
                     "msg": _msg_out(obj),
                 }
             elif obj.msg_type == Msg.TYPE_OPTIN and obj.optin:
                 msg_event = {
+                    "uuid": str(obj.uuid),
                     "type": cls.TYPE_OPTIN_REQUESTED,
                     "created_on": get_event_time(obj).isoformat(),
                     "optin": _optin(obj.optin),
@@ -209,6 +218,7 @@ class Event:
                 }
             else:
                 msg_event = {
+                    "uuid": str(obj.uuid),
                     "type": cls.TYPE_MSG_CREATED,
                     "created_on": get_event_time(obj).isoformat(),
                     "msg": _msg_out(obj),
@@ -273,9 +283,8 @@ class Event:
 
     @classmethod
     def from_airtime_transfer(cls, org: Org, user: User, obj: AirtimeTransfer) -> dict:
-        logs_url = _url_for_user(org, user, "airtime.airtimetransfer_read", args=[obj.id])
-
         return {
+            "uuid": str(obj.uuid),
             "type": cls.TYPE_AIRTIME_TRANSFERRED,
             "created_on": get_event_time(obj).isoformat(),
             "sender": obj.sender,
@@ -283,8 +292,6 @@ class Event:
             "currency": obj.currency,
             "desired_amount": obj.desired_amount,
             "actual_amount": obj.actual_amount,
-            # additional properties
-            "logs_url": logs_url,
         }
 
     @classmethod
@@ -317,6 +324,7 @@ class Event:
             ch_event["optin"] = _optin(obj.optin) if obj.optin else None
 
         return {
+            "uuid": str(obj.uuid),
             "type": cls.TYPE_CHANNEL_EVENT,
             "created_on": get_event_time(obj).isoformat(),
             "event": ch_event,
@@ -352,8 +360,6 @@ def _msg_out(obj) -> dict:
 def _base_msg(obj) -> dict:
     redact = obj.visibility in (Msg.VISIBILITY_DELETED_BY_USER, Msg.VISIBILITY_DELETED_BY_SENDER)
     d = {
-        "uuid": str(obj.uuid),
-        "id": obj.id,
         "urn": str(obj.contact_urn) if obj.contact_urn else None,
         "channel": _channel(obj.channel) if obj.channel else None,
         "text": obj.text if not redact else "",
