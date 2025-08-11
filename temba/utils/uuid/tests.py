@@ -22,11 +22,13 @@ class UUIDTest(TembaTest):
         )
 
     def test_uuid7(self):
-        u1 = uuid7()
-        u2 = uuid7()
-        self.assertTrue(is_uuid7(u1))
-        self.assertTrue(is_uuid7(u2))
-        self.assertNotEqual(u1, u2)
+        last = None
+        for _ in range(100):
+            u = uuid7()
+            self.assertTrue(is_uuid7(u))
+            if last:
+                self.assertGreater(u, last)
+            last = u
 
         u3 = uuid7(when=datetime(2025, 8, 11, 20, 36, 41, 114764, tzinfo=tzone.utc))
         u4 = uuid7(when=datetime(2025, 8, 11, 20, 36, 41, 116000, tzinfo=tzone.utc))
