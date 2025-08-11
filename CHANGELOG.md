@@ -1,3 +1,9 @@
+v10.3.19 (2025-08-11)
+-------------------------
+ * Update temba components
+ * Filter fetched DynamoDB events by type
+ * Remove some unused fields on contact chat events
+
 v10.3.18 (2025-08-08)
 -------------------------
  * Fix parsing of events which don't have Data field in DynamoDB item
