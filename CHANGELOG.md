@@ -1,3 +1,8 @@
+v10.3.20 (2025-08-11)
+-------------------------
+ * Revert temba components update
+ * Add migration to backfill FlowSession.contact_uuid
+
 v10.3.19 (2025-08-11)
 -------------------------
  * Update temba components
