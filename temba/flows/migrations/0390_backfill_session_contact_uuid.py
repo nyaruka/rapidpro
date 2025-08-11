@@ -28,6 +28,12 @@ def backfill_session_contact_uuid(apps, schema_editor):
         print(f"Backfilled contact_uuid on {num_updated} sessions")
 
 
+def apply_manual():  # pragma: no cover
+    from django.apps import apps
+
+    backfill_session_contact_uuid(apps, None)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
