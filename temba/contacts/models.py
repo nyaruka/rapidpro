@@ -1,5 +1,6 @@
 import itertools
 import logging
+from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone as tzone
 from decimal import Decimal
 from itertools import chain
@@ -26,7 +27,7 @@ from temba.channels.models import Channel
 from temba.locations.models import AdminBoundary
 from temba.mailroom import ContactSpec, modifiers
 from temba.orgs.models import DependencyMixin, Export, ExportType, Org, OrgRole
-from temba.utils import format_number, on_transaction_commit
+from temba.utils import dynamo, format_number, on_transaction_commit
 from temba.utils.export import MultiSheetExporter
 from temba.utils.models import JSONField, LegacyUUIDMixin, TembaModel, delete_in_batches
 from temba.utils.models.counts import BaseSquashableCount
@@ -1039,7 +1040,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         Contact.bulk_change_status(user, [self], modifiers.Status.ACTIVE)
         self.refresh_from_db()
 
-    def release(self, user, *, immediately=False, deindex=True):
+    def release(self, user, *, immediately=False, deindex=True) -> dict:
         """
         Releases this contact. Note that we clear all identifying data but don't hard delete the contact because we need
         to expose deleted contacts over the API to allow external systems to know that contacts have been deleted.
@@ -1080,11 +1081,12 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
         # the hard work of removing everything this contact owns can be given to a celery task
         if immediately:
-            self._full_release()
+            return self._full_release()
         else:
             on_transaction_commit(lambda: full_release_contact.delay(self.id))
+            return {}
 
-    def _full_release(self):
+    def _full_release(self) -> dict:
         """
         Deletes everything owned by this contact
         """
@@ -1093,35 +1095,41 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
         assert not self.is_active, "can't fully release a contact which hasn't been released"
 
-        with transaction.atomic():
-            # release our tickets
-            for ticket in self.tickets.all():
-                ticket.delete()
+        counts = defaultdict(int)
 
-            # delete our messages in batches
-            while True:
-                msg_batch = list(self.msgs.all()[:1000])
-                if not msg_batch:
-                    break
-                Msg.bulk_delete(msg_batch)
+        # release our tickets
+        for ticket in self.tickets.all():
+            ticket.delete()
 
-            delete_in_batches(self.runs.all())
-            delete_in_batches(self.channel_events.all())
-            delete_in_batches(self.calls.all())
-            delete_in_batches(self.fires.all())
+        # delete our messages in batches
+        while True:
+            msg_batch = list(self.msgs.all()[:1000])
+            if not msg_batch:
+                break
+            Msg.bulk_delete(msg_batch)
+            counts["messages"] += len(msg_batch)
 
-            for urn in self.urns.all():
-                # delete the urn if it has no associated content.. which should be the case if it wasn't
-                # stolen from another contact
-                if not urn.msgs.all() and not urn.channel_events.all() and not urn.calls.all():
-                    urn.delete()
-                else:
-                    urn.contact = None
-                    urn.save(update_fields=("contact",))
+        counts["runs"] = delete_in_batches(self.runs.all())
+        delete_in_batches(self.channel_events.all())
+        delete_in_batches(self.calls.all())
+        delete_in_batches(self.fires.all())
 
-            # take us out of broadcast addressed contacts
-            for broadcast in self.addressed_broadcasts.all():
-                broadcast.contacts.remove(self)
+        for urn in self.urns.all():
+            # delete the urn if it has no associated content.. which should be the case if it wasn't
+            # stolen from another contact
+            if not urn.msgs.all() and not urn.channel_events.all() and not urn.calls.all():
+                urn.delete()
+            else:
+                urn.contact = None
+                urn.save(update_fields=("contact",))
+
+        # take us out of broadcast addressed contacts
+        for broadcast in self.addressed_broadcasts.all():
+            broadcast.contacts.remove(self)
+
+        counts["events"] = dynamo.delete_partition(dynamo.HISTORY, f"con#{self.uuid}")
+
+        return counts
 
     @classmethod
     def bulk_urn_cache_initialize(cls, contacts, *, using: str = "default"):

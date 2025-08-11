@@ -22,6 +22,7 @@ from temba.schedules.models import Schedule
 from temba.tests import MockJsonResponse, TembaTest, mock_mailroom
 from temba.tests.engine import MockSessionWriter
 from temba.tickets.models import Ticket
+from temba.utils import dynamo
 
 
 class ContactTest(TembaTest):
@@ -195,6 +196,32 @@ class ContactTest(TembaTest):
         self.create_ticket(contact)
         self.create_ticket(contact, closed_on=timezone.now())
 
+        # create some chat events and one for another contact
+        dynamo.HISTORY.put_item(
+            Item={
+                "PK": f"con#{contact.uuid}",
+                "SK": "evt#01989b6c-ebd3-7c56-8e9d-3d94dad2eaed",
+                "OrgID": Decimal(1),
+                "Data": {"type": "test"},
+            }
+        )
+        dynamo.HISTORY.put_item(
+            Item={
+                "PK": f"con#{contact.uuid}",
+                "SK": "evt#01989b6d-c3e1-7148-94db-b0de10f402e2",
+                "OrgID": Decimal(1),
+                "Data": {"type": "test"},
+            }
+        )
+        dynamo.HISTORY.put_item(
+            Item={
+                "PK": "con#485e066b-757d-4257-ace9-226f0b131839",
+                "SK": "evt#01989b6d-e253-7e68-b56c-f95b02a2a5bd",
+                "OrgID": Decimal(1),
+                "Data": {"type": "test"},
+            }
+        )
+
         self.assertEqual(1, group.contacts.all().count())
         self.assertEqual(1, contact.calls.all().count())
         self.assertEqual(2, contact.addressed_broadcasts.all().count())
@@ -228,7 +255,8 @@ class ContactTest(TembaTest):
         self.assertEqual({contact, contact2}, set(bcast2.contacts.all()))
 
         # now lets go for a full release
-        contact.release(self.admin)
+        counts = contact.release(self.admin, immediately=True)
+        self.assertEqual({"events": 2, "messages": 7, "runs": 2}, dict(counts))
 
         contact.refresh_from_db()
         self.assertEqual(0, group.contacts.all().count())
