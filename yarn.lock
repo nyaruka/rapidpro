@@ -118,10 +118,10 @@
     tiny-lru "^11.2.5"
     zustand "^5.0.3"
 
-"@nyaruka/temba-components@0.129.3":
-  version "0.129.3"
-  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.129.3.tgz#b43021c05386ebd8291ea6189b0235f60e14778e"
-  integrity sha512-RFFRzyfx4wSIMa4vQpaD3CV2FxX9wF120sEcaGPqlPCtOBLU/Kda8Flu+w2UgpU3HqRuq/UFOu1hthQc3FptTw==
+"@nyaruka/temba-components@0.129.4":
+  version "0.129.4"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.129.4.tgz#89b777c7068fb7ed826fc4d23a1ae4e04114cd14"
+  integrity sha512-sS0kqahibLOITS6E778ZLIMe0HgdjAakLrzMcN5IjO3uUj3R2UxuMJK0EquhvMMaHxscj6fD5/7GwB9zN6smng==
   dependencies:
     "@jsplumb/browser-ui" "^6.2.10"
     "@lit/localize" "^0.12.1"
