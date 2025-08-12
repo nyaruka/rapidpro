@@ -4,7 +4,7 @@ from django.db import migrations
 from django.db.models import Prefetch
 
 
-def backfill_session_flow_uuid(apps, schema_editor):
+def backfill_session_flow_uuid(apps, schema_editor):  # pragma: no cover
     Flow = apps.get_model("flows", "Flow")
     FlowSession = apps.get_model("flows", "FlowSession")
 
