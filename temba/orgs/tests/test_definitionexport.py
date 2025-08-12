@@ -498,13 +498,28 @@ class DefinitionExportTest(TembaTest):
         confirm_appointment.expires_after_minutes = 60
         confirm_appointment.save(update_fields=("expires_after_minutes",))
 
+        invalid_cases = [
+            "}",
+            "[]",
+            '{"flows": ["foo"], "campaigns": []}',
+            '{"flows": [], "campaigns": ["foo"]}',
+            '{"flows": [], "campaigns": ""}',
+            '{"flows": "", "campaigns": []}',
+        ]
+        for data in invalid_cases:
+            response = self.client.post(reverse("orgs.org_export"), data, content_type="application/json", follow=True)
+            self.assertEqual(0, Export.objects.count())
+            self.assertEqual(400, response.status_code)
+
         # now let's export!
         post_data = dict(
             flows=[f.pk for f in Flow.objects.filter(flow_type="M", is_system=False)],
             campaigns=[c.pk for c in Campaign.objects.all()],
         )
 
-        response = self.client.post(reverse("orgs.org_export"), post_data, follow=True)
+        response = self.client.post(
+            reverse("orgs.org_export"), json.dumps(post_data), content_type="application/json", follow=True
+        )
 
         self.assertEqual(1, Export.objects.count())
 

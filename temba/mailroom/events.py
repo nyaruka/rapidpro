@@ -360,6 +360,7 @@ def _msg_out(obj) -> dict:
 def _base_msg(obj) -> dict:
     redact = obj.visibility in (Msg.VISIBILITY_DELETED_BY_USER, Msg.VISIBILITY_DELETED_BY_SENDER)
     d = {
+        "id": obj.id,
         "urn": str(obj.contact_urn) if obj.contact_urn else None,
         "channel": _channel(obj.channel) if obj.channel else None,
         "text": obj.text if not redact else "",

@@ -173,6 +173,7 @@ class EventTest(TembaTest):
                 "type": "msg_received",
                 "created_on": matchers.ISODatetime(),
                 "msg": {
+                    "id": msg_in.id,
                     "urn": "tel:+250979111111",
                     "text": "Hello",
                     "attachments": ["image:http://a.jpg"],
@@ -195,6 +196,7 @@ class EventTest(TembaTest):
                 "type": "msg_received",
                 "created_on": matchers.ISODatetime(),
                 "msg": {
+                    "id": msg_in.id,
                     "urn": "tel:+250979111111",
                     "text": "",
                     "attachments": [],
@@ -217,6 +219,7 @@ class EventTest(TembaTest):
                 "type": "msg_received",
                 "created_on": matchers.ISODatetime(),
                 "msg": {
+                    "id": msg_in.id,
                     "urn": "tel:+250979111111",
                     "text": "",
                     "attachments": [],
@@ -240,6 +243,7 @@ class EventTest(TembaTest):
                 "type": "msg_created",
                 "created_on": matchers.ISODatetime(),
                 "msg": {
+                    "id": msg_out.id,
                     "urn": "tel:+250979111111",
                     "text": "Hello",
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
@@ -266,6 +270,7 @@ class EventTest(TembaTest):
                 "type": "msg_created",
                 "created_on": matchers.ISODatetime(),
                 "msg": {
+                    "id": msg_out.id,
                     "urn": None,
                     "text": "Hello",
                     "channel": None,
@@ -288,6 +293,7 @@ class EventTest(TembaTest):
                 "type": "ivr_created",
                 "created_on": matchers.ISODatetime(),
                 "msg": {
+                    "id": ivr_out.id,
                     "urn": "tel:+250979111111",
                     "text": "Hello",
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
@@ -310,6 +316,7 @@ class EventTest(TembaTest):
                 "translations": {"und": {"text": "Hi there"}},
                 "base_language": "und",
                 "msg": {
+                    "id": msg_out2.id,
                     "urn": "tel:+250979111111",
                     "text": "Hi there",
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
@@ -343,6 +350,7 @@ class EventTest(TembaTest):
                 "translations": {"und": {"text": "Hi there"}},
                 "base_language": "und",
                 "msg": {
+                    "id": msg_out3.id,
                     "urn": "tel:+250979111111",
                     "text": "Hi there",
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},

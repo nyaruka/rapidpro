@@ -1,3 +1,13 @@
+v10.3.22 (2025-08-12)
+-------------------------
+ * Update temba components
+ * Use uuid7 function pinched from CPython source
+ * Replace older v4 UUIDs on airtime transfers with v7 UUIDs
+
+v10.3.21 (2025-08-12)
+-------------------------
+ * Temporarily put ids back on message chat events
+
 v10.3.20 (2025-08-11)
 -------------------------
  * Revert temba components update
