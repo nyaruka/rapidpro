@@ -4,7 +4,7 @@ from django.db import migrations
 from django.db.models import Prefetch
 
 
-def backfill_session_contact_uuid(apps, schema_editor):
+def backfill_session_contact_uuid(apps, schema_editor):  # pragma: no cover
     Contact = apps.get_model("contacts", "Contact")
     FlowSession = apps.get_model("flows", "FlowSession")
 
