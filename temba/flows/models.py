@@ -979,6 +979,7 @@ class FlowSession(models.Model):
     contact_uuid = models.UUIDField(null=True)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
     last_sprint_uuid = models.UUIDField(null=True)  # last sprint in this session
+    current_flow_uuid = models.UUIDField(null=True)  # the flow of the waiting run
 
     # the modality of this session
     session_type = models.CharField(max_length=1, choices=Flow.TYPE_CHOICES, default=Flow.TYPE_MESSAGE)
@@ -994,10 +995,8 @@ class FlowSession(models.Model):
     created_on = models.DateTimeField(default=timezone.now)
     ended_on = models.DateTimeField(null=True)
 
-    # the flow of the waiting run
+    # TODO drop
     current_flow = models.ForeignKey("flows.Flow", on_delete=models.SET_NULL, null=True, related_name="sessions")
-
-    # TODO remove
     contact = models.ForeignKey("contacts.Contact", on_delete=models.SET_NULL, null=True)
 
     @property
