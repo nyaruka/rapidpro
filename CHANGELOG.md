@@ -1,3 +1,7 @@
+v10.3.24 (2025-08-12)
+-------------------------
+ * Add Session.current_flow_uuid to replace Session.current_flow_id
+
 v10.3.23 (2025-08-12)
 -------------------------
  * Delete events from history table when releasing contacts
