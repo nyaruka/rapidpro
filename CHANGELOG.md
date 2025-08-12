@@ -1,3 +1,7 @@
+v10.3.25 (2025-08-12)
+-------------------------
+ * Add data migration to backfill `FlowSession.current_flow_uuid`
+
 v10.3.24 (2025-08-12)
 -------------------------
  * Add Session.current_flow_uuid to replace Session.current_flow_id
