@@ -1147,8 +1147,10 @@ class Org(SmartModel):
         # delete our contacts
         for contact in self.contacts.all():
             # release synchronously and don't deindex as that will happen for the whole org
-            contact.release(user, immediately=True, deindex=False)
+            counts_for_contact = contact.release(user, immediately=True, deindex=False)
             contact.delete()
+
+            counts.update(counts_for_contact)
             counts["contacts"] += 1
 
         # delete any remaining orphaned URNs

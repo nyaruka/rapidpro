@@ -41,6 +41,36 @@ class DynamoTest(TembaTest):
             items,
         )
 
+    def test_delete_partition(self):
+        self.assertEqual(0, dynamo.delete_partition(dynamo.HISTORY, "foo#1"))
+
+        with dynamo.HISTORY.batch_writer() as batch:
+            for x in range(100):
+                batch.put_item(Item={"PK": "foo#1", "SK": f"bar#{x:03}", "OrgID": Decimal(1), "Data": {}})
+                batch.put_item(Item={"PK": "foo#2", "SK": f"bar#{x:03}", "OrgID": Decimal(1), "Data": {}})
+                batch.put_item(Item={"PK": "foo#3", "SK": f"bar#{x:03}", "OrgID": Decimal(1), "Data": {}})
+
+        self.assertEqual(100, dynamo.delete_partition(dynamo.HISTORY, "foo#2"))
+
+        items = dynamo.batch_get(dynamo.HISTORY, [("foo#1", "bar#050"), ("foo#2", "bar#050"), ("foo#3", "bar#050")])
+        self.assertEqual(
+            [
+                {"PK": "foo#1", "SK": "bar#050", "OrgID": Decimal(1), "Data": {}},
+                {"PK": "foo#3", "SK": "bar#050", "OrgID": Decimal(1), "Data": {}},
+            ],
+            items,
+        )
+
+        self.assertEqual(100, dynamo.delete_partition(dynamo.HISTORY, "foo#3"))
+
+        items = dynamo.batch_get(dynamo.HISTORY, [("foo#1", "bar#050"), ("foo#2", "bar#050"), ("foo#3", "bar#050")])
+        self.assertEqual(
+            [
+                {"PK": "foo#1", "SK": "bar#050", "OrgID": Decimal(1), "Data": {}},
+            ],
+            items,
+        )
+
     def test_merged_page_query(self):
         # insert 10 items across 3 partition keys
         items = [
