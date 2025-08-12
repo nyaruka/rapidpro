@@ -44,29 +44,29 @@ class DynamoTest(TembaTest):
     def test_delete_partition(self):
         self.assertEqual(0, dynamo.delete_partition(dynamo.HISTORY, "foo#1"))
 
-        dynamo.HISTORY.put_item(Item={"PK": "foo#3", "SK": "bar#100", "OrgID": Decimal(1), "Data": {}})
-        dynamo.HISTORY.put_item(Item={"PK": "foo#2", "SK": "bar#101", "OrgID": Decimal(1), "Data": {}})
-        dynamo.HISTORY.put_item(Item={"PK": "foo#1", "SK": "bar#102", "OrgID": Decimal(1), "Data": {}})
-        dynamo.HISTORY.put_item(Item={"PK": "foo#2", "SK": "bar#103", "OrgID": Decimal(1), "Data": {}})
-        dynamo.HISTORY.put_item(Item={"PK": "foo#2", "SK": "bar#104", "OrgID": Decimal(1), "Data": {}})
+        with dynamo.HISTORY.batch_writer() as batch:
+            for x in range(100):
+                batch.put_item(Item={"PK": "foo#1", "SK": f"bar#{x:03}", "OrgID": Decimal(1), "Data": {}})
+                batch.put_item(Item={"PK": "foo#2", "SK": f"bar#{x:03}", "OrgID": Decimal(1), "Data": {}})
+                batch.put_item(Item={"PK": "foo#3", "SK": f"bar#{x:03}", "OrgID": Decimal(1), "Data": {}})
 
-        self.assertEqual(3, dynamo.delete_partition(dynamo.HISTORY, "foo#2"))
+        self.assertEqual(100, dynamo.delete_partition(dynamo.HISTORY, "foo#2"))
 
-        items = dynamo.batch_get(dynamo.HISTORY, [("foo#3", "bar#100"), ("foo#1", "bar#102")])
+        items = dynamo.batch_get(dynamo.HISTORY, [("foo#1", "bar#050"), ("foo#2", "bar#050"), ("foo#3", "bar#050")])
         self.assertEqual(
             [
-                {"PK": "foo#3", "SK": "bar#100", "OrgID": Decimal(1), "Data": {}},
-                {"PK": "foo#1", "SK": "bar#102", "OrgID": Decimal(1), "Data": {}},
+                {"PK": "foo#1", "SK": "bar#050", "OrgID": Decimal(1), "Data": {}},
+                {"PK": "foo#3", "SK": "bar#050", "OrgID": Decimal(1), "Data": {}},
             ],
             items,
         )
 
-        self.assertEqual(1, dynamo.delete_partition(dynamo.HISTORY, "foo#3"))
+        self.assertEqual(100, dynamo.delete_partition(dynamo.HISTORY, "foo#3"))
 
-        items = dynamo.batch_get(dynamo.HISTORY, [("foo#1", "bar#102")])
+        items = dynamo.batch_get(dynamo.HISTORY, [("foo#1", "bar#050"), ("foo#2", "bar#050"), ("foo#3", "bar#050")])
         self.assertEqual(
             [
-                {"PK": "foo#1", "SK": "bar#102", "OrgID": Decimal(1), "Data": {}},
+                {"PK": "foo#1", "SK": "bar#050", "OrgID": Decimal(1), "Data": {}},
             ],
             items,
         )
