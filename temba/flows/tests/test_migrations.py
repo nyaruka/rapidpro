@@ -47,4 +47,4 @@ class BackfillSessionContactUUIDTest(MigrationTest):
 
         self.assertEqual(self.flow1.uuid, str(self.session1.current_flow_uuid))
         self.assertEqual(self.flow2.uuid, str(self.session2.current_flow_uuid))
-        self.assertIsNone(self.session3.contact_uuid)
+        self.assertIsNone(self.session3.current_flow_uuid)
