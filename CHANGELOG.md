@@ -1,3 +1,8 @@
+v10.3.23 (2025-08-12)
+-------------------------
+ * Delete events from history table when releasing contacts
+ * Use JSON data to submit flows export form
+
 v10.3.22 (2025-08-12)
 -------------------------
  * Update temba components
