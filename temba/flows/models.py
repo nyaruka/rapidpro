@@ -993,11 +993,6 @@ class FlowSession(models.Model):
     created_on = models.DateTimeField(default=timezone.now)
     ended_on = models.DateTimeField(null=True)
 
-    # TODO drop
-    current_flow = models.ForeignKey("flows.Flow", on_delete=models.SET_NULL, null=True, related_name="sessions")
-    contact = models.ForeignKey("contacts.Contact", on_delete=models.SET_NULL, null=True)
-    call = models.OneToOneField("ivr.Call", on_delete=models.SET_NULL, null=True, related_name="session")
-
     @property
     def output_json(self):
         """

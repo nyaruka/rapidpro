@@ -30,7 +30,7 @@ from django.views.generic import FormView
 
 from temba import mailroom
 from temba.channels.models import Channel
-from temba.contacts.models import URN
+from temba.contacts.models import URN, Contact
 from temba.flows.models import Flow, FlowSession, FlowStart
 from temba.ivr.models import Call
 from temba.mailroom.client.types import Exclusions
@@ -134,12 +134,14 @@ class FlowSessionCRUDL(SmartCRUDL):
 
         def get(self, request, *args, **kwargs):
             session = self.get_object()
+            org = Contact.objects.get(uuid=session.contact_uuid).org
+
             output = session.output_json
             output["_metadata"] = dict(
                 session_id=session.id,
-                org=session.contact.org.name,
-                org_id=session.contact.org_id,
-                site=f"https://{session.contact.org.get_brand_domain()}",
+                org=org.name,
+                org_id=org.id,
+                site=f"https://{org.get_brand_domain()}",
             )
             return JsonResponse(output, json_dumps_params=dict(indent=2))
 

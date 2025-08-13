@@ -14,7 +14,7 @@ class FlowSessionCRUDLTest(TembaTest):
         output = {"uuid": "49165a56-de7c-4048-9103-6aa81be6ea94", "status": "waiting"}
         session = FlowSession.objects.create(
             uuid=output["uuid"],
-            contact=contact,
+            contact_uuid=contact.uuid,
             status=FlowSession.STATUS_WAITING,
             output=output,
             created_on=timezone.now(),

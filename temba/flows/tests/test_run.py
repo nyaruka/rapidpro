@@ -171,7 +171,7 @@ class FlowRunTest(TembaTest):
         session = FlowSession.objects.create(
             id=3_000_000_000,
             uuid=uuid4(),
-            contact=self.contact,
+            contact_uuid=self.contact.uuid,
             status=FlowSession.STATUS_WAITING,
             output_url="http://sessions.com/123.json",
             created_on=timezone.now(),

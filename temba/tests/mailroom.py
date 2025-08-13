@@ -897,7 +897,7 @@ def exit_sessions(session_uuids: list, status: str):
     FlowSession.objects.filter(uuid__in=session_uuids).update(
         status=status,
         ended_on=timezone.now(),
-        current_flow_id=None,
+        current_flow_uuid=None,
     )
 
     Contact.objects.filter(uuid__in=contact_uuids).update(
