@@ -781,12 +781,6 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
         ticket_events = ticket_events[:limit]
 
-        transfers = self.airtime_transfers.filter(created_on__gte=after, created_on__lt=before).order_by("-created_on")[
-            :limit
-        ]
-
-        engine_events = Event.get_by_contact(self, after=after, before=before, limit=limit)
-
         # chain all items together, sort by their event time, and slice
         items = chain(
             msgs,
@@ -795,8 +789,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
             ticket_events,
             channel_events,
             calls,
-            transfers,
-            engine_events,
+            Event.get_by_contact(self, after=after, before=before, limit=limit),
         )
 
         # sort and slice

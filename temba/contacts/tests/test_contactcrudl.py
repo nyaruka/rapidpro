@@ -1,5 +1,4 @@
 from datetime import timedelta, timezone as tzone
-from decimal import Decimal
 from unittest.mock import call, patch
 
 import iso8601
@@ -8,7 +7,6 @@ from django.urls import reverse
 from django.utils import timezone
 
 from temba import mailroom
-from temba.airtime.models import AirtimeTransfer
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.channels.models import ChannelEvent
 from temba.contacts.models import URN, Contact, ContactExport, ContactField, ContactFire
@@ -572,16 +570,6 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         failed.status = "F"
         failed.save(update_fields=("status",))
 
-        # create an airtime transfer
-        AirtimeTransfer.objects.create(
-            org=self.org,
-            status="S",
-            contact=joe,
-            currency="RWF",
-            desired_amount=Decimal("100"),
-            actual_amount=Decimal("100"),
-        )
-
         # two tickets for joe
         sales = Topic.create(self.org, self.admin, "Sales")
         self.create_ticket(joe, opened_on=timezone.now(), closed_on=timezone.now())
@@ -632,12 +620,12 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # fetch our contact history
         self.login(self.admin)
-        with self.assertNumQueries(21):
+        with self.assertNumQueries(20):
             response = self.client.get(history_url + "?limit=100")
 
         # history should include all messages in the last 90 days, the channel event, the call, and the flow run
         history = response.json()["events"]
-        self.assertEqual(96, len(history))
+        self.assertEqual(95, len(history))
 
         def assertHistoryEvent(events, index, expected_type, **kwargs):
             item = events[index]
@@ -654,12 +642,11 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         assertHistoryEvent(history, 4, "ticket_opened", ticket__topic__name="Sales")
         assertHistoryEvent(history, 5, "ticket_closed", ticket__topic__name="General")
         assertHistoryEvent(history, 6, "ticket_opened", ticket__topic__name="General")
-        assertHistoryEvent(history, 7, "airtime_transferred", actual_amount="100.00")
-        assertHistoryEvent(history, 8, "msg_created", msg__text="What is your favorite color?")
-        assertHistoryEvent(history, 9, "flow_entered", flow__name="Colors")
-        assertHistoryEvent(history, 10, "msg_received", msg__text="Message caption")
+        assertHistoryEvent(history, 7, "msg_created", msg__text="What is your favorite color?")
+        assertHistoryEvent(history, 8, "flow_entered", flow__name="Colors")
+        assertHistoryEvent(history, 9, "msg_received", msg__text="Message caption")
         assertHistoryEvent(
-            history, 11, "msg_created", msg__text="A beautiful broadcast", created_by__email="editor@textit.com"
+            history, 10, "msg_created", msg__text="A beautiful broadcast", created_by__email="editor@textit.com"
         )
         assertHistoryEvent(history, -1, "msg_received", msg__text="Inbound message 11")
 
@@ -670,7 +657,6 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         assertHistoryEvent(history, 1, "ticket_note_added", note="I have a bad feeling about this")
         assertHistoryEvent(history, 5, "channel_event", channel_event_type="mt_miss")
         assertHistoryEvent(history, 6, "ticket_opened", ticket__topic__name="Sales")
-        assertHistoryEvent(history, 7, "airtime_transferred", actual_amount="100.00")
 
         # fetch next page
         before = datetime_to_timestamp(timezone.now() - timedelta(days=90))
@@ -687,8 +673,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.requestView(history_url + "?limit=100", self.admin)
         history = response.json()["events"]
 
-        self.assertEqual(96, len(history))
-        assertHistoryEvent(history, 8, "msg_created", msg__text="What is your favorite color?")
+        self.assertEqual(95, len(history))
+        assertHistoryEvent(history, 7, "msg_created", msg__text="What is your favorite color?")
 
         # if a new message comes in
         self.create_incoming_msg(joe, "Newer message")
@@ -704,7 +690,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # with our recent flag on, should not see the older messages
         events = response.json()["events"]
-        self.assertEqual(13, len(events))
+        self.assertEqual(12, len(events))
         self.assertContains(response, "file.mp4")
 
         # add a new run
@@ -719,7 +705,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         response = self.requestView(history_url + "?limit=200", self.admin)
         history = response.json()["events"]
-        self.assertEqual(100, len(history))
+        self.assertEqual(99, len(history))
 
         # before date should not match our last activity, that only happens when we truncate
         resp_json = response.json()
@@ -739,9 +725,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         assertHistoryEvent(history, 8, "ticket_opened")
         assertHistoryEvent(history, 9, "ticket_closed")
         assertHistoryEvent(history, 10, "ticket_opened")
-        assertHistoryEvent(history, 11, "airtime_transferred")
-        assertHistoryEvent(history, 12, "msg_created", msg__text="What is your favorite color?")
-        assertHistoryEvent(history, 13, "flow_entered")
+        assertHistoryEvent(history, 11, "msg_created", msg__text="What is your favorite color?")
+        assertHistoryEvent(history, 12, "flow_entered")
 
         # now try the proper max history to test truncation
         response = self.requestView(history_url + "?before=%d" % datetime_to_timestamp(timezone.now()), self.admin)
