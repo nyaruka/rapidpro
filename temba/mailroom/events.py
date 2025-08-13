@@ -7,7 +7,6 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 
-from temba.airtime.models import AirtimeTransfer
 from temba.channels.models import Channel, ChannelEvent
 from temba.flows.models import FlowExit, FlowRun
 from temba.ivr.models import Call
@@ -62,6 +61,7 @@ class Event:
     #  2. we backfill existing events of that type from Postgres to DynamoDB
     #  3. we switch to reading that type from DynamoDB by adding it here
     dynamo_types = {
+        TYPE_AIRTIME_TRANSFERRED,
         TYPE_CONTACT_FIELD_CHANGED,
         TYPE_CONTACT_GROUPS_CHANGED,
         TYPE_CONTACT_LANGUAGE_CHANGED,
@@ -282,19 +282,6 @@ class Event:
         }
 
     @classmethod
-    def from_airtime_transfer(cls, org: Org, user: User, obj: AirtimeTransfer) -> dict:
-        return {
-            "uuid": str(obj.uuid),
-            "type": cls.TYPE_AIRTIME_TRANSFERRED,
-            "created_on": get_event_time(obj).isoformat(),
-            "sender": obj.sender,
-            "recipient": obj.recipient,
-            "currency": obj.currency,
-            "desired_amount": obj.desired_amount,
-            "actual_amount": obj.actual_amount,
-        }
-
-    @classmethod
     def from_ticket_event(cls, org: Org, user: User, obj: TicketEvent) -> dict:
         ticket = obj.ticket
         return {
@@ -389,7 +376,6 @@ def _optin(optin: OptIn) -> dict:
 
 # map of history item types to methods to render them as events
 event_renderers = {
-    AirtimeTransfer: Event.from_airtime_transfer,
     ChannelEvent: Event.from_channel_event,
     FlowExit: Event.from_flow_exit,
     FlowRun: Event.from_flow_run,

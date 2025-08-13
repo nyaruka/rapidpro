@@ -1,3 +1,11 @@
+v10.3.31 (2025-08-13)
+-------------------------
+ * Update temba-components
+
+v10.3.30 (2025-08-13)
+-------------------------
+ * Fetch airtime events for contact chat history from Dynamo instead of transfers table
+
 v10.3.29 (2025-08-13)
 -------------------------
  * Data migration to write airtime transfer events to DynamoDB
