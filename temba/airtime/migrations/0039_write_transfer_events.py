@@ -41,6 +41,12 @@ def write_transfer_events(apps, schema_editor):
                 print(f"Wrote {num_written} airtime transfer events to DynamoDB.")
 
 
+def apply_manual():  # pragma: no cover
+    from django.apps import apps
+
+    write_transfer_events(apps, None)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
