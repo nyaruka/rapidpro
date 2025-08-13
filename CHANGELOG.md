@@ -1,3 +1,7 @@
+v10.3.28 (2025-08-13)
+-------------------------
+ * Make Call.uuid non-null and unique
+
 v10.3.27 (2025-08-13)
 -------------------------
  * Data migration to backfill IVR call UUIDs
