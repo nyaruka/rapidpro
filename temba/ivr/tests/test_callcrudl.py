@@ -2,6 +2,7 @@ from django.urls import reverse
 
 from temba.ivr.models import Call
 from temba.tests import CRUDLTestMixin, TembaTest
+from temba.utils.uuid import uuid7
 
 
 class CallCRUDLTest(CRUDLTestMixin, TembaTest):
@@ -11,6 +12,7 @@ class CallCRUDLTest(CRUDLTestMixin, TembaTest):
         contact = self.create_contact("Bob", phone="+123456789")
 
         call1 = Call.objects.create(
+            uuid=uuid7(),
             org=self.org,
             channel=self.channel,
             direction=Call.DIRECTION_IN,
@@ -20,6 +22,7 @@ class CallCRUDLTest(CRUDLTestMixin, TembaTest):
             duration=15,
         )
         call2 = Call.objects.create(
+            uuid=uuid7(),
             org=self.org,
             channel=self.channel,
             direction=Call.DIRECTION_OUT,
@@ -29,6 +32,7 @@ class CallCRUDLTest(CRUDLTestMixin, TembaTest):
             duration=30,
         )
         Call.objects.create(
+            uuid=uuid7(),
             org=self.org2,
             channel=self.channel,
             direction=Call.DIRECTION_IN,

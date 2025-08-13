@@ -3,12 +3,14 @@ from unittest.mock import patch
 
 from temba.ivr.models import Call
 from temba.tests import TembaTest
+from temba.utils.uuid import uuid7
 
 
 class CallTest(TembaTest):
     def test_model(self):
         contact = self.create_contact("Bob", phone="+123456789")
         call = Call.objects.create(
+            uuid=uuid7(),
             org=self.org,
             channel=self.channel,
             direction=Call.DIRECTION_IN,
