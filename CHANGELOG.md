@@ -1,3 +1,7 @@
+v10.3.29 (2025-08-13)
+-------------------------
+ * Data migration to write airtime transfer events to DynamoDB
+
 v10.3.28 (2025-08-13)
 -------------------------
  * Make Call.uuid non-null and unique
