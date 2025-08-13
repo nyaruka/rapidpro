@@ -1,3 +1,7 @@
+v10.3.27 (2025-08-13)
+-------------------------
+ * Data migration to backfill IVR call UUIDs
+
 v10.3.26 (2025-08-13)
 -------------------------
  * Add Session.call_uuid to replace call_id
