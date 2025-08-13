@@ -980,12 +980,10 @@ class FlowSession(models.Model):
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
     last_sprint_uuid = models.UUIDField(null=True)  # last sprint in this session
     current_flow_uuid = models.UUIDField(null=True)  # the flow of the waiting run
+    call_uuid = models.UUIDField(null=True)  # the call used for sessions over IVR
 
     # the modality of this session
     session_type = models.CharField(max_length=1, choices=Flow.TYPE_CHOICES, default=Flow.TYPE_MESSAGE)
-
-    # the call used for flow sessions over IVR
-    call = models.OneToOneField("ivr.Call", on_delete=models.SET_NULL, null=True, related_name="session")
 
     # the engine output of this session (either stored in this field or at the URL pointed to by output_url)
     output = JSONAsTextField(null=True, default=dict)
@@ -998,6 +996,7 @@ class FlowSession(models.Model):
     # TODO drop
     current_flow = models.ForeignKey("flows.Flow", on_delete=models.SET_NULL, null=True, related_name="sessions")
     contact = models.ForeignKey("contacts.Contact", on_delete=models.SET_NULL, null=True)
+    call = models.OneToOneField("ivr.Call", on_delete=models.SET_NULL, null=True, related_name="session")
 
     @property
     def output_json(self):
