@@ -594,14 +594,15 @@ class TembaTest(SmartminTest):
             log_uuids=[l.uuid for l in logs or []],
         )
         session = FlowSession.objects.create(
-            uuid=uuid4(),
-            contact=contact,
+            uuid=uuid7(),
+            contact_uuid=contact.uuid,
             status=FlowSession.STATUS_COMPLETED,
             output_url="http://sessions.com/123.json",
-            call=call,
+            call_uuid=call.uuid,
             ended_on=timezone.now(),
         )
         FlowRun.objects.create(
+            uuid=uuid7(),
             org=self.org,
             flow=flow,
             contact=contact,
@@ -610,6 +611,7 @@ class TembaTest(SmartminTest):
             exited_on=timezone.now(),
         )
         Msg.objects.create(
+            uuid=uuid7(),
             org=self.org,
             channel=self.channel,
             direction=Msg.DIRECTION_OUT,

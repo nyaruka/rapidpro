@@ -58,7 +58,7 @@ class FlowActivityCountTest(TembaTest):
         contact = self.create_contact("Bob", phone="+1234567890")
         session = FlowSession.objects.create(
             uuid=uuid4(),
-            contact=contact,
+            contact_uuid=contact.uuid,
             status=FlowSession.STATUS_WAITING,
             output_url="http://sessions.com/123.json",
             created_on=timezone.now(),
