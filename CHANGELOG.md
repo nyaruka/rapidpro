@@ -1,3 +1,7 @@
+v10.3.32 (2025-08-14)
+-------------------------
+ * Drop remaining unused FK fields on FlowSession
+
 v10.3.31 (2025-08-13)
 -------------------------
  * Update temba-components
