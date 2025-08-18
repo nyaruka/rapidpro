@@ -348,7 +348,6 @@ PERMISSIONS = {
     "contacts.contactimport": ("preview",),
     "flows.flow": ("assets", "copy", "editor", "export", "menu", "next", "results", "start"),
     "flows.flowstart": ("interrupt", "status"),
-    "flows.flowsession": ("json",),
     "globals.global": ("unused",),
     "locations.adminboundary": ("alias", "boundaries", "geometry"),
     "msgs.broadcast": ("scheduled", "scheduled_delete"),

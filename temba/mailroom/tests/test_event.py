@@ -451,7 +451,6 @@ class EventTest(TembaTest):
                 "type": "flow_entered",
                 "created_on": matchers.ISODatetime(),
                 "flow": {"uuid": str(flow.uuid), "name": "Colors"},
-                "logs_url": None,
             },
             Event.from_flow_run(self.org, self.admin, run),
         )
@@ -462,7 +461,6 @@ class EventTest(TembaTest):
                 "type": "flow_entered",
                 "created_on": matchers.ISODatetime(),
                 "flow": {"uuid": str(flow.uuid), "name": "Colors"},
-                "logs_url": f"/flowsession/json/{run.session_uuid}/",
             },
             Event.from_flow_run(self.org, self.customer_support, run),
         )
