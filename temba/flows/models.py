@@ -30,7 +30,6 @@ from temba.msgs.models import Label, OptIn
 from temba.orgs.models import DependencyMixin, Export, ExportType, Org, User
 from temba.templates.models import Template
 from temba.tickets.models import Topic
-from temba.utils import json, s3
 from temba.utils.export.models import MultiSheetExporter
 from temba.utils.models import JSONAsTextField, LegacyUUIDMixin, TembaModel, delete_in_batches
 from temba.utils.models.counts import BaseScopedCount, BaseSquashableCount
@@ -992,22 +991,6 @@ class FlowSession(models.Model):
     # when this session was created and ended
     created_on = models.DateTimeField(default=timezone.now)
     ended_on = models.DateTimeField(null=True)
-
-    @property
-    def output_json(self):
-        """
-        Returns the output JSON for this session, loading it either from our DB field or S3 if stored there.
-        """
-        # if our output is stored on S3, fetch it from there
-        if self.output_url:
-            bucket, key = s3.split_url(self.output_url)
-
-            obj = s3.client().get_object(Bucket=bucket, Key=key)
-            return json.loads(obj["Body"].read())
-
-        # otherwise, read it from our DB field
-        else:
-            return self.output
 
     def __repr__(self):  # pragma: no cover
         return f"<FlowSession: uuid={self.uuid} contact={self.contact_uuid}>"

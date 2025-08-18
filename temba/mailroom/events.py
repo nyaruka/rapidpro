@@ -238,15 +238,10 @@ class Event:
 
     @classmethod
     def from_flow_run(cls, org: Org, user: User, obj: FlowRun) -> dict:
-        logs_url = (
-            _url_for_user(org, user, "flows.flowsession_json", args=[obj.session_uuid]) if obj.session_uuid else None
-        )
-
         return {
             "type": cls.TYPE_FLOW_ENTERED,
             "created_on": get_event_time(obj).isoformat(),
             "flow": {"uuid": str(obj.flow.uuid), "name": obj.flow.name},
-            "logs_url": logs_url,
         }
 
     @classmethod
