@@ -37,6 +37,7 @@ from temba.tickets.models import Ticket, TicketEvent
 from temba.users.models import User
 from temba.utils import dynamo, json
 from temba.utils.uuid import UUID, uuid4, uuid7
+from temba.utils.dynamo import testing as dytest
 
 from .mailroom import (
     contact_urn_lookup,
@@ -55,6 +56,9 @@ class TembaTest(SmartminTest):
 
     databases = ("default", "readonly")
     default_password = "Qwerty123"
+
+    reset_valkey = True
+    reset_dynamo = False
 
     def setUp(self):
         super().setUp()
@@ -145,8 +149,12 @@ class TembaTest(SmartminTest):
     def tearDown(self):
         super().tearDown()
 
-        r = get_valkey_connection()
-        r.flushdb()
+        if self.reset_valkey:
+            r = get_valkey_connection()
+            r.flushdb()
+        if self.reset_dynamo:
+            dytest.truncate(dynamo.HISTORY)
+            dytest.truncate(dynamo.MAIN)
 
     def login(self, user, *, choose_org=None):
         self.assertTrue(

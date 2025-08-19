@@ -20,8 +20,9 @@ from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, mock_mailroom
 from temba.tests.engine import MockSessionWriter
 from temba.tickets.models import Topic
 from temba.triggers.models import Trigger
-from temba.utils import json
+from temba.utils import dynamo, json
 from temba.utils.dates import datetime_to_timestamp
+from temba.utils.dynamo import testing as dytest
 from temba.utils.uuid import uuid7
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
@@ -804,6 +805,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             ],
             [e["type"] for e in resp_json["events"]],
         )
+
+        dytest.truncate(dynamo.HISTORY)
 
     @mock_mailroom
     def test_update(self, mr_mocks):

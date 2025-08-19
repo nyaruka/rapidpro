@@ -4,6 +4,7 @@ from decimal import Decimal
 from temba.airtime.models import AirtimeTransfer
 from temba.tests import MigrationTest
 from temba.utils import dynamo
+from temba.utils.dynamo import testing as dytest
 
 
 class UpdateTransferUUIDsTest(MigrationTest):
@@ -90,6 +91,11 @@ class WriteTransferEventsTest(MigrationTest):
             actual_amount="1000",
             created_on=datetime(2025, 8, 11, 20, 36, 41, 116000, tzinfo=tzone.utc),
         )
+
+    def tearDown(self):
+        dytest.truncate(dynamo.HISTORY)
+
+        return super().tearDown()
 
     def test_migration(self):
         items = dynamo.batch_get(
