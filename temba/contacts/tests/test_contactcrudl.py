@@ -16,7 +16,7 @@ from temba.mailroom.client.types import Exclusions
 from temba.msgs.models import Msg
 from temba.orgs.models import Export, OrgRole
 from temba.schedules.models import Schedule
-from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, mock_mailroom
+from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, cleanup, mock_mailroom
 from temba.tests.engine import MockSessionWriter
 from temba.tickets.models import Topic
 from temba.triggers.models import Trigger
@@ -752,6 +752,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(reverse("contacts.contact_history", args=["837d0842-4f6b-4751-bf21-471df75ce786"]))
         self.assertEqual(response.status_code, 404)
 
+    @cleanup(dynamodb=True)
     def test_history_session_events(self):
         joe = self.create_contact(name="Joe Blow", urns=["twitter:blow80", "tel:+250781111111"])
 

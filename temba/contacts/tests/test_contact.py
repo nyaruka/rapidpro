@@ -19,7 +19,7 @@ from temba.mailroom import modifiers
 from temba.msgs.models import Msg, MsgFolder
 from temba.orgs.models import Org
 from temba.schedules.models import Schedule
-from temba.tests import MockJsonResponse, TembaTest, mock_mailroom
+from temba.tests import MockJsonResponse, TembaTest, cleanup, mock_mailroom
 from temba.tests.engine import MockSessionWriter
 from temba.tickets.models import Ticket
 from temba.utils import dynamo
@@ -113,6 +113,7 @@ class ContactTest(TembaTest):
 
         self.assertTrue(self.joe.interrupt(self.admin))
 
+    @cleanup(dynamodb=True)
     @mock_mailroom
     def test_release(self, mr_mocks):
         # create a contact with a message
