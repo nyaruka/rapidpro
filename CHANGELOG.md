@@ -1,3 +1,8 @@
+v10.3.34 (2025-08-20)
+-------------------------
+ * Update temba-components
+ * Update to latest flow editor
+
 v10.3.33 (2025-08-19)
 -------------------------
  * Update flow editor
