@@ -19,11 +19,10 @@ from temba.mailroom import modifiers
 from temba.msgs.models import Msg, MsgFolder
 from temba.orgs.models import Org
 from temba.schedules.models import Schedule
-from temba.tests import MockJsonResponse, TembaTest, mock_mailroom
+from temba.tests import MockJsonResponse, TembaTest, cleanup, mock_mailroom
 from temba.tests.engine import MockSessionWriter
 from temba.tickets.models import Ticket
 from temba.utils import dynamo
-from temba.utils.dynamo import testing as dytest
 
 
 class ContactTest(TembaTest):
@@ -114,6 +113,7 @@ class ContactTest(TembaTest):
 
         self.assertTrue(self.joe.interrupt(self.admin))
 
+    @cleanup(dynamodb=True)
     @mock_mailroom
     def test_release(self, mr_mocks):
         # create a contact with a message
@@ -285,8 +285,6 @@ class ContactTest(TembaTest):
         Flow.objects.get(id=msg_flow.id)
         Flow.objects.get(id=ivr_flow.id)
         self.assertEqual(1, Ticket.objects.count())
-
-        dytest.truncate(dynamo.HISTORY)
 
     @mock_mailroom
     def test_status_changes_and_release(self, mr_mocks):

@@ -2,9 +2,9 @@ from datetime import datetime, timezone as tzone
 from decimal import Decimal
 
 from temba.flows.models import FlowRun
-from temba.tests import MigrationTest, matchers
+from temba.tests import MigrationTest, cleanup, matchers
+from temba.tests.dynamo import dynamo_scan_all
 from temba.utils import dynamo
-from temba.utils.dynamo import testing as dytest
 
 
 class BackfillRunStartedEndedEventsTest(MigrationTest):
@@ -44,13 +44,9 @@ class BackfillRunStartedEndedEventsTest(MigrationTest):
             exited_on=datetime(2025, 8, 11, 20, 37, 0, 0, tzinfo=tzone.utc),
         )
 
-    def tearDown(self):
-        dytest.truncate(dynamo.HISTORY)
-
-        return super().tearDown()
-
+    @cleanup(dynamodb=True)
     def test_migration(self):
-        items = dytest.scan_all(dynamo.HISTORY)
+        items = dynamo_scan_all(dynamo.HISTORY)
         self.assertEqual(
             [
                 {

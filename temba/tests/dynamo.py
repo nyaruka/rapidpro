@@ -1,7 +1,7 @@
 from django.conf import settings
 
 
-def scan_all(table) -> list:
+def dynamo_scan_all(table) -> list:
     """
     Scans all items in the given DynamoDB table and returns them as a list.
     """
@@ -28,7 +28,7 @@ def scan_all(table) -> list:
     return items
 
 
-def truncate(table) -> int:
+def dynamo_truncate(table) -> int:
     """
     Deletes all items from the given DynamoDB table.
     """

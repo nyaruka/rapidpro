@@ -2,9 +2,8 @@ from datetime import datetime, timezone as tzone
 from decimal import Decimal
 
 from temba.airtime.models import AirtimeTransfer
-from temba.tests import MigrationTest
+from temba.tests import MigrationTest, cleanup
 from temba.utils import dynamo
-from temba.utils.dynamo import testing as dytest
 
 
 class UpdateTransferUUIDsTest(MigrationTest):
@@ -92,11 +91,7 @@ class WriteTransferEventsTest(MigrationTest):
             created_on=datetime(2025, 8, 11, 20, 36, 41, 116000, tzinfo=tzone.utc),
         )
 
-    def tearDown(self):
-        dytest.truncate(dynamo.HISTORY)
-
-        return super().tearDown()
-
+    @cleanup(dynamodb=True)
     def test_migration(self):
         items = dynamo.batch_get(
             dynamo.HISTORY,
