@@ -38,6 +38,7 @@ from temba.users.models import User
 from temba.utils import dynamo, json
 from temba.utils.uuid import UUID, uuid4, uuid7
 
+from .dynamo import dynamo_truncate
 from .mailroom import (
     contact_urn_lookup,
     create_broadcast,
@@ -141,12 +142,6 @@ class TembaTest(SmartminTest):
 
         self.org.country = self.country
         self.org.save(update_fields=("country",))
-
-    def tearDown(self):
-        super().tearDown()
-
-        r = get_valkey_connection()
-        r.flushdb()
 
     def login(self, user, *, choose_org=None):
         self.assertTrue(
@@ -1041,11 +1036,37 @@ def mock_uuids(method=None, *, seed=1234):
     def actual_decorator(f):
         @wraps(f)
         def wrapper(instance, *args, **kwargs):
-            _wrap_test_method(f, instance, *args, **kwargs)
+            return _wrap_test_method(f, instance, *args, **kwargs)
 
         return wrapper
 
     return actual_decorator(method) if method else actual_decorator
+
+
+def cleanup(*, valkey=False, dynamodb=False):
+    """
+    Explicit cleanup operations to perform after a test method runs.
+    """
+
+    def _wrap_test_method(f, instance, *args, **kwargs):
+        try:
+            return f(instance, *args, **kwargs)
+        finally:
+            if valkey:
+                r = get_valkey_connection()
+                r.flushdb()
+            if dynamodb:
+                dynamo_truncate(dynamo.HISTORY)
+                dynamo_truncate(dynamo.MAIN)
+
+    def actual_decorator(f):
+        @wraps(f)
+        def wrapper(instance, *args, **kwargs):
+            return _wrap_test_method(f, instance, *args, **kwargs)
+
+        return wrapper
+
+    return actual_decorator
 
 
 def get_contact_search(*, query=None, contacts=None, groups=None):

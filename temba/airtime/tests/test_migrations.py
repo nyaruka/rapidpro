@@ -2,7 +2,7 @@ from datetime import datetime, timezone as tzone
 from decimal import Decimal
 
 from temba.airtime.models import AirtimeTransfer
-from temba.tests import MigrationTest
+from temba.tests import MigrationTest, cleanup
 from temba.utils import dynamo
 
 
@@ -38,6 +38,7 @@ class UpdateTransferUUIDsTest(MigrationTest):
             created_on=datetime(2025, 8, 11, 20, 36, 41, 116000, tzinfo=tzone.utc),
         )
 
+    @cleanup(dynamodb=True)
     def test_migration(self):
         self.transfer1.refresh_from_db()
         self.transfer2.refresh_from_db()
