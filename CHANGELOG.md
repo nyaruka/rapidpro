@@ -1,3 +1,7 @@
+v10.3.37 (2025-08-21)
+-------------------------
+ * Return run_started and run_ended events from dynamo instead of faking flow_entered and flow_exited events
+
 v10.3.36 (2025-08-21)
 -------------------------
  * Exclude system and deleted flows from run event migration too
