@@ -16,8 +16,9 @@ class BackfillRunStartedEndedEventsTest(MigrationTest):
         self.flow = self.create_flow("Test Flow")
         contact = self.create_contact("Ann", uuid="40248365-230d-4a29-8dbc-c89e43dd3adf")
         deleted_contact = self.create_contact("Deleted", uuid="1d48402f-df4c-44d8-b648-e0180f6a0dd2", is_active=False)
+        sys_flow = self.create_flow("Single Message", is_system=True)
 
-        self.run1 = FlowRun.objects.create(  # completed
+        FlowRun.objects.create(  # completed
             uuid="0198c7da-d9fb-7844-a353-a1676d9e39c0",
             org=self.org,
             flow=self.flow,
@@ -26,7 +27,7 @@ class BackfillRunStartedEndedEventsTest(MigrationTest):
             created_on=datetime(2025, 8, 11, 20, 36, 0, 0, tzinfo=tzone.utc),
             exited_on=datetime(2025, 8, 11, 20, 37, 0, 0, tzinfo=tzone.utc),
         )
-        self.run2 = FlowRun.objects.create(  # active
+        FlowRun.objects.create(  # active
             uuid="0198c7db-2086-7402-b5ca-8da67f2e3a8c",
             org=self.org,
             flow=self.flow,
@@ -34,11 +35,20 @@ class BackfillRunStartedEndedEventsTest(MigrationTest):
             status=FlowRun.STATUS_ACTIVE,
             created_on=datetime(2025, 8, 11, 20, 38, 0, 0, tzinfo=tzone.utc),
         )
-        self.run3 = FlowRun.objects.create(  # for a deleted contact
+        FlowRun.objects.create(  # for a deleted contact
             uuid="0198c7db-4291-744b-be58-45081577ab41",
             org=self.org,
             flow=self.flow,
             contact=deleted_contact,
+            status=FlowRun.STATUS_COMPLETED,
+            created_on=datetime(2025, 8, 11, 20, 36, 0, 0, tzinfo=tzone.utc),
+            exited_on=datetime(2025, 8, 11, 20, 37, 0, 0, tzinfo=tzone.utc),
+        )
+        FlowRun.objects.create(  # for a system flow
+            uuid="0198cd93-4966-7af6-85c7-696c560be023",
+            org=self.org,
+            flow=sys_flow,
+            contact=contact,
             status=FlowRun.STATUS_COMPLETED,
             created_on=datetime(2025, 8, 11, 20, 36, 0, 0, tzinfo=tzone.utc),
             exited_on=datetime(2025, 8, 11, 20, 37, 0, 0, tzinfo=tzone.utc),
