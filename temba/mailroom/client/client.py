@@ -112,11 +112,9 @@ class MailroomClient:
         return {c: resp[str(c.id)] for c in contacts}
 
     def contact_interrupt(self, org, user, contacts) -> int:
-        resp = self._request(
+        self._request(
             "contact/interrupt", {"org_id": org.id, "user_id": user.id, "contact_ids": [c.id for c in contacts]}
         )
-
-        return resp["sessions"]
 
     def contact_modify(self, org, user, contacts, modifiers: list[Modifier]):
         return self._request(
