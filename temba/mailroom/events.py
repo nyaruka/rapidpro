@@ -8,7 +8,6 @@ from django.urls import reverse
 from django.utils import timezone
 
 from temba.channels.models import Channel, ChannelEvent
-from temba.flows.models import FlowExit, FlowRun
 from temba.ivr.models import Call
 from temba.msgs.models import Msg, OptIn
 from temba.orgs.models import Org
@@ -30,11 +29,12 @@ class Event:
     TYPE_CONTACT_LANGUAGE_CHANGED = "contact_language_changed"
     TYPE_CONTACT_NAME_CHANGED = "contact_name_changed"
     TYPE_CONTACT_URNS_CHANGED = "contact_urns_changed"
-    TYPE_FLOW_ENTERED = "flow_entered"
     TYPE_IVR_CREATED = "ivr_created"
     TYPE_MSG_CREATED = "msg_created"
     TYPE_MSG_RECEIVED = "msg_received"
     TYPE_OPTIN_REQUESTED = "optin_requested"
+    TYPE_RUN_STARTED = "run_started"
+    TYPE_RUN_ENDED = "run_ended"
     TYPE_TICKET_ASSIGNED = "ticket_assigned"
     TYPE_TICKET_CLOSED = "ticket_closed"
     TYPE_TICKET_NOTE_ADDED = "ticket_note_added"
@@ -45,7 +45,6 @@ class Event:
     # additional events
     TYPE_CALL_STARTED = "call_started"
     TYPE_CHANNEL_EVENT = "channel_event"
-    TYPE_FLOW_EXITED = "flow_exited"
 
     ticket_event_types = {
         TicketEvent.TYPE_OPENED: TYPE_TICKET_OPENED,
@@ -67,6 +66,8 @@ class Event:
         TYPE_CONTACT_LANGUAGE_CHANGED,
         TYPE_CONTACT_NAME_CHANGED,
         TYPE_CONTACT_URNS_CHANGED,
+        TYPE_RUN_STARTED,
+        TYPE_RUN_ENDED,
     }
 
     @staticmethod
@@ -237,24 +238,6 @@ class Event:
             return msg_event
 
     @classmethod
-    def from_flow_run(cls, org: Org, user: User, obj: FlowRun) -> dict:
-        return {
-            "type": cls.TYPE_FLOW_ENTERED,
-            "created_on": get_event_time(obj).isoformat(),
-            "flow": {"uuid": str(obj.flow.uuid), "name": obj.flow.name},
-        }
-
-    @classmethod
-    def from_flow_exit(cls, org: Org, user: User, obj: FlowExit) -> dict:
-        return {
-            "type": cls.TYPE_FLOW_EXITED,
-            "created_on": get_event_time(obj).isoformat(),
-            "flow": {"uuid": str(obj.run.flow.uuid), "name": obj.run.flow.name},
-            # additional properties
-            "status": obj.run.status,
-        }
-
-    @classmethod
     def from_ivr_call(cls, org: Org, user: User, obj: Call) -> dict:
         obj_age = timezone.now() - obj.created_on
 
@@ -372,8 +355,6 @@ def _optin(optin: OptIn) -> dict:
 # map of history item types to methods to render them as events
 event_renderers = {
     ChannelEvent: Event.from_channel_event,
-    FlowExit: Event.from_flow_exit,
-    FlowRun: Event.from_flow_run,
     Call: Event.from_ivr_call,
     Msg: Event.from_msg,
     TicketEvent: Event.from_ticket_event,
@@ -384,7 +365,6 @@ event_time = defaultdict(lambda: lambda i: i.created_on)
 event_time.update(
     {
         dict: lambda e: iso8601.parse_date(e["created_on"]),
-        FlowExit: lambda e: e.run.exited_on,
         Ticket: lambda e: e.closed_on,
     },
 )

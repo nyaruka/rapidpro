@@ -11,7 +11,6 @@ from temba.ivr.models import Call
 from temba.mailroom.events import Event
 from temba.msgs.models import Msg
 from temba.tests import TembaTest, matchers
-from temba.tests.engine import MockSessionWriter
 from temba.tickets.models import TicketEvent
 
 
@@ -432,37 +431,6 @@ class EventTest(TembaTest):
                 "duration": None,  # deprecated
             },
             Event.from_channel_event(self.org, self.admin, event2),
-        )
-
-    def test_from_flow_run(self):
-        contact = self.create_contact("Jim", phone="0979111111")
-        flow = self.get_flow("color_v13")
-        nodes = flow.get_definition()["nodes"]
-        run = (
-            MockSessionWriter(contact, flow)
-            .visit(nodes[0])
-            .send_msg("What is your favorite color?", self.channel)
-            .wait()
-            .save()
-        )[0]
-
-        self.assertEqual(
-            {
-                "type": "flow_entered",
-                "created_on": matchers.ISODatetime(),
-                "flow": {"uuid": str(flow.uuid), "name": "Colors"},
-            },
-            Event.from_flow_run(self.org, self.admin, run),
-        )
-
-        # customer support get access to logs
-        self.assertEqual(
-            {
-                "type": "flow_entered",
-                "created_on": matchers.ISODatetime(),
-                "flow": {"uuid": str(flow.uuid), "name": "Colors"},
-            },
-            Event.from_flow_run(self.org, self.customer_support, run),
         )
 
     def test_from_ticket_event(self):
