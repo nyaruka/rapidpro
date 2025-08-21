@@ -27,7 +27,9 @@ def backfill_run_events(apps, schema_editor):
     Flow = apps.get_model("flows", "Flow")
     Contact = apps.get_model("contacts", "Contact")
 
-    runs = FlowRun.objects.filter(org__is_active=True, contact__is_active=True, flow__is_system=False).prefetch_related(
+    runs = FlowRun.objects.filter(
+        org__is_active=True, contact__is_active=True, flow__is_active=True, flow__is_system=False
+    ).prefetch_related(
         Prefetch("contact", Contact.objects.only("uuid")),
         Prefetch("flow", Flow.objects.only("uuid", "name")),
     )
