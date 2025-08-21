@@ -725,7 +725,6 @@ class Contact(LegacyUUIDMixin, SmartModel):
         """
         Gets this contact's history of messages, calls, runs etc in the given time window
         """
-        from temba.flows.models import FlowExit
         from temba.ivr.models import Call
         from temba.mailroom.events import Event, get_event_time
         from temba.msgs.models import Msg
@@ -737,19 +736,6 @@ class Contact(LegacyUUIDMixin, SmartModel):
             .order_by("-created_on", "-id")
             .select_related("channel", "contact_urn", "broadcast", "optin")[:limit]
         )
-
-        # get all runs start started or ended in this period
-        runs = (
-            self.runs.filter(
-                Q(created_on__gte=after, created_on__lt=before)
-                | Q(exited_on__isnull=False, exited_on__gte=after, exited_on__lt=before)
-            )
-            .exclude(flow__is_system=True)
-            .order_by("-created_on")
-            .select_related("flow")[:limit]
-        )
-        started_runs = [r for r in runs if after <= r.created_on < before]
-        exited_runs = [FlowExit(r) for r in runs if r.exited_on and after <= r.exited_on < before]
 
         channel_events = (
             self.channel_events.filter(created_on__gte=after, created_on__lt=before)
@@ -784,8 +770,6 @@ class Contact(LegacyUUIDMixin, SmartModel):
         # chain all items together, sort by their event time, and slice
         items = chain(
             msgs,
-            started_runs,
-            exited_runs,
             ticket_events,
             channel_events,
             calls,
