@@ -356,9 +356,29 @@ class CampaignEventsEndpointTest(APITest):
             errors={"campaign": "Cannot change campaign for existing events"},
         )
 
+        # try with an invalid UUID for event
+        self.assertPost(
+            endpoint_url + "?uuid=1234",
+            self.editor,
+            {
+                "campaign": str(campaign1.uuid),
+                "relative_to": "registration",
+                "offset": 15,
+                "unit": "weeks",
+                "delivery_hour": -1,
+                "message": {"eng": "OK", "fra": "D'accord", "kin": "Sawa"},
+            },
+            errors={None: "Param 'uuid': 1234 is not a valid UUID."},
+        )
+
         # try an empty delete request
         self.assertDelete(
             endpoint_url, self.editor, errors={None: "URL must contain one of the following parameters: uuid"}
+        )
+
+        # try an invalid uuid delete request
+        self.assertDelete(
+            endpoint_url + "?uuid=1234", self.editor, errors={None: "Param 'uuid': 1234 is not a valid UUID."}
         )
 
         # delete an event by UUID
