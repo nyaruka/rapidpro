@@ -65,6 +65,8 @@ def backfill_run_events(apps, schema_editor):
                                 },
                             }
                         )
+                        num_written += 1
+
                     if run.exited_on and run.exited_on < events_before:
                         writer.put_item(
                             {
@@ -80,8 +82,8 @@ def backfill_run_events(apps, schema_editor):
                                 },
                             }
                         )
+                        num_written += 1
 
-                    num_written += 1
                     before_id = run.id
         except Exception as e:  # pragma: no cover
             print(e)
