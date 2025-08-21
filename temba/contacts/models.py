@@ -992,14 +992,12 @@ class Contact(LegacyUUIDMixin, SmartModel):
         self.modify(user, [mod], refresh=False)
         return self.tickets.order_by("id").last()
 
-    def interrupt(self, user) -> bool:
+    def interrupt(self, user):
         """
         Interrupts this contact's current flow
         """
         if self.current_flow:
-            return mailroom.get_client().contact_interrupt(self.org, user, [self]) > 0
-
-        return False
+            mailroom.get_client().contact_interrupt(self.org, user, [self])
 
     def block(self, user):
         """
@@ -1167,7 +1165,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         if not contacts:
             return
 
-        return mailroom.get_client().contact_interrupt(contacts[0].org, user, contacts)
+        mailroom.get_client().contact_interrupt(contacts[0].org, user, contacts)
 
     def get_groups(self, *, manual_only=False):
         """

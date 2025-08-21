@@ -271,7 +271,7 @@ class TestClient(MailroomClient):
         return {c: inspect(c) for c in contacts}
 
     @_client_method
-    def contact_interrupt(self, org, user, contacts) -> int:
+    def contact_interrupt(self, org, user, contacts):
         # get the waiting session UUIDs
         session_uuids = []
         for contact in contacts:
@@ -283,8 +283,6 @@ class TestClient(MailroomClient):
                     session_uuids.append(session.uuid)
 
         exit_sessions(session_uuids, FlowSession.STATUS_INTERRUPTED)
-
-        return len(session_uuids)
 
     @_client_method
     def contact_parse_query(self, org, query: str, parse_only: bool = False):

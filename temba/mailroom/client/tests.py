@@ -272,9 +272,8 @@ class MailroomClientTest(TembaTest):
         bob = self.create_contact("Bob", urns=["tel:+12340000002"])
         mock_post.return_value = MockJsonResponse(200, {"sessions": 2})
 
-        result = self.client.contact_interrupt(self.org, self.admin, [ann, bob])
+        self.client.contact_interrupt(self.org, self.admin, [ann, bob])
 
-        self.assertEqual(2, result)
         mock_post.assert_called_once_with(
             "http://localhost:8090/mr/contact/interrupt",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},

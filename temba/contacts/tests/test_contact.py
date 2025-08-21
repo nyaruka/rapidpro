@@ -106,12 +106,11 @@ class ContactTest(TembaTest):
     @mock_mailroom
     def test_interrupt(self, mr_mocks):
         # noop when contact not in a flow
-        self.assertFalse(self.joe.interrupt(self.admin))
+        self.joe.interrupt(self.admin)
 
-        flow = self.create_flow("Test")
-        MockSessionWriter(self.joe, flow).wait().save()
+        self.joe.current_flow = self.create_flow("Test Flow")
 
-        self.assertTrue(self.joe.interrupt(self.admin))
+        self.joe.interrupt(self.admin)
 
     @cleanup(dynamodb=True)
     @mock_mailroom
