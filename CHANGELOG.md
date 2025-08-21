@@ -1,3 +1,7 @@
+v10.3.36 (2025-08-21)
+-------------------------
+ * Exclude system and deleted flows from run event migration too
+
 v10.3.35 (2025-08-21)
 -------------------------
  * Tweak mailroom.contact_interrupt to not expect a return value.
