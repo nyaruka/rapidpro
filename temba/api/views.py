@@ -55,6 +55,12 @@ class BaseAPIView(NonAtomicMixin, generics.GenericAPIView):
                 if param == "urn":
                     param_value = self.normalize_urn(param_value)
 
+                if param == "uuid":
+                    try:
+                        UUID(param_value)
+                    except ValueError:
+                        raise InvalidQueryError(f"Param '{param}': {param_value} is not a valid UUID.")
+
                 lookup_values[field] = param_value
 
         if len(lookup_values) > 1:
