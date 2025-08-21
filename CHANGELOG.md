@@ -1,3 +1,9 @@
+v10.3.35 (2025-08-21)
+-------------------------
+ * Tweak mailroom.contact_interrupt to not expect a return value.
+ * Validate UUIDs on API delete requests
+ * Data migration to backfill run_started and run_ended events.
+
 v10.3.34 (2025-08-20)
 -------------------------
  * Update temba-components
