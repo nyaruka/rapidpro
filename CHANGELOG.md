@@ -1,3 +1,9 @@
+v10.3.38 (2025-08-25)
+-------------------------
+ * Update temba components
+ * Add uuid field to TicketEvent
+ * Remove custom backfill logic from run event migration
+
 v10.3.37 (2025-08-21)
 -------------------------
  * Return run_started and run_ended events from dynamo instead of faking flow_entered and flow_exited events
