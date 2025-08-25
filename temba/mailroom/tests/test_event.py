@@ -12,6 +12,7 @@ from temba.mailroom.events import Event
 from temba.msgs.models import Msg
 from temba.tests import TembaTest, matchers
 from temba.tickets.models import TicketEvent
+from temba.utils.uuid import uuid7
 
 
 class EventTest(TembaTest):
@@ -439,6 +440,7 @@ class EventTest(TembaTest):
 
         # event with a user
         event1 = TicketEvent.objects.create(
+            uuid=uuid7(),
             org=self.org,
             contact=contact,
             ticket=ticket,
@@ -473,7 +475,7 @@ class EventTest(TembaTest):
 
         # event without a user
         event2 = TicketEvent.objects.create(
-            org=self.org, contact=contact, ticket=ticket, event_type=TicketEvent.TYPE_CLOSED
+            uuid=uuid7(), org=self.org, contact=contact, ticket=ticket, event_type=TicketEvent.TYPE_CLOSED
         )
 
         self.assertEqual(
