@@ -1,3 +1,8 @@
+v10.3.43 (2025-08-25)
+-------------------------
+ * Limit types of channel events included in contact history
+ * Replace old v4 ticket UUIDs with v7 UUIDs based on opened_on timestamp
+
 v10.3.42 (2025-08-25)
 -------------------------
  * Read call events from DynamoDB
