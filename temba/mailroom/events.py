@@ -8,7 +8,6 @@ from django.urls import reverse
 from django.utils import timezone
 
 from temba.channels.models import Channel, ChannelEvent
-from temba.ivr.models import Call
 from temba.msgs.models import Msg, OptIn
 from temba.orgs.models import Org
 from temba.tickets.models import Ticket, TicketEvent, Topic
@@ -24,6 +23,8 @@ class Event:
     # engine events
     TYPE_AIRTIME_TRANSFERRED = "airtime_transferred"
     TYPE_BROADCAST_CREATED = "broadcast_created"
+    TYPE_CALL_CREATED = "call_created"
+    TYPE_CALL_RECEIVED = "call_received"
     TYPE_CONTACT_FIELD_CHANGED = "contact_field_changed"
     TYPE_CONTACT_GROUPS_CHANGED = "contact_groups_changed"
     TYPE_CONTACT_LANGUAGE_CHANGED = "contact_language_changed"
@@ -43,7 +44,6 @@ class Event:
     TYPE_TICKET_REOPENED = "ticket_reopened"
 
     # additional events
-    TYPE_CALL_STARTED = "call_started"
     TYPE_CHANNEL_EVENT = "channel_event"
 
     ticket_event_types = {
@@ -61,6 +61,8 @@ class Event:
     #  3. we switch to reading that type from DynamoDB by adding it here
     dynamo_types = {
         TYPE_AIRTIME_TRANSFERRED,
+        TYPE_CALL_CREATED,
+        TYPE_CALL_RECEIVED,
         TYPE_CONTACT_FIELD_CHANGED,
         TYPE_CONTACT_GROUPS_CHANGED,
         TYPE_CONTACT_LANGUAGE_CHANGED,
@@ -238,28 +240,6 @@ class Event:
             return msg_event
 
     @classmethod
-    def from_ivr_call(cls, org: Org, user: User, obj: Call) -> dict:
-        obj_age = timezone.now() - obj.created_on
-
-        logs_url = None
-        if obj_age < settings.RETENTION_PERIODS["channellog"]:
-            logs_url = _url_for_user(
-                org,
-                user,
-                "channels.channel_logs_read",
-                args=[obj.channel.uuid, "call", obj.id],
-                perm="channels.channel_logs",
-            )
-
-        return {
-            "type": cls.TYPE_CALL_STARTED,
-            "created_on": get_event_time(obj).isoformat(),
-            "status": obj.status,
-            "status_display": obj.status_display,
-            "logs_url": logs_url,
-        }
-
-    @classmethod
     def from_ticket_event(cls, org: Org, user: User, obj: TicketEvent) -> dict:
         ticket = obj.ticket
         return {
@@ -355,7 +335,6 @@ def _optin(optin: OptIn) -> dict:
 # map of history item types to methods to render them as events
 event_renderers = {
     ChannelEvent: Event.from_channel_event,
-    Call: Event.from_ivr_call,
     Msg: Event.from_msg,
     TicketEvent: Event.from_ticket_event,
 }

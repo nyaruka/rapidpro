@@ -7,7 +7,6 @@ from boto3.dynamodb.types import Binary
 from django.utils import timezone
 
 from temba.channels.models import ChannelEvent
-from temba.ivr.models import Call
 from temba.mailroom.events import Event
 from temba.msgs.models import Msg
 from temba.tests import TembaTest, matchers
@@ -493,48 +492,4 @@ class EventTest(TembaTest):
                 "created_by": None,
             },
             Event.from_ticket_event(self.org, self.admin, event2),
-        )
-
-    def test_from_ivr_call(self):
-        flow = self.create_flow("IVR", flow_type="V")
-        contact = self.create_contact("Jim", phone="0979111111")
-
-        # create call that is too old to still have logs
-        call1 = self.create_incoming_call(
-            flow, contact, status=Call.STATUS_IN_PROGRESS, created_on=timezone.now() - timedelta(days=15)
-        )
-
-        # and one that will have logs
-        call2 = self.create_incoming_call(flow, contact, status=Call.STATUS_ERRORED, error_reason=Call.ERROR_BUSY)
-
-        self.assertEqual(
-            {
-                "type": "call_started",
-                "status": "I",
-                "status_display": "In Progress",
-                "created_on": matchers.ISODatetime(),
-                "logs_url": None,
-            },
-            Event.from_ivr_call(self.org, self.admin, call1),
-        )
-
-        self.assertEqual(
-            {
-                "type": "call_started",
-                "status": "E",
-                "status_display": "Errored (Busy)",
-                "created_on": matchers.ISODatetime(),
-                "logs_url": None,  # user can't see logs
-            },
-            Event.from_ivr_call(self.org, self.agent, call2),
-        )
-        self.assertEqual(
-            {
-                "type": "call_started",
-                "status": "E",
-                "status_display": "Errored (Busy)",
-                "created_on": matchers.ISODatetime(),
-                "logs_url": f"/channels/channel/logs/{call2.channel.uuid}/call/{call2.id}/",
-            },
-            Event.from_ivr_call(self.org, self.admin, call2),
         )
