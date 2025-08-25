@@ -23,6 +23,7 @@ from temba.schedules.models import Schedule
 from temba.tests.dates import parse_datetime
 from temba.tickets.models import Ticket, TicketEvent
 from temba.utils import json
+from temba.utils.uuid import uuid7
 
 event_units = {
     CampaignEvent.UNIT_MINUTES: "minutes",
@@ -439,6 +440,7 @@ class TestClient(MailroomClient):
             ticket.last_activity_on = now
             ticket.save(update_fields=("assignee", "modified_on", "last_activity_on"))
             ticket.events.create(
+                uuid=uuid7(),
                 org=org,
                 contact=ticket.contact,
                 event_type=TicketEvent.TYPE_ASSIGNED,
@@ -458,6 +460,7 @@ class TestClient(MailroomClient):
             ticket.last_activity_on = now
             ticket.save(update_fields=("modified_on", "last_activity_on"))
             ticket.events.create(
+                uuid=uuid7(),
                 org=org,
                 contact=ticket.contact,
                 event_type=TicketEvent.TYPE_NOTE_ADDED,
@@ -478,6 +481,7 @@ class TestClient(MailroomClient):
             ticket.last_activity_on = now
             ticket.save(update_fields=("topic", "modified_on", "last_activity_on"))
             ticket.events.create(
+                uuid=uuid7(),
                 org=org,
                 contact=ticket.contact,
                 event_type=TicketEvent.TYPE_TOPIC_CHANGED,
@@ -495,7 +499,9 @@ class TestClient(MailroomClient):
             ticket.status = Ticket.STATUS_CLOSED
             ticket.closed_on = timezone.now()
             ticket.save(update_fields=("status", "closed_on"))
-            ticket.events.create(org=org, contact=ticket.contact, event_type=TicketEvent.TYPE_CLOSED, created_by=user)
+            ticket.events.create(
+                uuid=uuid7(), org=org, contact=ticket.contact, event_type=TicketEvent.TYPE_CLOSED, created_by=user
+            )
 
         return {"changed_ids": [t.id for t in tickets]}
 
@@ -507,7 +513,9 @@ class TestClient(MailroomClient):
             ticket.status = Ticket.STATUS_OPEN
             ticket.closed_on = None
             ticket.save(update_fields=("status", "closed_on"))
-            ticket.events.create(org=org, contact=ticket.contact, event_type=TicketEvent.TYPE_REOPENED, created_by=user)
+            ticket.events.create(
+                uuid=uuid7(), org=org, contact=ticket.contact, event_type=TicketEvent.TYPE_REOPENED, created_by=user
+            )
 
         return {"changed_ids": [t.id for t in tickets]}
 
@@ -597,7 +605,12 @@ def apply_modifiers(org, user, contacts, modifiers: list):
                     assignee=assignee,
                 )
                 ticket.events.create(
-                    org=org, contact=contact, event_type=TicketEvent.TYPE_OPENED, note=mod.note, created_by=user
+                    uuid=uuid7(),
+                    org=org,
+                    contact=contact,
+                    event_type=TicketEvent.TYPE_OPENED,
+                    note=mod.note,
+                    created_by=user,
                 )
 
         elif mod.type == "urns":
