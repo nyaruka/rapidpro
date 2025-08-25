@@ -21,7 +21,7 @@ from temba.utils.dates import date_range
 from temba.utils.db.functions import SplitPart
 from temba.utils.export import MultiSheetExporter
 from temba.utils.models import TembaModel
-from temba.utils.uuid import is_uuid, uuid4
+from temba.utils.uuid import is_uuid
 
 logger = logging.getLogger(__name__)
 
@@ -188,7 +188,7 @@ class Ticket(models.Model):
 
     MAX_NOTE_LENGTH = 10_000
 
-    uuid = models.UUIDField(unique=True, default=uuid4)
+    uuid = models.UUIDField(unique=True)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="tickets", db_index=False)  # indexed below
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT, related_name="tickets", db_index=False)
     topic = models.ForeignKey(Topic, on_delete=models.PROTECT, related_name="tickets")
