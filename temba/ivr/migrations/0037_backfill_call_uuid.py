@@ -7,7 +7,7 @@ from django.db import migrations
 from temba.utils.uuid import uuid7
 
 
-def backfill_call_uuids(apps, schema_editor):
+def backfill_call_uuids(apps, schema_editor):  # pragma: no cover
     Call = apps.get_model("ivr", "Call")
 
     num_updated = 0
