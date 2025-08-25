@@ -1,3 +1,7 @@
+v10.3.39 (2025-08-25)
+-------------------------
+ * Data migration to backfill TicketEvent.uuid
+
 v10.3.38 (2025-08-25)
 -------------------------
  * Update temba components
