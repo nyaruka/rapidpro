@@ -574,15 +574,11 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.create_ticket(joe, opened_on=timezone.now(), closed_on=timezone.now())
         ticket = self.create_ticket(joe, topic=sales)
 
-        # create missed incoming and outgoing calls
+        # create some channel events
+        self.create_channel_event(self.channel, str(joe.get_urn(URN.TEL_SCHEME)), ChannelEvent.TYPE_REFERRAL, extra={})
         self.create_channel_event(
-            self.channel, str(joe.get_urn(URN.TEL_SCHEME)), ChannelEvent.TYPE_CALL_OUT_MISSED, extra={}
+            self.channel, str(joe.get_urn(URN.TEL_SCHEME)), ChannelEvent.TYPE_STOP_CONTACT, extra={}
         )
-        self.create_channel_event(
-            self.channel, str(joe.get_urn(URN.TEL_SCHEME)), ChannelEvent.TYPE_CALL_IN_MISSED, extra={}
-        )
-
-        # and a referral event
         self.create_channel_event(
             self.channel, str(joe.get_urn(URN.TEL_SCHEME)), ChannelEvent.TYPE_NEW_CONVERSATION, extra={}
         )
@@ -625,8 +621,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                 self.assertPathValue(item, path, expected, f"item {index}")
 
         assertHistoryEvent(history, 0, "channel_event", channel_event_type="new_conversation")
-        assertHistoryEvent(history, 1, "channel_event", channel_event_type="mo_miss")
-        assertHistoryEvent(history, 2, "channel_event", channel_event_type="mt_miss")
+        assertHistoryEvent(history, 1, "channel_event", channel_event_type="stop_contact")
+        assertHistoryEvent(history, 2, "channel_event", channel_event_type="referral")
         assertHistoryEvent(history, 3, "ticket_opened", ticket__topic__name="Sales")
         assertHistoryEvent(history, 4, "ticket_closed", ticket__topic__name="General")
         assertHistoryEvent(history, 5, "ticket_opened", ticket__topic__name="General")
@@ -642,7 +638,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         history = response.json()["events"]
         assertHistoryEvent(history, 0, "ticket_assigned", assignee__id=self.admin.id)
         assertHistoryEvent(history, 1, "ticket_note_added", note="I have a bad feeling about this")
-        assertHistoryEvent(history, 4, "channel_event", channel_event_type="mt_miss")
+        assertHistoryEvent(history, 4, "channel_event", channel_event_type="referral")
         assertHistoryEvent(history, 5, "ticket_opened", ticket__topic__name="Sales")
 
         # fetch next page

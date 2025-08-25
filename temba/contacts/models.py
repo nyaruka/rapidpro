@@ -725,6 +725,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         """
         Gets this contact's history of messages, calls, runs etc in the given time window
         """
+        from temba.channels.models import ChannelEvent
         from temba.mailroom.events import Event, get_event_time
         from temba.msgs.models import Msg
         from temba.tickets.models import TicketEvent
@@ -737,7 +738,18 @@ class Contact(LegacyUUIDMixin, SmartModel):
         )
 
         channel_events = (
-            self.channel_events.filter(created_on__gte=after, created_on__lt=before)
+            self.channel_events.filter(
+                created_on__gte=after,
+                created_on__lt=before,
+                event_type__in=(
+                    ChannelEvent.TYPE_NEW_CONVERSATION,
+                    ChannelEvent.TYPE_OPTIN,
+                    ChannelEvent.TYPE_OPTOUT,
+                    ChannelEvent.TYPE_REFERRAL,
+                    ChannelEvent.TYPE_STOP_CONTACT,
+                    ChannelEvent.TYPE_WELCOME_MESSAGE,
+                ),
+            )
             .order_by("-created_on")
             .select_related("channel", "optin")[:limit]
         )
