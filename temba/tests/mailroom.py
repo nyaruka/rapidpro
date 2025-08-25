@@ -599,6 +599,7 @@ def apply_modifiers(org, user, contacts, modifiers: list):
             assignee = org.users.get(email=mod.assignee.email, is_active=True) if mod.assignee else None
             for contact in contacts:
                 ticket = contact.tickets.create(
+                    uuid=uuid7(),
                     org=org,
                     topic=topic,
                     status=Ticket.STATUS_OPEN,

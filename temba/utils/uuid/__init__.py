@@ -50,14 +50,12 @@ def find_uuid(val: str) -> str | None:
 
 
 def is_uuid7(val: str) -> bool:
-    as_str = str(val)
-    return len(as_str) == 36 and as_str[14] == "7"
+    as_uuid = UUID(val) if isinstance(val, str) else val
+    return as_uuid.version == 7
 
 
-# UUID v7 code below is taken from CPython source which will be available in Python 3.14, but modified as follows...
-#
-#  - to return the UUID as a string because the standard UUID class does not support v7 yet.
-#  - to take an optional `when` argument to allow generating a UUID for a specific time.
+# UUID v7 code below is taken from CPython source which will be available in Python 3.14, but modified to take an
+# optional `when` argument to allow generating a UUID for a specific time.
 #
 # See https://github.com/python/cpython/blob/362692852f13cdd1d33cc7ed35c0cbac7af1a785/Lib/uuid.py#L110
 
@@ -76,7 +74,7 @@ def _uuid7_get_counter_and_tail():
     return counter, tail
 
 
-def uuid7(when=None) -> str:
+def uuid7(when=None) -> UUID:
     """Generate a UUID from a Unix timestamp in milliseconds and random bits.
 
     UUIDv7 objects feature monotonicity within a millisecond.
@@ -141,6 +139,5 @@ def uuid7(when=None) -> str:
     _last_timestamp_v7 = timestamp_ms
     _last_counter_v7 = counter
 
-    # return as string because we still can't create a v7 uuid.UUID instance
     hex = "%032x" % int_uuid_7
-    return f"{hex[:8]}-{hex[8:12]}-{hex[12:16]}-{hex[16:20]}-{hex[20:]}"
+    return UUID(f"{hex[:8]}-{hex[8:12]}-{hex[12:16]}-{hex[16:20]}-{hex[20:]}")
