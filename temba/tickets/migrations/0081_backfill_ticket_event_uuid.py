@@ -17,8 +17,6 @@ def backfill_ticket_event_uuid(apps, schema_editor):  # pragma: no cover
 
         for event in batch:
             event.uuid = uuid7(event.created_on)
-            event.save(update_fields=["uuid"])
-
         TicketEvent.objects.bulk_update(batch, ["uuid"])
 
         num_updated += len(batch)
