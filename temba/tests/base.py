@@ -784,6 +784,7 @@ class TembaTest(SmartminTest):
             closed_on=closed_on,
         )
         TicketEvent.objects.create(
+            uuid=uuid7(),
             org=ticket.org,
             contact=contact,
             ticket=ticket,
@@ -795,6 +796,7 @@ class TembaTest(SmartminTest):
         )
         if closed_on:
             TicketEvent.objects.create(
+                uuid=uuid7(),
                 org=ticket.org,
                 contact=contact,
                 ticket=ticket,
