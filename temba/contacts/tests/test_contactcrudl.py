@@ -602,6 +602,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # add a note to our open ticket
         ticket.events.create(
+            uuid=uuid7(),
             org=self.org,
             contact=ticket.contact,
             event_type="N",
@@ -611,6 +612,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # create an assignment
         ticket.events.create(
+            uuid=uuid7(),
             org=self.org,
             contact=ticket.contact,
             event_type="A",
