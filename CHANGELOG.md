@@ -1,3 +1,7 @@
+v10.3.40 (2025-08-25)
+-------------------------
+ * Make TicketEvent.uuid non-nullable and unique
+
 v10.3.39 (2025-08-25)
 -------------------------
  * Data migration to backfill TicketEvent.uuid
