@@ -1,3 +1,7 @@
+v10.3.41 (2025-08-25)
+-------------------------
+ * Backfill call_created and call_received events to DynamoDB
+
 v10.3.40 (2025-08-25)
 -------------------------
  * Make TicketEvent.uuid non-nullable and unique
