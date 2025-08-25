@@ -21,6 +21,7 @@ from temba.tickets.models import Topic
 from temba.triggers.models import Trigger
 from temba.utils import json
 from temba.utils.dates import datetime_to_timestamp
+from temba.utils.uuid import uuid7
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
 
