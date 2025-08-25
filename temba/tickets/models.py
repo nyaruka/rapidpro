@@ -319,6 +319,7 @@ class TicketEvent(models.Model):
         (TYPE_REOPENED, "Reopened"),
     )
 
+    uuid = models.UUIDField(null=True)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="ticket_events")
     ticket = models.ForeignKey(Ticket, on_delete=models.PROTECT, related_name="events")
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT, related_name="ticket_events")
