@@ -1,3 +1,7 @@
+v10.3.42 (2025-08-25)
+-------------------------
+ * Read call events from DynamoDB
+
 v10.3.41 (2025-08-25)
 -------------------------
  * Backfill call_created and call_received events to DynamoDB
