@@ -34,7 +34,8 @@ class UUIDTest(TembaTest):
         u4 = uuid7(when=datetime(2025, 8, 11, 20, 36, 41, 116000, tzinfo=tzone.utc))
         self.assertTrue(is_uuid7(u3))
         self.assertTrue(is_uuid7(u4))
+        self.assertTrue(is_uuid7(str(u4)))
         self.assertLess(u3, u4)
-        self.assertTrue(u3.startswith("01989ad9-7c1a-7"))  # go code gives ~ 01989ad9-7c1a-7b8d-a59e-141c265730dc
+        self.assertTrue(str(u3).startswith("01989ad9-7c1a-7"))  # go code gives ~ 01989ad9-7c1a-7b8d-a59e-141c265730dc
 
         self.assertFalse(is_uuid7(uuid4()))

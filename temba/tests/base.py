@@ -773,6 +773,7 @@ class TembaTest(SmartminTest):
             opened_on = timezone.now()
 
         ticket = Ticket.objects.create(
+            uuid=uuid7(),
             org=contact.org,
             contact=contact,
             topic=topic or contact.org.default_ticket_topic,

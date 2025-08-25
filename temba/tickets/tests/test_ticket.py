@@ -6,6 +6,7 @@ from temba.orgs.models import OrgRole
 from temba.orgs.tasks import squash_item_counts
 from temba.tests import TembaTest, mock_mailroom
 from temba.tickets.models import Team, Ticket, TicketEvent, Topic, export_ticket_stats
+from temba.utils.uuid import uuid7
 
 
 class TicketTest(TembaTest):
@@ -15,6 +16,7 @@ class TicketTest(TembaTest):
         contact = self.create_contact("Bob", urns=["twitter:bobby"])
 
         ticket = Ticket.objects.create(
+            uuid=uuid7(),
             org=self.org,
             contact=contact,
             topic=self.org.default_ticket_topic,
