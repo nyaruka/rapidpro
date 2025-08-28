@@ -1,3 +1,7 @@
+v10.3.46 (2025-08-28)
+-------------------------
+ * Update to latest temba components
+
 v10.3.45 (2025-08-28)
 -------------------------
  * Remove time gating from channel event migration
