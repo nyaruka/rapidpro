@@ -24,7 +24,9 @@ class Event:
     TYPE_AIRTIME_TRANSFERRED = "airtime_transferred"
     TYPE_BROADCAST_CREATED = "broadcast_created"
     TYPE_CALL_CREATED = "call_created"
+    TYPE_CALL_MISSED = "call_missed"
     TYPE_CALL_RECEIVED = "call_received"
+    TYPE_CHAT_STARTED = "chat_started"
     TYPE_CONTACT_FIELD_CHANGED = "contact_field_changed"
     TYPE_CONTACT_GROUPS_CHANGED = "contact_groups_changed"
     TYPE_CONTACT_LANGUAGE_CHANGED = "contact_language_changed"
@@ -34,6 +36,8 @@ class Event:
     TYPE_MSG_CREATED = "msg_created"
     TYPE_MSG_RECEIVED = "msg_received"
     TYPE_OPTIN_REQUESTED = "optin_requested"
+    TYPE_OPTIN_STARTED = "optin_started"
+    TYPE_OPTIN_STOPPED = "optin_stopped"
     TYPE_RUN_STARTED = "run_started"
     TYPE_RUN_ENDED = "run_ended"
     TYPE_TICKET_ASSIGNED = "ticket_assigned"
@@ -62,12 +66,16 @@ class Event:
     dynamo_types = {
         TYPE_AIRTIME_TRANSFERRED,
         TYPE_CALL_CREATED,
+        TYPE_CALL_MISSED,
         TYPE_CALL_RECEIVED,
+        TYPE_CHAT_STARTED,
         TYPE_CONTACT_FIELD_CHANGED,
         TYPE_CONTACT_GROUPS_CHANGED,
         TYPE_CONTACT_LANGUAGE_CHANGED,
         TYPE_CONTACT_NAME_CHANGED,
         TYPE_CONTACT_URNS_CHANGED,
+        TYPE_OPTIN_STARTED,
+        TYPE_OPTIN_STOPPED,
         TYPE_RUN_STARTED,
         TYPE_RUN_ENDED,
     }
@@ -260,13 +268,7 @@ class Event:
 
     @classmethod
     def from_channel_event(cls, org: Org, user: User, obj: ChannelEvent) -> dict:
-        extra = obj.extra or {}
         ch_event = {"type": obj.event_type, "channel": _channel(obj.channel)}
-
-        if obj.event_type in ChannelEvent.CALL_TYPES:
-            ch_event["duration"] = extra.get("duration")
-        elif obj.event_type in (ChannelEvent.TYPE_OPTIN, ChannelEvent.TYPE_OPTOUT):
-            ch_event["optin"] = _optin(obj.optin) if obj.optin else None
 
         return {
             "uuid": str(obj.uuid),
@@ -274,7 +276,6 @@ class Event:
             "created_on": get_event_time(obj).isoformat(),
             "event": ch_event,
             "channel_event_type": obj.event_type,  # deprecated
-            "duration": extra.get("duration"),  # deprecated
         }
 
 
