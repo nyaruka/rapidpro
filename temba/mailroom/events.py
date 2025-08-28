@@ -31,7 +31,7 @@ class Event:
     TYPE_CONTACT_GROUPS_CHANGED = "contact_groups_changed"
     TYPE_CONTACT_LANGUAGE_CHANGED = "contact_language_changed"
     TYPE_CONTACT_NAME_CHANGED = "contact_name_changed"
-    TYPE_CONTACT_STATUS_CHANGED = ("contact_status_changed",)
+    TYPE_CONTACT_STATUS_CHANGED = "contact_status_changed"
     TYPE_CONTACT_URNS_CHANGED = "contact_urns_changed"
     TYPE_IVR_CREATED = "ivr_created"
     TYPE_MSG_CREATED = "msg_created"
