@@ -1,3 +1,8 @@
+v10.3.45 (2025-08-28)
+-------------------------
+ * Remove time gating from channel event migration
+ * Start reading most channel event types from DynamoDB
+
 v10.3.44 (2025-08-28)
 -------------------------
  * Data migration to backfill channel events into DynamoDB
