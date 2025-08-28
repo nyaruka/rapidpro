@@ -388,9 +388,7 @@ class EventTest(TembaTest):
     def test_from_channel_event(self):
         self.create_contact("Jim", phone="+250979111111")
 
-        event1 = self.create_channel_event(
-            self.channel, "tel:+250979111111", ChannelEvent.TYPE_CALL_IN, extra={"duration": 5}
-        )
+        event1 = self.create_channel_event(self.channel, "tel:+250979111111", ChannelEvent.TYPE_WELCOME_MESSAGE)
 
         self.assertEqual(
             {
@@ -398,24 +396,15 @@ class EventTest(TembaTest):
                 "type": "channel_event",
                 "created_on": matchers.ISODatetime(),
                 "event": {
-                    "type": "mo_call",
+                    "type": "welcome_message",
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
-                    "duration": 5,
                 },
-                "channel_event_type": "mo_call",  # deprecated
-                "duration": 5,  # deprecated
+                "channel_event_type": "welcome_message",  # deprecated
             },
             Event.from_channel_event(self.org, self.admin, event1),
         )
 
-        optin = self.create_optin("Polls")
-        event2 = self.create_channel_event(
-            self.channel,
-            "tel:+250979111111",
-            ChannelEvent.TYPE_OPTIN,
-            optin=optin,
-            extra={"title": "Polls", "payload": str(optin.id)},
-        )
+        event2 = self.create_channel_event(self.channel, "tel:+250979111111", ChannelEvent.TYPE_STOP_CONTACT)
 
         self.assertEqual(
             {
@@ -423,12 +412,10 @@ class EventTest(TembaTest):
                 "type": "channel_event",
                 "created_on": matchers.ISODatetime(),
                 "event": {
-                    "type": "optin",
+                    "type": "stop_contact",
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
-                    "optin": {"uuid": str(optin.uuid), "name": "Polls"},
                 },
-                "channel_event_type": "optin",  # deprecated
-                "duration": None,  # deprecated
+                "channel_event_type": "stop_contact",  # deprecated
             },
             Event.from_channel_event(self.org, self.admin, event2),
         )

@@ -788,11 +788,8 @@ class ChannelEvent(TembaUUIDMixin, models.Model):
         (TYPE_OPTOUT, _("Opt Out"), "optout"),
         (TYPE_DELETE_CONTACT, _("Delete Contact"), "delete-contact"),
     )
-
     TYPE_CHOICES = [(t[0], t[1]) for t in TYPE_CONFIG]
-
     ALL_TYPES = {t[0] for t in TYPE_CONFIG}
-    CALL_TYPES = {TYPE_CALL_OUT, TYPE_CALL_OUT_MISSED, TYPE_CALL_IN, TYPE_CALL_IN_MISSED}
 
     STATUS_PENDING = "P"
     STATUS_HANDLED = "H"

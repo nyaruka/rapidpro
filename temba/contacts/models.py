@@ -741,17 +741,10 @@ class Contact(LegacyUUIDMixin, SmartModel):
             self.channel_events.filter(
                 created_on__gte=after,
                 created_on__lt=before,
-                event_type__in=(
-                    ChannelEvent.TYPE_NEW_CONVERSATION,
-                    ChannelEvent.TYPE_OPTIN,
-                    ChannelEvent.TYPE_OPTOUT,
-                    ChannelEvent.TYPE_REFERRAL,
-                    ChannelEvent.TYPE_STOP_CONTACT,
-                    ChannelEvent.TYPE_WELCOME_MESSAGE,
-                ),
+                event_type__in=(ChannelEvent.TYPE_STOP_CONTACT, ChannelEvent.TYPE_WELCOME_MESSAGE),
             )
             .order_by("-created_on")
-            .select_related("channel", "optin")[:limit]
+            .select_related("channel")[:limit]
         )
 
         ticket_events = (

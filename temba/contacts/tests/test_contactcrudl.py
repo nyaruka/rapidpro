@@ -575,12 +575,11 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         ticket = self.create_ticket(joe, topic=sales)
 
         # create some channel events
-        self.create_channel_event(self.channel, str(joe.get_urn(URN.TEL_SCHEME)), ChannelEvent.TYPE_REFERRAL, extra={})
         self.create_channel_event(
-            self.channel, str(joe.get_urn(URN.TEL_SCHEME)), ChannelEvent.TYPE_STOP_CONTACT, extra={}
+            self.channel, str(joe.get_urn(URN.TEL_SCHEME)), ChannelEvent.TYPE_WELCOME_MESSAGE, extra={}
         )
         self.create_channel_event(
-            self.channel, str(joe.get_urn(URN.TEL_SCHEME)), ChannelEvent.TYPE_NEW_CONVERSATION, extra={}
+            self.channel, str(joe.get_urn(URN.TEL_SCHEME)), ChannelEvent.TYPE_STOP_CONTACT, extra={}
         )
 
         # add a note to our open ticket
@@ -610,7 +609,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # history should include all messages in the last 90 days, the channel event, the call, and the flow run
         history = response.json()["events"]
-        self.assertEqual(93, len(history))
+        self.assertEqual(92, len(history))
 
         def assertHistoryEvent(events, index, expected_type, **kwargs):
             item = events[index]
@@ -620,16 +619,15 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             for path, expected in kwargs.items():
                 self.assertPathValue(item, path, expected, f"item {index}")
 
-        assertHistoryEvent(history, 0, "channel_event", channel_event_type="new_conversation")
-        assertHistoryEvent(history, 1, "channel_event", channel_event_type="stop_contact")
-        assertHistoryEvent(history, 2, "channel_event", channel_event_type="referral")
-        assertHistoryEvent(history, 3, "ticket_opened", ticket__topic__name="Sales")
-        assertHistoryEvent(history, 4, "ticket_closed", ticket__topic__name="General")
-        assertHistoryEvent(history, 5, "ticket_opened", ticket__topic__name="General")
-        assertHistoryEvent(history, 6, "msg_created", msg__text="What is your favorite color?")
-        assertHistoryEvent(history, 7, "msg_received", msg__text="Message caption")
+        assertHistoryEvent(history, 0, "channel_event", channel_event_type="stop_contact")
+        assertHistoryEvent(history, 1, "channel_event", channel_event_type="welcome_message")
+        assertHistoryEvent(history, 2, "ticket_opened", ticket__topic__name="Sales")
+        assertHistoryEvent(history, 3, "ticket_closed", ticket__topic__name="General")
+        assertHistoryEvent(history, 4, "ticket_opened", ticket__topic__name="General")
+        assertHistoryEvent(history, 5, "msg_created", msg__text="What is your favorite color?")
+        assertHistoryEvent(history, 6, "msg_received", msg__text="Message caption")
         assertHistoryEvent(
-            history, 8, "msg_created", msg__text="A beautiful broadcast", created_by__email="editor@textit.com"
+            history, 7, "msg_created", msg__text="A beautiful broadcast", created_by__email="editor@textit.com"
         )
         assertHistoryEvent(history, -1, "msg_received", msg__text="Inbound message 11")
 
@@ -638,8 +636,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         history = response.json()["events"]
         assertHistoryEvent(history, 0, "ticket_assigned", assignee__id=self.admin.id)
         assertHistoryEvent(history, 1, "ticket_note_added", note="I have a bad feeling about this")
-        assertHistoryEvent(history, 4, "channel_event", channel_event_type="referral")
-        assertHistoryEvent(history, 5, "ticket_opened", ticket__topic__name="Sales")
+        assertHistoryEvent(history, 3, "channel_event", channel_event_type="welcome_message")
+        assertHistoryEvent(history, 4, "ticket_opened", ticket__topic__name="Sales")
 
         # fetch next page
         before = datetime_to_timestamp(timezone.now() - timedelta(days=90))
@@ -656,8 +654,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.requestView(history_url + "?limit=100", self.admin)
         history = response.json()["events"]
 
-        self.assertEqual(93, len(history))
-        assertHistoryEvent(history, 6, "msg_created", msg__text="What is your favorite color?")
+        self.assertEqual(92, len(history))
+        assertHistoryEvent(history, 5, "msg_created", msg__text="What is your favorite color?")
 
         # if a new message comes in
         self.create_incoming_msg(joe, "Newer message")
@@ -672,7 +670,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # with our recent flag on, should not see the older messages
         events = response.json()["events"]
-        self.assertEqual(10, len(events))
+        self.assertEqual(9, len(events))
         self.assertContains(response, "file.mp4")
 
         # add a new run
@@ -687,7 +685,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         response = self.requestView(history_url + "?limit=200", self.admin)
         history = response.json()["events"]
-        self.assertEqual(95, len(history))
+        self.assertEqual(94, len(history))
 
         # before date should not match our last activity, that only happens when we truncate
         resp_json = response.json()
@@ -700,11 +698,10 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         assertHistoryEvent(history, 1, "msg_received", msg__text="Newer message")
         assertHistoryEvent(history, 2, "channel_event")
         assertHistoryEvent(history, 3, "channel_event")
-        assertHistoryEvent(history, 4, "channel_event")
-        assertHistoryEvent(history, 5, "ticket_opened")
-        assertHistoryEvent(history, 6, "ticket_closed")
-        assertHistoryEvent(history, 7, "ticket_opened")
-        assertHistoryEvent(history, 8, "msg_created", msg__text="What is your favorite color?")
+        assertHistoryEvent(history, 4, "ticket_opened")
+        assertHistoryEvent(history, 5, "ticket_closed")
+        assertHistoryEvent(history, 6, "ticket_opened")
+        assertHistoryEvent(history, 7, "msg_created", msg__text="What is your favorite color?")
 
         # now try the proper max history to test truncation
         response = self.requestView(history_url + "?before=%d" % datetime_to_timestamp(timezone.now()), self.admin)
