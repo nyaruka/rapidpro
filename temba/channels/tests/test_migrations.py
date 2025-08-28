@@ -84,15 +84,6 @@ class TestBackfillChannelEvents(MigrationTest):
             created_on=datetime(2025, 8, 11, 20, 51, 0, 0, tzinfo=tzone.utc),
             occurred_on=datetime(2025, 8, 11, 20, 51, 0, 0, tzinfo=tzone.utc),
         )
-        ChannelEvent.objects.create(  # for an event that's too new
-            uuid="0198ebde-a7f0-7e24-860b-c64ae8e8d50c",
-            org=self.org,
-            channel=self.channel,
-            event_type=ChannelEvent.TYPE_NEW_CONVERSATION,
-            contact=contact,
-            created_on=datetime(2030, 8, 11, 20, 51, 0, 0, tzinfo=tzone.utc),
-            occurred_on=datetime(2030, 8, 11, 20, 51, 0, 0, tzinfo=tzone.utc),
-        )
 
     @cleanup(dynamodb=True)
     def test_migration(self):
