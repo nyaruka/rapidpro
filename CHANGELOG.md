@@ -1,3 +1,8 @@
+v10.3.44 (2025-08-28)
+-------------------------
+ * Data migration to backfill channel events into DynamoDB
+ * Update temba-components
+
 v10.3.43 (2025-08-25)
 -------------------------
  * Limit types of channel events included in contact history
