@@ -24,7 +24,7 @@ jobs:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
       minio:
-        image: minio/minio:latest
+        image: minio/minio:latest-cicd
         env:
           MINIO_ROOT_USER: root
           MINIO_ROOT_PASSWORD: tembatemba
@@ -33,6 +33,7 @@ jobs:
           - 9001:9001
         volumes:
           - ${{ github.workspace }}/data:/data
+        options: --health-cmd "curl http://localhost:9000/minio/health/live" --health-interval 30s --health-timeout 20s --health-retries 5
 
     steps:
       - name: Checkout code
@@ -63,17 +64,6 @@ jobs:
         with:
           port: 6000
 
-      - name: Wait for MinIO to be ready
-        run: |
-          for i in {1..10}; do
-            if curl -f http://localhost:9000/minio/health/live; then
-              echo "MinIO is up!"
-              break
-            fi
-            echo "Waiting for MinIO..."
-            sleep 3
-          done
-
       - name: Install MinIO client
         run: |
           curl -O https://dl.min.io/client/mc/release/linux-amd64/mc
@@ -83,6 +73,7 @@ jobs:
 
           mc ls local/test-default || mc mb local/test-default
           mc ls local/test-attachments || mc mb local/test-attachments
+          mc anonymous set public local/test-attachments
           mc ls local/test-logs || mc mb local/test-logs
           mc ls local/test-sessions || mc mb local/test-sessions
           mc ls local/test-archives || mc mb local/test-archives
