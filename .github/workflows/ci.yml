@@ -59,14 +59,14 @@ jobs:
           sudo wget https://dl.min.io/server/minio/release/linux-amd64/minio
           sudo chmod +x minio
           sudo MINIO_ROOT_USER=root MINIO_ROOT_PASSWORD=tembatemba ./minio server /data -console-address ":9001" > minio.log &
-          curl http://localhost:9000/minio/health/live || exit 1
+          curl http://127.0.0.1:9000/minio/health/live || exit 1
 
       - name: Install MinIO client
         run: |
           curl -O https://dl.min.io/client/mc/release/linux-amd64/mc
           chmod +x mc
           sudo mv mc /usr/local/bin/
-          mc alias set local http://localhost:9000 root tembatemba
+          mc alias set local http://127.0.0.1:9000 root tembatemba
 
           mc ls local/test-default || mc mb local/test-default
           mc ls local/test-attachments || mc mb local/test-attachments
