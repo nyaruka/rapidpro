@@ -28,13 +28,12 @@ jobs:
         ports:
           - 9000:9000
           - 9001:9001
-        volumes:
-          - minio-data:/data
         environment:
           MINIO_ROOT_USER: root
           MINIO_ROOT_PASSWORD: tembatemba
-        command: server /data --console-address ":9001"
-        options: --health-cmd "mc ready local"
+        volumes:
+          - ${{ github.workspace }}/data:/data
+        options: --restart always --health-cmd "curl -f http://localhost:9000/health/live" --health-interval 30s --health-timeout 20s --health-retries 5
 
     steps:
       - name: Checkout code
