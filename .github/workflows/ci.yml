@@ -26,8 +26,8 @@ jobs:
       minio:
         image: minio/minio:latest-cicd
         env:
-          MINIO_ROOT_USER: root
-          MINIO_ROOT_PASSWORD: tembatemba
+          MINIO_ACCESS_KEY: root
+          MINIO_SECRET_KEY: tembatemba
         ports:
           - 9000:9000
           - 9001:9001
