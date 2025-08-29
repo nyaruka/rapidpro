@@ -55,7 +55,7 @@ jobs:
 
       - name: Install MinIO server
         run: |
-          mkdir /data
+          sudo mkdir /data
           sudo wget https://dl.min.io/server/minio/release/linux-amd64/minio
           sudo chmod +x minio
           sudo MINIO_ACCESS_KEY=admin MINIO_SECRET_KEY=tembatemba ./minio server /data -console-address ":9001"
