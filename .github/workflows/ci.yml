@@ -28,7 +28,6 @@ jobs:
         env:
           MINIO_ROOT_USER: root
           MINIO_ROOT_PASSWORD: tembatemba
-          MINIO_DEFAULT_BUCKETS: test-default,test-attachments:public,test-sessions,test-logs,test-archives
         ports:
           - 9000:9000
           - 9001:9001
@@ -63,6 +62,19 @@ jobs:
         uses: rrainn/dynamodb-action@v4.0.0
         with:
           port: 6000
+
+      - name: Install MinIO client
+        run: |
+          curl -O https://dl.min.io/client/mc/release/linux-amd64/mc
+          chmod +x mc
+          sudo mv mc /usr/local/bin/
+          mc alias set local http://localhost:9000 root tembatemba
+
+          mc ls local/test-default || mc mb local/test-default
+          mc ls local/test-attachments || mc mb local/test-attachments
+          mc ls local/test-logs || mc mb local/test-logs
+          mc ls local/test-sessions || mc mb local/test-sessions
+          mc ls local/test-archives || mc mb local/test-archives
 
       - name: Initialize environment
         run: |
