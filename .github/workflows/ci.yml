@@ -24,14 +24,17 @@ jobs:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
       minio:
-        image: bitnami/minio:2025.4.22 # https://github.com/bitnami/containers/issues/81605
+        image: minio/minio:latest
         env:
           MINIO_ROOT_USER: root
           MINIO_ROOT_PASSWORD: tembatemba
           MINIO_DEFAULT_BUCKETS: test-default,test-attachments:public,test-sessions,test-logs,test-archives
         ports:
           - 9000:9000
-        options: --health-cmd "mc ready local" --health-interval 10s --health-timeout 5s --health-retries 5
+          - 9001:9001
+        volumes:
+          - ${{ github.workspace }}/data:/data
+        options: --health-cmd "curl http://localhost:9000/minio/health/live" --health-interval 30s --health-timeout 20s --health-retries 5
 
     steps:
       - name: Checkout code
