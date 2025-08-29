@@ -23,6 +23,18 @@ jobs:
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      minio:
+        image: minio/minio:latest
+        ports:
+          - 9000:9000
+          - 9001:9001
+        volumes:
+          - minio-data:/data
+        environment:
+          MINIO_ROOT_USER: root
+          MINIO_ROOT_PASSWORD: tembatemba
+        command: server /data --console-address ":9001"
+        options: --health-cmd "mc ready local"
 
     steps:
       - name: Checkout code
@@ -53,20 +65,12 @@ jobs:
         with:
           port: 6000
 
-      - name: Install MinIO server
-        run: |
-          sudo mkdir /data
-          sudo wget https://dl.min.io/server/minio/release/linux-amd64/minio
-          sudo chmod +x minio
-          sudo MINIO_ROOT_USER=root MINIO_ROOT_PASSWORD=tembatemba ./minio server --address 127.0.0.1:9005 /data -console-address ":9001" > minio.log &
-          curl http://127.0.0.1:9005/minio/health/live || exit 1
-
       - name: Install MinIO client
         run: |
           curl -O https://dl.min.io/client/mc/release/linux-amd64/mc
           chmod +x mc
           sudo mv mc /usr/local/bin/
-          mc alias set local http://127.0.0.1:9005 root tembatemba
+          mc alias set local http://127.0.0.1:9000 root tembatemba
 
           mc ls local/test-default || mc mb local/test-default
           mc ls local/test-attachments || mc mb local/test-attachments
