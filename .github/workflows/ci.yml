@@ -58,7 +58,7 @@ jobs:
           sudo mkdir /data
           sudo wget https://dl.min.io/server/minio/release/linux-amd64/minio
           sudo chmod +x minio
-          sudo MINIO_ROOT_USER=root MINIO_ROOT_PASSWORD=tembatemba ./minio server 127.0.0.1:9005 /data -console-address ":9001" > minio.log &
+          sudo MINIO_ROOT_USER=root MINIO_ROOT_PASSWORD=tembatemba ./minio server --address 127.0.0.1:9005 /data -console-address ":9001" > minio.log &
           curl http://127.0.0.1:9005/minio/health/live || exit 1
 
       - name: Install MinIO client
