@@ -76,7 +76,7 @@ def backfill_channel_events(apps, schema_editor):
                             "channel": channel_ref,
                             "optin": {"uuid": str(evt.optin.uuid), "name": evt.optin.name},
                         }
-                    else:
+                    else:  # pragma: no cover
                         data = None
 
                     if data:

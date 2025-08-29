@@ -7,7 +7,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 
-from temba.channels.models import Channel, ChannelEvent
+from temba.channels.models import Channel
 from temba.msgs.models import Msg, OptIn
 from temba.orgs.models import Org
 from temba.tickets.models import Ticket, TicketEvent, Topic
@@ -31,6 +31,7 @@ class Event:
     TYPE_CONTACT_GROUPS_CHANGED = "contact_groups_changed"
     TYPE_CONTACT_LANGUAGE_CHANGED = "contact_language_changed"
     TYPE_CONTACT_NAME_CHANGED = "contact_name_changed"
+    TYPE_CONTACT_STATUS_CHANGED = "contact_status_changed"
     TYPE_CONTACT_URNS_CHANGED = "contact_urns_changed"
     TYPE_IVR_CREATED = "ivr_created"
     TYPE_MSG_CREATED = "msg_created"
@@ -46,9 +47,6 @@ class Event:
     TYPE_TICKET_TOPIC_CHANGED = "ticket_topic_changed"
     TYPE_TICKET_OPENED = "ticket_opened"
     TYPE_TICKET_REOPENED = "ticket_reopened"
-
-    # additional events
-    TYPE_CHANNEL_EVENT = "channel_event"
 
     ticket_event_types = {
         TicketEvent.TYPE_OPENED: TYPE_TICKET_OPENED,
@@ -73,6 +71,7 @@ class Event:
         TYPE_CONTACT_GROUPS_CHANGED,
         TYPE_CONTACT_LANGUAGE_CHANGED,
         TYPE_CONTACT_NAME_CHANGED,
+        TYPE_CONTACT_STATUS_CHANGED,
         TYPE_CONTACT_URNS_CHANGED,
         TYPE_OPTIN_STARTED,
         TYPE_OPTIN_STOPPED,
@@ -266,18 +265,6 @@ class Event:
             "created_by": _user(obj.created_by) if obj.created_by else None,
         }
 
-    @classmethod
-    def from_channel_event(cls, org: Org, user: User, obj: ChannelEvent) -> dict:
-        ch_event = {"type": obj.event_type, "channel": _channel(obj.channel)}
-
-        return {
-            "uuid": str(obj.uuid),
-            "type": cls.TYPE_CHANNEL_EVENT,
-            "created_on": get_event_time(obj).isoformat(),
-            "event": ch_event,
-            "channel_event_type": obj.event_type,  # deprecated
-        }
-
 
 def _url_for_user(org: Org, user: User, view_name: str, args: list, perm: str = None) -> str:
     allowed = user.has_org_perm(org, perm or view_name) or user.is_staff
@@ -335,7 +322,6 @@ def _optin(optin: OptIn) -> dict:
 
 # map of history item types to methods to render them as events
 event_renderers = {
-    ChannelEvent: Event.from_channel_event,
     Msg: Event.from_msg,
     TicketEvent: Event.from_ticket_event,
 }

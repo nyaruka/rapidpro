@@ -6,7 +6,6 @@ from boto3.dynamodb.types import Binary
 
 from django.utils import timezone
 
-from temba.channels.models import ChannelEvent
 from temba.mailroom.events import Event
 from temba.msgs.models import Msg
 from temba.tests import TembaTest, matchers
@@ -383,41 +382,6 @@ class EventTest(TembaTest):
                 "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out4.id}/",
             },
             Event.from_msg(self.org, self.admin, msg_out4),
-        )
-
-    def test_from_channel_event(self):
-        self.create_contact("Jim", phone="+250979111111")
-
-        event1 = self.create_channel_event(self.channel, "tel:+250979111111", ChannelEvent.TYPE_WELCOME_MESSAGE)
-
-        self.assertEqual(
-            {
-                "uuid": str(event1.uuid),
-                "type": "channel_event",
-                "created_on": matchers.ISODatetime(),
-                "event": {
-                    "type": "welcome_message",
-                    "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
-                },
-                "channel_event_type": "welcome_message",  # deprecated
-            },
-            Event.from_channel_event(self.org, self.admin, event1),
-        )
-
-        event2 = self.create_channel_event(self.channel, "tel:+250979111111", ChannelEvent.TYPE_STOP_CONTACT)
-
-        self.assertEqual(
-            {
-                "uuid": str(event2.uuid),
-                "type": "channel_event",
-                "created_on": matchers.ISODatetime(),
-                "event": {
-                    "type": "stop_contact",
-                    "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
-                },
-                "channel_event_type": "stop_contact",  # deprecated
-            },
-            Event.from_channel_event(self.org, self.admin, event2),
         )
 
     def test_from_ticket_event(self):
