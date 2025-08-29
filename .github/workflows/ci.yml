@@ -63,6 +63,17 @@ jobs:
         with:
           port: 6000
 
+      - name: Wait for MinIO to be ready
+        run: |
+          for i in {1..10}; do
+            if curl -f http://localhost:9000/minio/health/live; then
+              echo "MinIO is up!"
+              break
+            fi
+            echo "Waiting for MinIO..."
+            sleep 3
+          done
+
       - name: Install MinIO client
         run: |
           curl -O https://dl.min.io/client/mc/release/linux-amd64/mc
