@@ -1,3 +1,7 @@
+v10.3.47 (2025-08-29)
+-------------------------
+ * Read all channel events from DynamoDB
+
 v10.3.46 (2025-08-28)
 -------------------------
  * Update to latest temba components
