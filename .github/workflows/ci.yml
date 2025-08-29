@@ -28,7 +28,7 @@ jobs:
         ports:
           - 9000:9000
           - 9001:9001
-        environment:
+        env:
           MINIO_ROOT_USER: root
           MINIO_ROOT_PASSWORD: tembatemba
         volumes:
