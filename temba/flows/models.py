@@ -3,7 +3,7 @@ import logging
 from array import array
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime, timezone as tzone
+from datetime import date, datetime, timedelta, timezone as tzone
 from uuid import UUID
 
 import iso8601
@@ -1671,7 +1671,10 @@ class FlowStart(models.Model):
 
     @classmethod
     def has_unfinished(cls, org) -> bool:
-        return org.flow_starts.filter(status__in=(cls.STATUS_PENDING, cls.STATUS_STARTED)).exists()
+        a_week_ago = timezone.now() - timedelta(days=7)
+        return org.flow_starts.filter(
+            status__in=(cls.STATUS_PENDING, cls.STATUS_STARTED), created_on__gte=a_week_ago
+        ).exists()
 
     def interrupt(self, user):
         """

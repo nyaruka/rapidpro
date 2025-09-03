@@ -1,4 +1,7 @@
+from datetime import timedelta
 from unittest.mock import call
+
+from django.utils import timezone
 
 from temba import mailroom
 from temba.flows.models import FlowStart
@@ -39,6 +42,14 @@ class FlowStartTest(TembaTest):
         self.assertEqual(FlowStart.STATUS_INTERRUPTED, start.status)
         self.assertEqual(self.editor, start.modified_by)
         self.assertIsNotNone(start.modified_on)
+        self.assertFalse(FlowStart.has_unfinished(self.org))
+
+        start2 = FlowStart.create(flow, self.admin, contacts=[contact])
+        start2.created_on = timezone.now() - timedelta(days=8)
+        start2.save()
+
+        self.assertEqual(f'<FlowStart: id={start2.id} flow="{start2.flow.uuid}">', repr(start2))
+        self.assertEqual(FlowStart.STATUS_PENDING, start2.status)
         self.assertFalse(FlowStart.has_unfinished(self.org))
 
     @mock_mailroom
