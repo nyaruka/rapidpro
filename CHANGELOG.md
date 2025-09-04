@@ -1,3 +1,7 @@
+v10.3.48 (2025-09-04)
+-------------------------
+ * Adjust unfinished flows starts to consider last 7 days period
+
 v10.3.47 (2025-08-29)
 -------------------------
  * Read all channel events from DynamoDB
