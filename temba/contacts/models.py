@@ -635,13 +635,6 @@ class Contact(LegacyUUIDMixin, SmartModel):
         """
         return feistel.encode(self.id, settings.ID_OBFUSCATION_KEYS)
 
-    @property
-    def anon_display(self):
-        """
-        The displayable identifier used in place of URNs for anonymous orgs. Deprecated in favor of ref.
-        """
-        return f"{self.id:010}"
-
     @classmethod
     def get_status_counts(cls, org) -> dict:
         """

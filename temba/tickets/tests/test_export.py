@@ -292,7 +292,7 @@ class TicketExportTest(TembaTest):
                         ticket1.contact.uuid,
                         "Nathan Shelley",
                         "",
-                        ticket1.contact.anon_display,
+                        ticket1.contact.ref,
                     ],
                     [
                         ticket2.uuid,
@@ -303,7 +303,7 @@ class TicketExportTest(TembaTest):
                         ticket2.contact.uuid,
                         "Jamie Tartt",
                         "twitter",
-                        ticket2.contact.anon_display,
+                        ticket2.contact.ref,
                     ],
                     [
                         ticket3.uuid,
@@ -314,7 +314,7 @@ class TicketExportTest(TembaTest):
                         ticket3.contact.uuid,
                         "Roy Kent",
                         "tel",
-                        ticket3.contact.anon_display,
+                        ticket3.contact.ref,
                     ],
                     [
                         ticket4.uuid,
@@ -325,7 +325,7 @@ class TicketExportTest(TembaTest):
                         ticket4.contact.uuid,
                         "Sam Obisanya",
                         "twitter",
-                        ticket4.contact.anon_display,
+                        ticket4.contact.ref,
                     ],
                 ],
                 tz=self.org.timezone,
