@@ -1,4 +1,4 @@
-# Safe uppercase alphabet, base-32 (no I, L, O, 0, 1)
+# Safe uppercase alphabet, base-32 (no I, O, 0, 1)
 ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 BASE = len(ALPHABET)  # 32
 
