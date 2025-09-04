@@ -1,3 +1,10 @@
+v10.3.49 (2025-09-04)
+-------------------------
+ * Update flow editor as well
+ * Fixes for allowCreate Selects
+ * Switch exports for anon orgs to use ref instead of anon_display
+ * Update API and templatetags to use contact ref instead of anon_display
+
 v10.3.48 (2025-09-04)
 -------------------------
  * Adjust unfinished flows starts to consider last 7 days period
