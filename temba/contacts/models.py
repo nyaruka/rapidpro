@@ -31,7 +31,7 @@ from temba.utils import dynamo, format_number, on_transaction_commit
 from temba.utils.export import MultiSheetExporter
 from temba.utils.models import JSONField, LegacyUUIDMixin, TembaModel, delete_in_batches
 from temba.utils.models.counts import BaseSquashableCount
-from temba.utils.text import unsnakify
+from temba.utils.text import feistel, unsnakify
 from temba.utils.urns import ParsedURN, parse_number, parse_urn
 from temba.utils.uuid import uuid4
 
@@ -629,9 +629,16 @@ class Contact(LegacyUUIDMixin, SmartModel):
         )
 
     @property
+    def ref(self) -> str:
+        """
+        A 6-7 character human friendly string reference for this contact
+        """
+        return feistel.encode(self.id, settings.ID_OBFUSCATION_KEYS)
+
+    @property
     def anon_display(self):
         """
-        The displayable identifier used in place of URNs for anonymous orgs
+        The displayable identifier used in place of URNs for anonymous orgs. Deprecated in favor of ref.
         """
         return f"{self.id:010}"
 

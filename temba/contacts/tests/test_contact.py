@@ -48,6 +48,14 @@ class ContactTest(TembaTest):
         # create contact in other org
         self.other_org_contact = self.create_contact(name="Fred", phone="+250768111222", org=self.org2)
 
+    def test_ref(self):
+        self.assertEqual(6, len(self.joe.ref))  # test contact ids change
+        self.assertEqual("KZANEV", Contact(id=1000).ref)
+        self.assertEqual("KZANEV", Contact(id=1000).ref)
+        self.assertEqual("F6UQQW", Contact(id=2000).ref)
+        self.assertEqual("NVQ26R", Contact(id=1_073_741_823).ref)
+        self.assertEqual("GQENS3N", Contact(id=1_073_741_824).ref)
+
     def test_contact_notes(self):
         note_text = "This is note"
 
