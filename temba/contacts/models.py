@@ -1190,7 +1190,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         if self.name:
             return self.name
         elif org.is_anon:
-            return self.anon_display
+            return self.ref
 
         return self.get_urn_display(org=org, formatted=formatted)
 

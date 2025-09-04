@@ -148,7 +148,7 @@ class ContactsEndpointTest(APITest):
                 {
                     "uuid": contact4.uuid,
                     "name": "Don",
-                    "anon_display": f"{contact4.id:010}",
+                    "ref": contact4.ref,
                     "status": "active",
                     "language": "fra",
                     "urns": ["tel:********"],
@@ -159,6 +159,8 @@ class ContactsEndpointTest(APITest):
                     "created_on": format_datetime(contact4.created_on),
                     "modified_on": format_datetime(contact4.modified_on),
                     "last_seen_on": "2020-08-12T13:30:45.123456Z",
+                    # deprecated
+                    "anon_display": contact4.ref,
                     "blocked": False,
                     "stopped": False,
                 },
@@ -175,7 +177,7 @@ class ContactsEndpointTest(APITest):
                 {
                     "uuid": contact4.uuid,
                     "name": "Don",
-                    "anon_display": f"{contact4.id:010}",
+                    "ref": contact4.ref,
                     "status": "active",
                     "language": "fra",
                     "urns": [
@@ -193,6 +195,8 @@ class ContactsEndpointTest(APITest):
                     "created_on": format_datetime(contact4.created_on),
                     "modified_on": format_datetime(contact4.modified_on),
                     "last_seen_on": "2020-08-12T13:30:45.123456Z",
+                    # deprecated
+                    "anon_display": contact4.ref,
                     "blocked": False,
                     "stopped": False,
                 },

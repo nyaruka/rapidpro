@@ -119,23 +119,26 @@ class FieldsTest(APITest):
                     joe: {
                         "uuid": str(joe.uuid),
                         "name": "Joe",
+                        "ref": joe.ref,
                         "urn": "tel:********",
                         "urn_display": None,
-                        "anon_display": f"{joe.id:010}",
+                        "anon_display": joe.ref,  # deprecated
                     },
                     frank: {
                         "uuid": str(frank.uuid),
                         "name": "Frank",
+                        "ref": frank.ref,
                         "urn": "twitterid:********",
                         "urn_display": None,
-                        "anon_display": f"{frank.id:010}",
+                        "anon_display": frank.ref,  # deprecated
                     },
                     voldemort: {
                         "uuid": str(voldemort.uuid),
                         "name": "",
+                        "ref": voldemort.ref,
                         "urn": None,
                         "urn_display": None,
-                        "anon_display": f"{voldemort.id:010}",
+                        "anon_display": voldemort.ref,  # deprecated
                     },
                 },
             )

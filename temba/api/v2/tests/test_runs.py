@@ -201,9 +201,10 @@ class RunsEndpointTest(APITest):
                     "contact": {
                         "uuid": frank.uuid,
                         "name": frank.name,
+                        "ref": frank.ref,
                         "urn": "tel:********",
                         "urn_display": None,
-                        "anon_display": f"{frank.id:010}",
+                        "anon_display": frank.ref,  # deprecated
                     },
                     "start": None,
                     "responded": False,

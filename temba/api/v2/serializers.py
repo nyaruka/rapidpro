@@ -575,15 +575,21 @@ class ContactReadSerializer(ReadSerializer):
     modified_on = serializers.DateTimeField(default_timezone=tzone.utc)
     last_seen_on = serializers.DateTimeField(default_timezone=tzone.utc)
 
-    blocked = serializers.SerializerMethodField()  # deprecated
-    stopped = serializers.SerializerMethodField()  # deprecated
+    # deprecated fields
+    anon_display = serializers.SerializerMethodField()
+    blocked = serializers.SerializerMethodField()
+    stopped = serializers.SerializerMethodField()
 
     def __init__(self, *args, context, **kwargs):
         super().__init__(*args, context=context, **kwargs)
 
-        # remove anon_display field if org isn't anon
+        # remove anon org only fields if org isn't anon
         if not context["org"].is_anon:
+            self.fields.pop("ref")
             self.fields.pop("anon_display")
+
+    def get_anon_display(self, obj):
+        return obj.ref
 
     def get_name(self, obj):
         return obj.name if obj.is_active else None
@@ -641,7 +647,8 @@ class ContactReadSerializer(ReadSerializer):
         fields = (
             "uuid",
             "name",
-            "anon_display",
+            "ref",
+            "anon_display",  # deprecated
             "status",
             "language",
             "urns",
