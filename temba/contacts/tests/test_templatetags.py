@@ -32,21 +32,21 @@ class ContactsTest(TembaTest):
         self.assertEqual("(202) 456-2222", tags.name_or_urn(contact4, self.org))
 
         with self.anonymous(self.org):
-            self.assertEqual(f"{contact1.id:010}", tags.name_or_urn(contact1, self.org))
+            self.assertEqual(contact1.ref, tags.name_or_urn(contact1, self.org))
             self.assertEqual("Ann", tags.name_or_urn(contact2, self.org))
             self.assertEqual("Bob", tags.name_or_urn(contact3, self.org))
-            self.assertEqual(f"{contact4.id:010}", tags.name_or_urn(contact4, self.org))
+            self.assertEqual(contact4.ref, tags.name_or_urn(contact4, self.org))
 
     def test_urn_or_anon(self):
-        contact1 = self.create_contact("Bob", urns=[])
-        contact2 = self.create_contact("Uri", urns=["tel:+12024561414", "telegram:098765432"])
+        contact1 = self.create_contact("Bob", urns=[], id=1_000_001)
+        contact2 = self.create_contact("Uri", urns=["tel:+12024561414", "telegram:098765432"], id=1_000_002)
 
         self.assertEqual("--", tags.urn_or_anon(contact1, self.org))
         self.assertEqual("+1 202-456-1414", tags.urn_or_anon(contact2, self.org))
 
         with self.anonymous(self.org):
-            self.assertEqual(f"{contact1.id:010}", tags.urn_or_anon(contact1, self.org))
-            self.assertEqual(f"{contact2.id:010}", tags.urn_or_anon(contact2, self.org))
+            self.assertEqual("S5XQ4X", tags.urn_or_anon(contact1, self.org))
+            self.assertEqual("WG67XY", tags.urn_or_anon(contact2, self.org))
 
     def test_urn_icon(self):
         contact = self.create_contact("Uri", urns=["tel:+1234567890", "telegram:098765432", "viber:346376373"])

@@ -42,9 +42,9 @@ def name_or_urn(contact, org):
 
 
 @register.filter
-def urn_or_anon(contact, org):
+def urn_or_anon(contact, org) -> str:
     """
-    Renders the contact has their primary URN or anon id if org is anon
+    Renders the contact as their primary URN, or ref value if org is anon
     """
     if not org.is_anon:
         contact_urn = contact.get_urn()
@@ -53,7 +53,7 @@ def urn_or_anon(contact, org):
         else:
             return MISSING_VALUE
     else:
-        return contact.anon_display
+        return contact.ref
 
 
 @register.filter

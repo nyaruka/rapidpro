@@ -31,7 +31,7 @@ from temba.utils import dynamo, format_number, on_transaction_commit
 from temba.utils.export import MultiSheetExporter
 from temba.utils.models import JSONField, LegacyUUIDMixin, TembaModel, delete_in_batches
 from temba.utils.models.counts import BaseSquashableCount
-from temba.utils.text import unsnakify
+from temba.utils.text import feistel, unsnakify
 from temba.utils.urns import ParsedURN, parse_number, parse_urn
 from temba.utils.uuid import uuid4
 
@@ -629,11 +629,11 @@ class Contact(LegacyUUIDMixin, SmartModel):
         )
 
     @property
-    def anon_display(self):
+    def ref(self) -> str:
         """
-        The displayable identifier used in place of URNs for anonymous orgs
+        A 6-7 character human friendly string reference for this contact
         """
-        return f"{self.id:010}"
+        return feistel.encode(self.id, settings.ID_OBFUSCATION_KEYS)
 
     @classmethod
     def get_status_counts(cls, org) -> dict:
@@ -1183,7 +1183,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         if self.name:
             return self.name
         elif org.is_anon:
-            return self.anon_display
+            return self.ref
 
         return self.get_urn_display(org=org, formatted=formatted)
 

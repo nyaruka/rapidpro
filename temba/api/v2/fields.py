@@ -302,7 +302,8 @@ class ContactField(TembaModelField):
             rep.update({"urn": urn_str, "urn_display": urn_display})
 
             if org.is_anon:
-                rep["anon_display"] = obj.anon_display
+                rep["ref"] = obj.ref
+                rep["anon_display"] = obj.ref  # deprecated
 
         return rep
 

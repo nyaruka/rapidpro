@@ -1578,7 +1578,7 @@ class Export(TembaUUIDMixin, models.Model):
 
         cols = [str(contact.uuid), contact.name, urn_scheme]
         if self.org.is_anon:
-            cols.append(contact.anon_display)
+            cols.append(contact.ref)
         else:
             cols.append(urn_path)
 

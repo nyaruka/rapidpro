@@ -527,7 +527,7 @@ class ResultsExportTest(TembaTest):
                     self.contact.uuid,
                     "Eric",
                     "tel",
-                    self.contact.anon_display,
+                    self.contact.ref,
                     run1.created_on,
                     run1.modified_on,
                     run1.exited_on,

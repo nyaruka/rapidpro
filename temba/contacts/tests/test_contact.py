@@ -48,6 +48,14 @@ class ContactTest(TembaTest):
         # create contact in other org
         self.other_org_contact = self.create_contact(name="Fred", phone="+250768111222", org=self.org2)
 
+    def test_ref(self):
+        self.assertEqual(6, len(self.joe.ref))  # test contact ids change
+        self.assertEqual("KZANEV", Contact(id=1000).ref)
+        self.assertEqual("KZANEV", Contact(id=1000).ref)
+        self.assertEqual("F6UQQW", Contact(id=2000).ref)
+        self.assertEqual("NVQ26R", Contact(id=1_073_741_823).ref)
+        self.assertEqual("GQENS3N", Contact(id=1_073_741_824).ref)
+
     def test_contact_notes(self):
         note_text = "This is note"
 
@@ -482,7 +490,7 @@ class ContactTest(TembaTest):
         with self.anonymous(self.org):
             self.assertEqual("Joe Blow", self.joe.get_display(org=self.org, formatted=False))
             self.assertEqual("Joe Blow", self.joe.get_display())
-            self.assertEqual("%010d" % self.voldemort.pk, self.voldemort.get_display())
+            self.assertEqual(self.voldemort.ref, self.voldemort.get_display())
             self.assertEqual("Billy Nophone", self.billy.get_display())
 
             self.assertEqual(ContactURN.ANON_MASK, self.joe.get_urn_display(org=self.org, formatted=False))
@@ -492,7 +500,7 @@ class ContactTest(TembaTest):
             self.assertEqual("", self.billy.get_urn_display(scheme=URN.TEL_SCHEME))
 
             self.assertEqual("Joe Blow", str(self.joe))
-            self.assertEqual("%010d" % self.voldemort.pk, str(self.voldemort))
+            self.assertEqual(self.voldemort.ref, str(self.voldemort))
             self.assertEqual("Billy Nophone", str(self.billy))
 
     def test_bulk_urn_cache_initialize(self):
