@@ -1,5 +1,5 @@
 from temba.tests import TembaTest
-from temba.utils.text import clean_string, feistel, generate_secret, generate_token, slugify_with, truncate, unsnakify
+from temba.utils.text import clean_string, generate_secret, generate_token, obfuscate, slugify_with, truncate, unsnakify
 
 
 class TextTest(TembaTest):
@@ -33,9 +33,9 @@ class TextTest(TembaTest):
         self.assertEqual(len(generate_token()), 8)
 
 
-class FeistelTest(TembaTest):
-    def test_encode_and_decode(self):
-        keys = (0xA3B1C, 0xD2E3F, 0x1A2B3, 0xC0FFEE)
+class ObfuscateTest(TembaTest):
+    def test_ids(self):
+        key = (0xA3B1C, 0xD2E3F, 0x1A2B3, 0xC0FFEE)
         cases = [
             (1, "E2E6MX"),
             (2, "3MWB69"),
@@ -51,15 +51,15 @@ class FeistelTest(TembaTest):
             (9_999_999_999, "P7U8B2J"),
         ]
         for id, expected_code in cases:
-            actual_code = feistel.encode(id, keys)
+            actual_code = obfuscate.encode_id(id, key)
             self.assertEqual(expected_code, actual_code, f"encoding mismatch for id {id}")
 
-            decoded = feistel.decode(expected_code, keys)
+            decoded = obfuscate.decode_id(expected_code, key)
             self.assertEqual(id, decoded, f"decoding mismatch for code {expected_code}")
 
         with self.assertRaises(ValueError):
-            feistel.decode("E2E6MXXX", keys)  # too long
+            obfuscate.decode_id("E2E6MXXX", key)  # too long
         with self.assertRaises(ValueError):
-            feistel.decode("E2E6M", keys)  # too short
+            obfuscate.decode_id("E2E6M", key)  # too short
         with self.assertRaises(ValueError):
-            feistel.decode("E2E6M0", keys)  # invalid char 0
+            obfuscate.decode_id("E2E6M0", key)  # invalid char 0

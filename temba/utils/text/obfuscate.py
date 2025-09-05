@@ -1,9 +1,9 @@
 # Safe uppercase alphabet, base-32 (no I, O, 0, 1)
 ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-BASE = len(ALPHABET)  # 32
+ALPHABET_BASE = len(ALPHABET)  # 32
 
 # Threshold where we switch from 6 → 7 chars
-THRESHOLD_6CHARS = BASE**6  # 1,073,741,824
+THRESHOLD_6CHARS = ALPHABET_BASE**6  # 1,073,741,824
 
 MAX_ID = 9_999_999_999
 
@@ -16,11 +16,12 @@ F34_HALF_SIZE = F34_BIT_SIZE // 2  # 17 bits
 F34_MASK = (1 << F34_HALF_SIZE) - 1  # 0x1FFFF
 
 
-def encode(id_: int, keys: tuple) -> str:
+def encode_id(id_: int, key: tuple) -> str:
     assert 0 < id_ <= MAX_ID, "encode requires id between 1 and 9,999,999,999"
+    assert len(key) == 4, "key must be a tuple of 4 integers"
 
     if id_ < THRESHOLD_6CHARS:
-        obfuscated = _feistel30_encrypt(id_, keys)
+        obfuscated = _feistel30_encrypt(id_, key)
         code_length = 6
     else:
         # For larger IDs, use 7 characters with extended Feistel for more bits
@@ -31,17 +32,17 @@ def encode(id_: int, keys: tuple) -> str:
         normalized_id = id_ - THRESHOLD_6CHARS
 
         # Use extended Feistel cipher for larger bit space
-        obfuscated = _feistel34_encrypt(normalized_id, keys)
+        obfuscated = _feistel34_encrypt(normalized_id, key)
         code_length = 7
 
     chars = []
     for _ in range(code_length):
-        chars.append(ALPHABET[obfuscated % BASE])
-        obfuscated //= BASE
+        chars.append(ALPHABET[obfuscated % ALPHABET_BASE])
+        obfuscated //= ALPHABET_BASE
     return "".join(reversed(chars))
 
 
-def decode(code: str, keys: tuple) -> int:
+def decode_id(code: str, key: tuple) -> int:
     code = code.upper()
     num = 0
     for c in code:
@@ -49,22 +50,22 @@ def decode(code: str, keys: tuple) -> int:
             idx = ALPHABET.index(c)
         except ValueError:
             raise ValueError(f"Invalid character '{c}' in code")
-        num = num * BASE + idx
+        num = num * ALPHABET_BASE + idx
 
     if len(code) == 6:
-        return _feistel30_decrypt(num, keys)
+        return _feistel30_decrypt(num, key)
     elif len(code) == 7:
-        normalized_id = _feistel34_decrypt(num, keys)
+        normalized_id = _feistel34_decrypt(num, key)
         return normalized_id + THRESHOLD_6CHARS
     else:
         raise ValueError("Code must be 6 or 7 characters")
 
 
-def _feistel30_encrypt(n: int, keys: tuple) -> int:
+def _feistel30_encrypt(n: int, key: tuple) -> int:
     left = (n >> F30_HALF_SIZE) & F30_MASK
     right = n & F30_MASK
 
-    for k in keys:
+    for k in key:
         new_left = right
         right = left ^ (_feistel_round(right, k, F30_MASK) & F30_MASK)
         left = new_left
@@ -72,11 +73,11 @@ def _feistel30_encrypt(n: int, keys: tuple) -> int:
     return (left << F30_HALF_SIZE) | right
 
 
-def _feistel30_decrypt(n: int, keys: tuple) -> int:
+def _feistel30_decrypt(n: int, key: tuple) -> int:
     left = (n >> F30_HALF_SIZE) & F30_MASK
     right = n & F30_MASK
 
-    for k in reversed(keys):
+    for k in reversed(key):
         new_right = left
         left = right ^ (_feistel_round(left, k, F30_MASK) & F30_MASK)
         right = new_right
@@ -84,11 +85,11 @@ def _feistel30_decrypt(n: int, keys: tuple) -> int:
     return (left << F30_HALF_SIZE) | right
 
 
-def _feistel34_encrypt(n: int, keys: tuple) -> int:
+def _feistel34_encrypt(n: int, key: tuple) -> int:
     left = (n >> F34_HALF_SIZE) & F34_MASK
     right = n & F34_MASK
 
-    for k in keys:
+    for k in key:
         new_left = right
         right = left ^ (_feistel_round(right, k, F34_MASK) & F34_MASK)
         left = new_left
@@ -96,11 +97,11 @@ def _feistel34_encrypt(n: int, keys: tuple) -> int:
     return (left << F34_HALF_SIZE) | right
 
 
-def _feistel34_decrypt(n: int, keys: tuple) -> int:
+def _feistel34_decrypt(n: int, key: tuple) -> int:
     left = (n >> F34_HALF_SIZE) & F34_MASK
     right = n & F34_MASK
 
-    for k in reversed(keys):
+    for k in reversed(key):
         new_right = left
         left = right ^ (_feistel_round(left, k, F34_MASK) & F34_MASK)
         right = new_right

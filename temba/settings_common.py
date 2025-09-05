@@ -16,6 +16,9 @@ OUTGOING_REQUEST_HEADERS = {"User-agent": "RapidPro"}
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = "your own secret key"
 
+# used to obfuscate IDs - i.e. contact ids in anonymous workspaces
+ID_OBFUSCATION_KEY = (0xA3B1C, 0xD2E3F, 0x1A2B3, 0xC0FFEE)
+
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 2500  # needed for exports of big workspaces
 
 # -----------------------------------------------------------------------------------
@@ -882,9 +885,6 @@ RETENTION_PERIODS = {
     "syncevent": timedelta(days=7),
     "webhookevent": timedelta(hours=48),
 }
-
-# used to obfuscate IDs - i.e. contact ids in anonymous workspaces
-ID_OBFUSCATION_KEYS = (0xA3B1C, 0xD2E3F, 0x1A2B3, 0xC0FFEE)
 
 # -----------------------------------------------------------------------------------
 # 3rd Party Integrations
