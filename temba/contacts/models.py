@@ -1750,6 +1750,7 @@ class ContactExport(ExportType):
             fields = [
                 dict(label="ID", key="id", field=None, urn_scheme=None),
                 dict(label="Scheme", key="scheme", field=None, urn_scheme=None),
+                dict(label="Ref", key="ref", field=None, urn_scheme=None),
             ] + fields
 
         scheme_counts = dict()
@@ -1878,6 +1879,8 @@ class ContactExport(ExportType):
             return contact.last_seen_on
         elif field["key"] == "id":
             return str(contact.id)
+        elif field["key"] == "ref":
+            return str(contact.ref)
         elif field["key"] == "scheme":
             contact_urns = contact.get_urns()
             return contact_urns[0].scheme if contact_urns else ""

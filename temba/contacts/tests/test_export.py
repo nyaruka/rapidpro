@@ -549,6 +549,7 @@ class ContactExportTest(TembaTest):
                     [
                         "ID",
                         "Scheme",
+                        "Ref",
                         "Contact UUID",
                         "Name",
                         "Language",
@@ -563,6 +564,7 @@ class ContactExportTest(TembaTest):
                     [
                         str(contact.id),
                         "tel",
+                        str(contact.ref),
                         contact.uuid,
                         "Ben Haggerty",
                         "",
@@ -577,6 +579,7 @@ class ContactExportTest(TembaTest):
                     [
                         str(contact2.id),
                         "tel",
+                        str(contact2.ref),
                         contact2.uuid,
                         "Adam Sumner",
                         "eng",
@@ -591,6 +594,7 @@ class ContactExportTest(TembaTest):
                     [
                         str(contact3.id),
                         "tel",
+                        str(contact3.ref),
                         contact3.uuid,
                         "Luol Deng",
                         "",
@@ -605,6 +609,7 @@ class ContactExportTest(TembaTest):
                     [
                         str(contact4.id),
                         "tel",
+                        str(contact4.ref),
                         contact4.uuid,
                         "Stephen",
                         "",
