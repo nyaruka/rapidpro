@@ -31,7 +31,7 @@ from temba.utils import dynamo, format_number, on_transaction_commit
 from temba.utils.export import MultiSheetExporter
 from temba.utils.models import JSONField, LegacyUUIDMixin, TembaModel, delete_in_batches
 from temba.utils.models.counts import BaseSquashableCount
-from temba.utils.text import feistel, unsnakify
+from temba.utils.text import obfuscate, unsnakify
 from temba.utils.urns import ParsedURN, parse_number, parse_urn
 from temba.utils.uuid import uuid4
 
@@ -633,7 +633,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         """
         A 6-7 character human friendly string reference for this contact
         """
-        return feistel.encode(self.id, settings.ID_OBFUSCATION_KEYS)
+        return obfuscate.encode_id(self.id, settings.ID_OBFUSCATION_KEY)
 
     @classmethod
     def get_status_counts(cls, org) -> dict:
