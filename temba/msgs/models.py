@@ -523,12 +523,6 @@ class Msg(models.Model):
         (FAILED_CHANNEL_REMOVED, _("Channel removed")),  # channel removed by user
     )
 
-    MEDIA_GPS = "geo"
-    MEDIA_IMAGE = "image"
-    MEDIA_VIDEO = "video"
-    MEDIA_AUDIO = "audio"
-    MEDIA_TYPES = [MEDIA_AUDIO, MEDIA_GPS, MEDIA_IMAGE, MEDIA_VIDEO]
-
     MAX_TEXT_LEN = 4096  # max chars allowed in a message
     MAX_ATTACHMENTS = 10  # max attachments allowed on a message
     MAX_QUICK_REPLIES = 10  # max quick replies allowed on a message
@@ -565,6 +559,7 @@ class Msg(models.Model):
     msg_type = models.CharField(max_length=1, choices=TYPE_CHOICES)
     direction = models.CharField(max_length=1, choices=DIRECTION_CHOICES)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING, db_index=True)
+    folder = models.CharField(max_length=1, null=True)
     visibility = models.CharField(max_length=1, choices=VISIBILITY_CHOICES, default=VISIBILITY_VISIBLE)
     is_android = models.BooleanField()
     labels = models.ManyToManyField("Label", related_name="msgs")
