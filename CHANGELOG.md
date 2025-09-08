@@ -1,3 +1,7 @@
+v10.3.50 (2025-09-08)
+-------------------------
+ * Update id obfuscation code to match changes in go code
+
 v10.3.49 (2025-09-04)
 -------------------------
  * Update flow editor as well
