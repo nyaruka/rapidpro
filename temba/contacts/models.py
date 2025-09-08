@@ -1745,13 +1745,14 @@ class ContactExport(ExportType):
             dict(label="Last Seen On", key="last_seen_on", field=None, urn_scheme=None),
         ]
 
-        # anon orgs also get an ID column that is just the PK
+        # anon orgs get some extra columns
         if export.org.is_anon:
-            fields = [
-                dict(label="ID", key="id", field=None, urn_scheme=None),
-                dict(label="Scheme", key="scheme", field=None, urn_scheme=None),
+            extra = [
                 dict(label="Ref", key="ref", field=None, urn_scheme=None),
-            ] + fields
+                dict(label="Legacy ID", key="id", field=None, urn_scheme=None),  # TODO remove in future
+                dict(label="Scheme", key="scheme", field=None, urn_scheme=None),
+            ]
+            fields = fields[0:1] + extra + fields[1:]
 
         scheme_counts = dict()
         if not export.org.is_anon:
