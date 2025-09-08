@@ -1,3 +1,8 @@
+v10.3.51 (2025-09-08)
+-------------------------
+ * Tweak order of columns in contact exports for anon orgs to deemphasize id value
+ * Add new ref identifier to contact exports
+
 v10.3.50 (2025-09-08)
 -------------------------
  * Update id obfuscation code to match changes in go code
