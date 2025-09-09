@@ -32,7 +32,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
                 app_id = settings.FACEBOOK_APPLICATION_ID
                 app_secret = settings.FACEBOOK_APPLICATION_SECRET
 
-                url = "https://graph.facebook.com/v18.0/debug_token"
+                url = "https://graph.facebook.com/v20.0/debug_token"
                 params = {"access_token": f"{app_id}|{app_secret}", "input_token": auth_token}
 
                 response = requests.get(url, params=params)
@@ -65,7 +65,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
 
                     auth_token = long_lived_auth_token
 
-                url = f"https://graph.facebook.com/v18.0/{fb_user_id}/accounts"
+                url = f"https://graph.facebook.com/v20.0/{fb_user_id}/accounts"
                 params = {"access_token": auth_token}
 
                 page_access_token = ""
@@ -96,7 +96,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
                 if page_access_token == "":  # pragma: no cover
                     raise Exception("Empty page access token!")
 
-                url = f"https://graph.facebook.com/v18.0/{page_id}/subscribed_apps"
+                url = f"https://graph.facebook.com/v20.0/{page_id}/subscribed_apps"
                 params = {"access_token": page_access_token}
                 data = {"subscribed_fields": "messages,messaging_postbacks"}
 
@@ -197,7 +197,7 @@ class RefreshToken(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, Sma
 
         context["facebook_login_instagram_config_id"] = settings.FACEBOOK_LOGIN_INSTAGRAM_CONFIG_ID
 
-        url = "https://graph.facebook.com/v18.0/debug_token"
+        url = "https://graph.facebook.com/v20.0/debug_token"
         params = {
             "access_token": f"{app_id}|{app_secret}",
             "input_token": self.object.config[Channel.CONFIG_AUTH_TOKEN],
@@ -253,7 +253,7 @@ class RefreshToken(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, Sma
         if long_lived_auth_token == "":  # pragma: no cover
             raise Exception("Empty user access token!")
 
-        url = f"https://graph.facebook.com/v18.0/{fb_user_id}/accounts"
+        url = f"https://graph.facebook.com/v20.0/{fb_user_id}/accounts"
         params = {"access_token": long_lived_auth_token}
 
         page_access_token = ""
@@ -281,7 +281,7 @@ class RefreshToken(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, Sma
             else:  # pragma: needs cover
                 break
 
-        url = f"https://graph.facebook.com/v18.0/{page_id}/subscribed_apps"
+        url = f"https://graph.facebook.com/v20.0/{page_id}/subscribed_apps"
         params = {"access_token": page_access_token}
         data = {"subscribed_fields": "messages,messaging_postbacks"}
 
