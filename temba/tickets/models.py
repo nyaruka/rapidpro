@@ -220,28 +220,31 @@ class Ticket(models.Model):
         self.bulk_add_note(self.org, user, [self], note=note)
 
     @classmethod
-    def bulk_assign(cls, org, user: User, tickets: list, assignee: User):
+    def bulk_assign(cls, org, user: User, tickets: list, assignee: User) -> list[str]:
         return cls._bulk_response(mailroom.get_client().ticket_assign(org, user, tickets, assignee), tickets)
 
     @classmethod
-    def bulk_add_note(cls, org, user: User, tickets: list, note: str):
+    def bulk_add_note(cls, org, user: User, tickets: list, note: str) -> list[str]:
         return cls._bulk_response(mailroom.get_client().ticket_add_note(org, user, tickets, note), tickets)
 
     @classmethod
-    def bulk_change_topic(cls, org, user: User, tickets: list, topic: Topic):
+    def bulk_change_topic(cls, org, user: User, tickets: list, topic: Topic) -> list[str]:
         return cls._bulk_response(mailroom.get_client().ticket_change_topic(org, user, tickets, topic), tickets)
 
     @classmethod
-    def bulk_close(cls, org, user, tickets):
+    def bulk_close(cls, org, user, tickets) -> list[str]:
         return cls._bulk_response(mailroom.get_client().ticket_close(org, user, tickets), tickets)
 
     @classmethod
-    def bulk_reopen(cls, org, user, tickets):
+    def bulk_reopen(cls, org, user, tickets) -> list[str]:
         return cls._bulk_response(mailroom.get_client().ticket_reopen(org, user, tickets), tickets)
 
     @classmethod
-    def _bulk_response(self, resp: dict, tickets: list) -> list:
-        return [t for t in tickets if t.id in resp["changed_ids"]]
+    def _bulk_response(self, resp: dict, tickets: list) -> list[str]:
+        if "changed_ids" in resp:  # pragma: no cover
+            return [str(t.uuid) for t in tickets if t.id in resp["changed_ids"]]
+
+        return resp.get("changed_uuids", [])
 
     @classmethod
     def get_assignee_count(cls, org, user, topics, status: str) -> int:
