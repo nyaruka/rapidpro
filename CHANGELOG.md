@@ -1,3 +1,7 @@
+v10.3.52 (2025-09-09)
+-------------------------
+ * Pass tickets by UUID to Mailroom endpoints and read UUIDs from responses
+
 v10.3.51 (2025-09-08)
 -------------------------
  * Tweak order of columns in contact exports for anon orgs to deemphasize id value
