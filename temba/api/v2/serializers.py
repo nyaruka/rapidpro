@@ -1749,17 +1749,17 @@ class TicketBulkActionSerializer(WriteSerializer):
         topic = self.validated_data.get("topic")
 
         if action == self.ACTION_ASSIGN:
-            changed = Ticket.bulk_assign(org, user, tickets, assignee=assignee)
+            changed_uuids = Ticket.bulk_assign(org, user, tickets, assignee=assignee)
         elif action == self.ACTION_ADD_NOTE:
-            changed = Ticket.bulk_add_note(org, user, tickets, note=note)
+            changed_uuids = Ticket.bulk_add_note(org, user, tickets, note=note)
         elif action == self.ACTION_CHANGE_TOPIC:
-            changed = Ticket.bulk_change_topic(org, user, tickets, topic=topic)
+            changed_uuids = Ticket.bulk_change_topic(org, user, tickets, topic=topic)
         elif action == self.ACTION_CLOSE:
-            changed = Ticket.bulk_close(org, user, tickets)
+            changed_uuids = Ticket.bulk_close(org, user, tickets)
         elif action == self.ACTION_REOPEN:
-            changed = Ticket.bulk_reopen(org, user, tickets)
+            changed_uuids = Ticket.bulk_reopen(org, user, tickets)
 
-        failed = [t.uuid for t in tickets if t not in changed]
+        failed = [str(t.uuid) for t in tickets if str(t.uuid) not in changed_uuids]
         return BulkActionFailure(failed) if failed else None
 
 

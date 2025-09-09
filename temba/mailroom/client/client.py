@@ -353,7 +353,8 @@ class MailroomClient:
             {
                 "org_id": org.id,
                 "user_id": user.id,
-                "ticket_ids": [t.id for t in tickets],
+                "ticket_uuids": [str(t.uuid) for t in tickets],
+                "ticket_ids": [t.id for t in tickets],  # deprecated
                 "assignee_id": assignee.id if assignee else None,
             },
         )
@@ -364,7 +365,8 @@ class MailroomClient:
             {
                 "org_id": org.id,
                 "user_id": user.id,
-                "ticket_ids": [t.id for t in tickets],
+                "ticket_uuids": [str(t.uuid) for t in tickets],
+                "ticket_ids": [t.id for t in tickets],  # deprecated
                 "note": note,
             },
         )
@@ -375,7 +377,8 @@ class MailroomClient:
             {
                 "org_id": org.id,
                 "user_id": user.id,
-                "ticket_ids": [t.id for t in tickets],
+                "ticket_uuids": [str(t.uuid) for t in tickets],
+                "ticket_ids": [t.id for t in tickets],  # deprecated
                 "topic_id": topic.id,
             },
         )
@@ -383,7 +386,12 @@ class MailroomClient:
     def ticket_close(self, org, user, tickets):
         return self._request(
             "ticket/close",
-            {"org_id": org.id, "user_id": user.id, "ticket_ids": [t.id for t in tickets]},
+            {
+                "org_id": org.id,
+                "user_id": user.id,
+                "ticket_uuids": [str(t.uuid) for t in tickets],
+                "ticket_ids": [t.id for t in tickets],  # deprecated
+            },
         )
 
     def ticket_reopen(self, org, user, tickets):
@@ -392,7 +400,8 @@ class MailroomClient:
             {
                 "org_id": org.id,
                 "user_id": user.id,
-                "ticket_ids": [t.id for t in tickets],
+                "ticket_uuids": [str(t.uuid) for t in tickets],
+                "ticket_ids": [t.id for t in tickets],  # deprecated
             },
         )
 

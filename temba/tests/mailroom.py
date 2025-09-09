@@ -448,7 +448,7 @@ class TestClient(MailroomClient):
                 created_by=user,
             )
 
-        return {"changed_ids": [t.id for t in tickets]}
+        return {"changed_uuids": [str(t.uuid) for t in tickets]}
 
     @_client_method
     def ticket_add_note(self, org, user, tickets, note: str):
@@ -468,7 +468,7 @@ class TestClient(MailroomClient):
                 created_by=user,
             )
 
-        return {"changed_ids": [t.id for t in tickets]}
+        return {"changed_uuids": [str(t.uuid) for t in tickets]}
 
     @_client_method
     def ticket_change_topic(self, org, user, tickets, topic):
@@ -489,7 +489,7 @@ class TestClient(MailroomClient):
                 created_by=user,
             )
 
-        return {"changed_ids": [t.id for t in tickets]}
+        return {"changed_uuids": [str(t.uuid) for t in tickets]}
 
     @_client_method
     def ticket_close(self, org, user, tickets):
@@ -503,7 +503,7 @@ class TestClient(MailroomClient):
                 uuid=uuid7(), org=org, contact=ticket.contact, event_type=TicketEvent.TYPE_CLOSED, created_by=user
             )
 
-        return {"changed_ids": [t.id for t in tickets]}
+        return {"changed_uuids": [str(t.uuid) for t in tickets]}
 
     @_client_method
     def ticket_reopen(self, org, user, tickets):
@@ -517,7 +517,7 @@ class TestClient(MailroomClient):
                 uuid=uuid7(), org=org, contact=ticket.contact, event_type=TicketEvent.TYPE_REOPENED, created_by=user
             )
 
-        return {"changed_ids": [t.id for t in tickets]}
+        return {"changed_uuids": [str(t.uuid) for t in tickets]}
 
     def system_queues(self) -> dict:
         return {
