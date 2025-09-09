@@ -294,8 +294,8 @@ class Ticket(models.Model):
                 name="tickets_org_assignee_status",
                 fields=["org", "assignee", "status", "-last_activity_on", "-id"],
             ),
-            # used by message handling to find open tickets for contact
-            models.Index(name="tickets_contact_open", fields=["contact", "-opened_on"], condition=Q(status="O")),
+            # used by engine to load a contact with its open tickets
+            models.Index(name="tickets_contact_open", fields=["contact", "opened_on"], condition=Q(status="O")),
             # used by API tickets endpoint hence the ordering, and general fetching by org or contact
             models.Index(name="tickets_api_by_org", fields=["org", "-modified_on", "-id"]),
             models.Index(name="tickets_api_by_contact", fields=["contact", "-modified_on", "-id"]),
