@@ -430,27 +430,6 @@ class TestClient(MailroomClient):
         return {}
 
     @_client_method
-    def ticket_assign(self, org, user, tickets, assignee):
-        now = timezone.now()
-        tickets = list(Ticket.objects.filter(org=org, id__in=[t.id for t in tickets]).exclude(assignee=assignee))
-
-        for ticket in tickets:
-            ticket.assignee = assignee
-            ticket.modified_on = now
-            ticket.last_activity_on = now
-            ticket.save(update_fields=("assignee", "modified_on", "last_activity_on"))
-            ticket.events.create(
-                uuid=uuid7(),
-                org=org,
-                contact=ticket.contact,
-                event_type=TicketEvent.TYPE_ASSIGNED,
-                assignee=assignee,
-                created_by=user,
-            )
-
-        return {"changed_uuids": [str(t.uuid) for t in tickets]}
-
-    @_client_method
     def ticket_add_note(self, org, user, tickets, note: str):
         now = timezone.now()
         tickets = list(Ticket.objects.filter(org=org, id__in=[t.id for t in tickets]))
@@ -465,6 +444,27 @@ class TestClient(MailroomClient):
                 contact=ticket.contact,
                 event_type=TicketEvent.TYPE_NOTE_ADDED,
                 note=note,
+                created_by=user,
+            )
+
+        return {"changed_uuids": [str(t.uuid) for t in tickets]}
+
+    @_client_method
+    def ticket_change_assignee(self, org, user, tickets, assignee):
+        now = timezone.now()
+        tickets = list(Ticket.objects.filter(org=org, id__in=[t.id for t in tickets]).exclude(assignee=assignee))
+
+        for ticket in tickets:
+            ticket.assignee = assignee
+            ticket.modified_on = now
+            ticket.last_activity_on = now
+            ticket.save(update_fields=("assignee", "modified_on", "last_activity_on"))
+            ticket.events.create(
+                uuid=uuid7(),
+                org=org,
+                contact=ticket.contact,
+                event_type=TicketEvent.TYPE_ASSIGNED,
+                assignee=assignee,
                 created_by=user,
             )
 

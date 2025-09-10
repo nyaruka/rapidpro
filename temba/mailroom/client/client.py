@@ -347,18 +347,6 @@ class MailroomClient:
     def sim_resume(self, payload: dict):
         return self._request("sim/resume", payload, encode_json=True)
 
-    def ticket_assign(self, org, user, tickets, assignee):
-        return self._request(
-            "ticket/assign",
-            {
-                "org_id": org.id,
-                "user_id": user.id,
-                "ticket_uuids": [str(t.uuid) for t in tickets],
-                "ticket_ids": [t.id for t in tickets],  # deprecated
-                "assignee_id": assignee.id if assignee else None,
-            },
-        )
-
     def ticket_add_note(self, org, user, tickets, note: str):
         return self._request(
             "ticket/add_note",
@@ -366,8 +354,18 @@ class MailroomClient:
                 "org_id": org.id,
                 "user_id": user.id,
                 "ticket_uuids": [str(t.uuid) for t in tickets],
-                "ticket_ids": [t.id for t in tickets],  # deprecated
                 "note": note,
+            },
+        )
+
+    def ticket_change_assignee(self, org, user, tickets, assignee):
+        return self._request(
+            "ticket/change_assignee",
+            {
+                "org_id": org.id,
+                "user_id": user.id,
+                "ticket_uuids": [str(t.uuid) for t in tickets],
+                "assignee_id": assignee.id if assignee else None,
             },
         )
 
@@ -378,8 +376,8 @@ class MailroomClient:
                 "org_id": org.id,
                 "user_id": user.id,
                 "ticket_uuids": [str(t.uuid) for t in tickets],
-                "ticket_ids": [t.id for t in tickets],  # deprecated
-                "topic_id": topic.id,
+                "topic_uuid": str(topic.uuid),
+                "topic_id": topic.id,  # deprecated
             },
         )
 
@@ -390,7 +388,6 @@ class MailroomClient:
                 "org_id": org.id,
                 "user_id": user.id,
                 "ticket_uuids": [str(t.uuid) for t in tickets],
-                "ticket_ids": [t.id for t in tickets],  # deprecated
             },
         )
 
@@ -401,7 +398,6 @@ class MailroomClient:
                 "org_id": org.id,
                 "user_id": user.id,
                 "ticket_uuids": [str(t.uuid) for t in tickets],
-                "ticket_ids": [t.id for t in tickets],  # deprecated
             },
         )
 
