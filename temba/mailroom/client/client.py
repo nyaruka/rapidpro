@@ -379,7 +379,8 @@ class MailroomClient:
                 "user_id": user.id,
                 "ticket_uuids": [str(t.uuid) for t in tickets],
                 "ticket_ids": [t.id for t in tickets],  # deprecated
-                "topic_id": topic.id,
+                "topic_uuid": str(topic.uuid),
+                "topic_id": topic.id,  # deprecated
             },
         )
 

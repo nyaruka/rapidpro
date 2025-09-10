@@ -861,6 +861,7 @@ class MailroomClientTest(TembaTest):
                 "user_id": self.admin.id,
                 "ticket_uuids": [str(ticket1.uuid), str(ticket2.uuid)],
                 "ticket_ids": [ticket1.id, ticket2.id],
+                "topic_uuid": str(topic.uuid),
                 "topic_id": topic.id,
             },
         )
