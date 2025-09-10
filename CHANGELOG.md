@@ -1,3 +1,8 @@
+v10.3.53 (2025-09-10)
+-------------------------
+ * Update django
+ * Tweak index used to load a contact with its open tickets
+
 v10.3.52 (2025-09-09)
 -------------------------
  * Pass tickets by UUID to Mailroom endpoints and read UUIDs from responses
