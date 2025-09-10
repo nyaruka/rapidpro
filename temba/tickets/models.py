@@ -221,7 +221,7 @@ class Ticket(models.Model):
 
     @classmethod
     def bulk_assign(cls, org, user: User, tickets: list, assignee: User) -> list[str]:
-        return cls._bulk_response(mailroom.get_client().ticket_assign(org, user, tickets, assignee), tickets)
+        return cls._bulk_response(mailroom.get_client().ticket_change_assignee(org, user, tickets, assignee), tickets)
 
     @classmethod
     def bulk_add_note(cls, org, user: User, tickets: list, note: str) -> list[str]:

@@ -36,7 +36,7 @@ class TicketTest(TembaTest):
                 call(self.org, self.admin, [ticket], self.agent),
                 call(self.org, self.admin, [ticket], None),
             ],
-            mr_mocks.calls["ticket_assign"],
+            mr_mocks.calls["ticket_change_assignee"],
         )
 
         # test bulk adding a note

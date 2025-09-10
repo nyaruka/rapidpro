@@ -796,29 +796,6 @@ class MailroomClientTest(TembaTest):
         )
 
     @patch("requests.post")
-    def test_ticket_assign(self, mock_post):
-        ann = self.create_contact("Ann", urns=["tel:+12340000001"])
-        bob = self.create_contact("Bob", urns=["tel:+12340000002"])
-        ticket1 = self.create_ticket(ann)
-        ticket2 = self.create_ticket(bob)
-
-        mock_post.return_value = MockJsonResponse(200, {"changed_uuids": [str(ticket1.uuid)]})
-        response = self.client.ticket_assign(self.org, self.admin, [ticket1, ticket2], self.agent)
-
-        self.assertEqual({"changed_uuids": [str(ticket1.uuid)]}, response)
-        mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/ticket/assign",
-            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
-            json={
-                "org_id": self.org.id,
-                "user_id": self.admin.id,
-                "ticket_uuids": [str(ticket1.uuid), str(ticket2.uuid)],
-                "ticket_ids": [ticket1.id, ticket2.id],
-                "assignee_id": self.agent.id,
-            },
-        )
-
-    @patch("requests.post")
     def test_ticket_add_note(self, mock_post):
         ann = self.create_contact("Ann", urns=["tel:+12340000001"])
         bob = self.create_contact("Bob", urns=["tel:+12340000002"])
@@ -836,8 +813,29 @@ class MailroomClientTest(TembaTest):
                 "org_id": self.org.id,
                 "user_id": self.admin.id,
                 "ticket_uuids": [str(ticket1.uuid), str(ticket2.uuid)],
-                "ticket_ids": [ticket1.id, ticket2.id],
                 "note": "please handle",
+            },
+        )
+
+    @patch("requests.post")
+    def test_ticket_change_assignee(self, mock_post):
+        ann = self.create_contact("Ann", urns=["tel:+12340000001"])
+        bob = self.create_contact("Bob", urns=["tel:+12340000002"])
+        ticket1 = self.create_ticket(ann)
+        ticket2 = self.create_ticket(bob)
+
+        mock_post.return_value = MockJsonResponse(200, {"changed_uuids": [str(ticket1.uuid)]})
+        response = self.client.ticket_change_assignee(self.org, self.admin, [ticket1, ticket2], self.agent)
+
+        self.assertEqual({"changed_uuids": [str(ticket1.uuid)]}, response)
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mr/ticket/change_assignee",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={
+                "org_id": self.org.id,
+                "user_id": self.admin.id,
+                "ticket_uuids": [str(ticket1.uuid), str(ticket2.uuid)],
+                "assignee_id": self.agent.id,
             },
         )
 
@@ -860,7 +858,6 @@ class MailroomClientTest(TembaTest):
                 "org_id": self.org.id,
                 "user_id": self.admin.id,
                 "ticket_uuids": [str(ticket1.uuid), str(ticket2.uuid)],
-                "ticket_ids": [ticket1.id, ticket2.id],
                 "topic_uuid": str(topic.uuid),
                 "topic_id": topic.id,
             },
@@ -884,7 +881,6 @@ class MailroomClientTest(TembaTest):
                 "org_id": self.org.id,
                 "user_id": self.admin.id,
                 "ticket_uuids": [str(ticket1.uuid), str(ticket2.uuid)],
-                "ticket_ids": [ticket1.id, ticket2.id],
             },
         )
 
@@ -906,7 +902,6 @@ class MailroomClientTest(TembaTest):
                 "org_id": self.org.id,
                 "user_id": self.admin.id,
                 "ticket_uuids": [str(ticket1.uuid), str(ticket2.uuid)],
-                "ticket_ids": [ticket1.id, ticket2.id],
             },
         )
 
