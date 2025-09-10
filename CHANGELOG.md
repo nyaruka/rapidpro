@@ -1,3 +1,8 @@
+v10.3.54 (2025-09-10)
+-------------------------
+ * Use ticket/change_topic endpoint instead ticket/assign
+ * Pass topic by UUID to mailroom change_topic endpoint
+
 v10.3.53 (2025-09-10)
 -------------------------
  * Update django
