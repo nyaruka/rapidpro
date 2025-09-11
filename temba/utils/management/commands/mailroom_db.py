@@ -150,6 +150,8 @@ class Command(BaseCommand):
                     seq_name = f"{mod._meta.db_table}_id_seq"
                     cursor.execute(f"ALTER SEQUENCE {seq_name} RESTART WITH {start}")
 
+            cursor.execute(f"ALTER SEQUENCE contacts_contactgroup_contacts_id_seq RESTART WITH {start}")
+
     def create_org(self, spec, superuser, country):
         self._log(f"\nCreating org {spec['name']}...\n")
 
