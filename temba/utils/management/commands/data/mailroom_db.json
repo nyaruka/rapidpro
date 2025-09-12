@@ -194,8 +194,8 @@
             ],
             "contacts": [
                 {
-                    "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "name": "Cathy",
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "name": "Ann",
                     "urns": [
                         "tel:+16055741111"
                     ],
@@ -221,8 +221,8 @@
                     "created_on": "2020-12-31T16:45:30Z"
                 },
                 {
-                    "uuid": "8d024bcd-f473-4719-a00a-bd0bb1190135",
-                    "name": "George",
+                    "uuid": "cd024bcd-f473-4719-a00a-bd0bb1190135",
+                    "name": "Cat",
                     "urns": [
                         "tel:+16055743333"
                     ],
@@ -232,8 +232,8 @@
                     "created_on": "2018-03-31T09:45:30Z"
                 },
                 {
-                    "uuid": "9709c157-4606-4d41-9df3-9e9c9b4ae2d4",
-                    "name": "Alexandra",
+                    "uuid": "d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
+                    "name": "Dan",
                     "urns": [
                         "tel:+593999123456"
                     ],
@@ -518,7 +518,7 @@
             "classifiers": [],
             "contacts": [
                 {
-                    "uuid": "26d20b72-f7d8-44dc-87f2-aae046dbff95",
+                    "uuid": "f6d20b72-f7d8-44dc-87f2-aae046dbff95",
                     "name": "Fred",
                     "urns": [
                         "tel:+250700000005"
