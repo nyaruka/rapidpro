@@ -40,7 +40,7 @@ class UpdateTicketUUIDsTest(MigrationTest):
         self.assertEqual("01989ad9-7c1a-7b8d-a59e-141c265730dc", str(self.ticket2.uuid))  # unchanged
 
 
-class BackfilTicketEventsTest(MigrationTest):
+class BackfillTicketEventsTest(MigrationTest):
     app = "tickets"
     migrate_from = "0085_remove_ticket_tickets_contact_open_and_more"
     migrate_to = "0086_backfill_ticket_events"
