@@ -67,11 +67,13 @@
                     {% else %}
                       {% trans "Started" %}
                     {% endif %}
-                    {% blocktrans trimmed with count=obj.contact_count|intcomma count counter=obj.contact_count %}
-                      <b>{{ count }}</b> contact
-                    {% plural %}
-                      <b>{{ count }}</b> contacts
-                    {% endblocktrans %}
+                    {% if obj.contact_count is not None %}
+                      {% blocktrans trimmed with count=obj.contact_count|intcomma count counter=obj.contact_count %}
+                        <b>{{ count }}</b> contact
+                      {% plural %}
+                        <b>{{ count }}</b> contacts
+                      {% endblocktrans %}
+                    {% endif %}
                   {% endif %}
                 </div>
               </div>
