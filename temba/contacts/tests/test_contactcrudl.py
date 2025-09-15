@@ -16,11 +16,9 @@ from temba.orgs.models import Export, OrgRole
 from temba.schedules.models import Schedule
 from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, cleanup, mock_mailroom
 from temba.tests.engine import MockSessionWriter
-from temba.tickets.models import Topic
 from temba.triggers.models import Trigger
 from temba.utils import json
 from temba.utils.dates import datetime_to_timestamp
-from temba.utils.uuid import uuid7
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
 
@@ -568,39 +566,14 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         failed.status = "F"
         failed.save(update_fields=("status",))
 
-        # two tickets for joe
-        sales = Topic.create(self.org, self.admin, "Sales")
-        self.create_ticket(joe, opened_on=timezone.now(), closed_on=timezone.now())
-        ticket = self.create_ticket(joe, topic=sales)
-
-        # add a note to our open ticket
-        ticket.events.create(
-            uuid=uuid7(),
-            org=self.org,
-            contact=ticket.contact,
-            event_type="N",
-            note="I have a bad feeling about this",
-            created_by=self.admin,
-        )
-
-        # create an assignment
-        ticket.events.create(
-            uuid=uuid7(),
-            org=self.org,
-            contact=ticket.contact,
-            event_type="A",
-            created_by=self.admin,
-            assignee=self.admin,
-        )
-
         # fetch our contact history
         self.login(self.admin)
-        with self.assertNumQueries(17):
+        with self.assertNumQueries(15):
             response = self.client.get(history_url + "?limit=100")
 
         # history should include all messages in the last 90 days, the channel event, the call, and the flow run
         history = response.json()["events"]
-        self.assertEqual(90, len(history))
+        self.assertEqual(87, len(history))
 
         def assertHistoryEvent(events, index, expected_type, **kwargs):
             item = events[index]
@@ -610,22 +583,12 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             for path, expected in kwargs.items():
                 self.assertPathValue(item, path, expected, f"item {index}")
 
-        assertHistoryEvent(history, 0, "ticket_opened", ticket__topic__name="Sales")
-        assertHistoryEvent(history, 1, "ticket_closed", ticket__topic__name="General")
-        assertHistoryEvent(history, 2, "ticket_opened", ticket__topic__name="General")
-        assertHistoryEvent(history, 3, "msg_created", msg__text="What is your favorite color?")
-        assertHistoryEvent(history, 4, "msg_received", msg__text="Message caption")
+        assertHistoryEvent(history, 0, "msg_created", msg__text="What is your favorite color?")
+        assertHistoryEvent(history, 1, "msg_received", msg__text="Message caption")
         assertHistoryEvent(
-            history, 5, "msg_created", msg__text="A beautiful broadcast", created_by__email="editor@textit.com"
+            history, 2, "msg_created", msg__text="A beautiful broadcast", created_by__email="editor@textit.com"
         )
         assertHistoryEvent(history, -1, "msg_received", msg__text="Inbound message 11")
-
-        # can filter by ticket to only all ticket events from that ticket rather than some events from all tickets
-        response = self.client.get(history_url + f"?ticket={ticket.uuid}&limit=100")
-        history = response.json()["events"]
-        assertHistoryEvent(history, 0, "ticket_assigned", assignee__id=self.admin.id)
-        assertHistoryEvent(history, 1, "ticket_note_added", note="I have a bad feeling about this")
-        assertHistoryEvent(history, 2, "ticket_opened", ticket__topic__name="Sales")
 
         # fetch next page
         before = datetime_to_timestamp(timezone.now() - timedelta(days=90))
@@ -642,8 +605,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.requestView(history_url + "?limit=100", self.admin)
         history = response.json()["events"]
 
-        self.assertEqual(90, len(history))
-        assertHistoryEvent(history, 3, "msg_created", msg__text="What is your favorite color?")
+        self.assertEqual(87, len(history))
+        assertHistoryEvent(history, 0, "msg_created", msg__text="What is your favorite color?")
 
         # if a new message comes in
         self.create_incoming_msg(joe, "Newer message")
@@ -658,7 +621,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # with our recent flag on, should not see the older messages
         events = response.json()["events"]
-        self.assertEqual(7, len(events))
+        self.assertEqual(4, len(events))
         self.assertContains(response, "file.mp4")
 
         # add a new run
@@ -673,7 +636,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         response = self.requestView(history_url + "?limit=200", self.admin)
         history = response.json()["events"]
-        self.assertEqual(92, len(history))
+        self.assertEqual(89, len(history))
 
         # before date should not match our last activity, that only happens when we truncate
         resp_json = response.json()
@@ -684,10 +647,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         assertHistoryEvent(history, 0, "msg_created", msg__text="What is your favorite color?")
         assertHistoryEvent(history, 1, "msg_received", msg__text="Newer message")
-        assertHistoryEvent(history, 2, "ticket_opened")
-        assertHistoryEvent(history, 3, "ticket_closed")
-        assertHistoryEvent(history, 4, "ticket_opened")
-        assertHistoryEvent(history, 5, "msg_created", msg__text="What is your favorite color?")
+        assertHistoryEvent(history, 2, "msg_created", msg__text="What is your favorite color?")
 
         # now try the proper max history to test truncation
         response = self.requestView(history_url + "?before=%d" % datetime_to_timestamp(timezone.now()), self.admin)
@@ -719,30 +679,70 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         events = [
             {
-                "uuid": "019880eb-e422-7d67-993f-cdec64636851",
+                "uuid": "01994f54-9441-772b-892e-b552617ed255",
                 "type": "contact_urns_changed",
-                "created_on": "2025-08-06T21:35:19.927099+00:00",
+                "created_on": "2025-09-15T21:42:47.105495+00:00",
                 "urns": ["twitter:blow80", "tel:+250781111111", "twitter:joey"],
             },
             {
-                "uuid": "019880eb-e488-7652-beb6-0051d9cd64f2",
+                "uuid": "01994f54-9442-7401-9a64-cfe7d9cdf1d0",
                 "type": "contact_field_changed",
-                "created_on": "2025-08-06T21:35:19.927105+00:00",
-                "field": {"key": "gender", "name": "Gender"},
-                "value": {"text": "M"},
-            },
-            {
-                "uuid": "019880eb-e488-76d2-a8c4-872e95772583",
-                "type": "contact_field_changed",
-                "created_on": "2025-08-06T21:35:19.927107+00:00",
+                "created_on": "2025-09-15T21:42:47.106127+00:00",
                 "field": {"key": "age", "name": "Age"},
                 "value": None,
             },
+            {  # open ticket #1
+                "uuid": "01994f54-9442-751c-82dc-fbc96b018590",
+                "type": "ticket_opened",
+                "created_on": "2025-09-15T21:42:47.106250+00:00",
+                "ticket": {
+                    "uuid": "01994f4f-45ba-7f25-a785-b52e19b16c6b",
+                    "status": "open",
+                    "topic": {"uuid": "0d261518-d7d6-410d-bbae-0ef822d8f865", "name": "General"},
+                },
+            },
+            {  # assign ticket #1
+                "uuid": "01994f54-9442-7482-8d5c-90d8937c087d",
+                "type": "ticket_assignee_changed",
+                "created_on": "2025-09-15T21:42:47.106315+00:00",
+                "ticket_uuid": "01994f4f-45ba-7f25-a785-b52e19b16c6b",
+                "assignee": None,
+            },
             {
-                "uuid": "019880eb-e4f1-761b-bc99-750003cf8fd4",
+                "uuid": "01994f54-9442-76b3-99b2-679921327dbe",
                 "type": "contact_language_changed",
-                "created_on": "2025-08-06T21:35:19.927108+00:00",
+                "created_on": "2025-09-15T21:42:47.106354+00:00",
                 "language": "spa",
+            },
+            {  # close ticket #1
+                "uuid": "01994f54-9442-761b-9a6f-fcdfae527ada",
+                "type": "ticket_closed",
+                "created_on": "2025-09-15T21:42:47.106394+00:00",
+                "ticket_uuid": "01994f4f-45ba-7f25-a785-b52e19b16c6b",
+            },
+            {
+                "uuid": "01994f54-9442-70d9-867e-c3f6d2e6fd2c",
+                "type": "contact_field_changed",
+                "created_on": "2025-09-15T21:42:47.106535+00:00",
+                "field": {"key": "gender", "name": "Gender"},
+                "value": {"text": "M"},
+            },
+            {  # open ticket #2
+                "uuid": "01994f54-9442-7226-9046-7fd1099b643d",
+                "type": "ticket_opened",
+                "created_on": "2025-09-15T21:42:47.106566+00:00",
+                "ticket": {
+                    "uuid": "01994f50-ecb1-7b96-944e-64bcbe0cbdd2",
+                    "status": "open",
+                    "topic": {"uuid": "472a7a73-96cb-4736-b567-056d987cc5b4", "name": "Weather"},
+                },
+            },
+            {  # note added to ticket #2
+                "uuid": "01994f54-9442-72c8-8dab-2030d258d806",
+                "type": "ticket_note_added",
+                "created_on": "2025-09-15T21:42:47.106586+00:00",
+                "ticket_uuid": "01994f50-ecb1-7b96-944e-64bcbe0cbdd2",
+                "note": "This looks important!",
             },
         ]
         for event in events:
@@ -752,19 +752,67 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         self.login(self.editor)
 
+        # by default we only include basic ticket event types
         response = self.client.get(history_url)
         self.assertEqual(200, response.status_code)
-
-        resp_json = response.json()
-        self.assertEqual(4, len(resp_json["events"]))
         self.assertEqual(
             [
-                "contact_language_changed",
-                "contact_field_changed",
-                "contact_field_changed",
-                "contact_urns_changed",
+                "01994f54-9442-7226-9046-7fd1099b643d/ticket_opened",
+                "01994f54-9442-70d9-867e-c3f6d2e6fd2c/contact_field_changed",
+                "01994f54-9442-761b-9a6f-fcdfae527ada/ticket_closed",
+                "01994f54-9442-76b3-99b2-679921327dbe/contact_language_changed",
+                "01994f54-9442-751c-82dc-fbc96b018590/ticket_opened",
+                "01994f54-9442-7401-9a64-cfe7d9cdf1d0/contact_field_changed",
+                "01994f54-9441-772b-892e-b552617ed255/contact_urns_changed",
             ],
-            [e["type"] for e in resp_json["events"]],
+            [f"{e['uuid']}/{e['type']}" for e in response.json()["events"]],
+        )
+
+        # if we specify ticket 1 then we get only events for that ticket
+        response = self.client.get(history_url + "?ticket=01994f4f-45ba-7f25-a785-b52e19b16c6b")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [
+                "01994f54-9442-70d9-867e-c3f6d2e6fd2c/contact_field_changed",
+                "01994f54-9442-761b-9a6f-fcdfae527ada/ticket_closed",
+                "01994f54-9442-76b3-99b2-679921327dbe/contact_language_changed",
+                "01994f54-9442-7482-8d5c-90d8937c087d/ticket_assignee_changed",
+                "01994f54-9442-751c-82dc-fbc96b018590/ticket_opened",
+                "01994f54-9442-7401-9a64-cfe7d9cdf1d0/contact_field_changed",
+                "01994f54-9441-772b-892e-b552617ed255/contact_urns_changed",
+            ],
+            [f"{e['uuid']}/{e['type']}" for e in response.json()["events"]],
+        )
+
+        # likewise for ticket 2
+        response = self.client.get(history_url + "?ticket=01994f50-ecb1-7b96-944e-64bcbe0cbdd2")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [
+                "01994f54-9442-72c8-8dab-2030d258d806/ticket_note_added",
+                "01994f54-9442-7226-9046-7fd1099b643d/ticket_opened",
+                "01994f54-9442-70d9-867e-c3f6d2e6fd2c/contact_field_changed",
+                "01994f54-9442-76b3-99b2-679921327dbe/contact_language_changed",
+                "01994f54-9442-7401-9a64-cfe7d9cdf1d0/contact_field_changed",
+                "01994f54-9441-772b-892e-b552617ed255/contact_urns_changed",
+            ],
+            [f"{e['uuid']}/{e['type']}" for e in response.json()["events"]],
+        )
+
+        # invalid ticket UUID is ignored
+        response = self.client.get(history_url + "?ticket=invalid-uuid")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [
+                "01994f54-9442-7226-9046-7fd1099b643d/ticket_opened",
+                "01994f54-9442-70d9-867e-c3f6d2e6fd2c/contact_field_changed",
+                "01994f54-9442-761b-9a6f-fcdfae527ada/ticket_closed",
+                "01994f54-9442-76b3-99b2-679921327dbe/contact_language_changed",
+                "01994f54-9442-751c-82dc-fbc96b018590/ticket_opened",
+                "01994f54-9442-7401-9a64-cfe7d9cdf1d0/contact_field_changed",
+                "01994f54-9441-772b-892e-b552617ed255/contact_urns_changed",
+            ],
+            [f"{e['uuid']}/{e['type']}" for e in response.json()["events"]],
         )
 
     @mock_mailroom

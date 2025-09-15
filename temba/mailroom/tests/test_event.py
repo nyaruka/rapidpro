@@ -8,9 +8,7 @@ from django.utils import timezone
 
 from temba.mailroom.events import Event
 from temba.msgs.models import Msg
-from temba.tests import TembaTest, matchers
-from temba.tickets.models import TicketEvent
-from temba.utils.uuid import uuid7
+from temba.tests import TembaTest, cleanup, matchers
 
 
 class EventTest(TembaTest):
@@ -61,6 +59,7 @@ class EventTest(TembaTest):
         self.assertEqual("01969b47-672b-76f8-bebe-b4a1f677cf4c", event["uuid"])
         self.assertEqual("session_triggered", event["type"])
 
+    @cleanup(dynamodb=True)
     def test_get_by_contact(self):
         contact = self.create_contact("Jim", phone="+593979111111")
         self.write_history_event(
@@ -121,7 +120,7 @@ class EventTest(TembaTest):
         )
 
         def assert_fetched(after, before, limit, expected: list):
-            fetched = Event.get_by_contact(contact, after=after, before=before, limit=limit)
+            fetched = Event.get_by_contact(contact, after=after, before=before, ticket_uuid=None, limit=limit)
             self.assertEqual(expected, [e["uuid"][-3:] for e in fetched])
 
         assert_fetched(
@@ -382,67 +381,4 @@ class EventTest(TembaTest):
                 "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out4.id}/",
             },
             Event.from_msg(self.org, self.admin, msg_out4),
-        )
-
-    def test_from_ticket_event(self):
-        contact = self.create_contact("Jim", phone="0979111111")
-        ticket = self.create_ticket(contact)
-
-        # event with a user
-        event1 = TicketEvent.objects.create(
-            uuid=uuid7(),
-            org=self.org,
-            contact=contact,
-            ticket=ticket,
-            event_type=TicketEvent.TYPE_NOTE_ADDED,
-            created_by=self.agent,
-            note="this is important",
-        )
-
-        self.assertEqual(
-            {
-                "type": "ticket_note_added",
-                "note": "this is important",
-                "topic": None,
-                "assignee": None,
-                "ticket": {
-                    "uuid": str(ticket.uuid),
-                    "opened_on": matchers.ISODatetime(),
-                    "closed_on": None,
-                    "status": "O",
-                    "topic": {"uuid": str(self.org.default_ticket_topic.uuid), "name": "General"},
-                },
-                "created_on": matchers.ISODatetime(),
-                "created_by": {
-                    "id": self.agent.id,
-                    "first_name": "Agnes",
-                    "last_name": "",
-                    "email": "agent@textit.com",
-                },
-            },
-            Event.from_ticket_event(self.org, self.admin, event1),
-        )
-
-        # event without a user
-        event2 = TicketEvent.objects.create(
-            uuid=uuid7(), org=self.org, contact=contact, ticket=ticket, event_type=TicketEvent.TYPE_CLOSED
-        )
-
-        self.assertEqual(
-            {
-                "type": "ticket_closed",
-                "note": None,
-                "topic": None,
-                "assignee": None,
-                "ticket": {
-                    "uuid": str(ticket.uuid),
-                    "opened_on": matchers.ISODatetime(),
-                    "closed_on": None,
-                    "status": "O",
-                    "topic": {"uuid": str(self.org.default_ticket_topic.uuid), "name": "General"},
-                },
-                "created_on": matchers.ISODatetime(),
-                "created_by": None,
-            },
-            Event.from_ticket_event(self.org, self.admin, event2),
         )
