@@ -180,7 +180,7 @@ class BackfillTicketEventsTest(MigrationTest):
                         "created_on": "2025-08-11T20:36:00+00:00",
                         "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                         "assignee": {"uuid": str(self.agent.uuid), "name": "Agnes"},
-                        "_user_id": Decimal(self.admin.id),
+                        "_user_uuid": str(self.admin.uuid),
                     },
                 },
                 {
@@ -223,7 +223,7 @@ class BackfillTicketEventsTest(MigrationTest):
                         "type": "ticket_reopened",
                         "created_on": "2025-08-11T20:36:00+00:00",
                         "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
-                        "_user_id": Decimal(self.admin.id),
+                        "_user_uuid": str(self.admin.uuid),
                     },
                 },
                 {
@@ -235,7 +235,7 @@ class BackfillTicketEventsTest(MigrationTest):
                         "created_on": "2025-08-11T20:36:00+00:00",
                         "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                         "note": "We need to follow up",
-                        "_user_id": Decimal(self.editor.id),
+                        "_user_uuid": str(self.editor.uuid),
                     },
                 },
             ],

@@ -27,6 +27,7 @@ def backfill_ticket_events(apps, schema_editor):
         Prefetch("ticket__topic", Topic.objects.only("uuid", "name")),
         Prefetch("topic", Topic.objects.only("uuid", "name")),
         Prefetch("assignee", User.objects.only("uuid", "first_name", "last_name")),
+        Prefetch("created_by", User.objects.only("uuid", "first_name", "last_name")),
     )
 
     before_id = None
@@ -97,7 +98,7 @@ def backfill_ticket_events(apps, schema_editor):
                         data = None
 
                     if evt.created_by:
-                        data["_user_id"] = evt.created_by.id
+                        data["_user_uuid"] = str(evt.created_by.uuid)
 
                     if data:
                         writer.put_item(
