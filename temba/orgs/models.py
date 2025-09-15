@@ -1138,7 +1138,6 @@ class Org(SmartModel):
 
         # delete contact-related data
         delete_in_batches(self.http_logs.all())
-        delete_in_batches(self.ticket_events.all())
         delete_in_batches(self.tickets.all())
         delete_in_batches(self.topics.all())
         delete_in_batches(self.teams.all())

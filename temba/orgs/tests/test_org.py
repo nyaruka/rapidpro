@@ -33,7 +33,7 @@ from temba.tests.base import get_contact_search
 from temba.tickets.models import Team, TicketExport, Topic
 from temba.triggers.models import Trigger
 from temba.utils import json
-from temba.utils.uuid import uuid4, uuid7
+from temba.utils.uuid import uuid4
 
 
 class OrgTest(TembaTest):
@@ -664,9 +664,7 @@ class OrgDeleteTest(TembaTest):
 
     def _create_ticket_content(self, org, user, contacts, flows, add):
         topic = add(Topic.create(org, user, "Spam"))
-        ticket1 = add(self.create_ticket(contacts[0], topic))
-        ticket1.events.create(uuid=uuid7(), org=org, contact=contacts[0], event_type="N", note="spam", created_by=user)
-
+        add(self.create_ticket(contacts[0], topic))
         add(self.create_ticket(contacts[0], opened_in=flows[0]))
         team = add(Team.create(org, user, "Spam Only", topics=[topic]))
         Invitation.create(org, user, "newagent@textit.com", OrgRole.AGENT, team=team)

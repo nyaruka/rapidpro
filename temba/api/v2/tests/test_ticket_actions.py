@@ -1,4 +1,5 @@
 from datetime import datetime, timezone as tzone
+from unittest.mock import call
 
 from django.urls import reverse
 
@@ -84,10 +85,9 @@ class TicketActionsEndpointTest(APITest):
             status=204,
         )
 
-        ticket1.refresh_from_db()
-        ticket2.refresh_from_db()
-        self.assertEqual(self.agent, ticket1.assignee)
-        self.assertEqual(self.agent, ticket2.assignee)
+        self.assertEqual(
+            [call(self.org, self.agent, [ticket1, ticket2], self.agent)], mr_mocks.calls["ticket_change_assignee"]
+        )
 
         # unassign tickets
         self.assertPost(
@@ -97,8 +97,13 @@ class TicketActionsEndpointTest(APITest):
             status=204,
         )
 
-        ticket1.refresh_from_db()
-        self.assertIsNone(ticket1.assignee)
+        self.assertEqual(
+            [
+                call(self.org, self.agent, [ticket1, ticket2], self.agent),
+                call(self.org, self.agent, [ticket1], None),
+            ],
+            mr_mocks.calls["ticket_change_assignee"],
+        )
 
         # add a note to tickets
         self.assertPost(
@@ -108,8 +113,12 @@ class TicketActionsEndpointTest(APITest):
             status=204,
         )
 
-        self.assertEqual("Looks important", ticket1.events.last().note)
-        self.assertEqual("Looks important", ticket2.events.last().note)
+        self.assertEqual(
+            [
+                call(self.org, self.agent, [ticket1, ticket2], "Looks important"),
+            ],
+            mr_mocks.calls["ticket_add_note"],
+        )
 
         # change topic of tickets
         self.assertPost(
@@ -119,10 +128,12 @@ class TicketActionsEndpointTest(APITest):
             status=204,
         )
 
-        ticket1.refresh_from_db()
-        ticket2.refresh_from_db()
-        self.assertEqual(sales, ticket1.topic)
-        self.assertEqual(sales, ticket2.topic)
+        self.assertEqual(
+            [
+                call(self.org, self.agent, [ticket1, ticket2], sales),
+            ],
+            mr_mocks.calls["ticket_change_topic"],
+        )
 
         # close tickets
         response = self.assertPost(
