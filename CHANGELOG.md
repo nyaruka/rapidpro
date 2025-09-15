@@ -1,3 +1,10 @@
+v10.3.55 (2025-09-15)
+-------------------------
+ * Update flow editor
+ * Fix flow start list page when start is pending
+ * Update mailroom_db command contacts
+ * Data migration to backfill ticket events to DynamoDB
+
 v10.3.54 (2025-09-10)
 -------------------------
  * Use ticket/change_topic endpoint instead ticket/assign
