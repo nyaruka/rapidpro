@@ -353,23 +353,6 @@ class TembaTest(SmartminTest):
             logs=logs,
         )
 
-    def create_optin_request(self, contact, channel, optin, flow=None, logs=None) -> Msg:
-        return self._create_msg(
-            contact,
-            "",
-            Msg.DIRECTION_OUT,
-            channel=channel,
-            msg_type=Msg.TYPE_OPTIN,
-            attachments=[],
-            quick_replies=[],
-            status=Msg.STATUS_SENT,
-            sent_on=timezone.now(),
-            created_on=None,
-            optin=optin,
-            flow=flow,
-            logs=logs,
-        )
-
     def _create_msg(
         self,
         contact,

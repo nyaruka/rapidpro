@@ -65,6 +65,7 @@ class Event:
         TYPE_CONTACT_NAME_CHANGED,
         TYPE_CONTACT_STATUS_CHANGED,
         TYPE_CONTACT_URNS_CHANGED,
+        TYPE_OPTIN_REQUESTED,
         TYPE_OPTIN_STARTED,
         TYPE_OPTIN_STOPPED,
         TYPE_RUN_STARTED,
@@ -230,15 +231,6 @@ class Event:
                     "type": cls.TYPE_IVR_CREATED,
                     "created_on": get_event_time(obj).isoformat(),
                     "msg": _msg_out(obj),
-                }
-            elif obj.msg_type == Msg.TYPE_OPTIN and obj.optin:
-                msg_event = {
-                    "uuid": str(obj.uuid),
-                    "type": cls.TYPE_OPTIN_REQUESTED,
-                    "created_on": get_event_time(obj).isoformat(),
-                    "optin": _optin(obj.optin),
-                    "channel": _channel(obj.channel),
-                    "urn": str(obj.contact_urn),
                 }
             else:
                 msg_event = {
