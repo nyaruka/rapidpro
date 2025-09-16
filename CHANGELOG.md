@@ -1,3 +1,7 @@
+v10.3.56 (2025-09-16)
+-------------------------
+ * Read optin_requested events from DynamoDB instead of recreating from messages
+
 v10.3.55 (2025-09-15)
 -------------------------
  * Update flow editor
