@@ -732,6 +732,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         msgs = (
             self.msgs.filter(created_on__gte=after, created_on__lt=before)
             .exclude(status=Msg.STATUS_PENDING)
+            .exclude(msg_type=Msg.TYPE_OPTIN)
             .order_by("-created_on", "-id")
             .select_related("channel", "contact_urn", "broadcast", "optin")[:limit]
         )
