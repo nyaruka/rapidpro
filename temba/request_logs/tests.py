@@ -178,14 +178,14 @@ class HTTPLogCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(log_url)
         self.assertContains(response, "200")
         self.assertContains(response, "Connection Error")
-        self.assertContains(response, "/v20.0/1234/message_templates")
+        self.assertContains(response, "/v22.0/1234/message_templates")
 
         log2 = HTTPLog.from_exception(HTTPLog.WHATSAPP_TEMPLATES_SYNCED, exception, start, channel=channel)
         log2_url = reverse("request_logs.httplog_read", args=[log2.id])
         response = self.client.get(log2_url)
         self.assertContains(response, "200")
         self.assertContains(response, "Connection Error")
-        self.assertContains(response, "/v20.0/1234/message_templates?access_token=********")
+        self.assertContains(response, "/v22.0/1234/message_templates?access_token=********")
 
         # and can't be from other org
         self.login(self.admin2)
