@@ -33,7 +33,7 @@ from temba.mailroom.events import Event
 from temba.msgs.models import Broadcast, Label, Msg, OptIn
 from temba.orgs.models import Org, OrgRole
 from temba.templates.models import Template
-from temba.tickets.models import Ticket, TicketEvent
+from temba.tickets.models import Ticket
 from temba.users.models import User
 from temba.utils import dynamo, json
 from temba.utils.uuid import UUID, uuid4, uuid7
@@ -772,7 +772,7 @@ class TembaTest(SmartminTest):
         if not opened_on:
             opened_on = timezone.now()
 
-        ticket = Ticket.objects.create(
+        return Ticket.objects.create(
             uuid=uuid7(),
             org=contact.org,
             contact=contact,
@@ -784,29 +784,6 @@ class TembaTest(SmartminTest):
             opened_in=opened_in,
             closed_on=closed_on,
         )
-        TicketEvent.objects.create(
-            uuid=uuid7(),
-            org=ticket.org,
-            contact=contact,
-            ticket=ticket,
-            event_type=TicketEvent.TYPE_OPENED,
-            assignee=assignee,
-            note=note,
-            created_by=opened_by,
-            created_on=opened_on,
-        )
-        if closed_on:
-            TicketEvent.objects.create(
-                uuid=uuid7(),
-                org=ticket.org,
-                contact=contact,
-                ticket=ticket,
-                event_type=TicketEvent.TYPE_CLOSED,
-                created_by=closed_by,
-                created_on=closed_on,
-            )
-
-        return ticket
 
     def create_optin(self, name: str, org=None):
         return OptIn.create(org or self.org, self.admin, name)

@@ -274,11 +274,6 @@ class Ticket(models.Model):
         by_topic_id = {c[0]: c[1] for c in counts}
         return {t: by_topic_id.get(t.id, 0) for t in topics}
 
-    def delete(self):
-        self.events.all().delete()
-
-        super().delete()
-
     def __str__(self):
         return f"Ticket[uuid={self.uuid}, topic={self.topic.name}]"
 
@@ -296,49 +291,6 @@ class Ticket(models.Model):
             # used by API tickets endpoint hence the ordering, and general fetching by org or contact
             models.Index(name="tickets_api_by_org", fields=["org", "-modified_on", "-id"]),
             models.Index(name="tickets_api_by_contact", fields=["contact", "-modified_on", "-id"]),
-        ]
-
-
-class TicketEvent(models.Model):
-    """
-    Models the history of a ticket.
-    """
-
-    TYPE_OPENED = "O"
-    TYPE_ASSIGNED = "A"
-    TYPE_NOTE_ADDED = "N"
-    TYPE_TOPIC_CHANGED = "T"
-    TYPE_CLOSED = "C"
-    TYPE_REOPENED = "R"
-    TYPE_CHOICES = (
-        (TYPE_OPENED, "Opened"),
-        (TYPE_ASSIGNED, "Assigned"),
-        (TYPE_NOTE_ADDED, "Note Added"),
-        (TYPE_TOPIC_CHANGED, "Topic Changed"),
-        (TYPE_CLOSED, "Closed"),
-        (TYPE_REOPENED, "Reopened"),
-    )
-
-    uuid = models.UUIDField(unique=True)
-    org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="ticket_events")
-    ticket = models.ForeignKey(Ticket, on_delete=models.PROTECT, related_name="events")
-    contact = models.ForeignKey(Contact, on_delete=models.PROTECT, related_name="ticket_events")
-    event_type = models.CharField(max_length=1, choices=TYPE_CHOICES)
-    note = models.TextField(null=True, max_length=Ticket.MAX_NOTE_LENGTH)
-    topic = models.ForeignKey(Topic, on_delete=models.PROTECT, null=True, related_name="ticket_events")
-    assignee = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, related_name="ticket_assignee_events"
-    )
-
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, related_name="ticket_events"
-    )
-    created_on = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        indexes = [
-            # used for contact history
-            models.Index(name="ticketevents_contact_created", fields=["contact", "created_on"])
         ]
 
 

@@ -5,7 +5,7 @@ from temba.contacts.models import Contact
 from temba.orgs.models import OrgRole
 from temba.orgs.tasks import squash_item_counts
 from temba.tests import TembaTest, mock_mailroom
-from temba.tickets.models import Team, Ticket, TicketEvent, Topic, export_ticket_stats
+from temba.tickets.models import Team, Ticket, Topic, export_ticket_stats
 from temba.utils.uuid import uuid7
 
 
@@ -198,7 +198,6 @@ class TicketTest(TembaTest):
             contacts={contact1: 2, contact2: 2},
         )
 
-        TicketEvent.objects.all().delete()
         t1.delete()
         t2.delete()
         t6.delete()
