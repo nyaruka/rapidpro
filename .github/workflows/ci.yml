@@ -23,15 +23,6 @@ jobs:
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-      minio:
-        image: bitnami/minio:2025.4.22 # https://github.com/bitnami/containers/issues/81605
-        env:
-          MINIO_ROOT_USER: root
-          MINIO_ROOT_PASSWORD: tembatemba
-          MINIO_DEFAULT_BUCKETS: test-default,test-attachments:public,test-sessions,test-logs,test-archives
-        ports:
-          - 9000:9000
-        options: --health-cmd "mc ready local" --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
       - name: Checkout code
@@ -61,6 +52,35 @@ jobs:
         uses: rrainn/dynamodb-action@v4.0.0
         with:
           port: 6000
+
+      - name: Run MinIO docker container
+        run: |
+          docker run -d --rm \
+            -p 9000:9000 \
+            -p 9001:9001 \
+            --env MINIO_ROOT_USER=root \
+            --env MINIO_ROOT_PASSWORD=tembatemba \
+            --health-cmd "curl -f http://127.0.0.1:9000/minio/health/live" \
+            --health-interval 10s \
+            --health-timeout 5s \
+            --health-retries 5 \
+            minio/minio:latest minio server /data --console-address ":9001"
+
+      - name: Install MinIO client
+        run: |
+          # Download MinIO client and its checksum
+          sudo curl -O https://dl.min.io/client/mc/release/linux-amd64/archive/mc.RELEASE.2025-08-13T08-35-41Z
+          sudo curl -O https://dl.min.io/client/mc/release/linux-amd64/archive/mc.RELEASE.2025-08-13T08-35-41Z.sha256sum
+          # Verify checksum
+          sha256sum -c mc.RELEASE.2025-08-13T08-35-41Z.sha256sum
+          sudo chmod +x mc.RELEASE.2025-08-13T08-35-41Z
+          sudo mv mc.RELEASE.2025-08-13T08-35-41Z /usr/local/bin/mc
+          mc alias set local http://127.0.0.1:9000 root tembatemba
+
+          for bucket in test-default test-attachments test-logs test-sessions test-archives; do
+            mc ls local/$bucket || mc mb local/$bucket
+          done
+          mc anonymous set public local/test-attachments
 
       - name: Initialize environment
         run: |
