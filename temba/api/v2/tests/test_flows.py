@@ -4,6 +4,7 @@ from django.utils import timezone
 from temba.api.v2.serializers import format_datetime
 from temba.flows.models import FlowLabel, FlowRun
 from temba.tests import matchers
+from temba.utils.uuid import uuid7
 
 from . import APITest
 
@@ -28,7 +29,12 @@ class FlowsEndpointTest(APITest):
         # make it look like joe completed the color flow
         joe = self.create_contact("Joe Blow", phone="+250788123123")
         FlowRun.objects.create(
-            org=self.org, flow=color, contact=joe, status=FlowRun.STATUS_COMPLETED, exited_on=timezone.now()
+            org=self.org,
+            flow=color,
+            contact=joe,
+            session_uuid=uuid7(),
+            status=FlowRun.STATUS_COMPLETED,
+            exited_on=timezone.now(),
         )
 
         # flow belong to other org

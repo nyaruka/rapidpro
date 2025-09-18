@@ -151,6 +151,21 @@ class User(TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
             email=self.email, defaults={"email": self.email, "primary": True, "verified": verified}
         )
 
+    @property
+    def is_mfa_enabled(self) -> bool:
+        """
+        Returns whether this user has MFA enabled.
+        """
+
+        return bool(self.authenticator_set.all())
+
+    def disable_mfa(self):
+        """
+        Disables this user's MFA.
+        """
+
+        self.authenticator_set.all().delete()
+
     @cached_property
     def is_alpha(self) -> bool:
         return self.groups.filter(name="Alpha").exists()
