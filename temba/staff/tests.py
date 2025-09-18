@@ -1,3 +1,5 @@
+from allauth.mfa.models import Authenticator
+
 from django.contrib.auth.models import Group
 from django.urls import reverse
 
@@ -257,8 +259,9 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContentMenu(read_url, self.customer_support, ["Edit", "Unverify", "Delete"])
 
         self.editor.set_verified(False)
+        Authenticator.objects.create(user_id=self.editor.id, type=Authenticator.Type.TOTP, data={"secret": "sesame"})
 
-        self.assertContentMenu(read_url, self.customer_support, ["Edit", "Verify", "Delete"])
+        self.assertContentMenu(read_url, self.customer_support, ["Edit", "Verify", "Disable MFA", "Delete"])
 
     def test_update(self):
         update_url = reverse("staff.user_update", args=[self.editor.id])
@@ -319,6 +322,14 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.client.post(update_url, {"action": "verify"})
         self.editor.refresh_from_db()
         self.assertTrue(self.editor.is_verified())
+
+        Authenticator.objects.create(user_id=self.editor.id, type=Authenticator.Type.TOTP, data={"secret": "sesame"})
+        self.assertTrue(self.editor.is_mfa_enabled)
+
+        # disable MFA for user
+        self.client.post(update_url, {"action": "disable-mfa"})
+        self.editor.refresh_from_db()
+        self.assertFalse(self.editor.is_mfa_enabled)
 
     @mock_mailroom
     def test_delete(self, mr_mocks):

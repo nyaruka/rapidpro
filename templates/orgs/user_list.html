@@ -28,7 +28,7 @@
             {{ obj.role.display }}
             {% if obj.team and has_teams %}({{ obj.team.name }}){% endif %}
           </td>
-          <td>{{ obj.mfa_enabled|yesno:"✓,-" }}</td>
+          <td>{{ obj.is_mfa_enabled|yesno:"✓,-" }}</td>
           <td>{{ obj.email_verified|yesno:"✓,-" }}</td>
           <td class="w-10">
             {% if obj.role.code != "A" or admin_count > 1 %}
