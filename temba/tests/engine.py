@@ -297,7 +297,8 @@ class MockSessionWriter:
                 current_flow = Flow.objects.get(uuid=run["flow"]["uuid"])
 
             db_state = dict(
-                path=run["path"],
+                path_nodes=[p["node_uuid"] for p in run["path"]],
+                path_times=[p["arrived_on"] for p in run["path"]],
                 results=run["results"],
                 status=RUN_STATUSES[run["status"]],
                 current_node_uuid=run["path"][-1]["node_uuid"] if run["path"] else None,
