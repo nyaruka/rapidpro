@@ -259,8 +259,9 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContentMenu(read_url, self.customer_support, ["Edit", "Unverify", "Delete"])
 
         self.editor.set_verified(False)
+        Authenticator.objects.create(user_id=self.editor.id, type=Authenticator.Type.TOTP, data={"secret": "sesame"})
 
-        self.assertContentMenu(read_url, self.customer_support, ["Edit", "Verify", "Delete"])
+        self.assertContentMenu(read_url, self.customer_support, ["Edit", "Verify", "Disable MFA", "Delete"])
 
     def test_update(self):
         update_url = reverse("staff.user_update", args=[self.editor.id])

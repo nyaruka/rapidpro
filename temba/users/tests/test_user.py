@@ -66,7 +66,7 @@ class UserTest(TembaTest):
         self.assertFalse(self.agent.is_mfa_enabled)
 
         Authenticator.objects.create(user_id=self.admin.id, type=Authenticator.Type.TOTP, data={"secret": "sesame"})
-        Authenticator(
+        Authenticator.objects.create(
             user_id=self.admin.id, type=Authenticator.Type.RECOVERY_CODES, data={"migrated_codes": ["abc", "edc"]}
         )
 
