@@ -98,7 +98,7 @@ def backfill_ticket_events(apps, schema_editor):
                         data = None
 
                     if evt.created_by:
-                        data["_user_uuid"] = str(evt.created_by.uuid)
+                        data["_user"] = _user_ref(evt.created_by)
 
                     if data:
                         writer.put_item(
