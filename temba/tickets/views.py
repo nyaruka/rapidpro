@@ -273,28 +273,22 @@ class TicketCRUDL(SmartCRUDL):
                 raise Http404()
 
             status = Ticket.STATUS_OPEN if self.kwargs.get("status", "open") == "open" else Ticket.STATUS_CLOSED
-            ticket = None
-            in_page = False
 
             # is the request for a specific ticket?
             if uuid := self.kwargs.get("uuid"):
                 # is the ticket in the first page from of current folder?
-                for t in list(folder.get_queryset(org, user, ordered=True).filter(status=status)[:25]):
-                    if str(t.uuid) == uuid:
-                        ticket = t
-                        in_page = True
-                        break
+                for ticket in list(folder.get_queryset(org, user, ordered=True).filter(status=status)[:25]):
+                    if str(ticket.uuid) == uuid:
+                        return folder, status, ticket, True
 
-                # if not, see if we can access it in the All tickets folder and if so switch to that
-                if not in_page:
-                    all_folder = TicketFolder.from_slug(org, user, AllFolder.slug)
-                    ticket = all_folder.get_queryset(org, user, ordered=False).filter(uuid=uuid).first()
+                # if not, see if we can access it in the All or Mine tickets folders and if so switch to that
+                mine_folder = TicketFolder.from_slug(org, user, MineFolder.slug)
+                all_folder = TicketFolder.from_slug(org, user, AllFolder.slug)
+                for folder in (mine_folder, all_folder):
+                    if ticket := folder.get_queryset(org, user, ordered=False).filter(uuid=uuid).first():
+                        return folder, ticket.status, ticket, False
 
-                    if ticket:
-                        folder = all_folder
-                        status = ticket.status
-
-            return folder, status, ticket, in_page
+            return folder, status, None, False
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
