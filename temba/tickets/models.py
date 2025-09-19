@@ -166,7 +166,7 @@ class Team(TembaModel):
         assert not (self.is_system and self.org.is_active), "can't release system teams"
 
         # re-assign agents in this team to the default team
-        OrgMembership.objects.filter(org=self.org, team=self).update(team=self.org.default_ticket_team)
+        OrgMembership.objects.filter(org=self.org, team=self).update(team=self.org.default_team)
 
         self.name = self._deleted_name()
         self.is_active = False

@@ -742,11 +742,11 @@ class Org(SmartModel):
         return sum(Contact.get_status_counts(self).values())
 
     @cached_property
-    def default_ticket_topic(self):
+    def default_topic(self):
         return self.topics.get(is_default=True)
 
     @cached_property
-    def default_ticket_team(self):
+    def default_team(self):
         return self.teams.get(is_default=True)
 
     def get_resthooks(self):
@@ -869,7 +869,7 @@ class Org(SmartModel):
             self.remove_user(user)
 
         if role == OrgRole.AGENT and not team:
-            team = self.default_ticket_team
+            team = self.default_team
 
         self._membership_cache[user] = OrgMembership.objects.create(org=self, user=user, role_code=role.code, team=team)
 

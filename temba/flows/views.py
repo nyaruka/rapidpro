@@ -739,7 +739,7 @@ class FlowCRUDL(SmartCRUDL):
 
             context["active_start"] = flow.get_active_start()
             context["feature_filters"] = json.dumps(self.get_features(flow.org))
-            context["default_topic"] = json.dumps(flow.org.default_ticket_topic.as_engine_ref())
+            context["default_topic"] = json.dumps(flow.org.default_topic.as_engine_ref())
 
             return context
 

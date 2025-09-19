@@ -44,11 +44,11 @@ class TopicsEndpointTest(APITest):
                     "created_on": format_datetime(support.created_on),
                 },
                 {
-                    "uuid": str(self.org.default_ticket_topic.uuid),
+                    "uuid": str(self.org.default_topic.uuid),
                     "name": "General",
                     "counts": {"open": 0, "closed": 0},
                     "system": True,
-                    "created_on": format_datetime(self.org.default_ticket_topic.created_on),
+                    "created_on": format_datetime(self.org.default_topic.created_on),
                 },
             ],
             num_queries=self.BASE_SESSION_QUERIES + 3,
@@ -97,7 +97,7 @@ class TopicsEndpointTest(APITest):
 
         # can't update default topic for an org
         self.assertPost(
-            endpoint_url + f"?uuid={self.org.default_ticket_topic.uuid}",
+            endpoint_url + f"?uuid={self.org.default_topic.uuid}",
             self.admin,
             {"name": "Won't work"},
             errors={None: "Cannot modify system object."},

@@ -108,7 +108,7 @@ class TopicCRUDL(SmartCRUDL):
             return context
 
         def get_redirect_url(self, **kwargs):
-            return f"/ticket/{self.request.org.default_ticket_topic.uuid}/open/"
+            return f"/ticket/{self.request.org.default_topic.uuid}/open/"
 
 
 class TeamCRUDL(SmartCRUDL):
