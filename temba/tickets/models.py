@@ -166,7 +166,7 @@ class Team(TembaModel):
         assert not (self.is_system and self.org.is_active), "can't release system teams"
 
         # re-assign agents in this team to the default team
-        OrgMembership.objects.filter(org=self.org, team=self).update(team=self.org.default_ticket_team)
+        OrgMembership.objects.filter(org=self.org, team=self).update(team=self.org.default_team)
 
         self.name = self._deleted_name()
         self.is_active = False
@@ -212,9 +212,6 @@ class Ticket(models.Model):
 
     # when this ticket last had activity which includes messages being sent and received, and is used for ordering
     last_activity_on = models.DateTimeField(default=timezone.now)
-
-    def assign(self, user: User, *, assignee: User):
-        self.bulk_assign(self.org, user, [self], assignee=assignee)
 
     def add_note(self, user: User, *, note: str):
         self.bulk_add_note(self.org, user, [self], note=note)

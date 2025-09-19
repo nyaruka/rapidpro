@@ -1,3 +1,10 @@
+v10.3.57 (2025-09-18)
+-------------------------
+ * Add menu option to disable a user's MFA
+ * Remove no longer used FlowRun.path and make session_uuid non-nullable
+ * Change ticket event backfill migration to save full user references
+ * Use minio/minio docker image for CI
+
 v10.3.56 (2025-09-16)
 -------------------------
  * Read optin_requested events from DynamoDB instead of recreating from messages

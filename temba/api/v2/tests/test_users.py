@@ -24,7 +24,7 @@ class UsersEndpointTest(APITest):
                     "first_name": "Agnes",
                     "last_name": "",
                     "role": "agent",
-                    "team": {"uuid": str(self.org.default_ticket_team.uuid), "name": "All Topics"},
+                    "team": {"uuid": str(self.org.default_team.uuid), "name": "All Topics"},
                     "created_on": format_datetime(self.agent.date_joined),
                     "avatar": None,
                 },

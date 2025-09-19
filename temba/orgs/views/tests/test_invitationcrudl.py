@@ -20,9 +20,7 @@ class InvitationCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRequestDisallowed(list_url, [None, self.editor, self.agent])
 
         inv1 = Invitation.create(self.org, self.admin, "bob@textit.com", OrgRole.EDITOR)
-        inv2 = Invitation.create(
-            self.org, self.admin, "jim@textit.com", OrgRole.AGENT, team=self.org.default_ticket_team
-        )
+        inv2 = Invitation.create(self.org, self.admin, "jim@textit.com", OrgRole.AGENT, team=self.org.default_team)
 
         response = self.assertListFetch(list_url, [self.admin], context_objects=[inv2, inv1])
         self.assertNotContains(response, "(All Topics)")
@@ -94,7 +92,7 @@ class InvitationCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             {"email": "newagent@textit.com", "role": "T"},
             new_obj_query=Invitation.objects.filter(
-                org=self.org, email="newagent@textit.com", role_code="T", team=self.org.default_ticket_team
+                org=self.org, email="newagent@textit.com", role_code="T", team=self.org.default_team
             ),
         )
 

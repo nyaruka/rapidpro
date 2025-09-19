@@ -82,17 +82,17 @@ class TopicTest(TembaTest):
 
         # import definition of default topic from other workspace
         topic8, result = _import({"uuid": "bfacf01f-50d5-4236-9faa-7673bb4a9520", "name": "General"})
-        self.assertEqual(self.org.default_ticket_topic, topic8)
+        self.assertEqual(self.org.default_topic, topic8)
         self.assertEqual(Topic.ImportResult.MATCHED, result)
 
         # import definition of default topic from this workspace
-        topic9, result = _import({"uuid": str(self.org.default_ticket_topic.uuid), "name": "General"})
-        self.assertEqual(self.org.default_ticket_topic, topic9)
+        topic9, result = _import({"uuid": str(self.org.default_topic.uuid), "name": "General"})
+        self.assertEqual(self.org.default_topic, topic9)
         self.assertEqual(Topic.ImportResult.MATCHED, result)
 
         # import definition of default topic from this workspace... but with different name
-        topic10, result = _import({"uuid": str(self.org.default_ticket_topic.uuid), "name": "Default"})
-        self.assertEqual(self.org.default_ticket_topic, topic10)
+        topic10, result = _import({"uuid": str(self.org.default_topic.uuid), "name": "Default"})
+        self.assertEqual(self.org.default_topic, topic10)
         self.assertEqual("General", topic10.name)  # unchanged
         self.assertEqual(Topic.ImportResult.MATCHED, result)
 
@@ -131,16 +131,12 @@ class TopicTest(TembaTest):
         agent3 = self.create_user("agent3@textit.com")
         self.org.add_user(agent3, OrgRole.AGENT, team=team2)
 
-        self.assertEqual(
-            {self.org.default_ticket_topic, topic1, topic2}, set(Topic.get_accessible(self.org, self.admin))
-        )
-        self.assertEqual(
-            {self.org.default_ticket_topic, topic1, topic2}, set(Topic.get_accessible(self.org, self.agent))
-        )
+        self.assertEqual({self.org.default_topic, topic1, topic2}, set(Topic.get_accessible(self.org, self.admin)))
+        self.assertEqual({self.org.default_topic, topic1, topic2}, set(Topic.get_accessible(self.org, self.agent)))
         self.assertEqual({topic1, topic2}, set(Topic.get_accessible(self.org, agent2)))
         self.assertEqual(set(), set(Topic.get_accessible(self.org, agent3)))
         self.assertEqual(
-            {self.org.default_ticket_topic, topic1, topic2}, set(Topic.get_accessible(self.org, self.customer_support))
+            {self.org.default_topic, topic1, topic2}, set(Topic.get_accessible(self.org, self.customer_support))
         )
 
     def test_release(self):
@@ -176,7 +172,7 @@ class TopicTest(TembaTest):
 
         # can't release system topic
         with self.assertRaises(AssertionError):
-            self.org.default_ticket_topic.release(self.admin)
+            self.org.default_topic.release(self.admin)
 
         # can't release a topic with tickets
         ticket = self.create_ticket(self.create_contact("Bob"), topic=topic1)

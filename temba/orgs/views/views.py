@@ -251,7 +251,7 @@ class UserCRUDL(SmartCRUDL):
         def save(self, obj):
             role = OrgRole.from_code(self.form.cleaned_data["role"])
             team = self.form.cleaned_data.get("team")
-            team = (team or self.request.org.default_ticket_team) if role == OrgRole.AGENT else None
+            team = (team or self.request.org.default_team) if role == OrgRole.AGENT else None
 
             # don't update if user is the last administrator and role is being changed to something else
             has_other_admins = self.request.org.get_admins().exclude(id=obj.id).exists()
@@ -1657,7 +1657,7 @@ class InvitationCRUDL(SmartCRUDL):
 
         def save(self, obj):
             role = OrgRole.from_code(self.form.cleaned_data["role"])
-            team = (obj.team or self.request.org.default_ticket_team) if role == OrgRole.AGENT else None
+            team = (obj.team or self.request.org.default_team) if role == OrgRole.AGENT else None
 
             self.object = Invitation.create(self.request.org, self.request.user, obj.email, role, team=team)
 
