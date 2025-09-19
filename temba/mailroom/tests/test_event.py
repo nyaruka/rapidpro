@@ -393,7 +393,7 @@ class EventTest(TembaTest):
                     "opened_on": matchers.ISODatetime(),
                     "closed_on": None,
                     "status": "O",
-                    "topic": {"uuid": str(self.org.default_ticket_topic.uuid), "name": "General"},
+                    "topic": {"uuid": str(self.org.default_topic.uuid), "name": "General"},
                 },
                 "created_on": matchers.ISODatetime(),
                 "created_by": {
@@ -422,7 +422,7 @@ class EventTest(TembaTest):
                     "opened_on": matchers.ISODatetime(),
                     "closed_on": None,
                     "status": "O",
-                    "topic": {"uuid": str(self.org.default_ticket_topic.uuid), "name": "General"},
+                    "topic": {"uuid": str(self.org.default_topic.uuid), "name": "General"},
                 },
                 "created_on": matchers.ISODatetime(),
                 "created_by": None,

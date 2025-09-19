@@ -202,7 +202,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         mine_open_url = reverse("tickets.ticket_folder", kwargs={"folder": "mine", "status": "open"})
         unassigned_open_url = reverse("tickets.ticket_folder", kwargs={"folder": "unassigned", "status": "open"})
         general_open_url = reverse(
-            "tickets.ticket_folder", kwargs={"folder": self.org.default_ticket_topic.uuid, "status": "open"}
+            "tickets.ticket_folder", kwargs={"folder": self.org.default_topic.uuid, "status": "open"}
         )
         sales_open_url = reverse("tickets.ticket_folder", kwargs={"folder": self.sales.uuid, "status": "open"})
         sales_closed_url = reverse("tickets.ticket_folder", kwargs={"folder": self.sales.uuid, "status": "closed"})
@@ -234,7 +234,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         assert_tickets(all_open_url, self.customer_support, expected=[], choose_org=self.org)
 
         # contact 1 has two open tickets and some messages
-        c1_t1 = self.create_ticket(contact1, topic=self.org.default_ticket_topic, assignee=self.admin)
+        c1_t1 = self.create_ticket(contact1, topic=self.org.default_topic, assignee=self.admin)
         c1_t2 = self.create_ticket(contact1, topic=self.sales, assignee=self.agent3)  # assignee doesn't have access
 
         self.create_incoming_msg(contact1, "I have an issue")

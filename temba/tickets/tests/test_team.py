@@ -43,8 +43,8 @@ class TeamTest(TembaTest):
         self.assertEqual(0, team1.get_users().count())
 
         # check agent was re-assigned to default team
-        self.assertEqual({self.agent}, set(self.org.default_ticket_team.get_users()))
+        self.assertEqual({self.agent}, set(self.org.default_team.get_users()))
 
         # can't release system team
         with self.assertRaises(AssertionError):
-            self.org.default_ticket_team.release(self.admin)
+            self.org.default_team.release(self.admin)

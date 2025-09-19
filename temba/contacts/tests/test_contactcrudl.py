@@ -1181,7 +1181,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
     @mock_mailroom
     def test_open_ticket(self, mr_mocks):
         contact = self.create_contact("Joe", phone="+593979000111")
-        general = self.org.default_ticket_topic
+        general = self.org.default_topic
         open_url = reverse("contacts.contact_open_ticket", args=[contact.id])
 
         self.assertRequestDisallowed(open_url, [None, self.agent, self.admin2])
