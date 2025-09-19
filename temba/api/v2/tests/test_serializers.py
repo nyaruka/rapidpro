@@ -311,10 +311,8 @@ class FieldsTest(APITest):
 
         self.assert_field(
             fields.TopicField(source="test"),
-            submissions={str(self.org.default_ticket_topic.uuid): self.org.default_ticket_topic},
-            representations={
-                self.org.default_ticket_topic: {"uuid": str(self.org.default_ticket_topic.uuid), "name": "General"}
-            },
+            submissions={str(self.org.default_topic.uuid): self.org.default_topic},
+            representations={self.org.default_topic: {"uuid": str(self.org.default_topic.uuid), "name": "General"}},
         )
 
         self.assert_field(

@@ -109,9 +109,7 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual({marketing}, set(team.topics.all()))
 
         # can't edit a system team
-        self.assertRequestDisallowed(
-            reverse("tickets.team_update", args=[self.org.default_ticket_team.id]), [self.admin]
-        )
+        self.assertRequestDisallowed(reverse("tickets.team_update", args=[self.org.default_team.id]), [self.admin])
 
     def test_delete(self):
         sales = Topic.create(self.org, self.admin, "Sales")
@@ -168,7 +166,7 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(list_url, [None, self.agent, self.editor])
 
-        self.assertListFetch(list_url, [self.admin], context_objects=[self.org.default_ticket_team, team2, team1])
+        self.assertListFetch(list_url, [self.admin], context_objects=[self.org.default_team, team2, team1])
         self.assertContentMenu(list_url, self.admin, ["New"])
 
         with override_settings(ORG_LIMIT_DEFAULTS={"teams": 2}):

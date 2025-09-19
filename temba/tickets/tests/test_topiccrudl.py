@@ -82,9 +82,7 @@ class TopicCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(topic.name, "Boring")
 
         # can't edit a system topic
-        self.assertRequestDisallowed(
-            reverse("tickets.topic_update", args=[self.org.default_ticket_topic.id]), [self.admin]
-        )
+        self.assertRequestDisallowed(reverse("tickets.topic_update", args=[self.org.default_topic.id]), [self.admin])
 
     def test_delete(self):
         topic1 = Topic.create(self.org, self.admin, "Planes")
@@ -113,4 +111,4 @@ class TopicCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertTrue(topic2.is_active)
 
         # we should have been redirected to the default topic
-        self.assertEqual(f"/ticket/{self.org.default_ticket_topic.uuid}/open/", response.url)
+        self.assertEqual(f"/ticket/{self.org.default_topic.uuid}/open/", response.url)

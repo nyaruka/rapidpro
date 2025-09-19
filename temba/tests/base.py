@@ -759,7 +759,7 @@ class TembaTest(SmartminTest):
             uuid=uuid7(),
             org=contact.org,
             contact=contact,
-            topic=topic or contact.org.default_ticket_topic,
+            topic=topic or contact.org.default_topic,
             status=Ticket.STATUS_CLOSED if closed_on else Ticket.STATUS_OPEN,
             assignee=assignee,
             opened_on=opened_on,

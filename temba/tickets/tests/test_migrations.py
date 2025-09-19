@@ -19,7 +19,7 @@ class UpdateTicketUUIDsTest(MigrationTest):
             uuid="c7371b3b-5b35-4a03-aaf9-632335fb7e77",
             org=contact.org,
             contact=contact,
-            topic=contact.org.default_ticket_topic,
+            topic=contact.org.default_topic,
             status=Ticket.STATUS_OPEN,
             opened_on=datetime(2025, 8, 11, 20, 36, 41, 114764, tzinfo=tzone.utc),
         )
@@ -27,7 +27,7 @@ class UpdateTicketUUIDsTest(MigrationTest):
             uuid="01989ad9-7c1a-7b8d-a59e-141c265730dc",
             org=contact.org,
             contact=contact,
-            topic=contact.org.default_ticket_topic,
+            topic=contact.org.default_topic,
             status=Ticket.STATUS_OPEN,
             opened_on=datetime(2025, 8, 11, 20, 36, 41, 116000, tzinfo=tzone.utc),
         )
@@ -54,7 +54,7 @@ class BackfillTicketEventsTest(MigrationTest):
             uuid="01992f54-5ab6-717a-a39e-e8ca91fb7262",
             org=contact.org,
             contact=contact,
-            topic=contact.org.default_ticket_topic,
+            topic=contact.org.default_topic,
             status=Ticket.STATUS_OPEN,
             opened_on=datetime(2025, 8, 11, 20, 36, 41, 114764, tzinfo=tzone.utc),
         )
@@ -62,7 +62,7 @@ class BackfillTicketEventsTest(MigrationTest):
             uuid="01992f54-5ab6-725e-be9c-0c6407efd755",
             org=deleted_contact.org,
             contact=deleted_contact,
-            topic=deleted_contact.org.default_ticket_topic,
+            topic=deleted_contact.org.default_topic,
             status=Ticket.STATUS_OPEN,
             opened_on=datetime(2025, 8, 11, 20, 36, 41, 116000, tzinfo=tzone.utc),
         )
@@ -166,7 +166,7 @@ class BackfillTicketEventsTest(MigrationTest):
                             "uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                             "status": "open",
                             "assignee": None,
-                            "topic": {"uuid": str(self.org.default_ticket_topic.uuid), "name": "General"},
+                            "topic": {"uuid": str(self.org.default_topic.uuid), "name": "General"},
                         },
                         "note": "Interesting",
                     },
