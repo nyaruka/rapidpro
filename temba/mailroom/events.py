@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
+from uuid import UUID
 
 import iso8601
 
@@ -10,7 +11,7 @@ from django.utils import timezone
 from temba.channels.models import Channel
 from temba.msgs.models import Msg, OptIn
 from temba.orgs.models import Org
-from temba.tickets.models import Ticket, TicketEvent, Topic
+from temba.tickets.models import Ticket
 from temba.users.models import User
 from temba.utils import dynamo
 
@@ -41,21 +42,12 @@ class Event:
     TYPE_OPTIN_STOPPED = "optin_stopped"
     TYPE_RUN_STARTED = "run_started"
     TYPE_RUN_ENDED = "run_ended"
-    TYPE_TICKET_ASSIGNED = "ticket_assigned"
+    TYPE_TICKET_ASSIGNED = "ticket_assignee_changed"
     TYPE_TICKET_CLOSED = "ticket_closed"
     TYPE_TICKET_NOTE_ADDED = "ticket_note_added"
-    TYPE_TICKET_TOPIC_CHANGED = "ticket_topic_changed"
     TYPE_TICKET_OPENED = "ticket_opened"
     TYPE_TICKET_REOPENED = "ticket_reopened"
-
-    ticket_event_types = {
-        TicketEvent.TYPE_OPENED: TYPE_TICKET_OPENED,
-        TicketEvent.TYPE_ASSIGNED: TYPE_TICKET_ASSIGNED,
-        TicketEvent.TYPE_NOTE_ADDED: TYPE_TICKET_NOTE_ADDED,
-        TicketEvent.TYPE_TOPIC_CHANGED: TYPE_TICKET_TOPIC_CHANGED,
-        TicketEvent.TYPE_CLOSED: TYPE_TICKET_CLOSED,
-        TicketEvent.TYPE_REOPENED: TYPE_TICKET_REOPENED,
-    }
+    TYPE_TICKET_TOPIC_CHANGED = "ticket_topic_changed"
 
     # as we migrate event types over to DynamoDB:
     #  1. we start mailroom writing that type to DynamoDB
@@ -78,7 +70,16 @@ class Event:
         TYPE_OPTIN_STOPPED,
         TYPE_RUN_STARTED,
         TYPE_RUN_ENDED,
+        TYPE_TICKET_ASSIGNED,
+        TYPE_TICKET_CLOSED,
+        TYPE_TICKET_NOTE_ADDED,
+        TYPE_TICKET_OPENED,
+        TYPE_TICKET_REOPENED,
+        TYPE_TICKET_TOPIC_CHANGED,
     }
+
+    basic_ticket_types = {TYPE_TICKET_CLOSED, TYPE_TICKET_OPENED, TYPE_TICKET_REOPENED}
+    all_ticket_types = basic_ticket_types | {TYPE_TICKET_ASSIGNED, TYPE_TICKET_NOTE_ADDED, TYPE_TICKET_TOPIC_CHANGED}
 
     @staticmethod
     def _get_key(contact, uuid: str) -> tuple[str, str]:
@@ -96,7 +97,7 @@ class Event:
         return data
 
     @classmethod
-    def get_by_contact(cls, contact, *, after: datetime, before: datetime, limit: int) -> list[dict]:
+    def get_by_contact(cls, contact, *, after: datetime, before: datetime, ticket_uuid: UUID, limit: int) -> list[dict]:
         """
         Eventually contact history will be paged by event UUIDs but for now we are given microsecond accuracy
         datetimes and have to infer approximate UUIDs and then filter the results to the given range.
@@ -135,7 +136,7 @@ class Event:
                 event = cls._from_item(contact, item)
                 event_time = iso8601.parse_date(event["created_on"])
 
-                if event_time >= after and event_time < before and event["type"] in cls.dynamo_types:
+                if event_time >= after and event_time < before and cls._include_event(event, ticket_uuid):
                     events.append(event)
 
                     if len(events) == limit:
@@ -146,6 +147,19 @@ class Event:
                 break
 
         return events
+
+    @classmethod
+    def _include_event(cls, event, ticket_uuid) -> bool:
+        if event["type"] in cls.all_ticket_types:
+            if ticket_uuid:
+                # if we have a ticket this is for the ticket UI, so we want *all* events for *only* that ticket
+                event_ticket_uuid = event.get("ticket_uuid", event.get("ticket", {}).get("uuid"))
+                return event_ticket_uuid == str(ticket_uuid)
+            else:
+                # if not then this for the contact read page so only show ticket opened/closed/reopened events
+                return event["type"] in cls.basic_ticket_types
+
+        return event["type"] in cls.dynamo_types
 
     @staticmethod
     def _time_to_uuid(dt: datetime) -> str:
@@ -238,25 +252,6 @@ class Event:
 
             return msg_event
 
-    @classmethod
-    def from_ticket_event(cls, org: Org, user: User, obj: TicketEvent) -> dict:
-        ticket = obj.ticket
-        return {
-            "type": cls.ticket_event_types[obj.event_type],
-            "note": obj.note,
-            "topic": _topic(obj.topic) if obj.topic else None,
-            "assignee": _user(obj.assignee) if obj.assignee else None,
-            "ticket": {
-                "uuid": str(ticket.uuid),
-                "opened_on": ticket.opened_on.isoformat(),
-                "closed_on": ticket.closed_on.isoformat() if ticket.closed_on else None,
-                "topic": _topic(ticket.topic) if ticket.topic else None,
-                "status": ticket.status,
-            },
-            "created_on": get_event_time(obj).isoformat(),
-            "created_by": _user(obj.created_by) if obj.created_by else None,
-        }
-
 
 def _url_for_user(org: Org, user: User, view_name: str, args: list, perm: str = None) -> str:
     allowed = user.has_org_perm(org, perm or view_name) or user.is_staff
@@ -304,19 +299,12 @@ def _channel(channel: Channel) -> dict:
     return {"uuid": str(channel.uuid), "name": channel.name}
 
 
-def _topic(topic: Topic) -> dict:
-    return {"uuid": str(topic.uuid), "name": topic.name}
-
-
 def _optin(optin: OptIn) -> dict:
     return {"uuid": str(optin.uuid), "name": optin.name}
 
 
 # map of history item types to methods to render them as events
-event_renderers = {
-    Msg: Event.from_msg,
-    TicketEvent: Event.from_ticket_event,
-}
+event_renderers = {Msg: Event.from_msg}
 
 # map of history item types to a callable which can extract the event time from that type
 event_time = defaultdict(lambda: lambda i: i.created_on)
