@@ -424,6 +424,12 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         assert_tickets(f"{all_open_url}{str(c1_t1.uuid)}", self.agent2, expected=[])
         assert_tickets(f"{all_open_url}{str(c1_t1.uuid)}", self.agent3, expected=[])
 
+        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.admin, expected=[c1_t2])
+        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.editor, expected=[c1_t2])
+        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent, expected=[c1_t2])
+        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent2, expected=[c1_t2])
+        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent3, expected=[])
+
         # make sure when paging we get a next url
         with patch("temba.tickets.views.TicketCRUDL.Folder.paginate_by", 1):
             response = self.requestView(all_open_url + "?_format=json", self.admin)
