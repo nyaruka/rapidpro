@@ -428,7 +428,10 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.editor, expected=[c1_t2])
         assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent, expected=[c1_t2])
         assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent2, expected=[c1_t2])
-        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent3, expected=[])
+        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent3, expected=[])  # can't access via All
+
+        assert_tickets(f"{mine_open_url}{str(c1_t2.uuid)}", self.admin, expected=[])
+        assert_tickets(f"{mine_open_url}{str(c1_t2.uuid)}", self.agent3, expected=[c1_t2])  # can access via Mine
 
         # make sure when paging we get a next url
         with patch("temba.tickets.views.TicketCRUDL.Folder.paginate_by", 1):
