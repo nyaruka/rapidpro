@@ -34,6 +34,7 @@ class WhatsAppTypeTest(TembaTest):
 
         connect_whatsapp_cloud_url = reverse("channels.types.whatsapp.connect")
         claim_whatsapp_cloud_url = reverse("channels.types.whatsapp.claim")
+        select_whatsapp_cloud_url = reverse("channels.types.whatsapp.select")
 
         # make sure type is not listed the claim page
         response = self.client.get(reverse("channels.channel_claim"))
@@ -132,7 +133,7 @@ class WhatsAppTypeTest(TembaTest):
 
             response = self.client.post(connect_whatsapp_cloud_url, dict(user_access_token="X" * 36))
             self.assertIn(WhatsAppType.SESSION_USER_TOKEN, self.client.session)
-            self.assertEqual(response.url, claim_whatsapp_cloud_url)
+            self.assertEqual(response.url, select_whatsapp_cloud_url)
 
             response = self.client.post(connect_whatsapp_cloud_url, dict(user_access_token="X" * 36), follow=True)
             self.assertEqual(response.status_code, 200)
@@ -194,36 +195,6 @@ class WhatsAppTypeTest(TembaTest):
                                     "whatsapp_business_messaging",
                                 ],
                                 "is_valid": True,
-                            }
-                        }
-                    ),
-                ),
-                # getting target waba
-                MockResponse(
-                    200,
-                    json.dumps(
-                        {
-                            "data": {
-                                "granular_scopes": [
-                                    {
-                                        "scope": "business_management",
-                                        "target_ids": [
-                                            "2222222222222",
-                                        ],
-                                    },
-                                    {
-                                        "scope": "whatsapp_business_management",
-                                        "target_ids": [
-                                            "111111111111111",
-                                        ],
-                                    },
-                                    {
-                                        "scope": "whatsapp_business_messaging",
-                                        "target_ids": [
-                                            "111111111111111",
-                                        ],
-                                    },
-                                ]
                             }
                         }
                     ),
@@ -290,7 +261,7 @@ class WhatsAppTypeTest(TembaTest):
 
             wa_cloud_post.return_value = MockResponse(200, json.dumps({"success": "true"}))
 
-            response = self.client.get(claim_whatsapp_cloud_url, follow=True)
+            response = self.client.get(claim_whatsapp_cloud_url + "?waba_id=111111111111111", follow=True)
 
             self.assertEqual(len(response.context["phone_numbers"]), 1)
             self.assertEqual(response.context["phone_numbers"][0]["waba_id"], "111111111111111")
@@ -313,7 +284,7 @@ class WhatsAppTypeTest(TembaTest):
             post_data["currency"] = "USD"
             post_data["message_template_namespace"] = "namespace-uuid"
 
-            response = self.client.post(claim_whatsapp_cloud_url, post_data, follow=True)
+            response = self.client.post(claim_whatsapp_cloud_url + "?waba_id=111111111111111", post_data, follow=True)
             self.assertEqual(200, response.status_code)
 
             self.assertNotIn(WhatsAppType.SESSION_USER_TOKEN, self.client.session)
@@ -416,32 +387,18 @@ class WhatsAppTypeTest(TembaTest):
                         }
                     ),
                 ),
-                # getting target waba
+                # pre-process for get
                 MockResponse(
                     200,
                     json.dumps(
                         {
                             "data": {
-                                "granular_scopes": [
-                                    {
-                                        "scope": "business_management",
-                                        "target_ids": [
-                                            "2222222222222",
-                                        ],
-                                    },
-                                    {
-                                        "scope": "whatsapp_business_management",
-                                        "target_ids": [
-                                            "111111111111111",
-                                        ],
-                                    },
-                                    {
-                                        "scope": "whatsapp_business_messaging",
-                                        "target_ids": [
-                                            "111111111111111",
-                                        ],
-                                    },
-                                ]
+                                "scopes": [
+                                    "business_management",
+                                    "whatsapp_business_management",
+                                    "whatsapp_business_messaging",
+                                ],
+                                "is_valid": True,
                             }
                         }
                     ),
@@ -466,6 +423,109 @@ class WhatsAppTypeTest(TembaTest):
                     ),
                 ),
                 # pre-process for post
+                MockResponse(
+                    200,
+                    json.dumps(
+                        {
+                            "data": {
+                                "scopes": [
+                                    "business_management",
+                                    "whatsapp_business_management",
+                                    "whatsapp_business_messaging",
+                                ],
+                                "is_valid": True,
+                            }
+                        }
+                    ),
+                ),
+                # getting waba details
+                MockResponse(
+                    200,
+                    json.dumps(
+                        {
+                            "id": "111111111111111",
+                            "currency": "USD",
+                            "message_template_namespace": "namespace-uuid",
+                            "owner_business_info": {"id": "2222222222222"},
+                        }
+                    ),
+                ),
+                # getting waba phone numbers
+                MockResponse(
+                    200,
+                    json.dumps(
+                        {"data": [{"id": "123123123", "display_phone_number": "1234", "verified_name": "WABA name"}]}
+                    ),
+                ),
+                # getting te credit line ID
+                MockResponse(200, json.dumps({"data": [{"id": "567567567"}]})),
+            ]
+
+            wa_cloud_post.return_value = MockResponse(200, json.dumps({"success": "true"}))
+
+            response = self.client.get(claim_whatsapp_cloud_url)
+            self.assertEqual(response.url, select_whatsapp_cloud_url)
+
+            response = self.client.get(claim_whatsapp_cloud_url + "?waba_id=111111111111111", follow=True)
+
+            wa_cloud_get.reset_mock()
+
+            response = self.client.post(claim_whatsapp_cloud_url + "?waba_id=111111111111111", post_data, follow=True)
+            self.assertEqual(200, response.status_code)
+            self.assertEqual(
+                response.context["form"].errors["__all__"][0],
+                "This channel is already connected in this workspace.",
+            )
+
+    def test_select_view(self):
+        self.login(self.admin)
+        self.make_beta(self.admin)
+
+        select_whatsapp_cloud_url = reverse("channels.types.whatsapp.select")
+        connect_whatsapp_cloud_url = reverse("channels.types.whatsapp.connect")
+
+        self.assertRedirect(self.client.get(select_whatsapp_cloud_url), connect_whatsapp_cloud_url)
+
+        # make sure the token is set on the session
+        session = self.client.session
+        session[WhatsAppType.SESSION_USER_TOKEN] = "user-token"
+        session.save()
+
+        self.assertIn(WhatsAppType.SESSION_USER_TOKEN, self.client.session)
+
+        with patch("requests.get") as wa_cloud_get:
+            wa_cloud_get.side_effect = [
+                # pre-process missing permissions
+                MockResponse(
+                    200,
+                    json.dumps(
+                        {
+                            "data": {
+                                "scopes": [
+                                    "business_management",
+                                    "whatsapp_business_messaging",
+                                ],
+                                "is_valid": True,
+                            }
+                        }
+                    ),
+                ),
+            ]
+
+            response = self.client.get(select_whatsapp_cloud_url, follow=True)
+
+            self.assertFalse(WhatsAppType.SESSION_USER_TOKEN in self.client.session)
+
+        # make sure the token is set on the session
+        session = self.client.session
+        session[WhatsAppType.SESSION_USER_TOKEN] = "user-token"
+        session.save()
+
+        self.assertIn(WhatsAppType.SESSION_USER_TOKEN, self.client.session)
+
+        with patch("requests.get") as wa_cloud_get:
+            wa_cloud_get.side_effect = [
+                # pre-process for get
                 MockResponse(
                     200,
                     json.dumps(
@@ -506,46 +566,29 @@ class WhatsAppTypeTest(TembaTest):
                                             "111111111111111",
                                         ],
                                     },
+                                    {
+                                        "scope": "whatsapp_business_management",
+                                        "target_ids": [
+                                            "333333333333333",
+                                        ],
+                                    },
+                                    {
+                                        "scope": "whatsapp_business_messaging",
+                                        "target_ids": [
+                                            "333333333333333",
+                                        ],
+                                    },
                                 ]
                             }
                         }
                     ),
                 ),
-                # getting waba details
-                MockResponse(
-                    200,
-                    json.dumps(
-                        {
-                            "id": "111111111111111",
-                            "currency": "USD",
-                            "message_template_namespace": "namespace-uuid",
-                            "owner_business_info": {"id": "2222222222222"},
-                        }
-                    ),
-                ),
-                # getting waba phone numbers
-                MockResponse(
-                    200,
-                    json.dumps(
-                        {"data": [{"id": "123123123", "display_phone_number": "1234", "verified_name": "WABA name"}]}
-                    ),
-                ),
-                # getting te credit line ID
-                MockResponse(200, json.dumps({"data": [{"id": "567567567"}]})),
             ]
 
-            wa_cloud_post.return_value = MockResponse(200, json.dumps({"success": "true"}))
+            response = self.client.get(select_whatsapp_cloud_url, follow=True)
 
-            response = self.client.get(claim_whatsapp_cloud_url, follow=True)
-
-            wa_cloud_get.reset_mock()
-
-            response = self.client.post(claim_whatsapp_cloud_url, post_data, follow=True)
-            self.assertEqual(200, response.status_code)
-            self.assertEqual(
-                response.context["form"].errors["__all__"][0],
-                "This channel is already connected in this workspace.",
-            )
+            self.assertEqual(len(response.context["waba_ids"]), 2)
+            self.assertEqual(response.context["waba_ids"], ["111111111111111", "333333333333333"])
 
     def test_clear_session_token(self):
         Channel.objects.all().delete()
