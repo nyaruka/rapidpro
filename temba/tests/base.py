@@ -35,7 +35,7 @@ from temba.orgs.models import Org, OrgRole
 from temba.templates.models import Template
 from temba.tickets.models import Ticket, TicketEvent
 from temba.users.models import User
-from temba.utils import dynamo, json
+from temba.utils import dynamo, json, s3 as s3_utils
 from temba.utils.uuid import UUID, uuid4, uuid7
 
 from .dynamo import dynamo_truncate
@@ -1029,7 +1029,7 @@ def mock_uuids(method=None, *, seed=1234):
     return actual_decorator(method) if method else actual_decorator
 
 
-def cleanup(*, valkey=False, dynamodb=False):
+def cleanup(*, valkey=False, dynamodb=False, s3=False):
     """
     Explicit cleanup operations to perform after a test method runs.
     """
@@ -1044,6 +1044,12 @@ def cleanup(*, valkey=False, dynamodb=False):
             if dynamodb:
                 dynamo_truncate(dynamo.HISTORY)
                 dynamo_truncate(dynamo.MAIN)
+            if s3:
+                s3client = s3_utils.client()
+                for bucket_name in ["test-default", "test-archives"]:
+                    objects = s3client.list_objects_v2(Bucket=bucket_name)
+                    for obj in objects.get("Contents", []):
+                        s3client.delete_object(Bucket=bucket_name, Key=obj["Key"])
 
     def actual_decorator(f):
         @wraps(f)

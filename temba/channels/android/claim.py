@@ -40,10 +40,8 @@ def get_or_create_channel(registration_data, status):
             raise ValueError("Can't create Android channel without UUID or FCM ID")
 
     # look for existing active channel with this UUID
-    existing = Channel.objects.filter(uuid=uuid, is_active=True).first()
-
-    # if device exists reset some of the settings (ok because device clearly isn't in use if it's registering)
-    if existing:
+    if existing := Channel.objects.filter(uuid=uuid, is_active=True).first():
+        # if device exists reset some of the settings (ok because device clearly isn't in use if it's registering)
         config = existing.config
         config.update({Channel.CONFIG_FCM_ID: fcm_id})
         existing.config = config

@@ -456,9 +456,7 @@ class ContactField(TembaModel, DependencyMixin):
         used for imports and may ignore or modify the given name to ensure validity and uniqueness.
         """
 
-        existing = org.fields.filter(is_system=False, is_active=True, key=key).first()
-
-        if existing:
+        if existing := org.fields.filter(is_system=False, is_active=True, key=key).first():
             changed = False
 
             if name and existing.name != name and cls.is_valid_name(name):
