@@ -4,13 +4,14 @@ from django.conf import settings
 from django.urls import reverse
 
 from temba.msgs.models import Media
-from temba.tests import mock_uuids
+from temba.tests import cleanup, mock_uuids
 
 from . import APITest
 
 
 class MediaEndpointTest(APITest):
     @mock_uuids
+    @cleanup(s3=True)
     def test_endpoint(self):
         endpoint_url = reverse("api.v2.media") + ".json"
 

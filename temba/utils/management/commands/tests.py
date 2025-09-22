@@ -4,7 +4,33 @@ from django.core.management import call_command
 from django.test.utils import override_settings
 
 from temba.tests import TembaTest
-from temba.utils import dynamo
+from temba.utils import dynamo, s3
+
+from .create_buckets import BUCKETS
+
+
+class CreateBucketsTest(TembaTest):
+    def tearDown(self):
+        client = s3.client()
+
+        for bucket in BUCKETS:
+            client.delete_bucket(Bucket=f"temp-{bucket}")
+
+        return super().tearDown()
+
+    @override_settings(BUCKET_PREFIX="temp")
+    def test_create_buckets(self):
+        out = StringIO()
+        call_command("create_buckets", stdout=out)
+
+        self.assertIn("created bucket temp-archives", out.getvalue())
+        self.assertIn("created bucket temp-default", out.getvalue())
+
+        out = StringIO()
+        call_command("create_buckets", stdout=out)
+
+        self.assertIn("Skipping temp-archives", out.getvalue())
+        self.assertIn("Skipping temp-default", out.getvalue())
 
 
 class MigrateDynamoTest(TembaTest):

@@ -66,22 +66,6 @@ jobs:
             --health-retries 5 \
             minio/minio:latest minio server /data --console-address ":9001"
 
-      - name: Install MinIO client
-        run: |
-          # Download MinIO client and its checksum
-          sudo curl -O https://dl.min.io/client/mc/release/linux-amd64/archive/mc.RELEASE.2025-08-13T08-35-41Z
-          sudo curl -O https://dl.min.io/client/mc/release/linux-amd64/archive/mc.RELEASE.2025-08-13T08-35-41Z.sha256sum
-          # Verify checksum
-          sha256sum -c mc.RELEASE.2025-08-13T08-35-41Z.sha256sum
-          sudo chmod +x mc.RELEASE.2025-08-13T08-35-41Z
-          sudo mv mc.RELEASE.2025-08-13T08-35-41Z /usr/local/bin/mc
-          mc alias set local http://127.0.0.1:9000 root tembatemba
-
-          for bucket in test-default test-attachments test-logs test-sessions test-archives; do
-            mc ls local/$bucket || mc mb local/$bucket
-          done
-          mc anonymous set public local/test-attachments
-
       - name: Initialize environment
         run: |
           poetry install --no-root
@@ -90,6 +74,7 @@ jobs:
           ln -s ${{ github.workspace }}/temba/settings.py.dev ${{ github.workspace }}/temba/settings.py
           poetry run python manage.py migrate
           poetry run python manage.py migrate_dynamo --testing
+          poetry run python manage.py create_buckets --testing
           # fetch, extract and start mailroom
           wget https://github.com/${{ github.repository_owner }}/mailroom/releases/download/v${{ env.mailroom-version }}/mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz
           tar -xvf mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz mailroom
