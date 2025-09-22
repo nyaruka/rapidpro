@@ -235,7 +235,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # contact 1 has two open tickets and some messages
         c1_t1 = self.create_ticket(contact1, topic=self.org.default_topic, assignee=self.admin)
-        c1_t2 = self.create_ticket(contact1, topic=self.sales, assignee=self.agent3)  # assignee doesn't have access
+        c1_t2 = self.create_ticket(contact1, topic=self.sales, assignee=self.agent3)  # doesn't have access to sales
 
         self.create_incoming_msg(contact1, "I have an issue")
         self.create_outgoing_msg(contact1, "We can help", created_by=self.admin)
@@ -363,7 +363,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         assert_tickets(mine_open_url, self.editor, expected=[])
         assert_tickets(mine_open_url, self.agent, expected=[])
         assert_tickets(mine_open_url, self.agent2, expected=[])
-        assert_tickets(mine_open_url, self.agent3, expected=[])  # can't access their assigned ticket
+        assert_tickets(mine_open_url, self.agent3, expected=[c1_t2])  # because they're assigned to it
         assert_tickets(mine_open_url, self.customer_support, expected=[], choose_org=self.org)  # always empty for CS
 
         # try topic specific folders
@@ -428,7 +428,10 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.editor, expected=[c1_t2])
         assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent, expected=[c1_t2])
         assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent2, expected=[c1_t2])
-        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent3, expected=[])
+        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent3, expected=[])  # can't access via All
+
+        assert_tickets(f"{mine_open_url}{str(c1_t2.uuid)}", self.admin, expected=[])
+        assert_tickets(f"{mine_open_url}{str(c1_t2.uuid)}", self.agent3, expected=[c1_t2])  # can access via Mine
 
         # make sure when paging we get a next url
         with patch("temba.tickets.views.TicketCRUDL.Folder.paginate_by", 1):
