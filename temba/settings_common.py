@@ -56,24 +56,24 @@ DYNAMO_TABLE_PREFIX = "Test" if TESTING else "Temba"
 # Storage
 # -----------------------------------------------------------------------------------
 
-_bucket_prefix = "test" if TESTING else "temba"
+BUCKET_PREFIX = "test" if TESTING else "temba"
 
 STORAGES = {
     # default storage for things like exports, imports
     "default": {
         "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
-        "OPTIONS": {"bucket_name": f"{_bucket_prefix}-default"},
+        "OPTIONS": {"bucket_name": f"{BUCKET_PREFIX}-default"},
     },
     # wherever rp-archiver writes archive files
     "archives": {
         "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
-        "OPTIONS": {"bucket_name": f"{_bucket_prefix}-archives"},
+        "OPTIONS": {"bucket_name": f"{BUCKET_PREFIX}-archives"},
     },
     # media file uploads that need to be publicly accessible
     "public": {
         "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
         "OPTIONS": {
-            "bucket_name": f"{_bucket_prefix}-default",
+            "bucket_name": f"{BUCKET_PREFIX}-default",
             "signature_version": "s3v4",
             "default_acl": "public-read",
             "querystring_auth": False,
@@ -89,7 +89,7 @@ AWS_S3_ENDPOINT_URL = f"http://{_minio_host}:9000"
 AWS_S3_ADDRESSING_STYLE = "path"
 AWS_S3_FILE_OVERWRITE = False
 
-STORAGE_URL = f"{AWS_S3_ENDPOINT_URL}/{_bucket_prefix}-default"
+STORAGE_URL = f"{AWS_S3_ENDPOINT_URL}/{BUCKET_PREFIX}-default"
 
 # -----------------------------------------------------------------------------------
 # Localization
