@@ -13,7 +13,6 @@ class MediaEndpointTest(APITest):
     @mock_uuids
     @cleanup(s3=True)
     def test_endpoint(self):
-        self.setUpS3Buckets()
         endpoint_url = reverse("api.v2.media") + ".json"
 
         self.assertGetNotAllowed(endpoint_url)

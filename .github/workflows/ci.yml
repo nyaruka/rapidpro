@@ -72,6 +72,7 @@ jobs:
           yarn install
           sudo yarn global add less
           ln -s ${{ github.workspace }}/temba/settings.py.dev ${{ github.workspace }}/temba/settings.py
+          poetry run python manage.py create_buckets
           poetry run python manage.py migrate
           poetry run python manage.py migrate_dynamo --testing
           # fetch, extract and start mailroom

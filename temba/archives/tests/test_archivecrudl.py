@@ -33,7 +33,6 @@ class ArchiveCRUDLTest(TembaTest, CRUDLTestMixin):
 
     @cleanup(s3=True)
     def test_read(self):
-        self.setUpS3Buckets()
         archive = self.create_archive(Archive.TYPE_MSG, "D", date(2020, 7, 31), [{"id": 1}, {"id": 2}])
 
         download_url = (

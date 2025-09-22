@@ -15,7 +15,6 @@ class BroadcastsEndpointTest(APITest):
     @mock_mailroom
     @cleanup(s3=True)
     def test_endpoint(self, mr_mocks):
-        self.setUpS3Buckets()
         endpoint_url = reverse("api.v2.broadcasts") + ".json"
 
         self.assertGetNotPermitted(endpoint_url, [None, self.agent])

@@ -48,3 +48,15 @@ warnings.filterwarnings(
 # Make our sitestatic URL be our static URL on development
 # -----------------------------------------------------------------------------------
 STATIC_URL = "/static/"
+
+
+# -----------------------------------------------------------------------------------
+# Create S3 Buckets
+# -----------------------------------------------------------------------------------
+BUCKETS = {
+    "default": "test-default",
+    "archives": "test-archives",
+    "logs": "test-logs",
+    "public": "test-public",
+    "sessions": "test-sessions",
+}
