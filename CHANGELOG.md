@@ -1,3 +1,8 @@
+v10.3.61 (2025-09-22)
+-------------------------
+ * Add create_buckets management command
+ * Users assigned to a ticket should be able to access it even if they've lost access to the topic
+
 v10.3.57 (2025-09-18)
 -------------------------
  * Add menu option to disable a user's MFA
