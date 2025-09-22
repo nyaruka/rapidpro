@@ -6,6 +6,7 @@ from decimal import Decimal
 from itertools import chain
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 import iso8601
 import phonenumbers
@@ -719,13 +720,12 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
         return sorted(merged, key=lambda k: k["scheduled"])
 
-    def get_history(self, after, before, *, ticket, limit: int) -> list:
+    def get_history(self, after, before, *, ticket_uuid: UUID, limit: int) -> list:
         """
         Gets this contact's history of messages, calls, runs etc in the given time window
         """
         from temba.mailroom.events import Event, get_event_time
         from temba.msgs.models import Msg
-        from temba.tickets.models import TicketEvent
 
         msgs = (
             self.msgs.filter(created_on__gte=after, created_on__lt=before)
@@ -735,28 +735,10 @@ class Contact(LegacyUUIDMixin, SmartModel):
             .select_related("channel", "contact_urn", "broadcast", "optin")[:limit]
         )
 
-        ticket_events = (
-            self.ticket_events.filter(created_on__gte=after, created_on__lt=before)
-            .select_related("ticket__topic", "assignee", "created_by")
-            .order_by("-created_on")
-        )
-
-        if ticket:
-            # if we have a ticket this is for the ticket UI, so we want *all* events for *only* that ticket
-            ticket_events = ticket_events.filter(ticket=ticket)
-        else:
-            # if not then this for the contact read page so only show ticket opened/closed/reopened events
-            ticket_events = ticket_events.filter(
-                event_type__in=[TicketEvent.TYPE_OPENED, TicketEvent.TYPE_CLOSED, TicketEvent.TYPE_REOPENED]
-            )
-
-        ticket_events = ticket_events[:limit]
-
         # chain all items together, sort by their event time, and slice
         items = chain(
             msgs,
-            ticket_events,
-            Event.get_by_contact(self, after=after, before=before, limit=limit),
+            Event.get_by_contact(self, after=after, before=before, ticket_uuid=ticket_uuid, limit=limit),
         )
 
         # sort and slice

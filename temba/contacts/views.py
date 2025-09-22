@@ -2,6 +2,7 @@ import logging
 from collections import OrderedDict
 from datetime import timedelta
 from urllib.parse import quote_plus
+from uuid import UUID
 
 import iso8601
 from smartmin.views import SmartCreateView, SmartCRUDL, SmartListView, SmartReadView, SmartUpdateView, SmartView
@@ -368,7 +369,11 @@ class ContactCRUDL(SmartCRUDL):
             limit = int(self.request.GET.get("limit", 50))
 
             ticket_uuid = self.request.GET.get("ticket")
-            ticket = contact.org.tickets.filter(uuid=ticket_uuid).first()
+            if ticket_uuid:
+                try:
+                    ticket_uuid = UUID(ticket_uuid)
+                except ValueError:
+                    ticket_uuid = None
 
             # if we want an expanding window, or just all the recent activity
             recent_only = False
@@ -387,7 +392,7 @@ class ContactCRUDL(SmartCRUDL):
             history = []
             fetch_before = before
             while True:
-                history += contact.get_history(after, fetch_before, ticket=ticket, limit=limit)
+                history += contact.get_history(after, fetch_before, ticket_uuid=ticket_uuid, limit=limit)
                 if recent_only or len(history) >= 20 or after == contact_creation:
                     break
                 else:
@@ -403,7 +408,9 @@ class ContactCRUDL(SmartCRUDL):
             # check if there are more pages to fetch
             context["has_older"] = False
             if not recent_only and before > contact.created_on:
-                context["has_older"] = bool(contact.get_history(contact_creation, after, ticket=ticket, limit=1))
+                context["has_older"] = bool(
+                    contact.get_history(contact_creation, after, ticket_uuid=ticket_uuid, limit=1)
+                )
 
             context["recent_only"] = recent_only
             context["next_before"] = datetime_to_timestamp(after)
