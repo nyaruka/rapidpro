@@ -1,3 +1,7 @@
+v10.3.62 (2025-09-22)
+-------------------------
+ * Update temba components
+
 v10.3.61 (2025-09-22)
 -------------------------
  * Add create_buckets management command
