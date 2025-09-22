@@ -231,6 +231,7 @@ class SelectWABA(ChannelTypeMixin, OrgPermsMixin, SmartTemplateView):
 
         context["waba_ids"] = list(dict.fromkeys(waba_targets))
         context["claim_url"] = reverse("channels.types.whatsapp.claim")
+        context["clear_session_token_url"] = reverse("channels.types.whatsapp.clear_session_token")
         return context
 
     def retrieve_access_token_info(self, oauth_user_token):
