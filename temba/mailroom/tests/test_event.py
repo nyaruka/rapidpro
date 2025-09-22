@@ -365,20 +365,3 @@ class EventTest(TembaTest):
             },
             Event.from_msg(self.org, self.admin, msg_out3),
         )
-
-        # create a message that was an opt-in request
-        msg_out4 = self.create_optin_request(contact1, self.channel, optin)
-        self.assertEqual(
-            {
-                "uuid": str(msg_out4.uuid),
-                "type": "optin_requested",
-                "created_on": matchers.ISODatetime(),
-                "optin": {"uuid": str(optin.uuid), "name": "Polls"},
-                "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
-                "urn": "tel:+250979111111",
-                "created_by": None,
-                "status": "S",
-                "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out4.id}/",
-            },
-            Event.from_msg(self.org, self.admin, msg_out4),
-        )

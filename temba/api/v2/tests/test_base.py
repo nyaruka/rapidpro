@@ -15,6 +15,7 @@ from temba.api.v2.serializers import normalize_extra
 from temba.contacts.models import Contact
 from temba.flows.models import FlowRun
 from temba.orgs.models import OrgRole
+from temba.utils.uuid import uuid7
 
 from . import APITest
 
@@ -261,7 +262,16 @@ class EndpointsTest(APITest):
         flow = self.create_flow("Test")
         runs = []
         for r in range(1255):
-            runs.append(FlowRun(org=self.org, flow=flow, contact=self.joe, status="C", exited_on=timezone.now()))
+            runs.append(
+                FlowRun(
+                    org=self.org,
+                    flow=flow,
+                    contact=self.joe,
+                    session_uuid=uuid7(),
+                    status="C",
+                    exited_on=timezone.now(),
+                )
+            )
         FlowRun.objects.bulk_create(runs)
         actual_ids = list(FlowRun.objects.order_by("-pk").values_list("pk", flat=True))
 

@@ -1,3 +1,5 @@
+from allauth.mfa.models import Authenticator
+
 from temba.api.models import APIToken
 from temba.orgs.models import OrgRole
 from temba.orgs.tasks import update_members_seen
@@ -57,6 +59,28 @@ class UserTest(TembaTest):
         user.set_verified(True)
         self.assertTrue(user.is_verified())
         self.assertTrue(user.emailaddress_set.filter(email="jim@rapidpro.io", primary=True, verified=True).exists())
+
+    def test_mfa(self):
+        self.assertFalse(self.admin.is_mfa_enabled)
+        self.assertFalse(self.editor.is_mfa_enabled)
+        self.assertFalse(self.agent.is_mfa_enabled)
+
+        Authenticator.objects.create(user_id=self.admin.id, type=Authenticator.Type.TOTP, data={"secret": "sesame"})
+        Authenticator.objects.create(
+            user_id=self.admin.id, type=Authenticator.Type.RECOVERY_CODES, data={"migrated_codes": ["abc", "edc"]}
+        )
+
+        Authenticator.objects.create(user_id=self.agent.id, type=Authenticator.Type.TOTP, data={"secret": "sesame"})
+
+        self.assertTrue(self.admin.is_mfa_enabled)
+        self.assertFalse(self.editor.is_mfa_enabled)
+        self.assertTrue(self.agent.is_mfa_enabled)
+
+        self.admin.disable_mfa()
+
+        self.assertFalse(self.admin.is_mfa_enabled)
+        self.assertFalse(self.editor.is_mfa_enabled)
+        self.assertTrue(self.agent.is_mfa_enabled)
 
     def test_has_org_perm(self):
         granter = self.create_user("jim@rapidpro.io", group_names=("Granters",))

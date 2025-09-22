@@ -93,11 +93,11 @@ class RunsEndpointTest(APITest):
                 "path": [
                     {
                         "node": color_prompt["uuid"],
-                        "time": format_datetime(iso8601.parse_date(frank_run2.path[0]["arrived_on"])),
+                        "time": format_datetime(frank_run2.path_times[0]),
                     },
                     {
                         "node": color_split["uuid"],
-                        "time": format_datetime(iso8601.parse_date(frank_run2.path[1]["arrived_on"])),
+                        "time": format_datetime(frank_run2.path_times[1]),
                     },
                 ],
                 "values": {},
@@ -124,15 +124,15 @@ class RunsEndpointTest(APITest):
                 "path": [
                     {
                         "node": color_prompt["uuid"],
-                        "time": format_datetime(iso8601.parse_date(joe_run1.path[0]["arrived_on"])),
+                        "time": format_datetime(joe_run1.path_times[0]),
                     },
                     {
                         "node": color_split["uuid"],
-                        "time": format_datetime(iso8601.parse_date(joe_run1.path[1]["arrived_on"])),
+                        "time": format_datetime(joe_run1.path_times[1]),
                     },
                     {
                         "node": blue_reply["uuid"],
-                        "time": format_datetime(iso8601.parse_date(joe_run1.path[2]["arrived_on"])),
+                        "time": format_datetime(joe_run1.path_times[2]),
                     },
                 ],
                 "values": {
@@ -211,11 +211,11 @@ class RunsEndpointTest(APITest):
                     "path": [
                         {
                             "node": color_prompt["uuid"],
-                            "time": format_datetime(iso8601.parse_date(frank_run2.path[0]["arrived_on"])),
+                            "time": format_datetime(frank_run2.path_times[0]),
                         },
                         {
                             "node": color_split["uuid"],
-                            "time": format_datetime(iso8601.parse_date(frank_run2.path[1]["arrived_on"])),
+                            "time": format_datetime(frank_run2.path_times[1]),
                         },
                     ],
                     "values": {},

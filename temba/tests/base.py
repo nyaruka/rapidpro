@@ -35,7 +35,7 @@ from temba.orgs.models import Org, OrgRole
 from temba.templates.models import Template
 from temba.tickets.models import Ticket
 from temba.users.models import User
-from temba.utils import dynamo, json
+from temba.utils import dynamo, json, s3 as s3_utils
 from temba.utils.uuid import UUID, uuid4, uuid7
 
 from .dynamo import dynamo_truncate
@@ -350,23 +350,6 @@ class TembaTest(SmartminTest):
             ticket=ticket,
             next_attempt=next_attempt,
             failed_reason=failed_reason,
-            logs=logs,
-        )
-
-    def create_optin_request(self, contact, channel, optin, flow=None, logs=None) -> Msg:
-        return self._create_msg(
-            contact,
-            "",
-            Msg.DIRECTION_OUT,
-            channel=channel,
-            msg_type=Msg.TYPE_OPTIN,
-            attachments=[],
-            quick_replies=[],
-            status=Msg.STATUS_SENT,
-            sent_on=timezone.now(),
-            created_on=None,
-            optin=optin,
-            flow=flow,
             logs=logs,
         )
 
@@ -776,7 +759,7 @@ class TembaTest(SmartminTest):
             uuid=uuid7(),
             org=contact.org,
             contact=contact,
-            topic=topic or contact.org.default_ticket_topic,
+            topic=topic or contact.org.default_topic,
             status=Ticket.STATUS_CLOSED if closed_on else Ticket.STATUS_OPEN,
             assignee=assignee,
             opened_on=opened_on,
@@ -1023,7 +1006,7 @@ def mock_uuids(method=None, *, seed=1234):
     return actual_decorator(method) if method else actual_decorator
 
 
-def cleanup(*, valkey=False, dynamodb=False):
+def cleanup(*, valkey=False, dynamodb=False, s3=False):
     """
     Explicit cleanup operations to perform after a test method runs.
     """
@@ -1038,6 +1021,12 @@ def cleanup(*, valkey=False, dynamodb=False):
             if dynamodb:
                 dynamo_truncate(dynamo.HISTORY)
                 dynamo_truncate(dynamo.MAIN)
+            if s3:
+                s3client = s3_utils.client()
+                for bucket_name in ["test-default", "test-archives"]:
+                    objects = s3client.list_objects_v2(Bucket=bucket_name)
+                    for obj in objects.get("Contents", []):
+                        s3client.delete_object(Bucket=bucket_name, Key=obj["Key"])
 
     def actual_decorator(f):
         @wraps(f)

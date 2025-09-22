@@ -80,9 +80,8 @@ class BoundaryCRUDL(SmartCRUDL):
             except Exception as e:
                 return JsonResponse(dict(status="error", description="Error parsing JSON: %s" % str(e)), status=400)
 
-            boundary = AdminBoundary.objects.filter(osm_id=boundary_update["osm_id"]).first()
-            aliases = boundary_update.get("aliases", "")
-            if boundary:
+            if boundary := AdminBoundary.objects.filter(osm_id=boundary_update["osm_id"]).first():
+                aliases = boundary_update.get("aliases", "")
                 unique_new_aliases = [a.strip() for a in set(aliases.split("\n")) if a]
 
                 boundary.update_aliases(org, self.request.user, unique_new_aliases)

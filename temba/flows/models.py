@@ -1049,7 +1049,7 @@ class FlowRun(models.Model):
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="runs", db_index=False)
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="runs")
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
-    session_uuid = models.UUIDField(null=True)
+    session_uuid = models.UUIDField()
 
     # contact isn't an index because we have flows_flowrun_contact_inc_flow below
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT, related_name="runs", db_index=False)
@@ -1069,7 +1069,6 @@ class FlowRun(models.Model):
     results = JSONAsTextField(null=True, default=dict)
 
     # path taken by this run through the flow
-    path = JSONAsTextField(null=True, default=list)  # to be replaced by path_nodes and path_times
     path_nodes = ArrayField(models.UUIDField(), null=True)
     path_times = ArrayField(models.DateTimeField(), null=True)
 
@@ -1082,10 +1081,7 @@ class FlowRun(models.Model):
         time: datetime
 
     def get_path(self):
-        if self.path_nodes is not None and self.path_times is not None:
-            return [self.Step(node=n, time=t) for n, t in zip(self.path_nodes, self.path_times)]
-        else:
-            return [self.Step(node=UUID(s["node_uuid"]), time=iso8601.parse_date(s["arrived_on"])) for s in self.path]
+        return [self.Step(node=n, time=t) for n, t in zip(self.path_nodes or [], self.path_times or [])]
 
     def as_archive_json(self):
         from temba.api.v2.views import FlowRunReadSerializer

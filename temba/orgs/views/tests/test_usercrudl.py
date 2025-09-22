@@ -49,7 +49,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(response.context["admin_count"], 2)
 
     def test_team(self):
-        team_url = reverse("orgs.user_team", args=[self.org.default_ticket_team.id])
+        team_url = reverse("orgs.user_team", args=[self.org.default_team.id])
 
         # nobody can access if teams feature not enabled
         response = self.requestView(team_url, self.admin)
@@ -106,9 +106,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
 
         update_url = reverse("orgs.user_update", args=[self.agent.id])
 
-        self.assertUpdateFetch(
-            update_url, [self.admin], form_fields={"role": "T", "team": self.org.default_ticket_team}
-        )
+        self.assertUpdateFetch(update_url, [self.admin], form_fields={"role": "T", "team": self.org.default_team})
         self.assertUpdateSubmit(update_url, self.admin, {"role": "T", "team": sales.id})
 
         self.org._membership_cache = {}

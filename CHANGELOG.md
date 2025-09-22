@@ -1,3 +1,23 @@
+v10.3.62 (2025-09-22)
+-------------------------
+ * Update temba components
+
+v10.3.61 (2025-09-22)
+-------------------------
+ * Add create_buckets management command
+ * Users assigned to a ticket should be able to access it even if they've lost access to the topic
+
+v10.3.57 (2025-09-18)
+-------------------------
+ * Add menu option to disable a user's MFA
+ * Remove no longer used FlowRun.path and make session_uuid non-nullable
+ * Change ticket event backfill migration to save full user references
+ * Use minio/minio docker image for CI
+
+v10.3.56 (2025-09-16)
+-------------------------
+ * Read optin_requested events from DynamoDB instead of recreating from messages
+
 v10.3.55 (2025-09-15)
 -------------------------
  * Update flow editor

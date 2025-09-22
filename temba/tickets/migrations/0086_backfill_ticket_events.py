@@ -94,11 +94,11 @@ def backfill_ticket_events(apps, schema_editor):  # pragma: no cover
                             "created_on": evt.created_on.isoformat(),
                             "ticket_uuid": str(evt.ticket.uuid),
                         }
-                    else:  # pragma: no cover
+                    else:
                         data = None
 
                     if evt.created_by:
-                        data["_user_uuid"] = str(evt.created_by.uuid)
+                        data["_user"] = _user_ref(evt.created_by)
 
                     if data:
                         writer.put_item(
@@ -113,7 +113,7 @@ def backfill_ticket_events(apps, schema_editor):  # pragma: no cover
 
                     before_id = evt.id
 
-        except Exception as e:  # pragma: no cover
+        except Exception as e:
             print(e)
             print(f"before_id={before_id}")
             break

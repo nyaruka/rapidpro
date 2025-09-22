@@ -742,11 +742,11 @@ class Org(SmartModel):
         return sum(Contact.get_status_counts(self).values())
 
     @cached_property
-    def default_ticket_topic(self):
+    def default_topic(self):
         return self.topics.get(is_default=True)
 
     @cached_property
-    def default_ticket_team(self):
+    def default_team(self):
         return self.teams.get(is_default=True)
 
     def get_resthooks(self):
@@ -775,15 +775,12 @@ class Org(SmartModel):
 
         # first try the country boundary field
         if self.country:
-            country = pycountry.countries.get(name=self.country.name)
-            if country:
+            if country := pycountry.countries.get(name=self.country.name):
                 return country
 
         # next up try timezone
-        code = timezone_to_country_code(self.timezone)
-        if code:
-            country = pycountry.countries.get(alpha_2=code)
-            if country:
+        if code := timezone_to_country_code(self.timezone):
+            if country := pycountry.countries.get(alpha_2=code):
                 return country
 
         # if that didn't work (not all timezones have a country) look for channels with countries
@@ -795,8 +792,7 @@ class Org(SmartModel):
             .values_list("country", flat=True)
         )
         if len(codes) == 1:
-            country = pycountry.countries.get(alpha_2=codes[0])
-            if country:
+            if country := pycountry.countries.get(alpha_2=codes[0]):
                 return country
 
         return None
@@ -869,7 +865,7 @@ class Org(SmartModel):
             self.remove_user(user)
 
         if role == OrgRole.AGENT and not team:
-            team = self.default_ticket_team
+            team = self.default_team
 
         self._membership_cache[user] = OrgMembership.objects.create(org=self, user=user, role_code=role.code, team=team)
 
@@ -884,8 +880,7 @@ class Org(SmartModel):
     def get_owner(self) -> User:
         # look thru roles in order for the first added user
         for role in OrgRole:
-            user = self.users.filter(orgmembership__role_code=role.code).order_by("id").first()
-            if user:
+            if user := self.users.filter(orgmembership__role_code=role.code).order_by("id").first():
                 return user
 
         # default to user that created this org (converting to our User proxy model)

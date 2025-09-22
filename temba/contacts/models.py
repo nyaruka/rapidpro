@@ -456,9 +456,7 @@ class ContactField(TembaModel, DependencyMixin):
         used for imports and may ignore or modify the given name to ensure validity and uniqueness.
         """
 
-        existing = org.fields.filter(is_system=False, is_active=True, key=key).first()
-
-        if existing:
+        if existing := org.fields.filter(is_system=False, is_active=True, key=key).first():
             changed = False
 
             if name and existing.name != name and cls.is_valid_name(name):
@@ -732,6 +730,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         msgs = (
             self.msgs.filter(created_on__gte=after, created_on__lt=before)
             .exclude(status=Msg.STATUS_PENDING)
+            .exclude(msg_type=Msg.TYPE_OPTIN)
             .order_by("-created_on", "-id")
             .select_related("channel", "contact_urn", "broadcast", "optin")[:limit]
         )

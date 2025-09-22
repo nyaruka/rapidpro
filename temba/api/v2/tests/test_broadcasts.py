@@ -6,13 +6,14 @@ from temba.api.v2.serializers import format_datetime
 from temba.msgs.models import Broadcast
 from temba.orgs.models import Org
 from temba.schedules.models import Schedule
-from temba.tests import mock_mailroom
+from temba.tests import cleanup, mock_mailroom
 
 from . import APITest
 
 
 class BroadcastsEndpointTest(APITest):
     @mock_mailroom
+    @cleanup(s3=True)
     def test_endpoint(self, mr_mocks):
         endpoint_url = reverse("api.v2.broadcasts") + ".json"
 

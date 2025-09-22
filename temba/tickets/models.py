@@ -166,7 +166,7 @@ class Team(TembaModel):
         assert not (self.is_system and self.org.is_active), "can't release system teams"
 
         # re-assign agents in this team to the default team
-        OrgMembership.objects.filter(org=self.org, team=self).update(team=self.org.default_ticket_team)
+        OrgMembership.objects.filter(org=self.org, team=self).update(team=self.org.default_team)
 
         self.name = self._deleted_name()
         self.is_active = False
@@ -212,9 +212,6 @@ class Ticket(models.Model):
 
     # when this ticket last had activity which includes messages being sent and received, and is used for ordering
     last_activity_on = models.DateTimeField(default=timezone.now)
-
-    def assign(self, user: User, *, assignee: User):
-        self.bulk_assign(self.org, user, [self], assignee=assignee)
 
     def add_note(self, user: User, *, note: str):
         self.bulk_add_note(self.org, user, [self], note=note)
@@ -299,6 +296,7 @@ class TicketFolder(metaclass=ABCMeta):
     name = None
     icon = None
     verbose_name = None
+    restrict_topics = None
 
     def get_icon(self, count) -> str:
         return self.icon
@@ -306,7 +304,7 @@ class TicketFolder(metaclass=ABCMeta):
     def get_queryset(self, org, user, *, ordered: bool):
         qs = org.tickets.all()
 
-        if not user.is_staff:
+        if self.restrict_topics and not user.is_staff:
             membership = org.get_membership(user)
             if membership.team and not membership.team.all_topics:
                 qs = qs.filter(topic__in=list(membership.team.topics.all()))
@@ -338,6 +336,7 @@ class MineFolder(TicketFolder):
     slug = "mine"
     name = _("My Tickets")
     icon = "tickets_mine"
+    restrict_topics = False  # users can see tickets assigned to them even if they don't have access to the topic
 
     def get_icon(self, count) -> str:
         return self.icon if count else "tickets_mine_done"
@@ -355,6 +354,7 @@ class UnassignedFolder(TicketFolder):
     name = _("Unassigned")
     verbose_name = _("Unassigned Tickets")
     icon = "tickets_unassigned"
+    restrict_topics = True
 
     def get_queryset(self, org, user, *, ordered: bool):
         return super().get_queryset(org, user, ordered=ordered).filter(assignee=None)
@@ -369,6 +369,7 @@ class AllFolder(TicketFolder):
     name = _("All")
     verbose_name = _("All Tickets")
     icon = "tickets_all"
+    restrict_topics = True
 
 
 FOLDERS = {f.slug: f() for f in TicketFolder.__subclasses__()}
@@ -383,6 +384,7 @@ class TopicFolder(TicketFolder):
         self.slug = topic.uuid
         self.name = topic.name
         self.topic = topic
+        self.restrict_topics = False  # already filtered by a single topic
 
     def get_queryset(self, org, user, *, ordered: bool):
         return super().get_queryset(org, user, ordered=ordered).filter(topic=self.topic)

@@ -91,7 +91,7 @@ class ContactTest(TembaTest):
     def test_open_ticket(self, mock_post):
         mock_post.return_value = MockJsonResponse(200, {"modified": {self.joe.id: {"contact": {}, "events": []}}})
 
-        self.joe.open_ticket(self.admin, topic=self.org.default_ticket_topic, assignee=self.agent, note="Looks sus")
+        self.joe.open_ticket(self.admin, topic=self.org.default_topic, assignee=self.agent, note="Looks sus")
 
         mock_post.assert_called_once_with(
             "http://mailroom:8090/mr/contact/modify",
@@ -103,7 +103,7 @@ class ContactTest(TembaTest):
                 "modifiers": [
                     {
                         "type": "ticket",
-                        "topic": {"uuid": str(self.org.default_ticket_topic.uuid), "name": "General"},
+                        "topic": {"uuid": str(self.org.default_topic.uuid), "name": "General"},
                         "assignee": {"uuid": str(self.agent.uuid), "name": "Agnes"},
                         "note": "Looks sus",
                     }

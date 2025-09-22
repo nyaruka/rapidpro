@@ -18,46 +18,6 @@ class FlowRunTest(TembaTest):
     def test_get_path(self):
         flow = self.create_flow("Test")
 
-        # create run with old style path JSON
-        run = FlowRun.objects.create(
-            uuid=uuid4(),
-            org=self.org,
-            flow=flow,
-            contact=self.contact,
-            status=FlowRun.STATUS_WAITING,
-            session_uuid="082cb7a8-a8fc-468d-b0a4-06f5a5179e2b",
-            path=[
-                {
-                    "uuid": "b5c3421c-3bbb-4dc7-9bda-683456588a6d",
-                    "node_uuid": "857a1498-3d5f-40f5-8185-2ce596ce2677",
-                    "arrived_on": "2021-12-20T08:47:30.123Z",
-                    "exit_uuid": "6fc14d2c-3b4d-49c7-b342-4b2b2ebf7678",
-                },
-                {
-                    "uuid": "4a254612-8437-47e1-b7bd-feb97ee60bf6",
-                    "node_uuid": "59d992c6-c491-473d-a7e9-4f431d705c01",
-                    "arrived_on": "2021-12-20T08:47:30.234Z",
-                    "exit_uuid": None,
-                },
-            ],
-            current_node_uuid="59d992c6-c491-473d-a7e9-4f431d705c01",
-        )
-
-        self.assertEqual(
-            [
-                FlowRun.Step(
-                    node=UUID("857a1498-3d5f-40f5-8185-2ce596ce2677"),
-                    time=datetime(2021, 12, 20, 8, 47, 30, 123000, tzinfo=tzone.utc),
-                ),
-                FlowRun.Step(
-                    node=UUID("59d992c6-c491-473d-a7e9-4f431d705c01"),
-                    time=datetime(2021, 12, 20, 8, 47, 30, 234000, tzinfo=tzone.utc),
-                ),
-            ],
-            run.get_path(),
-        )
-
-        # create run with new style path fields
         run = FlowRun.objects.create(
             uuid=uuid4(),
             org=self.org,
@@ -186,19 +146,5 @@ class FlowRunTest(TembaTest):
             session_uuid=session.uuid,
             created_on=timezone.now(),
             modified_on=timezone.now(),
-            path=[
-                {
-                    "uuid": "b5c3421c-3bbb-4dc7-9bda-683456588a6d",
-                    "node_uuid": "857a1498-3d5f-40f5-8185-2ce596ce2677",
-                    "arrived_on": "2021-12-20T08:47:30.123Z",
-                    "exit_uuid": "6fc14d2c-3b4d-49c7-b342-4b2b2ebf7678",
-                },
-                {
-                    "uuid": "4a254612-8437-47e1-b7bd-feb97ee60bf6",
-                    "node_uuid": "59d992c6-c491-473d-a7e9-4f431d705c01",
-                    "arrived_on": "2021-12-20T08:47:30.234Z",
-                    "exit_uuid": None,
-                },
-            ],
             current_node_uuid="59d992c6-c491-473d-a7e9-4f431d705c01",
         )

@@ -19,7 +19,7 @@ class TicketTest(TembaTest):
             uuid=uuid7(),
             org=self.org,
             contact=contact,
-            topic=self.org.default_ticket_topic,
+            topic=self.org.default_topic,
             status="O",
         )
 
@@ -61,13 +61,13 @@ class TicketTest(TembaTest):
 
     @mock_mailroom
     def test_counts(self, mr_mocks):
-        general = self.org.default_ticket_topic
+        general = self.org.default_topic
         cats = Topic.create(self.org, self.admin, "Cats")
 
         contact1 = self.create_contact("Bob", urns=["twitter:bobby"])
         contact2 = self.create_contact("Jim", urns=["twitter:jimmy"])
 
-        org2_general = self.org2.default_ticket_topic
+        org2_general = self.org2.default_topic
         org2_contact = self.create_contact("Bob", urns=["twitter:bobby"], org=self.org2)
 
         t1 = self.create_ticket(contact1, topic=general)

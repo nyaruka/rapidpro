@@ -23,15 +23,6 @@ jobs:
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-      minio:
-        image: bitnami/minio:2025.4.22 # https://github.com/bitnami/containers/issues/81605
-        env:
-          MINIO_ROOT_USER: root
-          MINIO_ROOT_PASSWORD: tembatemba
-          MINIO_DEFAULT_BUCKETS: test-default,test-attachments:public,test-sessions,test-logs,test-archives
-        ports:
-          - 9000:9000
-        options: --health-cmd "mc ready local" --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
       - name: Checkout code
@@ -62,6 +53,19 @@ jobs:
         with:
           port: 6000
 
+      - name: Run MinIO docker container
+        run: |
+          docker run -d --rm \
+            -p 9000:9000 \
+            -p 9001:9001 \
+            --env MINIO_ROOT_USER=root \
+            --env MINIO_ROOT_PASSWORD=tembatemba \
+            --health-cmd "curl -f http://127.0.0.1:9000/minio/health/live" \
+            --health-interval 10s \
+            --health-timeout 5s \
+            --health-retries 5 \
+            minio/minio:latest minio server /data --console-address ":9001"
+
       - name: Initialize environment
         run: |
           poetry install --no-root
@@ -70,6 +74,7 @@ jobs:
           ln -s ${{ github.workspace }}/temba/settings.py.dev ${{ github.workspace }}/temba/settings.py
           poetry run python manage.py migrate
           poetry run python manage.py migrate_dynamo --testing
+          poetry run python manage.py create_buckets --testing
           # fetch, extract and start mailroom
           wget https://github.com/${{ github.repository_owner }}/mailroom/releases/download/v${{ env.mailroom-version }}/mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz
           tar -xvf mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz mailroom

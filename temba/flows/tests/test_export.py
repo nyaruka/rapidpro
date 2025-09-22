@@ -13,7 +13,7 @@ from temba.orgs.models import Export
 from temba.tests import TembaTest, mock_mailroom
 from temba.tests.engine import MockSessionWriter
 from temba.utils import json
-from temba.utils.uuid import uuid4
+from temba.utils.uuid import uuid4, uuid7
 
 
 class ResultsExportTest(TembaTest):
@@ -547,8 +547,10 @@ class ResultsExportTest(TembaTest):
             flow.runs.create(
                 org=contact.org,
                 contact=contact,
+                session_uuid=uuid7(),
+                path_nodes=[],
+                path_times=[],
                 status=FlowRun.STATUS_COMPLETED,
-                path=[],
                 results={},
                 created_on=timezone.now(),
                 modified_on=timezone.now(),

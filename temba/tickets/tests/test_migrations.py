@@ -16,7 +16,7 @@ class UpdateTicketUUIDsTest(MigrationTest):
             uuid="c7371b3b-5b35-4a03-aaf9-632335fb7e77",
             org=contact.org,
             contact=contact,
-            topic=contact.org.default_ticket_topic,
+            topic=contact.org.default_topic,
             status=Ticket.STATUS_OPEN,
             opened_on=datetime(2025, 8, 11, 20, 36, 41, 114764, tzinfo=tzone.utc),
         )
@@ -24,7 +24,7 @@ class UpdateTicketUUIDsTest(MigrationTest):
             uuid="01989ad9-7c1a-7b8d-a59e-141c265730dc",
             org=contact.org,
             contact=contact,
-            topic=contact.org.default_ticket_topic,
+            topic=contact.org.default_topic,
             status=Ticket.STATUS_OPEN,
             opened_on=datetime(2025, 8, 11, 20, 36, 41, 116000, tzinfo=tzone.utc),
         )
