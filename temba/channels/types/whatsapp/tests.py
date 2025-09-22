@@ -34,7 +34,7 @@ class WhatsAppTypeTest(TembaTest):
 
         connect_whatsapp_cloud_url = reverse("channels.types.whatsapp.connect")
         claim_whatsapp_cloud_url = reverse("channels.types.whatsapp.claim")
-        select_whatsapp_cloud_url = reverse("channels.types.whatsapp.select")
+        select_whatsapp_cloud_url = reverse("channels.types.whatsapp.select_waba")
 
         # make sure type is not listed the claim page
         response = self.client.get(reverse("channels.channel_claim"))
@@ -528,7 +528,7 @@ class WhatsAppTypeTest(TembaTest):
         self.login(self.admin)
         self.make_beta(self.admin)
 
-        select_whatsapp_cloud_url = reverse("channels.types.whatsapp.select")
+        select_whatsapp_cloud_url = reverse("channels.types.whatsapp.select_waba")
         connect_whatsapp_cloud_url = reverse("channels.types.whatsapp.connect")
 
         self.assertRedirect(self.client.get(select_whatsapp_cloud_url), connect_whatsapp_cloud_url)

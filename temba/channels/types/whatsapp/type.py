@@ -10,7 +10,7 @@ from temba.contacts.models import URN
 from temba.request_logs.models import HTTPLog
 
 from ...models import ChannelType
-from .views import ClaimView, ClearSessionToken, Connect, RequestCode, Select, VerifyCode
+from .views import ClaimView, ClearSessionToken, Connect, RequestCode, SelectWABA, VerifyCode
 
 
 class WhatsAppType(ChannelType):
@@ -48,7 +48,7 @@ class WhatsAppType(ChannelType):
             ),
             re_path(r"^(?P<uuid>[a-z0-9\-]+)/verify_code/$", VerifyCode.as_view(channel_type=self), name="verify_code"),
             re_path(r"^connect/$", Connect.as_view(channel_type=self), name="connect"),
-            re_path(r"^select/$", Select.as_view(channel_type=self), name="select"),
+            re_path(r"^select_waba/$", SelectWABA.as_view(channel_type=self), name="select_waba"),
         ]
 
     def activate(self, channel):

@@ -59,7 +59,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
 
         target_waba = self.request.GET.get("waba_id", None)
         if not target_waba:
-            return HttpResponseRedirect(reverse("channels.types.whatsapp.select"))
+            return HttpResponseRedirect(reverse("channels.types.whatsapp.select_waba"))
 
         return super().pre_process(request, *args, **kwargs)
 
@@ -187,10 +187,10 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             del self.request.session[self.channel_type.SESSION_USER_TOKEN]
 
 
-class Select(ChannelTypeMixin, OrgPermsMixin, SmartTemplateView):
+class SelectWABA(ChannelTypeMixin, OrgPermsMixin, SmartTemplateView):
     permission = "channels.channel_claim"
-    template_name = "channels/types/whatsapp/select.html"
-    title = _("Select WABA ID")
+    template_name = "channels/types/whatsapp/select_waba.html"
+    title = _("Select the WABA to connect")
     menu_path = "/settings/workspace"
 
     def pre_process(self, request, *args, **kwargs):
@@ -427,7 +427,7 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
 
     permission = "channels.channel_claim"
     form_class = WhatsappCloudConnectForm
-    success_url = "@channels.types.whatsapp.select"
+    success_url = "@channels.types.whatsapp.select_waba"
     field_config = dict(api_key=dict(label=""), api_secret=dict(label=""))
     submit_button_name = "Save"
     success_message = "WhatsApp Account successfully connected."
