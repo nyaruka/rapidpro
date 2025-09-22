@@ -18,12 +18,13 @@ class Command(BaseCommand):
         parser.add_argument("--testing", action="store_true")
 
     def handle(self, testing: bool, *args, **kwargs):
-        client = s3.client()
-
         # during tests settings.TESTING is true so table prefix is "test" - but this command is run with
         # settings.TESTING == False, so when setting up buckets for testing we need to override the prefix
         if testing:
+            settings.AWS_S3_ENDPOINT_URL = "http://localhost:9000"
             settings.BUCKET_PREFIX = "test"
+
+        client = s3.client()
 
         for key, acl in BUCKETS.items():
             name = f"{settings.BUCKET_PREFIX}-{key}"
