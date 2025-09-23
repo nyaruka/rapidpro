@@ -105,6 +105,17 @@ class Event:
         if after >= before:  # otherwise DynamoDB blows up
             return []
 
+        events = cls._get_raw(contact, after=after, before=before, ticket_uuid=ticket_uuid, limit=limit)
+
+        return cls._refresh_events(contact.org, events)
+
+    @classmethod
+    def _get_raw(cls, contact, *, after: datetime, before: datetime, ticket_uuid: UUID, limit: int) -> list[dict]:
+        """
+        Eventually contact history will be paged by event UUIDs but for now we are given microsecond accuracy
+        datetimes and have to infer approximate UUIDs and then filter the results to the given range.
+        """
+
         after_uuid = cls._time_to_uuid(after)
         before_uuid = cls._time_to_uuid(before + timedelta(milliseconds=1))
 
@@ -160,6 +171,25 @@ class Event:
                 return event["type"] in cls.basic_ticket_types
 
         return event["type"] in cls.dynamo_types
+
+    @classmethod
+    def _refresh_events(cls, org, events: list[dict]) -> list[dict]:
+        """
+        Refreshs a list of events in place with up to date information from the database. This probably moves to
+        mailroom at some point.
+        """
+
+        user_uuids = {event["_user"]["uuid"] for event in events if event.get("_user")}
+        users_by_uuid = {str(u.uuid): u for u in org.get_users().filter(uuid__in=user_uuids)}
+
+        for event in events:
+            if "_user" in event and event["_user"]:
+                if user := users_by_uuid.get(event["_user"]["uuid"]):
+                    event["_user"].update({"name": user.first_name, "avatar": user.avatar.url if user.avatar else None})
+                else:
+                    event["_user"] = None  # user no longer exists
+
+        return events
 
     @staticmethod
     def _time_to_uuid(dt: datetime) -> str:
