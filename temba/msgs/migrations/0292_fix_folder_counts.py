@@ -28,6 +28,7 @@ def fix_folder_counts(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    atomic = False
 
     dependencies = [
         ("msgs", "0291_update_triggers"),
