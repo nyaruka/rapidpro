@@ -7,7 +7,7 @@ from django.db import migrations
 from temba.utils.uuid import is_uuid7, uuid7
 
 
-def update_ticket_uuids(apps, schema_editor):
+def update_ticket_uuids(apps, schema_editor):  # pragma: no cover
     Ticket = apps.get_model("tickets", "Ticket")
 
     num_updated = 0

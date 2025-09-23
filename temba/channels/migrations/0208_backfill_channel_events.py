@@ -8,7 +8,7 @@ from temba.utils import dynamo
 from temba.utils.uuid import is_uuid7
 
 
-def backfill_channel_events(apps, schema_editor):
+def backfill_channel_events(apps, schema_editor):  # pragma: no cover
     ChannelEvent = apps.get_model("channels", "ChannelEvent")
     Channel = apps.get_model("channels", "Channel")
     Contact = apps.get_model("contacts", "Contact")

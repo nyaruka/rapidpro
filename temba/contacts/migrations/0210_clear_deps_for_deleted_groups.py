@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def clear_deps_for_deleted_groups(apps, schema_editor):
+def clear_deps_for_deleted_groups(apps, schema_editor):  # pragma: no cover
     ContactGroup = apps.get_model("contacts", "ContactGroup")
 
     for group in ContactGroup.objects.filter(is_active=False, group_type="Q").exclude(query_fields=None):
