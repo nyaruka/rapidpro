@@ -1,3 +1,8 @@
+v10.3.65 (2025-09-23)
+-------------------------
+ * Change inbox folder indexes to not filter out IVR msgs
+ * Drop TicketEvent
+
 v10.3.64 (2025-09-23)
 -------------------------
  * Update temba-components
