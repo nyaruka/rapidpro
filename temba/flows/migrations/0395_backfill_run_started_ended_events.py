@@ -17,7 +17,7 @@ status_map = {
 }
 
 
-def backfill_run_events(apps, schema_editor):
+def backfill_run_events(apps, schema_editor):  # pragma: no cover
     FlowRun = apps.get_model("flows", "FlowRun")
     Flow = apps.get_model("flows", "Flow")
     Contact = apps.get_model("contacts", "Contact")
