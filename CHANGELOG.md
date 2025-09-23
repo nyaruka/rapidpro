@@ -1,3 +1,7 @@
+v10.3.66 (2025-09-23)
+-------------------------
+ * Update message folders to include IVR messages
+
 v10.3.65 (2025-09-23)
 -------------------------
  * Change inbox folder indexes to not filter out IVR msgs
