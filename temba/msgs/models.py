@@ -758,19 +758,19 @@ class Msg(models.Model):
             models.Index(
                 name="msgs_inbox",
                 fields=["org", "-created_on", "-id"],
-                condition=Q(direction="I", visibility="V", status="H", flow__isnull=True, msg_type="T"),
+                condition=Q(direction="I", visibility="V", status="H", flow__isnull=True),
             ),
             # used for Flows view and API folder
             models.Index(
                 name="msgs_flows",
                 fields=["org", "-created_on", "-id"],
-                condition=Q(direction="I", visibility="V", status="H", flow__isnull=False, msg_type="T"),
+                condition=Q(direction="I", visibility="V", status="H", flow__isnull=False),
             ),
             # used for Archived view and API folder
             models.Index(
                 name="msgs_archived",
                 fields=["org", "-created_on", "-id"],
-                condition=Q(direction="I", visibility="A", status="H", msg_type="T"),
+                condition=Q(direction="I", visibility="A", status="H"),
             ),
             # used for Outbox and Failed views and API folders
             models.Index(
