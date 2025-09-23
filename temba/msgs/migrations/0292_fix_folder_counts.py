@@ -27,6 +27,12 @@ def fix_folder_counts(apps, schema_editor):
             print(f"Fixed inbox counts for org #{org.id} '{org.name}' ({count_dict})")
 
 
+def apply_manual():  # pragma: no cover
+    from django.apps import apps
+
+    fix_folder_counts(apps, None)
+
+
 class Migration(migrations.Migration):
     atomic = False
 
