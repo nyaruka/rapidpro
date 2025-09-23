@@ -293,11 +293,6 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION temba_msg_countscope(_msg msgs_msg) RETURNS TEXT STABLE AS $$
 BEGIN
   IF _msg.direction = 'I' THEN
-    -- incoming IVR messages aren't part of any system labels
-    IF _msg.msg_type = 'V' THEN
-      RETURN NULL;
-    END IF;
-
     IF _msg.visibility = 'V' AND _msg.status = 'H' AND _msg.flow_id IS NULL THEN
       RETURN 'msgs:folder:I';
     ELSIF _msg.visibility = 'V' AND _msg.status = 'H' AND _msg.flow_id IS NOT NULL THEN

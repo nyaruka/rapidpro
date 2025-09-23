@@ -7,7 +7,14 @@ from . import InstallSQL
 
 class Migration(migrations.Migration):
 
-    dependencies = []
+    dependencies = [
+        ("ivr", "0036_squashed"),
+        ("locations", "0037_squashed"),
+        ("msgs", "0289_squashed"),
+        ("notifications", "0035_squashed"),
+        ("orgs", "0172_squashed"),
+        ("tickets", "0079_squashed"),
+    ]
 
     operations = [
         InstallSQL("0008_functions"),
