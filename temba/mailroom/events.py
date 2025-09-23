@@ -1,4 +1,3 @@
-from collections import defaultdict
 from datetime import datetime, timedelta
 from uuid import UUID
 
@@ -11,7 +10,6 @@ from django.utils import timezone
 from temba.channels.models import Channel
 from temba.msgs.models import Msg, OptIn
 from temba.orgs.models import Org
-from temba.tickets.models import Ticket
 from temba.users.models import User
 from temba.utils import dynamo
 
@@ -175,7 +173,7 @@ class Event:
     @classmethod
     def _refresh_events(cls, org, events: list[dict]) -> list[dict]:
         """
-        Refreshs a list of events in place with up to date information from the database. This probably moves to
+        Refreshes a list of events in place with up to date information from the database. This probably moves to
         mailroom at some point.
         """
 
@@ -199,13 +197,10 @@ class Event:
 
     @classmethod
     def from_history_item(cls, org: Org, user: User, item) -> dict:
-        if isinstance(item, dict):  # already an event
-            return item
+        if isinstance(item, Msg):
+            return Event.from_msg(org, user, item)
 
-        renderer = event_renderers.get(type(item))
-        assert renderer is not None, f"unsupported history item of type {type(item)}"
-
-        return renderer(org, user, item)
+        return item  # already an event dict
 
     @classmethod
     def from_msg(cls, org: Org, user: User, obj: Msg) -> dict:
@@ -333,21 +328,12 @@ def _optin(optin: OptIn) -> dict:
     return {"uuid": str(optin.uuid), "name": optin.name}
 
 
-# map of history item types to methods to render them as events
-event_renderers = {Msg: Event.from_msg}
-
-# map of history item types to a callable which can extract the event time from that type
-event_time = defaultdict(lambda: lambda i: i.created_on)
-event_time.update(
-    {
-        dict: lambda e: iso8601.parse_date(e["created_on"]),
-        Ticket: lambda e: e.closed_on,
-    },
-)
-
-
 def get_event_time(item) -> datetime:
     """
     Extracts the event time from a history item
     """
-    return event_time[type(item)](item)
+
+    if isinstance(item, Msg):
+        return item.created_on
+
+    return iso8601.parse_date(item["created_on"])
