@@ -1,3 +1,8 @@
+v10.3.64 (2025-09-23)
+-------------------------
+ * Update temba-components
+ * Refresh users on events fetched from DynamoDB
+
 v10.3.63 (2025-09-22)
 -------------------------
  * Read ticket events from DynamoDB
