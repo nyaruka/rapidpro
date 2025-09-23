@@ -1,3 +1,7 @@
+v10.3.68 (2025-09-23)
+-------------------------
+ * Add apply_manual hook to migration
+
 v10.3.67 (2025-09-23)
 -------------------------
  * Tweak migration to be non-atomic
