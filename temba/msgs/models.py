@@ -841,9 +841,8 @@ class MsgFolder(Enum):
             visibility=Msg.VISIBILITY_VISIBLE,
             status=Msg.STATUS_HANDLED,
             flow__isnull=True,
-            msg_type=Msg.TYPE_TEXT,
         ),
-        dict(direction="in", visibility="visible", status="handled", flow__isnull=True, type__ne="voice"),
+        dict(direction="in", visibility="visible", status="handled", flow__isnull=True),
     )
     HANDLED = (
         "W",
@@ -852,9 +851,8 @@ class MsgFolder(Enum):
             visibility=Msg.VISIBILITY_VISIBLE,
             status=Msg.STATUS_HANDLED,
             flow__isnull=False,
-            msg_type=Msg.TYPE_TEXT,
         ),
-        dict(direction="in", visibility="visible", status="handled", flow__isnull=False, type__ne="voice"),
+        dict(direction="in", visibility="visible", status="handled", flow__isnull=False),
     )
     ARCHIVED = (
         "A",
@@ -862,9 +860,8 @@ class MsgFolder(Enum):
             direction=Msg.DIRECTION_IN,
             visibility=Msg.VISIBILITY_ARCHIVED,
             status=Msg.STATUS_HANDLED,
-            msg_type=Msg.TYPE_TEXT,
         ),
-        dict(direction="in", visibility="archived", status="handled", type__ne="voice"),
+        dict(direction="in", visibility="archived", status="handled"),
     )
     OUTBOX = (
         "O",
@@ -923,6 +920,9 @@ class MsgFolder(Enum):
         by_folder["calls"] = counts.get("msgs:folder:C", 0)
 
         return by_folder
+
+    def __repr__(self):  # pragma: no cover
+        return f"<MsgFolder.{self.name} code={self.code}>"
 
 
 class Label(TembaModel, DependencyMixin):
