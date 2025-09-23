@@ -1,3 +1,7 @@
+v10.3.67 (2025-09-23)
+-------------------------
+ * Tweak migration to be non-atomic
+
 v10.3.66 (2025-09-23)
 -------------------------
  * Update message folders to include IVR messages
