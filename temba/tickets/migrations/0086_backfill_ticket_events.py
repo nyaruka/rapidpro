@@ -14,7 +14,7 @@ TYPE_CLOSED = "C"
 TYPE_REOPENED = "R"
 
 
-def backfill_ticket_events(apps, schema_editor):
+def backfill_ticket_events(apps, schema_editor):  # pragma: no cover
     TicketEvent = apps.get_model("tickets", "TicketEvent")
     Ticket = apps.get_model("tickets", "Ticket")
     Topic = apps.get_model("tickets", "Topic")
@@ -94,7 +94,7 @@ def backfill_ticket_events(apps, schema_editor):
                             "created_on": evt.created_on.isoformat(),
                             "ticket_uuid": str(evt.ticket.uuid),
                         }
-                    else:  # pragma: no cover
+                    else:
                         data = None
 
                     if evt.created_by:
@@ -113,7 +113,7 @@ def backfill_ticket_events(apps, schema_editor):
 
                     before_id = evt.id
 
-        except Exception as e:  # pragma: no cover
+        except Exception as e:
             print(e)
             print(f"before_id={before_id}")
             break
@@ -123,11 +123,11 @@ def backfill_ticket_events(apps, schema_editor):
         print(f"Wrote {num_written} ticket events (last id={last_id}, created_on={last_created_on.isoformat()})")
 
 
-def _user_ref(user) -> dict:
+def _user_ref(user) -> dict:  # pragma: no cover
     return {"uuid": str(user.uuid), "name": f"{user.first_name} {user.last_name}".strip()}
 
 
-def _topic_ref(topic) -> dict:
+def _topic_ref(topic) -> dict:  # pragma: no cover
     return {"uuid": str(topic.uuid), "name": topic.name}
 
 

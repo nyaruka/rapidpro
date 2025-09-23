@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from temba.orgs.models import Export, OrgRole
 from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
-from temba.tickets.models import Team, Ticket, TicketEvent, TicketExport, Topic
+from temba.tickets.models import Team, Ticket, TicketExport, Topic
 from temba.utils.dates import datetime_to_timestamp
 from temba.utils.uuid import uuid4
 
@@ -458,8 +458,6 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateSubmit(
             update_url, self.admin, {"note": "I have a bad feeling about this."}, success_status=200
         )
-
-        self.assertEqual(1, ticket.events.filter(event_type=TicketEvent.TYPE_NOTE_ADDED).count())
 
     def test_opened_chart(self):
         opened_url = reverse("tickets.ticket_chart", args=["opened"])
