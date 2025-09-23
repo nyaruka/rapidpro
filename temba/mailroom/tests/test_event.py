@@ -69,6 +69,7 @@ class EventTest(TembaTest):
                 "type": "contact_language_changed",
                 "created_on": "2025-08-06T19:46:39.778889794Z",
                 "language": "spa",
+                "_user": {"uuid": str(self.admin.uuid), "name": "Andrew"},  # name wrong
             },
         )
         self.write_history_event(
@@ -79,6 +80,7 @@ class EventTest(TembaTest):
                 "created_on": "2025-08-06T19:46:39.880430294Z",
                 "field": {"key": "age", "name": "Age"},
                 "value": {"text": "44"},
+                "_user": {"uuid": "e99c9705-8cc3-4063-8c54-fa702cbac867", "name": "Jimmy"},  # user no longer exists
             },
         )
         self.write_history_event(
@@ -88,6 +90,7 @@ class EventTest(TembaTest):
                 "type": "contact_groups_changed",
                 "created_on": "2025-08-06T19:46:39.880448169Z",  # less than 1ms after previous event
                 "groups_added": [{"uuid": "fac9a1bd-6db5-4efb-8899-097acda87f96", "name": "Youth"}],
+                "_user": None,  # in theory shouldn't happen but who knows
             },
         )
         self.write_history_event(
@@ -121,27 +124,68 @@ class EventTest(TembaTest):
 
         def assert_fetched(after, before, limit, expected: list):
             fetched = Event.get_by_contact(contact, after=after, before=before, ticket_uuid=None, limit=limit)
-            self.assertEqual(expected, [e["uuid"][-3:] for e in fetched])
+
+            if expected and isinstance(expected[0], str):
+                self.assertEqual(expected, [e["uuid"] for e in fetched])
+            else:
+                self.assertEqual(expected, [e for e in fetched])
 
         assert_fetched(
             iso8601.parse_date("2025-08-06T18:46:40.085871336Z"),
             iso8601.parse_date("2025-08-06T19:46:40.085871336Z"),  # event 5 (exclusive)
             5,
-            ["004", "003", "002", "001"],
+            [
+                {
+                    "uuid": "019880eb-e4f1-761b-bc99-750003cf8004",
+                    "type": "contact_name_changed",
+                    "created_on": "2025-08-06T19:46:39.985439836Z",
+                    "name": "Bob",
+                },
+                {
+                    "uuid": "019880eb-e488-76d2-a8c4-872e95772003",
+                    "type": "contact_groups_changed",
+                    "created_on": "2025-08-06T19:46:39.880448169Z",
+                    "groups_added": [{"uuid": "fac9a1bd-6db5-4efb-8899-097acda87f96", "name": "Youth"}],
+                    "_user": None,
+                },
+                {
+                    "uuid": "019880eb-e488-7652-beb6-0051d9cd6002",
+                    "type": "contact_field_changed",
+                    "created_on": "2025-08-06T19:46:39.880430294Z",
+                    "field": {"key": "age", "name": "Age"},
+                    "value": {"text": "44"},
+                    "_user": None,  # cleared
+                },
+                {
+                    "uuid": "019880eb-e422-7d67-993f-cdec64636001",
+                    "type": "contact_language_changed",
+                    "created_on": "2025-08-06T19:46:39.778889794Z",
+                    "language": "spa",
+                    "_user": {"uuid": str(self.admin.uuid), "name": "Andy", "avatar": None},  # refreshed
+                },
+            ],
         )
 
         assert_fetched(
             iso8601.parse_date("2025-08-06T18:46:40.085871336Z"),
             iso8601.parse_date("2025-08-06T19:46:40.085871336Z"),  # event 5 (exclusive)
             3,
-            ["004", "003", "002"],
+            [
+                "019880eb-e4f1-761b-bc99-750003cf8004",
+                "019880eb-e488-76d2-a8c4-872e95772003",
+                "019880eb-e488-7652-beb6-0051d9cd6002",
+            ],
         )
 
         assert_fetched(
             iso8601.parse_date("2025-08-06T19:46:39.880430294Z"),  # event 2 (inclusive)
             iso8601.parse_date("2025-08-06T19:46:40.085871336Z"),  # event 5 (exclusive)
             5,
-            ["004", "003", "002"],
+            [
+                "019880eb-e4f1-761b-bc99-750003cf8004",
+                "019880eb-e488-76d2-a8c4-872e95772003",
+                "019880eb-e488-7652-beb6-0051d9cd6002",
+            ],
         )
 
         assert_fetched(

@@ -1,4 +1,3 @@
-from collections import defaultdict
 from datetime import datetime, timedelta
 from uuid import UUID
 
@@ -11,7 +10,6 @@ from django.utils import timezone
 from temba.channels.models import Channel
 from temba.msgs.models import Msg, OptIn
 from temba.orgs.models import Org
-from temba.tickets.models import Ticket
 from temba.users.models import User
 from temba.utils import dynamo
 
@@ -105,6 +103,17 @@ class Event:
         if after >= before:  # otherwise DynamoDB blows up
             return []
 
+        events = cls._get_raw(contact, after=after, before=before, ticket_uuid=ticket_uuid, limit=limit)
+
+        return cls._refresh_events(contact.org, events)
+
+    @classmethod
+    def _get_raw(cls, contact, *, after: datetime, before: datetime, ticket_uuid: UUID, limit: int) -> list[dict]:
+        """
+        Eventually contact history will be paged by event UUIDs but for now we are given microsecond accuracy
+        datetimes and have to infer approximate UUIDs and then filter the results to the given range.
+        """
+
         after_uuid = cls._time_to_uuid(after)
         before_uuid = cls._time_to_uuid(before + timedelta(milliseconds=1))
 
@@ -161,6 +170,25 @@ class Event:
 
         return event["type"] in cls.dynamo_types
 
+    @classmethod
+    def _refresh_events(cls, org, events: list[dict]) -> list[dict]:
+        """
+        Refreshes a list of events in place with up to date information from the database. This probably moves to
+        mailroom at some point.
+        """
+
+        user_uuids = {event["_user"]["uuid"] for event in events if event.get("_user")}
+        users_by_uuid = {str(u.uuid): u for u in org.get_users().filter(uuid__in=user_uuids)}
+
+        for event in events:
+            if "_user" in event and event["_user"]:
+                if user := users_by_uuid.get(event["_user"]["uuid"]):
+                    event["_user"].update({"name": user.first_name, "avatar": user.avatar.url if user.avatar else None})
+                else:
+                    event["_user"] = None  # user no longer exists
+
+        return events
+
     @staticmethod
     def _time_to_uuid(dt: datetime) -> str:
         ts_millis = int(dt.timestamp() * 1_000)
@@ -169,13 +197,10 @@ class Event:
 
     @classmethod
     def from_history_item(cls, org: Org, user: User, item) -> dict:
-        if isinstance(item, dict):  # already an event
-            return item
+        if isinstance(item, Msg):
+            return Event.from_msg(org, user, item)
 
-        renderer = event_renderers.get(type(item))
-        assert renderer is not None, f"unsupported history item of type {type(item)}"
-
-        return renderer(org, user, item)
+        return item  # already an event dict
 
     @classmethod
     def from_msg(cls, org: Org, user: User, obj: Msg) -> dict:
@@ -303,21 +328,12 @@ def _optin(optin: OptIn) -> dict:
     return {"uuid": str(optin.uuid), "name": optin.name}
 
 
-# map of history item types to methods to render them as events
-event_renderers = {Msg: Event.from_msg}
-
-# map of history item types to a callable which can extract the event time from that type
-event_time = defaultdict(lambda: lambda i: i.created_on)
-event_time.update(
-    {
-        dict: lambda e: iso8601.parse_date(e["created_on"]),
-        Ticket: lambda e: e.closed_on,
-    },
-)
-
-
 def get_event_time(item) -> datetime:
     """
     Extracts the event time from a history item
     """
-    return event_time[type(item)](item)
+
+    if isinstance(item, Msg):
+        return item.created_on
+
+    return iso8601.parse_date(item["created_on"])
