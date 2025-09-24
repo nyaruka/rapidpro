@@ -313,7 +313,8 @@ class MailroomClient:
                 "text": text,
                 "attachments": attachments,
                 "quick_replies": [qr.as_json() for qr in quick_replies],
-                "ticket_id": ticket.id if ticket else None,
+                "ticket_uuid": str(ticket.uuid) if ticket else None,
+                "ticket_id": ticket.id if ticket else None,  # deprecated
             },
         )
 
