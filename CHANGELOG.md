@@ -1,3 +1,7 @@
+v10.3.69 (2025-09-24)
+-------------------------
+ * Add uuid field to Broadcast model
+
 v10.3.68 (2025-09-23)
 -------------------------
  * Add apply_manual hook to migration
