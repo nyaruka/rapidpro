@@ -745,6 +745,7 @@ class MailroomClientTest(TembaTest):
                 "text": "hi",
                 "attachments": [],
                 "quick_replies": [{"text": "Yes", "extra": "Let's go!"}, {"text": "No"}],
+                "ticket_uuid": str(ticket.uuid),
                 "ticket_id": ticket.id,
             },
         )
