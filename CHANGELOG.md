@@ -1,3 +1,7 @@
+v10.3.71 (2025-09-24)
+-------------------------
+ * Data migration to backfill broadcast UUIDs
+
 v10.3.70 (2025-09-24)
 -------------------------
  * Send ticket by UUID in mailroom client message sends
