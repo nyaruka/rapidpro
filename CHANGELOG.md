@@ -1,3 +1,7 @@
+v10.3.72 (2025-09-24)
+-------------------------
+ * Update temba-components
+
 v10.3.71 (2025-09-24)
 -------------------------
  * Data migration to backfill broadcast UUIDs
