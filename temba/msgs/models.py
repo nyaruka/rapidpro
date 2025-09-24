@@ -202,6 +202,7 @@ class Broadcast(models.Model):
         (STATUS_INTERRUPTED, "Interrupted"),
     )
 
+    uuid = models.UUIDField(null=True)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="broadcasts")
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING)
     contact_count = models.IntegerField(default=0, null=True)  # null until status is QUEUED
