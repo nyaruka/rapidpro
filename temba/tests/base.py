@@ -324,7 +324,6 @@ class TembaTest(SmartminTest):
         next_attempt=None,
         failed_reason=None,
         flow=None,
-        ticket=None,
         logs=None,
     ):
         if failed_reason:
@@ -347,7 +346,6 @@ class TembaTest(SmartminTest):
             sent_on=sent_on,
             high_priority=high_priority,
             flow=flow,
-            ticket=ticket,
             next_attempt=next_attempt,
             failed_reason=failed_reason,
             logs=logs,
@@ -371,7 +369,6 @@ class TembaTest(SmartminTest):
         external_id=None,
         high_priority=False,
         flow=None,
-        ticket=None,
         broadcast=None,
         optin=None,
         locale=None,
@@ -414,7 +411,6 @@ class TembaTest(SmartminTest):
             broadcast=broadcast,
             optin=optin,
             flow=flow,
-            ticket=ticket,
             next_attempt=next_attempt,
             failed_reason=failed_reason,
             log_uuids=[l.uuid for l in logs or []],

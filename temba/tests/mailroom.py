@@ -952,6 +952,7 @@ def create_broadcast(
         )
 
     bcast = Broadcast.objects.create(
+        uuid=uuid7(),
         org=org,
         translations=translations,
         base_language=base_language,
