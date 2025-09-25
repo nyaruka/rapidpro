@@ -1,4 +1,6 @@
 <temba-compose name="{{ widget.name }}"
-               {% include "django/forms/widgets/attrs.html" %}
+               {% for name, value in widget.attrs.items %}{% if value is not False and value is not None %} {{ name }}{% if value is not True %}="{{ value|stringformat:'s' }}"{% endif %}
+               {% endif %}
+               {% endfor %}
                value="{% if widget.value %}{{ widget.value }}{% endif %}">
 </temba-compose>
