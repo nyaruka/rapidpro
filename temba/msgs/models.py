@@ -202,7 +202,7 @@ class Broadcast(models.Model):
         (STATUS_INTERRUPTED, "Interrupted"),
     )
 
-    uuid = models.UUIDField(null=True)
+    uuid = models.UUIDField(unique=True)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="broadcasts")
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING)
     contact_count = models.IntegerField(default=0, null=True)  # null until status is QUEUED
@@ -546,6 +546,7 @@ class Msg(models.Model):
     # message origin (note that we don't index or constrain flow/ticket so accessing by these is not supported)
     broadcast = models.ForeignKey(Broadcast, on_delete=models.PROTECT, null=True, related_name="msgs")
     flow = models.ForeignKey("flows.Flow", on_delete=models.DO_NOTHING, null=True, db_index=False, db_constraint=False)
+    ticket_uuid = models.UUIDField(null=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, db_index=False)
 
     # message content
@@ -580,6 +581,11 @@ class Msg(models.Model):
     external_id = models.CharField(max_length=255, null=True)
 
     log_uuids = ArrayField(models.UUIDField(), null=True)
+
+    # TODO remove
+    ticket = models.ForeignKey(
+        "tickets.Ticket", on_delete=models.DO_NOTHING, null=True, db_index=False, db_constraint=False
+    )
 
     def as_archive_json(self):
         """
