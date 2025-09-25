@@ -7,7 +7,6 @@ from temba.flows.models import Flow
 from temba.msgs.models import Msg, MsgFolder
 from temba.msgs.tasks import fail_old_android_messages
 from temba.tests import CRUDLTestMixin, TembaTest
-from temba.tickets.models import Ticket
 
 
 class MsgTest(TembaTest, CRUDLTestMixin):
@@ -245,21 +244,17 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         msg.labels.add(spam)
 
     def test_foreign_keys(self):
-        # create a message which references a flow and a ticket
+        # create a message which references a flow
         flow = self.create_flow("Flow")
         contact = self.create_contact("Ann", phone="+250788000001")
-        ticket = self.create_ticket(contact)
-        msg = self.create_outgoing_msg(contact, "Hi", flow=flow, ticket=ticket)
+        msg = self.create_outgoing_msg(contact, "Hi", flow=flow)
 
-        # both Msg.flow and Msg.ticket are unconstrained so we shuld be able to delete these
+        # Msg.flow is unconstrained so we shuld be able to delete these
         flow.release(self.admin, interrupt_sessions=False)
         flow.delete()
-        ticket.delete()
 
         msg.refresh_from_db()
 
         # but then accessing them blows up
         with self.assertRaises(Flow.DoesNotExist):
             print(msg.flow)
-        with self.assertRaises(Ticket.DoesNotExist):
-            print(msg.ticket)
