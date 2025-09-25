@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def fix_folder_counts(apps, schema_editor):
+def fix_folder_counts(apps, schema_editor):  # pragma: no cover
     Org = apps.get_model("orgs", "Org")
     ItemCount = apps.get_model("orgs", "ItemCount")
 
