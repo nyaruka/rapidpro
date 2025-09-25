@@ -249,7 +249,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         contact = self.create_contact("Ann", phone="+250788000001")
         msg = self.create_outgoing_msg(contact, "Hi", flow=flow)
 
-        # Msg.flow is unconstrained so we shuld be able to delete these
+        # Msg.flow is unconstrained so we should be able to delete these
         flow.release(self.admin, interrupt_sessions=False)
         flow.delete()
 
