@@ -1,3 +1,8 @@
+v10.3.73 (2025-09-25)
+-------------------------
+ * Replace Msg.ticket_id with ticket_uuid
+ * Make Broadcast.uuid non-null
+
 v10.3.72 (2025-09-24)
 -------------------------
  * Update temba-components
