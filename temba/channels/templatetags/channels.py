@@ -24,8 +24,8 @@ def channel_log_link(context, obj):
 
         if has_channel and obj_age < settings.RETENTION_PERIODS["channellog"]:
             if isinstance(obj, Call):
-                logs_url = reverse("channels.channel_logs_read", args=[obj.channel.uuid, "call", obj.id])
+                logs_url = reverse("channels.channel_logs_read", args=[obj.channel.uuid, "call", obj.uuid])
             if isinstance(obj, Msg):
-                logs_url = reverse("channels.channel_logs_read", args=[obj.channel.uuid, "msg", obj.id])
+                logs_url = reverse("channels.channel_logs_read", args=[obj.channel.uuid, "msg", obj.uuid])
 
     return {"logs_url": logs_url}

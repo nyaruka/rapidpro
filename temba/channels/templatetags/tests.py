@@ -18,8 +18,8 @@ class ChannelsTest(TembaTest):
         old_msg = self.create_incoming_msg(joe, "Hi", created_on=timezone.now() - timedelta(days=15))
         channel_less_msg = self.create_outgoing_msg(joe, "Submitted", failed_reason=Msg.FAILED_NO_DESTINATION)
 
-        call_logs_url = f"/channels/channel/logs/{self.channel.uuid}/call/{call.id}/"
-        msg_logs_url = f"/channels/channel/logs/{self.channel.uuid}/msg/{msg.id}/"
+        call_logs_url = f"/channels/channel/logs/{self.channel.uuid}/call/{call.uuid}/"
+        msg_logs_url = f"/channels/channel/logs/{self.channel.uuid}/msg/{msg.uuid}/"
 
         # admin user sees links to msg and call logs
         self.assertEqual(

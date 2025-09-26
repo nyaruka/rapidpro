@@ -320,7 +320,7 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.create_outgoing_msg(contact, "Message 2", status="D", logs=[log3])
 
-        logs_url = reverse("channels.channel_logs_read", args=[self.channel.uuid, "msg", msg1.id])
+        logs_url = reverse("channels.channel_logs_read", args=[self.channel.uuid, "msg", msg1.uuid])
 
         self.assertRequestDisallowed(logs_url, [None, self.editor, self.agent, self.admin2])
         response = self.assertReadFetch(logs_url, [self.admin], context_object=self.channel)
@@ -339,7 +339,7 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             org2_contact, "Message 3", status="D", channel=org2_channel, logs=[org2_log]
         )
 
-        logs_url = reverse("channels.channel_logs_read", args=[self.channel.uuid, "msg", org2_msg2.id])
+        logs_url = reverse("channels.channel_logs_read", args=[self.channel.uuid, "msg", org2_msg2.uuid])
         self.assertRequestDisallowed(logs_url, [None, self.editor, self.agent, self.admin, self.admin2])
 
     def test_logs_call(self):
@@ -396,7 +396,7 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.create_incoming_call(flow, contact, logs=[log3])
 
-        logs_url = reverse("channels.channel_logs_read", args=[self.channel.uuid, "call", call1.id])
+        logs_url = reverse("channels.channel_logs_read", args=[self.channel.uuid, "call", call1.uuid])
 
         self.assertRequestDisallowed(logs_url, [None, self.editor, self.agent, self.admin2])
         response = self.assertReadFetch(logs_url, [self.admin], context_object=self.channel)
