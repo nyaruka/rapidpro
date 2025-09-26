@@ -45,9 +45,6 @@ class MessagesEndpointTest(APITest):
         # add an unhandled message
         self.create_incoming_msg(joe, "Just in!", status="P")
 
-        # add a deleted message
-        deleted_msg = self.create_incoming_msg(frank, "!@$!%", visibility="D")
-
         # add message in other org
         self.create_incoming_msg(hans, "Guten tag!", channel=None)
 
@@ -104,14 +101,7 @@ class MessagesEndpointTest(APITest):
             num_queries=self.BASE_SESSION_QUERIES + 5,
         )
 
-        # filter by incoming, should get deleted messages too
-        self.assertGet(
-            endpoint_url + "?folder=incoming",
-            [self.admin],
-            results=[joe_msg3, frank_msg1, frank_msg3, deleted_msg, joe_msg1],
-        )
-
-        # filter by other folders..
+        # filter by folders..
         self.assertGet(endpoint_url + "?folder=flows", [self.admin], results=[joe_msg3, joe_msg1])
         self.assertGet(endpoint_url + "?folder=archived", [self.admin], results=[frank_msg3])
         self.assertGet(endpoint_url + "?folder=outbox", [self.admin], results=[joe_msg2])
@@ -141,16 +131,16 @@ class MessagesEndpointTest(APITest):
 
         # filter by before (inclusive)
         self.assertGet(
-            endpoint_url + f"?folder=incoming&before={format_datetime(frank_msg1.modified_on)}",
+            endpoint_url + f"?contact={joe.uuid}&before={format_datetime(joe_msg3.created_on)}",
             [self.editor],
-            results=[frank_msg1, frank_msg3, deleted_msg, joe_msg1],
+            results=[joe_msg3, joe_msg2, joe_msg1],
         )
 
         # filter by after (inclusive)
         self.assertGet(
-            endpoint_url + f"?folder=incoming&after={format_datetime(frank_msg1.modified_on)}",
+            endpoint_url + f"?contact={joe.uuid}&after={format_datetime(joe_msg2.created_on)}",
             [self.editor],
-            results=[joe_msg3, frank_msg1],
+            results=[joe_msg4, joe_msg3, joe_msg2],
         )
 
         # filter by broadcast

@@ -2221,7 +2221,7 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
     A `GET` returns the messages for your organization, filtering them as needed. Each message has the following
     attributes:
 
-     * **id** - the ID of the message (int), filterable as `id`.
+     * **id** - the ID of the message (int).
      * **broadcast** - the id of the broadcast (int).
      * **contact** - the UUID and name of the contact (object).
      * **urn** - the URN of the sender or receiver, depending on direction (string).
@@ -2334,7 +2334,7 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
         Overridden paginator that switches depending on folder being requested.
         """
 
-        ordering = {"incoming": ModifiedOnCursorPagination.ordering, "sent": SentOnCursorPagination.ordering}
+        ordering = {"sent": SentOnCursorPagination.ordering}
 
         def get_ordering(self, request, queryset, view=None):
             folder = request.query_params.get("folder", "").lower()
@@ -2362,11 +2362,8 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
         folder = self.request.query_params.get("folder")
 
         if folder:
-            msg_folder = self.FOLDER_FILTERS.get(folder.lower())
-            if msg_folder:
+            if msg_folder := self.FOLDER_FILTERS.get(folder.lower()):
                 return msg_folder.get_queryset(org)
-            elif folder == "incoming":
-                return self.model.objects.filter(org=org, direction=Msg.DIRECTION_IN, status=Msg.STATUS_HANDLED)
             else:
                 return self.model.objects.none()
         else:
@@ -2419,13 +2416,7 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
             Prefetch("flow", queryset=Flow.objects.only("uuid", "name")),
         )
 
-        # incoming folder gets sorted by 'modified_on'
-        if self.request.query_params.get("folder", "").lower() == "incoming":
-            return self.filter_before_after(queryset, "modified_on")
-
-        # everything else by 'created_on'
-        else:
-            return self.filter_before_after(queryset, "created_on")
+        return self.filter_before_after(queryset, "created_on")
 
     @classmethod
     def get_read_explorer(cls):

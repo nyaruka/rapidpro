@@ -7,6 +7,7 @@ from temba.flows.models import Flow
 from temba.msgs.models import Msg, MsgFolder
 from temba.msgs.tasks import fail_old_android_messages
 from temba.tests import CRUDLTestMixin, TembaTest
+from temba.utils.uuid import uuid7
 
 
 class MsgTest(TembaTest, CRUDLTestMixin):
@@ -226,6 +227,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         # create an incoming message with big id
         msg = Msg.objects.create(
             id=3_000_000_000,
+            uuid=uuid7(),
             org=self.org,
             direction="I",
             contact=self.joe,
