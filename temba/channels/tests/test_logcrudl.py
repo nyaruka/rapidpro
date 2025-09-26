@@ -38,7 +38,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             ],
         )
         msg = self.create_incoming_msg(contact, "incoming msg", channel=channel, logs=[log])
-        read_url = reverse("channels.channel_logs_read", args=[channel.uuid, "msg", msg.id])
+        read_url = reverse("channels.channel_logs_read", args=[channel.uuid, "msg", msg.uuid])
 
         # check read page shows un-redacted content for a regular org
         self.login(self.admin)
@@ -81,7 +81,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             ],
         )
         msg = self.create_incoming_msg(contact, "incoming msg", channel=channel, logs=[log])
-        read_url = reverse("channels.channel_logs_read", args=[channel.uuid, "msg", msg.id])
+        read_url = reverse("channels.channel_logs_read", args=[channel.uuid, "msg", msg.uuid])
 
         # check read page shows un-redacted content for a regular org
         self.login(self.admin)
@@ -113,7 +113,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             ],
         )
         msg = self.create_incoming_msg(contact, "incoming msg", channel=channel, logs=[log])
-        read_url = reverse("channels.channel_logs_read", args=[channel.uuid, "msg", msg.id])
+        read_url = reverse("channels.channel_logs_read", args=[channel.uuid, "msg", msg.uuid])
 
         # check read page shows un-redacted content for a regular org
         self.login(self.admin)
@@ -145,7 +145,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             ],
         )
         msg = self.create_incoming_msg(contact, "incoming msg", channel=channel, logs=[log])
-        read_url = reverse("channels.channel_logs_read", args=[channel.uuid, "msg", msg.id])
+        read_url = reverse("channels.channel_logs_read", args=[channel.uuid, "msg", msg.uuid])
 
         # check read page shows un-redacted content for a regular org
         self.login(self.admin)
@@ -178,7 +178,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             ],
         )
         msg = self.create_incoming_msg(contact, "incoming msg", channel=channel, logs=[log])
-        read_url = reverse("channels.channel_logs_read", args=[channel.uuid, "msg", msg.id])
+        read_url = reverse("channels.channel_logs_read", args=[channel.uuid, "msg", msg.uuid])
 
         # check read page shows un-redacted content for a regular org
         self.login(self.admin)
@@ -209,7 +209,7 @@ class ChannelLogCRUDLTest(CRUDLTestMixin, TembaTest):
             ],
         )
         msg = self.create_outgoing_msg(contact, "Hi", logs=[log])
-        read_url = reverse("channels.channel_logs_read", args=[channel.uuid, "msg", msg.id])
+        read_url = reverse("channels.channel_logs_read", args=[channel.uuid, "msg", msg.uuid])
 
         # check read page shows un-redacted content for a regular org
         self.login(self.admin)

@@ -298,7 +298,7 @@ class EventTest(TembaTest):
                 },
                 "optin": None,
                 "status": "E",
-                "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out.id}/",
+                "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out.uuid}/",
             },
             Event.from_msg(self.org, self.admin, msg_out),
         )
@@ -341,7 +341,7 @@ class EventTest(TembaTest):
                 },
                 "created_by": None,
                 "status": "S",
-                "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{ivr_out.id}/",
+                "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{ivr_out.uuid}/",
             },
             Event.from_msg(self.org, self.admin, ivr_out),
         )
@@ -371,7 +371,7 @@ class EventTest(TembaTest):
                 "optin": None,
                 "status": "S",
                 "recipient_count": 2,
-                "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out2.id}/",
+                "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out2.uuid}/",
             },
             Event.from_msg(self.org, self.admin, msg_out2),
         )
@@ -405,7 +405,7 @@ class EventTest(TembaTest):
                 "optin": {"uuid": str(optin.uuid), "name": "Polls"},
                 "status": "S",
                 "recipient_count": 2,
-                "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out3.id}/",
+                "logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out3.uuid}/",
             },
             Event.from_msg(self.org, self.admin, msg_out3),
         )

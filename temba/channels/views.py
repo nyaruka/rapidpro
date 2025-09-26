@@ -858,7 +858,7 @@ class ChannelCRUDL(SmartCRUDL):
 
         @classmethod
         def derive_url_pattern(cls, path, action):
-            return r"^%s/logs/(?P<uuid>[0-9a-f-]{36})/(?P<reftype>log|msg|call)/(?P<refid>[^/]{1,36})/$" % path
+            return r"^%s/logs/(?P<uuid>[0-9a-f-]{36})/(?P<reftype>log|msg|call)/(?P<refid>[0-9a-f-]{36})/$" % path
 
         def derive_menu_path(self):
             return f"/settings/channels/{self.kwargs['uuid']}"
@@ -866,9 +866,9 @@ class ChannelCRUDL(SmartCRUDL):
         @cached_property
         def owner(self) -> Msg | Call | None:
             if self.kwargs["reftype"] == "msg":
-                return get_object_or_404(Msg, id=int(self.kwargs["refid"]), org=self.request.org)
+                return get_object_or_404(Msg, uuid=UUID(self.kwargs["refid"]), org=self.request.org)
             elif self.kwargs["reftype"] == "call":
-                return get_object_or_404(Call, id=int(self.kwargs["refid"]), org=self.request.org)
+                return get_object_or_404(Call, uuid=UUID(self.kwargs["refid"]), org=self.request.org)
             return None
 
         def get_logs_and_urn(self) -> tuple:

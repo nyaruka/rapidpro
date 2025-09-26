@@ -217,7 +217,7 @@ class Event:
                 org,
                 user,
                 "channels.channel_logs_read",
-                args=[obj.channel.uuid, "msg", obj.id],
+                args=[obj.channel.uuid, "msg", obj.uuid],
                 perm="channels.channel_logs",
             )
 
