@@ -389,6 +389,7 @@ class TembaTest(SmartminTest):
             assert channel and contact_urn, "messages require a channel and contact URN, except for failed_reason=D"
 
         return Msg.objects.create(
+            uuid=uuid7(),
             org=org,
             direction=direction,
             contact=contact,
