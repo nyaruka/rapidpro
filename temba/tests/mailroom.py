@@ -176,6 +176,7 @@ class TestClient(MailroomClient):
             return {"id": existing.id, "duplicate": True}
 
         msg = Msg.objects.create(
+            uuid=uuid7(),
             org=org,
             channel=channel,
             contact=contact,
@@ -908,6 +909,7 @@ def send_to_contact(org, contact, text: str, attachments: list[str], quick_repli
         failed_reason = Msg.FAILED_NO_DESTINATION
 
     return Msg.objects.create(
+        uuid=uuid7(),
         org=org,
         channel=channel,
         contact=contact,

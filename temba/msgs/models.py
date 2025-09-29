@@ -535,7 +535,7 @@ class Msg(models.Model):
     MAX_QUICK_REPLIES = 10  # max quick replies allowed on a message
 
     id = models.BigAutoField(primary_key=True)
-    uuid = models.UUIDField(default=uuid4)
+    uuid = models.UUIDField(unique=True)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="msgs", db_index=False)
 
     # message destination
@@ -557,13 +557,13 @@ class Msg(models.Model):
     locale = models.CharField(max_length=6, null=True)  # eng, eng-US, por-BR, und etc
     templating = models.JSONField(null=True)
 
-    created_on = models.DateTimeField(db_index=True)  # for flow messages this uses event time to keep histories ordered
+    created_on = models.DateTimeField()
     modified_on = models.DateTimeField()
     sent_on = models.DateTimeField(null=True)
 
     msg_type = models.CharField(max_length=1, choices=TYPE_CHOICES)
     direction = models.CharField(max_length=1, choices=DIRECTION_CHOICES)
-    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING, db_index=True)
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING)
     visibility = models.CharField(max_length=1, choices=VISIBILITY_CHOICES, default=VISIBILITY_VISIBLE)
     is_android = models.BooleanField()
     labels = models.ManyToManyField("Label", related_name="msgs")
@@ -787,10 +787,6 @@ class Msg(models.Model):
                 name="msgs_sent",
                 fields=["org", "-sent_on", "-id"],
                 condition=Q(direction="O", visibility="V", status__in=("W", "S", "D", "R")),
-            ),
-            # used for API incoming folder (unpublicized as could be dropped when CasePro is retired)
-            models.Index(
-                name="msgs_api_incoming", fields=["org", "-modified_on", "-id"], condition=Q(direction="I", status="H")
             ),
         ]
         constraints = [
