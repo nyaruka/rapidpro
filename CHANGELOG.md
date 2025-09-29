@@ -1,3 +1,7 @@
+v10.3.74 (2025-09-29)
+-------------------------
+ * Remove support for filtering messages on API by 'incoming' which was only used by CasePro
+
 v10.3.73 (2025-09-25)
 -------------------------
  * Replace Msg.ticket_id with ticket_uuid
