@@ -1,3 +1,7 @@
+v10.3.75 (2025-09-29)
+-------------------------
+ * Add index on Msg.uuid and remove indexes on Msg.status and Msg.created_on
+
 v10.3.74 (2025-09-29)
 -------------------------
  * Remove support for filtering messages on API by 'incoming' which was only used by CasePro
