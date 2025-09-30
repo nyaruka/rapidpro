@@ -1,3 +1,7 @@
+v10.3.76 (2025-09-30)
+-------------------------
+ * Update temba-components
+
 v10.3.75 (2025-09-29)
 -------------------------
  * Add index on Msg.uuid and remove indexes on Msg.status and Msg.created_on
