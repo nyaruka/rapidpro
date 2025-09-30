@@ -298,7 +298,7 @@ def _base_msg(obj) -> dict:
 
 
 def _user(user: User) -> dict:
-    return {"uuid": str(user.uuid), "name": user.name}
+    return {"uuid": str(user.uuid), "name": user.name, "avatar": user.avatar.url if user.avatar else None}
 
 
 def _channel(channel: Channel) -> dict:
