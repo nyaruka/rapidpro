@@ -228,54 +228,36 @@ class Event:
                 "created_on": get_event_time(obj).isoformat(),
                 "msg": _msg_in(obj),
                 # additional properties
-                "msg_type": Msg.TYPE_VOICE if obj.msg_type == Msg.TYPE_VOICE else Msg.TYPE_TEXT,
-                "visibility": obj.visibility,
-                "logs_url": logs_url,
-            }
-        elif obj.broadcast and obj.broadcast.get_message_count() > 1:
-            return {
-                "uuid": str(obj.uuid),
-                "type": cls.TYPE_BROADCAST_CREATED,
-                "created_on": get_event_time(obj).isoformat(),
-                "translations": obj.broadcast.translations,
-                "base_language": obj.broadcast.base_language,
-                # additional properties
-                "created_by": _user(obj.broadcast.created_by) if obj.broadcast.created_by else None,
-                "msg": _msg_out(obj),
-                "optin": _optin(obj.optin) if obj.optin else None,
-                "status": obj.status,
-                "recipient_count": obj.broadcast.get_message_count(),
-                "logs_url": logs_url,
+                "_logs_url": logs_url,
             }
         else:
-            created_by = obj.broadcast.created_by if obj.broadcast else obj.created_by
-
             if obj.msg_type == Msg.TYPE_VOICE:
-                msg_event = {
+                event = {
                     "uuid": str(obj.uuid),
                     "type": cls.TYPE_IVR_CREATED,
                     "created_on": get_event_time(obj).isoformat(),
                     "msg": _msg_out(obj),
                 }
             else:
-                msg_event = {
+                event = {
                     "uuid": str(obj.uuid),
                     "type": cls.TYPE_MSG_CREATED,
                     "created_on": get_event_time(obj).isoformat(),
                     "msg": _msg_out(obj),
                     "optin": _optin(obj.optin) if obj.optin else None,
                 }
+                if obj.broadcast:
+                    event["broadcast_uuid"] = str(obj.broadcast.uuid)
 
             # add additional properties
-            msg_event["created_by"] = _user(created_by) if created_by else None
-            msg_event["status"] = obj.status
-            msg_event["logs_url"] = logs_url
+            event["_user"] = _user(obj.created_by) if obj.created_by else None
+            event["_status"] = obj.status
+            event["_logs_url"] = logs_url
 
             if obj.status == Msg.STATUS_FAILED:
-                msg_event["failed_reason"] = obj.failed_reason
-                msg_event["failed_reason_display"] = obj.get_failed_reason_display()
+                event["_failed_reason"] = obj.get_failed_reason_display()
 
-            return msg_event
+            return event
 
 
 def _url_for_user(org: Org, user: User, view_name: str, args: list, perm: str = None) -> str:
@@ -305,7 +287,6 @@ def _msg_out(obj) -> dict:
 def _base_msg(obj) -> dict:
     redact = obj.visibility in (Msg.VISIBILITY_DELETED_BY_USER, Msg.VISIBILITY_DELETED_BY_SENDER)
     d = {
-        "id": obj.id,
         "urn": str(obj.contact_urn) if obj.contact_urn else None,
         "channel": _channel(obj.channel) if obj.channel else None,
         "text": obj.text if not redact else "",
@@ -317,7 +298,7 @@ def _base_msg(obj) -> dict:
 
 
 def _user(user: User) -> dict:
-    return {"id": user.id, "first_name": user.first_name, "last_name": user.last_name, "email": user.email}
+    return {"uuid": str(user.uuid), "name": user.name, "avatar": user.avatar.url if user.avatar else None}
 
 
 def _channel(channel: Channel) -> dict:
