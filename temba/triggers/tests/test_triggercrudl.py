@@ -957,7 +957,15 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
                 "repeat_days_of_week": ["M", "F"],
                 "flow": flow1.id,
                 "groups": [group1],
-                "contacts": [{"id": str(contact1.uuid), "name": "Jim", "type": "contact", "urn": "0788 987 651"}],
+                "contacts": [
+                    {
+                        "id": str(contact1.uuid),
+                        "uuid": str(contact1.uuid),
+                        "name": "Jim",
+                        "type": "contact",
+                        "urn": "0788 987 651",
+                    }
+                ],
                 "exclude_groups": [group2],
             },
         )

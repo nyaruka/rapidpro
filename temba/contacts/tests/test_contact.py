@@ -587,8 +587,20 @@ class ContactTest(TembaTest):
         # lookup specific contacts
         self.assertEqual(
             [
-                {"id": str(self.billy.uuid), "name": "Billy Nophone", "type": "contact", "urn": ""},
-                {"id": str(self.joe.uuid), "name": "Joe Blow", "type": "contact", "urn": "blow80"},
+                {
+                    "id": str(self.billy.uuid),
+                    "uuid": str(self.billy.uuid),
+                    "name": "Billy Nophone",
+                    "type": "contact",
+                    "urn": "",
+                },
+                {
+                    "id": str(self.joe.uuid),
+                    "uuid": str(self.joe.uuid),
+                    "name": "Joe Blow",
+                    "type": "contact",
+                    "urn": "blow80",
+                },
             ],
             omnibox_request(f"?c={self.joe.uuid},{self.billy.uuid}"),
         )
@@ -596,8 +608,14 @@ class ContactTest(TembaTest):
         # lookup specific groups
         self.assertEqual(
             [
-                {"id": str(joe_and_frank.uuid), "name": "Joe and Frank", "type": "group", "count": 2},
-                {"id": str(men.uuid), "name": "Men", "type": "group", "count": 0},
+                {
+                    "id": str(joe_and_frank.uuid),
+                    "uuid": str(joe_and_frank.uuid),
+                    "name": "Joe and Frank",
+                    "type": "group",
+                    "count": 2,
+                },
+                {"id": str(men.uuid), "uuid": str(men.uuid), "name": "Men", "type": "group", "count": 0},
             ],
             omnibox_request(f"?g={joe_and_frank.uuid},{men.uuid}"),
         )
@@ -606,10 +624,22 @@ class ContactTest(TembaTest):
         with self.assertNumQueries(9):
             self.assertEqual(
                 [
-                    {"id": str(joe_and_frank.uuid), "name": "Joe and Frank", "type": "group", "count": 2},
-                    {"id": str(men.uuid), "name": "Men", "type": "group", "count": 0},
-                    {"id": str(nobody.uuid), "name": "Nobody", "type": "group", "count": 0},
-                    {"id": str(open_tickets.uuid), "name": "Open Tickets", "type": "group", "count": 0},
+                    {
+                        "id": str(joe_and_frank.uuid),
+                        "uuid": str(joe_and_frank.uuid),
+                        "name": "Joe and Frank",
+                        "type": "group",
+                        "count": 2,
+                    },
+                    {"id": str(men.uuid), "uuid": str(men.uuid), "name": "Men", "type": "group", "count": 0},
+                    {"id": str(nobody.uuid), "uuid": str(nobody.uuid), "name": "Nobody", "type": "group", "count": 0},
+                    {
+                        "id": str(open_tickets.uuid),
+                        "uuid": str(open_tickets.uuid),
+                        "name": "Open Tickets",
+                        "type": "group",
+                        "count": 0,
+                    },
                 ],
                 omnibox_request(""),
             )
@@ -619,8 +649,20 @@ class ContactTest(TembaTest):
 
             self.assertEqual(
                 [
-                    {"id": str(self.billy.uuid), "name": "Billy Nophone", "type": "contact", "urn": ""},
-                    {"id": str(self.frank.uuid), "name": "Frank Smith", "type": "contact", "urn": "250782222222"},
+                    {
+                        "id": str(self.billy.uuid),
+                        "uuid": str(self.billy.uuid),
+                        "name": "Billy Nophone",
+                        "type": "contact",
+                        "urn": "",
+                    },
+                    {
+                        "id": str(self.frank.uuid),
+                        "uuid": str(self.frank.uuid),
+                        "name": "Frank Smith",
+                        "type": "contact",
+                        "urn": "250782222222",
+                    },
                 ],
                 omnibox_request("?search=250"),
             )
@@ -630,8 +672,20 @@ class ContactTest(TembaTest):
 
             self.assertEqual(
                 [
-                    {"id": str(joe_and_frank.uuid), "name": "Joe and Frank", "type": "group", "count": 2},
-                    {"id": str(self.frank.uuid), "name": "Frank Smith", "type": "contact", "urn": "250782222222"},
+                    {
+                        "id": str(joe_and_frank.uuid),
+                        "uuid": str(joe_and_frank.uuid),
+                        "name": "Joe and Frank",
+                        "type": "group",
+                        "count": 2,
+                    },
+                    {
+                        "id": str(self.frank.uuid),
+                        "uuid": str(self.frank.uuid),
+                        "name": "Frank Smith",
+                        "type": "contact",
+                        "urn": "250782222222",
+                    },
                 ],
                 omnibox_request("?search=FRA"),
             )
@@ -639,10 +693,22 @@ class ContactTest(TembaTest):
         # specify type filter g (all groups)
         self.assertEqual(
             [
-                {"id": str(joe_and_frank.uuid), "name": "Joe and Frank", "type": "group", "count": 2},
-                {"id": str(men.uuid), "name": "Men", "type": "group", "count": 0},
-                {"id": str(nobody.uuid), "name": "Nobody", "type": "group", "count": 0},
-                {"id": str(open_tickets.uuid), "name": "Open Tickets", "type": "group", "count": 0},
+                {
+                    "id": str(joe_and_frank.uuid),
+                    "uuid": str(joe_and_frank.uuid),
+                    "name": "Joe and Frank",
+                    "type": "group",
+                    "count": 2,
+                },
+                {"id": str(men.uuid), "uuid": str(men.uuid), "name": "Men", "type": "group", "count": 0},
+                {"id": str(nobody.uuid), "uuid": str(nobody.uuid), "name": "Nobody", "type": "group", "count": 0},
+                {
+                    "id": str(open_tickets.uuid),
+                    "uuid": str(open_tickets.uuid),
+                    "name": "Open Tickets",
+                    "type": "group",
+                    "count": 0,
+                },
             ],
             omnibox_request("?types=g"),
         )
@@ -650,8 +716,14 @@ class ContactTest(TembaTest):
         # specify type filter s (non-query groups)
         self.assertEqual(
             [
-                {"id": str(joe_and_frank.uuid), "name": "Joe and Frank", "type": "group", "count": 2},
-                {"id": str(nobody.uuid), "name": "Nobody", "type": "group", "count": 0},
+                {
+                    "id": str(joe_and_frank.uuid),
+                    "uuid": str(joe_and_frank.uuid),
+                    "name": "Joe and Frank",
+                    "type": "group",
+                    "count": 2,
+                },
+                {"id": str(nobody.uuid), "uuid": str(nobody.uuid), "name": "Nobody", "type": "group", "count": 0},
             ],
             omnibox_request("?types=s"),
         )
@@ -659,10 +731,22 @@ class ContactTest(TembaTest):
         with self.anonymous(self.org):
             self.assertEqual(
                 [
-                    {"id": str(joe_and_frank.uuid), "name": "Joe and Frank", "type": "group", "count": 2},
-                    {"id": str(men.uuid), "name": "Men", "type": "group", "count": 0},
-                    {"id": str(nobody.uuid), "name": "Nobody", "type": "group", "count": 0},
-                    {"id": str(open_tickets.uuid), "name": "Open Tickets", "type": "group", "count": 0},
+                    {
+                        "id": str(joe_and_frank.uuid),
+                        "uuid": str(joe_and_frank.uuid),
+                        "name": "Joe and Frank",
+                        "type": "group",
+                        "count": 2,
+                    },
+                    {"id": str(men.uuid), "uuid": str(men.uuid), "name": "Men", "type": "group", "count": 0},
+                    {"id": str(nobody.uuid), "uuid": str(nobody.uuid), "name": "Nobody", "type": "group", "count": 0},
+                    {
+                        "id": str(open_tickets.uuid),
+                        "uuid": str(open_tickets.uuid),
+                        "name": "Open Tickets",
+                        "type": "group",
+                        "count": 0,
+                    },
                 ],
                 omnibox_request(""),
             )
@@ -671,7 +755,12 @@ class ContactTest(TembaTest):
 
             self.assertEqual(
                 [
-                    {"id": str(self.billy.uuid), "name": "Billy Nophone", "type": "contact"},
+                    {
+                        "id": str(self.billy.uuid),
+                        "uuid": str(self.billy.uuid),
+                        "name": "Billy Nophone",
+                        "type": "contact",
+                    },
                 ],
                 omnibox_request("?search=Billy"),
             )

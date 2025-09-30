@@ -94,10 +94,25 @@ def omnibox_serialize(org, groups, contacts, *, encode=False):
     results = []
 
     for group in groups:
-        results.append({"id": str(group.uuid), "name": group.name, "type": "group", "count": group_counts[group]})
+        group_uuid = str(group.uuid)
+        results.append(
+            {
+                "id": group_uuid,
+                "uuid": group_uuid,
+                "name": group.name,
+                "type": "group",
+                "count": group_counts[group],
+            }
+        )
 
     for contact in contacts:
-        result = {"id": str(contact.uuid), "name": contact.get_display(org), "type": "contact"}
+        contact_uuid = str(contact.uuid)
+        result = {
+            "id": contact_uuid,
+            "uuid": contact_uuid,
+            "name": contact.get_display(org),
+            "type": "contact",
+        }
 
         if not org.is_anon:
             result["urn"] = contact.get_urn_display()
