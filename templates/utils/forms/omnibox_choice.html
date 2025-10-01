@@ -1,5 +1,5 @@
 <temba-omnibox {% include "django/forms/widgets/attrs.html" %}
                name="{{ widget.name }}"
                {% if widget.value %}values="{{ widget.value }}"{% endif %}
-               endpoint="/contact/omnibox/?">
+               endpoint="/contact/omnibox/?" jsonValue="true">
 </temba-omnibox>
