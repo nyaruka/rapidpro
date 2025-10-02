@@ -1,3 +1,8 @@
+v10.3.77 (2025-10-02)
+-------------------------
+ * Update comps with omnibox fix
+ * Bump django from 5.2.6 to 5.2.7
+
 v10.3.76 (2025-09-30)
 -------------------------
  * Update temba-components
