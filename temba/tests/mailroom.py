@@ -411,7 +411,7 @@ class TestClient(MailroomClient):
 
     @_client_method
     def msg_resend(self, org, msgs):
-        return {"msg_ids": [m.id for m in msgs]}
+        return {"msg_uuids": [str(m.uuid) for m in msgs]}
 
     @_client_method
     def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[QuickReply], ticket):

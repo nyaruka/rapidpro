@@ -304,7 +304,14 @@ class MailroomClient:
         return self._request("msg/handle", {"org_id": org.id, "msg_uuids": [str(m.uuid) for m in msgs]})
 
     def msg_resend(self, org, msgs):
-        return self._request("msg/resend", {"org_id": org.id, "msg_ids": [m.id for m in msgs]})
+        return self._request(
+            "msg/resend",
+            {
+                "org_id": org.id,
+                "msg_uuids": [str(m.uuid) for m in msgs],
+                "msg_ids": [m.id for m in msgs],  # deprecated
+            },
+        )
 
     def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[QuickReply], ticket):
         return self._request(
