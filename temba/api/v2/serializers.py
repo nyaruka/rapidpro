@@ -202,7 +202,7 @@ class BroadcastReadSerializer(ReadSerializer):
     class Meta:
         model = Broadcast
         fields = (
-            "id",
+            "uuid",
             "status",
             "progress",
             "urns",
@@ -213,6 +213,8 @@ class BroadcastReadSerializer(ReadSerializer):
             "quick_replies",
             "base_language",
             "created_on",
+            # deprecated fields
+            "id",
         )
 
 
@@ -1427,8 +1429,7 @@ class MsgReadSerializer(ReadSerializer):
     class Meta:
         model = Msg
         fields = (
-            "id",
-            "broadcast",
+            "uuid",
             "contact",
             "urn",
             "channel",
@@ -1445,7 +1446,10 @@ class MsgReadSerializer(ReadSerializer):
             "created_on",
             "sent_on",
             "modified_on",
+            # deprecated fields
             "media",
+            "id",
+            "broadcast",
         )
 
 
@@ -1488,6 +1492,7 @@ class MsgWriteSerializer(WriteSerializer):
         msg_quick_replies = [str(QuickReply(qr["text"], qr.get("extra"))) for qr in resp.get("quick_replies")]
 
         return Msg(
+            uuid=resp["uuid"],
             id=resp["id"],
             org=org,
             contact=contact,

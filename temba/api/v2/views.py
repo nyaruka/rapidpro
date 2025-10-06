@@ -431,7 +431,7 @@ class BroadcastsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
 
     A `GET` returns the outgoing message activity for your organization, listing the most recent messages first.
 
-     * **id** - the id of the broadcast (int), filterable as `id`.
+     * **uuid** - the id of the broadcast (string), filterable as `uuid`.
      * **urns** - the URNs that received the broadcast (array of strings).
      * **contacts** - the contacts that received the broadcast (array of objects).
      * **groups** - the groups that received the broadcast (array of objects).
@@ -453,7 +453,7 @@ class BroadcastsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
             "previous": null,
             "results": [
                 {
-                    "id": 123456,
+                    "uuid": "0199bb98-3637-778d-9dfc-0ab85c950d7c",
                     "urns": ["tel:+250788123123", "tel:+250788123124"],
                     "contacts": [{"uuid": "09d23a05-47fe-11e4-bfe9-b8f6b119e9ab", "name": "Joe"}]
                     "groups": [],
@@ -498,7 +498,7 @@ class BroadcastsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
     You will receive a response containing the message broadcast created:
 
         {
-            "id": 1234,
+            "uuid": "0199bb98-3637-778d-9dfc-0ab85c950d7c",
             "urns": ["tel:+250788123123", "tel:+250788123124"],
             "contacts": [{"uuid": "09d23a05-47fe-11e4-bfe9-b8f6b119e9ab", "name": "Joe"}]
             "groups": [],
@@ -2221,8 +2221,7 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
     A `GET` returns the messages for your organization, filtering them as needed. Each message has the following
     attributes:
 
-     * **id** - the ID of the message (int).
-     * **broadcast** - the id of the broadcast (int).
+     * **uuid** - the UUID of the message (string), filterable as `uuid`.
      * **contact** - the UUID and name of the contact (object).
      * **urn** - the URN of the sender or receiver, depending on direction (string).
      * **channel** - the UUID and name of the channel that handled this message (object).
@@ -2243,7 +2242,7 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
      * **quick_replies** - the quick_replies on the message (array of objects).
      * **labels** - any labels set on this message (array of objects).
      * **flow** - the UUID and name of the flow if message was part of a flow (object, optional).
-     * **created_on** - when this message was either received by the channel or created (datetime) (filterable as `before` and `after`).
+     * **created_on** - when this message was either received by the channel or created (datetime), filterable as `before` and `after`.
      * **sent_on** - for outgoing messages, when the channel sent the message (null if not yet sent or an incoming message) (datetime).
      * **modified_on** - when the message was last modified (datetime).
 
@@ -2264,8 +2263,7 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
             "previous": null,
             "results": [
             {
-                "id": 4105426,
-                "broadcast": 2690007,
+                "uuid": "0199bb98-3637-778d-9dfc-0ab85c950d7c",
                 "contact": {"uuid": "d33e9ad5-5c35-414c-abd4-e7451c69ff1d", "name": "Bob McFlow"},
                 "urn": "tel:+1234567890",
                 "channel": {"uuid": "9a8b001e-a913-486c-80f4-1356e23f582e", "name": "Vonage"},
@@ -2309,8 +2307,7 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
     You will receive the new message object as a response if successful:
 
         {
-            "id": 4105426,
-            "broadcast": null,
+            "uuid": "0199bb98-3637-778d-9dfc-0ab85c950d7c",
             "contact": {"uuid": "d33e9ad5-5c35-414c-abd4-e7451c69ff1d", "name": "Bob McFlow"},
             "urn": "tel:+1234567890",
             "channel": {"uuid": "9a8b001e-a913-486c-80f4-1356e23f582e", "name": "Vonage"},
@@ -2375,19 +2372,20 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
         params = self.request.query_params
         org = self.request.org
 
-        # filter by id (optional)
-        msg_id = self.get_int_param("id")
-        if msg_id:
+        # filter by UUID (optional)
+        if uuid := self.get_uuid_param("uuid"):
+            queryset = queryset.filter(uuid=uuid)
+
+        # filter by id (optional, deprecated)
+        if msg_id := self.get_int_param("id"):
             queryset = queryset.filter(id=msg_id)
 
-        # filter by broadcast (optional)
-        broadcast_id = params.get("broadcast")
-        if broadcast_id:
+        # filter by broadcast (optional, deprecated)
+        if broadcast_id := params.get("broadcast"):
             queryset = queryset.filter(broadcast_id=broadcast_id)
 
         # filter by contact (optional)
-        contact_uuid = params.get("contact")
-        if contact_uuid:
+        if contact_uuid := params.get("contact"):
             contact = Contact.objects.filter(org=org, is_active=True, uuid=contact_uuid).first()
             if contact:
                 queryset = queryset.filter(contact=contact)
@@ -2395,8 +2393,7 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
                 queryset = queryset.none()
 
         # filter by label name/uuid (optional)
-        label_ref = params.get("label")
-        if label_ref:
+        if label_ref := params.get("label"):
             label_filter = Q(name=label_ref)
             if is_uuid(label_ref):
                 label_filter |= Q(uuid=label_ref)

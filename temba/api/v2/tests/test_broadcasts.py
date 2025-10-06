@@ -65,6 +65,7 @@ class BroadcastsEndpointTest(APITest):
 
         self.assertEqual(
             {
+                "uuid": str(bcast2.uuid),
                 "id": bcast2.id,
                 "status": "pending",
                 "progress": {"total": -1, "started": 0},
@@ -81,6 +82,7 @@ class BroadcastsEndpointTest(APITest):
         )
         self.assertEqual(
             {
+                "uuid": str(bcast4.uuid),
                 "id": bcast4.id,
                 "status": "failed",
                 "progress": {"total": 2, "started": 2},
