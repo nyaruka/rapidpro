@@ -1,12 +1,12 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from django.utils import timezone
 
 from temba.flows.models import Flow
 from temba.msgs.models import Msg, MsgFolder
 from temba.msgs.tasks import fail_old_android_messages
-from temba.tests import CRUDLTestMixin, TembaTest
+from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
 from temba.utils.uuid import uuid7
 
 
@@ -93,7 +93,8 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         )
 
     @patch("django.core.files.storage.default_storage.delete")
-    def test_bulk_soft_delete(self, mock_storage_delete):
+    @mock_mailroom
+    def test_bulk_soft_delete(self, mr_mocks, mock_storage_delete):
         # create some messages
         msg1 = self.create_incoming_msg(
             self.joe,
@@ -112,16 +113,10 @@ class MsgTest(TembaTest, CRUDLTestMixin):
 
         Msg.bulk_soft_delete([msg1, msg2])
 
-        # soft delete should clear text and attachments
-        for msg in (msg1, msg2):
-            msg.refresh_from_db()
-
-            self.assertEqual("", msg.text)
-            self.assertEqual([], msg.attachments)
-            self.assertEqual(Msg.VISIBILITY_DELETED_BY_USER, msg1.visibility)
-
         mock_storage_delete.assert_any_call("/attachments/1/a/b.jpg")
         mock_storage_delete.assert_any_call("/attachments/1/c/d e.jpg")
+
+        self.assertEqual([call(self.org, [msg1, msg2])], mr_mocks.calls["msg_delete"])
 
     @patch("django.core.files.storage.default_storage.delete")
     def test_bulk_delete(self, mock_storage_delete):

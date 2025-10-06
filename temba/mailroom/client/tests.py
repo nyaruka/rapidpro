@@ -693,19 +693,35 @@ class MailroomClientTest(TembaTest):
         )
 
     @patch("requests.post")
+    def test_msg_delete(self, mock_post):
+        ann = self.create_contact("Ann", urns=["tel:+12340000001"])
+        msg1 = self.create_incoming_msg(ann, "Hi")
+        msg2 = self.create_incoming_msg(ann, "Hi again")
+        mock_post.return_value = MockJsonResponse(200, {"msg_uuids": [str(msg1.uuid)]})
+        response = self.client.msg_delete(self.org, [msg1, msg2])
+
+        self.assertEqual({"msg_uuids": [str(msg1.uuid)]}, response)
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mr/msg/delete",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={"org_id": self.org.id, "msg_uuids": [str(msg1.uuid), str(msg2.uuid)]},
+        )
+
+    @patch("requests.post")
     def test_msg_handle(self, mock_post):
         ann = self.create_contact("Ann", urns=["tel:+12340000001"])
         msg1 = self.create_incoming_msg(ann, "Hi")
         msg2 = self.create_incoming_msg(ann, "Hi again")
-        mock_post.return_value = MockJsonResponse(200, {"msg_ids": [msg1.id]})
+        mock_post.return_value = MockJsonResponse(200, {"msg_uuids": [str(msg1.uuid)]})
         response = self.client.msg_handle(self.org, [msg1, msg2])
 
-        self.assertEqual({"msg_ids": [msg1.id]}, response)
+        self.assertEqual({"msg_uuids": [str(msg1.uuid)]}, response)
 
         mock_post.assert_called_once_with(
             "http://localhost:8090/mr/msg/handle",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
-            json={"org_id": self.org.id, "msg_ids": [msg1.id, msg2.id]},
+            json={"org_id": self.org.id, "msg_uuids": [str(msg1.uuid), str(msg2.uuid)]},
         )
 
     @patch("requests.post")
@@ -746,7 +762,6 @@ class MailroomClientTest(TembaTest):
                 "attachments": [],
                 "quick_replies": [{"text": "Yes", "extra": "Let's go!"}, {"text": "No"}],
                 "ticket_uuid": str(ticket.uuid),
-                "ticket_id": ticket.id,
             },
         )
 

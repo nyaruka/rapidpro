@@ -406,6 +406,10 @@ class TestClient(MailroomClient):
         return mock(org)
 
     @_client_method
+    def msg_delete(self, org, msgs):
+        return {}
+
+    @_client_method
     def msg_resend(self, org, msgs):
         return {"msg_ids": [m.id for m in msgs]}
 

@@ -139,13 +139,14 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual(("archive", "label"), response.context["actions"])
 
-    def test_archived(self):
+    @mock_mailroom
+    def test_archived(self, mr_mocks):
         contact1 = self.create_contact("Joe Blow", phone="+250788000001")
         contact2 = self.create_contact("Frank", phone="+250788000002")
         msg1 = self.create_incoming_msg(contact1, "message number 1", visibility=Msg.VISIBILITY_ARCHIVED)
         msg2 = self.create_incoming_msg(contact1, "message number 2", visibility=Msg.VISIBILITY_ARCHIVED)
         msg3 = self.create_incoming_msg(contact2, "message number 3", visibility=Msg.VISIBILITY_ARCHIVED)
-        msg4 = self.create_incoming_msg(contact2, "message number 4", visibility=Msg.VISIBILITY_DELETED_BY_USER)
+        self.create_incoming_msg(contact2, "message number 4", visibility=Msg.VISIBILITY_DELETED_BY_USER)
         self.create_incoming_msg(contact2, "message number 5", status=Msg.STATUS_PENDING)
 
         archived_url = reverse("msgs.msg_archived")
@@ -170,11 +171,10 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(200, response.status_code)
         self.assertEqual({msg2, msg3}, set(Msg.objects.filter(visibility=Msg.VISIBILITY_ARCHIVED)))
 
-        # can also permanently delete messages
+        # can also delete messages
         response = self.requestView(archived_url, self.admin, post_data={"action": "delete", "objects": [msg2.id]})
         self.assertEqual(200, response.status_code)
-        self.assertEqual({msg2, msg4}, set(Msg.objects.filter(visibility=Msg.VISIBILITY_DELETED_BY_USER)))
-        self.assertEqual({msg3}, set(Msg.objects.filter(visibility=Msg.VISIBILITY_ARCHIVED)))
+        self.assertEqual([call(self.org, [msg2])], mr_mocks.calls["msg_delete"])
 
     def test_outbox(self):
         contact1 = self.create_contact("", phone="+250788382382")

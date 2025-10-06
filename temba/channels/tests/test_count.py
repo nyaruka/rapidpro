@@ -95,7 +95,7 @@ class ChannelCountTest(TembaTest):
         )
 
         # soft deleting a message doesn't decrement the count
-        Msg.bulk_soft_delete([Msg.objects.get(text="A")])
+        Msg.objects.filter(text="A").update(visibility=Msg.VISIBILITY_DELETED_BY_USER)
 
         self.assertEqual(
             {
