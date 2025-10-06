@@ -1,3 +1,8 @@
+v10.3.78 (2025-10-06)
+-------------------------
+ * Send msgs by UUID to msg/resend endpoint
+ * Use mailroom endpoint to soft delete messages
+
 v10.3.77 (2025-10-02)
 -------------------------
  * Update comps with omnibox fix
