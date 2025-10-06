@@ -1,12 +1,16 @@
+from unittest.mock import call
+
 from django.urls import reverse
 
 from temba.msgs.models import Label, Msg
+from temba.tests import mock_mailroom
 
 from . import APITest
 
 
 class MessageActionsEndpointTest(APITest):
-    def test_endpoint(self):
+    @mock_mailroom
+    def test_endpoint(self, mr_mocks):
         endpoint_url = reverse("api.v2.message_actions") + ".json"
 
         self.assertGetNotAllowed(endpoint_url)
@@ -139,11 +143,12 @@ class MessageActionsEndpointTest(APITest):
 
         # delete messages 2
         self.assertPost(endpoint_url, self.admin, {"messages": [msg2.id], "action": "delete"}, status=204)
-        self.assertEqual(set(Msg.objects.filter(visibility=Msg.VISIBILITY_VISIBLE)), {msg1})
-        self.assertEqual(set(Msg.objects.filter(visibility=Msg.VISIBILITY_ARCHIVED)), {msg3})
-        self.assertEqual(set(Msg.objects.filter(visibility=Msg.VISIBILITY_DELETED_BY_USER)), {msg2})
+        self.assertEqual([call(self.org, [msg2])], mr_mocks.calls["msg_delete"])
 
         # try to act on a a valid message and a deleted message
+        msg2.visibility = Msg.VISIBILITY_DELETED_BY_USER
+        msg2.save(update_fields=("visibility",))
+
         response = self.assertPost(
             endpoint_url, self.admin, {"messages": [msg2.id, msg3.id], "action": "restore"}, status=200
         )

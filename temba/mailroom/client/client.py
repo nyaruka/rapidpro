@@ -297,8 +297,11 @@ class MailroomClient:
 
         return RecipientsPreview(query=resp["query"], total=resp["total"])
 
+    def msg_delete(self, org, msgs):
+        return self._request("msg/delete", {"org_id": org.id, "msg_uuids": [str(m.uuid) for m in msgs]})
+
     def msg_handle(self, org, msgs):
-        return self._request("msg/handle", {"org_id": org.id, "msg_ids": [m.id for m in msgs]})
+        return self._request("msg/handle", {"org_id": org.id, "msg_uuids": [str(m.uuid) for m in msgs]})
 
     def msg_resend(self, org, msgs):
         return self._request("msg/resend", {"org_id": org.id, "msg_ids": [m.id for m in msgs]})
@@ -314,7 +317,6 @@ class MailroomClient:
                 "attachments": attachments,
                 "quick_replies": [qr.as_json() for qr in quick_replies],
                 "ticket_uuid": str(ticket.uuid) if ticket else None,
-                "ticket_id": ticket.id if ticket else None,  # deprecated
             },
         )
 

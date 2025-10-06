@@ -707,14 +707,9 @@ class Msg(models.Model):
 
             attachments_to_delete.extend(msg.get_attachments())
 
-        Attachment.bulk_delete(attachments_to_delete)
+        Attachment.bulk_delete(attachments_to_delete)  # TODO move to mailroom as well
 
-        for msg in msgs:
-            msg.labels.clear()
-
-        cls.objects.filter(id__in=[m.id for m in msgs]).update(
-            text="", attachments=[], visibility=Msg.VISIBILITY_DELETED_BY_USER
-        )
+        mailroom.get_client().msg_delete(msgs[0].org, list(msgs))
 
     @classmethod
     def bulk_delete(cls, msgs: list):
