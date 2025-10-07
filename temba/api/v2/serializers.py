@@ -1573,7 +1573,7 @@ class MsgBulkActionSerializer(WriteSerializer):
             if label:
                 label.toggle_label(messages, add=False)
         elif action == self.DELETE:
-            Msg.bulk_soft_delete(messages)
+            Msg.bulk_soft_delete(self.context["org"], self.context["user"], messages)
         else:
             for msg in messages:
                 if action == self.ARCHIVE and msg.visibility == Msg.VISIBILITY_VISIBLE:

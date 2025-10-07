@@ -297,20 +297,18 @@ class MailroomClient:
 
         return RecipientsPreview(query=resp["query"], total=resp["total"])
 
-    def msg_delete(self, org, msgs):
-        return self._request("msg/delete", {"org_id": org.id, "msg_uuids": [str(m.uuid) for m in msgs]})
+    def msg_delete(self, org, user, msgs):
+        return self._request(
+            "msg/delete", {"org_id": org.id, "user_id": user.id, "msg_uuids": [str(m.uuid) for m in msgs]}
+        )
 
     def msg_handle(self, org, msgs):
         return self._request("msg/handle", {"org_id": org.id, "msg_uuids": [str(m.uuid) for m in msgs]})
 
-    def msg_resend(self, org, msgs):
+    def msg_resend(self, org, user, msgs):
         return self._request(
             "msg/resend",
-            {
-                "org_id": org.id,
-                "msg_uuids": [str(m.uuid) for m in msgs],
-                "msg_ids": [m.id for m in msgs],  # deprecated
-            },
+            {"org_id": org.id, "user_id": user.id, "msg_uuids": [str(m.uuid) for m in msgs]},
         )
 
     def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[QuickReply], ticket):

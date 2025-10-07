@@ -698,14 +698,14 @@ class MailroomClientTest(TembaTest):
         msg1 = self.create_incoming_msg(ann, "Hi")
         msg2 = self.create_incoming_msg(ann, "Hi again")
         mock_post.return_value = MockJsonResponse(200, {})
-        response = self.client.msg_delete(self.org, [msg1, msg2])
+        response = self.client.msg_delete(self.org, self.admin, [msg1, msg2])
 
         self.assertEqual({}, response)
 
         mock_post.assert_called_once_with(
             "http://localhost:8090/mr/msg/delete",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
-            json={"org_id": self.org.id, "msg_uuids": [str(msg1.uuid), str(msg2.uuid)]},
+            json={"org_id": self.org.id, "user_id": self.admin.id, "msg_uuids": [str(msg1.uuid), str(msg2.uuid)]},
         )
 
     @patch("requests.post")
@@ -730,14 +730,14 @@ class MailroomClientTest(TembaTest):
         msg1 = self.create_outgoing_msg(ann, "Hi")
         msg2 = self.create_outgoing_msg(ann, "Hi again")
         mock_post.return_value = MockJsonResponse(200, {"msg_uuids": [str(msg1.uuid)]})
-        response = self.client.msg_resend(self.org, msgs=[msg1, msg2])
+        response = self.client.msg_resend(self.org, self.admin, msgs=[msg1, msg2])
 
         self.assertEqual({"msg_uuids": [str(msg1.uuid)]}, response)
 
         mock_post.assert_called_once_with(
             "http://localhost:8090/mr/msg/resend",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
-            json={"org_id": self.org.id, "msg_uuids": [str(msg1.uuid), str(msg2.uuid)], "msg_ids": [msg1.id, msg2.id]},
+            json={"org_id": self.org.id, "user_id": self.admin.id, "msg_uuids": [str(msg1.uuid), str(msg2.uuid)]},
         )
 
     @patch("requests.post")

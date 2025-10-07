@@ -109,14 +109,14 @@ class MsgTest(TembaTest, CRUDLTestMixin):
 
         # can't soft delete outgoing messages
         with self.assertRaises(AssertionError):
-            Msg.bulk_soft_delete([out1])
+            Msg.bulk_soft_delete(self.org, self.admin, [out1])
 
-        Msg.bulk_soft_delete([msg1, msg2])
+        Msg.bulk_soft_delete(self.org, self.admin, [msg1, msg2])
 
         mock_storage_delete.assert_any_call("/attachments/1/a/b.jpg")
         mock_storage_delete.assert_any_call("/attachments/1/c/d e.jpg")
 
-        self.assertEqual([call(self.org, [msg1, msg2])], mr_mocks.calls["msg_delete"])
+        self.assertEqual([call(self.org, self.admin, [msg1, msg2])], mr_mocks.calls["msg_delete"])
 
     @patch("django.core.files.storage.default_storage.delete")
     def test_bulk_delete(self, mock_storage_delete):
