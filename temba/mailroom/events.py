@@ -245,7 +245,7 @@ class Event:
             )
 
         if obj.direction == Msg.DIRECTION_IN:
-            return {
+            event = {
                 "uuid": str(obj.uuid),
                 "type": cls.TYPE_MSG_RECEIVED,
                 "created_on": get_event_time(obj).isoformat(),
@@ -253,6 +253,13 @@ class Event:
                 # additional properties
                 "_logs_url": logs_url,
             }
+
+            if obj.visibility == Msg.VISIBILITY_DELETED_BY_SENDER:
+                event["_deleted"] = {"deleted_by": "contact", "deleted_on": obj.modified_on.isoformat()}
+            elif obj.visibility == Msg.VISIBILITY_DELETED_BY_USER:
+                event["_deleted"] = {"deleted_by": "user", "deleted_on": obj.modified_on.isoformat()}
+
+            return event
         else:
             if obj.msg_type == Msg.TYPE_VOICE:
                 event = {
@@ -271,6 +278,17 @@ class Event:
                 }
                 if obj.broadcast:
                     event["broadcast_uuid"] = str(obj.broadcast.uuid)
+
+                if obj.status in (
+                    Msg.STATUS_SENT,
+                    Msg.STATUS_DELIVERED,
+                    Msg.STATUS_READ,
+                    Msg.STATUS_ERRORED,
+                    Msg.STATUS_FAILED,
+                ):
+                    event["_statuses"] = {obj.status: {"changed_on": obj.modified_on.isoformat()}}
+                    if obj.status == Msg.STATUS_FAILED:
+                        event["_statuses"][Msg.STATUS_FAILED]["reason"] = obj.get_failed_reason_display()
 
             # add additional properties
             event["_user"] = _user(obj.created_by) if obj.created_by else None
