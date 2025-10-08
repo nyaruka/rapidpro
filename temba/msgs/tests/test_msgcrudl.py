@@ -174,7 +174,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         # can also delete messages
         response = self.requestView(archived_url, self.admin, post_data={"action": "delete", "objects": [msg2.id]})
         self.assertEqual(200, response.status_code)
-        self.assertEqual([call(self.org, [msg2])], mr_mocks.calls["msg_delete"])
+        self.assertEqual([call(self.org, self.admin, [msg2])], mr_mocks.calls["msg_delete"])
 
     def test_outbox(self):
         contact1 = self.create_contact("", phone="+250788382382")
@@ -284,7 +284,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         # resend some messages
         self.client.post(failed_url, {"action": "resend", "objects": [msg2.id]})
 
-        self.assertEqual([call(self.org, [msg2])], mr_mocks.calls["msg_resend"])
+        self.assertEqual([call(self.org, self.admin, [msg2])], mr_mocks.calls["msg_resend"])
 
         # suspended orgs don't see resend as option
         self.org.suspend()

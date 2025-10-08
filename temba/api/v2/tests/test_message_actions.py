@@ -143,7 +143,7 @@ class MessageActionsEndpointTest(APITest):
 
         # delete messages 2
         self.assertPost(endpoint_url, self.admin, {"messages": [msg2.id], "action": "delete"}, status=204)
-        self.assertEqual([call(self.org, [msg2])], mr_mocks.calls["msg_delete"])
+        self.assertEqual([call(self.org, self.admin, [msg2])], mr_mocks.calls["msg_delete"])
 
         # try to act on a a valid message and a deleted message
         msg2.visibility = Msg.VISIBILITY_DELETED_BY_USER

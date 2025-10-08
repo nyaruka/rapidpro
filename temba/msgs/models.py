@@ -687,15 +687,16 @@ class Msg(models.Model):
 
     @classmethod
     def apply_action_delete(cls, user, msgs):
-        cls.bulk_soft_delete(msgs)
+        if msgs := list(msgs):
+            cls.bulk_soft_delete(msgs[0].org, user, msgs)
 
     @classmethod
     def apply_action_resend(cls, user, msgs):
-        if msgs:
-            mailroom.get_client().msg_resend(msgs[0].org, list(msgs))
+        if msgs := list(msgs):
+            mailroom.get_client().msg_resend(msgs[0].org, user, msgs)
 
     @classmethod
-    def bulk_soft_delete(cls, msgs: list):
+    def bulk_soft_delete(cls, org, user, msgs: list):
         """
         Bulk soft deletes the given incoming messages, i.e. clears content and updates its visibility to deleted.
         """
@@ -709,7 +710,7 @@ class Msg(models.Model):
 
         Attachment.bulk_delete(attachments_to_delete)  # TODO move to mailroom as well
 
-        mailroom.get_client().msg_delete(msgs[0].org, list(msgs))
+        mailroom.get_client().msg_delete(org, user, list(msgs))
 
     @classmethod
     def bulk_delete(cls, msgs: list):
