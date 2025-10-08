@@ -77,6 +77,7 @@ class MessagesEndpointTest(APITest):
             [self.admin],
             results=[
                 {
+                    "uuid": str(frank_msg1.uuid),
                     "id": frank_msg1.id,
                     "type": "text",
                     "channel": {"uuid": str(facebook.uuid), "name": "Facebook Channel"},
@@ -110,6 +111,9 @@ class MessagesEndpointTest(APITest):
 
         # filter by invalid folder
         self.assertGet(endpoint_url + "?folder=invalid", [self.admin], results=[])
+
+        # filter by UUID
+        self.assertGet(endpoint_url + f"?uuid={joe_msg3.uuid}", [self.admin], results=[joe_msg3])
 
         # filter by id
         self.assertGet(endpoint_url + f"?id={joe_msg3.id}", [self.admin], results=[joe_msg3])
@@ -196,6 +200,7 @@ class MessagesEndpointTest(APITest):
         msg = Msg.objects.order_by("id").last()
         self.assertEqual(
             {
+                "uuid": str(msg.uuid),
                 "id": msg.id,
                 "type": "text",
                 "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
@@ -308,6 +313,7 @@ class MessagesEndpointTest(APITest):
         msg = Msg.objects.order_by("id").last()
         self.assertEqual(
             {
+                "uuid": str(msg.uuid),
                 "id": msg.id,
                 "type": "text",
                 "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},

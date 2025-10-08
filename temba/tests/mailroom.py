@@ -418,6 +418,7 @@ class TestClient(MailroomClient):
         msg = send_to_contact(org, contact, text, attachments, quick_replies)
 
         return {
+            "uuid": str(msg.uuid),
             "id": msg.id,
             "channel": {"uuid": str(msg.channel.uuid), "name": msg.channel.name} if msg.channel else None,
             "contact": {"uuid": str(msg.contact.uuid), "name": msg.contact.name},
