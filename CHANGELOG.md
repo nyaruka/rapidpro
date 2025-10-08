@@ -1,3 +1,8 @@
+v10.3.79 (2025-10-08)
+-------------------------
+ * For msg/resend and delete mailroom calls, include user
+ * Add UUID to Broadcast and Message API representations and depublicize ID
+
 v10.3.78 (2025-10-06)
 -------------------------
  * Send msgs by UUID to msg/resend endpoint
