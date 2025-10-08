@@ -1,3 +1,10 @@
+v10.3.80 (2025-10-08)
+-------------------------
+ * More cleanup of API docs and explorer to depublicize filtering that we don't want to support
+ * Include detailed status information in reconstructed message events
+ * Include deleted information in reconstructed message events
+ * Rework fetching contact history to support/ignore event tags
+
 v10.3.79 (2025-10-08)
 -------------------------
  * For msg/resend and delete mailroom calls, include user
