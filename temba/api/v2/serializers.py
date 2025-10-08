@@ -1125,7 +1125,6 @@ class FlowRunReadSerializer(ReadSerializer):
     class Meta:
         model = FlowRun
         fields = (
-            "id",
             "uuid",
             "flow",
             "contact",
@@ -1137,6 +1136,8 @@ class FlowRunReadSerializer(ReadSerializer):
             "modified_on",
             "exited_on",
             "exit_type",
+            # deprecated fields
+            "id",
         )
 
 

@@ -250,7 +250,10 @@ class RunsEndpointTest(APITest):
         flow1.save()
 
         # filter by invalid flow
-        self.assertGet(endpoint_url + "?flow=invalid", [self.admin], results=[])
+        self.assertGet(
+            endpoint_url + "?flow=invalid", [self.admin], errors={None: "Param 'flow': invalid is not a valid UUID."}
+        )
+        self.assertGet(endpoint_url + "?flow=5fb61ca5-bdb1-4a05-af8d-274127f8186f", [self.admin], results=[])
 
         # filter by flow + responded
         self.assertGet(
