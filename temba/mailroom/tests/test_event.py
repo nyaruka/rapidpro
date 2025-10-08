@@ -251,6 +251,7 @@ class EventTest(TembaTest):
                     "external_id": "12345",
                 },
                 "_logs_url": None,
+                "_deleted": {"deleted_by": "user", "deleted_on": matchers.ISODatetime()},
             },
             Event.from_msg(self.org, self.admin, msg_in),
         )
@@ -271,6 +272,7 @@ class EventTest(TembaTest):
                     "external_id": "12345",
                 },
                 "_logs_url": None,
+                "_deleted": {"deleted_by": "contact", "deleted_on": matchers.ISODatetime()},
             },
             Event.from_msg(self.org, self.admin, msg_in),
         )

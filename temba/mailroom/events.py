@@ -245,7 +245,7 @@ class Event:
             )
 
         if obj.direction == Msg.DIRECTION_IN:
-            return {
+            event = {
                 "uuid": str(obj.uuid),
                 "type": cls.TYPE_MSG_RECEIVED,
                 "created_on": get_event_time(obj).isoformat(),
@@ -253,6 +253,13 @@ class Event:
                 # additional properties
                 "_logs_url": logs_url,
             }
+
+            if obj.visibility == Msg.VISIBILITY_DELETED_BY_SENDER:
+                event["_deleted"] = {"deleted_by": "contact", "deleted_on": obj.modified_on.isoformat()}
+            elif obj.visibility == Msg.VISIBILITY_DELETED_BY_USER:
+                event["_deleted"] = {"deleted_by": "user", "deleted_on": obj.modified_on.isoformat()}
+
+            return event
         else:
             if obj.msg_type == Msg.TYPE_VOICE:
                 event = {
