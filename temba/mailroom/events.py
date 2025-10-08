@@ -279,6 +279,17 @@ class Event:
                 if obj.broadcast:
                     event["broadcast_uuid"] = str(obj.broadcast.uuid)
 
+                if obj.status in (
+                    Msg.STATUS_SENT,
+                    Msg.STATUS_DELIVERED,
+                    Msg.STATUS_READ,
+                    Msg.STATUS_ERRORED,
+                    Msg.STATUS_FAILED,
+                ):
+                    event["_statuses"] = {obj.status: {"changed_on": obj.modified_on.isoformat()}}
+                    if obj.status == Msg.STATUS_FAILED:
+                        event["_statuses"][Msg.STATUS_FAILED]["reason"] = obj.get_failed_reason_display()
+
             # add additional properties
             event["_user"] = _user(obj.created_by) if obj.created_by else None
             event["_status"] = obj.status

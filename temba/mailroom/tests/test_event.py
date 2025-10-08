@@ -295,6 +295,9 @@ class EventTest(TembaTest):
                 "optin": None,
                 "_user": {"uuid": str(self.agent.uuid), "name": "Agnes", "avatar": None},
                 "_status": "E",
+                "_statuses": {
+                    "E": {"changed_on": matchers.ISODatetime()},
+                },
                 "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out.uuid}/",
             },
             Event.from_msg(self.org, self.admin, msg_out),
@@ -314,9 +317,12 @@ class EventTest(TembaTest):
                 },
                 "optin": None,
                 "_user": None,
-                "_status": "F",
-                "_failed_reason": "No suitable channel found",
+                "_statuses": {
+                    "F": {"changed_on": matchers.ISODatetime(), "reason": "No suitable channel found"},
+                },
                 "_logs_url": None,
+                "_status": "F",  # deprecated
+                "_failed_reason": "No suitable channel found",  # deprecated
             },
             Event.from_msg(self.org, self.admin, msg_out),
         )
@@ -334,8 +340,8 @@ class EventTest(TembaTest):
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
                 },
                 "_user": None,
-                "_status": "S",
                 "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{ivr_out.uuid}/",
+                "_status": "S",  # deprecated
             },
             Event.from_msg(self.org, self.admin, ivr_out),
         )
@@ -356,8 +362,11 @@ class EventTest(TembaTest):
                 "broadcast_uuid": str(bcast.uuid),
                 "optin": None,
                 "_user": {"uuid": str(self.admin.uuid), "name": "Andy", "avatar": None},
-                "_status": "S",
+                "_statuses": {
+                    "S": {"changed_on": matchers.ISODatetime()},
+                },
                 "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out2.uuid}/",
+                "_status": "S",  # deprecated
             },
             Event.from_msg(self.org, self.admin, msg_out2),
         )
@@ -382,8 +391,11 @@ class EventTest(TembaTest):
                 "broadcast_uuid": str(bcast2.uuid),
                 "optin": {"uuid": str(optin.uuid), "name": "Polls"},
                 "_user": {"uuid": str(self.admin.uuid), "name": "Andy", "avatar": None},
-                "_status": "S",
+                "_statuses": {
+                    "S": {"changed_on": matchers.ISODatetime()},
+                },
                 "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out3.uuid}/",
+                "_status": "S",  # deprecated
             },
             Event.from_msg(self.org, self.admin, msg_out3),
         )
