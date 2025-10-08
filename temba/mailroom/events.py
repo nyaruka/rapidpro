@@ -95,6 +95,12 @@ class Event:
         return data
 
     @classmethod
+    def _tag_from_item(cls, contact, item: dict) -> dict:
+        assert item["OrgID"] == contact.org_id, "org ID mismatch for contact event tag"
+
+        return {"event_uuid": item["SK"][4:40], "tag": item["SK"][40:], "data": item.get("Data", {})}
+
+    @classmethod
     def get_by_contact(cls, contact, *, after: datetime, before: datetime, ticket_uuid: UUID, limit: int) -> list[dict]:
         """
         Eventually contact history will be paged by event UUIDs but for now we are given microsecond accuracy
@@ -103,12 +109,14 @@ class Event:
         if after >= before:  # otherwise DynamoDB blows up
             return []
 
-        events = cls._get_raw(contact, after=after, before=before, ticket_uuid=ticket_uuid, limit=limit)
+        events, tags = cls._get_raw(contact, after=after, before=before, ticket_uuid=ticket_uuid, limit=limit)
 
         return cls._refresh_events(contact.org, events)
 
     @classmethod
-    def _get_raw(cls, contact, *, after: datetime, before: datetime, ticket_uuid: UUID, limit: int) -> list[dict]:
+    def _get_raw(
+        cls, contact, *, after: datetime, before: datetime, ticket_uuid: UUID, limit: int
+    ) -> tuple[list[dict], list[dict]]:
         """
         Eventually contact history will be paged by event UUIDs but for now we are given microsecond accuracy
         datetimes and have to infer approximate UUIDs and then filter the results to the given range.
@@ -120,18 +128,41 @@ class Event:
         pk, before_sk = cls._get_key(contact, before_uuid)
         after_sk = f"evt#{after_uuid}"
 
-        events = []
-        next_before_sk = None
+        events, tags = [], []
+
+        def _item(item: dict) -> bool:
+            if item["SK"].count("#") == 1:  # item is an event
+                event = cls._from_item(contact, item)
+                event_time = iso8601.parse_date(event["created_on"])
+
+                if event_time >= after and event_time < before and cls._include_event(event, ticket_uuid):
+                    events.append(event)
+
+                return len(events) < limit
+            else:  # item is a tag
+                tags.append(cls._tag_from_item(contact, item))
+                # keep going we always end with a complete event
+                return True
+
+        cls._get_history_items(pk, after_sk=after_sk, before_sk=before_sk, limit=limit, callback=_item)
+
+        return events, tags
+
+    @classmethod
+    def _get_history_items(cls, pk: str, *, after_sk: str, before_sk: str, limit: int, callback):
         num_fetches = 0
+        next_before_sk = None
 
         while True:
-            assert num_fetches < 100, "too many fetches for contact history"
+            assert num_fetches < 100, "too many fetches for history"
 
+            # TODO because for now we skip over some items, if limit is 1 we could end up making multiple fetches to
+            # get to an item that isn't skipped.. so always fetch at least 20 items
             kwargs = dict(
                 KeyConditionExpression="PK = :pk AND SK BETWEEN :after_sk AND :before_sk",
                 ExpressionAttributeValues={":pk": pk, ":after_sk": after_sk, ":before_sk": before_sk},
                 ScanIndexForward=False,
-                Limit=50,
+                Limit=max(limit, 20),
                 Select="ALL_ATTRIBUTES",
             )
 
@@ -142,20 +173,12 @@ class Event:
             num_fetches += 1
 
             for item in response.get("Items", []):
-                event = cls._from_item(contact, item)
-                event_time = iso8601.parse_date(event["created_on"])
-
-                if event_time >= after and event_time < before and cls._include_event(event, ticket_uuid):
-                    events.append(event)
-
-                    if len(events) == limit:
-                        return events
+                if not callback(item):
+                    return
 
             next_before_sk = response.get("LastEvaluatedKey", {}).get("SK")
             if not next_before_sk:
-                break
-
-        return events
+                return
 
     @classmethod
     def _include_event(cls, event, ticket_uuid) -> bool:

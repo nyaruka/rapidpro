@@ -9,6 +9,7 @@ from django.utils import timezone
 from temba.mailroom.events import Event
 from temba.msgs.models import Msg
 from temba.tests import TembaTest, cleanup, matchers
+from temba.utils import dynamo
 
 
 class EventTest(TembaTest):
@@ -120,6 +121,15 @@ class EventTest(TembaTest):
                 "created_on": "2025-08-06T19:47:40.085871336Z",
                 "status": "blocked",
             },
+        )
+
+        dynamo.HISTORY.put_item(
+            Item={
+                "PK": f"con#{contact.uuid}",
+                "SK": "evt#019880eb-e4f1-761b-bc99-750003cf8004#del",  # delete tag for event 4
+                "OrgID": contact.org_id,
+                "Data": {"deleted_by": "sender"},
+            }
         )
 
         def assert_fetched(after, before, limit, expected: list):
