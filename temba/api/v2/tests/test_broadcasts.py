@@ -101,6 +101,9 @@ class BroadcastsEndpointTest(APITest):
         # filter by id
         self.assertGet(endpoint_url + f"?id={bcast3.id}", [self.editor], results=[bcast3])
 
+        # filter by uuid
+        self.assertGet(endpoint_url + f"?uuid={bcast3.uuid}", [self.editor], results=[bcast3])
+
         # filter by before / after
         self.assertGet(
             endpoint_url + f"?before={format_datetime(bcast2.created_on)}", [self.editor], results=[bcast2, bcast1]
