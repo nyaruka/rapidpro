@@ -1,3 +1,7 @@
+v10.3.81 (2025-10-09)
+-------------------------
+ * Support filter by UUID on broadcast API endpoint
+
 v10.3.80 (2025-10-08)
 -------------------------
  * More cleanup of API docs and explorer to depublicize filtering that we don't want to support
