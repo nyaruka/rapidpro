@@ -525,7 +525,11 @@ class BroadcastsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
     def filter_queryset(self, queryset):
         queryset = queryset.filter(schedule=None, is_active=True)
 
-        # filter by id (optional)
+        # filter by UUID (optional)
+        if uuid := self.get_uuid_param("uuid"):
+            queryset = queryset.filter(uuid=uuid)
+
+        # filter by id (optional, deprecated)
         broadcast_id = self.get_int_param("id")
         if broadcast_id:
             queryset = queryset.filter(id=broadcast_id)
