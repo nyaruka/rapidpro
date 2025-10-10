@@ -1,3 +1,7 @@
+v10.3.82 (2025-10-10)
+-------------------------
+ * Use BIGINT for count field on all squashable count models
+
 v10.3.81 (2025-10-09)
 -------------------------
  * Support filter by UUID on broadcast API endpoint
