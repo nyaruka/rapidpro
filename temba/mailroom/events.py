@@ -13,6 +13,30 @@ from temba.orgs.models import Org
 from temba.users.models import User
 from temba.utils import dynamo
 
+msg_tag_statuses = {
+    Msg.STATUS_WIRED: "wired",
+    Msg.STATUS_SENT: "sent",
+    Msg.STATUS_DELIVERED: "delivered",
+    Msg.STATUS_READ: "read",
+    Msg.STATUS_ERRORED: "errored",
+    Msg.STATUS_FAILED: "failed",
+}
+
+# Msg.failed_reason codes that are stored on events as "unsendable_reason"
+failed_reason_to_unsendable = {
+    Msg.FAILED_NO_DESTINATION: "no_destination",
+    Msg.FAILED_CONTACT: "contact_status",
+    Msg.FAILED_SUSPENDED: "org_status",
+    Msg.FAILED_LOOPING: "looping",
+}
+
+# Msg.failed_reason codes that are stored as "reason" on status tags
+failed_reason_to_tag_reason = {
+    Msg.FAILED_ERROR_LIMIT: "error_limit",
+    Msg.FAILED_TOO_OLD: "too_old",
+    Msg.FAILED_CHANNEL_REMOVED: "channel_removed",
+}
+
 
 class Event:
     """
@@ -279,16 +303,21 @@ class Event:
                 if obj.broadcast:
                     event["broadcast_uuid"] = str(obj.broadcast.uuid)
 
-                if obj.status in (
-                    Msg.STATUS_SENT,
-                    Msg.STATUS_DELIVERED,
-                    Msg.STATUS_READ,
-                    Msg.STATUS_ERRORED,
-                    Msg.STATUS_FAILED,
-                ):
-                    event["_statuses"] = {obj.status: {"changed_on": obj.modified_on.isoformat()}}
-                    if obj.status == Msg.STATUS_FAILED:
-                        event["_statuses"][Msg.STATUS_FAILED]["reason"] = obj.get_failed_reason_display()
+                if obj.status in msg_tag_statuses and obj.status != Msg.STATUS_FAILED:
+                    event["_statuses"] = [
+                        {
+                            "status": msg_tag_statuses[obj.status],
+                            "changed_on": obj.modified_on.isoformat(),
+                        }
+                    ]
+                elif obj.status == Msg.STATUS_FAILED and obj.failed_reason in failed_reason_to_tag_reason:
+                    event["_statuses"] = [
+                        {
+                            "status": msg_tag_statuses[Msg.STATUS_FAILED],
+                            "changed_on": obj.modified_on.isoformat(),
+                            "reason": failed_reason_to_tag_reason[obj.failed_reason],
+                        }
+                    ]
 
             # add additional properties
             event["_user"] = _user(obj.created_by) if obj.created_by else None
@@ -321,6 +350,8 @@ def _msg_out(obj) -> dict:
 
     if obj.quick_replies:
         d["quick_replies"] = obj.quick_replies
+    if obj.failed_reason in failed_reason_to_unsendable:
+        d["unsendable_reason"] = failed_reason_to_unsendable[obj.failed_reason]
 
     return d
 

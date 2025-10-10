@@ -294,15 +294,16 @@ class EventTest(TembaTest):
                 },
                 "optin": None,
                 "_user": {"uuid": str(self.agent.uuid), "name": "Agnes", "avatar": None},
-                "_status": "E",
-                "_statuses": {
-                    "E": {"changed_on": matchers.ISODatetime()},
-                },
+                "_statuses": [
+                    {"status": "errored", "changed_on": matchers.ISODatetime()},
+                ],
                 "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out.uuid}/",
+                "_status": "E",  # deprecated
             },
             Event.from_msg(self.org, self.admin, msg_out),
         )
 
+        # outgoing msg that was unsendable
         msg_out = self.create_outgoing_msg(contact1, "Hello", status="F", failed_reason=Msg.FAILED_NO_DESTINATION)
 
         self.assertEqual(
@@ -314,15 +315,38 @@ class EventTest(TembaTest):
                     "urn": None,
                     "text": "Hello",
                     "channel": None,
+                    "unsendable_reason": "no_destination",
                 },
                 "optin": None,
                 "_user": None,
-                "_statuses": {
-                    "F": {"changed_on": matchers.ISODatetime(), "reason": "No suitable channel found"},
-                },
                 "_logs_url": None,
                 "_status": "F",  # deprecated
                 "_failed_reason": "No suitable channel found",  # deprecated
+            },
+            Event.from_msg(self.org, self.admin, msg_out),
+        )
+
+        # outgoing msg that failed sending
+        msg_out = self.create_outgoing_msg(contact1, "Hello", status="F", failed_reason=Msg.FAILED_ERROR_LIMIT)
+
+        self.assertEqual(
+            {
+                "uuid": str(msg_out.uuid),
+                "type": "msg_created",
+                "created_on": matchers.ISODatetime(),
+                "msg": {
+                    "urn": "tel:+250979111111",
+                    "text": "Hello",
+                    "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
+                },
+                "optin": None,
+                "_user": None,
+                "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out.uuid}/",
+                "_statuses": [
+                    {"status": "failed", "changed_on": matchers.ISODatetime(), "reason": "error_limit"},
+                ],
+                "_status": "F",  # deprecated
+                "_failed_reason": "Retry limit reached",  # deprecated
             },
             Event.from_msg(self.org, self.admin, msg_out),
         )
@@ -362,9 +386,9 @@ class EventTest(TembaTest):
                 "broadcast_uuid": str(bcast.uuid),
                 "optin": None,
                 "_user": {"uuid": str(self.admin.uuid), "name": "Andy", "avatar": None},
-                "_statuses": {
-                    "S": {"changed_on": matchers.ISODatetime()},
-                },
+                "_statuses": [
+                    {"status": "sent", "changed_on": matchers.ISODatetime()},
+                ],
                 "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out2.uuid}/",
                 "_status": "S",  # deprecated
             },
@@ -391,9 +415,9 @@ class EventTest(TembaTest):
                 "broadcast_uuid": str(bcast2.uuid),
                 "optin": {"uuid": str(optin.uuid), "name": "Polls"},
                 "_user": {"uuid": str(self.admin.uuid), "name": "Andy", "avatar": None},
-                "_statuses": {
-                    "S": {"changed_on": matchers.ISODatetime()},
-                },
+                "_statuses": [
+                    {"status": "sent", "changed_on": matchers.ISODatetime()},
+                ],
                 "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out3.uuid}/",
                 "_status": "S",  # deprecated
             },

@@ -507,12 +507,12 @@ class Msg(models.Model):
     TYPE_VOICE = "V"
     TYPE_CHOICES = ((TYPE_TEXT, "Text"), (TYPE_OPTIN, "Opt-In Request"), (TYPE_VOICE, "Interactive Voice Response"))
 
-    FAILED_SUSPENDED = "S"
+    FAILED_NO_DESTINATION = "D"
     FAILED_CONTACT = "C"
+    FAILED_SUSPENDED = "S"
     FAILED_LOOPING = "L"
     FAILED_ERROR_LIMIT = "E"
     FAILED_TOO_OLD = "O"
-    FAILED_NO_DESTINATION = "D"
     FAILED_CHANNEL_REMOVED = "R"
     FAILED_CHOICES = (
         (FAILED_SUSPENDED, _("Workspace suspended")),
