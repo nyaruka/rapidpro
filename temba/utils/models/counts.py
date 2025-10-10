@@ -27,7 +27,7 @@ class BaseSquashableCount(models.Model):
     squash_max_distinct = 5000
 
     id = models.BigAutoField(auto_created=True, primary_key=True)
-    count = models.IntegerField()
+    count = models.BigIntegerField()
     is_squashed = models.BooleanField(default=False)
 
     objects = CountQuerySet.as_manager()
