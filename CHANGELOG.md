@@ -1,3 +1,8 @@
+v10.3.83 (2025-10-15)
+-------------------------
+ * Fix checking the email for invite join accept to be case insensitive
+ * Tweak format of reconstructed msg events
+
 v10.3.82 (2025-10-10)
 -------------------------
  * Use BIGINT for count field on all squashable count models
