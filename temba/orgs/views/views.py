@@ -1202,7 +1202,7 @@ class OrgCRUDL(SmartCRUDL):
 
             # if user doesn't already exist or we're logged in as a different user, we shouldn't be here
             user = User.get_by_email(self.invitation.email)
-            if not user or self.invitation.email != request.user.email:
+            if not user or self.invitation.email.lower() != request.user.email.lower():
                 return HttpResponseRedirect(reverse("orgs.org_join", args=[self.kwargs["secret"]]))
 
             return super().pre_process(request, *args, **kwargs)
