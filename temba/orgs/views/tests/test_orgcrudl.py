@@ -413,7 +413,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(reverse("orgs.org_join_accept", args=["invalid"]))
         self.assertRedirect(response, reverse("public.public_index"))
 
-        invitation = Invitation.create(self.org, self.admin, "edwin@textit.com", OrgRole.EDITOR)
+        invitation = Invitation.create(self.org, self.admin, "edwin@tExtit.com", OrgRole.EDITOR)
 
         join_accept_url = reverse("orgs.org_join_accept", args=[invitation.secret])
         join_url = reverse("orgs.org_join", args=[invitation.secret])
