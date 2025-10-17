@@ -45,7 +45,7 @@ class FacebookType(ChannelType):
     def deactivate(self, channel):
         config = channel.config
         requests.delete(
-            f"https://graph.facebook.com/v20.0/{channel.address}/subscribed_apps",
+            f"https://graph.facebook.com/v22.0/{channel.address}/subscribed_apps",
             params={"access_token": config[Channel.CONFIG_AUTH_TOKEN]},
         )
 
@@ -53,7 +53,7 @@ class FacebookType(ChannelType):
         # if this is new conversation trigger, register for the FB callback
         if trigger.trigger_type == Trigger.TYPE_NEW_CONVERSATION:
             # register for get_started events
-            url = "https://graph.facebook.com/v20.0/me/messenger_profile"
+            url = "https://graph.facebook.com/v22.0/me/messenger_profile"
             body = {"get_started": {"payload": "get_started"}}
             access_token = trigger.channel.config[Channel.CONFIG_AUTH_TOKEN]
 
@@ -68,7 +68,7 @@ class FacebookType(ChannelType):
         # for any new conversation triggers, clear out the call to action payload
         if trigger.trigger_type == Trigger.TYPE_NEW_CONVERSATION:
             # register for get_started events
-            url = "https://graph.facebook.com/v20.0/me/messenger_profile"
+            url = "https://graph.facebook.com/v22.0/me/messenger_profile"
             body = {"fields": ["get_started"]}
             access_token = trigger.channel.config[Channel.CONFIG_AUTH_TOKEN]
 
