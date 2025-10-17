@@ -164,7 +164,7 @@ class HTTPLogCRUDLTest(TembaTest, CRUDLTestMixin):
             request=Mock(
                 Request,
                 method="GET",
-                url="https://graph.facebook.com/v20.0/1234/message_templates?access_token=MISSING_WHATSAPP_ADMIN_SYSTEM_USER_TOKEN",
+                url="https://graph.facebook.com/v22.0/1234/message_templates?access_token=MISSING_WHATSAPP_ADMIN_SYSTEM_USER_TOKEN",
                 body=b"{}",
                 headers={},
             ),

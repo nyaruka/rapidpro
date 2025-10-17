@@ -44,7 +44,7 @@ class InstagramType(ChannelType):
     def deactivate(self, channel):
         config = channel.config
         requests.delete(
-            f"https://graph.facebook.com/v20.0/{channel.address}/subscribed_apps",
+            f"https://graph.facebook.com/v22.0/{channel.address}/subscribed_apps",
             params={"access_token": config[Channel.CONFIG_AUTH_TOKEN]},
         )
 
