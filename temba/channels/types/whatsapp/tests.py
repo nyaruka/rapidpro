@@ -138,7 +138,7 @@ class WhatsAppTypeTest(TembaTest):
             response = self.client.post(connect_whatsapp_cloud_url, dict(user_access_token="X" * 36), follow=True)
             self.assertEqual(response.status_code, 200)
 
-            self.assertEqual(wa_cloud_get.call_args_list[0][0][0], "https://graph.facebook.com/v18.0/debug_token")
+            self.assertEqual(wa_cloud_get.call_args_list[0][0][0], "https://graph.facebook.com/v20.0/debug_token")
             self.assertEqual(
                 wa_cloud_get.call_args_list[0][1],
                 {"params": {"access_token": "FB_APP_ID|FB_APP_SECRET", "input_token": "Z" * 48}},
@@ -292,18 +292,18 @@ class WhatsAppTypeTest(TembaTest):
             self.assertEqual(3, wa_cloud_post.call_count)
 
             self.assertEqual(
-                "https://graph.facebook.com/v18.0/111111111111111/assigned_users",
+                "https://graph.facebook.com/v20.0/111111111111111/assigned_users",
                 wa_cloud_post.call_args_list[0][0][0],
             )
             self.assertEqual({"Authorization": "Bearer WA_ADMIN_TOKEN"}, wa_cloud_post.call_args_list[0][1]["headers"])
 
             self.assertEqual(
-                "https://graph.facebook.com/v18.0/111111111111111/subscribed_apps",
+                "https://graph.facebook.com/v20.0/111111111111111/subscribed_apps",
                 wa_cloud_post.call_args_list[1][0][0],
             )
 
             self.assertEqual(
-                "https://graph.facebook.com/v18.0/123123123/register", wa_cloud_post.call_args_list[2][0][0]
+                "https://graph.facebook.com/v20.0/123123123/register", wa_cloud_post.call_args_list[2][0][0]
             )
             self.assertEqual(
                 {"messaging_product": "whatsapp", "pin": "111111"}, wa_cloud_post.call_args_list[2][1]["data"]
@@ -346,7 +346,7 @@ class WhatsAppTypeTest(TembaTest):
             )
             self.assertEqual(200, response.status_code)
 
-            self.assertEqual("https://graph.facebook.com/v18.0/123123123/request_code", wa_cloud_post.call_args[0][0])
+            self.assertEqual("https://graph.facebook.com/v20.0/123123123/request_code", wa_cloud_post.call_args[0][0])
 
             # submit verification code
             response = self.client.post(
@@ -356,7 +356,7 @@ class WhatsAppTypeTest(TembaTest):
             )
             self.assertEqual(200, response.status_code)
 
-            self.assertEqual("https://graph.facebook.com/v18.0/123123123/register", wa_cloud_post.call_args[0][0])
+            self.assertEqual("https://graph.facebook.com/v20.0/123123123/register", wa_cloud_post.call_args[0][0])
             self.assertEqual({"messaging_product": "whatsapp", "pin": "111111"}, wa_cloud_post.call_args[1]["data"])
 
             response = self.client.get(reverse("channels.types.whatsapp.verify_code", args=(channel.uuid,)))
@@ -676,7 +676,7 @@ class WhatsAppTypeTest(TembaTest):
             MockResponse(200, '{"data": ["foo", "bar"]}', headers={"Authorization": "Bearer WA_ADMIN_TOKEN"}),
             MockResponse(
                 200,
-                '{"data": ["foo"], "paging": {"cursors": {"after": "MjQZD"}, "next": "https://graph.facebook.com/v18.0/111111111111111/message_templates?after=MjQZD" } }',
+                '{"data": ["foo"], "paging": {"cursors": {"after": "MjQZD"}, "next": "https://graph.facebook.com/v20.0/111111111111111/message_templates?after=MjQZD" } }',
                 headers={"Authorization": "Bearer WA_ADMIN_TOKEN"},
             ),
             MockResponse(
@@ -708,7 +708,7 @@ class WhatsAppTypeTest(TembaTest):
             self.assertNotIn("WA_ADMIN_TOKEN", json.dumps(log.get_display()))
 
         mock_get.assert_called_with(
-            "https://graph.facebook.com/v18.0/111111111111111/message_templates",
+            "https://graph.facebook.com/v20.0/111111111111111/message_templates",
             params={"limit": 255},
             headers={"Authorization": "Bearer WA_ADMIN_TOKEN"},
         )
@@ -720,12 +720,12 @@ class WhatsAppTypeTest(TembaTest):
         mock_get.assert_has_calls(
             [
                 call(
-                    "https://graph.facebook.com/v18.0/111111111111111/message_templates",
+                    "https://graph.facebook.com/v20.0/111111111111111/message_templates",
                     params={"limit": 255},
                     headers={"Authorization": "Bearer WA_ADMIN_TOKEN"},
                 ),
                 call(
-                    "https://graph.facebook.com/v18.0/111111111111111/message_templates?after=MjQZD",
+                    "https://graph.facebook.com/v20.0/111111111111111/message_templates?after=MjQZD",
                     params={"limit": 255},
                     headers={"Authorization": "Bearer WA_ADMIN_TOKEN"},
                 ),
