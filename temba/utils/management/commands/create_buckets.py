@@ -1,14 +1,15 @@
+import json
+
 from django.conf import settings
 from django.core.management import BaseCommand
 
 from temba.utils import s3
 
-BUCKETS = {
-    "default": "private",
-    "attachments": "public-read",
-    "sessions": "private",
-    "archives": "private",
-}
+# buckets that should be publicly readable
+PUBLIC_BUCKETS = {"attachments"}
+
+# all buckets to create
+BUCKETS = ["default", "attachments", "sessions", "archives"]
 
 
 class Command(BaseCommand):
@@ -26,11 +27,33 @@ class Command(BaseCommand):
 
         client = s3.client()
 
-        for key, acl in BUCKETS.items():
+        for key in BUCKETS:
             name = f"{settings.BUCKET_PREFIX}-{key}"
-            try:
-                client.create_bucket(Bucket=name, ACL=acl)
+            is_public = key in PUBLIC_BUCKETS
 
-                self.stdout.write(f"🪣 created bucket {name}\n")
+            # create bucket without ACL (ACLs don't work reliably on MinIO)
+            try:
+                client.create_bucket(Bucket=name)
+                self.stdout.write(f"🪣 created bucket {name}")
             except (client.exceptions.BucketAlreadyExists, client.exceptions.BucketAlreadyOwnedByYou):
-                self.stdout.write(f"Skipping {name} which already exists")
+                self.stdout.write(f"Bucket {name} already exists")
+
+            # for public buckets, set a bucket policy to allow public read access
+            if is_public:
+                policy = {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {"AWS": ["*"]},
+                            "Action": ["s3:GetObject"],
+                            "Resource": [f"arn:aws:s3:::{name}/*"],
+                        }
+                    ],
+                }
+
+                try:
+                    client.put_bucket_policy(Bucket=name, Policy=json.dumps(policy))
+                    self.stdout.write(f"   ✓ set public read policy on {name}")
+                except Exception as e:
+                    self.stdout.write(self.style.WARNING(f"   ⚠ failed to set policy on {name}: {e}"))
