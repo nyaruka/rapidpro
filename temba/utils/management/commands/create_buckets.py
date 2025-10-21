@@ -27,9 +27,9 @@ class Command(BaseCommand):
 
         client = s3.client()
 
-        for key in BUCKETS:
-            name = f"{settings.BUCKET_PREFIX}-{key}"
-            is_public = key in PUBLIC_BUCKETS
+        for bucket in BUCKETS:
+            name = f"{settings.BUCKET_PREFIX}-{bucket}"
+            is_public = bucket in PUBLIC_BUCKETS
 
             # create bucket without ACL (ACLs don't work reliably on MinIO)
             try:
