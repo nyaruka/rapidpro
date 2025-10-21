@@ -29,8 +29,8 @@ class CreateBucketsTest(TembaTest):
         out = StringIO()
         call_command("create_buckets", stdout=out)
 
-        self.assertIn("Skipping temp-archives", out.getvalue())
-        self.assertIn("Skipping temp-default", out.getvalue())
+        self.assertIn("Bucket temp-archives already exists", out.getvalue())
+        self.assertIn("Bucket temp-default already exists", out.getvalue())
 
 
 class MigrateDynamoTest(TembaTest):
