@@ -112,7 +112,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
                 "from_no_plus": "",
                 "to": "",
                 "to_no_plus": "",
-                "id": "",
+                "uuid": "",
                 "quick_replies": "",
                 "channel": "",
             }
