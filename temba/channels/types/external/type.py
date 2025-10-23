@@ -35,7 +35,7 @@ class ExternalType(ChannelType):
     CONFIG_CONTENT_TYPE = "content_type"
 
     CONFIG_DEFAULT_SEND_BODY = (
-        "id={{id}}&text={{text}}&to={{to}}&to_no_plus={{to_no_plus}}&from={{from}}&from_no_plus={{from_no_plus}}"
+        "uuid={{uuid}}&text={{text}}&to={{to}}&to_no_plus={{to_no_plus}}&from={{from}}&from_no_plus={{from_no_plus}}"
         "&channel={{channel}}"
     )
 
