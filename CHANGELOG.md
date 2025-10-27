@@ -1,3 +1,7 @@
+v10.3.84 (2025-10-27)
+-------------------------
+ * Update EX channel to use msg UUID
+
 v10.3.83 (2025-10-15)
 -------------------------
  * Fix checking the email for invite join accept to be case insensitive
