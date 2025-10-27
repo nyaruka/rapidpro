@@ -49,14 +49,14 @@
     <div class="my-4">
       {% blocktrans trimmed %}
         When your service successfully sends a message, it should notify us with a POST to the following URL, passing
-        the id of the message as the parameter 'id' (reporting sent messages is optional)
+        the uuid of the message as the parameter 'uuid' (reporting sent messages is optional)
       {% endblocktrans %}
     </div>
     <div class="bleed-x bleed-b text-white bg-black p-6">
       <div class="cap-label mb-2 text-gray-600">{% trans "Example" %}</div>
       <div class="code break-all bg-black text-white p-0 m-0 whitespace-normal">
         POST https://{{ channel.callback_domain }}{% url 'courier.ex' channel.uuid 'sent' %}
-        <div class="mt-2 text-gray-400">id=2599235</div>
+        <div class="mt-2 text-gray-400">uuid=019a25a3-2014-7e3b-8422-c53b747c390f</div>
       </div>
     </div>
   </div>
@@ -66,14 +66,14 @@
     <div class="my-4">
       {% blocktrans trimmed %}
         When your service successfully delivers a message, it should notify us with a POST to the following URL, passing
-        the id of the message as the parameter 'id' (reporting deliveries is optional)
+        the uuid of the message as the parameter 'uuid' (reporting deliveries is optional)
       {% endblocktrans %}
     </div>
     <div class="bleed-x bleed-b text-white bg-black p-6">
       <div class="cap-label mb-2 text-gray-600">{% trans "Example" %}</div>
       <div class="code break-all bg-black text-white p-0 m-0 whitespace-normal">
         POST https://{{ channel.callback_domain }}{% url 'courier.ex' channel.uuid 'delivered' %}
-        <div class="mt-2 text-gray-400">id=2599235</div>
+        <div class="mt-2 text-gray-400">uuid=019a25a3-2014-7e3b-8422-c53b747c390f</div>
       </div>
     </div>
   </div>
@@ -83,14 +83,14 @@
     <div class="my-4">
       {% blocktrans trimmed %}
         If your service fails to send an outgoing message, it should notify us with a POST to the following URL, passing
-        the id of the message as the parameter 'id' (reporting failed sends is optional)
+        the uuid of the message as the parameter 'uuid' (reporting failed sends is optional)
       {% endblocktrans %}
     </div>
     <div class="bleed-x bleed-b text-white bg-black p-6">
       <div class="cap-label mb-2 text-gray-600">{% trans "Example" %}</div>
       <div class="code break-all bg-black text-white p-0 m-0 whitespace-normal">
         POST https://{{ channel.callback_domain }}{% url 'courier.ex' channel.uuid 'failed' %}
-        <div class="mt-2 text-gray-400">id=2599235</div>
+        <div class="mt-2 text-gray-400">uuid=019a25a3-2014-7e3b-8422-c53b747c390f</div>
       </div>
     </div>
   </div>
