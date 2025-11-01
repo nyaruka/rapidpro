@@ -709,11 +709,10 @@ CELERY_BEAT_SCHEDULE = {
 
 REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
-        "v2": "2500/hour",
-        "v2.contacts": "2500/hour",
-        "v2.messages": "2500/hour",
-        "v2.broadcasts": "2500/hour",
-        "v2.runs": "2500/hour",
+        "v2": "3600/hour",
+        "v2.contacts": "3600/hour",
+        "v2.messages": "3600/hour",
+        "v2.runs": "3600/hour",
     },
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 250,
