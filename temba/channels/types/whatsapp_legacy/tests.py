@@ -38,6 +38,12 @@ class WhatsAppLegacyTypeTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(reverse("channels.channel_claim"))
         self.assertNotContains(response, url)
 
+        self.org.features += ["wa_channel_type"]
+        self.org.save()
+
+        response = self.client.get(reverse("channels.channel_claim"))
+        self.assertContains(response, url)
+
         response = self.client.get(url)
         self.assertEqual(200, response.status_code)
         post_data = response.context["form"].initial

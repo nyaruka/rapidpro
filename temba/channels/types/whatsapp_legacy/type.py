@@ -36,7 +36,7 @@ class WhatsAppLegacyType(ChannelType):
     code = "WA"
     name = "WhatsApp Legacy"
     category = ChannelType.Category.SOCIAL_MEDIA
-    beta_only = True
+    org_feature = "wa_channel_type"
 
     unique_addresses = True
 

@@ -43,7 +43,8 @@ class DiscordTypeTest(TembaTest):
         self.assertEqual(200, response.status_code)
         self.assertNotContains(response, url)
 
-        self.make_beta(self.admin)
+        self.org.features += ["ds_channel_type"]
+        self.org.save()
 
         # can fetch the claim page
         response = self.client.get(url)

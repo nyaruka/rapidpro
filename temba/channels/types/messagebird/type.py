@@ -14,7 +14,7 @@ class MessageBirdType(ChannelType):
     code = "MBD"
     name = "Messagebird"
     category = ChannelType.Category.PHONE
-    beta_only = True
+    org_feature = "mbd_channel_type"
 
     courier_url = r"^mbd/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive|status)$"
     schemes = [URN.TEL_SCHEME]

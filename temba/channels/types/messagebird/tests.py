@@ -37,7 +37,8 @@ class MessagebirdTypeTest(TembaTest):
         response = self.client.get(reverse("channels.channel_claim"))
         self.assertNotContains(response, url)
 
-        self.make_beta(self.admin)
+        self.org.features += ["mbd_channel_type"]
+        self.org.save()
 
         # check that claim page URL appears on claim list page
         response = self.client.get(reverse("channels.channel_claim"))

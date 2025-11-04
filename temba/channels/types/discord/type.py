@@ -14,7 +14,7 @@ class DiscordType(ChannelType):
     code = "DS"
     name = "Discord"
     category = ChannelType.Category.SOCIAL_MEDIA
-    beta_only = True
+    org_feature = "ds_channel_type"
 
     courier_url = r"^ds/(?P<uuid>[a-z0-9\-]+)/receive$"
     schemes = [URN.DISCORD_SCHEME]
