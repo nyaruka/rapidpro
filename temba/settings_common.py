@@ -765,7 +765,6 @@ CHANNEL_TYPES = [
     "temba.channels.types.dartmedia.DartMediaType",
     "temba.channels.types.dialog360_legacy.Dialog360LegacyType",
     "temba.channels.types.dialog360.Dialog360Type",
-    "temba.channels.types.discord.DiscordType",
     "temba.channels.types.dmark.DMarkType",
     "temba.channels.types.external.ExternalType",
     "temba.channels.types.facebook_legacy.FacebookLegacyType",
