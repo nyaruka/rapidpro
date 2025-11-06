@@ -225,11 +225,9 @@ class RootView(BaseEndpoint):
     ## Rate Limiting
 
     All endpoints are subject to rate limiting. If you exceed the number of allowed requests in a given time window, you
-    will get a response with status code 429. The response will also include a header called 'Retry-After' which will
-    specify the number of seconds that you should wait for before making further requests.
-
-    The rate limit for all endpoints is 2,500 requests per hour. It is important to honor the Retry-After header when
-    encountering 429 responses as the limit is subject to change without notice.
+    will get a response with status code 429. The response will also include a header called `Retry-After` which will
+    specify the number of seconds that you should wait for before making further requests. It is important to honor the
+    `Retry-After` header when encountering 429 responses as rate limits are subject to change without notice.
 
     ## Date Values
 
