@@ -8,11 +8,7 @@ from temba.utils import countries
 from temba.utils.fields import SelectWidget
 
 from ...models import Channel
-from ...views import ClaimViewMixin
-
-ALL_COUNTRIES = countries.choices()
-
-
+from temba.channels.views import ALL_COUNTRIES, ClaimViewMixin
 class ClaimView(ClaimViewMixin, SmartFormView):
     class Form(ClaimViewMixin.Form):
         country = forms.ChoiceField(

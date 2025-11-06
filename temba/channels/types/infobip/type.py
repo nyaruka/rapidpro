@@ -34,7 +34,7 @@ class InfobipType(ChannelType):
                 label=_("Received URL"),
                 help=_(
                     "This endpoint should be called with a POST by Infobip when new messages are received to your number. "
-                    "You can set the receive URL on your Infobip in the customer portal."
+                    "You can set the receive URL on your Infobip account in the customer portal."
                 ),
             ),
             ConfigUI.Endpoint(
@@ -43,7 +43,7 @@ class InfobipType(ChannelType):
                 help=_(
                     "This endpoint should be called with a POST by Infobip when a message has been to the final recipient. "
                     "(delivery reports) The callback webhook will be sent with the outgoing message, but you can set the delivery "
-                    "callback URL on your Infobip account in the customer portal"
+                    "callback URL on your Infobip account in the customer portal."
                 ),
             ),
         ],
