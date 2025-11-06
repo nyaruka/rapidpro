@@ -1,9 +1,9 @@
 from django.utils.translation import gettext_lazy as _
 
-from temba.channels.views import AuthenticatedExternalCallbackClaimView
 from temba.contacts.models import URN
 
 from ...models import ChannelType, ConfigUI
+from .views import ClaimView
 
 
 class InfobipType(ChannelType):
@@ -21,7 +21,7 @@ class InfobipType(ChannelType):
     claim_blurb = _("Easily add a two way number you have configured with %(link)s using their APIs.") % {
         "link": '<a target="_blank" href="http://infobip.com">Infobip</a>'
     }
-    claim_view = AuthenticatedExternalCallbackClaimView
+    claim_view = ClaimView
 
     config_ui = ConfigUI(
         blurb=_(
@@ -34,7 +34,7 @@ class InfobipType(ChannelType):
                 label=_("Received URL"),
                 help=_(
                     "This endpoint should be called with a POST by Infobip when new messages are received to your number. "
-                    "You can set the receive URL on your Infobip account by contacting your sales agent."
+                    "You can set the receive URL on your Infobip account in the customer portal."
                 ),
             ),
             ConfigUI.Endpoint(
@@ -42,8 +42,8 @@ class InfobipType(ChannelType):
                 label=_("Delivered URL"),
                 help=_(
                     "This endpoint should be called with a POST by Infobip when a message has been to the final recipient. "
-                    "(delivery reports) You can set the delivery callback URL on your Infobip account by contacting your "
-                    "sales agent."
+                    "(delivery reports) The callback webhook will be sent with the outgoing message, but you can set the delivery "
+                    "callback URL on your Infobip account in the customer portal."
                 ),
             ),
         ],
