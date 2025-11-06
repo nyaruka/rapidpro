@@ -39,7 +39,7 @@ from temba.users.models import User
 from temba.utils import json, languages, on_transaction_commit
 from temba.utils.dates import datetime_to_str
 from temba.utils.email import EmailSender
-from temba.utils.models import JSONField, TembaUUIDMixin, delete_in_batches
+from temba.utils.models import TembaUUIDMixin, delete_in_batches
 from temba.utils.models.counts import BaseDailyCount, BaseScopedCount
 from temba.utils.text import generate_secret
 from temba.utils.timezones import timezone_to_country_code
@@ -313,8 +313,8 @@ class Org(SmartModel):
     )
 
     features = ArrayField(models.CharField(max_length=32), default=list)
-    limits = JSONField(default=dict)
-    api_rates = JSONField(default=dict)
+    limits = models.JSONField(default=dict)
+    api_rates = models.JSONField(default=dict)
 
     is_anon = models.BooleanField(
         default=False, help_text=_("Whether this organization anonymizes the phone numbers of contacts within it")
