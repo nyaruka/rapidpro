@@ -1,3 +1,9 @@
+v10.3.85 (2025-11-06)
+-------------------------
+ * Convert Org.api_rates and Org.limits to use real JSONField
+ * Update infobip channel type UI
+ * Increase API rate limits by ~50%
+
 v10.3.84 (2025-10-27)
 -------------------------
  * Update EX channel to use msg UUID
