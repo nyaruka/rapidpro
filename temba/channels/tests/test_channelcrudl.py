@@ -44,9 +44,10 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         # 3 recommended channels for Rwanda
         self.assertEqual(["AT", "MT", "TG"], [t.code for t in response.context["recommended_channels"]])
 
-        self.assertEqual(response.context["channel_types"]["PHONE"][0].code, "CT")
-        self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "EX")
-        self.assertEqual(response.context["channel_types"]["PHONE"][2].code, "I2")
+        self.assertEqual(response.context["channel_types"]["PHONE"][0].code, "BW")
+        self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "CT")
+        self.assertEqual(response.context["channel_types"]["PHONE"][2].code, "EX")
+        self.assertEqual(response.context["channel_types"]["PHONE"][3].code, "I2")
         self.assertEqual(response.context["channel_types"]["PHONE"][-1].code, "A")
 
         self.org.timezone = "Canada/Central"
@@ -57,9 +58,10 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual(["TG", "TMS", "T", "NX"], [t.code for t in response.context["recommended_channels"]])
 
-        self.assertEqual(response.context["channel_types"]["PHONE"][0].code, "CT")
-        self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "EX")
-        self.assertEqual(response.context["channel_types"]["PHONE"][2].code, "I2")
+        self.assertEqual(response.context["channel_types"]["PHONE"][0].code, "BW")
+        self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "CT")
+        self.assertEqual(response.context["channel_types"]["PHONE"][2].code, "EX")
+        self.assertEqual(response.context["channel_types"]["PHONE"][3].code, "I2")
         self.assertEqual(response.context["channel_types"]["PHONE"][-1].code, "A")
 
         with override_settings(ORG_LIMIT_DEFAULTS={"channels": 2}):
@@ -77,8 +79,9 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(["AT", "MT", "TG"], [t.code for t in response.context["recommended_channels"]])
 
         self.assertEqual(response.context["channel_types"]["PHONE"][0].code, "AC")
-        self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "BL")
-        self.assertEqual(response.context["channel_types"]["PHONE"][2].code, "BS")
+        self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "BW")
+        self.assertEqual(response.context["channel_types"]["PHONE"][2].code, "BL")
+        self.assertEqual(response.context["channel_types"]["PHONE"][3].code, "BS")
         self.assertEqual(response.context["channel_types"]["PHONE"][-1].code, "A")
 
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][0].code, "D3C")

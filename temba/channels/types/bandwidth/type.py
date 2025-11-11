@@ -20,7 +20,6 @@ class BandwidthType(ChannelType):
     code = "BW"
     name = "Bandwidth"
     category = ChannelType.Category.PHONE
-    org_feature = "bw_channel_type"
 
     courier_url = r"^bw/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive|status)$"
     schemes = [URN.TEL_SCHEME]

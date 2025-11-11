@@ -33,7 +33,7 @@ class MtnTypeTest(TembaTest):
             response = self.client.get(reverse("channels.channel_claim"))
             self.assertNotContains(response, url)
 
-            self.org.features += ["mtn_channel_type"]
+            self.org.timezone = "Africa/Brazzaville"
             self.org.save()
 
             # should see the general channel claim page

@@ -33,13 +33,6 @@ class MessagebirdTypeTest(TembaTest):
         self.org.timezone = "America/New_York"
         self.org.save()
 
-        # beta- should not see the general channel claim page
-        response = self.client.get(reverse("channels.channel_claim"))
-        self.assertNotContains(response, url)
-
-        self.org.features += ["mbd_channel_type"]
-        self.org.save()
-
         # check that claim page URL appears on claim list page
         response = self.client.get(reverse("channels.channel_claim"))
         self.assertContains(response, url)
