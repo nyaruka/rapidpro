@@ -91,8 +91,6 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][-1].code, "ZVW")
 
         self.admin.groups.add(Group.objects.get(name="Beta"))
-        self.org.features += ["bw_channel_type", "wa_channel_type"]
-        self.org.save()
 
         response = self.client.get(reverse("channels.channel_claim_all"))
         self.assertEqual(200, response.status_code)
@@ -109,7 +107,6 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][0].code, "D3C")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][1].code, "FBA")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][2].code, "IG")
-        self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][-2].code, "WA")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][-1].code, "ZVW")
 
     def test_configuration(self):

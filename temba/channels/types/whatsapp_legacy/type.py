@@ -3,16 +3,13 @@ import logging
 
 import requests
 
-from django.forms import ValidationError
-from django.urls import re_path, reverse
+from django.urls import re_path
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from temba.channels.models import Channel
-from temba.channels.types.whatsapp_legacy.views import ClaimView
 from temba.contacts.models import URN
 from temba.request_logs.models import HTTPLog
-from temba.utils.whatsapp import update_api_version
 from temba.utils.whatsapp.views import RefreshView
 
 from ...models import ChannelType, ConfigUI
@@ -36,7 +33,6 @@ class WhatsAppLegacyType(ChannelType):
     code = "WA"
     name = "WhatsApp Legacy"
     category = ChannelType.Category.SOCIAL_MEDIA
-    org_feature = "wa_channel_type"
 
     unique_addresses = True
 
@@ -45,46 +41,16 @@ class WhatsAppLegacyType(ChannelType):
     template_type = "whatsapp"
 
     claim_blurb = _("If you have an enterprise WhatsApp account, you can connect it to communicate with your contacts")
-    claim_view = ClaimView
 
     config_ui = ConfigUI()  # has own template
 
     def get_urls(self):
         return [
-            self.get_claim_url(),
             re_path(r"^(?P<uuid>[a-z0-9\-]+)/refresh/$", RefreshView.as_view(channel_type=self), name="refresh"),
         ]
 
     def get_api_headers(self, channel):
         return {"Authorization": "Bearer %s" % channel.config[Channel.CONFIG_AUTH_TOKEN]}
-
-    def activate(self, channel):
-        domain = channel.org.get_brand_domain()
-        headers = self.get_api_headers(channel)
-
-        # first set our callbacks
-        payload = {"webhooks": {"url": "https://" + domain + reverse("courier.wa", args=[channel.uuid, "receive"])}}
-        resp = requests.patch(
-            channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/application", json=payload, headers=headers
-        )
-
-        if resp.status_code != 200:
-            raise ValidationError(_("Unable to register callbacks: %s") % resp.content)
-
-        # update our quotas so we can send at 15/s
-        payload = {
-            "messaging_api_rate_limit": ["15", "54600", "1000000"],
-            "contacts_scrape_rate_limit": "1000000",
-            "contacts_api_rate_limit": ["15", "54600", "1000000"],
-        }
-        resp = requests.patch(
-            channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/application", json=payload, headers=headers
-        )
-
-        if resp.status_code != 200:
-            raise ValidationError(_("Unable to configure channel: %s") % resp.content)
-
-        update_api_version(channel)
 
     def fetch_templates(self, channel) -> list:
         # Retrieve the template domain, fallback to the default for channels that have been setup earlier for backwards

@@ -165,6 +165,8 @@ class ChannelType(metaclass=ABCMeta):
         """
         Returns all the URLs this channel exposes to Django, the URL should be relative.
         """
+        if self.claim_view is None:
+            return []
         return [self.get_claim_url()]
 
     def get_claim_url(self):
@@ -469,7 +471,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         with r.lock(key, 60):
             # for channels which have version in their config, refresh it
-            if self.config.get("version"):
+            if self.config.get("version"):  # pragma: no cover
                 update_api_version(self)
 
             try:
