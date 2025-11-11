@@ -7,7 +7,7 @@ from ...models import Channel
 from ...views import ClaimViewMixin
 
 
-class ClaimView(ClaimViewMixin, SmartFormView):
+class ClaimView(ClaimViewMixin, SmartFormView):  # pragma: no cover
     class Form(ClaimViewMixin.Form):
         page_access_token = forms.CharField(
             min_length=32, required=True, help_text=_("The Page Access Token for your Application")

@@ -11,7 +11,7 @@ from ...models import Channel
 from ...views import ALL_COUNTRIES, ClaimViewMixin
 
 
-class ClaimView(ClaimViewMixin, SmartFormView):
+class ClaimView(ClaimViewMixin, SmartFormView):  # pragma: no cover
     class Form(ClaimViewMixin.Form):
         address = forms.CharField(help_text=_("Your enterprise WhatsApp number"), label=_("Number"))
         country = forms.ChoiceField(

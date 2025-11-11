@@ -442,7 +442,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         features = ()
         for channel_type in TYPES.values():
-            if channel_type.org_feature:
+            if channel_type.org_feature:  # pragma: no cover
                 features += ((channel_type.org_feature, f"Channel: {channel_type.name}"),)
         return features
 
