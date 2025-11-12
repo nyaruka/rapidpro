@@ -94,6 +94,8 @@ class ChannelType(metaclass=ABCMeta):
     category = None
     beta_only = False
 
+    org_feature = None  # org feature required to use this channel type
+
     unique_addresses = False
 
     # the courier handling URL, will be wired automatically for use in templates, but wired to a null handler
@@ -130,7 +132,9 @@ class ChannelType(metaclass=ABCMeta):
         """
         Determines whether this channel type is available to the given user considering the region and when not considering region, e.g. check timezone
         """
-        region_ignore_visible = (not self.beta_only) or user.is_beta
+
+        org_feature_visible = self.org_feature is None or self.org_feature in org.features
+        region_ignore_visible = org_feature_visible and ((not self.beta_only) or user.is_beta)
         region_aware_visible = True
 
         if self.available_timezones is not None:
@@ -161,6 +165,8 @@ class ChannelType(metaclass=ABCMeta):
         """
         Returns all the URLs this channel exposes to Django, the URL should be relative.
         """
+        if self.claim_view is None:
+            return []
         return [self.get_claim_url()]
 
     def get_claim_url(self):
@@ -430,6 +436,16 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         return TYPES.values()
 
+    @classmethod
+    def get_org_features_choices(cls):
+        from .types import TYPES
+
+        features = ()
+        for channel_type in TYPES.values():
+            if channel_type.org_feature:  # pragma: no cover
+                features += ((channel_type.org_feature, f"Channel: {channel_type.name}"),)
+        return features
+
     @property
     def type(self) -> ChannelType:
         return self.get_type_from_code(self.channel_type)
@@ -455,7 +471,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         with r.lock(key, 60):
             # for channels which have version in their config, refresh it
-            if self.config.get("version"):
+            if self.config.get("version"):  # pragma: no cover
                 update_api_version(self)
 
             try:

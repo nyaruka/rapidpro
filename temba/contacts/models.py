@@ -49,7 +49,6 @@ class URN:
     """
 
     DELETED_SCHEME = "deleted"
-    DISCORD_SCHEME = "discord"
     EMAIL_SCHEME = "mailto"
     EXTERNAL_SCHEME = "ext"
     FACEBOOK_SCHEME = "facebook"
@@ -72,7 +71,6 @@ class URN:
 
     SCHEME_CHOICES = (
         (TEL_SCHEME, _("Phone Number")),
-        (DISCORD_SCHEME, _("Discord Identifier")),
         (EMAIL_SCHEME, _("Email Address")),
         (EXTERNAL_SCHEME, _("External Identifier")),
         (FACEBOOK_SCHEME, _("Facebook Identifier")),
@@ -218,13 +216,6 @@ class URN:
                 path,
                 regex.V0,
             )
-        # Discord IDs are snowflakes, which are int64s internally
-        elif scheme == cls.DISCORD_SCHEME:
-            try:
-                int(path)
-                return True
-            except ValueError:
-                return False
 
         # anything goes for external schemes
         return True
@@ -301,10 +292,6 @@ class URN:
     @classmethod
     def from_tel(cls, path):
         return cls.from_parts(cls.TEL_SCHEME, path)
-
-    @classmethod
-    def from_discord(cls, path):
-        return cls.from_parts(cls.DISCORD_SCHEME, path)
 
 
 class UserContactFieldsQuerySet(models.QuerySet):

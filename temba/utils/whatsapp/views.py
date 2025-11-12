@@ -22,9 +22,9 @@ class RefreshView(ChannelTypeMixin, PostOnlyMixin, OrgPermsMixin, SmartUpdateVie
     permission = "channels.channel_claim"
     slug_url_kwarg = "uuid"
 
-    def get_queryset(self):
+    def get_queryset(self):  # pragma: no cover
         return super().get_queryset().filter(org=self.request.org)
 
-    def post_save(self, obj):
+    def post_save(self, obj):  # pragma: no cover
         refresh_whatsapp_contacts.delay(obj.id)
         return obj

@@ -20,7 +20,7 @@ class MtnType(ChannelType):
     code = "MTN"
     category = ChannelType.Category.PHONE
     name = "MTN Developer Portal"
-    beta_only = True
+    available_timezones = ["Africa/Brazzaville"]
 
     courier_url = r"^mtn/(?P<uuid>[a-z0-9\-]+)/(?P<action>status|receive)$"
     schemes = [URN.TEL_SCHEME]

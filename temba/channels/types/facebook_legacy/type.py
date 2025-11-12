@@ -6,7 +6,6 @@ from temba.contacts.models import URN
 from temba.triggers.models import Trigger
 
 from ...models import Channel, ChannelType, ConfigUI
-from .views import ClaimView
 
 
 class FacebookLegacyType(ChannelType):
@@ -26,7 +25,6 @@ class FacebookLegacyType(ChannelType):
         """of one of your Facebook pages for free. You will need to create a Facebook application on their """
         """<a target="_blank" href="http://developers.facebook.com">developers</a> site first."""
     )
-    claim_view = ClaimView
 
     config_ui = ConfigUI()  # has own template
 
@@ -46,9 +44,6 @@ class FacebookLegacyType(ChannelType):
         # for any new conversation triggers, clear out the call to action payload
         if trigger.trigger_type == Trigger.TYPE_NEW_CONVERSATION:
             self._set_call_to_action(trigger.channel, None)
-
-    def is_available_to(self, org, user):
-        return False, False
 
     @staticmethod
     def _set_call_to_action(channel, payload):
