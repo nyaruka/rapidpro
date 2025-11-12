@@ -1,0 +1,10 @@
+{% extends "channels/channel_claim_form.html" %}
+{% load i18n %}
+
+{% block pre-form %}
+  <div class="mb-6">
+    {% blocktrans trimmed %}
+      You can quickly connect Turn.io WhatsApp numbers by entering the credentials below.
+    {% endblocktrans %}
+  </div>
+{% endblock pre-form %}

@@ -440,11 +440,11 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     def get_org_features_choices(cls):
         from .types import TYPES
 
-        features = ()
+        features = []
         for channel_type in TYPES.values():
-            if channel_type.org_feature:  # pragma: no cover
-                features += ((channel_type.org_feature, f"Channel: {channel_type.name}"),)
-        return features
+            if channel_type.org_feature:
+                features.append((channel_type.org_feature, f"Channel: {channel_type.name}"))
+        return tuple(features)
 
     @property
     def type(self) -> ChannelType:
