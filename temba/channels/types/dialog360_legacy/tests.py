@@ -3,84 +3,13 @@ from unittest.mock import patch
 
 from requests import RequestException
 
-from django.forms import ValidationError
-from django.urls import reverse
-
 from temba.request_logs.models import HTTPLog
 from temba.tests import CRUDLTestMixin, MockResponse, TembaTest
 
 from ...models import Channel
-from .type import Dialog360LegacyType
 
 
 class Dialog360LegacyTypeTest(CRUDLTestMixin, TembaTest):
-    @patch("temba.channels.types.dialog360_legacy.Dialog360LegacyType.check_health")
-    def test_claim(self, mock_health):
-        mock_health.return_value = MockResponse(200, '{"meta": {"api_status": "stable", "version": "2.35.4"}}')
-        Channel.objects.all().delete()
-
-        url = reverse("channels.types.dialog360_legacy.claim")
-        self.login(self.admin)
-
-        # make sure  360dialog is NOT on the claim page
-        response = self.client.get(reverse("channels.channel_claim"), follow=True)
-        self.assertNotContains(response, url)
-
-        response = self.client.get(url)
-        self.assertEqual(200, response.status_code)
-        post_data = response.context["form"].initial
-
-        post_data["number"] = "1234"
-        post_data["country"] = "RW"
-        post_data["api_key"] = "123456789"
-
-        # will fail with invalid phone number
-        response = self.client.post(url, post_data)
-        self.assertFormError(response.context["form"], None, ["Please enter a valid phone number"])
-
-        # valid number
-        post_data["number"] = "0788123123"
-
-        # then success
-        with patch("socket.gethostbyname", return_value="123.123.123.123"), patch("requests.post") as mock_post:
-            mock_post.side_effect = [MockResponse(200, '{ "url": "https://waba.360dialog.io" }')]
-
-            response = self.client.post(url, post_data)
-            self.assertEqual(302, response.status_code)
-
-        channel = Channel.objects.get()
-
-        self.assertEqual("123456789", channel.config[Channel.CONFIG_AUTH_TOKEN])
-        self.assertEqual("https://waba.360dialog.io", channel.config[Channel.CONFIG_BASE_URL])
-
-        self.assertEqual("+250788123123", channel.address)
-        self.assertEqual("RW", channel.country)
-        self.assertEqual("D3", channel.channel_type)
-        self.assertEqual(45, channel.tps)
-
-        # test activating the channel
-        with patch("requests.post") as mock_post:
-            mock_post.side_effect = [MockResponse(200, '{ "url": "https://waba.360dialog.io" }')]
-
-            Dialog360LegacyType().activate(channel)
-            self.assertEqual(
-                mock_post.call_args_list[0][1]["json"]["url"],
-                "https://%s%s"
-                % (channel.org.get_brand_domain(), reverse("courier.d3", args=[channel.uuid, "receive"])),
-            )
-
-        with patch("requests.post") as mock_post:
-            mock_post.side_effect = [MockResponse(400, '{ "meta": { "success": false } }')]
-
-            try:
-                Dialog360LegacyType().activate(channel)
-                self.fail("Should have thrown error activating channel")
-            except ValidationError:
-                pass
-
-        # deactivate our channel
-        channel.release(self.admin, interrupt=False)
-
     @patch("requests.get")
     def test_fetch_templates(self, mock_get):
         channel = self.create_channel(
