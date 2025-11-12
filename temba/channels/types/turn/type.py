@@ -30,7 +30,7 @@ class TurnType(ChannelType):
     code = "TRN"
     name = "Turn.io WhatsApp"
     category = ChannelType.Category.SOCIAL_MEDIA
-    org_feature = "trn_channel_type"
+    org_feature = "channels:TRN"
 
     unique_addresses = True
 
