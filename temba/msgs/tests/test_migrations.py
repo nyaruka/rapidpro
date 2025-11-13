@@ -159,7 +159,7 @@ class BackfillMsgEventsTest(MigrationTest):
                     "PK": "con#40248365-230d-4a29-8dbc-c89e43dd3adf",
                     "SK": f"evt#{self.msg3.uuid}#del",
                     "OrgID": Decimal(self.org.id),
-                    "Data": {"deleted_on": matchers.ISODatetime(), "deleted_by": "user"},
+                    "Data": {"deleted_on": matchers.ISODatetime()},
                 },
                 {
                     "PK": "con#40248365-230d-4a29-8dbc-c89e43dd3adf",
@@ -179,7 +179,7 @@ class BackfillMsgEventsTest(MigrationTest):
                     "PK": "con#40248365-230d-4a29-8dbc-c89e43dd3adf",
                     "SK": f"evt#{self.msg4.uuid}#del",
                     "OrgID": Decimal(self.org.id),
-                    "Data": {"deleted_on": matchers.ISODatetime(), "deleted_by": "contact"},
+                    "Data": {"deleted_on": matchers.ISODatetime(), "by_contact": True},
                 },
                 {
                     "PK": "con#40248365-230d-4a29-8dbc-c89e43dd3adf",
@@ -198,7 +198,7 @@ class BackfillMsgEventsTest(MigrationTest):
                 },
                 {
                     "PK": "con#40248365-230d-4a29-8dbc-c89e43dd3adf",
-                    "SK": f"evt#{self.msg5.uuid}#sts#S",
+                    "SK": f"evt#{self.msg5.uuid}#sts",
                     "OrgID": Decimal(self.org.id),
                     "Data": {"status": "sent", "changed_on": matchers.ISODatetime()},
                 },
@@ -233,7 +233,7 @@ class BackfillMsgEventsTest(MigrationTest):
                 },
                 {
                     "PK": "con#40248365-230d-4a29-8dbc-c89e43dd3adf",
-                    "SK": f"evt#{self.msg7.uuid}#sts#F",
+                    "SK": f"evt#{self.msg7.uuid}#sts",
                     "OrgID": Decimal(self.org.id),
                     "Data": {"status": "failed", "changed_on": matchers.ISODatetime(), "reason": "error_limit"},
                 },

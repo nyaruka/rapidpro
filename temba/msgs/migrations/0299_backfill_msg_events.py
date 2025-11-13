@@ -92,7 +92,7 @@ def backfill_msg_events(apps, schema_editor):
                                     "SK": f"evt#{msg.uuid}#del",
                                     "OrgID": msg.org_id,
                                     "Data": {
-                                        "deleted_by": "contact",
+                                        "by_contact": True,
                                         "deleted_on": msg.modified_on.isoformat(),
                                     },
                                 }
@@ -104,7 +104,6 @@ def backfill_msg_events(apps, schema_editor):
                                     "SK": f"evt#{msg.uuid}#del",
                                     "OrgID": msg.org_id,
                                     "Data": {
-                                        "deleted_by": "user",
                                         "deleted_on": msg.modified_on.isoformat(),
                                     },
                                 }
@@ -145,7 +144,7 @@ def backfill_msg_events(apps, schema_editor):
                                 writer.put_item(
                                     {
                                         "PK": f"con#{msg.contact.uuid}",
-                                        "SK": f"evt#{msg.uuid}#sts#{msg.status}",
+                                        "SK": f"evt#{msg.uuid}#sts",
                                         "OrgID": msg.org_id,
                                         "Data": data,
                                     }
