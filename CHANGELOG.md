@@ -1,3 +1,9 @@
+v10.3.87 (2025-11-13)
+-------------------------
+ * Reduce periodic task frequencly for refresh templates
+ * Adjust Turn claim fields and task discovery
+ * Add data migration to backfill msg events to DynamoDB
+
 v10.3.86 (2025-11-12)
 -------------------------
  * Add support for TRN channel type
