@@ -44,8 +44,8 @@ class TurnTypeTest(CRUDLTestMixin, TembaTest):
         post_data["password"] = "tembapasswd"
         post_data["country"] = "RW"
         post_data["base_url"] = "https://whatsapp.turn.io"
-        post_data["facebook_namespace"] = "my-custom-app"
-        post_data["facebook_access_token"] = "token123"
+        post_data["namespace"] = "my-custom-app"
+        post_data["access_token"] = "token123"
 
         # will fail with invalid phone number
         response = self.client.post(url, post_data)
