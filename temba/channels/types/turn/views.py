@@ -27,13 +27,11 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             max_length=64, help_text=_("The password to access your Turn.io WhatsApp enterprise account")
         )
 
-        facebook_access_token = forms.CharField(
-            max_length=256, help_text=_("The Facebook access token that will be used for syncing WhatsApp templates")
+        access_token = forms.CharField(
+            max_length=256, help_text=_("The access token that will be used for syncing WhatsApp templates")
         )
 
-        facebook_namespace = forms.CharField(
-            max_length=128, help_text=_("The namespace for your Turn.io WhatsApp templates")
-        )
+        namespace = forms.CharField(max_length=128, help_text=_("The namespace for your Turn.io WhatsApp templates"))
 
         def clean(self):
             # first check that our phone number looks sane
@@ -64,7 +62,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
 
             response = requests.get(
                 TEMPLATE_LIST_URL % ("whatsapp.turn.io", "v14.0", normalized.lstrip("+")),
-                params=dict(access_token=self.cleaned_data["facebook_access_token"]),
+                params=dict(access_token=self.cleaned_data["access_token"]),
             )
 
             if response.status_code != 200:
@@ -88,8 +86,8 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             Channel.CONFIG_PASSWORD: data["password"],
             Channel.CONFIG_AUTH_TOKEN: data["auth_token"],
             CONFIG_FB_BUSINESS_ID: data["address"].lstrip("+"),
-            CONFIG_FB_ACCESS_TOKEN: data["facebook_access_token"],
-            CONFIG_FB_NAMESPACE: data["facebook_namespace"],
+            CONFIG_FB_ACCESS_TOKEN: data["access_token"],
+            CONFIG_FB_NAMESPACE: data["namespace"],
             CONFIG_FB_TEMPLATE_LIST_DOMAIN: "whatsapp.turn.io",
         }
 

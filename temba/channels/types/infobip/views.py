@@ -5,7 +5,6 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from temba.channels.views import ALL_COUNTRIES, ClaimViewMixin
-from temba.utils import countries
 from temba.utils.fields import SelectWidget
 
 from ...models import Channel
