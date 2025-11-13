@@ -3,16 +3,13 @@ import logging
 
 import requests
 
-from django.urls import re_path
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from temba.channels.models import Channel
+from temba.channels.models import Channel, ChannelType, ConfigUI
+from temba.channels.types.turn.views import ClaimView
 from temba.contacts.models import URN
 from temba.request_logs.models import HTTPLog
-from temba.utils.whatsapp.views import RefreshView
-
-from ...models import ChannelType, ConfigUI
 
 CONFIG_FB_BUSINESS_ID = "fb_business_id"
 CONFIG_FB_ACCESS_TOKEN = "fb_access_token"
@@ -25,32 +22,37 @@ TEMPLATE_LIST_URL = "https://%s/%s/%s/message_templates"
 logger = logging.getLogger(__name__)
 
 
-class WhatsAppLegacyType(ChannelType):
+class TurnType(ChannelType):
     """
-    A WhatsApp Channel Type
+    A Turn.io WhatsApp Channel Type
     """
 
-    code = "WA"
-    name = "WhatsApp Legacy"
+    code = "TRN"
+    name = "Turn.io WhatsApp"
     category = ChannelType.Category.SOCIAL_MEDIA
+    org_feature = "channels:TRN"
 
     unique_addresses = True
 
-    courier_url = r"^wa/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
+    courier_url = r"^trn/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
     schemes = [URN.WHATSAPP_SCHEME]
     template_type = "whatsapp"
 
-    claim_blurb = _("If you have an enterprise WhatsApp account, you can connect it to communicate with your contacts")
+    claim_blurb = _(
+        "If you have an enterprise Turn.io WhatsApp account, you can connect it to communicate with your contacts"
+    )
+    claim_view = ClaimView
 
-    config_ui = ConfigUI()  # has own template
-
-    def get_urls(self):
-        return [
-            re_path(r"^(?P<uuid>[a-z0-9\-]+)/refresh/$", RefreshView.as_view(channel_type=self), name="refresh"),
-        ]
-
-    def get_api_headers(self, channel):
-        return {"Authorization": "Bearer %s" % channel.config[Channel.CONFIG_AUTH_TOKEN]}
+    config_ui = ConfigUI(
+        blurb=_("To finish configuring this channel, you'll need Turn.io to use the following callback URL."),
+        endpoints=[
+            ConfigUI.Endpoint(
+                courier="receive",
+                label=_("Receive URL"),
+                help=_("This URL should be called by Turn.io when new messages are received."),
+            ),
+        ],
+    )
 
     def fetch_templates(self, channel) -> list:
         # Retrieve the template domain, fallback to the default for channels that have been setup earlier for backwards
@@ -79,28 +81,6 @@ class WhatsAppLegacyType(ChannelType):
                 raise e
 
         return templates
-
-    def check_health(self, channel):
-        headers = self.get_api_headers(channel)
-        start = timezone.now()
-
-        try:
-            response = requests.get(channel.config[Channel.CONFIG_BASE_URL] + "/v1/health", headers=headers)
-        except Exception as ex:
-            logger.debug(f"Could not establish a connection with the WhatsApp server: {ex}")
-            return
-
-        if response.status_code >= 400:
-            HTTPLog.from_exception(
-                HTTPLog.WHATSAPP_CHECK_HEALTH,
-                requests.RequestException(f"Error checking API health: {response.content}", response=response),
-                start,
-                channel=channel,
-            )
-            logger.debug(f"Error checking API health: {response.content}")
-            return
-
-        return response
 
     def get_redact_values(self, channel) -> tuple:
         """

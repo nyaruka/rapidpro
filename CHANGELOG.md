@@ -1,3 +1,9 @@
+v10.3.86 (2025-11-12)
+-------------------------
+ * Add support for TRN channel type
+ * Remove some unused channel types and remove claim views for others
+ * Update django
+
 v10.3.85 (2025-11-06)
 -------------------------
  * Convert Org.api_rates and Org.limits to use real JSONField

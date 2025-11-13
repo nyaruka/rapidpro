@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
+from temba.channels.models import Channel
 from temba.orgs.models import Org, OrgRole
 from temba.orgs.views import switch_to_org
 from temba.users.models import User
@@ -151,7 +152,9 @@ class OrgCRUDL(SmartCRUDL):
 
         class Form(forms.ModelForm):
             features = forms.MultipleChoiceField(
-                choices=Org.FEATURES_CHOICES, widget=SelectMultipleWidget(), required=False
+                choices=Org.FEATURES_CHOICES + Channel.get_org_features_choices(),
+                widget=SelectMultipleWidget(),
+                required=False,
             )
 
             def __init__(self, org, *args, **kwargs):

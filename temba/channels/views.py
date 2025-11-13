@@ -737,6 +737,8 @@ class ChannelCRUDL(SmartCRUDL):
             types_by_category = defaultdict(list)
             recommended_channels = []
             for ch_type in list(Channel.get_types()):
+                if ch_type.claim_view is None:
+                    continue
                 region_aware_visible, region_ignore_visible = ch_type.is_available_to(org, user)
 
                 if ch_type.is_recommended_to(org, user):
@@ -769,6 +771,8 @@ class ChannelCRUDL(SmartCRUDL):
             types_by_category = defaultdict(list)
             recommended_channels = []
             for ch_type in list(Channel.get_types()):
+                if ch_type.claim_view is None:
+                    continue
                 _, region_ignore_visible = ch_type.is_available_to(org, user)
                 if ch_type.is_recommended_to(org, user):
                     recommended_channels.append(ch_type)

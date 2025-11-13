@@ -22,11 +22,6 @@ class BandwidthTypeTest(TembaTest):
 
         self.login(self.admin)
 
-        response = self.client.get(reverse("channels.channel_claim"))
-        self.assertNotContains(response, url)
-
-        self.make_beta(self.admin)
-
         # check that claim page URL appears on claim list page
         response = self.client.get(reverse("channels.channel_claim"))
         self.assertContains(response, url)
@@ -93,11 +88,6 @@ class BandwidthTypeTest(TembaTest):
         url = reverse("channels.types.bandwidth.claim")
 
         self.login(self.admin)
-
-        response = self.client.get(reverse("channels.channel_claim"))
-        self.assertNotContains(response, url)
-
-        self.make_beta(self.admin)
 
         # check that claim page URL appears on claim list page
         response = self.client.get(reverse("channels.channel_claim"))

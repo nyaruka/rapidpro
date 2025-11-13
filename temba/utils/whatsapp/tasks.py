@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task
-def refresh_whatsapp_contacts(channel_id):
+def refresh_whatsapp_contacts(channel_id):  # pragma: no cover
     r = get_valkey_connection()
     key = "refresh_whatsapp_contacts_%d" % channel_id
 
