@@ -311,7 +311,7 @@ class EventTest(TembaTest):
                     "urn": None,
                     "text": "Hello",
                     "channel": None,
-                    "unsendable_reason": "no_destination",
+                    "unsendable_reason": "no_route",
                 },
                 "_logs_url": None,
                 "_failed_reason": "No suitable channel found",  # deprecated

@@ -24,9 +24,9 @@ msg_tag_statuses = {
 
 # Msg.failed_reason codes that are stored on events as "unsendable_reason"
 failed_reason_to_unsendable = {
-    Msg.FAILED_NO_DESTINATION: "no_destination",
-    Msg.FAILED_CONTACT: "contact_status",
-    Msg.FAILED_SUSPENDED: "org_status",
+    Msg.FAILED_NO_DESTINATION: "no_route",
+    Msg.FAILED_CONTACT: "contact_blocked",
+    Msg.FAILED_SUSPENDED: "org_suspended",
     Msg.FAILED_LOOPING: "looping",
 }
 

@@ -213,7 +213,7 @@ class BackfillMsgEventsTest(MigrationTest):
                             "text": "Unsendable",
                             "channel": None,
                             "urn": None,
-                            "unsendable_reason": "no_destination",
+                            "unsendable_reason": "no_route",
                         },
                     },
                 },
