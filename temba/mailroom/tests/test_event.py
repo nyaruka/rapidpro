@@ -251,7 +251,7 @@ class EventTest(TembaTest):
                     "external_id": "12345",
                 },
                 "_logs_url": None,
-                "_deleted": {"deleted_by": "user", "deleted_on": matchers.ISODatetime()},
+                "_deleted": {"created_on": matchers.ISODatetime()},
             },
             Event.from_msg(self.org, self.admin, msg_in),
         )
@@ -272,7 +272,7 @@ class EventTest(TembaTest):
                     "external_id": "12345",
                 },
                 "_logs_url": None,
-                "_deleted": {"deleted_by": "contact", "deleted_on": matchers.ISODatetime()},
+                "_deleted": {"created_on": matchers.ISODatetime(), "by_contact": True},
             },
             Event.from_msg(self.org, self.admin, msg_in),
         )
@@ -292,13 +292,9 @@ class EventTest(TembaTest):
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
                     "quick_replies": ["yes", "no"],
                 },
-                "optin": None,
                 "_user": {"uuid": str(self.agent.uuid), "name": "Agnes", "avatar": None},
-                "_statuses": [
-                    {"status": "errored", "changed_on": matchers.ISODatetime()},
-                ],
+                "_status": {"created_on": matchers.ISODatetime(), "status": "errored"},
                 "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out.uuid}/",
-                "_status": "E",  # deprecated
             },
             Event.from_msg(self.org, self.admin, msg_out),
         )
@@ -317,10 +313,7 @@ class EventTest(TembaTest):
                     "channel": None,
                     "unsendable_reason": "no_destination",
                 },
-                "optin": None,
-                "_user": None,
                 "_logs_url": None,
-                "_status": "F",  # deprecated
                 "_failed_reason": "No suitable channel found",  # deprecated
             },
             Event.from_msg(self.org, self.admin, msg_out),
@@ -339,13 +332,8 @@ class EventTest(TembaTest):
                     "text": "Hello",
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
                 },
-                "optin": None,
-                "_user": None,
                 "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out.uuid}/",
-                "_statuses": [
-                    {"status": "failed", "changed_on": matchers.ISODatetime(), "reason": "error_limit"},
-                ],
-                "_status": "F",  # deprecated
+                "_status": {"created_on": matchers.ISODatetime(), "status": "failed", "reason": "error_limit"},
                 "_failed_reason": "Retry limit reached",  # deprecated
             },
             Event.from_msg(self.org, self.admin, msg_out),
@@ -363,9 +351,7 @@ class EventTest(TembaTest):
                     "text": "Hello",
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
                 },
-                "_user": None,
                 "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{ivr_out.uuid}/",
-                "_status": "S",  # deprecated
             },
             Event.from_msg(self.org, self.admin, ivr_out),
         )
@@ -384,13 +370,9 @@ class EventTest(TembaTest):
                     "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
                 },
                 "broadcast_uuid": str(bcast.uuid),
-                "optin": None,
                 "_user": {"uuid": str(self.admin.uuid), "name": "Andy", "avatar": None},
-                "_statuses": [
-                    {"status": "sent", "changed_on": matchers.ISODatetime()},
-                ],
+                "_status": {"created_on": matchers.ISODatetime(), "status": "sent"},
                 "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out2.uuid}/",
-                "_status": "S",  # deprecated
             },
             Event.from_msg(self.org, self.admin, msg_out2),
         )
@@ -415,11 +397,8 @@ class EventTest(TembaTest):
                 "broadcast_uuid": str(bcast2.uuid),
                 "optin": {"uuid": str(optin.uuid), "name": "Polls"},
                 "_user": {"uuid": str(self.admin.uuid), "name": "Andy", "avatar": None},
-                "_statuses": [
-                    {"status": "sent", "changed_on": matchers.ISODatetime()},
-                ],
+                "_status": {"created_on": matchers.ISODatetime(), "status": "sent"},
                 "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out3.uuid}/",
-                "_status": "S",  # deprecated
             },
             Event.from_msg(self.org, self.admin, msg_out3),
         )

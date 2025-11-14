@@ -279,9 +279,9 @@ class Event:
             }
 
             if obj.visibility == Msg.VISIBILITY_DELETED_BY_SENDER:
-                event["_deleted"] = {"deleted_by": "contact", "deleted_on": obj.modified_on.isoformat()}
+                event["_deleted"] = {"created_on": obj.modified_on.isoformat(), "by_contact": True}
             elif obj.visibility == Msg.VISIBILITY_DELETED_BY_USER:
-                event["_deleted"] = {"deleted_by": "user", "deleted_on": obj.modified_on.isoformat()}
+                event["_deleted"] = {"created_on": obj.modified_on.isoformat()}
 
             return event
         else:
@@ -298,33 +298,30 @@ class Event:
                     "type": cls.TYPE_MSG_CREATED,
                     "created_on": get_event_time(obj).isoformat(),
                     "msg": _msg_out(obj),
-                    "optin": _optin(obj.optin) if obj.optin else None,
                 }
                 if obj.broadcast:
                     event["broadcast_uuid"] = str(obj.broadcast.uuid)
+                if obj.optin:
+                    event["optin"] = _optin(obj.optin)
+                if obj.created_by:
+                    event["_user"] = _user(obj.created_by)
 
                 if obj.status in msg_tag_statuses and obj.status != Msg.STATUS_FAILED:
-                    event["_statuses"] = [
-                        {
-                            "status": msg_tag_statuses[obj.status],
-                            "changed_on": obj.modified_on.isoformat(),
-                        }
-                    ]
-                elif obj.status == Msg.STATUS_FAILED and obj.failed_reason in failed_reason_to_tag_reason:
-                    event["_statuses"] = [
-                        {
-                            "status": msg_tag_statuses[Msg.STATUS_FAILED],
-                            "changed_on": obj.modified_on.isoformat(),
-                            "reason": failed_reason_to_tag_reason[obj.failed_reason],
-                        }
-                    ]
+                    event["_status"] = {
+                        "created_on": obj.modified_on.isoformat(),
+                        "status": msg_tag_statuses[obj.status],
+                    }
 
-            # add additional properties
-            event["_user"] = _user(obj.created_by) if obj.created_by else None
-            event["_status"] = obj.status
+                elif obj.status == Msg.STATUS_FAILED and obj.failed_reason in failed_reason_to_tag_reason:
+                    event["_status"] = {
+                        "created_on": obj.modified_on.isoformat(),
+                        "status": msg_tag_statuses[Msg.STATUS_FAILED],
+                        "reason": failed_reason_to_tag_reason[obj.failed_reason],
+                    }
+
             event["_logs_url"] = logs_url
 
-            if obj.status == Msg.STATUS_FAILED:
+            if obj.status == Msg.STATUS_FAILED:  # deprecated
                 event["_failed_reason"] = obj.get_failed_reason_display()
 
             return event
