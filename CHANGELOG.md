@@ -1,3 +1,7 @@
+v10.3.88 (2025-11-14)
+-------------------------
+ * Tweak format of message event tags
+
 v10.3.87 (2025-11-13)
 -------------------------
  * Reduce periodic task frequencly for refresh templates
