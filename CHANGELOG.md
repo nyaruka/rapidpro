@@ -1,3 +1,9 @@
+v10.3.89 (2025-11-14)
+-------------------------
+ * Tweak constants used for msg event unsendable_reason
+ * Update temba-components
+ * Tweak format of contact history events
+
 v10.3.88 (2025-11-14)
 -------------------------
  * Tweak format of message event tags
