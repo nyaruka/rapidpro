@@ -92,8 +92,8 @@ def backfill_msg_events(apps, schema_editor):
                                     "SK": f"evt#{msg.uuid}#del",
                                     "OrgID": msg.org_id,
                                     "Data": {
+                                        "created_on": msg.modified_on.isoformat(),
                                         "by_contact": True,
-                                        "deleted_on": msg.modified_on.isoformat(),
                                     },
                                 }
                             )
@@ -104,7 +104,7 @@ def backfill_msg_events(apps, schema_editor):
                                     "SK": f"evt#{msg.uuid}#del",
                                     "OrgID": msg.org_id,
                                     "Data": {
-                                        "deleted_on": msg.modified_on.isoformat(),
+                                        "created_on": msg.modified_on.isoformat(),
                                     },
                                 }
                             )
@@ -137,7 +137,7 @@ def backfill_msg_events(apps, schema_editor):
                             )
 
                             if msg.status in status_to_tag and msg.failed_reason not in failed_reason_to_unsendable:
-                                data = {"status": status_to_tag[msg.status], "changed_on": msg.modified_on.isoformat()}
+                                data = {"created_on": msg.modified_on.isoformat(), "status": status_to_tag[msg.status]}
                                 if msg.status == STATUS_FAILED and msg.failed_reason in failed_reason_to_tag_reason:
                                     data["reason"] = failed_reason_to_tag_reason[msg.failed_reason]
 
