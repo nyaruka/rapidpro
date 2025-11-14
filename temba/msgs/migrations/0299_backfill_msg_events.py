@@ -31,9 +31,9 @@ FAILED_CHANNEL_REMOVED = "R"
 
 # Msg.failed_reason codes that are stored on events as "unsendable_reason"
 failed_reason_to_unsendable = {
-    FAILED_NO_DESTINATION: "no_destination",
-    FAILED_CONTACT: "contact_status",
-    FAILED_SUSPENDED: "org_status",
+    FAILED_NO_DESTINATION: "no_route",
+    FAILED_CONTACT: "contact_blocked",
+    FAILED_SUSPENDED: "org_suspended",
     FAILED_LOOPING: "looping",
 }
 
