@@ -30,6 +30,9 @@ class String(MatcherMixin, str):
             return False
         return True
 
+    def __repr__(self):
+        return f"<Any:String:pattern={self.pattern}>" if self.pattern is not None else super().__repr__()
+
 
 class ISODate(String):
     """
@@ -56,6 +59,27 @@ class UUID4String(String):
 
     def __new__(cls):
         return super().__new__(cls, pattern=UUID4_REGEX)
+
+
+class List(MatcherMixin, list):
+    """
+    Matches any list or any list of a given length
+    """
+
+    def __new__(cls, length=None):
+        v = list.__new__(cls, [])
+        v.length = length
+        return v
+
+    def __eq__(self, other):
+        if not isinstance(other, list):
+            return False
+        if self.length and not len(other) == self.length:
+            return False
+        return True
+
+    def __repr__(self):
+        return f"<Any:List:length={self.length}>" if self.length is not None else super().__repr__()
 
 
 class Dict(MatcherMixin, dict):

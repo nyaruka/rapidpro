@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from uuid import UUID
 
@@ -7,8 +8,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 
-from temba.channels.models import Channel
-from temba.msgs.models import Msg, OptIn
+from temba.msgs.models import Msg
 from temba.orgs.models import Org
 from temba.users.models import User
 from temba.utils import dynamo
@@ -36,6 +36,13 @@ failed_reason_to_tag_reason = {
     Msg.FAILED_TOO_OLD: "too_old",
     Msg.FAILED_CHANNEL_REMOVED: "channel_removed",
 }
+
+
+@dataclass
+class EventTag:
+    event_uuid: str
+    tag: str
+    data: dict
 
 
 class Event:
@@ -71,35 +78,6 @@ class Event:
     TYPE_TICKET_REOPENED = "ticket_reopened"
     TYPE_TICKET_TOPIC_CHANGED = "ticket_topic_changed"
 
-    # as we migrate event types over to DynamoDB:
-    #  1. we start mailroom writing that type to DynamoDB
-    #  2. we backfill existing events of that type from Postgres to DynamoDB
-    #  3. we switch to reading that type from DynamoDB by adding it here
-    dynamo_types = {
-        TYPE_AIRTIME_TRANSFERRED,
-        TYPE_CALL_CREATED,
-        TYPE_CALL_MISSED,
-        TYPE_CALL_RECEIVED,
-        TYPE_CHAT_STARTED,
-        TYPE_CONTACT_FIELD_CHANGED,
-        TYPE_CONTACT_GROUPS_CHANGED,
-        TYPE_CONTACT_LANGUAGE_CHANGED,
-        TYPE_CONTACT_NAME_CHANGED,
-        TYPE_CONTACT_STATUS_CHANGED,
-        TYPE_CONTACT_URNS_CHANGED,
-        TYPE_OPTIN_REQUESTED,
-        TYPE_OPTIN_STARTED,
-        TYPE_OPTIN_STOPPED,
-        TYPE_RUN_STARTED,
-        TYPE_RUN_ENDED,
-        TYPE_TICKET_ASSIGNED,
-        TYPE_TICKET_CLOSED,
-        TYPE_TICKET_NOTE_ADDED,
-        TYPE_TICKET_OPENED,
-        TYPE_TICKET_REOPENED,
-        TYPE_TICKET_TOPIC_CHANGED,
-    }
-
     basic_ticket_types = {TYPE_TICKET_CLOSED, TYPE_TICKET_OPENED, TYPE_TICKET_REOPENED}
     all_ticket_types = basic_ticket_types | {TYPE_TICKET_ASSIGNED, TYPE_TICKET_NOTE_ADDED, TYPE_TICKET_TOPIC_CHANGED}
 
@@ -119,13 +97,15 @@ class Event:
         return data
 
     @classmethod
-    def _tag_from_item(cls, contact, item: dict) -> dict:
+    def _tag_from_item(cls, contact, item: dict) -> EventTag:
         assert item["OrgID"] == contact.org_id, "org ID mismatch for contact event tag"
 
-        return {"event_uuid": item["SK"][4:40], "tag": item["SK"][40:], "data": item.get("Data", {})}
+        return EventTag(event_uuid=item["SK"][4:40], tag=item["SK"][41:], data=item.get("Data", {}))
 
     @classmethod
-    def get_by_contact(cls, contact, *, after: datetime, before: datetime, ticket_uuid: UUID, limit: int) -> list[dict]:
+    def get_by_contact(
+        cls, contact, user, *, after: datetime, before: datetime, ticket_uuid: UUID, limit: int
+    ) -> list[dict]:
         """
         Eventually contact history will be paged by event UUIDs but for now we are given microsecond accuracy
         datetimes and have to infer approximate UUIDs and then filter the results to the given range.
@@ -135,7 +115,16 @@ class Event:
 
         events, tags = cls._get_raw(contact, after=after, before=before, ticket_uuid=ticket_uuid, limit=limit)
 
-        return cls._refresh_events(contact.org, events)
+        # inject tags into their corresponding events
+        events_by_uuid = {event["uuid"]: event for event in events}
+        for tag in tags:
+            if event := events_by_uuid.get(tag.event_uuid):
+                if tag.tag == "del":
+                    event["_deleted"] = tag.data
+                elif tag.tag == "sts":
+                    event["_status"] = tag.data
+
+        return cls._refresh_events(contact.org, user, events)
 
     @classmethod
     def _get_raw(
@@ -180,13 +169,13 @@ class Event:
         while True:
             assert num_fetches < 100, "too many fetches for history"
 
-            # TODO because for now we skip over some items, if limit is 1 we could end up making multiple fetches to
-            # get to an item that isn't skipped.. so always fetch at least 20 items
+            # Because we skip over some items (e.g. when viewing a ticket), if limit is 1 we could end up making
+            # multiple fetches to get to an item that isn't skipped.. so always fetch at least 10 items
             kwargs = dict(
                 KeyConditionExpression="PK = :pk AND SK BETWEEN :after_sk AND :before_sk",
                 ExpressionAttributeValues={":pk": pk, ":after_sk": after_sk, ":before_sk": before_sk},
                 ScanIndexForward=False,
-                Limit=max(limit, 20),
+                Limit=max(limit, 10),
                 Select="ALL_ATTRIBUTES",
             )
 
@@ -215,24 +204,41 @@ class Event:
                 # if not then this for the contact read page so only show ticket opened/closed/reopened events
                 return event["type"] in cls.basic_ticket_types
 
-        return event["type"] in cls.dynamo_types
+        return True
 
     @classmethod
-    def _refresh_events(cls, org, events: list[dict]) -> list[dict]:
+    def _refresh_events(cls, org, user: User, events: list[dict]) -> list[dict]:
         """
-        Refreshes a list of events in place with up to date information from the database. This probably moves to
-        mailroom at some point.
+        Refreshes a list of events in place with up to date information from the database.
         """
 
         user_uuids = {event["_user"]["uuid"] for event in events if event.get("_user")}
         users_by_uuid = {str(u.uuid): u for u in org.get_users().filter(uuid__in=user_uuids)}
 
+        # TODO build a more generic mechanism for refreshing all references to things like users, flows.. or put that
+        # somewhere else entirely?
         for event in events:
             if "_user" in event and event["_user"]:
                 if user := users_by_uuid.get(event["_user"]["uuid"]):
                     event["_user"].update({"name": user.first_name, "avatar": user.avatar.url if user.avatar else None})
                 else:
                     event["_user"] = None  # user no longer exists
+
+        # inject log URLs for message events
+        for event in events:
+            if event["type"] in [cls.TYPE_MSG_CREATED, cls.TYPE_MSG_RECEIVED, cls.TYPE_IVR_CREATED]:
+                if channel := event["msg"].get("channel"):
+                    evt_age = timezone.now() - iso8601.parse_date(event["created_on"])
+                    if evt_age < settings.RETENTION_PERIODS["channellog"]:
+                        logs_url = _url_for_user(
+                            org,
+                            user,
+                            "channels.channel_logs_read",
+                            args=[channel["uuid"], "msg", event["uuid"]],
+                            perm="channels.channel_logs",
+                        )
+                        if logs_url:
+                            event["_logs_url"] = logs_url
 
         return events
 
@@ -242,148 +248,8 @@ class Event:
         ts_as_hex = "%012x" % (ts_millis & 0xFFFFFFFFFFFF)
         return f"{ts_as_hex[:8]}-{ts_as_hex[8:12]}-7000-0000-000000000000"
 
-    @classmethod
-    def from_history_item(cls, org: Org, user: User, item) -> dict:
-        if isinstance(item, Msg):
-            return Event.from_msg(org, user, item)
-
-        return item  # already an event dict
-
-    @classmethod
-    def from_msg(cls, org: Org, user: User, obj: Msg) -> dict:
-        """
-        Reconstructs an engine event from a msg instance. Properties which aren't part of regular events are prefixed
-        with an underscore.
-        """
-
-        obj_age = timezone.now() - obj.created_on
-
-        logs_url = None
-        if obj.channel and obj_age < settings.RETENTION_PERIODS["channellog"]:
-            logs_url = _url_for_user(
-                org,
-                user,
-                "channels.channel_logs_read",
-                args=[obj.channel.uuid, "msg", obj.uuid],
-                perm="channels.channel_logs",
-            )
-
-        if obj.direction == Msg.DIRECTION_IN:
-            event = {
-                "uuid": str(obj.uuid),
-                "type": cls.TYPE_MSG_RECEIVED,
-                "created_on": get_event_time(obj).isoformat(),
-                "msg": _msg_in(obj),
-                # additional properties
-                "_logs_url": logs_url,
-            }
-
-            if obj.visibility == Msg.VISIBILITY_DELETED_BY_SENDER:
-                event["_deleted"] = {"created_on": obj.modified_on.isoformat(), "by_contact": True}
-            elif obj.visibility == Msg.VISIBILITY_DELETED_BY_USER:
-                event["_deleted"] = {"created_on": obj.modified_on.isoformat()}
-
-            return event
-        else:
-            if obj.msg_type == Msg.TYPE_VOICE:
-                event = {
-                    "uuid": str(obj.uuid),
-                    "type": cls.TYPE_IVR_CREATED,
-                    "created_on": get_event_time(obj).isoformat(),
-                    "msg": _msg_out(obj),
-                }
-            else:
-                event = {
-                    "uuid": str(obj.uuid),
-                    "type": cls.TYPE_MSG_CREATED,
-                    "created_on": get_event_time(obj).isoformat(),
-                    "msg": _msg_out(obj),
-                }
-                if obj.broadcast:
-                    event["broadcast_uuid"] = str(obj.broadcast.uuid)
-                if obj.optin:
-                    event["optin"] = _optin(obj.optin)
-                if obj.created_by:
-                    event["_user"] = _user(obj.created_by)
-
-                if obj.status in msg_tag_statuses and obj.status != Msg.STATUS_FAILED:
-                    event["_status"] = {
-                        "created_on": obj.modified_on.isoformat(),
-                        "status": msg_tag_statuses[obj.status],
-                    }
-
-                elif obj.status == Msg.STATUS_FAILED and obj.failed_reason in failed_reason_to_tag_reason:
-                    event["_status"] = {
-                        "created_on": obj.modified_on.isoformat(),
-                        "status": msg_tag_statuses[Msg.STATUS_FAILED],
-                        "reason": failed_reason_to_tag_reason[obj.failed_reason],
-                    }
-
-            event["_logs_url"] = logs_url
-
-            if obj.status == Msg.STATUS_FAILED:  # deprecated
-                event["_failed_reason"] = obj.get_failed_reason_display()
-
-            return event
-
 
 def _url_for_user(org: Org, user: User, view_name: str, args: list, perm: str = None) -> str:
     allowed = user.has_org_perm(org, perm or view_name) or user.is_staff
 
     return reverse(view_name, args=args) if allowed else None
-
-
-def _msg_in(obj) -> dict:
-    d = _base_msg(obj)
-
-    if obj.external_id:
-        d["external_id"] = obj.external_id
-
-    return d
-
-
-def _msg_out(obj) -> dict:
-    d = _base_msg(obj)
-
-    if obj.quick_replies:
-        d["quick_replies"] = obj.quick_replies
-    if obj.failed_reason in failed_reason_to_unsendable:
-        d["unsendable_reason"] = failed_reason_to_unsendable[obj.failed_reason]
-
-    return d
-
-
-def _base_msg(obj) -> dict:
-    redact = obj.visibility in (Msg.VISIBILITY_DELETED_BY_USER, Msg.VISIBILITY_DELETED_BY_SENDER)
-    d = {
-        "urn": str(obj.contact_urn) if obj.contact_urn else None,
-        "channel": _channel(obj.channel) if obj.channel else None,
-        "text": obj.text if not redact else "",
-    }
-    if obj.attachments:
-        d["attachments"] = obj.attachments if not redact else []
-
-    return d
-
-
-def _user(user: User) -> dict:
-    return {"uuid": str(user.uuid), "name": user.name, "avatar": user.avatar.url if user.avatar else None}
-
-
-def _channel(channel: Channel) -> dict:
-    return {"uuid": str(channel.uuid), "name": channel.name}
-
-
-def _optin(optin: OptIn) -> dict:
-    return {"uuid": str(optin.uuid), "name": optin.name}
-
-
-def get_event_time(item) -> datetime:
-    """
-    Extracts the event time from a history item
-    """
-
-    if isinstance(item, Msg):
-        return item.created_on
-
-    return iso8601.parse_date(item["created_on"])

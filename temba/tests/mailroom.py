@@ -639,7 +639,6 @@ def create_contact_locally(
         language=language,
         created_by=user,
         modified_by=user,
-        created_on=timezone.now(),
         status=status,
         last_seen_on=last_seen_on,
         **kwargs,

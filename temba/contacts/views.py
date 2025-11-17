@@ -25,7 +25,6 @@ from django.views import View
 from temba import mailroom
 from temba.archives.models import Archive
 from temba.channels.models import Channel
-from temba.mailroom.events import Event
 from temba.orgs.models import Org
 from temba.orgs.views.base import (
     BaseCreateModal,
@@ -392,31 +391,30 @@ class ContactCRUDL(SmartCRUDL):
             history = []
             fetch_before = before
             while True:
-                history += contact.get_history(after, fetch_before, ticket_uuid=ticket_uuid, limit=limit)
+                history += contact.get_history(
+                    self.request.user, after, fetch_before, ticket_uuid=ticket_uuid, limit=limit
+                )
                 if recent_only or len(history) >= 20 or after == contact_creation:
                     break
                 else:
                     fetch_before = after
                     after = max(after - timedelta(days=90), contact_creation)
 
-            # render as events
-            events = [Event.from_history_item(contact.org, self.request.user, i) for i in history]
-
-            if len(events) >= limit:
-                after = iso8601.parse_date(events[-1]["created_on"])
+            if len(history) >= limit:
+                after = iso8601.parse_date(history[-1]["created_on"])
 
             # check if there are more pages to fetch
             context["has_older"] = False
             if not recent_only and before > contact.created_on:
                 context["has_older"] = bool(
-                    contact.get_history(contact_creation, after, ticket_uuid=ticket_uuid, limit=1)
+                    contact.get_history(self.request.user, contact_creation, after, ticket_uuid=ticket_uuid, limit=1)
                 )
 
             context["recent_only"] = recent_only
             context["next_before"] = datetime_to_timestamp(after)
             context["next_after"] = datetime_to_timestamp(max(after - timedelta(days=90), contact_creation))
             context["start_date"] = contact.org.get_delete_date(archive_type=Archive.TYPE_MSG)
-            context["events"] = events
+            context["events"] = history
             return context
 
         def render_to_response(self, context, **response_kwargs):
