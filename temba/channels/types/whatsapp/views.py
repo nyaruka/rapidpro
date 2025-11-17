@@ -43,7 +43,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         app_id = settings.FACEBOOK_APPLICATION_ID
         app_secret = settings.FACEBOOK_APPLICATION_SECRET
 
-        url = "https://graph.facebook.com/v18.0/debug_token"
+        url = "https://graph.facebook.com/v22.0/debug_token"
         params = {"access_token": f"{app_id}|{app_secret}", "input_token": oauth_user_token}
 
         response = requests.get(url, params=params)
@@ -151,7 +151,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         }
 
         # assign system user to WABA
-        url = f"https://graph.facebook.com/v18.0/{waba_id}/assigned_users"
+        url = f"https://graph.facebook.com/v22.0/{waba_id}/assigned_users"
         params = {"user": f"{settings.WHATSAPP_ADMIN_SYSTEM_USER_ID}", "tasks": ["MANAGE"]}
         headers = {"Authorization": f"Bearer {settings.WHATSAPP_ADMIN_SYSTEM_USER_TOKEN}"}
 
@@ -285,7 +285,7 @@ class RequestCode(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, Smar
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        phone_number_url = f"https://graph.facebook.com/v18.0/{self.object.address}"
+        phone_number_url = f"https://graph.facebook.com/v22.0/{self.object.address}"
         headers = {"Authorization": f"Bearer {settings.WHATSAPP_ADMIN_SYSTEM_USER_TOKEN}"}
         resp = requests.get(phone_number_url, headers=headers)
 
@@ -301,14 +301,14 @@ class RequestCode(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, Smar
 
         phone_number_id = channel.address
 
-        request_code_url = f"https://graph.facebook.com/v18.0/{phone_number_id}/request_code"
+        request_code_url = f"https://graph.facebook.com/v22.0/{phone_number_id}/request_code"
         params = {"code_method": "SMS", "language": "en_US"}
         headers = {"Authorization": f"Bearer {settings.WHATSAPP_ADMIN_SYSTEM_USER_TOKEN}"}
 
         resp = requests.post(request_code_url, params=params, headers=headers)
 
         if resp.status_code != 200:  # pragma: no cover
-            phone_number_url = f"https://graph.facebook.com/v18.0/{phone_number_id}"
+            phone_number_url = f"https://graph.facebook.com/v22.0/{phone_number_id}"
             resp = requests.get(phone_number_url, headers=headers)
 
             verified_status = False
@@ -353,7 +353,7 @@ class VerifyCode(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, Smart
         waba_id = channel.config.get("wa_waba_id")
         wa_pin = channel.config.get("wa_pin")
 
-        request_code_url = f"https://graph.facebook.com/v18.0/{phone_number_id}/verify_code"
+        request_code_url = f"https://graph.facebook.com/v22.0/{phone_number_id}/verify_code"
         params = {"code": f"{code}"}
         headers = {"Authorization": f"Bearer {settings.WHATSAPP_ADMIN_SYSTEM_USER_TOKEN}"}
 
@@ -363,7 +363,7 @@ class VerifyCode(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, Smart
             raise forms.ValidationError(_("Failed to verify phone number with code %s") % code)
 
         # register numbers
-        url = f"https://graph.facebook.com/v18.0/{channel.address}/register"
+        url = f"https://graph.facebook.com/v22.0/{channel.address}/register"
         data = {"messaging_product": "whatsapp", "pin": wa_pin}
 
         resp = requests.post(url, data=data, headers=headers)
@@ -399,13 +399,13 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
                         + self.org.get_brand_domain()
                         + reverse("channels.types.whatsapp.connect"),
                     }
-                    token_url = "https://graph.facebook.com/v18.0/oauth/access_token"
+                    token_url = "https://graph.facebook.com/v22.0/oauth/access_token"
                     response = requests.post(token_url, json=token_request_data)
                     response_json = response.json()
                     if int(response.status_code / 100) == 2:
                         auth_token = response_json["access_token"]
 
-                url = "https://graph.facebook.com/v18.0/debug_token"
+                url = "https://graph.facebook.com/v22.0/debug_token"
                 params = {"access_token": f"{app_id}|{app_secret}", "input_token": auth_token}
 
                 response = requests.get(url, params=params)
