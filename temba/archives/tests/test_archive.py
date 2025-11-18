@@ -157,9 +157,6 @@ class ArchiveTest(TembaTest):
         self.assertEqual(date(2018, 2, 2), daily.get_end_date())
         self.assertEqual(date(2018, 2, 1), monthly.get_end_date())
 
-        # check the start date of our db data
-        self.assertEqual(date(2018, 2, 1), self.org.get_delete_date(archive_type=Archive.TYPE_FLOWRUN))
-
     def test_rewrite(self):
         archive = self.create_archive(
             Archive.TYPE_FLOWRUN,

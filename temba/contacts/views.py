@@ -23,8 +23,8 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 
 from temba import mailroom
-from temba.archives.models import Archive
 from temba.channels.models import Channel
+from temba.mailroom.events import Event
 from temba.orgs.models import Org
 from temba.orgs.views.base import (
     BaseCreateModal,
@@ -391,8 +391,8 @@ class ContactCRUDL(SmartCRUDL):
             history = []
             fetch_before = before
             while True:
-                history += contact.get_history(
-                    self.request.user, after, fetch_before, ticket_uuid=ticket_uuid, limit=limit
+                history += Event.get_by_contact(
+                    contact, self.request.user, after=after, before=fetch_before, ticket_uuid=ticket_uuid, limit=limit
                 )
                 if recent_only or len(history) >= 20 or after == contact_creation:
                     break
@@ -407,13 +407,19 @@ class ContactCRUDL(SmartCRUDL):
             context["has_older"] = False
             if not recent_only and before > contact.created_on:
                 context["has_older"] = bool(
-                    contact.get_history(self.request.user, contact_creation, after, ticket_uuid=ticket_uuid, limit=1)
+                    Event.get_by_contact(
+                        contact,
+                        self.request.user,
+                        after=contact_creation,
+                        before=after,
+                        ticket_uuid=ticket_uuid,
+                        limit=1,
+                    )
                 )
 
             context["recent_only"] = recent_only
             context["next_before"] = datetime_to_timestamp(after)
             context["next_after"] = datetime_to_timestamp(max(after - timedelta(days=90), contact_creation))
-            context["start_date"] = contact.org.get_delete_date(archive_type=Archive.TYPE_MSG)
             context["events"] = history
             return context
 
@@ -424,7 +430,6 @@ class ContactCRUDL(SmartCRUDL):
                     "recent_only": context["recent_only"],
                     "next_before": context["next_before"],
                     "next_after": context["next_after"],
-                    "start_date": context["start_date"],
                     "events": context["events"],
                 }
             )
