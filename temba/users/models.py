@@ -198,6 +198,9 @@ class User(TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
     def as_engine_ref(self) -> dict:
         return {"uuid": str(self.uuid), "name": self.name}
 
+    def as_chat_ref(self) -> dict:
+        return {"uuid": str(self.uuid), "name": self.first_name, "avatar": self.avatar.url if self.avatar else None}
+
     def fetch_avatar(self, url: str):  # pragma: no cover
         # fetch the avatar from the url and store it locally
         self.avatar.save(f"{self.pk}_profile.jpg", ContentFile(requests.get(url).content), save=True)

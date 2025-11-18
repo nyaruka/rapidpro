@@ -220,7 +220,7 @@ class Event:
         for event in events:
             if "_user" in event and event["_user"]:
                 if user := users_by_uuid.get(event["_user"]["uuid"]):
-                    event["_user"].update({"name": user.first_name, "avatar": user.avatar.url if user.avatar else None})
+                    event["_user"] = user.as_chat_ref()
                 else:
                     event["_user"] = None  # user no longer exists
 

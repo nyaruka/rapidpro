@@ -374,6 +374,10 @@ class ContactCRUDL(SmartCRUDL):
             resp = mailroom.get_client().msg_send(
                 request.org, request.user, self.get_object(), text, [str(a) for a in attachments], [], ticket
             )
+
+            # inject user ref into event
+            resp["event"]["_user"] = request.user.as_chat_ref()
+
             return JsonResponse({"event": resp["event"]})
 
     class History(BaseReadView):
