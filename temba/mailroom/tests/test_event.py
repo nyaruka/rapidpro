@@ -1,155 +1,146 @@
 import base64
-from datetime import timedelta
 
 import iso8601
 from boto3.dynamodb.types import Binary
 
-from django.utils import timezone
-
 from temba.mailroom.events import Event
-from temba.msgs.models import Msg
-from temba.tests import TembaTest, cleanup, matchers
+from temba.tests import TembaTest, cleanup
 from temba.utils import dynamo
 
 
 class EventTest(TembaTest):
-    def test_from_item(self):
-        contact = self.create_contact("Jim", phone="+593979111111")
-        event = Event._from_item(
-            contact,
-            {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-2c93-76f8-8f41-6b2d9f33d623",
-                "OrgID": self.org.id,
-                "TTL": 1747571456,
-                "Data": {
-                    "_user_id": self.admin.id,
-                    "type": "contact_field_changed",
-                    "created_on": "2025-05-04T12:30:56.123456789Z",
-                    "field": {"key": "age", "name": "Age"},
-                    "value": {"text": "44"},
-                },
-            },
-        )
-        self.assertEqual(
-            {
-                "uuid": "01969b47-2c93-76f8-8f41-6b2d9f33d623",
-                "type": "contact_field_changed",
-                "created_on": "2025-05-04T12:30:56.123456789Z",
-                "field": {"key": "age", "name": "Age"},
-                "value": {"text": "44"},
-                "_user_id": self.admin.id,
-            },
-            event,
-        )
-
-        event = Event._from_item(
-            contact,
-            {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-672b-76f8-bebe-b4a1f677cf4c",
-                "OrgID": self.org.id,
-                "TTL": 1747571471,
-                "DataGZ": Binary(
-                    base64.b64decode(
-                        "H4sIAAAAAAAA/6RVTW/cNhD9KwKvFVt+U9KpToC0RdGLm0PiNBCG5HBDRCu5EmXHCfa/F9TKGzdNiwAFdJBI4s17bx5Hn8i6pkA6wnhrWqcsNVY4ak1sqEOH1Cng0Vjro/KkJvnhFklHFlyWNI19ntPhgDMGUhM/I2QM/TSSjggmNGWaMvWSi07yjvPvuZBKG9u0N6QmS8bbfq/tpXLG20AjMEOVNpK2AiQNRjXgjHLeO1KTOEz3pLswdtZHFhpJI/ctVZx72poYqNecg/IRGlNojXAsjK/xkJY8Q07TWL0oSKea+GnM4PNCujcX2EawqFshqZSmwHpDnfSBQtTWeuaCcs1n2GeTI6e3NcEPfliLJQvpPp1qMq9jv6zHI8wPhfJeaHv9u02MUcYp4y8Z67anmBMTDqEgEfA53W2k+zy9x7GsZfyQSUdevXpFX79+TW9uboqWmOYl92dalzPPcCx7M9z3ochPZw777i/VkO6wSmN1gAXcVI4uGfKGsL+Q63sYA1R/rIxJrH5NBxhS9Tzlh5KGM86/HzmdanKYp/X2bPFu2u/rfIcP1dUaEo4eSf3ovQAIgkdDJXOWKuE1dcFGyp0VzHOtGm7Jqb4APSlV/YZHh/PyGSzYGFVjBW2FbKjSItI2yIaKqHUTEZoW2da7cnrPZk0GGA8rHAo6jgdSFpbcL4jjpWNm65h4yXXHVMf0zZM44Fj9DOVKbP4UD9eFdOc2FqE5HfHjNJazV0eck4cfflrhAf5c01CozyVAb0jGofuOC2a01lxwUTIBHt00ve84F0JKpbQ2xtqmhPEIachT53D88Qj+/YDHad6q3aeccS4b/btHWm8vDjlojYs2UucFUNVYScF6S4VWgbfCeoVyi9Z+8XaRV8NQXfm8hf2C1XhQyrOW2pYHqrQE2tq2pWBZCFIyKZnZoojLOuQt2yKCz9O8XQrIeJjKXSFlkuxf/TB5GNJHDPv6f04YYfcJU/qBH/IMpBvXYahJGm/XfIbYJYgX59I1GaeAj3MoaudaZ4Fap5Eq7SVtIkNquFPYagyRSVKTOxjWAiKVkcoIpYzUQm9Gwd00p4y9n4Z/CLs+T8mvabv+hgEqxLfLe7HzqJ5vPP6XyjLcT6evZfnLPwfncv9ztJ45KhhXIXhrWauKOe/SkqfzOLyFGcfcfwnAdCPPAIA20tg4oaRXbYya1ARGjwVhIR1/8tUvafTY7yaw0+mvAAAA//+R/as+0wYAAA=="
-                    )
-                ),
-            },
-        )
-        self.assertEqual("01969b47-672b-76f8-bebe-b4a1f677cf4c", event["uuid"])
-        self.assertEqual("session_triggered", event["type"])
-
     @cleanup(dynamodb=True)
     def test_get_by_contact(self):
-        contact = self.create_contact("Jim", phone="+593979111111")
-        self.write_history_event(
-            contact,
-            {
-                "uuid": "019880eb-e422-7d67-993f-cdec64636001",  # 1: (last char is 1...5)
-                "type": "contact_language_changed",
-                "created_on": "2025-08-06T19:46:39.778889794Z",
-                "language": "spa",
-                "_user": {"uuid": str(self.admin.uuid), "name": "Andrew"},  # name wrong
-            },
-        )
-        self.write_history_event(
-            contact,
-            {
-                "uuid": "019880eb-e488-7652-beb6-0051d9cd6002",  # 2
-                "type": "contact_field_changed",
-                "created_on": "2025-08-06T19:46:39.880430294Z",
-                "field": {"key": "age", "name": "Age"},
-                "value": {"text": "44"},
-                "_user": {"uuid": "e99c9705-8cc3-4063-8c54-fa702cbac867", "name": "Jimmy"},  # user no longer exists
-            },
-        )
-        self.write_history_event(
-            contact,
-            {
-                "uuid": "019880eb-e488-76d2-a8c4-872e95772003",  # 3
-                "type": "contact_groups_changed",
-                "created_on": "2025-08-06T19:46:39.880448169Z",  # less than 1ms after previous event
-                "groups_added": [{"uuid": "fac9a1bd-6db5-4efb-8899-097acda87f96", "name": "Youth"}],
-                "_user": None,  # in theory shouldn't happen but who knows
-            },
-        )
-        self.write_history_event(
-            contact,
-            {
-                "uuid": "019880eb-e4f1-761b-bc99-750003cf8004",  # 4
-                "type": "contact_name_changed",
-                "created_on": "2025-08-06T19:46:39.985439836Z",
-                "name": "Bob",
-            },
-        )
-        self.write_history_event(
-            contact,
-            {
-                "uuid": "019880eb-e555-7ce9-9ea3-95bf693ee005",  # 5
-                "type": "contact_name_changed",
-                "created_on": "2025-08-06T19:46:40.085871336Z",
-                "name": "Robert",
-            },
-        )
+        contact = self.create_contact("Jim", phone="+593979111111", uuid="7e8ff9aa-4b60-49e2-81a6-e79c92635c1e")
 
-        self.write_history_event(
-            contact,
+        items = [
             {
-                "uuid": "01988abd-1dad-7309-b8b4-adb8380ef531",  # 6
-                "type": "contact_status_changed",  # not a supported type for now
-                "created_on": "2025-08-06T19:47:40.085871336Z",
-                "status": "blocked",
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019880eb-e422-7d67-993f-cdec64636001",  # 1: (last char is 1...5)
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "contact_language_changed",
+                    "created_on": "2025-08-06T19:46:39.778889794Z",
+                    "language": "spa",
+                    "_user": {"uuid": str(self.admin.uuid), "name": "Andrew"},  # name wrong
+                },
             },
-        )
-
-        dynamo.HISTORY.put_item(
-            Item={
-                "PK": f"con#{contact.uuid}",
+            {
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019880eb-e488-7652-beb6-0051d9cd6002",  # 2
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "contact_field_changed",
+                    "created_on": "2025-08-06T19:46:39.880430294Z",
+                    "field": {"key": "age", "name": "Age"},
+                    "value": {"text": "44"},
+                    "_user": {"uuid": "e99c9705-8cc3-4063-8c54-fa702cbac867", "name": "Jimmy"},  # user no longer exists
+                },
+            },
+            {
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019880eb-e488-76d2-a8c4-872e95772003",  # 3
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "contact_groups_changed",
+                    "created_on": "2025-08-06T19:46:39.880448169Z",  # less than 1ms after previous event
+                    "groups_added": [{"uuid": "fac9a1bd-6db5-4efb-8899-097acda87f96", "name": "Youth"}],
+                    "_user": None,  # in theory shouldn't happen but who knows
+                },
+            },
+            {
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019880eb-e4f1-761b-bc99-750003cf8004",  # 4
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "msg_received",
+                    "created_on": "2025-08-06T19:46:39.985439836Z",
+                    "msg": {"text": "Hello?"},
+                },
+            },
+            {
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
                 "SK": "evt#019880eb-e4f1-761b-bc99-750003cf8004#del",  # delete tag for event 4
-                "OrgID": contact.org_id,
-                "Data": {"deleted_by": "sender"},
-            }
-        )
+                "OrgID": self.org.id,
+                "Data": {
+                    "created_on": "2025-09-08T19:46:39.985439836Z",
+                    "by_contact": True,
+                },
+            },
+            {
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019880eb-e555-7ce9-9ea3-95bf693ee005",  # 5
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "contact_name_changed",
+                    "created_on": "2025-08-06T19:46:40.085871336Z",
+                    "name": "Robert",
+                },
+            },
+            {
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#01988abd-1dad-7309-b8b4-adb8380ef006",  # 6
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "contact_status_changed",
+                    "created_on": "2025-08-06T19:47:40.085871336Z",
+                    "status": "blocked",
+                },
+            },
+            {
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019a9336-9228-71f0-becb-a56435927007",  # 7
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "msg_created",
+                    "created_on": "2025-11-17T19:06:58.472135Z",
+                    "msg": {"text": "Oops"},  # no channel or URN
+                    "unsendable_reason": "no_route",
+                },
+            },
+            {
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019a9336-9228-73e8-b4f5-3a2b42593008",  # 8
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "msg_created",
+                    "created_on": "2025-11-17T19:06:58.472259Z",
+                    "msg": {
+                        "text": "Trying again",
+                        "channel": {"uuid": str(self.channel.uuid), "name": self.channel.name},
+                    },
+                },
+            },
+            {
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019a9336-9228-73e8-b4f5-3a2b42593008#sts",  # status tag for event 8
+                "OrgID": self.org.id,
+                "Data": {
+                    "created_on": "2025-11-17T19:07:58.472259Z",
+                    "status": "wired",
+                },
+            },
+        ]
 
-        def assert_fetched(after, before, limit, expected: list):
-            fetched = Event.get_by_contact(contact, after=after, before=before, ticket_uuid=None, limit=limit)
+        with dynamo.HISTORY.batch_writer() as writer:
+            for item in items:
+                writer.put_item(item)
 
-            if expected and isinstance(expected[0], str):
-                self.assertEqual(expected, [e["uuid"] for e in fetched])
-            else:
-                self.assertEqual(expected, [e for e in fetched])
-
-        assert_fetched(
+        self.assert_fetched(
+            contact,
+            self.admin,
             iso8601.parse_date("2025-08-06T18:46:40.085871336Z"),
             iso8601.parse_date("2025-08-06T19:46:40.085871336Z"),  # event 5 (exclusive)
-            5,
-            [
+            limit=5,
+            expected=[
                 {
                     "uuid": "019880eb-e4f1-761b-bc99-750003cf8004",
-                    "type": "contact_name_changed",
+                    "type": "msg_received",
                     "created_on": "2025-08-06T19:46:39.985439836Z",
-                    "name": "Bob",
+                    "msg": {
+                        "text": "Hello?",
+                    },
+                    "_deleted": {"created_on": "2025-09-08T19:46:39.985439836Z", "by_contact": True},  # injected
                 },
                 {
                     "uuid": "019880eb-e488-76d2-a8c4-872e95772003",
@@ -176,229 +167,314 @@ class EventTest(TembaTest):
             ],
         )
 
-        assert_fetched(
+        self.assert_fetched(
+            contact,
+            self.admin,
             iso8601.parse_date("2025-08-06T18:46:40.085871336Z"),
             iso8601.parse_date("2025-08-06T19:46:40.085871336Z"),  # event 5 (exclusive)
-            3,
-            [
+            limit=3,
+            expected=[
                 "019880eb-e4f1-761b-bc99-750003cf8004",
                 "019880eb-e488-76d2-a8c4-872e95772003",
                 "019880eb-e488-7652-beb6-0051d9cd6002",
             ],
         )
 
-        assert_fetched(
+        self.assert_fetched(
+            contact,
+            self.admin,
             iso8601.parse_date("2025-08-06T19:46:39.880430294Z"),  # event 2 (inclusive)
             iso8601.parse_date("2025-08-06T19:46:40.085871336Z"),  # event 5 (exclusive)
-            5,
-            [
+            limit=5,
+            expected=[
                 "019880eb-e4f1-761b-bc99-750003cf8004",
                 "019880eb-e488-76d2-a8c4-872e95772003",
                 "019880eb-e488-7652-beb6-0051d9cd6002",
             ],
         )
 
-        assert_fetched(
+        self.assert_fetched(
+            contact,
+            self.admin,
             iso8601.parse_date("2025-08-06T19:46:40.085871336Z"),
             iso8601.parse_date("2025-08-06T18:46:40.085871336Z"),  # after < before
-            5,
-            [],
+            limit=5,
+            expected=[],
         )
 
-    def test_from_msg(self):
-        contact1 = self.create_contact("Jim", phone="0979111111")
-        contact2 = self.create_contact("Bob", phone="0979222222")
-
-        # create msg that is too old to still have logs
-        msg_in = self.create_incoming_msg(
-            contact1,
-            "Hello",
-            external_id="12345",
-            attachments=["image:http://a.jpg"],
-            created_on=timezone.now() - timedelta(days=15),
-        )
-
-        self.assertEqual(
-            {
-                "uuid": str(msg_in.uuid),
-                "type": "msg_received",
-                "created_on": matchers.ISODatetime(),
-                "msg": {
-                    "urn": "tel:+250979111111",
-                    "text": "Hello",
-                    "attachments": ["image:http://a.jpg"],
-                    "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
-                    "external_id": "12345",
+        self.assert_fetched(
+            contact,
+            self.admin,
+            iso8601.parse_date("2025-11-17T19:06:58.472135Z"),
+            iso8601.parse_date("2025-11-20T19:06:58.472135Z"),
+            limit=5,
+            expected=[
+                {
+                    "uuid": "019a9336-9228-73e8-b4f5-3a2b42593008",
+                    "type": "msg_created",
+                    "created_on": "2025-11-17T19:06:58.472259Z",
+                    "msg": {
+                        "text": "Trying again",
+                        "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
+                    },
+                    "_status": {"created_on": "2025-11-17T19:07:58.472259Z", "status": "wired"},
+                    "_logs_url": f"/channels/channel/logs/{self.channel.uuid}/msg/019a9336-9228-73e8-b4f5-3a2b42593008/",
                 },
-                "_logs_url": None,
-            },
-            Event.from_msg(self.org, self.admin, msg_in),
-        )
-
-        msg_in.visibility = Msg.VISIBILITY_DELETED_BY_USER
-        msg_in.save(update_fields=("visibility",))
-
-        self.assertEqual(
-            {
-                "uuid": str(msg_in.uuid),
-                "type": "msg_received",
-                "created_on": matchers.ISODatetime(),
-                "msg": {
-                    "urn": "tel:+250979111111",
-                    "text": "",
-                    "attachments": [],
-                    "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
-                    "external_id": "12345",
-                },
-                "_logs_url": None,
-                "_deleted": {"created_on": matchers.ISODatetime()},
-            },
-            Event.from_msg(self.org, self.admin, msg_in),
-        )
-
-        msg_in.visibility = Msg.VISIBILITY_DELETED_BY_SENDER
-        msg_in.save(update_fields=("visibility",))
-
-        self.assertEqual(
-            {
-                "uuid": str(msg_in.uuid),
-                "type": "msg_received",
-                "created_on": matchers.ISODatetime(),
-                "msg": {
-                    "urn": "tel:+250979111111",
-                    "text": "",
-                    "attachments": [],
-                    "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
-                    "external_id": "12345",
-                },
-                "_logs_url": None,
-                "_deleted": {"created_on": matchers.ISODatetime(), "by_contact": True},
-            },
-            Event.from_msg(self.org, self.admin, msg_in),
-        )
-
-        msg_out = self.create_outgoing_msg(
-            contact1, "Hello", channel=self.channel, status="E", quick_replies=["yes", "no"], created_by=self.agent
-        )
-
-        self.assertEqual(
-            {
-                "uuid": str(msg_out.uuid),
-                "type": "msg_created",
-                "created_on": matchers.ISODatetime(),
-                "msg": {
-                    "urn": "tel:+250979111111",
-                    "text": "Hello",
-                    "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
-                    "quick_replies": ["yes", "no"],
-                },
-                "_user": {"uuid": str(self.agent.uuid), "name": "Agnes", "avatar": None},
-                "_status": {"created_on": matchers.ISODatetime(), "status": "errored"},
-                "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out.uuid}/",
-            },
-            Event.from_msg(self.org, self.admin, msg_out),
-        )
-
-        # outgoing msg that was unsendable
-        msg_out = self.create_outgoing_msg(contact1, "Hello", status="F", failed_reason=Msg.FAILED_NO_DESTINATION)
-
-        self.assertEqual(
-            {
-                "uuid": str(msg_out.uuid),
-                "type": "msg_created",
-                "created_on": matchers.ISODatetime(),
-                "msg": {
-                    "urn": None,
-                    "text": "Hello",
-                    "channel": None,
+                {
+                    "uuid": "019a9336-9228-71f0-becb-a56435927007",
+                    "type": "msg_created",
+                    "created_on": "2025-11-17T19:06:58.472135Z",
+                    "msg": {"text": "Oops"},
                     "unsendable_reason": "no_route",
                 },
-                "_logs_url": None,
-                "_failed_reason": "No suitable channel found",  # deprecated
-            },
-            Event.from_msg(self.org, self.admin, msg_out),
+            ],
         )
 
-        # outgoing msg that failed sending
-        msg_out = self.create_outgoing_msg(contact1, "Hello", status="F", failed_reason=Msg.FAILED_ERROR_LIMIT)
+        # try with user that can't view channel logs
+        self.assert_fetched(
+            contact,
+            self.editor,
+            iso8601.parse_date("2025-11-17T19:06:58.472135Z"),
+            iso8601.parse_date("2025-11-20T19:06:58.472135Z"),
+            limit=5,
+            expected=[
+                {
+                    "uuid": "019a9336-9228-73e8-b4f5-3a2b42593008",
+                    "type": "msg_created",
+                    "created_on": "2025-11-17T19:06:58.472259Z",
+                    "msg": {
+                        "text": "Trying again",
+                        "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
+                    },
+                    "_status": {"created_on": "2025-11-17T19:07:58.472259Z", "status": "wired"},
+                },
+                {
+                    "uuid": "019a9336-9228-71f0-becb-a56435927007",
+                    "type": "msg_created",
+                    "created_on": "2025-11-17T19:06:58.472135Z",
+                    "msg": {"text": "Oops"},
+                    "unsendable_reason": "no_route",
+                },
+            ],
+        )
 
+    @cleanup(dynamodb=True)
+    def test_get_by_contact_ticket_filtering(self):
+        contact = self.create_contact(
+            name="Joe Blow", urns=["twitter:blow80", "tel:+250781111111"], uuid="7e8ff9aa-4b60-49e2-81a6-e79c92635c1e"
+        )
+
+        items = [
+            {
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019a9336-9228-71f0-becb-a56435927677",
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "contact_urns_changed",
+                    "created_on": "2025-11-17T19:06:58.472135Z",
+                    "urns": ["twitter:blow80", "tel:+250781111111", "twitter:joey"],
+                },
+            },
+            {
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019a9336-9228-73e8-b4f5-3a2b42593bb0",
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "contact_field_changed",
+                    "created_on": "2025-11-17T19:06:58.472259Z",
+                    "field": {"key": "age", "name": "Age"},
+                    "value": None,
+                },
+            },
+            {  # open ticket #1
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019a9336-9228-75c8-8824-0dd4f9484be9",
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "ticket_opened",
+                    "created_on": "2025-11-17T19:06:58.472386Z",
+                    "ticket": {
+                        "uuid": "01994f4f-45ba-7f25-a785-b52e19b16c6b",
+                        "status": "open",
+                        "topic": {"uuid": "0d261518-d7d6-410d-bbae-0ef822d8f865", "name": "General"},
+                    },
+                },
+            },
+            {  # assign ticket #1
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019a9336-9228-77b8-805c-facb06b1af7c",
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "ticket_assignee_changed",
+                    "created_on": "2025-11-17T19:06:58.472509Z",
+                    "ticket_uuid": "01994f4f-45ba-7f25-a785-b52e19b16c6b",
+                    "assignee": None,
+                },
+            },
+            {
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019a9336-9228-79a0-9f72-232125ced67d",
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "contact_language_changed",
+                    "created_on": "2025-11-17T19:06:58.472633Z",
+                    "language": "spa",
+                },
+            },
+            {  # close ticket #1
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019a9336-9228-7b7d-b068-89df0c04df2f",
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "ticket_closed",
+                    "created_on": "2025-11-17T19:06:58.472755Z",
+                    "ticket_uuid": "01994f4f-45ba-7f25-a785-b52e19b16c6b",
+                },
+            },
+            {
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019a9336-9228-7d59-b7c2-25c3d7091357",
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "contact_field_changed",
+                    "created_on": "2025-11-17T19:06:58.472876Z",
+                    "field": {"key": "gender", "name": "Gender"},
+                    "value": {"text": "M"},
+                },
+            },
+            {  # open ticket #2
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019a9336-9228-7f2e-bb18-26c5f392fec5",
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "ticket_opened",
+                    "created_on": "2025-11-17T19:06:58.472996Z",
+                    "ticket": {
+                        "uuid": "01994f50-ecb1-7b96-944e-64bcbe0cbdd2",
+                        "status": "open",
+                        "topic": {"uuid": "472a7a73-96cb-4736-b567-056d987cc5b4", "name": "Weather"},
+                    },
+                },
+            },
+            {  # note added to ticket #2
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019a9336-9229-71c1-a6f9-695b374c13a3",
+                "OrgID": self.org.id,
+                "Data": {
+                    "type": "ticket_note_added",
+                    "created_on": "2025-11-17T19:06:58.473117Z",
+                    "ticket_uuid": "01994f50-ecb1-7b96-944e-64bcbe0cbdd2",
+                    "note": "This looks important!",
+                },
+            },
+        ]
+        with dynamo.HISTORY.batch_writer() as writer:
+            for item in items:
+                writer.put_item(item)
+
+        # by default we only include basic ticket event types
+        self.assert_fetched(
+            contact,
+            self.admin,
+            iso8601.parse_date("2025-11-17T00:00Z"),
+            iso8601.parse_date("2025-11-17T23:00Z"),
+            expected=[
+                "019a9336-9228-7f2e-bb18-26c5f392fec5",  # ticket_opened for ticket 2
+                "019a9336-9228-7d59-b7c2-25c3d7091357",
+                "019a9336-9228-7b7d-b068-89df0c04df2f",  # ticket_closed for ticket 1
+                "019a9336-9228-79a0-9f72-232125ced67d",
+                "019a9336-9228-75c8-8824-0dd4f9484be9",  # ticket_opened for ticket 1
+                "019a9336-9228-73e8-b4f5-3a2b42593bb0",
+                "019a9336-9228-71f0-becb-a56435927677",
+            ],
+        )
+
+        # if we specify ticket 1 then we get only events for that ticket
+        self.assert_fetched(
+            contact,
+            self.admin,
+            iso8601.parse_date("2025-11-17T00:00Z"),
+            iso8601.parse_date("2025-11-17T23:00Z"),
+            ticket="01994f4f-45ba-7f25-a785-b52e19b16c6b",
+            expected=[
+                "019a9336-9228-7d59-b7c2-25c3d7091357",
+                "019a9336-9228-7b7d-b068-89df0c04df2f",  # ticket_closed for ticket 1
+                "019a9336-9228-79a0-9f72-232125ced67d",
+                "019a9336-9228-77b8-805c-facb06b1af7c",  # ticket_assignee_changed for ticket 1
+                "019a9336-9228-75c8-8824-0dd4f9484be9",  # ticket_opened for ticket 1
+                "019a9336-9228-73e8-b4f5-3a2b42593bb0",
+                "019a9336-9228-71f0-becb-a56435927677",
+            ],
+        )
+
+        # likewise for ticket 2
+        self.assert_fetched(
+            contact,
+            self.admin,
+            iso8601.parse_date("2025-11-17T00:00Z"),
+            iso8601.parse_date("2025-11-17T23:00Z"),
+            ticket="01994f50-ecb1-7b96-944e-64bcbe0cbdd2",
+            expected=[
+                "019a9336-9229-71c1-a6f9-695b374c13a3",  # ticket_note_added for ticket 2
+                "019a9336-9228-7f2e-bb18-26c5f392fec5",  # ticket_opened for ticket 2
+                "019a9336-9228-7d59-b7c2-25c3d7091357",
+                "019a9336-9228-79a0-9f72-232125ced67d",
+                "019a9336-9228-73e8-b4f5-3a2b42593bb0",
+                "019a9336-9228-71f0-becb-a56435927677",
+            ],
+        )
+
+    def test_from_item(self):
+        contact = self.create_contact("Jim", phone="+593979111111")
+        event = Event._from_item(
+            contact,
+            {
+                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-2c93-76f8-8f41-6b2d9f33d623",
+                "OrgID": self.org.id,
+                "TTL": 1747571456,
+                "Data": {
+                    "type": "contact_field_changed",
+                    "created_on": "2025-05-04T12:30:56.123456789Z",
+                    "field": {"key": "age", "name": "Age"},
+                    "value": {"text": "44"},
+                },
+            },
+        )
         self.assertEqual(
             {
-                "uuid": str(msg_out.uuid),
-                "type": "msg_created",
-                "created_on": matchers.ISODatetime(),
-                "msg": {
-                    "urn": "tel:+250979111111",
-                    "text": "Hello",
-                    "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
-                },
-                "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out.uuid}/",
-                "_status": {"created_on": matchers.ISODatetime(), "status": "failed", "reason": "error_limit"},
-                "_failed_reason": "Retry limit reached",  # deprecated
+                "uuid": "01969b47-2c93-76f8-8f41-6b2d9f33d623",
+                "type": "contact_field_changed",
+                "created_on": "2025-05-04T12:30:56.123456789Z",
+                "field": {"key": "age", "name": "Age"},
+                "value": {"text": "44"},
             },
-            Event.from_msg(self.org, self.admin, msg_out),
+            event,
         )
 
-        ivr_out = self.create_outgoing_msg(contact1, "Hello", voice=True)
-
-        self.assertEqual(
+        event = Event._from_item(
+            contact,
             {
-                "uuid": str(ivr_out.uuid),
-                "type": "ivr_created",
-                "created_on": matchers.ISODatetime(),
-                "msg": {
-                    "urn": "tel:+250979111111",
-                    "text": "Hello",
-                    "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
-                },
-                "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{ivr_out.uuid}/",
+                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-672b-76f8-bebe-b4a1f677cf4c",
+                "OrgID": self.org.id,
+                "TTL": 1747571471,
+                "Data": {"type": "session_triggered"},
+                "DataGZ": Binary(
+                    base64.b64decode(
+                        "H4sIAAAAAAAA/6RVTW/cNhD9KwKvFVt+U9KpToC0RdGLm0PiNBCG5HBDRCu5EmXHCfa/F9TKGzdNiwAFdJBI4s17bx5Hn8i6pkA6wnhrWqcsNVY4ak1sqEOH1Cng0Vjro/KkJvnhFklHFlyWNI19ntPhgDMGUhM/I2QM/TSSjggmNGWaMvWSi07yjvPvuZBKG9u0N6QmS8bbfq/tpXLG20AjMEOVNpK2AiQNRjXgjHLeO1KTOEz3pLswdtZHFhpJI/ctVZx72poYqNecg/IRGlNojXAsjK/xkJY8Q07TWL0oSKea+GnM4PNCujcX2EawqFshqZSmwHpDnfSBQtTWeuaCcs1n2GeTI6e3NcEPfliLJQvpPp1qMq9jv6zHI8wPhfJeaHv9u02MUcYp4y8Z67anmBMTDqEgEfA53W2k+zy9x7GsZfyQSUdevXpFX79+TW9uboqWmOYl92dalzPPcCx7M9z3ochPZw777i/VkO6wSmN1gAXcVI4uGfKGsL+Q63sYA1R/rIxJrH5NBxhS9Tzlh5KGM86/HzmdanKYp/X2bPFu2u/rfIcP1dUaEo4eSf3ovQAIgkdDJXOWKuE1dcFGyp0VzHOtGm7Jqb4APSlV/YZHh/PyGSzYGFVjBW2FbKjSItI2yIaKqHUTEZoW2da7cnrPZk0GGA8rHAo6jgdSFpbcL4jjpWNm65h4yXXHVMf0zZM44Fj9DOVKbP4UD9eFdOc2FqE5HfHjNJazV0eck4cfflrhAf5c01CozyVAb0jGofuOC2a01lxwUTIBHt00ve84F0JKpbQ2xtqmhPEIachT53D88Qj+/YDHad6q3aeccS4b/btHWm8vDjlojYs2UucFUNVYScF6S4VWgbfCeoVyi9Z+8XaRV8NQXfm8hf2C1XhQyrOW2pYHqrQE2tq2pWBZCFIyKZnZoojLOuQt2yKCz9O8XQrIeJjKXSFlkuxf/TB5GNJHDPv6f04YYfcJU/qBH/IMpBvXYahJGm/XfIbYJYgX59I1GaeAj3MoaudaZ4Fap5Eq7SVtIkNquFPYagyRSVKTOxjWAiKVkcoIpYzUQm9Gwd00p4y9n4Z/CLs+T8mvabv+hgEqxLfLe7HzqJ5vPP6XyjLcT6evZfnLPwfncv9ztJ45KhhXIXhrWauKOe/SkqfzOLyFGcfcfwnAdCPPAIA20tg4oaRXbYya1ARGjwVhIR1/8tUvafTY7yaw0+mvAAAA//+R/as+0wYAAA=="
+                    )
+                ),
             },
-            Event.from_msg(self.org, self.admin, ivr_out),
         )
+        self.assertEqual("01969b47-672b-76f8-bebe-b4a1f677cf4c", event["uuid"])
+        self.assertEqual("session_triggered", event["type"])
+        self.assertEqual({"uuid": "b7cf0d83-f1c9-411c-96fd-c511a4cfa86d", "name": "Registration Flow"}, event["flow"])
 
-        bcast = self.create_broadcast(self.admin, {"und": {"text": "Hi there"}}, contacts=[contact1, contact2])
-        msg_out2 = bcast.msgs.filter(contact=contact1).get()
+    def assert_fetched(self, contact, user, after, before, *, limit=50, ticket=None, expected: list):
+        fetched = Event.get_by_contact(contact, user, after=after, before=before, ticket_uuid=ticket, limit=limit)
 
-        self.assertEqual(
-            {
-                "uuid": str(msg_out2.uuid),
-                "type": "msg_created",
-                "created_on": matchers.ISODatetime(),
-                "msg": {
-                    "urn": "tel:+250979111111",
-                    "text": "Hi there",
-                    "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
-                },
-                "broadcast_uuid": str(bcast.uuid),
-                "_user": {"uuid": str(self.admin.uuid), "name": "Andy", "avatar": None},
-                "_status": {"created_on": matchers.ISODatetime(), "status": "sent"},
-                "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out2.uuid}/",
-            },
-            Event.from_msg(self.org, self.admin, msg_out2),
-        )
-
-        # create a broadcast that was sent with an opt-in
-        optin = self.create_optin("Polls")
-        bcast2 = self.create_broadcast(
-            self.admin, {"und": {"text": "Hi there"}}, contacts=[contact1, contact2], optin=optin
-        )
-        msg_out3 = bcast2.msgs.filter(contact=contact1).get()
-
-        self.assertEqual(
-            {
-                "uuid": str(msg_out3.uuid),
-                "type": "msg_created",
-                "created_on": matchers.ISODatetime(),
-                "msg": {
-                    "urn": "tel:+250979111111",
-                    "text": "Hi there",
-                    "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
-                },
-                "broadcast_uuid": str(bcast2.uuid),
-                "optin": {"uuid": str(optin.uuid), "name": "Polls"},
-                "_user": {"uuid": str(self.admin.uuid), "name": "Andy", "avatar": None},
-                "_status": {"created_on": matchers.ISODatetime(), "status": "sent"},
-                "_logs_url": f"/channels/channel/logs/{str(self.channel.uuid)}/msg/{msg_out3.uuid}/",
-            },
-            Event.from_msg(self.org, self.admin, msg_out3),
-        )
+        if expected and isinstance(expected[0], str):
+            self.assertEqual(expected, [e["uuid"] for e in fetched])
+        else:
+            self.assertEqual(expected, [e for e in fetched])

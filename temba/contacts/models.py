@@ -3,10 +3,8 @@ import logging
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone as tzone
 from decimal import Decimal
-from itertools import chain
 from pathlib import Path
 from typing import Any
-from uuid import UUID
 
 import iso8601
 import phonenumbers
@@ -706,30 +704,6 @@ class Contact(LegacyUUIDMixin, SmartModel):
             )
 
         return sorted(merged, key=lambda k: k["scheduled"])
-
-    def get_history(self, after, before, *, ticket_uuid: UUID, limit: int) -> list:
-        """
-        Gets this contact's history of messages, calls, runs etc in the given time window
-        """
-        from temba.mailroom.events import Event, get_event_time
-        from temba.msgs.models import Msg
-
-        msgs = (
-            self.msgs.filter(created_on__gte=after, created_on__lt=before)
-            .exclude(status=Msg.STATUS_PENDING)
-            .exclude(msg_type=Msg.TYPE_OPTIN)
-            .order_by("-created_on", "-id")
-            .select_related("channel", "contact_urn", "broadcast", "optin")[:limit]
-        )
-
-        # chain all items together, sort by their event time, and slice
-        items = chain(
-            msgs,
-            Event.get_by_contact(self, after=after, before=before, ticket_uuid=ticket_uuid, limit=limit),
-        )
-
-        # sort and slice
-        return sorted(items, key=get_event_time, reverse=True)[:limit]
 
     def get_field_serialized(self, field) -> str:
         """

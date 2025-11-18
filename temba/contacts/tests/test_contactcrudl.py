@@ -1,7 +1,6 @@
-from datetime import timedelta, timezone as tzone
+from datetime import datetime, timedelta, timezone as tzone
 from unittest.mock import call, patch
-
-import iso8601
+from uuid import UUID
 
 from django.urls import reverse
 from django.utils import timezone
@@ -11,14 +10,14 @@ from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import Contact, ContactExport, ContactField, ContactFire
 from temba.locations.models import AdminBoundary
 from temba.mailroom.client.types import Exclusions
-from temba.msgs.models import Msg
 from temba.orgs.models import Export, OrgRole
 from temba.schedules.models import Schedule
-from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, cleanup, mock_mailroom
+from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom
 from temba.tests.engine import MockSessionWriter
 from temba.triggers.models import Trigger
 from temba.utils import json
 from temba.utils.dates import datetime_to_timestamp
+from temba.utils.uuid import uuid7
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
 
@@ -504,163 +503,184 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(reverse("contacts.contact_read", args=["invalid-uuid"]))
         self.assertEqual(response.status_code, 404)
 
-    def test_history(self):
-        joe = self.create_contact(name="Joe Blow", urns=["twitter:blow80", "tel:+250781111111"])
-        joe.created_on = timezone.now() - timedelta(days=1000)
-        joe.save(update_fields=("created_on",))
-        kurt = self.create_contact("Kurt", phone="123123")
+    @patch("temba.mailroom.events.Event.get_by_contact")
+    @patch("django.utils.timezone.now")
+    def test_history(self, mock_now, mock_get_by_contact):
+        mock_now.return_value = datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc)
+        mock_get_by_contact.return_value = []
 
-        history_url = reverse("contacts.contact_history", args=[joe.uuid])
-
-        self.create_broadcast(self.editor, {"eng": {"text": "A beautiful broadcast"}}, contacts=[joe])
-        self.create_campaign(joe)
-
-        # add a message with some attachments
-        self.create_incoming_msg(
-            joe,
-            "Message caption",
-            created_on=timezone.now(),
-            attachments=[
-                "audio/mp3:http://blah/file.mp3",
-                "video/mp4:http://blah/file.mp4",
-                "geo:47.5414799,-122.6359908",
-            ],
+        contact = self.create_contact(
+            name="Joe Blow", urns=["tel:+250781111111"], created_on=datetime(2025, 11, 16, 12, 0, tzinfo=tzone.utc)
         )
 
-        # create some messages
-        for i in range(95):
-            self.create_incoming_msg(
-                joe, "Inbound message %d" % i, created_on=timezone.now() - timedelta(days=(100 - i))
+        history_url = reverse("contacts.contact_history", args=[contact.uuid])
+
+        self.login(self.editor)
+
+        # no params means we're polling for new events
+        response = self.client.get(history_url)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "events": [],
+                "has_older": False,
+                "next_after": 1763290800000000,
+                "next_before": 1755620100000000,
+                "recent_only": True,
+            },
+            response.json(),
+        )
+
+        mock_get_by_contact.assert_called_once_with(
+            contact,
+            self.editor,
+            after=datetime(2025, 8, 19, 16, 15, tzinfo=tzone.utc),
+            before=datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc),
+            ticket_uuid=None,
+            limit=50,
+        )
+        mock_get_by_contact.reset_mock()
+
+        # subsequent requests will pass back the after value
+        response = self.client.get(history_url + "?after=1763290800000000")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "events": [],
+                "has_older": False,
+                "next_after": 1763290800000000,
+                "next_before": 1763290800000000,
+                "recent_only": True,
+            },
+            response.json(),
+        )
+
+        mock_get_by_contact.assert_called_once_with(
+            contact,
+            self.editor,
+            after=datetime(2025, 11, 16, 11, 0, tzinfo=tzone.utc),
+            before=datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc),
+            ticket_uuid=None,
+            limit=50,
+        )
+        mock_get_by_contact.reset_mock()
+
+        # if we specify a before time then we're fetching older events
+        response = self.client.get(
+            history_url + f"?before={datetime_to_timestamp(datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc))}"
+        )
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "events": [],
+                "has_older": False,
+                "next_after": 1763290800000000,
+                "next_before": 1763290800000000,
+                "recent_only": False,
+            },
+            response.json(),
+        )
+
+        # now simulate more older events than can fit in one response
+        lots_of_messages = []
+        for i in range(59):
+            when = datetime(2025, 11, 17, 16, 10, i, tzinfo=tzone.utc)
+            lots_of_messages.append(
+                {
+                    "uuid": uuid7(when=when),
+                    "type": "msg_received",
+                    "created_on": when.isoformat(),
+                    "msg": {"text": f"Message {i}"},
+                }
             )
 
-        # because messages are stored with timestamps from external systems, possible to have initial message
-        # which is little bit older than the contact itself
-        self.create_incoming_msg(joe, "Very old inbound message", created_on=joe.created_on - timedelta(seconds=10))
+        mock_get_by_contact.reset_mock()
+        mock_get_by_contact.side_effect = [lots_of_messages[:50], lots_of_messages[50:]]
 
-        flow = self.get_flow("color_v13")
-        nodes = flow.get_definition()["nodes"]
-        color_prompt = nodes[0]
-        color_split = nodes[4]
-
-        (
-            MockSessionWriter(joe, flow)
-            .visit(color_prompt)
-            .send_msg("What is your favorite color?", self.channel)
-            .call_webhook("POST", "https://example.com/", "1234")  # pretend that flow run made a webhook request
-            .visit(color_split)
-            .set_result("Color", "green", "Green", "I like green")
-            .wait()
-            .save()
+        response = self.client.get(
+            history_url + f"?before={datetime_to_timestamp(datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc))}"
         )
-        (
-            MockSessionWriter(kurt, flow)
-            .visit(color_prompt)
-            .send_msg("What is your favorite color?", self.channel)
-            .visit(color_split)
-            .wait()
-            .save()
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "events": matchers.List(length=50),
+                "has_older": True,
+                "next_after": 1763290800000000,
+                "next_before": 1763395849000000,
+                "recent_only": False,
+            },
+            response.json(),
         )
 
-        # mark an outgoing message as failed
-        failed = Msg.objects.filter(direction="O", contact=joe).last()
-        failed.status = "F"
-        failed.save(update_fields=("status",))
-
-        # fetch our contact history
-        self.login(self.admin)
-        with self.assertNumQueries(14):
-            response = self.client.get(history_url + "?limit=100")
-
-        # history should include all messages in the last 90 days, the channel event, the call, and the flow run
-        history = response.json()["events"]
-        self.assertEqual(87, len(history))
-
-        def assertHistoryEvent(events, index, expected_type, **kwargs):
-            item = events[index]
-            self.assertEqual(expected_type, item["type"], f"event type mismatch for item {index}")
-            self.assertTrue(iso8601.parse_date(item["created_on"]))  # check created_on exists and is ISO string
-
-            for path, expected in kwargs.items():
-                self.assertPathValue(item, path, expected, f"item {index}")
-
-        assertHistoryEvent(history, 0, "msg_created", msg__text="What is your favorite color?")
-        assertHistoryEvent(history, 1, "msg_received", msg__text="Message caption")
-        assertHistoryEvent(history, 2, "msg_created", msg__text="A beautiful broadcast", _user__name="Ed McEdits")
-        assertHistoryEvent(history, -1, "msg_received", msg__text="Inbound message 11")
-
-        # fetch next page
-        before = datetime_to_timestamp(timezone.now() - timedelta(days=90))
-        response = self.requestView(history_url + "?limit=100&before=%d" % before, self.admin)
-        self.assertFalse(response.json()["has_older"])
-
-        # activity should include 11 remaining messages and the event fire
-        history = response.json()["events"]
-        self.assertEqual(12, len(history))
-        assertHistoryEvent(history, 0, "msg_received", msg__text="Inbound message 10")
-        assertHistoryEvent(history, 10, "msg_received", msg__text="Inbound message 0")
-        assertHistoryEvent(history, 11, "msg_received", msg__text="Very old inbound message")
-
-        response = self.requestView(history_url + "?limit=100", self.admin)
-        history = response.json()["events"]
-
-        self.assertEqual(87, len(history))
-        assertHistoryEvent(history, 0, "msg_created", msg__text="What is your favorite color?")
-
-        # if a new message comes in
-        self.create_incoming_msg(joe, "Newer message")
-        response = self.requestView(history_url, self.admin)
-
-        # now we'll see the message that just came in first
-        history = response.json()["events"]
-        assertHistoryEvent(history, 0, "msg_received", msg__text="Newer message")
-
-        recent_start = datetime_to_timestamp(timezone.now() - timedelta(days=1))
-        response = self.requestView(history_url + "?limit=100&after=%s" % recent_start, self.admin)
-
-        # with our recent flag on, should not see the older messages
-        events = response.json()["events"]
-        self.assertEqual(4, len(events))
-        self.assertContains(response, "file.mp4")
-
-        # add a new run
-        (
-            MockSessionWriter(joe, flow)
-            .visit(color_prompt)
-            .send_msg("What is your favorite color?", self.channel)
-            .visit(color_split)
-            .wait()
-            .save()
+        # should now have an extra call to check if there is more
+        mock_get_by_contact.assert_has_calls(
+            [
+                call(
+                    contact,
+                    self.editor,
+                    after=datetime(2025, 8, 19, 16, 15, tzinfo=tzone.utc),
+                    before=datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc),
+                    ticket_uuid=None,
+                    limit=50,
+                ),
+                call(
+                    contact,
+                    self.editor,
+                    after=datetime(2025, 11, 16, 11, 0, tzinfo=tzone.utc),
+                    before=datetime(2025, 11, 17, 16, 10, 49, tzinfo=tzone.utc),
+                    ticket_uuid=None,
+                    limit=1,
+                ),
+            ]
         )
+        mock_get_by_contact.reset_mock()
+        mock_get_by_contact.side_effect = None
+        mock_get_by_contact.return_value = []
 
-        response = self.requestView(history_url + "?limit=200", self.admin)
-        history = response.json()["events"]
-        self.assertEqual(89, len(history))
-
-        # before date should not match our last activity, that only happens when we truncate
-        resp_json = response.json()
-        self.assertNotEqual(
-            resp_json["next_before"],
-            datetime_to_timestamp(iso8601.parse_date(resp_json["events"][-1]["created_on"])),
+        # try specifying a valid ticket UUID
+        response = self.client.get(history_url + "?ticket=cb09cbc8-c7ba-4cc3-b153-54ced6a0740d")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "events": [],
+                "has_older": False,
+                "next_after": 1763290800000000,
+                "next_before": 1755620100000000,
+                "recent_only": True,
+            },
+            response.json(),
         )
+        mock_get_by_contact.assert_called_once_with(
+            contact,
+            self.editor,
+            after=datetime(2025, 8, 19, 16, 15, tzinfo=tzone.utc),
+            before=datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc),
+            ticket_uuid=UUID("cb09cbc8-c7ba-4cc3-b153-54ced6a0740d"),
+            limit=50,
+        )
+        mock_get_by_contact.reset_mock()
 
-        assertHistoryEvent(history, 0, "msg_created", msg__text="What is your favorite color?")
-        assertHistoryEvent(history, 1, "msg_received", msg__text="Newer message")
-        assertHistoryEvent(history, 2, "msg_created", msg__text="What is your favorite color?")
-
-        # now try the proper max history to test truncation
-        response = self.requestView(history_url + "?before=%d" % datetime_to_timestamp(timezone.now()), self.admin)
-
-        # our before should be the same as the last item
-        resp_json = response.json()
-        last_item_date = datetime_to_timestamp(iso8601.parse_date(resp_json["events"][-1]["created_on"]))
-        self.assertEqual(resp_json["next_before"], last_item_date)
-
-        # and our after should be 90 days earlier
-        self.assertEqual(resp_json["next_after"], last_item_date - (90 * 24 * 60 * 60 * 1000 * 1000))
-        self.assertEqual(50, len(resp_json["events"]))
-
-        # and we should have a marker for older items
-        self.assertTrue(resp_json["has_older"])
+        # try specifying an invalid ticket UUID
+        response = self.client.get(history_url + "?ticket=xxx123")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "events": [],
+                "has_older": False,
+                "next_after": 1763290800000000,
+                "next_before": 1755620100000000,
+                "recent_only": True,
+            },
+            response.json(),
+        )
+        mock_get_by_contact.assert_called_once_with(
+            contact,
+            self.editor,
+            after=datetime(2025, 8, 19, 16, 15, tzinfo=tzone.utc),
+            before=datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc),
+            ticket_uuid=None,  # ignored
+            limit=50,
+        )
 
         # can't view history of contact in other org
         other_org_contact = self.create_contact("Fred", phone="+250768111222", org=self.org2)
@@ -670,148 +690,6 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # invalid UUID should return 404
         response = self.client.get(reverse("contacts.contact_history", args=["837d0842-4f6b-4751-bf21-471df75ce786"]))
         self.assertEqual(response.status_code, 404)
-
-    @cleanup(dynamodb=True)
-    def test_history_session_events(self):
-        joe = self.create_contact(name="Joe Blow", urns=["twitter:blow80", "tel:+250781111111"])
-
-        events = [
-            {
-                "uuid": "01994f54-9441-772b-892e-b552617ed255",
-                "type": "contact_urns_changed",
-                "created_on": "2025-09-15T21:42:47.105495+00:00",
-                "urns": ["twitter:blow80", "tel:+250781111111", "twitter:joey"],
-            },
-            {
-                "uuid": "01994f54-9442-7401-9a64-cfe7d9cdf1d0",
-                "type": "contact_field_changed",
-                "created_on": "2025-09-15T21:42:47.106127+00:00",
-                "field": {"key": "age", "name": "Age"},
-                "value": None,
-            },
-            {  # open ticket #1
-                "uuid": "01994f54-9442-751c-82dc-fbc96b018590",
-                "type": "ticket_opened",
-                "created_on": "2025-09-15T21:42:47.106250+00:00",
-                "ticket": {
-                    "uuid": "01994f4f-45ba-7f25-a785-b52e19b16c6b",
-                    "status": "open",
-                    "topic": {"uuid": "0d261518-d7d6-410d-bbae-0ef822d8f865", "name": "General"},
-                },
-            },
-            {  # assign ticket #1
-                "uuid": "01994f54-9442-7482-8d5c-90d8937c087d",
-                "type": "ticket_assignee_changed",
-                "created_on": "2025-09-15T21:42:47.106315+00:00",
-                "ticket_uuid": "01994f4f-45ba-7f25-a785-b52e19b16c6b",
-                "assignee": None,
-            },
-            {
-                "uuid": "01994f54-9442-76b3-99b2-679921327dbe",
-                "type": "contact_language_changed",
-                "created_on": "2025-09-15T21:42:47.106354+00:00",
-                "language": "spa",
-            },
-            {  # close ticket #1
-                "uuid": "01994f54-9442-761b-9a6f-fcdfae527ada",
-                "type": "ticket_closed",
-                "created_on": "2025-09-15T21:42:47.106394+00:00",
-                "ticket_uuid": "01994f4f-45ba-7f25-a785-b52e19b16c6b",
-            },
-            {
-                "uuid": "01994f54-9442-70d9-867e-c3f6d2e6fd2c",
-                "type": "contact_field_changed",
-                "created_on": "2025-09-15T21:42:47.106535+00:00",
-                "field": {"key": "gender", "name": "Gender"},
-                "value": {"text": "M"},
-            },
-            {  # open ticket #2
-                "uuid": "01994f54-9442-7226-9046-7fd1099b643d",
-                "type": "ticket_opened",
-                "created_on": "2025-09-15T21:42:47.106566+00:00",
-                "ticket": {
-                    "uuid": "01994f50-ecb1-7b96-944e-64bcbe0cbdd2",
-                    "status": "open",
-                    "topic": {"uuid": "472a7a73-96cb-4736-b567-056d987cc5b4", "name": "Weather"},
-                },
-            },
-            {  # note added to ticket #2
-                "uuid": "01994f54-9442-72c8-8dab-2030d258d806",
-                "type": "ticket_note_added",
-                "created_on": "2025-09-15T21:42:47.106586+00:00",
-                "ticket_uuid": "01994f50-ecb1-7b96-944e-64bcbe0cbdd2",
-                "note": "This looks important!",
-            },
-        ]
-        for event in events:
-            self.write_history_event(joe, event)
-
-        history_url = reverse("contacts.contact_history", args=[joe.uuid])
-
-        self.login(self.editor)
-
-        # by default we only include basic ticket event types
-        response = self.client.get(history_url)
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(
-            [
-                "01994f54-9442-7226-9046-7fd1099b643d/ticket_opened",
-                "01994f54-9442-70d9-867e-c3f6d2e6fd2c/contact_field_changed",
-                "01994f54-9442-761b-9a6f-fcdfae527ada/ticket_closed",
-                "01994f54-9442-76b3-99b2-679921327dbe/contact_language_changed",
-                "01994f54-9442-751c-82dc-fbc96b018590/ticket_opened",
-                "01994f54-9442-7401-9a64-cfe7d9cdf1d0/contact_field_changed",
-                "01994f54-9441-772b-892e-b552617ed255/contact_urns_changed",
-            ],
-            [f"{e['uuid']}/{e['type']}" for e in response.json()["events"]],
-        )
-
-        # if we specify ticket 1 then we get only events for that ticket
-        response = self.client.get(history_url + "?ticket=01994f4f-45ba-7f25-a785-b52e19b16c6b")
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(
-            [
-                "01994f54-9442-70d9-867e-c3f6d2e6fd2c/contact_field_changed",
-                "01994f54-9442-761b-9a6f-fcdfae527ada/ticket_closed",
-                "01994f54-9442-76b3-99b2-679921327dbe/contact_language_changed",
-                "01994f54-9442-7482-8d5c-90d8937c087d/ticket_assignee_changed",
-                "01994f54-9442-751c-82dc-fbc96b018590/ticket_opened",
-                "01994f54-9442-7401-9a64-cfe7d9cdf1d0/contact_field_changed",
-                "01994f54-9441-772b-892e-b552617ed255/contact_urns_changed",
-            ],
-            [f"{e['uuid']}/{e['type']}" for e in response.json()["events"]],
-        )
-
-        # likewise for ticket 2
-        response = self.client.get(history_url + "?ticket=01994f50-ecb1-7b96-944e-64bcbe0cbdd2")
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(
-            [
-                "01994f54-9442-72c8-8dab-2030d258d806/ticket_note_added",
-                "01994f54-9442-7226-9046-7fd1099b643d/ticket_opened",
-                "01994f54-9442-70d9-867e-c3f6d2e6fd2c/contact_field_changed",
-                "01994f54-9442-76b3-99b2-679921327dbe/contact_language_changed",
-                "01994f54-9442-7401-9a64-cfe7d9cdf1d0/contact_field_changed",
-                "01994f54-9441-772b-892e-b552617ed255/contact_urns_changed",
-            ],
-            [f"{e['uuid']}/{e['type']}" for e in response.json()["events"]],
-        )
-
-        # invalid ticket UUID is ignored
-        response = self.client.get(history_url + "?ticket=invalid-uuid")
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(
-            [
-                "01994f54-9442-7226-9046-7fd1099b643d/ticket_opened",
-                "01994f54-9442-70d9-867e-c3f6d2e6fd2c/contact_field_changed",
-                "01994f54-9442-761b-9a6f-fcdfae527ada/ticket_closed",
-                "01994f54-9442-76b3-99b2-679921327dbe/contact_language_changed",
-                "01994f54-9442-751c-82dc-fbc96b018590/ticket_opened",
-                "01994f54-9442-7401-9a64-cfe7d9cdf1d0/contact_field_changed",
-                "01994f54-9441-772b-892e-b552617ed255/contact_urns_changed",
-            ],
-            [f"{e['uuid']}/{e['type']}" for e in response.json()["events"]],
-        )
 
     @mock_mailroom
     def test_update(self, mr_mocks):

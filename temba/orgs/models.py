@@ -1040,15 +1040,6 @@ class Org(SmartModel):
         if sample_flows:
             on_transaction_commit(lambda: self.create_sample_flows(f"https://{self.get_brand_domain()}"))
 
-    def get_delete_date(self, *, archive_type=Archive.TYPE_MSG):
-        """
-        Gets the most recent date for which data hasn't been deleted yet or None if no deletion has been done
-        :return:
-        """
-        archive = self.archives.filter(needs_deletion=False, archive_type=archive_type).order_by("-start_date").first()
-        if archive:
-            return archive.get_end_date()
-
     def release(self, user, *, release_users=True):
         """
         Releases this org, marking it as inactive. Actual deletion of org data won't happen until after 7 days.

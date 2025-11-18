@@ -23,7 +23,6 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 
 from temba import mailroom
-from temba.archives.models import Archive
 from temba.channels.models import Channel
 from temba.mailroom.events import Event
 from temba.orgs.models import Org
@@ -392,31 +391,36 @@ class ContactCRUDL(SmartCRUDL):
             history = []
             fetch_before = before
             while True:
-                history += contact.get_history(after, fetch_before, ticket_uuid=ticket_uuid, limit=limit)
+                history += Event.get_by_contact(
+                    contact, self.request.user, after=after, before=fetch_before, ticket_uuid=ticket_uuid, limit=limit
+                )
                 if recent_only or len(history) >= 20 or after == contact_creation:
                     break
                 else:
                     fetch_before = after
                     after = max(after - timedelta(days=90), contact_creation)
 
-            # render as events
-            events = [Event.from_history_item(contact.org, self.request.user, i) for i in history]
-
-            if len(events) >= limit:
-                after = iso8601.parse_date(events[-1]["created_on"])
+            if len(history) >= limit:
+                after = iso8601.parse_date(history[-1]["created_on"])
 
             # check if there are more pages to fetch
             context["has_older"] = False
             if not recent_only and before > contact.created_on:
                 context["has_older"] = bool(
-                    contact.get_history(contact_creation, after, ticket_uuid=ticket_uuid, limit=1)
+                    Event.get_by_contact(
+                        contact,
+                        self.request.user,
+                        after=contact_creation,
+                        before=after,
+                        ticket_uuid=ticket_uuid,
+                        limit=1,
+                    )
                 )
 
             context["recent_only"] = recent_only
             context["next_before"] = datetime_to_timestamp(after)
             context["next_after"] = datetime_to_timestamp(max(after - timedelta(days=90), contact_creation))
-            context["start_date"] = contact.org.get_delete_date(archive_type=Archive.TYPE_MSG)
-            context["events"] = events
+            context["events"] = history
             return context
 
         def render_to_response(self, context, **response_kwargs):
@@ -426,7 +430,6 @@ class ContactCRUDL(SmartCRUDL):
                     "recent_only": context["recent_only"],
                     "next_before": context["next_before"],
                     "next_after": context["next_after"],
-                    "start_date": context["start_date"],
                     "events": context["events"],
                 }
             )
