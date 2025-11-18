@@ -179,6 +179,7 @@ class ContactCRUDL(SmartCRUDL):
         "interrupt",
         "delete",
         "scheduled",
+        "chat",
         "history",
     )
 
@@ -351,6 +352,29 @@ class ContactCRUDL(SmartCRUDL):
 
         def render_to_response(self, context, **response_kwargs):
             return JsonResponse({"results": self.object.get_scheduled()})
+
+    class Chat(BaseReadView):
+        slug_url_kwarg = "uuid"
+
+        def get(self, request, *args, **kwargs):
+            return HttpResponse("Method Not Allowed", status=405)
+
+        def post(self, request, *args, **kwargs):
+            payload = json.loads(request.body)
+            text = payload.get("text", "")
+            attachments = []
+            ticket = None
+
+            if attachment_uuids := payload.get("attachments"):
+                attachments = request.org.media.filter(uuid__in=attachment_uuids)
+
+            if ticket_uuid := payload.get("ticket"):
+                ticket = request.org.tickets.filter(uuid=ticket_uuid).first()
+
+            resp = mailroom.get_client().msg_send(
+                request.org, request.user, self.get_object(), text, [str(a) for a in attachments], [], ticket
+            )
+            return JsonResponse({"event": resp["event"]})
 
     class History(BaseReadView):
         slug_url_kwarg = "uuid"

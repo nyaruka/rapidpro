@@ -1461,7 +1461,7 @@ class MsgWriteSerializer(WriteSerializer):
     quick_replies = serializers.ListField(
         required=False, child=fields.QuickReplySerializer(), max_length=Msg.MAX_QUICK_REPLIES
     )
-    ticket = fields.TicketField(required=False)
+    ticket = fields.TicketField(required=False)  # deprecated and undocumented
 
     def validate(self, data):
         if not (data.get("text") or data.get("attachments")):

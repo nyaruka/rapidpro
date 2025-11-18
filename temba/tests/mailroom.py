@@ -416,19 +416,22 @@ class TestClient(MailroomClient):
     @_client_method
     def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[QuickReply], ticket):
         msg = send_to_contact(org, contact, text, attachments, quick_replies)
+        msg_json = {
+            "channel": {"uuid": str(msg.channel.uuid), "name": msg.channel.name} if msg.channel else None,
+            "urn": str(msg.contact_urn) if msg.contact_urn else "",
+            "text": msg.text,
+        }
+        if msg.attachments:
+            msg_json["attachments"] = msg.attachments
+        if msg.quick_replies:
+            msg_json["quick_replies"] = [qr.as_json() for qr in msg.get_quick_replies()]
 
         return {
             "event": {
                 "uuid": str(msg.uuid),
                 "type": "msg_created",
                 "created_on": msg.created_on.isoformat(),
-                "msg": {
-                    "channel": {"uuid": str(msg.channel.uuid), "name": msg.channel.name} if msg.channel else None,
-                    "urn": str(msg.contact_urn) if msg.contact_urn else "",
-                    "text": msg.text,
-                    "attachments": msg.attachments,
-                    "quick_replies": [qr.as_json() for qr in msg.get_quick_replies()],
-                },
+                "msg": msg_json,
             },
             "contact": {"uuid": str(msg.contact.uuid), "name": msg.contact.name},
             "status": msg.status,
