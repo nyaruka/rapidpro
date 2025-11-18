@@ -5,7 +5,6 @@ from datetime import date, datetime, timedelta, timezone as tzone
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
-from uuid import UUID
 
 import iso8601
 import phonenumbers
@@ -705,14 +704,6 @@ class Contact(LegacyUUIDMixin, SmartModel):
             )
 
         return sorted(merged, key=lambda k: k["scheduled"])
-
-    def get_history(self, user, after, before, *, ticket_uuid: UUID, limit: int) -> list:
-        """
-        Gets this contact's history of messages, calls, runs etc in the given time window
-        """
-        from temba.mailroom.events import Event
-
-        return Event.get_by_contact(self, user, after=after, before=before, ticket_uuid=ticket_uuid, limit=limit)
 
     def get_field_serialized(self, field) -> str:
         """

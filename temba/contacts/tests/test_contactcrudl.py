@@ -503,11 +503,11 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(reverse("contacts.contact_read", args=["invalid-uuid"]))
         self.assertEqual(response.status_code, 404)
 
-    @patch("temba.contacts.models.Contact.get_history")
+    @patch("temba.mailroom.events.Event.get_by_contact")
     @patch("django.utils.timezone.now")
-    def test_history(self, mock_now, mock_get_history):
+    def test_history(self, mock_now, mock_get_by_contact):
         mock_now.return_value = datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc)
-        mock_get_history.return_value = []
+        mock_get_by_contact.return_value = []
 
         contact = self.create_contact(
             name="Joe Blow", urns=["tel:+250781111111"], created_on=datetime(2025, 11, 16, 12, 0, tzinfo=tzone.utc)
@@ -527,18 +527,43 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                 "next_after": 1763290800000000,
                 "next_before": 1755620100000000,
                 "recent_only": True,
-                "start_date": None,
             },
             response.json(),
         )
 
-        mock_get_history.assert_called_once_with(
+        mock_get_by_contact.assert_called_once_with(
+            contact,
             self.editor,
             datetime(2025, 8, 19, 16, 15, tzinfo=tzone.utc),
             datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc),
             ticket_uuid=None,
             limit=50,
         )
+        mock_get_by_contact.reset_mock()
+
+        # subsequent requests will pass back the after value
+        response = self.client.get(history_url + "?after=1763290800000000")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "events": [],
+                "has_older": False,
+                "next_after": 1763290800000000,
+                "next_before": 1763290800000000,
+                "recent_only": True,
+            },
+            response.json(),
+        )
+
+        mock_get_by_contact.assert_called_once_with(
+            contact,
+            self.editor,
+            datetime(2025, 11, 16, 11, 0, tzinfo=tzone.utc),
+            datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc),
+            ticket_uuid=None,
+            limit=50,
+        )
+        mock_get_by_contact.reset_mock()
 
         # if we specify a before time then we're fetching older events
         response = self.client.get(
@@ -552,7 +577,6 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                 "next_after": 1763290800000000,
                 "next_before": 1763290800000000,
                 "recent_only": False,
-                "start_date": None,
             },
             response.json(),
         )
@@ -570,8 +594,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                 }
             )
 
-        mock_get_history.reset_mock()
-        mock_get_history.side_effect = [lots_of_messages[:50], lots_of_messages[50:]]
+        mock_get_by_contact.reset_mock()
+        mock_get_by_contact.side_effect = [lots_of_messages[:50], lots_of_messages[50:]]
 
         response = self.client.get(
             history_url + f"?before={datetime_to_timestamp(datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc))}"
@@ -584,15 +608,15 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                 "next_after": 1763290800000000,
                 "next_before": 1763395849000000,
                 "recent_only": False,
-                "start_date": None,
             },
             response.json(),
         )
 
         # should now have an extra call to check if there is more
-        mock_get_history.assert_has_calls(
+        mock_get_by_contact.assert_has_calls(
             [
                 call(
+                    contact,
                     self.editor,
                     datetime(2025, 8, 19, 16, 15, tzinfo=tzone.utc),
                     datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc),
@@ -600,6 +624,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                     limit=50,
                 ),
                 call(
+                    contact,
                     self.editor,
                     datetime(2025, 11, 16, 11, 0, tzinfo=tzone.utc),
                     datetime(2025, 11, 17, 16, 10, 49, tzinfo=tzone.utc),
@@ -608,9 +633,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                 ),
             ]
         )
-        mock_get_history.reset_mock()
-        mock_get_history.side_effect = None
-        mock_get_history.return_value = []
+        mock_get_by_contact.reset_mock()
+        mock_get_by_contact.side_effect = None
+        mock_get_by_contact.return_value = []
 
         # try specifying a valid ticket UUID
         response = self.client.get(history_url + "?ticket=cb09cbc8-c7ba-4cc3-b153-54ced6a0740d")
@@ -622,18 +647,18 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                 "next_after": 1763290800000000,
                 "next_before": 1755620100000000,
                 "recent_only": True,
-                "start_date": None,
             },
             response.json(),
         )
-        mock_get_history.assert_called_once_with(
+        mock_get_by_contact.assert_called_once_with(
+            contact,
             self.editor,
             datetime(2025, 8, 19, 16, 15, tzinfo=tzone.utc),
             datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc),
             ticket_uuid=UUID("cb09cbc8-c7ba-4cc3-b153-54ced6a0740d"),
             limit=50,
         )
-        mock_get_history.reset_mock()
+        mock_get_by_contact.reset_mock()
 
         # try specifying an invalid ticket UUID
         response = self.client.get(history_url + "?ticket=xxx123")
@@ -645,11 +670,11 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                 "next_after": 1763290800000000,
                 "next_before": 1755620100000000,
                 "recent_only": True,
-                "start_date": None,
             },
             response.json(),
         )
-        mock_get_history.assert_called_once_with(
+        mock_get_by_contact.assert_called_once_with(
+            contact,
             self.editor,
             datetime(2025, 8, 19, 16, 15, tzinfo=tzone.utc),
             datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc),
