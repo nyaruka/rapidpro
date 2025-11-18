@@ -1,3 +1,8 @@
+v10.3.92 (2025-11-18)
+-------------------------
+ * Read message events from DynamoDB history table
+ * Update to latest temba-components
+
 v10.3.89 (2025-11-14)
 -------------------------
  * Tweak constants used for msg event unsendable_reason
