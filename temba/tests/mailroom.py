@@ -418,17 +418,23 @@ class TestClient(MailroomClient):
         msg = send_to_contact(org, contact, text, attachments, quick_replies)
 
         return {
-            "uuid": str(msg.uuid),
-            "id": msg.id,
-            "channel": {"uuid": str(msg.channel.uuid), "name": msg.channel.name} if msg.channel else None,
+            "event": {
+                "uuid": str(msg.uuid),
+                "type": "msg_created",
+                "created_on": msg.created_on.isoformat(),
+                "msg": {
+                    "channel": {"uuid": str(msg.channel.uuid), "name": msg.channel.name} if msg.channel else None,
+                    "urn": str(msg.contact_urn) if msg.contact_urn else "",
+                    "text": msg.text,
+                    "attachments": msg.attachments,
+                    "quick_replies": [qr.as_json() for qr in msg.get_quick_replies()],
+                },
+            },
             "contact": {"uuid": str(msg.contact.uuid), "name": msg.contact.name},
-            "urn": str(msg.contact_urn) if msg.contact_urn else "",
-            "text": msg.text,
-            "attachments": msg.attachments,
-            "quick_replies": [qr.as_json() for qr in msg.get_quick_replies()],
             "status": msg.status,
             "created_on": msg.created_on.isoformat(),
             "modified_on": msg.modified_on.isoformat(),
+            "id": msg.id,  # deprecated
         }
 
     @_client_method
