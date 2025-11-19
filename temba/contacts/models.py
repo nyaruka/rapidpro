@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta, timezone as tzone
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 import iso8601
 import phonenumbers
@@ -626,6 +627,13 @@ class Contact(LegacyUUIDMixin, SmartModel):
         """
         groups = org.groups.filter(group_type__in=ContactGroup.CONTACT_STATUS_TYPES)
         return {g.group_type: count for g, count in ContactGroup.get_member_counts(groups).items()}
+
+    def get_history(
+        self, user, *, before: UUID = None, after: UUID = None, ticket: UUID = None, limit: int
+    ) -> list[dict]:
+        from temba.mailroom.events import Event
+
+        return Event.get_by_contact(self, user, before=before, after=after, ticket=ticket, limit=limit)
 
     def get_scheduled_broadcasts(self):
         return (
