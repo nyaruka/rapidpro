@@ -1461,7 +1461,7 @@ class MsgWriteSerializer(WriteSerializer):
     quick_replies = serializers.ListField(
         required=False, child=fields.QuickReplySerializer(), max_length=Msg.MAX_QUICK_REPLIES
     )
-    ticket = fields.TicketField(required=False)
+    ticket = fields.TicketField(required=False)  # deprecated and undocumented
 
     def validate(self, data):
         if not (data.get("text") or data.get("attachments")):
@@ -1481,19 +1481,24 @@ class MsgWriteSerializer(WriteSerializer):
         resp = mailroom.get_client().msg_send(org, user, contact, text or "", attachments, quick_replies, ticket)
 
         # to avoid fetching the new msg from the database, construct transient instances to pass to the serializer
-        channel = Channel(uuid=resp["channel"]["uuid"], name=resp["channel"]["name"]) if resp.get("channel") else None
+        channel = None
+        if channel_ref := resp["event"]["msg"].get("channel"):
+            channel = Channel(uuid=channel_ref["uuid"], name=channel_ref["name"])
+
         contact = Contact(uuid=resp["contact"]["uuid"], name=resp["contact"]["name"])
 
-        if resp.get("urn"):
-            urn_scheme, urn_path, _, urn_display = URN.to_parts(resp["urn"])
+        if urn := resp["event"]["msg"].get("urn"):
+            urn_scheme, urn_path, _, urn_display = URN.to_parts(urn)
             contact_urn = ContactURN(scheme=urn_scheme, path=urn_path, display=urn_display)
         else:
             contact_urn = None
 
-        msg_quick_replies = [str(QuickReply(qr["text"], qr.get("extra"))) for qr in resp.get("quick_replies")]
+        msg_quick_replies = [
+            str(QuickReply(qr["text"], qr.get("extra"))) for qr in resp["event"]["msg"].get("quick_replies", [])
+        ]
 
         return Msg(
-            uuid=resp["uuid"],
+            uuid=resp["event"]["uuid"],
             id=resp["id"],
             org=org,
             contact=contact,
@@ -1503,8 +1508,8 @@ class MsgWriteSerializer(WriteSerializer):
             msg_type=Msg.TYPE_TEXT,
             status=resp["status"],
             visibility=Msg.VISIBILITY_VISIBLE,
-            text=resp.get("text"),
-            attachments=resp.get("attachments"),
+            text=resp["event"]["msg"].get("text"),
+            attachments=resp["event"]["msg"].get("attachments", []),
             quick_replies=msg_quick_replies,
             created_on=iso8601.parse_date(resp["created_on"]),
             modified_on=iso8601.parse_date(resp["modified_on"]),

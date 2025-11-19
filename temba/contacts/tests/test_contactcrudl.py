@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone as tzone
 from unittest.mock import call, patch
 from uuid import UUID
 
+from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -10,10 +11,12 @@ from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import Contact, ContactExport, ContactField, ContactFire
 from temba.locations.models import AdminBoundary
 from temba.mailroom.client.types import Exclusions
+from temba.msgs.models import Media
 from temba.orgs.models import Export, OrgRole
 from temba.schedules.models import Schedule
 from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom
 from temba.tests.engine import MockSessionWriter
+from temba.tickets.models import Ticket
 from temba.triggers.models import Trigger
 from temba.utils import json
 from temba.utils.dates import datetime_to_timestamp
@@ -502,6 +505,106 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # invalid uuid should return 404
         response = self.client.get(reverse("contacts.contact_read", args=["invalid-uuid"]))
         self.assertEqual(response.status_code, 404)
+
+    @patch("django.utils.timezone.now")
+    @mock_mailroom
+    def test_chat(self, mr_mocks, mock_now):
+        mock_now.return_value = datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc)
+
+        contact = self.create_contact("Joe Blow", urns=["tel:+250781111111"])
+        ticket = Ticket.objects.create(
+            uuid="019a9935-022e-7bb3-9d6f-03d773be623e",
+            org=self.org,
+            contact=contact,
+            topic=self.org.default_topic,
+            status="O",
+        )
+
+        chat_url = reverse("contacts.contact_chat", args=[contact.uuid])
+
+        self.login(self.editor)
+
+        response = self.client.get(chat_url)
+        self.assertEqual(405, response.status_code)
+
+        # send a simple text message
+        response = self.client.post(chat_url, {"text": "Hello"}, content_type="application/json")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "event": {
+                    "uuid": matchers.String(),
+                    "type": "msg_created",
+                    "created_on": matchers.ISODatetime(),
+                    "msg": {
+                        "text": "Hello",
+                        "urn": "tel:+250781111111",
+                        "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
+                    },
+                    "_user": {"uuid": str(self.editor.uuid), "name": "Ed", "avatar": None},
+                }
+            },
+            response.json(),
+        )
+        self.assertEqual(
+            call(
+                self.org,
+                self.editor,
+                contact,
+                "Hello",
+                [],
+                [],
+                None,
+            ),
+            mr_mocks.calls["msg_send"][-1],
+        )
+
+        # send a message with attachments and in the context of a ticket
+        media = Media.from_upload(
+            self.org,
+            self.admin,
+            self.upload(f"{settings.MEDIA_ROOT}/test_media/steve marten.jpg", "image/jpeg"),
+            process=False,
+        )
+        response = self.client.post(
+            chat_url, {"attachments": [str(media.uuid)], "ticket": str(ticket.uuid)}, content_type="application/json"
+        )
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "event": {
+                    "uuid": matchers.String(),
+                    "type": "msg_created",
+                    "created_on": matchers.ISODatetime(),
+                    "msg": {
+                        "text": "",
+                        "attachments": [matchers.String()],
+                        "urn": "tel:+250781111111",
+                        "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
+                    },
+                    "_user": {"uuid": str(self.editor.uuid), "name": "Ed", "avatar": None},
+                }
+            },
+            response.json(),
+        )
+        self.assertEqual(
+            call(
+                self.org,
+                self.editor,
+                contact,
+                "",
+                [str(media)],
+                [],
+                ticket,
+            ),
+            mr_mocks.calls["msg_send"][-1],
+        )
+
+        # can't send to contact in a different org
+        self.login(self.admin2)
+
+        response = self.client.post(chat_url, {"text": "Hello"}, content_type="application/json")
+        self.assertEqual(404, response.status_code)
 
     @patch("temba.mailroom.events.Event.get_by_contact")
     @patch("django.utils.timezone.now")
