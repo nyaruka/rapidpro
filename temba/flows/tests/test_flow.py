@@ -458,19 +458,19 @@ class FlowTest(TembaTest, CRUDLTestMixin):
                         "key": "color",
                         "name": "Color",
                         "categories": ["Red", "Green", "Blue", "Cyan", "Other"],
-                        "node_uuids": [matchers.UUID4String()],
+                        "node_uuids": [matchers.UUIDString(version=4)],
                     },
                     {
                         "key": "beer",
                         "name": "Beer",
                         "categories": ["Mutzig", "Primus", "Turbo King", "Skol", "Other"],
-                        "node_uuids": [matchers.UUID4String()],
+                        "node_uuids": [matchers.UUIDString(version=4)],
                     },
                     {
                         "key": "name",
                         "name": "Name",
                         "categories": ["All Responses"],
-                        "node_uuids": [matchers.UUID4String()],
+                        "node_uuids": [matchers.UUIDString(version=4)],
                     },
                 ],
             )

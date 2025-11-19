@@ -293,13 +293,13 @@ class FlowMigrationTest(TembaTest):
         self.assertEqual(
             new_actionset,
             {
-                "uuid": matchers.UUID4String(),
+                "uuid": matchers.UUIDString(version=4),
                 "x": 218,
                 "y": 228,
                 "destination": migrated["action_sets"][1]["uuid"],
                 "actions": [
                     {
-                        "uuid": matchers.UUID4String(),
+                        "uuid": matchers.UUIDString(version=4),
                         "type": "trigger-flow",
                         "flow": {"uuid": "5331c09c-2bd6-47a5-ac0d-973caf9d4cb5", "name": "Migrate to 11.10 IVR Child"},
                         "variables": [{"id": "@contact.uuid"}],
@@ -308,7 +308,7 @@ class FlowMigrationTest(TembaTest):
                         "urns": [],
                     }
                 ],
-                "exit_uuid": matchers.UUID4String(),
+                "exit_uuid": matchers.UUIDString(version=4),
             },
         )
 
@@ -317,7 +317,7 @@ class FlowMigrationTest(TembaTest):
         self.assertEqual(
             new_trigger2,
             {
-                "uuid": matchers.UUID4String(),
+                "uuid": matchers.UUIDString(version=4),
                 "type": "trigger-flow",
                 "flow": {"uuid": "5331c09c-2bd6-47a5-ac0d-973caf9d4cb5", "name": "Migrate to 11.10 IVR Child"},
                 "variables": [{"id": "@contact.uuid"}],

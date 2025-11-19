@@ -12,7 +12,7 @@ class TopicTest(TembaTest):
         self.assertEqual("Sales", topic1.name)
         self.assertEqual("Sales", str(topic1))
         self.assertEqual(f'<Topic: id={topic1.id} name="Sales">', repr(topic1))
-        self.assertEqual({"uuid": matchers.UUID4String(), "name": "Sales"}, topic1.as_engine_ref())
+        self.assertEqual({"uuid": matchers.UUIDString(version=4), "name": "Sales"}, topic1.as_engine_ref())
 
         # try to create with invalid name
         with self.assertRaises(AssertionError):
