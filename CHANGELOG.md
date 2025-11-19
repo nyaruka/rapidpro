@@ -1,3 +1,9 @@
+v10.3.93 (2025-11-19)
+-------------------------
+ * Update to latest temba-components
+ * Add Chat endpoint for sending messages to a contact
+ * Update messages API endpoint to use event field in mailroom response
+
 v10.3.92 (2025-11-18)
 -------------------------
  * Read message events from DynamoDB history table
