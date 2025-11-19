@@ -419,7 +419,7 @@ class ContactCRUDL(SmartCRUDL):
             history = []
             fetch_before = before
             while True:
-                history += Event.get_by_contact(
+                history += Event.get_by_period(
                     contact, self.request.user, after=after, before=fetch_before, ticket_uuid=ticket_uuid, limit=limit
                 )
                 if recent_only or len(history) >= 20 or after == contact_creation:
@@ -435,7 +435,7 @@ class ContactCRUDL(SmartCRUDL):
             context["has_older"] = False
             if not recent_only and before > contact.created_on:
                 context["has_older"] = bool(
-                    Event.get_by_contact(
+                    Event.get_by_period(
                         contact,
                         self.request.user,
                         after=contact_creation,

@@ -103,7 +103,7 @@ class Event:
         return EventTag(event_uuid=item["SK"][4:40], tag=item["SK"][41:], data=item.get("Data", {}))
 
     @classmethod
-    def get_by_contact(
+    def get_by_period(
         cls, contact, user, *, after: datetime, before: datetime, ticket_uuid: UUID, limit: int
     ) -> list[dict]:
         """
@@ -113,21 +113,14 @@ class Event:
         if after >= before:  # otherwise DynamoDB blows up
             return []
 
-        events, tags = cls._get_raw(contact, after=after, before=before, ticket_uuid=ticket_uuid, limit=limit)
+        events, tags = cls._get_by_period_raw(contact, after=after, before=before, ticket_uuid=ticket_uuid, limit=limit)
 
-        # inject tags into their corresponding events
-        events_by_uuid = {event["uuid"]: event for event in events}
-        for tag in tags:
-            if event := events_by_uuid.get(tag.event_uuid):
-                if tag.tag == "del":
-                    event["_deleted"] = tag.data
-                elif tag.tag == "sts":
-                    event["_status"] = tag.data
+        cls._postprocess_events(contact.org, user, events, tags)
 
-        return cls._refresh_events(contact.org, user, events)
+        return events
 
     @classmethod
-    def _get_raw(
+    def _get_by_period_raw(
         cls, contact, *, after: datetime, before: datetime, ticket_uuid: UUID, limit: int
     ) -> tuple[list[dict], list[dict]]:
         """
@@ -157,12 +150,12 @@ class Event:
                 # keep going we always end with a complete event
                 return True
 
-        cls._get_history_items(pk, after_sk=after_sk, before_sk=before_sk, limit=limit, callback=_item)
+        cls._get_by_period_items(pk, after_sk=after_sk, before_sk=before_sk, limit=limit, callback=_item)
 
         return events, tags
 
     @classmethod
-    def _get_history_items(cls, pk: str, *, after_sk: str, before_sk: str, limit: int, callback):
+    def _get_by_period_items(cls, pk: str, *, after_sk: str, before_sk: str, limit: int, callback):
         num_fetches = 0
         next_before_sk = None
 
@@ -207,10 +200,19 @@ class Event:
         return True
 
     @classmethod
-    def _refresh_events(cls, org, user: User, events: list[dict]) -> list[dict]:
+    def _postprocess_events(cls, org, user: User, events: list[dict], tags: list[EventTag]):
         """
-        Refreshes a list of events in place with up to date information from the database.
+        Post-processes a list of events in place with up to date information from the database.
         """
+
+        # inject tags into their corresponding events
+        events_by_uuid = {event["uuid"]: event for event in events}
+        for tag in tags:
+            if event := events_by_uuid.get(tag.event_uuid):
+                if tag.tag == "del":
+                    event["_deleted"] = tag.data
+                elif tag.tag == "sts":
+                    event["_status"] = tag.data
 
         user_uuids = {event["_user"]["uuid"] for event in events if event.get("_user")}
         users_by_uuid = {str(u.uuid): u for u in org.get_users().filter(uuid__in=user_uuids)}
@@ -239,8 +241,6 @@ class Event:
                         )
                         if logs_url:
                             event["_logs_url"] = logs_url
-
-        return events
 
     @staticmethod
     def _time_to_uuid(dt: datetime) -> str:
