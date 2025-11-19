@@ -1,3 +1,7 @@
+v10.3.94 (2025-11-19)
+-------------------------
+ * Add new simpler chat history endpoint
+
 v10.3.93 (2025-11-19)
 -------------------------
  * Update to latest temba-components
