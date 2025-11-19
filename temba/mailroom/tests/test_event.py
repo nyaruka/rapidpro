@@ -10,7 +10,7 @@ from temba.utils import dynamo
 
 class EventTest(TembaTest):
     @cleanup(dynamodb=True)
-    def test_get_by_contact(self):
+    def test_get_by_period(self):
         contact = self.create_contact("Jim", phone="+593979111111", uuid="7e8ff9aa-4b60-49e2-81a6-e79c92635c1e")
 
         items = [
@@ -259,7 +259,7 @@ class EventTest(TembaTest):
         )
 
     @cleanup(dynamodb=True)
-    def test_get_by_contact_ticket_filtering(self):
+    def test_get_by_period_ticket_filtering(self):
         contact = self.create_contact(
             name="Joe Blow", urns=["twitter:blow80", "tel:+250781111111"], uuid="7e8ff9aa-4b60-49e2-81a6-e79c92635c1e"
         )
@@ -472,7 +472,7 @@ class EventTest(TembaTest):
         self.assertEqual({"uuid": "b7cf0d83-f1c9-411c-96fd-c511a4cfa86d", "name": "Registration Flow"}, event["flow"])
 
     def assert_fetched(self, contact, user, after, before, *, limit=50, ticket=None, expected: list):
-        fetched = Event.get_by_contact(contact, user, after=after, before=before, ticket_uuid=ticket, limit=limit)
+        fetched = Event.get_by_period(contact, user, after=after, before=before, ticket_uuid=ticket, limit=limit)
 
         if expected and isinstance(expected[0], str):
             self.assertEqual(expected, [e["uuid"] for e in fetched])
