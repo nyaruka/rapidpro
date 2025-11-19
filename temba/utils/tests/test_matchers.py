@@ -22,11 +22,13 @@ class MatchersTest(TembaTest):
         self.assertNotEqual(None, matchers.ISODatetime())
         self.assertNotEqual("abc", matchers.ISODatetime())
 
-    def test_uuid4string(self):
-        self.assertEqual("85ECBE45-E2DF-4785-8FC8-16FA941E0A79", matchers.UUID4String())
-        self.assertEqual("85ecbe45-e2df-4785-8fc8-16fa941e0a79", matchers.UUID4String())
-        self.assertNotEqual(None, matchers.UUID4String())
-        self.assertNotEqual("abc", matchers.UUID4String())
+    def test_uuidstring(self):
+        self.assertEqual("85ECBE45-E2DF-4785-8FC8-16FA941E0A79", matchers.UUIDString(version=4))
+        self.assertEqual("85ecbe45-e2df-4785-8fc8-16fa941e0a79", matchers.UUIDString(version=4))
+        self.assertNotEqual("019a9970-6262-7f0a-b469-b597eed64e3b", matchers.UUIDString(version=4))
+        self.assertEqual("019a9970-6262-7f0a-b469-b597eed64e3b", matchers.UUIDString(version=7))
+        self.assertNotEqual(None, matchers.UUIDString(version=4))
+        self.assertNotEqual("abc", matchers.UUIDString(version=4))
 
     def test_dict(self):
         self.assertEqual({}, matchers.Dict())

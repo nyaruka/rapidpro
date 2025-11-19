@@ -551,9 +551,9 @@ class DefinitionExportTest(TembaTest):
         self.assertEqual(
             exported["groups"],
             [
-                {"uuid": matchers.UUID4String(), "name": "Delay Notification", "query": None},
-                {"uuid": matchers.UUID4String(), "name": "Pending Appointments", "query": None},
-                {"uuid": matchers.UUID4String(), "name": "Unsatisfied Customers", "query": None},
+                {"uuid": matchers.UUIDString(version=4), "name": "Delay Notification", "query": None},
+                {"uuid": matchers.UUIDString(version=4), "name": "Pending Appointments", "query": None},
+                {"uuid": matchers.UUIDString(version=4), "name": "Unsatisfied Customers", "query": None},
             ],
         )
 

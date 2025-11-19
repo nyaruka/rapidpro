@@ -533,7 +533,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(
             {
                 "event": {
-                    "uuid": matchers.String(),
+                    "uuid": matchers.UUIDString(version=7),
                     "type": "msg_created",
                     "created_on": matchers.ISODatetime(),
                     "msg": {
