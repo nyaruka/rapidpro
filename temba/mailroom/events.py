@@ -81,10 +81,6 @@ class Event:
     basic_ticket_types = {TYPE_TICKET_CLOSED, TYPE_TICKET_OPENED, TYPE_TICKET_REOPENED}
     all_ticket_types = basic_ticket_types | {TYPE_TICKET_ASSIGNED, TYPE_TICKET_NOTE_ADDED, TYPE_TICKET_TOPIC_CHANGED}
 
-    @staticmethod
-    def _get_key(contact, uuid: str) -> tuple[str, str]:
-        return f"con#{contact.uuid}", f"evt#{uuid}"
-
     @classmethod
     def _from_item(cls, contact, item: dict) -> dict:
         assert item["OrgID"] == contact.org_id, "org ID mismatch for contact event"
@@ -101,6 +97,37 @@ class Event:
         assert item["OrgID"] == contact.org_id, "org ID mismatch for contact event tag"
 
         return EventTag(event_uuid=item["SK"][4:40], tag=item["SK"][41:], data=item.get("Data", {}))
+
+    @classmethod
+    def get_by_contact(cls, contact, user, *, before: UUID, after: UUID, ticket: UUID, limit: int) -> list[dict]:
+        """
+        Fetches events for the given contact either before or after the given event UUID.
+        """
+        assert (before or after) and not (before and after), "must provide either before or after"
+
+        pk = f"con#{contact.uuid}"
+        before_sk = f"evt#{before}" if before else None
+        after_sk = f"evt#{after}" if after else None
+        events, tags = [], []
+
+        def _item(item: dict) -> bool:
+            if item["SK"].count("#") == 1:  # item is an event rather than a tag
+                event = cls._from_item(contact, item)
+
+                if cls._include_event(event, ticket):
+                    events.append(event)
+            else:
+                tags.append(cls._tag_from_item(contact, item))
+
+            # Keep going until we reach the limit. Note that because tags are interspersed with events, the last fetched
+            # event might not have all its tags yet.. but we always fetch one more event than what we return so the
+            # possibly incomplete event will be discarded anyway.
+            return len(events) < limit
+
+        cls._query_history(pk, after_sk=after_sk, before_sk=before_sk, limit=limit, callback=_item)
+        cls._postprocess_events(contact.org, user, events, tags)
+
+        return events
 
     @classmethod
     def get_by_period(
@@ -131,8 +158,7 @@ class Event:
         after_uuid = cls._time_to_uuid(after)
         before_uuid = cls._time_to_uuid(before + timedelta(milliseconds=1))
 
-        pk, before_sk = cls._get_key(contact, before_uuid)
-        after_sk = f"evt#{after_uuid}"
+        pk, before_sk, after_sk = f"con#{contact.uuid}", f"evt#{before_uuid}", f"evt#{after_uuid}"
 
         events, tags = [], []
 
@@ -141,6 +167,7 @@ class Event:
                 event = cls._from_item(contact, item)
                 event_time = iso8601.parse_date(event["created_on"])
 
+                # because we're approximating UUIDs from times we need to check event times really are in range
                 if event_time >= after and event_time < before and cls._include_event(event, ticket_uuid):
                     events.append(event)
 
@@ -150,40 +177,55 @@ class Event:
                 # keep going we always end with a complete event
                 return True
 
-        cls._get_by_period_items(pk, after_sk=after_sk, before_sk=before_sk, limit=limit, callback=_item)
+        cls._query_history(pk, after_sk=after_sk, before_sk=before_sk, limit=limit, callback=_item)
 
         return events, tags
 
     @classmethod
-    def _get_by_period_items(cls, pk: str, *, after_sk: str, before_sk: str, limit: int, callback):
+    def _query_history(cls, pk: str, *, after_sk: str, before_sk: str, limit: int, callback):
         num_fetches = 0
-        next_before_sk = None
+        next_start_sk = None
+
+        # Because we skip over some items (e.g. when viewing a ticket), if limit is 1 we could end up making
+        # multiple fetches to get to an item that isn't skipped.. so always fetch at least 10 items
+        limit = max(limit, 10)
+
+        query = dict(Limit=limit, Select="ALL_ATTRIBUTES")
+
+        if after_sk and before_sk:
+            query.update(
+                KeyConditionExpression="PK = :pk AND SK BETWEEN :after_sk AND :before_sk",
+                ExpressionAttributeValues={":pk": pk, ":after_sk": after_sk, ":before_sk": before_sk},
+                ScanIndexForward=False,
+            )
+        elif after_sk:
+            query.update(
+                KeyConditionExpression="PK = :pk AND SK > :after_sk",
+                ExpressionAttributeValues={":pk": pk, ":after_sk": after_sk},
+                ScanIndexForward=True,
+            )
+        elif before_sk:
+            query.update(
+                KeyConditionExpression="PK = :pk AND SK < :before_sk",
+                ExpressionAttributeValues={":pk": pk, ":before_sk": before_sk},
+                ScanIndexForward=False,
+            )
 
         while True:
             assert num_fetches < 100, "too many fetches for history"
 
-            # Because we skip over some items (e.g. when viewing a ticket), if limit is 1 we could end up making
-            # multiple fetches to get to an item that isn't skipped.. so always fetch at least 10 items
-            kwargs = dict(
-                KeyConditionExpression="PK = :pk AND SK BETWEEN :after_sk AND :before_sk",
-                ExpressionAttributeValues={":pk": pk, ":after_sk": after_sk, ":before_sk": before_sk},
-                ScanIndexForward=False,
-                Limit=max(limit, 10),
-                Select="ALL_ATTRIBUTES",
-            )
+            if next_start_sk:  # pragma: no cover
+                query["ExclusiveStartKey"] = {"PK": pk, "SK": next_start_sk}
 
-            if next_before_sk:  # pragma: no cover
-                kwargs["ExclusiveStartKey"] = {"PK": pk, "SK": next_before_sk}
-
-            response = dynamo.HISTORY.query(**kwargs)
+            response = dynamo.HISTORY.query(**query)
             num_fetches += 1
 
             for item in response.get("Items", []):
                 if not callback(item):
                     return
 
-            next_before_sk = response.get("LastEvaluatedKey", {}).get("SK")
-            if not next_before_sk:
+            next_start_sk = response.get("LastEvaluatedKey", {}).get("SK")
+            if not next_start_sk:
                 return
 
     @classmethod

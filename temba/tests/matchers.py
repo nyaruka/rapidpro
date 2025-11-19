@@ -59,7 +59,12 @@ class UUIDString(String):
     """
 
     def __new__(cls, version: int):
-        return super().__new__(cls, pattern=UUID_REGEX[version])
+        v = super().__new__(cls, pattern=UUID_REGEX[version])
+        v.version = version
+        return v
+
+    def __repr__(self):
+        return f"<Any:UUIDString:version={self.version}>"
 
 
 class List(MatcherMixin, list):

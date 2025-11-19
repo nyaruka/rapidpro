@@ -508,7 +508,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
     @patch("django.utils.timezone.now")
     @mock_mailroom
-    def test_chat(self, mr_mocks, mock_now):
+    def test_chat_sending(self, mr_mocks, mock_now):
         mock_now.return_value = datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc)
 
         contact = self.create_contact("Joe Blow", urns=["tel:+250781111111"])
@@ -523,9 +523,6 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         chat_url = reverse("contacts.contact_chat", args=[contact.uuid])
 
         self.login(self.editor)
-
-        response = self.client.get(chat_url)
-        self.assertEqual(405, response.status_code)
 
         # send a simple text message
         response = self.client.post(chat_url, {"text": "Hello"}, content_type="application/json")
@@ -605,6 +602,104 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         response = self.client.post(chat_url, {"text": "Hello"}, content_type="application/json")
         self.assertEqual(404, response.status_code)
+
+    @patch("temba.mailroom.events.Event.get_by_contact")
+    @patch("django.utils.timezone.now")
+    def test_chat_fetching(self, mock_now, mock_get_by_contact):
+        mock_now.return_value = datetime(2025, 11, 17, 16, 15, tzinfo=tzone.utc)
+        mock_get_by_contact.return_value = []
+
+        contact = self.create_contact(name="Joe Blow", urns=["tel:+250781111111"])
+
+        chat_url = reverse("contacts.contact_chat", args=[contact.uuid])
+
+        def mock_events(count: int, start_time: datetime, end_time: datetime):
+            events = []
+            delta = (end_time - start_time) / count
+            for i in range(count):
+                when = start_time + delta * i
+                events.append({"uuid": str(uuid7(when=when)), "type": "test", "created_on": when.isoformat()})
+            return events
+
+        self.login(self.editor)
+
+        # error if we don't specify before or after
+        response = self.client.get(chat_url)
+        self.assertEqual(400, response.status_code)
+
+        # providing a before value fetches older history
+        response = self.client.get(chat_url + "?before=019a9299-1fa0-7124-82dc-716e856f293e")  # 2025-11-17T16:15
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"events": [], "next": None}, response.json())
+
+        # if there are less than a page of events, next is empty
+        mock_get_by_contact.return_value = mock_events(
+            2, datetime(2025, 11, 17, 16, 1, tzinfo=tzone.utc), datetime(2025, 11, 17, 16, 0, tzinfo=tzone.utc)
+        )
+
+        response = self.client.get(chat_url + "?before=019a9299-1fa0-7124-82dc-716e856f293e")  # 2025-11-17T16:15
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "events": [
+                    {"uuid": matchers.UUIDString(version=7), "type": "test", "created_on": "2025-11-17T16:01:00+00:00"},
+                    {"uuid": matchers.UUIDString(version=7), "type": "test", "created_on": "2025-11-17T16:00:30+00:00"},
+                ],
+                "next": None,
+            },
+            response.json(),
+        )
+
+        # but if fetching returns more than a page, we get a next value
+        mock_get_by_contact.return_value = mock_events(
+            51, datetime(2025, 11, 17, 16, 1, tzinfo=tzone.utc), datetime(2025, 11, 17, 16, 0, tzinfo=tzone.utc)
+        )
+
+        response = self.client.get(chat_url + "?before=019a9299-1fa0-7124-82dc-716e856f293e")  # 2025-11-17T16:15
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {"events": matchers.List(length=50), "next": matchers.UUIDString(version=7)},
+            response.json(),
+        )
+        self.assertEqual(response.json()["events"][-1]["uuid"], response.json()["next"])
+
+        mock_get_by_contact.return_value = []
+
+        # providing a after value fetches newer history
+        response = self.client.get(chat_url + "?after=019a9299-1fa0-7124-82dc-716e856f293e")  # 2025-11-17T16:15
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"events": [], "next": None}, response.json())
+
+        # if there are less than a page of events, next is empty
+        mock_get_by_contact.return_value = mock_events(
+            2, datetime(2025, 11, 17, 16, 0, tzinfo=tzone.utc), datetime(2025, 11, 17, 16, 1, tzinfo=tzone.utc)
+        )
+
+        response = self.client.get(chat_url + "?after=019a9299-1fa0-7124-82dc-716e856f293e")  # 2025-11-17T16:15
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "events": [
+                    {"uuid": matchers.UUIDString(version=7), "type": "test", "created_on": "2025-11-17T16:00:30+00:00"},
+                    {"uuid": matchers.UUIDString(version=7), "type": "test", "created_on": "2025-11-17T16:00:00+00:00"},
+                ],
+                "next": None,
+            },
+            response.json(),
+        )
+
+        # but if fetching returns more than a page, we get a next value
+        mock_get_by_contact.return_value = mock_events(
+            51, datetime(2025, 11, 17, 16, 0, tzinfo=tzone.utc), datetime(2025, 11, 17, 16, 1, tzinfo=tzone.utc)
+        )
+
+        response = self.client.get(chat_url + "?after=019a9299-1fa0-7124-82dc-716e856f293e")  # 2025-11-17T16:15
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {"events": matchers.List(length=50), "next": matchers.UUIDString(version=7)},
+            response.json(),
+        )
+        self.assertEqual(response.json()["events"][0]["uuid"], response.json()["next"])
 
     @patch("temba.mailroom.events.Event.get_by_period")
     @patch("django.utils.timezone.now")

@@ -354,10 +354,31 @@ class ContactCRUDL(SmartCRUDL):
             return JsonResponse({"results": self.object.get_scheduled()})
 
     class Chat(BaseReadView):
+        """
+        Returns chat history for a contact or sends a new message to the contact.
+        """
+
         slug_url_kwarg = "uuid"
+        page_size = 50
 
         def get(self, request, *args, **kwargs):
-            return HttpResponse("Method Not Allowed", status=405)
+            before = self._get_uuid_param("before")
+            after = self._get_uuid_param("after")
+            ticket = self._get_uuid_param("ticket")
+            contact = self.get_object()
+
+            if before:
+                # a before value means UI is scrolling back thru historical events
+                events = contact.get_history(request.user, before=before, ticket=ticket, limit=self.page_size + 1)
+                page, more = events[: self.page_size], events[self.page_size :]
+                return JsonResponse({"events": page, "next": page[-1]["uuid"] if more else None})
+            elif after:
+                # after value means UI is polling for new events
+                events = contact.get_history(request.user, after=after, ticket=ticket, limit=self.page_size + 1)
+                page, more = events[: self.page_size], events[self.page_size :]
+                return JsonResponse({"events": list(reversed(page)), "next": page[-1]["uuid"] if more else None})
+            else:
+                return JsonResponse({"error": "must specify before or after parameter"}, status=400)
 
         def post(self, request, *args, **kwargs):
             payload = json.loads(request.body)
@@ -380,7 +401,17 @@ class ContactCRUDL(SmartCRUDL):
 
             return JsonResponse({"event": resp["event"]})
 
+        def _get_uuid_param(self, name: str) -> UUID:
+            try:
+                return UUID(self.request.GET.get(name))
+            except (ValueError, TypeError):
+                return None
+
     class History(BaseReadView):
+        """
+        Deprecated: remove once frontend is updated to use chat endpoint instead.
+        """
+
         slug_url_kwarg = "uuid"
 
         def get_context_data(self, *args, **kwargs):
