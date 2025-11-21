@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta
 from uuid import UUID
 
 import iso8601
@@ -8,34 +7,9 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 
-from temba.msgs.models import Msg
 from temba.orgs.models import Org
 from temba.users.models import User
 from temba.utils import dynamo
-
-msg_tag_statuses = {
-    Msg.STATUS_WIRED: "wired",
-    Msg.STATUS_SENT: "sent",
-    Msg.STATUS_DELIVERED: "delivered",
-    Msg.STATUS_READ: "read",
-    Msg.STATUS_ERRORED: "errored",
-    Msg.STATUS_FAILED: "failed",
-}
-
-# Msg.failed_reason codes that are stored on events as "unsendable_reason"
-failed_reason_to_unsendable = {
-    Msg.FAILED_NO_DESTINATION: "no_route",
-    Msg.FAILED_CONTACT: "contact_blocked",
-    Msg.FAILED_SUSPENDED: "org_suspended",
-    Msg.FAILED_LOOPING: "looping",
-}
-
-# Msg.failed_reason codes that are stored as "reason" on status tags
-failed_reason_to_tag_reason = {
-    Msg.FAILED_ERROR_LIMIT: "error_limit",
-    Msg.FAILED_TOO_OLD: "too_old",
-    Msg.FAILED_CHANNEL_REMOVED: "channel_removed",
-}
 
 
 @dataclass
@@ -130,75 +104,12 @@ class Event:
         return events
 
     @classmethod
-    def get_by_period(
-        cls, contact, user, *, after: datetime, before: datetime, ticket_uuid: UUID, limit: int
-    ) -> list[dict]:
-        """
-        Eventually contact history will be paged by event UUIDs but for now we are given microsecond accuracy
-        datetimes and have to infer approximate UUIDs and then filter the results to the given range.
-        """
-        if after >= before:  # otherwise DynamoDB blows up
-            return []
-
-        events, tags = cls._get_by_period_raw(contact, after=after, before=before, ticket_uuid=ticket_uuid, limit=limit)
-
-        cls._postprocess_events(contact.org, user, events, tags)
-
-        return events
-
-    @classmethod
-    def _get_by_period_raw(
-        cls, contact, *, after: datetime, before: datetime, ticket_uuid: UUID, limit: int
-    ) -> tuple[list[dict], list[dict]]:
-        """
-        Eventually contact history will be paged by event UUIDs but for now we are given microsecond accuracy
-        datetimes and have to infer approximate UUIDs and then filter the results to the given range.
-        """
-
-        after_uuid = cls._time_to_uuid(after)
-        before_uuid = cls._time_to_uuid(before + timedelta(milliseconds=1))
-
-        pk, before_sk, after_sk = f"con#{contact.uuid}", f"evt#{before_uuid}", f"evt#{after_uuid}"
-
-        events, tags = [], []
-
-        def _item(item: dict) -> bool:
-            if item["SK"].count("#") == 1:  # item is an event
-                event = cls._from_item(contact, item)
-                event_time = iso8601.parse_date(event["created_on"])
-
-                # because we're approximating UUIDs from times we need to check event times really are in range
-                if event_time >= after and event_time < before and cls._include_event(event, ticket_uuid):
-                    events.append(event)
-
-                return len(events) < limit
-            else:  # item is a tag
-                tags.append(cls._tag_from_item(contact, item))
-                # keep going we always end with a complete event
-                return True
-
-        cls._query_history(pk, after_sk=after_sk, before_sk=before_sk, limit=limit, callback=_item)
-
-        return events, tags
-
-    @classmethod
     def _query_history(cls, pk: str, *, after_sk: str, before_sk: str, limit: int, callback):
         num_fetches = 0
         next_start_sk = None
-
-        # Because we skip over some items (e.g. when viewing a ticket), if limit is 1 we could end up making
-        # multiple fetches to get to an item that isn't skipped.. so always fetch at least 10 items
-        limit = max(limit, 10)
-
         query = dict(Limit=limit, Select="ALL_ATTRIBUTES")
 
-        if after_sk and before_sk:
-            query.update(
-                KeyConditionExpression="PK = :pk AND SK BETWEEN :after_sk AND :before_sk",
-                ExpressionAttributeValues={":pk": pk, ":after_sk": after_sk, ":before_sk": before_sk},
-                ScanIndexForward=False,
-            )
-        elif after_sk:
+        if after_sk:
             query.update(
                 KeyConditionExpression="PK = :pk AND SK > :after_sk",
                 ExpressionAttributeValues={":pk": pk, ":after_sk": after_sk},
@@ -283,12 +194,6 @@ class Event:
                         )
                         if logs_url:
                             event["_logs_url"] = logs_url
-
-    @staticmethod
-    def _time_to_uuid(dt: datetime) -> str:
-        ts_millis = int(dt.timestamp() * 1_000)
-        ts_as_hex = "%012x" % (ts_millis & 0xFFFFFFFFFFFF)
-        return f"{ts_as_hex[:8]}-{ts_as_hex[8:12]}-7000-0000-000000000000"
 
 
 def _url_for_user(org: Org, user: User, view_name: str, args: list, perm: str = None) -> str:

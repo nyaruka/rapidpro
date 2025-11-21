@@ -1,10 +1,8 @@
 import logging
 from collections import OrderedDict
-from datetime import timedelta
 from urllib.parse import quote_plus
 from uuid import UUID
 
-import iso8601
 from smartmin.views import SmartCreateView, SmartCRUDL, SmartListView, SmartReadView, SmartUpdateView, SmartView
 
 from django import forms
@@ -17,14 +15,12 @@ from django.db.models.functions import Upper
 from django.http import HttpResponse, HttpResponseNotFound, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 
 from temba import mailroom
 from temba.channels.models import Channel
-from temba.mailroom.events import Event
 from temba.orgs.models import Org
 from temba.orgs.views.base import (
     BaseCreateModal,
@@ -40,7 +36,6 @@ from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsM
 from temba.tickets.models import Topic
 from temba.users.models import User
 from temba.utils import json, on_transaction_commit
-from temba.utils.dates import datetime_to_timestamp, timestamp_to_datetime
 from temba.utils.fields import CheckboxWidget, InputWidget, SelectWidget, TembaChoiceField
 from temba.utils.models import patch_queryset_count
 from temba.utils.models.es import IDSliceQuerySet
@@ -180,7 +175,6 @@ class ContactCRUDL(SmartCRUDL):
         "delete",
         "scheduled",
         "chat",
-        "history",
     )
 
     class Menu(BaseMenuView):
@@ -406,92 +400,6 @@ class ContactCRUDL(SmartCRUDL):
                 return UUID(self.request.GET.get(name))
             except (ValueError, TypeError):
                 return None
-
-    class History(BaseReadView):
-        """
-        Deprecated: remove once frontend is updated to use chat endpoint instead.
-        """
-
-        slug_url_kwarg = "uuid"
-
-        def get_context_data(self, *args, **kwargs):
-            context = super().get_context_data(*args, **kwargs)
-            contact = self.object
-
-            # since we create messages with timestamps from external systems, always a chance a contact's initial
-            # message has a timestamp slightly earlier than the contact itself.
-            contact_creation = contact.created_on - timedelta(hours=1)
-
-            before = int(self.request.GET.get("before", 0))
-            after = int(self.request.GET.get("after", 0))
-            limit = int(self.request.GET.get("limit", 50))
-
-            ticket_uuid = self.request.GET.get("ticket")
-            if ticket_uuid:
-                try:
-                    ticket_uuid = UUID(ticket_uuid)
-                except ValueError:
-                    ticket_uuid = None
-
-            # if we want an expanding window, or just all the recent activity
-            recent_only = False
-            if not before:
-                recent_only = True
-                before = timezone.now()
-            else:
-                before = timestamp_to_datetime(before)
-
-            if not after:
-                after = before - timedelta(days=90)
-            else:
-                after = timestamp_to_datetime(after)
-
-            # keep looking further back until we get at least 20 items
-            history = []
-            fetch_before = before
-            while True:
-                history += Event.get_by_period(
-                    contact, self.request.user, after=after, before=fetch_before, ticket_uuid=ticket_uuid, limit=limit
-                )
-                if recent_only or len(history) >= 20 or after == contact_creation:
-                    break
-                else:
-                    fetch_before = after
-                    after = max(after - timedelta(days=90), contact_creation)
-
-            if len(history) >= limit:
-                after = iso8601.parse_date(history[-1]["created_on"])
-
-            # check if there are more pages to fetch
-            context["has_older"] = False
-            if not recent_only and before > contact.created_on:
-                context["has_older"] = bool(
-                    Event.get_by_period(
-                        contact,
-                        self.request.user,
-                        after=contact_creation,
-                        before=after,
-                        ticket_uuid=ticket_uuid,
-                        limit=1,
-                    )
-                )
-
-            context["recent_only"] = recent_only
-            context["next_before"] = datetime_to_timestamp(after)
-            context["next_after"] = datetime_to_timestamp(max(after - timedelta(days=90), contact_creation))
-            context["events"] = history
-            return context
-
-        def render_to_response(self, context, **response_kwargs):
-            return JsonResponse(
-                {
-                    "has_older": context["has_older"],
-                    "recent_only": context["recent_only"],
-                    "next_before": context["next_before"],
-                    "next_after": context["next_after"],
-                    "events": context["events"],
-                }
-            )
 
     class Search(ContactListView):
         template_name = "contacts/contact_list.html"
