@@ -265,7 +265,7 @@ def jsonlgz_rewrite(in_file, out_file, transform) -> tuple:
     for record in jsonlgz_iterate(in_file):
         record = transform(record)
         if record is not None:
-            new_line = (json.dumps(record) + "\n").encode("utf-8")
+            new_line = (json.dumps(record, separators=(",", ":")) + "\n").encode("utf-8")
             out_stream.write(new_line)
 
     out_stream.close()
@@ -279,7 +279,7 @@ def jsonlgz_encode(records: list) -> tuple:
     gz = gzip.GzipFile(fileobj=wrapper, mode="wb")
 
     for record in records:
-        gz.write(json.dumps(record).encode("utf-8"))
+        gz.write(json.dumps(record, separators=(",", ":")).encode("utf-8"))
         gz.write(b"\n")
     gz.close()
 

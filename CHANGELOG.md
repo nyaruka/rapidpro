@@ -1,3 +1,11 @@
+v10.3.96 (2025-11-21)
+-------------------------
+ * Update temba-components
+
+v10.3.95 (2025-11-20)
+-------------------------
+ * Tweak rewriting of archive JSONL to not add spaces
+
 v10.3.94 (2025-11-19)
 -------------------------
  * Add new simpler chat history endpoint
