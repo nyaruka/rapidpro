@@ -61,6 +61,8 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
 
         interrupt_url = reverse("flows.flowstart_interrupt", args=[start.id])
         self.assertRequestDisallowed(interrupt_url, [None, self.agent])
+
+        self.assertUpdateFetch(interrupt_url, [self.admin, self.editor])
         self.requestView(interrupt_url, self.admin, post_data={})
 
         start.refresh_from_db()
