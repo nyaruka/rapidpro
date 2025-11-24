@@ -40,7 +40,7 @@ class Archive(models.Model):
     record_count = models.IntegerField(default=0)  # number of records in this archive
     size = models.BigIntegerField(default=0)  # size in bytes of the archive contents (after compression)
     hash = models.TextField()  # MD5 hash of the archive contents (after compression)
-    url = models.URLField()  # full URL of this archive
+    location = models.CharField(null=True, max_length=64 + 1024)  # <bucket>:<key> storage location of this archive
     build_time = models.IntegerField()  # time in ms it took to build and upload this archive
 
     # archive we were rolled up into, if any
@@ -51,6 +51,9 @@ class Archive(models.Model):
 
     # when this archive's records where deleted (if any)
     deleted_on = models.DateTimeField(null=True)
+
+    # deprecated: to be replaced by location
+    url = models.URLField()
 
     @classmethod
     def storage(cls):
@@ -217,6 +220,7 @@ class Archive(models.Model):
             Metadata={"md5chksum": new_hash_base64},
         )
 
+        self.location = f"{bucket}:{new_key}"
         self.url = new_url
         self.hash = new_hash.hexdigest()
         self.size = new_size
