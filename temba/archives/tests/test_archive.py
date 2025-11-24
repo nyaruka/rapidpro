@@ -176,13 +176,11 @@ class ArchiveTest(TembaTest):
 
         archive.rewrite(purge_jim, delete_old=True)
 
-        bucket, new_key = archive.get_storage_location()
+        new_bucket, new_key = archive.get_storage_location()
+        self.assertEqual("test-archives", new_bucket)
         self.assertNotEqual(key, new_key)
-
+        self.assertEqual(f"test-archives:{self.org.id}/run_D20200801_{archive.hash}.jsonl.gz", archive.location)
         self.assertEqual(32, len(archive.hash))
-        self.assertEqual(
-            f"https://test-archives.s3.amazonaws.com/{self.org.id}/run_D20200801_{archive.hash}.jsonl.gz", archive.url
-        )
 
         hash_b64 = base64.standard_b64encode(bytes.fromhex(archive.hash)).decode()
 

@@ -40,7 +40,7 @@ class Archive(models.Model):
     record_count = models.IntegerField(default=0)  # number of records in this archive
     size = models.BigIntegerField(default=0)  # size in bytes of the archive contents (after compression)
     hash = models.TextField()  # MD5 hash of the archive contents (after compression)
-    location = models.CharField(null=True, max_length=64 + 1024)  # <bucket>:<key> storage location of this archive
+    location = models.CharField(max_length=64 + 1024)  # <bucket>:<key> storage location of this archive
     build_time = models.IntegerField()  # time in ms it took to build and upload this archive
 
     # archive we were rolled up into, if any
@@ -53,7 +53,7 @@ class Archive(models.Model):
     deleted_on = models.DateTimeField(null=True)
 
     # deprecated: to be replaced by location
-    url = models.URLField()
+    url = models.URLField(null=True)
 
     @classmethod
     def storage(cls):
@@ -63,7 +63,7 @@ class Archive(models.Model):
         """
         Returns a tuple of the storage bucket and key
         """
-        return s3.split_url(self.url)
+        return self.location.split(":", 1)
 
     def get_end_date(self):
         """
@@ -96,7 +96,7 @@ class Archive(models.Model):
                 )
 
     def get_download_link(self):
-        if self.url:
+        if self.location:
             s3_client = s3.client()
             bucket, key = self.get_storage_location()
             s3_params = {
@@ -206,7 +206,6 @@ class Archive(models.Model):
 
         match = KEY_PATTERN.match(key)
         new_key = f"{self.org.id}/{match.group('type')}_{match.group('period')}_{new_hash.hexdigest()}.jsonl.gz"
-        new_url = f"https://{bucket}.s3.amazonaws.com/{new_key}"
         new_hash_base64 = base64.standard_b64encode(new_hash.digest()).decode()
 
         s3_client.put_object(
@@ -221,10 +220,9 @@ class Archive(models.Model):
         )
 
         self.location = f"{bucket}:{new_key}"
-        self.url = new_url
         self.hash = new_hash.hexdigest()
         self.size = new_size
-        self.save(update_fields=("url", "hash", "size"))
+        self.save(update_fields=("hash", "size"))
 
         if delete_old:
             s3_client.delete_object(Bucket=bucket, Key=key)
@@ -234,7 +232,7 @@ class Archive(models.Model):
         Archive.objects.filter(rollup=self).update(rollup=None)
 
         # delete our archive file from storage
-        if self.url:
+        if self.location:
             bucket, key = self.get_storage_location()
             s3.client().delete_object(Bucket=bucket, Key=key)
 
