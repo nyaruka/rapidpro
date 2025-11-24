@@ -1,3 +1,9 @@
+v10.3.97 (2025-11-24)
+-------------------------
+ * Add new Archive.location field
+ * Allow editor role to interrupt flow starts
+ * Remove old timestamp based contact history endpoint
+
 v10.3.96 (2025-11-21)
 -------------------------
  * Update temba-components
