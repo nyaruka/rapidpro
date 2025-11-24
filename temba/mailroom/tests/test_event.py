@@ -1,7 +1,10 @@
 import base64
+from datetime import timedelta
 from uuid import UUID
 
 from boto3.dynamodb.types import Binary
+
+from django.test import override_settings
 
 from temba.mailroom.events import Event
 from temba.tests import TembaTest, cleanup
@@ -9,6 +12,7 @@ from temba.utils import dynamo
 
 
 class EventTest(TembaTest):
+    @override_settings(RETENTION_PERIODS={"channellog": timedelta(days=3650)})
     @cleanup(dynamodb=True)
     def test_get_by_contact(self):
         contact = self.create_contact("Jim", phone="+593979111111", uuid="7e8ff9aa-4b60-49e2-81a6-e79c92635c1e")
