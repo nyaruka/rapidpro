@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import date, datetime, timezone as tzone
 
 import iso8601
@@ -27,7 +28,7 @@ class Command(BaseCommand):
             orgs = orgs.filter(id=org_id)
 
         since = datetime.combine(since, datetime.min.time(), tzinfo=tzone.utc)
-        until = datetime.combine(until, datetime.max.time())
+        until = datetime.combine(until, datetime.max.time(), tzinfo=tzone.utc)
 
         self.stdout.write(f"Starting message archive {step} for {len(orgs)} orgs...")
 
@@ -67,6 +68,9 @@ class Command(BaseCommand):
             self.stdout.write(f" OK ({progress['records']} records, {progress['updated']} updated)")
 
     def import_for_org(self, org, since=None, until=None):
+        current_day = None
+        day_counts = defaultdict(int)
+
         with dynamo.HISTORY.batch_writer() as writer:
             for record in Archive.iter_all_records(org, Archive.TYPE_MSG, after=since, before=until):
                 if "uuid" not in record:
@@ -75,6 +79,15 @@ class Command(BaseCommand):
                 contact_uuid = record["contact"]["uuid"]
                 event_uuid = record["uuid"]
                 event_time = record["created_on"]
+
+                record_day = iso8601.parse_date(event_time).date()
+                if record_day != current_day or current_day is None:
+                    if current_day is not None:
+                        self.stdout.write(f" OK ({day_counts[current_day]} imported)")
+
+                    current_day = record_day
+                    self.stdout.write(f"    - importing records for {current_day.isoformat()}...", ending="")
+                    self.stdout.flush()
 
                 if record["direction"] == "in":
                     writer.put_item(
@@ -120,7 +133,15 @@ class Command(BaseCommand):
                                 )
                             )
 
+                day_counts[current_day] += 1
+                if day_counts[current_day] % 10_000 == 0:
+                    self.stdout.write(".", ending="")
+                    self.stdout.flush()
+
     def _item(self, org, contact_uuid: str, event_uuid: str, data: dict, tag: str = None) -> dict:
+        """
+        Constructs a DynamoDB item in our standard format from an event or tag.
+        """
         # TODO use DataGZ for bigger payloads
         return {
             "PK": f"con#{contact_uuid}",

@@ -4,7 +4,8 @@ from io import StringIO
 from django.core.management import call_command
 
 from temba.archives.models import Archive
-from temba.tests import TembaTest
+from temba.tests import TembaTest, cleanup
+from temba.utils.uuid import is_uuid7
 
 
 class SearchArchivesTest(TembaTest):
@@ -24,6 +25,7 @@ class SearchArchivesTest(TembaTest):
 
 
 class ArchivesToHistoryTest(TembaTest):
+    @cleanup(s3=True)
     def test_command(self):
         # run archive should be ignored
         self.create_archive(
@@ -34,7 +36,7 @@ class ArchivesToHistoryTest(TembaTest):
         )
 
         # message archive with old types
-        self.create_archive(
+        archive1 = self.create_archive(
             Archive.TYPE_MSG,
             "D",
             date(2015, 1, 1),
@@ -53,9 +55,9 @@ class ArchivesToHistoryTest(TembaTest):
                     "text": "sawa",
                     "attachments": [],
                     "labels": [],
-                    "created_on": "2014-11-04T23:50:31+00:00",
+                    "created_on": "2015-01-01T13:50:31+00:00",
                     "sent_on": None,
-                    "modified_on": "2014-11-04T23:50:33.052089+00:00",
+                    "modified_on": "2015-01-04T23:50:33.052089+00:00",
                 },
                 {
                     # IVR incoming message
@@ -71,7 +73,7 @@ class ArchivesToHistoryTest(TembaTest):
                     "text": "who's there?",
                     "attachments": [],
                     "labels": [],
-                    "created_on": "2014-11-04T23:50:31+00:00",
+                    "created_on": "2015-01-01T13:51:31+00:00",
                     "sent_on": None,
                     "modified_on": "2014-11-04T23:50:33.052089+00:00",
                 },
@@ -89,7 +91,7 @@ class ArchivesToHistoryTest(TembaTest):
                     "text": "sawa 2",
                     "attachments": [],
                     "labels": [],
-                    "created_on": "2014-11-04T23:50:31+00:00",
+                    "created_on": "2015-01-01T13:52:31+00:00",
                     "sent_on": None,
                     "modified_on": "2014-11-04T23:50:33.052089+00:00",
                 },
@@ -150,13 +152,26 @@ class ArchivesToHistoryTest(TembaTest):
         self.assertIn("rewriting D@2015-01-01", output)
         self.assertIn("OK (3 records, 3 updated)", output)
 
+        archive1.refresh_from_db()
+        self.assertEqual(3, archive1.record_count)
+        self.assertEqual(f"test-archives:{self.org.id}/message_D20150101_{archive1.hash}.jsonl.gz", archive1.location)
+        records = list(archive1.iter_records())
+        self.assertEqual(3, len(records))
+        self.assertIn("uuid", records[0])
+        self.assertTrue(is_uuid7(records[0]["uuid"]))
+
         # can run again and no updates needed
-        # output = self._call(
-        #    "archives_to_history", "update", "--org", str(self.org.id), "--since", "2015-01-01", "--until", "2015-12-31"
-        # )
-        # self.assertIn("updating archives for 'Nyaruka'", output)
-        # self.assertIn("rewriting D@2015-01-01", output)
-        # self.assertIn("OK (3 records, 0 updated)", output)
+        output = self._call(
+            "archives_to_history", "update", "--org", str(self.org.id), "--since", "2015-01-01", "--until", "2015-12-31"
+        )
+        self.assertIn("updating archives for 'Nyaruka'", output)
+        self.assertIn("rewriting D@2015-01-01", output)
+        self.assertIn("OK (3 records, 0 updated)", output)
+
+        archive1.refresh_from_db()
+        self.assertEqual(3, archive1.record_count)
+        self.assertEqual(f"test-archives:{self.org.id}/message_D20150101_{archive1.hash}.jsonl.gz", archive1.location)
+        self.assertEqual(3, len(list(archive1.iter_records())))
 
         # update 2025 archives
         output = self._call(
@@ -165,6 +180,14 @@ class ArchivesToHistoryTest(TembaTest):
         self.assertIn("updating archives for 'Nyaruka'", output)
         self.assertIn("rewriting D@2025-01-01", output)
         self.assertIn("OK (2 records, 2 updated)", output)
+
+        # import 2015 archives
+        output = self._call(
+            "archives_to_history", "import", "--org", str(self.org.id), "--since", "2015-01-01", "--until", "2015-12-31"
+        )
+        self.assertIn("importing archives for 'Nyaruka'", output)
+        self.assertIn("importing records for 2015-01-01...", output)
+        self.assertIn("OK (3 imported)", output)
 
     def _call(self, cmd, *args) -> str:
         out = StringIO()
