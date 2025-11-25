@@ -27,6 +27,12 @@ def backfill_archive_location(apps, schema_editor):  # pragma: no cover
         print(f" > updated {num_updated} archive locations")
 
 
+def apply_manual():  # pragma: no cover
+    from django.apps import apps
+
+    backfill_archive_location(apps, None)
+
+
 class Migration(migrations.Migration):
     atomic = False
 
