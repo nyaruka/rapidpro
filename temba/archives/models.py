@@ -224,7 +224,9 @@ class Archive(models.Model):
         self.size = new_size
         self.save(update_fields=("location", "hash", "size"))
 
-        if delete_old:
+        # Don't delete the old file if it's the same as the new one (i.e. same hash).. we still do the put just in case
+        # the content changed but resulted in same hash (very unlikely)
+        if delete_old and key != new_key:
             s3_client.delete_object(Bucket=bucket, Key=key)
 
     def delete(self):
