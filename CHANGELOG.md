@@ -1,3 +1,8 @@
+v10.3.100 (2025-11-25)
+-------------------------
+ * Fix bug in Archive.rewrite when deleting old archive
+ * Include uuid in Msg.as_archive_json() for completeness
+
 v10.3.99 (2025-11-25)
 -------------------------
  * Make sure to show channel field on inbound call trigger update form
