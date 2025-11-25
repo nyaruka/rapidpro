@@ -873,7 +873,16 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         flow1 = self.create_flow("Test 1", flow_type=Flow.TYPE_VOICE)
         flow2 = self.create_flow("Test 2", flow_type=Flow.TYPE_VOICE)
         flow3 = self.create_flow("Test 3", flow_type=Flow.TYPE_MESSAGE)
-        trigger = Trigger.create(self.org, self.admin, Trigger.TYPE_INBOUND_CALL, flow2)
+        call_channel = Channel.create(
+            self.org,
+            self.admin,
+            "US",
+            "TW",
+            "Twilio Call channel",
+            "123456",
+            role=Channel.ROLE_CALL + Channel.ROLE_ANSWER,
+        )
+        trigger = Trigger.create(self.org, self.admin, Trigger.TYPE_INBOUND_CALL, flow2, channel=call_channel)
 
         update_url = reverse("triggers.trigger_update", args=[trigger.id])
 
@@ -885,7 +894,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
                 "action": "answer",
                 "voice_flow": flow2,
                 "msg_flow": None,
-                "channel": None,
+                "channel": call_channel.id,
                 "groups": [],
                 "exclude_groups": [],
             },
