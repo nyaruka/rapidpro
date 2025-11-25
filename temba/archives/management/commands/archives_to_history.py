@@ -1,4 +1,3 @@
-from collections import defaultdict
 from datetime import date, datetime, timezone as tzone
 
 import iso8601
@@ -68,75 +67,76 @@ class Command(BaseCommand):
             self.stdout.write(f" OK ({progress['records']} records, {progress['updated']} updated)")
 
     def import_for_org(self, org, since=None, until=None):
-        current_day = None
-        day_counts = defaultdict(int)
-
         with dynamo.HISTORY.batch_writer() as writer:
-            for record in Archive.iter_all_records(org, Archive.TYPE_MSG, after=since, before=until):
-                if "uuid" not in record:
-                    raise CommandError(f"Record for org #{org.id} has no UUID, cannot import")
+            archives = Archive._get_covering_period(org, Archive.TYPE_MSG, after=since, before=until)
+            for archive in archives:
+                self.stdout.write(
+                    f"    - importing {archive.period}@{archive.start_date.isoformat()} #{archive.id}...", ending=""
+                )
+                self.stdout.flush()
 
-                contact_uuid = record["contact"]["uuid"]
-                event_uuid = record["uuid"]
-                event_time = record["created_on"]
+                num_imported = 0
 
-                record_day = iso8601.parse_date(event_time).date()
-                if record_day != current_day or current_day is None:
-                    if current_day is not None:
-                        self.stdout.write(f" OK ({day_counts[current_day]} imported)")
+                for record in archive.iter_records():
+                    if "uuid" not in record:
+                        raise CommandError(f"Record in archive #{archive.id} has no UUID, cannot import")
 
-                    current_day = record_day
-                    self.stdout.write(f"    - importing records for {current_day.isoformat()}...", ending="")
-                    self.stdout.flush()
+                    contact_uuid = record["contact"]["uuid"]
+                    event_uuid = record["uuid"]
+                    event_time = record["created_on"]
 
-                if record["direction"] == "in":
-                    writer.put_item(
-                        self._item(
-                            org,
-                            contact_uuid,
-                            event_uuid,
-                            {"type": "msg_received", "created_on": event_time, "msg": self._msg(record)},
-                        )
-                    )
-
-                    if record["visibility"] == "deleted":
-                        writer.put_item(self._item(org, contact_uuid, event_uuid, {"created_on": event_time}, "del"))
-                else:
-                    if record["type"] in ("ivr", "voice"):
+                    if record["direction"] == "in":
                         writer.put_item(
                             self._item(
                                 org,
                                 contact_uuid,
                                 event_uuid,
-                                {"type": "ivr_created", "created_on": event_time, "msg": self._msg(record)},
+                                {"type": "msg_received", "created_on": event_time, "msg": self._msg(record)},
                             )
                         )
+
+                        if record["visibility"] == "deleted":
+                            writer.put_item(
+                                self._item(org, contact_uuid, event_uuid, {"created_on": event_time}, "del")
+                            )
                     else:
-                        msg = self._msg(record)
-                        writer.put_item(
-                            self._item(
-                                org,
-                                contact_uuid,
-                                event_uuid,
-                                {"type": "msg_created", "created_on": event_time, "msg": msg},
-                            )
-                        )
-
-                        if record["status"] in tag_statuses and "unsendable_reason" not in msg:
+                        if record["type"] in ("ivr", "voice"):
                             writer.put_item(
                                 self._item(
                                     org,
                                     contact_uuid,
                                     event_uuid,
-                                    {"created_on": event_time, "status": record["status"]},
-                                    "sts",
+                                    {"type": "ivr_created", "created_on": event_time, "msg": self._msg(record)},
+                                )
+                            )
+                        else:
+                            msg = self._msg(record)
+                            writer.put_item(
+                                self._item(
+                                    org,
+                                    contact_uuid,
+                                    event_uuid,
+                                    {"type": "msg_created", "created_on": event_time, "msg": msg},
                                 )
                             )
 
-                day_counts[current_day] += 1
-                if day_counts[current_day] % 10_000 == 0:
-                    self.stdout.write(".", ending="")
-                    self.stdout.flush()
+                            if record["status"] in tag_statuses and "unsendable_reason" not in msg:
+                                writer.put_item(
+                                    self._item(
+                                        org,
+                                        contact_uuid,
+                                        event_uuid,
+                                        {"created_on": event_time, "status": record["status"]},
+                                        "sts",
+                                    )
+                                )
+
+                    num_imported += 1
+                    if num_imported % 10_000 == 0:
+                        self.stdout.write(".", ending="")
+                        self.stdout.flush()
+
+                self.stdout.write(f" OK ({num_imported} imported)")
 
     def _item(self, org, contact_uuid: str, event_uuid: str, data: dict, tag: str = None) -> dict:
         """
