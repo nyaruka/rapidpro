@@ -1,3 +1,7 @@
+v10.3.98 (2025-11-24)
+-------------------------
+ * Data migration to backfill Archive.location field.
+
 v10.3.97 (2025-11-24)
 -------------------------
  * Add new Archive.location field
