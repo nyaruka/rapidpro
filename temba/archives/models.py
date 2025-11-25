@@ -224,7 +224,7 @@ class Archive(models.Model):
         self.url = new_url
         self.hash = new_hash.hexdigest()
         self.size = new_size
-        self.save(update_fields=("url", "hash", "size"))
+        self.save(update_fields=("location", "url", "hash", "size"))
 
         if delete_old:
             s3_client.delete_object(Bucket=bucket, Key=key)

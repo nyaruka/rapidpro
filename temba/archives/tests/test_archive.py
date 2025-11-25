@@ -175,6 +175,7 @@ class ArchiveTest(TembaTest):
             return record if record["contact"]["name"] != "Jim" else None
 
         archive.rewrite(purge_jim, delete_old=True)
+        archive.refresh_from_db()
 
         bucket, new_key = archive.get_storage_location()
         self.assertNotEqual(key, new_key)
