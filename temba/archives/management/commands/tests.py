@@ -126,7 +126,7 @@ class ArchivesToHistoryTest(TembaTest):
             date(2025, 1, 1),
             [
                 {
-                    # unsendable message (no urn or channel)
+                    # unsendable broadcast message (no urn or channel)
                     "id": 5297,
                     "broadcast": 107746936,
                     "contact": {"uuid": "d1f205ca-b299-4f41-8fb9-c19cbdb758e9", "name": "Rowan"},
@@ -146,7 +146,7 @@ class ArchivesToHistoryTest(TembaTest):
                 },
                 {
                     "id": 5307,
-                    "broadcast": 23564,
+                    "broadcast": None,
                     "contact": {"uuid": "a32d1f60-eb92-49c7-9161-4dd78e6a8b9e", "name": "Rowan"},
                     "urn": "telegram:123456",
                     "channel": {"uuid": "ce4959aa-8c85-41a4-b53e-14c3f6852f90", "name": "TG Test"},
@@ -272,6 +272,7 @@ class ArchivesToHistoryTest(TembaTest):
                         "created_on": "2025-01-01T12:00:02.931134+00:00",
                         "msg": {
                             "text": "Testing",
+                            "broadcast_uuid": matchers.UUIDString(version=7),
                             "unsendable_reason": "no_route",
                         },
                     },

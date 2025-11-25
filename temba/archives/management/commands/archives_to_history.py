@@ -18,18 +18,21 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("step", type=str, action="store", choices=("update", "import"))
         parser.add_argument("--org", type=int, dest="org_id", default=None)
+        parser.add_argument("--suspended", type=bool, dest="suspended", default=True, help="Include suspended orgs")
         parser.add_argument("--since", type=date.fromisoformat)
         parser.add_argument("--until", type=date.fromisoformat)
 
-    def handle(self, step: str, org_id: int, since: date, until: date, *args, **kwargs):
-        orgs = Org.objects.filter(is_active=True, is_suspended=False).exclude(archives=None).order_by("id")
+    def handle(self, step: str, org_id: int, suspended: bool, since: date, until: date, *args, **kwargs):
+        orgs = Org.objects.filter(is_active=True).exclude(archives=None).only("id", "name").order_by("id")
         if org_id:
             orgs = orgs.filter(id=org_id)
+        if not suspended:
+            orgs = orgs.filter(is_suspended=False)
 
         since = datetime.combine(since, datetime.min.time(), tzinfo=tzone.utc)
         until = datetime.combine(until, datetime.max.time(), tzinfo=tzone.utc)
 
-        self.stdout.write(f"Starting message archive {step} for {len(orgs)} orgs...")
+        self.stdout.write(f"Starting message archive {step} for {orgs.count()} orgs...")
 
         for org in orgs:
             if step == "update":
@@ -159,9 +162,9 @@ class Command(BaseCommand):
             d["channel"] = channel_ref
         if attachments := record.get("attachments"):
             d["attachments"] = attachments
-        if record.get("broadcast_id"):
+        if record.get("broadcast"):
             # note that broadcasts are gone at this point, so we fabricate a UUID based on creation time
-            d["broadcast_uuid"] = uuid7(when=record["created_on"])
+            d["broadcast_uuid"] = str(uuid7(when=iso8601.parse_date(record["created_on"])))
 
         if record["direction"] == "out" and record["status"] == "failed" and "urn" not in d and "channel" not in d:
             d["unsendable_reason"] = "no_route"
