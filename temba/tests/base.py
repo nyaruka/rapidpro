@@ -623,7 +623,8 @@ class TembaTest(SmartminTest):
             archive_type=archive_type,
             size=size,
             hash=md5,
-            url=url,
+            location=f"{Archive.storage().bucket.name}:{key}",
+            url=url,  # deprecated
             record_count=len(records),
             start_date=start_date,
             period=period,

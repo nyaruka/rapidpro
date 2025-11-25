@@ -1,3 +1,18 @@
+v10.3.99 (2025-11-25)
+-------------------------
+ * Make sure to show channel field on inbound call trigger update form
+ * Start reading from Archive.location instead of Archive.url
+
+v10.3.98 (2025-11-24)
+-------------------------
+ * Data migration to backfill Archive.location field.
+
+v10.3.97 (2025-11-24)
+-------------------------
+ * Add new Archive.location field
+ * Allow editor role to interrupt flow starts
+ * Remove old timestamp based contact history endpoint
+
 v10.3.96 (2025-11-21)
 -------------------------
  * Update temba-components

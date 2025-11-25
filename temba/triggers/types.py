@@ -221,7 +221,7 @@ class InboundCallTriggerType(ChannelTriggerType):
 
             return cleaned_data
 
-        class Meta(BaseTriggerForm.Meta):
+        class Meta(BaseChannelTriggerForm.Meta):
             fields = ("action", "voice_flow", "msg_flow", "channel", "groups", "exclude_groups")
             help_texts = {"channel": "Only include calls from this channel."}
 
