@@ -1,3 +1,8 @@
+v10.3.99 (2025-11-25)
+-------------------------
+ * Make sure to show channel field on inbound call trigger update form
+ * Start reading from Archive.location instead of Archive.url
+
 v10.3.98 (2025-11-24)
 -------------------------
  * Data migration to backfill Archive.location field.
