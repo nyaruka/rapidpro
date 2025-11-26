@@ -231,7 +231,7 @@ class ArchivesToHistoryTest(TembaTest):
             [
                 {
                     "PK": "con#dbe1460e-7e97-4db4-9944-3d8d20792a2d",
-                    "SK": matchers.String(pattern="evt#[][0-9a-fA-F-]{36}"),
+                    "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {
                         "type": "msg_received",
@@ -245,7 +245,7 @@ class ArchivesToHistoryTest(TembaTest):
                 },
                 {
                     "PK": "con#dbe1460e-7e97-4db4-9944-3d8d20792a2d",
-                    "SK": matchers.String(pattern="evt#[][0-9a-fA-F-]{36}"),
+                    "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {
                         "type": "msg_received",
@@ -259,13 +259,13 @@ class ArchivesToHistoryTest(TembaTest):
                 },
                 {
                     "PK": "con#dbe1460e-7e97-4db4-9944-3d8d20792a2d",
-                    "SK": matchers.String(pattern="evt#[][0-9a-fA-F-]{36}#del"),
+                    "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}#del"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {"created_on": "2015-01-01T13:53:31+00:00"},
                 },
                 {
                     "PK": "con#d1f205ca-b299-4f41-8fb9-c19cbdb758e9",
-                    "SK": matchers.String(pattern="evt#[][0-9a-fA-F-]{36}"),
+                    "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {
                         "type": "msg_created",
@@ -279,7 +279,7 @@ class ArchivesToHistoryTest(TembaTest):
                 },
                 {
                     "PK": "con#a32d1f60-eb92-49c7-9161-4dd78e6a8b9e",
-                    "SK": matchers.String(pattern="evt#[][0-9a-fA-F-]{36}"),
+                    "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {
                         "type": "msg_created",
@@ -293,13 +293,13 @@ class ArchivesToHistoryTest(TembaTest):
                 },
                 {
                     "PK": "con#a32d1f60-eb92-49c7-9161-4dd78e6a8b9e",
-                    "SK": matchers.String(pattern="evt#[][0-9a-fA-F-]{36}#sts"),
+                    "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}#sts"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {"created_on": "2025-01-01T14:52:49.053541+00:00", "status": "wired"},
                 },
                 {
                     "PK": "con#c33599af-2d97-4299-904d-2ea2d50921bb",
-                    "SK": matchers.String(pattern="evt#[][0-9a-fA-F-]{36}"),
+                    "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {
                         "type": "msg_received",
@@ -313,7 +313,7 @@ class ArchivesToHistoryTest(TembaTest):
                 },
                 {
                     "PK": "con#b9f65adb-efa4-4497-8527-7a7ff02df99c",
-                    "SK": matchers.String(pattern="evt#[][0-9a-fA-F-]{36}"),
+                    "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {
                         "type": "msg_received",

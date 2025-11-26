@@ -18,7 +18,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("step", type=str, action="store", choices=("update", "import"))
         parser.add_argument("--org", type=int, dest="org_id", default=None)
-        parser.add_argument("--suspended", type=bool, dest="suspended", default=True, help="Include suspended orgs")
+        parser.add_argument("--suspended", action="store_true", dest="suspended", help="Include suspended orgs")
         parser.add_argument("--since", type=date.fromisoformat)
         parser.add_argument("--until", type=date.fromisoformat)
 
@@ -145,7 +145,9 @@ class Command(BaseCommand):
         """
         Constructs a DynamoDB item in our standard format from an event or tag.
         """
-        # TODO use DataGZ for bigger payloads
+
+        # TODO use DataGZ for bigger payloads like mailroom does
+
         return {
             "PK": f"con#{contact_uuid}",
             "SK": f"evt#{event_uuid}#{tag}" if tag else f"evt#{event_uuid}",
@@ -154,19 +156,23 @@ class Command(BaseCommand):
         }
 
     def _msg(self, record: dict) -> dict:
-        d = {"text": record.get("text", "")}
+        """
+        Converts an archive record into the msg part of an engine event.
+        """
+
+        e = {"text": record.get("text", "")}
 
         if urn := record.get("urn"):
-            d["urn"] = urn
+            e["urn"] = urn
         if channel_ref := record.get("channel"):
-            d["channel"] = channel_ref
+            e["channel"] = channel_ref
         if attachments := record.get("attachments"):
-            d["attachments"] = attachments
+            e["attachments"] = attachments
         if record.get("broadcast"):
             # note that broadcasts are gone at this point, so we fabricate a UUID based on creation time
-            d["broadcast_uuid"] = str(uuid7(when=iso8601.parse_date(record["created_on"])))
+            e["broadcast_uuid"] = str(uuid7(when=iso8601.parse_date(record["created_on"])))
 
-        if record["direction"] == "out" and record["status"] == "failed" and "urn" not in d and "channel" not in d:
-            d["unsendable_reason"] = "no_route"
+        if record["direction"] == "out" and record["status"] == "failed" and "urn" not in e and "channel" not in e:
+            e["unsendable_reason"] = "no_route"
 
-        return d
+        return e
