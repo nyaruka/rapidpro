@@ -289,6 +289,7 @@ class ArchivesToHistoryTest(TembaTest):
                             "urn": "tel:+16305550123",
                         },
                     },
+                    "Src": "archives",
                 },
                 {
                     "PK": "con#abe1460e-7e97-4db4-9944-3d8d20792a2d",
@@ -303,12 +304,14 @@ class ArchivesToHistoryTest(TembaTest):
                             "urn": "tel:+16305550123",
                         },
                     },
+                    "Src": "archives",
                 },
                 {
                     "PK": "con#abe1460e-7e97-4db4-9944-3d8d20792a2d",
                     "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}#del"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {"created_on": "2015-01-03T13:53:31+00:00"},
+                    "Src": "archives",
                 },
                 {
                     "PK": "con#abe1460e-7e97-4db4-9944-3d8d20792a2d",
@@ -323,6 +326,7 @@ class ArchivesToHistoryTest(TembaTest):
                             "unsendable_reason": "no_route",
                         },
                     },
+                    "Src": "archives",
                 },
                 {
                     "PK": "con#b33599af-2d97-4299-904d-2ea2d50921bb",
@@ -337,6 +341,7 @@ class ArchivesToHistoryTest(TembaTest):
                             "urn": "tel:+1234567890",
                         },
                     },
+                    "Src": "archives",
                 },
                 {
                     "PK": "con#b33599af-2d97-4299-904d-2ea2d50921bb",
@@ -351,12 +356,14 @@ class ArchivesToHistoryTest(TembaTest):
                             "channel": {"uuid": "ce4959aa-8c85-41a4-b53e-14c3f6852f90", "name": "TG Test"},
                         },
                     },
+                    "Src": "archives",
                 },
                 {
                     "PK": "con#b33599af-2d97-4299-904d-2ea2d50921bb",
                     "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}#sts"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {"created_on": "2025-01-01T14:52:49.053541+00:00", "status": "wired"},
+                    "Src": "archives",
                 },
                 {
                     "PK": "con#c9f65adb-efa4-4497-8527-7a7ff02df99c",
@@ -367,6 +374,7 @@ class ArchivesToHistoryTest(TembaTest):
                         "created_on": "2015-01-01T13:52:31+00:00",
                         "msg": {"text": "sawa 2"},
                     },
+                    "Src": "archives",
                 },
                 {
                     "PK": "con#c9f65adb-efa4-4497-8527-7a7ff02df99c",
@@ -376,12 +384,14 @@ class ArchivesToHistoryTest(TembaTest):
                     "DataGZ": Binary(
                         b"\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\x03\xed\xdaMj\xc30\x10@\xe1\xab\x18m[\x15\xc9\x92\x82\xed\x0b\xf4\x02\xde\x07\xd5\x9e$\x05\xff\x04G\xa6-\xc1w\xafez\x89\xc2\x03->\xd0\xcc\x9c\xe0=U\xfa\xb9\x8bj\n5>\xae\xe7n\x91\x98\xa4W\xaf\x85\xfa\xe3y\x9e\xf2gi\xca\xa0\x8d\xdd_k}\x13\\\xe3\xeb7\x13\\\xf0\xf6\xc5\x98\xc6\x98\xbc\xb1\x1f\xd8G\x9f*\xc9w\xca;7\x19\x86\xf9k^\x86\x1e!\x84\x10B\x08!\x84\x10B\x08!\x84\x10B\x08!\x84\x10B\x08!\x84\x10\xfa\xbf\xca\x8d\xdc\xba\x1c9]\x92A\xaeK\x1c\x1b[:\x1fNGow\x8b\xd3$\xc3Q\xd0\xad\xebg\x9f\xc7:\xf1u\xa8c\xd4UW\x05\xedm\xf4\xfa#8\xd1\xd6w\xeer\xaaBy\xa9\x8f\xf2n\x8a\xe3\x91\xf0\xb5\xefE+\x8f\xa4\xb6m\xfb\x05\x8e\xeeu\xe2\xd8'\x00\x00"
                     ),
+                    "Src": "archives",
                 },
                 {
                     "PK": "con#c9f65adb-efa4-4497-8527-7a7ff02df99c",
                     "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}#sts"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {"created_on": "2025-01-01T14:53:49.053541+00:00", "status": "wired"},
+                    "Src": "archives",
                 },
             ],
             items,
