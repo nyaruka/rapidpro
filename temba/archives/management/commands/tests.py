@@ -225,8 +225,8 @@ class ArchivesToHistoryTest(TembaTest):
             "archives_to_history", "update", "--org", str(self.org.id), "--since", "2015-01-01", "--until", "2015-12-31"
         )
         self.assertIn("updating archives for 'Nyaruka'", output)
-        self.assertIn("rewriting D@2015-01-01", output)
-        self.assertIn("OK (4 records, 4 updated)", output)
+        self.assertIn("rewriting D:2015-01-01", output)
+        self.assertIn("(4 records, 4 updated)", output)
 
         archive1.refresh_from_db()
         self.assertEqual(4, archive1.record_count)
@@ -241,8 +241,8 @@ class ArchivesToHistoryTest(TembaTest):
             "archives_to_history", "update", "--org", str(self.org.id), "--since", "2015-01-01", "--until", "2015-12-31"
         )
         self.assertIn("updating archives for 'Nyaruka'", output)
-        self.assertIn("rewriting D@2015-01-01", output)
-        self.assertIn("OK (4 records, 0 updated)", output)
+        self.assertIn("rewriting D:2015-01-01", output)
+        self.assertIn("(4 records, 0 updated)", output)
 
         archive1.refresh_from_db()
         self.assertEqual(4, archive1.record_count)
@@ -254,24 +254,25 @@ class ArchivesToHistoryTest(TembaTest):
             "archives_to_history", "update", "--org", str(self.org.id), "--since", "2025-01-01", "--until", "2025-12-31"
         )
         self.assertIn("updating archives for 'Nyaruka'", output)
-        self.assertIn("rewriting M@2025-01-01", output)
-        self.assertIn("OK (3 records, 3 updated)", output)
+        self.assertIn("rewriting M:2025-01-01", output)
+        self.assertIn("(3 records, 3 updated)", output)
 
         # import 2015 archives
         output = self._call(
             "archives_to_history", "import", "--org", str(self.org.id), "--since", "2015-01-01", "--until", "2015-12-31"
         )
         self.assertIn("importing archives for 'Nyaruka'", output)
-        self.assertIn("importing D@2015-01-01", output)
-        self.assertIn("OK (4 imported)", output)
+        self.assertIn("importing D:2015-01-01", output)
+        self.assertIn("(4 imported)", output)
 
         # import all archives (will repeat 2015 archives but ok because importation is idempotent)
         output = self._call("archives_to_history", "import", "--org", str(self.org.id))
         self.assertIn("importing archives for 'Nyaruka'", output)
-        self.assertIn("importing D@2015-01-01", output)
-        self.assertIn("OK (4 imported)", output)
-        self.assertIn("importing M@2025-01-01", output)
-        self.assertIn("OK (3 imported)", output)
+        self.assertIn("importing D:2015-01-01", output)
+        self.assertIn("(4 imported)", output)
+        self.assertIn("importing M:2025-01-01", output)
+        self.assertIn("(3 imported)", output)
+        self.assertIn("7 records imported.", output)
 
         items = dynamo_scan_all(dynamo.HISTORY)
         self.assertEqual(
