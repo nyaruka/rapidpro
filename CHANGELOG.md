@@ -1,3 +1,38 @@
+v10.3.102 (2025-11-26)
+-------------------------
+ * Use mtime=0 when creating gzip files to ensure deterministic output
+ * Add Src attribute to items created by import from archives
+ * Make date range optional for archives_to_history command
+
+v10.3.101 (2025-11-26)
+-------------------------
+ * Remove Archive.url
+ * Add archives_to_history management command to rewrite archives and import msg events from them
+
+v10.3.100 (2025-11-25)
+-------------------------
+ * Fix bug in Archive.rewrite when deleting old archive
+ * Include uuid in Msg.as_archive_json() for completeness
+
+v10.3.99 (2025-11-25)
+-------------------------
+ * Make sure to show channel field on inbound call trigger update form
+ * Start reading from Archive.location instead of Archive.url
+
+v10.3.98 (2025-11-24)
+-------------------------
+ * Data migration to backfill Archive.location field.
+
+v10.3.97 (2025-11-24)
+-------------------------
+ * Add new Archive.location field
+ * Allow editor role to interrupt flow starts
+ * Remove old timestamp based contact history endpoint
+
+v10.3.96 (2025-11-21)
+-------------------------
+ * Update temba-components
+
 v10.3.95 (2025-11-20)
 -------------------------
  * Tweak rewriting of archive JSONL to not add spaces

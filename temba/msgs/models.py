@@ -596,6 +596,7 @@ class Msg(models.Model):
         serializer = MsgReadSerializer()
 
         return {
+            "uuid": str(self.uuid),
             "id": self.id,
             "contact": {"uuid": str(self.contact.uuid), "name": self.contact.name},
             "channel": {"uuid": str(self.channel.uuid), "name": self.channel.name} if self.channel else None,

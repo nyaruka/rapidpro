@@ -26,6 +26,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         msg1 = self.create_incoming_msg(self.joe, "i'm having a problem", flow=flow)
         self.assertEqual(
             {
+                "uuid": str(msg1.uuid),
                 "id": msg1.id,
                 "contact": {"uuid": str(self.joe.uuid), "name": "Joe Blow"},
                 "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
@@ -50,6 +51,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual(
             {
+                "uuid": str(msg1.uuid),
                 "id": msg1.id,
                 "contact": {"uuid": str(self.joe.uuid), "name": "Joe Blow"},
                 "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
@@ -74,6 +76,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual(
             {
+                "uuid": str(msg2.uuid),
                 "id": msg2.id,
                 "contact": {"uuid": str(self.joe.uuid), "name": "Joe Blow"},
                 "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},

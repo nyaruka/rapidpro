@@ -25,7 +25,8 @@ def dynamo_scan_all(table) -> list:
         if not last_key:
             break
 
-    return items
+    # sort by PK, SK for easier comparison in tests
+    return list(sorted(items, key=lambda i: (i["PK"], i["SK"])))
 
 
 def dynamo_truncate(table) -> int:

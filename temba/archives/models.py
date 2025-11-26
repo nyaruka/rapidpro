@@ -40,7 +40,7 @@ class Archive(models.Model):
     record_count = models.IntegerField(default=0)  # number of records in this archive
     size = models.BigIntegerField(default=0)  # size in bytes of the archive contents (after compression)
     hash = models.TextField()  # MD5 hash of the archive contents (after compression)
-    url = models.URLField()  # full URL of this archive
+    location = models.CharField(max_length=64 + 1024)  # <bucket>:<key> storage location of this archive
     build_time = models.IntegerField()  # time in ms it took to build and upload this archive
 
     # archive we were rolled up into, if any
@@ -56,11 +56,11 @@ class Archive(models.Model):
     def storage(cls):
         return storages["archives"]
 
-    def get_storage_location(self) -> tuple:
+    def get_storage_location(self) -> tuple[str, str]:
         """
         Returns a tuple of the storage bucket and key
         """
-        return s3.split_url(self.url)
+        return self.location.split(":", 1)
 
     def get_end_date(self):
         """
@@ -93,7 +93,7 @@ class Archive(models.Model):
                 )
 
     def get_download_link(self):
-        if self.url:
+        if self.location:
             s3_client = s3.client()
             bucket, key = self.get_storage_location()
             s3_params = {
@@ -203,7 +203,6 @@ class Archive(models.Model):
 
         match = KEY_PATTERN.match(key)
         new_key = f"{self.org.id}/{match.group('type')}_{match.group('period')}_{new_hash.hexdigest()}.jsonl.gz"
-        new_url = f"https://{bucket}.s3.amazonaws.com/{new_key}"
         new_hash_base64 = base64.standard_b64encode(new_hash.digest()).decode()
 
         s3_client.put_object(
@@ -217,12 +216,14 @@ class Archive(models.Model):
             Metadata={"md5chksum": new_hash_base64},
         )
 
-        self.url = new_url
+        self.location = f"{bucket}:{new_key}"
         self.hash = new_hash.hexdigest()
         self.size = new_size
-        self.save(update_fields=("url", "hash", "size"))
+        self.save(update_fields=("location", "hash", "size"))
 
-        if delete_old:
+        # Don't delete the old file if it's the same as the new one (i.e. same hash).. we still do the put just in case
+        # the content changed but resulted in same hash (very unlikely)
+        if delete_old and key != new_key:
             s3_client.delete_object(Bucket=bucket, Key=key)
 
     def delete(self):
@@ -230,7 +231,7 @@ class Archive(models.Model):
         Archive.objects.filter(rollup=self).update(rollup=None)
 
         # delete our archive file from storage
-        if self.url:
+        if self.location:
             bucket, key = self.get_storage_location()
             s3.client().delete_object(Bucket=bucket, Key=key)
 
@@ -260,7 +261,7 @@ def jsonlgz_rewrite(in_file, out_file, transform) -> tuple:
     Rewrites a stream of gzipped JSONL using a transformation function and returns the new MD5 hash and size
     """
     out_wrapped = FileAndHash(out_file)
-    out_stream = gzip.GzipFile(fileobj=out_wrapped, mode="w")
+    out_stream = gzip.GzipFile(fileobj=out_wrapped, mode="w", mtime=0)
 
     for record in jsonlgz_iterate(in_file):
         record = transform(record)
@@ -276,7 +277,7 @@ def jsonlgz_rewrite(in_file, out_file, transform) -> tuple:
 def jsonlgz_encode(records: list) -> tuple:
     stream = io.BytesIO()
     wrapper = FileAndHash(stream)
-    gz = gzip.GzipFile(fileobj=wrapper, mode="wb")
+    gz = gzip.GzipFile(fileobj=wrapper, mode="wb", mtime=0)
 
     for record in records:
         gz.write(json.dumps(record, separators=(",", ":")).encode("utf-8"))
