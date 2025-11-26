@@ -19,7 +19,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("step", type=str, action="store", choices=("update", "import"))
-        parser.add_argument("--org", type=int, dest="org_id", default=None)
+        parser.add_argument("--org", type=int, dest="org_id")
         parser.add_argument("--suspended", action="store_true", dest="suspended", help="Include suspended orgs")
         parser.add_argument("--since", type=date.fromisoformat)
         parser.add_argument("--until", type=date.fromisoformat)
@@ -31,8 +31,8 @@ class Command(BaseCommand):
         if not suspended:
             orgs = orgs.filter(is_suspended=False)
 
-        since = datetime.combine(since, datetime.min.time(), tzinfo=tzone.utc)
-        until = datetime.combine(until, datetime.max.time(), tzinfo=tzone.utc)
+        since = datetime.combine(since, datetime.min.time(), tzinfo=tzone.utc) if since else None
+        until = datetime.combine(until, datetime.max.time(), tzinfo=tzone.utc) if until else None
 
         self.stdout.write(f"Starting message archive {step} for {orgs.count()} orgs...")
 
@@ -44,7 +44,7 @@ class Command(BaseCommand):
                 self.stdout.write(f" > importing archives for '{org.name}' (#{org.id})... ")
                 self.import_for_org(org, since, until)
 
-    def update_for_org(self, org, since=None, until=None):
+    def update_for_org(self, org, since, until):
         archives = Archive._get_covering_period(org, Archive.TYPE_MSG, after=since, before=until)
         for archive in archives:
             self.stdout.write(
@@ -71,7 +71,7 @@ class Command(BaseCommand):
 
             self.stdout.write(f" OK ({progress['records']} records, {progress['updated']} updated)")
 
-    def import_for_org(self, org, since=None, until=None):
+    def import_for_org(self, org, since, until):
         with dynamo.HISTORY.batch_writer() as writer:
             archives = Archive._get_covering_period(org, Archive.TYPE_MSG, after=since, before=until)
             for archive in archives:

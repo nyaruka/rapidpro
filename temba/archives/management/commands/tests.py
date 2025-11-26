@@ -5,6 +5,7 @@ from io import StringIO
 from boto3.dynamodb.types import Binary
 
 from django.core.management import call_command
+from django.core.management.base import CommandError
 
 from temba.archives.models import Archive
 from temba.tests import TembaTest, cleanup, matchers
@@ -43,7 +44,7 @@ class ArchivesToHistoryTest(TembaTest):
         # message archive with old types
         archive1 = self.create_archive(
             Archive.TYPE_MSG,
-            "D",
+            Archive.PERIOD_DAILY,
             date(2015, 1, 1),
             [
                 {
@@ -121,10 +122,37 @@ class ArchivesToHistoryTest(TembaTest):
             ],
         )
 
+        # create archive for other org in same period
+        self.create_archive(
+            Archive.TYPE_MSG,
+            Archive.PERIOD_DAILY,
+            date(2015, 1, 1),
+            [
+                {
+                    "id": 3456,
+                    "broadcast": None,
+                    "contact": {"uuid": "427b1f45-40fa-4798-9331-6d002509e582", "name": "Ann"},
+                    "urn": "tel:+16305550123",
+                    "channel": {"uuid": "347521d3-65f7-46a7-852d-9cd9be32471d", "name": "Twilio"},
+                    "direction": "in",
+                    "type": "inbox",
+                    "status": "handled",
+                    "visibility": "visible",
+                    "text": "bonjour",
+                    "attachments": [],
+                    "labels": [],
+                    "created_on": "2015-01-01T13:50:31+00:00",
+                    "sent_on": None,
+                    "modified_on": "2015-01-04T23:50:33.052089+00:00",
+                },
+            ],
+            org=self.org2,
+        )
+
         # message archive with new types
         self.create_archive(
             Archive.TYPE_MSG,
-            "M",
+            Archive.PERIOD_MONTHLY,
             date(2025, 1, 1),
             [
                 {
@@ -186,6 +214,12 @@ class ArchivesToHistoryTest(TembaTest):
             ],
         )
 
+        # try to import archives - should fail because they lack UUIDs
+        with self.assertRaises(CommandError):
+            self._call("archives_to_history", "import")
+
+        self.assertEqual([], dynamo_scan_all(dynamo.HISTORY))  # nothing imported
+
         # update 2015 archives
         output = self._call(
             "archives_to_history", "update", "--org", str(self.org.id), "--since", "2015-01-01", "--until", "2015-12-31"
@@ -231,19 +265,11 @@ class ArchivesToHistoryTest(TembaTest):
         self.assertIn("importing D@2015-01-01", output)
         self.assertIn("OK (4 imported)", output)
 
-        # import 2015 archives again (should be idempotent)
-        output = self._call(
-            "archives_to_history", "import", "--org", str(self.org.id), "--since", "2015-01-01", "--until", "2015-12-31"
-        )
+        # import all archives (will repeat 2015 archives but ok because importation is idempotent)
+        output = self._call("archives_to_history", "import", "--org", str(self.org.id))
         self.assertIn("importing archives for 'Nyaruka'", output)
         self.assertIn("importing D@2015-01-01", output)
         self.assertIn("OK (4 imported)", output)
-
-        # import 2025 archives
-        output = self._call(
-            "archives_to_history", "import", "--org", str(self.org.id), "--since", "2025-01-01", "--until", "2025-12-31"
-        )
-        self.assertIn("importing archives for 'Nyaruka'", output)
         self.assertIn("importing M@2025-01-01", output)
         self.assertIn("OK (3 imported)", output)
 
