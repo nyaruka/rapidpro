@@ -2,6 +2,8 @@ from datetime import date
 from decimal import Decimal
 from io import StringIO
 
+from boto3.dynamodb.types import Binary
+
 from django.core.management import call_command
 
 from temba.archives.models import Archive
@@ -48,7 +50,7 @@ class ArchivesToHistoryTest(TembaTest):
                     # regular incoming message
                     "id": 1,
                     "broadcast": None,
-                    "contact": {"uuid": "dbe1460e-7e97-4db4-9944-3d8d20792a2d", "name": "Ann"},
+                    "contact": {"uuid": "abe1460e-7e97-4db4-9944-3d8d20792a2d", "name": "Ann"},
                     "urn": "tel:+16305550123",
                     "channel": {"uuid": "d0c17405-a902-4a06-8fb8-5b067a582283", "name": "Twilio"},
                     "direction": "in",
@@ -66,7 +68,7 @@ class ArchivesToHistoryTest(TembaTest):
                     # IVR incoming message
                     "id": 2,
                     "broadcast": None,
-                    "contact": {"uuid": "c33599af-2d97-4299-904d-2ea2d50921bb", "name": "Bob"},
+                    "contact": {"uuid": "b33599af-2d97-4299-904d-2ea2d50921bb", "name": "Bob"},
                     "urn": "tel:+1234567890",
                     "channel": {"uuid": "d0c17405-a902-4a06-8fb8-5b067a582283", "name": "Twilio"},
                     "direction": "in",
@@ -84,7 +86,7 @@ class ArchivesToHistoryTest(TembaTest):
                     # old surveyor style message with no channel and no urn
                     "id": 3,
                     "broadcast": None,
-                    "contact": {"uuid": "b9f65adb-efa4-4497-8527-7a7ff02df99c", "name": "Cat"},
+                    "contact": {"uuid": "c9f65adb-efa4-4497-8527-7a7ff02df99c", "name": "Cat"},
                     "urn": None,
                     "channel": None,
                     "direction": "in",
@@ -102,7 +104,7 @@ class ArchivesToHistoryTest(TembaTest):
                     # deleted incoming message
                     "id": 4,
                     "broadcast": None,
-                    "contact": {"uuid": "dbe1460e-7e97-4db4-9944-3d8d20792a2d", "name": "Ann"},
+                    "contact": {"uuid": "abe1460e-7e97-4db4-9944-3d8d20792a2d", "name": "Ann"},
                     "urn": "tel:+16305550123",
                     "channel": {"uuid": "d0c17405-a902-4a06-8fb8-5b067a582283", "name": "Twilio"},
                     "direction": "in",
@@ -112,7 +114,7 @@ class ArchivesToHistoryTest(TembaTest):
                     "text": "bad word",
                     "attachments": [],
                     "labels": [],
-                    "created_on": "2015-01-01T13:53:31+00:00",
+                    "created_on": "2015-01-03T13:53:31+00:00",
                     "sent_on": None,
                     "modified_on": "2015-01-04T23:50:33.052089+00:00",
                 },
@@ -122,14 +124,14 @@ class ArchivesToHistoryTest(TembaTest):
         # message archive with new types
         self.create_archive(
             Archive.TYPE_MSG,
-            "D",
+            "M",
             date(2025, 1, 1),
             [
                 {
                     # unsendable broadcast message (no urn or channel)
                     "id": 5297,
                     "broadcast": 107746936,
-                    "contact": {"uuid": "d1f205ca-b299-4f41-8fb9-c19cbdb758e9", "name": "Rowan"},
+                    "contact": {"uuid": "abe1460e-7e97-4db4-9944-3d8d20792a2d", "name": "Ann"},
                     "urn": None,
                     "channel": None,
                     "flow": None,
@@ -147,10 +149,10 @@ class ArchivesToHistoryTest(TembaTest):
                 {
                     "id": 5307,
                     "broadcast": None,
-                    "contact": {"uuid": "a32d1f60-eb92-49c7-9161-4dd78e6a8b9e", "name": "Rowan"},
+                    "contact": {"uuid": "b33599af-2d97-4299-904d-2ea2d50921bb", "name": "Bob"},
                     "urn": "telegram:123456",
                     "channel": {"uuid": "ce4959aa-8c85-41a4-b53e-14c3f6852f90", "name": "TG Test"},
-                    "flow": {"uuid": "448bb9d0-af76-4657-96b5-aa033805542d", "name": "Post Deploy Child"},
+                    "flow": {"uuid": "448bb9d0-af76-4657-96b5-aa033805542d", "name": "Cat Facts"},
                     "direction": "out",
                     "type": "text",
                     "status": "wired",
@@ -161,6 +163,25 @@ class ArchivesToHistoryTest(TembaTest):
                     "created_on": "2025-01-01T14:52:49.053541+00:00",
                     "sent_on": "2025-01-01T14:52:53.773715+00:00",
                     "modified_on": "2025-01-01T14:52:53.773715+00:00",
+                },
+                {
+                    # a message with long text that will trigger compression
+                    "id": 5400,
+                    "broadcast": None,
+                    "contact": {"uuid": "c9f65adb-efa4-4497-8527-7a7ff02df99c", "name": "Cat"},
+                    "urn": "telegram:123456",
+                    "channel": {"uuid": "ce4959aa-8c85-41a4-b53e-14c3f6852f90", "name": "TG Test"},
+                    "flow": {"uuid": "448bb9d0-af76-4657-96b5-aa033805542d", "name": "Cat Facts"},
+                    "direction": "out",
+                    "type": "text",
+                    "status": "wired",
+                    "visibility": "visible",
+                    "text": "helloworld" * 1000,
+                    "attachments": [],
+                    "labels": [],
+                    "created_on": "2025-01-01T14:53:49.053541+00:00",
+                    "sent_on": "2025-01-01T14:53:53.773715+00:00",
+                    "modified_on": "2025-01-01T14:53:53.773715+00:00",
                 },
             ],
         )
@@ -199,8 +220,8 @@ class ArchivesToHistoryTest(TembaTest):
             "archives_to_history", "update", "--org", str(self.org.id), "--since", "2025-01-01", "--until", "2025-12-31"
         )
         self.assertIn("updating archives for 'Nyaruka'", output)
-        self.assertIn("rewriting D@2025-01-01", output)
-        self.assertIn("OK (2 records, 2 updated)", output)
+        self.assertIn("rewriting M@2025-01-01", output)
+        self.assertIn("OK (3 records, 3 updated)", output)
 
         # import 2015 archives
         output = self._call(
@@ -223,14 +244,14 @@ class ArchivesToHistoryTest(TembaTest):
             "archives_to_history", "import", "--org", str(self.org.id), "--since", "2025-01-01", "--until", "2025-12-31"
         )
         self.assertIn("importing archives for 'Nyaruka'", output)
-        self.assertIn("importing D@2025-01-01", output)
-        self.assertIn("OK (2 imported)", output)
+        self.assertIn("importing M@2025-01-01", output)
+        self.assertIn("OK (3 imported)", output)
 
         items = dynamo_scan_all(dynamo.HISTORY)
         self.assertEqual(
             [
                 {
-                    "PK": "con#dbe1460e-7e97-4db4-9944-3d8d20792a2d",
+                    "PK": "con#abe1460e-7e97-4db4-9944-3d8d20792a2d",
                     "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {
@@ -244,12 +265,12 @@ class ArchivesToHistoryTest(TembaTest):
                     },
                 },
                 {
-                    "PK": "con#dbe1460e-7e97-4db4-9944-3d8d20792a2d",
+                    "PK": "con#abe1460e-7e97-4db4-9944-3d8d20792a2d",
                     "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {
                         "type": "msg_received",
-                        "created_on": "2015-01-01T13:53:31+00:00",
+                        "created_on": "2015-01-03T13:53:31+00:00",
                         "msg": {
                             "text": "bad word",
                             "channel": {"uuid": "d0c17405-a902-4a06-8fb8-5b067a582283", "name": "Twilio"},
@@ -258,13 +279,13 @@ class ArchivesToHistoryTest(TembaTest):
                     },
                 },
                 {
-                    "PK": "con#dbe1460e-7e97-4db4-9944-3d8d20792a2d",
+                    "PK": "con#abe1460e-7e97-4db4-9944-3d8d20792a2d",
                     "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}#del"),
                     "OrgID": Decimal(self.org.id),
-                    "Data": {"created_on": "2015-01-01T13:53:31+00:00"},
+                    "Data": {"created_on": "2015-01-03T13:53:31+00:00"},
                 },
                 {
-                    "PK": "con#d1f205ca-b299-4f41-8fb9-c19cbdb758e9",
+                    "PK": "con#abe1460e-7e97-4db4-9944-3d8d20792a2d",
                     "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {
@@ -278,27 +299,7 @@ class ArchivesToHistoryTest(TembaTest):
                     },
                 },
                 {
-                    "PK": "con#a32d1f60-eb92-49c7-9161-4dd78e6a8b9e",
-                    "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}"),
-                    "OrgID": Decimal(self.org.id),
-                    "Data": {
-                        "type": "msg_created",
-                        "created_on": "2025-01-01T14:52:49.053541+00:00",
-                        "msg": {
-                            "text": "A cat uses its whiskers for measuring distances.",
-                            "urn": "telegram:123456",
-                            "channel": {"uuid": "ce4959aa-8c85-41a4-b53e-14c3f6852f90", "name": "TG Test"},
-                        },
-                    },
-                },
-                {
-                    "PK": "con#a32d1f60-eb92-49c7-9161-4dd78e6a8b9e",
-                    "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}#sts"),
-                    "OrgID": Decimal(self.org.id),
-                    "Data": {"created_on": "2025-01-01T14:52:49.053541+00:00", "status": "wired"},
-                },
-                {
-                    "PK": "con#c33599af-2d97-4299-904d-2ea2d50921bb",
+                    "PK": "con#b33599af-2d97-4299-904d-2ea2d50921bb",
                     "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {
@@ -312,7 +313,27 @@ class ArchivesToHistoryTest(TembaTest):
                     },
                 },
                 {
-                    "PK": "con#b9f65adb-efa4-4497-8527-7a7ff02df99c",
+                    "PK": "con#b33599af-2d97-4299-904d-2ea2d50921bb",
+                    "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}"),
+                    "OrgID": Decimal(self.org.id),
+                    "Data": {
+                        "type": "msg_created",
+                        "created_on": "2025-01-01T14:52:49.053541+00:00",
+                        "msg": {
+                            "text": "A cat uses its whiskers for measuring distances.",
+                            "urn": "telegram:123456",
+                            "channel": {"uuid": "ce4959aa-8c85-41a4-b53e-14c3f6852f90", "name": "TG Test"},
+                        },
+                    },
+                },
+                {
+                    "PK": "con#b33599af-2d97-4299-904d-2ea2d50921bb",
+                    "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}#sts"),
+                    "OrgID": Decimal(self.org.id),
+                    "Data": {"created_on": "2025-01-01T14:52:49.053541+00:00", "status": "wired"},
+                },
+                {
+                    "PK": "con#c9f65adb-efa4-4497-8527-7a7ff02df99c",
                     "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}"),
                     "OrgID": Decimal(self.org.id),
                     "Data": {
@@ -320,6 +341,21 @@ class ArchivesToHistoryTest(TembaTest):
                         "created_on": "2015-01-01T13:52:31+00:00",
                         "msg": {"text": "sawa 2"},
                     },
+                },
+                {
+                    "PK": "con#c9f65adb-efa4-4497-8527-7a7ff02df99c",
+                    "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}"),
+                    "OrgID": Decimal(self.org.id),
+                    "Data": {"type": "msg_created"},
+                    "DataGZ": Binary(
+                        b"\x1f\x8b\x08\x00\x00\x00\x00\x00\x02\x03\xed\xdaMj\xc30\x10@\xe1\xab\x18m[\x15\xc9\x92\x82\xed\x0b\xf4\x02\xde\x07\xd5\x9e$\x05\xff\x04G\xa6-\xc1w\xafez\x89\xc2\x03->\xd0\xcc\x9c\xe0=U\xfa\xb9\x8bj\n5>\xae\xe7n\x91\x98\xa4W\xaf\x85\xfa\xe3y\x9e\xf2gi\xca\xa0\x8d\xdd_k}\x13\\\xe3\xeb7\x13\\\xf0\xf6\xc5\x98\xc6\x98\xbc\xb1\x1f\xd8G\x9f*\xc9w\xca;7\x19\x86\xf9k^\x86\x1e!\x84\x10B\x08!\x84\x10B\x08!\x84\x10B\x08!\x84\x10B\x08!\x84\x10\xfa\xbf\xca\x8d\xdc\xba\x1c9]\x92A\xaeK\x1c\x1b[:\x1fNGow\x8b\xd3$\xc3Q\xd0\xad\xebg\x9f\xc7:\xf1u\xa8c\xd4UW\x05\xedm\xf4\xfa#8\xd1\xd6w\xeer\xaaBy\xa9\x8f\xf2n\x8a\xe3\x91\xf0\xb5\xefE+\x8f\xa4\xb6m\xfb\x05\x8e\xeeu\xe2\xd8'\x00\x00"
+                    ),
+                },
+                {
+                    "PK": "con#c9f65adb-efa4-4497-8527-7a7ff02df99c",
+                    "SK": matchers.String(pattern="evt#[0-9a-fA-F-]{36}#sts"),
+                    "OrgID": Decimal(self.org.id),
+                    "Data": {"created_on": "2025-01-01T14:53:49.053541+00:00", "status": "wired"},
                 },
             ],
             items,

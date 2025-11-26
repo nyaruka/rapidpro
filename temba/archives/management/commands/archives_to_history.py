@@ -1,3 +1,5 @@
+import gzip
+import json
 from datetime import date, datetime, timezone as tzone
 
 import iso8601
@@ -146,14 +148,22 @@ class Command(BaseCommand):
         Constructs a DynamoDB item in our standard format from an event or tag.
         """
 
-        # TODO use DataGZ for bigger payloads like mailroom does
+        data_gz = None
+        if not tag:
+            marshaled = json.dumps(data).encode("utf-8")
+            if len(marshaled) >= 900:
+                data_gz = gzip.compress(marshaled, mtime=0)
+                data = {"type": data["type"]}
 
-        return {
+        item = {
             "PK": f"con#{contact_uuid}",
             "SK": f"evt#{event_uuid}#{tag}" if tag else f"evt#{event_uuid}",
             "OrgID": org.id,
             "Data": data,
         }
+        if data_gz:
+            item["DataGZ"] = data_gz
+        return item
 
     def _msg(self, record: dict) -> dict:
         """
