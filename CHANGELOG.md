@@ -1,3 +1,9 @@
+v10.3.102 (2025-11-26)
+-------------------------
+ * Use mtime=0 when creating gzip files to ensure deterministic output
+ * Add Src attribute to items created by import from archives
+ * Make date range optional for archives_to_history command
+
 v10.3.101 (2025-11-26)
 -------------------------
  * Remove Archive.url
