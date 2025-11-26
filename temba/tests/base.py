@@ -613,10 +613,9 @@ class TembaTest(SmartminTest):
         body, md5, size = jsonlgz_encode(records)
         type_code = "run" if archive_type == Archive.TYPE_FLOWRUN else "message"
         date_code = start_date.strftime("%Y%m") if period == "M" else start_date.strftime("%Y%m%d")
-        key = f"{org.id}/{type_code}_{period}{date_code}_{md5}.jsonl.gz"
 
+        key = f"{org.id}/{type_code}_{period}{date_code}_{md5}.jsonl.gz"
         key = Archive.storage().save(key, body)
-        url = Archive.storage().url(key)
 
         archive = Archive.objects.create(
             org=org,
@@ -624,7 +623,6 @@ class TembaTest(SmartminTest):
             size=size,
             hash=md5,
             location=f"{Archive.storage().bucket.name}:{key}",
-            url=url,  # deprecated
             record_count=len(records),
             start_date=start_date,
             period=period,
