@@ -52,14 +52,11 @@ class Archive(models.Model):
     # when this archive's records where deleted (if any)
     deleted_on = models.DateTimeField(null=True)
 
-    # deprecated: to be replaced by location
-    url = models.URLField(null=True)
-
     @classmethod
     def storage(cls):
         return storages["archives"]
 
-    def get_storage_location(self) -> tuple:
+    def get_storage_location(self) -> tuple[str, str]:
         """
         Returns a tuple of the storage bucket and key
         """
