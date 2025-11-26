@@ -261,7 +261,7 @@ def jsonlgz_rewrite(in_file, out_file, transform) -> tuple:
     Rewrites a stream of gzipped JSONL using a transformation function and returns the new MD5 hash and size
     """
     out_wrapped = FileAndHash(out_file)
-    out_stream = gzip.GzipFile(fileobj=out_wrapped, mode="w")
+    out_stream = gzip.GzipFile(fileobj=out_wrapped, mode="w", mtime=0)
 
     for record in jsonlgz_iterate(in_file):
         record = transform(record)
@@ -277,7 +277,7 @@ def jsonlgz_rewrite(in_file, out_file, transform) -> tuple:
 def jsonlgz_encode(records: list) -> tuple:
     stream = io.BytesIO()
     wrapper = FileAndHash(stream)
-    gz = gzip.GzipFile(fileobj=wrapper, mode="wb")
+    gz = gzip.GzipFile(fileobj=wrapper, mode="wb", mtime=0)
 
     for record in records:
         gz.write(json.dumps(record, separators=(",", ":")).encode("utf-8"))
