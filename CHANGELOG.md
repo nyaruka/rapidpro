@@ -1,3 +1,8 @@
+v10.3.101 (2025-11-26)
+-------------------------
+ * Remove Archive.url
+ * Add archives_to_history management command to rewrite archives and import msg events from them
+
 v10.3.100 (2025-11-25)
 -------------------------
  * Fix bug in Archive.rewrite when deleting old archive
