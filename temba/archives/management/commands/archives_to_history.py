@@ -35,21 +35,23 @@ class Command(BaseCommand):
         until = datetime.combine(until, datetime.max.time(), tzinfo=tzone.utc) if until else None
 
         self.stdout.write(f"Starting message archive {step} for {orgs.count()} orgs...")
+        num_records = 0
 
         for org in orgs:
             if step == "update":
-                self.stdout.write(f" > updating archives for '{org.name}' (#{org.id})... ")
-                self.update_for_org(org, since, until)
+                self.stdout.write(f" 👤 updating archives for '{org.name}' (#{org.id})... ")
+                num_records += self.update_for_org(org, since, until)
             else:
-                self.stdout.write(f" > importing archives for '{org.name}' (#{org.id})... ")
-                self.import_for_org(org, since, until)
+                self.stdout.write(f" 👤 importing archives for '{org.name}' (#{org.id})... ")
+                num_records += self.import_for_org(org, since, until)
 
-    def update_for_org(self, org, since, until):
+        self.stdout.write(f"Done 🎉 {num_records:,} records {'updated' if step == 'update' else 'imported'}.")
+
+    def update_for_org(self, org, since, until) -> int:
+        total = 0
         archives = Archive._get_covering_period(org, Archive.TYPE_MSG, after=since, before=until)
         for archive in archives:
-            self.stdout.write(
-                f"    - rewriting {archive.period}@{archive.start_date.isoformat()} #{archive.id}...", ending=""
-            )
+            self.stdout.write(f"    🗂️ rewriting {archive.period}:{archive.start_date.isoformat()}...", ending="")
             self.stdout.flush()
 
             progress = {"records": 0, "updated": 0}
@@ -69,15 +71,18 @@ class Command(BaseCommand):
 
             archive.rewrite(rewrite_msg, delete_old=True)
 
-            self.stdout.write(f" OK ({progress['records']} records, {progress['updated']} updated)")
+            self.stdout.write(f" ✅ ({progress['records']:,} records, {progress['updated']:,} updated)")
+            total += progress["updated"]
 
-    def import_for_org(self, org, since, until):
+        return total
+
+    def import_for_org(self, org, since, until) -> int:
+        total = 0
+
         with dynamo.HISTORY.batch_writer() as writer:
             archives = Archive._get_covering_period(org, Archive.TYPE_MSG, after=since, before=until)
             for archive in archives:
-                self.stdout.write(
-                    f"    - importing {archive.period}@{archive.start_date.isoformat()} #{archive.id}...", ending=""
-                )
+                self.stdout.write(f"    🗂️ importing {archive.period}:{archive.start_date.isoformat()}...", ending="")
                 self.stdout.flush()
 
                 num_imported = 0
@@ -141,7 +146,10 @@ class Command(BaseCommand):
                         self.stdout.write(".", ending="")
                         self.stdout.flush()
 
-                self.stdout.write(f" OK ({num_imported} imported)")
+                self.stdout.write(f" ✅ ({num_imported:,} imported)")
+                total += num_imported
+
+        return total
 
     def _item(self, org, contact_uuid: str, event_uuid: str, data: dict, tag: str = None) -> dict:
         """
