@@ -27,6 +27,10 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             max_length=64, help_text=_("The password to access your Turn.io WhatsApp enterprise account")
         )
 
+        auth_token = forms.CharField(
+            help_text=_("The authentication token that will be used to send messages, generated from Turn.io UI")
+        )
+
         access_token = forms.CharField(
             max_length=256, help_text=_("The access token that will be used for syncing WhatsApp templates")
         )
@@ -49,8 +53,6 @@ class ClaimView(ClaimViewMixin, SmartFormView):
 
                 if resp.status_code != 200:
                     raise Exception("Received non-200 response: %d", resp.status_code)
-
-                self.cleaned_data["auth_token"] = resp.json()["users"][0]["token"]
 
             except Exception:
                 raise forms.ValidationError(

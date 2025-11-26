@@ -5,7 +5,6 @@ from requests import RequestException
 
 from django.urls import reverse
 
-from temba.channels.types.turn.tasks import refresh_turn_whatsapp_tokens
 from temba.channels.types.turn.type import (
     CONFIG_FB_ACCESS_TOKEN,
     CONFIG_FB_BUSINESS_ID,
@@ -13,7 +12,6 @@ from temba.channels.types.turn.type import (
     CONFIG_FB_TEMPLATE_LIST_DOMAIN,
 )
 from temba.request_logs.models import HTTPLog
-from temba.templates.models import TemplateTranslation
 from temba.tests import CRUDLTestMixin, MockResponse, TembaTest
 
 from ...models import Channel
@@ -46,6 +44,7 @@ class TurnTypeTest(CRUDLTestMixin, TembaTest):
         post_data["base_url"] = "https://whatsapp.turn.io"
         post_data["namespace"] = "my-custom-app"
         post_data["access_token"] = "token123"
+        post_data["auth_token"] = "auth-abc123"
 
         # will fail with invalid phone number
         response = self.client.post(url, post_data)
@@ -92,7 +91,7 @@ class TurnTypeTest(CRUDLTestMixin, TembaTest):
         self.assertRedirects(response, reverse("channels.channel_configuration", args=[channel.uuid]))
         self.assertEqual(channel.channel_type, "TRN")
 
-        self.assertEqual("abc123", channel.config[Channel.CONFIG_AUTH_TOKEN])
+        self.assertEqual("auth-abc123", channel.config[Channel.CONFIG_AUTH_TOKEN])
         self.assertEqual("https://whatsapp.turn.io", channel.config[Channel.CONFIG_BASE_URL])
 
         self.assertEqual("+250788123123", channel.address)
@@ -176,121 +175,3 @@ class TurnTypeTest(CRUDLTestMixin, TembaTest):
                 ),
             ]
         )
-
-    def test_refresh_tokens(self):
-        TemplateTranslation.objects.all().delete()
-        Channel.objects.all().delete()
-
-        channel = self.create_channel(
-            "TRN",
-            "Turn: 1234",
-            "1234",
-            config={
-                Channel.CONFIG_BASE_URL: "https://whatsapp.turn.io",
-                Channel.CONFIG_USERNAME: "temba",
-                Channel.CONFIG_PASSWORD: "tembapasswd",
-                Channel.CONFIG_AUTH_TOKEN: "authtoken123",
-                CONFIG_FB_BUSINESS_ID: "1234",
-                CONFIG_FB_ACCESS_TOKEN: "token123",
-                CONFIG_FB_NAMESPACE: "my-custom-app",
-                CONFIG_FB_TEMPLATE_LIST_DOMAIN: "whatsapp.turn.io",
-            },
-        )
-
-        channel2 = self.create_channel(
-            "TRN",
-            "Turn: 1235",
-            "1235",
-            config={
-                Channel.CONFIG_BASE_URL: "https://whatsapp.turn.io",
-                Channel.CONFIG_USERNAME: "temba",
-                Channel.CONFIG_PASSWORD: "tembapasswd",
-                Channel.CONFIG_AUTH_TOKEN: "authtoken123",
-                CONFIG_FB_BUSINESS_ID: "1234",
-                CONFIG_FB_ACCESS_TOKEN: "token123",
-                CONFIG_FB_NAMESPACE: "my-custom-app",
-                CONFIG_FB_TEMPLATE_LIST_DOMAIN: "whatsapp.turn.io",
-            },
-        )
-
-        # and fetching new tokens
-        with patch("requests.post") as mock_post:
-            mock_post.return_value = MockResponse(
-                200,
-                '{"users": [{"token": "abc345"}]}',
-                headers={
-                    "Authorization": "Basic dGVtYmE6dGVtYmFwYXNzd2Q=",
-                    "WA-user": "temba",
-                    "WA-pass": "tembapasswd",
-                },
-            )
-            self.assertFalse(channel.http_logs.filter(log_type=HTTPLog.WHATSAPP_TOKENS_SYNCED, is_error=False))
-            refresh_turn_whatsapp_tokens()
-            self.assertTrue(channel.http_logs.filter(log_type=HTTPLog.WHATSAPP_TOKENS_SYNCED, is_error=False))
-            channel.refresh_from_db()
-            self.assertEqual("abc345", channel.config[Channel.CONFIG_AUTH_TOKEN])
-            # check channel username, password, basic auth are redacted in HTTP logs
-            for log in channel.http_logs.all():
-                self.assertIn("temba", json.dumps(log.get_display()))
-                self.assertNotIn("tembapasswd", json.dumps(log.get_display()))
-                self.assertNotIn("dGVtYmE6dGVtYmFwYXNzd2Q=", json.dumps(log.get_display()))
-
-        with patch("requests.post") as mock_post:
-            mock_post.side_effect = [
-                MockResponse(
-                    400,
-                    '{ "error": true }',
-                    headers={
-                        "Authorization": "Basic dGVtYmE6dGVtYmFwYXNzd2Q=",
-                        "WA-user": "temba",
-                        "WA-pass": "tembapasswd",
-                    },
-                )
-            ]
-            self.assertFalse(channel.http_logs.filter(log_type=HTTPLog.WHATSAPP_TOKENS_SYNCED, is_error=True))
-            refresh_turn_whatsapp_tokens()
-            self.assertTrue(channel.http_logs.filter(log_type=HTTPLog.WHATSAPP_TOKENS_SYNCED, is_error=True))
-            channel.refresh_from_db()
-            self.assertEqual("abc345", channel.config[Channel.CONFIG_AUTH_TOKEN])
-            # check channel username, password, basic auth are redacted in HTTP logs
-            for log in channel.http_logs.all():
-                self.assertIn("temba", json.dumps(log.get_display()))
-                self.assertNotIn("tembapasswd", json.dumps(log.get_display()))
-                self.assertNotIn("dGVtYmE6dGVtYmFwYXNzd2Q=", json.dumps(log.get_display()))
-
-        with patch("requests.post") as mock_post:
-            mock_post.side_effect = [
-                MockResponse(
-                    200,
-                    "",
-                    headers={
-                        "Authorization": "Basic dGVtYmE6dGVtYmFwYXNzd2Q=",
-                        "WA-user": "temba",
-                        "WA-pass": "tembapasswd",
-                    },
-                ),
-                MockResponse(
-                    200,
-                    '{"users": [{"token": "abc098"}]}',
-                    headers={
-                        "Authorization": "Basic dGVtYmE6dGVtYmFwYXNzd2Q=",
-                        "WA-user": "temba",
-                        "WA-pass": "tembapasswd",
-                    },
-                ),
-            ]
-            refresh_turn_whatsapp_tokens()
-
-            channel.refresh_from_db()
-            channel2.refresh_from_db()
-            self.assertEqual("abc345", channel.config[Channel.CONFIG_AUTH_TOKEN])
-            self.assertEqual("abc098", channel2.config[Channel.CONFIG_AUTH_TOKEN])
-            # check channel username, password, basic auth are redacted in HTTP logs
-            for log in channel.http_logs.all():
-                self.assertIn("temba", json.dumps(log.get_display()))
-                self.assertNotIn("tembapasswd", json.dumps(log.get_display()))
-                self.assertNotIn("dGVtYmE6dGVtYmFwYXNzd2Q=", json.dumps(log.get_display()))
-            for log in channel2.http_logs.all():
-                self.assertIn("temba", json.dumps(log.get_display()))
-                self.assertNotIn("tembapasswd", json.dumps(log.get_display()))
-                self.assertNotIn("dGVtYmE6dGVtYmFwYXNzd2Q=", json.dumps(log.get_display()))
