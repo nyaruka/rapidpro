@@ -160,6 +160,7 @@ class Command(BaseCommand):
             "SK": f"evt#{event_uuid}#{tag}" if tag else f"evt#{event_uuid}",
             "OrgID": org.id,
             "Data": data,
+            "Src": "archives",
         }
         if data_gz:
             item["DataGZ"] = data_gz
