@@ -1,3 +1,7 @@
+v10.3.103 (2025-11-26)
+-------------------------
+ * Update to event-based message history
+
 v10.3.102 (2025-11-26)
 -------------------------
  * Use mtime=0 when creating gzip files to ensure deterministic output
