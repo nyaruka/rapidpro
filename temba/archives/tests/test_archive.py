@@ -181,7 +181,7 @@ class ArchiveTest(TembaTest):
         self.assertEqual("test-archives", new_bucket)
         self.assertNotEqual(key, new_key)
         self.assertEqual(f"test-archives:{self.org.id}/run_D20200801_{archive.hash}.jsonl.gz", archive.location)
-        self.assertEqual(32, len(archive.hash))
+        self.assertEqual("59de3863f44426885fd58660c7ff58a6", archive.hash)
 
         hash_b64 = base64.standard_b64encode(bytes.fromhex(archive.hash)).decode()
 
@@ -192,7 +192,6 @@ class ArchiveTest(TembaTest):
         self.assertEqual("DeleteObject", self.s3_calls[-1][0])
         self.assertEqual("test-archives", self.s3_calls[-1][1]["Bucket"])
 
-        prev_hash = archive.hash
         self.s3_calls = []
 
         # rewriting again should produce same content, same hash, and thus result in a put but not a delete
@@ -202,7 +201,7 @@ class ArchiveTest(TembaTest):
         new_bucket, new_key = archive.get_storage_location()
         self.assertEqual("test-archives", new_bucket)
         self.assertNotEqual(key, new_key)
-        self.assertEqual(prev_hash, archive.hash)
+        self.assertEqual("59de3863f44426885fd58660c7ff58a6", archive.hash)
         self.assertEqual(f"test-archives:{self.org.id}/run_D20200801_{archive.hash}.jsonl.gz", archive.location)
 
         self.assertEqual(2, len(self.s3_calls))
