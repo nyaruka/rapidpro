@@ -616,6 +616,8 @@ class OrgDeleteTest(TembaTest):
         )
         ContactImportBatch.objects.create(contact_import=imp, specs={}, record_start=0, record_end=0)
 
+        contact1.set_note(self.admin, "this guy for real?")
+
         return (contact1, contact2), (field1, field2), (group1, group2, group3)
 
     def _create_message_content(self, org, user, channels, contacts, groups, add) -> tuple:
