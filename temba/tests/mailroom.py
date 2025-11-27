@@ -426,13 +426,18 @@ class TestClient(MailroomClient):
         if msg.quick_replies:
             msg_json["quick_replies"] = [qr.as_json() for qr in msg.get_quick_replies()]
 
+        event_json = {
+            "uuid": str(msg.uuid),
+            "type": "msg_created",
+            "created_on": msg.created_on.isoformat(),
+            "msg": msg_json,
+        }
+
+        if org.users.filter(id=user.id, is_active=True).exists():
+            event_json["_user"] = user.as_engine_ref()
+
         return {
-            "event": {
-                "uuid": str(msg.uuid),
-                "type": "msg_created",
-                "created_on": msg.created_on.isoformat(),
-                "msg": msg_json,
-            },
+            "event": event_json,
             "contact": {"uuid": str(msg.contact.uuid), "name": msg.contact.name},
             "status": msg.status,
             "created_on": msg.created_on.isoformat(),
