@@ -1,3 +1,8 @@
+v10.3.104 (2025-11-28)
+-------------------------
+ * Update temba-components
+ * Fix deleting of contacts with notes
+
 v10.3.103 (2025-11-26)
 -------------------------
  * Update to event-based message history
