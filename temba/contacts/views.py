@@ -390,8 +390,9 @@ class ContactCRUDL(SmartCRUDL):
                 request.org, request.user, self.get_object(), text, [str(a) for a in attachments], [], ticket
             )
 
-            # inject user ref into event
-            resp["event"]["_user"] = request.user.as_chat_ref()
+            # update user ref with avatar
+            if resp["event"].get("_user"):
+                resp["event"]["_user"] = request.user.as_chat_ref()
 
             return JsonResponse({"event": resp["event"]})
 
