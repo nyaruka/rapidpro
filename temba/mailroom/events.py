@@ -179,9 +179,9 @@ class Event:
                 else:
                     event["_user"] = None  # user no longer exists
 
-        # inject log URLs for message events
         for event in events:
             if event["type"] in [cls.TYPE_MSG_CREATED, cls.TYPE_MSG_RECEIVED, cls.TYPE_IVR_CREATED]:
+                # inject log URLs into message events
                 if channel := event["msg"].get("channel"):
                     evt_age = timezone.now() - iso8601.parse_date(event["created_on"])
                     if evt_age < settings.RETENTION_PERIODS["channellog"]:
@@ -194,6 +194,12 @@ class Event:
                         )
                         if logs_url:
                             event["_logs_url"] = logs_url
+
+                # older events may have attachments stored as objects rather than encoded strings
+                if attachments := event["msg"].get("attachments"):
+                    event["msg"]["attachments"] = [
+                        f"{a['content_type']}:{a['url']}" if isinstance(a, dict) else a for a in attachments
+                    ]
 
 
 def _url_for_user(org: Org, user: User, view_name: str, args: list, perm: str = None) -> str:

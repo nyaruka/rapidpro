@@ -69,7 +69,12 @@ class EventTest(TembaTest):
                 "Data": {
                     "type": "msg_received",
                     "created_on": "2025-08-06T19:46:39.985439836Z",
-                    "msg": {"text": "Hello?"},
+                    "msg": {
+                        "text": "Hello?",
+                        "attachments": [
+                            {"content_type": "image/jpeg", "url": "https://example.com/004.jpg"}  # old format
+                        ],
+                    },
                 },
             },
             {
@@ -108,7 +113,10 @@ class EventTest(TembaTest):
                 "Data": {
                     "type": "msg_created",
                     "created_on": "2025-11-17T19:06:58.472135Z",
-                    "msg": {"text": "Oops"},  # no channel or URN
+                    "msg": {  # no channel or URN
+                        "text": "Oops",
+                        "attachments": ["image/jpeg:https://example.com/007.jpg"],  # new format
+                    },
                     "unsendable_reason": "no_route",
                 },
             },
@@ -152,6 +160,7 @@ class EventTest(TembaTest):
                     "created_on": "2025-08-06T19:46:39.985439836Z",
                     "msg": {
                         "text": "Hello?",
+                        "attachments": ["image/jpeg:https://example.com/004.jpg"],  # converted
                     },
                     "_deleted": {"created_on": "2025-09-08T19:46:39.985439836Z", "by_contact": True},  # injected
                 },
@@ -204,7 +213,7 @@ class EventTest(TembaTest):
                     "uuid": "019a9336-9228-71f0-becb-a56435927007",
                     "type": "msg_created",
                     "created_on": "2025-11-17T19:06:58.472135Z",
-                    "msg": {"text": "Oops"},
+                    "msg": {"text": "Oops", "attachments": ["image/jpeg:https://example.com/007.jpg"]},
                     "unsendable_reason": "no_route",
                 },
                 {
@@ -232,7 +241,7 @@ class EventTest(TembaTest):
                     "uuid": "019a9336-9228-71f0-becb-a56435927007",
                     "type": "msg_created",
                     "created_on": "2025-11-17T19:06:58.472135Z",
-                    "msg": {"text": "Oops"},
+                    "msg": {"text": "Oops", "attachments": ["image/jpeg:https://example.com/007.jpg"]},
                     "unsendable_reason": "no_route",
                 },
                 {
