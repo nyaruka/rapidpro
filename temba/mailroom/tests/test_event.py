@@ -225,7 +225,6 @@ class EventTest(TembaTest):
                         "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
                     },
                     "_status": {"created_on": "2025-11-17T19:07:58.472259Z", "status": "wired"},
-                    "_logs_url": f"/channels/channel/logs/{self.channel.uuid}/msg/019a9336-9228-73e8-b4f5-3a2b42593008/",
                 },
             ],
         )

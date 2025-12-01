@@ -15,6 +15,7 @@ from django.db.models.functions import Upper
 from django.http import HttpResponse, HttpResponseNotFound, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django.views import View
@@ -335,6 +336,11 @@ class ContactCRUDL(SmartCRUDL):
                     menu.add_modax(
                         _("Open Ticket"), "open-ticket", reverse("contacts.contact_open_ticket", args=[obj.id])
                     )
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            context["logs_since"] = timezone.now() - settings.RETENTION_PERIODS["channellog"]
+            return context
 
     class Scheduled(BaseReadView):
         """
