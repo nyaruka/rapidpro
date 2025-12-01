@@ -339,7 +339,7 @@ class ContactCRUDL(SmartCRUDL):
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
-            context["logs_since"] = timezone.now() - settings.RETENTION_PERIODS["channellog"]
+            context["msg_logs_after"] = (timezone.now() - settings.RETENTION_PERIODS["channellog"]).isoformat()
             return context
 
     class Scheduled(BaseReadView):
