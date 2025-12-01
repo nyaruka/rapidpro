@@ -1036,6 +1036,8 @@ class Contact(LegacyUUIDMixin, SmartModel):
         for broadcast in self.addressed_broadcasts.all():
             broadcast.contacts.remove(self)
 
+        self.notes.all().delete()
+
         counts["events"] = dynamo.delete_partition(dynamo.HISTORY, f"con#{self.uuid}")
 
         return counts
