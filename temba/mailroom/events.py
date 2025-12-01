@@ -1,11 +1,7 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-import iso8601
-
-from django.conf import settings
 from django.urls import reverse
-from django.utils import timezone
 
 from temba.orgs.models import Org
 from temba.users.models import User
@@ -181,20 +177,6 @@ class Event:
 
         for event in events:
             if event["type"] in [cls.TYPE_MSG_CREATED, cls.TYPE_MSG_RECEIVED, cls.TYPE_IVR_CREATED]:
-                # inject log URLs into message events
-                if channel := event["msg"].get("channel"):
-                    evt_age = timezone.now() - iso8601.parse_date(event["created_on"])
-                    if evt_age < settings.RETENTION_PERIODS["channellog"]:
-                        logs_url = _url_for_user(
-                            org,
-                            user,
-                            "channels.channel_logs_read",
-                            args=[channel["uuid"], "msg", event["uuid"]],
-                            perm="channels.channel_logs",
-                        )
-                        if logs_url:
-                            event["_logs_url"] = logs_url
-
                 # older events may have attachments stored as objects rather than encoded strings
                 if attachments := event["msg"].get("attachments"):
                     event["msg"]["attachments"] = [
