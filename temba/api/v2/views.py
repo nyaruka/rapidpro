@@ -324,8 +324,8 @@ class ArchivesEndpoint(ListAPIMixin, BaseEndpoint):
       * **period** - `daily` for daily archives, `monthly` for monthly archives (filterable as `period`).
       * **record_count** - number of records in the archive (int).
       * **size** - size of the gzipped archive content (int).
-      * **hash** - MD5 hash of the gzipped archive (string).
-      * **download_url** - temporary download URL of the archive (string).
+      * **hash** - MD5 hash of the gzipped archive (string or null for empty archives).
+      * **download_url** - temporary download URL of the archive (string or null for empty archives).
 
     Example:
 

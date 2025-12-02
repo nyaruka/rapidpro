@@ -31,6 +31,7 @@ class Archive(models.Model):
     PERIOD_MONTHLY = "M"
     PERIOD_CHOICES = ((PERIOD_DAILY, "Day"), (PERIOD_MONTHLY, "Month"))
 
+    uuid = models.UUIDField(null=True)
     org = models.ForeignKey("orgs.Org", related_name="archives", on_delete=models.PROTECT)
     archive_type = models.CharField(choices=TYPE_CHOICES, max_length=16)
     created_on = models.DateTimeField(default=timezone.now)
@@ -38,10 +39,12 @@ class Archive(models.Model):
     period = models.CharField(max_length=1, choices=PERIOD_CHOICES, default=PERIOD_DAILY)
     start_date = models.DateField()  # the earliest modified_on date for records (inclusive)
     record_count = models.IntegerField(default=0)  # number of records in this archive
-    size = models.BigIntegerField(default=0)  # size in bytes of the archive contents (after compression)
-    hash = models.TextField()  # MD5 hash of the archive contents (after compression)
-    location = models.CharField(max_length=64 + 1024, null=True)  # <bucket>:<key> storage location of the upload
     build_time = models.IntegerField()  # time in ms it took to build and upload this archive
+
+    # if archive has records and thus an upload...
+    location = models.CharField(max_length=64 + 1024, null=True)  # <bucket>:<key> storage location of the upload
+    hash = models.TextField(null=True)  # MD5 hash of the archive contents (after compression)
+    size = models.BigIntegerField(default=0)  # size in bytes of the archive contents (after compression)
 
     # archive we were rolled up into, if any
     rollup = models.ForeignKey("archives.Archive", on_delete=models.PROTECT, null=True)
@@ -92,7 +95,7 @@ class Archive(models.Model):
                     Bucket=s3_bucket, Delete={"Objects": [{"Key": o["Key"]} for o in archive_objs]}
                 )
 
-    def get_download_link(self):
+    def get_download_link(self) -> str | None:
         if self.location:
             s3_client = s3.client()
             bucket, key = self.get_storage_location()
@@ -107,7 +110,7 @@ class Archive(models.Model):
 
             return s3_client.generate_presigned_url("get_object", Params=s3_params, ExpiresIn=Archive.DOWNLOAD_EXPIRES)
         else:
-            return ""
+            return None
 
     @classmethod
     def _get_covering_period(cls, org, archive_type: str, after: datetime = None, before: datetime = None):

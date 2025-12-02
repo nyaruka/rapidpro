@@ -618,6 +618,7 @@ class TembaTest(SmartminTest):
         key = Archive.storage().save(key, body)
 
         archive = Archive.objects.create(
+            uuid=uuid7(),
             org=org,
             archive_type=archive_type,
             size=size,

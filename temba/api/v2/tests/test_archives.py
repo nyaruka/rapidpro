@@ -3,6 +3,7 @@ from datetime import datetime
 from django.urls import reverse
 
 from temba.archives.models import Archive
+from temba.tests import matchers
 
 from . import APITest
 
@@ -20,41 +21,45 @@ class ArchivesEndpointTest(APITest):
             org=self.org,
             start_date=datetime(2017, 4, 5),
             build_time=12,
-            record_count=34,
-            size=345,
-            hash="c4ca4238a0b923820dcc509a6f75849b",
+            record_count=0,
             archive_type=Archive.TYPE_MSG,
             period=Archive.PERIOD_DAILY,
+            location=None,
+            hash=None,
+            size=0,
         )
         archive2 = Archive.objects.create(
             org=self.org,
-            start_date=datetime(2017, 5, 5),
+            start_date=datetime(2017, 5, 1),
             build_time=12,
             record_count=34,
-            size=345,
-            hash="c81e728d9d4c2f636f067f89cc14862c",
             archive_type=Archive.TYPE_MSG,
             period=Archive.PERIOD_MONTHLY,
+            location="temba-archives:orgs/1/messages/M2017-05-01.gz",
+            hash="c81e728d9d4c2f636f067f89cc14862c",
+            size=345,
         )
         archive3 = Archive.objects.create(
             org=self.org,
             start_date=datetime(2017, 6, 5),
             build_time=12,
             record_count=34,
-            size=345,
-            hash="eccbc87e4b5ce2fe28308fd9f2a7baf3",
             archive_type=Archive.TYPE_FLOWRUN,
             period=Archive.PERIOD_DAILY,
+            location="temba-archives:orgs/1/messages/D2017-06-05.gz",
+            hash="eccbc87e4b5ce2fe28308fd9f2a7baf3",
+            size=345,
         )
         archive4 = Archive.objects.create(
             org=self.org,
-            start_date=datetime(2017, 7, 5),
+            start_date=datetime(2017, 7, 1),
             build_time=12,
             record_count=34,
-            size=345,
-            hash="a87ff679a2f3e71d9181a67b7542122c",
             archive_type=Archive.TYPE_FLOWRUN,
             period=Archive.PERIOD_MONTHLY,
+            location="temba-archives:orgs/1/messages/D2017-07-05.gz",
+            hash="a87ff679a2f3e71d9181a67b7542122c",
+            size=345,
         )
         # this archive has been rolled up and it should not be included in the API responses
         Archive.objects.create(
@@ -88,17 +93,17 @@ class ArchivesEndpointTest(APITest):
             results=[
                 {
                     "type": "run",
-                    "download_url": "",
+                    "download_url": matchers.String(),
                     "hash": "a87ff679a2f3e71d9181a67b7542122c",
                     "period": "monthly",
                     "record_count": 34,
                     "size": 345,
-                    "start_date": "2017-07-05",
+                    "start_date": "2017-07-01",
                     "archive_type": "run",  # deprecated
                 },
                 {
                     "type": "run",
-                    "download_url": "",
+                    "download_url": matchers.String(),
                     "hash": "eccbc87e4b5ce2fe28308fd9f2a7baf3",
                     "period": "daily",
                     "record_count": 34,
@@ -108,21 +113,21 @@ class ArchivesEndpointTest(APITest):
                 },
                 {
                     "type": "message",
-                    "download_url": "",
+                    "download_url": matchers.String(),
                     "hash": "c81e728d9d4c2f636f067f89cc14862c",
                     "period": "monthly",
                     "record_count": 34,
                     "size": 345,
-                    "start_date": "2017-05-05",
+                    "start_date": "2017-05-01",
                     "archive_type": "message",
                 },
                 {
                     "type": "message",
-                    "download_url": "",
-                    "hash": "c4ca4238a0b923820dcc509a6f75849b",
+                    "download_url": None,
+                    "hash": None,
                     "period": "daily",
-                    "record_count": 34,
-                    "size": 345,
+                    "record_count": 0,
+                    "size": 0,
                     "start_date": "2017-04-05",
                     "archive_type": "message",
                 },
