@@ -31,6 +31,7 @@ class Archive(models.Model):
     PERIOD_MONTHLY = "M"
     PERIOD_CHOICES = ((PERIOD_DAILY, "Day"), (PERIOD_MONTHLY, "Month"))
 
+    uuid = models.UUIDField(null=True)
     org = models.ForeignKey("orgs.Org", related_name="archives", on_delete=models.PROTECT)
     archive_type = models.CharField(choices=TYPE_CHOICES, max_length=16)
     created_on = models.DateTimeField(default=timezone.now)
