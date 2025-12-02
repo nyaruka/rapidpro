@@ -4,6 +4,7 @@ from datetime import timedelta
 from smartmin.views import SmartCRUDL, SmartListView, SmartTemplateView, SmartUpdateView
 
 from django import forms
+from django.conf import settings
 from django.db import models
 from django.db.models import F, Sum, Value
 from django.db.models.aggregates import Max
@@ -299,6 +300,7 @@ class TicketCRUDL(SmartCRUDL):
             context["folder"] = str(folder.slug)
             context["status"] = "open" if status == Ticket.STATUS_OPEN else "closed"
             context["has_tickets"] = self.request.org.tickets.exists()
+            context["msg_logs_after"] = (timezone.now() - settings.RETENTION_PERIODS["channellog"]).isoformat()
 
             if ticket:
                 context["nextUUID" if in_page else "uuid"] = str(ticket.uuid)

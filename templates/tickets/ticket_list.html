@@ -631,6 +631,7 @@
                                   -temba-message-sent="handleMessageSent"
                                   -temba-interrupt="handleInterruptContact"
                                   {% if org_perms.contacts.contact_interrupt %}showInterrupt{% endif %}
+                                  {% if org_perms.channels.channel_logs or request.user.is_staff %}showMessageLogsAfter="{{ msg_logs_after }}"{% endif %}
                                   avatar="{{ branding.logos.avatar }}">
               </temba-contact-chat>
             </div>
