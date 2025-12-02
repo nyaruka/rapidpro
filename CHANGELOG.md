@@ -1,3 +1,9 @@
+v10.3.109 (2025-12-02)
+-------------------------
+ * Migration to let Archive.location be nullable.
+ * Display empty archives that don't have uploads
+ * Show message logs on ticket page too
+
 v10.3.108 (2025-12-01)
 -------------------------
  * Update temba-components
