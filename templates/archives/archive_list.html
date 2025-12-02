@@ -26,12 +26,20 @@
           {% endif %}
         </td>
         <td style="text-align:right">{{ archive.record_count|intcomma }}</td>
-        <td style="text-align:right">{{ archive.size|filesizeformat }}</td>
+        <td style="text-align:right">
+          {% if archive.location %}
+            {{ archive.size|filesizeformat }}
+          {% else %}
+            --
+          {% endif %}
+        </td>
         <td class="w-10" style="--icon-color:#bbb">
-          <temba-icon clickable="true"
-                      name="download"
-                      onclick="downloadFile(event, '{% url 'archives.archive_read' archive.id %}')">
-          </temba-icon>
+          {% if archive.location %}
+            <temba-icon clickable="true"
+                        name="download"
+                        onclick="downloadFile(event, '{% url 'archives.archive_read' archive.id %}')">
+            </temba-icon>
+          {% endif %}
         </td>
       </tr>
     {% empty %}
