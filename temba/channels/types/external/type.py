@@ -74,7 +74,7 @@ class ExternalType(ChannelType):
             "text": "Love is patient. Love is kind.",
             "from": channel.address,
             "from_no_plus": channel.address.lstrip("+"),
-            "id": "1241244",
+            "uuid": "019ade31-7a75-718c-bf30-24fe51bc9c17",
             "channel": str(channel.id),
         }
 
