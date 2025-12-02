@@ -40,7 +40,7 @@ class Archive(models.Model):
     record_count = models.IntegerField(default=0)  # number of records in this archive
     size = models.BigIntegerField(default=0)  # size in bytes of the archive contents (after compression)
     hash = models.TextField()  # MD5 hash of the archive contents (after compression)
-    location = models.CharField(max_length=64 + 1024)  # <bucket>:<key> storage location of this archive
+    location = models.CharField(max_length=64 + 1024, null=True)  # <bucket>:<key> storage location of the upload
     build_time = models.IntegerField()  # time in ms it took to build and upload this archive
 
     # archive we were rolled up into, if any
