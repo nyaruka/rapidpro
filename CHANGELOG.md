@@ -1,3 +1,9 @@
+v10.3.110 (2025-12-02)
+-------------------------
+ * Update temba-components
+ * Add Archive.uuid
+ * Adjust archives endpoint to handle archives without uploads
+
 v10.3.109 (2025-12-02)
 -------------------------
  * Migration to let Archive.location be nullable.
