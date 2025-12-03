@@ -1,3 +1,8 @@
+v10.3.112 (2025-12-03)
+-------------------------
+ * Update temba-components
+ * Revert removing ID from ext channel example payload
+
 v10.3.111 (2025-12-02)
 -------------------------
  * Update temba-components
