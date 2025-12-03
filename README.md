@@ -16,22 +16,9 @@ applications. To see what it can do, signup for a free trial account at [textit.
 - [DynamoDB](https://aws.amazon.com/dynamodb/)
 - [Cloudwatch](https://aws.amazon.com/cloudwatch/)
 
-## Versioning
+## Snapshots
 
-Major releases are made every 6 months on a set schedule. We target January as a major release (e.g. `10.0.0`), then
-July as the stable dot release (e.g. `10.2.0`). Unstable releases (i.e. _development_ versions) have odd minor versions
-(e.g. `10.1.*`, `10.3.*`).
-
-To upgrade from one stable release to the next, you must first install and run the migrations for the latest stable
-release you are on, then every stable release afterwards. For example if you're upgrading from `7.4` to `8.0`, you
-need to upgrade to `7.4.2` before upgrading to `8.0`.
-
-### Stable Versions
-
-The set of versions that make up the latest stable release are:
-
-- [RapidPro 10.2.1](https://github.com/nyaruka/rapidpro/releases/tag/v10.2.1)
-- [Mailroom 10.2.0](https://github.com/nyaruka/mailroom/releases/tag/v10.2.0)
-- [Courier 10.2.0](https://github.com/nyaruka/courier/releases/tag/v10.2.0)
-- [Indexer 10.2.0](https://github.com/nyaruka/rp-indexer/releases/tag/v10.2.0)
-- [Archiver 10.2.0](https://github.com/nyaruka/rp-archiver/releases/tag/v10.2.0)
+Every 6 months we [publish snapshots](https://github.com/nyaruka/rapidpro/discussions) for other deployments 
+which are essentially a set of stable versions of the components that make up the platform. To upgrade from 
+one snapshot to the next, you must first install and run the migrations for the latest snapshot you are on, 
+then every snapshot afterwards.
