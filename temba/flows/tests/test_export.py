@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from openpyxl import load_workbook
 
@@ -13,6 +13,7 @@ from temba.orgs.models import Export
 from temba.tests import TembaTest, mock_mailroom
 from temba.tests.engine import MockSessionWriter
 from temba.utils import json
+from temba.utils.s3 import s3
 from temba.utils.uuid import uuid4, uuid7
 
 
@@ -1020,18 +1021,21 @@ class ResultsExportTest(TembaTest):
             [contact1_run.as_archive_json(), old_archive_format, contact2_other_flow.as_archive_json()],
         )
 
+        def encode_jsonl(records):
+            return b"".join([json.dumps(record).encode("utf-8") + b"\n" for record in records])
+
+        jsonl_visible = encode_jsonl([contact1_run.as_archive_json(), old_archive_format])
+
         contact1_run.delete()
         contact2_run.delete()
 
-        # create an archive earlier than our flow created date so we check that it isn't included
-        self.create_archive(
-            Archive.TYPE_FLOWRUN,
-            "D",
-            timezone.now().date() - timedelta(days=2),
-            [contact2_run.as_archive_json()],
-        )
+        with patch.object(s3.client(), "select_object_content") as mock_select_object_content:
+            mock_select_object_content.return_value = {
+                "ResponseMetadata": ANY,
+                "Payload": [{"Records": {"Payload": jsonl_visible}, "Stats": {}, "End": {}}],
+            }
 
-        workbook = self._export(flow, start_date=today - timedelta(days=7), end_date=today)
+            workbook = self._export(flow, start_date=today - timedelta(days=7), end_date=today)
 
         tz = self.org.timezone
         (sheet_runs,) = workbook.worksheets
