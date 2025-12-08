@@ -33,13 +33,11 @@ if TESTING:
 if os.getenv("REMOTE_CONTAINERS") == "true":
     _db_host = "postgres"
     _valkey_host = "valkey"
-    _minio_host = "minio"
-    _dynamo_host = "dynamo"
+    _localstack_host = "localstack"
 else:
     _db_host = "localhost"
     _valkey_host = "localhost"
-    _minio_host = "localhost"
-    _dynamo_host = "localhost"
+    _localstack_host = "localhost"
 
 # -----------------------------------------------------------------------------------
 # AWS
@@ -49,7 +47,7 @@ AWS_ACCESS_KEY_ID = "root"
 AWS_SECRET_ACCESS_KEY = "tembatemba"
 AWS_REGION = "us-east-1"
 
-DYNAMO_ENDPOINT_URL = f"http://{_dynamo_host}:6000"
+DYNAMO_ENDPOINT_URL = f"http://{_localstack_host}:4566"
 DYNAMO_TABLE_PREFIX = "Test" if TESTING else "Temba"
 
 # -----------------------------------------------------------------------------------
@@ -83,9 +81,9 @@ STORAGES = {
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 
-# settings used by django-storages (defaults to local Minio server)
+# settings used by django-storages (defaults to localstack)
 AWS_S3_REGION_NAME = AWS_REGION
-AWS_S3_ENDPOINT_URL = f"http://{_minio_host}:9000"
+AWS_S3_ENDPOINT_URL = f"http://{_localstack_host}:4566"
 AWS_S3_ADDRESSING_STYLE = "path"
 AWS_S3_FILE_OVERWRITE = False
 

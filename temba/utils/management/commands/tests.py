@@ -26,8 +26,12 @@ class CreateBucketsTest(TembaTest):
         self.assertIn("created bucket temp-archives", out.getvalue())
         self.assertIn("created bucket temp-default", out.getvalue())
 
+        print(out.getvalue())
+
         out = StringIO()
         call_command("create_buckets", stdout=out)
+
+        print(out.getvalue())
 
         self.assertIn("Bucket temp-archives already exists", out.getvalue())
         self.assertIn("Bucket temp-default already exists", out.getvalue())
