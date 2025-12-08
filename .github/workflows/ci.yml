@@ -4,8 +4,10 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    container:
+      image: python:3.12-trixie
+
     env:
-      python-version: '3.12.x'
       node-version: '20'
       mailroom-version: '10.2.0'
 
@@ -23,6 +25,12 @@ jobs:
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      localstack:
+        image: localstack/localstack:latest
+        env:
+          SERVICES: s3,dynamodb
+        ports:
+          - 4566:4566
 
     steps:
       - name: Checkout code
@@ -30,13 +38,8 @@ jobs:
 
       - name: Install Linux packages
         run: |
-          sudo apt update
-          sudo apt install -y --no-install-recommends libgdal-dev ffmpeg
-
-      - name: Install Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.python-version }}
+          apt update
+          apt install -y --no-install-recommends libgdal-dev ffmpeg
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
@@ -48,19 +51,13 @@ jobs:
         with:
           node-version: ${{ env.node-version }}
 
-      - name: Start LocalStack
-        uses: LocalStack/setup-localstack@v0.2.4
-        with:
-          image-tag: 'latest'
-          configuration: |
-            SERVICES=s3,dynamodb
-
       - name: Initialize environment
         run: |
           poetry install --no-root
+          npm install -g yarn
           yarn install
-          sudo yarn global add less
-          ln -s ${{ github.workspace }}/temba/settings.py.dev ${{ github.workspace }}/temba/settings.py
+          yarn global add less
+          cd temba && ln -s settings.py.dev settings.py && cd ..
           poetry run python manage.py migrate
           poetry run python manage.py migrate_dynamo --testing
           poetry run python manage.py create_buckets --testing
@@ -68,7 +65,7 @@ jobs:
           wget https://github.com/${{ github.repository_owner }}/mailroom/releases/download/v${{ env.mailroom-version }}/mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz
           tar -xvf mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz mailroom
           # start mailroom but use different valkey db so that it doesn't actually handle tasks
-          ./mailroom -db=postgres://temba:temba@localhost:5432/temba?sslmode=disable -valkey=valkey://localhost:6379/15 -log-level=info > mailroom.log &
+          ./mailroom -db=postgres://temba:temba@localhost:5432/temba?sslmode=disable -valkey=valkey://valkey:6379/15 -log-level=info > mailroom.log &
 
       - name: Run pre-test checks
         run: |
