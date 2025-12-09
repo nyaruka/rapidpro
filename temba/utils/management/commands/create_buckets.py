@@ -22,7 +22,7 @@ class Command(BaseCommand):
         # during tests settings.TESTING is true so table prefix is "test" - but this command is run with
         # settings.TESTING == False, so when setting up buckets for testing we need to override the prefix
         if testing:
-            settings.AWS_S3_ENDPOINT_URL = "http://localhost:4566"
+            settings.AWS_S3_ENDPOINT_URL = "http://localstack:4566"
             settings.BUCKET_PREFIX = "test"
 
         client = s3.client()

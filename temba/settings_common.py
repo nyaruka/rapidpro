@@ -30,14 +30,9 @@ if TESTING:
     PASSWORD_HASHERS = ("django.contrib.auth.hashers.MD5PasswordHasher",)
     DEBUG = False
 
-if os.getenv("REMOTE_CONTAINERS") == "true":
-    _db_host = "postgres"
-    _valkey_host = "valkey"
-    _localstack_host = "localstack"
-else:
-    _db_host = "localhost"
-    _valkey_host = "localhost"
-    _localstack_host = "localhost"
+_db_host = "postgres"
+_valkey_host = "valkey"
+_localstack_host = "localstack"
 
 # -----------------------------------------------------------------------------------
 # AWS
