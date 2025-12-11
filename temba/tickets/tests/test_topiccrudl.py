@@ -61,7 +61,7 @@ class TopicCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_update(self):
         topic = Topic.create(self.org, self.admin, "Hot Topic")
 
-        update_url = reverse("tickets.topic_update", args=[topic.id])
+        update_url = reverse("tickets.topic_update", args=[topic.uuid])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
 
@@ -82,7 +82,7 @@ class TopicCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(topic.name, "Boring")
 
         # can't edit a system topic
-        self.assertRequestDisallowed(reverse("tickets.topic_update", args=[self.org.default_topic.id]), [self.admin])
+        self.assertRequestDisallowed(reverse("tickets.topic_update", args=[self.org.default_topic.uuid]), [self.admin])
 
     def test_delete(self):
         topic1 = Topic.create(self.org, self.admin, "Planes")
