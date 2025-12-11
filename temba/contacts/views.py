@@ -300,7 +300,6 @@ class ContactCRUDL(SmartCRUDL):
             return JsonResponse({"results": results, "more": False, "total": len(results), "err": "nil"})
 
     class Read(SpaMixin, ContextMenuMixin, BaseReadView):
-        slug_url_kwarg = "uuid"
         fields = ("name",)
         select_related = ("current_flow",)
 
@@ -348,7 +347,6 @@ class ContactCRUDL(SmartCRUDL):
         """
 
         permission = "contacts.contact_read"
-        slug_url_kwarg = "uuid"
 
         def render_to_response(self, context, **response_kwargs):
             return JsonResponse({"results": self.object.get_scheduled()})
@@ -358,7 +356,6 @@ class ContactCRUDL(SmartCRUDL):
         Returns chat history for a contact or sends a new message to the contact.
         """
 
-        slug_url_kwarg = "uuid"
         page_size = 50
 
         def get(self, request, *args, **kwargs):

@@ -51,5 +51,7 @@ class ArchiveCRUDL(SmartCRUDL):
             return Archive.TYPE_MSG
 
     class Read(BaseReadView):
+        slug_url_kwarg = None  # TODO switch to uuid once we've backfilled UUIDs
+
         def render_to_response(self, context, **response_kwargs):
             return HttpResponseRedirect(self.object.get_download_link())

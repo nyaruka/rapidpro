@@ -49,7 +49,6 @@ class ClassifierCRUDL(SmartCRUDL):
         success_message = _("Your classifier has been deleted.")
 
     class Read(SpaMixin, ContextMenuMixin, BaseReadView):
-        slug_url_kwarg = "uuid"
         exclude = ("id", "is_active", "created_by", "modified_by", "modified_on")
 
         def derive_menu_path(self):

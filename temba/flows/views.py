@@ -219,7 +219,6 @@ class FlowCRUDL(SmartCRUDL):
         """
 
         permission = "flows.flow_editor"
-        slug_url_kwarg = "uuid"
 
         @classmethod
         def derive_url_pattern(cls, path, action):
@@ -236,7 +235,6 @@ class FlowCRUDL(SmartCRUDL):
         """
 
         permission = "flows.flow_editor"
-        slug_url_kwarg = "uuid"
 
         @classmethod
         def derive_url_pattern(cls, path, action):
@@ -712,8 +710,6 @@ class FlowCRUDL(SmartCRUDL):
             return qs.filter(org=self.request.org, labels=self.label, is_archived=False).order_by("-created_on")
 
     class Editor(SpaMixin, ContextMenuMixin, BaseReadView):
-        slug_url_kwarg = "uuid"
-
         def derive_menu_path(self):
             if self.object.is_archived:
                 return "/flow/archived"
@@ -1075,7 +1071,6 @@ class FlowCRUDL(SmartCRUDL):
 
     class BaseResultsView(BaseReadView):
         permission = "flows.flow_results"
-        slug_url_kwarg = "uuid"
 
     class EngagementTimeline(BaseResultsView):
         def render_to_response(self, context, **response_kwargs):
@@ -1229,7 +1224,6 @@ class FlowCRUDL(SmartCRUDL):
         """
 
         permission = "flows.flow_editor"
-        slug_url_kwarg = "uuid"
 
         def get(self, request, *args, **kwargs):
             flow = self.get_object(self.get_queryset())
@@ -1314,6 +1308,7 @@ class FlowCRUDL(SmartCRUDL):
     class PreviewStart(BaseReadView):
         permission = "flows.flow_start"
         readonly_servicing = False
+        slug_url_kwarg = None  # TODO switch to uuid
 
         blockers = {
             "no_send_channel": _(

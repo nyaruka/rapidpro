@@ -459,7 +459,6 @@ class ChannelCRUDL(SmartCRUDL):
     )
 
     class Read(SpaMixin, ContextMenuMixin, BaseReadView):
-        slug_url_kwarg = "uuid"
         exclude = ("id", "is_active", "created_by", "modified_by", "modified_on")
 
         def derive_menu_path(self):
@@ -561,7 +560,6 @@ class ChannelCRUDL(SmartCRUDL):
 
     class Chart(ChartViewMixin, BaseReadView):
         permission = "channels.channel_read"
-        slug_url_kwarg = "uuid"
         default_chart_period = (-timedelta(days=30), timedelta(days=1))
 
         def get_chart_data(self, since, until) -> tuple[list, list]:
@@ -782,8 +780,6 @@ class ChannelCRUDL(SmartCRUDL):
             return recommended_channels, types_by_category, False
 
     class Configuration(SpaMixin, BaseReadView):
-        slug_url_kwarg = "uuid"
-
         def pre_process(self, request, *args, **kwargs):
             channel = self.get_object()
             if not channel.type.config_ui:

@@ -1878,7 +1878,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         }
 
         self.login(self.admin)
-        simulate_url = reverse("flows.flow_simulate", args=[flow.id])
+        simulate_url = reverse("flows.flow_simulate", args=[flow.uuid])
 
         with override_settings(MAILROOM_AUTH_TOKEN="sesame", MAILROOM_URL="https://mailroom.temba.io"):
             with patch("requests.post") as mock_post:
@@ -1942,7 +1942,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         flow = self.create_flow("Test", flow_type=Flow.TYPE_VOICE)
 
         self.login(self.admin)
-        simulate_url = reverse("flows.flow_simulate", args=[flow.id])
+        simulate_url = reverse("flows.flow_simulate", args=[flow.uuid])
 
         with override_settings(MAILROOM_AUTH_TOKEN="sesame", MAILROOM_URL="https://mailroom.temba.io"):
             with patch("requests.post") as mock_post:
