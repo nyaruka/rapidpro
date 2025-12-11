@@ -45,6 +45,8 @@ class BaseReadView(OrgObjPermsMixin, SmartReadView):
     Base detail view for an object that belong to the current org
     """
 
+    slug_url_kwarg = "uuid"
+
     def derive_queryset(self, **kwargs):
         qs = super().derive_queryset(**kwargs)
 

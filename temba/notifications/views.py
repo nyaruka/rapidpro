@@ -15,6 +15,8 @@ class NotificationCRUDL(SmartCRUDL):
     actions = ("read",)
 
     class Read(BaseReadView):
+        slug_url_kwarg = None  # these don't have UUIDs currently
+
         def has_permission(self, request, *args, **kwargs):
             return self.request.user.is_authenticated
 

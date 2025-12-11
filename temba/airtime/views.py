@@ -32,10 +32,13 @@ class AirtimeCRUDL(SmartCRUDL):
             """
             By default we just return /view/{{ id }}/ for the current object.
             """
+
+            if field == "status":
+                return reverse("airtime.airtimetransfer_read", args=[obj.uuid])
             if field == "contact":
                 return reverse("contacts.contact_read", args=[obj.contact.uuid])
 
-            return super().lookup_field_link(context, field, obj)
+            return super().lookup_field_link(context, field, obj)  # pragma: no cover
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
