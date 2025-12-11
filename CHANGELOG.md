@@ -1,3 +1,7 @@
+v10.3.114 (2025-12-11)
+-------------------------
+ * Rework more views to use uuids in URLs instead of ids
+
 v10.3.113 (2025-12-11)
 -------------------------
  * Update django to 5.2.9
