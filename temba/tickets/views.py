@@ -355,7 +355,7 @@ class TicketCRUDL(SmartCRUDL):
                     menu.add_modax(
                         _("Edit"),
                         "edit-topic",
-                        f"{reverse('tickets.topic_update', args=[self.folder.topic.uuid])}",
+                        f"{reverse('tickets.topic_update', args=[self.folder.topic.id])}",
                         title=_("Edit Topic"),
                         on_submit="handleTopicUpdated()",
                     )

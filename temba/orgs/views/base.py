@@ -81,8 +81,6 @@ class BaseUpdateModal(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, Smar
     Base update modal view
     """
 
-    slug_url_kwarg = "uuid"
-
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["org"] = self.request.org

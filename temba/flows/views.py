@@ -782,7 +782,7 @@ class FlowCRUDL(SmartCRUDL):
                 menu.add_modax(
                     _("Edit"),
                     "edit-flow",
-                    f"{reverse('flows.flow_update', args=[obj.uuid])}",
+                    f"{reverse('flows.flow_update', args=[obj.id])}",
                     title=_("Edit Flow"),
                 )
 

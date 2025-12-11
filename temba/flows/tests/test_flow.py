@@ -401,7 +401,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         flow.save()
 
         # keywords aren't an option for survey flows
-        response = self.client.get(reverse("flows.flow_update", args=[flow.uuid]))
+        response = self.client.get(reverse("flows.flow_update", args=[flow.pk]))
         self.assertNotIn("keyword_triggers", response.context["form"].fields)
         self.assertNotIn("ignore_triggers", response.context["form"].fields)
 
@@ -411,7 +411,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         post_data["keyword_triggers"] = "notallowed"
         post_data["ignore_keywords"] = True
         post_data["expires_after_minutes"] = 60 * 12
-        response = self.client.post(reverse("flows.flow_update", args=[flow.uuid]), post_data, follow=True)
+        response = self.client.post(reverse("flows.flow_update", args=[flow.pk]), post_data, follow=True)
 
         # still shouldn't have any triggers
         flow.refresh_from_db()

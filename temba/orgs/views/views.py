@@ -185,7 +185,7 @@ class UserCRUDL(SmartCRUDL):
                     menu.add_modax(
                         _("Edit"),
                         "update-team",
-                        reverse("tickets.team_update", args=[self.team.uuid]),
+                        reverse("tickets.team_update", args=[self.team.id]),
                         title=_("Edit Team"),
                         as_button=True,
                     )

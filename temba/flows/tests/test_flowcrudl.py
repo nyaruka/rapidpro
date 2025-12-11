@@ -319,7 +319,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(list(response.context["object_list"]), [flow3, voice_flow, flow1, flow])  # by saved_on
 
         # test update view
-        response = self.client.post(reverse("flows.flow_update", args=[flow.uuid]))
+        response = self.client.post(reverse("flows.flow_update", args=[flow.id]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["form"].fields), 5)
         self.assertIn("name", response.context["form"].fields)
@@ -373,7 +373,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_update_messaging_flow(self):
         flow = self.create_flow("Test")
-        update_url = reverse("flows.flow_update", args=[flow.uuid])
+        update_url = reverse("flows.flow_update", args=[flow.id])
 
         def assert_triggers(expected: list):
             actual = list(flow.triggers.filter(trigger_type="K", is_active=True).values("keywords", "is_archived"))
@@ -483,7 +483,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_update_voice_flow(self):
         flow = self.create_flow("IVR Test", flow_type=Flow.TYPE_VOICE)
-        update_url = reverse("flows.flow_update", args=[flow.uuid])
+        update_url = reverse("flows.flow_update", args=[flow.id])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
         self.assertUpdateFetch(
@@ -531,7 +531,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_update_surveyor_flow(self):
         flow = self.create_flow("Survey", flow_type=Flow.TYPE_SURVEY)
-        update_url = reverse("flows.flow_update", args=[flow.uuid])
+        update_url = reverse("flows.flow_update", args=[flow.id])
 
         # we should only see name and contact creation option on form
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
@@ -545,7 +545,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_update_background_flow(self):
         flow = self.create_flow("Background", flow_type=Flow.TYPE_BACKGROUND)
-        update_url = reverse("flows.flow_update", args=[flow.uuid])
+        update_url = reverse("flows.flow_update", args=[flow.id])
 
         # we should only see name on form
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])

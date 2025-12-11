@@ -567,7 +567,7 @@ class ContactCRUDL(SmartCRUDL):
 
         def build_context_menu(self, menu):
             if not self.group.is_system and self.has_org_perm("contacts.contactgroup_update"):
-                menu.add_modax(_("Edit"), "edit-group", reverse("contacts.contactgroup_update", args=[self.group.uuid]))
+                menu.add_modax(_("Edit"), "edit-group", reverse("contacts.contactgroup_update", args=[self.group.id]))
 
             if self.has_org_perm("contacts.contact_export"):
                 menu.add_modax(_("Export"), "export-contacts", self.derive_export_url(), title=_("Export Contacts"))

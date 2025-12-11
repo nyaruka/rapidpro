@@ -120,6 +120,7 @@ class LLMCRUDL(SmartCRUDL):
                 fields = ("name",)
 
         form_class = Form
+        slug_url_kwarg = "uuid"
         success_url = "@ai.llm_list"
 
     class Translate(PostOnlyMixin, OrgObjPermsMixin, SmartReadView):
