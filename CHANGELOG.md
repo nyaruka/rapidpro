@@ -1,3 +1,9 @@
+v10.3.113 (2025-12-11)
+-------------------------
+ * Update django to 5.2.9
+ * Switch to localstack for local dev and testing
+ * Bump urllib3 from 2.5.0 to 2.6.0
+
 v10.3.112 (2025-12-03)
 -------------------------
  * Update temba-components
