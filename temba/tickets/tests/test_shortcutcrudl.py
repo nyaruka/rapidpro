@@ -58,7 +58,7 @@ class ShortcutCRUDLTest(TembaTest, CRUDLTestMixin):
         shortcut = Shortcut.create(self.org, self.admin, "Planes", "Planes are...")
         Shortcut.create(self.org, self.admin, "Trains", "Trains are...")
 
-        update_url = reverse("tickets.shortcut_update", args=[shortcut.id])
+        update_url = reverse("tickets.shortcut_update", args=[shortcut.uuid])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
 
