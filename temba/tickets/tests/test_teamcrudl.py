@@ -118,7 +118,7 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
         self.org.add_user(self.agent, OrgRole.AGENT, team=team1)
         invite = Invitation.create(self.org, self.admin, "newagent@textit.com", OrgRole.AGENT, team=team1)
 
-        delete_url = reverse("tickets.team_delete", args=[team1.id])
+        delete_url = reverse("tickets.team_delete", args=[team1.uuid])
 
         self.assertRequestDisallowed(delete_url, [None, self.agent, self.editor, self.admin2])
 

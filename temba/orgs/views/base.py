@@ -101,7 +101,12 @@ class BaseUpdateModal(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, Smar
 
 
 class BaseDeleteModal(OrgObjPermsMixin, SmartDeleteView):
-    fields = ("id",)
+    """
+    Base delete modal view
+    """
+
+    slug_url_kwarg = "uuid"
+    fields = ("uuid",)
     submit_button_name = _("Delete")
 
     def get_context_data(self, **kwargs):

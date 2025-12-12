@@ -38,7 +38,7 @@
               <temba-icon name="delete"
                           clickable="true"
                           style="--icon-color:#bbb"
-                          onclick="event.stopPropagation(); showDeleteShortcutModal({{ obj.id }});">
+                          onclick="event.stopPropagation(); showDeleteShortcutModal('{{ obj.uuid }}');">
               </temba-icon>
             {% endif %}
           </td>
@@ -63,9 +63,9 @@
       modax.open = true;
     }
 
-    function showDeleteShortcutModal(id) {
+    function showDeleteShortcutModal(uuid) {
       var modax = document.querySelector('#delete-shortcut');
-      modax.endpoint = `/shortcut/delete/${id}/`;
+      modax.endpoint = `/shortcut/delete/${uuid}/`;
       modax.open = true;
     }
   </script>

@@ -363,7 +363,7 @@ class TicketCRUDL(SmartCRUDL):
                     menu.add_modax(
                         _("Delete"),
                         "delete-topic",
-                        f"{reverse('tickets.topic_delete', args=[self.folder.topic.id])}",
+                        f"{reverse('tickets.topic_delete', args=[self.folder.topic.uuid])}",
                         title=_("Delete Topic"),
                     )
 

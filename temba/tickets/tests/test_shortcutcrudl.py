@@ -83,7 +83,7 @@ class ShortcutCRUDLTest(TembaTest, CRUDLTestMixin):
         shortcut1 = Shortcut.create(self.org, self.admin, "Planes", "Planes are...")
         shortcut2 = Shortcut.create(self.org, self.admin, "Trains", "Trains are...")
 
-        delete_url = reverse("tickets.shortcut_delete", args=[shortcut1.id])
+        delete_url = reverse("tickets.shortcut_delete", args=[shortcut1.uuid])
 
         self.assertRequestDisallowed(delete_url, [None, self.agent, self.admin2])
 
