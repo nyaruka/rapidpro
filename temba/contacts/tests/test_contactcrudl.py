@@ -1114,7 +1114,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
     def test_open_ticket(self, mr_mocks):
         contact = self.create_contact("Joe", phone="+593979000111")
         general = self.org.default_topic
-        open_url = reverse("contacts.contact_open_ticket", args=[contact.id])
+        open_url = reverse("contacts.contact_open_ticket", args=[contact.uuid])
 
         self.assertRequestDisallowed(open_url, [None, self.agent, self.admin2])
         self.assertUpdateFetch(open_url, [self.editor, self.admin], form_fields=("topic", "assignee", "note"))
@@ -1178,21 +1178,21 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         contact = self.create_contact("Joe", phone="+593979000111")
         other_org_contact = self.create_contact("Hans", phone="+593979123456", org=self.org2)
 
-        delete_url = reverse("contacts.contact_delete", args=[contact.id])
+        delete_url = reverse("contacts.contact_delete", args=[contact.uuid])
 
         # can't delete if not logged in
-        response = self.client.post(delete_url, {"id": contact.id})
+        response = self.client.post(delete_url, {"uuid": contact.uuid})
         self.assertLoginRedirect(response)
 
         self.login(self.agent)
 
         # can't delete if just agent
-        response = self.client.post(delete_url, {"id": contact.id})
+        response = self.client.post(delete_url, {"uuid": contact.uuid})
         self.assertLoginRedirect(response)
 
         self.login(self.admin)
 
-        response = self.client.post(delete_url, {"id": contact.id})
+        response = self.client.post(delete_url, {"uuid": contact.uuid})
         self.assertEqual(302, response.status_code)
 
         contact.refresh_from_db()
@@ -1201,8 +1201,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual([call(self.org, [contact])], mr_mocks.calls["contact_deindex"])
 
         # can't delete contact in other org
-        delete_url = reverse("contacts.contact_delete", args=[other_org_contact.id])
-        response = self.client.post(delete_url, {"id": other_org_contact.id})
+        delete_url = reverse("contacts.contact_delete", args=[other_org_contact.uuid])
+        response = self.client.post(delete_url, {"uuid": other_org_contact.uuid})
         self.assertLoginRedirect(response)
 
         # contact should be unchanged
