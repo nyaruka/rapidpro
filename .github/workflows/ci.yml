@@ -54,7 +54,7 @@ jobs:
       - name: Initialize environment
         run: |
           poetry install --no-root
-          npm install -g yarn
+          corepack enable
           yarn install
           yarn global add less
           cd temba && ln -s settings.py.dev settings.py && cd ..
@@ -65,7 +65,7 @@ jobs:
           wget https://github.com/${{ github.repository_owner }}/mailroom/releases/download/v${{ env.mailroom-version }}/mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz
           tar -xvf mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz mailroom
           # start mailroom but use different valkey db so that it doesn't actually handle tasks
-          ./mailroom -db=postgres://temba:temba@localhost:5432/temba?sslmode=disable -valkey=valkey://valkey:6379/15 -log-level=info > mailroom.log &
+          ./mailroom -db=postgres://temba:temba@postgres:5432/temba?sslmode=disable -valkey=valkey://valkey:6379/15 -log-level=info > mailroom.log &
 
       - name: Run pre-test checks
         run: |
