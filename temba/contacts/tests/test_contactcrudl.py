@@ -714,7 +714,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         testers = self.create_group("Testers", contacts=[contact])
         self.create_contact("Ann", urns=["tel:+593979444444"])
 
-        update_url = reverse("contacts.contact_update", args=[contact.id])
+        update_url = reverse("contacts.contact_update", args=[contact.uuid])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
         self.assertUpdateFetch(
@@ -899,7 +899,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
     def test_update_urns_field(self):
         contact = self.create_contact("Bob", urns=[])
 
-        update_url = reverse("contacts.contact_update", args=[contact.id])
+        update_url = reverse("contacts.contact_update", args=[contact.uuid])
 
         # we have a field to add new urns
         response = self.requestView(update_url, self.admin)
@@ -919,7 +919,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.login(self.admin)
 
         response = self.client.post(
-            reverse("contacts.contact_update", args=[contact.id]),
+            reverse("contacts.contact_update", args=[contact.uuid]),
             {"name": "Joe", "status": Contact.STATUS_ACTIVE, "language": "eng"},
         )
 

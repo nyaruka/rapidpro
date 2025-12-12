@@ -316,7 +316,7 @@ class ContactCRUDL(SmartCRUDL):
                 menu.add_modax(
                     _("Edit"),
                     "edit-contact",
-                    f"{reverse('contacts.contact_update', args=[obj.id])}",
+                    f"{reverse('contacts.contact_update', args=[obj.uuid])}",
                     title=_("Edit Contact"),
                     on_submit="contactUpdated()",
                     as_button=True,
@@ -651,7 +651,7 @@ class ContactCRUDL(SmartCRUDL):
 
             return self.render_modal_response(form)
 
-    class Update(ComponentFormMixin, NonAtomicMixin, ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
+    class Update(NonAtomicMixin, BaseUpdateModal):
         form_class = UpdateContactForm
         success_url = "hide"
 
@@ -664,11 +664,6 @@ class ContactCRUDL(SmartCRUDL):
                 exclude.append("groups")
 
             return exclude
-
-        def get_form_kwargs(self, *args, **kwargs):
-            kwargs = super().get_form_kwargs(*args, **kwargs)
-            kwargs["org"] = self.request.org
-            return kwargs
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)

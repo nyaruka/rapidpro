@@ -780,7 +780,7 @@ class ContactTest(TembaTest):
         self.assertEqual(Contact.STATUS_ACTIVE, self.joe.status)
 
         for status, _ in Contact.STATUS_CHOICES:
-            self.client.post(reverse("contacts.contact_update", args=[self.joe.id]), {"status": status})
+            self.client.post(reverse("contacts.contact_update", args=[self.joe.uuid]), {"status": status})
 
             self.joe.refresh_from_db()
             self.assertEqual(status, self.joe.status)

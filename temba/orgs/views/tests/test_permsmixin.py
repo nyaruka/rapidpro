@@ -48,36 +48,46 @@ class OrgPermsMixinTest(TembaTest):
         contact2 = self.create_contact("Zob", phone="+18001234567", org=self.org2)
         self.org2.add_user(self.admin, OrgRole.ADMINISTRATOR)
 
-        contact1_url = reverse("contacts.contact_update", args=[contact1.id])
-        contact2_url = reverse("contacts.contact_update", args=[contact2.id])
+        org1_read_url = reverse("contacts.contact_read", args=[contact1.uuid])
+        org1_update_url = reverse("contacts.contact_update", args=[contact1.uuid])
+        org2_read_url = reverse("contacts.contact_read", args=[contact2.uuid])
+        org2_update_url = reverse("contacts.contact_update", args=[contact2.uuid])
 
-        # no anon access
-        self.assertLoginRedirect(self.client.get(contact1_url))
-        self.assertLoginRedirect(self.client.get(contact2_url))
+        # no anon access to anything
+        self.assertLoginRedirect(self.client.get(org1_read_url))
+        self.assertLoginRedirect(self.client.get(org1_update_url))
+        self.assertLoginRedirect(self.client.get(org2_read_url))
+        self.assertLoginRedirect(self.client.get(org2_update_url))
 
-        # no agent role access to this specific view
+        # no agent role access to these views
         self.login(self.agent)
-        self.assertLoginRedirect(self.client.get(contact1_url))
-        self.assertLoginRedirect(self.client.get(contact2_url))
+        self.assertLoginRedirect(self.client.get(org1_read_url))
+        self.assertLoginRedirect(self.client.get(org1_update_url))
+        self.assertLoginRedirect(self.client.get(org2_read_url))
+        self.assertLoginRedirect(self.client.get(org2_update_url))
 
-        # editor does have access tho.. when the URL is for a contact in their org
+        # editor does have access tho for contacts in their org
         self.login(self.editor)
-        self.assertEqual(200, self.client.get(contact1_url).status_code)
-        self.assertLoginRedirect(self.client.get(contact2_url))
+        self.assertEqual(200, self.client.get(org1_read_url).status_code)
+        self.assertEqual(200, self.client.get(org1_update_url).status_code)
+        self.assertEqual(404, self.client.get(org2_read_url).status_code)
+        self.assertEqual(404, self.client.get(org2_update_url).status_code)
 
         # admin belongs to both orgs
         self.login(self.admin, choose_org=self.org)
-        self.assertEqual(200, self.client.get(contact1_url).status_code)
-        self.assertRedirect(self.client.get(contact2_url), reverse("orgs.org_switch"))
+        self.assertEqual(200, self.client.get(org1_read_url).status_code)
+        self.assertEqual(200, self.client.get(org1_update_url).status_code)
+        self.assertRedirect(self.client.get(org2_read_url), reverse("orgs.org_switch"))  # read views redirect
+        self.assertEqual(404, self.client.get(org2_update_url).status_code)
 
         # staff can't access without org
         self.login(self.customer_support)
-        self.assertRedirect(self.client.get(contact1_url), "/staff/org/service/")
+        self.assertRedirect(self.client.get(org1_read_url), "/staff/org/service/")
 
         self.login(self.customer_support, choose_org=self.org)
-        self.assertEqual(200, self.client.get(contact1_url).status_code)
-        self.assertRedirect(self.client.get(contact2_url), "/staff/org/service/")  # wrong org
+        self.assertEqual(200, self.client.get(org1_read_url).status_code)
+        self.assertRedirect(self.client.get(org2_read_url), "/staff/org/service/")  # wrong org
 
         # staff still can't POST
-        self.assertEqual(403, self.client.post(contact1_url, {"name": "Bob"}).status_code)
-        self.assertRedirect(self.client.get(contact2_url), "/staff/org/service/")
+        self.assertEqual(403, self.client.post(org1_update_url, {"name": "Bob"}).status_code)
+        self.assertEqual(404, self.client.get(org2_update_url).status_code)
