@@ -193,7 +193,7 @@ class UserCRUDL(SmartCRUDL):
                     menu.add_modax(
                         _("Delete"),
                         "delete-team",
-                        reverse("tickets.team_delete", args=[self.team.id]),
+                        reverse("tickets.team_delete", args=[self.team.uuid]),
                         title=_("Delete Team"),
                     )
 
@@ -1667,6 +1667,7 @@ class InvitationCRUDL(SmartCRUDL):
             return super().post_save(obj)
 
     class Delete(RequireFeatureMixin, BaseDeleteModal):
+        slug_url_kwarg = None  # TODO switch to uuid
         require_feature = Org.FEATURE_USERS
         cancel_url = "@orgs.invitation_list"
         redirect_url = "@orgs.invitation_list"

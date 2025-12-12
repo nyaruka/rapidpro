@@ -89,7 +89,7 @@ class TopicCRUDLTest(TembaTest, CRUDLTestMixin):
         topic2 = Topic.create(self.org, self.admin, "Trains")
         ticket = self.create_ticket(self.create_contact("Bob", urns=["twitter:bobby"]), topic=topic1)
 
-        delete_url = reverse("tickets.topic_delete", args=[topic1.id])
+        delete_url = reverse("tickets.topic_delete", args=[topic1.uuid])
 
         self.assertRequestDisallowed(delete_url, [None, self.agent, self.admin2])
 
