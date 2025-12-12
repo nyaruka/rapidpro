@@ -25,6 +25,7 @@ from temba.channels.models import Channel
 from temba.orgs.models import Org
 from temba.orgs.views.base import (
     BaseCreateModal,
+    BaseDeleteModal,
     BaseDependencyDeleteModal,
     BaseExportModal,
     BaseListView,
@@ -40,7 +41,7 @@ from temba.utils import json, on_transaction_commit
 from temba.utils.fields import CheckboxWidget, InputWidget, SelectWidget, TembaChoiceField
 from temba.utils.models import patch_queryset_count
 from temba.utils.models.es import IDSliceQuerySet
-from temba.utils.views.mixins import ComponentFormMixin, ContextMenuMixin, ModalFormMixin, NonAtomicMixin, SpaMixin
+from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, NonAtomicMixin, SpaMixin
 
 from .forms import ContactGroupForm, CreateContactForm, UpdateContactForm
 from .models import URN, Contact, ContactExport, ContactField, ContactGroup, ContactImport
@@ -333,7 +334,7 @@ class ContactCRUDL(SmartCRUDL):
                     )
                 if self.has_org_perm("contacts.contact_open_ticket") and obj.ticket_count == 0:
                     menu.add_modax(
-                        _("Open Ticket"), "open-ticket", reverse("contacts.contact_open_ticket", args=[obj.id])
+                        _("Open Ticket"), "open-ticket", reverse("contacts.contact_open_ticket", args=[obj.uuid])
                     )
 
         def get_context_data(self, **kwargs):
@@ -724,7 +725,7 @@ class ContactCRUDL(SmartCRUDL):
 
             return self.render_modal_response(form)
 
-    class OpenTicket(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
+    class OpenTicket(BaseUpdateModal):
         """
         Opens a new ticket for this contact.
         """
@@ -753,11 +754,6 @@ class ContactCRUDL(SmartCRUDL):
         form_class = Form
         submit_button_name = _("Open")
 
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["org"] = self.request.org
-            return kwargs
-
         def save(self, obj):
             self.ticket = obj.open_ticket(
                 self.request.user,
@@ -783,18 +779,13 @@ class ContactCRUDL(SmartCRUDL):
             obj.interrupt(self.request.user)
             return obj
 
-    class Delete(ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
+    class Delete(BaseDeleteModal):
         """
-        Delete this contact (can't be undone)
+        Delete this contact
         """
 
-        fields = ()
-        success_url = "@contacts.contact_list"
-        submit_button_name = _("Delete")
-
-        def save(self, obj):
-            obj.release(self.request.user)
-            return obj
+        cancel_url = "@contacts.contact_list"
+        redirect_url = "@contacts.contact_list"
 
 
 class ContactGroupCRUDL(SmartCRUDL):
@@ -962,16 +953,11 @@ class ContactFieldCRUDL(SmartCRUDL):
             )
             return self.render_modal_response(form)
 
-    class Update(FieldLookupMixin, ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
+    class Update(FieldLookupMixin, BaseUpdateModal):
         queryset = ContactField.objects.filter(is_system=False)
         form_class = ContactFieldForm
         submit_button_name = _("Update")
         success_url = "hide"
-
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["org"] = self.derive_org()
-            return kwargs
 
         def pre_save(self, obj):
             obj = super().pre_save(obj)

@@ -46,18 +46,19 @@ class BaseReadView(OrgObjPermsMixin, SmartReadView):
     """
 
     slug_url_kwarg = "uuid"
+    model_org_lookup = "org"
 
     def derive_queryset(self, **kwargs):
         qs = super().derive_queryset(**kwargs)
 
         # filter by allowed org as we'll let OrgObjPermsMixin provide a redirect
         if not self.request.user.is_staff:
-            qs = qs.filter(org__in=self.request.user.orgs.all())
+            qs = qs.filter(**{f"{self.model_org_lookup}__in": self.request.user.orgs.all()})
 
         if hasattr(self.model, "is_active"):
             qs = qs.filter(is_active=True)
 
-        return qs.select_related("org")
+        return qs.select_related(self.model_org_lookup)
 
 
 class BaseCreateModal(ComponentFormMixin, ModalFormMixin, LimitAwareMixin, OrgPermsMixin, SmartCreateView):
