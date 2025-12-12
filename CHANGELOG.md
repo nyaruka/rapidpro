@@ -1,3 +1,8 @@
+v10.3.115 (2025-12-12)
+-------------------------
+ * Convert more views to use UUID urls
+ * Use pg_dump and pg_restore directly instead of via docker exec
+
 v10.3.114 (2025-12-11)
 -------------------------
  * Rework more views to use uuids in URLs instead of ids
