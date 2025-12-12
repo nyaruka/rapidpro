@@ -1,9 +1,9 @@
-from smartmin.views import SmartCreateView, SmartCRUDL, SmartDeleteView, SmartReadView, SmartUpdateView
+from smartmin.views import SmartCreateView, SmartCRUDL, SmartDeleteView, SmartUpdateView
 
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models.functions import Lower
-from django.http import Http404, HttpResponseRedirect
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.functional import cached_property
@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from temba.contacts.models import ContactField, ContactGroup
 from temba.flows.models import Flow
 from temba.msgs.models import Msg
-from temba.orgs.views.base import BaseListView, BaseMenuView, BaseReadView
+from temba.orgs.views.base import BaseListView, BaseMenuView, BaseReadView, BaseUpdateModal
 from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin
 from temba.utils import languages
 from temba.utils.fields import CompletionTextarea, InputWidget, SelectWidget, TembaChoiceField
@@ -74,25 +74,13 @@ class CampaignCRUDL(SmartCRUDL):
 
             return menu
 
-    class Update(ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
+    class Update(BaseUpdateModal):
         fields = ("name", "group")
         form_class = CampaignForm
+        success_url = "uuid@campaigns.campaign_read"
 
-        def pre_process(self, request, *args, **kwargs):
-            campaign_id = kwargs.get("pk")
-            if campaign_id:
-                campaign = Campaign.objects.filter(id=campaign_id, is_active=True, is_archived=False)
-
-                if not campaign.exists():
-                    raise Http404("Campaign not found")
-
-        def get_success_url(self):
-            return reverse("campaigns.campaign_read", args=[self.object.uuid])
-
-        def get_form_kwargs(self, *args, **kwargs):
-            form_kwargs = super().get_form_kwargs(*args, **kwargs)
-            form_kwargs["org"] = self.request.org
-            return form_kwargs
+        def derive_queryset(self, **kwargs):
+            return super().derive_queryset(**kwargs).filter(is_archived=False)
 
         def form_valid(self, form):
             previous_group = self.get_object().group
@@ -137,7 +125,7 @@ class CampaignCRUDL(SmartCRUDL):
                     menu.add_modax(
                         _("Edit"),
                         "campaign-update",
-                        reverse("campaigns.campaign_update", args=[obj.id]),
+                        reverse("campaigns.campaign_update", args=[obj.uuid]),
                         title=_("Edit Campaign"),
                     )
 
@@ -472,12 +460,13 @@ class CampaignEventCRUDL(SmartCRUDL):
         "This is a background flow. When it triggers, it will run it for all contacts without interruption."
     )
 
-    class Read(SpaMixin, OrgObjPermsMixin, ContextMenuMixin, SmartReadView):
+    class Read(SpaMixin, ContextMenuMixin, BaseReadView):
         title = _("Event History")
+        model_org_lookup = "campaign__org"
 
         @classmethod
         def derive_url_pattern(cls, path, action):
-            return r"^%s/%s/(?P<campaign_uuid>[0-9a-f-]+)/(?P<pk>\d+)/$" % (path, action)
+            return r"^%s/%s/(?P<campaign_uuid>[0-9a-f-]{36})/(?P<uuid>[0-9a-f-]{36})/$" % (path, action)
 
         def derive_menu_path(self):
             return f"/campaign/{'archived' if self.get_object().campaign.is_archived else 'active'}/"
@@ -629,7 +618,7 @@ class CampaignEventCRUDL(SmartCRUDL):
             return obj
 
         def get_success_url(self):
-            return reverse("campaigns.campaignevent_read", args=[self.object.campaign.uuid, self.object.id])
+            return reverse("campaigns.campaignevent_read", args=[self.object.campaign.uuid, self.object.uuid])
 
     class Create(ModalFormMixin, OrgPermsMixin, SmartCreateView):
         default_fields = [

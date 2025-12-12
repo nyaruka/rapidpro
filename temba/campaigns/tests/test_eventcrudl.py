@@ -37,7 +37,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_read(self):
         event = self.campaign1.events.order_by("id").first()
-        read_url = reverse("campaigns.campaignevent_read", args=[event.campaign.uuid, event.id])
+        read_url = reverse("campaigns.campaignevent_read", args=[event.campaign.uuid, event.uuid])
 
         self.assertRequestDisallowed(read_url, [None, self.agent, self.admin2])
         response = self.assertReadFetch(read_url, [self.editor, self.admin], context_object=event)

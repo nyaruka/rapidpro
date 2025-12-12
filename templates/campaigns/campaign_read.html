@@ -39,7 +39,7 @@
     <tbody>
       {% for event in events %}
         <tr onclick="goto(event, this)"
-            href="{% url 'campaigns.campaignevent_read' event.campaign.uuid event.id %}"
+            href="{% url 'campaigns.campaignevent_read' event.campaign.uuid event.uuid %}"
             class="hover-linked">
           <td class="whitespace-nowrap">{{ event.relative_to.name }}</td>
           <td class="whitespace-nowrap">{{ event.offset_display }}</td>

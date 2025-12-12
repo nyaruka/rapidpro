@@ -89,7 +89,7 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
 
         campaign = self.create_campaign(self.org, "Welcomes", group1)
 
-        update_url = reverse("campaigns.campaign_update", args=[campaign.id])
+        update_url = reverse("campaigns.campaign_update", args=[campaign.uuid])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
         self.assertUpdateFetch(
