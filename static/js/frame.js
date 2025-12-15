@@ -214,8 +214,11 @@ function spaRequest(url, options) {
     }
   });
 
+  if (!omitted && window.workspace) {
+    headers['X-Temba-Workspace'] = window.workspace.uuid;
+  }
   if (!omitted && window.org_id) {
-    headers['X-Temba-Org'] = window.org_id;
+    headers['X-Temba-Org'] = window.org_id; // deprecated
   }
 
   const ajaxOptions = {
@@ -299,9 +302,14 @@ function fetchAjax(url, options, fullPage = false) {
 
       // if we have a version mismatch, reload the page
       var version = response.headers.get('X-Temba-Version');
-      var org = response.headers.get('X-Temba-Org');
+      var orgUUID = response.headers.get('X-Temba-Workspace');
+      var orgID = response.headers.get('X-Temba-Org'); // deprecated
 
-      if (response.type !== 'cors' && org && org != org_id) {
+      if (
+        response.type !== 'cors' &&
+        ((orgID && orgID != window.org_id) ||
+          (orgUUID && orgUUID != window.workspace?.uuid))
+      ) {
         if (response.redirected) {
           document.location.href = response.url;
         } else {
