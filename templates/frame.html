@@ -49,11 +49,22 @@
       }
 
       var static_url = "{{ STATIC_URL }}";
-      var org_id = {% if active_org %}{{ active_org.id }}{% else %}null{% endif %};
       var tembaVersion = "{{ temba_version }}";
       var params = "{{ url_params|safe }}";
-      var anon_org = asBool("{{ user_org.is_anon }}");
       var menuSelection = "{{ temba_menu_selection }}";
+
+      {% if active_org %}
+      var workspace = {
+        "uuid": "{{ active_org.uuid }}",
+        "anon": asBool("{{ user_org.is_anon }}")
+      };
+      {% else %}
+      var workspace = null;
+      {% endif %}
+
+      // deprecated - use workspace instead
+      var org_id = {% if active_org %}{{ active_org.id }}{% else %}null{% endif %};
+      var anon_org = asBool("{{ user_org.is_anon }}");
 
       function handleMenuReady() {
         var selection = window.location.pathname.split("/").filter(function(path) {
