@@ -32,7 +32,8 @@ class OrgMiddleware:
     """
 
     session_key = "org_id"
-    header_name = "X-Temba-Org"
+    header_name = "X-Temba-Workspace"
+    legacy_header = "X-Temba-Org"
     service_header_name = "X-Temba-Service-Org"
     select_related = ("parent",)
 
@@ -44,10 +45,15 @@ class OrgMiddleware:
 
         request.org, request.is_servicing = self.determine_org(request)
 
-        # if request has an org header, ensure it matches the current org (used to prevent cross-org form submissions)
-        posted_org_id = request.headers.get(self.header_name)
-        if posted_org_id and request.org and request.org.id != int(posted_org_id):
-            return HttpResponseForbidden()
+        # if request was sent with a workspace identifier, ensure it matches the current org
+        if posted_uuid := request.headers.get(self.header_name):
+            if request.org and str(request.org.uuid) != posted_uuid:
+                return HttpResponseForbidden()
+
+        # check legacy org id header for compatibility
+        if posted_id := request.headers.get(self.legacy_header):
+            if request.org and request.org.id != int(posted_id):
+                return HttpResponseForbidden()
 
         request.branding = settings.BRAND
 
@@ -55,8 +61,9 @@ class OrgMiddleware:
         response = self.get_response(request)
 
         if request.org:
-            # set a response header to make it easier to find the current org id
-            response[self.header_name] = request.org.id
+            # set a response header to let UI check it's getting content from the workspace it expects
+            response[self.header_name] = str(request.org.uuid)
+            response[self.legacy_header] = request.org.id
 
         return response
 

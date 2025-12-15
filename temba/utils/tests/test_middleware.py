@@ -11,12 +11,14 @@ class MiddlewareTest(TembaTest):
         index_url = reverse("public.public_index")
 
         response = self.client.get(index_url)
+        self.assertFalse(response.has_header("X-Temba-Workspace"))
         self.assertFalse(response.has_header("X-Temba-Org"))
 
         # if a user has a single org, that becomes the current org
         self.login(self.admin)
 
         response = self.client.get(index_url)
+        self.assertEqual(str(self.org.uuid), response["X-Temba-Workspace"])
         self.assertEqual(str(self.org.id), response["X-Temba-Org"])
 
         # add them to another org
@@ -24,11 +26,13 @@ class MiddlewareTest(TembaTest):
 
         # we'll still have the original org
         response = self.client.get(index_url)
+        self.assertEqual(str(self.org.uuid), response["X-Temba-Workspace"])
         self.assertEqual(str(self.org.id), response["X-Temba-Org"])
 
         # but when we login again, it'll select the newest org
         self.login(self.admin)
         response = self.client.get(index_url)
+        self.assertEqual(str(self.org2.uuid), response["X-Temba-Workspace"])
         self.assertEqual(str(self.org2.id), response["X-Temba-Org"])
 
         # org will be read from session if set
@@ -37,12 +41,19 @@ class MiddlewareTest(TembaTest):
         s.save()
 
         response = self.client.get(index_url)
+        self.assertEqual(str(self.org.uuid), response["X-Temba-Workspace"])
         self.assertEqual(str(self.org.id), response["X-Temba-Org"])
 
         # org can be sent as a header too and we check it matches
+        response = self.client.post(reverse("flows.flow_create"), {}, headers={"X-Temba-Workspace": str(self.org.uuid)})
+        self.assertEqual(200, response.status_code)
         response = self.client.post(reverse("flows.flow_create"), {}, headers={"X-Temba-Org": str(self.org.id)})
         self.assertEqual(200, response.status_code)
 
+        response = self.client.post(
+            reverse("flows.flow_create"), {}, headers={"X-Temba-Workspace": str(self.org2.uuid)}
+        )
+        self.assertEqual(403, response.status_code)
         response = self.client.post(reverse("flows.flow_create"), {}, headers={"X-Temba-Org": str(self.org2.id)})
         self.assertEqual(403, response.status_code)
 
@@ -50,23 +61,28 @@ class MiddlewareTest(TembaTest):
 
         # our staff user doesn't have a default org
         response = self.client.get(index_url)
+        self.assertFalse(response.has_header("X-Temba-Workspace"))
         self.assertFalse(response.has_header("X-Temba-Org"))
 
         # but they can specify an org to service as a header
         response = self.client.get(index_url, headers={"X-Temba-Service-Org": str(self.org.id)})
-        self.assertEqual(response["X-Temba-Org"], str(self.org.id))
+        self.assertEqual(str(self.org.uuid), response["X-Temba-Workspace"])
+        self.assertEqual(str(self.org.id), response["X-Temba-Org"])
 
         response = self.client.get(index_url)
+        self.assertFalse(response.has_header("X-Temba-Workspace"))
         self.assertFalse(response.has_header("X-Temba-Org"))
 
         self.login(self.editor)
 
         response = self.client.get(index_url)
-        self.assertEqual(response["X-Temba-Org"], str(self.org.id))
+        self.assertEqual(str(self.org.uuid), response["X-Temba-Workspace"])
+        self.assertEqual(str(self.org.id), response["X-Temba-Org"])
 
         # non-staff can't specify a different org from there own
         response = self.client.get(index_url, headers={"X-Temba-Service-Org": str(self.org2.id)})
-        self.assertNotEqual(response["X-Temba-Org"], str(self.org2.id))
+        self.assertNotEqual(str(self.org2.uuid), response["X-Temba-Workspace"])
+        self.assertNotEqual(str(self.org2.id), response["X-Temba-Org"])
 
     def test_redirect(self):
         self.assertNotRedirect(self.client.get(reverse("public.public_index")), None)
