@@ -1,3 +1,8 @@
+v10.3.116 (2025-12-15)
+-------------------------
+ * Include org uuid in session data
+ * Start replace X-Temba-Org with X-Temba-Workspace
+
 v10.3.115 (2025-12-12)
 -------------------------
  * Convert more views to use UUID urls
