@@ -1180,4 +1180,5 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         # now switch to it
         response = self.client.post(reverse("orgs.org_switch"), {"other_org": self.org2.id, "next": "/msg"})
         self.assertRedirect(response, "/msg")
+        self.assertEqual(str(self.org2.uuid), self.client.session["org_uuid"])
         self.assertEqual(self.org2.id, self.client.session["org_id"])
