@@ -37,7 +37,7 @@
           {% if archive.location %}
             <temba-icon clickable="true"
                         name="download"
-                        onclick="downloadFile(event, '{% url 'archives.archive_read' archive.id %}')">
+                        onclick="downloadFile(event, '{% url 'archives.archive_read' archive.uuid %}')">
             </temba-icon>
           {% endif %}
         </td>
