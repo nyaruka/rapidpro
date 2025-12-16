@@ -607,8 +607,19 @@ class TembaTest(SmartminTest):
         return call
 
     def create_archive(
-        self, archive_type, period, start_date, records=(), needs_deletion=False, rollup_of=(), org=None
+        self,
+        archive_type,
+        period,
+        start_date,
+        records=(),
+        *,
+        needs_deletion=False,
+        deleted_on=None,
+        rollup_of=(),
+        org=None,
     ):
+        assert not (needs_deletion and deleted_on)
+
         org = org or self.org
         body, md5, size = jsonlgz_encode(records)
         type_code = "run" if archive_type == Archive.TYPE_FLOWRUN else "message"
@@ -622,13 +633,14 @@ class TembaTest(SmartminTest):
             org=org,
             archive_type=archive_type,
             size=size,
-            hash=md5,
-            location=f"{Archive.storage().bucket.name}:{key}",
+            hash=md5 if records else None,
+            location=f"{Archive.storage().bucket.name}:{key}" if records else None,
             record_count=len(records),
             start_date=start_date,
             period=period,
             build_time=23425,
             needs_deletion=needs_deletion,
+            deleted_on=deleted_on,
         )
         if rollup_of:
             Archive.objects.filter(id__in=[a.id for a in rollup_of]).update(rollup=archive)
