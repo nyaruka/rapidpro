@@ -1,3 +1,7 @@
+v10.3.117 (2025-12-16)
+-------------------------
+ * Data migration to delete rolled up archives that have been purged or are empty.
+
 v10.3.116 (2025-12-15)
 -------------------------
  * Include org uuid in session data
