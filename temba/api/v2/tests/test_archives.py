@@ -1,10 +1,10 @@
 from datetime import datetime
-from uuid import uuid7
 
 from django.urls import reverse
 
 from temba.archives.models import Archive
 from temba.tests import matchers
+from temba.utils.uuid import uuid7
 
 from . import APITest
 
