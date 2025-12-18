@@ -1,3 +1,10 @@
+v10.3.119 (2025-12-18)
+-------------------------
+ * Update to latest components
+ * Fix pagination link
+ * Stop sending and checking X-Temba-Org headers
+ * Make Archive.uuid non-null and use it in archive read URLs
+
 v10.3.118 (2025-12-17)
 -------------------------
  * Bump django-allauth from 65.8.1 to 65.13.0
