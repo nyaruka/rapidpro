@@ -65,8 +65,7 @@ class MiddlewareTest(TembaTest):
 
         response = self.client.get(index_url)
         self.assertEqual(str(self.org.uuid), response["X-Temba-Workspace"])
-
-        # non-staff can't specify a different org from there own
+        # non-staff can't specify a different org from their own
         response = self.client.get(index_url, headers={"X-Temba-Service-Org": str(self.org2.id)})
         self.assertNotEqual(str(self.org2.uuid), response["X-Temba-Workspace"])
 
