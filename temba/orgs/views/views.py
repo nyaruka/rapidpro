@@ -58,7 +58,7 @@ from temba.utils.views.mixins import (
 )
 
 from ..models import DefinitionExport, Export, IntegrationType, Invitation, Org, OrgImport, OrgMembership, OrgRole, User
-from .base import BaseDeleteModal, BaseListView, BaseMenuView
+from .base import BaseDeleteModal, BaseListView, BaseMenuView, BaseReadView
 from .forms import SignupForm, SMTPForm
 from .mixins import InferOrgMixin, InferUserMixin, OrgObjPermsMixin, OrgPermsMixin, RequireFeatureMixin
 from .utils import switch_to_org
@@ -1710,7 +1710,7 @@ class OrgImportCRUDL(SmartCRUDL):
                 fields = ("file",)
 
         success_message = _("Import started")
-        success_url = "id@orgs.orgimport_read"
+        success_url = "uuid@orgs.orgimport_read"
         form_class = Form
 
         def derive_title(self):
@@ -1730,7 +1730,7 @@ class OrgImportCRUDL(SmartCRUDL):
             obj.start()
             return obj
 
-    class Read(SpaMixin, OrgPermsMixin, SmartReadView):
+    class Read(SpaMixin, BaseReadView):
         menu_path = "/settings/import"
 
         def derive_title(self):

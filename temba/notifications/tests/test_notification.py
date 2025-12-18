@@ -249,7 +249,7 @@ class NotificationTest(TembaTest):
                 "is_seen": False,
                 "import": {"type": "contact", "num_records": 5},
             },
-            expected_target=f"/contactimport/read/{imp.id}/",
+            expected_target=f"/contactimport/read/{imp.uuid}/",
             expected_users={self.editor},
             email=False,
         )

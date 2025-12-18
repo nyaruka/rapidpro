@@ -3,7 +3,7 @@ from collections import OrderedDict
 from urllib.parse import quote_plus
 from uuid import UUID
 
-from smartmin.views import SmartCreateView, SmartCRUDL, SmartListView, SmartReadView, SmartUpdateView, SmartView
+from smartmin.views import SmartCreateView, SmartCRUDL, SmartListView, SmartUpdateView, SmartView
 
 from django import forms
 from django.conf import settings
@@ -1249,7 +1249,7 @@ class ContactImportCRUDL(SmartCRUDL):
                 fields = ("id",)
 
         form_class = Form
-        success_url = "id@contacts.contactimport_read"
+        success_url = "uuid@contacts.contactimport_read"
 
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
@@ -1261,7 +1261,7 @@ class ContactImportCRUDL(SmartCRUDL):
 
             # can't preview an import which has already started
             if obj.started_on:
-                return HttpResponseRedirect(reverse("contacts.contactimport_read", args=[obj.id]))
+                return HttpResponseRedirect(reverse("contacts.contactimport_read", args=[obj.uuid]))
 
             return super().pre_process(request, *args, **kwargs)
 
@@ -1301,7 +1301,7 @@ class ContactImportCRUDL(SmartCRUDL):
             obj.start_async()
             return obj
 
-    class Read(SpaMixin, OrgObjPermsMixin, SmartReadView):
+    class Read(SpaMixin, BaseReadView):
         menu_path = "/contact/import"
         title = _("Contact Import")
 

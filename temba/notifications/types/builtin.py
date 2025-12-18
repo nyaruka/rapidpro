@@ -52,7 +52,7 @@ class ImportFinishedNotificationType(NotificationType):
     slug = "import:finished"
 
     def get_target_url(self, notification) -> str:
-        return reverse("contacts.contactimport_read", args=[notification.contact_import.id])
+        return reverse("contacts.contactimport_read", args=[notification.contact_import.uuid])
 
     def as_json(self, notification) -> dict:
         json = super().as_json(notification)

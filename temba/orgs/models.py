@@ -1250,7 +1250,7 @@ class OrgImport(SmartModel):
         (STATUS_FAILED, "Failed"),
     )
 
-    uuid = models.UUIDField(null=True, default=uuid4)
+    uuid = models.UUIDField(unique=True, default=uuid4)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="imports")
     file = models.FileField(upload_to=get_import_upload_path)
     status = models.CharField(max_length=1, default=STATUS_PENDING, choices=STATUS_CHOICES)
