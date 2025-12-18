@@ -140,11 +140,11 @@ class EndpointsTest(APITest):
         # can fetch campaigns endpoint with valid admin token
         response = request_by_token(campaigns_url, token1.key)
         self.assertEqual(200, response.status_code)
-        self.assertEqual(str(self.org.id), response["X-Temba-Org"])
+        self.assertEqual(str(self.org.uuid), response["X-Temba-Workspace"])
 
         response = request_by_basic_auth(contacts_url, self.editor.email, token2.key)
         self.assertEqual(200, response.status_code)
-        self.assertEqual(str(self.org.id), response["X-Temba-Org"])
+        self.assertEqual(str(self.org.uuid), response["X-Temba-Workspace"])
 
         # simulate the admin user exceeding the rate limit for the v2 scope
         cache.set(f"throttle_v2_{self.org.id}", [time.time() for r in range(10000)])
