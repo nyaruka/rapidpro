@@ -1,3 +1,8 @@
+v10.3.121 (2025-12-18)
+-------------------------
+ * Make import uuid fields non-null and use for read views
+ * Data migrations to backfill ContactImport.uuid and OrgImport.uuid fields.
+
 v10.3.120 (2025-12-18)
 -------------------------
  * Add new uuid fields to ContactImport and OrgImport models
