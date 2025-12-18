@@ -734,7 +734,6 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRedirect(response, "/org/start/")
         response = self.client.get("/org/start/")
         self.assertEqual(str(new_org.uuid), response.headers["X-Temba-Workspace"])
-        self.assertEqual(str(new_org.id), response.headers["X-Temba-Org"])  # deprecated
 
     def test_create_child(self):
         list_url = reverse("orgs.org_list")
