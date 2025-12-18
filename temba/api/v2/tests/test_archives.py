@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from temba.archives.models import Archive
 from temba.tests import matchers
+from temba.utils.uuid import uuid7
 
 from . import APITest
 
@@ -18,6 +19,7 @@ class ArchivesEndpointTest(APITest):
 
         # create some archives
         Archive.objects.create(
+            uuid=uuid7(),
             org=self.org,
             start_date=datetime(2017, 4, 5),
             build_time=12,
@@ -29,6 +31,7 @@ class ArchivesEndpointTest(APITest):
             size=0,
         )
         archive2 = Archive.objects.create(
+            uuid=uuid7(),
             org=self.org,
             start_date=datetime(2017, 5, 1),
             build_time=12,
@@ -40,6 +43,7 @@ class ArchivesEndpointTest(APITest):
             size=345,
         )
         archive3 = Archive.objects.create(
+            uuid=uuid7(),
             org=self.org,
             start_date=datetime(2017, 6, 5),
             build_time=12,
@@ -51,6 +55,7 @@ class ArchivesEndpointTest(APITest):
             size=345,
         )
         archive4 = Archive.objects.create(
+            uuid=uuid7(),
             org=self.org,
             start_date=datetime(2017, 7, 1),
             build_time=12,
@@ -63,6 +68,7 @@ class ArchivesEndpointTest(APITest):
         )
         # this archive has been rolled up and it should not be included in the API responses
         Archive.objects.create(
+            uuid=uuid7(),
             org=self.org,
             start_date=datetime(2017, 5, 1),
             build_time=12,
@@ -76,6 +82,7 @@ class ArchivesEndpointTest(APITest):
 
         # create archive for other org
         Archive.objects.create(
+            uuid=uuid7(),
             org=self.org2,
             start_date=datetime(2017, 5, 1),
             build_time=12,
