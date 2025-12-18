@@ -1,4 +1,6 @@
-from smartmin.views import SmartCreateView, SmartCRUDL, SmartDeleteView, SmartUpdateView
+from copy import deepcopy
+
+from smartmin.views import SmartCreateView, SmartCRUDL, SmartDeleteView
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -12,7 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from temba.contacts.models import ContactField, ContactGroup
 from temba.flows.models import Flow
 from temba.msgs.models import Msg
-from temba.orgs.views.base import BaseListView, BaseMenuView, BaseReadView, BaseUpdateModal
+from temba.orgs.views.base import BaseListView, BaseMenuView, BaseReadView, BaseUpdateModal, BaseUpdateView
 from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin
 from temba.utils import languages
 from temba.utils.fields import CompletionTextarea, InputWidget, SelectWidget, TembaChoiceField
@@ -108,7 +110,7 @@ class CampaignCRUDL(SmartCRUDL):
 
             if obj.is_archived:
                 if self.has_org_perm("campaigns.campaign_activate"):
-                    menu.add_url_post(_("Activate"), reverse("campaigns.campaign_activate", args=[obj.id]))
+                    menu.add_url_post(_("Activate"), reverse("campaigns.campaign_activate", args=[obj.uuid]))
 
                 if self.has_org_perm("orgs.org_export"):
                     menu.add_link(_("Export"), f"{reverse('orgs.org_export')}?campaign={obj.id}&archived=1")
@@ -133,7 +135,7 @@ class CampaignCRUDL(SmartCRUDL):
                     menu.add_link(_("Export"), f"{reverse('orgs.org_export')}?campaign={obj.id}")
 
                 if self.has_org_perm("campaigns.campaign_archive"):
-                    menu.add_url_post(_("Archive"), reverse("campaigns.campaign_archive", args=[obj.id]))
+                    menu.add_url_post(_("Archive"), reverse("campaigns.campaign_archive", args=[obj.uuid]))
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
@@ -188,7 +190,7 @@ class CampaignCRUDL(SmartCRUDL):
         def get_queryset(self, *args, **kwargs):
             return super().get_queryset(*args, **kwargs).filter(is_archived=True)
 
-    class Archive(OrgObjPermsMixin, SmartUpdateView):
+    class Archive(BaseUpdateView):
         fields = ()
         success_url = "uuid@campaigns.campaign_read"
         success_message = _("Campaign archived")
@@ -197,7 +199,7 @@ class CampaignCRUDL(SmartCRUDL):
             obj.apply_action_archive(self.request.user, Campaign.objects.filter(id=obj.id))
             return obj
 
-    class Activate(OrgObjPermsMixin, SmartUpdateView):
+    class Activate(BaseUpdateView):
         fields = ()
         success_url = "uuid@campaigns.campaign_read"
         success_message = _("Campaign activated")
@@ -493,7 +495,7 @@ class CampaignEventCRUDL(SmartCRUDL):
                 menu.add_modax(
                     _("Edit"),
                     "event-update",
-                    reverse("campaigns.campaignevent_update", args=[obj.id]),
+                    reverse("campaigns.campaignevent_update", args=[obj.uuid]),
                     title=_("Edit Event"),
                     as_button=True,
                 )
@@ -527,7 +529,7 @@ class CampaignEventCRUDL(SmartCRUDL):
         def get_cancel_url(self):  # pragma: needs cover
             return reverse("campaigns.campaign_read", args=[self.object.campaign.uuid])
 
-    class Update(ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
+    class Update(BaseUpdateModal):
         form_class = CampaignEventForm
         default_fields = [
             "event_type",
@@ -540,6 +542,7 @@ class CampaignEventCRUDL(SmartCRUDL):
             "message_start_mode",
             "flow_start_mode",
         ]
+        model_org_lookup = "campaign__org"
 
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
@@ -547,11 +550,7 @@ class CampaignEventCRUDL(SmartCRUDL):
             return kwargs
 
         def get_queryset(self):
-            return (
-                super()
-                .get_queryset()
-                .filter(is_active=True, status=CampaignEvent.STATUS_READY, campaign__is_archived=False)
-            )
+            return super().get_queryset().filter(status=CampaignEvent.STATUS_READY, campaign__is_archived=False)
 
         def get_object_org(self):
             return self.get_object().campaign.org
@@ -562,8 +561,6 @@ class CampaignEventCRUDL(SmartCRUDL):
             return context
 
         def derive_fields(self):
-            from copy import deepcopy
-
             fields = deepcopy(self.default_fields)
 
             # add in all of our flow languages

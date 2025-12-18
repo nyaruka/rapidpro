@@ -77,20 +77,16 @@ class BaseCreateModal(ComponentFormMixin, ModalFormMixin, LimitAwareMixin, OrgPe
         return obj
 
 
-class BaseUpdateModal(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
+class BaseUpdateView(OrgObjPermsMixin, SmartUpdateView):
     """
-    Base update modal view
+    Base update view
     """
 
     slug_url_kwarg = "uuid"
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs["org"] = self.request.org
-        return kwargs
+    model_org_lookup = "org"
 
     def derive_queryset(self, **kwargs):
-        qs = super().derive_queryset(**kwargs).filter(org=self.request.org)
+        qs = super().derive_queryset(**kwargs).filter(**{self.model_org_lookup: self.request.org})
 
         if hasattr(self.model, "is_active"):
             qs = qs.filter(is_active=True)
@@ -99,6 +95,17 @@ class BaseUpdateModal(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, Smar
             qs = qs.filter(is_system=False)
 
         return qs
+
+
+class BaseUpdateModal(ComponentFormMixin, ModalFormMixin, BaseUpdateView):
+    """
+    Base update modal view
+    """
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["org"] = self.request.org
+        return kwargs
 
 
 class BaseDeleteModal(OrgObjPermsMixin, SmartDeleteView):
