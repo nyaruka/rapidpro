@@ -1,3 +1,9 @@
+v10.3.120 (2025-12-18)
+-------------------------
+ * Add new uuid fields to ContactImport and OrgImport models
+ * Stop checking and sending X-Temba-Org header in middleware
+ * Remove never used ProfilerMiddleware
+
 v10.3.119 (2025-12-18)
 -------------------------
  * Update to latest components
