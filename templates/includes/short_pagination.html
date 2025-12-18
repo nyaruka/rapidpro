@@ -124,12 +124,11 @@
   <div style="margin-top:2px;" class="paging-controls flex flex-row mr-2">
     <div class="paging-previous mr-2">
       {% if page_obj.has_previous %}
-        <div onclick="goto(event, this)"
-             href="{{ request.path }}{% if paginator %}{% querystring page=page_obj.previous_page_number %}{% else %}{% querystring after=page_obj.previous_page_after %}{% endif %}"
-             class="linked">
+        <a href="{{ request.path }}{% if paginator %}{% querystring page=page_obj.previous_page_number %}{% else %}{% querystring after=page_obj.previous_page_after %}{% endif %}"
+           class="linked">
           <temba-icon size="1.2" name="arrow_left" clickable="true">
           </temba-icon>
-        </div>
+        </a>
       {% else %}
         <div class="disabled">
           <temba-icon size="1.2" name="arrow_left">
@@ -139,12 +138,11 @@
     </div>
     <div class="paging-next">
       {% if page_obj.has_next %}
-        <div onclick="goto(event, this)"
-             href="{{ request.path }}{% if paginator %}{% querystring page=page_obj.next_page_number %}{% else %}{% querystring after=page_obj.next_page_after %}{% endif %}"
-             class="linked">
+        <a href="{{ request.path }}{% if paginator %}{% querystring page=page_obj.next_page_number %}{% else %}{% querystring after=page_obj.next_page_after %}{% endif %}"
+           class="linked">
           <temba-icon size="1.2" name="arrow_right" clickable="true">
           </temba-icon>
-        </div>
+        </a>
       {% else %}
         <div class="disabled">
           <temba-icon size="1.2" name="arrow_right">
