@@ -36,7 +36,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertIsNone(imp.group)
 
         preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
-        read_url = reverse("contacts.contactimport_read", args=[imp.id])
+        read_url = reverse("contacts.contactimport_read", args=[imp.uuid])
 
         # will have been redirected to the preview view for the new import
         self.assertEqual(preview_url, response.url)
@@ -62,7 +62,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         self.login(self.admin)
         imp = self.create_contact_import("media/test_imports/simple.xlsx")
         preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
-        read_url = reverse("contacts.contactimport_read", args=[imp.id])
+        read_url = reverse("contacts.contactimport_read", args=[imp.uuid])
 
         # create some groups
         self.create_group("Testers", contacts=[])
@@ -96,7 +96,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         # existing group should not check for workspace limit
         imp = self.create_contact_import("media/test_imports/simple.xlsx")
         preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
-        read_url = reverse("contacts.contactimport_read", args=[imp.id])
+        read_url = reverse("contacts.contactimport_read", args=[imp.uuid])
         with override_settings(ORG_LIMIT_DEFAULTS={"groups": 2, "fields": 1}):
             response = self.client.post(
                 preview_url, {"add_to_group": True, "group_mode": "E", "existing_group": doctors.id}
@@ -110,7 +110,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         self.login(self.admin)
         imp = self.create_contact_import("media/test_imports/simple.xlsx")
         preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
-        read_url = reverse("contacts.contactimport_read", args=[imp.id])
+        read_url = reverse("contacts.contactimport_read", args=[imp.uuid])
 
         # create some groups
         self.create_field("age", "Age", ContactField.TYPE_NUMBER)
@@ -268,7 +268,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         imp = self.create_contact_import("media/test_imports/simple.xlsx")
         imp.start()
 
-        read_url = reverse("contacts.contactimport_read", args=[imp.id])
+        read_url = reverse("contacts.contactimport_read", args=[imp.uuid])
 
         self.assertRequestDisallowed(read_url, [None, self.agent, self.admin2])
         self.assertReadFetch(read_url, [self.editor, self.admin], context_object=imp)

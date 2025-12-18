@@ -11,12 +11,12 @@ from temba.contacts.models import ContactField, ContactGroup
 from temba.flows.models import Flow
 from temba.msgs.models import Label
 from temba.orgs.models import DefinitionExport, Export, Org, OrgImport
-from temba.tests import TembaTest, matchers, mock_mailroom
+from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
 from temba.triggers.models import Trigger
 from temba.utils import json
 
 
-class DefinitionExportTest(TembaTest):
+class DefinitionExportTest(TembaTest, CRUDLTestMixin):
     def _export(self, flows=[], campaigns=[]):
         export = DefinitionExport.create(self.org, self.admin, flows=flows, campaigns=campaigns)
         export.perform()
@@ -107,8 +107,10 @@ class DefinitionExportTest(TembaTest):
         org_import = OrgImport.objects.filter(org=self.org).get()
         self.assertEqual(org_import.status, OrgImport.STATUS_COMPLETE)
 
-        response = self.client.get(reverse("orgs.orgimport_read", args=(org_import.id,)))
-        self.assertEqual(200, response.status_code)
+        read_url = reverse("orgs.orgimport_read", args=[org_import.uuid])
+
+        self.assertRequestDisallowed(read_url, [None, self.agent, self.admin2])
+        response = self.assertReadFetch(read_url, [self.admin, self.editor], context_object=org_import)
         self.assertContains(response, "Finished successfully")
 
         flow = self.org.flows.filter(name="Favorites").get()

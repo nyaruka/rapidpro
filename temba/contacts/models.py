@@ -1884,7 +1884,7 @@ class ContactImport(SmartModel):
 
     MAPPING_IGNORE = {"type": "ignore"}
 
-    uuid = models.UUIDField(null=True, default=uuid4)
+    uuid = models.UUIDField(unique=True, default=uuid4)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="contact_imports")
     file = models.FileField(upload_to=get_import_upload_path)
     original_filename = models.TextField()
