@@ -476,7 +476,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             delivery_hour=9,
         )
 
-        delete_url = reverse("campaigns.campaignevent_delete", args=[event.id])
+        delete_url = reverse("campaigns.campaignevent_delete", args=[event.uuid])
 
         # delete the event
         response = self.assertDeleteSubmit(delete_url, self.admin, object_deactivated=event)

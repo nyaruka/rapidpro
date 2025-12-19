@@ -115,7 +115,19 @@ class BaseDeleteModal(OrgObjPermsMixin, SmartDeleteView):
 
     slug_url_kwarg = "uuid"
     fields = ("uuid",)
+    model_org_lookup = "org"
     submit_button_name = _("Delete")
+
+    def get_queryset(self, **kwargs):
+        qs = super().get_queryset(**kwargs).filter(**{self.model_org_lookup: self.request.org})
+
+        if hasattr(self.model, "is_active"):
+            qs = qs.filter(is_active=True)
+
+        if hasattr(self.model, "is_system"):
+            qs = qs.filter(is_system=False)
+
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -123,10 +135,8 @@ class BaseDeleteModal(OrgObjPermsMixin, SmartDeleteView):
         return context
 
     def post(self, request, *args, **kwargs):
-        obj = self.get_object()
-
-        if not getattr(obj, "is_system", False):
-            obj.release(self.request.user)
+        self.object = self.get_object()
+        self.object.release(self.request.user)
 
         return HttpResponseRedirect(self.get_redirect_url())
 

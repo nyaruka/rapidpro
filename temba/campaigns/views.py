@@ -1,11 +1,10 @@
 from copy import deepcopy
 
-from smartmin.views import SmartCreateView, SmartCRUDL, SmartDeleteView
+from smartmin.views import SmartCreateView, SmartCRUDL
 
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models.functions import Lower
-from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.functional import cached_property
@@ -14,8 +13,15 @@ from django.utils.translation import gettext_lazy as _
 from temba.contacts.models import ContactField, ContactGroup
 from temba.flows.models import Flow
 from temba.msgs.models import Msg
-from temba.orgs.views.base import BaseListView, BaseMenuView, BaseReadView, BaseUpdateModal, BaseUpdateView
-from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin
+from temba.orgs.views.base import (
+    BaseDeleteModal,
+    BaseListView,
+    BaseMenuView,
+    BaseReadView,
+    BaseUpdateModal,
+    BaseUpdateView,
+)
+from temba.orgs.views.mixins import BulkActionMixin, OrgPermsMixin
 from temba.utils import languages
 from temba.utils.fields import CompletionTextarea, InputWidget, SelectWidget, TembaChoiceField
 from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, SpaMixin
@@ -504,24 +510,15 @@ class CampaignEventCRUDL(SmartCRUDL):
                 menu.add_modax(
                     _("Delete"),
                     "event-delete",
-                    reverse("campaigns.campaignevent_delete", args=[obj.id]),
+                    reverse("campaigns.campaignevent_delete", args=[obj.uuid]),
                     title=_("Delete Event"),
                 )
 
-    class Delete(ModalFormMixin, OrgObjPermsMixin, SmartDeleteView):
-        default_template = "smartmin/delete_confirm.html"
-        submit_button_name = _("Delete")
-        fields = ("uuid",)
+    class Delete(BaseDeleteModal):
+        model_org_lookup = "campaign__org"
 
         def get_object_org(self):
             return self.get_object().campaign.org
-
-        def post(self, request, *args, **kwargs):
-            self.object = self.get_object()
-            self.object.release(self.request.user)
-
-            redirect_url = self.get_redirect_url()
-            return HttpResponseRedirect(redirect_url)
 
         def get_redirect_url(self):
             return reverse("campaigns.campaign_read", args=[self.object.campaign.uuid])
