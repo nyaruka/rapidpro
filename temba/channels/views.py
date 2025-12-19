@@ -8,14 +8,7 @@ import phonenumbers
 import requests
 import twilio.base.exceptions
 import vonage
-from smartmin.views import (
-    SmartCRUDL,
-    SmartFormView,
-    SmartModelActionView,
-    SmartReadView,
-    SmartTemplateView,
-    SmartUpdateView,
-)
+from smartmin.views import SmartCRUDL, SmartFormView, SmartModelActionView, SmartTemplateView, SmartUpdateView
 from twilio.base.exceptions import TwilioRestException
 
 from django import forms
@@ -819,9 +812,8 @@ class ChannelCRUDL(SmartCRUDL):
 
             return context
 
-    class LogsList(SpaMixin, OrgObjPermsMixin, SmartReadView):
+    class LogsList(SpaMixin, BaseReadView):
         permission = "channels.channel_logs"
-        slug_url_kwarg = "uuid"
         paginate_by = 50
         title = _("Channel Logs")
 
@@ -851,9 +843,8 @@ class ChannelCRUDL(SmartCRUDL):
             }
             return context
 
-    class LogsRead(SpaMixin, OrgObjPermsMixin, SmartReadView):
+    class LogsRead(SpaMixin, BaseReadView):
         permission = "channels.channel_logs"
-        slug_url_kwarg = "uuid"
         title = _("Channel Log")
 
         @classmethod

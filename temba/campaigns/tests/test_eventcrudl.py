@@ -277,7 +277,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         event.status = CampaignEvent.STATUS_READY
         event.save(update_fields=("status",))
 
-        update_url = reverse("campaigns.campaignevent_update", args=[event.id])
+        update_url = reverse("campaigns.campaignevent_update", args=[event.uuid])
 
         # update the event to be passive
         response = self.assertUpdateSubmit(
@@ -310,7 +310,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         event.status = CampaignEvent.STATUS_READY
         event.save(update_fields=("status",))
 
-        update_url = reverse("campaigns.campaignevent_update", args=[event.id])
+        update_url = reverse("campaigns.campaignevent_update", args=[event.uuid])
 
         # and add another language to org
         self.org.set_flow_languages(self.admin, ["eng", "kin", "spa"])
@@ -374,7 +374,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         accepted = self.create_field("accepted", "Accepted", value_type="D")
         flow = self.org.flows.get(name="Welcomes Flow")
 
-        update_url = reverse("campaigns.campaignevent_update", args=[event1.id])
+        update_url = reverse("campaigns.campaignevent_update", args=[event1.uuid])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
         self.assertUpdateFetch(
@@ -456,7 +456,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         event3.status = CampaignEvent.STATUS_READY
         event3.save(update_fields=("status",))
 
-        update_url = reverse("campaigns.campaignevent_update", args=[event3.id])
+        update_url = reverse("campaigns.campaignevent_update", args=[event3.uuid])
         response = self.requestView(update_url, self.admin)
         self.assertEqual(
             CampaignEventCRUDL.BACKGROUND_WARNING,
@@ -476,7 +476,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             delivery_hour=9,
         )
 
-        delete_url = reverse("campaigns.campaignevent_delete", args=[event.id])
+        delete_url = reverse("campaigns.campaignevent_delete", args=[event.uuid])
 
         # delete the event
         response = self.assertDeleteSubmit(delete_url, self.admin, object_deactivated=event)

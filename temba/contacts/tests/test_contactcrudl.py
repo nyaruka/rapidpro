@@ -1203,7 +1203,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # can't delete contact in other org
         delete_url = reverse("contacts.contact_delete", args=[other_org_contact.uuid])
         response = self.client.post(delete_url, {"uuid": other_org_contact.uuid})
-        self.assertLoginRedirect(response)
+        self.assertEqual(404, response.status_code)
 
         # contact should be unchanged
         other_org_contact.refresh_from_db()

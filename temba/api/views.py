@@ -322,7 +322,6 @@ class APITokenCRUDL(SmartCRUDL):
         fields = ("key",)
         cancel_url = "@api.apitoken_list"
         redirect_url = "@api.apitoken_list"
-        submit_button_name = _("Delete")
 
         def has_permission(self, request, *args, **kwargs):
             return self.get_object().user == request.user

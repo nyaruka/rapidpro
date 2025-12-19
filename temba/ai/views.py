@@ -1,6 +1,6 @@
 import json
 
-from smartmin.views import SmartCRUDL, SmartReadView
+from smartmin.views import SmartCRUDL
 
 from django import forms
 from django.db.models.functions import Lower
@@ -10,8 +10,8 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from temba import mailroom
-from temba.orgs.views.base import BaseDependencyDeleteModal, BaseListView, BaseUpdateModal
-from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
+from temba.orgs.views.base import BaseDependencyDeleteModal, BaseListView, BaseReadView, BaseUpdateModal
+from temba.orgs.views.mixins import OrgPermsMixin, UniqueNameMixin
 from temba.utils.fields import InputWidget, SelectWidget
 from temba.utils.views.mixins import ContextMenuMixin, PostOnlyMixin, SpaMixin
 from temba.utils.views.wizard import SmartWizardView
@@ -122,9 +122,7 @@ class LLMCRUDL(SmartCRUDL):
         form_class = Form
         success_url = "@ai.llm_list"
 
-    class Translate(PostOnlyMixin, OrgObjPermsMixin, SmartReadView):
-        slug_url_kwarg = "uuid"
-
+    class Translate(PostOnlyMixin, BaseReadView):
         @csrf_exempt
         def dispatch(self, *args, **kwargs):
             return super().dispatch(*args, **kwargs)
