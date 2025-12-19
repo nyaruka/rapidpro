@@ -176,13 +176,19 @@ class ContextMenuMixin:
         context = super().get_context_data(**kwargs)
 
         # does the page have a content menu?
-        context["has_context_menu"] = len(self._get_context_menu()) > 0
+        context["has_context_menu"] = self.has_context_menu()
 
         # does the page have a search query?
         if "search" in self.request.GET:
             context["has_search_query"] = urlencode({"search": self.request.GET["search"]})
 
         return context
+
+    def has_context_menu(self):
+        """
+        If creating the context menu is non-trivial, views can override this
+        """
+        return len(self._get_context_menu()) > 0
 
     def _get_context_menu(self):
         menu = self.Menu()

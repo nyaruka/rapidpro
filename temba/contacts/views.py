@@ -61,7 +61,7 @@ class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
     paginate_by = 50
 
     parsed_query = None
-    save_dynamic_search = None
+    search_is_saveable = None
 
     sort_field = None
     sort_direction = None
@@ -119,7 +119,7 @@ class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
                     org, self.group, search_query, sort=sort_on, offset=offset, exclude_ids=exclude_ids
                 )
                 self.parsed_query = results.query if len(results.query) > 0 else None
-                self.save_dynamic_search = results.metadata.allow_as_group
+                self.search_is_saveable = results.metadata.allow_as_group
 
                 return IDSliceQuerySet(Contact, results.contact_ids, offset=offset, total=results.total)
             except mailroom.QueryValidationException as e:
@@ -152,7 +152,7 @@ class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
         # replace search string with parsed search expression
         if self.parsed_query is not None:
             context["search"] = self.parsed_query
-            context["save_dynamic_search"] = self.save_dynamic_search
+            context["search_is_saveable"] = self.search_is_saveable
 
         return context
 
@@ -471,37 +471,37 @@ class ContactCRUDL(SmartCRUDL):
                 actions += ("start-flow",)
             return actions
 
+        def has_context_menu(self):
+            return self.has_org_perm("contacts.contact_create") or self.has_org_perm("contacts.contactgroup_create")
+
         def build_context_menu(self, menu):
-            search = self.request.GET.get("search")
-
-            # define save search conditions
-            valid_search_condition = search and not self.search_error
-            has_contactgroup_create_perm = self.has_org_perm("contacts.contactgroup_create")
-
-            if has_contactgroup_create_perm and valid_search_condition:
+            if search := self.request.GET.get("search"):
                 try:
                     parsed = mailroom.get_client().contact_parse_query(self.request.org, search)
-                    if parsed.metadata.allow_as_group:
-                        menu.add_modax(
-                            _("Create Smart Group"),
-                            "create-smartgroup",
-                            f"{reverse('contacts.contactgroup_create')}?search={quote_plus(search)}",
-                            as_button=True,
-                        )
-                except mailroom.QueryValidationException:  # pragma: no cover
-                    pass
+                    self.parsed_query = parsed.query
+                    self.search_is_saveable = parsed.metadata.allow_as_group
+                except mailroom.QueryValidationException as e:
+                    self.search_error = str(e)
+
+            if self.has_org_perm("contacts.contactgroup_create") and self.search_is_saveable:
+                menu.add_modax(
+                    _("Create Smart Group"),
+                    "create-smartgroup",
+                    f"{reverse('contacts.contactgroup_create')}?search={quote_plus(self.parsed_query)}",
+                    as_button=True,
+                )
 
             if self.has_org_perm("contacts.contact_create"):
                 menu.add_modax(
                     _("New Contact"), "new-contact", reverse("contacts.contact_create"), title=_("New Contact")
                 )
 
-            if has_contactgroup_create_perm:
+            if self.has_org_perm("contacts.contactgroup_create"):
                 menu.add_modax(
                     _("New Group"), "new-group", reverse("contacts.contactgroup_create"), title=_("New Group")
                 )
 
-            if self.has_org_perm("contacts.contact_export"):
+            if self.has_org_perm("contacts.contact_export") and not self.search_error:
                 menu.add_modax(_("Export"), "export-contacts", self.derive_export_url(), title=_("Export Contacts"))
 
     class Blocked(ContextMenuMixin, ContactListView):
