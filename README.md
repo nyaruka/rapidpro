@@ -18,7 +18,7 @@ applications. To see what it can do, signup for a free trial account at [textit.
 
 ## Snapshots
 
-Every 6 months we [publish snapshots](https://github.com/nyaruka/rapidpro/discussions) for other deployments 
-which are essentially a set of stable versions of the components that make up the platform. To upgrade from 
-one snapshot to the next, you must first install and run the migrations for the latest snapshot you are on, 
+Every 6 months we [publish snapshots](https://github.com/nyaruka/rapidpro/discussions) for other deployments,
+which are essentially a set of stable versions of the components that make up the platform. To upgrade from
+one snapshot to the next, you must first install and run the migrations for the latest snapshot you are on,
 then every snapshot afterwards.
