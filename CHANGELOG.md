@@ -1,3 +1,7 @@
+v26.0.0 (2026-01-05)
+-------------------------
+ * Update to a recent FB graph API version
+
 v10.3.121 (2025-12-18)
 -------------------------
  * Make import uuid fields non-null and use for read views
