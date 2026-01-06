@@ -173,7 +173,7 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         other_org_group = self.create_group("Reporters", contacts=[], org=self.org2)
         other_org_campaign = self.create_campaign(self.org2, "Welcomes", other_org_group)
 
-        archive_url = reverse("campaigns.campaign_archive", args=[campaign.id])
+        archive_url = reverse("campaigns.campaign_archive", args=[campaign.uuid])
 
         # can't archive campaign if not logged in
         response = self.client.post(archive_url)
@@ -188,15 +188,15 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertTrue(campaign.is_archived)
 
         # activate that archve
-        response = self.client.post(reverse("campaigns.campaign_activate", args=[campaign.id]))
+        response = self.client.post(reverse("campaigns.campaign_activate", args=[campaign.uuid]))
         self.assertEqual(302, response.status_code)
 
         campaign.refresh_from_db()
         self.assertFalse(campaign.is_archived)
 
         # can't archive campaign from other org
-        response = self.client.post(reverse("campaigns.campaign_archive", args=[other_org_campaign.id]))
-        self.assertEqual(302, response.status_code)
+        response = self.client.post(reverse("campaigns.campaign_archive", args=[other_org_campaign.uuid]))
+        self.assertEqual(404, response.status_code)
 
         # check object is unchanged
         other_org_campaign.refresh_from_db()
