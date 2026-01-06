@@ -159,7 +159,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         response = self.assertListFetch(list_url + "?search=age+%3D+18", [self.editor], context_objects=[frank])
         self.assertEqual(response.context["search"], "age = 18")
-        self.assertEqual(response.context["save_dynamic_search"], True)
+        self.assertEqual(response.context["search_is_saveable"], True)
         self.assertIsNone(response.context["search_error"])
         self.assertEqual(
             [f.name for f in response.context["contact_fields"]], ["Home", "Age", "Last Seen On", "Created On"]
@@ -177,14 +177,14 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             list_url + '?search=age+>+18+and+home+%3D+"Kigali"', [self.editor], context_objects=[joe]
         )
         self.assertEqual(response.context["search"], 'age > 18 AND home = "Kigali"')
-        self.assertEqual(response.context["save_dynamic_search"], True)
+        self.assertEqual(response.context["search_is_saveable"], True)
         self.assertIsNone(response.context["search_error"])
 
         mr_mocks.contact_search("Joe", cleaned='name ~ "Joe"', contacts=[joe])
 
         response = self.assertListFetch(list_url + "?search=Joe", [self.editor], context_objects=[joe])
         self.assertEqual(response.context["search"], 'name ~ "Joe"')
-        self.assertEqual(response.context["save_dynamic_search"], True)
+        self.assertEqual(response.context["search_is_saveable"], True)
         self.assertIsNone(response.context["search_error"])
 
         with self.anonymous(self.org):
@@ -194,7 +194,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             self.assertEqual(list(response.context["object_list"]), [joe])
             self.assertIsNone(response.context["search_error"])
             self.assertEqual(response.context["search"], f"id = {joe.id}")
-            self.assertEqual(response.context["save_dynamic_search"], False)
+            self.assertEqual(response.context["search_is_saveable"], False)
 
         # try with invalid search string
         mr_mocks.exception(mailroom.QueryValidationException("mismatched input at (((", "syntax"))
@@ -203,6 +203,10 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(list(response.context["object_list"]), [])
         self.assertEqual(response.context["search_error"], "Invalid query syntax.")
         self.assertContains(response, "Invalid query syntax.")
+
+        mr_mocks.exception(mailroom.QueryValidationException("mismatched input at (((", "syntax"))
+
+        self.assertContentMenu(list_url + "?search=(((", self.editor, ["New Contact", "New Group"])  # no export
 
         # error response if query too long
         response = self.client.get(list_url + "?search=" + "x" * 10001)
@@ -1203,7 +1207,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # can't delete contact in other org
         delete_url = reverse("contacts.contact_delete", args=[other_org_contact.uuid])
         response = self.client.post(delete_url, {"uuid": other_org_contact.uuid})
-        self.assertLoginRedirect(response)
+        self.assertEqual(404, response.status_code)
 
         # contact should be unchanged
         other_org_contact.refresh_from_db()
