@@ -1,3 +1,7 @@
+v26.1.1 (2026-01-06)
+-------------------------
+ * Data migration to clear uploads for empty archives
+
 v26.1.0 (2026-01-06)
 -------------------------
  * Test against PostgreSQL 17
