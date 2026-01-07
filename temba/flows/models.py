@@ -981,12 +981,8 @@ class FlowSession(models.Model):
     current_flow_uuid = models.UUIDField(null=True)  # the flow of the waiting run
     call_uuid = models.UUIDField(null=True)  # the call used for sessions over IVR
 
-    # the modality of this session
-    session_type = models.CharField(max_length=1, choices=Flow.TYPE_CHOICES, default=Flow.TYPE_MESSAGE)
-
-    # the engine output of this session (either stored in this field or at the URL pointed to by output_url)
-    output = JSONAsTextField(null=True, default=dict)
-    output_url = models.URLField(null=True, max_length=2048)
+    session_type = models.CharField(max_length=1, choices=Flow.TYPE_CHOICES, default=Flow.TYPE_MESSAGE)  # flow type
+    output = JSONAsTextField(null=True, default=dict)  # the engine output
 
     # when this session was created and ended
     created_on = models.DateTimeField(default=timezone.now)
@@ -1004,11 +1000,6 @@ class FlowSession(models.Model):
             # ensure that non-waiting sessions have an ended_on
             models.CheckConstraint(
                 check=Q(status="W") | Q(ended_on__isnull=False), name="flows_session_non_waiting_has_ended_on"
-            ),
-            # ensure that all sessions have output or output_url
-            models.CheckConstraint(
-                check=Q(output__isnull=False) | Q(output_url__isnull=False),
-                name="flows_session_has_output_or_url",
             ),
         ]
 
