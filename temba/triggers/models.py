@@ -431,7 +431,7 @@ class Trigger(SmartModel):
         constraints = [
             # ensure that scheduled triggers have a schedule
             models.CheckConstraint(
-                check=~Q(trigger_type="S") | Q(schedule__isnull=False) | Q(is_active=False),
+                condition=~Q(trigger_type="S") | Q(schedule__isnull=False) | Q(is_active=False),
                 name="triggers_scheduled_trigger_has_schedule",
             ),
         ]

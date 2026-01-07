@@ -999,7 +999,7 @@ class FlowSession(models.Model):
         constraints = [
             # ensure that non-waiting sessions have an ended_on
             models.CheckConstraint(
-                check=Q(status="W") | Q(ended_on__isnull=False), name="flows_session_non_waiting_has_ended_on"
+                condition=Q(status="W") | Q(ended_on__isnull=False), name="flows_session_non_waiting_has_ended_on"
             ),
         ]
 
@@ -1132,7 +1132,7 @@ class FlowRun(models.Model):
         constraints = [
             # all non-active/waiting runs must have an exited_on
             models.CheckConstraint(
-                check=Q(status__in=("A", "W")) | Q(exited_on__isnull=False),
+                condition=Q(status__in=("A", "W")) | Q(exited_on__isnull=False),
                 name="flows_run_inactive_has_exited_on",
             ),
         ]
