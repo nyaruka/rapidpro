@@ -1,3 +1,9 @@
+v26.1.2 (2026-01-07)
+-------------------------
+ * Monkey patch boto3 number deserialization issue
+ * Bump aiohttp from 3.12.14 to 3.13.3
+ * Drop FlowSession.output_url field
+
 v26.1.1 (2026-01-06)
 -------------------------
  * Data migration to clear uploads for empty archives
