@@ -1,6 +1,8 @@
 from datetime import timedelta
 from unittest.mock import call, patch
 
+from django.db import transaction
+from django.db.utils import IntegrityError
 from django.utils import timezone
 
 from temba.flows.models import Flow
@@ -258,3 +260,17 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         # but then accessing them blows up
         with self.assertRaises(Flow.DoesNotExist):
             print(msg.flow)
+
+    def test_unique_external_id_per_channel(self):
+        msg1 = self.create_incoming_msg(self.joe, "Hello", external_id="ext123")
+        self.assertEqual(msg1.external_id, "ext123")
+
+        # can't create another incoming message on same channel with same external_id
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                self.create_incoming_msg(self.frank, "Hi", external_id="ext123")
+
+        channel1 = self.create_channel("NX", "Channel 1", "9000")
+        # can create incoming message with same external_id on different channel
+        msg3 = self.create_incoming_msg(self.kevin, "Hey", channel=channel1, external_id="ext123")
+        self.assertEqual(msg3.external_id, "ext123")

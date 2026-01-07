@@ -799,7 +799,7 @@ class Msg(models.Model):
             models.UniqueConstraint(
                 name="unique_incoming_external_id_per_channel",
                 fields=["channel", "external_id"],
-                condition=Q(external_id__isnull=False, direction="I"),
+                condition=Q(external_id__isnull=False, channel__isnull=False, direction="I"),
             ),
         ]
 
