@@ -798,7 +798,7 @@ class Msg(models.Model):
                 condition=(~Q(status__in=("W", "S", "D", "R"), sent_on__isnull=True)),
             ),
             models.UniqueConstraint(
-                name="unique_msgs_by_external_identifier_per_channel",
+                name="unique_msgs_external_identifiers",
                 fields=["channel", "external_identifier"],
                 condition=Q(external_identifier__isnull=False),
             ),

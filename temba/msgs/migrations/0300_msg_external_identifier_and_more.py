@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(
                 condition=models.Q(("external_identifier__isnull", False)),
                 fields=("channel", "external_identifier"),
-                name="unique_msgs_by_external_identifier_per_channel",
+                name="unique_msgs_external_identifiers",
             ),
         ),
     ]
