@@ -975,14 +975,14 @@ class FlowSession(models.Model):
 
     id = models.BigAutoField(primary_key=True)
     uuid = models.UUIDField(unique=True)
-    contact_uuid = models.UUIDField(null=True)
+    contact_uuid = models.UUIDField()
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
     last_sprint_uuid = models.UUIDField(null=True)  # last sprint in this session
     current_flow_uuid = models.UUIDField(null=True)  # the flow of the waiting run
     call_uuid = models.UUIDField(null=True)  # the call used for sessions over IVR
 
     session_type = models.CharField(max_length=1, choices=Flow.TYPE_CHOICES, default=Flow.TYPE_MESSAGE)  # flow type
-    output = JSONAsTextField(null=True, default=dict)  # the engine output
+    output = JSONAsTextField(default=dict)  # the engine output
 
     # when this session was created and ended
     created_on = models.DateTimeField(default=timezone.now)
