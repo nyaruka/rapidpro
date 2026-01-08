@@ -1,3 +1,7 @@
+v26.1.4 (2026-01-08)
+-------------------------
+ * Make FlowSession.contact_uuid and output non-null
+
 v26.1.3 (2026-01-08)
 -------------------------
  * Update dependencies
