@@ -3321,21 +3321,24 @@ testing = ["Flask (>=1,<2)", "Flask-Sockets (>=0.2,<1)", "Jinja2 (==3.0.3)", "We
 
 [[package]]
 name = "smartmin"
-version = "5.2.2"
+version = "5.2.4"
 description = "Scaffolding system for Django object management."
 optional = false
 python-versions = "<4.0,>=3.11"
 groups = ["main"]
 files = [
-    {file = "smartmin-5.2.2-py3-none-any.whl", hash = "sha256:d1248ac7dc0108918883d7b354f167b54dacf6c744b07051f0f433a0c932cab4"},
-    {file = "smartmin-5.2.2.tar.gz", hash = "sha256:c06078386e0819f5fa198e89cc0a4333ad6b1f5a0781df1906e2e42976188599"},
+    {file = "smartmin-5.2.4-py3-none-any.whl", hash = "sha256:7002c644616a5854d79a1ef6442019a4ab5801e8065af8d6fb72dbb457bc5dae"},
+    {file = "smartmin-5.2.4.tar.gz", hash = "sha256:adc5be4f9adb9f360f7aa72809a113beedb07311d299340b5754b9d9246ec393"},
 ]
 
 [package.dependencies]
-Django = ">=5.1,<5.3"
+django = ">=5.1.15,<5.3"
 sqlparse = ">=0.4.1,<0.6.0"
 xlrd = ">=1.2.0"
 xlwt = ">=1.3.0"
+
+[package.extras]
+dev = ["black (>=24.3.0)", "celery (>=5.1.0)", "colorama (>=0.4.6)", "coverage[toml] (>=7.2.7)", "funcsigs (>=1.0.2)", "isort (>=5.12.0)", "pillow (>=10.3.0)", "psycopg2-binary (>=2.9.1)", "redis (>=3.5.3)", "ruff (>=0.0.278)"]
 
 [[package]]
 name = "sniffio"
@@ -3956,4 +3959,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.13"
-content-hash = "6eedbacaf09bddba43224d3397d3406c046961ec7f417f8de19a78c69d53c739"
+content-hash = "34167a387a5b33078de174abbff15f4f03d66c861ac530f0d520d6ff2d5b9573"
