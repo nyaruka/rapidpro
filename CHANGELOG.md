@@ -1,3 +1,8 @@
+v26.1.3 (2026-01-08)
+-------------------------
+ * Update dependencies
+ * Add external_identifier with unique constraint per channel
+
 v26.1.2 (2026-01-07)
 -------------------------
  * Monkey patch boto3 number deserialization issue
