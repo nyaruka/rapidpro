@@ -788,14 +788,14 @@ class Msg(models.Model):
             ),
         ]
         constraints = [
-            models.CheckConstraint(name="direction_is_in_or_out", check=Q(direction="I") | Q(direction="O")),
+            models.CheckConstraint(name="direction_is_in_or_out", condition=Q(direction="I") | Q(direction="O")),
             models.CheckConstraint(
                 name="incoming_has_channel_and_urn",
-                check=Q(direction="O") | Q(channel__isnull=False, contact_urn__isnull=False),
+                condition=Q(direction="O") | Q(channel__isnull=False, contact_urn__isnull=False),
             ),
             models.CheckConstraint(
                 name="no_sent_status_without_sent_on",
-                check=(~Q(status__in=("W", "S", "D", "R"), sent_on__isnull=True)),
+                condition=(~Q(status__in=("W", "S", "D", "R"), sent_on__isnull=True)),
             ),
             models.UniqueConstraint(
                 name="unique_msgs_by_external_identifier_per_channel",

@@ -1176,7 +1176,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
             models.Index(name="contacts_modified", fields=("modified_on",)),
         ]
         constraints = [
-            models.CheckConstraint(check=Q(status__in=("A", "B", "S", "V")), name="contact_status_valid"),
+            models.CheckConstraint(condition=Q(status__in=("A", "B", "S", "V")), name="contact_status_valid"),
         ]
 
 
@@ -1263,9 +1263,10 @@ class ContactURN(models.Model):
         unique_together = ("identity", "org")
         ordering = ("-priority", "id")
         constraints = [
-            models.CheckConstraint(check=~(Q(scheme="") | Q(path="")), name="non_empty_scheme_and_path"),
+            models.CheckConstraint(condition=~(Q(scheme="") | Q(path="")), name="non_empty_scheme_and_path"),
             models.CheckConstraint(
-                check=Q(identity=Concat(F("scheme"), Value(":"), F("path"))), name="identity_matches_scheme_and_path"
+                condition=Q(identity=Concat(F("scheme"), Value(":"), F("path"))),
+                name="identity_matches_scheme_and_path",
             ),
         ]
 
