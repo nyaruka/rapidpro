@@ -578,7 +578,8 @@ class Msg(models.Model):
     failed_reason = models.CharField(null=True, max_length=1, choices=FAILED_CHOICES)  # why we've failed
 
     # the id of this message on the other side of its channel
-    external_id = models.CharField(max_length=255, null=True)
+    external_identifier = models.CharField(max_length=255, null=True)
+    external_id = models.CharField(max_length=255, null=True)  # deprecated in favor of external_identifier
 
     log_uuids = ArrayField(models.UUIDField(), null=True)
 
@@ -787,14 +788,19 @@ class Msg(models.Model):
             ),
         ]
         constraints = [
-            models.CheckConstraint(name="direction_is_in_or_out", check=Q(direction="I") | Q(direction="O")),
+            models.CheckConstraint(name="direction_is_in_or_out", condition=Q(direction="I") | Q(direction="O")),
             models.CheckConstraint(
                 name="incoming_has_channel_and_urn",
-                check=Q(direction="O") | Q(channel__isnull=False, contact_urn__isnull=False),
+                condition=Q(direction="O") | Q(channel__isnull=False, contact_urn__isnull=False),
             ),
             models.CheckConstraint(
                 name="no_sent_status_without_sent_on",
-                check=(~Q(status__in=("W", "S", "D", "R"), sent_on__isnull=True)),
+                condition=(~Q(status__in=("W", "S", "D", "R"), sent_on__isnull=True)),
+            ),
+            models.UniqueConstraint(
+                name="unique_msgs_external_identifiers",
+                fields=["channel", "external_identifier"],
+                condition=Q(external_identifier__isnull=False),
             ),
         ]
 
