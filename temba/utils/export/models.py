@@ -25,6 +25,10 @@ def prepare_value(value, tz=None):
             value = "'" + value
         return clean_string(value)
     elif isinstance(value, datetime):
+        # Skip timezone conversion for datetime.min or datetime.max to avoid OverflowError when converting to timezones
+        # with UTC offsets
+        if value.date() <= datetime.min.date() or value.date() >= datetime.max.date():
+            return value.replace(microsecond=0, tzinfo=None)
         return value.astimezone(tz).replace(microsecond=0, tzinfo=None)
 
     raise ValueError(f"Unsupported type for excel export: {type(value)}")

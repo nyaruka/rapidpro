@@ -34,6 +34,13 @@ class ExportTest(TembaTest):
         dt = datetime(2017, 2, 7, 15, 41, 23, 123_456).replace(tzinfo=ZoneInfo("Africa/Nairobi"))
         self.assertEqual(datetime(2017, 2, 7, 14, 41, 23, 0), prepare_value(dt, self.org.timezone))
 
+        # Test that datetime.min can be safely converted across timezones without raising errors or changing the date
+        dt = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
+        self.assertEqual(datetime(1, 1, 1, 0, 0, 0, 0), prepare_value(dt, ZoneInfo("Canada/Eastern")))
+
+        dt = datetime.max.replace(tzinfo=ZoneInfo("UTC"))
+        self.assertEqual(datetime(9999, 12, 31, 23, 59, 59, 0), prepare_value(dt, ZoneInfo("Africa/Nairobi")))
+
         with self.assertRaises(ValueError):
             prepare_value(self)
 
