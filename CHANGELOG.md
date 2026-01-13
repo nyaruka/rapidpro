@@ -1,3 +1,7 @@
+v26.1.6 (2026-01-13)
+-------------------------
+ * Update previously added data migration to bump modified_on values
+
 v26.1.5 (2026-01-13)
 -------------------------
  * Data migration to fix zero last_seen_on values
