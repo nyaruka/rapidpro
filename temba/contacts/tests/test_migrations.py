@@ -43,16 +43,22 @@ class FixBadLastSeenOnsTest(MigrationTest):
         self.contact4.last_seen_on = zero_date
         self.contact4.save(update_fields=["last_seen_on"])
 
+        self.start = datetime.now(tzone.utc)
+
     def test_migration(self):
         self.contact1.refresh_from_db()
         self.assertEqual(self.msg1.created_on, self.contact1.last_seen_on)
+        self.assertGreater(self.contact1.modified_on, self.start)
 
+        # contact with no messages/events falls back to modified_on
         self.contact2.refresh_from_db()
-        self.assertIsNone(self.contact2.last_seen_on)
+        self.assertIsNotNone(self.contact2.last_seen_on)
+        self.assertGreater(self.contact2.modified_on, self.start)
 
         self.contact3.refresh_from_db()
         self.assertEqual(datetime(2025, 6, 15, 12, 0, tzinfo=tzone.utc), self.contact3.last_seen_on)
+        self.assertLess(self.contact3.modified_on, self.start)
 
         self.contact4.refresh_from_db()
-        self.assertEqual(len(self.contact4.channel_events.all()), 1)
         self.assertEqual(self.evt4.created_on, self.contact4.last_seen_on)  # event is newer than message
+        self.assertGreater(self.contact4.modified_on, self.start)
