@@ -1,3 +1,8 @@
+v26.1.5 (2026-01-13)
+-------------------------
+ * Data migration to fix zero last_seen_on values
+ * Revert to testing on PG15
+
 v26.1.4 (2026-01-08)
 -------------------------
  * Make FlowSession.contact_uuid and output non-null
