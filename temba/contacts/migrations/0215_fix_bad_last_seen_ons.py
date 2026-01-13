@@ -12,7 +12,7 @@ def fix_bad_last_seen_ons(apps, schema_editor):
     num_updated = 0
 
     while True:
-        batch = list(Contact.objects.filter(last_seen_on=zero_date).only("id")[:1000])
+        batch = list(Contact.objects.filter(last_seen_on=zero_date).only("id", "modified_on")[:1000])
         if not batch:
             break
 
@@ -22,11 +22,15 @@ def fix_bad_last_seen_ons(apps, schema_editor):
                 candidates.append(last_msg.created_on)
             if last_evt := contact.channel_events.order_by("id").last():
                 candidates.append(last_evt.created_on)
+            # maybe messages/events were deleted, in which case we fall back to modified_on
+            if not candidates:
+                candidates.append(contact.modified_on)
 
-            contact.last_seen_on = max(candidates) if candidates else None
+            contact.last_seen_on = max(candidates)
+            contact.modified_on = datetime.now(tzone.utc)  # needed for indexer
             num_updated += 1
 
-        Contact.objects.bulk_update(batch, ["last_seen_on"])
+        Contact.objects.bulk_update(batch, ["last_seen_on", "modified_on"])
         print(f"Updated {num_updated} contacts with bad last_seen_on values")
 
 
