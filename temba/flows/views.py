@@ -1288,9 +1288,6 @@ class FlowCRUDL(SmartCRUDL):
                     "urn": test_urn,
                 }
 
-            if "flow" in req_json:
-                payload["flows"] = [{"uuid": flow.uuid, "definition": req_json["flow"]}]
-
             # check if we are triggering a new session
             if "trigger" in req_json:
                 payload["trigger"] = req_json["trigger"]

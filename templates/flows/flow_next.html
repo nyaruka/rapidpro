@@ -19,12 +19,43 @@
     temba-flow-editor {
       display: flex;
       flex-direction: column;
-      height: calc(100vh - 98px);
+      height: calc(100vh - 67px);
       width: 100%;
+      border-top: 1px solid #e7e7e7;
     }
   </style>
 {% endblock extra-style %}
+{% block extra-script %}
+  {{ block.super }}
+  <script type="text/javascript">
+    function handleContactClicked(e) {
+      const contactUuid = e.detail.uuid;
+      spaGet("/contact/read/" + contactUuid + "/");
+    }
+
+    function handleFollow(event) {
+      const {
+        flowUuid,
+        nodeUuid
+      } = event.detail;
+
+      // Get the editor element
+      const editor = document.querySelector('temba-flow-editor');
+
+      if (editor) {
+        // Only focus if we're on the same flow for now
+        if (editor.flow !== flowUuid) {
+          // spaGet("/flow/next/" + flowUuid + "/");
+        } else {
+          editor.focusNode(nodeUuid);
+        }
+      }
+    }
+  </script>
+{% endblock extra-script %}
 {% block content %}
-  <temba-flow-editor flow="{{ object.uuid }}">
+  <temba-flow-editor flow="{{ object.uuid }}" -temba-contact-clicked="handleContactClicked">
   </temba-flow-editor>
+  <temba-simulator flow="{{ object.uuid }}" -temba-follow-simulation="handleFollow">
+  </temba-simulator>
 {% endblock content %}
