@@ -101,6 +101,7 @@ class ExplorerView(OrgPermsMixin, SmartTemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["active_org"] = self.derive_org()
 
         context["endpoints"] = [
             ArchivesEndpoint.get_read_explorer(),
