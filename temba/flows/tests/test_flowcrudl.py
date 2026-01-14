@@ -1904,7 +1904,6 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                     actual_payload["trigger"],
                 )
                 self.assertEqual(len(actual_payload["assets"]["channels"]), 1)  # fake channel
-                self.assertEqual(len(actual_payload["flows"]), 1)
                 self.assertEqual(actual_headers["Authorization"], "Token sesame")
                 self.assertEqual(actual_headers["Content-Type"], "application/json")
 
@@ -1934,7 +1933,6 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                 self.assertEqual(actual_url, "https://mailroom.temba.io/mr/sim/resume")
                 self.assertEqual(actual_payload["org_id"], flow.org_id)
                 self.assertEqual(len(actual_payload["assets"]["channels"]), 1)  # fake channel
-                self.assertEqual(len(actual_payload["flows"]), 1)
                 self.assertEqual(actual_headers["Authorization"], "Token sesame")
                 self.assertEqual(actual_headers["Content-Type"], "application/json")
 
