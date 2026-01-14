@@ -1,3 +1,9 @@
+v26.1.7 (2026-01-14)
+-------------------------
+ * Fix API explorer, to show results in the correct container
+ * No longer expect flows in the simulation payload
+ * Update to latest simulator
+
 v26.1.6 (2026-01-13)
 -------------------------
  * Update previously added data migration to bump modified_on values
