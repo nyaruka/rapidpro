@@ -54,7 +54,7 @@ from temba.utils.fields import (
     TembaChoiceField,
 )
 from temba.utils.text import slugify_with
-from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, SpaMixin, StaffOnlyMixin
+from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, SpaMixin
 
 from .models import (
     FlowLabel,
@@ -813,7 +813,7 @@ class FlowCRUDL(SmartCRUDL):
                 if self.has_org_perm("flows.flow_update"):
                     menu.add_link(_("Import Translation"), reverse("flows.flow_import_translation", args=[obj.id]))
 
-    class Next(StaffOnlyMixin, Editor, SpaMixin):
+    class Next(Editor, SpaMixin):
         template_name = "flows/flow_next.html"
 
     class ChangeLanguage(OrgObjPermsMixin, SmartUpdateView):

@@ -1,0 +1,157 @@
+/* ========== Formax Styles ========== */
+
+.formax .formax-section {
+  margin-left: 0px;
+  margin-right: 0px;
+  background-color: rgb(255, 255, 255);
+  border-radius: 0.5rem;
+  border-width: 0;
+  display: flex;
+  align-items: stretch;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  padding: 0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.formax .formax-section:hover {
+  box-shadow: var(--widget-box-shadow-focused);
+}
+
+.formax .formax-section.action-summary,
+.formax .formax-section.action-link {
+  background-color: transparent;
+  border-color: rgb(203, 203, 203);
+  border-width: 1px;
+  box-shadow: none;
+}
+
+.formax .formax-section.action-summary,
+.formax .formax-section.action-link {
+  background-color: rgba(0, 0, 0, 0.015);
+}
+
+.formax .formax-section.action-summary .formax-summary,
+.formax .formax-section.action-link .formax-summary {
+  padding-top: 1.5rem !important;
+  padding-bottom: 1.5rem !important;
+  background-color: transparent;
+}
+
+.formax .formax-section.action-summary .formax-icon,
+.formax .formax-section.action-link .formax-icon {
+  background-color: transparent;
+}
+
+.formax .formax-section.action-summary:hover {
+  box-shadow: none;
+}
+
+.formax .formax-section.action-summary:hover .formax-icon {
+  cursor: default;
+}
+
+.formax .formax-section.action-summary:hover .formax-summary {
+  cursor: default;
+}
+
+.formax .formax-section .formax-icon {
+  background-color: rgb(237, 237, 237);
+  cursor: pointer;
+  color: rgb(113, 113, 113);
+  font-size: 30px;
+  flex-basis: 90px;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+.formax .formax-section .formax-icon .margin-wrapper {
+  margin: auto;
+}
+
+.formax .formax-section .formax-icon .i-container {
+  width: 30px;
+}
+
+.formax .formax-section .formax-container {
+  display: grid;
+  grid-template-rows: min-content 0fr;
+  transition: grid-template-rows 0.5s;
+  transition-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.formax .formax-section .formax-container .formax-summary {
+  overflow: hidden;
+  cursor: pointer;
+  padding: 2rem;
+}
+
+.formax .formax-section .formax-container .formax-form {
+  overflow: hidden;
+}
+
+.formax .formax-section .formax-container .formax-form .smartmin-form-buttons {
+  display: none;
+}
+
+.formax .formax-section .formax-container .formax-form > div {
+  padding: 2rem;
+}
+
+.formax .formax-section.open .formax-container {
+  grid-template-rows: min-content 1fr;
+}
+
+.formax .formax-section.wide.open {
+  margin-left: -115px;
+  margin-right: -115px;
+}
+
+.formax .formax-section.wide.open .formax-icon {
+  font-size: 50px;
+  padding-top: 0px;
+  flex-basis: 0px;
+}
+
+.formax .formax-section.wide.open .formax-icon .i-container {
+  width: 0px;
+  margin-top: 20px;
+  margin-left: -25px;
+}
+
+.formax .formax-section.open {
+  flex-direction: column;
+  margin-left: -30px;
+  margin-right: -30px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.formax .formax-section.open:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.formax .formax-section.open .formax-icon {
+  padding: 0.5em 1em !important;
+  flex-basis: 0 !important;
+}
+
+.formax .formax-section.open .formax-icon .margin-wrapper {
+  margin: 0px !important;
+}
+
+.formax .formax-section.open .formax-icon {
+  background-color: rgb(var(--primary-rgb));
+  padding: 3rem;
+  color: rgb(255, 255, 255);
+}
+
+.formax .formax-section.open .formax-icon:before {
+  vertical-align: inherit;
+}
+
+.formax .formax-section.open .formax-summary {
+  height: 0px;
+  padding: 0px;
+}
