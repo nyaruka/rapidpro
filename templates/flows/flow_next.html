@@ -19,7 +19,6 @@
     temba-flow-editor {
       display: flex;
       flex-direction: column;
-      height: calc(100vh - 67px);
       width: 100%;
       border-top: 1px solid #e7e7e7;
     }
@@ -51,6 +50,30 @@
         }
       }
     }
+
+    function updateEditorHeight() {
+      const editor = document.querySelector('temba-flow-editor');
+      if (!editor) return;
+
+      // Get the top position of the editor relative to the viewport
+      const rect = editor.getBoundingClientRect();
+      const editorTop = rect.top;
+
+      // Calculate available height (viewport height minus editor's top position)
+      const availableHeight = window.innerHeight - editorTop;
+
+      // Set the height
+      editor.style.height = availableHeight + 'px';
+    }
+
+    // Update height on page load
+    document.addEventListener('DOMContentLoaded', updateEditorHeight);
+
+    // Update height on window resize
+    window.addEventListener('resize', updateEditorHeight);
+
+    // Update height when the editor is loaded (in case it loads after DOMContentLoaded)
+    setTimeout(updateEditorHeight, 100);
   </script>
 {% endblock extra-script %}
 {% block content %}
