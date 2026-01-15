@@ -768,7 +768,7 @@ class ContactWriteSerializer(WriteSerializer):
                 mods += self.instance.update_static_groups(groups)
 
             if mods:
-                self.instance.modify(self.context["user"], mods)
+                self.instance.modify(self.context["user"], mods, via_api=True)
 
             if note is not None:
                 self.instance.set_note(self.context["user"], note)
@@ -784,6 +784,7 @@ class ContactWriteSerializer(WriteSerializer):
                 urns=urns or [],
                 fields=custom_fields or {},
                 groups=groups or [],
+                via_api=True,
             )
 
         return self.instance
@@ -1005,17 +1006,17 @@ class ContactBulkActionSerializer(WriteSerializer):
         group = self.validated_data.get("group")
 
         if action == self.ADD:
-            Contact.bulk_change_group(user, contacts, group, add=True)
+            Contact.bulk_change_group(user, contacts, group, add=True, via_api=True)
         elif action == self.REMOVE:
-            Contact.bulk_change_group(user, contacts, group, add=False)
+            Contact.bulk_change_group(user, contacts, group, add=False, via_api=True)
         elif action == self.INTERRUPT:
             Contact.bulk_interrupt(user, contacts)
         elif action == self.ARCHIVE_MESSAGES or action == self.ARCHIVE:
             Msg.archive_all_for_contacts(contacts)
         elif action == self.BLOCK:
-            Contact.bulk_change_status(user, contacts, modifiers.Status.BLOCKED)
+            Contact.bulk_change_status(user, contacts, modifiers.Status.BLOCKED, via_api=True)
         elif action == self.UNBLOCK:
-            Contact.bulk_change_status(user, contacts, modifiers.Status.ACTIVE)
+            Contact.bulk_change_status(user, contacts, modifiers.Status.ACTIVE, via_api=True)
         elif action == self.DELETE:
             for contact in contacts:
                 contact.release(user)

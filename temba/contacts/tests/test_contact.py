@@ -79,9 +79,9 @@ class ContactTest(TembaTest):
 
         self.assertEqual(
             [
-                call(self.org, self.admin, [self.joe], [modifiers.Status(status="blocked")]),
-                call(self.org, self.admin, [self.joe], [modifiers.Status(status="stopped")]),
-                call(self.org, self.admin, [self.joe], [modifiers.Status(status="active")]),
+                call(self.org, self.admin, [self.joe], [modifiers.Status(status="blocked")], "ui"),
+                call(self.org, self.admin, [self.joe], [modifiers.Status(status="stopped")], "ui"),
+                call(self.org, self.admin, [self.joe], [modifiers.Status(status="active")], "ui"),
             ],
             mr_mocks.calls["contact_modify"],
         )
@@ -108,6 +108,7 @@ class ContactTest(TembaTest):
                         "note": "Looks sus",
                     }
                 ],
+                "via": "ui",
             },
         )
 

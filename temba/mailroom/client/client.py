@@ -83,8 +83,10 @@ class MailroomClient:
     def channel_interrupt(self, org, channel):
         self._request("channel/interrupt", {"org_id": org.id, "channel_id": channel.id})
 
-    def contact_create(self, org, user, contact: ContactSpec) -> Contact:
-        resp = self._request("contact/create", {"org_id": org.id, "user_id": user.id, "contact": asdict(contact)})
+    def contact_create(self, org, user, contact: ContactSpec, via: str) -> Contact:
+        resp = self._request(
+            "contact/create", {"org_id": org.id, "user_id": user.id, "contact": asdict(contact), "via": via}
+        )
 
         return Contact.objects.get(id=resp["contact"]["id"])
 
@@ -116,7 +118,7 @@ class MailroomClient:
             "contact/interrupt", {"org_id": org.id, "user_id": user.id, "contact_ids": [c.id for c in contacts]}
         )
 
-    def contact_modify(self, org, user, contacts, modifiers: list[Modifier]):
+    def contact_modify(self, org, user, contacts, modifiers: list[Modifier], via: str):
         return self._request(
             "contact/modify",
             {
@@ -124,6 +126,7 @@ class MailroomClient:
                 "user_id": user.id,
                 "contact_ids": [c.id for c in contacts],
                 "modifiers": [asdict(m) for m in modifiers],
+                "via": via,
             },
         )
 
