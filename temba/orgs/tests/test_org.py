@@ -534,7 +534,7 @@ class OrgDeleteTest(TembaTest):
             contact_uuid=contacts[0].uuid,
             current_flow_uuid=flow1.uuid,
             status=FlowSession.STATUS_WAITING,
-            output_url="http://sessions.com/123.json",
+            output={"status": "waiting"},
         )
         add(
             FlowRun.objects.create(

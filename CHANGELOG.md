@@ -1,3 +1,43 @@
+v26.1.7 (2026-01-14)
+-------------------------
+ * Fix API explorer, to show results in the correct container
+ * No longer expect flows in the simulation payload
+ * Update to latest simulator
+
+v26.1.6 (2026-01-13)
+-------------------------
+ * Update previously added data migration to bump modified_on values
+
+v26.1.5 (2026-01-13)
+-------------------------
+ * Data migration to fix zero last_seen_on values
+ * Revert to testing on PG15
+
+v26.1.4 (2026-01-08)
+-------------------------
+ * Make FlowSession.contact_uuid and output non-null
+
+v26.1.3 (2026-01-08)
+-------------------------
+ * Update dependencies
+ * Add external_identifier with unique constraint per channel
+
+v26.1.2 (2026-01-07)
+-------------------------
+ * Monkey patch boto3 number deserialization issue
+ * Bump aiohttp from 3.12.14 to 3.13.3
+ * Drop FlowSession.output_url field
+
+v26.1.1 (2026-01-06)
+-------------------------
+ * Data migration to clear uploads for empty archives
+
+v26.1.0 (2026-01-06)
+-------------------------
+ * Test against PostgreSQL 17
+ * Don't show Export option for invalid contact queries
+ * Rework more views to use base views from orgs app
+
 v26.0.0 (2026-01-05)
 -------------------------
  * Update to a recent FB graph API version

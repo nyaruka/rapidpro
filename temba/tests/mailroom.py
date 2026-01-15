@@ -205,7 +205,7 @@ class TestClient(MailroomClient):
         pass
 
     @_client_method
-    def contact_create(self, org, user, contact: mailroom.ContactSpec):
+    def contact_create(self, org, user, contact: mailroom.ContactSpec, via: str):
         status = {v: k for k, v in Contact.ENGINE_STATUSES.items()}[contact.status]
         return create_contact_locally(
             org,
@@ -241,7 +241,7 @@ class TestClient(MailroomClient):
         return imp.batches.count()
 
     @_client_method
-    def contact_modify(self, org, user, contacts, modifiers: list[Modifier]):
+    def contact_modify(self, org, user, contacts, modifiers: list[Modifier], via: str) -> dict:
         apply_modifiers(org, user, contacts, modifiers)
 
         return {str(c.id): {"contact": {}, "events": []} for c in contacts}

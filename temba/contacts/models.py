@@ -600,6 +600,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         urns: list[str],
         fields: dict[ContactField, str],
         groups: list,
+        via_api=False,
     ):
         engine_status = cls.ENGINE_STATUSES[status]
         fields_by_key = {f.key: v for f, v in fields.items()}
@@ -611,6 +612,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
             ContactSpec(
                 name=name, language=language, status=engine_status, urns=urns, fields=fields_by_key, groups=group_uuids
             ),
+            "api" if via_api else "ui",
         )
 
     @property
@@ -823,20 +825,20 @@ class Contact(LegacyUUIDMixin, SmartModel):
     def update_urns(self, urns: list[str]) -> list[modifiers.Modifier]:
         return [modifiers.URNs(urns=urns, modification="set")]
 
-    def modify(self, user, mods: list[modifiers.Modifier], refresh=True):
-        self.bulk_modify(user, [self], mods)
+    def modify(self, user, mods: list[modifiers.Modifier], *, via_api=False, refresh=True):
+        self.bulk_modify(user, [self], mods, via_api=via_api)
         if refresh:
             self.refresh_from_db()
 
     @classmethod
-    def bulk_modify(cls, user, contacts, mods: list[modifiers.Modifier]):
+    def bulk_modify(cls, user, contacts, mods: list[modifiers.Modifier], *, via_api=False):
         if not contacts:
             return
 
         org = contacts[0].org
         client = mailroom.get_client()
         try:
-            response = client.contact_modify(org, user, contacts, mods)
+            response = client.contact_modify(org, user, contacts, mods, "api" if via_api else "ui")
         except mailroom.RequestException as e:
             logger.error(f"Contact update failed: {str(e)}", exc_info=True)
             raise e
@@ -848,15 +850,15 @@ class Contact(LegacyUUIDMixin, SmartModel):
         return [c.id for c in contacts if modified(c)]
 
     @classmethod
-    def bulk_change_status(cls, user, contacts, status):
-        cls.bulk_modify(user, contacts, [modifiers.Status(status=status)])
+    def bulk_change_status(cls, user, contacts, status, via_api=False):
+        cls.bulk_modify(user, contacts, [modifiers.Status(status=status)], via_api=via_api)
 
     @classmethod
-    def bulk_change_group(cls, user, contacts, group, add: bool):
+    def bulk_change_group(cls, user, contacts, group, add: bool, via_api=False):
         mod = modifiers.Groups(
             groups=[modifiers.GroupRef(uuid=str(group.uuid), name=group.name)], modification="add" if add else "remove"
         )
-        cls.bulk_modify(user, contacts, mods=[mod])
+        cls.bulk_modify(user, contacts, mods=[mod], via_api=via_api)
 
     @classmethod
     def apply_action_block(cls, user, contacts):
@@ -1176,7 +1178,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
             models.Index(name="contacts_modified", fields=("modified_on",)),
         ]
         constraints = [
-            models.CheckConstraint(check=Q(status__in=("A", "B", "S", "V")), name="contact_status_valid"),
+            models.CheckConstraint(condition=Q(status__in=("A", "B", "S", "V")), name="contact_status_valid"),
         ]
 
 
@@ -1263,9 +1265,10 @@ class ContactURN(models.Model):
         unique_together = ("identity", "org")
         ordering = ("-priority", "id")
         constraints = [
-            models.CheckConstraint(check=~(Q(scheme="") | Q(path="")), name="non_empty_scheme_and_path"),
+            models.CheckConstraint(condition=~(Q(scheme="") | Q(path="")), name="non_empty_scheme_and_path"),
             models.CheckConstraint(
-                check=Q(identity=Concat(F("scheme"), Value(":"), F("path"))), name="identity_matches_scheme_and_path"
+                condition=Q(identity=Concat(F("scheme"), Value(":"), F("path"))),
+                name="identity_matches_scheme_and_path",
             ),
         ]
 

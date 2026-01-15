@@ -572,7 +572,7 @@ class TembaTest(SmartminTest):
             uuid=uuid7(),
             contact_uuid=contact.uuid,
             status=FlowSession.STATUS_COMPLETED,
-            output_url="http://sessions.com/123.json",
+            output={"status": "waiting"},
             call_uuid=call.uuid,
             ended_on=timezone.now(),
         )
