@@ -1,3 +1,9 @@
+v26.1.8 (2026-01-15)
+-------------------------
+ * Update floweditor
+ * Fix updating shortcuts
+ * Call contact/create and modify with via parameter
+
 v26.1.7 (2026-01-14)
 -------------------------
  * Fix API explorer, to show results in the correct container
