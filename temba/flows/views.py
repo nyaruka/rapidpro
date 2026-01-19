@@ -710,6 +710,13 @@ class FlowCRUDL(SmartCRUDL):
             return qs.filter(org=self.request.org, labels=self.label, is_archived=False).order_by("-created_on")
 
     class Editor(SpaMixin, ContextMenuMixin, BaseReadView):
+        def get(self, request, *args, **kwargs):
+            # Check if user has opted into the new editor
+            if request.COOKIES.get("use_new_editor") == "true":
+                flow = self.get_object()
+                return HttpResponseRedirect(reverse("flows.flow_next", args=[flow.uuid]))
+            return super().get(request, *args, **kwargs)
+
         def derive_menu_path(self):
             if self.object.is_archived:
                 return "/flow/archived"
@@ -736,6 +743,7 @@ class FlowCRUDL(SmartCRUDL):
             context["active_start"] = flow.get_active_start()
             context["feature_filters"] = json.dumps(self.get_features(flow.org))
             context["default_topic"] = json.dumps(flow.org.default_topic.as_engine_ref())
+            context["show_new_editor_banner"] = self.request.GET.get("banner") == "1"
 
             return context
 
@@ -815,6 +823,16 @@ class FlowCRUDL(SmartCRUDL):
 
     class Next(Editor, SpaMixin):
         template_name = "flows/flow_next.html"
+
+        def get(self, request, *args, **kwargs):
+            # Don't redirect - just call BaseReadView.get directly to avoid Editor's redirect logic
+            return BaseReadView.get(self, request, *args, **kwargs)
+
+        def get_context_data(self, *args, **kwargs):
+            context = super().get_context_data(*args, **kwargs)
+            context["show_new_editor_banner"] = False
+            context["show_old_editor_banner"] = self.request.GET.get("banner") == "1"
+            return context
 
     class ChangeLanguage(OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.Form):

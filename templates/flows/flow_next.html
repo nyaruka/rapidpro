@@ -2,6 +2,81 @@
 {% block extra-style %}
   {{ block.super }}
   <style type="text/css">
+    .editor-banner {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-left: 100px;
+      z-index: 1000;
+      padding: 14px 20px;
+      background: rgba(255, 152, 0, 0.95);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      max-width: calc(100vw - 280px);
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    .editor-banner-content {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .editor-banner.hidden {
+      display: none;
+    }
+
+    .editor-banner-text {
+      color: white;
+      font-size: 14px;
+      flex: 1;
+    }
+
+    .editor-banner-link {
+      color: white;
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .editor-banner-link:hover {
+      opacity: 0.9;
+    }
+
+    .editor-banner-close {
+      color: white;
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1;
+      padding: 0 4px;
+      opacity: 0.8;
+      background: none;
+      border: none;
+    }
+
+    .editor-banner-close:hover {
+      opacity: 1;
+    }
+
     .spa-content {
       padding-left: 0px !important;
       padding-right: 0px !important;
@@ -28,6 +103,28 @@
 {% block extra-script %}
   {{ block.super }}
   <script type="text/javascript">
+    function disableNewEditor() {
+      // Remove cookie to disable new editor
+      document.cookie = 'use_new_editor=; path=/; max-age=0';
+      // Redirect to the old editor
+      window.location.href = '/flow/editor/{{object.uuid}}/';
+    }
+
+    function closeEditorBanner() {
+      const banner = document.querySelector('.editor-banner');
+      if (banner) {
+        banner.classList.add('hidden');
+      }
+    }
+
+    // Auto-hide banner after 10 seconds
+    document.addEventListener('DOMContentLoaded', function() {
+      const banner = document.querySelector('.editor-banner');
+      if (banner) {
+        setTimeout(closeEditorBanner, 10000);
+      }
+    });
+
     function handleContactClicked(e) {
       const contactUuid = e.detail.uuid;
       spaGet("/contact/read/" + contactUuid + "/");
@@ -78,6 +175,20 @@
   </script>
 {% endblock extra-script %}
 {% block content %}
+  {% if show_old_editor_banner %}
+    <div class="editor-banner">
+      <div class="editor-banner-content">
+        <span class="editor-banner-text">You're using the new flow editor. If you experience issues, you can switch back.</span>
+        <a class="editor-banner-link" onclick="disableNewEditor()">Switch to Old Editor</a>
+      </div>
+      <button class="editor-banner-close"
+              onclick="closeEditorBanner()"
+              aria-label="Close"
+              style="position: absolute;
+                     top: 14px;
+                     right: 14px">×</button>
+    </div>
+  {% endif %}
   <temba-flow-editor flow="{{ object.uuid }}" -temba-contact-clicked="handleContactClicked">
   </temba-flow-editor>
   <temba-simulator flow="{{ object.uuid }}" -temba-follow-simulation="handleFollow">
