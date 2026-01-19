@@ -86,23 +86,22 @@ class TicketActionsEndpointTest(APITest):
         )
 
         self.assertEqual(
-            [call(self.org, self.agent, [ticket1, ticket2], self.agent)], mr_mocks.calls["ticket_change_assignee"]
+            call(self.org, self.agent, [ticket1, ticket2], self.agent, via="ui"),
+            mr_mocks.calls["ticket_change_assignee"].pop(),
         )
 
         # unassign tickets
         self.assertPost(
             endpoint_url,
-            self.agent,
+            self.admin,
             {"tickets": [str(ticket1.uuid)], "action": "assign", "assignee": None},
             status=204,
+            by_token=True,
         )
 
         self.assertEqual(
-            [
-                call(self.org, self.agent, [ticket1, ticket2], self.agent),
-                call(self.org, self.agent, [ticket1], None),
-            ],
-            mr_mocks.calls["ticket_change_assignee"],
+            call(self.org, self.admin, [ticket1], None, via="api"),
+            mr_mocks.calls["ticket_change_assignee"].pop(),
         )
 
         # add a note to tickets
@@ -114,10 +113,8 @@ class TicketActionsEndpointTest(APITest):
         )
 
         self.assertEqual(
-            [
-                call(self.org, self.agent, [ticket1, ticket2], "Looks important"),
-            ],
-            mr_mocks.calls["ticket_add_note"],
+            call(self.org, self.agent, [ticket1, ticket2], "Looks important", via="ui"),
+            mr_mocks.calls["ticket_add_note"].pop(),
         )
 
         # change topic of tickets
@@ -129,10 +126,8 @@ class TicketActionsEndpointTest(APITest):
         )
 
         self.assertEqual(
-            [
-                call(self.org, self.agent, [ticket1, ticket2], sales),
-            ],
-            mr_mocks.calls["ticket_change_topic"],
+            call(self.org, self.agent, [ticket1, ticket2], sales, via="ui"),
+            mr_mocks.calls["ticket_change_topic"].pop(),
         )
 
         # close tickets

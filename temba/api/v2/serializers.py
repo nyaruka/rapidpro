@@ -1760,16 +1760,19 @@ class TicketBulkActionSerializer(WriteSerializer):
         note = self.validated_data.get("note")
         topic = self.validated_data.get("topic")
 
+        # the UI uses the API but with session auth, so we don't count those calls as actually being via the API
+        via_api = self.context["by_token"]
+
         if action == self.ACTION_ASSIGN:
-            changed_uuids = Ticket.bulk_assign(org, user, tickets, assignee=assignee)
+            changed_uuids = Ticket.bulk_assign(org, user, tickets, assignee=assignee, via_api=via_api)
         elif action == self.ACTION_ADD_NOTE:
-            changed_uuids = Ticket.bulk_add_note(org, user, tickets, note=note)
+            changed_uuids = Ticket.bulk_add_note(org, user, tickets, note=note, via_api=via_api)
         elif action == self.ACTION_CHANGE_TOPIC:
-            changed_uuids = Ticket.bulk_change_topic(org, user, tickets, topic=topic)
+            changed_uuids = Ticket.bulk_change_topic(org, user, tickets, topic=topic, via_api=via_api)
         elif action == self.ACTION_CLOSE:
-            changed_uuids = Ticket.bulk_close(org, user, tickets)
+            changed_uuids = Ticket.bulk_close(org, user, tickets, via_api=via_api)
         elif action == self.ACTION_REOPEN:
-            changed_uuids = Ticket.bulk_reopen(org, user, tickets)
+            changed_uuids = Ticket.bulk_reopen(org, user, tickets, via_api=via_api)
 
         failed = [str(t.uuid) for t in tickets if str(t.uuid) not in changed_uuids]
         return BulkActionFailure(failed) if failed else None
