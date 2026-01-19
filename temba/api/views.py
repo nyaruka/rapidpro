@@ -99,6 +99,7 @@ class BaseAPIView(NonAtomicMixin, generics.GenericAPIView):
         context = super().get_serializer_context()
         context["org"] = self.request.org
         context["user"] = self.request.user
+        context["by_token"] = isinstance(self.request.auth, APIToken)
         return context
 
     def normalize_urn(self, value):
