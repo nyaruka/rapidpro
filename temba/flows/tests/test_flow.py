@@ -190,6 +190,10 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         self.assertTrue(response.context["can_simulate"])
         self.assertContains(response, reverse("flows.flow_simulate", args=[flow.uuid]))
         self.assertContains(response, 'id="rp-flow-editor"')
+        self.assertFalse(response.context["show_new_editor_banner"])
+
+        # test banner only shows with banner=1 parameter
+        response = self.client.get(flow_editor_url + "?banner=1")
         self.assertTrue(response.context["show_new_editor_banner"])
 
         # test redirect to new editor when cookie is set
@@ -200,14 +204,18 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         # test new editor view
         response = self.client.get(flow_next_url, follow=True)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.context["show_old_editor_banner"])
+        self.assertFalse(response.context["show_old_editor_banner"])
         self.assertFalse(response.context["show_new_editor_banner"])
+
+        # test banner shows with banner=1 parameter in new editor
+        response = self.client.get(flow_next_url + "?banner=1", follow=True)
+        self.assertTrue(response.context["show_old_editor_banner"])
 
         # remove cookie and verify we get the old editor
         del self.client.cookies["use_new_editor"]
         response = self.client.get(flow_editor_url)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.context["show_new_editor_banner"])
+        self.assertFalse(response.context["show_new_editor_banner"])
 
         # flows that are archived can't be edited, started or simulated
         self.login(self.admin)
