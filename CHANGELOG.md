@@ -1,3 +1,8 @@
+v26.1.9 (2026-01-19)
+-------------------------
+ * Pass via param to mailroom ticket endpoints
+ * Bump pyasn1 from 0.6.1 to 0.6.2
+
 v26.1.8 (2026-01-15)
 -------------------------
  * Update floweditor
