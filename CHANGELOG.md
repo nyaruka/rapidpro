@@ -1,3 +1,14 @@
+v26.1.9 (2026-01-19)
+-------------------------
+ * Pass via param to mailroom ticket endpoints
+ * Bump pyasn1 from 0.6.1 to 0.6.2
+
+v26.1.8 (2026-01-15)
+-------------------------
+ * Update floweditor
+ * Fix updating shortcuts
+ * Call contact/create and modify with via parameter
+
 v26.1.7 (2026-01-14)
 -------------------------
  * Fix API explorer, to show results in the correct container
