@@ -579,14 +579,15 @@ class Msg(models.Model):
 
     # the id of this message on the other side of its channel
     external_identifier = models.CharField(max_length=255, null=True)
-    external_id = models.CharField(max_length=255, null=True)  # deprecated in favor of external_identifier
 
     log_uuids = ArrayField(models.UUIDField(), null=True)
 
-    # TODO remove
+    # TODO fields to remove..
+
+    external_id = models.CharField(max_length=255, null=True)  # replaced by external_identifier
     ticket = models.ForeignKey(
         "tickets.Ticket", on_delete=models.DO_NOTHING, null=True, db_index=False, db_constraint=False
-    )
+    )  # replaced by ticket_uuid
 
     def as_archive_json(self):
         """
