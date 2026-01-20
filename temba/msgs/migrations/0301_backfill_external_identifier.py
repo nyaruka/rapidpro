@@ -3,7 +3,7 @@
 from django.db import migrations
 
 
-def backfill_external_identifier(apps, schema_editor):
+def backfill_external_identifier(apps, schema_editor):  # pragma: no cover
     Msg = apps.get_model("msgs", "Msg")
 
     num_updated = 0
