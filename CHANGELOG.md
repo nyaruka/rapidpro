@@ -1,3 +1,9 @@
+v26.1.10 (2026-01-20)
+-------------------------
+ * Remove Msg.external_id and ticket_id
+ * Add data migration to backfill Msg.external_identifier
+ * Add banner for toggling editor
+
 v26.1.9 (2026-01-19)
 -------------------------
  * Pass via param to mailroom ticket endpoints
