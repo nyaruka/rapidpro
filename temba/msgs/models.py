@@ -582,13 +582,6 @@ class Msg(models.Model):
 
     log_uuids = ArrayField(models.UUIDField(), null=True)
 
-    # TODO fields to remove..
-
-    external_id = models.CharField(max_length=255, null=True)  # replaced by external_identifier
-    ticket = models.ForeignKey(
-        "tickets.Ticket", on_delete=models.DO_NOTHING, null=True, db_index=False, db_constraint=False
-    )  # replaced by ticket_uuid
-
     def as_archive_json(self):
         """
         Returns this message in the same format as archived by rp-archiver which is based on the API format
@@ -751,12 +744,6 @@ class Msg(models.Model):
                 fields=["created_on"],
                 condition=Q(direction="O", is_android=True, status__in=("I", "Q", "E")),
             ),
-            # used by courier to lookup messages by external id
-            models.Index(
-                name="msgs_by_external_id",
-                fields=["channel_id", "external_id"],
-                condition=Q(external_id__isnull=False),
-            ),
             # used for Inbox view and API folder
             models.Index(
                 name="msgs_inbox",
@@ -798,6 +785,7 @@ class Msg(models.Model):
                 name="no_sent_status_without_sent_on",
                 condition=(~Q(status__in=("W", "S", "D", "R"), sent_on__isnull=True)),
             ),
+            # used by courier to lookup messages for status updates and prevent duplicate incoming messages
             models.UniqueConstraint(
                 name="unique_msgs_external_identifiers",
                 fields=["channel", "external_identifier"],
