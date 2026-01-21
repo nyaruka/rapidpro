@@ -25,13 +25,8 @@ class CredentialsForm(BaseConnectWizard.Form):
         except openai.AuthenticationError:
             raise forms.ValidationError(_("Invalid API Key."))
 
-        included_models = self.llm_type.settings.get("models", [])
         exclusions = self.llm_type.settings.get("exclusions", [])
-        model_choices = [
-            (m.id, m.id)
-            for m in available_models
-            if not any(sub in m.id for sub in exclusions) or m.id in included_models
-        ]
+        model_choices = [(m.id, m.id) for m in available_models if not any(sub in m.id for sub in exclusions)]
 
         self.extra_data = {"model_choices": model_choices}  # save our model choices as extra data
 

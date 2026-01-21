@@ -27,12 +27,9 @@ class CredentialsForm(BaseConnectWizard.Form):
         except errors.ClientError:
             raise forms.ValidationError(_("Invalid API Key."))
 
-        included_models = [f"models/{m}" for m in self.llm_type.settings.get("models", [])]
         exclusions = self.llm_type.settings.get("exclusions", [])
         model_choices = [
-            (m.name, m.display_name)
-            for m in available_models
-            if not any(sub in m.name for sub in exclusions) or m.name in included_models
+            (m.name, m.display_name) for m in available_models if not any(sub in m.name for sub in exclusions)
         ]
         self.extra_data = {"model_choices": model_choices}  # save our model choices as extra data
 
