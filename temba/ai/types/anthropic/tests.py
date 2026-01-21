@@ -41,6 +41,7 @@ class AnthropicTypeTest(TembaTest, CRUDLTestMixin):
             [
                 ("claude-3-7-sonnet-20250219", "Claude 3.7 Sonnet"),
                 ("claude-3-5-sonnet-20241022", "Claude 3.5 Sonnet (New)"),
+                ("claude-3-5-sonnet-20240620", "Claude 3.5 Sonnet (Old)"),
             ],
         )
 
