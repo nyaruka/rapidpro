@@ -818,22 +818,48 @@ CHANNEL_TYPES = [
 ]
 
 LLM_TYPES = {
-    "temba.ai.types.anthropic.type.AnthropicType": {
-        "models": [
-            "claude-3-7-sonnet-20250219",
-            "claude-3-5-sonnet-20241022",
-            "claude-3-5-haiku-20241022",
-            "claude-3-opus-20240229",
-        ],
-    },
-    "temba.ai.types.deepseek.type.DeepSeekType": {
-        "models": ["deepseek-chat"],
-    },
+    "temba.ai.types.anthropic.type.AnthropicType": {"exclusions": []},
+    "temba.ai.types.deepseek.type.DeepSeekType": {"exclusions": []},
     "temba.ai.types.google.type.GoogleType": {
-        "models": ["gemini-2.0-flash", "gemini-1.5-flash"],
+        "exclusions": [
+            # audio models
+            "tts",
+            "audio",
+            "lyria",
+            "realtime",
+            # image models
+            "imagen",
+            # video models
+            "veo",
+            # experimental / preview models
+            "exp",
+            "preview",
+            # other non-LLM models
+            "robotics",
+            "aqa",
+            # deprecated models
+            "gemini-1.0",
+        ]
     },
     "temba.ai.types.openai.type.OpenAIType": {
-        "models": ["gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"],
+        "exclusions": [
+            # audio models
+            "tts",
+            "whisper",
+            "audio",
+            "transcribe",
+            "realtime",
+            # image models
+            "dall-e",
+            "image",
+            # video models
+            "sora",
+            # preview / experimental models
+            "preview",
+            # deprecated models
+            "davinci",
+            "babbage",
+        ]
     },
 }
 if TESTING:

@@ -32,7 +32,10 @@ class DeepSeekTypeTest(TembaTest, CRUDLTestMixin):
         # get our model list from an api key
         mock_client.return_value.models.list.return_value = [Mock(id="deepseek-chat"), Mock(id="deepseek-reasoning")]
         response = self.process_wizard("connect_view", connect_url, {"credentials": {"api_key": "good_key"}})
-        self.assertEqual(response.context["form"].fields["model"].choices, [("deepseek-chat", "deepseek-chat")])
+        self.assertEqual(
+            response.context["form"].fields["model"].choices,
+            [("deepseek-chat", "deepseek-chat"), ("deepseek-reasoning", "deepseek-reasoning")],
+        )
 
         # select a model and give it a name
         response = self.process_wizard(

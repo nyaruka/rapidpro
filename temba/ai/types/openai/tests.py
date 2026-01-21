@@ -32,7 +32,9 @@ class OpenAITypeTest(TembaTest, CRUDLTestMixin):
         # get our model list from an api key
         mock_client.return_value.models.list.return_value = [Mock(id="gpt-4o"), Mock(id="gpt-turbo-3.5")]
         response = self.process_wizard("connect_view", connect_url, {"credentials": {"api_key": "good_key"}})
-        self.assertEqual(response.context["form"].fields["model"].choices, [("gpt-4o", "gpt-4o")])
+        self.assertEqual(
+            response.context["form"].fields["model"].choices, [("gpt-4o", "gpt-4o"), ("gpt-turbo-3.5", "gpt-turbo-3.5")]
+        )
 
         # select a model and give it a name
         response = self.process_wizard(
