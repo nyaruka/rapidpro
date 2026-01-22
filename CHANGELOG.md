@@ -1,3 +1,7 @@
+v26.1.11 (2026-01-22)
+-------------------------
+ * Exclude AI models not suitable, show all other available models
+
 v26.1.10 (2026-01-20)
 -------------------------
  * Remove Msg.external_id and ticket_id
