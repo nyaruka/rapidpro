@@ -89,7 +89,7 @@ class ContactTest(TembaTest):
     @override_settings(MAILROOM_URL="http://mailroom:8090")
     @patch("requests.post")
     def test_open_ticket(self, mock_post):
-        mock_post.return_value = MockJsonResponse(200, {"modified": {self.joe.id: {"contact": {}, "events": []}}})
+        mock_post.return_value = MockJsonResponse(200, {"events": [], "skipped": []})
 
         self.joe.open_ticket(self.admin, topic=self.org.default_topic, assignee=self.agent, note="Looks sus")
 
