@@ -711,8 +711,8 @@ class FlowCRUDL(SmartCRUDL):
 
     class Editor(SpaMixin, ContextMenuMixin, BaseReadView):
         def get(self, request, *args, **kwargs):
-            # Check if user has opted into the new editor
-            if request.COOKIES.get("use_new_editor") == "true":
+            # Check if user has opted into the new editor (but not if we're already on the Next view)
+            if request.COOKIES.get("use_new_editor") == "true" and self.__class__.__name__ != "Next":
                 flow = self.get_object()
                 return HttpResponseRedirect(reverse("flows.flow_next", args=[flow.uuid]))
             return super().get(request, *args, **kwargs)
@@ -821,12 +821,8 @@ class FlowCRUDL(SmartCRUDL):
                 if self.has_org_perm("flows.flow_update"):
                     menu.add_link(_("Import Translation"), reverse("flows.flow_import_translation", args=[obj.id]))
 
-    class Next(Editor, SpaMixin):
+    class Next(Editor):
         template_name = "flows/flow_next.html"
-
-        def get(self, request, *args, **kwargs):
-            # Don't redirect - just call BaseReadView.get directly to avoid Editor's redirect logic
-            return BaseReadView.get(self, request, *args, **kwargs)
 
         def get_context_data(self, *args, **kwargs):
             context = super().get_context_data(*args, **kwargs)
