@@ -244,7 +244,7 @@ class TestClient(MailroomClient):
     def contact_modify(self, org, user, contacts, modifiers: list[Modifier], via: str) -> dict:
         apply_modifiers(org, user, contacts, modifiers)
 
-        return {str(c.id): {"contact": {}, "events": []} for c in contacts}
+        return {"events": {str(c.uuid): [] for c in contacts}, "skipped": []}
 
     @_client_method
     def contact_inspect(self, org, contacts) -> dict:

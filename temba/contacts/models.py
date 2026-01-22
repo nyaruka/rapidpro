@@ -843,11 +843,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
             logger.error(f"Contact update failed: {str(e)}", exc_info=True)
             raise e
 
-        def modified(contact):
-            c = response.get("modified", {}).get(contact.id, {}) or response.get(contact.id, {})
-            return len(c.get("events", [])) > 0
-
-        return [c.id for c in contacts if modified(c)]
+        return [c.id for c in contacts if response["events"].get(str(c.uuid), [])]
 
     @classmethod
     def bulk_change_status(cls, user, contacts, status, via_api=False):
