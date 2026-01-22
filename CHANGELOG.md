@@ -1,3 +1,9 @@
+v26.1.12 (2026-01-22)
+-------------------------
+ * Update to latest editor, fix context menu.
+ * Use new format from contact/modify endpoint
+ * Bump lodash from 4.17.21 to 4.17.23
+
 v26.1.11 (2026-01-22)
 -------------------------
  * Exclude AI models not suitable, show all other available models
