@@ -1,3 +1,7 @@
+v26.1.13 (2026-01-26)
+-------------------------
+ * Add 'shared channels' org feature
+
 v26.1.12 (2026-01-22)
 -------------------------
  * Update to latest editor, fix context menu.
