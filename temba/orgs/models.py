@@ -245,12 +245,14 @@ class Org(SmartModel):
     FEATURE_CHILD_ORGS = "child_orgs"  # can create child workspaces of this org
     FEATURE_TEAMS = "teams"  # can create teams to organize agent users
     FEATURE_PROMETHEUS = "prometheus"  # can create a prometheus token to access metrics
+    FEATURE_SHARED_CHANNELS = "shared_channels"  # can share channels between orgs
     FEATURES_CHOICES = (
         (FEATURE_USERS, _("Users")),
         (FEATURE_NEW_ORGS, _("New Orgs")),
         (FEATURE_CHILD_ORGS, _("Child Orgs")),
         (FEATURE_TEAMS, _("Teams")),
         (FEATURE_PROMETHEUS, _("Prometheus")),
+        (FEATURE_SHARED_CHANNELS, _("Shared Channels")),
     )
 
     LIMIT_CHANNELS = "channels"

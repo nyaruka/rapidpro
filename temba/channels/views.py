@@ -26,6 +26,7 @@ from django.utils.translation import gettext_lazy as _
 from temba.contacts.models import URN
 from temba.ivr.models import Call
 from temba.msgs.models import Msg
+from temba.orgs.models import Org
 from temba.orgs.views.base import BaseDependencyDeleteModal, BaseReadView
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin
 from temba.utils import countries
@@ -67,7 +68,7 @@ class ClaimViewMixin(ChannelTypeMixin, OrgPermsMixin, ComponentFormMixin):
             super().__init__(**kwargs)
 
         def clean(self):
-            if self.channel_type.unique_addresses:
+            if self.channel_type.unique_addresses and Org.FEATURE_SHARED_CHANNELS not in self.request.org.features:
                 assert self.cleaned_data.get("address"), "channel type should specify an address in Form.clean method"
 
                 # don't add the same channel address twice
