@@ -181,7 +181,7 @@ class OrgCRUDL(SmartCRUDL):
                         label=limit_type.capitalize(),
                         required=False,
                         initial=org.limits.get(limit_type),
-                        widget=forms.TextInput(attrs={"placeholder": _("Limit")}),
+                        widget=forms.TextInput(attrs={"placeholder": f"{settings.ORG_LIMIT_DEFAULTS[limit_type]}"}),
                     )
                     field_key = f"{limit_type}_limit"
 
