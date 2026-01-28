@@ -154,7 +154,7 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         campaign.archive(self.admin)
         self.assertRequestDisallowed(delete_url, [None, self.agent, self.admin2])
         self.assertDeleteFetch(delete_url, [self.editor, self.admin])
-        self.assertDeleteSubmit(delete_url, self.admin, object_deactivated=campaign, success_status=200)
+        self.assertDeleteSubmit(delete_url, self.admin, object_deactivated=campaign)
 
         self.assertEqual(Campaign.objects.filter(id=campaign.id, is_active=True).count(), 0)
         self.assertEqual(CampaignEvent.objects.filter(campaign=campaign, is_active=True).count(), 0)

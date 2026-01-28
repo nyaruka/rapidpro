@@ -20,8 +20,6 @@ from temba.orgs.views.base import (
     BaseReadView,
     BaseUpdateModal,
     BaseUpdateView,
-    OrgObjPermsMixin,
-    SmartDeleteView,
 )
 from temba.orgs.views.mixins import BulkActionMixin, OrgPermsMixin
 from temba.utils import languages
@@ -224,21 +222,13 @@ class CampaignCRUDL(SmartCRUDL):
             obj.apply_action_restore(self.request.user, Campaign.objects.filter(id=obj.id))
             return obj
 
-    class Delete(ModalFormMixin, OrgObjPermsMixin, SmartDeleteView):
+    class Delete(BaseDeleteModal):
         cancel_url = "uuid@campaigns.campaign_read"
-        success_url = "@campaigns.campaign_list"
-        slug_url_kwarg = "uuid"
-        fields = ("uuid",)
-        submit_button_name = _("Delete")
+        redirect_url = "@campaigns.campaign_list"
 
         def get_queryset(self, **kwargs):
             qs = super().get_queryset(**kwargs)
             return qs.filter(is_archived=True)
-
-        def post(self, request, *args, **kwargs):
-            self.object = self.get_object()
-            self.object.release(request.user)
-            return self.render_modal_response()
 
 
 class CampaignEventForm(forms.ModelForm):
