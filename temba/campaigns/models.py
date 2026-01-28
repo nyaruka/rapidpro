@@ -250,6 +250,15 @@ class Campaign(TembaModel):
 
         super().delete()
 
+    def release(self, user):
+        self.is_active = False
+        self.modified_by = user
+        self.modified_on = timezone.now()
+        self.save(update_fields=("is_active", "modified_by", "modified_on"))
+
+        for event in self.get_events():
+            event.release(user)
+
     class Meta:
         verbose_name = _("Campaign")
         verbose_name_plural = _("Campaigns")
