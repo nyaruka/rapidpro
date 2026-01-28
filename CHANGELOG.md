@@ -1,3 +1,8 @@
+v26.1.14 (2026-01-28)
+-------------------------
+ * Add support for campaign deletion
+ * Use default org limits as placeholders on update form
+
 v26.1.13 (2026-01-26)
 -------------------------
  * Add 'shared channels' org feature
