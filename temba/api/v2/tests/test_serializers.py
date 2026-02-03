@@ -149,11 +149,23 @@ class FieldsTest(APITest):
 
         self.assertEqual(
             field.run_validation({"eng": [{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}]}),
-            {"eng": [QuickReply("Red", None), QuickReply("Green", None), QuickReply("Blue", None)]},
+            {
+                "eng": [
+                    QuickReply("text", "Red", None),
+                    QuickReply("text", "Green", None),
+                    QuickReply("text", "Blue", None),
+                ]
+            },
         )
         self.assertEqual(
             field.run_validation([{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}]),
-            {"eng": [QuickReply("Red", None), QuickReply("Green", None), QuickReply("Blue", None)]},
+            {
+                "eng": [
+                    QuickReply("text", "Red", None),
+                    QuickReply("text", "Green", None),
+                    QuickReply("text", "Blue", None),
+                ]
+            },
         )
         self.assertEqual(
             field.run_validation(
@@ -163,10 +175,24 @@ class FieldsTest(APITest):
                 }
             ),
             {
-                "eng": [QuickReply("Red", None), QuickReply("Green", None), QuickReply("Blue", None)],
-                "fra": [QuickReply("Rouge", None), QuickReply("Vert", None), QuickReply("Bleu", None)],
+                "eng": [
+                    QuickReply("text", "Red", None),
+                    QuickReply("text", "Green", None),
+                    QuickReply("text", "Blue", None),
+                ],
+                "fra": [
+                    QuickReply("text", "Rouge", None),
+                    QuickReply("text", "Vert", None),
+                    QuickReply("text", "Bleu", None),
+                ],
             },
         )
+        self.assertEqual(field.run_validation([{"type": "location"}]), {"eng": [QuickReply("location", None, None)]})
+        self.assertEqual(
+            field.run_validation([{"type": "location", "text": "Click"}]),
+            {"eng": [QuickReply("location", "Click", None)]},
+        )
+
         self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": ""})  # empty
         self.assertRaises(serializers.ValidationError, field.run_validation, "")  # empty
         self.assertRaises(serializers.ValidationError, field.run_validation, "  ")  # blank
@@ -178,7 +204,13 @@ class FieldsTest(APITest):
         self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": [{"text": "1"}] * 11})  # too many
         self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": [{"text": "a" * 65}]})  # too long
         self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": [{"foo": "??"}]})
-        self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": [{"text": {}}]})  # invalid qr
+        self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": [{"text": {}}]})  # invalid text
+        self.assertRaises(
+            serializers.ValidationError, field.run_validation, {"eng": [{"type": "text"}]}
+        )  # missing text
+        self.assertRaises(
+            serializers.ValidationError, field.run_validation, {"eng": [{"type": "location", "extra": "what?"}]}
+        )  # can't have extra for location type
 
     def test_language_and_translations(self):
         self.assert_field(

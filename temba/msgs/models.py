@@ -420,28 +420,35 @@ class Attachment:
 @dataclass
 class QuickReply:
     """
-    Represents a message quick reply stored as text\nextra
+    Represents a message quick reply stored as text or text<extra>extra or <location>text
     """
 
-    text: str
+    type: str
+    text: Optional[str]
     extra: Optional[str]
 
     @classmethod
     def parse(cls, s: str):
-        parts = s.split("\n")
-        return cls(parts[0], parts[1] if len(parts) > 1 else None)
+        if s.startswith("<location>"):
+            return cls(type="location", text=s[10:] or None, extra=None)
+
+        parts = s.split("<extra>", 1)
+        return cls(type="text", text=parts[0], extra=parts[1] if len(parts) > 1 else None)
 
     def as_json(self) -> dict:
-        d = {"text": self.text}
+        d = {"type": self.type}
+        if self.text:
+            d["text"] = self.text
         if self.extra:
             d["extra"] = self.extra
         return d
 
     def __str__(self) -> str:
-        s = self.text
+        if self.type == "location":
+            return "<location>" + (self.text or "")
         if self.extra:
-            s += "\n" + self.extra
-        return s
+            return self.text + "<extra>" + self.extra
+        return self.text
 
 
 class Msg(models.Model):

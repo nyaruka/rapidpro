@@ -128,13 +128,24 @@ class QuickReplySerializer(serializers.Serializer):
     A serializer for quick replies
     """
 
-    text = serializers.CharField(max_length=64)
+    type = serializers.ChoiceField(choices=("text", "location"), default="text")
+    text = serializers.CharField(max_length=64, required=False, allow_null=True)
     extra = serializers.CharField(max_length=64, required=False, allow_null=True)
 
     def to_internal_value(self, data):
         value = super().to_internal_value(data)
 
-        return QuickReply(value["text"], value.get("extra"))
+        return QuickReply(value["type"], value.get("text"), value.get("extra"))
+
+    def run_validation(self, data=serializers.empty):
+        typ = data.get("type", "text")
+
+        if typ == "text" and not data.get("text"):
+            raise serializers.ValidationError("Quick replies of type 'text' require a 'text' value.")
+        elif typ == "location" and data.get("extra"):
+            raise serializers.ValidationError("Quick replies of type 'location' cannot have an 'extra' value.")
+
+        return super().run_validation(data)
 
 
 class TranslatedQuickRepliesField(TranslatedField):
