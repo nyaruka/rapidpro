@@ -1,3 +1,7 @@
+v26.1.15 (2026-02-03)
+-------------------------
+ * Add type to quick replies
+
 v26.1.14 (2026-01-28)
 -------------------------
  * Add support for campaign deletion
