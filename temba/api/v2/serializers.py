@@ -1495,7 +1495,8 @@ class MsgWriteSerializer(WriteSerializer):
             contact_urn = None
 
         msg_quick_replies = [
-            str(QuickReply(qr["text"], qr.get("extra"))) for qr in resp["event"]["msg"].get("quick_replies", [])
+            str(QuickReply(qr.get("type") or "text", qr.get("text"), qr.get("extra")))
+            for qr in resp["event"]["msg"].get("quick_replies", [])
         ]
 
         return Msg(
