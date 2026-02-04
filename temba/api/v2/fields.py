@@ -130,7 +130,7 @@ class QuickReplySerializer(serializers.Serializer):
 
     type = serializers.ChoiceField(choices=("text", "location"), default="text")
     text = serializers.CharField(max_length=64, required=False, allow_null=True)
-    extra = serializers.CharField(max_length=64, required=False, allow_null=True)
+    extra = serializers.CharField(max_length=72, required=False, allow_null=True)
 
     def to_internal_value(self, data):
         value = super().to_internal_value(data)
