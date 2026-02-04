@@ -240,7 +240,7 @@ class TicketCRUDL(SmartCRUDL):
         menu_path = "/ticket/analytics"
 
         def build_context_menu(self, menu):
-            menu.add_link(_("Export Raw"), f"{reverse('tickets.ticket_analytics_export')}")
+            menu.add_link(_("Export Raw"), reverse("tickets.ticket_analytics_export"))
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
