@@ -24,6 +24,9 @@ screenshots
 sitestatic
 temba/settings.py
 
+CLAUDE.md
+start.sh
+
 # Exclude media folder except files used for import testing
 media/apks
 media/avatars
