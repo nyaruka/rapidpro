@@ -1,3 +1,8 @@
+v26.1.17 (2026-02-04)
+-------------------------
+ * Increase max_lnegth of extra on API serializer too to match engine
+ * Increase max length of Msg.quick_replies to 150 chars
+
 v26.1.16 (2026-02-04)
 -------------------------
  * Rename url to export ticket stats and add to menu
