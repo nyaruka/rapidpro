@@ -594,8 +594,8 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             response.json(),
         )
 
-    def test_export_stats(self):
-        export_url = reverse("tickets.ticket_export_stats")
+    def test_analytics_export(self):
+        export_url = reverse("tickets.ticket_analytics_export")
 
         self.login(self.admin)
 
