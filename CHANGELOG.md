@@ -1,3 +1,7 @@
+v26.1.16 (2026-02-04)
+-------------------------
+ * Rename url to export ticket stats and add to menu
+
 v26.1.15 (2026-02-03)
 -------------------------
  * Add type to quick replies
