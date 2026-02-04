@@ -163,7 +163,7 @@ class TeamCRUDL(SmartCRUDL):
 
 class TicketCRUDL(SmartCRUDL):
     model = Ticket
-    actions = ("menu", "list", "folder", "update", "note", "chart", "export_stats", "export", "analytics")
+    actions = ("menu", "list", "folder", "update", "note", "chart", "export", "analytics", "analytics_export")
 
     class Menu(BaseMenuView):
         def derive_menu(self):
@@ -234,15 +234,29 @@ class TicketCRUDL(SmartCRUDL):
 
             return menu
 
-    class Analytics(SpaMixin, OrgPermsMixin, SmartTemplateView):
+    class Analytics(SpaMixin, ContextMenuMixin, OrgPermsMixin, SmartTemplateView):
         permission = "tickets.ticket_analytics"
         title = _("Analytics")
-
         menu_path = "/ticket/analytics"
+
+        def build_context_menu(self, menu):
+            menu.add_link(_("Export Raw"), f"{reverse('tickets.ticket_analytics_export')}")
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             return context
+
+    class AnalyticsExport(OrgPermsMixin, SmartTemplateView):
+        permission = "tickets.ticket_analytics"
+
+        def render_to_response(self, context, **response_kwargs):
+            num_days = self.request.GET.get("days", 90)
+            today = timezone.now().date()
+            workbook = export_ticket_stats(
+                self.request.org, today - timedelta(days=num_days), today + timedelta(days=1)
+            )
+
+            return response_from_workbook(workbook, f"ticket-stats-{timezone.now().strftime('%Y-%m-%d')}.xlsx")
 
     class List(SpaMixin, ContextMenuMixin, OrgPermsMixin, SmartListView):
         """
@@ -625,18 +639,6 @@ class TicketCRUDL(SmartCRUDL):
                 return self.get_resptime_chart(self.request.org, since, until)
             elif chart == "replies":
                 return self.get_replies_chart(self.request.org, since, until)
-
-    class ExportStats(OrgPermsMixin, SmartTemplateView):
-        permission = "tickets.ticket_analytics"
-
-        def render_to_response(self, context, **response_kwargs):
-            num_days = self.request.GET.get("days", 90)
-            today = timezone.now().date()
-            workbook = export_ticket_stats(
-                self.request.org, today - timedelta(days=num_days), today + timedelta(days=1)
-            )
-
-            return response_from_workbook(workbook, f"ticket-stats-{timezone.now().strftime('%Y-%m-%d')}.xlsx")
 
     class Export(BaseExportModal):
         export_type = TicketExport
