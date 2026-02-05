@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from temba.api.v2.serializers import format_datetime
-from temba.msgs.models import Msg, QuickReply
+from temba.msgs.models import Msg
 from temba.tests import mock_mailroom
 
 from . import APITest
@@ -306,9 +306,9 @@ class MessagesEndpointTest(APITest):
                 "What is your preferred color?",
                 [],
                 [
-                    QuickReply("text", "Red", None),
-                    QuickReply("text", "Green", "Like grass"),
-                    QuickReply("text", "Blue", None),
+                    {"type": "text", "text": "Red"},
+                    {"type": "text", "text": "Green", "extra": "Like grass"},
+                    {"type": "text", "text": "Blue"},
                 ],
                 None,
             ),

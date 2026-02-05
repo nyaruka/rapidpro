@@ -19,7 +19,7 @@ from temba.globals.models import Global
 from temba.locations.models import AdminBoundary
 from temba.mailroom import modifiers
 from temba.mailroom.client.types import Exclusions
-from temba.msgs.models import Broadcast, Label, Media, Msg, OptIn, QuickReply
+from temba.msgs.models import Broadcast, Label, Media, Msg, OptIn
 from temba.orgs.models import Org, OrgRole
 from temba.tickets.models import Ticket, Topic
 from temba.users.models import User
@@ -279,7 +279,7 @@ class BroadcastWriteSerializer(WriteSerializer):
                 if lang not in translations:
                     translations[lang] = {}
 
-                translations[lang]["quick_replies"] = [qr.as_json() for qr in qrs]
+                translations[lang]["quick_replies"] = qrs
 
         if not base_language:
             base_language = next(iter(translations))
@@ -1410,7 +1410,7 @@ class MsgReadSerializer(ReadSerializer):
         return [a.as_json() for a in obj.get_attachments()]
 
     def get_quick_replies(self, obj):
-        return [q.as_json() for q in obj.get_quick_replies()]
+        return obj.get_quick_replies()
 
     def get_media(self, obj):
         return obj.attachments[0] if obj.attachments else None
@@ -1494,11 +1494,6 @@ class MsgWriteSerializer(WriteSerializer):
         else:
             contact_urn = None
 
-        msg_quick_replies = [
-            str(QuickReply(qr.get("type") or "text", qr.get("text"), qr.get("extra")))
-            for qr in resp["event"]["msg"].get("quick_replies", [])
-        ]
-
         return Msg(
             uuid=resp["event"]["uuid"],
             id=resp["id"],
@@ -1512,7 +1507,7 @@ class MsgWriteSerializer(WriteSerializer):
             visibility=Msg.VISIBILITY_VISIBLE,
             text=resp["event"]["msg"].get("text"),
             attachments=resp["event"]["msg"].get("attachments", []),
-            quick_replies=msg_quick_replies,
+            quickreplies=resp["event"]["msg"].get("quick_replies", []),
             created_on=iso8601.parse_date(resp["created_on"]),
             modified_on=iso8601.parse_date(resp["modified_on"]),
         )

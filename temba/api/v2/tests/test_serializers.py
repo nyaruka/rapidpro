@@ -5,7 +5,6 @@ from django.conf import settings
 from temba.api.v2 import fields
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import Contact, ContactField, ContactURN
-from temba.msgs.models import QuickReply
 
 from . import APITest
 
@@ -151,9 +150,9 @@ class FieldsTest(APITest):
             field.run_validation({"eng": [{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}]}),
             {
                 "eng": [
-                    QuickReply("text", "Red", None),
-                    QuickReply("text", "Green", None),
-                    QuickReply("text", "Blue", None),
+                    {"type": "text", "text": "Red"},
+                    {"type": "text", "text": "Green"},
+                    {"type": "text", "text": "Blue"},
                 ]
             },
         )
@@ -161,9 +160,9 @@ class FieldsTest(APITest):
             field.run_validation([{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}]),
             {
                 "eng": [
-                    QuickReply("text", "Red", None),
-                    QuickReply("text", "Green", None),
-                    QuickReply("text", "Blue", None),
+                    {"type": "text", "text": "Red"},
+                    {"type": "text", "text": "Green"},
+                    {"type": "text", "text": "Blue"},
                 ]
             },
         )
@@ -176,21 +175,21 @@ class FieldsTest(APITest):
             ),
             {
                 "eng": [
-                    QuickReply("text", "Red", None),
-                    QuickReply("text", "Green", None),
-                    QuickReply("text", "Blue", None),
+                    {"type": "text", "text": "Red"},
+                    {"type": "text", "text": "Green"},
+                    {"type": "text", "text": "Blue"},
                 ],
                 "fra": [
-                    QuickReply("text", "Rouge", None),
-                    QuickReply("text", "Vert", None),
-                    QuickReply("text", "Bleu", None),
+                    {"type": "text", "text": "Rouge"},
+                    {"type": "text", "text": "Vert"},
+                    {"type": "text", "text": "Bleu"},
                 ],
             },
         )
-        self.assertEqual(field.run_validation([{"type": "location"}]), {"eng": [QuickReply("location", None, None)]})
+        self.assertEqual(field.run_validation([{"type": "location"}]), {"eng": [{"type": "location"}]})
         self.assertEqual(
             field.run_validation([{"type": "location", "text": "Click"}]),
-            {"eng": [QuickReply("location", "Click", None)]},
+            {"eng": [{"type": "location", "text": "Click"}]},
         )
 
         self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": ""})  # empty

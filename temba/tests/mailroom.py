@@ -414,7 +414,7 @@ class TestClient(MailroomClient):
         return {"msg_uuids": [str(m.uuid) for m in msgs]}
 
     @_client_method
-    def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[QuickReply], ticket):
+    def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[dict], ticket):
         msg = send_to_contact(org, contact, text, attachments, quick_replies)
         msg_json = {
             "channel": {"uuid": str(msg.channel.uuid), "name": msg.channel.name} if msg.channel else None,
@@ -424,7 +424,7 @@ class TestClient(MailroomClient):
         if msg.attachments:
             msg_json["attachments"] = msg.attachments
         if msg.quick_replies:
-            msg_json["quick_replies"] = [qr.as_json() for qr in msg.get_quick_replies()]
+            msg_json["quick_replies"] = msg.get_quick_replies()
 
         event_json = {
             "uuid": str(msg.uuid),
@@ -914,7 +914,7 @@ def resolve_destination(org, contact, channel=None) -> tuple:
     return None, None
 
 
-def send_to_contact(org, contact, text: str, attachments: list[str], quick_replies: list[QuickReply]) -> Msg:
+def send_to_contact(org, contact, text: str, attachments: list[str], quick_replies: list[dict]) -> Msg:
     channel, contact_urn = resolve_destination(org, contact)
 
     if contact_urn and channel:
@@ -937,7 +937,8 @@ def send_to_contact(org, contact, text: str, attachments: list[str], quick_repli
         failed_reason=failed_reason,
         text=text or "",
         attachments=attachments or [],
-        quick_replies=[str(qr) for qr in quick_replies],
+        quick_replies=[QuickReply.encode(qr) for qr in quick_replies],
+        quickreplies=quick_replies,
         msg_type=Msg.TYPE_TEXT,
         is_android=False,
         created_on=timezone.now(),

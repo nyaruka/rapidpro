@@ -7,7 +7,7 @@ from django.conf import settings
 
 from temba.contacts.models import Contact
 from temba.flows.models import FlowStart
-from temba.msgs.models import Broadcast, QuickReply
+from temba.msgs.models import Broadcast
 from temba.utils import json
 
 from ..modifiers import Modifier
@@ -314,7 +314,7 @@ class MailroomClient:
             {"org_id": org.id, "user_id": user.id, "msg_uuids": [str(m.uuid) for m in msgs]},
         )
 
-    def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[QuickReply], ticket):
+    def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[dict], ticket):
         return self._request(
             "msg/send",
             {
@@ -323,7 +323,7 @@ class MailroomClient:
                 "contact_id": contact.id,
                 "text": text,
                 "attachments": attachments,
-                "quick_replies": [qr.as_json() for qr in quick_replies],
+                "quick_replies": quick_replies,
                 "ticket_uuid": str(ticket.uuid) if ticket else None,
             },
         )
