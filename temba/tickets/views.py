@@ -163,7 +163,18 @@ class TeamCRUDL(SmartCRUDL):
 
 class TicketCRUDL(SmartCRUDL):
     model = Ticket
-    actions = ("menu", "list", "folder", "update", "note", "chart", "export", "analytics", "analytics_export")
+    actions = (
+        "menu",
+        "list",
+        "folder",
+        "update",
+        "note",
+        "chart",
+        "leaderboard",
+        "export",
+        "analytics",
+        "analytics_export",
+    )
 
     class Menu(BaseMenuView):
         def derive_menu(self):
@@ -639,6 +650,34 @@ class TicketCRUDL(SmartCRUDL):
                 return self.get_resptime_chart(self.request.org, since, until)
             elif chart == "replies":
                 return self.get_replies_chart(self.request.org, since, until)
+
+    class Leaderboard(OrgPermsMixin, ChartViewMixin, SmartTemplateView):
+        permission = "tickets.ticket_analytics"
+
+        def render_to_response(self, context, **response_kwargs):
+            org = self.request.org
+            since, until = self.get_chart_period()
+
+            daily_counts = org.daily_counts.period(since, until).prefix("msgs:ticketreplies:")
+
+            counts = (
+                daily_counts.annotate(
+                    user_id=Cast(SplitPart(F("scope"), Value(":"), Value(4)), output_field=models.IntegerField())
+                )
+                .values("user_id")
+                .annotate(replies=Sum("count"))
+                .order_by("-replies")
+            )
+
+            users_by_id = {u.id: u for u in org.users.all()}
+
+            results = []
+            for row in counts:
+                user = users_by_id.get(row["user_id"])
+                if user:
+                    results.append({"name": str(user), "uuid": str(user.uuid), "replies": row["replies"]})
+
+            return JsonResponse({"results": results})
 
     class Export(BaseExportModal):
         export_type = TicketExport
