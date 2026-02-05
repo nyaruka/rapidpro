@@ -145,6 +145,7 @@ class FlowCRUDL(SmartCRUDL):
         "result_chart",
         "preview_start",
         "start",
+        "interrupt",
         "activity",
         "engagement_timeline",
         "engagement_progress",
@@ -779,6 +780,7 @@ class FlowCRUDL(SmartCRUDL):
                     as_button=True,
                     disabled=True,
                 )
+                menu.add_modax(_("Interrupt"), "interrupt-flow", reverse("flows.flow_interrupt", args=[obj.uuid]))
 
             if self.has_org_perm("flows.flow_results"):
                 menu.add_link(_("Results"), reverse("flows.flow_results", args=[obj.uuid]))
@@ -1555,6 +1557,40 @@ class FlowCRUDL(SmartCRUDL):
                 exclude=Exclusions(**contact_search.get("exclusions", {})),
             )
             return super().form_valid(form)
+
+    class Interrupt(BaseUpdateModal):
+        class Form(forms.Form):
+            archive = forms.BooleanField(
+                required=False,
+                label=_("Also Archive"),
+                help_text=_("This will prevent new contacts from entering the flow."),
+                widget=CheckboxWidget(),
+            )
+
+            def __init__(self, instance, org, **kwargs):
+                super().__init__(**kwargs)
+
+        form_class = Form
+        fields = ("archive",)
+        permission = "flows.flow_start"
+        submit_button_name = _("Interrupt")
+        success_url = "hide"
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            flow = self.get_object()
+            context["run_count"] = flow.get_run_counts().get(FlowRun.STATUS_WAITING, 0)
+            return context
+
+        def form_valid(self, form):
+            flow = self.get_object()
+            mailroom.get_client().flow_interrupt(flow.org, flow)
+
+            # Archive the flow if requested
+            if form.cleaned_data.get("archive"):
+                flow.archive(self.request.user)
+
+            return self.render_modal_response()
 
     class Assets(OrgPermsMixin, SmartTemplateView):
         """

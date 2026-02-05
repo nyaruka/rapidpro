@@ -13,7 +13,7 @@ from temba.api.models import Resthook
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.classifiers.models import Classifier
 from temba.contacts.models import URN
-from temba.flows.models import Flow, FlowLabel, FlowStart, FlowUserConflictException, ResultsExport
+from temba.flows.models import Flow, FlowLabel, FlowRun, FlowStart, FlowUserConflictException, ResultsExport
 from temba.mailroom.client.types import Exclusions
 from temba.orgs.integrations.dtone.type import DTOneType
 from temba.orgs.models import Export
@@ -2193,3 +2193,53 @@ msgstr "Azul"
 
         # page should not include a chart for feedback
         self.assertNotContains(response, "Feedback")
+
+    @mock_mailroom
+    def test_interrupt(self, mr_mocks):
+        flow = self.create_flow("Test Flow")
+        other_org_flow = self.create_flow("Other Org Flow", org=self.org2)
+
+        interrupt_url = reverse("flows.flow_interrupt", args=[flow.uuid])
+        other_org_interrupt_url = reverse("flows.flow_interrupt", args=[other_org_flow.uuid])
+
+        # anonymous and agents should not have access
+        self.assertRequestDisallowed(interrupt_url, [None, self.agent])
+
+        # can't interrupt flow in other org
+        self.assertRequestDisallowed(other_org_interrupt_url, [self.admin])
+
+        # fetch the interrupt modal with no waiting contacts
+        response = self.assertUpdateFetch(interrupt_url, [self.editor, self.admin])
+        self.assertEqual(0, response.context["run_count"])
+        self.assertContains(response, "There are no contacts currently in this flow")
+        self.assertNotContains(response, '<input type="submit"')
+
+        # add some waiting contacts
+        flow.counts.create(scope=f"status:{FlowRun.STATUS_WAITING}", count=15)
+
+        # fetch should now show the count
+        response = self.assertUpdateFetch(interrupt_url, [self.admin])
+        self.assertEqual(15, response.context["run_count"])
+        self.assertContains(response, "15")
+        self.assertContains(response, '<input type="submit"')
+
+        # submit the interrupt without archiving
+        self.requestView(interrupt_url, self.admin, post_data={})
+
+        # should have called mailroom to interrupt the flow
+        self.assertEqual([call(self.org, flow)], mr_mocks.calls["flow_interrupt"])
+
+        # flow should not be archived
+        flow.refresh_from_db()
+        self.assertFalse(flow.is_archived)
+
+        # submit the interrupt with archive option
+        mr_mocks.calls.clear()
+        self.requestView(interrupt_url, self.admin, post_data={"archive": True})
+
+        # should have called mailroom to interrupt the flow again
+        self.assertEqual([call(self.org, flow)], mr_mocks.calls["flow_interrupt"])
+
+        # flow should now be archived
+        flow.refresh_from_db()
+        self.assertTrue(flow.is_archived)
