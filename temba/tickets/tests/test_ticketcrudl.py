@@ -382,6 +382,17 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         # invalid assignee UUID returns all tickets
         assert_tickets(f"{all_open_url}?assignee={uuid4()}", self.admin, expected=[c2_t1, c1_t2, c1_t1])
 
+        # test assignee filter with pagination (paginate_by=25, so we need 25+ tickets)
+        bulk_tickets = []
+        for i in range(24):
+            bulk_tickets.append(self.create_ticket(contact3, assignee=self.admin))
+        # now we have 25 admin-assigned tickets total (c1_t1 + 24 new ones), which triggers pagination re-query
+        response = self.requestView(f"{all_open_url}?assignee={self.admin.uuid}", self.admin)
+        actual = [t["ticket"]["uuid"] for t in response.json()["results"]]
+        self.assertEqual(25, len(actual))
+        for bt in bulk_tickets:
+            bt.delete()
+
         # unassigned tickets
         assert_tickets(unassigned_open_url, self.admin, expected=[c2_t1])
         assert_tickets(unassigned_open_url, self.editor, expected=[c2_t1])
