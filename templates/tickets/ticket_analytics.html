@@ -116,9 +116,16 @@
 {% block extra-script %}
   {{ block.super }}
   <script type="text/javascript">
+    function escapeHtml(str) {
+      var div = document.createElement("div");
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
+    }
+
     function fetchLeaderboard(since, until) {
       var url = "{% url 'tickets.ticket_leaderboard' %}";
       url += "?since=" + since + "&until=" + until;
+      var tbody = document.getElementById("leaderboard-body");
       fetch(url, {
           headers: {
             "X-Requested-With": "XMLHttpRequest"
@@ -128,15 +135,17 @@
           return response.json();
         })
         .then(function(data) {
-          var tbody = document.getElementById("leaderboard-body");
           if (!data.results.length) {
             tbody.innerHTML = '<tr><td colspan="2" class="empty">No replies in this period</td></tr>';
             return;
           }
           tbody.innerHTML = data.results.map(function(user) {
             return '<tr><td><a href="/ticket/all/open/?assignee=' + user.uuid + '">' +
-              user.name + '</a></td><td>' + user.replies.toLocaleString() + '</td></tr>';
+              escapeHtml(user.name) + '</a></td><td>' + user.replies.toLocaleString() + '</td></tr>';
           }).join("");
+        })
+        .catch(function() {
+          tbody.innerHTML = '<tr><td colspan="2" class="empty">Failed to load</td></tr>';
         });
     }
 
