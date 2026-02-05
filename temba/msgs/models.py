@@ -441,7 +441,7 @@ class QuickReply:
         return qr
 
     @classmethod
-    def encode(self, qr: dict) -> str:
+    def encode(cls, qr: dict) -> str:
         text = qr.get("text", "")
         extra = qr.get("extra")
 
