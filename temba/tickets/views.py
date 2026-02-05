@@ -26,6 +26,7 @@ from temba.orgs.views.base import (
     BaseUpdateModal,
 )
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, RequireFeatureMixin
+from temba.users.models import User
 from temba.utils.dates import datetime_to_timestamp, timestamp_to_datetime
 from temba.utils.db.functions import SplitPart
 from temba.utils.export import response_from_workbook
@@ -401,8 +402,6 @@ class TicketCRUDL(SmartCRUDL):
 
             # filter by assignee if specified (only applies to All folder)
             if assignee_uuid and isinstance(self.folder, AllFolder):
-                from temba.users.models import User
-
                 assignee = User.objects.filter(uuid=assignee_uuid).first()
                 if assignee:
                     qs = qs.filter(assignee=assignee)
@@ -432,8 +431,6 @@ class TicketCRUDL(SmartCRUDL):
 
                     # reapply assignee filter if set
                     if assignee_uuid and isinstance(self.folder, AllFolder):
-                        from temba.users.models import User
-
                         assignee = User.objects.filter(uuid=assignee_uuid).first()
                         if assignee:
                             qs = qs.filter(assignee=assignee)
