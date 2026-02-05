@@ -319,6 +319,11 @@ class TicketCRUDL(SmartCRUDL):
             if ticket:
                 context["nextUUID" if in_page else "uuid"] = str(ticket.uuid)
 
+            # pass assignee filter to template if provided
+            assignee_uuid = self.request.GET.get("assignee")
+            if assignee_uuid and isinstance(folder, AllFolder):
+                context["assignee_uuid"] = assignee_uuid
+
             return context
 
         def build_context_menu(self, menu):
@@ -388,10 +393,19 @@ class TicketCRUDL(SmartCRUDL):
             uuid = self.kwargs.get("uuid", None)
             after = int(self.request.GET.get("after", 0))
             before = int(self.request.GET.get("before", 0))
+            assignee_uuid = self.request.GET.get("assignee", None)
 
             # fetching new activity gets a different order later
             ordered = False if after else True
             qs = self.folder.get_queryset(org, user, ordered=ordered).filter(status=status)
+
+            # filter by assignee if specified (only applies to All folder)
+            if assignee_uuid and isinstance(self.folder, AllFolder):
+                from temba.users.models import User
+
+                assignee = User.objects.filter(uuid=assignee_uuid).first()
+                if assignee:
+                    qs = qs.filter(assignee=assignee)
 
             # all new activity
             after = int(self.request.GET.get("after", 0))
@@ -415,6 +429,14 @@ class TicketCRUDL(SmartCRUDL):
                     qs = self.folder.get_queryset(org, user, ordered=ordered).filter(
                         status=status, last_activity_on__gte=last_ticket.last_activity_on
                     )
+
+                    # reapply assignee filter if set
+                    if assignee_uuid and isinstance(self.folder, AllFolder):
+                        from temba.users.models import User
+
+                        assignee = User.objects.filter(uuid=assignee_uuid).first()
+                        if assignee:
+                            qs = qs.filter(assignee=assignee)
 
                     # now reapply our before if we have one
                     if before:

@@ -98,6 +98,18 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         # and again we have a specific ticket so we should show context menu for it
         self.assertContentMenu(deep_link, self.admin, ["Add Note", "Start Flow"])
 
+        # deep link with assignee filter on all folder passes assignee_uuid to context
+        assignee_link = f"{list_url}all/open/?assignee={self.admin.uuid}"
+        response = self.assertListFetch(assignee_link, [self.agent], context_objects=[])
+        self.assertEqual("all", response.context["folder"])
+        self.assertEqual(str(self.admin.uuid), response.context["assignee_uuid"])
+
+        # assignee filter is not passed on non-all folders
+        response = self.assertListFetch(
+            f"{list_url}mine/open/?assignee={self.admin.uuid}", [self.admin], context_objects=[]
+        )
+        self.assertNotIn("assignee_uuid", response.context)
+
         # non-existent topic should give a 404
         bad_topic_link = f"{list_url}{uuid4()}/open/{ticket.uuid}/"
         response = self.requestView(bad_topic_link, self.agent)
@@ -351,6 +363,24 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(f"{all_open_url}?after={datetime_to_timestamp(c1_t2.last_activity_on)}")
         self.assertEqual(1, len(response.json()["results"]))
+
+        # test filtering by assignee on the all folder
+        assert_tickets(f"{all_open_url}?assignee={self.admin.uuid}", self.admin, expected=[c1_t1])
+        assert_tickets(f"{all_open_url}?assignee={self.agent3.uuid}", self.admin, expected=[c1_t2])
+        assert_tickets(f"{all_open_url}?assignee={self.agent.uuid}", self.admin, expected=[])
+
+        # assignee filter is ignored on non-all folders
+        assert_tickets(f"{mine_open_url}?assignee={self.agent3.uuid}", self.admin, expected=[c1_t1])
+        assert_tickets(f"{unassigned_open_url}?assignee={self.admin.uuid}", self.admin, expected=[c2_t1])
+
+        # assignee filter still respects topic access restrictions
+        # agent2 only has access to sales topic, so filtering by admin (who has a General ticket) returns nothing
+        assert_tickets(f"{all_open_url}?assignee={self.admin.uuid}", self.agent2, expected=[])
+        # but filtering by agent3 (who has a Sales ticket) returns that ticket
+        assert_tickets(f"{all_open_url}?assignee={self.agent3.uuid}", self.agent2, expected=[c1_t2])
+
+        # invalid assignee UUID returns all tickets
+        assert_tickets(f"{all_open_url}?assignee={uuid4()}", self.admin, expected=[c2_t1, c1_t2, c1_t1])
 
         # unassigned tickets
         assert_tickets(unassigned_open_url, self.admin, expected=[c2_t1])
