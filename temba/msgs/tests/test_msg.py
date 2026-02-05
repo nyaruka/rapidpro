@@ -95,6 +95,33 @@ class MsgTest(TembaTest, CRUDLTestMixin):
             msg2.as_archive_json(),
         )
 
+    def test_get_quick_replies(self):
+        msg = self.create_incoming_msg(self.joe, "test")
+
+        # when both are null
+        self.assertEqual([], msg.get_quick_replies())
+
+        # when quick_replies (legacy array) is set
+        Msg.objects.filter(id=msg.id).update(quick_replies=["Yes", "No<extra>Let's go!"])
+        msg.refresh_from_db()
+        self.assertEqual(
+            [{"type": "text", "text": "Yes"}, {"type": "text", "text": "No", "extra": "Let's go!"}],
+            msg.get_quick_replies(),
+        )
+
+        # when quickreplies (json) is set, quick_replies takes precedence
+        Msg.objects.filter(id=msg.id).update(quickreplies=[{"type": "text", "text": "Maybe"}])
+        msg.refresh_from_db()
+        self.assertEqual(
+            [{"type": "text", "text": "Yes"}, {"type": "text", "text": "No", "extra": "Let's go!"}],
+            msg.get_quick_replies(),
+        )
+
+        # when only quickreplies (json) is set
+        Msg.objects.filter(id=msg.id).update(quick_replies=None)
+        msg.refresh_from_db()
+        self.assertEqual([{"type": "text", "text": "Maybe"}], msg.get_quick_replies())
+
     @patch("django.core.files.storage.default_storage.delete")
     @mock_mailroom
     def test_bulk_soft_delete(self, mr_mocks, mock_storage_delete):
