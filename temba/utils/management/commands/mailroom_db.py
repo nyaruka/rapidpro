@@ -80,7 +80,7 @@ class Command(BaseCommand):
         superuser = User.objects.create_user("root", USER_PASSWORD, is_superuser=True)
         self._log(self.style.SUCCESS("OK") + "\n")
 
-        mr_cmd = f'mailroom --port={mr_port} -db="postgres://{db_user}:temba@localhost/{db_name}?sslmode=disable" -uuid-seed=123'
+        mr_cmd = f'mailroom --port={mr_port} -db="postgres://{db_user}:temba@localhost/{db_name}?sslmode=disable" --valkey="valkey://localhost:6379/15" --spool-dir="./spool" -uuid-seed=123'
         input(f"\nPlease start mailroom:\n   % ./{mr_cmd}\n\nPress enter when ready.\n")
 
         country = self.load_locations(locs_file)

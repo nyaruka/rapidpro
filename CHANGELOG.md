@@ -1,3 +1,8 @@
+v26.1.18 (2026-02-05)
+-------------------------
+ * Add new Msg.quickreplies field to replace Msg.quick_replies
+ * Undo last migration
+
 v26.1.17 (2026-02-04)
 -------------------------
  * Increase max_lnegth of extra on API serializer too to match engine

@@ -25,7 +25,6 @@ from django.utils.encoding import force_str
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import FormView
 
 from temba import mailroom
 from temba.channels.models import Channel
@@ -1576,19 +1575,6 @@ class FlowCRUDL(SmartCRUDL):
 
             results = [{"iso": code, "name": languages.get_name(code)} for code in org.flow_languages]
             return JsonResponse({"results": sorted(results, key=lambda lang: lang["name"])})
-
-
-# this is just for adhoc testing of the preprocess url
-class PreprocessTest(FormView):  # pragma: no cover
-    @csrf_exempt
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        return HttpResponse(
-            json.dumps(dict(text="Norbert", extra=dict(occupation="hoopster", skillz=7.9))),
-            content_type="application/json",
-        )
 
 
 class FlowLabelForm(UniqueNameMixin, forms.ModelForm):

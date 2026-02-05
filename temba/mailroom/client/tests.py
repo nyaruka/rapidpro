@@ -9,7 +9,6 @@ from temba.ai.types.openai.type import OpenAIType
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField, ContactImport
 from temba.flows.models import Flow, FlowStart
-from temba.msgs.models import QuickReply
 from temba.schedules.models import Schedule
 from temba.tests import MockJsonResponse, MockResponse, TembaTest
 from temba.tickets.models import Topic
@@ -756,7 +755,7 @@ class MailroomClientTest(TembaTest):
             ann,
             "hi",
             [],
-            [QuickReply("text", "Yes", "Let's go!"), QuickReply("text", "No", None)],
+            [{"type": "text", "text": "Yes", "extra": "Let's go!"}, {"type": "text", "text": "No"}],
             ticket,
         )
 

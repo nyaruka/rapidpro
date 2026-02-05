@@ -7,7 +7,7 @@ from temba.campaigns.models import Campaign, CampaignEvent
 from temba.channels.models import Channel
 from temba.contacts.models import URN, Contact, ContactField as ContactFieldModel, ContactGroup, ContactURN
 from temba.flows.models import Flow
-from temba.msgs.models import Attachment, Label, Media, Msg, QuickReply
+from temba.msgs.models import Attachment, Label, Media, Msg
 from temba.tickets.models import Ticket, Topic
 from temba.users.models import User
 from temba.utils import languages
@@ -135,7 +135,13 @@ class QuickReplySerializer(serializers.Serializer):
     def to_internal_value(self, data):
         value = super().to_internal_value(data)
 
-        return QuickReply(value["type"], value.get("text"), value.get("extra"))
+        qr = {"type": value["type"]}
+        if "text" in value:
+            qr["text"] = value["text"]
+        if "extra" in value:
+            qr["extra"] = value["extra"]
+
+        return qr
 
     def run_validation(self, data=serializers.empty):
         typ = data.get("type", "text")
