@@ -1,3 +1,8 @@
+v26.1.20 (2026-02-09)
+-------------------------
+ * Fix ticket filters and leaderboard layout
+ * Add view to interrupt flow runs
+
 v26.1.19 (2026-02-09)
 -------------------------
  * Add top responders leaderboard to ticket analytics page
