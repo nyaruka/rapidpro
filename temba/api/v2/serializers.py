@@ -66,7 +66,7 @@ def _normalize_extra(extra, count):
         count += 1
         normalized = OrderedDict()
         for k, v in extra.items():
-            (normalized[normalize_key(k)], count) = _normalize_extra(v, count)
+            normalized[normalize_key(k)], count = _normalize_extra(v, count)
 
             if count >= FLOW_START_EXTRA_SIZE:
                 break
@@ -77,7 +77,7 @@ def _normalize_extra(extra, count):
         count += 1
         normalized = OrderedDict()
         for i, v in enumerate(extra):
-            (normalized[str(i)], count) = _normalize_extra(v, count)
+            normalized[str(i)], count = _normalize_extra(v, count)
 
             if count >= FLOW_START_EXTRA_SIZE:
                 break
@@ -1835,7 +1835,19 @@ class UserReadSerializer(ReadSerializer):
 
     class Meta:
         model = User
-        fields = ("uuid", "email", "first_name", "last_name", "role", "team", "created_on", "avatar")
+
+        fields = (
+            "uuid",
+            "name",
+            "email",
+            "role",
+            "team",
+            "created_on",
+            "avatar",
+            # deprecated fields
+            "first_name",
+            "last_name",
+        )
 
 
 class WorkspaceReadSerializer(ReadSerializer):
