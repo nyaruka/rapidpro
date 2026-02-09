@@ -2209,7 +2209,7 @@ msgstr "Azul"
         self.assertRequestDisallowed(other_org_interrupt_url, [self.admin])
 
         # fetch the interrupt modal with no waiting contacts
-        response = self.assertUpdateFetch(interrupt_url, [self.editor, self.admin])
+        response = self.assertUpdateFetch(interrupt_url, [self.editor, self.admin], form_fields=("archive",))
         self.assertEqual(0, response.context["run_count"])
         self.assertContains(response, "There are no contacts currently in this flow")
         self.assertNotContains(response, '<input type="submit"')
@@ -2218,8 +2218,9 @@ msgstr "Azul"
         flow.counts.create(scope=f"status:{FlowRun.STATUS_WAITING}", count=15)
 
         # fetch should now show the count
-        response = self.assertUpdateFetch(interrupt_url, [self.admin])
+        response = self.assertUpdateFetch(interrupt_url, [self.admin], form_fields=("archive",))
         self.assertEqual(15, response.context["run_count"])
+        self.assertFalse(response.context["has_campaigns"])
         self.assertContains(response, "15")
         self.assertContains(response, '<input type="submit"')
 
@@ -2243,3 +2244,30 @@ msgstr "Azul"
         # flow should now be archived
         flow.refresh_from_db()
         self.assertTrue(flow.is_archived)
+
+        # create a new flow used by a campaign
+        campaign_flow = self.create_flow("Campaign Flow")
+        campaign_flow.counts.create(scope=f"status:{FlowRun.STATUS_WAITING}", count=10)
+        group = self.create_group("Reporters", contacts=[])
+        campaign = Campaign.create(self.org, self.admin, "Reminders", group)
+        registered = self.create_field("registered", "Registered", value_type="D")
+        CampaignEvent.create_flow_event(
+            self.org, self.admin, campaign, registered, offset=1, unit="W", flow=campaign_flow, delivery_hour="13"
+        )
+
+        campaign_interrupt_url = reverse("flows.flow_interrupt", args=[campaign_flow.uuid])
+
+        # fetch the interrupt modal - should show warning instead of archive checkbox
+        response = self.assertUpdateFetch(campaign_interrupt_url, [self.admin], form_fields=("archive",))
+        self.assertTrue(response.context["has_campaigns"])
+        self.assertContains(response, "used by active campaigns")
+        self.assertNotContains(response, "Also Archive")
+
+        # submit the interrupt with archive option - should not archive because of campaigns
+        mr_mocks.calls.clear()
+        self.requestView(campaign_interrupt_url, self.admin, post_data={"archive": True})
+
+        self.assertEqual([call(self.org, campaign_flow)], mr_mocks.calls["flow_interrupt"])
+
+        campaign_flow.refresh_from_db()
+        self.assertFalse(campaign_flow.is_archived)

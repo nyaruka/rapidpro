@@ -27,6 +27,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from temba import mailroom
+from temba.campaigns.models import CampaignEvent
 from temba.channels.models import Channel
 from temba.contacts.models import URN
 from temba.flows.models import Flow, FlowStart
@@ -1580,17 +1581,24 @@ class FlowCRUDL(SmartCRUDL):
             context = super().get_context_data(**kwargs)
             flow = self.get_object()
             context["run_count"] = flow.get_run_counts().get(FlowRun.STATUS_WAITING, 0)
+            context["has_campaigns"] = CampaignEvent.objects.filter(
+                is_active=True, flow=flow, campaign__org=flow.org, campaign__is_archived=False
+            ).exists()
             return context
 
         def form_valid(self, form):
             flow = self.get_object()
             mailroom.get_client().flow_interrupt(flow.org, flow)
 
-            # Archive the flow if requested
+            # Archive the flow if requested, but not if it has active campaign events
             if form.cleaned_data.get("archive"):
-                flow.archive(self.request.user)
+                has_campaigns = CampaignEvent.objects.filter(
+                    is_active=True, flow=flow, campaign__org=flow.org, campaign__is_archived=False
+                ).exists()
+                if not has_campaigns:
+                    flow.archive(self.request.user, interrupt_sessions=False)
 
-            return self.render_modal_response()
+            return self.render_modal_response(form)
 
     class Assets(OrgPermsMixin, SmartTemplateView):
         """

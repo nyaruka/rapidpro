@@ -9,7 +9,16 @@
         Are you sure?
       {% endblocktrans %}
     </div>
-    {% render_field 'archive' %}
+    {% if has_campaigns %}
+      <temba-alert level="warning">
+        {% blocktrans trimmed %}
+          This flow can't be archived because it is used by active campaigns. If you want to prevent new contacts from
+          entering this flow, please remove it from the campaigns first, and then archive it.
+        {% endblocktrans %}
+      </temba-alert>
+    {% else %}
+      {% render_field 'archive' %}
+    {% endif %}
   {% else %}
     {% blocktrans trimmed %}
       There are no contacts currently in this flow to be interrupted.
