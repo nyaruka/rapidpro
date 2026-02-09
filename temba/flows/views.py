@@ -1580,10 +1580,9 @@ class FlowCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             flow = self.get_object()
-            context["run_count"] = flow.get_run_counts().get(FlowRun.STATUS_WAITING, 0)
-            context["has_campaigns"] = CampaignEvent.objects.filter(
-                is_active=True, flow=flow, campaign__org=flow.org, campaign__is_archived=False
-            ).exists()
+            counts = flow.get_run_counts()
+            context["run_count"] = counts[FlowRun.STATUS_ACTIVE] + counts[FlowRun.STATUS_WAITING]
+            context["can_archive"] = self._can_archive(flow)
             return context
 
         def form_valid(self, form):
@@ -1591,14 +1590,15 @@ class FlowCRUDL(SmartCRUDL):
             mailroom.get_client().flow_interrupt(flow.org, flow)
 
             # Archive the flow if requested, but not if it has active campaign events
-            if form.cleaned_data.get("archive"):
-                has_campaigns = CampaignEvent.objects.filter(
-                    is_active=True, flow=flow, campaign__org=flow.org, campaign__is_archived=False
-                ).exists()
-                if not has_campaigns:
-                    flow.archive(self.request.user, interrupt_sessions=False)
+            if form.cleaned_data.get("archive") and self._can_archive(flow):
+                flow.archive(self.request.user, interrupt_sessions=False)
 
             return self.render_modal_response(form)
+
+        def _can_archive(self, flow):
+            return not CampaignEvent.objects.filter(
+                is_active=True, flow=flow, campaign__org=flow.org, campaign__is_archived=False
+            ).exists()
 
     class Assets(OrgPermsMixin, SmartTemplateView):
         """
