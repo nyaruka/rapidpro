@@ -13,7 +13,7 @@ from temba.api.models import Resthook
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.classifiers.models import Classifier
 from temba.contacts.models import URN
-from temba.flows.models import Flow, FlowLabel, FlowStart, FlowUserConflictException, ResultsExport
+from temba.flows.models import Flow, FlowLabel, FlowRun, FlowStart, FlowUserConflictException, ResultsExport
 from temba.mailroom.client.types import Exclusions
 from temba.orgs.integrations.dtone.type import DTOneType
 from temba.orgs.models import Export
@@ -2193,3 +2193,81 @@ msgstr "Azul"
 
         # page should not include a chart for feedback
         self.assertNotContains(response, "Feedback")
+
+    @mock_mailroom
+    def test_interrupt(self, mr_mocks):
+        flow = self.create_flow("Test Flow")
+        other_org_flow = self.create_flow("Other Org Flow", org=self.org2)
+
+        interrupt_url = reverse("flows.flow_interrupt", args=[flow.uuid])
+        other_org_interrupt_url = reverse("flows.flow_interrupt", args=[other_org_flow.uuid])
+
+        # anonymous and agents should not have access
+        self.assertRequestDisallowed(interrupt_url, [None, self.agent])
+
+        # can't interrupt flow in other org
+        self.assertRequestDisallowed(other_org_interrupt_url, [self.admin])
+
+        # fetch the interrupt modal with no waiting contacts
+        response = self.assertUpdateFetch(interrupt_url, [self.editor, self.admin], form_fields=("archive",))
+        self.assertEqual(0, response.context["run_count"])
+        self.assertContains(response, "There are no contacts currently in this flow")
+        self.assertNotContains(response, '<input type="submit"')
+
+        # add some waiting contacts
+        flow.counts.create(scope=f"status:{FlowRun.STATUS_WAITING}", count=15)
+
+        # fetch should now show the count
+        response = self.assertUpdateFetch(interrupt_url, [self.admin], form_fields=("archive",))
+        self.assertEqual(15, response.context["run_count"])
+        self.assertFalse(response.context["has_campaigns"])
+        self.assertContains(response, "15")
+        self.assertContains(response, '<input type="submit"')
+
+        # submit the interrupt without archiving
+        self.requestView(interrupt_url, self.admin, post_data={})
+
+        # should have called mailroom to interrupt the flow
+        self.assertEqual([call(self.org, flow)], mr_mocks.calls["flow_interrupt"])
+
+        # flow should not be archived
+        flow.refresh_from_db()
+        self.assertFalse(flow.is_archived)
+
+        # submit the interrupt with archive option
+        mr_mocks.calls.clear()
+        self.requestView(interrupt_url, self.admin, post_data={"archive": True})
+
+        # should have called mailroom to interrupt the flow again
+        self.assertEqual([call(self.org, flow)], mr_mocks.calls["flow_interrupt"])
+
+        # flow should now be archived
+        flow.refresh_from_db()
+        self.assertTrue(flow.is_archived)
+
+        # create a new flow used by a campaign
+        campaign_flow = self.create_flow("Campaign Flow")
+        campaign_flow.counts.create(scope=f"status:{FlowRun.STATUS_WAITING}", count=10)
+        group = self.create_group("Reporters", contacts=[])
+        campaign = Campaign.create(self.org, self.admin, "Reminders", group)
+        registered = self.create_field("registered", "Registered", value_type="D")
+        CampaignEvent.create_flow_event(
+            self.org, self.admin, campaign, registered, offset=1, unit="W", flow=campaign_flow, delivery_hour="13"
+        )
+
+        campaign_interrupt_url = reverse("flows.flow_interrupt", args=[campaign_flow.uuid])
+
+        # fetch the interrupt modal - should show warning instead of archive checkbox
+        response = self.assertUpdateFetch(campaign_interrupt_url, [self.admin], form_fields=("archive",))
+        self.assertTrue(response.context["has_campaigns"])
+        self.assertContains(response, "used by active campaigns")
+        self.assertNotContains(response, "Also Archive")
+
+        # submit the interrupt with archive option - should not archive because of campaigns
+        mr_mocks.calls.clear()
+        self.requestView(campaign_interrupt_url, self.admin, post_data={"archive": True})
+
+        self.assertEqual([call(self.org, campaign_flow)], mr_mocks.calls["flow_interrupt"])
+
+        campaign_flow.refresh_from_db()
+        self.assertFalse(campaign_flow.is_archived)
