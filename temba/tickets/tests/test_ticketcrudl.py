@@ -635,6 +635,45 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             response.json(),
         )
 
+    def test_leaderboard(self):
+        leaderboard_url = reverse("tickets.ticket_leaderboard")
+
+        self.assertRequestDisallowed(leaderboard_url, [None, self.agent])
+
+        self.login(self.admin)
+
+        response = self.client.get(leaderboard_url + "?since=2024-03-01&until=2024-05-01")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"results": []}, response.json())
+
+        # create reply counts - scope format: msgs:ticketreplies:{team_id}:{user_id}
+        self.org.daily_counts.create(day=date(2024, 4, 25), scope=f"msgs:ticketreplies:0:{self.admin.id}", count=5)
+        self.org.daily_counts.create(day=date(2024, 4, 26), scope=f"msgs:ticketreplies:0:{self.admin.id}", count=3)
+        self.org.daily_counts.create(
+            day=date(2024, 4, 25), scope=f"msgs:ticketreplies:{self.sales_only.id}:{self.agent2.id}", count=10
+        )
+        self.org.daily_counts.create(day=date(2024, 4, 25), scope=f"msgs:ticketreplies:0:{self.editor.id}", count=2)
+        self.org.daily_counts.create(
+            day=date(2024, 5, 3), scope=f"msgs:ticketreplies:0:{self.admin.id}", count=100
+        )  # out of period
+
+        response = self.client.get(leaderboard_url + "?since=2024-03-01&until=2024-05-01")
+        data = response.json()
+
+        self.assertEqual(3, len(data["results"]))
+        # ordered by reply count descending
+        self.assertEqual("agent2@textit.com", data["results"][0]["name"])
+        self.assertEqual(str(self.agent2.uuid), data["results"][0]["uuid"])
+        self.assertEqual(10, data["results"][0]["replies"])
+
+        self.assertEqual(str(self.admin), data["results"][1]["name"])
+        self.assertEqual(str(self.admin.uuid), data["results"][1]["uuid"])
+        self.assertEqual(8, data["results"][1]["replies"])
+
+        self.assertEqual(str(self.editor), data["results"][2]["name"])
+        self.assertEqual(str(self.editor.uuid), data["results"][2]["uuid"])
+        self.assertEqual(2, data["results"][2]["replies"])
+
     def test_analytics_export(self):
         export_url = reverse("tickets.ticket_analytics_export")
 
