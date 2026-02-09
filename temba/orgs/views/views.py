@@ -220,7 +220,7 @@ class UserCRUDL(SmartCRUDL):
             )
             can_reply_non_own = forms.BooleanField(
                 required=False,
-                label=_("Can reply to non-own tickets"),
+                label=_("Can reply to tickets not assigned to them"),
                 widget=CheckboxWidget(attrs={"widget_only": True}),
             )
 
