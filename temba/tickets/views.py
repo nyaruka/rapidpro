@@ -26,6 +26,7 @@ from temba.orgs.views.base import (
     BaseUpdateModal,
 )
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, RequireFeatureMixin
+from temba.users.models import User
 from temba.utils.dates import datetime_to_timestamp, timestamp_to_datetime
 from temba.utils.db.functions import SplitPart
 from temba.utils.export import response_from_workbook
@@ -163,7 +164,18 @@ class TeamCRUDL(SmartCRUDL):
 
 class TicketCRUDL(SmartCRUDL):
     model = Ticket
-    actions = ("menu", "list", "folder", "update", "note", "chart", "export", "analytics", "analytics_export")
+    actions = (
+        "menu",
+        "list",
+        "folder",
+        "update",
+        "note",
+        "chart",
+        "leaderboard",
+        "export",
+        "analytics",
+        "analytics_export",
+    )
 
     class Menu(BaseMenuView):
         def derive_menu(self):
@@ -319,6 +331,11 @@ class TicketCRUDL(SmartCRUDL):
             if ticket:
                 context["nextUUID" if in_page else "uuid"] = str(ticket.uuid)
 
+            # pass assignee filter to template if provided
+            assignee_uuid = self.request.GET.get("assignee")
+            if assignee_uuid and isinstance(folder, AllFolder):
+                context["assignee_uuid"] = assignee_uuid
+
             return context
 
         def build_context_menu(self, menu):
@@ -388,10 +405,17 @@ class TicketCRUDL(SmartCRUDL):
             uuid = self.kwargs.get("uuid", None)
             after = int(self.request.GET.get("after", 0))
             before = int(self.request.GET.get("before", 0))
+            assignee_uuid = self.request.GET.get("assignee", None)
 
             # fetching new activity gets a different order later
             ordered = False if after else True
             qs = self.folder.get_queryset(org, user, ordered=ordered).filter(status=status)
+
+            # filter by assignee if specified (only applies to All folder)
+            if assignee_uuid and isinstance(self.folder, AllFolder):
+                assignee = User.objects.filter(uuid=assignee_uuid).first()
+                if assignee:
+                    qs = qs.filter(assignee=assignee)
 
             # all new activity
             after = int(self.request.GET.get("after", 0))
@@ -415,6 +439,12 @@ class TicketCRUDL(SmartCRUDL):
                     qs = self.folder.get_queryset(org, user, ordered=ordered).filter(
                         status=status, last_activity_on__gte=last_ticket.last_activity_on
                     )
+
+                    # reapply assignee filter if set
+                    if assignee_uuid and isinstance(self.folder, AllFolder):
+                        assignee = User.objects.filter(uuid=assignee_uuid).first()
+                        if assignee:
+                            qs = qs.filter(assignee=assignee)
 
                     # now reapply our before if we have one
                     if before:
@@ -639,6 +669,34 @@ class TicketCRUDL(SmartCRUDL):
                 return self.get_resptime_chart(self.request.org, since, until)
             elif chart == "replies":
                 return self.get_replies_chart(self.request.org, since, until)
+
+    class Leaderboard(OrgPermsMixin, ChartViewMixin, SmartTemplateView):
+        permission = "tickets.ticket_analytics"
+
+        def render_to_response(self, context, **response_kwargs):
+            org = self.request.org
+            since, until = self.get_chart_period()
+
+            daily_counts = org.daily_counts.period(since, until).prefix("msgs:ticketreplies:")
+
+            counts = (
+                daily_counts.annotate(
+                    user_id=Cast(SplitPart(F("scope"), Value(":"), Value(4)), output_field=models.IntegerField())
+                )
+                .values("user_id")
+                .annotate(replies=Sum("count"))
+                .order_by("-replies")
+            )
+
+            users_by_id = {u.id: u for u in org.users.all()}
+
+            results = []
+            for row in counts:
+                user = users_by_id.get(row["user_id"])
+                if user:
+                    results.append({"name": str(user), "uuid": str(user.uuid), "replies": row["replies"]})
+
+            return JsonResponse({"results": results})
 
     class Export(BaseExportModal):
         export_type = TicketExport

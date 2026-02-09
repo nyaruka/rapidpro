@@ -1,3 +1,8 @@
+v26.1.19 (2026-02-09)
+-------------------------
+ * Add top responders leaderboard to ticket analytics page
+ * Add user filter for All tickets folder
+
 v26.1.18 (2026-02-05)
 -------------------------
  * Add new Msg.quickreplies field to replace Msg.quick_replies
