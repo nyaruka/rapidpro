@@ -193,24 +193,24 @@
 
     function handleTicketsMenuChanged(menuItem) {
       var statusSelect = document.querySelector('temba-select[name="ticket-status"]');
-      var assigneeSelect = document.querySelector('temba-select[name="assignee-filter"]');
+      var assigneeSelect = document.querySelector('temba-user-select[name="assignee-filter"]');
       ticketUUID = null;
       focusNext = null;
       if (folder !== menuItem.id) {
         document.title = menuItem.name;
 
         const titleText = document.querySelector("#title-text");
-        const titleContainer = document.querySelector("#folder-title");
+        const titleRow = document.querySelector("#title-row");
 
         // show/hide user select based on folder
         if (menuItem.id === 'all') {
-          titleText.classList.add('hidden');
+          titleRow.classList.add('hidden');
           if (assigneeSelect) {
             assigneeSelect.classList.remove('hidden');
           }
         } else {
           titleText.textContent = menuItem.name;
-          titleText.classList.remove('hidden');
+          titleRow.classList.remove('hidden');
           if (assigneeSelect) {
             assigneeSelect.classList.add('hidden');
             assigneeSelect.clear();
@@ -570,10 +570,10 @@
     <div class="flex ticket-ui">
       <temba-resizer -temba-resized="handleTicketListResized" class="flex flex-row">
         <div class="ticket-list flex flex-col p-5 pr-0">
-          <div class="flex mb-2">
+          <div class="flex mb-2 {% if folder == "all" %}hidden{% endif %}" id="title-row">
             <div class="flex-grow relative" id="folder-title">
-              <div id="title-text" {% if folder == "all" %}class="hidden"{% endif %}>{{ title }}</div>
-              
+              <div id="title-text">{{ title }}</div>
+
             </div>
             <temba-content-menu endpoint="{% url 'tickets.ticket_folder' folder status uuid %}"
                                 -temba-selection="handleContentMenuSelected(event)"
@@ -582,16 +582,17 @@
                                 id="topic-content-menu">
             </temba-content-menu>
           </div>
-          <temba-select name="assignee-filter"
-                            endpoint="/api/v2/users.json"
+          <temba-user-select name="assignee-filter"
                             placeholder="{% trans "All Agents" %}"
                             onchange="handleAssigneeFilterChanged(event)"
                             valueKey="uuid"
                             {% if assignee_uuid %}value="{{ assignee_uuid }}"{% endif %}
                             class="{% if folder != "all" %}hidden{% endif %}"
-                            style="z-index:3; margin-bottom:0.5em;"
+                            style="z-index:3; margin-bottom:0.5em; width:100%;"
+                            searchable
+                            searchOnFocus
                             clearable>
-              </temba-select>
+              </temba-user-select>
           <temba-select style="z-index:2"
                         name="ticket-status"
                         onchange="handleStatusFilterChanged(event)"
