@@ -605,6 +605,61 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.post(chat_url, {"text": "Hello"}, content_type="application/json")
         self.assertEqual(404, response.status_code)
 
+    @mock_mailroom
+    def test_chat_can_reply_permission(self, mr_mocks):
+        contact = self.create_contact("Joe Blow", urns=["tel:+250781111111"])
+
+        # create a ticket that is unassigned
+        ticket = Ticket.objects.create(
+            uuid="019a9935-022e-7bb3-9d6f-03d773be623e",
+            org=self.org,
+            contact=contact,
+            topic=self.org.default_topic,
+            status="O",
+        )
+
+        chat_url = reverse("contacts.contact_chat", args=[contact.uuid])
+
+        # agent can reply to any ticket by default
+        self.login(self.agent)
+        response = self.client.post(
+            chat_url, {"text": "Hello", "ticket": str(ticket.uuid)}, content_type="application/json"
+        )
+        self.assertEqual(200, response.status_code)
+
+        # remove can_reply from agent
+        self.org.add_user(self.agent, OrgRole.AGENT, can_reply=False)
+
+        # agent can't reply to unassigned ticket
+        self.login(self.agent)
+        response = self.client.post(
+            chat_url, {"text": "Hello", "ticket": str(ticket.uuid)}, content_type="application/json"
+        )
+        self.assertEqual(403, response.status_code)
+        self.assertEqual({"error": "You do not have permission to reply to this ticket."}, response.json())
+
+        # agent can't reply to ticket assigned to someone else
+        ticket.assignee = self.editor
+        ticket.save(update_fields=("assignee",))
+
+        response = self.client.post(
+            chat_url, {"text": "Hello", "ticket": str(ticket.uuid)}, content_type="application/json"
+        )
+        self.assertEqual(403, response.status_code)
+
+        # but agent CAN reply to ticket assigned to them
+        ticket.assignee = self.agent
+        ticket.save(update_fields=("assignee",))
+
+        response = self.client.post(
+            chat_url, {"text": "Hello", "ticket": str(ticket.uuid)}, content_type="application/json"
+        )
+        self.assertEqual(200, response.status_code)
+
+        # sending without ticket context still works (not a ticket reply)
+        response = self.client.post(chat_url, {"text": "Hello"}, content_type="application/json")
+        self.assertEqual(200, response.status_code)
+
     @patch("temba.mailroom.events.Event.get_by_contact")
     @patch("django.utils.timezone.now")
     def test_chat_fetching(self, mock_now, mock_get_by_contact):

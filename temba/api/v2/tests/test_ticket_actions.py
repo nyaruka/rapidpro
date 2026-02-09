@@ -3,6 +3,7 @@ from unittest.mock import call
 
 from django.urls import reverse
 
+from temba.orgs.models import OrgRole
 from temba.tests import mock_mailroom
 from temba.tickets.models import Topic
 
@@ -158,3 +159,49 @@ class TicketActionsEndpointTest(APITest):
         ticket2.refresh_from_db()
         self.assertEqual("O", ticket1.status)
         self.assertEqual("O", ticket2.status)
+
+    @mock_mailroom
+    def test_can_assign_permission(self, mr_mocks):
+        endpoint_url = reverse("api.v2.ticket_actions") + ".json"
+
+        joe = self.create_contact("Joe Blow", phone="+250788123123")
+        ticket = self.create_ticket(joe)
+
+        # agent can assign by default
+        self.assertPost(
+            endpoint_url,
+            self.agent,
+            {"tickets": [str(ticket.uuid)], "action": "assign", "assignee": "agent@textit.com"},
+            status=204,
+        )
+
+        # remove can_assign permission from agent
+        self.org.add_user(self.agent, OrgRole.AGENT, can_assign=False)
+
+        # agent can no longer assign tickets
+        self.assertPost(
+            endpoint_url,
+            self.agent,
+            {"tickets": [str(ticket.uuid)], "action": "assign", "assignee": "agent@textit.com"},
+            errors={"non_field_errors": "You do not have permission to assign tickets."},
+        )
+
+        # but they can still close / reopen / add notes
+        self.assertPost(
+            endpoint_url,
+            self.agent,
+            {"tickets": [str(ticket.uuid)], "action": "close"},
+            status=204,
+        )
+        self.assertPost(
+            endpoint_url,
+            self.agent,
+            {"tickets": [str(ticket.uuid)], "action": "reopen"},
+            status=204,
+        )
+        self.assertPost(
+            endpoint_url,
+            self.agent,
+            {"tickets": [str(ticket.uuid)], "action": "add_note", "note": "Test note"},
+            status=204,
+        )

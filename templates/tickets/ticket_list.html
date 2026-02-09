@@ -171,18 +171,48 @@
     var focusNext;
     var messageSent;
     var assigneeFilter = {% if assignee_uuid %}'{{ assignee_uuid }}'{% else %}null{% endif %};
+    var canAssign = {{ can_assign|yesno:"true,false" }};
+    var canReply = {{ can_reply|yesno:"true,false" }};
 
     function handleMessageSent(evt) {
       var ticket = evt.detail.msg.ticket;
       if (ticket) {
 
-        // auto assign tickets when a message is sent
-        const chat = document.querySelector("temba-contact-chat");
-        var assigned = chat.assignTicket("{{user.email}}");
+        // auto assign tickets when a message is sent (only if user can assign)
+        if (canAssign) {
+          const chat = document.querySelector("temba-contact-chat");
+          var assigned = chat.assignTicket("{{user.email}}");
 
-        // if we performed assignment, track our sent message
-        if (assigned) {
-          messageSent = true;
+          // if we performed assignment, track our sent message
+          if (assigned) {
+            messageSent = true;
+          }
+        }
+      }
+    }
+
+    function applyTicketAccessOptions() {
+      var chat = document.querySelector("temba-contact-chat");
+      if (!chat || !chat.shadowRoot) return;
+
+      // disable assignment dropdown if user can't assign
+      if (!canAssign) {
+        var userSelect = chat.shadowRoot.querySelector("temba-user-select");
+        if (userSelect) {
+          userSelect.disabled = true;
+        }
+      }
+
+      // disable compose box if user can't reply to unassigned tickets
+      if (!canReply) {
+        var currentTicket = chat.currentTicket;
+        if (currentTicket && !currentTicket.closed_on) {
+          var assignee = currentTicket.assignee;
+          var isAssignedToMe = assignee && assignee.email === "{{user.email}}";
+          var compose = chat.shadowRoot.querySelector("temba-compose");
+          if (compose) {
+            compose.disabled = !isAssignedToMe;
+          }
         }
       }
     }
@@ -384,6 +414,8 @@
         if (chat) {
           chat.style.opacity = '1';
           chat.refresh();
+          // apply ticket access options after chat renders
+          setTimeout(applyTicketAccessOptions, 100);
         }
 
         if (empty) {
@@ -522,6 +554,9 @@
 
           var contentMenu = document.querySelector("#default-content-menu");
           contentMenu.refresh();
+
+          // reapply ticket access options after ticket update
+          setTimeout(applyTicketAccessOptions, 100);
 
         }
       }

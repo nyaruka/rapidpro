@@ -165,3 +165,23 @@ class UserTest(TembaTest):
 
         membership.refresh_from_db()
         self.assertIsNotNone(membership.last_seen_on)
+
+    def test_membership_access_options(self):
+        # by default, users have can_assign=True and can_reply=True
+        membership = self.org.get_membership(self.agent)
+        self.assertTrue(membership.can_assign)
+        self.assertTrue(membership.can_reply)
+
+        # can create membership with custom access options
+        self.org.add_user(self.agent, OrgRole.AGENT, can_assign=False, can_reply=False)
+        self.org._membership_cache = {}
+        membership = self.org.get_membership(self.agent)
+        self.assertFalse(membership.can_assign)
+        self.assertFalse(membership.can_reply)
+
+        # can update to re-enable them
+        self.org.add_user(self.agent, OrgRole.AGENT, can_assign=True, can_reply=True)
+        self.org._membership_cache = {}
+        membership = self.org.get_membership(self.agent)
+        self.assertTrue(membership.can_assign)
+        self.assertTrue(membership.can_reply)

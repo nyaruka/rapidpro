@@ -215,6 +215,12 @@ class UserCRUDL(SmartCRUDL):
         class Form(forms.ModelForm):
             role = forms.ChoiceField(choices=OrgRole.choices(), required=True, label=_("Role"), widget=SelectWidget())
             team = forms.ModelChoiceField(queryset=Team.objects.none(), required=False, widget=SelectWidget())
+            can_assign = forms.BooleanField(
+                required=False, label=_("Can assign tickets"), initial=True, widget=CheckboxWidget()
+            )
+            can_reply = forms.BooleanField(
+                required=False, label=_("Can reply to unassigned tickets"), initial=True, widget=CheckboxWidget()
+            )
 
             def __init__(self, org, *args, **kwargs):
                 self.org = org
@@ -225,7 +231,7 @@ class UserCRUDL(SmartCRUDL):
 
             class Meta:
                 model = User
-                fields = ("role", "team")
+                fields = ("role", "team", "can_assign", "can_reply")
 
         form_class = Form
         require_feature = Org.FEATURE_USERS
@@ -241,7 +247,12 @@ class UserCRUDL(SmartCRUDL):
 
         def derive_initial(self):
             membership = self.request.org.get_membership(self.object)
-            return {"role": membership.role.code, "team": membership.team}
+            return {
+                "role": membership.role.code,
+                "team": membership.team,
+                "can_assign": membership.can_assign,
+                "can_reply": membership.can_reply,
+            }
 
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
@@ -252,13 +263,15 @@ class UserCRUDL(SmartCRUDL):
             role = OrgRole.from_code(self.form.cleaned_data["role"])
             team = self.form.cleaned_data.get("team")
             team = (team or self.request.org.default_team) if role == OrgRole.AGENT else None
+            can_assign = self.form.cleaned_data.get("can_assign", True)
+            can_reply = self.form.cleaned_data.get("can_reply", True)
 
             # don't update if user is the last administrator and role is being changed to something else
             has_other_admins = self.request.org.get_admins().exclude(id=obj.id).exists()
             if role != OrgRole.ADMINISTRATOR and not has_other_admins:
                 return obj
 
-            self.request.org.add_user(obj, role, team=team)
+            self.request.org.add_user(obj, role, team=team, can_assign=can_assign, can_reply=can_reply)
             return obj
 
         def get_success_url(self):
@@ -299,7 +312,6 @@ class UserCRUDL(SmartCRUDL):
             return reverse("orgs.user_list") if still_in_org else reverse("orgs.org_choose")
 
     class Edit(ComponentFormMixin, InferUserMixin, SmartUpdateView):
-
         class Form(forms.ModelForm):
             first_name = forms.CharField(
                 label=_("First Name"), widget=InputWidget(attrs={"placeholder": _("Required")})
@@ -1288,7 +1300,6 @@ class OrgCRUDL(SmartCRUDL):
             return "%s?start" % reverse("public.public_welcome")
 
         def pre_process(self, request, *args, **kwargs):
-
             # only authenticated users can come here
             if not request.user.is_authenticated:
                 return HttpResponseRedirect(reverse("account_signup"))

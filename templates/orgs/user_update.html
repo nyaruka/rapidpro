@@ -6,6 +6,10 @@
   {% if form.fields.team %}
     <div class="team hidden">{% render_field 'team' %}</div>
   {% endif %}
+  <div class="ticket-options hidden">
+    {% render_field 'can_assign' %}
+    {% render_field 'can_reply' %}
+  </div>
 {% endblock fields %}
 {% block modal-script %}
   {{ block.super }}
@@ -14,15 +18,31 @@
     var roleSelect = modalBody.querySelector("temba-select[name='role']");
     var team = modalBody.querySelector(".team");
     var teamSelect = modalBody.querySelector("temba-select[name='team']");
+    var ticketOptions = modalBody.querySelector(".ticket-options");
+
+    function updateVisibility(roleValue) {
+      if (roleValue === "T") {
+        if (team) {
+          team.classList.remove("hidden");
+        }
+        ticketOptions.classList.remove("hidden");
+      } else {
+        if (team) {
+          team.classList.add("hidden");
+          teamSelect.clear();
+        }
+        ticketOptions.classList.add("hidden");
+      }
+    }
+
+    // set initial visibility based on current role
+    if (roleSelect.values && roleSelect.values.length > 0) {
+      updateVisibility(roleSelect.values[0].value);
+    }
 
     roleSelect.addEventListener("change", function(evt) {
       var selected = evt.target.values[0];
-      if (selected.value === "T") {
-        team.classList.remove("hidden");
-      } else {
-        team.classList.add("hidden");
-        teamSelect.clear();
-      }
+      updateVisibility(selected.value);
     });
   </script>
 {% endblock modal-script %}

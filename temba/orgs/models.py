@@ -854,7 +854,7 @@ class Org(SmartModel):
         """
         return self.users.filter(id=user.id).exists()
 
-    def add_user(self, user: User, role: OrgRole, *, team=None):
+    def add_user(self, user: User, role: OrgRole, *, team=None, can_assign=True, can_reply=True):
         """
         Adds the given user to this org with the given role
         """
@@ -869,7 +869,9 @@ class Org(SmartModel):
         if role == OrgRole.AGENT and not team:
             team = self.default_team
 
-        self._membership_cache[user] = OrgMembership.objects.create(org=self, user=user, role_code=role.code, team=team)
+        self._membership_cache[user] = OrgMembership.objects.create(
+            org=self, user=user, role_code=role.code, team=team, can_assign=can_assign, can_reply=can_reply
+        )
 
     def remove_user(self, user: User):
         """
@@ -1215,6 +1217,10 @@ class OrgMembership(models.Model):
     role_code = models.CharField(max_length=1)
     team = models.ForeignKey("tickets.Team", on_delete=models.PROTECT, null=True)
     last_seen_on = models.DateTimeField(null=True)
+
+    # ticket access options
+    can_assign = models.BooleanField(default=True)
+    can_reply = models.BooleanField(default=True)
 
     @property
     def role(self):

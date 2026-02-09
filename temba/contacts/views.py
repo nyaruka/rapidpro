@@ -390,6 +390,16 @@ class ContactCRUDL(SmartCRUDL):
             if ticket_uuid := payload.get("ticket"):
                 ticket = request.org.tickets.filter(uuid=ticket_uuid).first()
 
+            # check can_reply permission: if user can't reply to unassigned tickets,
+            # only allow replies to tickets assigned to them
+            if ticket:
+                membership = request.org.get_membership(request.user)
+                if membership and not membership.can_reply:
+                    if not ticket.assignee or ticket.assignee != request.user:
+                        return JsonResponse(
+                            {"error": "You do not have permission to reply to this ticket."}, status=403
+                        )
+
             resp = mailroom.get_client().msg_send(
                 request.org, request.user, self.get_object(), text, [str(a) for a in attachments], [], ticket
             )
