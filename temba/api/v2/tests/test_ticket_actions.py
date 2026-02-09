@@ -3,6 +3,7 @@ from unittest.mock import call
 
 from django.urls import reverse
 
+from temba.orgs.models import OrgMembership
 from temba.tests import mock_mailroom
 from temba.tickets.models import Topic
 
@@ -158,3 +159,25 @@ class TicketActionsEndpointTest(APITest):
         ticket2.refresh_from_db()
         self.assertEqual("O", ticket1.status)
         self.assertEqual("O", ticket2.status)
+
+        # restrict agent's ability to assign tickets
+        OrgMembership.objects.filter(org=self.org, user=self.agent).update(can_assign=False)
+        self.org._membership_cache = {}
+
+        self.assertPost(
+            endpoint_url,
+            self.agent,
+            {"tickets": [str(ticket1.uuid)], "action": "assign", "assignee": "agent@textit.com"},
+            errors={"non_field_errors": "You do not have permission to assign tickets."},
+        )
+
+        # restore permission and verify it works again
+        OrgMembership.objects.filter(org=self.org, user=self.agent).update(can_assign=True)
+        self.org._membership_cache = {}
+
+        self.assertPost(
+            endpoint_url,
+            self.agent,
+            {"tickets": [str(ticket1.uuid)], "action": "assign", "assignee": "agent@textit.com"},
+            status=204,
+        )

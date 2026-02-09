@@ -170,19 +170,22 @@
     var initialTicket = '{{uuid}}';
     var focusNext;
     var messageSent;
-    var assigneeFilter = {% if assignee_uuid %}'{{ assignee_uuid }}'{% else %}null{% endif %};
+    var assigneeFilter = {% if assignee_uuid %} '{{ assignee_uuid }}'
+    {% else %}null{% endif %};
 
     function handleMessageSent(evt) {
       var ticket = evt.detail.msg.ticket;
       if (ticket) {
 
-        // auto assign tickets when a message is sent
+        // auto assign tickets when a message is sent (if user has assign permission)
         const chat = document.querySelector("temba-contact-chat");
-        var assigned = chat.assignTicket("{{user.email}}");
+        if (!chat.disableAssign) {
+          var assigned = chat.assignTicket("{{user.email}}");
 
-        // if we performed assignment, track our sent message
-        if (assigned) {
-          messageSent = true;
+          // if we performed assignment, track our sent message
+          if (assigned) {
+            messageSent = true;
+          }
         }
       }
     }
@@ -311,13 +314,16 @@
         path += "?" + params.join("&");
       }
 
-      window.history.replaceState({ url: path, show: path }, "", path);
+      window.history.replaceState({
+        url: path,
+        show: path
+      }, "", path);
     }
 
     function handleAssigneeFilterChanged(event) {
       ticketUUID = null;
       focusNext = null;
-      if(event.target.value) {
+      if (event.target.value) {
         assigneeFilter = JSON.parse(event.target.value)["uuid"];
       } else {
         assigneeFilter = null;
@@ -685,6 +691,8 @@
                                   -temba-interrupt="handleInterruptContact"
                                   {% if org_perms.contacts.contact_interrupt %}showInterrupt{% endif %}
                                   {% if org_perms.channels.channel_logs or request.user.is_staff %}showMessageLogsAfter="{{ msg_logs_after }}"{% endif %}
+                                  {% if not can_assign %}disableAssign{% endif %}
+                                  {% if not can_reply_non_own %}disableReply{% endif %}
                                   avatar="{{ branding.logos.avatar }}">
               </temba-contact-chat>
             </div>

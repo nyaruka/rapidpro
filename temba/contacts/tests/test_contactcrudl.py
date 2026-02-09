@@ -11,7 +11,7 @@ from temba.contacts.models import Contact, ContactExport, ContactField, ContactF
 from temba.locations.models import AdminBoundary
 from temba.mailroom.client.types import Exclusions
 from temba.msgs.models import Media
-from temba.orgs.models import Export, OrgRole
+from temba.orgs.models import Export, OrgMembership, OrgRole
 from temba.schedules.models import Schedule
 from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom
 from temba.tests.engine import MockSessionWriter
@@ -604,6 +604,54 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         response = self.client.post(chat_url, {"text": "Hello"}, content_type="application/json")
         self.assertEqual(404, response.status_code)
+
+    @mock_mailroom
+    def test_chat_reply_non_own_permission(self, mr_mocks):
+        contact = self.create_contact("Joe Blow", urns=["tel:+250781111111"])
+        ticket = self.create_ticket(contact)
+        chat_url = reverse("contacts.contact_chat", args=[contact.uuid])
+
+        # restrict agent's ability to reply to unassigned tickets
+        OrgMembership.objects.filter(org=self.org, user=self.agent).update(can_reply_non_own=False)
+        self.org._membership_cache = {}
+
+        self.login(self.agent)
+
+        # agent can't reply to an unassigned ticket
+        response = self.client.post(
+            chat_url, {"text": "Hello", "ticket": str(ticket.uuid)}, content_type="application/json"
+        )
+        self.assertEqual(403, response.status_code)
+
+        # assign ticket to the agent
+        ticket.assignee = self.agent
+        ticket.save(update_fields=("assignee",))
+
+        # agent CAN reply to a ticket assigned to them
+        response = self.client.post(
+            chat_url, {"text": "Hello", "ticket": str(ticket.uuid)}, content_type="application/json"
+        )
+        self.assertEqual(200, response.status_code)
+
+        # assign ticket to someone else
+        ticket.assignee = self.admin
+        ticket.save(update_fields=("assignee",))
+
+        # agent can't reply to ticket assigned to another user
+        response = self.client.post(
+            chat_url, {"text": "Hello", "ticket": str(ticket.uuid)}, content_type="application/json"
+        )
+        self.assertEqual(403, response.status_code)
+
+        # restore permission
+        OrgMembership.objects.filter(org=self.org, user=self.agent).update(can_reply_non_own=True)
+        self.org._membership_cache = {}
+
+        # agent can now reply to ticket assigned to someone else
+        response = self.client.post(
+            chat_url, {"text": "Hello", "ticket": str(ticket.uuid)}, content_type="application/json"
+        )
+        self.assertEqual(200, response.status_code)
 
     @patch("temba.mailroom.events.Event.get_by_contact")
     @patch("django.utils.timezone.now")
