@@ -2231,6 +2231,7 @@ msgstr "Azul"
         # fetch the interrupt modal with no waiting contacts
         response = self.assertUpdateFetch(interrupt_url, [self.editor, self.admin], form_fields=("archive",))
         self.assertEqual(0, response.context["run_count"])
+        self.assertTrue(response.context["can_interrupt"])
         self.assertContains(response, "There are no contacts currently in this flow")
         self.assertNotContains(response, '<input type="submit"')
 
@@ -2240,6 +2241,7 @@ msgstr "Azul"
         # fetch should now show the count
         response = self.assertUpdateFetch(interrupt_url, [self.admin], form_fields=("archive",))
         self.assertEqual(15, response.context["run_count"])
+        self.assertTrue(response.context["can_interrupt"])
         self.assertTrue(response.context["can_archive"])
         self.assertContains(response, "15")
         self.assertContains(response, '<input type="submit"')
@@ -2281,7 +2283,7 @@ msgstr "Azul"
         response = self.assertUpdateFetch(campaign_interrupt_url, [self.admin], form_fields=("archive",))
         self.assertFalse(response.context["can_archive"])
         self.assertContains(response, "used by active campaigns")
-        self.assertNotContains(response, "Also Archive")
+        self.assertNotContains(response, "Archive Flow")
 
         # submit the interrupt with archive option - should not archive because of campaigns
         mr_mocks.calls.clear()
@@ -2291,3 +2293,42 @@ msgstr "Azul"
 
         campaign_flow.refresh_from_db()
         self.assertFalse(campaign_flow.is_archived)
+
+        # test blocking when an interruption is already in progress
+        r = get_valkey_connection()
+        in_progress_flow = self.create_flow("In Progress Flow")
+        in_progress_flow.counts.create(scope=f"status:{FlowRun.STATUS_WAITING}", count=5)
+        in_progress_url = reverse("flows.flow_interrupt", args=[in_progress_flow.uuid])
+
+        # set the redis key to indicate an interruption is in progress
+        progress_key = f"interrupt_flow_progress:{in_progress_flow.id}"
+        r.set(progress_key, 10)
+
+        # fetch should show that we can't interrupt
+        response = self.assertUpdateFetch(in_progress_url, [self.admin], form_fields=("archive",))
+        self.assertFalse(response.context["can_interrupt"])
+
+        # try to submit the interrupt - should be blocked
+        mr_mocks.calls.clear()
+        self.requestView(in_progress_url, self.admin, post_data={})
+
+        # should NOT have called mailroom
+        self.assertEqual([], mr_mocks.calls["flow_interrupt"])
+
+        # clean up the redis key
+        r.delete(progress_key)
+
+        # now it should work
+        response = self.assertUpdateFetch(in_progress_url, [self.admin], form_fields=("archive",))
+        self.assertTrue(response.context["can_interrupt"])
+
+        self.requestView(in_progress_url, self.admin, post_data={})
+        self.assertEqual([call(self.org, in_progress_flow)], mr_mocks.calls["flow_interrupt"])
+
+        # test with redis key set to 0 (interruption complete)
+        r.set(progress_key, 0)
+        response = self.assertUpdateFetch(in_progress_url, [self.admin], form_fields=("archive",))
+        self.assertTrue(response.context["can_interrupt"])
+
+        # clean up
+        r.delete(progress_key)
