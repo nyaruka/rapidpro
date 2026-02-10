@@ -2220,7 +2220,7 @@ msgstr "Azul"
         # fetch should now show the count
         response = self.assertUpdateFetch(interrupt_url, [self.admin], form_fields=("archive",))
         self.assertEqual(15, response.context["run_count"])
-        self.assertFalse(response.context["has_campaigns"])
+        self.assertTrue(response.context["can_archive"])
         self.assertContains(response, "15")
         self.assertContains(response, '<input type="submit"')
 
@@ -2259,7 +2259,7 @@ msgstr "Azul"
 
         # fetch the interrupt modal - should show warning instead of archive checkbox
         response = self.assertUpdateFetch(campaign_interrupt_url, [self.admin], form_fields=("archive",))
-        self.assertTrue(response.context["has_campaigns"])
+        self.assertFalse(response.context["can_archive"])
         self.assertContains(response, "used by active campaigns")
         self.assertNotContains(response, "Also Archive")
 
