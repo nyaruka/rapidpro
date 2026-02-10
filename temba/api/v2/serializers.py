@@ -1468,6 +1468,13 @@ class MsgWriteSerializer(WriteSerializer):
         if not (data.get("text") or data.get("attachments")):
             raise serializers.ValidationError("Must provide either text or attachments.")
 
+        ticket = data.get("ticket")
+        if ticket and ticket.assignee != self.context["user"]:
+            org = self.context["org"]
+            membership = org.get_membership(self.context["user"])
+            if membership and not membership.can_reply_non_own:
+                raise serializers.ValidationError("You do not have permission to reply to tickets not assigned to you.")
+
         return data
 
     def save(self):
@@ -1744,6 +1751,14 @@ class TicketBulkActionSerializer(WriteSerializer):
             raise serializers.ValidationError('For action "%s" you must specify the note' % action)
         elif action == self.ACTION_CHANGE_TOPIC and not data.get("topic"):
             raise serializers.ValidationError('For action "%s" you must specify the topic' % action)
+
+        # check user has permission to assign tickets
+        if action == self.ACTION_ASSIGN:
+            org = self.context["org"]
+            user = self.context["user"]
+            membership = org.get_membership(user)
+            if membership and not membership.can_assign:
+                raise serializers.ValidationError("You do not have permission to assign tickets.")
 
         return data
 

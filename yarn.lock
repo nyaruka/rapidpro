@@ -120,10 +120,10 @@
     uuid "^11.1.0"
     zustand "^5.0.3"
 
-"@nyaruka/temba-components@0.138.4":
-  version "0.138.4"
-  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.138.4.tgz#77c1a119960c7f4145e57766d47a80e29cf3de5b"
-  integrity sha512-W6AaIbLLPA5OyCk3PFnenzW+Nv5IO09fjD8FStfWWsDPWW04LS+aP+rMyl0QhvRyuyDX5ix0xt3Ld6Lv2PLtPw==
+"@nyaruka/temba-components@0.138.6":
+  version "0.138.6"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.138.6.tgz#c618f02ad48746e331f1c526af32644234351aa3"
+  integrity sha512-dNBM14oiRZC9ENAeWJ4FfHTWDYiLcoMGP26b5OQREoOyNa+rMVuqsTS5y/9NnoYPNU9hV/qTN6TN0OV+8iCvHw==
   dependencies:
     "@jsplumb/browser-ui" "^6.2.10"
     "@lit/localize" "^0.12.1"

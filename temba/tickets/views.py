@@ -336,6 +336,11 @@ class TicketCRUDL(SmartCRUDL):
             if assignee_uuid and isinstance(folder, AllFolder):
                 context["assignee_uuid"] = assignee_uuid
 
+            # pass agent permission flags to template
+            membership = self.request.org.get_membership(self.request.user)
+            context["can_assign"] = membership.can_assign if membership else True
+            context["can_reply_non_own"] = membership.can_reply_non_own if membership else True
+
             return context
 
         def build_context_menu(self, menu):
