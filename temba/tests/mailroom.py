@@ -18,7 +18,7 @@ from temba.flows.models import FlowRun, FlowSession, FlowStart
 from temba.locations.models import AdminBoundary
 from temba.mailroom.client.client import MailroomClient
 from temba.mailroom.modifiers import Modifier
-from temba.msgs.models import Broadcast, Msg, QuickReply
+from temba.msgs.models import Broadcast, Msg
 from temba.schedules.models import Schedule
 from temba.tests.dates import parse_datetime
 from temba.tickets.models import Ticket
@@ -423,8 +423,8 @@ class TestClient(MailroomClient):
         }
         if msg.attachments:
             msg_json["attachments"] = msg.attachments
-        if msg.quick_replies:
-            msg_json["quick_replies"] = msg.get_quick_replies()
+        if msg.quickreplies:
+            msg_json["quick_replies"] = msg.quickreplies
 
         event_json = {
             "uuid": str(msg.uuid),
@@ -937,7 +937,6 @@ def send_to_contact(org, contact, text: str, attachments: list[str], quick_repli
         failed_reason=failed_reason,
         text=text or "",
         attachments=attachments or [],
-        quick_replies=[QuickReply.encode(qr) for qr in quick_replies],
         quickreplies=quick_replies,
         msg_type=Msg.TYPE_TEXT,
         is_android=False,

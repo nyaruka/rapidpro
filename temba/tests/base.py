@@ -396,7 +396,7 @@ class TembaTest(SmartminTest):
             contact_urn=contact_urn,
             text=text,
             attachments=attachments,
-            quick_replies=quick_replies,
+            quickreplies=quick_replies,
             locale=locale,
             channel=channel,
             status=status or (Msg.STATUS_PENDING if direction == Msg.DIRECTION_IN else Msg.STATUS_INITIALIZING),

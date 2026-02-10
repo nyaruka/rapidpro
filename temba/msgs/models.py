@@ -416,42 +416,6 @@ class Attachment:
         return f"{self.content_type}:{self.url}"
 
 
-class QuickReply:
-    """
-    Helper for quick replies encoded as strings: text or text<extra>extra or <location>text
-    """
-
-    @classmethod
-    def decode(cls, s: str) -> dict:
-        if s.startswith("<location>"):
-            typ = "location"
-            text = s[10:] or None
-            extra = None
-        else:
-            parts = s.split("<extra>", 1)
-            typ = "text"
-            text = parts[0]
-            extra = parts[1] if len(parts) > 1 else None
-
-        qr = {"type": typ}
-        if text:
-            qr["text"] = text
-        if extra:
-            qr["extra"] = extra
-        return qr
-
-    @classmethod
-    def encode(cls, qr: dict) -> str:
-        text = qr.get("text", "")
-        extra = qr.get("extra")
-
-        if qr["type"] == "location":
-            return "<location>" + text
-        if extra:
-            return text + "<extra>" + extra
-        return text
-
-
 class Msg(models.Model):
     """
     Messages are either inbound or outbound and can have varying statuses depending on their direction. Generally an
@@ -590,9 +554,6 @@ class Msg(models.Model):
 
     log_uuids = ArrayField(models.UUIDField(), null=True)
 
-    # TODO replace with quickreplies since we can't alter this without a table rewrite
-    quick_replies = ArrayField(models.CharField(max_length=64), null=True)
-
     def as_archive_json(self):
         """
         Returns this message in the same format as archived by rp-archiver which is based on the API format
@@ -624,15 +585,6 @@ class Msg(models.Model):
         Gets this message's attachments parsed into objects
         """
         return Attachment.parse_all(self.attachments)
-
-    def get_quick_replies(self) -> list[dict]:
-        """
-        Gets this message's quick replies
-        """
-        if self.quick_replies:
-            return [QuickReply.decode(qr) for qr in self.quick_replies]
-
-        return self.quickreplies or []
 
     def get_logs(self) -> list:
         return ChannelLog.get_by_uuid(self.channel, self.log_uuids or [])
