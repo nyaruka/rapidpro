@@ -1,3 +1,11 @@
+v26.1.22 (2026-02-10)
+-------------------------
+ * Remove deprecated and never publicized ticket param from messages endpoint
+ * Change flow bulk archiving to also exclude flows with ongoing runs.
+ * Data migration to backfill new quick replies field
+ * Update temba-components to 0.138.6
+ * Add agent access options (can_assign / can_reply_non_own)
+
 v26.1.21 (2026-02-10)
 -------------------------
  * Tweak flow interrupt view to include active runs in count as well
