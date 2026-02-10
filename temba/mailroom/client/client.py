@@ -314,7 +314,7 @@ class MailroomClient:
             {"org_id": org.id, "user_id": user.id, "msg_uuids": [str(m.uuid) for m in msgs]},
         )
 
-    def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[dict], ticket):
+    def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[dict], ticket=None):
         return self._request(
             "msg/send",
             {
