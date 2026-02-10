@@ -1,3 +1,7 @@
+v26.1.21 (2026-02-10)
+-------------------------
+ * Tweak flow interrupt view to include active runs in count as well
+
 v26.1.20 (2026-02-09)
 -------------------------
  * Fix ticket filters and leaderboard layout
