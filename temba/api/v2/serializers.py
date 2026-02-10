@@ -1462,18 +1462,10 @@ class MsgWriteSerializer(WriteSerializer):
     quick_replies = serializers.ListField(
         required=False, child=fields.QuickReplySerializer(), max_length=Msg.MAX_QUICK_REPLIES
     )
-    ticket = fields.TicketField(required=False)  # deprecated and undocumented
 
     def validate(self, data):
         if not (data.get("text") or data.get("attachments")):
             raise serializers.ValidationError("Must provide either text or attachments.")
-
-        ticket = data.get("ticket")
-        if ticket and ticket.assignee != self.context["user"]:
-            org = self.context["org"]
-            membership = org.get_membership(self.context["user"])
-            if membership and not membership.can_reply_non_own:
-                raise serializers.ValidationError("You do not have permission to reply to tickets not assigned to you.")
 
         return data
 
@@ -1484,9 +1476,8 @@ class MsgWriteSerializer(WriteSerializer):
         text = self.validated_data.get("text")
         attachments = [str(m) for m in self.validated_data.get("attachments", [])]
         quick_replies = self.validated_data.get("quick_replies", [])
-        ticket = self.validated_data.get("ticket")
 
-        resp = mailroom.get_client().msg_send(org, user, contact, text or "", attachments, quick_replies, ticket)
+        resp = mailroom.get_client().msg_send(org, user, contact, text or "", attachments, quick_replies)
 
         # to avoid fetching the new msg from the database, construct transient instances to pass to the serializer
         channel = None

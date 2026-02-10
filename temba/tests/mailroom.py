@@ -414,7 +414,7 @@ class TestClient(MailroomClient):
         return {"msg_uuids": [str(m.uuid) for m in msgs]}
 
     @_client_method
-    def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[dict], ticket):
+    def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[dict], ticket=None):
         msg = send_to_contact(org, contact, text, attachments, quick_replies)
         msg_json = {
             "channel": {"uuid": str(msg.channel.uuid), "name": msg.channel.name} if msg.channel else None,

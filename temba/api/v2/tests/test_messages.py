@@ -226,7 +226,7 @@ class MessagesEndpointTest(APITest):
         )
 
         self.assertEqual(
-            call(self.org, self.admin, joe, "Interesting", [], [], None),
+            call(self.org, self.admin, joe, "Interesting", [], []),
             mr_mocks.calls["msg_send"][-1],
         )
 
@@ -251,7 +251,7 @@ class MessagesEndpointTest(APITest):
         # create a new message with an attachment as the media UUID...
         self.assertPost(endpoint_url, self.admin, {"contact": joe.uuid, "attachments": [str(upload.uuid)]}, status=201)
         self.assertEqual(  # check that was sent via mailroom
-            call(self.org, self.admin, joe, "", [f"image/jpeg:{upload.url}"], [], None),
+            call(self.org, self.admin, joe, "", [f"image/jpeg:{upload.url}"], []),
             mr_mocks.calls["msg_send"][-1],
         )
 
@@ -263,7 +263,7 @@ class MessagesEndpointTest(APITest):
             status=201,
         )
         self.assertEqual(
-            call(self.org, self.admin, joe, "", [f"image/jpeg:{upload.url}"], [], None),
+            call(self.org, self.admin, joe, "", [f"image/jpeg:{upload.url}"], []),
             mr_mocks.calls["msg_send"][-1],
         )
 
@@ -311,7 +311,6 @@ class MessagesEndpointTest(APITest):
                     {"type": "text", "text": "Green", "extra": "Like grass"},
                     {"type": "text", "text": "Blue"},
                 ],
-                None,
             ),
             mr_mocks.calls["msg_send"][-1],
         )
@@ -344,55 +343,4 @@ class MessagesEndpointTest(APITest):
                 "visibility": "visible",
             },
             response.json(),
-        )
-
-    @mock_mailroom
-    def test_reply_non_own_permission(self, mr_mocks):
-        endpoint_url = reverse("api.v2.messages") + ".json"
-        joe = self.create_contact("Joe Blow", phone="+250788123123")
-        ticket = self.create_ticket(joe)
-
-        # restrict agent's ability to reply to non-own tickets
-        OrgMembership.objects.filter(org=self.org, user=self.agent).update(can_reply_non_own=False)
-        self.org._membership_cache = {}
-
-        # agent can't send message with unassigned ticket
-        self.assertPost(
-            endpoint_url,
-            self.agent,
-            {"contact": joe.uuid, "text": "Hello", "ticket": str(ticket.uuid)},
-            errors={"non_field_errors": "You do not have permission to reply to tickets not assigned to you."},
-        )
-
-        # assign ticket to the agent - now they can reply
-        ticket.assignee = self.agent
-        ticket.save(update_fields=("assignee",))
-
-        self.assertPost(
-            endpoint_url,
-            self.agent,
-            {"contact": joe.uuid, "text": "Hello", "ticket": str(ticket.uuid)},
-            status=201,
-        )
-
-        # assign ticket to someone else - agent can't reply
-        ticket.assignee = self.admin
-        ticket.save(update_fields=("assignee",))
-
-        self.assertPost(
-            endpoint_url,
-            self.agent,
-            {"contact": joe.uuid, "text": "Hello", "ticket": str(ticket.uuid)},
-            errors={"non_field_errors": "You do not have permission to reply to tickets not assigned to you."},
-        )
-
-        # restore permission
-        OrgMembership.objects.filter(org=self.org, user=self.agent).update(can_reply_non_own=True)
-        self.org._membership_cache = {}
-
-        self.assertPost(
-            endpoint_url,
-            self.agent,
-            {"contact": joe.uuid, "text": "Hello", "ticket": str(ticket.uuid)},
-            status=201,
         )
