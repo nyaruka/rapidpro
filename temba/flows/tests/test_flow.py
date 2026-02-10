@@ -4,7 +4,14 @@ from django.urls import reverse
 
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField, ContactGroup
-from temba.flows.models import Flow, FlowStart, FlowStartCount, FlowUserConflictException, FlowVersionConflictException
+from temba.flows.models import (
+    Flow,
+    FlowRun,
+    FlowStart,
+    FlowStartCount,
+    FlowUserConflictException,
+    FlowVersionConflictException,
+)
 from temba.flows.tasks import squash_flow_counts
 from temba.globals.models import Global
 from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
@@ -170,6 +177,30 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         campaign_event.save()
 
         # can archive if the campaign is not archived with no active event
+        Flow.apply_action_archive(self.admin, Flow.objects.filter(pk=flow.pk))
+
+        flow.refresh_from_db()
+        self.assertTrue(flow.is_archived)
+
+    @mock_mailroom
+    def test_flow_archive_with_ongoing_runs(self, mr_mocks):
+        self.login(self.admin)
+        flow = self.create_flow("Test Flow")
+
+        # add ongoing runs
+        flow.counts.create(scope=f"status:{FlowRun.STATUS_WAITING}", count=10)
+
+        # do not archive if flow has ongoing runs
+        Flow.apply_action_archive(self.admin, Flow.objects.filter(pk=flow.pk))
+
+        flow.refresh_from_db()
+        self.assertFalse(flow.is_archived)
+
+        # clear the waiting runs and add only completed
+        flow.counts.all().delete()
+        flow.counts.create(scope=f"status:{FlowRun.STATUS_COMPLETED}", count=10)
+
+        # can archive if no ongoing runs
         Flow.apply_action_archive(self.admin, Flow.objects.filter(pk=flow.pk))
 
         flow.refresh_from_db()

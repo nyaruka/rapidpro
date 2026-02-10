@@ -608,11 +608,14 @@ class FlowCRUDL(SmartCRUDL):
 
             if action == "archive":
                 ignored = objects.filter(is_archived=False)
-                if ignored:
-                    flow_names = ", ".join([f.name for f in ignored])
+                if ignored.exists():
+                    flow_names = ", ".join(f.name for f in ignored)
                     raise forms.ValidationError(
-                        _("The following flows are still used by campaigns so could not be archived: %(flows)s"),
-                        params={"flows": flow_names},
+                        _(
+                            "The following flows with active campaigns or ongoing runs cannot be "
+                            "archived: %(flows)s. Runs can be interrupted from the editor."
+                        )
+                        % {"flows": flow_names}
                     )
 
         def get_bulk_action_labels(self):

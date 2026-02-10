@@ -345,14 +345,24 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
     def apply_action_archive(cls, user, flows):
         from temba.campaigns.models import CampaignEvent
 
-        for flow in flows:
-            # don't archive flows that belong to campaigns
-            has_events = CampaignEvent.objects.filter(
-                is_active=True, flow=flow, campaign__org=flow.org, campaign__is_archived=False
-            ).exists()
+        # single query to get IDs of all flows used by active campaigns
+        campaign_flow_ids = set(
+            CampaignEvent.objects.filter(is_active=True, flow__in=flows, campaign__is_archived=False).values_list(
+                "flow_id", flat=True
+            )
+        )
 
-            if not has_events:
-                flow.archive(user)
+        non_campaign_flows = [f for f in flows if f.id not in campaign_flow_ids]
+
+        # single prefetch for run counts
+        cls.prefetch_run_counts(non_campaign_flows)
+
+        for flow in non_campaign_flows:
+            counts = flow.get_run_counts()
+            if counts[FlowRun.STATUS_ACTIVE] + counts[FlowRun.STATUS_WAITING] > 0:
+                continue
+
+            flow.archive(user)
 
     @classmethod
     def apply_action_restore(cls, user, flows):
