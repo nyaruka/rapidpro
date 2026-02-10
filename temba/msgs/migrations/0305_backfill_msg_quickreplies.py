@@ -10,7 +10,9 @@ def backfill_msg_quickreplies(apps, schema_editor):  # pragma: no cover
 
     while True:
         batch = list(
-            Msg.objects.filter(quick_replies__isnull=False, quickreplies__isnull=True).exclude(quick_replies=[])[:1000]
+            Msg.objects.filter(quick_replies__isnull=False, quickreplies__isnull=True)
+            .exclude(quick_replies=[])
+            .only("id", "quick_replies", "quickreplies")[:1000]
         )
         if not batch:
             break
