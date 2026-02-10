@@ -581,11 +581,31 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # try to archive flow used by campaign
         response = self.client.post(list_url, {"action": "archive", "objects": flow3.id})
-        # TODO: convert to temba-toast
-        # self.assertContains(response, "The following flows are still used by campaigns")
+        self.assertToast(
+            response,
+            "info",
+            "The following flows with active campaigns or ongoing runs cannot be "
+            "archived: Flow 3. Runs can be interrupted from the editor.",
+        )
 
         flow3.refresh_from_db()
         self.assertFalse(flow3.is_archived)
+
+        # create a flow with ongoing runs
+        flow4 = self.create_flow("Flow 4")
+        flow4.counts.create(scope=f"status:{FlowRun.STATUS_WAITING}", count=10)
+
+        # try to archive flow with ongoing runs
+        response = self.client.post(list_url, {"action": "archive", "objects": flow4.id})
+        self.assertToast(
+            response,
+            "info",
+            "The following flows with active campaigns or ongoing runs cannot be "
+            "archived: Flow 4. Runs can be interrupted from the editor.",
+        )
+
+        flow4.refresh_from_db()
+        self.assertFalse(flow4.is_archived)
 
         # archive first flow
         response = self.client.post(list_url, {"action": "archive", "objects": flow1.id})
