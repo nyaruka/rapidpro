@@ -1,3 +1,8 @@
+v26.1.23 (2026-02-11)
+-------------------------
+ * Don't allow interrupting a flow if an interruption is already in progress
+ * Drop Msg.quick_replies
+
 v26.1.22 (2026-02-10)
 -------------------------
  * Remove deprecated and never publicized ticket param from messages endpoint
