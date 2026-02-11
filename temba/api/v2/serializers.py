@@ -1410,7 +1410,7 @@ class MsgReadSerializer(ReadSerializer):
         return [a.as_json() for a in obj.get_attachments()]
 
     def get_quick_replies(self, obj):
-        return obj.get_quick_replies()
+        return obj.quickreplies or []
 
     def get_media(self, obj):
         return obj.attachments[0] if obj.attachments else None
