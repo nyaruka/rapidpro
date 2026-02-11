@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 import regex
+from django_valkey import get_valkey_connection
 from smartmin.views import (
     SmartCreateView,
     SmartCRUDL,
@@ -1566,7 +1567,7 @@ class FlowCRUDL(SmartCRUDL):
         class Form(forms.Form):
             archive = forms.BooleanField(
                 required=False,
-                label=_("Also Archive"),
+                label=_("Archive Flow"),
                 help_text=_("This will prevent new contacts from entering the flow."),
                 widget=CheckboxWidget(),
             )
@@ -1585,20 +1586,31 @@ class FlowCRUDL(SmartCRUDL):
             flow = self.get_object()
             counts = flow.get_run_counts()
             context["run_count"] = counts[FlowRun.STATUS_ACTIVE] + counts[FlowRun.STATUS_WAITING]
+            context["can_interrupt"] = self._can_interrupt(flow)
             context["can_archive"] = self._can_archive(flow)
             return context
 
         def form_valid(self, form):
             flow = self.get_object()
-            mailroom.get_client().flow_interrupt(flow.org, flow)
 
-            # Archive the flow if requested, but not if it has active campaign events
-            if form.cleaned_data.get("archive") and self._can_archive(flow):
-                flow.archive(self.request.user, interrupt_sessions=False)
+            if self._can_interrupt(flow):
+                mailroom.get_client().flow_interrupt(flow.org, flow)
+
+                # Archive the flow if requested, but not if it has active campaign events
+                if form.cleaned_data.get("archive") and self._can_archive(flow):
+                    flow.archive(self.request.user, interrupt_sessions=False)
 
             return self.render_modal_response(form)
 
-        def _can_archive(self, flow):
+        def _can_interrupt(self, flow) -> bool:
+            # Check if an interruption is already in progress
+            r = get_valkey_connection()
+            progress_key = f"interrupt_flow_progress:{flow.id}"
+            progress_value = r.get(progress_key)
+
+            return not progress_value or int(progress_value) == 0
+
+        def _can_archive(self, flow) -> bool:
             return not CampaignEvent.objects.filter(
                 is_active=True, flow=flow, campaign__org=flow.org, campaign__is_archived=False
             ).exists()
