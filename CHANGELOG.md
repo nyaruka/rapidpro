@@ -1,3 +1,7 @@
+v26.1.24 (2026-02-18)
+-------------------------
+ * Add create_indexes command to setup opensearch indexes
+
 v26.1.23 (2026-02-11)
 -------------------------
  * Don't allow interrupting a flow if an interruption is already in progress
