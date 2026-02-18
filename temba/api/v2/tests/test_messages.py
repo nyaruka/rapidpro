@@ -6,7 +6,6 @@ from django.utils import timezone
 
 from temba.api.v2.serializers import format_datetime
 from temba.msgs.models import Msg
-from temba.orgs.models import OrgMembership
 from temba.tests import mock_mailroom
 
 from . import APITest

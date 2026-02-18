@@ -585,6 +585,7 @@ class MsgCRUDL(SmartCRUDL):
                     name=_("Outbox"),
                     href=reverse("msgs.msg_outbox"),
                     count=counts[MsgFolder.OUTBOX],
+                    icon="template_pending" if counts[MsgFolder.OUTBOX] >= Org.OUTBOX_WARNING_THRESHOLD else None,
                 ),
                 self.create_menu_item(
                     menu_id="sent",
@@ -742,6 +743,11 @@ class MsgCRUDL(SmartCRUDL):
         folder = MsgFolder.OUTBOX
         bulk_actions = ()
         allow_export = True
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            context["outbox_warning"] = MsgFolder.OUTBOX.get_count(self.request.org) >= Org.OUTBOX_WARNING_THRESHOLD
+            return context
 
         def get_queryset(self, **kwargs):
             return super().get_queryset(**kwargs).select_related("contact", "channel", "flow")

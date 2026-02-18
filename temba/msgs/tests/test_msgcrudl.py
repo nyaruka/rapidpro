@@ -1,5 +1,5 @@
 from datetime import date, timedelta
-from unittest.mock import call
+from unittest.mock import call, patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -195,7 +195,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # check query count
         self.login(self.admin)
-        with self.assertNumQueries(10):
+        with self.assertNumQueries(11):
             self.client.get(outbox_url)
 
         # messages sorted by created_on
@@ -231,6 +231,17 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(outbox_url + "?search=klab")
         self.assertEqual([msg4, msg3, msg2], list(response.context_data["object_list"]))
+
+        # no outbox warning when under threshold
+        response = self.client.get(outbox_url)
+        self.assertFalse(response.context["outbox_warning"])
+        self.assertNotContains(response, "Your channels are taking a while")
+
+        # outbox warning shown when over threshold
+        with patch("temba.msgs.models.MsgFolder.OUTBOX.get_count", return_value=10_001):
+            response = self.client.get(outbox_url)
+            self.assertTrue(response.context["outbox_warning"])
+            self.assertContains(response, "Your channels are taking a while")
 
     def test_sent(self):
         contact1 = self.create_contact("Joe Blow", phone="+250788000001")
