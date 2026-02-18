@@ -1,5 +1,3 @@
-import json
-
 import boto3
 import requests
 from botocore.auth import SigV4Auth
@@ -8,22 +6,7 @@ from botocore.awsrequest import AWSRequest
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError
 
-MESSAGES_TEMPLATE = {
-    "index_patterns": ["messages*"],
-    "data_stream": {},
-    "priority": 100,
-    "template": {
-        "mappings": {
-            "properties": {
-                "@timestamp": {"type": "date"},
-                "org_id": {"type": "integer"},
-                "uuid": {"type": "keyword", "index": False},
-                "contact_uuid": {"type": "keyword", "index": False},
-                "text": {"type": "text"},
-            }
-        }
-    },
-}
+MESSAGES_TEMPLATE_FILE = "temba/utils/management/commands/data/os_messages.json"
 
 
 class Command(BaseCommand):
@@ -41,7 +24,9 @@ class Command(BaseCommand):
             self.stdout.write("Index template messages-template already exists")
             return
 
-        body = json.dumps(MESSAGES_TEMPLATE)
+        with open(MESSAGES_TEMPLATE_FILE, "r") as f:
+            body = f.read()
+
         resp = self._signed_request("PUT", f"{endpoint}/_index_template/messages-template", body=body)
         if resp.status_code not in (200, 201):
             raise CommandError(f"Failed to create index template: {resp.status_code} {resp.text}")
