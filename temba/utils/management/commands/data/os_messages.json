@@ -6,20 +6,20 @@
     "priority": 100,
     "template": {
         "settings": {
-            "tokenizer": {
-                "stop_filter": {
-                    "type": "stop",
-                    "stopwords": [
-                        "_arabic_",
-                        "_cjk_",
-                        "_english_",
-                        "_french_",
-                        "_russian_",
-                        "_spanish_"
-                    ]
-                }
-            },
             "analysis": {
+                "filter": {
+                    "stop_filter": {
+                        "type": "stop",
+                        "stopwords": [
+                            "_arabic_",
+                            "_cjk_",
+                            "_english_",
+                            "_french_",
+                            "_russian_",
+                            "_spanish_"
+                        ]
+                    }
+                },
                 "analyzer": {
                     "msg_text": {
                         "type": "custom",
