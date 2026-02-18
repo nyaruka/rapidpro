@@ -45,6 +45,8 @@ AWS_REGION = "us-east-1"
 DYNAMO_ENDPOINT_URL = f"http://{_localstack_host}:4566"
 DYNAMO_TABLE_PREFIX = "Test" if TESTING else "Temba"
 
+OPENSEARCH_MESSAGES_ENDPOINT = "https://opensearch:9200"
+
 # -----------------------------------------------------------------------------------
 # Storage
 # -----------------------------------------------------------------------------------
