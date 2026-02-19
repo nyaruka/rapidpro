@@ -1,3 +1,7 @@
+v26.1.26 (2026-02-19)
+-------------------------
+ * Tweak create_indexes
+
 v26.1.25 (2026-02-19)
 -------------------------
  * Create index should create actual index instead of template
