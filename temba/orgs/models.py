@@ -265,6 +265,7 @@ class Org(SmartModel):
     LIMIT_TEAMS = "teams"
 
     DELETE_DELAY_DAYS = 7  # how many days after releasing that an org is deleted
+    OUTBOX_WARNING_THRESHOLD = 10_000
 
     BLOCKER_SUSPENDED = _(
         "Sorry, your workspace is currently suspended. To re-enable starting flows and sending messages, please "

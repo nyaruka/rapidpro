@@ -1,6 +1,15 @@
 {% extends "orgs/base/list.html" %}
 {% load smartmin sms temba contacts i18n humanize channels %}
 
+{% block pre-table %}
+  {% if outbox_warning %}
+    <temba-alert level="warning" class="mb-4">
+      {% blocktrans trimmed %}
+        Your channels are taking a while to send messages. Please wait for the outbound queue to clear before sending new messages.
+      {% endblocktrans %}
+    </temba-alert>
+  {% endif %}
+{% endblock pre-table %}
 {% block modaxes %}
   <temba-modax header="{% trans "New Label" %}"
                endpoint="{% url 'msgs.label_create' %}"
