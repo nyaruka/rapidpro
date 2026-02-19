@@ -1,7 +1,8 @@
+import json
+
 import boto3
 import requests
-from botocore.auth import SigV4Auth
-from botocore.awsrequest import AWSRequest
+from botocore.exceptions import ClientError
 
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError
@@ -13,42 +14,50 @@ class Command(BaseCommand):
     help = "Creates OpenSearch indexes that don't already exist."
 
     def handle(self, *args, **kwargs):
-        endpoint = settings.OPENSEARCH_MESSAGES_ENDPOINT
-        if not endpoint:
-            raise CommandError("OPENSEARCH_MESSAGES_ENDPOINT is not configured")
+        with open(MESSAGES_INDEX_FILE, "r") as f:
+            schema = json.load(f)
 
-        endpoint = endpoint.rstrip("/")
+        if settings.OPENSEARCH_MESSAGES_COLLECTION:
+            self._create_serverless(schema)
+        elif settings.OPENSEARCH_ENDPOINT_URL:
+            self._create_local(schema)
+        else:
+            raise CommandError("OPENSEARCH_MESSAGES_COLLECTION or OPENSEARCH_ENDPOINT_URL must be configured")
 
-        resp = self._signed_request("HEAD", f"{endpoint}/messages")
+    def _create_serverless(self, schema: dict):
+        """Creates the index using the AWS OpenSearch Serverless API."""
+
+        client = boto3.client(
+            "opensearchserverless",
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_REGION,
+        )
+
+        try:
+            client.create_index(id=settings.OPENSEARCH_MESSAGES_COLLECTION, indexName="messages", indexSchema=schema)
+        except client.exceptions.ConflictException:
+            self.stdout.write("Index messages already exists")
+            return
+        except ClientError as e:
+            raise CommandError(f"Failed to create index: {e}")
+
+        self.stdout.write("Created index messages")
+
+    def _create_local(self, schema: dict):
+        """Creates the index using the OpenSearch REST API."""
+
+        endpoint = settings.OPENSEARCH_ENDPOINT_URL.rstrip("/")
+
+        resp = requests.head(f"{endpoint}/messages")
         if resp.status_code == 200:
             self.stdout.write("Index messages already exists")
             return
         elif resp.status_code != 404:
             raise CommandError(f"Failed to check index: {resp.status_code} {resp.text}")
 
-        with open(MESSAGES_INDEX_FILE, "r") as f:
-            body = f.read()
-
-        resp = self._signed_request("PUT", f"{endpoint}/messages", body=body)
+        resp = requests.put(f"{endpoint}/messages", json=schema)
         if resp.status_code not in (200, 201):
             raise CommandError(f"Failed to create index: {resp.status_code} {resp.text}")
 
         self.stdout.write("Created index messages")
-
-    def _signed_request(self, method, url, body=None):
-        """Makes a SigV4-signed request to AWS OpenSearch Serverless."""
-
-        session = boto3.Session(
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_REGION,
-        )
-        credentials = session.get_credentials().get_frozen_credentials()
-
-        headers = {"Content-Type": "application/json"}
-        aws_request = AWSRequest(method=method, url=url, data=body, headers=headers)
-        service = "aoss" if ".aoss." in url else "es"
-
-        SigV4Auth(credentials, service, settings.AWS_REGION).add_auth(aws_request)
-
-        return requests.request(method=method, url=url, data=body, headers=dict(aws_request.headers))
