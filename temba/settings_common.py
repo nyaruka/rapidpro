@@ -46,7 +46,7 @@ DYNAMO_ENDPOINT_URL = f"http://{_localstack_host}:4566"
 DYNAMO_TABLE_PREFIX = "Test" if TESTING else "Temba"
 
 OPENSEARCH_ENDPOINT_URL = "http://opensearch:9200"
-OPENSEARCH_MESSAGES_COLLECTION = None
+OPENSEARCH_MESSAGES_COLLECTION_ID = None
 
 # -----------------------------------------------------------------------------------
 # Storage
