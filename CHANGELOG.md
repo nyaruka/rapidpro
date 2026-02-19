@@ -1,3 +1,9 @@
+v26.1.25 (2026-02-19)
+-------------------------
+ * Create index should create actual index instead of template
+ * Update @nyaruka/temba-components to 0.139.0
+ * Add outbox message queue warning
+
 v26.1.24 (2026-02-18)
 -------------------------
  * Add create_indexes command to setup opensearch indexes
