@@ -6,11 +6,11 @@ from botocore.awsrequest import AWSRequest
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError
 
-MESSAGES_TEMPLATE_FILE = "temba/utils/management/commands/data/os_messages.json"
+MESSAGES_INDEX_FILE = "temba/utils/management/commands/data/os_messages.json"
 
 
 class Command(BaseCommand):
-    help = "Creates OpenSearch index templates that don't already exist."
+    help = "Creates OpenSearch indexes that don't already exist."
 
     def handle(self, *args, **kwargs):
         endpoint = settings.OPENSEARCH_MESSAGES_ENDPOINT
@@ -19,19 +19,21 @@ class Command(BaseCommand):
 
         endpoint = endpoint.rstrip("/")
 
-        resp = self._signed_request("GET", f"{endpoint}/_index_template/messages-template")
+        resp = self._signed_request("HEAD", f"{endpoint}/messages")
         if resp.status_code == 200:
-            self.stdout.write("Index template messages-template already exists")
+            self.stdout.write("Index messages already exists")
             return
+        elif resp.status_code != 404:
+            raise CommandError(f"Failed to check index: {resp.status_code} {resp.text}")
 
-        with open(MESSAGES_TEMPLATE_FILE, "r") as f:
+        with open(MESSAGES_INDEX_FILE, "r") as f:
             body = f.read()
 
-        resp = self._signed_request("PUT", f"{endpoint}/_index_template/messages-template", body=body)
+        resp = self._signed_request("PUT", f"{endpoint}/messages", body=body)
         if resp.status_code not in (200, 201):
-            raise CommandError(f"Failed to create index template: {resp.status_code} {resp.text}")
+            raise CommandError(f"Failed to create index: {resp.status_code} {resp.text}")
 
-        self.stdout.write("Created index template messages-template")
+        self.stdout.write("Created index messages")
 
     def _signed_request(self, method, url, body=None):
         """Makes a SigV4-signed request to AWS OpenSearch Serverless."""

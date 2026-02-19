@@ -1,57 +1,50 @@
 {
-    "index_patterns": [
-        "messages*"
-    ],
-    "data_stream": {},
-    "priority": 100,
-    "template": {
-        "settings": {
-            "analysis": {
-                "filter": {
-                    "stop_filter": {
-                        "type": "stop",
-                        "stopwords": [
-                            "_arabic_",
-                            "_cjk_",
-                            "_english_",
-                            "_french_",
-                            "_russian_",
-                            "_spanish_"
-                        ]
-                    }
-                },
-                "analyzer": {
-                    "msg_text": {
-                        "type": "custom",
-                        "tokenizer": "standard",
-                        "filter": [
-                            "lowercase",
-                            "stop_filter"
-                        ]
-                    }
+    "settings": {
+        "analysis": {
+            "filter": {
+                "stop_filter": {
+                    "type": "stop",
+                    "stopwords": [
+                        "_arabic_",
+                        "_cjk_",
+                        "_english_",
+                        "_french_",
+                        "_russian_",
+                        "_spanish_"
+                    ]
+                }
+            },
+            "analyzer": {
+                "msg_text": {
+                    "type": "custom",
+                    "tokenizer": "standard",
+                    "filter": [
+                        "lowercase",
+                        "stop_filter"
+                    ]
                 }
             }
-        },
-        "mappings": {
-            "properties": {
-                "@timestamp": {
-                    "type": "date"
-                },
-                "org_id": {
-                    "type": "integer"
-                },
-                "uuid": {
-                    "type": "keyword",
-                    "index": false
-                },
-                "contact_uuid": {
-                    "type": "keyword",
-                    "index": false
-                },
-                "text": {
-                    "type": "text",
-                    "analyzer": "msg_text"
-                }
+        }
+    },
+    "mappings": {
+        "properties": {
+            "@timestamp": {
+                "type": "date"
+            },
+            "org_id": {
+                "type": "integer"
+            },
+            "uuid": {
+                "type": "keyword",
+                "index": false
+            },
+            "contact_uuid": {
+                "type": "keyword",
+                "index": false
+            },
+            "text": {
+                "type": "text",
+                "analyzer": "msg_text"
             }
         }
     }
