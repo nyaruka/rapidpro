@@ -1,3 +1,8 @@
+v26.1.27 (2026-02-20)
+-------------------------
+ * Fix total ticks for HOD chart
+ * Let msg_console command read COURIERURL from env
+
 v26.1.26 (2026-02-19)
 -------------------------
  * Tweak create_indexes
