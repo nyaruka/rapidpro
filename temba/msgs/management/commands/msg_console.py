@@ -1,3 +1,5 @@
+import os
+
 import requests
 from colorama import Fore, init as colorama_init
 from requests.exceptions import ConnectionError
@@ -8,7 +10,7 @@ from temba.contacts.models import URN
 from temba.orgs.models import Org
 from temba.tests.integration import Messenger
 
-COURIER_URL = "http://localhost:8080"
+COURIER_URL = os.environ.get("COURIER_URL", "http://localhost:8080")
 DEFAULT_ORG = "1"
 DEFAULT_URN = "tel:+250788123123"
 
