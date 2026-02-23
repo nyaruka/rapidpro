@@ -1,3 +1,7 @@
+v26.1.29 (2026-02-23)
+-------------------------
+ * Add msg_search to mailroom client
+
 v26.1.28 (2026-02-23)
 -------------------------
  * Tweak create_indexes
