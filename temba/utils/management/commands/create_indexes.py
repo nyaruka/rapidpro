@@ -7,7 +7,8 @@ from botocore.exceptions import ClientError
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError
 
-MESSAGES_INDEX_FILE = "temba/utils/management/commands/data/os_messages.json"
+MESSAGES_INDEX_FILE = "temba/utils/management/commands/data/os_messages-tickets.json"
+MESSAGES_INDEX_NAME = "messages-tickets-v1"
 
 
 class Command(BaseCommand):
@@ -18,13 +19,13 @@ class Command(BaseCommand):
             schema = json.load(f)
 
         if settings.OPENSEARCH_MESSAGES_COLLECTION_ID:
-            self._create_serverless(schema)
+            self._create_serverless(MESSAGES_INDEX_NAME, schema)
         elif settings.OPENSEARCH_ENDPOINT_URL:
-            self._create_local(schema)
+            self._create_local(MESSAGES_INDEX_NAME, schema)
         else:
             raise CommandError("OPENSEARCH_MESSAGES_COLLECTION_ID or OPENSEARCH_ENDPOINT_URL must be configured")
 
-    def _create_serverless(self, schema: dict):
+    def _create_serverless(self, name: str, schema: dict):
         """Creates the index using the AWS OpenSearch Serverless API."""
 
         client = boto3.client(
@@ -35,29 +36,29 @@ class Command(BaseCommand):
         )
 
         try:
-            client.create_index(id=settings.OPENSEARCH_MESSAGES_COLLECTION_ID, indexName="messages", indexSchema=schema)
+            client.create_index(id=settings.OPENSEARCH_MESSAGES_COLLECTION_ID, indexName=name, indexSchema=schema)
         except client.exceptions.ConflictException:
-            self.stdout.write("Index messages already exists")
+            self.stdout.write(f"Index {name} already exists")
             return
         except ClientError as e:
             raise CommandError(f"Failed to create index: {e}")
 
-        self.stdout.write("Created index messages")
+        self.stdout.write(f"Created index {name}")
 
-    def _create_local(self, schema: dict):
+    def _create_local(self, name: str, schema: dict):
         """Creates the index using the OpenSearch REST API."""
 
         endpoint = settings.OPENSEARCH_ENDPOINT_URL.rstrip("/")
 
-        resp = requests.head(f"{endpoint}/messages")
+        resp = requests.head(f"{endpoint}/{name}")
         if resp.status_code == 200:
-            self.stdout.write("Index messages already exists")
+            self.stdout.write(f"Index {name} already exists")
             return
         elif resp.status_code != 404:
             raise CommandError(f"Failed to check index: {resp.status_code} {resp.text}")
 
-        resp = requests.put(f"{endpoint}/messages", json=schema)
+        resp = requests.put(f"{endpoint}/{name}", json=schema)
         if resp.status_code not in (200, 201):
             raise CommandError(f"Failed to create index: {resp.status_code} {resp.text}")
 
-        self.stdout.write("Created index messages")
+        self.stdout.write(f"Created index {name}")
