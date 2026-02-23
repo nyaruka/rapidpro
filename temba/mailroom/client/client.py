@@ -22,6 +22,8 @@ from .types import (
     ContactSpec,
     Exclusions,
     Inclusions,
+    MessageSearchResult,
+    MessageSearchResults,
     ParsedQuery,
     QueryMetadata,
     RecipientsPreview,
@@ -312,6 +314,14 @@ class MailroomClient:
         return self._request(
             "msg/resend",
             {"org_id": org.id, "user_id": user.id, "msg_uuids": [str(m.uuid) for m in msgs]},
+        )
+
+    def msg_search(self, org, text: str) -> MessageSearchResults:
+        resp = self._request("msg/search", {"org_id": org.id, "text": text})
+
+        return MessageSearchResults(
+            total=resp["total"],
+            results=[MessageSearchResult(contact_uuid=r["contact"]["uuid"], event=r["event"]) for r in resp["results"]],
         )
 
     def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[dict], ticket=None):
