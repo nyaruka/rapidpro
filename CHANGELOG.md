@@ -1,3 +1,7 @@
+v26.1.31 (2026-02-24)
+-------------------------
+ * Update @nyaruka/temba-components to 0.140.0
+
 v26.1.30 (2026-02-24)
 -------------------------
  * Tweak settings for OpenSearch collection IDs
