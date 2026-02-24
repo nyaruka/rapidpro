@@ -1,3 +1,7 @@
+v26.1.30 (2026-02-24)
+-------------------------
+ * Tweak settings for OpenSearch collection IDs
+
 v26.1.29 (2026-02-23)
 -------------------------
  * Add msg_search to mailroom client
