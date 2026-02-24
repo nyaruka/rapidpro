@@ -52,7 +52,8 @@ dependencies = [
     "slack-sdk ~= 3.17.0",
     "openai (>=1.66.3,<2.0.0)",
     "anthropic (>=0.54.0,<1.0.0)",
-    "fido2 (>=2.0.0,<3.0.0)"
+    "fido2 (>=2.0.0,<3.0.0)",
+    "opensearch-py (>=2.8.0,<3.0.0)"
 ]
 
 [project.urls]
