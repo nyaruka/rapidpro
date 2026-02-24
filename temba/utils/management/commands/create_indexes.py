@@ -18,12 +18,12 @@ class Command(BaseCommand):
         with open(MESSAGES_INDEX_FILE, "r") as f:
             schema = json.load(f)
 
-        if settings.OPENSEARCH_MESSAGES_COLLECTION_ID:
+        if settings.OS_SERIES_COLLECTION_ID:
             self._create_serverless(MESSAGES_INDEX_NAME, schema)
         elif settings.OPENSEARCH_ENDPOINT_URL:
             self._create_local(MESSAGES_INDEX_NAME, schema)
         else:
-            raise CommandError("OPENSEARCH_MESSAGES_COLLECTION_ID or OPENSEARCH_ENDPOINT_URL must be configured")
+            raise CommandError("OS_SERIES_COLLECTION_ID or OPENSEARCH_ENDPOINT_URL must be configured")
 
     def _create_serverless(self, name: str, schema: dict):
         """Creates the index using the AWS OpenSearch Serverless API."""
@@ -36,7 +36,7 @@ class Command(BaseCommand):
         )
 
         try:
-            client.create_index(id=settings.OPENSEARCH_MESSAGES_COLLECTION_ID, indexName=name, indexSchema=schema)
+            client.create_index(id=settings.OS_SERIES_COLLECTION_ID, indexName=name, indexSchema=schema)
         except client.exceptions.ConflictException:
             self.stdout.write(f"Index {name} already exists")
             return
