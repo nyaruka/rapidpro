@@ -1,50 +1,46 @@
 {
-    "settings": {
-        "analysis": {
-            "filter": {
-                "stop_filter": {
-                    "type": "stop",
-                    "stopwords": [
-                        "_arabic_",
-                        "_cjk_",
-                        "_english_",
-                        "_french_",
-                        "_russian_",
-                        "_spanish_"
-                    ]
-                }
-            },
-            "analyzer": {
-                "msg_text": {
-                    "type": "custom",
-                    "tokenizer": "standard",
-                    "filter": [
-                        "lowercase",
-                        "stop_filter"
-                    ]
+    "index_patterns": ["messages-tickets-*"],
+    "template": {
+        "settings": {
+            "analysis": {
+                "filter": {
+                    "stop_filter": {
+                        "type": "stop",
+                        "stopwords": [
+                            "_arabic_",
+                            "_cjk_",
+                            "_english_",
+                            "_french_",
+                            "_russian_",
+                            "_spanish_"
+                        ]
+                    }
+                },
+                "analyzer": {
+                    "msg_text": {
+                        "type": "custom",
+                        "tokenizer": "standard",
+                        "filter": [
+                            "lowercase",
+                            "stop_filter"
+                        ]
+                    }
                 }
             }
-        }
-    },
-    "mappings": {
-        "properties": {
-            "@timestamp": {
-                "type": "date"
+        },
+        "mappings": {
+            "_routing": {
+                "required": true
             },
-            "org_id": {
-                "type": "integer"
-            },
-            "uuid": {
-                "type": "keyword",
-                "index": false
-            },
-            "contact_uuid": {
-                "type": "keyword",
-                "index": false
-            },
-            "text": {
-                "type": "text",
-                "analyzer": "msg_text"
+            "properties": {
+                "contact_uuid": {
+                    "type": "keyword",
+                    "index": false
+                },
+                "text": {
+                    "type": "text",
+                    "analyzer": "msg_text"
+                }
             }
         }
     }
