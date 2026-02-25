@@ -63,8 +63,8 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         # check that we have the appropriate bulk actions
         self.assertEqual(("archive", "label"), response.context["actions"])
 
-        # test searching
-        self.assertListFetch(inbox_url + "?search=joe", [self.editor, self.admin], context_objects=[msg2, msg1])
+        # test searching by message text
+        self.assertListFetch(inbox_url + "?search=number+1", [self.editor, self.admin], context_objects=[msg1])
 
         # error response if query too long
         self.assertListFetch(inbox_url + "?search=" + "x" * 1001, [self.editor], status=413)
@@ -162,9 +162,9 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertEqual(("restore", "label", "delete"), response.context["actions"])
 
-        # test searching
-        response = self.client.get(archived_url + "?search=joe")
-        self.assertEqual([msg2, msg1], list(response.context_data["object_list"]))
+        # test searching by message text
+        response = self.client.get(archived_url + "?search=number+1")
+        self.assertEqual([msg1], list(response.context_data["object_list"]))
 
         # editors can restore messages
         response = self.requestView(archived_url, self.editor, post_data={"action": "restore", "objects": [msg1.id]})
@@ -217,21 +217,6 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.assertListFetch(outbox_url, [self.admin], context_objects=[msg4, msg3, msg2, msg1])
 
-        response = self.client.get(outbox_url + "?search=kevin")
-        self.assertEqual([Msg.objects.get(contact=contact4)], list(response.context_data["object_list"]))
-
-        response = self.client.get(outbox_url + "?search=joe")
-        self.assertEqual([Msg.objects.get(contact=contact2)], list(response.context_data["object_list"]))
-
-        response = self.client.get(outbox_url + "?search=frank")
-        self.assertEqual([Msg.objects.get(contact=contact3)], list(response.context_data["object_list"]))
-
-        response = self.client.get(outbox_url + "?search=just")
-        self.assertEqual([], list(response.context_data["object_list"]))
-
-        response = self.client.get(outbox_url + "?search=klab")
-        self.assertEqual([msg4, msg3, msg2], list(response.context_data["object_list"]))
-
         # no outbox warning when under threshold
         response = self.client.get(outbox_url)
         self.assertFalse(response.context["outbox_warning"])
@@ -262,9 +247,6 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertListFetch(sent_url, [self.editor, self.admin], context_objects=[msg1, msg3, msg2])
 
         self.assertContains(response, reverse("channels.channel_logs_read", args=[msg1.channel.uuid, "msg", msg1.uuid]))
-
-        response = self.client.get(sent_url + "?search=joe")
-        self.assertEqual([msg1, msg2], list(response.context_data["object_list"]))
 
     @mock_mailroom
     def test_failed(self, mr_mocks):
@@ -342,9 +324,9 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         # check that non-visible messages are excluded, and messages and ordered newest to oldest
         self.assertEqual([msg6, msg3, msg2, msg1], list(response.context["object_list"]))
 
-        # search on label by contact name
-        response = self.client.get(f"{label3_url}?search=joe")
-        self.assertEqual({msg1, msg6}, set(response.context_data["object_list"]))
+        # search on label by message text
+        response = self.client.get(f"{label3_url}?search=test1")
+        self.assertEqual([msg1], list(response.context_data["object_list"]))
 
         self.assertContentMenu(label3_url, self.editor, ["Edit", "Delete", "-", "Export", "Usages"])
         self.assertContentMenu(label1_url, self.admin, ["Edit", "Delete", "-", "Export", "Usages"])
