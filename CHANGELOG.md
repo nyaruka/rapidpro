@@ -1,3 +1,9 @@
+v26.1.33 (2026-02-25)
+-------------------------
+ * Remove searching on outgoing views and limit searching on other views to just the message text
+ * Update @nyaruka/temba-components to 0.141.0
+ * Add voice flow icon to new flow editor and support modal positioning
+
 v26.1.32 (2026-02-24)
 -------------------------
  * Add management command to backfill messages into OpenSearch
