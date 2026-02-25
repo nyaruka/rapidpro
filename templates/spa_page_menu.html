@@ -26,7 +26,9 @@
         disabled: item.disabled,
         onSubmit: item.on_submit,
         onRedirect: item.on_redirect,
-        id: item.modal_id
+        id: item.modal_id,
+        originX: event.detail.originX,
+        originY: event.detail.originY
       }
       showModax(item.title, item.url, modaxOptions);
     } else if (item.type === 'url_post') {
