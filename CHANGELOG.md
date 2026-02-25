@@ -1,3 +1,9 @@
+v26.1.35 (2026-02-25)
+-------------------------
+ * backfill_msg_search includes all non-broadcast and non-flow messages with text of at least 2 characters and visible or archived.
+ * Update @nyaruka/temba-components to 0.141.1
+ * Update create_os_indexes command
+
 v26.1.34 (2026-02-25)
 -------------------------
  * Update create_os_indexes command
