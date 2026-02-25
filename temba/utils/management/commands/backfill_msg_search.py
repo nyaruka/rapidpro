@@ -5,6 +5,7 @@ from opensearchpy import AWSV4SignerAuth, OpenSearch, RequestsHttpConnection, he
 
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError
+from django.db.models import Q
 from django.db.models.functions import Length
 
 from temba.msgs.models import Msg
@@ -30,8 +31,7 @@ class Command(BaseCommand):
         queryset = (
             Msg.objects.annotate(text_len=Length("text"))
             .filter(
-                broadcast__isnull=True,
-                flow__isnull=True,
+                Q(direction=Msg.DIRECTION_IN) | Q(broadcast__isnull=True, created_by__isnull=False),
                 text_len__gte=2,
                 visibility__in=(Msg.VISIBILITY_VISIBLE, Msg.VISIBILITY_ARCHIVED),
             )
