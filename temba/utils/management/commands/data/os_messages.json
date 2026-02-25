@@ -1,5 +1,5 @@
 {
-    "index_patterns": ["messages-tickets-*"],
+    "index_patterns": ["messages-v1-*"],
     "template": {
         "settings": {
             "index": {

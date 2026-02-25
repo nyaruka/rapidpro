@@ -7,8 +7,8 @@ from opensearchpy import AWSV4SignerAuth, OpenSearch, RequestsHttpConnection
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError
 
-MESSAGES_TEMPLATE_FILE = "temba/utils/management/commands/data/os_messages-tickets.json"
-MESSAGES_TEMPLATE_NAME = "messages-tickets"
+MESSAGES_TEMPLATE_FILE = "temba/utils/management/commands/data/os_messages.json"
+MESSAGES_TEMPLATE_NAME = "messages-v1"
 
 
 class Command(BaseCommand):
