@@ -54,7 +54,6 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     """
 
     permission = "msgs.msg_list"
-    search_fields = ("text__icontains", "contact__name__icontains", "contact__urns__path__icontains")
     default_order = ("-created_on", "-id")
     allow_export = False
     bulk_actions = ()
@@ -82,7 +81,7 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
         qs = super().get_queryset(**kwargs)
 
         # if we are searching, limit to last 90, and enforce distinct since we'll be joining on multiple tables
-        if "search" in self.request.GET:
+        if self.search_fields and "search" in self.request.GET:
             last_90 = timezone.now() - timedelta(days=90)
 
             # we need to find get the field names we're ordering on without direction
@@ -98,7 +97,7 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
         folder = self.derive_folder()
 
         # if there isn't a search filtering the queryset, we can replace the count function with a pre-calculated value
-        if "search" not in self.request.GET:
+        if not self.search_fields or "search" not in self.request.GET:
             if isinstance(folder, Label):
                 patch_queryset_count(self.object_list, folder.get_visible_count)
             elif isinstance(folder, MsgFolder):
@@ -705,6 +704,7 @@ class MsgCRUDL(SmartCRUDL):
     class Inbox(MsgListView):
         title = _("Inbox")
         folder = MsgFolder.INBOX
+        search_fields = ("text__icontains",)
         bulk_actions = ("archive", "label")
         allow_export = True
         menu_path = "/msg/inbox"
@@ -720,6 +720,7 @@ class MsgCRUDL(SmartCRUDL):
     class Flow(MsgListView):
         title = _("Handled")
         folder = MsgFolder.HANDLED
+        search_fields = ("text__icontains",)
         bulk_actions = ("archive", "label")
         allow_export = True
         menu_path = "/msg/handled"
@@ -731,6 +732,7 @@ class MsgCRUDL(SmartCRUDL):
     class Archived(MsgListView):
         title = _("Archived")
         folder = MsgFolder.ARCHIVED
+        search_fields = ("text__icontains",)
         bulk_actions = ("restore", "label", "delete")
         allow_export = True
 
@@ -775,6 +777,7 @@ class MsgCRUDL(SmartCRUDL):
             return super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
 
     class Filter(MsgListView):
+        search_fields = ("text__icontains",)
         bulk_actions = ("label",)
 
         def derive_menu_path(self):
