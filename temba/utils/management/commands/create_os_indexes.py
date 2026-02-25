@@ -1,6 +1,8 @@
 import json
+from urllib.parse import urlparse
 
-import requests
+import boto3
+from opensearchpy import AWSV4SignerAuth, OpenSearch, RequestsHttpConnection
 
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError
@@ -16,25 +18,40 @@ class Command(BaseCommand):
         if not settings.OPENSEARCH_ENDPOINT_URL:
             raise CommandError("OPENSEARCH_ENDPOINT_URL must be configured")
 
+        client = self._get_client()
+
         with open(MESSAGES_TEMPLATE_FILE, "r") as f:
             schema = json.load(f)
 
-        self._create_template(MESSAGES_TEMPLATE_NAME, schema)
+        self._create_template(client, MESSAGES_TEMPLATE_NAME, schema)
 
-    def _create_template(self, name: str, schema: dict):
-        """Creates an index template using the OpenSearch REST API."""
+    def _create_template(self, client: OpenSearch, name: str, schema: dict):
+        """Creates an index template using the OpenSearch API."""
 
-        endpoint = settings.OPENSEARCH_ENDPOINT_URL.rstrip("/")
-
-        resp = requests.get(f"{endpoint}/_index_template/{name}")
-        if resp.status_code == 200:
+        if client.indices.exists_index_template(name):
             self.stdout.write(f"Index template {name} already exists")
             return
-        elif resp.status_code != 404:
-            raise CommandError(f"Failed to check index template: {resp.status_code} {resp.text}")
 
-        resp = requests.put(f"{endpoint}/_index_template/{name}", json=schema)
-        if resp.status_code not in (200, 201):
-            raise CommandError(f"Failed to create index template: {resp.status_code} {resp.text}")
-
+        client.indices.put_index_template(name, body=schema)
         self.stdout.write(f"Created index template {name}")
+
+    def _get_client(self) -> OpenSearch:
+        parsed = urlparse(settings.OPENSEARCH_ENDPOINT_URL)
+        use_ssl = parsed.scheme == "https"
+
+        kwargs = {}
+        if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
+            session = boto3.Session(
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_REGION,
+            )
+            kwargs["http_auth"] = AWSV4SignerAuth(session.get_credentials(), settings.AWS_REGION, service="es")
+
+        return OpenSearch(
+            hosts=[{"host": parsed.hostname, "port": parsed.port or (443 if use_ssl else 9200)}],
+            use_ssl=use_ssl,
+            verify_certs=use_ssl,
+            connection_class=RequestsHttpConnection,
+            **kwargs,
+        )
