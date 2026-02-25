@@ -45,10 +45,12 @@ class Command(BaseCommand):
         while True:
             qs = queryset.filter(uuid__lt=start_uuid) if start_uuid else queryset
             batch = list(qs[:BATCH_SIZE])
+            if not batch:
+                break
 
             actions = [
                 {
-                    "_op_type": "create",
+                    "_op_type": "index",
                     "_index": f"{MESSAGES_INDEX_BASE}-{msg.created_on.strftime('%Y-%m')}",
                     "_id": str(msg.uuid),
                     "_routing": str(msg.org_id),
