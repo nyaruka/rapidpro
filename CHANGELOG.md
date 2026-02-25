@@ -1,3 +1,7 @@
+v26.1.36 (2026-02-25)
+-------------------------
+ * Tweak backfill_msg_search yet again
+
 v26.1.35 (2026-02-25)
 -------------------------
  * backfill_msg_search includes all non-broadcast and non-flow messages with text of at least 2 characters and visible or archived.
