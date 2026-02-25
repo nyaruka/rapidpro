@@ -1,3 +1,7 @@
+v26.1.34 (2026-02-25)
+-------------------------
+ * Update create_os_indexes command
+
 v26.1.33 (2026-02-25)
 -------------------------
  * Remove searching on outgoing views and limit searching on other views to just the message text
