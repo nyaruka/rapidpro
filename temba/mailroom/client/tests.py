@@ -218,7 +218,11 @@ class MailroomClientTest(TembaTest):
         mock_post.assert_called_once_with(
             "http://localhost:8090/mr/contact/deindex",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
-            json={"org_id": self.org.id, "contact_ids": [ann.id, bob.id]},
+            json={
+                "org_id": self.org.id,
+                "contact_ids": [ann.id, bob.id],
+                "contact_uuids": [str(ann.uuid), str(bob.uuid)],
+            },
         )
 
     @patch("requests.post")

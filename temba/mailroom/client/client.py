@@ -93,7 +93,14 @@ class MailroomClient:
         return Contact.objects.get(id=resp["contact"]["id"])
 
     def contact_deindex(self, org, contacts):
-        return self._request("contact/deindex", {"org_id": org.id, "contact_ids": [c.id for c in contacts]})
+        return self._request(
+            "contact/deindex",
+            {
+                "org_id": org.id,
+                "contact_ids": [c.id for c in contacts],
+                "contact_uuids": [str(c.uuid) for c in contacts],
+            },
+        )
 
     def contact_export(self, org, group, query: str) -> list[int]:
         resp = self._request("contact/export", {"org_id": org.id, "group_id": group.id, "query": query})
