@@ -7,14 +7,22 @@ from opensearchpy import AWSV4SignerAuth, OpenSearch, RequestsHttpConnection
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError
 
-MESSAGES_TEMPLATE_FILE = "temba/utils/management/commands/data/os_messages-tickets.json"
-MESSAGES_TEMPLATE_NAME = "messages-tickets"
+MESSAGES_TEMPLATE_FILE = "temba/utils/management/commands/data/os_messages.json"
+MESSAGES_TEMPLATE_NAME = "messages-v1"
 
 
 class Command(BaseCommand):
-    help = "Creates OpenSearch index templates that don't already exist."
+    help = "Creates OpenSearch indices or templates that don't already exist."
 
-    def handle(self, *args, **kwargs):
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--shards", type=int, choices=range(1, 11), help="Override number of shards (1-10)", default=None
+        )
+        parser.add_argument(
+            "--replicas", type=int, choices=range(0, 3), help="Override number of replicas (0-2)", default=None
+        )
+
+    def handle(self, shards: int, replicas: int, *args, **options):
         if not settings.OPENSEARCH_ENDPOINT_URL:
             raise CommandError("OPENSEARCH_ENDPOINT_URL must be configured")
 
@@ -22,6 +30,11 @@ class Command(BaseCommand):
 
         with open(MESSAGES_TEMPLATE_FILE, "r") as f:
             schema = json.load(f)
+
+        if shards is not None:
+            schema["template"]["settings"]["index"]["number_of_shards"] = shards
+        if replicas is not None:
+            schema["template"]["settings"]["index"]["number_of_replicas"] = replicas
 
         self._create_template(client, MESSAGES_TEMPLATE_NAME, schema)
 

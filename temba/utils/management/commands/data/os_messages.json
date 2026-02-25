@@ -1,7 +1,12 @@
 {
-    "index_patterns": ["messages-tickets-*"],
+    "index_patterns": ["messages-v1-*"],
     "template": {
         "settings": {
+            "index": {
+                "number_of_shards": 3,
+                "number_of_replicas": 1,
+                "routing_partition_size": 1
+            },
             "analysis": {
                 "filter": {
                     "stop_filter": {

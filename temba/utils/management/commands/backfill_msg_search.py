@@ -9,7 +9,7 @@ from django.db.models.functions import Length
 
 from temba.msgs.models import Msg
 
-MESSAGES_INDEX_BASE = "messages-tickets"
+MESSAGES_INDEX_BASE = "messages-v1"
 BATCH_SIZE = 500
 
 
@@ -30,7 +30,8 @@ class Command(BaseCommand):
         queryset = (
             Msg.objects.annotate(text_len=Length("text"))
             .filter(
-                ticket_uuid__isnull=False,
+                broadcast__isnull=True,
+                flow__isnull=True,
                 text_len__gte=2,
                 visibility__in=(Msg.VISIBILITY_VISIBLE, Msg.VISIBILITY_ARCHIVED),
             )
