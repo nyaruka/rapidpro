@@ -34,8 +34,7 @@
             },
             "properties": {
                 "contact_uuid": {
-                    "type": "keyword",
-                    "index": false
+                    "type": "keyword"
                 },
                 "text": {
                     "type": "text",
