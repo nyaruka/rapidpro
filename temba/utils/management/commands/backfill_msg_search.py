@@ -9,7 +9,7 @@ from django.db.models.functions import Length
 
 from temba.msgs.models import Msg
 
-MESSAGES_INDEX_NAME = "messages-tickets-v1"
+MESSAGES_INDEX_BASE = "messages-tickets"
 BATCH_SIZE = 500
 
 
@@ -17,15 +17,15 @@ class Command(BaseCommand):
     help = "Backfills messages from the database into the OpenSearch messages index."
 
     def add_arguments(self, parser):
-        parser.add_argument("start_uuid", help="UUID of the message to start from (works backwards from here)")
+        parser.add_argument(
+            "--start-uuid", help="UUID of the message to start from (works backwards from here)", default=None
+        )
 
-    def handle(self, start_uuid: str, *args, **options):
-        os_client = self._get_os_client()
+    def handle(self, start_uuid: str | None, *args, **options):
+        if not settings.OPENSEARCH_ENDPOINT_URL:
+            raise CommandError("OPENSEARCH_ENDPOINT_URL must be configured")
 
-        try:
-            start_msg = Msg.objects.get(uuid=start_uuid)
-        except Msg.DoesNotExist:
-            raise CommandError(f"Message with UUID {start_uuid} not found")
+        os_client = self._get_client()
 
         queryset = (
             Msg.objects.annotate(text_len=Length("text"))
@@ -35,27 +35,24 @@ class Command(BaseCommand):
                 visibility__in=(Msg.VISIBILITY_VISIBLE, Msg.VISIBILITY_ARCHIVED),
             )
             .select_related("contact")
-            .order_by("-id")
+            .order_by("-uuid")
         )
 
         num_indexed = 0
         num_errored = 0
-        before_id = start_msg.id
         last_uuid = None
 
         while True:
-            batch = list(queryset.filter(id__lt=before_id)[:BATCH_SIZE])
-            if not batch:
-                break
+            qs = queryset.filter(uuid__lt=start_uuid) if start_uuid else queryset
+            batch = list(qs[:BATCH_SIZE])
 
             actions = [
                 {
                     "_op_type": "create",
-                    "_index": MESSAGES_INDEX_NAME,
+                    "_index": f"{MESSAGES_INDEX_BASE}-{msg.created_on.strftime('%Y-%m')}",
+                    "_id": str(msg.uuid),
+                    "_routing": str(msg.org_id),
                     "_source": {
-                        "@timestamp": msg.created_on.isoformat(),
-                        "org_id": msg.org_id,
-                        "uuid": str(msg.uuid),
                         "contact_uuid": str(msg.contact.uuid),
                         "text": msg.text,
                     },
@@ -73,8 +70,8 @@ class Command(BaseCommand):
                 self.stderr.write(f"Last UUID: {last_uuid}")
                 raise CommandError(f"Bulk indexing failed: {e}")
 
-            before_id = batch[-1].id
-            last_uuid = batch[-1].uuid
+            last_uuid = str(batch[-1].uuid)
+            start_uuid = last_uuid
 
             self.stdout.write(
                 f" > Indexed {num_indexed} messages "
@@ -84,35 +81,23 @@ class Command(BaseCommand):
 
         self.stdout.write(f"Done. Indexed {num_indexed} messages total ({num_errored} errored).")
 
-    def _get_os_client(self) -> OpenSearch:
-        if not settings.OS_SERIES_COLLECTION_ID:
-            raise CommandError("OS_SERIES_COLLECTION_ID must be configured")
+    def _get_client(self) -> OpenSearch:
+        parsed = urlparse(settings.OPENSEARCH_ENDPOINT_URL)
+        use_ssl = parsed.scheme == "https"
 
-        client = boto3.client(
-            "opensearchserverless",
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_REGION,
-        )
-        resp = client.batch_get_collection(ids=[settings.OS_SERIES_COLLECTION_ID])
-        details = resp.get("collectionDetails", [])
-        if not details:
-            raise CommandError(f"Collection {settings.OS_SERIES_COLLECTION_ID} not found")
-
-        endpoint = details[0]["collectionEndpoint"]
-        host = urlparse(endpoint).hostname
-
-        session = boto3.Session(
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_REGION,
-        )
-        auth = AWSV4SignerAuth(session.get_credentials(), settings.AWS_REGION, service="aoss")
+        kwargs = {}
+        if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
+            session = boto3.Session(
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_REGION,
+            )
+            kwargs["http_auth"] = AWSV4SignerAuth(session.get_credentials(), settings.AWS_REGION, service="es")
 
         return OpenSearch(
-            hosts=[{"host": host, "port": 443}],
-            http_auth=auth,
-            use_ssl=True,
-            verify_certs=True,
+            hosts=[{"host": parsed.hostname, "port": parsed.port or (443 if use_ssl else 9200)}],
+            use_ssl=use_ssl,
+            verify_certs=use_ssl,
             connection_class=RequestsHttpConnection,
+            **kwargs,
         )
