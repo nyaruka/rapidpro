@@ -321,10 +321,15 @@ class MailroomClient:
             {"org_id": org.id, "user_id": user.id, "msg_uuids": [str(m.uuid) for m in msgs]},
         )
 
-    def msg_search(self, org, text: str, contact=None) -> list[tuple[Contact, dict]]:
+    def msg_search(self, org, text: str, contact=None, in_ticket=False) -> list[tuple[Contact, dict]]:
         resp = self._request(
             "msg/search",
-            {"org_id": org.id, "text": text, "contact_uuid": str(contact.uuid) if contact else None},
+            {
+                "org_id": org.id,
+                "text": text,
+                "contact_uuid": str(contact.uuid) if contact else None,
+                "in_ticket": in_ticket,
+            },
         )
 
         contact_uuids = {r["contact"]["uuid"] for r in resp["results"]}
