@@ -323,8 +323,11 @@ class MailroomClient:
             {"org_id": org.id, "user_id": user.id, "msg_uuids": [str(m.uuid) for m in msgs]},
         )
 
-    def msg_search(self, org, text: str) -> MessageSearchResults:
-        resp = self._request("msg/search", {"org_id": org.id, "text": text})
+    def msg_search(self, org, text: str, contact=None) -> MessageSearchResults:
+        resp = self._request(
+            "msg/search",
+            {"org_id": org.id, "text": text, "contact_uuid": str(contact.uuid) if contact else None},
+        )
 
         return MessageSearchResults(
             total=resp["total"],
