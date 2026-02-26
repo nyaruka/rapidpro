@@ -59,6 +59,7 @@ class Command(BaseCommand):
                     "_source": {
                         "contact_uuid": str(msg.contact.uuid),
                         "text": msg.text,
+                        "in_ticket": msg.ticket_uuid is not None,
                     },
                 }
                 for msg in batch
