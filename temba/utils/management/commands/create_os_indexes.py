@@ -41,12 +41,8 @@ class Command(BaseCommand):
     def _create_template(self, client: OpenSearch, name: str, schema: dict):
         """Creates an index template using the OpenSearch API."""
 
-        if client.indices.exists_index_template(name):
-            self.stdout.write(f"Index template {name} already exists")
-            return
-
         client.indices.put_index_template(name, body=schema)
-        self.stdout.write(f"Created index template {name}")
+        self.stdout.write(f"Put index template {name}")
 
     def _get_client(self) -> OpenSearch:
         parsed = urlparse(settings.OPENSEARCH_ENDPOINT_URL)

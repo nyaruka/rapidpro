@@ -414,7 +414,7 @@ class TestClient(MailroomClient):
         return {}
 
     @_client_method
-    def msg_search(self, org, text: str, contact=None) -> list:
+    def msg_search(self, org, text: str, contact=None, in_ticket=False) -> list[tuple[Contact, dict]]:
         assert self.mocks._msg_search, "missing msg_search mock"
 
         return self.mocks._msg_search.pop(0)

@@ -44,6 +44,9 @@
                 "text": {
                     "type": "text",
                     "analyzer": "msg_text"
+                },
+                "in_ticket": {
+                    "type": "boolean"
                 }
             }
         }
