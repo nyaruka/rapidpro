@@ -716,8 +716,7 @@ class FlowCRUDL(SmartCRUDL):
 
     class Editor(SpaMixin, ContextMenuMixin, BaseReadView):
         def get(self, request, *args, **kwargs):
-            # Check if user has opted into the new editor (but not if we're already on the Next view)
-            if request.COOKIES.get("use_new_editor") == "true" and self.__class__.__name__ != "Next":
+            if request.COOKIES.get("use_beta_editor") == "true" and self.__class__.__name__ != "Next":
                 flow = self.get_object()
                 return HttpResponseRedirect(reverse("flows.flow_next", args=[flow.uuid]))
             return super().get(request, *args, **kwargs)
@@ -748,8 +747,6 @@ class FlowCRUDL(SmartCRUDL):
             context["active_start"] = flow.get_active_start()
             context["feature_filters"] = json.dumps(self.get_features(flow.org))
             context["default_topic"] = json.dumps(flow.org.default_topic.as_engine_ref())
-            context["show_new_editor_banner"] = self.request.GET.get("banner") == "1"
-
             return context
 
         def get_features(self, org) -> list:
@@ -827,14 +824,19 @@ class FlowCRUDL(SmartCRUDL):
                 if self.has_org_perm("flows.flow_update"):
                     menu.add_link(_("Import Translation"), reverse("flows.flow_import_translation", args=[obj.id]))
 
+            menu.new_group()
+            menu.add_js("enableBetaEditor", _("Try Beta Editor"))
+
     class Next(Editor):
         template_name = "flows/flow_next.html"
 
-        def get_context_data(self, *args, **kwargs):
-            context = super().get_context_data(*args, **kwargs)
-            context["show_new_editor_banner"] = False
-            context["show_old_editor_banner"] = self.request.GET.get("banner") == "1"
-            return context
+        def build_context_menu(self, menu):
+            super().build_context_menu(menu)
+
+            # replace "Try Beta Editor" with "Leave Beta Editor"
+            menu.groups[-1] = [
+                {"type": "js", "id": "leaveBetaEditor", "label": str(_("Leave Beta Editor")), "as_button": False}
+            ]
 
     class ChangeLanguage(OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.Form):
@@ -1247,7 +1249,7 @@ class FlowCRUDL(SmartCRUDL):
 
         def get(self, request, *args, **kwargs):
             flow = self.get_object(self.get_queryset())
-            (active, visited) = flow.get_activity()
+            active, visited = flow.get_activity()
             return JsonResponse(dict(nodes=active, segments=visited))
 
     class Simulate(BaseReadView):

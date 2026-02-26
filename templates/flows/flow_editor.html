@@ -23,7 +23,7 @@
   <style type="text/css">
     .editor-banner {
       position: fixed;
-      bottom: 20px;
+      top: 20px;
       left: 50%;
       transform: translateX(-50%);
       margin-left: 100px;
@@ -37,19 +37,31 @@
       align-items: flex-start;
       gap: 8px;
       max-width: calc(100vw - 280px);
-      animation: slideUp 0.3s ease-out;
+      animation: slideDown 0.3s ease-out;
       padding-right: 40px;
     }
 
-    @keyframes slideUp {
+    @keyframes slideDown {
       from {
         opacity: 0;
-        transform: translateX(-50%) translateY(20px);
+        transform: translateX(-50%) translateY(-20px);
       }
 
       to {
         opacity: 1;
         transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      to {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
       }
     }
 
@@ -60,8 +72,8 @@
       flex: 1;
     }
 
-    .editor-banner.hidden {
-      display: none;
+    .editor-banner.hiding {
+      animation: slideUp 0.3s ease-in forwards;
     }
 
     .editor-banner-text {
@@ -91,6 +103,7 @@
       opacity: 0.8;
       background: none;
       border: none;
+      outline: none;
     }
 
     .editor-banner-close:hover {
@@ -208,25 +221,26 @@
 {% block extra-script %}
   {{ block.super }}
   <script type="text/javascript">
-    function enableNewEditor() {
-      // Set cookie to enable new editor
-      document.cookie = 'use_new_editor=true; path=/; max-age=31536000'; // 1 year
-      // Redirect to the new editor
-      window.location.href = '/flow/next/{{object.uuid}}/?banner=1';
+    function enableBetaEditor() {
+      document.cookie = 'use_beta_editor=true; path=/; max-age=31536000';
+      window.location.href = '/flow/next/{{object.uuid}}/';
     }
 
     function closeEditorBanner() {
       const banner = document.querySelector('.editor-banner');
       if (banner) {
-        banner.classList.add('hidden');
+        banner.classList.add('hiding');
+        banner.addEventListener('animationend', function() {
+          banner.remove();
+        });
       }
     }
 
-    // Auto-hide banner after 10 seconds
-    document.addEventListener('DOMContentLoaded', function() {
+    // Auto-hide banner after 7 seconds
+    onSpload(function() {
       const banner = document.querySelector('.editor-banner');
       if (banner) {
-        setTimeout(closeEditorBanner, 10000);
+        setTimeout(closeEditorBanner, 7000);
       }
     });
 
@@ -347,20 +361,17 @@
   {{ block.super }}
 {% endblock page-header %}
 {% block content %}
-  {% if show_new_editor_banner %}
-    <div class="editor-banner">
-      <div class="editor-banner-content">
-        <span class="editor-banner-text">Try our new flow editor with improved features and performance!</span>
-        <a class="editor-banner-link" onclick="enableNewEditor()">Switch to New Editor</a>
-      </div>
-      <button class="editor-banner-close"
-              onclick="closeEditorBanner()"
-              aria-label="Close"
-              style="position: absolute;
-                     top: 14px;
-                     right: 14px">×</button>
+  <div class="editor-banner">
+    <div class="editor-banner-content">
+      <span class="editor-banner-text"><a class="editor-banner-link" onclick="enableBetaEditor()">Try the Beta Editor</a> with improved features and performance!</span>
     </div>
-  {% endif %}
+    <button class="editor-banner-close"
+            onclick="closeEditorBanner()"
+            aria-label="Close"
+            style="position: absolute;
+                   top: 14px;
+                   right: 14px">×</button>
+  </div>
   <temba-modax header="Send Message" id="send-message-modal">
   </temba-modax>
   <temba-dialog header="{{ _("Change Language") |escapejs }}"
