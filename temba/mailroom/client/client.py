@@ -22,8 +22,6 @@ from .types import (
     ContactSpec,
     Exclusions,
     Inclusions,
-    MessageSearchResult,
-    MessageSearchResults,
     ParsedQuery,
     QueryMetadata,
     RecipientsPreview,
@@ -323,16 +321,28 @@ class MailroomClient:
             {"org_id": org.id, "user_id": user.id, "msg_uuids": [str(m.uuid) for m in msgs]},
         )
 
-    def msg_search(self, org, text: str, contact=None) -> MessageSearchResults:
+    def msg_search(self, org, text: str, contact=None, in_ticket=False) -> list[tuple[Contact, dict]]:
         resp = self._request(
             "msg/search",
-            {"org_id": org.id, "text": text, "contact_uuid": str(contact.uuid) if contact else None},
+            {
+                "org_id": org.id,
+                "text": text,
+                "contact_uuid": str(contact.uuid) if contact else None,
+                "in_ticket": in_ticket,
+            },
         )
 
-        return MessageSearchResults(
-            total=resp["total"],
-            results=[MessageSearchResult(contact_uuid=r["contact"]["uuid"], event=r["event"]) for r in resp["results"]],
-        )
+        contact_uuids = {r["contact"]["uuid"] for r in resp["results"]}
+        contacts_by_uuid = {
+            str(c.uuid): c for c in Contact.objects.filter(org=org, uuid__in=contact_uuids, is_active=True)
+        }
+
+        results = []
+        for r in resp["results"]:
+            if contact := contacts_by_uuid.get(r["contact"]["uuid"]):
+                results.append((contact, r["event"]))
+
+        return results
 
     def msg_send(self, org, user, contact, text: str, attachments: list[str], quick_replies: list[dict], ticket=None):
         return self._request(

@@ -63,6 +63,7 @@ class Mocks:
         self._flow_start_preview = []
         self._llm_translate = []
         self._msg_broadcast_preview = []
+        self._msg_search = []
         self._exceptions = []
 
     def contact_parse_query(self, query, *, cleaned=None, fields=None):
@@ -118,6 +119,9 @@ class Mocks:
             return mailroom.RecipientsPreview(query=query, total=total)
 
         self._msg_broadcast_preview.append(mock)
+
+    def msg_search(self, results: list):
+        self._msg_search.append(results)
 
     def exception(self, exp: Exception):
         """
@@ -408,6 +412,12 @@ class TestClient(MailroomClient):
     @_client_method
     def msg_delete(self, org, user, msgs):
         return {}
+
+    @_client_method
+    def msg_search(self, org, text: str, contact=None, in_ticket=False) -> list[tuple[Contact, dict]]:
+        assert self.mocks._msg_search, "missing msg_search mock"
+
+        return self.mocks._msg_search.pop(0)
 
     @_client_method
     def msg_resend(self, org, user, msgs):

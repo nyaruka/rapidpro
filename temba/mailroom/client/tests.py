@@ -23,16 +23,7 @@ from .exceptions import (
     RequestException,
     URNValidationException,
 )
-from .types import (
-    ContactSpec,
-    Exclusions,
-    Inclusions,
-    MessageSearchResult,
-    MessageSearchResults,
-    RecipientsPreview,
-    ScheduleSpec,
-    URNResult,
-)
+from .types import ContactSpec, Exclusions, Inclusions, RecipientsPreview, ScheduleSpec, URNResult
 
 
 class MailroomClientTest(TembaTest):
@@ -759,13 +750,15 @@ class MailroomClientTest(TembaTest):
 
     @patch("requests.post")
     def test_msg_search(self, mock_post):
+        ann = self.create_contact("Ann", urns=["tel:+12340000001"])
+        bob = self.create_contact("Bob", urns=["tel:+12340000002"])
+
         mock_post.return_value = MockJsonResponse(
             200,
             {
-                "total": 2,
                 "results": [
                     {
-                        "contact": {"uuid": "b699a406-7e44-49be-9f01-1a82893e8a10"},
+                        "contact": {"uuid": str(bob.uuid)},
                         "event": {
                             "uuid": "3af672d8-b10f-4bbf-9e3b-f93955fgb95b",
                             "type": "msg_received",
@@ -774,7 +767,7 @@ class MailroomClientTest(TembaTest):
                         },
                     },
                     {
-                        "contact": {"uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf"},
+                        "contact": {"uuid": str(ann.uuid)},
                         "event": {
                             "uuid": "2ef672d8-a10f-4aaf-8e2a-e83844efa94a",
                             "type": "msg_received",
@@ -785,39 +778,70 @@ class MailroomClientTest(TembaTest):
                 ],
             },
         )
+
         result = self.client.msg_search(self.org, "hello")
 
         self.assertEqual(
-            MessageSearchResults(
-                total=2,
-                results=[
-                    MessageSearchResult(
-                        contact_uuid="b699a406-7e44-49be-9f01-1a82893e8a10",
-                        event={
-                            "uuid": "3af672d8-b10f-4bbf-9e3b-f93955fgb95b",
-                            "type": "msg_received",
-                            "text": "hello there friend",
-                            "created_on": "2025-05-01T13:00:00Z",
-                        },
-                    ),
-                    MessageSearchResult(
-                        contact_uuid="a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        event={
-                            "uuid": "2ef672d8-a10f-4aaf-8e2a-e83844efa94a",
-                            "type": "msg_received",
-                            "text": "hello world",
-                            "created_on": "2025-05-01T12:00:00Z",
-                        },
-                    ),
-                ],
-            ),
+            [
+                (
+                    bob,
+                    {
+                        "uuid": "3af672d8-b10f-4bbf-9e3b-f93955fgb95b",
+                        "type": "msg_received",
+                        "text": "hello there friend",
+                        "created_on": "2025-05-01T13:00:00Z",
+                    },
+                ),
+                (
+                    ann,
+                    {
+                        "uuid": "2ef672d8-a10f-4aaf-8e2a-e83844efa94a",
+                        "type": "msg_received",
+                        "text": "hello world",
+                        "created_on": "2025-05-01T12:00:00Z",
+                    },
+                ),
+            ],
             result,
         )
 
         mock_post.assert_called_once_with(
             "http://localhost:8090/mr/msg/search",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
-            json={"org_id": self.org.id, "text": "hello", "contact_uuid": None},
+            json={"org_id": self.org.id, "text": "hello", "contact_uuid": None, "in_ticket": False},
+        )
+        mock_post.reset_mock()
+
+        result = self.client.msg_search(self.org, "hello", contact=bob, in_ticket=True)
+
+        self.assertEqual(
+            [
+                (
+                    bob,
+                    {
+                        "uuid": "3af672d8-b10f-4bbf-9e3b-f93955fgb95b",
+                        "type": "msg_received",
+                        "text": "hello there friend",
+                        "created_on": "2025-05-01T13:00:00Z",
+                    },
+                ),
+                (
+                    ann,
+                    {
+                        "uuid": "2ef672d8-a10f-4aaf-8e2a-e83844efa94a",
+                        "type": "msg_received",
+                        "text": "hello world",
+                        "created_on": "2025-05-01T12:00:00Z",
+                    },
+                ),
+            ],
+            result,
+        )
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mr/msg/search",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={"org_id": self.org.id, "text": "hello", "contact_uuid": str(bob.uuid), "in_ticket": True},
         )
 
     @patch("requests.post")

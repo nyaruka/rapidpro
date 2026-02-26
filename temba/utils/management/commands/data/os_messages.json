@@ -39,11 +39,16 @@
             },
             "properties": {
                 "contact_uuid": {
-                    "type": "keyword"
+                    "type": "keyword",
+                    "doc_values": false
                 },
                 "text": {
                     "type": "text",
                     "analyzer": "msg_text"
+                },
+                "in_ticket": {
+                    "type": "boolean",
+                    "doc_values": false
                 }
             }
         }
