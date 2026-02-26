@@ -33,6 +33,10 @@
       showModax(item.title, item.url, modaxOptions);
     } else if (item.type === 'url_post') {
       posterize(item.url);
+    } else if (item.type === 'js') {
+      if (window[item.id]) {
+        window[item.id]();
+      }
     }
 
     // items need to be refreshed in the top left sidebar menu
