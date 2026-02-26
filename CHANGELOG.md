@@ -1,3 +1,9 @@
+v26.1.39 (2026-02-26)
+-------------------------
+ * Always show beta editor switching UI with improved banner
+ * Update @nyaruka/temba-components to 0.142.0
+ * Include in_ticket field in backfill_msg_search
+
 v26.1.38 (2026-02-26)
 -------------------------
  * Tweak message index to include in_ticket boolean field
