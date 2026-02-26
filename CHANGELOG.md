@@ -1,3 +1,8 @@
+v26.1.38 (2026-02-26)
+-------------------------
+ * Tweak message index to include in_ticket boolean field
+ * Add in_ticket parameter to msg_search and remove total from response
+
 v26.1.37 (2026-02-26)
 -------------------------
  * Exclude IVR messages from backfill_msg_search
