@@ -1,3 +1,8 @@
+v26.1.37 (2026-02-26)
+-------------------------
+ * Exclude IVR messages from backfill_msg_search
+ * Add contact param to msg_search mailroom endpoint
+
 v26.1.36 (2026-02-25)
 -------------------------
  * Tweak backfill_msg_search yet again
