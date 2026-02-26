@@ -71,18 +71,6 @@ class URNResult:
     e164: bool = False
 
 
-@dataclass(frozen=True)
-class MessageSearchResult:
-    contact_uuid: str
-    event: dict
-
-
-@dataclass(frozen=True)
-class MessageSearchResults:
-    total: int
-    results: list[MessageSearchResult]
-
-
 @dataclass
 class ScheduleSpec:
     """
