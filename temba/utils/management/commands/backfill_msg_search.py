@@ -35,6 +35,7 @@ class Command(BaseCommand):
                 text_len__gte=2,
                 visibility__in=(Msg.VISIBILITY_VISIBLE, Msg.VISIBILITY_ARCHIVED),
             )
+            .exclude(msg_type=Msg.TYPE_VOICE)
             .select_related("contact")
             .order_by("-uuid")
         )
