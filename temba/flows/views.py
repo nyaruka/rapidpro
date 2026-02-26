@@ -834,7 +834,9 @@ class FlowCRUDL(SmartCRUDL):
             super().build_context_menu(menu)
 
             # replace "Try Beta Editor" with "Leave Beta Editor"
-            menu.groups[-1] = [{"type": "js", "id": "leaveBetaEditor", "label": str(_("Leave Beta Editor")), "as_button": False}]
+            menu.groups[-1] = [
+                {"type": "js", "id": "leaveBetaEditor", "label": str(_("Leave Beta Editor")), "as_button": False}
+            ]
 
     class ChangeLanguage(OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.Form):
@@ -1247,7 +1249,7 @@ class FlowCRUDL(SmartCRUDL):
 
         def get(self, request, *args, **kwargs):
             flow = self.get_object(self.get_queryset())
-            (active, visited) = flow.get_activity()
+            active, visited = flow.get_activity()
             return JsonResponse(dict(nodes=active, segments=visited))
 
     class Simulate(BaseReadView):
