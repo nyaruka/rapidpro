@@ -817,7 +817,7 @@ class MailroomClientTest(TembaTest):
         mock_post.assert_called_once_with(
             "http://localhost:8090/mr/msg/search",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
-            json={"org_id": self.org.id, "text": "hello"},
+            json={"org_id": self.org.id, "text": "hello", "contact_uuid": None},
         )
 
     @patch("requests.post")
