@@ -5,7 +5,8 @@
             "index": {
                 "number_of_shards": 3,
                 "number_of_replicas": 1,
-                "routing_partition_size": 1
+                "sort.field": ["@timestamp"], 
+                "sort.order": ["desc"]
             },
             "analysis": {
                 "filter": {
@@ -38,17 +39,21 @@
                 "required": true
             },
             "properties": {
+                "@timestamp": {
+                    "type": "date"
+                },
+                "org_id": {
+                    "type": "integer"
+                },
                 "contact_uuid": {
-                    "type": "keyword",
-                    "doc_values": false
+                    "type": "keyword"
                 },
                 "text": {
                     "type": "text",
                     "analyzer": "msg_text"
                 },
                 "in_ticket": {
-                    "type": "boolean",
-                    "doc_values": false
+                    "type": "boolean"
                 }
             }
         }

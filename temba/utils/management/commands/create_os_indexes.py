@@ -42,9 +42,14 @@ class Command(BaseCommand):
         """Creates an index template using the OpenSearch API."""
 
         client.indices.put_index_template(name, body=schema)
-        self.stdout.write(f"Put index template {name}")
 
-    def _get_client(self) -> OpenSearch:
+        opts = schema["template"]["settings"]["index"]
+        self.stdout.write(
+            f"Put {name} index template (shards={opts['number_of_shards']}, replicas={opts['number_of_replicas']})"
+        )
+
+    @staticmethod
+    def _get_client() -> OpenSearch:
         parsed = urlparse(settings.OPENSEARCH_ENDPOINT_URL)
         use_ssl = parsed.scheme == "https"
 
