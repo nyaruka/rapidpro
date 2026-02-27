@@ -1,3 +1,7 @@
+v26.1.40 (2026-02-27)
+-------------------------
+ * More tweaks to create_os_indexes
+
 v26.1.39 (2026-02-26)
 -------------------------
  * Always show beta editor switching UI with improved banner
