@@ -57,6 +57,8 @@ class Command(BaseCommand):
                     "_id": str(msg.uuid),
                     "_routing": str(msg.org_id),
                     "_source": {
+                        "@timestamp": msg.created_on.isoformat(),
+                        "org_id": msg.org_id,
                         "contact_uuid": str(msg.contact.uuid),
                         "text": msg.text,
                         "in_ticket": msg.ticket_uuid is not None,
