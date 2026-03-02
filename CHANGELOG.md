@@ -1,3 +1,7 @@
+v26.1.45 (2026-03-02)
+-------------------------
+ * More tweaks to contacts index
+
 v26.1.44 (2026-03-02)
 -------------------------
  * Update @nyaruka/temba-components to 0.142.2
