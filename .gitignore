@@ -26,6 +26,7 @@ temba/settings.py
 
 .claude/
 CLAUDE.md
+CODEX.md
 start.sh
 
 # Exclude media folder except files used for import testing
