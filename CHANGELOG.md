@@ -1,3 +1,7 @@
+v26.1.41 (2026-03-02)
+-------------------------
+ * Update create_os_index to support creating a contacts index
+
 v26.1.40 (2026-02-27)
 -------------------------
  * More tweaks to create_os_indexes
