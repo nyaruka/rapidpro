@@ -1,3 +1,7 @@
+v26.1.42 (2026-03-02)
+-------------------------
+ * Add system_latency endpoint to Mailroom client
+
 v26.1.41 (2026-03-02)
 -------------------------
  * Update create_os_index to support creating a contacts index
