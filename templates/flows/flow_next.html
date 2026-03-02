@@ -54,9 +54,20 @@
       window.location.href = '/flow/editor/{{object.uuid}}/';
     }
 
+    function navigateTo(url, detail) {
+      if (detail.metaKey || detail.ctrlKey) {
+        window.open(url, '_blank');
+      } else {
+        spaGet(url);
+      }
+    }
+
     function handleContactClicked(e) {
-      const contactUuid = e.detail.uuid;
-      spaGet("/contact/read/" + contactUuid + "/");
+      navigateTo("/contact/read/" + e.detail.uuid + "/", e.detail);
+    }
+
+    function handleFlowClicked(e) {
+      navigateTo("/flow/next/" + e.detail.uuid + "/", e.detail);
     }
 
     function handleFollow(event) {
@@ -80,7 +91,7 @@
   </script>
 {% endblock extra-script %}
 {% block content %}
-  <temba-flow-editor flow="{{ object.uuid }}" -temba-contact-clicked="handleContactClicked">
+  <temba-flow-editor flow="{{ object.uuid }}" -temba-contact-clicked="handleContactClicked" -temba-flow-clicked="handleFlowClicked">
   </temba-flow-editor>
   <temba-simulator flow="{{ object.uuid }}" -temba-follow-simulation="handleFollow">
   </temba-simulator>
