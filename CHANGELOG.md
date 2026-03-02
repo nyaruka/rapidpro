@@ -1,3 +1,7 @@
+v26.1.44 (2026-03-02)
+-------------------------
+ * Update @nyaruka/temba-components to 0.142.2
+
 v26.1.43 (2026-03-02)
 -------------------------
  * Add field for legacy_id in os_contacts index
