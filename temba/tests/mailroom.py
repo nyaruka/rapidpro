@@ -519,6 +519,9 @@ class TestClient(MailroomClient):
 
         return {"changed_uuids": [str(t.uuid) for t in tickets]}
 
+    def system_latencies(self) -> list:
+        return []
+
     def system_queues(self) -> dict:
         return {
             "batch": {"queued": {}, "active": {}, "paused": {}},
