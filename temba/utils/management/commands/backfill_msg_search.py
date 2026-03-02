@@ -1,7 +1,4 @@
-from urllib.parse import urlparse
-
-import boto3
-from opensearchpy import AWSV4SignerAuth, OpenSearch, RequestsHttpConnection, helpers
+from opensearchpy import helpers
 
 from django.conf import settings
 from django.core.management import BaseCommand, CommandError
@@ -9,6 +6,7 @@ from django.db.models import Q
 from django.db.models.functions import Length
 
 from temba.msgs.models import Msg
+from temba.utils.osearch import get_client
 
 MESSAGES_INDEX_BASE = "messages-v1"
 BATCH_SIZE = 500
@@ -26,7 +24,7 @@ class Command(BaseCommand):
         if not settings.OPENSEARCH_ENDPOINT_URL:
             raise CommandError("OPENSEARCH_ENDPOINT_URL must be configured")
 
-        os_client = self._get_client()
+        os_client = get_client()
 
         queryset = (
             Msg.objects.annotate(text_len=Length("text"))
@@ -87,24 +85,3 @@ class Command(BaseCommand):
             )
 
         self.stdout.write(f"Done. Indexed {num_indexed} messages total ({num_errored} errored).")
-
-    def _get_client(self) -> OpenSearch:
-        parsed = urlparse(settings.OPENSEARCH_ENDPOINT_URL)
-        use_ssl = parsed.scheme == "https"
-
-        kwargs = {}
-        if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
-            session = boto3.Session(
-                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_REGION,
-            )
-            kwargs["http_auth"] = AWSV4SignerAuth(session.get_credentials(), settings.AWS_REGION, service="es")
-
-        return OpenSearch(
-            hosts=[{"host": parsed.hostname, "port": parsed.port or (443 if use_ssl else 9200)}],
-            use_ssl=use_ssl,
-            verify_certs=use_ssl,
-            connection_class=RequestsHttpConnection,
-            **kwargs,
-        )
