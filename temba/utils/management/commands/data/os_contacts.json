@@ -78,7 +78,7 @@
         },
         "properties": {
             "legacy_id": {
-                "type": "integer"
+                "type": "long"
             },
             "org_id": {
                 "type": "integer"
@@ -165,7 +165,7 @@
                 }
             },
             "group_ids": {
-                "type": "keyword"
+                "type": "integer"
             },
             "flow_id": {
                 "type": "integer"
