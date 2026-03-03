@@ -1,4 +1,4 @@
-__version__ = "26.1.45"
+__version__ = "26.1.46"
 
 # This will make sure the app is always imported when
 # Django starts so that shared_task will use this app.
