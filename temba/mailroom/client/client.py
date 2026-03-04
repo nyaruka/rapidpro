@@ -100,6 +100,15 @@ class MailroomClient:
             },
         )
 
+    def contact_reindex(self, org, contacts):
+        return self._request(
+            "contact/reindex",
+            {
+                "org_id": org.id,
+                "contact_ids": [c.id for c in contacts],
+            },
+        )
+
     def contact_export(self, org, group, query: str) -> list[int]:
         resp = self._request("contact/export", {"org_id": org.id, "group_id": group.id, "query": query})
 
