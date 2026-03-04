@@ -145,7 +145,7 @@ class URN:
             except phonenumbers.NumberParseException:  # pragma: no cover
                 pass
 
-        if display:
+        if display and formatted:
             return display
 
         return path
