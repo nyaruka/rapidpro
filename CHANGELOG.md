@@ -1,3 +1,8 @@
+v26.1.47 (2026-03-04)
+-------------------------
+ * Make URN format show display only when formatted is True
+ * Fix contact import preview columns display
+
 v26.1.46 (2026-03-03)
 -------------------------
  * Update @nyaruka/temba-components to 0.142.3
