@@ -40,6 +40,17 @@ class ContactURNTest(TembaTest):
         )
         self.assertEqual(urn.get_display(self.org), "JIM")
 
+        urn = ContactURN.objects.create(
+            org=self.org,
+            scheme="telegram",
+            path="100200300",
+            identity="telegram:100200300",
+            priority=50,
+            display="JIM",
+        )
+        self.assertEqual(urn.get_display(self.org, formatted=False), "100200300")
+        self.assertEqual(urn.get_display(self.org, formatted=True), "JIM")
+
     def test_empty_scheme_disallowed(self):
         with self.assertRaises(IntegrityError):
             ContactURN.objects.create(org=self.org, scheme="", path="1234", identity=":1234")
