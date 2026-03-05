@@ -1,3 +1,11 @@
+v26.1.48 (2026-03-05)
+-------------------------
+ * Fix validation of media field to allow for non-string keys in submissions dict
+ * Update @nyaruka/temba-components to 0.143.0
+ * Add padding below org export buttons
+ * Add contact_reindex to mailroom client
+ * Bump flow spec version to 14.3.1
+
 v26.1.47 (2026-03-04)
 -------------------------
  * Make URN format show display only when formatted is True
