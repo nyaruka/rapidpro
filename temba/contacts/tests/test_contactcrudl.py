@@ -1192,7 +1192,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         self.login(self.admin)
 
-        # shoud see start flow option
+        # should see start flow option
         response = self.client.get(read_url)
         self.assertContentMenu(read_url, self.admin, ["Edit", "Start Flow", "Open Ticket"])
 

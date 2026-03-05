@@ -400,7 +400,7 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(1, Trigger.objects.filter(keywords=["rating"], is_archived=False).count())
         self.assertEqual(1, Trigger.objects.filter(flow=flow).count())
 
-        # shoud have archived the existing
+        # should have archived the existing
         self.assertFalse(Trigger.objects.filter(id=trigger1.id, is_archived=False).first())
         self.assertFalse(Trigger.objects.filter(id=trigger2.id, is_archived=False).first())
 

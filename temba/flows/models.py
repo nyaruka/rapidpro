@@ -1774,7 +1774,7 @@ class FlowLabel(TembaModel):
         changed = []
 
         for flow in flows:
-            # if we are adding the flow label and this flow doesnt have it, add it
+            # if we are adding the flow label and this flow doesn't have it, add it
             if add:
                 if not flow.labels.filter(pk=self.id):
                     flow.labels.add(self)

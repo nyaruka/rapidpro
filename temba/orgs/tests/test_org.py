@@ -791,7 +791,7 @@ class OrgDeleteTest(TembaTest):
 
         delete_released_orgs()
 
-        self.assertOrgReleased(self.org, org1_content)  # deletion hasn't occured yet because releasing was too soon
+        self.assertOrgReleased(self.org, org1_content)  # deletion hasn't occurred yet because releasing was too soon
         self.assertOrgReleased(org1_child1)
         self.assertOrgReleased(org1_child2)
         self.assertOrgActive(self.org2, org2_content)
