@@ -3077,7 +3077,7 @@ class FlowStartsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
     ## Starting contacts down a flow
 
     By making a `POST` request with the contacts, groups and URNs you want to start down a flow you can trigger a flow
-    start. Note that that contacts will be added to the flow asynchronously, you can use the runs endpoint to monitor the
+    start. Note that contacts will be added to the flow asynchronously, you can use the runs endpoint to monitor the
     runs created by this start.
 
      * **flow** - the UUID of the flow to start contacts in (required)
