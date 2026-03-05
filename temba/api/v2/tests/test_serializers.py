@@ -336,7 +336,7 @@ class FieldsTest(APITest):
 
         self.assert_field(
             fields.MediaField(source="test"),
-            submissions={str(media.uuid): media, "xyz": serializers.ValidationError},
+            submissions={str(media.uuid): media, "xyz": serializers.ValidationError, 123: serializers.ValidationError},
             representations={media: str(media.uuid)},
         )
 
