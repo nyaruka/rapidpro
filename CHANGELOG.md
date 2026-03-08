@@ -1,3 +1,7 @@
+v26.1.49 (2026-03-08)
+-------------------------
+ * Tweak field name in contacts index
+
 v26.1.48 (2026-03-05)
 -------------------------
  * Fix validation of media field to allow for non-string keys in submissions dict
