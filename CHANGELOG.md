@@ -1,3 +1,10 @@
+v26.1.52 (2026-03-09)
+-------------------------
+ * Update @nyaruka/temba-components to 0.146.1
+ * Add alias for contacts index
+ * Bump django-allauth from 65.13.1 to 65.14.1
+ * Bump minimatch from 3.1.2 to 3.1.5
+
 v26.1.51 (2026-03-09)
 -------------------------
  * Update @nyaruka/temba-components to 0.146.0
