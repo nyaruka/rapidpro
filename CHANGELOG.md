@@ -1,3 +1,8 @@
+v26.1.51 (2026-03-09)
+-------------------------
+ * Update @nyaruka/temba-components to 0.146.0
+ * Pass exclude_uuids to contact_search endpoint
+
 v26.1.50 (2026-03-09)
 -------------------------
  * Update black library
