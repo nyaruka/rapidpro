@@ -110,13 +110,15 @@ class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
             bulk_action_ids = self.kwargs.get("bulk_action_ids", [])
             if bulk_action_ids:
                 reappearing_ids = set(self.group.contacts.filter(id__in=bulk_action_ids).values_list("id", flat=True))
-                exclude_ids = [i for i in bulk_action_ids if i not in reappearing_ids]
+                exclude = list(
+                    Contact.objects.filter(id__in=bulk_action_ids).exclude(id__in=reappearing_ids).only("id", "uuid")
+                )
             else:
-                exclude_ids = []
+                exclude = []
 
             try:
                 results = mailroom.get_client().contact_search(
-                    org, self.group, search_query, sort=sort_on, offset=offset, exclude_ids=exclude_ids
+                    org, self.group, search_query, sort=sort_on, offset=offset, exclude=exclude
                 )
                 self.parsed_query = results.query if len(results.query) > 0 else None
                 self.search_is_saveable = results.metadata.allow_as_group

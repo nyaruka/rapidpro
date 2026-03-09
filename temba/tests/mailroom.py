@@ -307,7 +307,7 @@ class TestClient(MailroomClient):
         pass
 
     @_client_method
-    def contact_search(self, org, group, query: str, sort: str, offset=0, limit=50, exclude_ids=()):
+    def contact_search(self, org, group, query: str, sort: str, offset=0, limit=50, exclude=()):
         mock = self.mocks._contact_search.get(query or "")
 
         assert mock, f"missing contact_search mock for query '{query}'"

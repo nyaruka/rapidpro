@@ -154,13 +154,14 @@ class MailroomClient:
     def contact_populate_group(self, org, group):
         self._request("contact/populate_group", {"org_id": org.id, "group_id": group.id})
 
-    def contact_search(self, org, group, query: str, sort: str, offset=0, limit=50, exclude_ids=()) -> SearchResults:
+    def contact_search(self, org, group, query: str, sort: str, offset=0, limit=50, exclude=()) -> SearchResults:
         resp = self._request(
             "contact/search",
             {
                 "org_id": org.id,
                 "group_id": group.id,
-                "exclude_ids": exclude_ids,
+                "exclude_ids": [c.id for c in exclude],  # deprecated but needed until we're done with Elastic
+                "exclude_uuids": [str(c.uuid) for c in exclude],
                 "query": query,
                 "sort": sort,
                 "offset": offset,
