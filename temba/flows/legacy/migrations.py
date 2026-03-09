@@ -894,7 +894,7 @@ def migrate_export_to_version_9(exported_json, org, same_site=True):
         # replace until no matches found
         matches = 1
         while matches:
-            (str, matches) = rexp.subn(replace, str)
+            str, matches = rexp.subn(replace, str)
 
         return str
 
