@@ -416,7 +416,7 @@ class MailroomClientTest(TembaTest):
                 "metadata": {"attributes": ["name"]},
             },
         )
-        response = self.client.contact_search(self.org, group, "frank", "-created_on")
+        response = self.client.contact_search(self.org, group, "frank", "-created_on", exclude=[self.joe])
 
         self.assertEqual('name ~ "frank"', response.query)
         self.assertEqual(["name"], response.metadata.attributes)
@@ -427,7 +427,8 @@ class MailroomClientTest(TembaTest):
                 "query": "frank",
                 "org_id": self.org.id,
                 "group_id": group.id,
-                "exclude_ids": (),
+                "exclude_ids": [self.joe.id],
+                "exclude_uuids": [str(self.joe.uuid)],
                 "sort": "-created_on",
                 "offset": 0,
                 "limit": 50,

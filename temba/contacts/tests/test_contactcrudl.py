@@ -249,7 +249,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # we re-run the search for the response, but exclude Joe
         self.assertEqual(
-            call(self.org, active_contacts, "Joe", sort="", offset=0, exclude_ids=[joe.id]),
+            call(self.org, active_contacts, "Joe", sort="", offset=0, exclude=[joe]),
             mr_mocks.calls["contact_search"][-1],
         )
 
