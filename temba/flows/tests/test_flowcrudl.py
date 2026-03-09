@@ -2098,8 +2098,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFormError(response.context["form"], "po_file", "File doesn't appear to be a valid PO file.")
 
         # submit with something that's in the base language of the flow
-        po_file = io.BytesIO(
-            b"""
+        po_file = io.BytesIO(b"""
 #, fuzzy
 msgid ""
 msgstr ""
@@ -2109,8 +2108,7 @@ msgstr ""
 
 msgid "Blue"
 msgstr "Bluuu"
-        """
-        )
+        """)
         response = self.requestView(step1_url, self.admin, post_data={"po_file": po_file})
         self.assertFormError(
             response.context["form"],
@@ -2119,8 +2117,7 @@ msgstr "Bluuu"
         )
 
         # submit with something that's in the base language of the flow
-        po_file = io.BytesIO(
-            b"""
+        po_file = io.BytesIO(b"""
 #, fuzzy
 msgid ""
 msgstr ""
@@ -2130,8 +2127,7 @@ msgstr ""
 
 msgid "Blue"
 msgstr "Bleu"
-        """
-        )
+        """)
         response = self.requestView(step1_url, self.admin, post_data={"po_file": po_file})
         self.assertFormError(
             response.context["form"],
@@ -2140,12 +2136,10 @@ msgstr "Bleu"
         )
 
         # submit with something that doesn't have an explicit language
-        po_file = io.BytesIO(
-            b"""
+        po_file = io.BytesIO(b"""
 msgid "Blue"
 msgstr "Azul"
-        """
-        )
+        """)
         response = self.requestView(step1_url, self.admin, post_data={"po_file": po_file})
 
         self.assertEqual(302, response.status_code)
@@ -2155,8 +2149,7 @@ msgstr "Azul"
         self.assertContains(response, "Unknown")
 
         # submit a different PO that does have language set
-        po_file = io.BytesIO(
-            b"""
+        po_file = io.BytesIO(b"""
 #, fuzzy
 msgid ""
 msgstr ""
@@ -2170,8 +2163,7 @@ msgstr ""
 #: Favorites/a4d15ed4-5b24-407f-b86e-4b881f09a186/arguments:0
 msgid "Blue"
 msgstr "Azul"
-"""
-        )
+""")
         response = self.requestView(step1_url, self.admin, post_data={"po_file": po_file})
 
         self.assertEqual(302, response.status_code)

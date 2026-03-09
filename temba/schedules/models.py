@@ -139,7 +139,7 @@ class Schedule(models.Model):
         # if monthly, set to the day of the month scheduled and move forward until we are in the future
         if self.repeat_period == Schedule.REPEAT_MONTHLY:
             while True:
-                (weekday, days) = calendar.monthrange(next_fire.year, next_fire.month)
+                weekday, days = calendar.monthrange(next_fire.year, next_fire.month)
                 day_of_month = min(days, self.repeat_day_of_month)
                 next_fire = next_fire.replace(day=day_of_month, hour=hour, minute=minute)
                 if next_fire > now:

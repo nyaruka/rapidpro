@@ -405,6 +405,7 @@ class MailroomClientTest(TembaTest):
 
     @patch("requests.post")
     def test_contact_search(self, mock_post):
+        joe = self.create_contact("Joe", urns=["tel:+12340000001"])
         group = self.create_group("Doctors", contacts=[])
 
         mock_post.return_value = MockJsonResponse(
@@ -416,7 +417,7 @@ class MailroomClientTest(TembaTest):
                 "metadata": {"attributes": ["name"]},
             },
         )
-        response = self.client.contact_search(self.org, group, "frank", "-created_on", exclude=[self.joe])
+        response = self.client.contact_search(self.org, group, "frank", "-created_on", exclude=[joe])
 
         self.assertEqual('name ~ "frank"', response.query)
         self.assertEqual(["name"], response.metadata.attributes)
@@ -427,8 +428,8 @@ class MailroomClientTest(TembaTest):
                 "query": "frank",
                 "org_id": self.org.id,
                 "group_id": group.id,
-                "exclude_ids": [self.joe.id],
-                "exclude_uuids": [str(self.joe.uuid)],
+                "exclude_ids": [joe.id],
+                "exclude_uuids": [str(joe.uuid)],
                 "sort": "-created_on",
                 "offset": 0,
                 "limit": 50,
