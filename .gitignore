@@ -12,6 +12,7 @@
 venv
 *.sublime*
 manage.sh
+rp.sh
 
 .coverage
 coverage.xml
