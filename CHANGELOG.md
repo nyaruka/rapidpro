@@ -1,3 +1,8 @@
+v26.1.50 (2026-03-09)
+-------------------------
+ * Update black library
+ * Update @nyaruka/temba-components to 0.145.0
+
 v26.1.49 (2026-03-08)
 -------------------------
  * Tweak field name in contacts index
