@@ -10,6 +10,7 @@ MESSAGES_TEMPLATE_NAME = "messages-v1"
 
 CONTACTS_INDEX_FILE = "temba/utils/management/commands/data/os_contacts.json"
 CONTACTS_INDEX_NAME = "contacts-v1"
+CONTACTS_INDEX_ALIAS = "contacts"
 
 
 class Command(BaseCommand):
@@ -50,7 +51,7 @@ class Command(BaseCommand):
             if replicas is not None:
                 schema["settings"]["index"]["number_of_replicas"] = replicas
 
-            self._create_index(client, CONTACTS_INDEX_NAME, schema)
+            self._create_index(client, CONTACTS_INDEX_NAME, schema, alias=CONTACTS_INDEX_ALIAS)
 
     def _create_template(self, client, name: str, schema: dict):
         """Creates an index template using the OpenSearch API."""
@@ -62,7 +63,7 @@ class Command(BaseCommand):
             f"Put {name} index template (shards={opts['number_of_shards']}, replicas={opts['number_of_replicas']})"
         )
 
-    def _create_index(self, client, name: str, schema: dict):
+    def _create_index(self, client, name: str, schema: dict, alias: str = ""):
         """Creates a regular index using the OpenSearch API."""
 
         client.indices.create(index=name, body=schema)
@@ -71,3 +72,7 @@ class Command(BaseCommand):
         self.stdout.write(
             f"Created {name} index (shards={opts['number_of_shards']}, replicas={opts['number_of_replicas']})"
         )
+
+        if alias:
+            client.indices.put_alias(index=name, name=alias)
+            self.stdout.write(f"Added alias {alias} -> {name}")
