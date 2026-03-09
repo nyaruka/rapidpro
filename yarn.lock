@@ -50,6 +50,11 @@
   resolved "https://registry.yarnpkg.com/@lit-labs/ssr-dom-shim/-/ssr-dom-shim-1.2.0.tgz#353ce4a76c83fadec272ea5674ede767650762fd"
   integrity sha512-yWJKmpGE6lUURKAaIltoPIE/wrbY3TEkqQt+X0m+7fQNnAv0keydnYvbiJFP1PnMhizmIWRWOG5KLhYyc/xl+g==
 
+"@lit-labs/ssr-dom-shim@^1.5.0":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@lit-labs/ssr-dom-shim/-/ssr-dom-shim-1.5.1.tgz#3166900c0d481f03d6d4133686e0febf760d521d"
+  integrity sha512-Aou5UdlSpr5whQe8AA/bZG0jMj96CoJIWbGfZ91qieWu5AWUMKw8VR/pAkQkJYvBNhmCcWnZlyyk5oze8JIqYA==
+
 "@lit/localize@^0.12.1":
   version "0.12.1"
   resolved "https://registry.yarnpkg.com/@lit/localize/-/localize-0.12.1.tgz#e0a15412270c7674ab419f9acfc10844de98ba0d"
@@ -57,12 +62,26 @@
   dependencies:
     lit "^2.0.0 || ^3.0.0"
 
+"@lit/localize@^0.12.2":
+  version "0.12.2"
+  resolved "https://registry.yarnpkg.com/@lit/localize/-/localize-0.12.2.tgz#5c7819e91693d1de19fd3a97744c105e8d2b3c32"
+  integrity sha512-Qv9kvgJKDq/JVSwXOxuWvQnnOBysHA99ti9im9a4fImCmx+fto+XXcUYQbjZHqiueEEc4V20PcRDPO+1g/6seQ==
+  dependencies:
+    lit "^3.2.0"
+
 "@lit/reactive-element@^2.0.4":
   version "2.0.4"
   resolved "https://registry.yarnpkg.com/@lit/reactive-element/-/reactive-element-2.0.4.tgz#8f2ed950a848016383894a26180ff06c56ae001b"
   integrity sha512-GFn91inaUa2oHLak8awSIigYz0cU0Payr1rcFsrkf5OJ5eSPxElyZfKh0f2p9FsTiZWXQdWGJeXZICEfXXYSXQ==
   dependencies:
     "@lit-labs/ssr-dom-shim" "^1.2.0"
+
+"@lit/reactive-element@^2.1.0":
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/@lit/reactive-element/-/reactive-element-2.1.2.tgz#4c6af9042603c98e61ba90b294607904d51b61cb"
+  integrity sha512-pbCDiVMnne1lYUIaYNN5wrwQXDtHaYtg7YEFPeW+hws6U47WeFvISGUWekPGKWOP1ygrs0ef0o1VJMk1exos5A==
+  dependencies:
+    "@lit-labs/ssr-dom-shim" "^1.5.0"
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
@@ -120,15 +139,15 @@
     uuid "^11.1.0"
     zustand "^5.0.3"
 
-"@nyaruka/temba-components@0.143.0":
-  version "0.143.0"
-  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.143.0.tgz#d824944f13d98826eefd3086001ea80907a33787"
-  integrity sha512-VCL6bjpEAyyevmfKQq8F0tx692sBew3iBEZcWhz0gKuEiIZUh/JOJvuSCxVtPxOR+W19B6iEw+cULZj+iyTz3A==
+"@nyaruka/temba-components@0.144.0":
+  version "0.144.0"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.144.0.tgz#184b16d326f1f7a8828d68d90c68a26aed3d55c5"
+  integrity sha512-SB6IwIuOnya2RWnEyscc19GDkJ0piZaGnOVkGruh33G/dB18m8LhcwpIU8dt8o2Ywc+fVloPacT4kmZeF2hrBQ==
   dependencies:
     "@jsplumb/browser-ui" "^6.2.10"
-    "@lit/localize" "^0.12.1"
+    "@lit/localize" "^0.12.2"
     "@open-wc/lit-helpers" "^0.7.0"
-    chart.js "^4.4.8"
+    chart.js "^4.5.1"
     chartjs-adapter-luxon "^1.3.1"
     chartjs-plugin-datalabels "^2.2.0"
     color-hash "^2.0.2"
@@ -137,14 +156,14 @@
     image-size "^1.1.1"
     immer "10"
     leaflet "1.5.1"
-    lit "3.1.2"
-    lit-element "^4.0.4"
-    lit-html "^3.1.2"
-    luxon "3.5"
+    lit "3.3.2"
+    lit-element "^4.2.2"
+    lit-html "^3.3.2"
+    luxon "3.7"
     remarkable "^2.0.1"
     serialize-javascript "^7.0.3"
     tiny-lru "^11.2.5"
-    uuid "^11.1.0"
+    uuid "^13.0.0"
     zustand "^5.0.3"
 
 "@open-wc/lit-helpers@^0.7.0":
@@ -330,6 +349,13 @@ chart.js@^4.4.8:
   version "4.4.9"
   resolved "https://registry.yarnpkg.com/chart.js/-/chart.js-4.4.9.tgz#602e2fc2462f0f7bb7b255eaa1b51f56a43a1362"
   integrity sha512-EyZ9wWKgpAU0fLJ43YAEIF8sr5F2W3LqbS40ZJyHIner2lY14ufqv2VMp69MAiZ2rpwxEUxEhIH/0U3xyRynxg==
+  dependencies:
+    "@kurkle/color" "^0.3.0"
+
+chart.js@^4.5.1:
+  version "4.5.1"
+  resolved "https://registry.yarnpkg.com/chart.js/-/chart.js-4.5.1.tgz#19dd1a9a386a3f6397691672231cb5fc9c052c35"
+  integrity sha512-GIjfiT9dbmHRiYi6Nl2yFCq7kkwdkp1W/lp2J99rX0yo9tgJGn3lKQATztIjb5tVtevcBtIdICNWqlq5+E8/Pw==
   dependencies:
     "@kurkle/color" "^0.3.0"
 
@@ -840,6 +866,15 @@ lit-element@^4.0.4:
     "@lit/reactive-element" "^2.0.4"
     lit-html "^3.1.2"
 
+lit-element@^4.2.0, lit-element@^4.2.2:
+  version "4.2.2"
+  resolved "https://registry.yarnpkg.com/lit-element/-/lit-element-4.2.2.tgz#f74fcbfbea945eae5614ece22a674fa52ca3365b"
+  integrity sha512-aFKhNToWxoyhkNDmWZwEva2SlQia+jfG0fjIWV//YeTaWrVnOxD89dPKfigCUspXFmjzOEUQpOkejH5Ly6sG0w==
+  dependencies:
+    "@lit-labs/ssr-dom-shim" "^1.5.0"
+    "@lit/reactive-element" "^2.1.0"
+    lit-html "^3.3.0"
+
 lit-html@^1.1.1:
   version "1.4.1"
   resolved "https://registry.npmjs.org/lit-html/-/lit-html-1.4.1.tgz#0c6f3ee4ad4eb610a49831787f0478ad8e9ae5e0"
@@ -852,6 +887,13 @@ lit-html@^3.1.2:
   dependencies:
     "@types/trusted-types" "^2.0.2"
 
+lit-html@^3.3.0, lit-html@^3.3.2:
+  version "3.3.2"
+  resolved "https://registry.yarnpkg.com/lit-html/-/lit-html-3.3.2.tgz#4db11fdbf98fc8a0c5eabd9b1e7d088d3bb201a2"
+  integrity sha512-Qy9hU88zcmaxBXcc10ZpdK7cOLXvXpRoBxERdtqV9QOrfpMZZ6pSYP91LhpPtap3sFMUiL7Tw2RImbe0Al2/kw==
+  dependencies:
+    "@types/trusted-types" "^2.0.2"
+
 lit@3.1.2, "lit@^2.0.0 || ^3.0.0":
   version "3.1.2"
   resolved "https://registry.yarnpkg.com/lit/-/lit-3.1.2.tgz#f276258e8a56593f1d834a5fd00a7eb5e891ae73"
@@ -860,6 +902,15 @@ lit@3.1.2, "lit@^2.0.0 || ^3.0.0":
     "@lit/reactive-element" "^2.0.4"
     lit-element "^4.0.4"
     lit-html "^3.1.2"
+
+lit@3.3.2, lit@^3.2.0:
+  version "3.3.2"
+  resolved "https://registry.yarnpkg.com/lit/-/lit-3.3.2.tgz#d9230ebbf237bfd3d2091bc0b56c576a470ac4d7"
+  integrity sha512-NF9zbsP79l4ao2SNrH3NkfmFgN/hBYSQo90saIVI1o5GpjAdCPVstVzO1MrLOakHoEhYkrtRjPK6Ob521aoYWQ==
+  dependencies:
+    "@lit/reactive-element" "^2.1.0"
+    lit-element "^4.2.0"
+    lit-html "^3.3.0"
 
 lodash@^4.17.21:
   version "4.17.23"
@@ -884,6 +935,11 @@ luxon@3.5:
   version "3.5.0"
   resolved "https://registry.yarnpkg.com/luxon/-/luxon-3.5.0.tgz#6b6f65c5cd1d61d1fd19dbf07ee87a50bf4b8e20"
   integrity sha512-rh+Zjr6DNfUYR3bPwJEnuwDdqMbxZW7LOQfUN4B54+Cl+0o5zaU9RJ6bcidfDtC1cWCZXQ+nvX8bf6bAji37QQ==
+
+luxon@3.7:
+  version "3.7.2"
+  resolved "https://registry.yarnpkg.com/luxon/-/luxon-3.7.2.tgz#d697e48f478553cca187a0f8436aff468e3ba0ba"
+  integrity sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==
 
 merge2@^1.3.0:
   version "1.4.1"
@@ -1510,6 +1566,11 @@ uuid@^11.1.0:
   version "11.1.0"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-11.1.0.tgz#9549028be1753bb934fc96e2bca09bb4105ae912"
   integrity sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==
+
+uuid@^13.0.0:
+  version "13.0.0"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-13.0.0.tgz#263dc341b19b4d755eb8fe36b78d95a6b65707e8"
+  integrity sha512-XQegIaBTVUjSHliKqcnFqYypAd4S+WCYt5NIeRs6w/UAry7z8Y9j5ZwRRL4kzq9U3sD6v+85er9FvkEaBpji2w==
 
 watch@0.13.0:
   version "0.13.0"
