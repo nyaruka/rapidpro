@@ -70,6 +70,10 @@
       navigateTo("/flow/next/" + e.detail.uuid + "/", e.detail);
     }
 
+    function handleGroupClicked(e) {
+      navigateTo("/contact/group/" + e.detail.uuid + "/", e.detail);
+    }
+
     function handleFollow(event) {
       const {
         flowUuid,
@@ -91,7 +95,7 @@
   </script>
 {% endblock extra-script %}
 {% block content %}
-  <temba-flow-editor flow="{{ object.uuid }}" -temba-contact-clicked="handleContactClicked" -temba-flow-clicked="handleFlowClicked">
+  <temba-flow-editor flow="{{ object.uuid }}" -temba-contact-clicked="handleContactClicked" -temba-flow-clicked="handleFlowClicked" -temba-group-clicked="handleGroupClicked">
   </temba-flow-editor>
   <temba-simulator flow="{{ object.uuid }}" -temba-follow-simulation="handleFollow">
   </temba-simulator>
