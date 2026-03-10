@@ -1,3 +1,9 @@
+v26.1.53 (2026-03-10)
+-------------------------
+ * Update @nyaruka/temba-components to 0.147.0
+ * Tweak create_os_index
+ * Add group click handler to flow editor
+
 v26.1.52 (2026-03-09)
 -------------------------
  * Update @nyaruka/temba-components to 0.146.1
