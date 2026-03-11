@@ -7,17 +7,24 @@ from temba.flows.models import Flow
 class Command(BaseCommand):
     help = "Inspects all flows for issues"
 
+    def add_arguments(self, parser):
+        parser.add_argument("--org", type=int, help="Limit to a specific org by ID")
+
     def handle(self, *args, **options):
         client = mailroom.get_client()
 
-        num_total = Flow.objects.filter(is_active=True).count()
+        flows = Flow.objects.filter(is_active=True)
+        if options["org"]:
+            flows = flows.filter(org_id=options["org"])
+
+        num_total = flows.count()
         num_inspected = 0
         num_updated = 0
         num_invalid = 0
 
         self.stdout.write(f"Inspecting {num_total} flows...")
 
-        for flow in Flow.objects.filter(is_active=True).order_by("org", "id"):
+        for flow in flows.order_by("org", "id"):
             definition = flow.get_definition()
 
             if "spec_version" in definition and definition["spec_version"] != flow.version_number:
