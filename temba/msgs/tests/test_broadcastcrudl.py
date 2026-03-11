@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from temba import mailroom
+from temba.msgs.forms import ComposeForm
 from temba.msgs.models import Broadcast, Media, OptIn
 from temba.msgs.views import ScheduleForm
 from temba.schedules.models import Schedule
@@ -562,8 +563,6 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
     def test_template_cost_warnings(self):
-        from temba.msgs.forms import ComposeForm
-
         # without cost_warnings brand feature, compose widget should not have template-warning
         form = ComposeForm(self.org)
         self.assertNotIn("template-warning", form.fields["compose"].widget.attrs)

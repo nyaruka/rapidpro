@@ -1391,13 +1391,13 @@ class FlowCRUDL(SmartCRUDL):
             if settings.SEND_HOURS_WARNING and hours >= settings.SEND_HOURS_WARNING:
                 warnings.append(self.warnings["too_many_recipients"])
 
+            templates = flow.get_dependencies_metadata("template")
+
             # if we have a whatsapp channel that requires a message template; exclude twilio whatsApp
             whatsapp_channel = flow.org.channels.filter(
                 role__contains=Channel.ROLE_SEND, schemes__contains=[URN.WHATSAPP_SCHEME], is_active=True
             ).exclude(channel_type__in=["TWA"])
             if whatsapp_channel:
-                # check to see we are using templates
-                templates = flow.get_dependencies_metadata("template")
                 if not templates:
                     warnings.append(self.warnings["no_templates"])
 
@@ -1412,10 +1412,8 @@ class FlowCRUDL(SmartCRUDL):
                         warnings.append(_(f"Your message template {template.name} is not approved and cannot be sent."))
 
             # warn about potential template costs if the flow uses templates and brand has cost warnings enabled
-            if "cost_warnings" in features:
-                templates = flow.get_dependencies_metadata("template")
-                if templates:
-                    warnings.append(self.warnings["templates_cost"])
+            if "cost_warnings" in features and templates:
+                warnings.append(self.warnings["templates_cost"])
 
             if FlowStart.has_unfinished(flow.org):
                 warnings.append(self.warnings["already_starting"])
