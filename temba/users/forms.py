@@ -32,7 +32,9 @@ class TembaSignupForm(InviteFormMixin, SignupForm):
     )
 
     # honeypot field - hidden from real users, filled by bots
-    phone_number = forms.CharField(required=False, label="", widget=forms.TextInput(attrs={"tabindex": "-1", "autocomplete": "off"}))
+    phone_number = forms.CharField(
+        required=False, label="", widget=forms.TextInput(attrs={"tabindex": "-1", "autocomplete": "off"})
+    )
 
     last_name = forms.CharField(
         max_length=User._meta.get_field("last_name").max_length,
@@ -63,7 +65,7 @@ class TembaSignupForm(InviteFormMixin, SignupForm):
 
     def clean_phone_number(self):
         if self.cleaned_data.get("phone_number"):
-            raise forms.ValidationError("")
+            raise forms.ValidationError(_("Invalid value"))
         return ""
 
     def clean_email(self):

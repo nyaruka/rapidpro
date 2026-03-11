@@ -65,6 +65,8 @@ class UserAuthTest(TembaTest):
         )
 
         self.assertEqual(200, response.status_code)
+        form = response.context.get("form")
+        self.assertIn("phone_number", form.errors)
         self.assertFalse(User.objects.filter(email="spam@spam.com").exists())
 
     def test_change_password(self):
