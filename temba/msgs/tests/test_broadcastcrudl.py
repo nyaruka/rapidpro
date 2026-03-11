@@ -561,6 +561,21 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
             'To get started you need to <a href="/channels/channel/claim/">add a channel</a> to your workspace which will allow you to send messages to your contacts.',
         )
 
+    def test_template_cost_warnings(self):
+        from temba.msgs.forms import ComposeForm
+
+        # without cost_warnings brand feature, compose widget should not have template-warning
+        form = ComposeForm(self.org)
+        self.assertNotIn("template-warning", form.fields["compose"].widget.attrs)
+
+        # with cost_warnings brand feature, compose widget should have template-warning
+        form = ComposeForm(self.org, features=["cost_warnings"])
+        self.assertIn("template-warning", form.fields["compose"].widget.attrs)
+        self.assertEqual(
+            form.fields["compose"].widget.attrs["template-warning"],
+            "Using a message template may incur additional fees from your channel provider.",
+        )
+
     @mock_mailroom
     def test_to_node(self, mr_mocks):
         to_node_url = reverse("msgs.broadcast_to_node")

@@ -19,7 +19,7 @@ from temba.orgs.integrations.dtone.type import DTOneType
 from temba.orgs.models import Export
 from temba.templates.models import TemplateTranslation
 from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
-from temba.tests.base import get_contact_search
+from temba.tests.base import get_contact_search, override_brand
 from temba.tests.requests import MockJsonResponse
 from temba.triggers.models import Trigger
 from temba.utils import json
@@ -1281,6 +1281,51 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         self.assertEqual(response.json()["warnings"], [])
+
+    @mock_mailroom
+    def test_template_cost_warnings(self, mr_mocks):
+        self.login(self.admin)
+        flow = self.create_flow("Template Flow")
+        flow.info["dependencies"] = [
+            {"type": "template", "uuid": "f712e05c-bbed-40f1-b3d9-671bb9b60775", "name": "affirmation"}
+        ]
+        flow.save(update_fields=("info",))
+
+        # flow uses templates but brand doesn't have cost_warnings feature
+        mr_mocks.flow_start_preview(query="age > 30", total=2)
+        response = self.client.post(
+            reverse("flows.flow_preview_start", args=[flow.id]),
+            {"query": "age > 30"},
+            content_type="application/json",
+        )
+        self.assertEqual(response.json()["warnings"], [])
+
+        # enable cost_warnings brand feature
+        with override_brand(features=["cost_warnings"]):
+            # flow uses templates, should get cost warning
+            mr_mocks.flow_start_preview(query="age > 30", total=2)
+            response = self.client.post(
+                reverse("flows.flow_preview_start", args=[flow.id]),
+                {"query": "age > 30"},
+                content_type="application/json",
+            )
+            self.assertIn(
+                "This flow uses message templates which may incur additional fees from your channel provider.",
+                response.json()["warnings"],
+            )
+
+            # flow without templates should not get cost warning
+            flow2 = self.create_flow("No Templates")
+            mr_mocks.flow_start_preview(query="age > 30", total=2)
+            response = self.client.post(
+                reverse("flows.flow_preview_start", args=[flow2.id]),
+                {"query": "age > 30"},
+                content_type="application/json",
+            )
+            self.assertNotIn(
+                "This flow uses message templates which may incur additional fees from your channel provider.",
+                response.json()["warnings"],
+            )
 
     @mock_mailroom
     def test_start(self, mr_mocks):

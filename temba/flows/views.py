@@ -1359,6 +1359,9 @@ class FlowCRUDL(SmartCRUDL):
                 "Your channels will likely take over a day to reach all of the selected contacts. Consider "
                 "selecting fewer contacts before continuing."
             ),
+            "templates_cost": _(
+                "This flow uses message templates which may incur additional fees from your channel provider."
+            ),
         }
 
         def get_blockers(self, flow, send_time) -> list:
@@ -1382,7 +1385,7 @@ class FlowCRUDL(SmartCRUDL):
 
             return blockers
 
-        def get_warnings(self, flow, query, send_time) -> list:
+        def get_warnings(self, features, flow, query, send_time) -> list:
             warnings = []
             hours = send_time / timedelta(hours=1)
             if settings.SEND_HOURS_WARNING and hours >= settings.SEND_HOURS_WARNING:
@@ -1407,6 +1410,12 @@ class FlowCRUDL(SmartCRUDL):
                         )
                     elif not template.is_approved():
                         warnings.append(_(f"Your message template {template.name} is not approved and cannot be sent."))
+
+            # warn about potential template costs if the flow uses templates and brand has cost warnings enabled
+            if "cost_warnings" in features:
+                templates = flow.get_dependencies_metadata("template")
+                if templates:
+                    warnings.append(self.warnings["templates_cost"])
 
             if FlowStart.has_unfinished(flow.org):
                 warnings.append(self.warnings["already_starting"])
@@ -1434,7 +1443,7 @@ class FlowCRUDL(SmartCRUDL):
                 {
                     "query": query,
                     "total": total,
-                    "warnings": self.get_warnings(flow, query, send_time),
+                    "warnings": self.get_warnings(request.branding.get("features", []), flow, query, send_time),
                     "blockers": self.get_blockers(flow, send_time),
                     "send_time": send_time.total_seconds(),
                 }
