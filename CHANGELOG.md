@@ -1,3 +1,8 @@
+v26.1.57 (2026-03-12)
+-------------------------
+ * Make "dynamic" "false" in contact index
+ * create_os_index should remove alias from other indexes
+
 v26.1.56 (2026-03-12)
 -------------------------
  * Change some contact index fields to be keyword
