@@ -73,7 +73,7 @@
         }
     },
     "mappings": {
-        "dynamic": "strict",
+        "dynamic": "false",
         "_routing": {
             "required": true
         },
