@@ -9,7 +9,7 @@ MESSAGES_TEMPLATE_FILE = "temba/utils/management/commands/data/os_messages.json"
 MESSAGES_TEMPLATE_NAME = "messages-v1"
 
 CONTACTS_INDEX_FILE = "temba/utils/management/commands/data/os_contacts.json"
-CONTACTS_INDEX_NAME = "contacts-v2"
+CONTACTS_INDEX_NAME = "contacts-v1"
 CONTACTS_INDEX_ALIAS = "contacts"
 
 
