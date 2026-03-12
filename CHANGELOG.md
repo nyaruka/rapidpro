@@ -1,3 +1,10 @@
+v26.1.54 (2026-03-12)
+-------------------------
+ * Add --no-alias option to create_os_index command
+ * Tweak contacts index creation
+ * Update @nyaruka/temba-components to 0.148.0
+ * Add template cost warning feature
+
 v26.1.53 (2026-03-10)
 -------------------------
  * Update @nyaruka/temba-components to 0.147.0
