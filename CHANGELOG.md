@@ -1,3 +1,7 @@
+v26.1.55 (2026-03-12)
+-------------------------
+ * Set keyword trigger default to 'Message contains only the keyword'
+
 v26.1.54 (2026-03-12)
 -------------------------
  * Add --no-alias option to create_os_index command
