@@ -24,8 +24,9 @@ class Command(BaseCommand):
         parser.add_argument(
             "--replicas", type=int, choices=range(0, 3), help="Override number of replicas (0-2)", default=None
         )
+        parser.add_argument("--no-alias", action="store_true", help="Don't create the alias for the index")
 
-    def handle(self, index: str, shards: int, replicas: int, *args, **options):
+    def handle(self, index: str, shards: int, replicas: int, no_alias: bool, *args, **options):
         if not settings.OPENSEARCH_ENDPOINT_URL:
             raise CommandError("OPENSEARCH_ENDPOINT_URL must be configured")
 
@@ -51,7 +52,9 @@ class Command(BaseCommand):
             if replicas is not None:
                 schema["settings"]["index"]["number_of_replicas"] = replicas
 
-            self._create_index(client, CONTACTS_INDEX_NAME, schema, alias=CONTACTS_INDEX_ALIAS)
+            self._create_index(
+                client, CONTACTS_INDEX_NAME, schema, alias=CONTACTS_INDEX_ALIAS if not no_alias else None
+            )
 
     def _create_template(self, client, name: str, schema: dict):
         """Creates an index template using the OpenSearch API."""
@@ -63,7 +66,7 @@ class Command(BaseCommand):
             f"Put {name} index template (shards={opts['number_of_shards']}, replicas={opts['number_of_replicas']})"
         )
 
-    def _create_index(self, client, name: str, schema: dict, alias: str):
+    def _create_index(self, client, name: str, schema: dict, alias: str = None):
         """Creates a regular index using the OpenSearch API."""
 
         client.indices.create(index=name, body=schema)
@@ -73,5 +76,6 @@ class Command(BaseCommand):
             f"Created {name} index (shards={opts['number_of_shards']}, replicas={opts['number_of_replicas']})"
         )
 
-        client.indices.put_alias(index=name, name=alias)
-        self.stdout.write(f" > added alias {alias} -> {name}")
+        if alias:
+            client.indices.put_alias(index=name, name=alias)
+            self.stdout.write(f" > added alias {alias} -> {name}")
