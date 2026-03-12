@@ -1,3 +1,7 @@
+v26.1.56 (2026-03-12)
+-------------------------
+ * Change some contact index fields to be keyword
+
 v26.1.55 (2026-03-12)
 -------------------------
  * Set keyword trigger default to 'Message contains only the keyword'
