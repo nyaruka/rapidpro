@@ -85,7 +85,7 @@
                 "type": "keyword"
             },
             "org_id": {
-                "type": "integer"
+                "type": "keyword"
             },
             "name": {
                 "type": "text",
@@ -169,13 +169,13 @@
                 }
             },
             "group_ids": {
-                "type": "integer"
+                "type": "keyword"
             },
             "flow_id": {
-                "type": "integer"
+                "type": "keyword"
             },
             "flow_history_ids": {
-                "type": "integer"
+                "type": "keyword"
             },
             "tickets": {
                 "type": "integer"
