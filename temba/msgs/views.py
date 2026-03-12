@@ -199,7 +199,7 @@ class BroadcastCRUDL(SmartCRUDL):
             return self.request.POST.get("create-current_step") == "schedule"
 
         def get_form_kwargs(self, step):
-            return {"org": self.request.org}
+            return {"org": self.request.org, "features": self.request.branding.get("features", [])}
 
         def get_form_initial(self, step):
             initial = super().get_form_initial(step)
@@ -290,7 +290,7 @@ class BroadcastCRUDL(SmartCRUDL):
             return self.request.POST.get("update-current_step") == "schedule"
 
         def get_form_kwargs(self, step):
-            return {"org": self.request.org}
+            return {"org": self.request.org, "features": self.request.branding.get("features", [])}
 
         def get_form_initial(self, step):
             org = self.request.org

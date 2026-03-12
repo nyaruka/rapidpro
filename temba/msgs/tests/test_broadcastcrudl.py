@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from temba import mailroom
+from temba.msgs.forms import ComposeForm
 from temba.msgs.models import Broadcast, Media, OptIn
 from temba.msgs.views import ScheduleForm
 from temba.schedules.models import Schedule
@@ -559,6 +560,19 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(
             response.json()["blockers"][0],
             'To get started you need to <a href="/channels/channel/claim/">add a channel</a> to your workspace which will allow you to send messages to your contacts.',
+        )
+
+    def test_template_cost_warnings(self):
+        # without cost_warnings brand feature, compose widget should not have template-warning
+        form = ComposeForm(self.org)
+        self.assertNotIn("template-warning", form.fields["compose"].widget.attrs)
+
+        # with cost_warnings brand feature, compose widget should have template-warning
+        form = ComposeForm(self.org, features=["cost_warnings"])
+        self.assertIn("template-warning", form.fields["compose"].widget.attrs)
+        self.assertEqual(
+            form.fields["compose"].widget.attrs["template-warning"],
+            "Using a message template may incur additional fees from your channel provider.",
         )
 
     @mock_mailroom
