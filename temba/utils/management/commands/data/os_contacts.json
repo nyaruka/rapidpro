@@ -78,6 +78,9 @@
             "required": true
         },
         "properties": {
+            "id": {
+                "type": "long"
+            },
             "uuid": {
                 "type": "keyword"
             },
