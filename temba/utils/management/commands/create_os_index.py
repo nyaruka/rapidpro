@@ -77,5 +77,16 @@ class Command(BaseCommand):
         )
 
         if alias:
-            client.indices.put_alias(index=name, name=alias)
+            # remove alias from any existing indices first to avoid multiple indices with same alias
+            actions = [{"add": {"index": name, "alias": alias}}]
+            try:
+                existing = client.indices.get_alias(name=alias)
+                for old_index in existing:
+                    if old_index != name:
+                        actions.insert(0, {"remove": {"index": old_index, "alias": alias}})
+                        self.stdout.write(f" > removing alias {alias} from {old_index}")
+            except Exception:
+                pass  # alias doesn't exist yet
+
+            client.indices.update_aliases(body={"actions": actions})
             self.stdout.write(f" > added alias {alias} -> {name}")
