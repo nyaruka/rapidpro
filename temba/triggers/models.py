@@ -94,8 +94,8 @@ class Trigger(SmartModel):
     MATCH_FIRST_WORD = "F"
     MATCH_ONLY_WORD = "O"
     MATCH_TYPES = (
-        (MATCH_FIRST_WORD, _("Message starts with the keyword")),
         (MATCH_ONLY_WORD, _("Message contains only the keyword")),
+        (MATCH_FIRST_WORD, _("Message starts with the keyword")),
     )
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="triggers")
