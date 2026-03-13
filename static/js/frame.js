@@ -464,6 +464,9 @@ function showModax(header, endpoint, modaxOptions) {
       modax['-temba-redirected'] = refreshMenu;
     }
 
+    modax.style.setProperty('--header-bg', options.headerBg || 'var(--color-primary-dark)');
+    modax.style.setProperty('--header-text', options.headerText || '#fff');
+
     modax.headers = { 'X-Temba-Spa': 1 };
     modax.header = header;
     modax.endpoint = endpoint;

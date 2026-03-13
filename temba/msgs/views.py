@@ -37,6 +37,7 @@ from temba.utils.models import patch_queryset_count
 from temba.utils.views.mixins import (
     ContextMenuMixin,
     ModalFormMixin,
+    ModalHeaderMixin,
     NonAtomicMixin,
     PostOnlyMixin,
     SpaMixin,
@@ -157,10 +158,9 @@ class BroadcastCRUDL(SmartCRUDL):
         def build_context_menu(self, menu):
             if self.has_org_perm("msgs.broadcast_create"):
                 menu.add_modax(
-                    _("Send"),
+                    _("New Broadcast"),
                     "new-scheduled",
                     reverse("msgs.broadcast_create"),
-                    title=_("New Broadcast"),
                     as_button=True,
                 )
 
@@ -183,17 +183,18 @@ class BroadcastCRUDL(SmartCRUDL):
         def build_context_menu(self, menu):
             if self.has_org_perm("msgs.broadcast_create"):
                 menu.add_modax(
-                    _("Send"),
+                    _("New Broadcast"),
                     "new-scheduled",
                     reverse("msgs.broadcast_create"),
-                    title=_("New Broadcast"),
                     as_button=True,
                 )
 
-    class Create(OrgPermsMixin, SmartWizardView):
+    class Create(ModalHeaderMixin, OrgPermsMixin, SmartWizardView):
         form_list = [("target", TargetForm), ("compose", ComposeForm), ("schedule", ScheduleForm)]
         success_url = "@msgs.broadcast_scheduled"
         submit_button_name = _("Create")
+        modal_header_bg = "#8e5ea7"
+        modal_header_text = "#fff"
 
         def derive_readonly_servicing(self):
             return self.request.POST.get("create-current_step") == "schedule"
@@ -281,10 +282,12 @@ class BroadcastCRUDL(SmartCRUDL):
 
             return HttpResponseRedirect(self.get_success_url())
 
-    class Update(OrgObjPermsMixin, SmartWizardUpdateView):
+    class Update(ModalHeaderMixin, OrgObjPermsMixin, SmartWizardUpdateView):
         form_list = [("target", TargetForm), ("compose", ComposeForm), ("schedule", ScheduleForm)]
         success_url = "@msgs.broadcast_scheduled"
         submit_button_name = _("Save")
+        modal_header_bg = "#8e5ea7"
+        modal_header_text = "#fff"
 
         def derive_readonly_servicing(self):
             return self.request.POST.get("update-current_step") == "schedule"
