@@ -3,12 +3,9 @@
 {% with translation=broadcast.get_translation %}
   <div style="--color-overlay-light:#fff;
               --color-background-hover:#FaFaFa;
-              height: 270px;"
+              min-height: 200px;"
        class="broadcast flex flex-col card m-0 rounded overflow-hidden p-0 flex-shrink-0 {% if broadcast.schedule %}scheduled{% endif %}">
     <div class="broadcast-top-bar px-2 pt-2 pb-1 flex flex-row" style="background: #8e5ea7;">
-      <div class="recipients flex-grow" style="--color-overlay-light: rgba(255,255,255,0.8);">
-        {% include "includes/recipients.html" with groups=broadcast.groups.all contacts=broadcast.contacts.all query=broadcast.query node_uuid=broadcast.node_uuid %}
-      </div>
       <div class="flex-grow text-right mr-2 text-sm self-center font-normal -mt-1 date-text flex items-end" style="color: rgba(255,255,255,0.85);">
         <div class="flex-grow"></div>
         {% if broadcast.schedule.next_fire %}
@@ -19,9 +16,12 @@
         {% endif %}
       </div>
     </div>
-    <div class="flex flex-row p-4 flex-grow" style="overflow: hidden;">
-      <div class="flex-grow">
-        <div class="text" style="overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6;">
+    <div class="flex flex-col p-4 flex-grow" style="overflow: hidden;">
+      <div class="recipients mb-2" style="--color-overlay-light: #f7f7f7; --color-overlay-light-text: #666;">
+        {% include "includes/recipients.html" with groups=broadcast.groups.all contacts=broadcast.contacts.all query=broadcast.query node_uuid=broadcast.node_uuid %}
+      </div>
+      <div>
+        <div class="text" style="overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;">
           {% if broadcast.schedule and broadcast.optin or broadcast.schedule and broadcast.template %}
             <div class="flex flex-row flex-wrap mb-2">
               {% if broadcast.template %}
@@ -55,24 +55,27 @@
               {% endif %}
             </div>
           {% endif %}
-          <br />
-          {% for qr in translation.quick_replies %}
-            <temba-label class="mr-2 mt-2" backgroundcolor="#fafafa">
-              {{ qr.text }}
-            </temba-label>
-          {% endfor %}
-          {% if translation.attachments %}
-            <div class="attachments flex flex-row flex-wrap mt-4" style="gap: 0.5em;">
-              {% for attachment in translation.attachments %}
-                {% attachment_button attachment True %}
-              {% endfor %}
-            </div>
-          {% endif %}
         </div>
       </div>
+      {% if translation.quick_replies %}
+        <div class="flex flex-row flex-wrap mt-2" style="gap: 6px;">
+          {% for qr in translation.quick_replies %}
+            <span style="padding: 4px 8px; border-radius: 18px; border: 1px solid var(--color-quick-reply, rgb(60, 146, 221)); background: white; color: var(--color-quick-reply, rgb(60, 146, 221)); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              {{ qr.text }}
+            </span>
+          {% endfor %}
+        </div>
+      {% endif %}
     </div>
+    {% if translation.attachments %}
+      <div class="attachments flex flex-row flex-wrap px-4 pb-2" style="gap: 0.5em;">
+        {% for attachment in translation.attachments %}
+          {% attachment_button attachment True %}
+        {% endfor %}
+      </div>
+    {% endif %}
     {% if broadcast.schedule and broadcast.schedule.repeat_period != "O" %}
-      <div class="px-4 pb-2 text-sm" style="color: #999;">
+      <div class="px-4 pt-2 pb-2 text-sm" style="color: #999;">
         {% if broadcast.schedule.repeat_period == 'M' %}
           {% blocktrans trimmed with date=broadcast.schedule.repeat_day_of_month|ordinal %}
             Repeats every <b>month</b> on the {{ date }}.

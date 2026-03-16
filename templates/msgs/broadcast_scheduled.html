@@ -16,6 +16,21 @@
       document.querySelectorAll('.broadcast .thumb img').forEach(function(img) {
         img.style.width = '48px';
       });
+
+      var maxRecipients = 5;
+      document.querySelectorAll('.broadcast .recipients').forEach(function(container) {
+        var items = container.children;
+        if (items.length > maxRecipients) {
+          var overflow = items.length - maxRecipients;
+          for (var i = maxRecipients; i < items.length; i++) {
+            items[i].style.display = 'none';
+          }
+          var more = document.createElement('temba-label');
+          more.className = 'mr-1 mb-1';
+          more.textContent = '+' + overflow + ' more';
+          container.appendChild(more);
+        }
+      });
     });
   </script>
 {% endblock extra-script %}
