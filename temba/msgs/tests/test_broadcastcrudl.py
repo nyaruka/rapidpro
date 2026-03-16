@@ -627,8 +627,8 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(list_url, [None, self.agent])
         self.assertListFetch(list_url, [self.editor, self.admin], context_objects=[])
-        self.assertContentMenu(list_url, self.editor, ["Send"])
-        self.assertContentMenu(list_url, self.admin, ["Send"])
+        self.assertContentMenu(list_url, self.editor, ["New Broadcast"])
+        self.assertContentMenu(list_url, self.admin, ["New Broadcast"])
 
         broadcast = self.create_broadcast(
             self.admin,
@@ -643,8 +643,8 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(scheduled_url, [None, self.agent])
         self.assertListFetch(scheduled_url, [self.editor, self.admin], context_objects=[])
-        self.assertContentMenu(scheduled_url, self.editor, ["Send"])
-        self.assertContentMenu(scheduled_url, self.admin, ["Send"])
+        self.assertContentMenu(scheduled_url, self.editor, ["New Broadcast"])
+        self.assertContentMenu(scheduled_url, self.admin, ["New Broadcast"])
 
         bc1 = self.create_broadcast(
             self.admin,
