@@ -1,3 +1,9 @@
+v26.1.58 (2026-03-17)
+-------------------------
+ * Update @nyaruka/temba-components to 0.149.0
+ * Make new editor the default, allow opt-out via cookie
+ * Bump pyjwt from 2.10.1 to 2.12.0
+
 v26.1.57 (2026-03-12)
 -------------------------
  * Make "dynamic" "false" in contact index
