@@ -830,9 +830,21 @@ class FlowCRUDL(SmartCRUDL):
     class Next(Editor):
         template_name = "flows/flow_next.html"
 
+        def get(self, request, *args, **kwargs):
+            response = super().get(request, *args, **kwargs)
+
+            # show banner on first auto-redirect, then set cookie so it doesn't show again
+            if not request.COOKIES.get("new_editor_introduced") and request.COOKIES.get("use_new_editor") != "true":
+                response.set_cookie("new_editor_introduced", "true", path="/", max_age=31536000)
+
+            return response
+
         def get_context_data(self, *args, **kwargs):
             context = super().get_context_data(*args, **kwargs)
-            context["show_new_editor_banner"] = self.request.COOKIES.get("use_new_editor") != "true"
+            context["show_new_editor_banner"] = (
+                not self.request.COOKIES.get("new_editor_introduced")
+                and self.request.COOKIES.get("use_new_editor") != "true"
+            )
             return context
 
         def build_context_menu(self, menu):
