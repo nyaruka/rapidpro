@@ -830,6 +830,11 @@ class FlowCRUDL(SmartCRUDL):
     class Next(Editor):
         template_name = "flows/flow_next.html"
 
+        def get_context_data(self, *args, **kwargs):
+            context = super().get_context_data(*args, **kwargs)
+            context["show_new_editor_banner"] = self.request.COOKIES.get("use_new_editor") != "true"
+            return context
+
         def build_context_menu(self, menu):
             super().build_context_menu(menu)
 
