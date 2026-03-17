@@ -258,7 +258,8 @@ class ContactSearchWidget(forms.Widget):
 
     def render(self, name, value, attrs=None, renderer=None):
         if value:
-            value = json.loads(value)
+            if isinstance(value, str):
+                value = json.loads(value)
             attrs = attrs or {}
             if value:
                 attrs["advanced"] = value["advanced"]

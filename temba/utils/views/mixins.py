@@ -205,6 +205,23 @@ class ContextMenuMixin:
         return super().get(request, *args, **kwargs)
 
 
+class ModalHeaderMixin:
+    """
+    Mixin for views rendered in a modax that want to customize the modal header colors.
+    """
+
+    modal_header_bg = None
+    modal_header_text = None
+
+    def render_to_response(self, context, **response_kwargs):
+        response = super().render_to_response(context, **response_kwargs)
+        if self.modal_header_bg:
+            response["X-Temba-Header-Bg"] = self.modal_header_bg
+        if self.modal_header_text:
+            response["X-Temba-Header-Text"] = self.modal_header_text
+        return response
+
+
 class ModalFormMixin(SmartFormView):
     """
     TODO rework this to be an actual mixin

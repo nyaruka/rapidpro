@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from temba import mailroom
 from temba.msgs.forms import ComposeForm
-from temba.msgs.models import Broadcast, Media, OptIn
+from temba.msgs.models import Broadcast, Media
 from temba.msgs.views import ScheduleForm
 from temba.schedules.models import Schedule
 from temba.templates.models import TemplateTranslation
@@ -31,7 +31,6 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         contacts=(),
         advanced=False,
         query=None,
-        optin=None,
         template=None,
         variables=[],
         send_when=ScheduleForm.SEND_LATER,
@@ -39,11 +38,6 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         repeat_period="",
         repeat_days_of_week="",
     ):
-        # UI puts optin in translations
-        if translations:
-            first_lang = next(iter(translations))
-            translations[first_lang]["optin"] = {"uuid": str(optin.uuid), "name": optin.name} if optin else None
-
         if template:
             translation = template.translations.all().first()
             first_lang = next(iter(translations))
@@ -201,8 +195,6 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
             response.context["form"], "start_datetime", ["Must specify a start time that is in the future."]
         )
 
-        optin = OptIn.create(self.org, self.admin, "Alerts")
-
         # successful broadcast schedule
         response = self.process_wizard(
             "create",
@@ -212,7 +204,6 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
                 variables=["image/jpeg:http://domain/meow.jpg", "World"],
                 translations={"eng": {"text": text}},
                 contacts=[self.joe],
-                optin=optin,
                 start_datetime="2021-06-24 12:00Z",
                 repeat_period="W",
                 repeat_days_of_week=["M", "F"],
@@ -223,7 +214,6 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(1, Broadcast.objects.count())
         broadcast = Broadcast.objects.filter(translations__icontains=text).first()
         self.assertEqual("W", broadcast.schedule.repeat_period)
-        self.assertEqual(optin, broadcast.optin)
         self.assertEqual(template, broadcast.template)
 
         # send a broadcast right away
@@ -259,7 +249,6 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(403, response.status_code)
 
     def test_update(self):
-        optin = self.create_optin("Daily Polls")
         language = self.org.flow_languages[0]
         updated_text = {language: {"text": "Updated broadcast"}}
 
@@ -344,7 +333,6 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
             self._form_data(
                 translations={language: {"text": "Updated broadcast"}},
                 contacts=[self.joe],
-                optin=optin,
                 start_datetime="2021-06-24 12:00",
                 repeat_period="W",
                 repeat_days_of_week=["M", "F"],
@@ -354,28 +342,7 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         broadcast.refresh_from_db()
         # Update should have cleared our template
         self.assertIsNone(broadcast.template)
-
-        # optin should be extracted from the translations form data and saved on the broadcast itself
         self.assertEqual({language: {"text": "Updated broadcast", "attachments": []}}, broadcast.translations)
-        self.assertEqual(optin, broadcast.optin)
-
-        # now lets unset the optin from the broadcast
-        response = self.process_wizard(
-            "update",
-            update_url,
-            self._form_data(
-                translations=updated_text,
-                contacts=[self.joe],
-                start_datetime="2021-06-24 12:00",
-                repeat_period="W",
-                repeat_days_of_week=["M", "F"],
-            ),
-        )
-        self.assertEqual(302, response.status_code)
-        broadcast.refresh_from_db()
-
-        # optin should be gone now
-        self.assertIsNone(broadcast.optin)
 
         # post the first two forms
         response = self.process_wizard(
@@ -627,8 +594,8 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(list_url, [None, self.agent])
         self.assertListFetch(list_url, [self.editor, self.admin], context_objects=[])
-        self.assertContentMenu(list_url, self.editor, ["Send"])
-        self.assertContentMenu(list_url, self.admin, ["Send"])
+        self.assertContentMenu(list_url, self.editor, ["New Broadcast"])
+        self.assertContentMenu(list_url, self.admin, ["New Broadcast"])
 
         broadcast = self.create_broadcast(
             self.admin,
@@ -643,8 +610,8 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(scheduled_url, [None, self.agent])
         self.assertListFetch(scheduled_url, [self.editor, self.admin], context_objects=[])
-        self.assertContentMenu(scheduled_url, self.editor, ["Send"])
-        self.assertContentMenu(scheduled_url, self.admin, ["Send"])
+        self.assertContentMenu(scheduled_url, self.editor, ["New Broadcast"])
+        self.assertContentMenu(scheduled_url, self.admin, ["New Broadcast"])
 
         bc1 = self.create_broadcast(
             self.admin,

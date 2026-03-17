@@ -1,17 +1,20 @@
 {% load i18n %}
 
 {% if exclusions.in_a_flow %}
-  <temba-label icon="filter" backgroundcolor="#fff" textcolor="#999" style="--widget-shadow:none">
+  <div class="inline-flex items-center mt-0 mr-1 px-2 py-1 rounded" style="color: #aaa; font-size: 0.8em; border: 1px solid #ddd; background: #fff;">
+    <temba-icon name="filter" class="mr-1" style="--icon-color: #aaa;"></temba-icon>
     {% trans "Not in a flow" %}
-  </temba-label>
+  </div>
 {% endif %}
 {% if exclusions.started_previously %}
-  <temba-label icon="filter" backgroundcolor="#fff" textcolor="#999" style="--widget-shadow:none">
+  <div class="inline-flex items-center mt-0 mr-1 px-2 py-1 rounded" style="color: #aaa; font-size: 0.8em; border: 1px solid #ddd; background: #fff;">
+    <temba-icon name="filter" class="mr-1" style="--icon-color: #aaa;"></temba-icon>
     {% trans "No recent runs" %}
-  </temba-label>
+  </div>
 {% endif %}
-{% if exclusion.not_seen_since_days %}
-  <temba-label icon="filter" backgroundcolor="#fff" textcolor="#999" style="--widget-shadow:none">
+{% if exclusions.not_seen_since_days %}
+  <div class="inline-flex items-center mt-0 mr-1 px-2 py-1 rounded" style="color: #aaa; font-size: 0.8em; border: 1px solid #ddd; background: #fff;">
+    <temba-icon name="filter" class="mr-1" style="--icon-color: #aaa;"></temba-icon>
     {% if exclusions.not_seen_since_days == 365 %}
       {% blocktrans trimmed %}
         Active in the last year
@@ -21,5 +24,5 @@
         Active in the last {{ days }} days
       {% endblocktrans %}
     {% endif %}
-  </temba-label>
+  </div>
 {% endif %}

@@ -71,6 +71,7 @@ html {
   --color-nav-unselected: #fff;
   --color-nav-selected-bg: #fff;
   --color-nav-selected-text: var(--color-primary-dark);
+  --color-quick-reply: rgb(60, 146, 221);
   --color-info: rgb(238, 246, 255);
   --color-info-border: rgb(74, 163, 223);
   --color-warning: rgb(255, 253, 218);
