@@ -22,37 +22,21 @@
       </div>
       <div>
         <div class="text" style="overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;">
-          {% if broadcast.schedule and broadcast.optin or broadcast.schedule and broadcast.template %}
+          {% if broadcast.schedule and broadcast.template %}
             <div class="flex flex-row flex-wrap mb-2">
-              {% if broadcast.template %}
-                <div class="flex items-center px-2 py-1 mr-1 rounded" style="border: 1px solid #7dc8bc; background: #f0faf7; color: #128C7E; font-size: 0.85em;">
-                  <temba-icon class="mr-1" name="channel_wa" style="--icon-color: #128C7E;"></temba-icon>
-                  <div>{{ broadcast.template.name }}</div>
-                </div>
-              {% endif %}
-              {% if broadcast.optin %}
-                <div class="flex items-center px-2 py-1 mr-1 rounded" style="border: 1px solid #8ba7d6; background: #f0f4fa; color: #1877F2; font-size: 0.85em;">
-                  <temba-icon class="mr-1" name="channel_fb" style="--icon-color: #1877F2;"></temba-icon>
-                  <div>{{ broadcast.optin.name }}</div>
-                </div>
-              {% endif %}
+              <div class="flex items-center px-2 py-1 mr-1 rounded" style="border: 1px solid #7dc8bc; background: #f0faf7; color: #128C7E; font-size: 0.85em;">
+                <temba-icon class="mr-1" name="channel_wa" style="--icon-color: #128C7E;"></temba-icon>
+                <div>{{ broadcast.template.name }}</div>
+              </div>
             </div>
           {% endif %}
           <temba-expression-highlight>{{ translation.text }}</temba-expression-highlight>
-          {% if not broadcast.schedule and broadcast.optin or not broadcast.schedule and broadcast.template %}
+          {% if not broadcast.schedule and broadcast.template %}
             <div class="flex flex-row flex-wrap mt-2">
-              {% if broadcast.template %}
-                <div class="flex items-center px-2 py-1 mr-1 rounded" style="border: 1px solid #7dc8bc; background: #f0faf7; color: #128C7E; font-size: 0.85em;">
-                  <temba-icon class="mr-1" name="channel_wa" style="--icon-color: #128C7E;"></temba-icon>
-                  <div>{{ broadcast.template.name }}</div>
-                </div>
-              {% endif %}
-              {% if broadcast.optin %}
-                <div class="flex items-center px-2 py-1 mr-1 rounded" style="border: 1px solid #8ba7d6; background: #f0f4fa; color: #1877F2; font-size: 0.85em;">
-                  <temba-icon class="mr-1" name="channel_fb" style="--icon-color: #1877F2;"></temba-icon>
-                  <div>{{ broadcast.optin.name }}</div>
-                </div>
-              {% endif %}
+              <div class="flex items-center px-2 py-1 mr-1 rounded" style="border: 1px solid #7dc8bc; background: #f0faf7; color: #128C7E; font-size: 0.85em;">
+                <temba-icon class="mr-1" name="channel_wa" style="--icon-color: #128C7E;"></temba-icon>
+                <div>{{ broadcast.template.name }}</div>
+              </div>
             </div>
           {% endif %}
         </div>

@@ -46,7 +46,7 @@ from temba.utils.views.mixins import (
 from temba.utils.views.wizard import SmartWizardUpdateView, SmartWizardView
 
 from .forms import ComposeForm, ScheduleForm, TargetForm
-from .models import Broadcast, Label, LabelCount, Media, MessageExport, Msg, MsgFolder, OptIn
+from .models import Broadcast, Label, LabelCount, Media, MessageExport, Msg, MsgFolder
 
 
 class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
@@ -224,15 +224,11 @@ class BroadcastCRUDL(SmartCRUDL):
             compose = form_dict["compose"].cleaned_data["compose"]
             translations = compose_deserialize(compose)
             base_language = next(iter(translations))
-            optin = None
             template = None
             template_variables = []
 
-            # extract template and optin which are packed into the base translation
+            # extract template which is packed into the base translation
             for trans in compose.values():
-                if trans.get("optin"):
-                    optin_ref = trans.pop("optin")
-                    optin = OptIn.objects.filter(org=org, uuid=optin_ref["uuid"]).first()
                 if trans.get("template"):
                     template = Template.objects.filter(org=org, uuid=trans.pop("template")).first()
                     template_variables = trans.pop("variables", [])
@@ -271,7 +267,6 @@ class BroadcastCRUDL(SmartCRUDL):
                 contacts=contacts,
                 query=query,
                 exclude=exclude,
-                optin=optin,
                 template=template,
                 template_variables=template_variables,
                 schedule=schedule,
@@ -313,9 +308,7 @@ class BroadcastCRUDL(SmartCRUDL):
             if step == "compose":
                 base_language = self.object.base_language
 
-                compose = compose_serialize(
-                    self.object.translations, base_language=self.object.base_language, optin=self.object.optin
-                )
+                compose = compose_serialize(self.object.translations, base_language=self.object.base_language)
 
                 # remove any languages not present on the org
                 langs = [k for k in compose.keys()]
@@ -327,7 +320,7 @@ class BroadcastCRUDL(SmartCRUDL):
                     compose[base_language]["template"] = str(self.object.template.uuid)
                     compose[base_language]["variables"] = self.object.template_variables
 
-                return {"compose": compose, "optin": self.object.optin, "base_language": base_language}
+                return {"compose": compose, "base_language": base_language}
 
             if step == "schedule":
                 schedule = self.object.schedule
@@ -344,11 +337,6 @@ class BroadcastCRUDL(SmartCRUDL):
             # update message
             compose = form_dict["compose"].cleaned_data["compose"]
             composeBase = compose[broadcast.base_language]
-
-            # extract our optin if it is set
-            optin = composeBase.pop("optin", None)
-            if optin:
-                optin = OptIn.objects.filter(org=broadcast.org, uuid=optin.get("uuid")).first()
 
             contact_search = form_dict["target"].cleaned_data["contact_search"]
 
@@ -373,7 +361,6 @@ class BroadcastCRUDL(SmartCRUDL):
             broadcast.translations = compose_deserialize(compose)
             broadcast.query = query
             broadcast.exclusions = exclusions
-            broadcast.optin = optin
             broadcast.template = template
             broadcast.template_variables = template_variables
             broadcast.save()
