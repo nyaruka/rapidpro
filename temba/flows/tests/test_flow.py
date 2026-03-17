@@ -214,16 +214,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         flow_editor_url = reverse("flows.flow_editor", args=[flow.uuid])
         flow_next_url = reverse("flows.flow_next", args=[flow.uuid])
 
-        response = self.client.get(flow_editor_url)
-
-        self.assertTrue(response.context["mutable"])
-        self.assertTrue(response.context["can_start"])
-        self.assertTrue(response.context["can_simulate"])
-        self.assertContains(response, reverse("flows.flow_simulate", args=[flow.uuid]))
-        self.assertContains(response, 'id="rp-flow-editor"')
-
-        # test redirect to beta editor when cookie is set
-        self.client.cookies["use_beta_editor"] = "true"
+        # by default, editor redirects to new editor
         response = self.client.get(flow_editor_url)
         self.assertRedirects(response, flow_next_url, fetch_redirect_response=False)
 
@@ -231,13 +222,24 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(flow_next_url, follow=True)
         self.assertEqual(response.status_code, 200)
 
-        # remove cookie and verify we get the old editor
-        del self.client.cookies["use_beta_editor"]
+        # opting out keeps user on classic editor
+        self.client.cookies["use-new-editor"] = "false"
         response = self.client.get(flow_editor_url)
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["mutable"])
+        self.assertTrue(response.context["can_start"])
+        self.assertTrue(response.context["can_simulate"])
+        self.assertContains(response, reverse("flows.flow_simulate", args=[flow.uuid]))
+        self.assertContains(response, 'id="rp-flow-editor"')
+
+        # removing the cookie goes back to new editor default
+        del self.client.cookies["use-new-editor"]
+        response = self.client.get(flow_editor_url)
+        self.assertRedirects(response, flow_next_url, fetch_redirect_response=False)
 
         # flows that are archived can't be edited, started or simulated
         self.login(self.admin)
+        self.client.cookies["use-new-editor"] = "false"
 
         flow.is_archived = True
         flow.save(update_fields=("is_archived",))
