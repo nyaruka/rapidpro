@@ -657,6 +657,21 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(org.timezone, ZoneInfo("Africa/Kigali"))
         self.assertEqual(str(org), "Signup Org")
 
+        # if signup is re-submitted without an org in session, we shouldn't create a duplicate org
+        session = self.client.session
+        session["org_id"] = None
+        session.save()
+
+        response = self.client.post(
+            signup_url,
+            {
+                "name": "Signup Org",
+                "timezone": "Africa/Kigali",
+            },
+        )
+        self.assertRedirect(response, reverse("orgs.org_start"))
+        self.assertEqual(1, Org.objects.filter(name="Signup Org", users=user).count())
+
         # now if we go to signup, we should redirect to the org start page
         self.login(user)
         response = self.client.get(signup_url)
