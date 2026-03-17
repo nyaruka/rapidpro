@@ -120,6 +120,7 @@
   <script type="text/javascript">
     function useClassicEditor() {
       document.cookie = 'use_new_editor=false; path=/; max-age=31536000';
+      document.cookie = 'new_editor_introduced=; path=/; max-age=0';
       window.location.href = '/flow/editor/{{object.uuid}}/';
     }
 
