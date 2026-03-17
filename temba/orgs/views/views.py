@@ -21,6 +21,7 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import F, Prefetch, Q
 from django.db.models.functions import Lower
 from django.http import HttpResponseRedirect, JsonResponse
@@ -1312,6 +1313,16 @@ class OrgCRUDL(SmartCRUDL):
         form_class = SignupForm
         permission = None
 
+        @staticmethod
+        def get_current_user_org(user) -> Org | None:
+            membership = (
+                OrgMembership.objects.filter(user=user, org__is_active=True)
+                .select_related("org")
+                .order_by(F("last_seen_on").desc(nulls_last=True), "-id")
+                .first()
+            )
+            return membership.org if membership else None
+
         def get_success_url(self):
             return "%s?start" % reverse("public.public_welcome")
 
@@ -1325,6 +1336,11 @@ class OrgCRUDL(SmartCRUDL):
             if request.org:
                 return HttpResponseRedirect(reverse("orgs.org_start"))
 
+            # if user has memberships but no org in session, switch to their most recent org
+            if user_org := self.get_current_user_org(request.user):
+                switch_to_org(self.request, user_org)
+                return HttpResponseRedirect(reverse("orgs.org_start"))
+
             # if our brand doesn't allow signups, then redirect to the account page
             if "signups" not in request.branding.get("features", []):  # pragma: needs cover
                 return HttpResponseRedirect(reverse("orgs.user_edit"))
@@ -1336,12 +1352,16 @@ class OrgCRUDL(SmartCRUDL):
             return initial
 
         def save(self, obj):
-            user = self.request.user
-            self.object = Org.create(user, self.form.cleaned_data["name"], self.form.cleaned_data["timezone"])
+            # Lock the user row so concurrent signup submissions can't create multiple orgs.
+            with transaction.atomic():
+                user = User.objects.select_for_update().get(pk=self.request.user.pk)
+                self.object = self.get_current_user_org(user)
+                if not self.object:
+                    self.object = Org.create(user, self.form.cleaned_data["name"], self.form.cleaned_data["timezone"])
 
-            switch_to_org(self.request, obj)
+            switch_to_org(self.request, self.object)
 
-            return obj
+            return self.object
 
     class Resthooks(SpaMixin, ComponentFormMixin, InferOrgMixin, OrgPermsMixin, SmartUpdateView):
         class ResthookForm(forms.ModelForm):
