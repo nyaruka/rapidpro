@@ -716,7 +716,7 @@ class FlowCRUDL(SmartCRUDL):
 
     class Editor(SpaMixin, ContextMenuMixin, BaseReadView):
         def get(self, request, *args, **kwargs):
-            if request.COOKIES.get("use_new_editor") != "false" and self.__class__.__name__ != "Next":
+            if request.COOKIES.get("use-new-editor") != "false" and self.__class__.__name__ != "Next":
                 flow = self.get_object()
                 return HttpResponseRedirect(reverse("flows.flow_next", args=[flow.uuid]))
             return super().get(request, *args, **kwargs)
@@ -834,16 +834,16 @@ class FlowCRUDL(SmartCRUDL):
             response = super().get(request, *args, **kwargs)
 
             # show banner on first auto-redirect, then set cookie so it doesn't show again
-            if not request.COOKIES.get("new_editor_introduced") and request.COOKIES.get("use_new_editor") != "true":
-                response.set_cookie("new_editor_introduced", "true", path="/", max_age=31536000)
+            if not request.COOKIES.get("new-editor-introduced") and request.COOKIES.get("use-new-editor") != "true":
+                response.set_cookie("new-editor-introduced", "true", path="/", max_age=31536000)
 
             return response
 
         def get_context_data(self, *args, **kwargs):
             context = super().get_context_data(*args, **kwargs)
             context["show_new_editor_banner"] = (
-                not self.request.COOKIES.get("new_editor_introduced")
-                and self.request.COOKIES.get("use_new_editor") != "true"
+                not self.request.COOKIES.get("new-editor-introduced")
+                and self.request.COOKIES.get("use-new-editor") != "true"
             )
             return context
 

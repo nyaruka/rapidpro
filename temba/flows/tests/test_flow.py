@@ -223,7 +223,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(response.status_code, 200)
 
         # opting out keeps user on classic editor
-        self.client.cookies["use_new_editor"] = "false"
+        self.client.cookies["use-new-editor"] = "false"
         response = self.client.get(flow_editor_url)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["mutable"])
@@ -233,13 +233,13 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, 'id="rp-flow-editor"')
 
         # removing the cookie goes back to new editor default
-        del self.client.cookies["use_new_editor"]
+        del self.client.cookies["use-new-editor"]
         response = self.client.get(flow_editor_url)
         self.assertRedirects(response, flow_next_url, fetch_redirect_response=False)
 
         # flows that are archived can't be edited, started or simulated
         self.login(self.admin)
-        self.client.cookies["use_new_editor"] = "false"
+        self.client.cookies["use-new-editor"] = "false"
 
         flow.is_archived = True
         flow.save(update_fields=("is_archived",))
