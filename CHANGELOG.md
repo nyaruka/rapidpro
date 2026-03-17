@@ -1,3 +1,9 @@
+v26.1.60 (2026-03-17)
+-------------------------
+ * Update @nyaruka/temba-components to 0.150.0
+ * Hide opt-in/out in new trigger chooser
+ * Bump pyasn1 from 0.6.2 to 0.6.3
+
 v26.1.59 (2026-03-17)
 -------------------------
  * Fix typo for broadcast exclusions
