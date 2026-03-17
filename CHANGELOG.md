@@ -1,3 +1,7 @@
+v26.1.61 (2026-03-17)
+-------------------------
+ * Prevent duplicate org signup creation
+
 v26.1.60 (2026-03-17)
 -------------------------
  * Update @nyaruka/temba-components to 0.150.0
