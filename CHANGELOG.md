@@ -1,3 +1,9 @@
+v26.1.59 (2026-03-17)
+-------------------------
+ * Fix typo for broadcast exclusions
+ * Remove optin from broadcast create/update forms and cards
+ * Redesign broadcast cards and add modal header customization
+
 v26.1.58 (2026-03-17)
 -------------------------
  * Update @nyaruka/temba-components to 0.149.0
