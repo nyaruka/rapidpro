@@ -717,8 +717,7 @@ class FlowCRUDL(SmartCRUDL):
     class Editor(SpaMixin, ContextMenuMixin, BaseReadView):
         def get(self, request, *args, **kwargs):
             if request.COOKIES.get("use-new-editor") != "false" and self.__class__.__name__ != "Next":
-                flow = self.get_object()
-                return HttpResponseRedirect(reverse("flows.flow_next", args=[flow.uuid]))
+                return HttpResponseRedirect(reverse("flows.flow_next", args=[kwargs["uuid"]]))
             return super().get(request, *args, **kwargs)
 
         def derive_menu_path(self):

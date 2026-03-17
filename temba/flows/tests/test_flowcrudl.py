@@ -1111,6 +1111,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         flow = self.create_flow("Test")
 
         self.login(self.admin)
+        self.client.cookies["use-new-editor"] = "false"
 
         def assert_features(features: set):
             response = self.client.get(reverse("flows.flow_editor", args=[flow.uuid]))
