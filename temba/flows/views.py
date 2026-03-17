@@ -716,7 +716,7 @@ class FlowCRUDL(SmartCRUDL):
 
     class Editor(SpaMixin, ContextMenuMixin, BaseReadView):
         def get(self, request, *args, **kwargs):
-            if request.COOKIES.get("use_beta_editor") == "true" and self.__class__.__name__ != "Next":
+            if request.COOKIES.get("use_new_editor") != "false" and self.__class__.__name__ != "Next":
                 flow = self.get_object()
                 return HttpResponseRedirect(reverse("flows.flow_next", args=[flow.uuid]))
             return super().get(request, *args, **kwargs)
@@ -825,7 +825,7 @@ class FlowCRUDL(SmartCRUDL):
                     menu.add_link(_("Import Translation"), reverse("flows.flow_import_translation", args=[obj.id]))
 
             menu.new_group()
-            menu.add_js("enableBetaEditor", _("Try Beta Editor"))
+            menu.add_js("enableNewEditor", _("Switch to New Editor"))
 
     class Next(Editor):
         template_name = "flows/flow_next.html"
@@ -833,9 +833,9 @@ class FlowCRUDL(SmartCRUDL):
         def build_context_menu(self, menu):
             super().build_context_menu(menu)
 
-            # replace "Try Beta Editor" with "Leave Beta Editor"
+            # replace "Switch to New Editor" with "Use Classic Editor"
             menu.groups[-1] = [
-                {"type": "js", "id": "leaveBetaEditor", "label": str(_("Leave Beta Editor")), "as_button": False}
+                {"type": "js", "id": "useClassicEditor", "label": str(_("Use Classic Editor")), "as_button": False}
             ]
 
     class ChangeLanguage(OrgObjPermsMixin, SmartUpdateView):

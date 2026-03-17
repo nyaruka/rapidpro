@@ -221,8 +221,8 @@
 {% block extra-script %}
   {{ block.super }}
   <script type="text/javascript">
-    function enableBetaEditor() {
-      document.cookie = 'use_beta_editor=true; path=/; max-age=31536000';
+    function enableNewEditor() {
+      document.cookie = 'use_new_editor=; path=/; max-age=0';
       window.location.href = '/flow/next/{{object.uuid}}/';
     }
 
@@ -363,7 +363,7 @@
 {% block content %}
   <div class="editor-banner">
     <div class="editor-banner-content">
-      <span class="editor-banner-text"><a class="editor-banner-link" onclick="enableBetaEditor()">Try the Beta Editor</a> with improved features and performance!</span>
+      <span class="editor-banner-text"><a class="editor-banner-link" onclick="enableNewEditor()">Switch to the New Editor</a> for improved features and performance!</span>
     </div>
     <button class="editor-banner-close"
             onclick="closeEditorBanner()"

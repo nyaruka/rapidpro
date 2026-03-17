@@ -49,8 +49,8 @@
 {% block extra-script %}
   {{ block.super }}
   <script type="text/javascript">
-    function leaveBetaEditor() {
-      document.cookie = 'use_beta_editor=; path=/; max-age=0';
+    function useClassicEditor() {
+      document.cookie = 'use_new_editor=false; path=/; max-age=31536000';
       window.location.href = '/flow/editor/{{object.uuid}}/';
     }
 
