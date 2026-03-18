@@ -27,8 +27,8 @@ class Command(BaseCommand):
         parser.add_argument("--no-alias", action="store_true", help="Don't create the alias for the index")
 
     def handle(self, index: str, shards: int, replicas: int, no_alias: bool, *args, **options):
-        if not settings.ELASTICSEARCH_ENDPOINT_URL:
-            raise CommandError("ELASTICSEARCH_ENDPOINT_URL must be configured")
+        if not settings.ELASTIC_ENDPOINT_URL:
+            raise CommandError("ELASTIC_ENDPOINT_URL must be configured")
 
         client = get_client()
 
