@@ -1,3 +1,8 @@
+v26.1.62 (2026-03-18)
+-------------------------
+ * Add create_es_index management command for Elasticsearch
+ * Tweaks to messages index template
+
 v26.1.61 (2026-03-17)
 -------------------------
  * Prevent duplicate org signup creation
