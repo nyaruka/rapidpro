@@ -134,7 +134,7 @@ exclude_lines = [
     "raise AssertionError",
     "raise NotImplementedError",
 ]
-omit = ["**/tests*", "**/tests/*", "*settings*", "**/management/commands/*", "temba/utils/elastic.py"]
+omit = ["**/tests*", "**/tests/*", "*settings*", "**/management/commands/*"]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
