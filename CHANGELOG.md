@@ -1,3 +1,7 @@
+v26.1.63 (2026-03-18)
+-------------------------
+ * Tweak default Elastic endpoint URL
+
 v26.1.62 (2026-03-18)
 -------------------------
  * Add create_es_index management command for Elasticsearch
