@@ -401,14 +401,20 @@ class EndpointsTest(APITestMixin, TembaTest):
                 {
                     "date": "2026-02-10",
                     "channels": {
-                        self.channel.uuid: {"type": "android", "in": 110, "out": 220},
-                        channel2.uuid: {"type": "facebook", "in": 50, "out": 75},
+                        self.channel.uuid: {
+                            "type": "android",
+                            "text:in": 100,
+                            "text:out": 200,
+                            "voice:in": 10,
+                            "voice:out": 20,
+                        },
+                        channel2.uuid: {"type": "facebook", "text:in": 50, "text:out": 75},
                     },
                 },
                 {
                     "date": "2026-02-11",
                     "channels": {
-                        self.channel.uuid: {"type": "android", "in": 300, "out": 400},
+                        self.channel.uuid: {"type": "android", "text:in": 300, "text:out": 400},
                     },
                 },
             ],
@@ -422,8 +428,14 @@ class EndpointsTest(APITestMixin, TembaTest):
                 {
                     "date": "2026-02-10",
                     "channels": {
-                        self.channel.uuid: {"type": "android", "in": 110, "out": 220},
-                        channel2.uuid: {"type": "facebook", "in": 50, "out": 75},
+                        self.channel.uuid: {
+                            "type": "android",
+                            "text:in": 100,
+                            "text:out": 200,
+                            "voice:in": 10,
+                            "voice:out": 20,
+                        },
+                        channel2.uuid: {"type": "facebook", "text:in": 50, "text:out": 75},
                     },
                 },
             ],

@@ -138,8 +138,12 @@ class StatisticsEndpoint(BaseEndpoint):
     model = ChannelCount
     permission = "channels.channel_list"
 
-    IN_SCOPES = (ChannelCount.SCOPE_TEXT_IN, ChannelCount.SCOPE_VOICE_IN)
-    OUT_SCOPES = (ChannelCount.SCOPE_TEXT_OUT, ChannelCount.SCOPE_VOICE_OUT)
+    SCOPES = (
+        ChannelCount.SCOPE_TEXT_IN,
+        ChannelCount.SCOPE_TEXT_OUT,
+        ChannelCount.SCOPE_VOICE_IN,
+        ChannelCount.SCOPE_VOICE_OUT,
+    )
 
     def get(self, request, *args, **kwargs):
         if self.is_docs():
@@ -158,7 +162,7 @@ class StatisticsEndpoint(BaseEndpoint):
                 channel__is_active=True,
                 day__gte=since,
                 day__lt=until,
-                scope__in=self.IN_SCOPES + self.OUT_SCOPES,
+                scope__in=self.SCOPES,
             )
             .values("day", "channel__uuid", "channel__channel_type", "scope")
             .annotate(count_sum=Sum("count"))
@@ -166,16 +170,13 @@ class StatisticsEndpoint(BaseEndpoint):
         )
 
         # group by day then channel
-        by_day = defaultdict(lambda: defaultdict(lambda: {"type": None, "in": 0, "out": 0}))
+        by_day = defaultdict(lambda: defaultdict(lambda: {"type": None}))
         for row in counts:
             day = row["day"]
             ch_uuid = row["channel__uuid"]
             entry = by_day[day][ch_uuid]
             entry["type"] = Channel.get_type_from_code(row["channel__channel_type"]).slug
-            if row["scope"] in self.IN_SCOPES:
-                entry["in"] += row["count_sum"]
-            else:
-                entry["out"] += row["count_sum"]
+            entry[row["scope"]] = row["count_sum"]
 
         results = [{"date": day.isoformat(), "channels": dict(channels)} for day, channels in sorted(by_day.items())]
 
