@@ -5,7 +5,7 @@ from elasticsearch import Elasticsearch
 from django.conf import settings
 
 
-def get_client() -> Elasticsearch:  # pragma: no cover
+def get_client() -> Elasticsearch:
     parsed = urlparse(settings.ELASTIC_ENDPOINT_URL)
     use_ssl = parsed.scheme == "https"
 
