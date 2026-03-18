@@ -142,6 +142,9 @@ class StatisticsEndpoint(BaseEndpoint):
     OUT_SCOPES = (ChannelCount.SCOPE_TEXT_OUT, ChannelCount.SCOPE_VOICE_OUT)
 
     def get(self, request, *args, **kwargs):
+        if self.is_docs():
+            return Response({"results": []})
+
         today = date.today()
         since = self._parse_date("since", default=today - timedelta(days=90))
         until = self._parse_date("until", default=today + timedelta(days=1))
