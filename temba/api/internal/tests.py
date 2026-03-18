@@ -358,18 +358,14 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertPostNotAllowed(endpoint_url)
         self.assertDeleteNotAllowed(endpoint_url)
 
-        # missing params
-        response = self._getJSON(endpoint_url, self.admin)
-        self.assertEqual(400, response.status_code)
-
-        response = self._getJSON(endpoint_url + "?since=2026-02-01", self.admin)
-        self.assertEqual(400, response.status_code)
-
         # invalid date
         response = self._getJSON(endpoint_url + "?since=bad&until=2026-02-28", self.admin)
         self.assertEqual(400, response.status_code)
 
-        # no data
+        # no params defaults to last 90 days
+        self.assertGet(endpoint_url, [self.editor], results=[])
+
+        # no data in range
         self.assertGet(
             endpoint_url + "?since=2026-02-01&until=2026-02-28",
             [self.editor],

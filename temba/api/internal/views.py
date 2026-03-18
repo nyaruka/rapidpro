@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 
 from rest_framework import status
 from rest_framework.pagination import CursorPagination
@@ -142,8 +142,9 @@ class StatisticsEndpoint(BaseEndpoint):
     OUT_SCOPES = (ChannelCount.SCOPE_TEXT_OUT, ChannelCount.SCOPE_VOICE_OUT)
 
     def get(self, request, *args, **kwargs):
-        since = self._parse_date("since")
-        until = self._parse_date("until")
+        today = date.today()
+        since = self._parse_date("since", default=today - timedelta(days=90))
+        until = self._parse_date("until", default=today + timedelta(days=1))
 
         counts = (
             ChannelCount.objects.filter(
@@ -174,10 +175,10 @@ class StatisticsEndpoint(BaseEndpoint):
 
         return Response({"results": results})
 
-    def _parse_date(self, param):
+    def _parse_date(self, param, default=None):
         value = self.request.query_params.get(param)
         if not value:
-            raise InvalidQueryError(f"Missing required parameter '{param}'.")
+            return default
         try:
             return date.fromisoformat(value)
         except ValueError:
