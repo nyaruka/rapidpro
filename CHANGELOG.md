@@ -1,3 +1,9 @@
+v26.1.64 (2026-03-18)
+-------------------------
+ * Update @nyaruka/temba-components to 0.151.0
+ * Pass feature_filters to temba-flow-editor component
+ * Add statistics endpoint to API for daily channel message counts
+
 v26.1.63 (2026-03-18)
 -------------------------
  * Tweak default Elastic endpoint URL
