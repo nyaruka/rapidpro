@@ -1,11 +1,14 @@
+from collections import defaultdict
+from datetime import date
+
 from rest_framework import status
 from rest_framework.pagination import CursorPagination
 from rest_framework.response import Response
 
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch, Q, Sum
 
 from temba.ai.models import LLM
-from temba.channels.models import Channel
+from temba.channels.models import Channel, ChannelCount
 from temba.locations.models import AdminBoundary
 from temba.notifications.models import Notification
 from temba.orgs.models import Org
@@ -17,6 +20,7 @@ from ..models import APIPermission, SSLPermission
 from ..support import (
     APISessionAuthentication,
     CreatedOnCursorPagination,
+    InvalidQueryError,
     ModifiedOnCursorPagination,
     NameCursorPagination,
 )
@@ -124,6 +128,60 @@ class ShortcutsEndpoint(ListAPIMixin, BaseEndpoint):
     model = Shortcut
     serializer_class = serializers.ShortcutReadSerializer
     pagination_class = ModifiedOnCursorPagination
+
+
+class StatisticsEndpoint(BaseEndpoint):
+    """
+    Daily statistics including per-channel message counts.
+    """
+
+    model = ChannelCount
+    permission = "channels.channel_list"
+
+    IN_SCOPES = (ChannelCount.SCOPE_TEXT_IN, ChannelCount.SCOPE_VOICE_IN)
+    OUT_SCOPES = (ChannelCount.SCOPE_TEXT_OUT, ChannelCount.SCOPE_VOICE_OUT)
+
+    def get(self, request, *args, **kwargs):
+        since = self._parse_date("since")
+        until = self._parse_date("until")
+
+        counts = (
+            ChannelCount.objects.filter(
+                channel__org=request.org,
+                channel__is_active=True,
+                day__gte=since,
+                day__lt=until,
+                scope__in=self.IN_SCOPES + self.OUT_SCOPES,
+            )
+            .values("day", "channel__uuid", "channel__channel_type", "scope")
+            .annotate(count_sum=Sum("count"))
+            .order_by("day")
+        )
+
+        # group by day then channel
+        by_day = defaultdict(lambda: defaultdict(lambda: {"type": None, "in": 0, "out": 0}))
+        for row in counts:
+            day = row["day"]
+            ch_uuid = row["channel__uuid"]
+            entry = by_day[day][ch_uuid]
+            entry["type"] = Channel.get_type_from_code(row["channel__channel_type"]).slug
+            if row["scope"] in self.IN_SCOPES:
+                entry["in"] += row["count_sum"]
+            else:
+                entry["out"] += row["count_sum"]
+
+        results = [{"date": day.isoformat(), "channels": dict(channels)} for day, channels in sorted(by_day.items())]
+
+        return Response({"results": results})
+
+    def _parse_date(self, param):
+        value = self.request.query_params.get(param)
+        if not value:
+            raise InvalidQueryError(f"Missing required parameter '{param}'.")
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            raise InvalidQueryError(f"Invalid date value for '{param}'.")
 
 
 class TemplatesEndpoint(ListAPIMixin, BaseEndpoint):

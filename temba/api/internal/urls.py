@@ -8,6 +8,7 @@ from .views import (
     NotificationsEndpoint,
     OrgsEndpoint,
     ShortcutsEndpoint,
+    StatisticsEndpoint,
     TemplatesEndpoint,
 )
 
@@ -17,6 +18,7 @@ urlpatterns = [
     re_path(r"^locations$", LocationsEndpoint.as_view(), name="api.internal.locations"),
     re_path(r"^notifications$", NotificationsEndpoint.as_view(), name="api.internal.notifications"),
     re_path(r"^shortcuts$", ShortcutsEndpoint.as_view(), name="api.internal.shortcuts"),
+    re_path(r"^statistics$", StatisticsEndpoint.as_view(), name="api.internal.statistics"),
     re_path(r"^templates$", TemplatesEndpoint.as_view(), name="api.internal.templates"),
     re_path(r"^orgs$", OrgsEndpoint.as_view(), name="api.internal.orgs"),
 ]
