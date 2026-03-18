@@ -47,6 +47,8 @@ DYNAMO_TABLE_PREFIX = "Test" if TESTING else "Temba"
 
 OPENSEARCH_ENDPOINT_URL = "http://opensearch:9200"
 
+ELASTICSEARCH_ENDPOINT_URL = "http://elasticsearch:9200"
+
 # -----------------------------------------------------------------------------------
 # Storage
 # -----------------------------------------------------------------------------------
