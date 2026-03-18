@@ -15,6 +15,11 @@ class StatisticsEndpointTest(APITest):
         self.assertPostNotAllowed(endpoint_url)
         self.assertDeleteNotAllowed(endpoint_url)
 
+        # docs request (without .json suffix) returns 200
+        self.login(self.admin)
+        response = self.client.get(reverse("api.v2.statistics"), HTTP_X_FORWARDED_HTTPS="https")
+        self.assertEqual(200, response.status_code)
+
         # invalid date
         response = self._getJSON(endpoint_url + "?since=bad&until=2026-02-28", self.admin)
         self.assertEqual(400, response.status_code)
