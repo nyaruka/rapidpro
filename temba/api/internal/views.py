@@ -146,6 +146,9 @@ class StatisticsEndpoint(BaseEndpoint):
         since = self._parse_date("since", default=today - timedelta(days=90))
         until = self._parse_date("until", default=today + timedelta(days=1))
 
+        if (until - since).days > 365:
+            raise InvalidQueryError("Date range can't be more than 365 days.")
+
         counts = (
             ChannelCount.objects.filter(
                 channel__org=request.org,

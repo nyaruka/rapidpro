@@ -362,6 +362,10 @@ class EndpointsTest(APITestMixin, TembaTest):
         response = self._getJSON(endpoint_url + "?since=bad&until=2026-02-28", self.admin)
         self.assertEqual(400, response.status_code)
 
+        # date range > 365 days
+        response = self._getJSON(endpoint_url + "?since=2024-01-01&until=2025-06-01", self.admin)
+        self.assertEqual(400, response.status_code)
+
         # no params defaults to last 90 days
         self.assertGet(endpoint_url, [self.editor], results=[])
 
