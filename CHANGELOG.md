@@ -1,3 +1,10 @@
+v26.1.65 (2026-03-19)
+-------------------------
+ * Bump flow spec to 14.4.0
+ * Replace black with ruff for code formatting
+ * Remove OpenSearch dependencies and code
+ * Update deps
+
 v26.1.64 (2026-03-18)
 -------------------------
  * Update @nyaruka/temba-components to 0.151.0
