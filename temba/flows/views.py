@@ -179,7 +179,7 @@ class FlowCRUDL(SmartCRUDL):
             )
 
             if self.has_org_perm("globals.global_list"):
-                (menu.append(self.create_divider()),)
+                menu.append(self.create_divider())
                 menu.append(self.create_menu_item(name=_("Globals"), icon="global", href="globals.global_list"))
 
             label_items = []

@@ -104,15 +104,13 @@ class SlackTypeTest(TembaTest):
         )
         channel = Channel.objects.get(address="B0TDUMMY")
         self.assertEqual(channel.channel_type, "SL")
-        (
-            self.assertEqual(
-                channel.config,
-                {
-                    "user_token": "UTK0123456789ABCDEFabcdef-1a2b3c4d",
-                    "bot_token": "BTK0123456789ABCDEFabcdef-1a2b3c4d",
-                    "verification_token": "VTK0123456789ABCDEFabcdef-1a2b3c4d",
-                },
-            ),
+        self.assertEqual(
+            channel.config,
+            {
+                "user_token": "UTK0123456789ABCDEFabcdef-1a2b3c4d",
+                "bot_token": "BTK0123456789ABCDEFabcdef-1a2b3c4d",
+                "verification_token": "VTK0123456789ABCDEFabcdef-1a2b3c4d",
+            },
         )
 
         # test access config page
