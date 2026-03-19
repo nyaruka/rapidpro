@@ -15,7 +15,6 @@ class ModelAsJsonSerializer(serializers.BaseSerializer):
 
 
 class LLMReadSerializer(serializers.ModelSerializer):
-
     type = serializers.CharField(source="llm_type")
 
     class Meta:

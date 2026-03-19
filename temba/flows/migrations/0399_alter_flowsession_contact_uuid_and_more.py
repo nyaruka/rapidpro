@@ -6,7 +6,6 @@ import temba.utils.models.fields
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("flows", "0398_remove_flowsession_flows_session_has_output_or_url_and_more"),
     ]

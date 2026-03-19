@@ -328,7 +328,6 @@ class UserCRUDL(SmartCRUDL):
             return reverse("orgs.user_list") if still_in_org else reverse("orgs.org_choose")
 
     class Edit(ComponentFormMixin, InferUserMixin, SmartUpdateView):
-
         class Form(forms.ModelForm):
             first_name = forms.CharField(
                 label=_("First Name"), widget=InputWidget(attrs={"placeholder": _("Required")})
@@ -1327,7 +1326,6 @@ class OrgCRUDL(SmartCRUDL):
             return "%s?start" % reverse("public.public_welcome")
 
         def pre_process(self, request, *args, **kwargs):
-
             # only authenticated users can come here
             if not request.user.is_authenticated:
                 return HttpResponseRedirect(reverse("account_signup"))

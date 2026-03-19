@@ -56,7 +56,6 @@ class InviteAdapterMixin:
 
 class TembaAccountAdapter(InviteAdapterMixin, DefaultAccountAdapter):
     def send_mail(self, template_prefix, email, context):
-
         # our emails need some additional context
         context["branding"] = self.request.branding
         context["now"] = timezone.now()
@@ -66,7 +65,6 @@ class TembaAccountAdapter(InviteAdapterMixin, DefaultAccountAdapter):
 
 
 class TembaSocialAccountAdapter(InviteAdapterMixin, DefaultSocialAccountAdapter):  # pragma: no cover
-
     def populate_user(self, request, sociallogin, data):
         user = super().populate_user(request, sociallogin, data)
         extra = sociallogin.account.extra_data

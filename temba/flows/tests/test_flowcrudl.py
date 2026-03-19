@@ -1023,7 +1023,6 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # with patch("temba.orgs.models.Org.get_estimated_send_time") as mock_get_estimated_send_time:
         with override_settings(SEND_HOURS_WARNING=24, SEND_HOURS_BLOCK=48):
-
             # we send at 10 tps, so make the total take 24 hours
             expected_tps = 10
             mr_mocks.flow_start_preview(

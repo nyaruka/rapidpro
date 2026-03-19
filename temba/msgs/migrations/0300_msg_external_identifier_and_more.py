@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("channels", "0209_alter_channelcount_count"),
         ("contacts", "0214_alter_contactimport_uuid"),

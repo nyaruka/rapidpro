@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("flows", "0397_alter_flowactivitycount_count_and_more"),
     ]

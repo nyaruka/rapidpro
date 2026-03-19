@@ -1173,7 +1173,6 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertIsNone(self.org.prometheus_token)
 
     def test_switch(self):
-
         self.login(self.admin)
 
         # hitting switch for an org we don't have access to routes to choose

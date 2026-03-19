@@ -87,11 +87,14 @@ def msg_status_badge(msg) -> str:
             display["icon"] = "retry"
 
     if len(display) >= 3:
-        return mark_safe("""
+        return mark_safe(
+            """
             <div class="flex items-center flex-row p-1 rounded-lg" style="background:%(background)s">
                 <temba-icon name="%(icon)s" style="--icon-color:%(icon_color)s"></temba-icon>
             </div>
-        """ % display)
+        """
+            % display
+        )
     return ""
 
 

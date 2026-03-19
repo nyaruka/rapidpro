@@ -121,7 +121,6 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             )
             if content_type == Channel.CONTENT_TYPE_JSON:
                 try:
-
                     json.loads(replaced_body)
                 except json.decoder.JSONDecodeError:
                     raise ValidationError({"body": _("Invalid JSON, make sure to remove quotes around variables")})
