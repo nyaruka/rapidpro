@@ -1702,8 +1702,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # hod data is stored in UTC, so we need to adjust for the timezone
         kigali_offset = 2
-        flow1.counts.create(scope=f"msgsin:hour:{9-kigali_offset}", count=5)  # 9a in Kigali
-        flow1.counts.create(scope=f"msgsin:hour:{12-kigali_offset}", count=3)  # 12p in Kigali
+        flow1.counts.create(scope=f"msgsin:hour:{9 - kigali_offset}", count=5)  # 9a in Kigali
+        flow1.counts.create(scope=f"msgsin:hour:{12 - kigali_offset}", count=3)  # 12p in Kigali
 
         response = self.requestView(hod_url, self.admin)
         resp_data = response.json()["data"]

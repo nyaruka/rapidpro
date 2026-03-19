@@ -62,7 +62,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         max_length = forms.IntegerField(
             initial=160,
             validators=[MaxValueValidator(6400), MinValueValidator(60)],
-            help_text=_("The maximum length of any single message on this channel. " "(longer messages will be split)"),
+            help_text=_("The maximum length of any single message on this channel. (longer messages will be split)"),
         )
 
         send_authorization = forms.CharField(
@@ -150,7 +150,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         max_length = forms.IntegerField(
             initial=160,
             validators=[MaxValueValidator(6400), MinValueValidator(60)],
-            help_text=_("The maximum length of any single message on this channel. " "(longer messages will be split)"),
+            help_text=_("The maximum length of any single message on this channel. (longer messages will be split)"),
         )
 
         send_authorization = forms.CharField(

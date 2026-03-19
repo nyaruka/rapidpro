@@ -123,5 +123,5 @@ class TembaMFAAdapter(DefaultMFAAdapter):
         url = super().build_totp_url(user, secret)
 
         # some totp clients support images in the QR code
-        url = f"{url}&image={self.request.branding.get("logos").get("favico")}"
+        url = f"{url}&image={self.request.branding.get('logos').get('favico')}"
         return url

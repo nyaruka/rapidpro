@@ -87,7 +87,7 @@ class UserAuthTest(TembaTest):
 
         # Reauthenticate and make sure we get the QR code
         response = self.client.post(
-            f"{reverse("account_reauthenticate")}?{urlencode({'next': mfa_url})}",
+            f"{reverse('account_reauthenticate')}?{urlencode({'next': mfa_url})}",
             {"login": self.admin.email, "password": self.default_password},
             follow=True,
         )

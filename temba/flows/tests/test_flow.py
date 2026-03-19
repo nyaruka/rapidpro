@@ -337,7 +337,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         flow.info = {
             "results": [
                 {"key": "color", "name": "Color", "categories": ["Red", "Blue", "Green", "Other"]},
-                {"key": "beer", "name": "Beer", "categories": ["Primus" "Mutzig", "Turbo King", "Skol", "Other"]},
+                {"key": "beer", "name": "Beer", "categories": ["PrimusMutzig", "Turbo King", "Skol", "Other"]},
                 {"key": "name", "name": "Name", "categories": ["All Responses"]},
             ]
         }

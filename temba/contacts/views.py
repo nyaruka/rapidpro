@@ -613,7 +613,7 @@ class ContactCRUDL(SmartCRUDL):
             return r"^%s/%s/(?P<uuid>[^/]+)/$" % (path, action)
 
         def derive_menu_path(self):
-            return f"/contact/group/{self.kwargs["uuid"]}"
+            return f"/contact/group/{self.kwargs['uuid']}"
 
         def get_object_org(self):
             return self.group.org
