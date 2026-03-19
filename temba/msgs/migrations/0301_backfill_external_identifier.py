@@ -28,7 +28,6 @@ def apply_manual():  # pragma: no cover
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("msgs", "0300_msg_external_identifier_and_more"),
     ]

@@ -38,8 +38,8 @@ if __name__ == "__main__":
     status("Running isort")
     cmd("isort --check temba")
 
-    status("Running black")
-    cmd("black --check temba")
+    status("Running ruff format")
+    cmd("ruff format --check temba")
 
     status("Running ruff")
     cmd("ruff check temba")

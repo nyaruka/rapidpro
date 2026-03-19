@@ -11,7 +11,6 @@ from temba.utils.timezones import TimeZoneFormField
 
 
 class InviteFormMixin:
-
     def __init__(self, secret, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.secret = secret
@@ -24,7 +23,6 @@ class InviteFormMixin:
 
 
 class TembaSignupForm(InviteFormMixin, SignupForm):
-
     first_name = forms.CharField(
         max_length=User._meta.get_field("first_name").max_length,
         label="",
@@ -115,9 +113,7 @@ class TembaChangePasswordForm(ChangePasswordForm):
 
 
 class TembaAddEmailForm(AddEmailForm):
-
     def clean_email(self):
-
         # check if email is already in use
         if User.objects.filter(email__iexact=self.cleaned_data["email"]).exists():
             raise forms.ValidationError(_("This email is already in use"))

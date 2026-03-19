@@ -12,7 +12,6 @@ from ...models import Channel
 
 
 class AndroidTypeTest(TembaTest, CRUDLTestMixin):
-
     @mock_mailroom
     def test_claim(self, mr_mocks):
         # remove our explicit country so it needs to be derived from channels

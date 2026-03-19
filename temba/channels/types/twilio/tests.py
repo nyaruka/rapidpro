@@ -58,14 +58,14 @@ class TwilioTypeTest(TembaTest):
             mock_get_twilio_client.return_value = None
 
             response = self.client.get(claim_twilio)
-            self.assertRedirects(response, f'{reverse("channels.types.twilio.connect")}?claim_type=twilio')
+            self.assertRedirects(response, f"{reverse('channels.types.twilio.connect')}?claim_type=twilio")
 
             mock_get_twilio_client.side_effect = TwilioRestException(
                 401, "http://twilio", msg="Authentication Failure", code=20003
             )
 
             response = self.client.get(claim_twilio)
-            self.assertRedirects(response, f'{reverse("channels.types.twilio.connect")}?claim_type=twilio')
+            self.assertRedirects(response, f"{reverse('channels.types.twilio.connect')}?claim_type=twilio")
 
         with patch("temba.tests.twilio.MockTwilioClient.MockAccounts.get") as mock_get:
             mock_get.return_value = MockTwilioClient.MockAccount("Trial")
@@ -454,12 +454,12 @@ class TwilioTypeTest(TembaTest):
                     self.assertEqual(self.client.session[TwilioType.SESSION_AUTH_TOKEN], "PrimaryAccountToken")
 
                     response = self.client.post(
-                        f'{reverse("channels.types.twilio.connect")}?claim_type=twilio', post_data, follow=True
+                        f"{reverse('channels.types.twilio.connect')}?claim_type=twilio", post_data, follow=True
                     )
                     self.assertEqual(response.request["PATH_INFO"], reverse("channels.types.twilio.claim"))
 
                     response = self.client.post(
-                        f'{reverse("channels.types.twilio.connect")}?claim_type=twilio_messaging_service',
+                        f"{reverse('channels.types.twilio.connect')}?claim_type=twilio_messaging_service",
                         post_data,
                         follow=True,
                     )
@@ -468,13 +468,13 @@ class TwilioTypeTest(TembaTest):
                     )
 
                     response = self.client.post(
-                        f'{reverse("channels.types.twilio.connect")}?claim_type=twilio_whatsapp',
+                        f"{reverse('channels.types.twilio.connect')}?claim_type=twilio_whatsapp",
                         post_data,
                         follow=True,
                     )
                     self.assertEqual(response.request["PATH_INFO"], reverse("channels.types.twilio_whatsapp.claim"))
 
                     response = self.client.post(
-                        f'{reverse("channels.types.twilio.connect")}?claim_type=unknown', post_data, follow=True
+                        f"{reverse('channels.types.twilio.connect')}?claim_type=unknown", post_data, follow=True
                     )
                     self.assertEqual(response.request["PATH_INFO"], reverse("channels.channel_claim"))

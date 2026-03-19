@@ -44,7 +44,7 @@ class IDSliceQuerySet(models.query.RawQuerySet):
             start = k.start if k.start else 0
             if start != self.offset:
                 raise IndexError(
-                    f"attempt to slice ID queryset with differing offset: [{k.start}:{k.stop}] != [{self.offset}:{self.offset+len(self.ids)}]"
+                    f"attempt to slice ID queryset with differing offset: [{k.start}:{k.stop}] != [{self.offset}:{self.offset + len(self.ids)}]"
                 )
 
             return list(self)[: k.stop - self.offset]

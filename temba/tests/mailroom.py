@@ -256,7 +256,6 @@ class TestClient(MailroomClient):
 
     @_client_method
     def contact_inspect(self, org, contacts) -> dict:
-
         def inspect(c) -> dict:
             sendable = []
             unsendable = []
@@ -979,7 +978,6 @@ def create_broadcast(
     template_variables: list,
     schedule,
 ) -> Broadcast:
-
     if schedule and isinstance(schedule, mailroom.ScheduleSpec):
         schedule = Schedule.objects.create(
             org=org,

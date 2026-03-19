@@ -140,7 +140,6 @@ class ScheduleForm(ScheduleFormMixin):
 
 
 class TargetForm(Form):
-
     contact_search = forms.JSONField(
         widget=ContactSearchWidget(
             attrs={

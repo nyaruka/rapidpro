@@ -301,8 +301,8 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         invitation = Invitation.create(self.org, self.admin, "edwin@textit.com", OrgRole.EDITOR)
 
         join_url = reverse("orgs.org_join", args=[invitation.secret])
-        signup_url = f"{reverse("account_signup")}?invite={invitation.secret}"
-        login_url = f"{reverse("account_login")}?invite={invitation.secret}"
+        signup_url = f"{reverse('account_signup')}?invite={invitation.secret}"
+        login_url = f"{reverse('account_login')}?invite={invitation.secret}"
         join_accept_url = reverse("orgs.org_join_accept", args=[invitation.secret])
 
         # if no user exists then we redirect to the join signup page
@@ -1173,11 +1173,10 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertIsNone(self.org.prometheus_token)
 
     def test_switch(self):
-
         self.login(self.admin)
 
         # hitting switch for an org we don't have access to routes to choose
-        response = self.client.get(f"{reverse("orgs.org_switch")}?other_org={self.org2.id}&next=/msg")
+        response = self.client.get(f"{reverse('orgs.org_switch')}?other_org={self.org2.id}&next=/msg")
         self.assertRedirect(response, reverse("orgs.org_choose"))
 
         # can't post to it either
@@ -1186,7 +1185,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # now put us in that org and we should see the switch option
         self.org2.add_user(self.admin, OrgRole.ADMINISTRATOR)
-        response = self.client.get(f"{reverse("orgs.org_switch")}?other_org={self.org2.id}&next=/msg")
+        response = self.client.get(f"{reverse('orgs.org_switch')}?other_org={self.org2.id}&next=/msg")
         self.assertContains(
             response, f"The page you are requesting belongs to one of your other workspaces, <b>{self.org2.name}</b>"
         )

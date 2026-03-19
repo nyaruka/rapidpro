@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("msgs", "0305_backfill_msg_quickreplies"),
     ]

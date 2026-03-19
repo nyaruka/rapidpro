@@ -1023,7 +1023,6 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # with patch("temba.orgs.models.Org.get_estimated_send_time") as mock_get_estimated_send_time:
         with override_settings(SEND_HOURS_WARNING=24, SEND_HOURS_BLOCK=48):
-
             # we send at 10 tps, so make the total take 24 hours
             expected_tps = 10
             mr_mocks.flow_start_preview(
@@ -1703,8 +1702,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # hod data is stored in UTC, so we need to adjust for the timezone
         kigali_offset = 2
-        flow1.counts.create(scope=f"msgsin:hour:{9-kigali_offset}", count=5)  # 9a in Kigali
-        flow1.counts.create(scope=f"msgsin:hour:{12-kigali_offset}", count=3)  # 12p in Kigali
+        flow1.counts.create(scope=f"msgsin:hour:{9 - kigali_offset}", count=5)  # 9a in Kigali
+        flow1.counts.create(scope=f"msgsin:hour:{12 - kigali_offset}", count=3)  # 12p in Kigali
 
         response = self.requestView(hod_url, self.admin)
         resp_data = response.json()["data"]

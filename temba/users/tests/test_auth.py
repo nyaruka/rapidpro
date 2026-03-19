@@ -10,7 +10,6 @@ from temba.users.models import User
 
 
 class UserAuthTest(TembaTest):
-
     # Auth is handled by allauth, only test things we override in any way
     def test_signup(self):
         signup_url = reverse("account_signup")
@@ -70,7 +69,6 @@ class UserAuthTest(TembaTest):
         self.assertFalse(User.objects.filter(email="spam@spam.com").exists())
 
     def test_change_password(self):
-
         # make sure we get the correct help text on change password page
         self.login(self.admin)
 
@@ -89,7 +87,7 @@ class UserAuthTest(TembaTest):
 
         # Reauthenticate and make sure we get the QR code
         response = self.client.post(
-            f"{reverse("account_reauthenticate")}?{urlencode({'next': mfa_url})}",
+            f"{reverse('account_reauthenticate')}?{urlencode({'next': mfa_url})}",
             {"login": self.admin.email, "password": self.default_password},
             follow=True,
         )
@@ -118,7 +116,6 @@ class UserAuthTest(TembaTest):
 
     @override_settings(BRAND={"features": []})
     def test_invite_with_closed_signups(self):
-
         signup_url = reverse("account_signup")
 
         # make sure we can't access the signup page

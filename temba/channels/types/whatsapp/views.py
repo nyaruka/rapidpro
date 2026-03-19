@@ -108,7 +108,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
 
         context["phone_numbers"] = phone_numbers
 
-        context["claim_url"] = f"{reverse("channels.types.whatsapp.claim")}?waba_id={target_waba}"
+        context["claim_url"] = f"{reverse('channels.types.whatsapp.claim')}?waba_id={target_waba}"
         context["clear_session_token_url"] = reverse("channels.types.whatsapp.clear_session_token")
         context["connect_whatsapp_url"] = reverse("channels.types.whatsapp.connect")
         context["facebook_app_id"] = settings.FACEBOOK_APPLICATION_ID

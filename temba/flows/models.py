@@ -376,7 +376,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         return {"icon": self.TYPE_ICONS.get(self.flow_type, "flow"), "type": self.flow_type, "uuid": self.uuid}
 
     def get_category_counts(self, result_key=None):
-
         # get the possible results from the flow metadata
         results_by_key = {r["key"]: r for r in self.info["results"]}
 
@@ -835,7 +834,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         return datetime.fromisoformat(first.scope[12:]).replace(tzinfo=utc_timezone).date() if first else None
 
     def get_engagement_timeline(self, since, until) -> dict:
-
         rollup_by = "day"
 
         # bucket dates into months or weeks depending on the range
