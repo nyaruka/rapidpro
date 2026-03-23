@@ -1,3 +1,8 @@
+v26.1.67 (2026-03-23)
+-------------------------
+ * Allow time windows up to 366 days on statistics API endpoint
+ * Improve dependency dialog: expandable list and cleaner styling
+
 v26.1.66 (2026-03-23)
 -------------------------
  * Update @nyaruka/temba-components to 0.152.0
