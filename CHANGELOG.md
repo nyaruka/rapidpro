@@ -1,3 +1,7 @@
+v26.1.68 (2026-03-24)
+-------------------------
+ * Tweak contacts ES index
+
 v26.1.67 (2026-03-23)
 -------------------------
  * Allow time windows up to 366 days on statistics API endpoint
