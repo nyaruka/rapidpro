@@ -9,8 +9,7 @@ MESSAGES_TEMPLATE_FILE = "temba/utils/management/commands/data/es_messages.json"
 MESSAGES_TEMPLATE_NAME = "messages-v1"
 
 CONTACTS_INDEX_FILE = "temba/utils/management/commands/data/es_contacts.json"
-CONTACTS_INDEX_NAME = "contacts-v2"
-CONTACTS_INDEX_ALIAS = "contacts"
+CONTACTS_INDEX_NAME = "contacts-v1"
 
 
 class Command(BaseCommand):
@@ -52,9 +51,7 @@ class Command(BaseCommand):
             if replicas is not None:
                 schema["settings"]["index"]["number_of_replicas"] = replicas
 
-            self._create_index(
-                client, CONTACTS_INDEX_NAME, schema, alias=CONTACTS_INDEX_ALIAS if not no_alias else None
-            )
+            self._create_index(client, CONTACTS_INDEX_NAME, schema)
 
     def _create_template(self, client, name: str, schema: dict):
         """Creates an index template using the Elasticsearch API."""
