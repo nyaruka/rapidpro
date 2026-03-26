@@ -752,6 +752,68 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(response.json()["events"][0]["uuid"], response.json()["next"])
 
     @mock_mailroom
+    def test_chat_search(self, mr_mocks):
+        contact = self.create_contact("Joe Blow", urns=["tel:+250781111111"])
+
+        chat_search_url = reverse("contacts.contact_chat_search", args=[contact.uuid])
+
+        self.assertRequestDisallowed(chat_search_url, [None])
+
+        self.login(self.editor)
+
+        # empty text returns empty results
+        response = self.client.get(chat_search_url + "?text=")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"results": []}, response.json())
+
+        # no text param returns empty results
+        response = self.client.get(chat_search_url)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"results": []}, response.json())
+
+        # with results from mailroom
+        mr_mocks.msg_search(
+            [
+                (
+                    contact,
+                    {
+                        "uuid": "019a9935-022e-7bb3-9d6f-03d773be623e",
+                        "type": "msg_received",
+                        "created_on": "2025-11-17T16:00:00+00:00",
+                    },
+                ),
+                (
+                    contact,
+                    {
+                        "uuid": "019a9935-022e-7bb3-9d6f-03d773be624e",
+                        "type": "msg_created",
+                        "created_on": "2025-11-17T16:01:00+00:00",
+                    },
+                ),
+            ]
+        )
+
+        response = self.client.get(chat_search_url + "?text=hello")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "results": [
+                    {
+                        "uuid": "019a9935-022e-7bb3-9d6f-03d773be623e",
+                        "type": "msg_received",
+                        "created_on": "2025-11-17T16:00:00+00:00",
+                    },
+                    {
+                        "uuid": "019a9935-022e-7bb3-9d6f-03d773be624e",
+                        "type": "msg_created",
+                        "created_on": "2025-11-17T16:01:00+00:00",
+                    },
+                ]
+            },
+            response.json(),
+        )
+
+    @mock_mailroom
     def test_update(self, mr_mocks):
         self.org.flow_languages = ["eng", "spa"]
         self.org.save(update_fields=("flow_languages",))

@@ -179,6 +179,7 @@ class ContactCRUDL(SmartCRUDL):
         "delete",
         "scheduled",
         "chat",
+        "chat_search",
     )
 
     class Menu(BaseMenuView):
@@ -415,6 +416,21 @@ class ContactCRUDL(SmartCRUDL):
                 return UUID(self.request.GET.get(name))
             except (ValueError, TypeError):
                 return None
+
+    class ChatSearch(BaseReadView):
+        """
+        Searches message text within a contact's chat history.
+        """
+
+        def get(self, request, *args, **kwargs):
+            text = request.GET.get("text", "").strip()
+            if not text:
+                return JsonResponse({"results": []})
+
+            contact = self.get_object()
+            results = mailroom.get_client().msg_search(request.org, text, contact=contact)
+
+            return JsonResponse({"results": [event for _, event in results]})
 
     class Search(ContactListView):
         template_name = "contacts/contact_list.html"
