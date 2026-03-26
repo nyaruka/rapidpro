@@ -422,6 +422,8 @@ class ContactCRUDL(SmartCRUDL):
         Searches message text within a contact's chat history.
         """
 
+        permission = "contacts.contact_chat"
+
         def get(self, request, *args, **kwargs):
             text = request.GET.get("text", "").strip()
             if not text:
