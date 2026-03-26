@@ -198,6 +198,29 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             },
         )
 
+        # make admin a beta user
+        self.make_beta(self.admin)
+        self.assertUpdateFetch(
+            vonage_url,
+            [self.editor],
+            form_fields={
+                "name": "Updated Name",
+                "allow_international": True,
+                "machine_detection": True,
+            },
+        )
+
+        self.assertUpdateFetch(
+            vonage_url,
+            [self.admin],
+            form_fields={
+                "name": "Updated Name",
+                "is_enabled": True,
+                "allow_international": True,
+                "machine_detection": True,
+            },
+        )
+
         # staff users see extra log policy field
         self.assertUpdateFetch(
             vonage_url,
