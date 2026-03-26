@@ -335,7 +335,10 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     )
 
     country = CountryField(
-        verbose_name=_("Country"), null=True, blank=True, help_text=_("Country which this channel is for")
+        verbose_name=_("Country"),
+        null=True,
+        blank=True,
+        help_text=_("Country which this channel is for"),
     )
 
     config = models.JSONField(default=dict)
@@ -344,6 +347,7 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     log_policy = models.CharField(max_length=1, default=LOG_POLICY_ALL, choices=LOG_POLICY_CHOICES)
     tps = models.IntegerField(null=True)
     is_enabled = models.BooleanField(default=True)
+    is_allowed = models.BooleanField(default=True)
 
     # Android relayer specific fields
     claim_code = models.CharField(max_length=16, blank=True, null=True, unique=True)
@@ -522,7 +526,14 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
             config.update(extra_config)
 
         return Channel.create(
-            org, user, country, channel_type, name=phone, address=phone_number, config=config, role=role
+            org,
+            user,
+            country,
+            channel_type,
+            name=phone,
+            address=phone_number,
+            config=config,
+            role=role,
         )
 
     @classmethod
@@ -606,10 +617,16 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
                 pass
 
         elif URN.FACEBOOK_SCHEME in self.schemes:
-            return "%s (%s)" % (self.config.get(Channel.CONFIG_PAGE_NAME, self.name), self.address)
+            return "%s (%s)" % (
+                self.config.get(Channel.CONFIG_PAGE_NAME, self.name),
+                self.address,
+            )
 
         elif self.channel_type == "WAC":
-            return "%s (%s)" % (self.config.get("wa_number", ""), self.config.get("wa_verified_name", self.name))
+            return "%s (%s)" % (
+                self.config.get("wa_number", ""),
+                self.config.get("wa_verified_name", self.name),
+            )
 
         return self.address
 
@@ -618,7 +635,10 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         # find last successfully sent message
         return (
-            self.msgs.filter(status__in=[Msg.STATUS_SENT, Msg.STATUS_DELIVERED], direction=Msg.DIRECTION_OUT)
+            self.msgs.filter(
+                status__in=[Msg.STATUS_SENT, Msg.STATUS_DELIVERED],
+                direction=Msg.DIRECTION_OUT,
+            )
             .exclude(sent_on=None)
             .order_by("-sent_on")
             .first()
@@ -657,7 +677,13 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         # use our optimized index for our org outbox
         from temba.msgs.models import Msg
 
-        return Msg.objects.filter(org=self.org.id, status__in=["P", "Q"], direction="O", visibility="V", channel=self)
+        return Msg.objects.filter(
+            org=self.org.id,
+            status__in=["P", "Q"],
+            direction="O",
+            visibility="V",
+            channel=self,
+        )
 
     def is_new(self):
         # is this channel newer than an hour
@@ -764,11 +790,16 @@ class ChannelCount(BaseDailyCount):
     class Meta:
         indexes = [
             models.Index(
-                "channel", "day", OpClass("scope", name="varchar_pattern_ops"), name="channelcount_channel_scope"
+                "channel",
+                "day",
+                OpClass("scope", name="varchar_pattern_ops"),
+                name="channelcount_channel_scope",
             ),
             # for squashing task
             models.Index(
-                name="channelcount_unsquashed", fields=("channel", "day", "scope"), condition=Q(is_squashed=False)
+                name="channelcount_unsquashed",
+                fields=("channel", "day", "scope"),
+                condition=Q(is_squashed=False),
             ),
         ]
 
@@ -817,7 +848,10 @@ class ChannelEvent(TembaUUIDMixin, models.Model):
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, null=True)
     contact = models.ForeignKey("contacts.Contact", on_delete=models.PROTECT, related_name="channel_events")
     contact_urn = models.ForeignKey(
-        "contacts.ContactURN", on_delete=models.PROTECT, null=True, related_name="channel_events"
+        "contacts.ContactURN",
+        on_delete=models.PROTECT,
+        null=True,
+        related_name="channel_events",
     )
     optin = models.ForeignKey("msgs.OptIn", null=True, on_delete=models.PROTECT, related_name="optins")
     extra = JSONAsTextField(null=True, default=dict)
@@ -914,7 +948,11 @@ class ChannelLog:
         prev_after_uuid = prev_after_sk.split("#")[-1] if prev_after_sk else None
         next_after_uuid = next_after_sk.split("#")[-1] if next_after_sk else None
 
-        return [cls._from_item(channel, item) for item in items], prev_after_uuid, next_after_uuid
+        return (
+            [cls._from_item(channel, item) for item in items],
+            prev_after_uuid,
+            next_after_uuid,
+        )
 
     @staticmethod
     def _get_key(channel, uuid: str) -> tuple[str, str]:

@@ -56,7 +56,9 @@ class ExternalTypeTest(TembaTest):
         post_data["number"] = "12345"
         response = self.client.post(url, post_data)
         self.assertFormError(
-            response.context["form"], "body", "Invalid JSON, make sure to remove quotes around variables"
+            response.context["form"],
+            "body",
+            "Invalid JSON, make sure to remove quotes around variables",
         )
 
         post_data["body"] = '{"from":{{from_no_plus}},"to":{{to_no_plus}},"text":{{text}},"channel":{{channel}} }'
@@ -101,7 +103,8 @@ class ExternalTypeTest(TembaTest):
         self.assertEqual(
             "http://example.com/send.php?from=5080&text=Reply+%E2%80%9C1%E2%80%9D+for+good&to=%2B250788383383",
             ExternalType.replace_variables(
-                ext_url, {"from": "5080", "text": "Reply “1” for good", "to": "+250788383383"}
+                ext_url,
+                {"from": "5080", "text": "Reply “1” for good", "to": "+250788383383"},
             ),
         )
 
@@ -113,7 +116,8 @@ class ExternalTypeTest(TembaTest):
         )
 
         self.assertEqual(
-            "<xml>التوطين</xml>", ExternalType.replace_variables(body, {"text": "التوطين"}, Channel.CONTENT_TYPE_XML)
+            "<xml>التوطين</xml>",
+            ExternalType.replace_variables(body, {"text": "التوطين"}, Channel.CONTENT_TYPE_XML),
         )
 
         # test substitution with JSON encoding
@@ -200,6 +204,14 @@ class ExternalTypeTest(TembaTest):
         self.login(self.customer_support, choose_org=self.org)
         response = self.client.get(update_url)
         self.assertEqual(
-            ["name", "role", "is_enabled", "log_policy", "allow_international", "loc"],
+            [
+                "name",
+                "role",
+                "is_enabled",
+                "log_policy",
+                "is_allowed",
+                "allow_international",
+                "loc",
+            ],
             list(response.context["form"].fields.keys()),
         )

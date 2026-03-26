@@ -17,7 +17,15 @@ class ViberTypeTest(TembaTest, CRUDLTestMixin):
         with patch("requests.post") as mock_post:
             mock_post.return_value = (
                 MockResponse(
-                    200, json.dumps({"status": 0, "status_message": "ok", "id": "viberId", "uri": "viberName"})
+                    200,
+                    json.dumps(
+                        {
+                            "status": 0,
+                            "status_message": "ok",
+                            "id": "viberId",
+                            "uri": "viberName",
+                        }
+                    ),
                 ),
             )
             self.channel = Channel.create(
@@ -51,8 +59,28 @@ class ViberTypeTest(TembaTest, CRUDLTestMixin):
 
         # ok this time claim with a success
         mock_post.side_effect = [
-            MockResponse(200, json.dumps({"status": 0, "status_message": "ok", "id": "viberId", "uri": "viberName"})),
-            MockResponse(200, json.dumps({"status": 0, "status_message": "ok", "id": "viberId", "uri": "viberName"})),
+            MockResponse(
+                200,
+                json.dumps(
+                    {
+                        "status": 0,
+                        "status_message": "ok",
+                        "id": "viberId",
+                        "uri": "viberName",
+                    }
+                ),
+            ),
+            MockResponse(
+                200,
+                json.dumps(
+                    {
+                        "status": 0,
+                        "status_message": "ok",
+                        "id": "viberId",
+                        "uri": "viberName",
+                    }
+                ),
+            ),
             MockResponse(200, json.dumps({"status": 0, "status_message": "ok"})),
         ]
 
@@ -87,12 +115,19 @@ class ViberTypeTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateSubmit(
             update_url,
             self.admin,
-            {"name": "Updated", "is_enabled": True, "welcome_message": "Welcome, please subscribe for more"},
+            {
+                "name": "Updated",
+                "is_enabled": True,
+                "welcome_message": "Welcome, please subscribe for more",
+            },
         )
 
         self.channel.refresh_from_db()
         self.assertEqual("Updated", self.channel.name)
-        self.assertEqual("Welcome, please subscribe for more", self.channel.config.get(CONFIG_WELCOME_MESSAGE))
+        self.assertEqual(
+            "Welcome, please subscribe for more",
+            self.channel.config.get(CONFIG_WELCOME_MESSAGE),
+        )
 
         self.assertUpdateFetch(
             update_url,
@@ -111,7 +146,13 @@ class ViberTypeTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateFetch(
             update_url,
             [self.customer_support],
-            form_fields=["name", "is_enabled", "log_policy", "welcome_message"],
+            form_fields=[
+                "name",
+                "is_enabled",
+                "log_policy",
+                "is_allowed",
+                "welcome_message",
+            ],
             choose_org=self.org,
         )
 

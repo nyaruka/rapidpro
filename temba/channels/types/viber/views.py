@@ -17,7 +17,10 @@ class ClaimView(ClaimViewMixin, SmartFormView):
 
         def clean_auth_token(self):
             auth_token = self.data["auth_token"]
-            response = requests.post("https://chatapi.viber.com/pa/get_account_info", json={"auth_token": auth_token})
+            response = requests.post(
+                "https://chatapi.viber.com/pa/get_account_info",
+                json={"auth_token": auth_token},
+            )
             if response.status_code != 200 or response.json()["status"] != 0:
                 raise ValidationError("Error validating authentication token: %s" % response.json()["status_message"])
             return auth_token
@@ -28,7 +31,10 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             if not auth_token:  # pragma: no cover
                 raise ValidationError(_("Missing auth token"))
 
-            response = requests.post("https://chatapi.viber.com/pa/get_account_info", json={"auth_token": auth_token})
+            response = requests.post(
+                "https://chatapi.viber.com/pa/get_account_info",
+                json={"auth_token": auth_token},
+            )
             response_json = response.json()
 
             self.cleaned_data["name"] = response_json["uri"]
@@ -43,10 +49,19 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         auth_token = form.cleaned_data["auth_token"]
         name = form.cleaned_data["name"]
         address = form.cleaned_data["address"]
-        config = {Channel.CONFIG_AUTH_TOKEN: auth_token, Channel.CONFIG_CALLBACK_DOMAIN: org.get_brand_domain()}
+        config = {
+            Channel.CONFIG_AUTH_TOKEN: auth_token,
+            Channel.CONFIG_CALLBACK_DOMAIN: org.get_brand_domain(),
+        }
 
         self.object = Channel.create(
-            org, self.request.user, None, self.channel_type, name=name, address=address, config=config
+            org,
+            self.request.user,
+            None,
+            self.channel_type,
+            name=name,
+            address=address,
+            config=config,
         )
 
         return super().form_valid(form)
@@ -72,5 +87,5 @@ class UpdateForm(UpdateChannelForm):
         )
 
     class Meta(UpdateChannelForm.Meta):
-        fields = ("name", "address", "is_enabled", "log_policy")
+        fields = ("name", "address", "is_enabled", "log_policy", "is_allowed")
         readonly = ("address",)

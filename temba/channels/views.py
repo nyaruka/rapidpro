@@ -94,7 +94,10 @@ class ClaimViewMixin(ChannelTypeMixin, OrgPermsMixin, ComponentFormMixin):
         return (
             [self.template_name]
             if self.template_name
-            else ["channels/types/%s/claim.html" % self.channel_type.slug, "channels/channel_claim_form.html"]
+            else [
+                "channels/types/%s/claim.html" % self.channel_type.slug,
+                "channels/channel_claim_form.html",
+            ]
         )
 
     def derive_title(self):
@@ -143,10 +146,12 @@ class AuthenticatedExternalClaimView(ClaimViewMixin, SmartFormView):
             help_text=_("The phone number or short code you are connecting with country code. ex: +250788123124"),
         )
         username = forms.CharField(
-            label=_("Username"), help_text=_("The username provided by the provider to use their API")
+            label=_("Username"),
+            help_text=_("The username provided by the provider to use their API"),
         )
         password = forms.CharField(
-            label=_("Password"), help_text=_("The password provided by the provider to use their API")
+            label=_("Password"),
+            help_text=_("The password provided by the provider to use their API"),
         )
 
         def clean_number(self):
@@ -389,7 +394,10 @@ class BaseClaimNumberMixin(ClaimViewMixin):
 
 class UpdateChannelForm(forms.ModelForm):
     name = forms.CharField(
-        label=_("Name"), max_length=64, required=True, help_text=_("Descriptive name for this channel.")
+        label=_("Name"),
+        max_length=64,
+        required=True,
+        help_text=_("Descriptive name for this channel."),
     )
 
     def __init__(self, *args, **kwargs):
@@ -400,7 +408,10 @@ class UpdateChannelForm(forms.ModelForm):
         if URN.TEL_SCHEME in self.instance.schemes:
             self.add_config_field(
                 Channel.CONFIG_ALLOW_INTERNATIONAL,
-                forms.BooleanField(required=False, help_text=_("Allow sending to and calling international numbers.")),
+                forms.BooleanField(
+                    required=False,
+                    help_text=_("Allow sending to and calling international numbers."),
+                ),
                 default=False,
             )
 
@@ -408,7 +419,8 @@ class UpdateChannelForm(forms.ModelForm):
             self.add_config_field(
                 Channel.CONFIG_MACHINE_DETECTION,
                 forms.BooleanField(
-                    required=False, help_text=_("Perform answering machine detection and hangup if machine detected.")
+                    required=False,
+                    help_text=_("Perform answering machine detection and hangup if machine detected."),
                 ),
                 default=False,
             )
@@ -432,7 +444,7 @@ class UpdateChannelForm(forms.ModelForm):
 
     class Meta:
         model = Channel
-        fields = ("name", "is_enabled", "log_policy")
+        fields = ("name", "is_enabled", "log_policy", "is_allowed")
         readonly = ()
         labels = {"is_enabled": _("Enabled")}
 
@@ -465,12 +477,18 @@ class ChannelCRUDL(SmartCRUDL):
                 menu.add_link(item["label"], reverse(item["view_name"], args=[obj.uuid]))
 
             if obj.type.config_ui:
-                menu.add_link(_("Configuration"), reverse("channels.channel_configuration", args=[obj.uuid]))
+                menu.add_link(
+                    _("Configuration"),
+                    reverse("channels.channel_configuration", args=[obj.uuid]),
+                )
 
             menu.add_link(_("Logs"), reverse("channels.channel_logs_list", args=[obj.uuid]))
 
             if obj.type.template_type:
-                menu.add_link(_("Template Logs"), reverse("request_logs.httplog_channel", args=[obj.uuid]))
+                menu.add_link(
+                    _("Template Logs"),
+                    reverse("request_logs.httplog_channel", args=[obj.uuid]),
+                )
 
             if self.has_org_perm("channels.channel_update"):
                 menu.add_modax(
@@ -480,7 +498,11 @@ class ChannelCRUDL(SmartCRUDL):
                     title=_("Edit Channel"),
                 )
             if self.has_org_perm("channels.channel_delete"):
-                menu.add_modax(_("Delete"), "delete-channel", reverse("channels.channel_delete", args=[obj.uuid]))
+                menu.add_modax(
+                    _("Delete"),
+                    "delete-channel",
+                    reverse("channels.channel_delete", args=[obj.uuid]),
+                )
 
             if obj.channel_type == "FB" and self.has_org_perm("channels.channel_facebook_whitelist"):
                 menu.add_modax(
@@ -697,7 +719,11 @@ class ChannelCRUDL(SmartCRUDL):
             return _("%s Channel") % self.object.type.name
 
         def derive_exclude(self):
-            return [] if self.request.user.is_staff else ["log_policy"]
+            if self.request.user.is_staff:
+                return []
+            if self.request.user.is_beta:
+                return ["log_policy"]
+            return ["log_policy", "is_allowed"]
 
         def derive_readonly(self):
             return self.form.Meta.readonly if hasattr(self, "form") else []
@@ -799,7 +825,13 @@ class ChannelCRUDL(SmartCRUDL):
 
             endpoints = []
             for endpoint in self.object.type.config_ui.get_used_endpoints(self.object):
-                endpoints.append(dict(url=endpoint.get_url(self.object), label=endpoint.label, help=endpoint.help))
+                endpoints.append(
+                    dict(
+                        url=endpoint.get_url(self.object),
+                        label=endpoint.label,
+                        help=endpoint.help,
+                    )
+                )
 
             if self.object.type.config_ui.show_secret:
                 secret = self.object.secret or self.object.config.get("secret")
@@ -867,7 +899,10 @@ class ChannelCRUDL(SmartCRUDL):
             if self.owner:
                 return self.owner.get_logs(), self.owner.contact_urn
 
-            return ChannelLog.get_by_uuid(self.object, [UUID(self.kwargs["refid"])]), None
+            return (
+                ChannelLog.get_by_uuid(self.object, [UUID(self.kwargs["refid"])]),
+                None,
+            )
 
         def get_context_data(self, **kwargs):
             anonymize = self.request.org.is_anon and not (self.request.GET.get("break") and self.request.user.is_staff)

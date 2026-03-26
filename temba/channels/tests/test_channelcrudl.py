@@ -42,7 +42,10 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertReadFetch(claim_url, [self.editor, self.admin])
 
         # 3 recommended channels for Rwanda
-        self.assertEqual(["AT", "MT", "TG"], [t.code for t in response.context["recommended_channels"]])
+        self.assertEqual(
+            ["AT", "MT", "TG"],
+            [t.code for t in response.context["recommended_channels"]],
+        )
 
         self.assertEqual(response.context["channel_types"]["PHONE"][0].code, "BW")
         self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "CT")
@@ -56,7 +59,10 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(reverse("channels.channel_claim"))
         self.assertEqual(200, response.status_code)
 
-        self.assertEqual(["TG", "TMS", "T", "NX"], [t.code for t in response.context["recommended_channels"]])
+        self.assertEqual(
+            ["TG", "TMS", "T", "NX"],
+            [t.code for t in response.context["recommended_channels"]],
+        )
 
         self.assertEqual(response.context["channel_types"]["PHONE"][0].code, "BW")
         self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "CT")
@@ -76,7 +82,10 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertReadFetch(claim_url, [self.editor, self.admin])
 
         # should see all channel types not for beta only and having a category
-        self.assertEqual(["AT", "MT", "TG"], [t.code for t in response.context["recommended_channels"]])
+        self.assertEqual(
+            ["AT", "MT", "TG"],
+            [t.code for t in response.context["recommended_channels"]],
+        )
 
         self.assertEqual(response.context["channel_types"]["PHONE"][0].code, "AC")
         self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "BW")
@@ -96,7 +105,10 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(200, response.status_code)
 
         # should see all channel types having a category including beta only channel types
-        self.assertEqual(["AT", "MT", "TG"], [t.code for t in response.context["recommended_channels"]])
+        self.assertEqual(
+            ["AT", "MT", "TG"],
+            [t.code for t in response.context["recommended_channels"]],
+        )
 
         self.assertEqual(response.context["channel_types"]["PHONE"][0].code, "AC")
         self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "BW")
@@ -119,7 +131,10 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(config_url)
         self.assertContains(response, "To finish configuring your connection")
-        self.assertEqual(f"/settings/channels/{self.ex_channel.uuid}", response.context[TEMBA_MENU_SELECTION])
+        self.assertEqual(
+            f"/settings/channels/{self.ex_channel.uuid}",
+            response.context[TEMBA_MENU_SELECTION],
+        )
 
         # can't view configuration of channel whose type doesn't support it
         response = self.client.get(reverse("channels.channel_configuration", args=[self.channel.uuid]))
@@ -131,7 +146,12 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_update(self):
         android_channel = self.create_channel(
-            "A", "My Android", "+250785551212", country="RW", secret="sesame", config={"FCM_ID": "123"}
+            "A",
+            "My Android",
+            "+250785551212",
+            country="RW",
+            secret="sesame",
+            config={"FCM_ID": "123"},
         )
         vonage_channel = self.create_channel("NX", "My Vonage", "+1234567890", country="US", config={}, role="CASR")
         telegram_channel = self.create_channel("TG", "My Telegram", "75474745", config={})
@@ -163,7 +183,9 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             },
         )
         self.assertUpdateFetch(
-            telegram_url, [self.editor, self.admin], form_fields={"name": "My Telegram", "is_enabled": True}
+            telegram_url,
+            [self.editor, self.admin],
+            form_fields={"name": "My Telegram", "is_enabled": True},
         )
 
         # name can't be empty
@@ -204,11 +226,43 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             },
         )
 
+        # make admin a beta user
+        self.make_beta(self.admin)
+        self.assertUpdateFetch(
+            vonage_url,
+            [self.editor],
+            form_fields={
+                "name": "Updated Name",
+                "is_enabled": True,
+                "allow_international": True,
+                "machine_detection": True,
+            },
+        )
+
+        self.assertUpdateFetch(
+            vonage_url,
+            [self.admin],
+            form_fields={
+                "name": "Updated Name",
+                "is_enabled": True,
+                "is_allowed": True,
+                "allow_international": True,
+                "machine_detection": True,
+            },
+        )
+
         # staff users see extra log policy field
         self.assertUpdateFetch(
             vonage_url,
             [self.customer_support],
-            form_fields=["name", "is_enabled", "log_policy", "allow_international", "machine_detection"],
+            form_fields=[
+                "name",
+                "is_enabled",
+                "log_policy",
+                "is_allowed",
+                "allow_international",
+                "machine_detection",
+            ],
             choose_org=self.org,
         )
 
@@ -331,7 +385,10 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("https://foo.bar/send2", response.context["logs"][1]["http_logs"][0]["url"])
 
         response = self.client.get(logs_url)
-        self.assertEqual(f"/settings/channels/{self.channel.uuid}", response.headers[TEMBA_MENU_SELECTION])
+        self.assertEqual(
+            f"/settings/channels/{self.channel.uuid}",
+            response.headers[TEMBA_MENU_SELECTION],
+        )
 
         # try to lookup log from different org using channel from this org
         org2_contact = self.create_contact("Alice", phone="+250788382382", org=self.org2)
@@ -341,7 +398,10 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             org2_contact, "Message 3", status="D", channel=org2_channel, logs=[org2_log]
         )
 
-        logs_url = reverse("channels.channel_logs_read", args=[self.channel.uuid, "msg", org2_msg2.uuid])
+        logs_url = reverse(
+            "channels.channel_logs_read",
+            args=[self.channel.uuid, "msg", org2_msg2.uuid],
+        )
         self.assertRequestDisallowed(logs_url, [None, self.editor, self.agent, self.admin, self.admin2])
 
     def test_logs_call(self):
@@ -417,7 +477,10 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # submit to delete it
         response = self.assertDeleteSubmit(
-            delete_url, self.admin, object_deactivated=self.ex_channel, success_status=200
+            delete_url,
+            self.admin,
+            object_deactivated=self.ex_channel,
+            success_status=200,
         )
         self.assertEqual("/org/workspace/", response["X-Temba-Success"])
 
@@ -434,7 +497,12 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "is used by the following items but can still be deleted:")
         self.assertContains(response, "Color Flow")
 
-        self.assertDeleteSubmit(delete_url, self.admin, object_deactivated=self.ex_channel, success_status=200)
+        self.assertDeleteSubmit(
+            delete_url,
+            self.admin,
+            object_deactivated=self.ex_channel,
+            success_status=200,
+        )
 
         flow.refresh_from_db()
         self.assertTrue(flow.has_issues)

@@ -17,7 +17,9 @@ from ...views import ALL_COUNTRIES, ClaimViewMixin, UpdateChannelForm
 class ClaimView(ClaimViewMixin, SmartFormView):
     class ClaimForm(ClaimViewMixin.Form):
         scheme = forms.ChoiceField(
-            choices=URN.SCHEME_CHOICES, label=_("URN Type"), help_text=_("The type of URNs handled by this channel")
+            choices=URN.SCHEME_CHOICES,
+            label=_("URN Type"),
+            help_text=_("The type of URNs handled by this channel"),
         )
 
         number = forms.CharField(
@@ -56,7 +58,8 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         )
 
         content_type = forms.ChoiceField(
-            choices=Channel.CONTENT_TYPE_CHOICES, help_text=_("The content type used when sending the request")
+            choices=Channel.CONTENT_TYPE_CHOICES,
+            help_text=_("The content type used when sending the request"),
         )
 
         max_length = forms.IntegerField(
@@ -144,7 +147,8 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         )
 
         content_type = forms.ChoiceField(
-            choices=Channel.CONTENT_TYPE_CHOICES, help_text=_("The content type used when sending the request")
+            choices=Channel.CONTENT_TYPE_CHOICES,
+            help_text=_("The content type used when sending the request"),
         )
 
         max_length = forms.IntegerField(
@@ -224,7 +228,14 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             config[ExternalType.CONFIG_MT_RESPONSE_CHECK] = data["mt_response_check"]
 
         self.object = Channel.add_config_external_channel(
-            org, self.request.user, country, address, self.channel_type, config, role, [scheme]
+            org,
+            self.request.user,
+            country,
+            address,
+            self.channel_type,
+            config,
+            role,
+            [scheme],
         )
 
         return super().form_valid(form)
@@ -242,5 +253,5 @@ class UpdateForm(UpdateChannelForm):
         return "".join(self.cleaned_data.get("role", []))
 
     class Meta(UpdateChannelForm.Meta):
-        fields = "name", "role", "is_enabled", "log_policy"
+        fields = "name", "role", "is_enabled", "log_policy", "is_allowed"
         readonly = []

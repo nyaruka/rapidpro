@@ -232,11 +232,14 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
 
             else:  # pragma: needs cover
                 twilio_phone = client.api.incoming_phone_numbers.create(
-                    phone_number=phone_number, voice_application_sid=new_app.sid, sms_application_sid=new_app.sid
+                    phone_number=phone_number,
+                    voice_application_sid=new_app.sid,
+                    sms_application_sid=new_app.sid,
                 )
 
             phone = phonenumbers.format_number(
-                phonenumbers.parse(phone_number, None), phonenumbers.PhoneNumberFormat.NATIONAL
+                phonenumbers.parse(phone_number, None),
+                phonenumbers.PhoneNumberFormat.NATIONAL,
             )
 
             role = ""
@@ -333,7 +336,8 @@ class SearchView(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
         for number in available_numbers:
             numbers.append(
                 phonenumbers.format_number(
-                    phonenumbers.parse(number.phone_number, None), phonenumbers.PhoneNumberFormat.INTERNATIONAL
+                    phonenumbers.parse(number.phone_number, None),
+                    phonenumbers.PhoneNumberFormat.INTERNATIONAL,
                 )
             )
 
@@ -394,13 +398,17 @@ class UpdateForm(UpdateChannelForm):
         return super().clean()
 
     class Meta(UpdateChannelForm.Meta):
-        fields = ("name", "is_enabled", "log_policy")
+        fields = ("name", "is_enabled", "log_policy", "is_allowed")
 
 
 class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
     class TwilioConnectForm(forms.Form):
         account_sid = forms.CharField(help_text=_("Your Twilio Account SID"), widget=InputWidget(), required=True)
-        account_token = forms.CharField(help_text=_("Your Twilio Account Token"), widget=InputWidget(), required=True)
+        account_token = forms.CharField(
+            help_text=_("Your Twilio Account Token"),
+            widget=InputWidget(),
+            required=True,
+        )
 
         def clean(self):
             account_sid = self.cleaned_data.get("account_sid")
