@@ -1,3 +1,10 @@
+v26.1.69 (2026-03-26)
+-------------------------
+ * Bump requests from 2.32.5 to 2.33.0
+ * Update @nyaruka/temba-components to 0.153.0
+ * Bump picomatch from 2.3.1 to 2.3.2
+ * Add ChatSearch view for searching messages within a contact's chat history
+
 v26.1.68 (2026-03-24)
 -------------------------
  * Tweak contacts ES index
