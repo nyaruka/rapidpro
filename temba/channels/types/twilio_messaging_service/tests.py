@@ -118,7 +118,7 @@ class TwilioMessagingServiceTypeTest(TembaTest):
         self.login(self.admin)
         response = self.client.get(update_url)
         self.assertEqual(
-            ["name", "is_enabled", "allow_international", "account_sid", "auth_token", "link_shortening", "loc"],
+            ["name", "allow_international", "account_sid", "auth_token", "link_shortening", "loc"],
             list(response.context["form"].fields.keys()),
         )
 

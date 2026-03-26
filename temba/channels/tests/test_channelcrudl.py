@@ -148,7 +148,6 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             [self.editor, self.admin],
             form_fields={
                 "name": "My Android",
-                "is_enabled": True,
                 "allow_international": False,
             },
         )
@@ -157,14 +156,11 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             [self.editor, self.admin],
             form_fields={
                 "name": "My Vonage",
-                "is_enabled": True,
                 "allow_international": False,
                 "machine_detection": False,
             },
         )
-        self.assertUpdateFetch(
-            telegram_url, [self.editor, self.admin], form_fields={"name": "My Telegram", "is_enabled": True}
-        )
+        self.assertUpdateFetch(telegram_url, [self.editor, self.admin], form_fields={"name": "My Telegram"})
 
         # name can't be empty
         self.assertUpdateSubmit(
@@ -181,7 +177,6 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             {
                 "name": "Updated Name",
-                "is_enabled": True,
                 "allow_international": True,
                 "machine_detection": True,
             },
@@ -198,7 +193,6 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             [self.editor, self.admin],
             form_fields={
                 "name": "Updated Name",
-                "is_enabled": True,
                 "allow_international": True,
                 "machine_detection": True,
             },

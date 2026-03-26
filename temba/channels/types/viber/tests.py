@@ -81,13 +81,13 @@ class ViberTypeTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateFetch(
             update_url,
             [self.editor, self.admin],
-            form_fields={"name": "Viber", "is_enabled": True, "welcome_message": ""},
+            form_fields={"name": "Viber", "welcome_message": ""},
         )
 
         self.assertUpdateSubmit(
             update_url,
             self.admin,
-            {"name": "Updated", "is_enabled": True, "welcome_message": "Welcome, please subscribe for more"},
+            {"name": "Updated", "welcome_message": "Welcome, please subscribe for more"},
         )
 
         self.channel.refresh_from_db()
@@ -99,7 +99,6 @@ class ViberTypeTest(TembaTest, CRUDLTestMixin):
             [self.editor, self.admin],
             form_fields={
                 "name": "Updated",
-                "is_enabled": True,
                 "welcome_message": "Welcome, please subscribe for more",
             },
         )

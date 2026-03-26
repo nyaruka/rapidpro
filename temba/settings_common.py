@@ -338,7 +338,7 @@ PERMISSIONS = {
     "api.apitoken": ("explorer",),
     "archives.archive": ("run", "message"),
     "campaigns.campaign": ("archive", "activate", "menu"),
-    "channels.channel": ("chart", "claim", "configuration", "logs", "facebook_whitelist"),
+    "channels.channel": ("chart", "claim", "configuration", "logs", "facebook_whitelist", "disable"),
     "classifiers.classifier": ("connect", "sync"),
     "contacts.contact": ("export", "chat", "interrupt", "menu", "omnibox", "open_ticket", "start"),
     "contacts.contactfield": ("update_priority",),
@@ -385,7 +385,7 @@ PERMISSIONS = {
 
 # assigns the permissions that each group should have
 GROUP_PERMISSIONS = {
-    "Beta": (),
+    "Beta": ("channels.channel_disable",),
     "Dashboard": ("orgs.org_dashboard",),
     "Granters": ("orgs.org_grant",),
     "Administrators": (
