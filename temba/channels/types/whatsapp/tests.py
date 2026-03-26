@@ -8,13 +8,14 @@ from django.urls import reverse
 
 from temba.request_logs.models import HTTPLog
 from temba.tests import MockJsonResponse, MockResponse, TembaTest
+from temba.tests.crudl import CRUDLTestMixin
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
 from ...models import Channel
 from .type import WhatsAppType
 
 
-class WhatsAppTypeTest(TembaTest):
+class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
     @override_settings(
         FACEBOOK_APPLICATION_ID="FB_APP_ID",
         FACEBOOK_APPLICATION_SECRET="FB_APP_SECRET",
@@ -730,4 +731,65 @@ class WhatsAppTypeTest(TembaTest):
                     headers={"Authorization": "Bearer WA_ADMIN_TOKEN"},
                 ),
             ]
+        )
+
+    def test_update(self):
+        channel = self.create_channel(
+            "WAC",
+            "WABA name",
+            "123123123",
+            config={
+                "wa_waba_id": "111111111111111",
+            },
+        )
+
+        update_url = reverse("channels.channel_update", args=[channel.id])
+
+        self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
+        self.assertUpdateFetch(
+            update_url,
+            [self.editor, self.admin],
+            form_fields={"name": "WABA name"},
+        )
+
+        self.assertUpdateSubmit(
+            update_url,
+            self.admin,
+            {"name": "New WA Name", "is_enabled": False},
+        )
+
+        channel = Channel.objects.get(id=channel.id)
+        self.assertEqual("New WA Name", channel.name)
+        self.assertTrue(channel.is_enabled)  # is_enabled should not be updated as admin is not a beta user
+
+        # make admin a beta user
+        self.make_beta(self.admin)
+        self.assertUpdateFetch(
+            update_url,
+            [self.editor],
+            form_fields={"name": "New WA Name"},
+        )
+
+        self.assertUpdateFetch(
+            update_url,
+            [self.admin],
+            form_fields={"name": "New WA Name", "is_enabled": True},
+        )
+
+        self.assertUpdateSubmit(
+            update_url,
+            self.admin,
+            {"name": "Another Name", "is_enabled": False},
+        )
+
+        channel = Channel.objects.get(id=channel.id)
+        self.assertEqual("Another Name", channel.name)
+        self.assertFalse(channel.is_enabled)  # is_enabled should be updated as admin is now a beta user
+
+        # staff users see extra log policy field
+        self.assertUpdateFetch(
+            update_url,
+            [self.customer_support],
+            form_fields=["name", "is_enabled", "log_policy"],
+            choose_org=self.org,
         )
