@@ -1168,10 +1168,6 @@ class Contact(LegacyUUIDMixin, SmartModel):
             models.Index(
                 name="contacts_by_org_deleted", fields=("org", "-modified_on", "-id"), condition=Q(is_active=False)
             ),
-            # for getting the last modified_on during smart group population
-            models.Index(name="contacts_contact_org_modified", fields=["org", "-modified_on"]),
-            # for indexing modified contacts
-            models.Index(name="contacts_modified", fields=("modified_on",)),
         ]
         constraints = [
             models.CheckConstraint(condition=Q(status__in=("A", "B", "S", "V")), name="contact_status_valid"),
