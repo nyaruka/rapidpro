@@ -66,6 +66,9 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         # test searching by message text
         self.assertListFetch(inbox_url + "?search=number+1", [self.editor, self.admin], context_objects=[msg1])
 
+        # test searching by contact name
+        self.assertListFetch(inbox_url + "?search=joe", [self.editor, self.admin], context_objects=[msg2, msg1])
+
         # error response if query too long
         self.assertListFetch(inbox_url + "?search=" + "x" * 1001, [self.editor], status=413)
 
@@ -165,6 +168,10 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         # test searching by message text
         response = self.client.get(archived_url + "?search=number+1")
         self.assertEqual([msg1], list(response.context_data["object_list"]))
+
+        # test searching by contact name
+        response = self.client.get(archived_url + "?search=joe")
+        self.assertEqual([msg2, msg1], list(response.context_data["object_list"]))
 
         # editors can restore messages
         response = self.requestView(archived_url, self.editor, post_data={"action": "restore", "objects": [msg1.id]})
@@ -327,6 +334,10 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         # search on label by message text
         response = self.client.get(f"{label3_url}?search=test1")
         self.assertEqual([msg1], list(response.context_data["object_list"]))
+
+        # search on label by contact name
+        response = self.client.get(f"{label3_url}?search=joe")
+        self.assertEqual({msg1, msg6}, set(response.context_data["object_list"]))
 
         self.assertContentMenu(label3_url, self.editor, ["Edit", "Delete", "-", "Export", "Usages"])
         self.assertContentMenu(label1_url, self.admin, ["Edit", "Delete", "-", "Export", "Usages"])
