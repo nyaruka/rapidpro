@@ -437,6 +437,28 @@ class MailroomClientTest(TembaTest):
         )
 
     @patch("requests.post")
+    def test_contact_search_with_uuids(self, mock_post):
+        ann = self.create_contact("Ann", urns=["tel:+12340000001"])
+        bob = self.create_contact("Bob", urns=["tel:+12340000002"])
+        group = self.create_group("Doctors", contacts=[])
+
+        mock_post.return_value = MockJsonResponse(
+            200,
+            {
+                "query": 'name ~ "ann"',
+                "contact_uuids": [str(ann.uuid), str(bob.uuid)],
+                "total": 2,
+                "metadata": {"attributes": ["name"]},
+            },
+        )
+        response = self.client.contact_search(self.org, group, "ann", "-created_on")
+
+        self.assertEqual('name ~ "ann"', response.query)
+        self.assertEqual([ann.id, bob.id], response.contact_ids)
+        self.assertEqual(2, response.total)
+        self.assertEqual(["name"], response.metadata.attributes)
+
+    @patch("requests.post")
     def test_contact_urns(self, mock_post):
         mock_post.return_value = MockJsonResponse(
             200, {"urns": [{"normalized": "tel:+1234", "contact_id": 345}, {"normalized": "webchat:3a2ef3"}]}

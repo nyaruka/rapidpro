@@ -169,10 +169,22 @@ class MailroomClient:
             },
         )
 
+        contact_ids = resp.get("contact_ids")
+        if contact_ids is None:
+            from temba.contacts.models import Contact
+
+            contact_uuids = resp.get("contact_uuids", [])
+            if contact_uuids:
+                ids_by_uuid = Contact.objects.filter(uuid__in=contact_uuids).values_list("uuid", "id")
+                uuid_to_id = {str(u): i for u, i in ids_by_uuid}
+                contact_ids = [uuid_to_id[u] for u in contact_uuids if u in uuid_to_id]
+            else:
+                contact_ids = []
+
         return SearchResults(
             query=resp["query"],
             total=resp["total"],
-            contact_ids=resp["contact_ids"],
+            contact_ids=contact_ids,
             metadata=QueryMetadata(**resp.get("metadata", {})),
         )
 
