@@ -694,7 +694,7 @@ class MsgCRUDL(SmartCRUDL):
     class Inbox(MsgListView):
         title = _("Inbox")
         folder = MsgFolder.INBOX
-        search_fields = ("text__icontains",)
+        search_fields = ("text__icontains", "contact__name__icontains")
         bulk_actions = ("archive", "label")
         allow_export = True
         menu_path = "/msg/inbox"
@@ -710,7 +710,7 @@ class MsgCRUDL(SmartCRUDL):
     class Flow(MsgListView):
         title = _("Handled")
         folder = MsgFolder.HANDLED
-        search_fields = ("text__icontains",)
+        search_fields = ("text__icontains", "contact__name__icontains")
         bulk_actions = ("archive", "label")
         allow_export = True
         menu_path = "/msg/handled"
@@ -722,7 +722,7 @@ class MsgCRUDL(SmartCRUDL):
     class Archived(MsgListView):
         title = _("Archived")
         folder = MsgFolder.ARCHIVED
-        search_fields = ("text__icontains",)
+        search_fields = ("text__icontains", "contact__name__icontains")
         bulk_actions = ("restore", "label", "delete")
         allow_export = True
 
@@ -767,7 +767,7 @@ class MsgCRUDL(SmartCRUDL):
             return super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
 
     class Filter(MsgListView):
-        search_fields = ("text__icontains",)
+        search_fields = ("text__icontains", "contact__name__icontains")
         bulk_actions = ("label",)
 
         def derive_menu_path(self):
