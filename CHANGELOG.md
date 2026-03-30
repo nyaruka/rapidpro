@@ -1,3 +1,7 @@
+v26.1.71 (2026-03-30)
+-------------------------
+ * Restore message searching by name
+
 v26.1.70 (2026-03-30)
 -------------------------
  * Remove no longer needed indexes on contact
