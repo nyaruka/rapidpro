@@ -1,3 +1,9 @@
+v26.1.70 (2026-03-30)
+-------------------------
+ * Remove no longer needed indexes on contact
+ * Update @nyaruka/temba-components to 0.154.1
+ * Make sure beta only channels can be enabled/disabled only by beta users
+
 v26.1.69 (2026-03-26)
 -------------------------
  * Bump requests from 2.32.5 to 2.33.0
