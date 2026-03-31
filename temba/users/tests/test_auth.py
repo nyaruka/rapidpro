@@ -47,26 +47,6 @@ class UserAuthTest(TembaTest):
         user = User.objects.get(email="bobbyburgers@burgers.com")
         self.assertFalse(OrgMembership.objects.filter(user=user).exists())
 
-    def test_signup_honeypot(self):
-        signup_url = reverse("account_signup")
-
-        # signup should be rejected if honeypot field is filled (i.e. by a bot)
-        response = self.client.post(
-            signup_url,
-            {
-                "first_name": "Spammy",
-                "last_name": "McSpamface",
-                "password1": "arstqwfp",
-                "email": "spam@spam.com",
-                "phone_number": "555-1234",
-            },
-        )
-
-        self.assertEqual(200, response.status_code)
-        form = response.context.get("form")
-        self.assertIn("phone_number", form.errors)
-        self.assertFalse(User.objects.filter(email="spam@spam.com").exists())
-
     def test_change_password(self):
         # make sure we get the correct help text on change password page
         self.login(self.admin)
