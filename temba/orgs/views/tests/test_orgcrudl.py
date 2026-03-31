@@ -79,9 +79,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         # staff without an org on have the staff section
         self.assertPageMenu(menu_url, self.customer_support, ["Staff"])
 
-        self.assertPageMenu(
-            f"{menu_url}staff/", self.customer_support, ["Workspaces", "Users"]
-        )
+        self.assertPageMenu(f"{menu_url}staff/", self.customer_support, ["Workspaces", "Users"])
 
         # if our org has new orgs but not child orgs, we should have a New Workspace button in the menu
         self.org.features = [Org.FEATURE_NEW_ORGS]
@@ -140,12 +138,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         # enable more features..
-        self.org.features = [
-            Org.FEATURE_USERS,
-            Org.FEATURE_CHILD_ORGS,
-            Org.FEATURE_TEAMS,
-            Org.FEATURE_PROMETHEUS,
-        ]
+        self.org.features = [Org.FEATURE_USERS, Org.FEATURE_CHILD_ORGS, Org.FEATURE_TEAMS, Org.FEATURE_PROMETHEUS]
         self.org.save(update_fields=("features",))
 
         self.child_org = Org.objects.create(
@@ -193,12 +186,9 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         # orgs without SMTP settings see default from address
         response = self.client.get(settings_url)
         self.assertContains(
-            response,
-            "Emails sent from flows will be sent from <b>Temba &lt;no-reply@temba.io&gt;</b>.",
+            response, "Emails sent from flows will be sent from <b>Temba &lt;no-reply@temba.io&gt;</b>."
         )
-        self.assertEqual(
-            "Temba <no-reply@temba.io>", response.context["from_email_default"]
-        )  # from settings
+        self.assertEqual("Temba <no-reply@temba.io>", response.context["from_email_default"])  # from settings
         self.assertEqual(None, response.context["from_email_custom"])
 
         # make org a child to a parent that alsos doesn't have SMTP settings
@@ -206,56 +196,34 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.org.save(update_fields=("parent",))
 
         response = self.client.get(config_url)
-        self.assertContains(
-            response, "You can add your own SMTP settings for emails sent from flows."
-        )
-        self.assertEqual(
-            "Temba <no-reply@temba.io>", response.context["from_email_default"]
-        )
+        self.assertContains(response, "You can add your own SMTP settings for emails sent from flows.")
+        self.assertEqual("Temba <no-reply@temba.io>", response.context["from_email_default"])
         self.assertIsNone(response.context["from_email_custom"])
 
         # give parent custom SMTP settings
-        self.org2.flow_smtp = (
-            "smtp://bob%40acme.com:secret@example.com/?from=bob%40acme.com&tls=true"
-        )
+        self.org2.flow_smtp = "smtp://bob%40acme.com:secret@example.com/?from=bob%40acme.com&tls=true"
         self.org2.save(update_fields=("flow_smtp",))
 
         response = self.client.get(settings_url)
-        self.assertContains(
-            response, "Emails sent from flows will be sent from <b>bob@acme.com</b>."
-        )
+        self.assertContains(response, "Emails sent from flows will be sent from <b>bob@acme.com</b>.")
 
         response = self.client.get(config_url)
-        self.assertContains(
-            response, "You can add your own SMTP settings for emails sent from flows."
-        )
+        self.assertContains(response, "You can add your own SMTP settings for emails sent from flows.")
         self.assertEqual("bob@acme.com", response.context["from_email_default"])
         self.assertIsNone(response.context["from_email_custom"])
 
         # try submitting without any data
         response = self.client.post(config_url, {})
-        self.assertFormError(
-            response.context["form"], "from_email", "This field is required."
-        )
-        self.assertFormError(
-            response.context["form"], "host", "This field is required."
-        )
-        self.assertFormError(
-            response.context["form"], "username", "This field is required."
-        )
-        self.assertFormError(
-            response.context["form"], "password", "This field is required."
-        )
-        self.assertFormError(
-            response.context["form"], "port", "This field is required."
-        )
+        self.assertFormError(response.context["form"], "from_email", "This field is required.")
+        self.assertFormError(response.context["form"], "host", "This field is required.")
+        self.assertFormError(response.context["form"], "username", "This field is required.")
+        self.assertFormError(response.context["form"], "password", "This field is required.")
+        self.assertFormError(response.context["form"], "port", "This field is required.")
         self.assertEqual(len(mail.outbox), 0)
 
         # try submitting an invalid from address
         response = self.client.post(config_url, {"from_email": "foobar.com"})
-        self.assertFormError(
-            response.context["form"], "from_email", "Not a valid email address."
-        )
+        self.assertFormError(response.context["form"], "from_email", "Not a valid email address.")
         self.assertEqual(len(mail.outbox), 0)
 
         # mock email sending so test send fails
@@ -272,11 +240,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                     "port": "465",
                 },
             )
-            self.assertFormError(
-                response.context["form"],
-                None,
-                "SMTP settings test failed with error: boom",
-            )
+            self.assertFormError(response.context["form"], None, "SMTP settings test failed with error: boom")
             self.assertEqual(len(mail.outbox), 0)
 
             mock_send.side_effect = Exception("Unexpected Error")
@@ -291,9 +255,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                 },
                 follow=True,
             )
-            self.assertFormError(
-                response.context["form"], None, "SMTP settings test failed."
-            )
+            self.assertFormError(response.context["form"], None, "SMTP settings test failed.")
             self.assertEqual(len(mail.outbox), 0)
 
         # submit with valid fields
@@ -311,19 +273,14 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.org.refresh_from_db()
         self.assertEqual(
-            r"smtp://support%40example.com:secret@smtp.example.com:465/?from=foo%40bar.com&tls=true",
-            self.org.flow_smtp,
+            r"smtp://support%40example.com:secret@smtp.example.com:465/?from=foo%40bar.com&tls=true", self.org.flow_smtp
         )
 
         response = self.client.get(settings_url)
-        self.assertContains(
-            response, "Emails sent from flows will be sent from <b>foo@bar.com</b>."
-        )
+        self.assertContains(response, "Emails sent from flows will be sent from <b>foo@bar.com</b>.")
 
         response = self.client.get(config_url)
-        self.assertContains(
-            response, "If you no longer want to use these SMTP settings"
-        )
+        self.assertContains(response, "If you no longer want to use these SMTP settings")
         self.assertEqual("bob@acme.com", response.context["from_email_default"])
         self.assertEqual("foo@bar.com", response.context["from_email_custom"])
 
@@ -334,18 +291,14 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertIsNone(self.org.flow_smtp)
 
         response = self.client.get(settings_url)
-        self.assertContains(
-            response, "Emails sent from flows will be sent from <b>bob@acme.com</b>."
-        )
+        self.assertContains(response, "Emails sent from flows will be sent from <b>bob@acme.com</b>.")
 
     def test_join(self):
         # if invitation secret is invalid, redirect to root
         response = self.client.get(reverse("orgs.org_join", args=["invalid"]))
         self.assertRedirect(response, reverse("public.public_index"))
 
-        invitation = Invitation.create(
-            self.org, self.admin, "edwin@textit.com", OrgRole.EDITOR
-        )
+        invitation = Invitation.create(self.org, self.admin, "edwin@textit.com", OrgRole.EDITOR)
 
         join_url = reverse("orgs.org_join", args=[invitation.secret])
         signup_url = f"{reverse('account_signup')}?invite={invitation.secret}"
@@ -371,18 +324,13 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         # we should get logged out
         response = self.client.get(join_url, follow=True)
         self.assertEqual(login_url, response.wsgi_request.get_full_path())
-        self.assertContains(
-            response,
-            "Enter your password to accept your invitation to the <b>Nyaruka</b> workspace",
-        )
+        self.assertContains(response, "Enter your password to accept your invitation to the <b>Nyaruka</b> workspace")
 
         # should be logged out as the other user, so just our invite key now
         self.assertEqual(1, len(self.client.session.keys()))
 
         # invitation with mismatching case email
-        invitation2 = Invitation.create(
-            self.org2, self.admin, "eDwin@textit.com", OrgRole.EDITOR
-        )
+        invitation2 = Invitation.create(self.org2, self.admin, "eDwin@textit.com", OrgRole.EDITOR)
 
         join_accept_url = reverse("orgs.org_join_accept", args=[invitation2.secret])
         join_url = reverse("orgs.org_join", args=[invitation2.secret])
@@ -397,21 +345,15 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(join_url, follow=True)
         self.assertContains(
-            response,
-            "Enter your password to accept your invitation to the <b>Trileet Inc.</b> workspace.",
+            response, "Enter your password to accept your invitation to the <b>Trileet Inc.</b> workspace."
         )
 
     def test_join_signup(self):
         # if invitation secret is invalid, show a message
         response = self.client.get(f"{reverse('account_signup')}?invite=invalid")
-        self.assertContains(
-            response,
-            "Sorry, your invitation is no longer valid. Please request a new invite.",
-        )
+        self.assertContains(response, "Sorry, your invitation is no longer valid. Please request a new invite.")
 
-        invitation = Invitation.create(
-            self.org, self.admin, "administrator@trileet.com", OrgRole.ADMINISTRATOR
-        )
+        invitation = Invitation.create(self.org, self.admin, "administrator@trileet.com", OrgRole.ADMINISTRATOR)
 
         login_url = f"{reverse('account_login')}?invite={invitation.secret}"
         join_url = reverse("orgs.org_join", args=[invitation.secret])
@@ -423,23 +365,15 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # logging in should accept the invite
         response = self.client.post(
-            login_url,
-            {"login": "administrator@trileet.com", "password": self.default_password},
+            login_url, {"login": "administrator@trileet.com", "password": self.default_password}
         )
         invitation.refresh_from_db()
         self.assertFalse(invitation.is_active)
         self.assertEqual(2, len(self.org.get_admins()))
-        self.assertEqual(
-            1,
-            self.admin.notifications.filter(
-                notification_type="invitation:accepted"
-            ).count(),
-        )
+        self.assertEqual(1, self.admin.notifications.filter(notification_type="invitation:accepted").count())
 
         # invite a new user as an editor
-        invitation = Invitation.create(
-            self.org, self.admin, "edwin@textit.com", OrgRole.EDITOR
-        )
+        invitation = Invitation.create(self.org, self.admin, "edwin@textit.com", OrgRole.EDITOR)
         signup_url = f"{reverse('account_signup')}?invite={invitation.secret}"
         join_url = reverse("orgs.org_join", args=[invitation.secret])
 
@@ -460,18 +394,11 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             follow=True,
         )
 
-        self.assertEqual(
-            reverse("msgs.msg_inbox"), response.wsgi_request.get_full_path()
-        )
+        self.assertEqual(reverse("msgs.msg_inbox"), response.wsgi_request.get_full_path())
         invitation.refresh_from_db()
         self.assertFalse(invitation.is_active)
 
-        self.assertEqual(
-            2,
-            self.admin.notifications.filter(
-                notification_type="invitation:accepted"
-            ).count(),
-        )
+        self.assertEqual(2, self.admin.notifications.filter(notification_type="invitation:accepted").count())
         self.assertEqual(2, self.org.get_users(roles=[OrgRole.EDITOR]).count())
 
     def test_join_accept(self):
@@ -484,9 +411,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(reverse("orgs.org_join_accept", args=["invalid"]))
         self.assertRedirect(response, reverse("public.public_index"))
 
-        invitation = Invitation.create(
-            self.org, self.admin, "edwin@tExtit.com", OrgRole.EDITOR
-        )
+        invitation = Invitation.create(self.org, self.admin, "edwin@tExtit.com", OrgRole.EDITOR)
 
         join_accept_url = reverse("orgs.org_join_accept", args=[invitation.secret])
         join_url = reverse("orgs.org_join", args=[invitation.secret])
@@ -504,9 +429,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.login(user)
 
         response = self.client.get(join_accept_url)
-        self.assertContains(
-            response, "You have been invited to join the <b>Nyaruka</b> workspace."
-        )
+        self.assertContains(response, "You have been invited to join the <b>Nyaruka</b> workspace.")
 
         response = self.client.post(join_accept_url)
         self.assertRedirect(response, "/org/start/")
@@ -514,12 +437,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         invitation.refresh_from_db()
         self.assertFalse(invitation.is_active)
 
-        self.assertEqual(
-            1,
-            self.admin.notifications.filter(
-                notification_type="invitation:accepted"
-            ).count(),
-        )
+        self.assertEqual(1, self.admin.notifications.filter(notification_type="invitation:accepted").count())
         self.assertEqual(2, self.org.get_users(roles=[OrgRole.EDITOR]).count())
 
     def test_org_grant(self):
@@ -556,14 +474,8 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(org.date_format, Org.DATE_FORMAT_DAY_FIRST)
 
         # check user exists and is admin
-        self.assertEqual(
-            OrgRole.ADMINISTRATOR,
-            org.get_user_role(User.objects.get(email="john@carmack.com")),
-        )
-        self.assertEqual(
-            OrgRole.ADMINISTRATOR,
-            org.get_user_role(User.objects.get(email="tito@textit.com")),
-        )
+        self.assertEqual(OrgRole.ADMINISTRATOR, org.get_user_role(User.objects.get(email="john@carmack.com")))
+        self.assertEqual(OrgRole.ADMINISTRATOR, org.get_user_role(User.objects.get(email="tito@textit.com")))
 
         # try a new org with a user that already exists instead
         del post_data["password"]
@@ -575,14 +487,8 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         org = Org.objects.get(name="id Software")
         self.assertEqual(org.date_format, Org.DATE_FORMAT_DAY_FIRST)
 
-        self.assertEqual(
-            OrgRole.ADMINISTRATOR,
-            org.get_user_role(User.objects.get(email="john@carmack.com")),
-        )
-        self.assertEqual(
-            OrgRole.ADMINISTRATOR,
-            org.get_user_role(User.objects.get(email="tito@textit.com")),
-        )
+        self.assertEqual(OrgRole.ADMINISTRATOR, org.get_user_role(User.objects.get(email="john@carmack.com")))
+        self.assertEqual(OrgRole.ADMINISTRATOR, org.get_user_role(User.objects.get(email="tito@textit.com")))
 
         # try a new org with US timezone
         post_data["name"] = "Bulls"
@@ -614,9 +520,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             password="dukenukem",
         )
         response = self.client.post(grant_url, post_data)
-        self.assertFormError(
-            response.context["form"], "email", "This field is required."
-        )
+        self.assertFormError(response.context["form"], "email", "This field is required.")
 
         post_data = dict(
             email="this-is-not-a-valid-email",
@@ -628,9 +532,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             password="dukenukem",
         )
         response = self.client.post(grant_url, post_data)
-        self.assertFormError(
-            response.context["form"], "email", "Enter a valid email address."
-        )
+        self.assertFormError(response.context["form"], "email", "Enter a valid email address.")
 
         response = self.client.post(
             grant_url,
@@ -645,27 +547,18 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             },
         )
         self.assertFormError(
-            response.context["form"],
-            "first_name",
-            "Ensure this value has at most 150 characters (it has 159).",
+            response.context["form"], "first_name", "Ensure this value has at most 150 characters (it has 159)."
         )
         self.assertFormError(
-            response.context["form"],
-            "last_name",
-            "Ensure this value has at most 150 characters (it has 162).",
+            response.context["form"], "last_name", "Ensure this value has at most 150 characters (it has 162)."
         )
         self.assertFormError(
-            response.context["form"],
-            "name",
-            "Ensure this value has at most 128 characters (it has 136).",
+            response.context["form"], "name", "Ensure this value has at most 128 characters (it has 136)."
         )
         self.assertFormError(
             response.context["form"],
             "email",
-            [
-                "Enter a valid email address.",
-                "Ensure this value has at most 254 characters (it has 259).",
-            ],
+            ["Enter a valid email address.", "Ensure this value has at most 254 characters (it has 259)."],
         )
 
     def test_org_grant_form_clean(self):
@@ -689,11 +582,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                 "password": "password",
             },
         )
-        self.assertFormError(
-            response.context["form"],
-            None,
-            "Login already exists, please do not include password.",
-        )
+        self.assertFormError(response.context["form"], None, "Login already exists, please do not include password.")
 
         # try to create a new user with empty password
         response = self.client.post(
@@ -708,9 +597,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                 "password": "",
             },
         )
-        self.assertFormError(
-            response.context["form"], None, "Password required for new login."
-        )
+        self.assertFormError(response.context["form"], None, "Password required for new login.")
 
         # try to create a new user with invalid password
         response = self.client.post(
@@ -726,9 +613,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             },
         )
         self.assertFormError(
-            response.context["form"],
-            None,
-            "This password is too short. It must contain at least 8 characters.",
+            response.context["form"], None, "This password is too short. It must contain at least 8 characters."
         )
 
     def test_signup(self):
@@ -739,10 +624,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # create a user without a workspace
         user = User.create(
-            email="noworkspace@temba.io",
-            first_name="Nelly",
-            last_name="Noworkspace",
-            password="Qwerty123",
+            email="noworkspace@temba.io", first_name="Nelly", last_name="Noworkspace", password="Qwerty123"
         )
 
         # we don't have a workspace, redirect to signup to create one
@@ -756,12 +638,8 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # submit with missing fields
         response = self.client.post(signup_url, {})
-        self.assertFormError(
-            response.context["form"], "name", "This field is required."
-        )
-        self.assertFormError(
-            response.context["form"], "timezone", "This field is required."
-        )
+        self.assertFormError(response.context["form"], "name", "This field is required.")
+        self.assertFormError(response.context["form"], "timezone", "This field is required.")
 
         # submit with valid form
         response = self.client.post(
@@ -801,25 +679,14 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertIn(user, org.get_admins())
 
         # check default org content was created correctly
-        system_fields = set(
-            org.fields.filter(is_system=True).values_list("key", flat=True)
-        )
-        system_groups = set(
-            org.groups.filter(is_system=True).values_list("name", flat=True)
-        )
+        system_fields = set(org.fields.filter(is_system=True).values_list("key", flat=True))
+        system_groups = set(org.groups.filter(is_system=True).values_list("name", flat=True))
         sample_flows = set(org.flows.values_list("name", flat=True))
 
         self.assertEqual({"created_on", "last_seen_on"}, system_fields)
+        self.assertEqual({"\\Active", "\\Archived", "\\Blocked", "\\Stopped", "Open Tickets"}, system_groups)
         self.assertEqual(
-            {"\\Active", "\\Archived", "\\Blocked", "\\Stopped", "Open Tickets"},
-            system_groups,
-        )
-        self.assertEqual(
-            {
-                "Sample Flow - Order Status Checker",
-                "Sample Flow - Satisfaction Survey",
-                "Sample Flow - Simple Poll",
-            },
+            {"Sample Flow - Order Status Checker", "Sample Flow - Satisfaction Survey", "Sample Flow - Simple Poll"},
             sample_flows,
         )
 
@@ -853,19 +720,14 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # since we can only create new orgs, we don't show type as an option
         self.assertRequestDisallowed(create_url, [None, self.editor, self.agent])
-        self.assertCreateFetch(
-            create_url, [self.admin], form_fields=["name", "timezone"]
-        )
+        self.assertCreateFetch(create_url, [self.admin], form_fields=["name", "timezone"])
 
         # try to submit an empty form
         response = self.assertCreateSubmit(
             create_url,
             self.admin,
             {},
-            form_errors={
-                "name": "This field is required.",
-                "timezone": "This field is required.",
-            },
+            form_errors={"name": "This field is required.", "timezone": "This field is required."},
         )
 
         # submit with valid values to create a new org...
@@ -906,19 +768,14 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # since we can only create child orgs, we don't show type as an option
         self.assertRequestDisallowed(create_url, [None, self.editor, self.agent])
-        self.assertCreateFetch(
-            create_url, [self.admin], form_fields=["name", "timezone"]
-        )
+        self.assertCreateFetch(create_url, [self.admin], form_fields=["name", "timezone"])
 
         # try to submit an empty form
         response = self.assertCreateSubmit(
             create_url,
             self.admin,
             {},
-            form_errors={
-                "name": "This field is required.",
-                "timezone": "This field is required.",
-            },
+            form_errors={"name": "This field is required.", "timezone": "This field is required."},
         )
 
         # submit with valid values to create a child org...
@@ -951,9 +808,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # because we can create both new orgs and child orgs, type is an option
         self.assertRequestDisallowed(create_url, [None, self.editor, self.agent])
-        self.assertCreateFetch(
-            create_url, [self.admin], form_fields=["type", "name", "timezone"]
-        )
+        self.assertCreateFetch(create_url, [self.admin], form_fields=["type", "name", "timezone"])
 
         # create new org
         self.assertCreateSubmit(
@@ -979,11 +834,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.org.features = [Org.FEATURE_CHILD_ORGS]
         self.org.save(update_fields=("features",))
 
-        response = self.client.post(
-            create_url,
-            {"name": "Child Org", "timezone": "Africa/Nairobi"},
-            HTTP_X_TEMBA_SPA=1,
-        )
+        response = self.client.post(create_url, {"name": "Child Org", "timezone": "Africa/Nairobi"}, HTTP_X_TEMBA_SPA=1)
 
         self.assertRedirect(response, reverse("orgs.org_list"))
 
@@ -997,59 +848,37 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         # enable child orgs and create some child orgs
         self.org.features = [Org.FEATURE_CHILD_ORGS]
         self.org.save(update_fields=("features",))
-        child1 = self.org.create_new(
-            self.admin, "Child Org 1", self.org.timezone, as_child=True
-        )
-        child2 = self.org.create_new(
-            self.admin, "Child Org 2", self.org.timezone, as_child=True
-        )
+        child1 = self.org.create_new(self.admin, "Child Org 1", self.org.timezone, as_child=True)
+        child2 = self.org.create_new(self.admin, "Child Org 2", self.org.timezone, as_child=True)
 
         response = self.assertListFetch(
-            list_url,
-            [self.admin],
-            context_objects=[self.org, child1, child2],
-            choose_org=self.org,
+            list_url, [self.admin], context_objects=[self.org, child1, child2], choose_org=self.org
         )
         self.assertContains(response, "Child Org 1")
         self.assertContains(response, "Child Org 2")
 
         # can search by name
         self.assertListFetch(
-            list_url + "?search=child",
-            [self.admin],
-            context_objects=[child1, child2],
-            choose_org=self.org,
+            list_url + "?search=child", [self.admin], context_objects=[child1, child2], choose_org=self.org
         )
 
     def test_update(self):
         # enable child orgs and create some child orgs
         self.org.features = [Org.FEATURE_CHILD_ORGS]
         self.org.save(update_fields=("features",))
-        child1 = self.org.create_new(
-            self.admin, "Child Org 1", self.org.timezone, as_child=True
-        )
+        child1 = self.org.create_new(self.admin, "Child Org 1", self.org.timezone, as_child=True)
 
         update_url = reverse("orgs.org_update", args=[child1.id])
 
-        self.assertRequestDisallowed(
-            update_url, [None, self.editor, self.agent, self.admin2]
-        )
+        self.assertRequestDisallowed(update_url, [None, self.editor, self.agent, self.admin2])
         self.assertUpdateFetch(
-            update_url,
-            [self.admin],
-            form_fields=["name", "timezone", "date_format", "language"],
-            choose_org=self.org,
+            update_url, [self.admin], form_fields=["name", "timezone", "date_format", "language"], choose_org=self.org
         )
 
         response = self.assertUpdateSubmit(
             update_url,
             self.admin,
-            {
-                "name": "New Child Name",
-                "timezone": "Africa/Nairobi",
-                "date_format": "Y",
-                "language": "es",
-            },
+            {"name": "New Child Name", "timezone": "Africa/Nairobi", "date_format": "Y", "language": "es"},
         )
 
         child1.refresh_from_db()
@@ -1057,30 +886,22 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("/org/", response.url)
 
         # if org doesn't exist, 404
-        response = self.requestView(
-            reverse("orgs.org_update", args=[3464374]), self.admin, choose_org=self.org
-        )
+        response = self.requestView(reverse("orgs.org_update", args=[3464374]), self.admin, choose_org=self.org)
         self.assertEqual(404, response.status_code)
 
     def test_delete(self):
         self.org.features = [Org.FEATURE_CHILD_ORGS]
         self.org.save(update_fields=("features",))
 
-        child = self.org.create_new(
-            self.admin, "Child Workspace", self.org.timezone, as_child=True
-        )
+        child = self.org.create_new(self.admin, "Child Workspace", self.org.timezone, as_child=True)
         delete_url = reverse("orgs.org_delete", args=[child.id])
 
-        self.assertRequestDisallowed(
-            delete_url, [None, self.editor, self.agent, self.admin2]
-        )
+        self.assertRequestDisallowed(delete_url, [None, self.editor, self.agent, self.admin2])
         self.assertDeleteFetch(delete_url, [self.admin], choose_org=self.org)
 
         # schedule for deletion
         response = self.client.get(delete_url)
-        self.assertContains(
-            response, "You are about to delete the workspace <b>Child Workspace</b>"
-        )
+        self.assertContains(response, "You are about to delete the workspace <b>Child Workspace</b>")
 
         # go through with it, redirects to workspaces list page
         response = self.client.post(delete_url)
@@ -1102,9 +923,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRedirect(self.requestView(start_url, self.agent), "/ticket/")
 
         # now try as customer support, they should go to choose which is responsible for routing them further
-        self.assertRedirect(
-            self.requestView(start_url, self.customer_support), "/org/choose/"
-        )
+        self.assertRedirect(self.requestView(start_url, self.customer_support), "/org/choose/")
 
         # login will pick the first org even if they have more than one
         self.client.logout()
@@ -1117,21 +936,12 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # create an inactive org which should never appear as an option
         org3 = Org.objects.create(
-            name="Deactivated",
-            timezone=tzone.utc,
-            created_by=self.admin,
-            modified_by=self.admin,
-            is_active=False,
+            name="Deactivated", timezone=tzone.utc, created_by=self.admin, modified_by=self.admin, is_active=False
         )
         org3.add_user(self.editor, OrgRole.EDITOR)
 
         # and another org that none of our users belong to
-        org4 = Org.objects.create(
-            name="Other",
-            timezone=tzone.utc,
-            created_by=self.admin,
-            modified_by=self.admin,
-        )
+        org4 = Org.objects.create(name="Other", timezone=tzone.utc, created_by=self.admin, modified_by=self.admin)
 
         self.assertLoginRedirect(self.client.get(choose_url))
 
@@ -1147,9 +957,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "You need a workspace to use RapidPro")
 
         # unless they are staff
-        self.assertRedirect(
-            self.requestView(choose_url, self.customer_support), "/staff/org/"
-        )
+        self.assertRedirect(self.requestView(choose_url, self.customer_support), "/staff/org/")
 
         # turn editor into a multi-org user
         self.org2.add_user(self.editor, OrgRole.EDITOR)
@@ -1159,9 +967,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRedirect(self.requestView(choose_url, self.editor), "/org/start/")
 
         # try to submit for an org we don't belong to
-        response = self.requestView(
-            choose_url, self.editor, post_data={"organization": org4.id}
-        )
+        response = self.requestView(choose_url, self.editor, post_data={"organization": org4.id})
         self.assertFormError(
             response.context["form"],
             "organization",
@@ -1169,9 +975,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         # user clicks org 2...
-        response = self.requestView(
-            choose_url, self.editor, post_data={"organization": self.org2.id}
-        )
+        response = self.requestView(choose_url, self.editor, post_data={"organization": self.org2.id})
         self.assertRedirect(response, "/org/start/")
 
     def test_edit(self):
@@ -1183,55 +987,35 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(edit_url)
         self.assertEqual(
-            ["name", "timezone", "date_format", "language", "loc"],
-            list(response.context["form"].fields.keys()),
+            ["name", "timezone", "date_format", "language", "loc"], list(response.context["form"].fields.keys())
         )
 
         # language is only shown if there are multiple options
         with override_settings(LANGUAGES=(("en-us", "English"),)):
             response = self.client.get(edit_url)
-            self.assertEqual(
-                ["name", "timezone", "date_format", "loc"],
-                list(response.context["form"].fields.keys()),
-            )
+            self.assertEqual(["name", "timezone", "date_format", "loc"], list(response.context["form"].fields.keys()))
 
         # try submitting with errors
         response = self.client.post(
             reverse("orgs.org_edit"),
-            {
-                "name": "",
-                "timezone": "Bad/Timezone",
-                "date_format": "X",
-                "language": "klingon",
-            },
+            {"name": "", "timezone": "Bad/Timezone", "date_format": "X", "language": "klingon"},
         )
-        self.assertFormError(
-            response.context["form"], "name", "This field is required."
-        )
+        self.assertFormError(response.context["form"], "name", "This field is required.")
         self.assertFormError(
             response.context["form"],
             "timezone",
             "Select a valid choice. Bad/Timezone is not one of the available choices.",
         )
         self.assertFormError(
-            response.context["form"],
-            "date_format",
-            "Select a valid choice. X is not one of the available choices.",
+            response.context["form"], "date_format", "Select a valid choice. X is not one of the available choices."
         )
         self.assertFormError(
-            response.context["form"],
-            "language",
-            "Select a valid choice. klingon is not one of the available choices.",
+            response.context["form"], "language", "Select a valid choice. klingon is not one of the available choices."
         )
 
         response = self.client.post(
             reverse("orgs.org_edit"),
-            {
-                "name": "New Name",
-                "timezone": "Africa/Nairobi",
-                "date_format": "Y",
-                "language": "es",
-            },
+            {"name": "New Name", "timezone": "Africa/Nairobi", "date_format": "Y", "language": "es"},
         )
         self.assertEqual(200, response.status_code)
 
@@ -1254,9 +1038,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.org = Org.objects.get(id=self.org.id)
         self.assertEqual(set(), self.org.get_schemes(Channel.ROLE_SEND))
         self.assertEqual({URN.TEL_SCHEME}, self.org.get_schemes(Channel.ROLE_RECEIVE))
-        self.assertEqual(
-            {URN.TEL_SCHEME}, self.org.get_schemes(Channel.ROLE_RECEIVE)
-        )  # from cache
+        self.assertEqual({URN.TEL_SCHEME}, self.org.get_schemes(Channel.ROLE_RECEIVE))  # from cache
 
         # add a send/receive tel channel
         self.create_channel("T", "Twilio", "0785553434", country="RW", role="SR")
@@ -1276,19 +1058,11 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual([], response.context["other_langs"])
 
         self.assertRequestDisallowed(langs_url, [None, self.editor, self.agent])
-        self.assertUpdateFetch(
-            langs_url,
-            [self.admin],
-            form_fields=["primary_lang", "other_langs", "input_collation"],
-        )
+        self.assertUpdateFetch(langs_url, [self.admin], form_fields=["primary_lang", "other_langs", "input_collation"])
 
         # initial should do a match on code only
-        response = self.client.get(
-            f"{langs_url}?initial=fra", HTTP_X_REQUESTED_WITH="XMLHttpRequest"
-        )
-        self.assertEqual(
-            [{"name": "French", "value": "fra"}], response.json()["results"]
-        )
+        response = self.client.get(f"{langs_url}?initial=fra", HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        self.assertEqual([{"name": "French", "value": "fra"}], response.json()["results"])
 
         # try to submit as is (empty)
         self.assertUpdateSubmit(
@@ -1296,20 +1070,14 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             {},
             object_unchanged=self.org,
-            form_errors={
-                "primary_lang": "This field is required.",
-                "input_collation": "This field is required.",
-            },
+            form_errors={"primary_lang": "This field is required.", "input_collation": "This field is required."},
         )
 
         # give the org a primary language
         self.assertUpdateSubmit(
             langs_url,
             self.admin,
-            {
-                "primary_lang": '{"name":"French", "value":"fra"}',
-                "input_collation": "confusables",
-            },
+            {"primary_lang": '{"name":"French", "value":"fra"}', "input_collation": "confusables"},
             success_status=200,
         )
 
@@ -1328,10 +1096,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             {
                 "primary_lang": '{"name":"French", "value":"fra"}',
-                "other_langs": [
-                    '{"name":"Haitian", "value":"hat"}',
-                    '{"name":"Hausa", "value":"hau"}',
-                ],
+                "other_langs": ['{"name":"Haitian", "value":"hat"}', '{"name":"Hausa", "value":"hau"}'],
                 "input_collation": "confusables",
             },
             success_status=200,
@@ -1346,9 +1111,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "<b>Hausa</b>")
 
         # searching languages should only return languages with 2-letter codes
-        response = self.client.get(
-            "%s?search=Fr" % langs_url, HTTP_X_REQUESTED_WITH="XMLHttpRequest"
-        )
+        response = self.client.get("%s?search=Fr" % langs_url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         self.assertEqual(
             [
                 {"value": "afr", "name": "Afrikaans"},
@@ -1361,9 +1124,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         # unless they're explicitly included in settings
         with override_settings(NON_ISO6391_LANGUAGES={"frc"}):
             languages.reload()
-            response = self.client.get(
-                "%s?search=Fr" % langs_url, HTTP_X_REQUESTED_WITH="XMLHttpRequest"
-            )
+            response = self.client.get("%s?search=Fr" % langs_url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
             self.assertEqual(
                 [
                     {"value": "afr", "name": "Afrikaans"},
@@ -1413,31 +1174,22 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.login(self.admin)
 
         # hitting switch for an org we don't have access to routes to choose
-        response = self.client.get(
-            f"{reverse('orgs.org_switch')}?other_org={self.org2.id}&next=/msg"
-        )
+        response = self.client.get(f"{reverse('orgs.org_switch')}?other_org={self.org2.id}&next=/msg")
         self.assertRedirect(response, reverse("orgs.org_choose"))
 
         # can't post to it either
-        response = self.client.post(
-            reverse("orgs.org_switch"), {"other_org": self.org2.id, "next": "/msg"}
-        )
+        response = self.client.post(reverse("orgs.org_switch"), {"other_org": self.org2.id, "next": "/msg"})
         self.assertRedirect(response, reverse("orgs.org_choose"))
 
         # now put us in that org and we should see the switch option
         self.org2.add_user(self.admin, OrgRole.ADMINISTRATOR)
-        response = self.client.get(
-            f"{reverse('orgs.org_switch')}?other_org={self.org2.id}&next=/msg"
-        )
+        response = self.client.get(f"{reverse('orgs.org_switch')}?other_org={self.org2.id}&next=/msg")
         self.assertContains(
-            response,
-            f"The page you are requesting belongs to one of your other workspaces, <b>{self.org2.name}</b>",
+            response, f"The page you are requesting belongs to one of your other workspaces, <b>{self.org2.name}</b>"
         )
 
         # now switch to it
-        response = self.client.post(
-            reverse("orgs.org_switch"), {"other_org": self.org2.id, "next": "/msg"}
-        )
+        response = self.client.post(reverse("orgs.org_switch"), {"other_org": self.org2.id, "next": "/msg"})
         self.assertRedirect(response, "/msg")
         self.assertEqual(str(self.org2.uuid), self.client.session["org_uuid"])
         self.assertEqual(self.org2.id, self.client.session["org_id"])

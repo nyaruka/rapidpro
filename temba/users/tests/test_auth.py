@@ -94,18 +94,14 @@ class UserAuthTest(TembaTest):
         add_email_url = reverse("account_email")
 
         # try to change our email address to one that is already in use
-        response = self.client.post(
-            add_email_url, {"email": self.admin2.email, "action_add": True}
-        )
+        response = self.client.post(add_email_url, {"email": self.admin2.email, "action_add": True})
 
         self.assertEqual(200, response.status_code)
         form = response.context.get("form")
         self.assertFormError(form, "email", "This email is already in use")
 
         # now try to change our email address to a new one
-        response = self.client.post(
-            add_email_url, {"email": "newemail@temba.io", "action_add": True}
-        )
+        response = self.client.post(add_email_url, {"email": "newemail@temba.io", "action_add": True})
         self.assertRedirect(response, reverse("account_email"))
 
         # we should see the new email now
@@ -134,9 +130,7 @@ class UserAuthTest(TembaTest):
         self.assertContains(response, "Sign Up Closed")
 
         # but we still need to be able to accept an invite
-        invitation = Invitation.create(
-            self.org, self.admin, "bob@textit.com", OrgRole.ADMINISTRATOR
-        )
+        invitation = Invitation.create(self.org, self.admin, "bob@textit.com", OrgRole.ADMINISTRATOR)
         invite_signup = f"{signup_url}?invite={invitation.secret}"
 
         response = self.client.get(invite_signup)

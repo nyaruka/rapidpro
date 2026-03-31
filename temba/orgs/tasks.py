@@ -7,18 +7,11 @@ from django.conf import settings
 from django.utils import timezone
 
 from temba.contacts.models import URN, ContactURN
-from temba.users.models import User
 from temba.utils.crons import cron_task
 
-from .models import (
-    DailyCount,
-    Export,
-    Invitation,
-    ItemCount,
-    Org,
-    OrgImport,
-    OrgMembership,
-)
+from temba.users.models import User
+
+from .models import DailyCount, Export, Invitation, ItemCount, Org, OrgImport, OrgMembership
 
 
 @cron_task()
@@ -28,9 +21,7 @@ def update_members_seen():
     """
     membership_ids = OrgMembership.get_seen()
     if membership_ids:
-        OrgMembership.objects.filter(id__in=membership_ids).update(
-            last_seen_on=timezone.now()
-        )
+        OrgMembership.objects.filter(id__in=membership_ids).update(last_seen_on=timezone.now())
 
 
 @shared_task
@@ -52,11 +43,7 @@ def normalize_contact_tels_task(org_id):
 
     # do we have an org-level country code? if so, try to normalize any numbers not starting with +
     if org.default_country_code:
-        urns = (
-            ContactURN.objects.filter(org=org, scheme=URN.TEL_SCHEME)
-            .exclude(path__startswith="+")
-            .iterator()
-        )
+        urns = ContactURN.objects.filter(org=org, scheme=URN.TEL_SCHEME).exclude(path__startswith="+").iterator()
         for urn in urns:
             urn.ensure_number_normalization(org.default_country_code)
 
@@ -90,9 +77,7 @@ def expire_invitations():
     # delete any invitations that are no longer valid
     expire_before = timezone.now() - settings.INVITATION_VALIDITY
     num_expired = 0
-    for invitation in Invitation.objects.filter(
-        created_on__lt=expire_before, is_active=True
-    ):
+    for invitation in Invitation.objects.filter(created_on__lt=expire_before, is_active=True):
         invitation.release()
         num_expired += 1
 
@@ -106,9 +91,7 @@ def delete_released_orgs():
 
     num_deleted, num_failed = 0, 0
 
-    for org in Org.objects.filter(
-        is_active=False, released_on__lt=week_ago, deleted_on=None
-    ).order_by("released_on"):
+    for org in Org.objects.filter(is_active=False, released_on__lt=week_ago, deleted_on=None).order_by("released_on"):
         start = timezone.now()
 
         try:
@@ -120,9 +103,7 @@ def delete_released_orgs():
 
         seconds = (timezone.now() - start).total_seconds()
         stats = " ".join([f"{k}={v}" for k, v in counts.items()])
-        logging.warning(
-            f"successfully deleted '{org.name}' (#{org.id}) in {seconds} seconds ({stats})"
-        )
+        logging.warning(f"successfully deleted '{org.name}' (#{org.id}) in {seconds} seconds ({stats})")
         num_deleted += 1
 
     return {"deleted": num_deleted, "failed": num_failed}
@@ -136,9 +117,7 @@ def cleanup_unverified_users():
     cutoff = timezone.now() - timedelta(days=14)
 
     users = (
-        User.objects.filter(
-            date_joined__lt=cutoff, is_active=True, is_staff=False, is_system=False
-        )
+        User.objects.filter(date_joined__lt=cutoff, is_active=True, is_staff=False, is_system=False)
         .exclude(emailaddress__verified=True)
         .exclude(orgmembership__isnull=False)
     )

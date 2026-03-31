@@ -7,9 +7,7 @@ from celery.schedules import crontab
 
 from django.utils.translation import gettext_lazy as _
 
-INTERNAL_IPS = iptools.IpRangeList(
-    "127.0.0.1", "192.168.0.10", "192.168.0.0/24", "0.0.0.0"
-)  # network block
+INTERNAL_IPS = iptools.IpRangeList("127.0.0.1", "192.168.0.10", "192.168.0.0/24", "0.0.0.0")  # network block
 HOSTNAME = "localhost"
 
 # HTTP Headers using for outgoing requests to other services
@@ -287,15 +285,9 @@ SMARTMIN_DEFAULT_MESSAGES = False
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": True,
-    "formatters": {
-        "verbose": {"format": "%(levelname)s %(asctime)s %(module)s %(message)s"}
-    },
+    "formatters": {"verbose": {"format": "%(levelname)s %(asctime)s %(module)s %(message)s"}},
     "handlers": {
-        "console": {
-            "level": "DEBUG",
-            "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
+        "console": {"level": "DEBUG", "class": "logging.StreamHandler", "formatter": "verbose"},
     },
     "root": {"level": "INFO", "handlers": ["console"]},
 }
@@ -306,9 +298,7 @@ LOGGING = {
 
 BRAND = {
     "name": "RapidPro",
-    "description": _(
-        "Visually build nationally scalable mobile applications anywhere in the world."
-    ),
+    "description": _("Visually build nationally scalable mobile applications anywhere in the world."),
     "hosts": ["rapidpro.io"],
     "domain": "app.rapidpro.io",
     "emails": {"notifications": "support@rapidpro.io"},
@@ -348,36 +338,13 @@ PERMISSIONS = {
     "api.apitoken": ("explorer",),
     "archives.archive": ("run", "message"),
     "campaigns.campaign": ("archive", "activate", "menu"),
-    "channels.channel": (
-        "chart",
-        "claim",
-        "configuration",
-        "logs",
-        "facebook_whitelist",
-    ),
+    "channels.channel": ("chart", "claim", "configuration", "logs", "facebook_whitelist"),
     "classifiers.classifier": ("connect", "sync"),
-    "contacts.contact": (
-        "export",
-        "chat",
-        "interrupt",
-        "menu",
-        "omnibox",
-        "open_ticket",
-        "start",
-    ),
+    "contacts.contact": ("export", "chat", "interrupt", "menu", "omnibox", "open_ticket", "start"),
     "contacts.contactfield": ("update_priority",),
     "contacts.contactgroup": ("menu",),
     "contacts.contactimport": ("preview",),
-    "flows.flow": (
-        "assets",
-        "copy",
-        "editor",
-        "export",
-        "menu",
-        "next",
-        "results",
-        "start",
-    ),
+    "flows.flow": ("assets", "copy", "editor", "export", "menu", "next", "results", "start"),
     "flows.flowstart": ("interrupt", "status"),
     "globals.global": ("unused",),
     "locations.adminboundary": ("alias", "boundaries", "geometry"),
@@ -652,10 +619,7 @@ LOGIN_REDIRECT_URL = "/org/choose/"
 
 AUTH_USER_MODEL = "users.User"
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-        "OPTIONS": {"min_length": 8},
-    },
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
 ]
 
 INVITATION_VALIDITY = timedelta(days=30)
@@ -679,10 +643,7 @@ _default_database_config = {
 
 # installs can provide a default connection and an optional read-only connection (e.g. a separate read replica) which
 # will be used for certain fetch operations
-DATABASES = {
-    "default": _default_database_config,
-    "readonly": _default_database_config.copy(),
-}
+DATABASES = {"default": _default_database_config, "readonly": _default_database_config.copy()}
 
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
@@ -713,97 +674,31 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_BROKER_TRANSPORT_OPTIONS = {"socket_timeout": 5}
 
 CELERY_BEAT_SCHEDULE = {
-    "check-android-channels": {
-        "task": "check_android_channels",
-        "schedule": timedelta(seconds=300),
-    },
-    "cleanup-unverified-users": {
-        "task": "cleanup_unverified_users",
-        "schedule": crontab(hour=4, minute=30),
-    },
-    "delete-released-orgs": {
-        "task": "delete_released_orgs",
-        "schedule": crontab(hour=4, minute=0),
-    },
-    "expire-invitations": {
-        "task": "expire_invitations",
-        "schedule": crontab(hour=0, minute=10),
-    },
-    "fail-old-android-messages": {
-        "task": "fail_old_android_messages",
-        "schedule": crontab(hour=0, minute=0),
-    },
-    "refresh-whatsapp-tokens": {
-        "task": "refresh_whatsapp_tokens",
-        "schedule": crontab(hour=6, minute=0),
-    },
-    "refresh-turn-whatsapp-tokens": {
-        "task": "refresh_turn_whatsapp_tokens",
-        "schedule": crontab(hour=6, minute=0),
-    },
+    "check-android-channels": {"task": "check_android_channels", "schedule": timedelta(seconds=300)},
+    "cleanup-unverified-users": {"task": "cleanup_unverified_users", "schedule": crontab(hour=4, minute=30)},
+    "delete-released-orgs": {"task": "delete_released_orgs", "schedule": crontab(hour=4, minute=0)},
+    "expire-invitations": {"task": "expire_invitations", "schedule": crontab(hour=0, minute=10)},
+    "fail-old-android-messages": {"task": "fail_old_android_messages", "schedule": crontab(hour=0, minute=0)},
+    "refresh-whatsapp-tokens": {"task": "refresh_whatsapp_tokens", "schedule": crontab(hour=6, minute=0)},
+    "refresh-turn-whatsapp-tokens": {"task": "refresh_turn_whatsapp_tokens", "schedule": crontab(hour=6, minute=0)},
     "refresh-templates": {"task": "refresh_templates", "schedule": timedelta(hours=6)},
-    "send-notification-emails": {
-        "task": "send_notification_emails",
-        "schedule": timedelta(seconds=60),
-    },
-    "squash-channel-counts": {
-        "task": "squash_channel_counts",
-        "schedule": timedelta(seconds=60),
-    },
-    "squash-group-counts": {
-        "task": "squash_group_counts",
-        "schedule": timedelta(seconds=60),
-    },
-    "squash-flow-counts": {
-        "task": "squash_flow_counts",
-        "schedule": timedelta(seconds=30),
-    },
-    "squash-item-counts": {
-        "task": "squash_item_counts",
-        "schedule": timedelta(seconds=30),
-    },
-    "squash-msg-counts": {
-        "task": "squash_msg_counts",
-        "schedule": timedelta(seconds=60),
-    },
-    "sync-classifier-intents": {
-        "task": "sync_classifier_intents",
-        "schedule": timedelta(seconds=300),
-    },
-    "trim-channel-events": {
-        "task": "trim_channel_events",
-        "schedule": crontab(hour=3, minute=0),
-    },
-    "trim-channel-sync-events": {
-        "task": "trim_channel_sync_events",
-        "schedule": crontab(hour=3, minute=0),
-    },
+    "send-notification-emails": {"task": "send_notification_emails", "schedule": timedelta(seconds=60)},
+    "squash-channel-counts": {"task": "squash_channel_counts", "schedule": timedelta(seconds=60)},
+    "squash-group-counts": {"task": "squash_group_counts", "schedule": timedelta(seconds=60)},
+    "squash-flow-counts": {"task": "squash_flow_counts", "schedule": timedelta(seconds=30)},
+    "squash-item-counts": {"task": "squash_item_counts", "schedule": timedelta(seconds=30)},
+    "squash-msg-counts": {"task": "squash_msg_counts", "schedule": timedelta(seconds=60)},
+    "sync-classifier-intents": {"task": "sync_classifier_intents", "schedule": timedelta(seconds=300)},
+    "trim-channel-events": {"task": "trim_channel_events", "schedule": crontab(hour=3, minute=0)},
+    "trim-channel-sync-events": {"task": "trim_channel_sync_events", "schedule": crontab(hour=3, minute=0)},
     "trim-exports": {"task": "trim_exports", "schedule": crontab(hour=2, minute=0)},
-    "trim-flow-revisions": {
-        "task": "trim_flow_revisions",
-        "schedule": crontab(hour=0, minute=0),
-    },
-    "trim-flow-sessions": {
-        "task": "trim_flow_sessions",
-        "schedule": crontab(hour=0, minute=0),
-    },
+    "trim-flow-revisions": {"task": "trim_flow_revisions", "schedule": crontab(hour=0, minute=0)},
+    "trim-flow-sessions": {"task": "trim_flow_sessions", "schedule": crontab(hour=0, minute=0)},
     "trim-http-logs": {"task": "trim_http_logs", "schedule": crontab(hour=2, minute=0)},
-    "trim-notifications": {
-        "task": "trim_notifications",
-        "schedule": crontab(hour=2, minute=0),
-    },
-    "trim-webhook-events": {
-        "task": "trim_webhook_events",
-        "schedule": crontab(hour=3, minute=0),
-    },
-    "update-members-seen": {
-        "task": "update_members_seen",
-        "schedule": timedelta(seconds=30),
-    },
-    "update-tokens-used": {
-        "task": "update_tokens_used",
-        "schedule": timedelta(seconds=30),
-    },
+    "trim-notifications": {"task": "trim_notifications", "schedule": crontab(hour=2, minute=0)},
+    "trim-webhook-events": {"task": "trim_webhook_events", "schedule": crontab(hour=3, minute=0)},
+    "update-members-seen": {"task": "update_members_seen", "schedule": timedelta(seconds=30)},
+    "update-tokens-used": {"task": "update_tokens_used", "schedule": timedelta(seconds=30)},
 }
 
 # -----------------------------------------------------------------------------------
@@ -832,11 +727,7 @@ if TESTING:
     COMPRESS_PRECOMPILERS = ()
 else:
     COMPRESS_PRECOMPILERS = (
-        (
-            "text/less",
-            'lessc --include-path="%s" {infile} {outfile}'
-            % os.path.join(PROJECT_DIR, "../static", "less"),
-        ),
+        ("text/less", 'lessc --include-path="%s" {infile} {outfile}' % os.path.join(PROJECT_DIR, "../static", "less")),
     )
 
 COMPRESS_FILTERS = {
@@ -975,9 +866,7 @@ LLM_TYPES = {
     },
 }
 if TESTING:
-    LLM_TYPES["temba.ai.types.openai_azure.type.OpenAIAzureType"] = {
-        "models": ["gpt-35-turbo", "gpt-4"]
-    }
+    LLM_TYPES["temba.ai.types.openai_azure.type.OpenAIAzureType"] = {"models": ["gpt-35-turbo", "gpt-4"]}
 
 
 # set of ISO-639-3 codes of languages to allow in addition to all ISO-639-1 languages
@@ -1037,36 +926,20 @@ ZENDESK_CLIENT_SECRET = os.environ.get("ZENDESK_CLIENT_SECRET", "")
 #    4. Generate a Random Secret to use as Facebook Webhook Secret as described
 #       on https://developers.facebook.com/docs/messenger-platform/webhook#setup
 #
-FACEBOOK_APPLICATION_ID = os.environ.get(
-    "FACEBOOK_APPLICATION_ID", "MISSING_FACEBOOK_APPLICATION_ID"
-)
-FACEBOOK_APPLICATION_SECRET = os.environ.get(
-    "FACEBOOK_APPLICATION_SECRET", "MISSING_FACEBOOK_APPLICATION_SECRET"
-)
-FACEBOOK_WEBHOOK_SECRET = os.environ.get(
-    "FACEBOOK_WEBHOOK_SECRET", "MISSING_FACEBOOK_WEBHOOK_SECRET"
-)
+FACEBOOK_APPLICATION_ID = os.environ.get("FACEBOOK_APPLICATION_ID", "MISSING_FACEBOOK_APPLICATION_ID")
+FACEBOOK_APPLICATION_SECRET = os.environ.get("FACEBOOK_APPLICATION_SECRET", "MISSING_FACEBOOK_APPLICATION_SECRET")
+FACEBOOK_WEBHOOK_SECRET = os.environ.get("FACEBOOK_WEBHOOK_SECRET", "MISSING_FACEBOOK_WEBHOOK_SECRET")
 
 # Facebook login for business config IDs
-FACEBOOK_LOGIN_WHATSAPP_CONFIG_ID = os.environ.get(
-    "FACEBOOK_LOGIN_WHATSAPP_CONFIG_ID", ""
-)
-FACEBOOK_LOGIN_INSTAGRAM_CONFIG_ID = os.environ.get(
-    "FACEBOOK_LOGIN_INSTAGRAM_CONFIG_ID", ""
-)
-FACEBOOK_LOGIN_MESSENGER_CONFIG_ID = os.environ.get(
-    "FACEBOOK_LOGIN_MESSENGER_CONFIG_ID", ""
-)
+FACEBOOK_LOGIN_WHATSAPP_CONFIG_ID = os.environ.get("FACEBOOK_LOGIN_WHATSAPP_CONFIG_ID", "")
+FACEBOOK_LOGIN_INSTAGRAM_CONFIG_ID = os.environ.get("FACEBOOK_LOGIN_INSTAGRAM_CONFIG_ID", "")
+FACEBOOK_LOGIN_MESSENGER_CONFIG_ID = os.environ.get("FACEBOOK_LOGIN_MESSENGER_CONFIG_ID", "")
 
-WHATSAPP_ADMIN_SYSTEM_USER_ID = os.environ.get(
-    "WHATSAPP_ADMIN_SYSTEM_USER_ID", "MISSING_WHATSAPP_ADMIN_SYSTEM_USER_ID"
-)
+WHATSAPP_ADMIN_SYSTEM_USER_ID = os.environ.get("WHATSAPP_ADMIN_SYSTEM_USER_ID", "MISSING_WHATSAPP_ADMIN_SYSTEM_USER_ID")
 WHATSAPP_ADMIN_SYSTEM_USER_TOKEN = os.environ.get(
     "WHATSAPP_ADMIN_SYSTEM_USER_TOKEN", "MISSING_WHATSAPP_ADMIN_SYSTEM_USER_TOKEN"
 )
-WHATSAPP_FACEBOOK_BUSINESS_ID = os.environ.get(
-    "WHATSAPP_FACEBOOK_BUSINESS_ID", "MISSING_WHATSAPP_FACEBOOK_BUSINESS_ID"
-)
+WHATSAPP_FACEBOOK_BUSINESS_ID = os.environ.get("WHATSAPP_FACEBOOK_BUSINESS_ID", "MISSING_WHATSAPP_FACEBOOK_BUSINESS_ID")
 
 # IP Addresses
 # These are the externally accessible IP addresses of the servers running RapidPro.
