@@ -25,7 +25,6 @@ class UserAuthTest(TembaTest):
         self.assertFormError(form, "email", "Enter a valid email address.")
         self.assertFormError(form, "first_name", "This field is required.")
         self.assertFormError(form, "last_name", "This field is required.")
-        self.assertFormError(form, "workspace", "This field is required.")
 
         # test valid signup
         response = self.client.post(
@@ -33,10 +32,8 @@ class UserAuthTest(TembaTest):
             {
                 "first_name": "Bobby",
                 "last_name": "Burgers",
-                "workspace": "Bobby's Burgers",
                 "password1": "arstqwfp",
                 "email": "bobbyburgers@burgers.com",
-                "timezone": "America/New_York",
             },
         )
 
@@ -55,10 +52,8 @@ class UserAuthTest(TembaTest):
             {
                 "first_name": "Spammy",
                 "last_name": "McSpamface",
-                "workspace": "Spam Corp",
                 "password1": "arstqwfp",
                 "email": "spam@spam.com",
-                "timezone": "America/New_York",
                 "phone_number": "555-1234",
             },
         )
@@ -128,10 +123,8 @@ class UserAuthTest(TembaTest):
             {
                 "first_name": "Bobby",
                 "last_name": "Burgers",
-                "workspace": "Bobby's Burgers",
                 "password1": "arstqwfp",
                 "email": "bobbyburgers@burgers.com",
-                "timezone": "America/New_York",
             },
         )
         self.assertContains(response, "Sign Up Closed")
@@ -151,8 +144,6 @@ class UserAuthTest(TembaTest):
                 "last_name": "Burgers",
                 "email": "bobbyburgers@burgers.com",
                 "password1": "arstqwfp",
-                "workspace": "Bobby's Burgers",
-                "timezone": "America/New_York",
             },
             follow=True,
         )
