@@ -171,8 +171,6 @@ class MailroomClient:
 
         contact_ids = resp.get("contact_ids")
         if contact_ids is None:
-            from temba.contacts.models import Contact
-
             contact_uuids = resp.get("contact_uuids", [])
             if contact_uuids:
                 ids_by_uuid = Contact.objects.filter(uuid__in=contact_uuids).values_list("uuid", "id")
