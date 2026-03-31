@@ -454,8 +454,9 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             self.starts.filter(
                 status__in=(FlowStart.STATUS_PENDING, FlowStart.STATUS_STARTED),
                 created_on__gte=a_week_ago,
+                created_by__isnull=False,
             )
-            .exclude(created_by=None)
+            .order_by("-created_on")
             .first()
         )
 
@@ -1716,7 +1717,7 @@ class FlowStart(models.Model):
             ),
             # used by the flow_starts type filters page
             models.Index(name="flows_flowstart_org_start_type", fields=["org", "start_type", "-created_on"]),
-            # used by get_active_start and has_unfinished
+            # used by get_active_start
             models.Index(
                 name="flows_flowstarts_flow_active",
                 fields=["flow", "-created_on"],
