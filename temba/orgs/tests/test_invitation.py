@@ -12,7 +12,9 @@ from temba.users.models import User
 
 class InvitationTest(TembaTest):
     def test_model(self):
-        invitation = Invitation.create(self.org, self.admin, "invitededitor@textit.com", OrgRole.EDITOR)
+        invitation = Invitation.create(
+            self.org, self.admin, "invitededitor@textit.com", OrgRole.EDITOR
+        )
 
         self.assertEqual(OrgRole.EDITOR, invitation.role)
 
@@ -20,28 +22,43 @@ class InvitationTest(TembaTest):
 
         self.assertEqual(1, len(mail.outbox))
         self.assertEqual(["invitededitor@textit.com"], mail.outbox[0].recipients())
-        self.assertEqual("[Nyaruka] Invitation to join workspace", mail.outbox[0].subject)
-        self.assertIn(f"https://app.rapidpro.io/org/join/{invitation.secret}/", mail.outbox[0].body)
+        self.assertEqual(
+            "[Nyaruka] Invitation to join workspace", mail.outbox[0].subject
+        )
+        self.assertIn(
+            f"https://app.rapidpro.io/org/join/{invitation.secret}/",
+            mail.outbox[0].body,
+        )
 
-        new_editor = User.create("invitededitor@textit.com", "Bob", "", "Qwerty123", "en-US")
+        new_editor = User.create(
+            "invitededitor@textit.com", "Bob", "", "Qwerty123", "en-US"
+        )
         invitation.accept(new_editor)
 
         self.assertEqual(1, self.admin.notifications.count())
         self.assertFalse(invitation.is_active)
-        self.assertEqual({self.editor, new_editor}, set(self.org.get_users(roles=[OrgRole.EDITOR])))
+        self.assertEqual(
+            {self.editor, new_editor}, set(self.org.get_users(roles=[OrgRole.EDITOR]))
+        )
 
         # invite an agent user to a specific team
         sales = Team.create(self.org, self.admin, "Sales", topics=[])
-        invitation = Invitation.create(self.org, self.admin, "invitedagent@textit.com", OrgRole.AGENT, team=sales)
+        invitation = Invitation.create(
+            self.org, self.admin, "invitedagent@textit.com", OrgRole.AGENT, team=sales
+        )
 
         self.assertEqual(OrgRole.AGENT, invitation.role)
         self.assertEqual(sales, invitation.team)
 
         invitation.send()
-        new_agent = User.create("invitedagent@textit.com", "Bob", "", "Qwerty123", "en-US")
+        new_agent = User.create(
+            "invitedagent@textit.com", "Bob", "", "Qwerty123", "en-US"
+        )
         invitation.accept(new_agent)
 
-        self.assertEqual({self.agent, new_agent}, set(self.org.get_users(roles=[OrgRole.AGENT])))
+        self.assertEqual(
+            {self.agent, new_agent}, set(self.org.get_users(roles=[OrgRole.AGENT]))
+        )
         self.assertEqual({new_agent}, set(sales.get_users()))
 
     def test_expire_task(self):
@@ -84,7 +101,9 @@ class CleanupUnverifiedUsersTest(TembaTest):
         new_unverified.save(update_fields=["date_joined"])
 
         # create a verified user with no org, joined over 14 days ago — should NOT be cleaned up
-        verified_no_org = User.create("verified@example.com", "Verified", "User", "Qwerty123")
+        verified_no_org = User.create(
+            "verified@example.com", "Verified", "User", "Qwerty123"
+        )
         verified_no_org.date_joined = timezone.now() - timedelta(days=15)
         verified_no_org.save(update_fields=["date_joined"])
         verified_no_org.set_verified(True)

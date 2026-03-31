@@ -1,4 +1,9 @@
-from allauth.account.forms import AddEmailForm, ChangePasswordForm, LoginForm, SignupForm
+from allauth.account.forms import (
+    AddEmailForm,
+    ChangePasswordForm,
+    LoginForm,
+    SignupForm,
+)
 
 from django import forms
 from django.utils.functional import cached_property
@@ -30,7 +35,9 @@ class TembaSignupForm(InviteFormMixin, SignupForm):
 
     # honeypot field - hidden from real users, filled by bots
     phone_number = forms.CharField(
-        required=False, label="", widget=forms.TextInput(attrs={"tabindex": "-1", "autocomplete": "off"})
+        required=False,
+        label="",
+        widget=forms.TextInput(attrs={"tabindex": "-1", "autocomplete": "off"}),
     )
 
     last_name = forms.CharField(

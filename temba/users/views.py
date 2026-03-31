@@ -13,7 +13,10 @@ class TembaInviteMixin:
             # update our session invite on GET
             self.request.session["invite_secret"] = self.request.GET.get("invite", None)
 
-        return {"secret": self.request.session.get("invite_secret", None), **super().get_form_kwargs()}
+        return {
+            "secret": self.request.session.get("invite_secret", None),
+            **super().get_form_kwargs(),
+        }
 
     @cached_property
     def invite(self):
@@ -28,7 +31,9 @@ class TembaInviteMixin:
             messages.add_message(
                 self.request,
                 messages.WARNING,
-                _("Sorry, your invitation is no longer valid. Please request a new invite."),
+                _(
+                    "Sorry, your invitation is no longer valid. Please request a new invite."
+                ),
             )
 
         return initial
