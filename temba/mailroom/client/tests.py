@@ -428,13 +428,49 @@ class MailroomClientTest(TembaTest):
                 "query": "frank",
                 "org_id": self.org.id,
                 "group_id": group.id,
-                "exclude_ids": [joe.id],
                 "exclude_uuids": [str(joe.uuid)],
                 "sort": "-created_on",
                 "offset": 0,
                 "limit": 50,
             },
         )
+
+    @patch("requests.post")
+    def test_contact_search_with_uuids(self, mock_post):
+        ann = self.create_contact("Ann", urns=["tel:+12340000001"])
+        bob = self.create_contact("Bob", urns=["tel:+12340000002"])
+        group = self.create_group("Doctors", contacts=[])
+
+        mock_post.return_value = MockJsonResponse(
+            200,
+            {
+                "query": 'name ~ "ann"',
+                "contact_uuids": [str(ann.uuid), str(bob.uuid)],
+                "total": 2,
+                "metadata": {"attributes": ["name"]},
+            },
+        )
+        response = self.client.contact_search(self.org, group, "ann", "-created_on")
+
+        self.assertEqual('name ~ "ann"', response.query)
+        self.assertEqual([ann.id, bob.id], response.contact_ids)
+        self.assertEqual(2, response.total)
+        self.assertEqual(["name"], response.metadata.attributes)
+
+        # empty results with contact_uuids
+        mock_post.return_value = MockJsonResponse(
+            200,
+            {
+                "query": 'name ~ "ann"',
+                "contact_uuids": [],
+                "total": 0,
+                "metadata": {"attributes": ["name"]},
+            },
+        )
+        response = self.client.contact_search(self.org, group, "ann", "-created_on")
+
+        self.assertEqual([], response.contact_ids)
+        self.assertEqual(0, response.total)
 
     @patch("requests.post")
     def test_contact_urns(self, mock_post):
