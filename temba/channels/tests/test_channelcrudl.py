@@ -204,11 +204,11 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             },
         )
 
-        # staff users see extra log policy field
+        # staff users see extra fields
         self.assertUpdateFetch(
             vonage_url,
             [self.customer_support],
-            form_fields=["name", "is_enabled", "log_policy", "allow_international", "machine_detection"],
+            form_fields=["name", "is_enabled", "allow_international", "machine_detection"],
             choose_org=self.org,
         )
 

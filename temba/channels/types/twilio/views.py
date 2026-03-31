@@ -394,7 +394,7 @@ class UpdateForm(UpdateChannelForm):
         return super().clean()
 
     class Meta(UpdateChannelForm.Meta):
-        fields = ("name", "is_enabled", "log_policy")
+        fields = ("name", "is_enabled")
 
 
 class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):

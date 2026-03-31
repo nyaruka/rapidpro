@@ -351,11 +351,11 @@ class TwilioTypeTest(TembaTest):
             response = self.client.post(update_url, post_data)
             self.assertFormError(response.context["form"], None, "Credentials don't appear to be valid.")
 
-        # staff users see extra log policy field
+        # staff users see extra fields
         self.login(self.customer_support, choose_org=self.org)
         response = self.client.get(update_url)
         self.assertEqual(
-            ["name", "is_enabled", "log_policy", "allow_international", "account_sid", "auth_token", "loc"],
+            ["name", "is_enabled", "allow_international", "account_sid", "auth_token", "loc"],
             list(response.context["form"].fields.keys()),
         )
 

@@ -304,15 +304,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         (CONTENT_TYPE_XML, _("XML - text/xml; charset=utf-8")),
     )
 
-    LOG_POLICY_NONE = "N"
-    LOG_POLICY_ERRORS = "E"
-    LOG_POLICY_ALL = "A"
-    LOG_POLICY_CHOICES = (
-        (LOG_POLICY_NONE, "Discard All"),
-        (LOG_POLICY_ERRORS, "Write Errors Only"),
-        (LOG_POLICY_ALL, "Write All"),
-    )
-
     SIMULATOR_CHANNEL = {
         "uuid": "440099cf-200c-4d45-a8e7-4a564f4a0e8b",
         "name": "Simulator Channel",
@@ -341,7 +332,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     config = models.JSONField(default=dict)
     schemes = ArrayField(models.CharField(max_length=16), default=_get_default_channel_scheme)
     role = models.CharField(max_length=4, default=DEFAULT_ROLE)
-    log_policy = models.CharField(max_length=1, default=LOG_POLICY_ALL, choices=LOG_POLICY_CHOICES)
     tps = models.IntegerField(null=True)
     is_enabled = models.BooleanField(default=True)
 
