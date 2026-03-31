@@ -70,8 +70,15 @@ class SearchSliceQuerySet(models.query.RawQuerySet):
             elif k == "uuid__in":
                 v = {str(j) for j in v}
                 uuids = [u for u in uuids if u in v]
+            elif k == "pk":
+                # look up UUID for this pk so we can filter against our UUID list
+                match = self.model.objects.filter(pk=v).values_list("uuid", flat=True).first()
+                uuids = [u for u in uuids if u == str(match)] if match else []
+            elif k == "pk__in":
+                matches = {str(u) for u in self.model.objects.filter(pk__in=v).values_list("uuid", flat=True)}
+                uuids = [u for u in uuids if u in matches]
             else:
-                raise ValueError(f"SearchSliceQuerySet instances can only be filtered by uuid, not {k}")
+                raise ValueError(f"SearchSliceQuerySet instances can only be filtered by pk or uuid, not {k}")
 
         return SearchSliceQuerySet(self.model, uuids, offset=0, total=len(uuids), using=self._db)
 

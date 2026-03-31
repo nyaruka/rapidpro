@@ -169,7 +169,14 @@ class SearchSliceQuerySetTest(TembaTest):
         self.assertEqual(0, filtered.offset)
         self.assertEqual(2, filtered.total)
 
-        # only filtering by uuid is supported
+        # filtering by pk does a DB lookup to find matching UUIDs
+        filtered = contacts.filter(pk=ann.id)
+        self.assertEqual([str(ann.uuid)], filtered.uuids)
+
+        filtered = contacts.filter(pk__in=[ann.id, cat.id])
+        self.assertEqual([str(ann.uuid), str(cat.uuid)], filtered.uuids)
+
+        # only filtering by pk or uuid is supported
         with self.assertRaises(ValueError):
             contacts.filter(name="Bob")
 
