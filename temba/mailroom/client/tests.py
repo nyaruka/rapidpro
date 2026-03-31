@@ -428,7 +428,6 @@ class MailroomClientTest(TembaTest):
                 "query": "frank",
                 "org_id": self.org.id,
                 "group_id": group.id,
-                "exclude_ids": [joe.id],
                 "exclude_uuids": [str(joe.uuid)],
                 "sort": "-created_on",
                 "offset": 0,

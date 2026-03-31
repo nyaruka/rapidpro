@@ -160,7 +160,6 @@ class MailroomClient:
             {
                 "org_id": org.id,
                 "group_id": group.id,
-                "exclude_ids": [c.id for c in exclude],  # deprecated but needed until we're done with Elastic
                 "exclude_uuids": [str(c.uuid) for c in exclude],
                 "query": query,
                 "sort": sort,
@@ -169,6 +168,8 @@ class MailroomClient:
             },
         )
 
+        # TODO when mailroom is updated we can update search to always expect uuids rather than ids
+        # but for now just convert here for simplicity.
         contact_ids = resp.get("contact_ids")
         if contact_ids is None:
             contact_uuids = resp.get("contact_uuids", [])
