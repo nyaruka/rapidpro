@@ -387,11 +387,9 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             signup_url,
             {
                 "email": "canbeanything@temba.io",
-                "workspace": "Ignored",
                 "password1": self.default_password,
                 "first_name": "Edwin",
                 "last_name": "Kagabo",
-                "timezone": "Africa/Kigali",
             },
             follow=True,
         )
