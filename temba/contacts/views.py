@@ -40,7 +40,7 @@ from temba.users.models import User
 from temba.utils import json, on_transaction_commit
 from temba.utils.fields import CheckboxWidget, InputWidget, SelectWidget, TembaChoiceField
 from temba.utils.models import patch_queryset_count
-from temba.utils.models.es import IDSliceQuerySet
+from temba.utils.models.es import SearchSliceQuerySet
 from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, NonAtomicMixin, SpaMixin
 
 from .forms import ContactGroupForm, CreateContactForm, UpdateContactForm
@@ -123,7 +123,7 @@ class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
                 self.parsed_query = results.query if len(results.query) > 0 else None
                 self.search_is_saveable = results.metadata.allow_as_group
 
-                return IDSliceQuerySet(Contact, results.contact_ids, offset=offset, total=results.total)
+                return SearchSliceQuerySet(Contact, results.contact_uuids, offset=offset, total=results.total)
             except mailroom.QueryValidationException as e:
                 self.search_error = str(e)
 
@@ -453,7 +453,9 @@ class ContactCRUDL(SmartCRUDL):
                     "total": results.total,
                     "query": results.query,
                     "fields": results.metadata.fields,
-                    "sample": IDSliceQuerySet(Contact, results.contact_ids, offset=0, total=results.total)[0:samples],
+                    "sample": SearchSliceQuerySet(Contact, results.contact_uuids, offset=0, total=results.total)[
+                        0:samples
+                    ],
                 }
             except mailroom.QueryValidationException as e:
                 return JsonResponse({"total": 0, "sample": [], "query": "", "error": str(e)})

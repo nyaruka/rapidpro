@@ -80,7 +80,7 @@ class Mocks:
             return mailroom.SearchResults(
                 query=cleaned or query,
                 total=total or len(contacts),
-                contact_ids=[c.id for c in contacts],
+                contact_uuids=[str(c.uuid) for c in contacts],
                 metadata=mock_inspect_query(org, cleaned or query, fields),
             )
 
