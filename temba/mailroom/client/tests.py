@@ -422,7 +422,7 @@ class MailroomClientTest(TembaTest):
         response = self.client.contact_search(self.org, group, "ann", "-created_on", exclude=[joe])
 
         self.assertEqual('name ~ "ann"', response.query)
-        self.assertEqual([ann.id, bob.id], response.contact_ids)
+        self.assertEqual([str(ann.uuid), str(bob.uuid)], response.contact_uuids)
         self.assertEqual(2, response.total)
         self.assertEqual(["name"], response.metadata.attributes)
         mock_post.assert_called_once_with(
@@ -451,7 +451,7 @@ class MailroomClientTest(TembaTest):
         )
         response = self.client.contact_search(self.org, group, "ann", "-created_on")
 
-        self.assertEqual([], response.contact_ids)
+        self.assertEqual([], response.contact_uuids)
         self.assertEqual(0, response.total)
 
     @patch("requests.post")
