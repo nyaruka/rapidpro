@@ -1,3 +1,9 @@
+v26.1.72 (2026-03-31)
+-------------------------
+ * Remove deprecated exclude_ids from contact search request
+ * Support contact_uuids in mailroom search responses
+ * Bump valkey from 8.0 to 8.1 in CI
+
 v26.1.71 (2026-03-30)
 -------------------------
  * Restore message searching by name
