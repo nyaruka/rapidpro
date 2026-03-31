@@ -457,6 +457,21 @@ class MailroomClientTest(TembaTest):
         self.assertEqual(2, response.total)
         self.assertEqual(["name"], response.metadata.attributes)
 
+        # empty results with contact_uuids
+        mock_post.return_value = MockJsonResponse(
+            200,
+            {
+                "query": 'name ~ "ann"',
+                "contact_uuids": [],
+                "total": 0,
+                "metadata": {"attributes": ["name"]},
+            },
+        )
+        response = self.client.contact_search(self.org, group, "ann", "-created_on")
+
+        self.assertEqual([], response.contact_ids)
+        self.assertEqual(0, response.total)
+
     @patch("requests.post")
     def test_contact_urns(self, mock_post):
         mock_post.return_value = MockJsonResponse(
