@@ -171,7 +171,7 @@ class MailroomClient:
         return SearchResults(
             query=resp["query"],
             total=resp["total"],
-            contact_uuids=resp.get("contact_uuids", []),
+            contact_uuids=resp["contact_uuids"],
             metadata=QueryMetadata(**resp.get("metadata", {})),
         )
 
