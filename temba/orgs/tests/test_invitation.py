@@ -4,7 +4,7 @@ from django.core import mail
 from django.utils import timezone
 
 from temba.orgs.models import Invitation, OrgRole
-from temba.orgs.tasks import cleanup_unverified_users, expire_invitations
+from temba.orgs.tasks import expire_invitations
 from temba.tests import TembaTest
 from temba.tickets.models import Team
 from temba.users.models import User
@@ -69,44 +69,3 @@ class InvitationTest(TembaTest):
 
         self.assertFalse(invitation1.is_active)
         self.assertTrue(invitation2.is_active)
-
-
-class CleanupUnverifiedUsersTest(TembaTest):
-    def test_cleanup(self):
-        # create an unverified user with no org, joined over 14 days ago
-        old_unverified = User.create("spam1@example.com", "Spam", "User", "Qwerty123")
-        old_unverified.date_joined = timezone.now() - timedelta(days=15)
-        old_unverified.save(update_fields=["date_joined"])
-
-        # create an unverified user with no org, joined less than 14 days ago
-        new_unverified = User.create("spam2@example.com", "New", "Spam", "Qwerty123")
-        new_unverified.date_joined = timezone.now() - timedelta(days=5)
-        new_unverified.save(update_fields=["date_joined"])
-
-        # create a verified user with no org, joined over 14 days ago — should NOT be cleaned up
-        verified_no_org = User.create("verified@example.com", "Verified", "User", "Qwerty123")
-        verified_no_org.date_joined = timezone.now() - timedelta(days=15)
-        verified_no_org.save(update_fields=["date_joined"])
-        verified_no_org.set_verified(True)
-
-        # existing admin user has org — should NOT be cleaned up even if unverified
-        self.admin.date_joined = timezone.now() - timedelta(days=30)
-        self.admin.save(update_fields=["date_joined"])
-        self.admin.emailaddress_set.all().delete()
-
-        result = cleanup_unverified_users()
-
-        # only the old unverified user with no org should be released
-        old_unverified.refresh_from_db()
-        self.assertFalse(old_unverified.is_active)
-
-        new_unverified.refresh_from_db()
-        self.assertTrue(new_unverified.is_active)
-
-        verified_no_org.refresh_from_db()
-        self.assertTrue(verified_no_org.is_active)
-
-        self.admin.refresh_from_db()
-        self.assertTrue(self.admin.is_active)
-
-        self.assertEqual(result, {"released": 1})

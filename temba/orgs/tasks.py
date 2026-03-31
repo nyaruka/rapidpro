@@ -7,7 +7,6 @@ from django.conf import settings
 from django.utils import timezone
 
 from temba.contacts.models import URN, ContactURN
-from temba.users.models import User
 from temba.utils.crons import cron_task
 
 from .models import DailyCount, Export, Invitation, ItemCount, Org, OrgImport, OrgMembership
@@ -106,29 +105,6 @@ def delete_released_orgs():
         num_deleted += 1
 
     return {"deleted": num_deleted, "failed": num_failed}
-
-
-@cron_task(lock_timeout=7200)
-def cleanup_unverified_users():
-    """
-    Releases users that signed up but never verified their email and have no org memberships.
-    """
-    cutoff = timezone.now() - timedelta(days=14)
-
-    users = (
-        User.objects.filter(date_joined__lt=cutoff, is_active=True, is_staff=False, is_system=False)
-        .exclude(emailaddress__verified=True)
-        .exclude(orgmembership__isnull=False)
-    )
-
-    system_user = User.get_system_user()
-    num_released = 0
-    for user in users:
-        logging.info(f"releasing unverified user '{user.email}' (#{user.id})")
-        user.release(system_user)
-        num_released += 1
-
-    return {"released": num_released}
 
 
 @cron_task(lock_timeout=7200)
