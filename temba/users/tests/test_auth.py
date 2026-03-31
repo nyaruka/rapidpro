@@ -4,7 +4,7 @@ from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
 
-from temba.orgs.models import Invitation, OrgRole
+from temba.orgs.models import Invitation, OrgMembership, OrgRole
 from temba.tests.base import TembaTest
 from temba.users.models import User
 
@@ -42,6 +42,10 @@ class UserAuthTest(TembaTest):
         self.assertEqual(1, len(mail.outbox))
         self.assertEqual("Please Confirm Your Email Address", mail.outbox[0].subject)
         self.assertEqual(["bobbyburgers@burgers.com"], mail.outbox[0].recipients())
+
+        # user should exist but have no org membership (workspace created after email verification)
+        user = User.objects.get(email="bobbyburgers@burgers.com")
+        self.assertFalse(OrgMembership.objects.filter(user=user).exists())
 
     def test_signup_honeypot(self):
         signup_url = reverse("account_signup")
