@@ -1,3 +1,10 @@
+v26.1.74 (2026-03-31)
+-------------------------
+ * Remove phone number honeypot from signup form
+ * Fix slow editor load for flows with many starts
+ * Defer workspace creation until after email verification
+ * Mailroom now always returns UUIDs when searching contacts
+
 v26.1.73 (2026-03-31)
 -------------------------
  * Remove channel log_policy field
