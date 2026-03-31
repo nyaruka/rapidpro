@@ -1,3 +1,7 @@
+v26.1.73 (2026-03-31)
+-------------------------
+ * Remove channel log_policy field
+
 v26.1.72 (2026-03-31)
 -------------------------
  * Remove deprecated exclude_ids from contact search request
