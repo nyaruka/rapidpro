@@ -242,5 +242,5 @@ class UpdateForm(UpdateChannelForm):
         return "".join(self.cleaned_data.get("role", []))
 
     class Meta(UpdateChannelForm.Meta):
-        fields = "name", "role", "is_enabled", "log_policy"
+        fields = "name", "role", "is_enabled"
         readonly = []

@@ -432,7 +432,7 @@ class UpdateChannelForm(forms.ModelForm):
 
     class Meta:
         model = Channel
-        fields = ("name", "is_enabled", "log_policy")
+        fields = ("name", "is_enabled")
         readonly = ()
         labels = {"is_enabled": _("Enabled")}
 
@@ -701,9 +701,9 @@ class ChannelCRUDL(SmartCRUDL):
                 return []
 
             if self.object.type.beta_only and not self.request.user.is_beta:
-                return ["is_enabled", "log_policy"]
+                return ["is_enabled"]
 
-            return ["log_policy"]
+            return []
 
         def derive_readonly(self):
             return self.form.Meta.readonly if hasattr(self, "form") else []

@@ -786,10 +786,10 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("Another Name", channel.name)
         self.assertFalse(channel.is_enabled)  # is_enabled should be updated as admin is now a beta user
 
-        # staff users see extra log policy field
+        # staff users see extra fields
         self.assertUpdateFetch(
             update_url,
             [self.customer_support],
-            form_fields=["name", "is_enabled", "log_policy"],
+            form_fields=["name", "is_enabled"],
             choose_org=self.org,
         )
