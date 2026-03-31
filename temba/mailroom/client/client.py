@@ -95,7 +95,6 @@ class MailroomClient:
             "contact/deindex",
             {
                 "org_id": org.id,
-                "contact_ids": [c.id for c in contacts],
                 "contact_uuids": [str(c.uuid) for c in contacts],
             },
         )
@@ -105,7 +104,7 @@ class MailroomClient:
             "contact/reindex",
             {
                 "org_id": org.id,
-                "contact_ids": [c.id for c in contacts],
+                "contact_uuids": [str(c.uuid) for c in contacts],
             },
         )
 
