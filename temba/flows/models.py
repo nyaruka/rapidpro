@@ -449,8 +449,12 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         """
         Returns whether this flow is already being started by a user
         """
+        a_week_ago = timezone.now() - timedelta(days=7)
         return (
-            self.starts.filter(status__in=(FlowStart.STATUS_PENDING, FlowStart.STATUS_STARTED))
+            self.starts.filter(
+                status__in=(FlowStart.STATUS_PENDING, FlowStart.STATUS_STARTED),
+                created_on__gte=a_week_ago,
+            )
             .exclude(created_by=None)
             .first()
         )
@@ -1712,6 +1716,12 @@ class FlowStart(models.Model):
             ),
             # used by the flow_starts type filters page
             models.Index(name="flows_flowstart_org_start_type", fields=["org", "start_type", "-created_on"]),
+            # used by get_active_start and has_unfinished
+            models.Index(
+                name="flows_flowstarts_flow_active",
+                fields=["flow", "-created_on"],
+                condition=Q(status__in=("P", "S")),
+            ),
         ]
 
 
