@@ -1764,9 +1764,9 @@ class ContactExport(ExportType):
         include_group_memberships = bool(len(group_fields) > 0)
 
         if search:
-            contact_ids = mailroom.get_client().contact_export(export.org, group, query=search)
+            contact_uuids = mailroom.get_client().contact_export(export.org, group, query=search)
         else:
-            contact_ids = group.contacts.using("readonly").order_by("id").values_list("id", flat=True)
+            contact_uuids = group.contacts.using("readonly").order_by("id").values_list("uuid", flat=True).iterator()
 
         # create our exporter
         exporter = MultiSheetExporter(
@@ -1776,19 +1776,19 @@ class ContactExport(ExportType):
         num_records = 0
 
         # write out contacts in batches to limit memory usage
-        for batch_ids in itertools.batched(contact_ids, 1000):
+        for batch_uuids in itertools.batched(contact_uuids, 1000):
             # fetch all the contacts for our batch
             batch_contacts = (
-                Contact.objects.filter(id__in=batch_ids).prefetch_related("org", "groups").using("readonly")
+                Contact.objects.filter(uuid__in=batch_uuids).prefetch_related("org", "groups").using("readonly")
             )
 
-            # to maintain our sort, we need to lookup by id, create a map of our id->contact to aid in that
-            contact_by_id = {c.id: c for c in batch_contacts}
+            # to maintain our sort, we need to lookup by uuid, create a map of our uuid->contact to aid in that
+            contact_by_uuid = {str(c.uuid): c for c in batch_contacts}
 
             Contact.bulk_urn_cache_initialize(batch_contacts, using="readonly")
 
-            for contact_id in batch_ids:
-                contact = contact_by_id[contact_id]
+            for contact_uuid in batch_uuids:
+                contact = contact_by_uuid[str(contact_uuid)]
 
                 values = []
                 for field in fields:

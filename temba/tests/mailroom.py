@@ -86,8 +86,8 @@ class Mocks:
 
         self._contact_search[query] = mock
 
-    def contact_export(self, contact_ids: list[int]):
-        self._contact_export.append(contact_ids)
+    def contact_export(self, contact_uuids: list[str]):
+        self._contact_export.append(contact_uuids)
 
     def contact_export_preview(self, total: int):
         self._contact_export_preview.append(total)
@@ -231,11 +231,11 @@ class TestClient(MailroomClient):
         return {"indexed": len(contacts)}
 
     @_client_method
-    def contact_export(self, org, group, query: str) -> list[int]:
+    def contact_export(self, org, group, query: str) -> list[str]:
         if self.mocks._contact_export:
             return self.mocks._contact_export.pop(0)
 
-        return list(group.contacts.order_by("id").values_list("id", flat=True))
+        return [str(u) for u in group.contacts.order_by("id").values_list("uuid", flat=True)]
 
     @_client_method
     def contact_export_preview(self, org, group, query: str) -> int:
