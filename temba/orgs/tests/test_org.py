@@ -176,12 +176,17 @@ class OrgTest(TembaTest):
         response = self.client.get(country_url)
         self.assertEqual(200, response.status_code)
 
+        # clear root_location so we can verify the POST dual-writes it
+        self.org.root_location = None
+        self.org.save(update_fields=("root_location",))
+
         # save with Rwanda as a country
         self.client.post(country_url, {"country": rwanda.id})
 
         # assert it has changed
         self.org.refresh_from_db()
         self.assertEqual("Rwanda", str(self.org.country))
+        self.assertEqual("Rwanda", str(self.org.root_location))
         self.assertEqual("RW", self.org.default_country_code)
 
         response = self.client.get(settings_url)
@@ -195,8 +200,9 @@ class OrgTest(TembaTest):
     def test_default_country(self):
         # if country boundary is set and name is valid country, that has priority
         self.org.country = AdminBoundary.create(osm_id="171496", name="Ecuador", level=0)
+        self.org.root_location = self.org.country
         self.org.timezone = "Africa/Nairobi"
-        self.org.save(update_fields=("country", "timezone"))
+        self.org.save(update_fields=("country", "root_location", "timezone"))
 
         self.assertEqual("EC", self.org.default_country.alpha_2)
 

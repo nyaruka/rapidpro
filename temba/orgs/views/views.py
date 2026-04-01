@@ -1506,6 +1506,10 @@ class OrgCRUDL(SmartCRUDL):
                 model = Org
                 fields = ("country",)
 
+            def save(self, commit=True):
+                self.instance.root_location = self.cleaned_data["country"]
+                return super().save(commit=commit)
+
         form_class = CountryForm
 
     class Languages(FormaxSectionMixin, InferOrgMixin, OrgPermsMixin, SmartUpdateView):

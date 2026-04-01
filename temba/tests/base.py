@@ -141,7 +141,8 @@ class TembaTest(SmartminTest):
         self.country.update_path()
 
         self.org.country = self.country
-        self.org.save(update_fields=("country",))
+        self.org.root_location = self.country
+        self.org.save(update_fields=("country", "root_location"))
 
     def login(self, user, *, choose_org=None):
         self.assertTrue(

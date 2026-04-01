@@ -12,6 +12,7 @@ class AndroidTest(TembaTest):
     def test_register_unsupported_android(self):
         # remove our explicit country so it needs to be derived from channels
         self.org.country = None
+        self.org.root_location = None
         self.org.save()
 
         Channel.objects.all().delete()
