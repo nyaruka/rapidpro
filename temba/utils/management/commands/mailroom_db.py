@@ -83,7 +83,7 @@ class Command(BaseCommand):
         mr_cmd = f'mailroom --port={mr_port} -db="postgres://{db_user}:temba@localhost/{db_name}?sslmode=disable" --valkey="valkey://localhost:6379/15" -uuid-seed=123'
         input(f"\nPlease start mailroom:\n   % ./{mr_cmd}\n\nPress enter when ready.\n")
 
-        country = self.load_locations(locs_file)
+        root_location = self.load_locations(locs_file)
 
         # patch UUID generation so it's deterministic
         from temba.utils import uuid
@@ -92,7 +92,7 @@ class Command(BaseCommand):
 
         # create each of our orgs
         for spec in orgs_spec["orgs"]:
-            self.create_org(spec, superuser, country)
+            self.create_org(spec, superuser, root_location)
 
         # leave id sequences starting at a known number so it's easier to identity newly created data in mailroom tests
         self.reset_id_sequences(30000)
@@ -153,7 +153,7 @@ class Command(BaseCommand):
 
             cursor.execute(f"ALTER SEQUENCE contacts_contactgroup_contacts_id_seq RESTART WITH {start}")
 
-    def create_org(self, spec, superuser, country):
+    def create_org(self, spec, superuser, root_location):
         self._log(f"\nCreating org {spec['name']}...\n")
 
         org = Org.objects.create(
@@ -161,7 +161,8 @@ class Command(BaseCommand):
             name=spec["name"],
             timezone=ZoneInfo("America/Los_Angeles"),
             flow_languages=spec["languages"],
-            country=country,
+            country=root_location,  # deprecated
+            root_location=root_location,
             created_on=timezone.now(),
             created_by=superuser,
             modified_by=superuser,
