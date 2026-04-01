@@ -182,6 +182,7 @@ class OrgTest(TembaTest):
         # assert it has changed
         self.org.refresh_from_db()
         self.assertEqual("Rwanda", str(self.org.country))
+        self.assertEqual("Rwanda", str(self.org.root_location))
         self.assertEqual("RW", self.org.default_country_code)
 
         response = self.client.get(settings_url)
@@ -195,8 +196,9 @@ class OrgTest(TembaTest):
     def test_default_country(self):
         # if country boundary is set and name is valid country, that has priority
         self.org.country = AdminBoundary.create(osm_id="171496", name="Ecuador", level=0)
+        self.org.root_location = self.org.country
         self.org.timezone = "Africa/Nairobi"
-        self.org.save(update_fields=("country", "timezone"))
+        self.org.save(update_fields=("country", "root_location", "timezone"))
 
         self.assertEqual("EC", self.org.default_country.alpha_2)
 

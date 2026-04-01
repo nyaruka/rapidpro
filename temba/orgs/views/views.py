@@ -1504,7 +1504,11 @@ class OrgCRUDL(SmartCRUDL):
 
             class Meta:
                 model = Org
-                fields = ("country",)
+                fields = ("country", "root_location")
+
+            def save(self, commit=True):
+                self.instance.root_location = self.cleaned_data["country"]
+                return super().save(commit=commit)
 
         form_class = CountryForm
 
