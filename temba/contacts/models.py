@@ -1766,7 +1766,7 @@ class ContactExport(ExportType):
         if search:
             contact_uuids = mailroom.get_client().contact_export(export.org, group, query=search)
         else:
-            contact_uuids = list(group.contacts.using("readonly").order_by("id").values_list("uuid", flat=True))
+            contact_uuids = group.contacts.using("readonly").order_by("id").values_list("uuid", flat=True).iterator()
 
         # create our exporter
         exporter = MultiSheetExporter(
