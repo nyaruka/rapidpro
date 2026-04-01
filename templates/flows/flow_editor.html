@@ -21,93 +21,95 @@
 {% block extra-style %}
   {{ block.super }}
   <style type="text/css">
-    .editor-banner {
+    .editor-banner-overlay {
       position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      margin-left: 100px;
-      z-index: 1000;
-      padding: 14px;
-      background: rgba(33, 150, 243, 0.95);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 10000;
       display: flex;
-      flex-direction: column;
       align-items: flex-start;
-      gap: 8px;
-      max-width: calc(100vw - 280px);
-      animation: slideDown 0.3s ease-out;
-      padding-right: 40px;
+      justify-content: center;
+      padding-top: 20vh;
+      animation: fadeIn 0.3s ease-out;
     }
 
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-20px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
-    @keyframes slideUp {
-      from {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
-
-      to {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-20px);
-      }
-    }
-
-    .editor-banner-content {
+    .editor-banner {
+      z-index: 10001;
+      padding: 32px 40px;
+      background: #fff;
+      border-radius: 12px;
+      border-top: 4px solid #f59e0b;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      flex: 1;
+      align-items: center;
+      gap: 16px;
+      max-width: 480px;
+      text-align: center;
     }
 
-    .editor-banner.hiding {
-      animation: slideUp 0.3s ease-in forwards;
+    .editor-banner-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .editor-banner-icon {
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .editor-banner-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #92400e;
+      margin: 0;
     }
 
     .editor-banner-text {
-      color: white;
+      color: #44403c;
       font-size: 14px;
-      flex: 1;
+      line-height: 1.5;
     }
 
-    .editor-banner-link {
-      color: white;
-      text-decoration: underline;
-      cursor: pointer;
+    .editor-banner-switch {
+      display: inline-block;
+      padding: 10px 28px;
+      background: var(--color-button-primary);
+      color: #fff;
+      font-size: 15px;
       font-weight: 600;
-      white-space: nowrap;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      margin-top: 4px;
     }
 
-    .editor-banner-link:hover {
+    .editor-banner-switch:hover {
       opacity: 0.9;
     }
 
-    .editor-banner-close {
-      color: white;
+    .editor-banner-dismiss {
+      color: #78716c;
+      font-size: 13px;
       cursor: pointer;
-      font-size: 20px;
-      line-height: 1;
-      padding: 0 4px;
-      opacity: 0.8;
       background: none;
       border: none;
-      outline: none;
+      text-decoration: underline;
+      padding: 0;
     }
 
-    .editor-banner-close:hover {
-      opacity: 1;
+    .editor-banner-dismiss:hover {
+      color: #44403c;
     }
 
     .mobile-notice {
@@ -227,22 +229,12 @@
     }
 
     function closeEditorBanner() {
-      const banner = document.querySelector('.editor-banner');
-      if (banner) {
-        banner.classList.add('hiding');
-        banner.addEventListener('animationend', function() {
-          banner.remove();
-        });
+      const overlay = document.querySelector('.editor-banner-overlay');
+      if (overlay) {
+        overlay.remove();
       }
     }
 
-    // Auto-hide banner after 7 seconds
-    onSpload(function() {
-      const banner = document.querySelector('.editor-banner');
-      if (banner) {
-        setTimeout(closeEditorBanner, 7000);
-      }
-    });
 
     var base = '/flow/assets/{{object.org.id}}/' + new Date().getTime() + '/';
     var api = '/api/v2/';
@@ -361,16 +353,16 @@
   {{ block.super }}
 {% endblock page-header %}
 {% block content %}
-  <div class="editor-banner">
-    <div class="editor-banner-content">
-      <span class="editor-banner-text"><a class="editor-banner-link" onclick="enableNewEditor()">Switch to the New Editor</a> for improved features and performance!</span>
+  <div class="editor-banner-overlay">
+    <div class="editor-banner">
+      <div class="editor-banner-header">
+        <span class="editor-banner-icon">&#9888;&#65039;</span>
+        <div class="editor-banner-title">The Classic Editor Is Being Retired</div>
+      </div>
+      <span class="editor-banner-text">This editor will be removed soon. Please switch to the new editor now to avoid any disruption to your work.</span>
+      <button class="editor-banner-switch" onclick="enableNewEditor()">Switch to the New Editor</button>
+      <button class="editor-banner-dismiss" onclick="closeEditorBanner()">Continue with classic editor</button>
     </div>
-    <button class="editor-banner-close"
-            onclick="closeEditorBanner()"
-            aria-label="Close"
-            style="position: absolute;
-                   top: 14px;
-                   right: 14px">×</button>
   </div>
   <temba-modax header="Send Message" id="send-message-modal">
   </temba-modax>

@@ -45,74 +45,6 @@
       border-top: 1px solid #e7e7e7;
     }
 
-    .editor-banner {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      margin-left: 100px;
-      z-index: 1000;
-      padding: 14px;
-      background: rgba(33, 150, 243, 0.95);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      max-width: calc(100vw - 280px);
-      animation: slideDown 0.3s ease-out;
-      padding-right: 40px;
-    }
-
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
-    }
-
-    @keyframes slideUp {
-      from {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
-      to {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-20px);
-      }
-    }
-
-    .editor-banner.hiding {
-      animation: slideUp 0.3s ease-in forwards;
-    }
-
-    .editor-banner-text {
-      color: white;
-      font-size: 14px;
-    }
-
-    .editor-banner-close {
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      color: white;
-      cursor: pointer;
-      font-size: 20px;
-      line-height: 1;
-      padding: 0 4px;
-      opacity: 0.8;
-      background: none;
-      border: none;
-      outline: none;
-    }
-
-    .editor-banner-close:hover {
-      opacity: 1;
-    }
   </style>
 {% endblock extra-style %}
 {% block extra-script %}
@@ -120,27 +52,8 @@
   <script type="text/javascript">
     function useClassicEditor() {
       document.cookie = 'use-new-editor=false; path=/; max-age=31536000';
-      document.cookie = 'new-editor-introduced=; path=/; max-age=0';
       window.location.href = '/flow/editor/{{object.uuid}}/';
     }
-
-    function closeEditorBanner() {
-      const banner = document.querySelector('.editor-banner');
-      if (banner) {
-        banner.classList.add('hiding');
-        banner.addEventListener('animationend', function() {
-          banner.remove();
-        });
-      }
-    }
-
-    // Auto-hide banner after 7 seconds
-    onSpload(function() {
-      const banner = document.querySelector('.editor-banner');
-      if (banner) {
-        setTimeout(closeEditorBanner, 7000);
-      }
-    });
 
     function navigateTo(url, detail) {
       if (detail.metaKey || detail.ctrlKey) {
@@ -183,14 +96,6 @@
   </script>
 {% endblock extra-script %}
 {% block content %}
-  {% if show_new_editor_banner %}
-    <div class="editor-banner">
-      <span class="editor-banner-text">Welcome to the new editor! If you run into trouble, use the menu to switch back to the classic editor.</span>
-      <button class="editor-banner-close"
-              onclick="closeEditorBanner()"
-              aria-label="Close">×</button>
-    </div>
-  {% endif %}
   <temba-flow-editor flow="{{ object.uuid }}" features='{{ feature_filters }}' -temba-contact-clicked="handleContactClicked" -temba-flow-clicked="handleFlowClicked" -temba-group-clicked="handleGroupClicked">
   </temba-flow-editor>
   <temba-simulator flow="{{ object.uuid }}" -temba-follow-simulation="handleFollow">
