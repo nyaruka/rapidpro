@@ -352,7 +352,7 @@ PERMISSIONS = {
     "msgs.msg": ("archive", "export", "label", "menu"),
     "orgs.export": ("download",),
     "orgs.org": (
-        "country",
+        "locations",
         "create",
         "dashboard",
         "download",
@@ -457,7 +457,7 @@ GROUP_PERMISSIONS = {
         "notifications.notification.*",
         "orgs.export.*",
         "orgs.invitation.*",
-        "orgs.org_country",
+        "orgs.org_locations",
         "orgs.org_create",
         "orgs.org_dashboard",
         "orgs.org_delete",

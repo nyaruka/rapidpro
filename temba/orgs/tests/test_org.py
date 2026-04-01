@@ -164,7 +164,7 @@ class OrgTest(TembaTest):
         self.setUpLocations()
 
         settings_url = reverse("orgs.org_workspace")
-        country_url = reverse("orgs.org_country")
+        country_url = reverse("orgs.org_locations")
 
         rwanda = AdminBoundary.objects.get(name="Rwanda")
 
@@ -177,11 +177,11 @@ class OrgTest(TembaTest):
         self.assertEqual(200, response.status_code)
 
         # save with Rwanda as a country
-        self.client.post(country_url, {"country": rwanda.id})
+        self.client.post(country_url, {"locations": rwanda.id})
 
         # assert it has changed
         self.org.refresh_from_db()
-        self.assertEqual("Rwanda", str(self.org.country))
+        self.assertEqual("Rwanda", str(self.org.locations))
         self.assertEqual("RW", self.org.default_country_code)
 
         response = self.client.get(settings_url)
@@ -194,17 +194,17 @@ class OrgTest(TembaTest):
 
     def test_default_country(self):
         # if country boundary is set and name is valid country, that has priority
-        self.org.country = AdminBoundary.create(osm_id="171496", name="Ecuador", level=0)
+        self.org.locations = AdminBoundary.create(osm_id="171496", name="Ecuador", level=0)
         self.org.timezone = "Africa/Nairobi"
-        self.org.save(update_fields=("country", "timezone"))
+        self.org.save(update_fields=("locations", "timezone"))
 
         self.assertEqual("EC", self.org.default_country.alpha_2)
 
         del self.org.default_country
 
         # if country name isn't valid, we'll try timezone
-        self.org.country.name = "Fantasia"
-        self.org.country.save(update_fields=("name",))
+        self.org.locations.name = "Fantasia"
+        self.org.locations.save(update_fields=("name",))
 
         self.assertEqual("KE", self.org.default_country.alpha_2)
 

@@ -299,7 +299,7 @@ class Org(SmartModel):
         default=DATE_FORMAT_DAY_FIRST,
         help_text=_("Default formatting and parsing of dates in flows and messages."),
     )
-    country = models.ForeignKey("locations.AdminBoundary", null=True, on_delete=models.PROTECT)
+    locations = models.ForeignKey("locations.AdminBoundary", null=True, on_delete=models.PROTECT)
     flow_languages = ArrayField(models.CharField(max_length=3), default=list, validators=[ArrayMinLengthValidator(1)])
     input_collation = models.CharField(max_length=32, choices=COLLATION_CHOICES, default=COLLATION_DEFAULT)
     flow_smtp = models.CharField(null=True)  # e.g. smtp://...
@@ -776,9 +776,9 @@ class Org(SmartModel):
         Gets the default country as a pycountry country for this org
         """
 
-        # first try the country boundary field
-        if self.country:
-            if country := pycountry.countries.get(name=self.country.name):
+        # first try the locations boundary field
+        if self.locations:
+            if country := pycountry.countries.get(name=self.locations.name):
                 return country
 
         # next up try timezone

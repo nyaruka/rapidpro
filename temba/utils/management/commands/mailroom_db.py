@@ -161,7 +161,7 @@ class Command(BaseCommand):
             name=spec["name"],
             timezone=ZoneInfo("America/Los_Angeles"),
             flow_languages=spec["languages"],
-            country=country,
+            locations=country,
             created_on=timezone.now(),
             created_by=superuser,
             modified_by=superuser,

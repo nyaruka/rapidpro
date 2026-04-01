@@ -10,8 +10,8 @@ class LocationTest(TembaTest):
         self.setUpLocations()
 
         # make other workspace with the same locations
-        self.org2.country = self.country
-        self.org2.save(update_fields=("country",))
+        self.org2.locations = self.country
+        self.org2.save(update_fields=("locations",))
 
         self.assertEqual(BoundaryAlias.objects.filter(boundary=self.state1, org=self.org).count(), 1)
         self.assertEqual(BoundaryAlias.objects.filter(boundary=self.state1, org=self.org).get().name, "Kigari")
@@ -43,7 +43,7 @@ class LocationTest(TembaTest):
         self.login(self.admin)
 
         # clear our country on our org
-        self.org.country = None
+        self.org.locations = None
         self.org.save()
 
         # try stripping path on our country, will fail
@@ -60,7 +60,7 @@ class LocationTest(TembaTest):
         self.assertRedirect(response, reverse("orgs.org_workspace"))
 
         # now set it to rwanda
-        self.org.country = self.country
+        self.org.locations = self.country
         self.org.save()
         # our country is set to rwanda, we should get it as the main object
         response = self.client.get(reverse("locations.adminboundary_alias"))

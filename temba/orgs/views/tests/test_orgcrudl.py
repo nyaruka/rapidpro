@@ -144,7 +144,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.child_org = Org.objects.create(
             name="Child Org",
             timezone=ZoneInfo("Africa/Kigali"),
-            country=self.org.country,
+            locations=self.org.locations,
             created_by=self.admin,
             modified_by=self.admin,
             parent=self.org,
