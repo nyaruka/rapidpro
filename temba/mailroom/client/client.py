@@ -108,14 +108,10 @@ class MailroomClient:
             },
         )
 
-    def contact_export(self, org, group, query: str) -> list[int]:
+    def contact_export(self, org, group, query: str) -> list[str]:
         resp = self._request("contact/export", {"org_id": org.id, "group_id": group.id, "query": query})
 
-        if "contact_uuids" in resp:
-            uuid_to_id = dict(Contact.objects.filter(org=org, uuid__in=resp["contact_uuids"]).values_list("uuid", "id"))
-            return [uuid_to_id[uuid] for uuid in resp["contact_uuids"]]
-
-        return resp["contact_ids"]
+        return resp["contact_uuids"]
 
     def contact_export_preview(self, org, group, query: str) -> int:
         resp = self._request("contact/export_preview", {"org_id": org.id, "group_id": group.id, "query": query})

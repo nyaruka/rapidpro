@@ -236,28 +236,19 @@ class MailroomClientTest(TembaTest):
     @patch("requests.post")
     def test_contact_export(self, mock_post):
         group = self.create_group("Doctors", contacts=[])
+        ann = self.create_contact("Ann", phone="+1234567001")
+        bob = self.create_contact("Bob", phone="+1234567002")
 
-        # test with contact_ids in response
-        mock_post.return_value = MockJsonResponse(200, {"contact_ids": [123, 234]})
+        mock_post.return_value = MockJsonResponse(200, {"contact_uuids": [str(bob.uuid), str(ann.uuid)]})
 
         result = self.client.contact_export(self.org, group, "age = 42")
 
-        self.assertEqual([123, 234], result)
+        self.assertEqual([str(bob.uuid), str(ann.uuid)], result)
         mock_post.assert_called_once_with(
             "http://localhost:8090/mr/contact/export",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "group_id": group.id, "query": "age = 42"},
         )
-
-        # test with contact_uuids in response
-        ann = self.create_contact("Ann", phone="+1234567001")
-        bob = self.create_contact("Bob", phone="+1234567002")
-        mock_post.reset_mock()
-        mock_post.return_value = MockJsonResponse(200, {"contact_uuids": [str(bob.uuid), str(ann.uuid)]})
-
-        result = self.client.contact_export(self.org, group, "age = 42")
-
-        self.assertEqual([bob.id, ann.id], result)
 
     @patch("requests.post")
     def test_contact_export_preview(self, mock_post):
