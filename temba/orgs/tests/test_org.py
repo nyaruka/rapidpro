@@ -176,6 +176,10 @@ class OrgTest(TembaTest):
         response = self.client.get(country_url)
         self.assertEqual(200, response.status_code)
 
+        # clear root_location so we can verify the POST dual-writes it
+        self.org.root_location = None
+        self.org.save(update_fields=("root_location",))
+
         # save with Rwanda as a country
         self.client.post(country_url, {"country": rwanda.id})
 
