@@ -1,3 +1,9 @@
+v26.1.76 (2026-04-01)
+-------------------------
+ * Replace old editor banner with prominent retirement warning, remove new editor welcome banner
+ * Contact exports are now UUID based
+ * Stop writing Org.country, switch all reads to Org.root_location
+
 v26.1.75 (2026-04-01)
 -------------------------
  * Add Org.root_location field with dual-write from Org.country
