@@ -337,6 +337,12 @@ function fetchAjax(url, options, fullPage = false) {
         }
 
         return response.text().then(function (body) {
+          // if this request was aborted while the body was streaming,
+          // bail out to avoid a race with the replacement request
+          if (controller.signal.aborted) {
+            return;
+          }
+
           if (body.startsWith('<!DOCTYPE HTML>')) {
             document.location.href = response.url;
             return;
@@ -612,6 +618,14 @@ document.addEventListener('DOMContentLoaded', function () {
   var container = document.querySelector('.spa-container');
   if (container) {
     container.classList.remove('initial-load');
+
+    // set initial history state so back button works for the first page
+    window.history.replaceState(
+      { url: document.location.href },
+      '',
+      document.location.href
+    );
+
     container.addEventListener('click', function (event) {
       // get our immediate path
       const path = event.composedPath().slice(0, 10);
