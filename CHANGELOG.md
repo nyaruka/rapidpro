@@ -1,3 +1,9 @@
+v26.1.75 (2026-04-01)
+-------------------------
+ * Add Org.root_location field with dual-write from Org.country
+ * Support contact_uuids in mailroom contact_export response
+ * Update contact_deindex and contact_reindex to send contacts by UUID
+
 v26.1.74 (2026-03-31)
 -------------------------
  * Remove phone number honeypot from signup form
