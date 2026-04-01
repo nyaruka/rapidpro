@@ -107,8 +107,7 @@ class BoundariesEndpointTest(APITest):
         )
 
         # if org doesn't have a country, just return no results
-        self.org.country = None
         self.org.root_location = None
-        self.org.save(update_fields=("country", "root_location"))
+        self.org.save(update_fields=("root_location",))
 
         self.assertGet(endpoint_url, [self.admin], results=[])

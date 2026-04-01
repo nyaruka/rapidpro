@@ -850,7 +850,7 @@ def parse_location(org, location_string, level, parent=None):
     Simplified version of mailroom's location parsing
     """
     # no country? bail
-    if not org.country_id or not isinstance(location_string, str):
+    if not org.root_location_id or not isinstance(location_string, str):
         return []
 
     boundary = None
@@ -879,7 +879,7 @@ def parse_location_path(org, location_string):
     """
     return (
         AdminBoundary.objects.filter(path__iexact=location_string.strip()).first()
-        if org.country_id and isinstance(location_string, str)
+        if org.root_location_id and isinstance(location_string, str)
         else None
     )
 
@@ -890,7 +890,7 @@ def find_boundary_by_name(org, name, level, parent):
         boundary = parent.children.filter(name__iexact=name, level=level)
     else:
         query = dict(name__iexact=name, level=level)
-        query["__".join(["parent"] * level)] = org.country
+        query["__".join(["parent"] * level)] = org.root_location
         boundary = AdminBoundary.objects.filter(**query)
 
     return boundary

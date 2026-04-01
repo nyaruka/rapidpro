@@ -15,10 +15,9 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
     @mock_mailroom
     def test_claim(self, mr_mocks):
         # remove our explicit country so it needs to be derived from channels
-        self.org.country = None
         self.org.root_location = None
         self.org.timezone = "UTC"
-        self.org.save(update_fields=("country", "root_location", "timezone"))
+        self.org.save(update_fields=("root_location", "timezone"))
 
         Channel.objects.all().delete()
 
