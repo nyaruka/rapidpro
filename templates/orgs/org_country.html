@@ -2,13 +2,13 @@
 {% load smartmin i18n %}
 
 {% block fields %}
-  {% render_field 'country' %}
+  {% render_field 'root_location' %}
 {% endblock fields %}
 {% block summary %}
-  {% if object.country %}
+  {% if object.root_location %}
     <div class="flex items-center">
       <div class="flex-grow mr-4">
-        {% blocktrans trimmed with country=object.country %}
+        {% blocktrans trimmed with country=object.root_location %}
           Responses to location questions must be in <b>{{ country }}</b>.
         {% endblocktrans %}
       </div>

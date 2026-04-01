@@ -412,10 +412,10 @@ class BoundariesEndpoint(ListAPIMixin, BaseEndpoint):
 
     def derive_queryset(self):
         org = self.request.org
-        if not org.country:
+        if not org.root_location:
             return AdminBoundary.objects.none()
 
-        queryset = org.country.get_descendants(include_self=True)
+        queryset = org.root_location.get_descendants(include_self=True)
 
         queryset = queryset.prefetch_related(
             Prefetch("aliases", queryset=BoundaryAlias.objects.filter(org=org).order_by("name"))

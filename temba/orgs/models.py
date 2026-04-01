@@ -777,9 +777,9 @@ class Org(SmartModel):
         Gets the default country as a pycountry country for this org
         """
 
-        # first try the country boundary field
-        if self.country:
-            if country := pycountry.countries.get(name=self.country.name):
+        # first try the root location boundary field
+        if self.root_location:
+            if country := pycountry.countries.get(name=self.root_location.name):
                 return country
 
         # next up try timezone

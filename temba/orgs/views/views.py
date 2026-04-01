@@ -1494,7 +1494,7 @@ class OrgCRUDL(SmartCRUDL):
 
     class Country(FormaxSectionMixin, InferOrgMixin, OrgPermsMixin, SmartUpdateView):
         class CountryForm(forms.ModelForm):
-            country = forms.ModelChoiceField(
+            root_location = forms.ModelChoiceField(
                 Org.get_possible_countries(),
                 required=False,
                 label=_("The country used for location values. (optional)"),
@@ -1504,11 +1504,7 @@ class OrgCRUDL(SmartCRUDL):
 
             class Meta:
                 model = Org
-                fields = ("country",)
-
-            def save(self, commit=True):
-                self.instance.root_location = self.cleaned_data["country"]
-                return super().save(commit=commit)
+                fields = ("root_location",)
 
         form_class = CountryForm
 
