@@ -1508,10 +1508,7 @@ class OrgCRUDL(SmartCRUDL):
 
             def save(self, commit=True):
                 self.instance.root_location = self.cleaned_data["country"]
-                instance = super().save(commit=False)
-                if commit:
-                    instance.save(update_fields=("country", "root_location"))
-                return instance
+                return super().save(commit=commit)
 
         form_class = CountryForm
 
