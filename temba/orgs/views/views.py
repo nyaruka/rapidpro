@@ -405,7 +405,7 @@ class OrgCRUDL(SmartCRUDL):
         "choose",
         "delete",
         "menu",
-        "country",
+        "locations",
         "languages",
         "list",
         "create",
@@ -1463,8 +1463,8 @@ class OrgCRUDL(SmartCRUDL):
             if self.has_org_perm("orgs.org_languages"):
                 formax.add_section("languages", reverse("orgs.org_languages"), icon="language")
 
-            if self.has_org_perm("orgs.org_country") and "locations" in settings.FEATURES:
-                formax.add_section("country", reverse("orgs.org_country"), icon="location")
+            if self.has_org_perm("orgs.org_locations") and "locations" in settings.FEATURES:
+                formax.add_section("locations", reverse("orgs.org_locations"), icon="location")
 
             if self.has_org_perm("orgs.org_flow_smtp"):
                 formax.add_section("email", reverse("orgs.org_flow_smtp"), icon="email")
@@ -1492,7 +1492,7 @@ class OrgCRUDL(SmartCRUDL):
         def derive_exclude(self):
             return ["language"] if len(settings.LANGUAGES) == 1 else []
 
-    class Country(FormaxSectionMixin, InferOrgMixin, OrgPermsMixin, SmartUpdateView):
+    class Locations(FormaxSectionMixin, InferOrgMixin, OrgPermsMixin, SmartUpdateView):
         class CountryForm(forms.ModelForm):
             root_location = forms.ModelChoiceField(
                 Org.get_possible_countries(),
@@ -1622,7 +1622,7 @@ class OrgCRUDL(SmartCRUDL):
             if self.request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest" and self.request.method == "GET":
                 return "orgs.org_languages"
             else:
-                return "orgs.org_country"
+                return "orgs.org_locations"
 
 
 class InvitationCRUDL(SmartCRUDL):
