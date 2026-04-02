@@ -160,11 +160,11 @@ class OrgTest(TembaTest):
         with self.assertRaises(AssertionError):
             self.org.set_flow_languages(self.admin, ["eng", "eng"])
 
-    def test_country_view(self):
+    def test_locations_view(self):
         self.setUpLocations()
 
         settings_url = reverse("orgs.org_workspace")
-        country_url = reverse("orgs.org_country")
+        country_url = reverse("orgs.org_locations")
 
         rwanda = AdminBoundary.objects.get(name="Rwanda")
 
