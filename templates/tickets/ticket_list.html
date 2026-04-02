@@ -462,6 +462,10 @@
 
     function handleContactRefreshed(evt) {
       var contact = evt.detail.data;
+      var chat = document.querySelector("temba-contact-chat");
+      if (chat && contact) {
+        chat.showSearch = !!contact.last_seen_on;
+      }
     }
 
     function handleTicketsRefreshed(event) {

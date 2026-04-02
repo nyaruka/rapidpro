@@ -16,6 +16,7 @@
         <temba-contact-chat contact="{{ object.uuid }}"
                             monitor="true"
                             avatar="{{ branding.logos.avatar }}"
+                            {% if object.last_seen_on %}showSearch{% endif %}
                             {% if org_perms.contacts.contact_interrupt %}showInterrupt{% endif %}
                             {% if org_perms.channels.channel_logs or request.user.is_staff %}showMessageLogsAfter="{{ msg_logs_after }}"{% endif %}
                             -temba-interrupt="handleInterruptContact">
