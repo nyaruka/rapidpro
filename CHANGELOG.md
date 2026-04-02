@@ -1,3 +1,11 @@
+v26.1.77 (2026-04-02)
+-------------------------
+ * Bump lodash from 4.17.23 to 4.18.1
+ * Remove Org.country field and rename Country view to Locations
+ * Bump aiohttp from 3.13.3 to 3.13.4
+ * Bump anthropic from 0.86.0 to 0.87.0
+ * Fix SPA back button race condition and initial page state
+
 v26.1.76 (2026-04-01)
 -------------------------
  * Replace old editor banner with prominent retirement warning, remove new editor welcome banner
