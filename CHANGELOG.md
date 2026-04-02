@@ -1,3 +1,8 @@
+v26.1.78 (2026-04-02)
+-------------------------
+ * Enable chat search for contacts with last_seen_on
+ * Update @nyaruka/temba-components to 0.155.0
+
 v26.1.77 (2026-04-02)
 -------------------------
  * Bump lodash from 4.17.23 to 4.18.1
