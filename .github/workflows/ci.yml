@@ -51,6 +51,7 @@ jobs:
 
       - name: Initialize environment
         run: |
+          uv venv
           uv sync --frozen
           corepack enable
           yarn install
