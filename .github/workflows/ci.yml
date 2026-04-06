@@ -41,10 +41,8 @@ jobs:
           apt update
           apt install -y --no-install-recommends libgdal-dev ffmpeg
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-in-project: true
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
 
       - name: Install Node
         uses: actions/setup-node@v6
@@ -53,14 +51,14 @@ jobs:
 
       - name: Initialize environment
         run: |
-          poetry install --no-root
+          uv sync
           corepack enable
           yarn install
           yarn global add less
           cd temba && ln -s settings.py.dev settings.py && cd ..
-          poetry run python manage.py migrate
-          poetry run python manage.py migrate_dynamo --testing
-          poetry run python manage.py create_buckets --testing
+          uv run python manage.py migrate
+          uv run python manage.py migrate_dynamo --testing
+          uv run python manage.py create_buckets --testing
           # fetch, extract and start mailroom
           wget https://github.com/${{ github.repository_owner }}/mailroom/releases/download/v${{ env.mailroom-version }}/mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz
           tar -xvf mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz mailroom
@@ -70,17 +68,17 @@ jobs:
       - name: Run pre-test checks
         run: |
           # test that everything is well formatted, no missing migrations etc
-          poetry run python code_check.py --debug
+          uv run python code_check.py --debug
           # check we can collect and compress all static files
-          poetry run python manage.py collectstatic --noinput --verbosity=0
-          poetry run python manage.py compress --extension=".html" --settings=temba.settings_compress
+          uv run python manage.py collectstatic --noinput --verbosity=0
+          uv run python manage.py compress --extension=".html" --settings=temba.settings_compress
 
       - name: Run tests
         run: |
-          poetry run coverage run manage.py test --keepdb --noinput --verbosity=2
-          poetry run coverage report -i
-          poetry run coverage xml
-          poetry run coverage html
+          uv run coverage run manage.py test --keepdb --noinput --verbosity=2
+          uv run coverage report -i
+          uv run coverage xml
+          uv run coverage html
 
       - name: Save coverage report as artifact
         uses: actions/upload-artifact@v6
