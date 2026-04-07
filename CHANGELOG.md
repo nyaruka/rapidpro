@@ -1,3 +1,7 @@
+v26.1.79 (2026-04-07)
+-------------------------
+ * Add support for bsuid URN scheme
+
 v26.1.78 (2026-04-02)
 -------------------------
  * Enable chat search for contacts with last_seen_on
