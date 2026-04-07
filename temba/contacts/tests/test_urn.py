@@ -84,6 +84,18 @@ class URNTest(TembaTest):
         self.assertTrue(URN.validate("whatsapp:12065551212"))
         self.assertFalse(URN.validate("whatsapp:+12065551212"))
 
+    def test_bsuid_urn(self):
+        # valid BSUIDs: two-letter country code, dot, 1-128 alphanumerics
+        self.assertTrue(URN.validate("bsuid:BR.1A2B3C4D5E6F7G8H9I0J"))
+        self.assertTrue(URN.validate("bsuid:US.abcDEF123"))
+
+        # invalid: lowercase country code, missing dot, non-alphanumeric, too long
+        self.assertFalse(URN.validate("bsuid:br.1A2B3C4D"))
+        self.assertFalse(URN.validate("bsuid:BRA.12345"))
+        self.assertFalse(URN.validate("bsuid:BR12345"))
+        self.assertFalse(URN.validate("bsuid:BR.abc-123"))
+        self.assertFalse(URN.validate("bsuid:BR." + "a" * 129))
+
     def test_freshchat_urn(self):
         self.assertTrue(
             URN.validate("freshchat:c0534f78-b6e9-4f79-8853-11cedfc1f35b/c0534f78-b6e9-4f79-8853-11cedfc1f35b")
@@ -160,6 +172,10 @@ class URNTest(TembaTest):
 
         # external ids are case sensitive
         self.assertEqual(URN.normalize("ext: eXterNAL123 "), "ext:eXterNAL123")
+
+        # bsuid - uppercase the two-letter country code prefix
+        self.assertEqual(URN.normalize("bsuid:br.1A2B3C4D"), "bsuid:BR.1A2B3C4D")
+        self.assertEqual(URN.normalize("bsuid:BR.1A2B3C4D"), "bsuid:BR.1A2B3C4D")
 
     def test_validate(self):
         self.assertFalse(URN.validate("xxxx", None))  # un-parseable URNs don't validate
