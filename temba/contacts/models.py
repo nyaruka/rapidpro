@@ -47,6 +47,7 @@ class URN:
         * No hex escaping in URN path
     """
 
+    BSUID_SCHEME = "bsuid"
     DELETED_SCHEME = "deleted"
     EMAIL_SCHEME = "mailto"
     EXTERNAL_SCHEME = "ext"
@@ -71,6 +72,7 @@ class URN:
     SCHEME_CHOICES = (
         (TEL_SCHEME, _("Phone Number")),
         (EMAIL_SCHEME, _("Email Address")),
+        (BSUID_SCHEME, _("WhatsApp BSUID")),
         (EXTERNAL_SCHEME, _("External Identifier")),
         (FACEBOOK_SCHEME, _("Facebook Identifier")),
         (FCM_SCHEME, _("Firebase Cloud Messaging Identifier")),
@@ -204,6 +206,10 @@ class URN:
         elif scheme in [cls.TELEGRAM_SCHEME, cls.WHATSAPP_SCHEME, cls.INSTAGRAM_SCHEME]:
             return regex.match(r"^[0-9]+$", path, regex.V0)
 
+        # bsuid (WhatsApp business-scoped user id): two-letter country code, dot, 1-128 alphanumerics
+        elif scheme == cls.BSUID_SCHEME:
+            return regex.match(r"^[A-Z]{2}\.[a-zA-Z0-9]{1,128}$", path, regex.V0)
+
         # validate Viber URNS look right (this is a guess)
         elif scheme == cls.VIBER_SCHEME:  # pragma: needs cover
             return regex.match(r"^[a-zA-Z0-9_=+/]{1,24}$", path, regex.V0)
@@ -245,6 +251,11 @@ class URN:
 
         elif scheme == cls.EMAIL_SCHEME:
             norm_path = norm_path.lower()
+
+        elif scheme == cls.BSUID_SCHEME:
+            # BSUIDs have format CC.ALPHANUMERIC - uppercase the country code
+            if len(norm_path) > 2 and norm_path[2] == ".":
+                norm_path = norm_path[:2].upper() + norm_path[2:]
 
         return cls.from_parts(scheme, norm_path, query, display)
 
