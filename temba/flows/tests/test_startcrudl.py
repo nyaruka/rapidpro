@@ -55,6 +55,15 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
         # status returns json
         self.assertEqual("Pending", response.json()["results"][0]["status"])
 
+        # starts from other orgs should not be accessible even by id
+        other_flow = self.create_flow("Other Flow", org=self.org2)
+        other_start = self.create_flowstart(other_flow, self.admin2)
+
+        other_status_url = f"{reverse('flows.flowstart_status')}?id={other_start.id}&status=P"
+        response = self.requestView(other_status_url, self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual([], response.json()["results"])
+
     def test_interrupt(self):
         flow = self.create_flow("Test Flow 1")
         start = self.create_flowstart(flow, self.admin)

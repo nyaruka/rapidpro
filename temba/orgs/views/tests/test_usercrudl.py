@@ -68,6 +68,16 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertContentMenu(team_url, self.admin, ["Edit", "Delete"])
 
+        # teams from other orgs must not be accessible by id
+        self.org2.features = [Org.FEATURE_TEAMS]
+        self.org2.save(update_fields=("features",))
+        other_team = Team.create(self.org2, self.admin2, "Secret Team")
+
+        other_team_url = reverse("orgs.user_team", args=[other_team.id])
+        response = self.requestView(other_team_url, self.admin)
+        self.assertEqual(404, response.status_code)
+        self.assertNotContains(response, "Secret Team", status_code=404)
+
     def test_update(self):
         system_user = self.create_user("system@textit.com")
         system_user.is_system = True
