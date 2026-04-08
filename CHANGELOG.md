@@ -1,3 +1,7 @@
+v26.1.80 (2026-04-08)
+-------------------------
+ * Tighten org scoping on a few list/lookup views
+
 v26.1.79 (2026-04-07)
 -------------------------
  * Add support for bsuid URN scheme
