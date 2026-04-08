@@ -251,7 +251,7 @@ class CampaignEventForm(forms.ModelForm):
     )
 
     flow_to_start = TembaChoiceField(
-        queryset=Flow.objects.filter(is_active=True),
+        queryset=Flow.objects.none(),
         required=False,
         empty_label=None,
         widget=SelectWidget(
