@@ -178,7 +178,7 @@ class UserCRUDL(SmartCRUDL):
         def team(self):
             from temba.tickets.models import Team
 
-            return get_object_or_404(Team, id=self.kwargs["team_id"])
+            return get_object_or_404(Team, id=self.kwargs["team_id"], org=self.request.org)
 
         def build_context_menu(self, menu):
             if not self.team.is_system:

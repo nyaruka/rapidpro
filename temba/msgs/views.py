@@ -5,7 +5,7 @@ from functools import cached_property
 from urllib.parse import quote_plus
 
 import magic
-from smartmin.views import SmartCreateView, SmartCRUDL, SmartDeleteView, SmartListView, SmartUpdateView
+from smartmin.views import SmartCreateView, SmartCRUDL, SmartDeleteView, SmartUpdateView
 
 from django import forms
 from django.conf import settings
@@ -493,7 +493,7 @@ class BroadcastCRUDL(SmartCRUDL):
 
             return self.render_modal_response(form)
 
-    class Status(OrgPermsMixin, SmartListView):
+    class Status(BaseListView):
         permission = "msgs.broadcast_list"
 
         def derive_queryset(self, **kwargs):
