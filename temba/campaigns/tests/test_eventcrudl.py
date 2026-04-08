@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from temba.campaigns.models import Campaign, CampaignEvent
-from temba.campaigns.views import CampaignEventCRUDL
+from temba.campaigns.views import CampaignEventCRUDL, CampaignEventForm
 from temba.contacts.models import ContactField
 from temba.flows.models import Flow
 from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
@@ -462,6 +462,17 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             CampaignEventCRUDL.BACKGROUND_WARNING,
             response.context["form"].fields["flow_to_start"].widget.attrs["info_text"],
         )
+
+    @mock_mailroom
+    def test_form_flow_queryset_default(self, mr_mocks):
+        # the class-level queryset for flow_to_start must not leak flows across orgs - it should be empty by
+        # default and only populated when the form is instantiated with an org
+        self.assertEqual(0, CampaignEventForm.base_fields["flow_to_start"].queryset.count())
+
+        # but when instantiated with an org, the field should be scoped to that org's flows
+        form = CampaignEventForm(self.org)
+        flow_qs = form.fields["flow_to_start"].queryset
+        self.assertTrue(all(f.org_id == self.org.id for f in flow_qs))
 
     def test_delete(self):
         event = CampaignEvent.create_message_event(
