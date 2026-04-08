@@ -1,3 +1,8 @@
+v26.1.82 (2026-04-08)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.2
+ * Hide simulator when flow editor is in message view
+
 v26.1.81 (2026-04-08)
 -------------------------
  * Update @nyaruka/temba-components to 0.156.0
