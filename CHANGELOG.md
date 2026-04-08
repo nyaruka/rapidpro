@@ -1,3 +1,7 @@
+v26.1.81 (2026-04-08)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.0
+
 v26.1.80 (2026-04-08)
 -------------------------
  * Tighten org scoping on a few list/lookup views
