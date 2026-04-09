@@ -716,7 +716,12 @@ class FlowCRUDL(SmartCRUDL):
 
     class Editor(SpaMixin, ContextMenuMixin, BaseReadView):
         def get(self, request, *args, **kwargs):
-            if request.COOKIES.get("use-new-editor") != "false" and self.__class__.__name__ != "Next":
+            if "classic" in request.GET:
+                response = HttpResponseRedirect(reverse("flows.flow_editor", args=[kwargs["uuid"]]))
+                response.set_cookie("classic-editor", "true", path="/", max_age=86400)  # 24 hours
+                return response
+
+            if request.COOKIES.get("classic-editor") != "true" and self.__class__.__name__ != "Next":
                 return HttpResponseRedirect(reverse("flows.flow_next", args=[kwargs["uuid"]]))
             return super().get(request, *args, **kwargs)
 
@@ -832,9 +837,9 @@ class FlowCRUDL(SmartCRUDL):
         def build_context_menu(self, menu):
             super().build_context_menu(menu)
 
-            # replace "Switch to New Editor" with "Use Classic Editor"
+            # replace "Switch to New Editor" with "Classic Editor"
             menu.groups[-1] = [
-                {"type": "js", "id": "useClassicEditor", "label": str(_("Use Classic Editor")), "as_button": False}
+                {"type": "js", "id": "useClassicEditor", "label": str(_("Classic Editor")), "as_button": False}
             ]
 
     class ChangeLanguage(OrgObjPermsMixin, SmartUpdateView):
