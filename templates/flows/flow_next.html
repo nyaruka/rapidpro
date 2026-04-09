@@ -55,8 +55,10 @@
   {{ block.super }}
   <script type="text/javascript">
     function useClassicEditor() {
-      document.cookie = 'use-new-editor=false; path=/; max-age=31536000';
-      window.location.href = '/flow/editor/{{object.uuid}}/';
+      var dialog = document.getElementById('classic-editor-retired');
+      dialog.style = 'display:block';
+      dialog.buttons = [{ type: 'secondary', name: 'Ok', closes: true }];
+      dialog.open = true;
     }
 
     function navigateTo(url, detail) {
@@ -100,6 +102,15 @@
   </script>
 {% endblock extra-script %}
 {% block content %}
+  <temba-dialog header="{% trans "Classic Editor" %}"
+                class="hide"
+                id="classic-editor-retired">
+    <div class="p-6">
+      {% blocktrans trimmed %}
+        The Flow Editor has been refreshed with new features and improvements. We're excited about what this means for your workflows. If the new editor doesn't work as expected, please let us know using the support widget at the bottom—we're committed to making sure you have a great experience.
+      {% endblocktrans %}
+    </div>
+  </temba-dialog>
   <temba-flow-editor flow="{{ object.uuid }}" features='{{ feature_filters }}' -temba-contact-clicked="handleContactClicked" -temba-flow-clicked="handleFlowClicked" -temba-group-clicked="handleGroupClicked">
   </temba-flow-editor>
   <temba-simulator flow="{{ object.uuid }}" -temba-follow-simulation="handleFollow">

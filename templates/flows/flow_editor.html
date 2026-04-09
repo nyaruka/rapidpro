@@ -224,7 +224,7 @@
   {{ block.super }}
   <script type="text/javascript">
     function enableNewEditor() {
-      document.cookie = 'use-new-editor=; path=/; max-age=0';
+      document.cookie = 'classic-editor=; path=/; max-age=0';
       window.location.href = '/flow/next/{{object.uuid}}/';
     }
 
