@@ -1,3 +1,7 @@
+v26.1.85 (2026-04-09)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.5
+
 v26.1.84 (2026-04-09)
 -------------------------
  * Merge pull request #6553 from nyaruka/update-temba-components-0.156.4
