@@ -232,6 +232,13 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, reverse("flows.flow_simulate", args=[flow.uuid]))
         self.assertContains(response, 'id="rp-flow-editor"')
 
+        # ?classic param sets a 24h cookie and redirects to classic editor
+        del self.client.cookies["classic-editor"]
+        response = self.client.get(f"{flow_editor_url}?classic")
+        self.assertRedirects(response, flow_editor_url, fetch_redirect_response=False)
+        self.assertEqual(response.cookies["classic-editor"].value, "true")
+        self.assertEqual(response.cookies["classic-editor"]["max-age"], 86400)
+
         # removing the cookie goes back to new editor default
         del self.client.cookies["classic-editor"]
         response = self.client.get(flow_editor_url)
