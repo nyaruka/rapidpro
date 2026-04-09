@@ -1,3 +1,7 @@
+v26.1.87 (2026-04-09)
+-------------------------
+ * Retire classic editor and force users to new editor
+
 v26.1.86 (2026-04-09)
 -------------------------
  * Merge pull request #6555 from nyaruka/update-temba-components-0.156.6
