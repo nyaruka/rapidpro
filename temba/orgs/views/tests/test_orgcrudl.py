@@ -1193,3 +1193,9 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRedirect(response, "/msg")
         self.assertEqual(str(self.org2.uuid), self.client.session["org_uuid"])
         self.assertEqual(self.org2.id, self.client.session["org_id"])
+
+        # external next URL should be ignored and fall back to start
+        response = self.client.post(
+            reverse("orgs.org_switch"), {"other_org": self.org2.id, "next": "https://evil.example.com/"}
+        )
+        self.assertRedirect(response, reverse("orgs.org_start"))
