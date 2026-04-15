@@ -130,8 +130,6 @@
         <script src="{{ STATIC_URL }}js/labels.js"></script>
       {% endcompress %}
     {% endblock scripts %}
-    {% for script in flow_editor_scripts %}<script type="text/javascript" src="{{script}}"></script>{% endfor %}
-    {% for style in flow_editor_styles %}<link rel="stylesheet" href="{{ style }}" type="text/css">{% endfor %}
     {% block favico %}
       <link type="image/ico" rel="shortcut icon" href="{{ STATIC_URL }}images/favicon.ico">
     {% endblock favico %}

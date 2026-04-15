@@ -2,11 +2,9 @@ import logging
 from datetime import date, datetime, timedelta
 from urllib.parse import quote, urlencode
 
-import requests
 from smartmin.views import SmartFormView, SmartModelActionView, SmartModelFormView
 
 from django import forms
-from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
@@ -15,7 +13,6 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from temba import __version__ as temba_version
-from temba.utils import json
 from temba.utils.fields import CheckboxWidget, DateWidget, InputWidget, SelectMultipleWidget, SelectWidget
 
 logger = logging.getLogger(__name__)
@@ -326,43 +323,6 @@ class SpaMixin:
         context["temba_path"] = self.spa_path
         context["temba_referer"] = self.spa_referrer_path
         context[TEMBA_MENU_SELECTION] = self.derive_menu_path()
-
-        # the base page should prep the flow editor
-        if not self.is_content_only():
-            dev_mode = getattr(settings, "EDITOR_DEV_MODE", False)
-            dev_host = getattr(settings, "EDITOR_DEV_HOST", "localhost")
-            prefix = "/dev" if dev_mode else settings.STATIC_URL
-
-            # get our list of assets to incude
-            scripts = []
-            styles = []
-
-            if dev_mode:  # pragma: no cover
-                response = requests.get(f"http://{dev_host}:3000/asset-manifest.json")
-                data = response.json()
-            else:
-                with open("node_modules/@nyaruka/flow-editor/build/asset-manifest.json") as json_file:
-                    data = json.load(json_file)
-
-            for key, filename in data.get("files").items():
-                # tack on our prefix for dev mode
-                filename = prefix + filename
-
-                # ignore precache manifest
-                if key.startswith("precache-manifest") or key.startswith("service-worker"):
-                    continue
-
-                # css files
-                if key.endswith(".css") and filename.endswith(".css"):
-                    styles.append(filename)
-
-                # javascript
-                if key.endswith(".js") and filename.endswith(".js"):
-                    scripts.append(filename)
-
-            context["flow_editor_scripts"] = scripts
-            context["flow_editor_styles"] = styles
-            context["dev_mode"] = dev_mode
 
         return context
 
