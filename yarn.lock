@@ -139,10 +139,10 @@
     uuid "^11.1.0"
     zustand "^5.0.3"
 
-"@nyaruka/temba-components@0.156.7":
-  version "0.156.7"
-  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.156.7.tgz#c11f1d6d8a63b4ffaf190a3267eb2f24c8284284"
-  integrity sha512-V63RfS1nyswyAGEDzSrt2k4kwYZ6OPxFxPmwhw72x59gOqzB6+KENpa5EILj17MvwStA/nz19Rg7ekoY+X6Q5Q==
+"@nyaruka/temba-components@0.156.8":
+  version "0.156.8"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.156.8.tgz#beecf6d5bc8206d128f8049dc68c00c87bf7130c"
+  integrity sha512-MTvAZ6CKJV+hjfqv4Zb+Mq89B0wzm6xJArrHXrOKU6v5b9KY/JTeTcNP1O9i+mXuclDC2aUYq4hfXrs5EgXQCw==
   dependencies:
     "@jsplumb/browser-ui" "^6.2.10"
     "@lit/localize" "^0.12.2"
@@ -734,11 +734,6 @@ inherits@2, inherits@~2.0.3:
   version "2.0.4"
   resolved "https://registry.npmjs.org/inherits/-/inherits-2.0.4.tgz#0fa2c64f932917c3433a0ded55363aae37416b7c"
   integrity sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==
-
-intercooler@1.2.3:
-  version "1.2.3"
-  resolved "https://registry.npmjs.org/intercooler/-/intercooler-1.2.3.tgz#4dd74d66809e5ec47d03b18f2701bb3a43de241c"
-  integrity sha512-rbgvkXJzRwZlb5UhP1JVzJLT45UEx7hyLB6f97K+ll/s2L4O82Gx8f3ZNdB6oZD6CwYM2Nr0MemOE0u+RovZAQ==
 
 is-arrayish@^0.2.1:
   version "0.2.1"
