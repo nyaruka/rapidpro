@@ -1,3 +1,7 @@
+v26.1.89 (2026-04-16)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.8
+
 v26.1.88 (2026-04-15)
 -------------------------
  * Update @nyaruka/temba-components to 0.156.7
