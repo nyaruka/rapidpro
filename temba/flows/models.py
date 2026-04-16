@@ -221,10 +221,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         return flow
 
-    @property
-    def engine_type(self):
-        return Flow.GOFLOW_TYPES.get(self.flow_type, "")
-
     @classmethod
     def import_flows(cls, org, user, export_json, dependency_mapping, same_site=False):
         """
