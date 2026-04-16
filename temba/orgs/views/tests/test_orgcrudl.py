@@ -1199,3 +1199,9 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             reverse("orgs.org_switch"), {"other_org": self.org2.id, "next": "https://evil.example.com/"}
         )
         self.assertRedirect(response, reverse("orgs.org_start"))
+
+        # schemeless external URL should also be rejected
+        response = self.client.post(
+            reverse("orgs.org_switch"), {"other_org": self.org2.id, "next": "//evil.example.com/"}
+        )
+        self.assertRedirect(response, reverse("orgs.org_start"))
