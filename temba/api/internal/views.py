@@ -125,6 +125,9 @@ class ShortcutsEndpoint(ListAPIMixin, BaseEndpoint):
     serializer_class = serializers.ShortcutReadSerializer
     pagination_class = ModifiedOnCursorPagination
 
+    def get_queryset(self):
+        return super().get_queryset().filter(org=self.request.org, is_active=True)
+
 
 class TemplatesEndpoint(ListAPIMixin, BaseEndpoint):
     """

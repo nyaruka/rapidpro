@@ -147,6 +147,8 @@ class EndpointsTest(APITestMixin, TembaTest):
 
         shortcut1 = Shortcut.create(self.org, self.admin, "Planes", "Planes are...")
         shortcut2 = Shortcut.create(self.org, self.admin, "Trains", "Trains are...")
+        deleted = Shortcut.create(self.org, self.admin, "Deleted", "Deleted shortcut")
+        deleted.release(self.admin)
         Shortcut.create(self.org2, self.admin, "Cars", "Other org")
 
         self.assertGet(
