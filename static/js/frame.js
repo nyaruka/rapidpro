@@ -359,12 +359,6 @@ function fetchAjax(url, options, fullPage = false) {
 
           var containerEle = document.querySelector(container);
           if (containerEle) {
-            // special care to unmount the editor
-            var editor = document.querySelector('#rp-flow-editor');
-            if (editor) {
-              window.unmountEditor(editor);
-            }
-
             setInnerHTML(containerEle, body);
             var title = document.querySelector('#title-text');
             if (title) {

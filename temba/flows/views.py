@@ -142,7 +142,6 @@ class FlowCRUDL(SmartCRUDL):
         "import_translation",
         "export_results",
         "editor",
-        "next",
         "results",
         "result_chart",
         "preview_start",
@@ -715,11 +714,6 @@ class FlowCRUDL(SmartCRUDL):
             return qs.filter(org=self.request.org, labels=self.label, is_archived=False).order_by("-created_on")
 
     class Editor(SpaMixin, ContextMenuMixin, BaseReadView):
-        def get(self, request, *args, **kwargs):
-            if request.COOKIES.get("use-new-editor") != "false" and self.__class__.__name__ != "Next":
-                return HttpResponseRedirect(reverse("flows.flow_next", args=[kwargs["uuid"]]))
-            return super().get(request, *args, **kwargs)
-
         def derive_menu_path(self):
             if self.object.is_archived:
                 return "/flow/archived"
@@ -822,20 +816,6 @@ class FlowCRUDL(SmartCRUDL):
 
                 if self.has_org_perm("flows.flow_update"):
                     menu.add_link(_("Import Translation"), reverse("flows.flow_import_translation", args=[obj.id]))
-
-            menu.new_group()
-            menu.add_js("enableNewEditor", _("Switch to New Editor"))
-
-    class Next(Editor):
-        template_name = "flows/flow_next.html"
-
-        def build_context_menu(self, menu):
-            super().build_context_menu(menu)
-
-            # replace "Switch to New Editor" with "Use Classic Editor"
-            menu.groups[-1] = [
-                {"type": "js", "id": "useClassicEditor", "label": str(_("Use Classic Editor")), "as_button": False}
-            ]
 
     class ChangeLanguage(OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.Form):

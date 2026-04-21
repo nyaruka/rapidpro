@@ -1,3 +1,41 @@
+v26.1.91 (2026-04-21)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.10
+ * Filter deleted shortcuts from internal shortcuts endpoint
+
+v26.1.90 (2026-04-16)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.9
+ * Remove unused intercooler dependency and orphaned templates
+ * Rename org_country.html template to org_locations.html
+ * Remove classic flow editor and consolidate to new editor
+ * Harden request validation in android sync and org switch views
+
+v26.1.89 (2026-04-16)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.8
+
+v26.1.88 (2026-04-15)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.7
+
+v26.1.87 (2026-04-09)
+-------------------------
+ * Retire classic editor and force users to new editor
+
+v26.1.86 (2026-04-09)
+-------------------------
+ * Merge pull request #6555 from nyaruka/update-temba-components-0.156.6
+ * Update @nyaruka/temba-components to 0.156.6
+
+v26.1.85 (2026-04-09)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.5
+
+v26.1.84 (2026-04-09)
+-------------------------
+ * Merge pull request #6553 from nyaruka/update-temba-components-0.156.4
+
 v26.1.83 (2026-04-08)
 -------------------------
  * Update @nyaruka/temba-components to 0.156.3
