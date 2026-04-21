@@ -1,3 +1,8 @@
+v26.1.91 (2026-04-21)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.10
+ * Filter deleted shortcuts from internal shortcuts endpoint
+
 v26.1.90 (2026-04-16)
 -------------------------
  * Update @nyaruka/temba-components to 0.156.9
