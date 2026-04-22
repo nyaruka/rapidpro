@@ -351,9 +351,7 @@ class CampaignEventForm(forms.ModelForm):
                     if text and len(text) > Msg.MAX_TEXT_LEN:
                         self.add_error("compose", _(f"Maximum allowed text is {Msg.MAX_TEXT_LEN} characters."))
                     if attachments and len(attachments) > Msg.MAX_ATTACHMENTS:
-                        self.add_error(
-                            "compose", _(f"Maximum allowed attachments is {Msg.MAX_ATTACHMENTS} files.")
-                        )
+                        self.add_error("compose", _(f"Maximum allowed attachments is {Msg.MAX_ATTACHMENTS} files."))
 
             primary_values = compose.get(primary_language or base_language, {})
             template = primary_values.get("template", None)
@@ -367,9 +365,7 @@ class CampaignEventForm(forms.ModelForm):
                     for idx, param in enumerate(translation.variables):
                         if param.get("type") != "text":
                             if idx >= len(variables) or not variables[idx]:
-                                self.add_error(
-                                    "compose", _("The attachment for the WhatsApp template is required.")
-                                )
+                                self.add_error("compose", _("The attachment for the WhatsApp template is required."))
 
             if not data.get("message_start_mode"):
                 self.add_error("message_start_mode", _("This field is required."))
@@ -556,7 +552,9 @@ class CampaignEventCRUDL(SmartCRUDL):
                 if len(bolded) == 1:
                     context["translations_summary"] = bolded[0]
                 elif len(bolded) == 2:
-                    context["translations_summary"] = format_html(_("{first} and {second}"), first=bolded[0], second=bolded[1])
+                    context["translations_summary"] = format_html(
+                        _("{first} and {second}"), first=bolded[0], second=bolded[1]
+                    )
                 elif len(bolded) > 2:
                     context["translations_summary"] = format_html(
                         _("{list}, and {last}"),
