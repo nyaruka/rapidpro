@@ -336,7 +336,11 @@ class CampaignEventForm(forms.ModelForm):
 
             def is_missing(values):
                 if values:
-                    return not (values.get("text", "") or values.get("attachments", []))
+                    return not (
+                        values.get("text", "")
+                        or values.get("attachments", [])
+                        or values.get("quick_replies", [])
+                    )
                 return True
 
             base = compose.get(base_language)
@@ -353,7 +357,7 @@ class CampaignEventForm(forms.ModelForm):
                     if attachments and len(attachments) > Msg.MAX_ATTACHMENTS:
                         self.add_error("compose", _(f"Maximum allowed attachments is {Msg.MAX_ATTACHMENTS} files."))
 
-            primary_values = compose.get(primary_language or base_language, {})
+            primary_values = compose.get(primary_language) or compose.get(base_language, {})
             template = primary_values.get("template", None)
             locale = primary_values.get("locale", None)
             variables = primary_values.get("variables", [])
@@ -402,9 +406,10 @@ class CampaignEventForm(forms.ModelForm):
 
             # remove template-related keys from all translations so they aren't stored per-language
             for values in compose.values():
-                values.pop("template", None)
-                values.pop("variables", None)
-                values.pop("locale", None)
+                if isinstance(values, dict):
+                    values.pop("template", None)
+                    values.pop("variables", None)
+                    values.pop("locale", None)
 
             # only keep translations that have actual content
             trimmed = {}
