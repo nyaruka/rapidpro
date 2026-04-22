@@ -1,3 +1,8 @@
+v26.1.94 (2026-04-22)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.11
+ * Modernize campaign message events to use temba-compose widget
+
 v26.1.93 (2026-04-22)
 -------------------------
  * Add template and template_variables fields to CampaignEvent
