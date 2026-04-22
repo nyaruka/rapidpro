@@ -527,6 +527,12 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(read_url, self.admin)
         self.assertContains(response, "Translations provided in <b>French</b>, <b>Kinyarwanda</b>, and <b>Spanish</b>")
 
+        # translations for languages no longer configured on the org should be omitted
+        self.org.set_flow_languages(self.admin, ["eng", "kin", "spa"])
+        response = self.requestView(read_url, self.admin)
+        self.assertContains(response, "Translations provided in <b>Kinyarwanda</b> and <b>Spanish</b>")
+        self.assertNotContains(response, "<b>French</b>")
+
     @mock_mailroom
     def test_create_with_template(self, mr_mocks):
         """Creating a message event with a WhatsApp template persists template + variables."""
