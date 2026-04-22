@@ -543,11 +543,11 @@ class CampaignEventCRUDL(SmartCRUDL):
             context["recent_fires"] = self.object.get_recent_fires()
 
             if self.object.event_type == CampaignEvent.TYPE_MESSAGE and self.object.translations:
-                names = [
+                names = sorted(
                     languages.get_name(iso)
                     for iso in self.object.translations.keys()
                     if iso != self.object.base_language
-                ]
+                )
                 bolded = [format_html("<b>{}</b>", n) for n in names]
                 if len(bolded) == 1:
                     context["translations_summary"] = bolded[0]

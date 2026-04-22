@@ -4,6 +4,8 @@ from temba.campaigns.models import Campaign, CampaignEvent
 from temba.campaigns.views import CampaignEventCRUDL, CampaignEventForm
 from temba.contacts.models import ContactField
 from temba.flows.models import Flow
+from temba.msgs.models import Msg
+from temba.templates.models import TemplateTranslation
 from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
 from temba.utils import json
 from temba.utils.compose import compose_serialize
@@ -482,6 +484,220 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             CampaignEventCRUDL.BACKGROUND_WARNING,
             response.context["form"].fields["flow_to_start"].widget.attrs["info_text"],
         )
+
+    @mock_mailroom
+    def test_read_with_translations(self, mr_mocks):
+        """The read view renders message content and a translation summary."""
+        self.org.set_flow_languages(self.admin, ["eng", "kin", "spa", "fra"])
+
+        event = CampaignEvent.create_message_event(
+            self.org,
+            self.admin,
+            self.campaign1,
+            self.org.fields.get(key="registered"),
+            offset=3,
+            unit="D",
+            translations={
+                "eng": {"text": "Hi there", "attachments": [], "quick_replies": [{"text": "Yes"}, {"text": "No"}]},
+                "kin": {"text": "Muraho", "attachments": []},
+            },
+            base_language="eng",
+            delivery_hour=9,
+        )
+
+        read_url = reverse("campaigns.campaignevent_read", args=[event.campaign.uuid, event.uuid])
+        response = self.requestView(read_url, self.admin)
+
+        # quick replies should be shown
+        self.assertContains(response, "Yes")
+        self.assertContains(response, "No")
+
+        # single non-base translation, no comma
+        self.assertContains(response, "Translation provided in <b>Kinyarwanda</b>")
+
+        # now add a second translation - should use "and" (alphabetical by language name)
+        event.translations["spa"] = {"text": "Hola", "attachments": []}
+        event.save(update_fields=("translations",))
+        response = self.requestView(read_url, self.admin)
+        self.assertContains(response, "Translations provided in <b>Kinyarwanda</b> and <b>Spanish</b>")
+
+        # three translations - oxford comma, alphabetical
+        event.translations["fra"] = {"text": "Bonjour", "attachments": []}
+        event.save(update_fields=("translations",))
+        response = self.requestView(read_url, self.admin)
+        self.assertContains(
+            response, "Translations provided in <b>French</b>, <b>Kinyarwanda</b>, and <b>Spanish</b>"
+        )
+
+    @mock_mailroom
+    def test_create_with_template(self, mr_mocks):
+        """Creating a message event with a WhatsApp template persists template + variables."""
+        planting_date = self.create_field("planting_date", "Planting Date", ContactField.TYPE_DATETIME)
+        campaign = Campaign.create(self.org, self.admin, "With Template", self.create_group("G", []))
+        create_url = reverse("campaigns.campaignevent_create", args=[campaign.id])
+
+        template = self.create_template(
+            "Hello World",
+            [
+                TemplateTranslation(
+                    channel=self.channel,
+                    locale="eng-US",
+                    status=TemplateTranslation.STATUS_APPROVED,
+                    external_id="1003",
+                    external_locale="en_US",
+                    namespace="",
+                    components=[
+                        {"name": "header", "type": "header/media", "variables": {"1": 0}},
+                        {"name": "body", "type": "body/text", "content": "Hello {{1}}", "variables": {"1": 1}},
+                    ],
+                    variables=[{"type": "image"}, {"type": "text"}],
+                )
+            ],
+        )
+        trans = template.translations.all().first()
+
+        # missing required attachment variable should error
+        self.assertCreateSubmit(
+            create_url,
+            self.admin,
+            {
+                "relative_to": planting_date.id,
+                "event_type": "M",
+                "compose": _compose(
+                    {
+                        "eng": {
+                            "text": "Hello",
+                            "template": str(template.uuid),
+                            "variables": ["", "World"],
+                            "locale": trans.locale,
+                        }
+                    }
+                ),
+                "direction": "A",
+                "offset": 1,
+                "unit": "D",
+                "flow_to_start": "",
+                "delivery_hour": -1,
+                "message_start_mode": "I",
+            },
+            form_errors={"compose": "The attachment for the WhatsApp template is required."},
+        )
+
+        # with the attachment it saves
+        self.assertCreateSubmit(
+            create_url,
+            self.admin,
+            {
+                "relative_to": planting_date.id,
+                "event_type": "M",
+                "compose": _compose(
+                    {
+                        "eng": {
+                            "text": "Hello",
+                            "template": str(template.uuid),
+                            "variables": ["image/jpeg:http://domain/meow.jpg", "World"],
+                            "locale": trans.locale,
+                        }
+                    }
+                ),
+                "direction": "A",
+                "offset": 1,
+                "unit": "D",
+                "flow_to_start": "",
+                "delivery_hour": -1,
+                "message_start_mode": "I",
+            },
+            new_obj_query=CampaignEvent.objects.filter(campaign=campaign, template=template),
+        )
+
+        event = CampaignEvent.objects.get(campaign=campaign)
+        self.assertEqual(template, event.template)
+        self.assertEqual(["image/jpeg:http://domain/meow.jpg", "World"], event.template_variables)
+
+        # editing the event should expose the template + variables back through the compose initial
+        event.status = CampaignEvent.STATUS_READY
+        event.save(update_fields=("status",))
+        update_url = reverse("campaigns.campaignevent_update", args=[event.uuid])
+        response = self.requestView(update_url, self.admin)
+        initial = response.context["form"].fields["compose"].initial
+        self.assertEqual(str(template.uuid), initial["eng"]["template"])
+        self.assertEqual(["image/jpeg:http://domain/meow.jpg", "World"], initial["eng"]["variables"])
+
+    @mock_mailroom
+    def test_too_many_attachments(self, mr_mocks):
+        planting_date = self.create_field("planting_date", "Planting Date", ContactField.TYPE_DATETIME)
+        campaign = Campaign.create(self.org, self.admin, "Attachments", self.create_group("Ga", []))
+        create_url = reverse("campaigns.campaignevent_create", args=[campaign.id])
+
+        # build the compose payload directly (what the widget would send) to avoid going through
+        # compose_serialize which expects DB-format attachment strings
+        attachments = [{"content_type": "image/jpeg", "url": f"http://example.com/x{i}.jpg"} for i in range(12)]
+        compose = json.dumps({"eng": {"text": "Hi", "attachments": attachments}})
+        self.assertCreateSubmit(
+            create_url,
+            self.admin,
+            {
+                "relative_to": planting_date.id,
+                "event_type": "M",
+                "compose": compose,
+                "direction": "A",
+                "offset": 1,
+                "unit": "D",
+                "flow_to_start": "",
+                "delivery_hour": -1,
+                "message_start_mode": "I",
+            },
+            form_errors={"compose": f"Maximum allowed attachments is {Msg.MAX_ATTACHMENTS} files."},
+        )
+
+    @mock_mailroom
+    def test_update_form_language_edge_cases(self, mr_mocks):
+        """Form init should handle events whose base language or translations don't match current org languages."""
+        event = CampaignEvent.create_message_event(
+            self.org,
+            self.admin,
+            self.campaign1,
+            self.org.fields.get(key="registered"),
+            offset=3,
+            unit="D",
+            translations={
+                "eng": {"text": "Hello"},
+                "kin": {"text": "Muraho"},
+                "spa": {"text": "Hola"},
+            },
+            base_language="eng",
+            delivery_hour=9,
+        )
+        update_url = reverse("campaigns.campaignevent_update", args=[event.uuid])
+
+        # primary/base=eng is not in org langs; spa isn't either. Base language is prepended, spa is stripped.
+        self.org.set_flow_languages(self.admin, ["por", "kin"])
+        response = self.requestView(update_url, self.admin)
+        initial = response.context["form"].fields["compose"].initial
+        self.assertIn("eng", initial)
+        self.assertIn("kin", initial)
+        self.assertNotIn("spa", initial)
+        langs = json.loads(response.context["form"].fields["compose"].widget.attrs["languages"])
+        self.assertEqual([lang["iso"] for lang in langs][0], "eng")
+
+        # base=eng is not in org langs, but org's primary IS in compose — base is appended to the end
+        event.translations = {"eng": {"text": "Hi"}, "por": {"text": "Olá"}}
+        event.base_language = "eng"
+        event.save(update_fields=("translations", "base_language"))
+        self.org.set_flow_languages(self.admin, ["por", "kin"])
+        response = self.requestView(update_url, self.admin)
+        langs = json.loads(response.context["form"].fields["compose"].widget.attrs["languages"])
+        iso_order = [lang["iso"] for lang in langs]
+        self.assertEqual(iso_order, ["por", "kin", "eng"])
+
+        # base=eng is in org langs but isn't primary (por is), and por isn't in compose — base moves to the front
+        self.org.set_flow_languages(self.admin, ["por", "eng"])
+        event.translations = {"eng": {"text": "Hi"}, "kin": {"text": "Muraho"}}
+        event.save(update_fields=("translations",))
+        response = self.requestView(update_url, self.admin)
+        langs = json.loads(response.context["form"].fields["compose"].widget.attrs["languages"])
+        iso_order = [lang["iso"] for lang in langs]
+        self.assertEqual(iso_order[0], "eng")
 
     @mock_mailroom
     def test_form_flow_queryset_default(self, mr_mocks):
