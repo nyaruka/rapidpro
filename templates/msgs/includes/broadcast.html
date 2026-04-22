@@ -22,16 +22,8 @@
       </div>
       <div>
         <div class="text" style="overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;">
-          {% if broadcast.schedule and broadcast.template %}
-            <div class="flex flex-row flex-wrap mb-2">
-              <div class="flex items-center px-2 py-1 mr-1 rounded" style="border: 1px solid #7dc8bc; background: #f0faf7; color: #128C7E; font-size: 0.85em;">
-                <temba-icon class="mr-1" name="channel_wa" style="--icon-color: #128C7E;"></temba-icon>
-                <div>{{ broadcast.template.name }}</div>
-              </div>
-            </div>
-          {% endif %}
           <temba-expression-highlight>{{ translation.text }}</temba-expression-highlight>
-          {% if not broadcast.schedule and broadcast.template %}
+          {% if broadcast.template %}
             <div class="flex flex-row flex-wrap mt-2">
               <div class="flex items-center px-2 py-1 mr-1 rounded" style="border: 1px solid #7dc8bc; background: #f0faf7; color: #128C7E; font-size: 0.85em;">
                 <temba-icon class="mr-1" name="channel_wa" style="--icon-color: #128C7E;"></temba-icon>
