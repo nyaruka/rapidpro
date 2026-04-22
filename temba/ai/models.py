@@ -51,15 +51,20 @@ class LLM(TembaModel, DependencyMixin):
     A language model that can be used for AI tasks
     """
 
+    ROLE_TRANSLATION = "T"
+    ROLE_FLOWS = "F"
+    DEFAULT_ROLES = ROLE_TRANSLATION + ROLE_FLOWS
+
     org = models.ForeignKey(Org, related_name="llms", on_delete=models.PROTECT)
     llm_type = models.CharField(max_length=16)
     model = models.CharField(max_length=64)
     config = models.JSONField()
+    roles = models.CharField(max_length=2, default=DEFAULT_ROLES)
 
     org_limit_key = Org.LIMIT_LLMS
 
     @classmethod
-    def create(cls, org, user, typ, model: str, name: str, config: dict):
+    def create(cls, org, user, typ, model: str, name: str, config: dict, roles: str = DEFAULT_ROLES):
         assert "models" not in typ.settings or model in typ.settings["models"]
 
         return cls.objects.create(
@@ -68,6 +73,7 @@ class LLM(TembaModel, DependencyMixin):
             llm_type=typ.slug,
             model=model,
             config=config,
+            roles=roles,
             created_by=user,
             modified_by=user,
         )

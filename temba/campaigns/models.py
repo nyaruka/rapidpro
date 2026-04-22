@@ -309,8 +309,8 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="campaign_events", null=True, blank=True)
     translations = models.JSONField(null=True)  # text, attachments and quick replies by language
     base_language = models.CharField(max_length=3, null=True)  # ISO-639-3
-    template = models.ForeignKey("templates.Template", null=True, on_delete=models.PROTECT)
-    template_variables = ArrayField(models.TextField(), null=True)
+    template = models.ForeignKey("templates.Template", null=True, blank=True, on_delete=models.PROTECT)
+    template_variables = ArrayField(models.TextField(), null=True, blank=True)
 
     # what should happen to other runs when this event is triggered
     start_mode = models.CharField(max_length=1, choices=START_MODES_CHOICES, default=MODE_INTERRUPT)

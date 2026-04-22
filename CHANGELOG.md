@@ -1,3 +1,15 @@
+v26.1.93 (2026-04-22)
+-------------------------
+ * Add template and template_variables fields to CampaignEvent
+ * Bump cryptography from 46.0.6 to 46.0.7
+ * Add roles field to LLM model
+
+v26.1.92 (2026-04-21)
+-------------------------
+ * Bump pillow from 12.1.1 to 12.2.0
+ * Update Django from 5.2.12 to 5.2.13
+ * Switch from Poetry to uv for Python dependency management
+
 v26.1.91 (2026-04-21)
 -------------------------
  * Update @nyaruka/temba-components to 0.156.10

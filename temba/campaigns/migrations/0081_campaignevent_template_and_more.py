@@ -14,6 +14,7 @@ class Migration(migrations.Migration):
             model_name="campaignevent",
             name="template",
             field=models.ForeignKey(
+                blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
                 to="templates.template",
@@ -22,6 +23,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="campaignevent",
             name="template_variables",
-            field=django.contrib.postgres.fields.ArrayField(base_field=models.TextField(), null=True, size=None),
+            field=django.contrib.postgres.fields.ArrayField(
+                base_field=models.TextField(), blank=True, null=True, size=None
+            ),
         ),
     ]
