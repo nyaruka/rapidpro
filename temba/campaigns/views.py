@@ -337,9 +337,7 @@ class CampaignEventForm(forms.ModelForm):
             def is_missing(values):
                 if values:
                     return not (
-                        values.get("text", "")
-                        or values.get("attachments", [])
-                        or values.get("quick_replies", [])
+                        values.get("text", "") or values.get("attachments", []) or values.get("quick_replies", [])
                     )
                 return True
 
