@@ -525,9 +525,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         event.translations["fra"] = {"text": "Bonjour", "attachments": []}
         event.save(update_fields=("translations",))
         response = self.requestView(read_url, self.admin)
-        self.assertContains(
-            response, "Translations provided in <b>French</b>, <b>Kinyarwanda</b>, and <b>Spanish</b>"
-        )
+        self.assertContains(response, "Translations provided in <b>French</b>, <b>Kinyarwanda</b>, and <b>Spanish</b>")
 
     @mock_mailroom
     def test_create_with_template(self, mr_mocks):
