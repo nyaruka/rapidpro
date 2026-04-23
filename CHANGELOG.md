@@ -1,3 +1,8 @@
+v26.1.95 (2026-04-23)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.12
+ * Update mailroom client llm_translate to use batched shape
+
 v26.1.94 (2026-04-22)
 -------------------------
  * Update @nyaruka/temba-components to 0.156.11
