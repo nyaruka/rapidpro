@@ -31,15 +31,17 @@ class OpenAIAzureTypeTest(TembaTest, CRUDLTestMixin):
 
         # get our model list
         response = self.process_wizard("connect_view", connect_url, {"credentials": {"api_key": "good_key"}})
-        self.assertEqual(
-            response.context["form"].fields["model"].choices, [("gpt-35-turbo", "gpt-35-turbo")]
-        )
+        self.assertEqual(response.context["form"].fields["model"].choices, [("gpt-35-turbo", "gpt-35-turbo")])
 
         # select a model and give it a name
         response = self.process_wizard(
             "connect_view",
             connect_url,
-            {"credentials": {"api_key": "good_key"}, "model": {"model": "gpt-35-turbo"}, "name": {"name": "Cool Model"}},
+            {
+                "credentials": {"api_key": "good_key"},
+                "model": {"model": "gpt-35-turbo"},
+                "name": {"name": "Cool Model"},
+            },
         )
         self.assertRedirects(response, reverse("ai.llm_list"))
 
