@@ -100,7 +100,11 @@ class LLMCRUDL(SmartCRUDL):
 
         def build_context_menu(self, menu):
             if self.has_org_perm("ai.llm_connect") and not self.is_limit_reached():
+                org = self.request.org
+                user = self.request.user
                 for llm_type in LLM.get_types():
+                    if not llm_type.is_available_to(org, user):
+                        continue
                     menu.add_modax(
                         f"New {llm_type.name}",
                         f"new-{llm_type.slug}",
