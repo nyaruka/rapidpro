@@ -16,7 +16,7 @@ from temba.contacts.models import URN
 from temba.flows.models import Flow, FlowLabel, FlowRun, FlowStart, FlowUserConflictException, ResultsExport
 from temba.mailroom.client.types import Exclusions
 from temba.orgs.integrations.dtone.type import DTOneType
-from temba.orgs.models import Export
+from temba.orgs.models import Export, Org
 from temba.templates.models import TemplateTranslation
 from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
 from temba.tests.base import get_contact_search, override_brand
@@ -1140,6 +1140,10 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.setUpLocations()
 
         assert_features({"optins", "airtime", "classifier", "resthook", "locations"})
+
+        flow.org.features = [Org.FEATURE_AUTO_TRANSLATE]
+        flow.org.save(update_fields=("features",))
+        assert_features({"optins", "airtime", "classifier", "resthook", "locations", "auto_translate"})
 
     @mock_mailroom
     def test_template_warnings(self, mr_mocks):

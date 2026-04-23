@@ -760,6 +760,8 @@ class FlowCRUDL(SmartCRUDL):
                 features.append("resthook")
             if org.root_location_id:
                 features.append("locations")
+            if Org.FEATURE_AUTO_TRANSLATE in org.features:
+                features.append("auto_translate")
 
             return features
 
