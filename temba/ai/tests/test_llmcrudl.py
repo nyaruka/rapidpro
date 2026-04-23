@@ -4,6 +4,7 @@ from django.urls import reverse
 from temba.ai.models import LLM
 from temba.ai.types.anthropic.type import AnthropicType
 from temba.ai.types.openai.type import OpenAIType
+from temba.mailroom.client.exceptions import AIServiceException
 from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
@@ -62,13 +63,27 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(translate_url, [None, self.agent])
 
-        mr_mocks.llm_translate("Hola")
+        translated = {"a1:text": ["Hola"]}
+        mr_mocks.llm_translate(translated)
 
         self.login(self.editor)
         response = self.client.post(
-            translate_url, {"text": "Hello", "lang": {"from": "eng", "to": "spa"}}, content_type="application/json"
+            translate_url,
+            {"source": "eng", "target": "spa", "items": {"a1:text": ["Hello"]}},
+            content_type="application/json",
         )
-        self.assertEqual(response.json(), {"result": "Hola"})
+        self.assertEqual(response.json(), {"items": translated})
+
+        # LLM service failure (bad credentials, rate limit, etc.) returns 400 to the client
+        mr_mocks.exception(AIServiceException("rate limit exceeded", "unknown", "", ""))
+
+        response = self.client.post(
+            translate_url,
+            {"source": "eng", "target": "spa", "items": {"a1:text": ["Hello"]}},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {"error": "rate limit exceeded"})
 
     def test_delete(self):
         list_url = reverse("ai.llm_list")

@@ -132,11 +132,11 @@ class LLMCRUDL(SmartCRUDL):
             data = json.loads(request.body)
 
             try:
-                translated = self.object.translate(data["lang"]["from"], data["lang"]["to"], data["text"])
-            except mailroom.AIServiceException:  # pragma: no cover
-                return JsonResponse({"error": "LLM was not able to translate as requested"}, status=400)
+                items = self.object.translate(data["source"], data["target"], data["items"])
+            except mailroom.AIServiceException as e:
+                return JsonResponse({"error": str(e)}, status=400)
 
-            return JsonResponse({"result": translated})
+            return JsonResponse({"items": items})
 
     class Delete(BaseDependencyDeleteModal):
         cancel_url = "@ai.llm_list"
