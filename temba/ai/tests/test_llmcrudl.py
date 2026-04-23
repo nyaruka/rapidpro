@@ -62,13 +62,16 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(translate_url, [None, self.agent])
 
-        mr_mocks.llm_translate("Hola")
+        translated = {"a1:text": ["Hola"]}
+        mr_mocks.llm_translate(translated)
 
         self.login(self.editor)
         response = self.client.post(
-            translate_url, {"text": "Hello", "lang": {"from": "eng", "to": "spa"}}, content_type="application/json"
+            translate_url,
+            {"source": "eng", "target": "spa", "items": {"a1:text": ["Hello"]}},
+            content_type="application/json",
         )
-        self.assertEqual(response.json(), {"result": "Hola"})
+        self.assertEqual(response.json(), {"items": translated})
 
     def test_delete(self):
         list_url = reverse("ai.llm_list")

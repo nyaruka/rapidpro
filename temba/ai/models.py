@@ -96,8 +96,8 @@ class LLM(TembaModel, DependencyMixin):
 
         return TYPES[self.llm_type]
 
-    def translate(self, from_language: str, to_language: str, text: str) -> str:
-        return mailroom.get_client().llm_translate(self, from_language, to_language, text)["text"]
+    def translate(self, source: str, target: str, items: dict[str, list[str]]) -> dict[str, list[str]]:
+        return mailroom.get_client().llm_translate(self, source, target, items)
 
     def release(self, user):
         super().release(user)
