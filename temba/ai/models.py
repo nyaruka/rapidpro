@@ -64,6 +64,7 @@ class LLM(TembaModel, DependencyMixin):
     org = models.ForeignKey(Org, related_name="llms", on_delete=models.PROTECT)
     llm_type = models.CharField(max_length=16)
     model = models.CharField(max_length=64)
+    max_output_tokens = models.PositiveIntegerField(default=4_096)
     config = models.JSONField()
     roles = models.CharField(max_length=2, default=DEFAULT_ROLES)
 
@@ -78,6 +79,7 @@ class LLM(TembaModel, DependencyMixin):
             name=name,
             llm_type=typ.slug,
             model=model,
+            max_output_tokens=typ.settings["models"][model],
             config=config,
             roles=roles,
             created_by=user,

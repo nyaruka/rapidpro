@@ -819,52 +819,43 @@ CHANNEL_TYPES = [
 ]
 
 LLM_TYPES = {
-    "temba.ai.types.anthropic.type.AnthropicType": {"exclusions": []},
-    "temba.ai.types.deepseek.type.DeepSeekType": {"exclusions": []},
+    "temba.ai.types.anthropic.type.AnthropicType": {
+        # model id -> max output tokens
+        "models": {
+            "claude-opus-4-7": 128_000,
+            "claude-opus-4-5-20251101": 64_000,
+            "claude-sonnet-4-6": 64_000,
+            "claude-3-7-sonnet-20250219": 64_000,
+            "claude-haiku-4-5-20251001": 64_000,
+            "claude-3-5-haiku-20241022": 8_192,
+        },
+    },
+    "temba.ai.types.deepseek.type.DeepSeekType": {
+        "models": {"deepseek-chat": 8_192},
+    },
     "temba.ai.types.google.type.GoogleType": {
-        "exclusions": [
-            # audio models
-            "tts",
-            "audio",
-            "lyria",
-            "realtime",
-            # image models
-            "imagen",
-            # video models
-            "veo",
-            # experimental / preview models
-            "exp",
-            "preview",
-            # other non-LLM models
-            "robotics",
-            "aqa",
-            # deprecated models
-            "gemini-1.0",
-        ]
+        "models": {
+            "gemini-2.5-flash": 65_536,
+            "gemini-2.0-flash": 8_192,
+            "gemini-1.5-flash": 8_192,
+        },
     },
     "temba.ai.types.openai.type.OpenAIType": {
-        "exclusions": [
-            # audio models
-            "tts",
-            "whisper",
-            "audio",
-            "transcribe",
-            "realtime",
-            # image models
-            "dall-e",
-            "image",
-            # video models
-            "sora",
-            # preview / experimental models
-            "preview",
-            # deprecated models
-            "davinci",
-            "babbage",
-        ]
+        "models": {
+            "gpt-5.5": 128_000,
+            "gpt-5.4": 128_000,
+            "gpt-5.4-mini": 128_000,
+            "gpt-4.1": 32_768,
+            "gpt-4.1-mini": 32_768,
+            "gpt-4.1-nano": 32_768,
+            "gpt-4o": 16_384,
+            "gpt-4o-mini": 16_384,
+            "gpt-3.5-turbo": 4_096,
+        },
     },
 }
 if TESTING:
-    LLM_TYPES["temba.ai.types.openai_azure.type.OpenAIAzureType"] = {"models": ["gpt-35-turbo", "gpt-4"]}
+    LLM_TYPES["temba.ai.types.openai_azure.type.OpenAIAzureType"] = {"models": {"gpt-35-turbo": 4_096}}
 
 
 # set of ISO-639-3 codes of languages to allow in addition to all ISO-639-1 languages
