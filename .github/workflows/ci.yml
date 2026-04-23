@@ -75,9 +75,10 @@ jobs:
           uv run python manage.py compress --extension=".html" --settings=temba.settings_compress
 
       - name: Run tests
-        run: |
-          uv run coverage run manage.py test --keepdb --noinput --verbosity=2
-          uv run coverage report -m --fail-under=100
+        run: uv run coverage run manage.py test --keepdb --noinput --verbosity=2
+
+      - name: Coverage report
+        run: uv run coverage report -m --fail-under=100
 
       - name: Mailroom log
         if: failure()
