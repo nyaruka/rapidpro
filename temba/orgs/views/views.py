@@ -28,9 +28,9 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.encoding import DjangoUnicodeDecodeError, force_str
 from django.utils.functional import cached_property
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext_lazy as _
 
 from temba.api.models import Resthook

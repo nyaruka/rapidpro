@@ -244,6 +244,7 @@ class Org(SmartModel):
     FEATURE_TEAMS = "teams"  # can create teams to organize agent users
     FEATURE_PROMETHEUS = "prometheus"  # can create a prometheus token to access metrics
     FEATURE_SHARED_CHANNELS = "shared_channels"  # can share channels between orgs
+    FEATURE_AUTO_TRANSLATE = "auto_translate"  # can auto translate flow content via AI models
     FEATURES_CHOICES = (
         (FEATURE_USERS, _("Users")),
         (FEATURE_NEW_ORGS, _("New Orgs")),
@@ -251,6 +252,7 @@ class Org(SmartModel):
         (FEATURE_TEAMS, _("Teams")),
         (FEATURE_PROMETHEUS, _("Prometheus")),
         (FEATURE_SHARED_CHANNELS, _("Shared Channels")),
+        (FEATURE_AUTO_TRANSLATE, _("Auto Translate")),
     )
 
     LIMIT_CHANNELS = "channels"
