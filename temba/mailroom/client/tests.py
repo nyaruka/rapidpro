@@ -17,6 +17,7 @@ from temba.utils import json
 from .. import modifiers
 from .client import MailroomClient
 from .exceptions import (
+    AIServiceException,
     FlowValidationException,
     QueryValidationException,
     RequestException,
@@ -640,6 +641,21 @@ class MailroomClientTest(TembaTest):
                 "items": items,
             },
         )
+
+        mock_post.return_value = MockJsonResponse(
+            422,
+            {
+                "code": "ai:unknown",
+                "error": "rate limit exceeded",
+                "extra": {"instructions": "", "input": ""},
+            },
+        )
+
+        with self.assertRaises(AIServiceException) as e:
+            self.client.llm_translate(llm, source="eng", target="spa", items=items)
+
+        self.assertEqual("rate limit exceeded", e.exception.error)
+        self.assertEqual("unknown", e.exception.code)
 
     @patch("requests.post")
     def test_msg_broadcast(self, mock_post):
