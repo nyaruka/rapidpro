@@ -72,19 +72,23 @@ class LLM(TembaModel, DependencyMixin):
 
     @classmethod
     def create(cls, org, user, typ, model: str, name: str, config: dict, roles: str = DEFAULT_ROLES):
-        assert "models" not in typ.settings or model in typ.settings["models"]
+        models_settings = typ.settings.get("models") or {}
+        assert not models_settings or model in models_settings
 
-        return cls.objects.create(
+        kwargs = dict(
             org=org,
             name=name,
             llm_type=typ.slug,
             model=model,
-            max_output_tokens=typ.settings["models"][model],
             config=config,
             roles=roles,
             created_by=user,
             modified_by=user,
         )
+        if model in models_settings:
+            kwargs["max_output_tokens"] = models_settings[model]
+
+        return cls.objects.create(**kwargs)
 
     @property
     def type(self) -> LLMType:
