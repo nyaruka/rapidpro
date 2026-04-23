@@ -22,6 +22,11 @@ class LLMTest(TembaTest):
         self.assertEqual(1, LLM.objects.filter(is_active=False).count())
         self.assertEqual(2, LLM.objects.count())
 
+    def test_is_available_to(self):
+        # by default available to any user
+        self.assertTrue(OpenAIType().is_available_to(self.org, self.admin))
+        self.assertTrue(OpenAIType().is_available_to(self.org, self.editor))
+
     @mock_mailroom
     def test_translate(self, mr_mocks):
         openai = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {})

@@ -45,6 +45,12 @@ class LLMType(metaclass=ABCMeta):
 
         return settings.LLM_TYPES[self.__module__ + "." + self.__class__.__name__]
 
+    def is_available_to(self, org, user) -> bool:
+        """
+        Determines whether this LLM type is available to the given user.
+        """
+        return True
+
 
 class LLM(TembaModel, DependencyMixin):
     """
