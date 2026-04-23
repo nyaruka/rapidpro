@@ -77,23 +77,8 @@ jobs:
       - name: Run tests
         run: |
           uv run coverage run manage.py test --keepdb --noinput --verbosity=2
-          uv run coverage report -i
-          uv run coverage xml
-          uv run coverage html
-
-      - name: Save coverage report as artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: coverage-report
-          path: htmlcov/
+          uv run coverage report -m --fail-under=100
 
       - name: Mailroom log
         if: failure()
         run: cat mailroom.log
-
-      - name: Upload coverage
-        if: success()
-        uses: codecov/codecov-action@v6
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
