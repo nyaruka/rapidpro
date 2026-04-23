@@ -1,3 +1,8 @@
+v26.1.96 (2026-04-23)
+-------------------------
+ * Add max_output_tokens field to LLM with backfill from settings
+ * Switch LLM types back to explicit model allow-lists keyed by max output tokens
+
 v26.1.95 (2026-04-23)
 -------------------------
  * Update @nyaruka/temba-components to 0.156.12
