@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.test import override_settings
 from django.urls import reverse
 
@@ -35,6 +37,18 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.assertListFetch(list_url, [self.editor, self.admin], context_object_count=2)
             self.assertContains(response, "You have reached the per-workspace limit")
             self.assertContentMenu(list_url, self.admin, [])
+
+        # types that aren't available to the user are hidden from the menu
+        with patch.object(AnthropicType, "is_available_to", lambda self, org, user: user.is_staff):
+            self.assertContentMenu(
+                list_url, self.admin, ["New DeepSeek", "New Google", "New OpenAI", "New Azure OpenAI"]
+            )
+            self.assertContentMenu(
+                list_url,
+                self.customer_support,
+                ["New Anthropic", "New DeepSeek", "New Google", "New OpenAI", "New Azure OpenAI"],
+                choose_org=self.org,
+            )
 
     def test_update(self):
         update_url = reverse("ai.llm_update", args=[self.openai.uuid])
