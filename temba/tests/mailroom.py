@@ -352,6 +352,23 @@ class TestClient(MailroomClient):
         }
 
     @_client_method
+    def flow_migrate(self, definition: dict, to_version=None):
+        # fast-path: if the definition is already at the target version, skip the HTTP call.
+        # for older fixtures we fall through to real mailroom since we'd need to actually migrate.
+        from packaging.version import Version
+
+        from temba.flows.models import Flow
+
+        if not to_version:
+            to_version = Flow.CURRENT_SPEC_VERSION
+
+        current = definition.get("spec_version")
+        if current and Version(current) >= Version(to_version):
+            return definition
+
+        return super().flow_migrate(definition, to_version=to_version)
+
+    @_client_method
     def flow_interrupt(self, org, flow):
         pass
 
