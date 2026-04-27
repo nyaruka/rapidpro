@@ -22,6 +22,17 @@ class LLMTest(TembaTest):
         self.assertEqual(1, LLM.objects.filter(is_active=False).count())
         self.assertEqual(2, LLM.objects.count())
 
+    def test_release_system(self):
+        system = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "System", {})
+        system.is_system = True
+        system.save(update_fields=("is_system",))
+
+        with self.assertRaises(AssertionError):
+            system.release(self.admin)
+
+        system.refresh_from_db()
+        self.assertTrue(system.is_active)
+
     def test_is_available_to(self):
         # by default available to any user
         self.assertTrue(OpenAIType().is_available_to(self.org, self.admin))

@@ -411,6 +411,14 @@ class BaseDependencyDeleteModal(DependencyMixin, ModalFormMixin, OrgObjPermsMixi
         "trigger": _("these will be removed"),  # soft for flows
     }
 
+    def get_queryset(self, **kwargs):
+        qs = super().get_queryset(**kwargs)
+
+        if hasattr(self.model, "is_system"):
+            qs = qs.filter(is_system=False)
+
+        return qs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
