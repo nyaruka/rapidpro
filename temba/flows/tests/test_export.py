@@ -476,8 +476,7 @@ class ResultsExportTest(TembaTest):
         self.assertEqual(6, len(list(sheet_runs.rows)))  # header + 5 runs
         self.assertEqual(11, len(list(sheet_runs.columns)))
 
-    @mock_mailroom
-    def test_anon_org(self, mr_mocks):
+    def test_anon_org(self):
         today = timezone.now().astimezone(self.org.timezone).date()
 
         with self.anonymous(self.org):
@@ -630,8 +629,7 @@ class ResultsExportTest(TembaTest):
             ["Contact UUID", "Contact Name", "URN Scheme", "URN Value", "Started", "Modified", "Exited", "Run UUID"],
         )
 
-    @mock_mailroom
-    def test_replaced_rulesets(self, mr_mocks):
+    def test_replaced_rulesets(self):
         today = timezone.now().astimezone(self.org.timezone).date()
 
         favorites = self.get_flow("favorites_v13")
@@ -894,8 +892,7 @@ class ResultsExportTest(TembaTest):
             tz,
         )
 
-    @mock_mailroom
-    def test_remove_control_characters(self, mr_mocks):
+    def test_remove_control_characters(self):
         today = timezone.now().astimezone(self.org.timezone).date()
 
         flow = self.get_flow("color_v13")
@@ -944,8 +941,7 @@ class ResultsExportTest(TembaTest):
             tz,
         )
 
-    @mock_mailroom
-    def test_from_archives(self, mr_mocks):
+    def test_from_archives(self):
         today = timezone.now().astimezone(self.org.timezone).date()
 
         flow = self.get_flow("color_v13")

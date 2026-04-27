@@ -95,7 +95,7 @@ class Mocks:
     def contact_urns(self, urns: dict):
         self._contact_urns.append(urns)
 
-    def flow_inspect(self, *, dependencies=(), issues=(), results=(), parent_refs=(), counts=None, locals=()):
+    def flow_inspect(self, *, dependencies=(), issues=(), results=(), parent_refs=(), counts=None, locals=None):
         self._flow_inspect.append(
             {
                 "dependencies": dependencies,
@@ -103,7 +103,7 @@ class Mocks:
                 "results": results,
                 "parent_refs": parent_refs,
                 "counts": counts if counts is not None else {},
-                "locals": locals,
+                "locals": locals if locals is not None else [],
             }
         )
 

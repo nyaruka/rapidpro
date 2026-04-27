@@ -144,9 +144,9 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
             # trigger import failed, new flows that were added should get rolled back
             self.assertIsNone(Flow.objects.filter(org=self.org, name="New Mother").first())
 
-    @mock_mailroom
     @patch("temba.mailroom.client.client.MailroomClient.campaign_schedule")
-    def test_import_campaign_with_translations(self, mock_schedule, mr_mocks):
+    @mock_mailroom
+    def test_import_campaign_with_translations(self, mr_mocks, mock_schedule):
         self.import_file("test_flows/campaign_import_with_translations.json")
 
         campaign = Campaign.objects.all().first()
@@ -158,9 +158,9 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
         # base language for this event is 'swa' despite our org languages being unset
         self.assertEqual(event.base_language, "swa")
 
-    @mock_mailroom
     @patch("temba.mailroom.client.client.MailroomClient.campaign_schedule")
-    def test_reimport(self, mock_schedule, mr_mocks):
+    @mock_mailroom
+    def test_reimport(self, mr_mocks, mock_schedule):
         self.import_file("test_flows/survey_campaign.json")
 
         campaign = Campaign.objects.filter(is_active=True).last()
@@ -181,8 +181,7 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(campaign.id, new_campaign.id)
         self.assertNotEqual(event.id, new_event.id)
 
-    @mock_mailroom
-    def test_import_mixed_flow_versions(self, mr_mocks):
+    def test_import_mixed_flow_versions(self):
         self.import_file("test_flows/mixed_versions.json")
 
         group = ContactGroup.objects.get(name="Survey Audience")
