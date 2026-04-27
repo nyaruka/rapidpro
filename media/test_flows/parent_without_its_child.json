@@ -81,8 +81,7 @@
       "revision": 7,
       "spec_version": "14.4.0",
       "type": "messaging",
-      "uuid": "6228646f-6c67-4237-a2d9-6e2c6060e8cd",
-      "version": "13.0.0"
+      "uuid": "6228646f-6c67-4237-a2d9-6e2c6060e8cd"
     }
   ],
   "campaigns": [],

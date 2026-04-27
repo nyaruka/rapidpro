@@ -6,6 +6,8 @@ from decimal import Decimal
 from functools import wraps
 from unittest.mock import call, patch
 
+from packaging.version import Version
+
 from django.conf import settings
 from django.db import connection
 from django.utils import timezone
@@ -14,7 +16,7 @@ from temba import mailroom
 from temba.campaigns.models import CampaignEvent
 from temba.channels.models import ChannelEvent
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactURN
-from temba.flows.models import FlowRun, FlowSession, FlowStart
+from temba.flows.models import Flow, FlowRun, FlowSession, FlowStart
 from temba.locations.models import AdminBoundary
 from temba.mailroom.client.client import MailroomClient
 from temba.mailroom.modifiers import Modifier
@@ -355,10 +357,6 @@ class TestClient(MailroomClient):
     def flow_migrate(self, definition: dict, to_version=None):
         # fast-path: if the definition is already at the target version, skip the HTTP call.
         # for older fixtures we fall through to real mailroom since we'd need to actually migrate.
-        from packaging.version import Version
-
-        from temba.flows.models import Flow
-
         if not to_version:
             to_version = Flow.CURRENT_SPEC_VERSION
 

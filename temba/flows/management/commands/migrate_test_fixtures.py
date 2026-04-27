@@ -49,7 +49,7 @@ class Command(BaseCommand):
         current = Version(Flow.CURRENT_SPEC_VERSION)
 
         for path in sorted(pathlib.Path("media/test_flows").rglob("*.json")):
-            rel = str(path)
+            rel = path.as_posix()
             if rel in SKIP or any(rel.startswith(d) for d in SKIP_DIRS):
                 continue
 
@@ -69,16 +69,22 @@ class Command(BaseCommand):
                 self.stdout.write(f"SKIP (already current): {rel}")
                 continue
 
-            version = Version(str(data["version"]))
-            self.stdout.write(f"MIGRATE {rel}: v{version} -> v{current}")
+            export_version = Version(str(data["version"]))
+            self.stdout.write(f"MIGRATE {rel}: export v{export_version} -> spec v{current}")
 
             try:
-                migrated = Flow.migrate_export(org, data, same_site=False, version=version)
+                migrated = Flow.migrate_export(org, data, same_site=False, version=export_version)
             except Exception as e:
                 self.stderr.write(f"  FAILED: {e}")
                 continue
 
             # keep the export envelope at the current export format - distinct from flow spec_version
             migrated["version"] = Org.CURRENT_EXPORT_VERSION
+
+            # strip the legacy "version" key from each migrated flow def - the migrated form uses
+            # "spec_version" only and Flow.migrate_definition treats the presence of "version" as
+            # an indicator of a legacy definition needing migration
+            for flow_def in migrated.get("flows", []):
+                flow_def.pop("version", None)
 
             path.write_text(json.dumps(migrated, indent=indent) + "\n")

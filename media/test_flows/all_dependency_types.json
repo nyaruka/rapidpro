@@ -156,8 +156,7 @@
       "revision": 11,
       "spec_version": "14.4.0",
       "type": "messaging",
-      "uuid": "ee765ff2-96b0-440a-b108-393f613466bb",
-      "version": "13.0.0"
+      "uuid": "ee765ff2-96b0-440a-b108-393f613466bb"
     }
   ],
   "campaigns": [],
