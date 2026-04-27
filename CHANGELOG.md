@@ -1,3 +1,11 @@
+v26.1.97 (2026-04-27)
+-------------------------
+ * Prevent editing and deleting LLMs with is_system=True
+ * Remove unused React references from static config and CSS
+ * Bump postcss from 8.4.38 to 8.5.10
+ * Update @nyaruka/temba-components to 0.156.13
+ * Add auto_translate org feature to enable AI translation in flow editor
+
 v26.1.96 (2026-04-23)
 -------------------------
  * Add max_output_tokens field to LLM with backfill from settings
