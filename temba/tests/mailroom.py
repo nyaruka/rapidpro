@@ -95,13 +95,15 @@ class Mocks:
     def contact_urns(self, urns: dict):
         self._contact_urns.append(urns)
 
-    def flow_inspect(self, *, dependencies=(), issues=(), results=(), parent_refs=()):
+    def flow_inspect(self, *, dependencies=(), issues=(), results=(), parent_refs=(), counts=None, locals=()):
         self._flow_inspect.append(
             {
                 "dependencies": dependencies,
                 "issues": issues,
                 "results": results,
                 "parent_refs": parent_refs,
+                "counts": counts if counts is not None else {},
+                "locals": locals,
             }
         )
 
@@ -345,6 +347,8 @@ class TestClient(MailroomClient):
             "issues": [],
             "results": [],
             "parent_refs": [],
+            "counts": {},
+            "locals": [],
         }
 
     @_client_method

@@ -66,7 +66,8 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(1, len(response.context["buckets"]))
         self.assertEqual([child, parent], response.context["buckets"][0])
 
-    def test_import_voice_flows_expiration_time(self):
+    @mock_mailroom
+    def test_import_voice_flows_expiration_time(self, mr_mocks):
         # import file has invalid expires for an IVR flow so it should get clamped to the maximum (15)
         self.get_flow("ivr")
 
@@ -143,8 +144,9 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
             # trigger import failed, new flows that were added should get rolled back
             self.assertIsNone(Flow.objects.filter(org=self.org, name="New Mother").first())
 
+    @mock_mailroom
     @patch("temba.mailroom.client.client.MailroomClient.campaign_schedule")
-    def test_import_campaign_with_translations(self, mock_schedule):
+    def test_import_campaign_with_translations(self, mock_schedule, mr_mocks):
         self.import_file("test_flows/campaign_import_with_translations.json")
 
         campaign = Campaign.objects.all().first()
@@ -156,8 +158,9 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
         # base language for this event is 'swa' despite our org languages being unset
         self.assertEqual(event.base_language, "swa")
 
+    @mock_mailroom
     @patch("temba.mailroom.client.client.MailroomClient.campaign_schedule")
-    def test_reimport(self, mock_schedule):
+    def test_reimport(self, mock_schedule, mr_mocks):
         self.import_file("test_flows/survey_campaign.json")
 
         campaign = Campaign.objects.filter(is_active=True).last()
@@ -178,7 +181,8 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(campaign.id, new_campaign.id)
         self.assertNotEqual(event.id, new_event.id)
 
-    def test_import_mixed_flow_versions(self):
+    @mock_mailroom
+    def test_import_mixed_flow_versions(self, mr_mocks):
         self.import_file("test_flows/mixed_versions.json")
 
         group = ContactGroup.objects.get(name="Survey Audience")
@@ -649,7 +653,8 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
         response = self.client.get("%s?archived=1" % reverse("orgs.org_export"))
         self.assertNotContains(response, "Register Patient")
 
-    def test_prevent_flow_type_changes(self):
+    @mock_mailroom
+    def test_prevent_flow_type_changes(self, mr_mocks):
         flow1 = self.create_flow("Background")
 
         flow2 = self.get_flow("background")  # contains a flow called Background

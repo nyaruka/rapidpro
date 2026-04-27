@@ -689,7 +689,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(reverse("flows.flow_filter", args=[label2.uuid]))
         self.assertEqual(f"/flow/labels/{label2.uuid}", response.headers.get(TEMBA_MENU_SELECTION))
 
-    def test_get_definition(self):
+    @mock_mailroom
+    def test_get_definition(self, mr_mocks):
         flow = self.get_flow("color_v13")
 
         # if definition is outdated, metadata values are updated from db object
@@ -725,7 +726,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual("Amazing Flow 2", flow.get_definition()["metadata"]["name"])
 
-    def test_revisions(self):
+    @mock_mailroom
+    def test_revisions(self, mr_mocks):
         flow = self.get_flow("legacy/color_v11")
 
         revisions_url = reverse("flows.flow_revisions", args=[flow.uuid])
@@ -1447,7 +1449,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             ),
         )
 
-    def test_copy_view(self):
+    @mock_mailroom
+    def test_copy_view(self, mr_mocks):
         flow = self.get_flow("color_v13")
 
         self.login(self.admin)
@@ -1823,7 +1826,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             response.json(),
         )
 
-    def test_change_language(self):
+    @mock_mailroom
+    def test_change_language(self, mr_mocks):
         self.org.set_flow_languages(self.admin, ["eng", "spa", "ara"])
 
         flow = self.get_flow("favorites_v13")
@@ -2083,7 +2087,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # can't delete already released flow
         self.assertEqual(response.status_code, 404)
 
-    def test_export_and_download_translation(self):
+    @mock_mailroom
+    def test_export_and_download_translation(self, mr_mocks):
         self.org.set_flow_languages(self.admin, ["spa"])
 
         flow = self.get_flow("favorites")
@@ -2122,7 +2127,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             # filename includes language now
             self.assertEqual('attachment; filename="favorites.spa.po"', response["Content-Disposition"])
 
-    def test_import_translation(self):
+    @mock_mailroom
+    def test_import_translation(self, mr_mocks):
         self.org.set_flow_languages(self.admin, ["eng", "spa"])
 
         flow = self.get_flow("favorites_v13")

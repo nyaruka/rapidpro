@@ -83,7 +83,8 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(flow.is_active)
         self.assertEqual(0, flow.global_dependencies.count())
 
-    def test_get_definition(self):
+    @mock_mailroom
+    def test_get_definition(self, mr_mocks):
         favorites = self.get_flow("favorites_v13")
 
         # fill the definition with junk metadata
@@ -113,7 +114,8 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         favorites.revisions.all().delete()
         self.assertRaises(AssertionError, favorites.get_definition)
 
-    def test_ensure_current_version(self):
+    @mock_mailroom
+    def test_ensure_current_version(self, mr_mocks):
         # importing migrates to latest spec version
         flow = self.get_flow("favorites_v13")
         self.assertEqual(Flow.CURRENT_SPEC_VERSION, flow.version_number)
@@ -500,7 +502,8 @@ class FlowTest(TembaTest, CRUDLTestMixin):
             )
             self.assertEqual(len(flow.info["parent_refs"]), 0)
 
-    def test_group_send(self):
+    @mock_mailroom
+    def test_group_send(self, mr_mocks):
         # create an inactive group with the same name, to test that this doesn't blow up our import
         group = ContactGroup.get_or_create(self.org, self.admin, "Survey Audience")
         group.release(self.admin)
