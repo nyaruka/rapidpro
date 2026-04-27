@@ -112,6 +112,8 @@ class LLM(TembaModel, DependencyMixin):
         return mailroom.get_client().llm_translate(self, source, target, items)
 
     def release(self, user):
+        assert not (self.is_system and self.org.is_active), "can't release system LLMs"
+
         super().release(user)
 
         self.is_active = False

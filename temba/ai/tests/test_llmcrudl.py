@@ -71,6 +71,13 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
         self.openai.refresh_from_db()
         self.assertEqual(self.openai.name, "GPT-4-Turbo")
 
+        # system LLMs can't be edited
+        self.openai.is_system = True
+        self.openai.save(update_fields=("is_system",))
+
+        self.login(self.admin)
+        self.assertEqual(404, self.client.get(update_url).status_code)
+
     @mock_mailroom
     def test_translate(self, mr_mocks):
         translate_url = reverse("ai.llm_translate", args=[self.openai.uuid])
@@ -131,3 +138,14 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
         self.flow.refresh_from_db()
         self.assertTrue(self.flow.has_issues)
         self.assertNotIn(self.openai, self.flow.llm_dependencies.all())
+
+        # system LLMs can't be deleted
+        system = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "System", {})
+        system.is_system = True
+        system.save(update_fields=("is_system",))
+
+        delete_url = reverse("ai.llm_delete", args=[system.uuid])
+
+        self.login(self.admin)
+        self.assertEqual(404, self.client.get(delete_url).status_code)
+        self.assertEqual(404, self.client.post(delete_url).status_code)
