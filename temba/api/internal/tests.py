@@ -324,7 +324,7 @@ class EndpointsTest(APITestMixin, TembaTest):
     def test_llms(self):
         endpoint_url = reverse("api.internal.llms") + ".json"
 
-        openai = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {})
+        openai = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {}, roles=LLM.ROLE_EDITING)
         anthropic = LLM.create(self.org, self.admin, AnthropicType(), "claude-3-5-haiku-20241022", "Claude", {})
         deleted = LLM.create(self.org, self.admin, AnthropicType(), "claude-3-5-haiku-20241022", "Deleted", {})
         deleted.release(self.admin)
@@ -344,16 +344,19 @@ class EndpointsTest(APITestMixin, TembaTest):
                     "uuid": str(anthropic.uuid),
                     "name": "Claude",
                     "type": "anthropic",
+                    "roles": ["editing", "engine"],
                 },
                 {
                     "uuid": str(openai.uuid),
                     "name": "GPT-4",
                     "type": "openai",
+                    "roles": ["editing"],
                 },
                 {
                     "uuid": str(system.uuid),
                     "name": "System",
                     "type": "openai",
+                    "roles": ["editing", "engine"],
                 },
             ],
         )

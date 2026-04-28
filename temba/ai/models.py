@@ -57,9 +57,10 @@ class LLM(TembaModel, DependencyMixin):
     A language model that can be used for AI tasks
     """
 
-    ROLE_TRANSLATION = "T"
-    ROLE_FLOWS = "F"
-    DEFAULT_ROLES = ROLE_TRANSLATION + ROLE_FLOWS
+    ROLE_EDITING = "T"
+    ROLE_ENGINE = "F"
+    ROLE_NAMES = {ROLE_EDITING: "editing", ROLE_ENGINE: "engine"}
+    DEFAULT_ROLES = ROLE_EDITING + ROLE_ENGINE
 
     org = models.ForeignKey(Org, related_name="llms", on_delete=models.PROTECT)
     llm_type = models.CharField(max_length=16)
