@@ -19,6 +19,7 @@ node_modules
 screenshots
 sitestatic
 temba/settings.py
+temba/settings_local.py
 manage.sh
 rp.sh
 
