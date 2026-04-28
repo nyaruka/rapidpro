@@ -48,3 +48,12 @@ warnings.filterwarnings(
 # Make our sitestatic URL be our static URL on development
 # -----------------------------------------------------------------------------------
 STATIC_URL = "/static/"
+
+# -----------------------------------------------------------------------------------
+# Optional local overrides — create temba/settings_local.py to override settings
+# without modifying this checked-in file. settings_local.py is gitignored.
+# -----------------------------------------------------------------------------------
+try:
+    from .settings_local import *  # noqa
+except ImportError:
+    pass
