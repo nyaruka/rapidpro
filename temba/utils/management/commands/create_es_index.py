@@ -56,7 +56,7 @@ class Command(BaseCommand):
     def _create_template(self, client, name: str, schema: dict):
         """Creates an index template using the Elasticsearch API."""
 
-        client.indices.put_index_template(name=name, body=schema)
+        client.indices.put_index_template(name=name, **schema)
 
         opts = schema["template"]["settings"]["index"]
         self.stdout.write(
@@ -66,7 +66,7 @@ class Command(BaseCommand):
     def _create_index(self, client, name: str, schema: dict, alias: str = None):
         """Creates a regular index using the Elasticsearch API."""
 
-        client.indices.create(index=name, body=schema)
+        client.indices.create(index=name, **schema)
 
         opts = schema["settings"]["index"]
         self.stdout.write(
@@ -85,5 +85,5 @@ class Command(BaseCommand):
             except Exception:
                 pass  # alias doesn't exist yet
 
-            client.indices.update_aliases(body={"actions": actions})
+            client.indices.update_aliases(actions=actions)
             self.stdout.write(f" > added alias {alias} -> {name}")
