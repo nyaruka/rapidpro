@@ -174,10 +174,11 @@
                      groups="/api/v2/groups.json"
                      workspace="/api/v2/workspace.json"
                      shortcuts="/api/internal/shortcuts.json"
-                     users="/api/v2/users.json">
+                     users="/api/v2/users.json"
+                     brand="{{ branding.name }}">
         </temba-store>
       {% else %}
-        <temba-store>
+        <temba-store brand="{{ branding.name }}">
         </temba-store>
       {% endif %}
       <div class="flex flex-col h-full">
