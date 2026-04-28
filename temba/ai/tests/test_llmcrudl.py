@@ -22,6 +22,11 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_list(self):
         list_url = reverse("ai.llm_list")
 
+        # system LLMs should be hidden from the list
+        system = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "System", {})
+        system.is_system = True
+        system.save(update_fields=("is_system",))
+
         self.assertRequestDisallowed(list_url, [None, self.agent])
 
         response = self.assertListFetch(
