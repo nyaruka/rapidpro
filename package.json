@@ -9,7 +9,7 @@
     ]
   },
   "dependencies": {
-    "@nyaruka/temba-components": "0.156.13",
+    "@nyaruka/temba-components": "0.156.14",
     "codemirror": "5.58.2",
     "colorette": "1.2.2",
     "fa-icons": "0.2.0",
