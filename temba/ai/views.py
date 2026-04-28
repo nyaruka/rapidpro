@@ -98,6 +98,9 @@ class LLMCRUDL(SmartCRUDL):
         menu_path = "settings/ai"
         default_order = (Lower("name"),)
 
+        def derive_queryset(self, **kwargs):
+            return super().derive_queryset(**kwargs).filter(is_system=False)
+
         def build_context_menu(self, menu):
             if self.has_org_perm("ai.llm_connect") and not self.is_limit_reached():
                 org = self.request.org

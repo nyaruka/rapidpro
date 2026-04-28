@@ -328,6 +328,9 @@ class EndpointsTest(APITestMixin, TembaTest):
         anthropic = LLM.create(self.org, self.admin, AnthropicType(), "claude-3-5-haiku-20241022", "Claude", {})
         deleted = LLM.create(self.org, self.admin, AnthropicType(), "claude-3-5-haiku-20241022", "Deleted", {})
         deleted.release(self.admin)
+        system = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "System", {})
+        system.is_system = True
+        system.save(update_fields=("is_system",))
 
         self.assertGetNotPermitted(endpoint_url, [None])
         self.assertPostNotAllowed(endpoint_url)
@@ -345,6 +348,11 @@ class EndpointsTest(APITestMixin, TembaTest):
                 {
                     "uuid": str(openai.uuid),
                     "name": "GPT-4",
+                    "type": "openai",
+                },
+                {
+                    "uuid": str(system.uuid),
+                    "name": "System",
                     "type": "openai",
                 },
             ],
