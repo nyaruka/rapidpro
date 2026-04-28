@@ -1,3 +1,9 @@
+v26.1.98 (2026-04-28)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.14
+ * Bump serialize-javascript from 7.0.3 to 7.0.5
+ * Upgrade to elasticsearch 9
+
 v26.1.97 (2026-04-27)
 -------------------------
  * Prevent editing and deleting LLMs with is_system=True
