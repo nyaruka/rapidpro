@@ -16,10 +16,14 @@ class ModelAsJsonSerializer(serializers.BaseSerializer):
 
 class LLMReadSerializer(serializers.ModelSerializer):
     type = serializers.CharField(source="llm_type")
+    roles = serializers.SerializerMethodField()
+
+    def get_roles(self, obj):
+        return [LLM.ROLE_NAMES[r] for r in obj.roles]
 
     class Meta:
         model = LLM
-        fields = ("uuid", "name", "type")
+        fields = ("uuid", "name", "type", "roles")
 
 
 class LocationReadSerializer(serializers.ModelSerializer):
