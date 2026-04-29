@@ -1,3 +1,7 @@
+v26.1.99 (2026-04-29)
+-------------------------
+ * Pass brand name to temba-store component
+
 v26.1.98 (2026-04-28)
 -------------------------
  * Update @nyaruka/temba-components to 0.156.14
