@@ -163,7 +163,7 @@ class GZippedJSON(MatcherMixin):
             return False
         try:
             decoded = json.loads(gzip.decompress(other).decode("utf-8"))
-        except (OSError, ValueError):
+        except OSError, ValueError:
             return False
         return decoded == self.payload
 
