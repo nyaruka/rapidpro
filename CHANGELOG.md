@@ -1,3 +1,8 @@
+v26.1.102 (2026-04-29)
+-------------------------
+ * Update dependencies
+ * Use python 3.14
+
 v26.1.101 (2026-04-29)
 -------------------------
  * Add urn_path field to messages Elasticsearch index template
