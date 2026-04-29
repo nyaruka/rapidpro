@@ -1,3 +1,7 @@
+v26.1.101 (2026-04-29)
+-------------------------
+ * Add urn_path field to messages Elasticsearch index template
+
 v26.1.100 (2026-04-29)
 -------------------------
  * Remove auto_translate as an org feature flag
