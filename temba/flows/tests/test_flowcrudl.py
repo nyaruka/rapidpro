@@ -16,7 +16,7 @@ from temba.contacts.models import URN
 from temba.flows.models import Flow, FlowLabel, FlowRun, FlowStart, FlowUserConflictException, ResultsExport
 from temba.mailroom.client.types import Exclusions
 from temba.orgs.integrations.dtone.type import DTOneType
-from temba.orgs.models import Export, Org
+from temba.orgs.models import Export
 from temba.templates.models import TemplateTranslation
 from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
 from temba.tests.base import get_contact_search, override_brand
@@ -1117,35 +1117,34 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.client.get(reverse("flows.flow_editor", args=[flow.uuid]))
             self.assertEqual(features, set(json.loads(response.context["feature_filters"])))
 
+        # auto_translate is always available
+        assert_features({"auto_translate"})
+
         # add a resthook
         Resthook.objects.create(org=flow.org, created_by=self.admin, modified_by=self.admin)
-        assert_features({"resthook"})
+        assert_features({"auto_translate", "resthook"})
 
         # add an NLP classifier
         Classifier.objects.create(org=flow.org, config="", created_by=self.admin, modified_by=self.admin)
-        assert_features({"classifier", "resthook"})
+        assert_features({"auto_translate", "classifier", "resthook"})
 
         # add a DT One integration
         DTOneType().connect(flow.org, self.admin, "login", "token")
-        assert_features({"airtime", "classifier", "resthook"})
+        assert_features({"auto_translate", "airtime", "classifier", "resthook"})
 
         # change our channel to use a whatsapp scheme
         self.channel.schemes = [URN.WHATSAPP_SCHEME]
         self.channel.save()
-        assert_features({"whatsapp", "airtime", "classifier", "resthook"})
+        assert_features({"auto_translate", "whatsapp", "airtime", "classifier", "resthook"})
 
         # change our channel to use a facebook scheme
         self.channel.schemes = [URN.FACEBOOK_SCHEME]
         self.channel.save()
-        assert_features({"optins", "airtime", "classifier", "resthook"})
+        assert_features({"auto_translate", "optins", "airtime", "classifier", "resthook"})
 
         self.setUpLocations()
 
-        assert_features({"optins", "airtime", "classifier", "resthook", "locations"})
-
-        flow.org.features = [Org.FEATURE_AUTO_TRANSLATE]
-        flow.org.save(update_fields=("features",))
-        assert_features({"optins", "airtime", "classifier", "resthook", "locations", "auto_translate"})
+        assert_features({"auto_translate", "optins", "airtime", "classifier", "resthook", "locations"})
 
     @mock_mailroom
     def test_template_warnings(self, mr_mocks):

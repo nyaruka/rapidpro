@@ -743,7 +743,7 @@ class FlowCRUDL(SmartCRUDL):
             return context
 
         def get_features(self, org) -> list:
-            features = []
+            features = ["auto_translate"]
 
             facebook_channel = org.get_channel(Channel.ROLE_SEND, scheme=URN.FACEBOOK_SCHEME)
             whatsapp_channel = org.get_channel(Channel.ROLE_SEND, scheme=URN.WHATSAPP_SCHEME)
@@ -760,8 +760,6 @@ class FlowCRUDL(SmartCRUDL):
                 features.append("resthook")
             if org.root_location_id:
                 features.append("locations")
-            if Org.FEATURE_AUTO_TRANSLATE in org.features:
-                features.append("auto_translate")
 
             return features
 
