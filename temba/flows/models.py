@@ -36,6 +36,7 @@ from temba.utils.models.counts import BaseScopedCount, BaseSquashableCount
 from temba.utils.uuid import uuid4
 
 from . import legacy
+from .changes import compute_changes
 
 logger = logging.getLogger(__name__)
 
@@ -738,9 +739,13 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
             self.save(update_fields=fields)
 
+            # diff against prior revision so we can later collapse like-for-like edits
+            changes = compute_changes(current_revision.definition, definition) if current_revision else None
+
             # create our new revision
             revision = self.revisions.create(
                 definition=definition,
+                changes=changes,
                 created_by=user,
                 spec_version=Flow.CURRENT_SPEC_VERSION,
                 revision=revision,
@@ -1158,6 +1163,11 @@ class FlowRevision(models.Model):
     definition = JSONAsTextField(default=dict)
     spec_version = models.CharField(default=Flow.FINAL_LEGACY_VERSION, max_length=8)
     revision = models.IntegerField()
+
+    # categorized record of what changed since the previous revision; null for legacy
+    # revisions that pre-date this field, signalling "don't try to collapse me".
+    changes = JSONAsTextField(null=True, default=None)
+
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="revisions")
     created_on = models.DateTimeField(default=timezone.now)
 
@@ -1283,6 +1293,7 @@ class FlowRevision(models.Model):
             "created_on": self.created_on.isoformat(),
             "version": self.spec_version,
             "revision": self.revision,
+            "changes": self.changes,
         }
 
     def release(self):

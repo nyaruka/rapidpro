@@ -763,6 +763,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                     "id": revisions[0].id,
                     "version": Flow.CURRENT_SPEC_VERSION,
                     "revision": 2,
+                    "changes": matchers.List(),
                 },
                 {
                     "user": {"email": "admin@textit.com", "name": "Andy"},
@@ -770,6 +771,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                     "id": revisions[1].id,
                     "version": "11.12",
                     "revision": 1,
+                    "changes": None,
                 },
             ],
             response.json()["results"],
