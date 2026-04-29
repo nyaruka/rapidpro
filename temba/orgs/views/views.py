@@ -774,7 +774,7 @@ class OrgCRUDL(SmartCRUDL):
 
             try:
                 flows = [int(elt) for elt in flows]
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 return JsonResponse({"error": _("'flows' must be a list of integers.")}, status=400)
 
             if not isinstance(campaigns, list):
@@ -782,7 +782,7 @@ class OrgCRUDL(SmartCRUDL):
 
             try:
                 campaigns = [int(elt) for elt in campaigns]
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 return JsonResponse({"error": _("'campaigns' must contain only integers.")}, status=400)
 
             flow_ids = [elt for elt in flows if elt]
@@ -1745,7 +1745,7 @@ class OrgImportCRUDL(SmartCRUDL):
                 data = self.cleaned_data["file"].read()
                 try:
                     json_data = json.loads(force_str(data))
-                except (DjangoUnicodeDecodeError, ValueError):
+                except DjangoUnicodeDecodeError, ValueError:
                     raise ValidationError(_("This file is not a valid flow definition file."))
 
                 if Version(str(json_data.get("version", 0))) < Version(Org.EARLIEST_IMPORT_VERSION):
