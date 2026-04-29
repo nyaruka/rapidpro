@@ -391,7 +391,7 @@ class MediaField(TembaModelField):
         try:
             att = Attachment.parse(value)  # try as a <content-type>:<url> attachment string
             return find_uuid(att.url)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             pass
         return None
 
