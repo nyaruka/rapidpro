@@ -1,3 +1,8 @@
+v26.1.100 (2026-04-29)
+-------------------------
+ * Remove auto_translate as an org feature flag
+ * Update @nyaruka/temba-components to 0.156.15
+
 v26.1.99 (2026-04-29)
 -------------------------
  * Pass brand name to temba-store component
