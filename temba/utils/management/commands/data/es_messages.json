@@ -49,6 +49,9 @@
                 "contact_uuid": {
                     "type": "keyword"
                 },
+                "urn_path": {
+                    "type": "keyword"
+                },
                 "text": {
                     "type": "text",
                     "analyzer": "msg_text"
