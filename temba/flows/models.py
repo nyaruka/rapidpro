@@ -716,6 +716,24 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         # inspect the flow (with optional validation)
         info = mailroom.get_client().flow_inspect(self.org, definition)
 
+        # diff against prior revision so we can later collapse like-for-like edits;
+        # done outside the transaction below because get_migrated_definition() may
+        # call mailroom (HTTP) and we don't want that holding row locks
+        changes = None
+        if current_revision:
+            try:
+                prior_def = current_revision.definition
+                if current_revision.spec_version != Flow.CURRENT_SPEC_VERSION:
+                    # migrate the prior forward so the schemas align; accepting that name/expire
+                    # then come from the live flow (get_migrated_definition rewrites them) — fine
+                    # because cross-spec saves are rare and not where metadata diffs matter
+                    prior_def = current_revision.get_migrated_definition()
+                changes = compute_changes(prior_def, definition)
+            except Exception:
+                # don't block a valid save just because we couldn't categorize what changed
+                logger.warning("could not compute revision changes for flow %s", self.uuid, exc_info=True)
+                changes = None
+
         if user is None:
             is_system_rev = True
             user = User.get_system_user()
@@ -738,19 +756,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
                 fields += ["saved_by", "saved_on"]
 
             self.save(update_fields=fields)
-
-            # diff against prior revision so we can later collapse like-for-like edits
-            if current_revision:
-                # if the prior revision is on a different spec, migrate it forward so the
-                # schemas align; we accept that metadata fields like name/expire then come
-                # from the live flow (since get_migrated_definition rewrites them) which is
-                # fine because cross-spec saves are rare and not where metadata diffs matter
-                prior_def = current_revision.definition
-                if current_revision.spec_version != Flow.CURRENT_SPEC_VERSION:
-                    prior_def = current_revision.get_migrated_definition()
-                changes = compute_changes(prior_def, definition)
-            else:
-                changes = None
 
             # create our new revision
             revision = self.revisions.create(

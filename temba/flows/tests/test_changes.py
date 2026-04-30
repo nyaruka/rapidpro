@@ -108,14 +108,14 @@ class ComputeChangesTest(TembaTest):
         self.assertEqual(["stickies"], _tags(_flow(), _flow(stickies={"s" * 36: sticky})))
         self.assertEqual(["stickies"], _tags(_flow(stickies={"s" * 36: sticky}), _flow()))
 
-        # moved → positions, not stickies
+        # moved → layout, not stickies
         moved = {**sticky, "position": {"left": 100, "top": 50}}
         self.assertEqual(
             ["layout"],
             _tags(_flow(stickies={"s" * 36: sticky}), _flow(stickies={"s" * 36: moved})),
         )
 
-        # resized → positions
+        # resized → layout
         resized = {**sticky, "width": 300}
         self.assertEqual(
             ["layout"],
