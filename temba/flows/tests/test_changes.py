@@ -41,11 +41,11 @@ class ComputeChangesTest(TembaTest):
         self.assertEqual(["nodes"], _tags(_flow(nodes=[node_a]), _flow(nodes=[node_a, node_b])))
         self.assertEqual(["nodes"], _tags(_flow(nodes=[node_a, node_b]), _flow(nodes=[node_a])))
 
-    def test_positions(self):
+    def test_layout(self):
         ui = {"a" * 36: {"position": {"left": 0, "top": 0}, "type": "execute_actions"}}
         ui_moved = {"a" * 36: {"position": {"left": 50, "top": 50}, "type": "execute_actions"}}
 
-        self.assertEqual(["positions"], _tags(_flow(ui_nodes=ui), _flow(ui_nodes=ui_moved)))
+        self.assertEqual(["layout"], _tags(_flow(ui_nodes=ui), _flow(ui_nodes=ui_moved)))
 
         # type-only change in _ui shouldn't count as a move
         ui_retyped = {"a" * 36: {"position": {"left": 0, "top": 0}, "type": "wait_for_response"}}
@@ -111,14 +111,14 @@ class ComputeChangesTest(TembaTest):
         # moved → positions, not stickies
         moved = {**sticky, "position": {"left": 100, "top": 50}}
         self.assertEqual(
-            ["positions"],
+            ["layout"],
             _tags(_flow(stickies={"s" * 36: sticky}), _flow(stickies={"s" * 36: moved})),
         )
 
         # resized → positions
         resized = {**sticky, "width": 300}
         self.assertEqual(
-            ["positions"],
+            ["layout"],
             _tags(_flow(stickies={"s" * 36: sticky}), _flow(stickies={"s" * 36: resized})),
         )
 
@@ -132,7 +132,7 @@ class ComputeChangesTest(TembaTest):
         # both at once → both tags
         both = {**sticky, "position": {"left": 100, "top": 50}, "title": "New"}
         self.assertEqual(
-            ["positions", "stickies"],
+            ["layout", "stickies"],
             _tags(_flow(stickies={"s" * 36: sticky}), _flow(stickies={"s" * 36: both})),
         )
 
@@ -180,4 +180,4 @@ class ComputeChangesTest(TembaTest):
         old = _flow(nodes=[node_a], ui_nodes=ui)
         new = _flow(nodes=[node_a, node_b], ui_nodes=ui_moved, name="Renamed")
 
-        self.assertEqual(["metadata", "nodes", "positions"], _tags(old, new))
+        self.assertEqual(["layout", "metadata", "nodes"], _tags(old, new))

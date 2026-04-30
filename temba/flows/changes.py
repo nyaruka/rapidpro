@@ -11,7 +11,7 @@ def compute_changes(old: dict, new: dict) -> dict:
         {"tags": [...]}
 
     Tags are sorted strings naming the *kinds* of changes present in the new revision:
-        positions  — node moves, sticky moves/resizes
+        layout     — node moves, sticky moves/resizes
         nodes      — nodes added or removed
         actions    — actions added, removed, edited, or reordered within a node
         routing    — router config or exit destinations changed
@@ -42,7 +42,7 @@ def compute_changes(old: dict, new: dict) -> dict:
     new_ui_nodes = new_ui.get("nodes") or {}
     for uuid in old_ui_nodes.keys() & new_ui_nodes.keys():
         if old_ui_nodes[uuid].get("position") != new_ui_nodes[uuid].get("position"):
-            tags.add("positions")
+            tags.add("layout")
             break
 
     old_stickies = old_ui.get("stickies") or {}
@@ -52,7 +52,7 @@ def compute_changes(old: dict, new: dict) -> dict:
     for uuid in old_stickies.keys() & new_stickies.keys():
         old_s, new_s = old_stickies[uuid], new_stickies[uuid]
         if any(old_s.get(f) != new_s.get(f) for f in _STICKY_LAYOUT_FIELDS):
-            tags.add("positions")
+            tags.add("layout")
         # any non-layout field difference counts as a content edit, so future sticky
         # fields don't get silently dropped
         non_layout_keys = (set(old_s) | set(new_s)) - set(_STICKY_LAYOUT_FIELDS)
