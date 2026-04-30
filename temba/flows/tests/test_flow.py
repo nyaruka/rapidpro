@@ -241,15 +241,15 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         first = flow.revisions.order_by("id").last()
         self.assertIsNone(first.changes)
 
-        # saving an unchanged definition produces an empty changes list
+        # saving an unchanged definition produces an empty tag list
         rev2, _ = flow.save_revision(self.admin, dict(first.definition))
-        self.assertEqual([], rev2.changes)
+        self.assertEqual({"tags": []}, rev2.changes)
 
-        # renaming the flow shows up as a metadata change in the next saved revision
+        # renaming the flow shows up as a metadata tag in the next saved revision
         flow.name = "Renamed"
         flow.save(update_fields=("name",))
         rev3, _ = flow.save_revision(self.admin, dict(rev2.definition))
-        self.assertEqual([{"type": "metadata_changed", "field": "name"}], rev3.changes)
+        self.assertEqual({"tags": ["metadata"]}, rev3.changes)
 
         # can't save older spec version over newer
         definition = flow.revisions.order_by("id").last().definition
