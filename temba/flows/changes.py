@@ -3,7 +3,6 @@
 _METADATA_FIELDS = ("name", "type", "expire_after_minutes")
 
 _STICKY_LAYOUT_FIELDS = ("position", "width", "height")
-_STICKY_CONTENT_FIELDS = ("title", "body", "color")
 
 
 def compute_changes(old: dict, new: dict) -> dict:
@@ -54,7 +53,10 @@ def compute_changes(old: dict, new: dict) -> dict:
         old_s, new_s = old_stickies[uuid], new_stickies[uuid]
         if any(old_s.get(f) != new_s.get(f) for f in _STICKY_LAYOUT_FIELDS):
             tags.add("positions")
-        if any(old_s.get(f) != new_s.get(f) for f in _STICKY_CONTENT_FIELDS):
+        # any non-layout field difference counts as a content edit, so future sticky
+        # fields don't get silently dropped
+        non_layout_keys = (set(old_s) | set(new_s)) - set(_STICKY_LAYOUT_FIELDS)
+        if any(old_s.get(k) != new_s.get(k) for k in non_layout_keys):
             tags.add("stickies")
 
     old_loc = old.get("localization") or {}

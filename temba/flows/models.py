@@ -740,7 +740,17 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             self.save(update_fields=fields)
 
             # diff against prior revision so we can later collapse like-for-like edits
-            changes = compute_changes(current_revision.definition, definition) if current_revision else None
+            if current_revision:
+                # if the prior revision is on a different spec, migrate it forward so the
+                # schemas align; we accept that metadata fields like name/expire then come
+                # from the live flow (since get_migrated_definition rewrites them) which is
+                # fine because cross-spec saves are rare and not where metadata diffs matter
+                prior_def = current_revision.definition
+                if current_revision.spec_version != Flow.CURRENT_SPEC_VERSION:
+                    prior_def = current_revision.get_migrated_definition()
+                changes = compute_changes(prior_def, definition)
+            else:
+                changes = None
 
             # create our new revision
             revision = self.revisions.create(

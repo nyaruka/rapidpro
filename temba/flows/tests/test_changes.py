@@ -136,6 +136,13 @@ class ComputeChangesTest(TembaTest):
             _tags(_flow(stickies={"s" * 36: sticky}), _flow(stickies={"s" * 36: both})),
         )
 
+        # unknown non-layout fields fall through to "stickies" rather than being dropped
+        future_field = {**sticky, "linked_node": "n" * 36}
+        self.assertEqual(
+            ["stickies"],
+            _tags(_flow(stickies={"s" * 36: sticky}), _flow(stickies={"s" * 36: future_field})),
+        )
+
     def test_localization(self):
         item = "t" * 36
         old = _flow()
