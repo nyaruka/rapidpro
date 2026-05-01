@@ -12,7 +12,7 @@ def compute_changes(old: dict, new: dict) -> dict:
 
     Tags are sorted strings naming the *kinds* of changes present in the new revision:
         layout     — node moves, sticky moves/resizes
-        nodes      — nodes added or removed
+        nodes      — nodes added, removed, or the entry point (first node) changed
         actions    — actions added, removed, edited, or reordered within a node
         routing    — router config or exit destinations changed
         stickies   — stickies added, removed, or content-edited

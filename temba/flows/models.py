@@ -721,18 +721,19 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         # call mailroom (HTTP) and we don't want that holding row locks
         changes = None
         if current_revision:
-            try:
-                prior_def = current_revision.definition
-                if current_revision.spec_version != Flow.CURRENT_SPEC_VERSION:
-                    # migrate the prior forward so the schemas align; accepting that name/expire
-                    # then come from the live flow (get_migrated_definition rewrites them) — fine
-                    # because cross-spec saves are rare and not where metadata diffs matter
+            prior_def = current_revision.definition
+            if current_revision.spec_version != Flow.CURRENT_SPEC_VERSION:
+                # migrate the prior forward so the schemas align; accepting that name/expire
+                # then come from the live flow (get_migrated_definition rewrites them) — fine
+                # because cross-spec saves are rare and not where metadata diffs matter
+                try:
                     prior_def = current_revision.get_migrated_definition()
+                except Exception:
+                    # don't block a valid save just because the legacy migration failed
+                    logger.warning("could not migrate prior revision for flow %s", self.uuid, exc_info=True)
+                    prior_def = None
+            if prior_def is not None:
                 changes = compute_changes(prior_def, definition)
-            except Exception:
-                # don't block a valid save just because we couldn't categorize what changed
-                logger.warning("could not compute revision changes for flow %s", self.uuid, exc_info=True)
-                changes = None
 
         if user is None:
             is_system_rev = True

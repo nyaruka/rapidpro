@@ -251,8 +251,13 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         rev3, _ = flow.save_revision(self.admin, dict(rev2.definition))
         self.assertEqual({"tags": ["metadata"]}, rev3.changes)
 
-        # if the diff blows up for any reason the save still succeeds with changes=None
-        with patch("temba.flows.models.compute_changes", side_effect=ValueError("boom")):
+        # if migrating the prior revision blows up the save still succeeds with changes=None
+        rev3.spec_version = "11.12"
+        rev3.save(update_fields=("spec_version",))
+        with patch(
+            "temba.flows.models.FlowRevision.get_migrated_definition",
+            side_effect=ValueError("boom"),
+        ):
             rev4, _ = flow.save_revision(self.admin, dict(rev3.definition))
         self.assertIsNone(rev4.changes)
 
