@@ -41,6 +41,12 @@ class ComputeChangesTest(TembaTest):
         self.assertEqual(["nodes"], _tags(_flow(nodes=[node_a]), _flow(nodes=[node_a, node_b])))
         self.assertEqual(["nodes"], _tags(_flow(nodes=[node_a, node_b]), _flow(nodes=[node_a])))
 
+        # swapping which node is first changes the entry point — counts as a structural change
+        self.assertEqual(
+            ["nodes"],
+            _tags(_flow(nodes=[node_a, node_b]), _flow(nodes=[node_b, node_a])),
+        )
+
     def test_layout(self):
         ui = {"a" * 36: {"position": {"left": 0, "top": 0}, "type": "execute_actions"}}
         ui_moved = {"a" * 36: {"position": {"left": 50, "top": 50}, "type": "execute_actions"}}

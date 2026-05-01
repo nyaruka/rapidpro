@@ -26,10 +26,19 @@ def compute_changes(old: dict, new: dict) -> dict:
     if any(old.get(f) != new.get(f) for f in _METADATA_FIELDS):
         tags.add("metadata")
 
-    old_nodes = {n["uuid"]: n for n in old.get("nodes") or []}
-    new_nodes = {n["uuid"]: n for n in new.get("nodes") or []}
+    old_node_list = old.get("nodes") or []
+    new_node_list = new.get("nodes") or []
+    old_nodes = {n["uuid"]: n for n in old_node_list}
+    new_nodes = {n["uuid"]: n for n in new_node_list}
 
     if old_nodes.keys() ^ new_nodes.keys():
+        tags.add("nodes")
+
+    # the first node is the flow entry point, so changing it is a structural change
+    # even if the node sets are otherwise the same
+    old_entry = old_node_list[0]["uuid"] if old_node_list else None
+    new_entry = new_node_list[0]["uuid"] if new_node_list else None
+    if old_entry != new_entry:
         tags.add("nodes")
 
     for uuid in old_nodes.keys() & new_nodes.keys():
