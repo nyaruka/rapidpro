@@ -1,4 +1,4 @@
-from unittest.mock import call
+from unittest.mock import call, patch
 
 from django.urls import reverse
 
@@ -250,6 +250,11 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         flow.save(update_fields=("name",))
         rev3, _ = flow.save_revision(self.admin, dict(rev2.definition))
         self.assertEqual({"tags": ["metadata"]}, rev3.changes)
+
+        # if the diff blows up for any reason the save still succeeds with changes=None
+        with patch("temba.flows.models.compute_changes", side_effect=ValueError("boom")):
+            rev4, _ = flow.save_revision(self.admin, dict(rev3.definition))
+        self.assertIsNone(rev4.changes)
 
         # can't save older spec version over newer
         definition = flow.revisions.order_by("id").last().definition
