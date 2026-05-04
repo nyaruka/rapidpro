@@ -1,3 +1,7 @@
+v26.1.104 (2026-05-04)
+-------------------------
+ * Track categorized changes on each FlowRevision
+
 v26.1.103 (2026-05-04)
 -------------------------
  * Add LLMCount model for tracking daily LLM call and token usage
