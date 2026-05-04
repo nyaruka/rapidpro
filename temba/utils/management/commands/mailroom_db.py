@@ -285,6 +285,8 @@ class Command(BaseCommand):
             user = User.objects.create_user(
                 u["email"], USER_PASSWORD, first_name=u["first_name"], last_name=u["last_name"]
             )
+            user.uuid = u["uuid"]
+            user.save(update_fields=("uuid",))
             team = org.teams.get(name=u["team"]) if u.get("team") else None
             org.add_user(user, OrgRole.from_code(u["role"]), team=team)
 
@@ -372,7 +374,7 @@ class Command(BaseCommand):
 
                 if "flow" in e:
                     flow = Flow.objects.get(org=org, name=e["flow"])
-                    CampaignEvent.create_flow_event(
+                    event = CampaignEvent.create_flow_event(
                         org,
                         user,
                         campaign,
@@ -384,7 +386,7 @@ class Command(BaseCommand):
                         start_mode=e["start_mode"],
                     )
                 else:
-                    CampaignEvent.create_message_event(
+                    event = CampaignEvent.create_message_event(
                         org,
                         user,
                         campaign,
@@ -396,6 +398,8 @@ class Command(BaseCommand):
                         delivery_hour=e.get("delivery_hour", -1),
                         start_mode=e["start_mode"],
                     )
+                event.uuid = e["uuid"]
+                event.save(update_fields=("uuid",))
 
         # make events look like they've been scheduled
         CampaignEvent.objects.all().update(status=CampaignEvent.STATUS_READY, fire_version=1)
