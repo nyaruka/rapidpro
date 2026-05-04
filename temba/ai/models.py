@@ -10,7 +10,7 @@ from django.urls import re_path
 
 from temba import mailroom
 from temba.orgs.models import DependencyMixin, Org
-from temba.utils.models import TembaModel
+from temba.utils.models import TembaModel, delete_in_batches
 from temba.utils.models.counts import BaseDailyCount
 
 
@@ -126,8 +126,6 @@ class LLM(TembaModel, DependencyMixin):
         self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))
 
     def delete(self):
-        from temba.utils.models import delete_in_batches
-
         delete_in_batches(self.counts.all())
 
         super().delete()

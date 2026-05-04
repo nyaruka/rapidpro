@@ -891,6 +891,7 @@ RETENTION_PERIODS = {
     "export": timedelta(days=90),
     "flowsession": timedelta(days=7),
     "httplog": timedelta(days=3),
+    "llmcount": timedelta(days=30),
     "notification": timedelta(days=30),
     "syncevent": timedelta(days=7),
     "webhookevent": timedelta(hours=48),

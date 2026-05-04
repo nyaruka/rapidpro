@@ -1,5 +1,4 @@
-from datetime import timedelta
-
+from django.conf import settings
 from django.utils import timezone
 
 from temba.utils.crons import cron_task
@@ -15,7 +14,7 @@ def squash_llm_counts():
 
 @cron_task()
 def trim_llm_counts():
-    trim_before = timezone.now().date() - timedelta(days=30)
+    trim_before = (timezone.now() - settings.RETENTION_PERIODS["llmcount"]).date()
 
     num_deleted = delete_in_batches(LLMCount.objects.filter(day__lt=trim_before))
 
