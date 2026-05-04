@@ -1,3 +1,7 @@
+v26.1.105 (2026-05-04)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.16
+
 v26.1.104 (2026-05-04)
 -------------------------
  * Track categorized changes on each FlowRevision
