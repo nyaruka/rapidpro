@@ -283,10 +283,12 @@ class Command(BaseCommand):
 
         for u in spec["users"]:
             user = User.objects.create_user(
-                u["email"], USER_PASSWORD, first_name=u["first_name"], last_name=u["last_name"]
+                u["email"],
+                USER_PASSWORD,
+                uuid=u["uuid"],
+                first_name=u["first_name"],
+                last_name=u["last_name"],
             )
-            user.uuid = u["uuid"]
-            user.save(update_fields=("uuid",))
             team = org.teams.get(name=u["team"]) if u.get("team") else None
             org.add_user(user, OrgRole.from_code(u["role"]), team=team)
 
@@ -296,7 +298,8 @@ class Command(BaseCommand):
         self._log(f"Creating {len(spec['fields'])} fields... ")
 
         for f in spec["fields"]:
-            field = ContactField.objects.create(
+            ContactField.objects.create(
+                uuid=f["uuid"],
                 org=org,
                 key=f["key"],
                 name=f["name"],
@@ -306,8 +309,6 @@ class Command(BaseCommand):
                 created_by=user,
                 modified_by=user,
             )
-            field.uuid = f["uuid"]
-            field.save(update_fields=["uuid"])
 
         self._log(self.style.SUCCESS("OK") + "\n")
 
@@ -316,7 +317,13 @@ class Command(BaseCommand):
 
         for g in spec["globals"]:
             Global.objects.create(
-                org=org, key=g["key"], name=g["name"], value=g["value"], created_by=user, modified_by=user
+                uuid=g["uuid"],
+                org=org,
+                key=g["key"],
+                name=g["name"],
+                value=g["value"],
+                created_by=user,
+                modified_by=user,
             )
 
         self._log(self.style.SUCCESS("OK") + "\n")
@@ -456,7 +463,13 @@ class Command(BaseCommand):
         self._log(self.style.SUCCESS("OK") + "\n")
 
     def create_group_contacts(self, spec, org, user):
+        from temba.utils import uuid
+
         self._log("Generating group contacts...")
+
+        # use a local generator seeded by the org id so bulk contacts have stable UUIDs
+        # across regens and don't collide between orgs
+        gen = uuid.seeded_generator(org.id)
 
         for g in spec["groups"]:
             size = int(g.get("size", 0))
@@ -480,6 +493,8 @@ class Command(BaseCommand):
                             fields={},
                             groups=[],
                         )
+                        contact.uuid = str(gen())
+                        contact.save(update_fields=("uuid",))
 
                     contacts.append(contact)
 
