@@ -1182,7 +1182,7 @@ class FlowRevision(models.Model):
 
     # categorized record of what changed since the previous revision; null for legacy
     # revisions that pre-date this field, signalling "don't try to collapse me".
-    changes = JSONAsTextField(null=True, default=None)
+    changes = models.JSONField(null=True, default=None)
 
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="revisions")
     created_on = models.DateTimeField(default=timezone.now)
