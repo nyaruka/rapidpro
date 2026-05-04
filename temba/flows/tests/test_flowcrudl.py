@@ -1119,34 +1119,33 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.client.get(reverse("flows.flow_editor", args=[flow.uuid]))
             self.assertEqual(features, set(json.loads(response.context["feature_filters"])))
 
-        # auto_translate is always available
-        assert_features({"auto_translate"})
+        assert_features(set())
 
         # add a resthook
         Resthook.objects.create(org=flow.org, created_by=self.admin, modified_by=self.admin)
-        assert_features({"auto_translate", "resthook"})
+        assert_features({"resthook"})
 
         # add an NLP classifier
         Classifier.objects.create(org=flow.org, config="", created_by=self.admin, modified_by=self.admin)
-        assert_features({"auto_translate", "classifier", "resthook"})
+        assert_features({"classifier", "resthook"})
 
         # add a DT One integration
         DTOneType().connect(flow.org, self.admin, "login", "token")
-        assert_features({"auto_translate", "airtime", "classifier", "resthook"})
+        assert_features({"airtime", "classifier", "resthook"})
 
         # change our channel to use a whatsapp scheme
         self.channel.schemes = [URN.WHATSAPP_SCHEME]
         self.channel.save()
-        assert_features({"auto_translate", "whatsapp", "airtime", "classifier", "resthook"})
+        assert_features({"whatsapp", "airtime", "classifier", "resthook"})
 
         # change our channel to use a facebook scheme
         self.channel.schemes = [URN.FACEBOOK_SCHEME]
         self.channel.save()
-        assert_features({"auto_translate", "optins", "airtime", "classifier", "resthook"})
+        assert_features({"optins", "airtime", "classifier", "resthook"})
 
         self.setUpLocations()
 
-        assert_features({"auto_translate", "optins", "airtime", "classifier", "resthook", "locations"})
+        assert_features({"optins", "airtime", "classifier", "resthook", "locations"})
 
     @mock_mailroom
     def test_template_warnings(self, mr_mocks):

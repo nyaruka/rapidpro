@@ -743,7 +743,7 @@ class FlowCRUDL(SmartCRUDL):
             return context
 
         def get_features(self, org) -> list:
-            features = ["auto_translate"]
+            features = []
 
             facebook_channel = org.get_channel(Channel.ROLE_SEND, scheme=URN.FACEBOOK_SCHEME)
             whatsapp_channel = org.get_channel(Channel.ROLE_SEND, scheme=URN.WHATSAPP_SCHEME)
