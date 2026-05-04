@@ -36,6 +36,7 @@ from temba.utils.models.counts import BaseScopedCount, BaseSquashableCount
 from temba.utils.uuid import uuid4
 
 from . import legacy
+from .changes import compute_changes
 
 logger = logging.getLogger(__name__)
 
@@ -715,6 +716,25 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         # inspect the flow (with optional validation)
         info = mailroom.get_client().flow_inspect(self.org, definition)
 
+        # diff against prior revision so we can later collapse like-for-like edits;
+        # done outside the transaction below because get_migrated_definition() may
+        # call mailroom (HTTP) and we don't want that holding row locks
+        changes = None
+        if current_revision:
+            prior_def = current_revision.definition
+            if current_revision.spec_version != Flow.CURRENT_SPEC_VERSION:
+                # migrate the prior forward so the schemas align; accepting that name/expire
+                # then come from the live flow (get_migrated_definition rewrites them) — fine
+                # because cross-spec saves are rare and not where metadata diffs matter
+                try:
+                    prior_def = current_revision.get_migrated_definition()
+                except Exception:
+                    # don't block a valid save just because the legacy migration failed
+                    logger.warning("could not migrate prior revision for flow %s", self.uuid, exc_info=True)
+                    prior_def = None
+            if prior_def is not None:
+                changes = compute_changes(prior_def, definition)
+
         if user is None:
             is_system_rev = True
             user = User.get_system_user()
@@ -741,6 +761,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             # create our new revision
             revision = self.revisions.create(
                 definition=definition,
+                changes=changes,
                 created_by=user,
                 spec_version=Flow.CURRENT_SPEC_VERSION,
                 revision=revision,
@@ -1158,6 +1179,11 @@ class FlowRevision(models.Model):
     definition = JSONAsTextField(default=dict)
     spec_version = models.CharField(default=Flow.FINAL_LEGACY_VERSION, max_length=8)
     revision = models.IntegerField()
+
+    # categorized record of what changed since the previous revision; null for legacy
+    # revisions that pre-date this field, signalling "don't try to collapse me".
+    changes = models.JSONField(null=True, default=None)
+
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="revisions")
     created_on = models.DateTimeField(default=timezone.now)
 
@@ -1283,6 +1309,7 @@ class FlowRevision(models.Model):
             "created_on": self.created_on.isoformat(),
             "version": self.spec_version,
             "revision": self.revision,
+            "changes": self.changes,
         }
 
     def release(self):

@@ -1,4 +1,4 @@
-from unittest.mock import call
+from unittest.mock import call, patch
 
 from django.urls import reverse
 
@@ -236,6 +236,30 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         flow = Flow.objects.get(
             org=self.org, name="Go Flow", flow_type=Flow.TYPE_MESSAGE, version_number=Flow.CURRENT_SPEC_VERSION
         )
+
+        # initial revision has no diff baseline so changes is null
+        first = flow.revisions.order_by("id").last()
+        self.assertIsNone(first.changes)
+
+        # saving an unchanged definition produces an empty tag list
+        rev2, _ = flow.save_revision(self.admin, dict(first.definition))
+        self.assertEqual({"tags": []}, rev2.changes)
+
+        # renaming the flow shows up as a metadata tag in the next saved revision
+        flow.name = "Renamed"
+        flow.save(update_fields=("name",))
+        rev3, _ = flow.save_revision(self.admin, dict(rev2.definition))
+        self.assertEqual({"tags": ["metadata"]}, rev3.changes)
+
+        # if migrating the prior revision blows up the save still succeeds with changes=None
+        rev3.spec_version = "11.12"
+        rev3.save(update_fields=("spec_version",))
+        with patch(
+            "temba.flows.models.FlowRevision.get_migrated_definition",
+            side_effect=ValueError("boom"),
+        ):
+            rev4, _ = flow.save_revision(self.admin, dict(rev3.definition))
+        self.assertIsNone(rev4.changes)
 
         # can't save older spec version over newer
         definition = flow.revisions.order_by("id").last().definition
