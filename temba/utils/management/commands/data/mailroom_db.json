@@ -10,18 +10,21 @@
             "sequence_start": 10000,
             "users": [
                 {
+                    "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "email": "admin1@textit.com",
                     "role": "A",
                     "first_name": "Andy",
                     "last_name": "Admin"
                 },
                 {
+                    "uuid": "ed84a3d7-92e4-4a8b-b01f-db11ff83bbb6",
                     "email": "editor1@textit.com",
                     "role": "E",
                     "first_name": "Ed",
                     "last_name": "McEditor"
                 },
                 {
+                    "uuid": "aee44553-ab35-482b-a4d4-6f000ec611ab",
                     "email": "agent1@textit.com",
                     "role": "T",
                     "first_name": "Ann",
@@ -335,6 +338,7 @@
                     "group": "Doctors",
                     "events": [
                         {
+                            "uuid": "3c8eca88-a5f8-4e27-96f4-e47f19cc0de8",
                             "flow": "Favorites",
                             "offset_field": "joined",
                             "offset": "5",
@@ -343,7 +347,7 @@
                             "start_mode": "I"
                         },
                         {
-                            "uuid": "3a92a964-3a8d-420b-9206-2cd9d884ac30",
+                            "uuid": "f2a3f8c5-e831-4df3-b046-8d8cdb90f178",
                             "base_language": "eng",
                             "translations": {
                                 "eng": {"text": "Hi @contact.name, it is time to consult with your patients."},
@@ -355,6 +359,7 @@
                             "start_mode": "P"
                         },
                         {
+                            "uuid": "552a7155-66bc-4323-aad0-8421f87a4e0c",
                             "flow": "Pick a Number",
                             "offset_field": "joined",
                             "offset": "1",
@@ -554,6 +559,7 @@
             "topics": [],
             "users": [
                 {
+                    "uuid": "a2afc5e7-e97b-45e5-9850-8896957fef54",
                     "email": "admin2@textit.com",
                     "role": "A",
                     "first_name": "",
