@@ -9,7 +9,7 @@ jobs:
 
     env:
       node-version: '20'
-      mailroom-version: '26.1.69'
+      mailroom-version: '26.1.109'
 
     services:
       valkey:
@@ -63,8 +63,8 @@ jobs:
           # fetch, extract and start mailroom
           wget https://github.com/${{ github.repository_owner }}/mailroom/releases/download/v${{ env.mailroom-version }}/mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz
           tar -xvf mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz mailroom
-          # start mailroom but use different valkey db so that it doesn't actually handle tasks
-          ./mailroom -db=postgres://temba:temba@postgres:5432/temba?sslmode=disable -valkey=valkey://valkey:6379/15 -log-level=info > mailroom.log &
+          # start mailroom with workers disabled so it serves the web API but doesn't pop any queued tasks
+          ./mailroom -db=postgres://temba:temba@postgres:5432/temba?sslmode=disable -workers-realtime=0 -workers-batch=0 -workers-throttled=0 -log-level=info > mailroom.log &
 
       - name: Run pre-test checks
         run: |
