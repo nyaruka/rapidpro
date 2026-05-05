@@ -2246,9 +2246,12 @@ msgstr "Azul"
         self.assertContains(response, "Spanish (spa)")
         self.assertEqual({"language": "spa"}, response.context["form"].initial)
 
-        # confirm the import
+        # confirm the import — the imported definition has new Spanish localization
+        # so it's a real change (no-op imports don't create a new revision)
+        imported_def = flow.get_definition()
+        imported_def["localization"] = {"spa": {"a4d15ed4-5b24-407f-b86e-4b881f09a186": {"arguments": ["Azul"]}}}
         with patch("temba.mailroom.client.client.MailroomClient.po_import") as mock_po_import:
-            mock_po_import.return_value = {"flows": [flow.get_definition()]}
+            mock_po_import.return_value = {"flows": [imported_def]}
 
             response = self.requestView(step2_url, self.admin, post_data={"language": "spa"})
 
