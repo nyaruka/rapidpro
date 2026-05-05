@@ -256,7 +256,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
             if flow:
                 flow.name = Flow.get_unique_name(org, flow_name, ignore=flow)
-                flow.version_number = flow_version
+                flow.version_number = str(flow_version)
                 flow.expires_after_minutes = flow_expires
                 flow.save(update_fields=("name", "expires_after_minutes"))
             else:
