@@ -143,8 +143,10 @@ class FlowRevisionTest(TembaTest):
         flow = self.create_flow("Flow 1")
         FlowRevision.objects.filter(flow=flow).update(revision=100)
 
-        # three revisions on a single old day, all by the editor
-        old_day = timezone.now() - timedelta(days=3)
+        # three revisions on a single old day, all by the editor; anchor to noon UTC
+        # so the small window can't straddle UTC midnight regardless of when the
+        # test runs
+        old_day = (timezone.now() - timedelta(days=3)).replace(hour=12, minute=0, second=0, microsecond=0)
         revision = 100
         keeper_id = None
         for j in range(3):
@@ -203,8 +205,9 @@ class FlowRevisionTest(TembaTest):
             )
             recent_ids.append(rev.id)
 
-        # 4 revisions on a day older than 24h ago — these should collapse to 1
-        old_day = timezone.now() - timedelta(days=2)
+        # 4 revisions on a day older than 24h ago — these should collapse to 1.
+        # Anchor to noon UTC so the small minute-level span can't span midnight.
+        old_day = (timezone.now() - timedelta(days=2)).replace(hour=12, minute=0, second=0, microsecond=0)
         for j in range(4):
             revision -= 1
             FlowRevision.objects.create(
