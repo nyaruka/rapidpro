@@ -1,3 +1,10 @@
+v26.1.106 (2026-05-05)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.17
+ * Skip creating new flow revisions when definition is unchanged
+ * Hardcode stable UUIDs for root and system users in mailroom_db dump
+ * Disable mailroom task processing in CI and mailroom_db dev command
+
 v26.1.105 (2026-05-04)
 -------------------------
  * Update @nyaruka/temba-components to 0.156.16
