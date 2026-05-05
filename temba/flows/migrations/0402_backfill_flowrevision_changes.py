@@ -1,14 +1,19 @@
-from packaging.version import Version
+import logging
+
+from packaging.version import InvalidVersion, Version
 
 from django.db import migrations
 
-# the schema compute_changes understands; older revisions used materially different
-# definition shapes and aren't worth diffing here
-MIN_SPEC = Version("13.0.0")
+logger = logging.getLogger(__name__)
 
 
 def backfill_flowrevision_changes(apps, schema_editor):  # pragma: no cover
     from temba.flows.changes import compute_changes
+    from temba.flows.models import Flow
+
+    # the schema compute_changes understands; older revisions used materially different
+    # definition shapes and aren't worth diffing here
+    min_spec = Version(Flow.INITIAL_GOFLOW_VERSION)
 
     FlowRevision = apps.get_model("flows", "FlowRevision")
 
@@ -42,16 +47,26 @@ def backfill_flowrevision_changes(apps, schema_editor):  # pragma: no cover
             )
 
             for rev in qs.iterator(chunk_size=50):
-                spec_ok = Version(rev.spec_version) >= MIN_SPEC
+                try:
+                    spec_ok = Version(rev.spec_version) >= min_spec
+                except InvalidVersion:
+                    spec_ok = False
 
                 if rev.changes is None and prev_def is not None and spec_ok:
-                    rev.changes = compute_changes(prev_def, rev.definition)
-                    updates.append(rev)
+                    try:
+                        rev.changes = compute_changes(prev_def, rev.definition)
+                    except Exception:
+                        # malformed definition (e.g. nodes/actions missing uuid) — leave
+                        # changes as null and keep going so one bad row doesn't block
+                        # the rest of the backfill
+                        logger.warning("could not compute changes for revision %d", rev.id, exc_info=True)
+                    else:
+                        updates.append(rev)
 
-                    if len(updates) >= 200:
-                        FlowRevision.objects.bulk_update(updates, ["changes"])
-                        num_updated += len(updates)
-                        updates = []
+                        if len(updates) >= 200:
+                            FlowRevision.objects.bulk_update(updates, ["changes"])
+                            num_updated += len(updates)
+                            updates = []
 
                 # only carry forward a definition compute_changes can read; this also
                 # ensures the first 13.x revision after a pre-13 history isn't diffed
@@ -75,6 +90,8 @@ def apply_manual():  # pragma: no cover
 
 
 class Migration(migrations.Migration):
+    atomic = False
+
     dependencies = [
         ("flows", "0401_flowrevision_changes"),
     ]
