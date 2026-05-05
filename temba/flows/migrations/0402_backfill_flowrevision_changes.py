@@ -15,7 +15,7 @@ _STICKY_LAYOUT_FIELDS = ("position", "width", "height")
 _SYSTEM_FIELDS = ("uuid", "revision", "spec_version")
 
 
-def compute_changes(old: dict, new: dict) -> dict:
+def compute_changes(old: dict, new: dict) -> dict:  # pragma: no cover
     tags = set()
 
     if old.get("language") != new.get("language"):
@@ -76,7 +76,7 @@ def compute_changes(old: dict, new: dict) -> dict:
     return {"tags": sorted(tags)}
 
 
-def _tag_node_diff(old: dict, new: dict, tags: set) -> None:
+def _tag_node_diff(old: dict, new: dict, tags: set) -> None:  # pragma: no cover
     old_action_list = old.get("actions") or []
     new_action_list = new.get("actions") or []
     old_actions = {a["uuid"]: a for a in old_action_list}
