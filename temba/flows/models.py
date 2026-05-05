@@ -1232,7 +1232,9 @@ class FlowRevision(models.Model):
         Our logic is:
          * always keep the last 25 revisions and everything from the past 24 hours
            (whichever covers more)
-         * for any revision beyond those, collapse to the last revision for that day
+         * for any revision beyond that cutoff, collapse to the last older revision
+           in each day-bucket (the day at the cutoff boundary is split — only the
+           pre-cutoff portion gets collapsed; the rest is in the keep window)
 
         The kept revision absorbs the `changes` of the deleted ones it replaces, so the
         recorded changes still describe everything that happened since the previous kept

@@ -6,6 +6,7 @@ from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField, ContactGroup
 from temba.flows.models import (
     Flow,
+    FlowRevision,
     FlowRun,
     FlowStart,
     FlowStartCount,
@@ -277,6 +278,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         ):
             rev_after_trim_fail, _ = flow.save_revision(self.admin, dict(latest_def))
         self.assertIsNotNone(rev_after_trim_fail)
+        self.assertTrue(FlowRevision.objects.filter(id=rev_after_trim_fail.id).exists())
 
         # can't save older spec version over newer
         definition = flow.revisions.order_by("id").last().definition
