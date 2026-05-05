@@ -720,7 +720,8 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         changes = None
         if current_revision:
             prior_def = current_revision.definition
-            if current_revision.spec_version != Flow.CURRENT_SPEC_VERSION:
+            spec_changed = current_revision.spec_version != Flow.CURRENT_SPEC_VERSION
+            if spec_changed:
                 # migrate the prior forward so the schemas align; accepting that name/expire
                 # then come from the live flow (get_migrated_definition rewrites them) — fine
                 # because cross-spec saves are rare and not where metadata diffs matter
@@ -732,21 +733,15 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
                     prior_def = None
             if prior_def is not None:
                 changes = compute_changes(prior_def, definition)
+                # a spec migration is itself a real change worth recording, even when
+                # the migration is content-equivalent — get_migrated_definition aligns
+                # the schemas so compute_changes can't see the spec bump on its own
+                if spec_changed:
+                    changes = {"tags": sorted(set(changes["tags"]) | {"spec"})}
 
         # if the definition is unchanged from the current revision, don't create a
-        # new one — author-only changes shouldn't produce revision churn. We still
-        # bump the flow's spec version (and the current revision's) if it's stale
-        # so migrations like ensure_current_version aren't silently dropped on
-        # no-op saves and revision.spec_version doesn't go stale.
+        # new one — author-only changes shouldn't produce revision churn
         if changes is not None and not changes["tags"]:
-            with transaction.atomic():
-                if self.version_number != Flow.CURRENT_SPEC_VERSION:
-                    self.version_number = Flow.CURRENT_SPEC_VERSION
-                    self.save(update_fields=("version_number",))
-                if current_revision.spec_version != Flow.CURRENT_SPEC_VERSION:
-                    current_revision.spec_version = Flow.CURRENT_SPEC_VERSION
-                    current_revision.definition[Flow.DEFINITION_SPEC_VERSION] = Flow.CURRENT_SPEC_VERSION
-                    current_revision.save(update_fields=("spec_version", "definition"))
             return current_revision, (self.info or {}).get("issues", [])
 
         # inspect the flow (with optional validation)

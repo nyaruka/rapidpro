@@ -22,6 +22,8 @@ def compute_changes(old: dict, new: dict) -> dict:
         stickies   — stickies added, removed, or content-edited
         metadata   — flow-level fields changed (name, type, expire_after_minutes, base_language)
         localization:<lang> — translations changed for that language
+        spec       — flow's spec version was bumped (added by Flow.save_revision, not here,
+                     since prior revisions are migrated forward before diffing)
         other      — any difference not captured by the categories above; a safety net so
                      an empty tag list reliably means "nothing changed"
     """

@@ -765,7 +765,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                     "id": revisions[0].id,
                     "version": Flow.CURRENT_SPEC_VERSION,
                     "revision": 2,
-                    "changes": {"tags": ["routing"]},
+                    "changes": {"tags": ["routing", "spec"]},
                 },
                 {
                     "user": {"email": "admin@textit.com", "name": "Andy"},
