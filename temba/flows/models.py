@@ -256,7 +256,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
             if flow:
                 flow.name = Flow.get_unique_name(org, flow_name, ignore=flow)
-                flow.version_number = flow_version
+                flow.version_number = str(flow_version)
                 flow.expires_after_minutes = flow_expires
                 flow.save(update_fields=("name", "expires_after_minutes"))
             else:
@@ -713,16 +713,15 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         definition[Flow.DEFINITION_REVISION] = revision
         definition[Flow.DEFINITION_EXPIRE_AFTER_MINUTES] = self.expires_after_minutes
 
-        # inspect the flow (with optional validation)
-        info = mailroom.get_client().flow_inspect(self.org, definition)
-
-        # diff against prior revision so we can later collapse like-for-like edits;
-        # done outside the transaction below because get_migrated_definition() may
-        # call mailroom (HTTP) and we don't want that holding row locks
+        # diff against prior revision so we can skip no-op saves and later collapse
+        # like-for-like edits; done outside the transaction below because
+        # get_migrated_definition() may call mailroom (HTTP) and we don't want that
+        # holding row locks
         changes = None
         if current_revision:
             prior_def = current_revision.definition
-            if current_revision.spec_version != Flow.CURRENT_SPEC_VERSION:
+            spec_changed = current_revision.spec_version != Flow.CURRENT_SPEC_VERSION
+            if spec_changed:
                 # migrate the prior forward so the schemas align; accepting that name/expire
                 # then come from the live flow (get_migrated_definition rewrites them) — fine
                 # because cross-spec saves are rare and not where metadata diffs matter
@@ -734,6 +733,19 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
                     prior_def = None
             if prior_def is not None:
                 changes = compute_changes(prior_def, definition)
+                # a spec migration is itself a real change worth recording, even when
+                # the migration is content-equivalent — get_migrated_definition aligns
+                # the schemas so compute_changes can't see the spec bump on its own
+                if spec_changed:
+                    changes = {"tags": sorted(set(changes["tags"]) | {"spec"})}
+
+        # if the definition is unchanged from the current revision, don't create a
+        # new one — author-only changes shouldn't produce revision churn
+        if changes is not None and not changes["tags"]:
+            return current_revision, (self.info or {}).get("issues", [])
+
+        # inspect the flow (with optional validation)
+        info = mailroom.get_client().flow_inspect(self.org, definition)
 
         if user is None:
             is_system_rev = True

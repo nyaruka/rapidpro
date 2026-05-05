@@ -4,6 +4,10 @@ _METADATA_FIELDS = ("name", "type", "expire_after_minutes")
 
 _STICKY_LAYOUT_FIELDS = ("position", "width", "height")
 
+# Top-level fields rewritten on every save or otherwise not part of the meaningful
+# definition — excluded when checking for "did anything change at all?"
+_SYSTEM_FIELDS = ("uuid", "revision", "spec_version")
+
 
 def compute_changes(old: dict, new: dict) -> dict:
     """
@@ -18,6 +22,10 @@ def compute_changes(old: dict, new: dict) -> dict:
         stickies   — stickies added, removed, or content-edited
         metadata   — flow-level fields changed (name, type, expire_after_minutes, base_language)
         localization:<lang> — translations changed for that language
+        spec       — flow's spec version was bumped (added by Flow.save_revision, not here,
+                     since prior revisions are migrated forward before diffing)
+        other      — any difference not captured by the categories above; a safety net so
+                     an empty tag list reliably means "nothing changed"
     """
     tags = set()
 
@@ -73,6 +81,17 @@ def compute_changes(old: dict, new: dict) -> dict:
     for lang in set(old_loc) | set(new_loc):
         if (old_loc.get(lang) or {}) != (new_loc.get(lang) or {}):
             tags.add(f"localization:{lang}")
+
+    # safety net: if nothing was tagged but the definitions still differ in some way
+    # we didn't anticipate (new schema fields, unknown node shapes, etc.), record it
+    # as "other" so an empty tag list is a reliable proof that nothing changed.
+    # System fields are stripped only at the top level (where they actually live);
+    # a stray system-named key nested deep in a node would still surface as "other".
+    if not tags:
+        old_stripped = {k: v for k, v in old.items() if k not in _SYSTEM_FIELDS}
+        new_stripped = {k: v for k, v in new.items() if k not in _SYSTEM_FIELDS}
+        if old_stripped != new_stripped:
+            tags.add("other")
 
     return {"tags": sorted(tags)}
 

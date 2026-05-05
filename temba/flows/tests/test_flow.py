@@ -134,10 +134,13 @@ class FlowTest(TembaTest, CRUDLTestMixin):
 
         flow.ensure_current_version()
 
-        # check we migrate to current spec version
+        # spec migration is itself a recorded change — a new revision is created with
+        # the "spec" tag even if the migration is content-equivalent for this fixture
         self.assertEqual(Flow.CURRENT_SPEC_VERSION, flow.version_number)
         self.assertEqual(2, flow.revisions.count())
-        self.assertEqual("system", flow.revisions.order_by("id").last().created_by.email)
+        latest = flow.revisions.order_by("id").last()
+        self.assertEqual("system", latest.created_by.email)
+        self.assertEqual({"tags": ["spec"]}, latest.changes)
 
         # saved on won't have been updated but modified on will
         self.assertEqual(old_saved_on, flow.saved_on)
@@ -241,25 +244,27 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         first = flow.revisions.order_by("id").last()
         self.assertIsNone(first.changes)
 
-        # saving an unchanged definition produces an empty tag list
-        rev2, _ = flow.save_revision(self.admin, dict(first.definition))
-        self.assertEqual({"tags": []}, rev2.changes)
+        # saving an unchanged definition is a no-op — returns the current revision and
+        # doesn't create a new one
+        same, _ = flow.save_revision(self.admin, dict(first.definition))
+        self.assertEqual(first.id, same.id)
+        self.assertEqual(1, flow.revisions.count())
 
         # renaming the flow shows up as a metadata tag in the next saved revision
         flow.name = "Renamed"
         flow.save(update_fields=("name",))
-        rev3, _ = flow.save_revision(self.admin, dict(rev2.definition))
-        self.assertEqual({"tags": ["metadata"]}, rev3.changes)
+        rev2, _ = flow.save_revision(self.admin, dict(first.definition))
+        self.assertEqual({"tags": ["metadata"]}, rev2.changes)
 
         # if migrating the prior revision blows up the save still succeeds with changes=None
-        rev3.spec_version = "11.12"
-        rev3.save(update_fields=("spec_version",))
+        rev2.spec_version = "11.12"
+        rev2.save(update_fields=("spec_version",))
         with patch(
             "temba.flows.models.FlowRevision.get_migrated_definition",
             side_effect=ValueError("boom"),
         ):
-            rev4, _ = flow.save_revision(self.admin, dict(rev3.definition))
-        self.assertIsNone(rev4.changes)
+            rev3, _ = flow.save_revision(self.admin, dict(rev2.definition))
+        self.assertIsNone(rev3.changes)
 
         # can't save older spec version over newer
         definition = flow.revisions.order_by("id").last().definition
