@@ -40,6 +40,10 @@ MAILROOM_DB_PASS = "temba"
 POSTGRES_PASS = "tembatemba"
 DUMP_FILE = "postgres.dump"
 
+# stable UUIDs for the root and system users which are created before our seeded UUID generator is patched in
+ROOT_USER_UUID = "00b8e9a3-7c41-4a52-9d83-6e1f5c8b2a47"
+SYSTEM_USER_UUID = "01a7d4f2-8c63-4b91-a5e8-3f9d7c2b1e58"
+
 
 class Command(BaseCommand):
     help = "Generates a database suitable for mailroom testing"
@@ -70,6 +74,10 @@ class Command(BaseCommand):
         # run our migrations to put our database in the right state
         call_command("migrate")
 
+        # the system user is auto-created during migrate (post_migrate signal) before our seeded UUID generator
+        # is in play, so force a stable UUID on it
+        User.objects.filter(is_system=True).update(uuid=SYSTEM_USER_UUID)
+
         # this is a new database so clear out valkey
         self._log("Clearing out Valkey cache... ")
         r = get_valkey_connection()
@@ -77,7 +85,7 @@ class Command(BaseCommand):
         self._log(self.style.SUCCESS("OK") + "\n")
 
         self._log("Creating superuser... ")
-        superuser = User.objects.create_user("root", USER_PASSWORD, is_superuser=True)
+        superuser = User.objects.create_user("root", USER_PASSWORD, is_superuser=True, uuid=ROOT_USER_UUID)
         self._log(self.style.SUCCESS("OK") + "\n")
 
         mr_cmd = f'go run ./cmd/mailroom --port={mr_port} -db="postgres://{db_user}:temba@localhost/{db_name}?sslmode=disable" --valkey="valkey://localhost:6379/15" --workers-realtime=0 --workers-batch=0 --workers-throttled=0 -uuid-seed=123'
