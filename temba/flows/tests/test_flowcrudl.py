@@ -740,8 +740,10 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         revision.spec_version = "11.12"
         revision.save(update_fields=("definition", "spec_version"))
 
-        # create a new migrated revision
+        # create a new migrated revision (rename so the save isn't a no-op)
         flow_def = revision.get_migrated_definition()
+        flow.name = "Color Renamed"
+        flow.save(update_fields=("name",))
         flow.save_revision(self.admin, flow_def)
 
         revisions = list(flow.revisions.all().order_by("-created_on"))
@@ -822,13 +824,22 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(revisions_url, definition, content_type="application/json")
         self.assertEqual(302, response.status_code)
 
-        # check that we can create a new revision
+        # posting the unchanged definition is a no-op — no new revision created
         self.login(self.admin)
+        response = self.client.post(revisions_url, definition, content_type="application/json")
+        same_revision = response.json()
+        self.assertEqual(1, same_revision["revision"][Flow.DEFINITION_REVISION])
+        self.assertEqual(1, flow.revisions.count())
+
+        # but a real change creates a new revision (rename the flow so the next save
+        # picks up a metadata diff via the live flow.name)
+        flow.name = "Renamed Flow"
+        flow.save(update_fields=("name",))
         response = self.client.post(revisions_url, definition, content_type="application/json")
         new_revision = response.json()
         self.assertEqual(2, new_revision["revision"][Flow.DEFINITION_REVISION])
 
-        # but we can't save our old revision
+        # we can't save our old revision number
         response = self.client.post(revisions_url, definition, content_type="application/json")
         self.assertResponseError(
             response, "description", "Your changes will not be saved until you refresh your browser"
@@ -1793,6 +1804,11 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(1, flow_json["revision"])
 
         self.login(self.admin)
+
+        # rename so the next save isn't a no-op (identical definitions don't create
+        # a new revision)
+        flow.name = "Favorites Renamed"
+        flow.save(update_fields=("name",))
 
         # saving should work
         flow.save_revision(self.admin, flow_json)

@@ -713,12 +713,10 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         definition[Flow.DEFINITION_REVISION] = revision
         definition[Flow.DEFINITION_EXPIRE_AFTER_MINUTES] = self.expires_after_minutes
 
-        # inspect the flow (with optional validation)
-        info = mailroom.get_client().flow_inspect(self.org, definition)
-
-        # diff against prior revision so we can later collapse like-for-like edits;
-        # done outside the transaction below because get_migrated_definition() may
-        # call mailroom (HTTP) and we don't want that holding row locks
+        # diff against prior revision so we can skip no-op saves and later collapse
+        # like-for-like edits; done outside the transaction below because
+        # get_migrated_definition() may call mailroom (HTTP) and we don't want that
+        # holding row locks
         changes = None
         if current_revision:
             prior_def = current_revision.definition
@@ -734,6 +732,19 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
                     prior_def = None
             if prior_def is not None:
                 changes = compute_changes(prior_def, definition)
+
+        # if the definition is unchanged from the current revision, don't create a
+        # new one — author-only changes shouldn't produce revision churn. We still
+        # bump the flow's spec version if it's stale so migrations like
+        # ensure_current_version aren't silently dropped on no-op saves.
+        if changes == {"tags": []}:
+            if self.version_number != Flow.CURRENT_SPEC_VERSION:
+                self.version_number = Flow.CURRENT_SPEC_VERSION
+                self.save(update_fields=("version_number",))
+            return current_revision, (self.info or {}).get("issues", [])
+
+        # inspect the flow (with optional validation)
+        info = mailroom.get_client().flow_inspect(self.org, definition)
 
         if user is None:
             is_system_rev = True

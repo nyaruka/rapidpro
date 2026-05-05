@@ -53,9 +53,10 @@ class ComputeChangesTest(TembaTest):
 
         self.assertEqual(["layout"], _tags(_flow(ui_nodes=ui), _flow(ui_nodes=ui_moved)))
 
-        # type-only change in _ui shouldn't count as a move
+        # type-only change in _ui isn't a layout move, but still falls through to "other"
+        # so the empty tag list remains a reliable signal that nothing changed
         ui_retyped = {"a" * 36: {"position": {"left": 0, "top": 0}, "type": "wait_for_response"}}
-        self.assertEqual([], _tags(_flow(ui_nodes=ui), _flow(ui_nodes=ui_retyped)))
+        self.assertEqual(["other"], _tags(_flow(ui_nodes=ui), _flow(ui_nodes=ui_retyped)))
 
     def test_actions(self):
         a1 = {"uuid": "ac" + "0" * 34, "type": "send_msg", "text": "hello"}
@@ -176,6 +177,17 @@ class ComputeChangesTest(TembaTest):
                 _flow(localization={"spa": {item: {"text": "buenas"}}}),
             ),
         )
+
+    def test_other_catch_all(self):
+        # system fields (uuid/revision/spec_version) are stripped before the catch-all
+        # check so they don't fire false positives on every save
+        old = _flow(uuid="11111111-1111-1111-1111-111111111111", revision=1, spec_version="13.0.0")
+        new = _flow(uuid="22222222-2222-2222-2222-222222222222", revision=2, spec_version="13.1.0")
+        self.assertEqual([], _tags(old, new))
+
+        # an unanticipated top-level field difference produces "other" so the empty
+        # tag list remains a reliable signal that nothing changed
+        self.assertEqual(["other"], _tags(_flow(), _flow(future_top_level={"foo": "bar"})))
 
     def test_combined(self):
         node_a = {"uuid": "a" * 36, "actions": [], "exits": []}
