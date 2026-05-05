@@ -27,9 +27,10 @@ from temba.classifiers.models import Classifier
 from temba.contacts.models import Contact, ContactField, ContactGroup
 from temba.globals.models import Global
 from temba.msgs.models import Label, OptIn
-from temba.orgs.models import DependencyMixin, Export, ExportType, Org, User
+from temba.orgs.models import DependencyMixin, Export, ExportType, Org
 from temba.templates.models import Template
 from temba.tickets.models import Topic
+from temba.users.models import User
 from temba.utils.export.models import MultiSheetExporter
 from temba.utils.models import JSONAsTextField, LegacyUUIDMixin, TembaModel, delete_in_batches
 from temba.utils.models.counts import BaseScopedCount, BaseSquashableCount
