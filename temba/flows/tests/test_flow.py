@@ -133,11 +133,16 @@ class FlowTest(TembaTest, CRUDLTestMixin):
 
         flow.ensure_current_version()
 
-        # check we migrate to current spec version — when the migration is a no-op
-        # for this flow's content, the flow's spec is bumped but no new revision is
-        # created since the definition didn't actually change
+        # when the migration is a no-op for this flow's content, the flow's spec
+        # version is bumped (along with the existing revision's) but no new revision
+        # is created since the definition didn't actually change. If a future spec
+        # bump rewrites this fixture meaningfully these counts will change and the
+        # test assertions below will need to be updated to reflect a real migration.
         self.assertEqual(Flow.CURRENT_SPEC_VERSION, flow.version_number)
         self.assertEqual(1, flow.revisions.count())
+        rev = flow.revisions.get()
+        self.assertEqual(Flow.CURRENT_SPEC_VERSION, rev.spec_version)
+        self.assertEqual(Flow.CURRENT_SPEC_VERSION, rev.definition["spec_version"])
 
         # saved_on isn't touched on a no-op save
         self.assertEqual(old_saved_on, flow.saved_on)

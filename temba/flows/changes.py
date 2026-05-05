@@ -82,7 +82,9 @@ def compute_changes(old: dict, new: dict) -> dict:
 
     # safety net: if nothing was tagged but the definitions still differ in some way
     # we didn't anticipate (new schema fields, unknown node shapes, etc.), record it
-    # as "other" so an empty tag list is a reliable proof that nothing changed
+    # as "other" so an empty tag list is a reliable proof that nothing changed.
+    # System fields are stripped only at the top level (where they actually live);
+    # a stray system-named key nested deep in a node would still surface as "other".
     if not tags:
         old_stripped = {k: v for k, v in old.items() if k not in _SYSTEM_FIELDS}
         new_stripped = {k: v for k, v in new.items() if k not in _SYSTEM_FIELDS}
