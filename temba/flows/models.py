@@ -782,8 +782,13 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             self.update_dependencies(info["dependencies"])
 
         # collapse older revisions inline so they don't pile up between cron runs;
-        # done outside the save transaction so a trim failure can't roll back the save
-        FlowRevision.trim_for_flow(self.id)
+        # done outside the save transaction (so a trim failure can't roll back the
+        # save) and best-effort (so a trim failure can't surface as a save failure
+        # to the caller — the cron task is still there as a safety net)
+        try:
+            FlowRevision.trim_for_flow(self.id)
+        except Exception:
+            logger.warning("failed to trim revisions for flow %s", self.uuid, exc_info=True)
 
         return revision, info["issues"]
 
@@ -1243,8 +1248,13 @@ class FlowRevision(models.Model):
         day_ago = timezone.now() - timedelta(hours=24)
         cutoff = min(rev_25[0].created_on, day_ago) if rev_25 else day_ago
 
-        # bucket older revisions by day in chronological order
-        older = list(FlowRevision.objects.filter(flow=flow_id, created_on__lt=cutoff).order_by("created_on"))
+        # bucket older revisions by day in chronological order; only fetch the columns
+        # we actually look at — `definition` can be MB-sized and we never read it here
+        older = list(
+            FlowRevision.objects.filter(flow=flow_id, created_on__lt=cutoff)
+            .only("id", "created_on", "created_by_id", "changes")
+            .order_by("created_on")
+        )
         by_date = defaultdict(list)
         for rev in older:
             by_date[rev.created_on.date()].append(rev)

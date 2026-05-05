@@ -5,7 +5,6 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from temba.orgs.models import Invitation
-from temba.orgs.views.utils import switch_to_org
 from temba.users.models import User
 
 
@@ -51,6 +50,11 @@ class TembaSignupForm(InviteFormMixin, SignupForm):
         return super().clean_email()
 
     def save(self, request):
+        # deferred for the same reason as in temba/users/adapter.py — keep this
+        # module out of the orgs.views import chain so it stays safe to load
+        # from any startup-side path under Python 3.14
+        from temba.orgs.views.utils import switch_to_org
+
         # remove our invite from the session
         if "invite_secret" in request.session:
             del request.session["invite_secret"]
