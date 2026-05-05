@@ -5,8 +5,8 @@ from django.utils import timezone
 
 from temba.flows.models import FlowRevision
 from temba.flows.tasks import trim_flow_revisions
-from temba.orgs.models import User
 from temba.tests import TembaTest
+from temba.users.models import User
 
 
 class FlowRevisionTest(TembaTest):

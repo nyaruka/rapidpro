@@ -1263,39 +1263,42 @@ class FlowRevision(models.Model):
 
         system_user = None
         deleted_ids = []
-        for revs in by_date.values():
-            if len(revs) == 1:
-                continue
+        # the keeper updates and the deletes have to land together so a partial trim
+        # can't leave the day-bucket in a half-merged state
+        with transaction.atomic():
+            for revs in by_date.values():
+                if len(revs) == 1:
+                    continue
 
-            *to_delete, keeper = revs
+                *to_delete, keeper = revs
 
-            update_fields = []
+                update_fields = []
 
-            # only rewrite the keeper's changes when at least one revision in the group
-            # actually has changes recorded — preserves the legacy `None` signal (per
-            # the field comment, null means "don't try to collapse me") for groups that
-            # are entirely pre-changes
-            if any(rev.changes is not None for rev in (keeper, *to_delete)):
-                tags = set((keeper.changes or {}).get("tags", []))
-                for rev in to_delete:
-                    tags.update((rev.changes or {}).get("tags", []))
-                keeper.changes = {"tags": sorted(tags)}
-                update_fields.append("changes")
+                # only rewrite the keeper's changes when at least one revision in the group
+                # actually has changes recorded — preserves the legacy `None` signal (per
+                # the field comment, null means "don't try to collapse me") for groups that
+                # are entirely pre-changes
+                if any(rev.changes is not None for rev in (keeper, *to_delete)):
+                    tags = set((keeper.changes or {}).get("tags", []))
+                    for rev in to_delete:
+                        tags.update((rev.changes or {}).get("tags", []))
+                    keeper.changes = {"tags": sorted(tags)}
+                    update_fields.append("changes")
 
-            if any(rev.created_by_id != keeper.created_by_id for rev in to_delete):
-                if system_user is None:
-                    system_user = User.get_system_user()
-                keeper.created_by = system_user
-                update_fields.append("created_by")
+                if any(rev.created_by_id != keeper.created_by_id for rev in to_delete):
+                    if system_user is None:
+                        system_user = User.get_system_user()
+                    keeper.created_by = system_user
+                    update_fields.append("created_by")
 
-            if update_fields:
-                keeper.save(update_fields=update_fields)
-            deleted_ids.extend(rev.id for rev in to_delete)
+                if update_fields:
+                    keeper.save(update_fields=update_fields)
+                deleted_ids.extend(rev.id for rev in to_delete)
 
-        if not deleted_ids:
-            return 0
+            if not deleted_ids:
+                return 0
 
-        return FlowRevision.objects.filter(id__in=deleted_ids).delete()[0]
+            return FlowRevision.objects.filter(id__in=deleted_ids).delete()[0]
 
     @classmethod
     def validate_legacy_definition(cls, definition):
