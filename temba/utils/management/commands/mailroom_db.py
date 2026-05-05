@@ -81,7 +81,7 @@ class Command(BaseCommand):
         self._log(self.style.SUCCESS("OK") + "\n")
 
         mr_cmd = f'go run ./cmd/mailroom --port={mr_port} -db="postgres://{db_user}:temba@localhost/{db_name}?sslmode=disable" --valkey="valkey://localhost:6379/15" --workers-realtime=0 --workers-batch=0 --workers-throttled=0 -uuid-seed=123'
-        input(f"\nPlease start mailroom:\n   % ./{mr_cmd}\n\nPress enter when ready.\n")
+        input(f"\nPlease start mailroom:\n   % {mr_cmd}\n\nPress enter when ready.\n")
 
         root_location = self.load_locations(locs_file)
 
