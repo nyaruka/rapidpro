@@ -15,8 +15,8 @@ from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.indexes import OpClass
 from django.db import models, transaction
-from django.db.models import Max, Prefetch, Q, Sum
-from django.db.models.functions import Lower, TruncDate
+from django.db.models import Prefetch, Q, Sum
+from django.db.models.functions import Lower
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -781,6 +781,9 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
             self.update_dependencies(info["dependencies"])
 
+            # collapse older revisions inline so they don't pile up between cron runs
+            FlowRevision.trim_for_flow(self.id)
+
         return revision, info["issues"]
 
     @classmethod
@@ -1221,32 +1224,57 @@ class FlowRevision(models.Model):
         Trims the revisions for the passed in flow.
 
         Our logic is:
-         * always keep last 25 revisions
-         * for any revision beyond those, collapse to first revision for that day
+         * always keep the last 25 revisions and everything from the past 24 hours
+           (whichever covers more)
+         * for any revision beyond those, collapse to the last revision for that day
+
+        The kept revision absorbs the `changes` of the deleted ones it replaces, so the
+        recorded changes still describe everything that happened since the previous kept
+        revision. If the absorbed revisions involved other authors, attribution falls
+        back to the system user since the kept revision now represents their work too.
 
         :param flow: the id of the flow to trim revisions for
         :return: the number of trimmed revisions
         """
-        # find what date cutoff we will use for "25 most recent"
-        cutoff = FlowRevision.objects.filter(flow=flow_id).order_by("-created_on")[24:25]
+        # the cutoff is the earlier of "25th most recent revision" and "24 hours ago" —
+        # whichever covers more keeps more revisions safe from collapsing
+        rev_25 = FlowRevision.objects.filter(flow=flow_id).order_by("-created_on")[24:25]
+        day_ago = timezone.now() - timedelta(hours=24)
+        cutoff = min(rev_25[0].created_on, day_ago) if rev_25 else day_ago
 
-        # fewer than 25 revisions
-        if not cutoff:
+        # bucket older revisions by day in chronological order
+        older = list(FlowRevision.objects.filter(flow=flow_id, created_on__lt=cutoff).order_by("created_on"))
+        by_date = defaultdict(list)
+        for rev in older:
+            by_date[rev.created_on.date()].append(rev)
+
+        system_user = None
+        deleted_ids = []
+        for revs in by_date.values():
+            if len(revs) == 1:
+                continue
+
+            *to_delete, keeper = revs
+
+            tags = set((keeper.changes or {}).get("tags", []))
+            for rev in to_delete:
+                tags.update((rev.changes or {}).get("tags", []))
+            keeper.changes = {"tags": sorted(tags)}
+
+            update_fields = ["changes"]
+            if any(rev.created_by_id != keeper.created_by_id for rev in to_delete):
+                if system_user is None:
+                    system_user = User.get_system_user()
+                keeper.created_by = system_user
+                update_fields.append("created_by")
+
+            keeper.save(update_fields=update_fields)
+            deleted_ids.extend(rev.id for rev in to_delete)
+
+        if not deleted_ids:
             return 0
 
-        cutoff = cutoff[0].created_on
-
-        # find the ids of the first revision for each day starting at the cutoff
-        keepers = (
-            FlowRevision.objects.filter(flow=flow_id, created_on__lt=cutoff)
-            .annotate(created_date=TruncDate("created_on"))
-            .values("created_date")
-            .annotate(max_id=Max("id"))
-            .values_list("max_id", flat=True)
-        )
-
-        # delete the rest
-        return FlowRevision.objects.filter(flow=flow_id, created_on__lt=cutoff).exclude(id__in=keepers).delete()[0]
+        return FlowRevision.objects.filter(id__in=deleted_ids).delete()[0]
 
     @classmethod
     def validate_legacy_definition(cls, definition):

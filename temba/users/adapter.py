@@ -11,13 +11,16 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from temba.orgs.models import Invitation
-from temba.orgs.views.views import switch_to_org
 from temba.users.models import User
 from temba.utils.email.send import EmailSender
 
 
 class InviteAdapterMixin:
     def post_login(self, request, user, *, email_verification, signal_kwargs, email, signup, redirect_url):
+        # deferred to avoid pulling temba.orgs.views.* into module-load time, which
+        # races with the autoreloader's parallel imports under Python 3.14
+        from temba.orgs.views.utils import switch_to_org
+
         # if we are working with an invite, mark it as accepted
         secret = request.session.pop("invite_secret", None)
         if secret:
