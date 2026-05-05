@@ -739,13 +739,14 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         # so migrations like ensure_current_version aren't silently dropped on
         # no-op saves and revision.spec_version doesn't go stale.
         if changes is not None and not changes["tags"]:
-            if self.version_number != Flow.CURRENT_SPEC_VERSION:
-                self.version_number = Flow.CURRENT_SPEC_VERSION
-                self.save(update_fields=("version_number",))
-            if current_revision.spec_version != Flow.CURRENT_SPEC_VERSION:
-                current_revision.spec_version = Flow.CURRENT_SPEC_VERSION
-                current_revision.definition[Flow.DEFINITION_SPEC_VERSION] = Flow.CURRENT_SPEC_VERSION
-                current_revision.save(update_fields=("spec_version", "definition"))
+            with transaction.atomic():
+                if self.version_number != Flow.CURRENT_SPEC_VERSION:
+                    self.version_number = Flow.CURRENT_SPEC_VERSION
+                    self.save(update_fields=("version_number",))
+                if current_revision.spec_version != Flow.CURRENT_SPEC_VERSION:
+                    current_revision.spec_version = Flow.CURRENT_SPEC_VERSION
+                    current_revision.definition[Flow.DEFINITION_SPEC_VERSION] = Flow.CURRENT_SPEC_VERSION
+                    current_revision.save(update_fields=("spec_version", "definition"))
             return current_revision, (self.info or {}).get("issues", [])
 
         # inspect the flow (with optional validation)
