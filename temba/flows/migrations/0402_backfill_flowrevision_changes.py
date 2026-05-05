@@ -35,24 +35,25 @@ def backfill_flowrevision_changes(apps, schema_editor):  # pragma: no cover
             break
 
         for flow_id in flow_ids:
-            prev_def = None
-            updates = []
-
-            # walk this flow's revisions in order; iterator keeps only one definition
-            # in memory at a time (besides the prior definition we hold for diffing)
-            qs = (
+            # load the whole flow's revisions; flows have bounded revision counts
+            # (trim keeps recent + dailies), and a single bulk_update at the end
+            # avoids interleaving writes with a server-side cursor
+            revs = list(
                 FlowRevision.objects.filter(flow_id=flow_id)
                 .order_by("revision", "id")
                 .only("id", "definition", "spec_version", "changes")
             )
 
-            for rev in qs.iterator(chunk_size=50):
+            prev_def = None
+            updates = []
+
+            for rev in revs:
                 try:
                     spec_ok = Version(rev.spec_version) >= min_spec
                 except InvalidVersion:
                     spec_ok = False
 
-                if rev.changes is None and prev_def is not None and spec_ok:
+                if spec_ok and prev_def is not None and not rev.changes:
                     try:
                         rev.changes = compute_changes(prev_def, rev.definition)
                     except Exception:
@@ -62,11 +63,6 @@ def backfill_flowrevision_changes(apps, schema_editor):  # pragma: no cover
                         logger.warning("could not compute changes for revision %d", rev.id, exc_info=True)
                     else:
                         updates.append(rev)
-
-                        if len(updates) >= 200:
-                            FlowRevision.objects.bulk_update(updates, ["changes"])
-                            num_updated += len(updates)
-                            updates = []
 
                 # only carry forward a definition compute_changes can read; this also
                 # ensures the first 13.x revision after a pre-13 history isn't diffed
