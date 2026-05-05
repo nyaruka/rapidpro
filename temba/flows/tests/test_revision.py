@@ -136,3 +136,90 @@ class FlowRevisionTest(TembaTest):
         self.assertEqual(41, FlowRevision.objects.filter(flow=flow).count())
         self.assertEqual(0, FlowRevision.trim_for_flow(flow.id))
         self.assertEqual(41, FlowRevision.objects.filter(flow=flow).count())
+
+    def test_trim_revisions_same_author_preserved(self):
+        # when every absorbed revision shares the keeper's author, attribution is
+        # preserved (the system-user fallback only fires for mixed authorship)
+        flow = self.create_flow("Flow 1")
+        FlowRevision.objects.filter(flow=flow).update(revision=100)
+
+        # three revisions on a single old day, all by the editor
+        old_day = timezone.now() - timedelta(days=3)
+        revision = 100
+        keeper_id = None
+        for j in range(3):
+            revision -= 1
+            rev = FlowRevision.objects.create(
+                flow=flow,
+                definition=dict(),
+                revision=revision,
+                created_by=self.editor,
+                changes={"tags": [f"tag{j}"]},
+                created_on=old_day - timedelta(minutes=10 * j),
+            )
+            # j=0 is the latest of the day and will be kept
+            if j == 0:
+                keeper_id = rev.id
+
+        # pad with 25 fresh revisions so the older day is outside the keep zone
+        recent = timezone.now() - timedelta(minutes=1)
+        for j in range(25):
+            revision -= 1
+            FlowRevision.objects.create(
+                flow=flow,
+                definition=dict(),
+                revision=revision,
+                created_by=self.admin,
+                created_on=recent - timedelta(minutes=j),
+            )
+
+        self.assertEqual(2, FlowRevision.trim_for_flow(flow.id))
+        keeper = FlowRevision.objects.get(id=keeper_id)
+        self.assertEqual(self.editor, keeper.created_by)
+        self.assertEqual(["tag0", "tag1", "tag2"], keeper.changes["tags"])
+
+    def test_trim_revisions_24h_cutoff_drives_trim(self):
+        # explicit "mixed" case: fewer than 25 recent revisions sit inside 24h, but
+        # additional revisions exist outside 24h and on the same calendar day as the
+        # 24h boundary — those older ones should still collapse, while everything in
+        # the 24h window is preserved
+        flow = self.create_flow("Flow 1")
+        FlowRevision.objects.filter(flow=flow).update(revision=100)
+
+        revision = 100
+
+        # 5 revisions inside the last 24h (well under 25, so the 24h cutoff wins
+        # over the rev-25 cutoff)
+        recent = timezone.now() - timedelta(minutes=1)
+        recent_ids = []
+        for j in range(5):
+            revision -= 1
+            rev = FlowRevision.objects.create(
+                flow=flow,
+                definition=dict(),
+                revision=revision,
+                created_by=self.admin,
+                created_on=recent - timedelta(minutes=j),
+            )
+            recent_ids.append(rev.id)
+
+        # 4 revisions on a day older than 24h ago — these should collapse to 1
+        old_day = timezone.now() - timedelta(days=2)
+        for j in range(4):
+            revision -= 1
+            FlowRevision.objects.create(
+                flow=flow,
+                definition=dict(),
+                revision=revision,
+                created_by=self.admin,
+                created_on=old_day - timedelta(minutes=j),
+            )
+
+        self.assertEqual(10, FlowRevision.objects.filter(flow=flow).count())
+        # 3 of the 4 old-day revisions get collapsed away
+        self.assertEqual(3, FlowRevision.trim_for_flow(flow.id))
+        # 5 recent + 1 collapsed old-day + 1 original from create_flow = 7
+        self.assertEqual(7, FlowRevision.objects.filter(flow=flow).count())
+        # every recent revision is still there
+        for rev_id in recent_ids:
+            self.assertTrue(FlowRevision.objects.filter(id=rev_id).exists())

@@ -781,8 +781,9 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
             self.update_dependencies(info["dependencies"])
 
-            # collapse older revisions inline so they don't pile up between cron runs
-            FlowRevision.trim_for_flow(self.id)
+        # collapse older revisions inline so they don't pile up between cron runs;
+        # done outside the save transaction so a trim failure can't roll back the save
+        FlowRevision.trim_for_flow(self.id)
 
         return revision, info["issues"]
 
@@ -1256,19 +1257,27 @@ class FlowRevision(models.Model):
 
             *to_delete, keeper = revs
 
-            tags = set((keeper.changes or {}).get("tags", []))
-            for rev in to_delete:
-                tags.update((rev.changes or {}).get("tags", []))
-            keeper.changes = {"tags": sorted(tags)}
+            update_fields = []
 
-            update_fields = ["changes"]
+            # only rewrite the keeper's changes when at least one revision in the group
+            # actually has changes recorded — preserves the legacy `None` signal (per
+            # the field comment, null means "don't try to collapse me") for groups that
+            # are entirely pre-changes
+            if any(rev.changes is not None for rev in (keeper, *to_delete)):
+                tags = set((keeper.changes or {}).get("tags", []))
+                for rev in to_delete:
+                    tags.update((rev.changes or {}).get("tags", []))
+                keeper.changes = {"tags": sorted(tags)}
+                update_fields.append("changes")
+
             if any(rev.created_by_id != keeper.created_by_id for rev in to_delete):
                 if system_user is None:
                     system_user = User.get_system_user()
                 keeper.created_by = system_user
                 update_fields.append("created_by")
 
-            keeper.save(update_fields=update_fields)
+            if update_fields:
+                keeper.save(update_fields=update_fields)
             deleted_ids.extend(rev.id for rev in to_delete)
 
         if not deleted_ids:
