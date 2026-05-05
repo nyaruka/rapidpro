@@ -1,3 +1,7 @@
+v26.1.107 (2026-05-05)
+-------------------------
+ * Backfill changes field on historical flow revisions
+
 v26.1.106 (2026-05-05)
 -------------------------
  * Update @nyaruka/temba-components to 0.156.17
