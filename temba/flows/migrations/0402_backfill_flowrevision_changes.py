@@ -6,15 +6,107 @@ from django.db import migrations
 
 logger = logging.getLogger(__name__)
 
+# the schema compute_changes understands; older revisions used materially different
+# definition shapes and aren't worth diffing here
+MIN_SPEC = Version("13.0.0")
+
+_METADATA_FIELDS = ("name", "type", "expire_after_minutes")
+_STICKY_LAYOUT_FIELDS = ("position", "width", "height")
+_SYSTEM_FIELDS = ("uuid", "revision", "spec_version")
+
+
+def compute_changes(old: dict, new: dict) -> dict:
+    tags = set()
+
+    if old.get("language") != new.get("language"):
+        tags.add("metadata")
+    if any(old.get(f) != new.get(f) for f in _METADATA_FIELDS):
+        tags.add("metadata")
+
+    old_node_list = old.get("nodes") or []
+    new_node_list = new.get("nodes") or []
+    old_nodes = {n["uuid"]: n for n in old_node_list}
+    new_nodes = {n["uuid"]: n for n in new_node_list}
+
+    if old_nodes.keys() ^ new_nodes.keys():
+        tags.add("nodes")
+
+    old_entry = old_node_list[0]["uuid"] if old_node_list else None
+    new_entry = new_node_list[0]["uuid"] if new_node_list else None
+    if old_entry != new_entry:
+        tags.add("nodes")
+
+    for uuid in old_nodes.keys() & new_nodes.keys():
+        _tag_node_diff(old_nodes[uuid], new_nodes[uuid], tags)
+
+    old_ui = old.get("_ui") or {}
+    new_ui = new.get("_ui") or {}
+
+    old_ui_nodes = old_ui.get("nodes") or {}
+    new_ui_nodes = new_ui.get("nodes") or {}
+    for uuid in old_ui_nodes.keys() & new_ui_nodes.keys():
+        if old_ui_nodes[uuid].get("position") != new_ui_nodes[uuid].get("position"):
+            tags.add("layout")
+            break
+
+    old_stickies = old_ui.get("stickies") or {}
+    new_stickies = new_ui.get("stickies") or {}
+    if old_stickies.keys() ^ new_stickies.keys():
+        tags.add("stickies")
+    for uuid in old_stickies.keys() & new_stickies.keys():
+        old_s, new_s = old_stickies[uuid], new_stickies[uuid]
+        if any(old_s.get(f) != new_s.get(f) for f in _STICKY_LAYOUT_FIELDS):
+            tags.add("layout")
+        non_layout_keys = (set(old_s) | set(new_s)) - set(_STICKY_LAYOUT_FIELDS)
+        if any(old_s.get(k) != new_s.get(k) for k in non_layout_keys):
+            tags.add("stickies")
+
+    old_loc = old.get("localization") or {}
+    new_loc = new.get("localization") or {}
+    for lang in set(old_loc) | set(new_loc):
+        if (old_loc.get(lang) or {}) != (new_loc.get(lang) or {}):
+            tags.add(f"localization:{lang}")
+
+    if not tags:
+        old_stripped = {k: v for k, v in old.items() if k not in _SYSTEM_FIELDS}
+        new_stripped = {k: v for k, v in new.items() if k not in _SYSTEM_FIELDS}
+        if old_stripped != new_stripped:
+            tags.add("other")
+
+    return {"tags": sorted(tags)}
+
+
+def _tag_node_diff(old: dict, new: dict, tags: set) -> None:
+    old_action_list = old.get("actions") or []
+    new_action_list = new.get("actions") or []
+    old_actions = {a["uuid"]: a for a in old_action_list}
+    new_actions = {a["uuid"]: a for a in new_action_list}
+
+    if old_actions.keys() ^ new_actions.keys():
+        tags.add("actions")
+    else:
+        for uuid in old_actions.keys() & new_actions.keys():
+            if old_actions[uuid] != new_actions[uuid]:
+                tags.add("actions")
+                break
+        else:
+            old_order = [a["uuid"] for a in old_action_list]
+            new_order = [a["uuid"] for a in new_action_list]
+            if old_order != new_order:
+                tags.add("actions")
+
+    if old.get("router") != new.get("router"):
+        tags.add("routing")
+
+    old_exits = {e["uuid"]: e for e in old.get("exits") or []}
+    new_exits = {e["uuid"]: e for e in new.get("exits") or []}
+    for uuid in old_exits.keys() & new_exits.keys():
+        if old_exits[uuid].get("destination_uuid") != new_exits[uuid].get("destination_uuid"):
+            tags.add("routing")
+            break
+
 
 def backfill_flowrevision_changes(apps, schema_editor):  # pragma: no cover
-    from temba.flows.changes import compute_changes
-    from temba.flows.models import Flow
-
-    # the schema compute_changes understands; older revisions used materially different
-    # definition shapes and aren't worth diffing here
-    min_spec = Version(Flow.INITIAL_GOFLOW_VERSION)
-
     FlowRevision = apps.get_model("flows", "FlowRevision")
 
     # iterate flows that still have any null-changes revision, paged by flow_id
@@ -49,7 +141,7 @@ def backfill_flowrevision_changes(apps, schema_editor):  # pragma: no cover
 
             for rev in revs:
                 try:
-                    spec_ok = Version(rev.spec_version) >= min_spec
+                    spec_ok = Version(rev.spec_version) >= MIN_SPEC
                 except InvalidVersion:
                     spec_ok = False
 
