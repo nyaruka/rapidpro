@@ -708,11 +708,14 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         else:
             revision = 1
 
-        # update metadata from database object
+        # update metadata from database object; normalize spec_version to CURRENT
+        # since that's what we persist on the new revision row, so the saved row
+        # and the diff input agree
         definition[Flow.DEFINITION_UUID] = self.uuid
         definition[Flow.DEFINITION_NAME] = self.name
         definition[Flow.DEFINITION_REVISION] = revision
         definition[Flow.DEFINITION_EXPIRE_AFTER_MINUTES] = self.expires_after_minutes
+        definition[Flow.DEFINITION_SPEC_VERSION] = Flow.CURRENT_SPEC_VERSION
 
         # diff against prior revision so we can skip no-op saves and later collapse
         # like-for-like edits; done outside the transaction below because
@@ -721,24 +724,21 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         changes = None
         if current_revision:
             prior_def = current_revision.definition
-            spec_changed = current_revision.spec_version != Flow.CURRENT_SPEC_VERSION
-            if spec_changed:
+            if current_revision.spec_version != Flow.CURRENT_SPEC_VERSION:
                 # migrate the prior forward so the schemas align; accepting that name/expire
                 # then come from the live flow (get_migrated_definition rewrites them) — fine
                 # because cross-spec saves are rare and not where metadata diffs matter
                 try:
                     prior_def = current_revision.get_migrated_definition()
+                    # get_migrated_definition rewrites spec_version to CURRENT, but we
+                    # want compute_changes to see the original spec so it can tag "spec"
+                    prior_def[Flow.DEFINITION_SPEC_VERSION] = current_revision.spec_version
                 except Exception:
                     # don't block a valid save just because the legacy migration failed
                     logger.warning("could not migrate prior revision for flow %s", self.uuid, exc_info=True)
                     prior_def = None
             if prior_def is not None:
                 changes = compute_changes(prior_def, definition)
-                # a spec migration is itself a real change worth recording, even when
-                # the migration is content-equivalent — get_migrated_definition aligns
-                # the schemas so compute_changes can't see the spec bump on its own
-                if spec_changed:
-                    changes = {"tags": sorted(set(changes["tags"]) | {"spec"})}
 
         # if the definition is unchanged from the current revision, don't create a
         # new one — author-only changes shouldn't produce revision churn

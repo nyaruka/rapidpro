@@ -12,11 +12,14 @@ MIN_SPEC = Version("13.0.0")
 
 _METADATA_FIELDS = ("name", "type", "expire_after_minutes")
 _STICKY_LAYOUT_FIELDS = ("position", "width", "height")
-_SYSTEM_FIELDS = ("uuid", "revision", "spec_version")
+_SYSTEM_FIELDS = ("uuid", "revision")
 
 
 def compute_changes(old: dict, new: dict) -> dict:  # pragma: no cover
     tags = set()
+
+    if old.get("spec_version") != new.get("spec_version"):
+        tags.add("spec")
 
     if old.get("language") != new.get("language"):
         tags.add("metadata")

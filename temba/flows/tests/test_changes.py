@@ -179,11 +179,14 @@ class ComputeChangesTest(TembaTest):
         )
 
     def test_other_catch_all(self):
-        # system fields (uuid/revision/spec_version) are stripped before the catch-all
-        # check so they don't fire false positives on every save
+        # uuid/revision are stripped before the catch-all check so they don't fire
+        # false positives on every save; spec_version differences are recorded as "spec"
         old = _flow(uuid="11111111-1111-1111-1111-111111111111", revision=1, spec_version="13.0.0")
-        new = _flow(uuid="22222222-2222-2222-2222-222222222222", revision=2, spec_version="13.1.0")
+        new = _flow(uuid="22222222-2222-2222-2222-222222222222", revision=2, spec_version="13.0.0")
         self.assertEqual([], _tags(old, new))
+
+        # spec_version bump on its own is a recorded change
+        self.assertEqual(["spec"], _tags(_flow(spec_version="13.0.0"), _flow(spec_version="13.1.0")))
 
         # an unanticipated top-level field difference produces "other" so the empty
         # tag list remains a reliable signal that nothing changed

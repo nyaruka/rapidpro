@@ -5,8 +5,9 @@ _METADATA_FIELDS = ("name", "type", "expire_after_minutes")
 _STICKY_LAYOUT_FIELDS = ("position", "width", "height")
 
 # Top-level fields rewritten on every save or otherwise not part of the meaningful
-# definition — excluded when checking for "did anything change at all?"
-_SYSTEM_FIELDS = ("uuid", "revision", "spec_version")
+# definition — excluded when checking for "did anything change at all?". spec_version
+# isn't here because a spec_version diff is recorded as "spec" before the catch-all runs.
+_SYSTEM_FIELDS = ("uuid", "revision")
 
 
 def compute_changes(old: dict, new: dict) -> dict:
@@ -22,12 +23,14 @@ def compute_changes(old: dict, new: dict) -> dict:
         stickies   — stickies added, removed, or content-edited
         metadata   — flow-level fields changed (name, type, expire_after_minutes, base_language)
         localization:<lang> — translations changed for that language
-        spec       — flow's spec version was bumped (added by Flow.save_revision, not here,
-                     since prior revisions are migrated forward before diffing)
+        spec       — flow's spec version was bumped
         other      — any difference not captured by the categories above; a safety net so
                      an empty tag list reliably means "nothing changed"
     """
     tags = set()
+
+    if old.get("spec_version") != new.get("spec_version"):
+        tags.add("spec")
 
     if old.get("language") != new.get("language"):
         tags.add("metadata")
