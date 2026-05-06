@@ -708,11 +708,14 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         else:
             revision = 1
 
-        # update metadata from database object
+        # update metadata from database object; normalize spec_version to CURRENT
+        # since that's what we persist on the new revision row, so the saved row
+        # and the diff input agree
         definition[Flow.DEFINITION_UUID] = self.uuid
         definition[Flow.DEFINITION_NAME] = self.name
         definition[Flow.DEFINITION_REVISION] = revision
         definition[Flow.DEFINITION_EXPIRE_AFTER_MINUTES] = self.expires_after_minutes
+        definition[Flow.DEFINITION_SPEC_VERSION] = Flow.CURRENT_SPEC_VERSION
 
         # diff against prior revision so we can skip no-op saves and later collapse
         # like-for-like edits; done outside the transaction below because

@@ -3,7 +3,7 @@ import logging
 
 from packaging.version import InvalidVersion, Version
 
-from django.db import connection, migrations
+from django.db import migrations
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +111,10 @@ def _tag_node_diff(old: dict, new: dict, tags: set) -> None:  # pragma: no cover
 
 
 def backfill_flowrevision_changes(apps, schema_editor):  # pragma: no cover
+    from django.db import connection as default_connection
+
     FlowRevision = apps.get_model("flows", "FlowRevision")
+    connection = schema_editor.connection if schema_editor is not None else default_connection
 
     # iterate flows that still have any null-changes revision, paged by flow_id
     flow_ids_qs = (
@@ -155,8 +158,15 @@ def backfill_flowrevision_changes(apps, schema_editor):  # pragma: no cover
                     prev_def = None
                     continue
 
+                if not def_text:
+                    # null/empty definition — log and reset the chain so the next
+                    # revision isn't diffed against a missing prior
+                    logger.warning("empty definition for revision %d, skipping", rev_id)
+                    prev_def = None
+                    continue
+
                 try:
-                    definition = json.loads(def_text) if def_text else None
+                    definition = json.loads(def_text)
                 except json.JSONDecodeError:
                     # corrupt definition JSON — log and reset the chain so the next
                     # revision isn't diffed against a missing prior
