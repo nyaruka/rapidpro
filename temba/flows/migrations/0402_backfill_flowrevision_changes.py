@@ -1,9 +1,8 @@
-import json
 import logging
 
 from packaging.version import InvalidVersion, Version
 
-from django.db import connection as default_connection, migrations
+from django.db import migrations
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +111,6 @@ def _tag_node_diff(old: dict, new: dict, tags: set) -> None:  # pragma: no cover
 
 def backfill_flowrevision_changes(apps, schema_editor):  # pragma: no cover
     FlowRevision = apps.get_model("flows", "FlowRevision")
-    connection = schema_editor.connection if schema_editor is not None else default_connection
 
     # iterate flows that still have any null-changes revision, paged by flow_id
     flow_ids_qs = (
@@ -132,65 +130,39 @@ def backfill_flowrevision_changes(apps, schema_editor):  # pragma: no cover
             break
 
         for flow_id in flow_ids:
-            # fetch raw rows directly so a single revision with malformed JSON in
-            # its definition column doesn't fail the whole batch via the ORM's
-            # eager from_db_value decoding
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT id, definition, spec_version, changes FROM flows_flowrevision "
-                    "WHERE flow_id = %s ORDER BY revision, id",
-                    [flow_id],
-                )
-                rows = cursor.fetchall()
+            # load the whole flow's revisions; flows have bounded revision counts
+            # (trim keeps recent + dailies), and a single bulk_update at the end
+            # avoids interleaving writes with a server-side cursor
+            revs = list(
+                FlowRevision.objects.filter(flow_id=flow_id)
+                .order_by("revision", "id")
+                .only("id", "definition", "spec_version", "changes")
+            )
 
             prev_def = None
             updates = []
 
-            for rev_id, def_text, spec_version, existing_changes in rows:
+            for rev in revs:
                 try:
-                    spec_ok = Version(spec_version) >= MIN_SPEC
+                    spec_ok = Version(rev.spec_version) >= MIN_SPEC
                 except InvalidVersion:
                     spec_ok = False
 
-                if not spec_ok:
-                    prev_def = None
-                    continue
-
-                if not def_text:
-                    # null/empty definition — log and reset the chain so the next
-                    # revision isn't diffed against a missing prior
-                    logger.warning("empty definition for revision %d, skipping", rev_id)
-                    prev_def = None
-                    continue
-
-                try:
-                    definition = json.loads(def_text)
-                except json.JSONDecodeError:
-                    # corrupt definition JSON — log and reset the chain so the next
-                    # revision isn't diffed against a missing prior
-                    logger.warning("could not decode definition for revision %d, skipping", rev_id, exc_info=True)
-                    prev_def = None
-                    continue
-
-                if not isinstance(definition, dict):
-                    # valid JSON but not a flow definition (e.g. a bare list/number) —
-                    # reset the chain so we don't propagate a non-dict prev_def
-                    logger.warning("non-dict definition for revision %d, skipping", rev_id)
-                    prev_def = None
-                    continue
-
-                if prev_def is not None and not existing_changes:
+                if spec_ok and prev_def is not None and not rev.changes:
                     try:
-                        changes = compute_changes(prev_def, definition)
+                        rev.changes = compute_changes(prev_def, rev.definition)
                     except Exception:
                         # malformed definition (e.g. nodes/actions missing uuid) — leave
                         # changes as null and keep going so one bad row doesn't block
                         # the rest of the backfill
-                        logger.warning("could not compute changes for revision %d", rev_id, exc_info=True)
+                        logger.warning("could not compute changes for revision %d", rev.id, exc_info=True)
                     else:
-                        updates.append(FlowRevision(id=rev_id, changes=changes))
+                        updates.append(rev)
 
-                prev_def = definition
+                # only carry forward a definition compute_changes can read; this also
+                # ensures the first 13.x revision after a pre-13 history isn't diffed
+                # against an incompatible prior shape
+                prev_def = rev.definition if spec_ok else None
 
             if updates:
                 FlowRevision.objects.bulk_update(updates, ["changes"])
