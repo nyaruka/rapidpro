@@ -773,7 +773,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                     "id": revisions[1].id,
                     "version": "11.12",
                     "revision": 1,
-                    "changes": None,
+                    "changes": {},
                 },
             ],
             response.json()["results"],
