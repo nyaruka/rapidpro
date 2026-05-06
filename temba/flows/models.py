@@ -974,8 +974,7 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
         assert not self.is_active, "can't delete flow which hasn't been released"
 
-        for rev in self.revisions.all():
-            rev.release()
+        delete_in_batches(self.revisions.all())
 
         for trigger in self.triggers.all():
             trigger.delete()
@@ -1322,11 +1321,8 @@ class FlowRevision(models.Model):
             "created_on": self.created_on.isoformat(),
             "version": self.spec_version,
             "revision": self.revision,
-            "changes": self.changes,
+            "changes": self.changes or {},
         }
-
-    def release(self):
-        self.delete()
 
 
 class FlowActivityCount(BaseScopedCount):
