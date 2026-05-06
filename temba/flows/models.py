@@ -781,10 +781,9 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
             self.update_dependencies(info["dependencies"])
 
-        # collapse older revisions inline so they don't pile up between cron runs;
-        # done outside the save transaction (so a trim failure can't roll back the
-        # save) and best-effort (so a trim failure can't surface as a save failure
-        # to the caller — the cron task is still there as a safety net)
+        # cap the revision history inline so it doesn't pile up between cron runs;
+        # best-effort and outside the save transaction so a trim failure can neither
+        # roll back nor surface as a save failure (the cron task is the safety net)
         try:
             FlowRevision.trim_for_flow(self.id)
         except Exception:
@@ -1195,6 +1194,7 @@ class FlowRevision(models.Model):
     """
 
     LAST_TRIM_KEY = "temba:last_flow_revision_trim"
+    MAX_REVISIONS = 500
 
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="revisions")
     definition = JSONAsTextField(default=dict)
@@ -1202,7 +1202,7 @@ class FlowRevision(models.Model):
     revision = models.IntegerField()
 
     # categorized record of what changed since the previous revision; null for legacy
-    # revisions that pre-date this field, signalling "don't try to collapse me".
+    # revisions that pre-date this field.
     changes = models.JSONField(null=True, default=None)
 
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="revisions")
@@ -1227,78 +1227,17 @@ class FlowRevision(models.Model):
     @classmethod
     def trim_for_flow(cls, flow_id):
         """
-        Trims the revisions for the passed in flow.
-
-        Our logic is:
-         * always keep the last 25 revisions and everything from the past 24 hours
-           (whichever covers more)
-         * for any revision beyond that cutoff, collapse to the last older revision
-           in each day-bucket (the day at the cutoff boundary is split — only the
-           pre-cutoff portion gets collapsed; the rest is in the keep window)
-
-        The kept revision absorbs the `changes` of the deleted ones it replaces, so the
-        recorded changes still describe everything that happened since the previous kept
-        revision. If the absorbed revisions involved other authors, attribution falls
-        back to the system user since the kept revision now represents their work too.
+        Keeps the MAX_REVISIONS most recent revisions for this flow and deletes the rest.
 
         :param flow: the id of the flow to trim revisions for
         :return: the number of trimmed revisions
         """
-        # the cutoff is the earlier of "25th most recent revision" and "24 hours ago" —
-        # whichever covers more keeps more revisions safe from collapsing
-        rev_25 = FlowRevision.objects.filter(flow=flow_id).order_by("-created_on")[24:25]
-        day_ago = timezone.now() - timedelta(hours=24)
-        cutoff = min(rev_25[0].created_on, day_ago) if rev_25 else day_ago
-
-        # bucket older revisions by day in chronological order; only fetch the columns
-        # we actually look at — `definition` can be MB-sized and we never read it here
-        older = list(
-            FlowRevision.objects.filter(flow=flow_id, created_on__lt=cutoff)
-            .only("id", "created_on", "created_by_id", "changes")
-            .order_by("created_on")
+        keepers = list(
+            FlowRevision.objects.filter(flow=flow_id)
+            .order_by("-created_on", "-id")
+            .values_list("id", flat=True)[: cls.MAX_REVISIONS]
         )
-        by_date = defaultdict(list)
-        for rev in older:
-            by_date[rev.created_on.date()].append(rev)
-
-        system_user = None
-        deleted_ids = []
-        # the keeper updates and the deletes have to land together so a partial trim
-        # can't leave the day-bucket in a half-merged state
-        with transaction.atomic():
-            for revs in by_date.values():
-                if len(revs) == 1:
-                    continue
-
-                *to_delete, keeper = revs
-
-                update_fields = []
-
-                # only rewrite the keeper's changes when at least one revision in the group
-                # actually has changes recorded — preserves the legacy `None` signal (per
-                # the field comment, null means "don't try to collapse me") for groups that
-                # are entirely pre-changes
-                if any(rev.changes is not None for rev in (keeper, *to_delete)):
-                    tags = set((keeper.changes or {}).get("tags", []))
-                    for rev in to_delete:
-                        tags.update((rev.changes or {}).get("tags", []))
-                    keeper.changes = {"tags": sorted(tags)}
-                    update_fields.append("changes")
-
-                if any(rev.created_by_id != keeper.created_by_id for rev in to_delete):
-                    if system_user is None:
-                        system_user = User.get_system_user()
-                    keeper.created_by = system_user
-                    update_fields.append("created_by")
-
-                if update_fields:
-                    keeper.save(update_fields=update_fields)
-                deleted_ids.extend(rev.id for rev in to_delete)
-
-            if not deleted_ids:
-                return 0
-
-            return FlowRevision.objects.filter(id__in=deleted_ids).delete()[0]
+        return FlowRevision.objects.filter(flow=flow_id).exclude(id__in=keepers).delete()[0]
 
     @classmethod
     def validate_legacy_definition(cls, definition):
