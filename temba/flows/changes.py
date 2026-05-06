@@ -5,8 +5,9 @@ _METADATA_FIELDS = ("name", "type", "expire_after_minutes")
 _STICKY_LAYOUT_FIELDS = ("position", "width", "height")
 
 # Top-level fields rewritten on every save or otherwise not part of the meaningful
-# definition — excluded when checking for "did anything change at all?"
-_SYSTEM_FIELDS = ("uuid", "revision", "spec_version")
+# definition — excluded when checking for "did anything change at all?". spec_version
+# isn't here because a spec_version diff is recorded as "spec" before the catch-all runs.
+_SYSTEM_FIELDS = ("uuid", "revision")
 
 
 def compute_changes(old: dict, new: dict) -> dict:

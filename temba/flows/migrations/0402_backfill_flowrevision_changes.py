@@ -3,7 +3,7 @@ import logging
 
 from packaging.version import InvalidVersion, Version
 
-from django.db import migrations
+from django.db import connection as default_connection, migrations
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ MIN_SPEC = Version("13.0.0")
 
 _METADATA_FIELDS = ("name", "type", "expire_after_minutes")
 _STICKY_LAYOUT_FIELDS = ("position", "width", "height")
-_SYSTEM_FIELDS = ("uuid", "revision", "spec_version")
+_SYSTEM_FIELDS = ("uuid", "revision")
 
 
 def compute_changes(old: dict, new: dict) -> dict:  # pragma: no cover
@@ -111,8 +111,6 @@ def _tag_node_diff(old: dict, new: dict, tags: set) -> None:  # pragma: no cover
 
 
 def backfill_flowrevision_changes(apps, schema_editor):  # pragma: no cover
-    from django.db import connection as default_connection
-
     FlowRevision = apps.get_model("flows", "FlowRevision")
     connection = schema_editor.connection if schema_editor is not None else default_connection
 
@@ -171,6 +169,13 @@ def backfill_flowrevision_changes(apps, schema_editor):  # pragma: no cover
                     # corrupt definition JSON — log and reset the chain so the next
                     # revision isn't diffed against a missing prior
                     logger.warning("could not decode definition for revision %d, skipping", rev_id, exc_info=True)
+                    prev_def = None
+                    continue
+
+                if not isinstance(definition, dict):
+                    # valid JSON but not a flow definition (e.g. a bare list/number) —
+                    # reset the chain so we don't propagate a non-dict prev_def
+                    logger.warning("non-dict definition for revision %d, skipping", rev_id)
                     prev_def = None
                     continue
 
