@@ -721,24 +721,21 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         changes = None
         if current_revision:
             prior_def = current_revision.definition
-            spec_changed = current_revision.spec_version != Flow.CURRENT_SPEC_VERSION
-            if spec_changed:
+            if current_revision.spec_version != Flow.CURRENT_SPEC_VERSION:
                 # migrate the prior forward so the schemas align; accepting that name/expire
                 # then come from the live flow (get_migrated_definition rewrites them) — fine
                 # because cross-spec saves are rare and not where metadata diffs matter
                 try:
                     prior_def = current_revision.get_migrated_definition()
+                    # get_migrated_definition rewrites spec_version to CURRENT, but we
+                    # want compute_changes to see the original spec so it can tag "spec"
+                    prior_def[Flow.DEFINITION_SPEC_VERSION] = current_revision.spec_version
                 except Exception:
                     # don't block a valid save just because the legacy migration failed
                     logger.warning("could not migrate prior revision for flow %s", self.uuid, exc_info=True)
                     prior_def = None
             if prior_def is not None:
                 changes = compute_changes(prior_def, definition)
-                # a spec migration is itself a real change worth recording, even when
-                # the migration is content-equivalent — get_migrated_definition aligns
-                # the schemas so compute_changes can't see the spec bump on its own
-                if spec_changed:
-                    changes = {"tags": sorted(set(changes["tags"]) | {"spec"})}
 
         # if the definition is unchanged from the current revision, don't create a
         # new one — author-only changes shouldn't produce revision churn
