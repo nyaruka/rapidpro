@@ -15,8 +15,8 @@ from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.indexes import OpClass
 from django.db import models, transaction
-from django.db.models import Max, Prefetch, Q, Sum
-from django.db.models.functions import Lower, TruncDate
+from django.db.models import Prefetch, Q, Sum
+from django.db.models.functions import Lower
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -782,6 +782,14 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
             self.update_dependencies(info["dependencies"])
 
+        # cap the revision history inline so it doesn't pile up between cron runs;
+        # best-effort and outside the save transaction so a trim failure can neither
+        # roll back nor surface as a save failure (the cron task is the safety net)
+        try:
+            FlowRevision.trim_for_flow(self.id)
+        except Exception:
+            logger.warning("failed to trim revisions for flow %s", self.uuid, exc_info=True)
+
         return revision, info["issues"]
 
     @classmethod
@@ -1186,6 +1194,7 @@ class FlowRevision(models.Model):
     """
 
     LAST_TRIM_KEY = "temba:last_flow_revision_trim"
+    MAX_REVISIONS = 500
 
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="revisions")
     definition = JSONAsTextField(default=dict)
@@ -1193,7 +1202,7 @@ class FlowRevision(models.Model):
     revision = models.IntegerField()
 
     # categorized record of what changed since the previous revision; null for legacy
-    # revisions that pre-date this field, signalling "don't try to collapse me".
+    # revisions that pre-date this field.
     changes = models.JSONField(null=True, default=None)
 
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="revisions")
@@ -1218,35 +1227,17 @@ class FlowRevision(models.Model):
     @classmethod
     def trim_for_flow(cls, flow_id):
         """
-        Trims the revisions for the passed in flow.
-
-        Our logic is:
-         * always keep last 25 revisions
-         * for any revision beyond those, collapse to first revision for that day
+        Keeps the MAX_REVISIONS most recent revisions for this flow and deletes the rest.
 
         :param flow: the id of the flow to trim revisions for
         :return: the number of trimmed revisions
         """
-        # find what date cutoff we will use for "25 most recent"
-        cutoff = FlowRevision.objects.filter(flow=flow_id).order_by("-created_on")[24:25]
-
-        # fewer than 25 revisions
-        if not cutoff:
-            return 0
-
-        cutoff = cutoff[0].created_on
-
-        # find the ids of the first revision for each day starting at the cutoff
-        keepers = (
-            FlowRevision.objects.filter(flow=flow_id, created_on__lt=cutoff)
-            .annotate(created_date=TruncDate("created_on"))
-            .values("created_date")
-            .annotate(max_id=Max("id"))
-            .values_list("max_id", flat=True)
+        keepers = list(
+            FlowRevision.objects.filter(flow=flow_id)
+            .order_by("-created_on", "-id")
+            .values_list("id", flat=True)[: cls.MAX_REVISIONS]
         )
-
-        # delete the rest
-        return FlowRevision.objects.filter(flow=flow_id, created_on__lt=cutoff).exclude(id__in=keepers).delete()[0]
+        return FlowRevision.objects.filter(flow=flow_id).exclude(id__in=keepers).delete()[0]
 
     @classmethod
     def validate_legacy_definition(cls, definition):

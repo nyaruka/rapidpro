@@ -6,6 +6,7 @@ from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField, ContactGroup
 from temba.flows.models import (
     Flow,
+    FlowRevision,
     FlowRun,
     FlowStart,
     FlowStartCount,
@@ -265,6 +266,19 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         ):
             rev3, _ = flow.save_revision(self.admin, dict(rev2.definition))
         self.assertIsNone(rev3.changes)
+
+        # a trim failure shouldn't surface as a save failure — the inline trim is
+        # best-effort housekeeping and the cron task is the safety net
+        flow.name = "Trim Test"
+        flow.save(update_fields=("name",))
+        latest_def = flow.revisions.order_by("id").last().definition
+        with patch(
+            "temba.flows.models.FlowRevision.trim_for_flow",
+            side_effect=RuntimeError("trim boom"),
+        ):
+            rev_after_trim_fail, _ = flow.save_revision(self.admin, dict(latest_def))
+        self.assertIsNotNone(rev_after_trim_fail)
+        self.assertTrue(FlowRevision.objects.filter(id=rev_after_trim_fail.id).exists())
 
         # can't save older spec version over newer
         definition = flow.revisions.order_by("id").last().definition
