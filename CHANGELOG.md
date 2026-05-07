@@ -1,3 +1,8 @@
+v26.1.109 (2026-05-07)
+-------------------------
+ * Simplify trim to keep MAX_REVISIONS most recent
+ * Trim flow revisions on save
+
 v26.1.108 (2026-05-06)
 -------------------------
  * Update @nyaruka/temba-components to 0.156.18
