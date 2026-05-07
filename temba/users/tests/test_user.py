@@ -17,6 +17,16 @@ class UserTest(TembaTest):
         self.assertFalse(user.is_alpha)
         self.assertFalse(user.is_beta)
         self.assertEqual({"uuid": str(user.uuid), "name": "Jim McFlow"}, user.as_engine_ref())
+        self.assertEqual(
+            {
+                "uuid": str(user.uuid),
+                "name": "Jim",
+                "first_name": "Jim",
+                "last_name": "McFlow",
+                "avatar": None,
+            },
+            user.as_chat_ref(),
+        )
         self.assertEqual([self.org, self.org2], list(user.get_orgs().order_by("id")))
         self.assertFalse(user.is_verified())
         self.assertEqual(0, user.emailaddress_set.count())

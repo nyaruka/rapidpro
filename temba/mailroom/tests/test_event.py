@@ -184,7 +184,13 @@ class EventTest(TembaTest):
                     "type": "contact_language_changed",
                     "created_on": "2025-08-06T19:46:39.778889794Z",
                     "language": "spa",
-                    "_user": {"uuid": str(self.admin.uuid), "name": "Andy", "avatar": None},  # refreshed
+                    "_user": {
+                        "uuid": str(self.admin.uuid),
+                        "name": "Andy",
+                        "first_name": "Andy",
+                        "last_name": "",
+                        "avatar": None,
+                    },  # refreshed
                 },
             ],
         )

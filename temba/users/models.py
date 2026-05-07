@@ -199,7 +199,13 @@ class User(TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         return {"uuid": str(self.uuid), "name": self.name}
 
     def as_chat_ref(self) -> dict:
-        return {"uuid": str(self.uuid), "name": self.first_name, "avatar": self.avatar.url if self.avatar else None}
+        return {
+            "uuid": str(self.uuid),
+            "name": self.first_name,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "avatar": self.avatar.url if self.avatar else None,
+        }
 
     def fetch_avatar(self, url: str):  # pragma: no cover
         # fetch the avatar from the url and store it locally
