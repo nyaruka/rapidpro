@@ -50,7 +50,7 @@
               </div>
             {% else %}
               <a href="{% url 'flows.flow_editor' event.flow.uuid %}" onclick="goto(event, this)">
-                <temba-label icon="flow" type="flow" clickable>
+                <temba-label icon="flow" type="flow" primary clickable>
                   {{ event.flow.name }}
                 </temba-label>
               </a>
