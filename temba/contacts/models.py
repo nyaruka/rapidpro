@@ -535,7 +535,7 @@ class ContactField(TembaModel, DependencyMixin):
         return self.agent_access if self.org.get_user_role(user) == OrgRole.AGENT else self.ACCESS_EDIT
 
     def get_attrs(self):
-        return {"icon": "info" if self.is_proxy else "fields"}
+        return {"icon": "info" if self.is_proxy else "fields", "type": "field"}
 
     def release(self, user):
         assert not (self.is_system and self.org.is_active), "can't release system fields"
@@ -1454,7 +1454,7 @@ class ContactGroup(LegacyUUIDMixin, TembaModel, DependencyMixin):
         return "group_smart" if self.group_type == self.TYPE_SMART else "group"
 
     def get_attrs(self):
-        return {"icon": self.icon}
+        return {"icon": self.icon, "type": "group"}
 
     def update_query(self, query, reevaluate=True, parsed=None):
         """
