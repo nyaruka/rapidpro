@@ -540,7 +540,13 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                         "urn": "tel:+250781111111",
                         "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
                     },
-                    "_user": {"uuid": str(self.editor.uuid), "name": "Ed", "avatar": None},
+                    "_user": {
+                        "uuid": str(self.editor.uuid),
+                        "name": "Ed",
+                        "first_name": "Ed",
+                        "last_name": "McEdits",
+                        "avatar": None,
+                    },
                 }
             },
             response.json(),
@@ -581,7 +587,13 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                         "urn": "tel:+250781111111",
                         "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
                     },
-                    "_user": {"uuid": str(self.editor.uuid), "name": "Ed", "avatar": None},
+                    "_user": {
+                        "uuid": str(self.editor.uuid),
+                        "name": "Ed",
+                        "first_name": "Ed",
+                        "last_name": "McEdits",
+                        "avatar": None,
+                    },
                 }
             },
             response.json(),
