@@ -482,7 +482,7 @@ class MailroomClient:
             kwargs = dict(json=payload)
 
         req_fn = requests.post if post else requests.get
-        response = req_fn("%s/mr/%s" % (self.base_url, endpoint), headers=headers, **kwargs)
+        response = req_fn("%s/mi/%s" % (self.base_url, endpoint), headers=headers, **kwargs)
 
         if response.headers.get("Content-Type") == "application/json":
             resp_body = response.json()

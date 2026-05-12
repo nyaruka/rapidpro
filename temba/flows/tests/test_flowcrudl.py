@@ -1986,7 +1986,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                 actual_payload = json.loads(mock_post.call_args_list[0][1]["data"])
                 actual_headers = mock_post.call_args_list[0][1]["headers"]
 
-                self.assertEqual(actual_url, "https://mailroom.temba.io/mr/sim/start")
+                self.assertEqual(actual_url, "https://mailroom.temba.io/mi/sim/start")
                 self.assertEqual(actual_payload["org_id"], flow.org_id)
                 self.assertEqual(
                     {"type": "manual", "user": {"uuid": str(self.admin.uuid), "name": "Andy"}},
@@ -2019,7 +2019,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                 actual_payload = json.loads(mock_post.call_args_list[0][1]["data"])
                 actual_headers = mock_post.call_args_list[0][1]["headers"]
 
-                self.assertEqual(actual_url, "https://mailroom.temba.io/mr/sim/resume")
+                self.assertEqual(actual_url, "https://mailroom.temba.io/mi/sim/resume")
                 self.assertEqual(actual_payload["org_id"], flow.org_id)
                 self.assertEqual(len(actual_payload["assets"]["channels"]), 1)  # fake channel
                 self.assertEqual(actual_headers["Authorization"], "Token sesame")
