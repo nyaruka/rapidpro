@@ -94,7 +94,7 @@ class ContactTest(TembaTest):
         self.joe.open_ticket(self.admin, topic=self.org.default_topic, assignee=self.agent, note="Looks sus")
 
         mock_post.assert_called_once_with(
-            "http://mailroom:8090/mr/contact/modify",
+            "http://mailroom:8090/mi/contact/modify",
             headers={"User-Agent": "Temba"},
             json={
                 "org_id": self.org.id,

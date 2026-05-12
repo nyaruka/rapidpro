@@ -54,7 +54,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual({"id": 12345}, response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/android/event",
+            "http://localhost:8090/mi/android/event",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -80,7 +80,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual({"id": 12345}, response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/android/message",
+            "http://localhost:8090/mi/android/message",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -99,7 +99,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual({"id": 12345}, response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/android/sync",
+            "http://localhost:8090/mi/android/sync",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"channel_id": self.channel.id},
         )
@@ -120,7 +120,7 @@ class MailroomClientTest(TembaTest):
         self.assertIsNone(response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/campaign/schedule",
+            "http://localhost:8090/mi/campaign/schedule",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "point_id": event.id},
         )
@@ -133,7 +133,7 @@ class MailroomClientTest(TembaTest):
         self.assertIsNone(response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/channel/interrupt",
+            "http://localhost:8090/mi/channel/interrupt",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "channel_id": self.channel.id},
         )
@@ -151,7 +151,7 @@ class MailroomClientTest(TembaTest):
 
         self.assertEqual(ann, result)
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/contact/create",
+            "http://localhost:8090/mi/contact/create",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -180,7 +180,7 @@ class MailroomClientTest(TembaTest):
 
         self.assertEqual(bob, result)
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/contact/create",
+            "http://localhost:8090/mi/contact/create",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -207,7 +207,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual({"deindexed": 2}, response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/contact/deindex",
+            "http://localhost:8090/mi/contact/deindex",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -225,7 +225,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual({"indexed": 2}, response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/contact/reindex",
+            "http://localhost:8090/mi/contact/reindex",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -245,7 +245,7 @@ class MailroomClientTest(TembaTest):
 
         self.assertEqual([str(bob.uuid), str(ann.uuid)], result)
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/contact/export",
+            "http://localhost:8090/mi/contact/export",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "group_id": group.id, "query": "age = 42"},
         )
@@ -259,7 +259,7 @@ class MailroomClientTest(TembaTest):
 
         self.assertEqual(123, result)
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/contact/export_preview",
+            "http://localhost:8090/mi/contact/export_preview",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "group_id": group.id, "query": "age = 42"},
         )
@@ -272,7 +272,7 @@ class MailroomClientTest(TembaTest):
 
         self.assertEqual(2, result)
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/contact/import",
+            "http://localhost:8090/mi/contact/import",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "import_id": 1234},
         )
@@ -287,7 +287,7 @@ class MailroomClientTest(TembaTest):
 
         self.assertEqual({ann: {}, bob: {}}, result)
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/contact/inspect",
+            "http://localhost:8090/mi/contact/inspect",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "contact_ids": [ann.id, bob.id]},
         )
@@ -301,7 +301,7 @@ class MailroomClientTest(TembaTest):
         self.client.contact_interrupt(self.org, self.admin, [ann, bob])
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/contact/interrupt",
+            "http://localhost:8090/mi/contact/interrupt",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "user_id": self.admin.id, "contact_ids": [ann.id, bob.id]},
         )
@@ -350,7 +350,7 @@ class MailroomClientTest(TembaTest):
         )
         self.assertEqual(str(ann.uuid), response[str(ann.id)]["contact"]["uuid"])
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/contact/modify",
+            "http://localhost:8090/mi/contact/modify",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -382,7 +382,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual('name ~ "frank"', parsed.query)
         self.assertEqual(["name"], parsed.metadata.attributes)
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/contact/parse_query",
+            "http://localhost:8090/mi/contact/parse_query",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"query": "frank", "org_id": self.org.id, "parse_only": False},
         )
@@ -400,7 +400,7 @@ class MailroomClientTest(TembaTest):
         self.client.contact_populate_group(self.org, group)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/contact/populate_group",
+            "http://localhost:8090/mi/contact/populate_group",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "group_id": group.id},
         )
@@ -428,7 +428,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual(2, response.total)
         self.assertEqual(["name"], response.metadata.attributes)
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/contact/search",
+            "http://localhost:8090/mi/contact/search",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "query": "ann",
@@ -468,7 +468,7 @@ class MailroomClientTest(TembaTest):
             [URNResult(normalized="tel:+1234", contact_id=345), URNResult(normalized="webchat:3a2ef3")], response
         )
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/contact/urns",
+            "http://localhost:8090/mi/contact/urns",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "urns": ["tel:+1234", "webchat:3a2ef3"]},
         )
@@ -484,7 +484,7 @@ class MailroomClientTest(TembaTest):
 
         call = mock_post.call_args
 
-        self.assertEqual(("http://localhost:8090/mr/flow/change_language",), call[0])
+        self.assertEqual(("http://localhost:8090/mi/flow/change_language",), call[0])
         self.assertEqual(
             {"User-Agent": "Temba", "Authorization": "Token sesame", "Content-Type": "application/json"},
             call[1]["headers"],
@@ -503,7 +503,7 @@ class MailroomClientTest(TembaTest):
 
         call = mock_post.call_args
 
-        self.assertEqual(("http://localhost:8090/mr/flow/inspect",), call[0])
+        self.assertEqual(("http://localhost:8090/mi/flow/inspect",), call[0])
         self.assertEqual(
             {"User-Agent": "Temba", "Authorization": "Token sesame", "Content-Type": "application/json"},
             call[1]["headers"],
@@ -521,7 +521,7 @@ class MailroomClientTest(TembaTest):
 
         call = mock_post.call_args
 
-        self.assertEqual(("http://localhost:8090/mr/flow/migrate",), call[0])
+        self.assertEqual(("http://localhost:8090/mi/flow/migrate",), call[0])
         self.assertEqual(
             {"User-Agent": "Temba", "Authorization": "Token sesame", "Content-Type": "application/json"},
             call[1]["headers"],
@@ -553,7 +553,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual(start, result)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/flow/start",
+            "http://localhost:8090/mi/flow/start",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -593,7 +593,7 @@ class MailroomClientTest(TembaTest):
             self.assertEqual(RecipientsPreview(query='group = "Farmers" AND status = "active"', total=2345), preview)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/flow/start_preview",
+            "http://localhost:8090/mi/flow/start_preview",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -631,7 +631,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual(translated, response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/llm/translate",
+            "http://localhost:8090/mi/llm/translate",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -687,7 +687,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual(bcast, result)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/msg/broadcast",
+            "http://localhost:8090/mi/msg/broadcast",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -728,7 +728,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual(RecipientsPreview(query='group = "Farmers" AND status = "active"', total=2345), preview)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/msg/broadcast_preview",
+            "http://localhost:8090/mi/msg/broadcast_preview",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -757,7 +757,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual({}, response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/msg/delete",
+            "http://localhost:8090/mi/msg/delete",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "user_id": self.admin.id, "msg_uuids": [str(msg1.uuid), str(msg2.uuid)]},
         )
@@ -773,7 +773,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual({"msg_uuids": [str(msg1.uuid)]}, response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/msg/handle",
+            "http://localhost:8090/mi/msg/handle",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "msg_uuids": [str(msg1.uuid), str(msg2.uuid)]},
         )
@@ -789,7 +789,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual({"msg_uuids": [str(msg1.uuid)]}, response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/msg/resend",
+            "http://localhost:8090/mi/msg/resend",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "user_id": self.admin.id, "msg_uuids": [str(msg1.uuid), str(msg2.uuid)]},
         )
@@ -852,7 +852,7 @@ class MailroomClientTest(TembaTest):
         )
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/msg/search",
+            "http://localhost:8090/mi/msg/search",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "text": "hello", "contact_uuid": None, "in_ticket": False},
         )
@@ -885,7 +885,7 @@ class MailroomClientTest(TembaTest):
         )
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/msg/search",
+            "http://localhost:8090/mi/msg/search",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "text": "hello", "contact_uuid": str(bob.uuid), "in_ticket": True},
         )
@@ -908,7 +908,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual({"id": 12345}, response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/msg/send",
+            "http://localhost:8090/mi/msg/send",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -932,7 +932,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual({}, response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/org/deindex",
+            "http://localhost:8090/mi/org/deindex",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id},
         )
@@ -948,7 +948,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual(b'msgid "Red"\nmsgstr "Rojo"\n\n', response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/po/export",
+            "http://localhost:8090/mi/po/export",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id, "flow_ids": [flow1.id, flow2.id], "language": "spa"},
         )
@@ -964,7 +964,7 @@ class MailroomClientTest(TembaTest):
         self.assertEqual({"flows": []}, response)
 
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/po/import",
+            "http://localhost:8090/mi/po/import",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             data={"org_id": self.org.id, "flow_ids": [flow1.id, flow2.id], "language": "spa"},
             files={"po": b'msgid "Red"\nmsgstr "Rojo"\n\n'},
@@ -982,7 +982,7 @@ class MailroomClientTest(TembaTest):
 
         self.assertEqual({"changed_uuids": [str(ticket1.uuid)]}, response)
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/ticket/add_note",
+            "http://localhost:8090/mi/ticket/add_note",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -1005,7 +1005,7 @@ class MailroomClientTest(TembaTest):
 
         self.assertEqual({"changed_uuids": [str(ticket1.uuid)]}, response)
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/ticket/change_assignee",
+            "http://localhost:8090/mi/ticket/change_assignee",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -1029,7 +1029,7 @@ class MailroomClientTest(TembaTest):
 
         self.assertEqual({"changed_uuids": [str(ticket1.uuid)]}, response)
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/ticket/change_topic",
+            "http://localhost:8090/mi/ticket/change_topic",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -1052,7 +1052,7 @@ class MailroomClientTest(TembaTest):
 
         self.assertEqual({"changed_uuids": [str(ticket1.uuid)]}, response)
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/ticket/close",
+            "http://localhost:8090/mi/ticket/close",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
@@ -1074,7 +1074,7 @@ class MailroomClientTest(TembaTest):
 
         self.assertEqual({"changed_uuids": [str(ticket1.uuid)]}, response)
         mock_post.assert_called_once_with(
-            "http://localhost:8090/mr/ticket/reopen",
+            "http://localhost:8090/mi/ticket/reopen",
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={
                 "org_id": self.org.id,
