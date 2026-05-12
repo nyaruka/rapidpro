@@ -15,7 +15,7 @@
        derived from it in both directions via sRGB mixing.
        The anchor reads from --primary-rgb so host pages can re-theme
        the entire ramp by setting e.g. --primary-rgb: 112, 0, 132. */
-    --accent:      rgb(var(--primary-rgb, 98, 147, 201));
+    --accent:      rgb(var(--primary-rgb));
     --accent-50:   color-mix(in srgb, var(--accent) 6%,  white);
     --accent-100:  color-mix(in srgb, var(--accent) 16%, white);
     --accent-200:  color-mix(in srgb, var(--accent) 32%, white);
@@ -262,38 +262,6 @@
     --color-automated: rgb(78, 205, 106);
 
   }
-
-  temba-button {
-    --button-bg: var(--accent-500);
-    --button-text: var(--color-text-light);
-    --button-border: none;
-    --button-shadow: var(--widget-box-shadow);
-  }
-
-  temba-button:hover {
-    --button-bg-img: linear-gradient(to bottom, rgba(255, 255, 255, .1), transparent, transparent);
-  }
-
-  temba-button.active {
-    --button-bg-img: linear-gradient(to bottom, transparent, rgba(0, 0, 0, .05));
-  }
-
-  temba-button.light {
-    --button-bg: #fff;
-    --button-text: #999;
-    --button-border: none;
-    --button-shadow: var(--widget-box-shadow);
-
-  }
-
-  temba-button.light:hover {
-    --button-bg-img: linear-gradient(to bottom, transparent, rgba(0, 0, 0, .001));
-  }
-
-  temba-button.light.active {
-    --button-bg-img: linear-gradient(to bottom, transparent, rgba(0, 0, 0, .02));
-  }
-
 
   temba-select:focus {
     outline: none;

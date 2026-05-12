@@ -21,7 +21,7 @@
 
   /* accent ramp — derived from --primary-rgb via sRGB mixing.
      400 == primary; the ramp computes outward in both directions. */
-  --accent:      rgb(var(--primary-rgb, 98, 147, 201));
+  --accent:      rgb(var(--primary-rgb));
   --accent-50:   color-mix(in srgb, var(--accent) 6%,  white);
   --accent-100:  color-mix(in srgb, var(--accent) 16%, white);
   --accent-200:  color-mix(in srgb, var(--accent) 32%, white);
