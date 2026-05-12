@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/design-system.css">
   <link rel="stylesheet" href="styleguide.css">
+  <script src="../css/design-system.js"></script>
 </head>
 <body>
 
@@ -142,24 +143,30 @@
           <header class="sg-card-h">
             <div>
               <h3>Accent ramp</h3>
-              <p class="sg-card-sub">Generated from a single anchor <code class="sg-code">--accent</code> using OKLab mixing.</p>
+              <p class="sg-card-sub">Anchored at <strong>400 = primary</strong>; the ramp is derived outward via sRGB mixing. Pick a primary to re-theme the whole UI live.</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <label for="primaryPicker" class="sg-code" style="cursor:pointer;">--primary</label>
+              <input id="primaryPicker" type="color" value="#6293C9"
+                     style="width:36px;height:28px;padding:0;border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;background:transparent;">
+              <code id="primaryValue" class="sg-code" style="min-width:74px;">#6293C9</code>
             </div>
           </header>
           <div class="sg-card-body">
             <div class="ramp">
-              <div class="ramp-step"><div class="ramp-chip" style="background: color-mix(in oklab, var(--accent) 6%, white)"></div><div class="ramp-stop">50</div></div>
-              <div class="ramp-step"><div class="ramp-chip" style="background: color-mix(in oklab, var(--accent) 12%, white)"></div><div class="ramp-stop">100</div></div>
-              <div class="ramp-step"><div class="ramp-chip" style="background: color-mix(in oklab, var(--accent) 25%, white)"></div><div class="ramp-stop">200</div></div>
-              <div class="ramp-step"><div class="ramp-chip" style="background: color-mix(in oklab, var(--accent) 45%, white)"></div><div class="ramp-stop">300</div></div>
-              <div class="ramp-step"><div class="ramp-chip" style="background: color-mix(in oklab, var(--accent) 75%, white)"></div><div class="ramp-stop">400</div></div>
-              <div class="ramp-step"><div class="ramp-chip" style="background: var(--accent)"></div><div class="ramp-stop">500</div></div>
-              <div class="ramp-step"><div class="ramp-chip" style="background: color-mix(in oklab, var(--accent) 88%, black)"></div><div class="ramp-stop">600</div></div>
-              <div class="ramp-step"><div class="ramp-chip" style="background: color-mix(in oklab, var(--accent) 75%, black)"></div><div class="ramp-stop">700</div></div>
-              <div class="ramp-step"><div class="ramp-chip" style="background: color-mix(in oklab, var(--accent) 60%, black)"></div><div class="ramp-stop">800</div></div>
-              <div class="ramp-step"><div class="ramp-chip" style="background: color-mix(in oklab, var(--accent) 45%, black)"></div><div class="ramp-stop">900</div></div>
+              <div class="ramp-step"><div class="ramp-chip" style="background: var(--accent-50)"></div><div class="ramp-stop">50</div></div>
+              <div class="ramp-step"><div class="ramp-chip" style="background: var(--accent-100)"></div><div class="ramp-stop">100</div></div>
+              <div class="ramp-step"><div class="ramp-chip" style="background: var(--accent-200)"></div><div class="ramp-stop">200</div></div>
+              <div class="ramp-step"><div class="ramp-chip" style="background: var(--accent-300)"></div><div class="ramp-stop">300</div></div>
+              <div class="ramp-step"><div class="ramp-chip" style="background: var(--accent-400);box-shadow:inset 0 0 0 2px var(--surface), inset 0 0 0 3px var(--accent-700);"></div><div class="ramp-stop">400</div></div>
+              <div class="ramp-step"><div class="ramp-chip" style="background: var(--accent-500)"></div><div class="ramp-stop">500</div></div>
+              <div class="ramp-step"><div class="ramp-chip" style="background: var(--accent-600)"></div><div class="ramp-stop">600</div></div>
+              <div class="ramp-step"><div class="ramp-chip" style="background: var(--accent-700)"></div><div class="ramp-stop">700</div></div>
+              <div class="ramp-step"><div class="ramp-chip" style="background: var(--accent-800)"></div><div class="ramp-stop">800</div></div>
+              <div class="ramp-step"><div class="ramp-chip" style="background: var(--accent-900)"></div><div class="ramp-stop">900</div></div>
             </div>
             <div class="usage-row">
-              <div class="usage-tag">Buttons · 600/700</div>
+              <div class="usage-tag">Buttons · 500/600</div>
               <div class="usage-tag">Pills · 50/700</div>
               <div class="usage-tag">Active rail · 400</div>
               <div class="usage-tag">Selection · 50</div>
@@ -574,6 +581,17 @@
 
 <script>
 (function () {
+  // ─── primary color picker (re-themes ramp via design-system.js) ────
+  var picker = document.getElementById("primaryPicker");
+  var valueOut = document.getElementById("primaryValue");
+  if (picker && window.DesignSystem && window.DesignSystem.setPrimary) {
+    picker.addEventListener("input", function (e) {
+      var hex = e.target.value;
+      window.DesignSystem.setPrimary(hex);
+      if (valueOut) valueOut.textContent = hex.toUpperCase();
+    });
+  }
+
   // ─── section nav collapse ───────────────────────────────────────────
   var nav = document.getElementById("sectionNav");
   var btn = document.getElementById("snCollapse");

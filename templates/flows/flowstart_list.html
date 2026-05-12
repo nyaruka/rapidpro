@@ -35,7 +35,11 @@
           <tr style="{% if obj.is_starting %}border:none;{% endif %}">
             <td style="{% if obj.is_starting %}border:none;{% endif %}">
               {% if obj.flow.is_active %}
-                <a href="{% url 'flows.flow_editor' obj.flow.uuid %}">{{ obj.flow.name }}</a>
+                <a href="{% url 'flows.flow_editor' obj.flow.uuid %}" onclick="goto(event, this)">
+                  <temba-label type="flow" primary clickable>
+                    {{ obj.flow.name }}
+                  </temba-label>
+                </a>
               {% else %}
                 {% trans "A deleted flow" %}
               {% endif %}

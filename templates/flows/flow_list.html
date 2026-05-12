@@ -69,7 +69,7 @@
               <div class="whitespace-no-break flex items-center ml-2 justify-end flex-wrap">
                 {% for label in object.labels.all %}
                   <a href="{% url 'flows.flow_filter' label.uuid %}" onclick="goto(event, this)">
-                    <temba-label data-id="{{ label.id }}" type="label" clickable class="mx-1 my-1">
+                    <temba-label data-id="{{ label.id }}" type="label" clickable class="mx-1">
                       {{ label.name }}
                     </temba-label>
                   </a>

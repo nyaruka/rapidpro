@@ -70,7 +70,7 @@
                   {% if 'label' in actions %}
                     {% for label in object.labels.all %}
                       <a href="{% url 'msgs.msg_filter' label.uuid %}" onclick="goto(event, this)">
-                        <temba-label data-id="{{ label.id }}" type="label" clickable class="mx-1 my-1">
+                        <temba-label data-id="{{ label.id }}" type="label" clickable class="mx-1">
                           {{ label.name }}
                         </temba-label>
                       </a>
@@ -78,7 +78,7 @@
                   {% endif %}
                   {% if object.flow and object.flow.is_active %}
                     <a href="{% url 'flows.flow_editor' object.flow.uuid %}" onclick="goto(event, this)">
-                      <temba-label type="flow" primary clickable class="mx-1 my-1">
+                      <temba-label type="flow" primary clickable class="mx-1">
                         {{ object.flow.name }}
                       </temba-label>
                     </a>
