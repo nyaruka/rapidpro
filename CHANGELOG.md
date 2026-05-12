@@ -1,3 +1,9 @@
+v26.1.110 (2026-05-12)
+-------------------------
+ * Update mailroom client to use new /mi/ path for internal endpoints
+ * Bump urllib3 from 2.6.3 to 2.7.0
+ * Bump django from 5.2.13 to 5.2.14
+
 v26.1.109 (2026-05-07)
 -------------------------
  * Simplify trim to keep MAX_REVISIONS most recent
