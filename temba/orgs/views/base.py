@@ -284,14 +284,24 @@ class BaseExportModal(ModalFormMixin, OrgPermsMixin, SmartFormView):
             ContactField.objects.none(),
             required=False,
             label=_("Fields"),
-            widget=SelectMultipleWidget(attrs={"placeholder": _("Optional: Fields to include"), "searchable": True}),
+            widget=SelectMultipleWidget(
+                attrs={
+                    "placeholder": _("Optional: Fields to include"),
+                    "searchable": True,
+                    "pill_type": "field",
+                }
+            ),
         )
         with_groups = forms.ModelMultipleChoiceField(
             ContactGroup.objects.none(),
             required=False,
             label=_("Groups"),
             widget=SelectMultipleWidget(
-                attrs={"placeholder": _("Optional: Group memberships to include"), "searchable": True}
+                attrs={
+                    "placeholder": _("Optional: Group memberships to include"),
+                    "searchable": True,
+                    "pill_type": "group",
+                }
             ),
         )
 

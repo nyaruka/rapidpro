@@ -1,20 +1,20 @@
 {% load i18n %}
 
 {% if exclusions.in_a_flow %}
-  <div class="inline-flex items-center mt-0 mr-1 px-2 py-1 rounded" style="color: #aaa; font-size: 0.8em; border: 1px solid #ddd; background: #fff;">
-    <temba-icon name="filter" class="mr-1" style="--icon-color: #aaa;"></temba-icon>
+  <div class="exclusion-pill">
+    <temba-icon name="filter"></temba-icon>
     {% trans "Not in a flow" %}
   </div>
 {% endif %}
 {% if exclusions.started_previously %}
-  <div class="inline-flex items-center mt-0 mr-1 px-2 py-1 rounded" style="color: #aaa; font-size: 0.8em; border: 1px solid #ddd; background: #fff;">
-    <temba-icon name="filter" class="mr-1" style="--icon-color: #aaa;"></temba-icon>
+  <div class="exclusion-pill">
+    <temba-icon name="filter"></temba-icon>
     {% trans "No recent runs" %}
   </div>
 {% endif %}
 {% if exclusions.not_seen_since_days %}
-  <div class="inline-flex items-center mt-0 mr-1 px-2 py-1 rounded" style="color: #aaa; font-size: 0.8em; border: 1px solid #ddd; background: #fff;">
-    <temba-icon name="filter" class="mr-1" style="--icon-color: #aaa;"></temba-icon>
+  <div class="exclusion-pill">
+    <temba-icon name="filter"></temba-icon>
     {% if exclusions.not_seen_since_days == 365 %}
       {% blocktrans trimmed %}
         Active in the last year
