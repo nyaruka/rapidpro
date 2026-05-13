@@ -24,6 +24,7 @@ body {
 /* inline attachment pills */
 .attachment {
   display: flex;
+  align-items: center;
   margin-right: 5px;
   font-size: 0;
   white-space: nowrap;
@@ -34,6 +35,7 @@ body {
   border: 0;
   color: #777;
   display: flex;
+  align-items: center;
   font-size: 12px;
   height: 18px;
   padding: 3px 8px;
@@ -45,8 +47,10 @@ body {
   background-color: #e0e0e0;
   border: 0;
   color: #666;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   font-size: 12px;
+  height: 18px;
   padding: 3px;
 }
 
