@@ -1,3 +1,7 @@
+v26.1.111 (2026-05-13)
+-------------------------
+ * Add TextIt design system tokens, components, and style guide
+
 v26.1.110 (2026-05-12)
 -------------------------
  * Update mailroom client to use new /mi/ path for internal endpoints
