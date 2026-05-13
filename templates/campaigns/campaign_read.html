@@ -38,7 +38,7 @@
     </thead>
     <tbody>
       {% for event in events %}
-        <tr onclick="goto(event, this)"
+        <tr
             href="{% url 'campaigns.campaignevent_read' event.campaign.uuid event.uuid %}"
             class="hover-linked">
           <td class="whitespace-nowrap">{{ event.relative_to.name }}</td>
@@ -49,7 +49,7 @@
                 <div class="text">{{ event.get_message.text }}</div>
               </div>
             {% else %}
-              <a href="{% url 'flows.flow_editor' event.flow.uuid %}" onclick="goto(event, this)">
+              <a href="{% url 'flows.flow_editor' event.flow.uuid %}">
                 <temba-label type="flow" primary clickable>
                   {{ event.flow.name }}
                 </temba-label>
