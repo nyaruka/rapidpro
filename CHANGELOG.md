@@ -1,3 +1,7 @@
+v26.1.112 (2026-05-14)
+-------------------------
+ * Fix list-view UI nits across messages, login, and clickable pills
+
 v26.1.111 (2026-05-13)
 -------------------------
  * Add TextIt design system tokens, components, and style guide
