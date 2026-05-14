@@ -99,7 +99,7 @@
   {{ block.super }}
   <script type="text/javascript">
     function handleRowClicked(event) {
-      if (event.target.tagName == "A" || event.target.tagName == "BUTTON") {
+      if (event.target.closest("a") || event.target.tagName == "BUTTON") {
         return;
       }
 
