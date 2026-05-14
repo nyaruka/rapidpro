@@ -1,3 +1,7 @@
+v26.1.113 (2026-05-14)
+-------------------------
+ * Tidy contact/ticket detail layouts and remove notepad tab styling overrides
+
 v26.1.112 (2026-05-14)
 -------------------------
  * Fix list-view UI nits across messages, login, and clickable pills
