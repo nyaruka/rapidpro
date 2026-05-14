@@ -701,7 +701,7 @@
           </temba-tab>
           <temba-tab icon="fields" name="{{ _("Fields") |escapejs }}">
             <div style="border-top-right-radius: var(--curvature)"
-                 class="flex flex-grow flex-col p-4 overflow-y-auto">
+                 class="flex flex-grow flex-col py-4 px-1 overflow-y-auto">
               <temba-contact-fields timezone="{{ object.org.timezone }}"
                                     -temba-button-clicked="handleFieldSearch"
                                     role="{{ request.role.code }}">

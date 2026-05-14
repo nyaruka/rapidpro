@@ -11,7 +11,7 @@
               index="{{ request.GET.tab }}"
               collapses="true"
               class="flex-grow -mt-2">
-    <temba-tab class="chat" icon="message" name="{{ _("Chat") |escapejs }}">
+    <temba-tab icon="message" name="{{ _("Chat") |escapejs }}">
       <temba-contact-chat contact="{{ object.uuid }}"
                           monitor="true"
                           avatar="{{ branding.logos.avatar }}"
