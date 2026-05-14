@@ -1,3 +1,7 @@
+v26.1.114 (2026-05-14)
+-------------------------
+ * Update @nyaruka/temba-components to 0.158.1
+
 v26.1.113 (2026-05-14)
 -------------------------
  * Tidy contact/ticket detail layouts and remove notepad tab styling overrides
