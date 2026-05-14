@@ -4,6 +4,8 @@
 .envrc
 .devcontainer
 .direnv
+orca
+orca.yaml
 .commit
 .ruff_cache
 .vscode/
