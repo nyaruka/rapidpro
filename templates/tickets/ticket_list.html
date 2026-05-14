@@ -686,20 +686,18 @@
                     collapses="true"
                     class="flex-grow hidden">
           <temba-tab icon="message" name="{{ _("Chat") |escapejs }}">
-            <div style="border-top-right-radius: var(--curvature);" class="flex flex-grow flex-col overflow-y-auto">
-              <temba-contact-chat agent="{{ request.user.email }}"
-                                  style="opacity: 0"
-                                  monitor="true"
-                                  -temba-ticket-updated="handleTicketUpdated"
-                                  -temba-message-sent="handleMessageSent"
-                                  -temba-interrupt="handleInterruptContact"
-                                  {% if org_perms.contacts.contact_interrupt %}showInterrupt{% endif %}
-                                  {% if org_perms.channels.channel_logs or request.user.is_staff %}showMessageLogsAfter="{{ msg_logs_after }}"{% endif %}
-                                  {% if not can_assign %}disableAssign{% endif %}
-                                  {% if not can_reply_non_own %}disableReply{% endif %}
-                                  avatar="{{ branding.logos.avatar }}">
-              </temba-contact-chat>
-            </div>
+            <temba-contact-chat agent="{{ request.user.email }}"
+                                style="opacity: 0"
+                                monitor="true"
+                                -temba-ticket-updated="handleTicketUpdated"
+                                -temba-message-sent="handleMessageSent"
+                                -temba-interrupt="handleInterruptContact"
+                                {% if org_perms.contacts.contact_interrupt %}showInterrupt{% endif %}
+                                {% if org_perms.channels.channel_logs or request.user.is_staff %}showMessageLogsAfter="{{ msg_logs_after }}"{% endif %}
+                                {% if not can_assign %}disableAssign{% endif %}
+                                {% if not can_reply_non_own %}disableReply{% endif %}
+                                avatar="{{ branding.logos.avatar }}">
+            </temba-contact-chat>
           </temba-tab>
           <temba-tab icon="fields" name="{{ _("Fields") |escapejs }}">
             <div style="border-top-right-radius: var(--curvature)"
@@ -713,12 +711,7 @@
               </temba-contact-fields>
             </div>
           </temba-tab>
-          <temba-tab icon="notes"
-                     name="{{ _("Notepad") }}"
-                     activity
-                     activityColor="#ffbd00"
-                     selectionBackground="#fff9c2"
-                     borderColor="#ebdf6f">
+          <temba-tab icon="notes" name="{{ _("Notepad") }}" activity>
             <temba-contact-notepad contact="{{ object.uuid }}">
             </temba-contact-notepad>
           </temba-tab>
