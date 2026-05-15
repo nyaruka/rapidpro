@@ -1,3 +1,7 @@
+v26.1.117 (2026-05-15)
+-------------------------
+ * Swap order of When and Field columns on campaign read page
+
 v26.1.116 (2026-05-15)
 -------------------------
  * Render campaign event field as a clickable pill
