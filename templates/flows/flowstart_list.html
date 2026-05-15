@@ -18,11 +18,11 @@
           <th colspan="3">
             <div class="flex justify-end">
               <div class="flow-start-type-selector flex">
-                <div
+                <div onclick="goto(event, this)"
                      href="{% url 'flows.flowstart_list' %}"
                      class="{% if not filtered %}is-active{% endif %} linked mr-1">{% trans "All" %}</div>
                 |
-                <div
+                <div onclick="goto(event, this)"
                      href="{% url 'flows.flowstart_list' %}?type=manual"
                      class="{% if filtered %}is-active{% endif %} linked ml-1">{% trans "Manual" %}</div>
               </div>
