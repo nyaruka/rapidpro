@@ -1,3 +1,8 @@
+v26.1.116 (2026-05-15)
+-------------------------
+ * Render campaign event field as a clickable pill
+ * Restore onclick=goto on non-anchor clickable rows
+
 v26.1.115 (2026-05-14)
 -------------------------
  * Reorder webhook log columns to put URL first and Flow fourth
