@@ -34,7 +34,7 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertEqual("settings/ai", response.headers[TEMBA_MENU_SELECTION])
         self.assertContentMenu(
-            list_url, self.admin, ["New Anthropic", "New DeepSeek", "New Google", "New OpenAI", "New Azure OpenAI"]
+            list_url, self.admin, ["New Anthropic", "New Google", "New OpenAI", "New Azure OpenAI"]
         )
         self.assertContentMenu(list_url, self.editor, [])
 
@@ -46,12 +46,12 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
         # types that aren't available to the user are hidden from the menu
         with patch.object(AnthropicType, "is_available_to", lambda self, org, user: user.is_staff):
             self.assertContentMenu(
-                list_url, self.admin, ["New DeepSeek", "New Google", "New OpenAI", "New Azure OpenAI"]
+                list_url, self.admin, ["New Google", "New OpenAI", "New Azure OpenAI"]
             )
             self.assertContentMenu(
                 list_url,
                 self.customer_support,
-                ["New Anthropic", "New DeepSeek", "New Google", "New OpenAI", "New Azure OpenAI"],
+                ["New Anthropic", "New Google", "New OpenAI", "New Azure OpenAI"],
                 choose_org=self.org,
             )
 
