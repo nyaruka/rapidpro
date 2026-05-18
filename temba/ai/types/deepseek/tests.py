@@ -30,23 +30,27 @@ class DeepSeekTypeTest(TembaTest, CRUDLTestMixin):
         mock_client.return_value.models.list.side_effect = None
 
         # get our model list from an api key
-        mock_client.return_value.models.list.return_value = [Mock(id="deepseek-chat"), Mock(id="deepseek-reasoning")]
+        mock_client.return_value.models.list.return_value = [Mock(id="deepseek-v4-flash"), Mock(id="deepseek-v4-pro")]
         response = self.process_wizard("connect_view", connect_url, {"credentials": {"api_key": "good_key"}})
         self.assertEqual(
             response.context["form"].fields["model"].choices,
-            [("deepseek-chat", "deepseek-chat")],
+            [("deepseek-v4-flash", "deepseek-v4-flash")],
         )
 
         # select a model and give it a name
         response = self.process_wizard(
             "connect_view",
             connect_url,
-            {"credentials": {"api_key": "good_key"}, "model": {"model": "deepseek-chat"}, "name": {"name": "DeepSeek"}},
+            {
+                "credentials": {"api_key": "good_key"},
+                "model": {"model": "deepseek-v4-flash"},
+                "name": {"name": "DeepSeek"},
+            },
         )
         self.assertRedirects(response, reverse("ai.llm_list"))
 
         # check that we created our model
         llm = LLM.objects.get(org=self.org, llm_type="deepseek")
         self.assertEqual("DeepSeek", llm.name)
-        self.assertEqual("deepseek-chat", llm.model)
+        self.assertEqual("deepseek-v4-flash", llm.model)
         self.assertEqual("good_key", llm.config["api_key"])
