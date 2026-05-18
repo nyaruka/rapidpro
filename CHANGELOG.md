@@ -1,3 +1,7 @@
+v26.1.118 (2026-05-18)
+-------------------------
+ * Cleanup of types
+
 v26.1.117 (2026-05-15)
 -------------------------
  * Swap order of When and Field columns on campaign read page
