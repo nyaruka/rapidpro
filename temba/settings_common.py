@@ -815,7 +815,6 @@ CHANNEL_TYPES = [
     "temba.channels.types.zenvia_sms.ZenviaSMSType",
     "temba.channels.types.zenvia_whatsapp.ZenviaWhatsAppType",
     "temba.channels.types.android.AndroidType",
-    "temba.channels.types.test.TestType",
 ]
 
 LLM_TYPES = {
