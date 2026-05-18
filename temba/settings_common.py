@@ -831,7 +831,7 @@ LLM_TYPES = {
         },
     },
     "temba.ai.types.deepseek.type.DeepSeekType": {
-        "models": {"deepseek-chat": 8_192},
+        "models": {"deepseek-v4-flash": 8_192},
     },
     "temba.ai.types.google.type.GoogleType": {
         "models": {
