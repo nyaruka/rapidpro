@@ -830,9 +830,6 @@ LLM_TYPES = {
             "claude-3-5-haiku-20241022": 8_192,
         },
     },
-    "temba.ai.types.deepseek.type.DeepSeekType": {
-        "models": {"deepseek-v4-flash": 8_192},
-    },
     "temba.ai.types.google.type.GoogleType": {
         "models": {
             "gemini-2.5-flash": 65_536,
