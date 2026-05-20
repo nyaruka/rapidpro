@@ -478,6 +478,7 @@ class Msg(models.Model):
     TYPE_OPTIN = "O"
     TYPE_VOICE = "V"
     TYPE_CHOICES = ((TYPE_TEXT, "Text"), (TYPE_OPTIN, "Opt-In Request"), (TYPE_VOICE, "Interactive Voice Response"))
+    TYPE_SLUGS = {TYPE_TEXT: "text", TYPE_OPTIN: "optin", TYPE_VOICE: "voice"}
 
     FAILED_NO_DESTINATION = "D"
     FAILED_CONTACT = "C"
@@ -553,6 +554,46 @@ class Msg(models.Model):
     external_identifier = models.CharField(max_length=255, null=True)
 
     log_uuids = ArrayField(models.UUIDField(), null=True)
+
+    def as_json(self, context=None) -> dict:
+        """
+        Internal API shape, consumed by the temba-msg-list component.
+        `context` is the DRF serializer context (with `user` / `org`) and
+        is used to resolve the channel-log link, which is permission- and
+        retention-gated.
+        """
+        return {
+            "id": self.id,
+            "type": self.TYPE_SLUGS.get(self.msg_type),
+            "contact": {"uuid": str(self.contact.uuid), "name": self.contact.get_display(self.org)},
+            "text": self.text,
+            "attachments": self.attachments,
+            "labels": [{"uuid": str(lb.uuid), "name": lb.name} for lb in self.labels.all()],
+            "flow": {"uuid": str(self.flow.uuid), "name": self.flow.name} if self.flow else None,
+            "created_on": self.created_on.isoformat() if self.created_on else None,
+            "logs_url": self._get_logs_url(context) if context else None,
+        }
+
+    def _get_logs_url(self, context):
+        """
+        Mirrors the channel_log_link template tag — returns the URL of
+        this message's channel log only when the viewer can read logs,
+        the channel is still active, and the message is within the
+        channel-log retention window.
+        """
+        from django.urls import reverse
+
+        user = context.get("user")
+        org = context.get("org")
+        if not (user and org):
+            return None
+        if not (user.has_org_perm(org, "channels.channel_logs") or user.is_staff):
+            return None
+        if not (self.channel and self.channel.is_active and self.created_on):
+            return None
+        if timezone.now() - self.created_on >= settings.RETENTION_PERIODS["channellog"]:
+            return None
+        return reverse("channels.channel_logs_read", args=[self.channel.uuid, "msg", self.uuid])
 
     def as_archive_json(self):
         """

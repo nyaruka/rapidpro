@@ -139,6 +139,11 @@
       {% compress css %}
         <link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/tailwind.css">
         <link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/temba-components.css">
+        {# design-system.css is the styleguide's source of truth — load it #}
+        {# after temba-components.css so its :root tokens (primary, accent #}
+        {# ramp, neutrals, status, etc.) override the legacy duplicates, #}
+        {# keeping the running app in lockstep with /static/styleguide/. #}
+        <link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/design-system.css">
         <link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/frame.css">
         <link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/mobile.css">
         <style>

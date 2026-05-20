@@ -1,5 +1,14 @@
 var pendingRequests = [];
 
+// URL whose content is currently rendered in the SPA container.
+// loadFromState's same-URL guard compares against this rather than
+// location.href, which the browser has already updated to the new
+// entry's URL by the time popstate fires — making location.href
+// useless for "did the URL actually change" checks. Kept in sync by
+// addToHistory (every successful spaRequest) and loadFromState (when
+// it issues its own spaRequest for cross-URL back/forward).
+var currentSpaUrl = location.href;
+
 const OMIT_ORG_URLS = ['/staff/', '/org/choose/'];
 
 function onSpload(fn) {
@@ -160,6 +169,7 @@ function addToHistory(url) {
     url = document.location.origin + url;
   }
   window.history.pushState({ url: url }, '', url);
+  currentSpaUrl = url;
 }
 
 function spaGet(url, triggerEvents) {
@@ -491,8 +501,18 @@ document.addEventListener('temba-redirected', function (event) {
 
 function loadFromState(state) {
   if (state && state.url) {
-    var url = state.url;
-    spaRequest(url, { ignoreEvents: false, ignoreHistory: true });
+    // Compare against currentSpaUrl (the URL of the content
+    // actually rendered) rather than location.href — the browser
+    // already updated location.href to the new entry's URL by the
+    // time popstate fires, so location.href === state.url would
+    // match every popstate and we'd skip the load even when we
+    // shouldn't. If the state's URL matches what's rendered, only
+    // in-page state changed (e.g. a list component pushed a new
+    // page/sort/search entry) — let the components on the page
+    // respond to popstate themselves instead of re-fetching.
+    if (state.url === currentSpaUrl) return;
+    currentSpaUrl = state.url;
+    spaRequest(state.url, { ignoreEvents: false, ignoreHistory: true });
   }
 }
 

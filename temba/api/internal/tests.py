@@ -6,6 +6,7 @@ from temba.ai.types.anthropic.type import AnthropicType
 from temba.ai.types.openai.type import OpenAIType
 from temba.api.tests.mixins import APITestMixin
 from temba.contacts.models import ContactExport
+from temba.msgs.models import Msg
 from temba.notifications.types import ExportFinishedNotificationType
 from temba.templates.models import TemplateTranslation
 from temba.tests import TembaTest, matchers
@@ -61,6 +62,77 @@ class EndpointsTest(APITestMixin, TembaTest):
         # missing or invalid level, no results
         self.assertGet(endpoint_url + "?level=hood", [self.agent], results=[])
         self.assertGet(endpoint_url, [self.agent], results=[])
+
+    def test_messages(self):
+        endpoint_url = reverse("api.internal.messages") + ".json"
+
+        self.assertGetNotPermitted(endpoint_url, [None, self.agent])
+        self.assertPostNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        contact1 = self.create_contact("Ann", phone="+1234567001")
+        contact2 = self.create_contact("Bob", phone="+1234567002")
+        label = self.create_label("Spam")
+
+        # inbox messages (incoming, handled, visible, no flow)
+        msg1 = self.create_incoming_msg(contact1, "Hello there")
+        msg2 = self.create_incoming_msg(contact2, "Look at this", attachments=["image/jpeg:https://example.com/a.jpg"])
+        msg2.labels.add(label)
+
+        # a message in another folder shouldn't appear in the inbox
+        archived = self.create_incoming_msg(contact1, "Archived", visibility=Msg.VISIBILITY_ARCHIVED)
+
+        self.assertGet(
+            endpoint_url,
+            [self.editor, self.admin],
+            results=[
+                {
+                    "id": msg2.id,
+                    "type": "text",
+                    "contact": {"uuid": str(contact2.uuid), "name": "Bob"},
+                    "text": "Look at this",
+                    "attachments": ["image/jpeg:https://example.com/a.jpg"],
+                    "labels": [{"uuid": str(label.uuid), "name": "Spam"}],
+                    "flow": None,
+                    "created_on": matchers.ISODatetime(),
+                },
+                {
+                    "id": msg1.id,
+                    "type": "text",
+                    "contact": {"uuid": str(contact1.uuid), "name": "Ann"},
+                    "text": "Hello there",
+                    "attachments": [],
+                    "labels": [],
+                    "flow": None,
+                    "created_on": matchers.ISODatetime(),
+                },
+            ],
+        )
+
+        # can select a different folder
+        self.assertGet(endpoint_url + "?folder=archived", [self.admin], results=[archived])
+
+        # an unknown folder returns nothing
+        self.assertGet(endpoint_url + "?folder=nope", [self.admin], results=[])
+
+        # can search by message text or contact name
+        response = self.assertGet(endpoint_url + "?search=hello", [self.admin], results=[msg1])
+        # searched responses also carry a total `count` of matches so the list UI can show "N results"
+        self.assertEqual(1, response.json()["count"])
+        response = self.assertGet(endpoint_url + "?search=bob", [self.admin], results=[msg2])
+        self.assertEqual(1, response.json()["count"])
+
+        # unfiltered listings still omit count — cursor pagination skips COUNT(*) when there is no search
+        response = self.assertGet(endpoint_url, [self.admin], results=[msg2, msg1])
+        self.assertNotIn("count", response.json())
+
+        # honor `?page_size=` so the list UI can request a page sized to its viewport
+        msg3 = self.create_incoming_msg(contact1, "Three")
+        msg4 = self.create_incoming_msg(contact1, "Four")
+        response = self.assertGet(endpoint_url + "?page_size=2", [self.admin], results=[msg4, msg3])
+        self.assertEqual(2, len(response.json()["results"]))
+        # there should be a `next` cursor since we capped at 2 of 4
+        self.assertIsNotNone(response.json()["next"])
 
     def test_notifications(self):
         endpoint_url = reverse("api.internal.notifications") + ".json"

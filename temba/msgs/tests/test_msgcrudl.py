@@ -50,26 +50,16 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         inbox_url = reverse("msgs.msg_inbox")
 
-        # check query count
-        self.login(self.admin)
-        with self.assertNumQueries(11):
-            self.client.get(inbox_url)
-
+        # the inbox page is a placeholder for the temba-msg-list component, which fetches and pages
+        # messages itself from the internal API
         self.assertRequestDisallowed(inbox_url, [None, self.agent])
-        response = self.assertListFetch(
-            inbox_url + "?refresh=10000", [self.editor, self.admin], context_objects=[msg4, msg3, msg2, msg1]
-        )
+        response = self.assertListFetch(inbox_url, [self.editor, self.admin], context_objects=[msg4, msg3, msg2, msg1])
+        self.assertContains(response, "temba-msg-list")
 
         # check that we have the appropriate bulk actions
         self.assertEqual(("archive", "label"), response.context["actions"])
 
-        # test searching by message text
-        self.assertListFetch(inbox_url + "?search=number+1", [self.editor, self.admin], context_objects=[msg1])
-
-        # test searching by contact name
-        self.assertListFetch(inbox_url + "?search=joe", [self.editor, self.admin], context_objects=[msg2, msg1])
-
-        # error response if query too long
+        # error response if search query too long
         self.assertListFetch(inbox_url + "?search=" + "x" * 1001, [self.editor], status=413)
 
         # add some labels
@@ -77,11 +67,11 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.create_label("label2")
         label3 = self.create_label("label3")
 
-        # editors can label messages
+        # editors can label messages - the component posts the label by uuid
         response = self.requestView(
             inbox_url,
             self.editor,
-            post_data={"action": "label", "objects": [msg1.id, msg2.id], "label": label1.id, "add": True},
+            post_data={"action": "label", "objects": [msg1.id, msg2.id], "label": str(label1.uuid), "add": True},
         )
         self.assertEqual(200, response.status_code)
         self.assertEqual({msg1, msg2}, set(label1.msgs.all()))
@@ -90,7 +80,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.requestView(
             inbox_url,
             self.editor,
-            post_data={"action": "label", "objects": [msg2.id], "label": label1.id, "add": False},
+            post_data={"action": "label", "objects": [msg2.id], "label": str(label1.uuid), "add": False},
         )
         self.assertEqual({msg1}, set(label1.msgs.all()))
 
@@ -102,7 +92,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertEqual({msg1}, set(label1.msgs.all()))
 
-        # label more messages as admin
+        # labels can also be posted by id, as the other message folders still do
         self.requestView(
             inbox_url,
             self.admin,

@@ -865,14 +865,12 @@ class AnonOrgTest(TembaTest):
         self.assertNotContains(response, "788 123 123")
         self.assertContains(response, contact.ref)
 
-        # create an incoming message, check number doesn't appear in inbox
+        # create an incoming message - the inbox loads it via the internal API rather than rendering it server-side
         msg2 = self.create_incoming_msg(contact, "ok")
 
         response = self.client.get(reverse("msgs.msg_inbox"))
 
         self.assertEqual(set(response.context["object_list"]), {msg2})
-        self.assertNotContains(response, "788 123 123")
-        self.assertContains(response, contact.ref)
 
         # create an incoming flow message, check number doesn't appear in inbox
         flow = self.create_flow("Test")
