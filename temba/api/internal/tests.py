@@ -147,9 +147,9 @@ class EndpointsTest(APITestMixin, TembaTest):
             ],
         )
 
-        # backdated past the channel-log retention window: logs_url is gated to None even for admin
-        old_msg = self.create_incoming_msg(contact1, "Older")
-        Msg.objects.filter(id=old_msg.id).update(created_on=timezone.now() - timedelta(days=30))
+        # backdated past the channel-log retention window: logs_url is gated to None even for admin.
+        # `created_on` is passed at insert time because a DB trigger forbids changing it after the fact.
+        old_msg = self.create_incoming_msg(contact1, "Older", created_on=timezone.now() - timedelta(days=30))
         response = self.assertGet(endpoint_url + f"?search={old_msg.text}", [self.admin], results=[old_msg])
         self.assertIsNone(response.json()["results"][0]["logs_url"])
 
