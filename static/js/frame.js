@@ -518,7 +518,9 @@ function loadFromState(state) {
     // guard so we don't .then on undefined.
     const pending = spaRequest(target, { ignoreEvents: false, ignoreHistory: true });
     if (pending) {
-      return pending.then(function () { currentSpaUrl = target; });
+      // swallow rejections so an unexpected throw downstream (e.g. inside
+      // hideLoading) doesn't surface as an unhandled-rejection warning
+      return pending.then(function () { currentSpaUrl = target; }).catch(function () {});
     }
   }
 }

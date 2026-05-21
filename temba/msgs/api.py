@@ -60,7 +60,7 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
             return (
                 Msg.objects.filter(org=self.request.org, labels=label, visibility=Msg.VISIBILITY_VISIBLE)
                 .select_related("contact", "channel", "flow", "org")
-                .prefetch_related("labels", "contact__urns")
+                .prefetch_related("labels")
             )
 
         folder = self.FOLDERS.get(self.request.query_params.get("folder", "inbox").lower())
@@ -70,7 +70,7 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
         return (
             folder.get_queryset(self.request.org)
             .select_related("contact", "channel", "flow", "org")
-            .prefetch_related("labels", "contact__urns")
+            .prefetch_related("labels")
         )
 
     def filter_queryset(self, queryset):

@@ -825,6 +825,10 @@ class MsgCRUDL(SmartCRUDL):
         def derive_url_pattern(cls, path, action):
             return r"^%s/$" % (path)
 
+        def get_queryset(self, **kwargs):
+            qs = super().get_queryset(**kwargs)
+            return qs.prefetch_related("labels").select_related("contact", "channel", "flow")
+
     class Flow(MsgListView):
         title = _("Handled")
         subtitle = _("Incoming messages that were handled by a flow.")
