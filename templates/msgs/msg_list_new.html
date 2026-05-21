@@ -36,13 +36,14 @@
                   content-menu-endpoint="{{ request.path }}?{{ request.GET.urlencode }}"
                   empty-message="{% trans "No messages" %}">
   </temba-msg-list>
+  {{ new_list_bulk_actions|json_script:"new-list-bulk-actions" }}
 {% endblock content %}
 {% block extra-script %}
   {{ block.super }}
   <script type="text/javascript">
     onSpload(function() {
       var list = document.querySelector("#msg-list");
-      list.bulkActions = {{ new_list_bulk_actions_json|safe }};
+      list.bulkActions = JSON.parse(document.getElementById("new-list-bulk-actions").textContent);
 
       // clicking a row opens the contact
       list.addEventListener("temba-row-click", function(event) {
@@ -119,11 +120,6 @@
           // in-list push didn't change the page.
           next.url = location.href;
         }
-        console.log("[msg-list] temba-history-change", {
-          detail: event.detail,
-          previousState: current,
-          nextState: next
-        });
         if (event.detail.replace) {
           history.replaceState(next, "");
         } else {

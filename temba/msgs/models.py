@@ -17,6 +17,7 @@ from django.core.files.storage import default_storage
 from django.db import models
 from django.db.models import Prefetch, Q, Sum
 from django.db.models.functions import Lower
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -581,8 +582,6 @@ class Msg(models.Model):
         the channel is still active, and the message is within the
         channel-log retention window.
         """
-        from django.urls import reverse
-
         user = context.get("user")
         org = context.get("org")
         if not (user and org):

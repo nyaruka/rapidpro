@@ -50,6 +50,8 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
     def derive_queryset(self):
         # `label` takes precedence — the filter view passes a label UUID rather than a folder name, and the visible
         # messages for that label aren't a MsgFolder slice.
+        # `org` and `channel` are select_related because Msg.as_json reads self.org (for contact display) and
+        # self.channel.is_active/uuid (for the channel-log link gated on the channels.channel_logs perm).
         label_uuid = self.request.query_params.get("label")
         if label_uuid:
             label = self.request.org.msgs_labels.filter(uuid=label_uuid).first()
@@ -57,15 +59,19 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
                 return Msg.objects.none()
             return (
                 Msg.objects.filter(org=self.request.org, labels=label, visibility=Msg.VISIBILITY_VISIBLE)
-                .select_related("contact", "flow")
-                .prefetch_related("labels")
+                .select_related("contact", "channel", "flow", "org")
+                .prefetch_related("labels", "contact__urns")
             )
 
         folder = self.FOLDERS.get(self.request.query_params.get("folder", "inbox").lower())
         if not folder:
             return Msg.objects.none()
 
-        return folder.get_queryset(self.request.org).select_related("contact", "flow").prefetch_related("labels")
+        return (
+            folder.get_queryset(self.request.org)
+            .select_related("contact", "channel", "flow", "org")
+            .prefetch_related("labels", "contact__urns")
+        )
 
     def filter_queryset(self, queryset):
         search = self.request.query_params.get("search")

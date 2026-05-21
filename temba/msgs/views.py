@@ -14,6 +14,7 @@ from django.db.models.functions.text import Lower
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import RedirectView
 
@@ -68,7 +69,7 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     #
     # The new temba-msg-list view is gated behind a cookie while we
     # migrate the rest of the lists. Visiting any folder with
-    # ?new-list=1 opts in (sets the cookie); ?old-list=1 opts out
+    # ?new-list=1 opts in (sets the cookie); ?new-list=0 opts out
     # (clears it). When opted in, every MsgListView subclass with a
     # folder renders msgs/msg_list_new.html instead of its legacy
     # template, sized + populated from this view's context.
@@ -101,12 +102,14 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
         # The folder for a message list is either one of the built-in
         # MsgFolder enum values (Inbox / Handled / …) or a user-defined
         # Label (the filter view binds it in derive_folder); both render
-        # through the same new-list template.
+        # through the same new-list template. `?new-list=1` opts in,
+        # `?new-list=0` opts out — anything else falls back to the cookie.
         if not isinstance(self.derive_folder(), (MsgFolder, Label)):
             return False
-        if "new-list" in self.request.GET:
+        new_list = self.request.GET.get("new-list")
+        if new_list == "1":
             return True
-        if "old-list" in self.request.GET:
+        if new_list == "0":
             return False
         return self.request.COOKIES.get(self.NEW_LIST_COOKIE) == "1"
 
@@ -123,9 +126,10 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
 
     def dispatch(self, request, *args, **kwargs):
         response = super().dispatch(request, *args, **kwargs)
-        if "new-list" in request.GET:
+        new_list = request.GET.get("new-list")
+        if new_list == "1":
             response.set_cookie(self.NEW_LIST_COOKIE, "1", max_age=365 * 24 * 60 * 60)
-        elif "old-list" in request.GET:
+        elif new_list == "0":
             response.delete_cookie(self.NEW_LIST_COOKIE)
         return response
 
@@ -133,17 +137,20 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
         # The temba-msg-list label dropdown posts the label by uuid, but
         # BulkActionMixin matches by id — translate the uuid here so both
         # the new component and the legacy form post are accepted. A non-
-        # uuid value (the legacy form's integer id) is left alone.
-        label = request.POST.get("label")
-        if label:
-            try:
-                UUID(label)
-            except ValueError:
-                pass
-            else:
-                obj = self.request.org.msgs_labels.filter(uuid=label).first()
-                request.POST = request.POST.copy()
-                request.POST["label"] = str(obj.id) if obj else ""
+        # uuid value (the legacy form's integer id) is left alone. Only
+        # touch the label field on label/unlabel actions so an unrelated
+        # POST that happens to carry a `label` key isn't rewritten.
+        if request.POST.get("action") in ("label", "unlabel"):
+            label = request.POST.get("label")
+            if label:
+                try:
+                    UUID(label)
+                except ValueError:
+                    pass
+                else:
+                    obj = self.request.org.msgs_labels.filter(uuid=label).first()
+                    request.POST = request.POST.copy()
+                    request.POST["label"] = str(obj.id) if obj else ""
 
         return super().post(request, *args, **kwargs)
 
@@ -213,12 +220,10 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
             for key in self.get_bulk_actions():
                 cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
                 cfg["key"] = key
-                # Resolve i18n proxies so json.dumps doesn't choke.
-                for k in ("label", "confirm"):
-                    if k in cfg:
-                        cfg[k] = str(cfg[k])
+                # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
+                cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
                 actions.append(cfg)
-            context["new_list_bulk_actions_json"] = json.dumps(actions)
+            context["new_list_bulk_actions"] = actions
 
         return context
 
@@ -811,6 +816,7 @@ class MsgCRUDL(SmartCRUDL):
         title = _("Inbox")
         subtitle = _("Incoming messages that weren't automatically handled by a flow.")
         folder = MsgFolder.INBOX
+        search_fields = ("text__icontains", "contact__name__icontains")
         bulk_actions = ("archive", "label")
         allow_export = True
         menu_path = "/msg/inbox"

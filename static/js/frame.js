@@ -511,8 +511,15 @@ function loadFromState(state) {
     // page/sort/search entry) — let the components on the page
     // respond to popstate themselves instead of re-fetching.
     if (state.url === currentSpaUrl) return;
-    currentSpaUrl = state.url;
-    spaRequest(state.url, { ignoreEvents: false, ignoreHistory: true });
+    const target = state.url;
+    // Update currentSpaUrl only after the request resolves so a failed
+    // fetch doesn't poison the cached URL with content we never rendered.
+    // spaRequest returns undefined when checkForUnsavedChanges aborts —
+    // guard so we don't .then on undefined.
+    const pending = spaRequest(target, { ignoreEvents: false, ignoreHistory: true });
+    if (pending) {
+      return pending.then(function () { currentSpaUrl = target; });
+    }
   }
 }
 

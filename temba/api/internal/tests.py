@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.urls import reverse
 from django.utils import timezone
 
@@ -82,9 +84,13 @@ class EndpointsTest(APITestMixin, TembaTest):
         # a message in another folder shouldn't appear in the inbox
         archived = self.create_incoming_msg(contact1, "Archived", visibility=Msg.VISIBILITY_ARCHIVED)
 
+        msg1_logs_url = reverse("channels.channel_logs_read", args=[self.channel.uuid, "msg", msg1.uuid])
+        msg2_logs_url = reverse("channels.channel_logs_read", args=[self.channel.uuid, "msg", msg2.uuid])
+
+        # admin has `channels.channel_logs` so as_json resolves logs_url to a real path
         self.assertGet(
             endpoint_url,
-            [self.editor, self.admin],
+            [self.admin],
             results=[
                 {
                     "id": msg2.id,
@@ -95,6 +101,7 @@ class EndpointsTest(APITestMixin, TembaTest):
                     "labels": [{"uuid": str(label.uuid), "name": "Spam"}],
                     "flow": None,
                     "created_on": matchers.ISODatetime(),
+                    "logs_url": msg2_logs_url,
                 },
                 {
                     "id": msg1.id,
@@ -105,15 +112,87 @@ class EndpointsTest(APITestMixin, TembaTest):
                     "labels": [],
                     "flow": None,
                     "created_on": matchers.ISODatetime(),
+                    "logs_url": msg1_logs_url,
                 },
             ],
         )
+
+        # editor lacks `channels.channel_logs` so logs_url is gated to None
+        self.assertGet(
+            endpoint_url,
+            [self.editor],
+            results=[
+                {
+                    "id": msg2.id,
+                    "type": "text",
+                    "contact": {"uuid": str(contact2.uuid), "name": "Bob"},
+                    "text": "Look at this",
+                    "attachments": ["image/jpeg:https://example.com/a.jpg"],
+                    "labels": [{"uuid": str(label.uuid), "name": "Spam"}],
+                    "flow": None,
+                    "created_on": matchers.ISODatetime(),
+                    "logs_url": None,
+                },
+                {
+                    "id": msg1.id,
+                    "type": "text",
+                    "contact": {"uuid": str(contact1.uuid), "name": "Ann"},
+                    "text": "Hello there",
+                    "attachments": [],
+                    "labels": [],
+                    "flow": None,
+                    "created_on": matchers.ISODatetime(),
+                    "logs_url": None,
+                },
+            ],
+        )
+
+        # backdated past the channel-log retention window: logs_url is gated to None even for admin
+        old_msg = self.create_incoming_msg(contact1, "Older")
+        Msg.objects.filter(id=old_msg.id).update(created_on=timezone.now() - timedelta(days=30))
+        response = self.assertGet(endpoint_url + f"?search={old_msg.text}", [self.admin], results=[old_msg])
+        self.assertIsNone(response.json()["results"][0]["logs_url"])
+
+        # inactive channel: logs_url is gated to None
+        live_msg = self.create_incoming_msg(contact1, "Liveone")
+        self.channel.is_active = False
+        self.channel.save(update_fields=("is_active",))
+        try:
+            response = self.assertGet(endpoint_url + f"?search={live_msg.text}", [self.admin], results=[live_msg])
+            self.assertIsNone(response.json()["results"][0]["logs_url"])
+        finally:
+            self.channel.is_active = True
+            self.channel.save(update_fields=("is_active",))
+
+        # anonymous org with an unnamed contact: as_json returns the masked ref (not the urn) for the contact name
+        anon_contact = self.create_contact("", phone="+1234567099")
+        anon_msg = self.create_incoming_msg(anon_contact, "Anonymous")
+        with self.anonymous(self.org):
+            response = self.assertGet(endpoint_url + f"?search={anon_msg.text}", [self.admin], results=[anon_msg])
+            masked_name = response.json()["results"][0]["contact"]["name"]
+            self.assertNotIn("1234567099", masked_name)
+            self.assertEqual(anon_contact.ref, masked_name)
 
         # can select a different folder
         self.assertGet(endpoint_url + "?folder=archived", [self.admin], results=[archived])
 
         # an unknown folder returns nothing
         self.assertGet(endpoint_url + "?folder=nope", [self.admin], results=[])
+
+        # ?folder=sent orders by sent_on rather than created_on
+        sent_old = self.create_outgoing_msg(contact1, "Old reply", sent_on=timezone.now() - timedelta(hours=2))
+        sent_new = self.create_outgoing_msg(contact1, "Newer reply", sent_on=timezone.now() - timedelta(minutes=5))
+        self.assertGet(endpoint_url + "?folder=sent", [self.admin], results=[sent_new, sent_old])
+
+        # ?label=<uuid> filters to that label's visible messages
+        self.assertGet(endpoint_url + f"?label={label.uuid}", [self.admin], results=[msg2])
+
+        # a label belonging to another org isn't visible
+        other_label = self.create_label("Other", org=self.org2)
+        self.assertGet(endpoint_url + f"?label={other_label.uuid}", [self.admin], results=[])
+
+        # an unknown label uuid returns nothing
+        self.assertGet(endpoint_url + f"?label={contact1.uuid}", [self.admin], results=[])
 
         # can search by message text or contact name
         response = self.assertGet(endpoint_url + "?search=hello", [self.admin], results=[msg1])
@@ -123,7 +202,8 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertEqual(1, response.json()["count"])
 
         # unfiltered listings still omit count — cursor pagination skips COUNT(*) when there is no search
-        response = self.assertGet(endpoint_url, [self.admin], results=[msg2, msg1])
+        # ordering is `-created_on, -id`: old_msg is backdated 30 days so it sorts last
+        response = self.assertGet(endpoint_url, [self.admin], results=[anon_msg, live_msg, msg2, msg1, old_msg])
         self.assertNotIn("count", response.json())
 
         # honor `?page_size=` so the list UI can request a page sized to its viewport
