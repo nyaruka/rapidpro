@@ -50,19 +50,19 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         inbox_url = reverse("msgs.msg_inbox")
 
-        # check query count on the legacy list (the default until the user opts into the new list cookie)
+        # check query count on the legacy list (the default until the viewer enters preview mode)
         self.login(self.admin)
         with self.assertNumQueries(11):
             self.client.get(inbox_url)
 
-        # the inbox page renders the temba-msg-list component when the new-list cookie is set; the
-        # default render is still the legacy list backed by this view's queryset
+        # the inbox renders the temba-msg-list component when the viewer is in preview mode; the default render is
+        # still the legacy list backed by this view's queryset
         self.assertRequestDisallowed(inbox_url, [None, self.agent])
         response = self.assertListFetch(inbox_url, [self.editor, self.admin], context_objects=[msg4, msg3, msg2, msg1])
-        self.client.cookies["temba-new-list"] = "1"
-        new_list_response = self.client.get(inbox_url)
-        self.assertContains(new_list_response, "temba-msg-list")
-        del self.client.cookies["temba-new-list"]
+        self.client.cookies["temba-preview"] = "1"
+        preview_response = self.client.get(inbox_url)
+        self.assertContains(preview_response, "temba-msg-list")
+        del self.client.cookies["temba-preview"]
 
         # check that we have the appropriate bulk actions
         self.assertEqual(("archive", "label"), response.context["actions"])

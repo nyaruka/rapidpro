@@ -131,6 +131,37 @@ class LanguageMiddleware:
         return response
 
 
+class PreviewMiddleware:
+    """
+    Exposes a global `preview` flag for opting into features that aren't fully rolled out yet. `?preview=1` opts in
+    (sets a year-long `temba-preview` cookie); `?preview=0` opts out (clears it); anything else falls back to the
+    cookie. The current state is set on `request.preview` so views and templates can gate features off `if
+    request.preview`.
+    """
+
+    COOKIE = "temba-preview"
+
+    def __init__(self, get_response=None):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        toggle = request.GET.get("preview")
+        if toggle == "1":
+            request.preview = True
+        elif toggle == "0":
+            request.preview = False
+        else:
+            request.preview = request.COOKIES.get(self.COOKIE) == "1"
+
+        response = self.get_response(request)
+
+        if toggle == "1":
+            response.set_cookie(self.COOKIE, "1", max_age=365 * 24 * 60 * 60)
+        elif toggle == "0":
+            response.delete_cookie(self.COOKIE)
+        return response
+
+
 class ToastMiddleware:
     """
     Converts django messages into a response header for toasts

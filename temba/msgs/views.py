@@ -65,16 +65,9 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     folder = None
     paginate_by = 100
 
-    # ----- temba-new-list cookie gating -----
-    #
-    # The new temba-msg-list view is gated behind a cookie while we
-    # migrate the rest of the lists. Visiting any folder with
-    # ?new-list=1 opts in (sets the cookie); ?new-list=0 opts out
-    # (clears it). When opted in, every MsgListView subclass with a
-    # folder renders msgs/msg_list_new.html instead of its legacy
-    # template, sized + populated from this view's context.
+    # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview, every
+    # MsgListView subclass with a folder/label renders msgs/msg_list_new.html instead of its legacy template.
     NEW_LIST_TEMPLATE = "msgs/msg_list_new.html"
-    NEW_LIST_COOKIE = "temba-new-list"
 
     # Optional subtitle rendered under the title on the new-list view;
     # subclasses may override to describe what the folder contains.
@@ -99,19 +92,10 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     }
 
     def _use_new_list(self) -> bool:
-        # The folder for a message list is either one of the built-in
-        # MsgFolder enum values (Inbox / Handled / …) or a user-defined
-        # Label (the filter view binds it in derive_folder); both render
-        # through the same new-list template. `?new-list=1` opts in,
-        # `?new-list=0` opts out — anything else falls back to the cookie.
-        if not isinstance(self.derive_folder(), (MsgFolder, Label)):
-            return False
-        new_list = self.request.GET.get("new-list")
-        if new_list == "1":
-            return True
-        if new_list == "0":
-            return False
-        return self.request.COOKIES.get(self.NEW_LIST_COOKIE) == "1"
+        # The folder for a message list is either one of the built-in MsgFolder enum values (Inbox / Handled / …) or
+        # a user-defined Label (the filter view binds it in derive_folder); both render through the same new-list
+        # template when the viewer is in preview mode.
+        return self.request.preview and isinstance(self.derive_folder(), (MsgFolder, Label))
 
     def get_template_names(self):
         if self._use_new_list():
@@ -123,15 +107,6 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
         if self._use_new_list():
             return None
         return super().get_paginate_by(queryset)
-
-    def dispatch(self, request, *args, **kwargs):
-        response = super().dispatch(request, *args, **kwargs)
-        new_list = request.GET.get("new-list")
-        if new_list == "1":
-            response.set_cookie(self.NEW_LIST_COOKIE, "1", max_age=365 * 24 * 60 * 60)
-        elif new_list == "0":
-            response.delete_cookie(self.NEW_LIST_COOKIE)
-        return response
 
     def post(self, request, *args, **kwargs):
         # The temba-msg-list label dropdown posts the label by uuid, but
