@@ -790,7 +790,6 @@ CHANNEL_TYPES = [
     "temba.channels.types.playmobile.PlayMobileType",
     "temba.channels.types.plivo.PlivoType",
     "temba.channels.types.rocketchat.RocketChatType",
-    "temba.channels.types.shaqodoon.ShaqodoonType",
     "temba.channels.types.signalwire.SignalWireType",
     "temba.channels.types.slack.SlackType",
     "temba.channels.types.smscentral.SMSCentralType",
