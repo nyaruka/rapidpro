@@ -80,8 +80,7 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual(response.context["channel_types"]["PHONE"][0].code, "AC")
         self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "BW")
-        self.assertEqual(response.context["channel_types"]["PHONE"][2].code, "BL")
-        self.assertEqual(response.context["channel_types"]["PHONE"][3].code, "BS")
+        self.assertEqual(response.context["channel_types"]["PHONE"][2].code, "BS")
         self.assertEqual(response.context["channel_types"]["PHONE"][-1].code, "A")
 
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][0].code, "D3C")
@@ -100,8 +99,7 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual(response.context["channel_types"]["PHONE"][0].code, "AC")
         self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "BW")
-        self.assertEqual(response.context["channel_types"]["PHONE"][2].code, "BL")
-        self.assertEqual(response.context["channel_types"]["PHONE"][3].code, "BS")
+        self.assertEqual(response.context["channel_types"]["PHONE"][2].code, "BS")
         self.assertEqual(response.context["channel_types"]["PHONE"][-1].code, "A")
 
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][0].code, "D3C")

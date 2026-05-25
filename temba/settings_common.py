@@ -752,7 +752,6 @@ CHANNEL_TYPES = [
     "temba.channels.types.africastalking.AfricasTalkingType",
     "temba.channels.types.arabiacell.ArabiaCellType",
     "temba.channels.types.bandwidth.BandwidthType",
-    "temba.channels.types.bongolive.BongoLiveType",
     "temba.channels.types.burstsms.BurstSMSType",
     "temba.channels.types.chip.ChipType",
     "temba.channels.types.clickatell.ClickatellType",
