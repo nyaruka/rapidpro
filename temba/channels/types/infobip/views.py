@@ -34,6 +34,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         )
         subdomain = forms.CharField(
             required=True,
+            max_length=63,
             label=_("Infobip API subdomain"),
             help_text=_(
                 "The subdomain of your Infobip API base URL. For example, if your base URL is "

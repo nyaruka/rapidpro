@@ -32,7 +32,7 @@ class SignalWireClaimView(ClaimViewMixin, SmartFormView):
             help_text=_("The phone number or short code you are connecting."),
         )
         space = forms.CharField(
-            max_length=64,
+            max_length=63,
             label=_("Space"),
             help_text=_("Your SignalWire Space name. For example, if your space is rapid.signalwire.com, enter rapid."),
         )
@@ -57,10 +57,10 @@ class SignalWireClaimView(ClaimViewMixin, SmartFormView):
             sid = self.cleaned_data.get("project_key")
             token = self.cleaned_data.get("api_token")
             space = self.cleaned_data.get("space")
-            number = self.cleaned_data["number"]
-            country = self.cleaned_data["country"]
+            number = self.cleaned_data.get("number")
+            country = self.cleaned_data.get("country")
 
-            if not space:
+            if not (space and number and country):
                 return self.cleaned_data
 
             domain = f"{space}.signalwire.com"
@@ -84,7 +84,7 @@ class SignalWireClaimView(ClaimViewMixin, SmartFormView):
                         phone_sid = phone.get("sid", "")
                         break
             except Exception:
-                raise ValidationError("Unable to connect to SignalWire, please check your domain, key and token")
+                raise ValidationError("Unable to connect to SignalWire, please check your space, key and token")
 
             if phone_sid == "":
                 raise ValidationError(f"Unable to find phone with number {number} on your account")
