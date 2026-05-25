@@ -253,7 +253,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
     CONFIG_KEY = "key"
     CONFIG_API_ID = "api_id"
     CONFIG_API_KEY = "api_key"
-    CONFIG_VERIFY_SSL = "verify_ssl"
     CONFIG_USE_NATIONAL = "use_national"
     CONFIG_ENCODING = "encoding"
     CONFIG_PAGE_NAME = "page_name"
