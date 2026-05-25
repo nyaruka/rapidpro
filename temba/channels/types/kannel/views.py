@@ -47,12 +47,6 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             label=_("Encoding"),
             help_text=_("What encoding to use for outgoing messages"),
         )
-        verify_ssl = forms.BooleanField(
-            initial=True,
-            required=False,
-            label=_("Verify SSL"),
-            help_text=_("Whether to verify the SSL connection (recommended)"),
-        )
         use_national = forms.BooleanField(
             initial=False,
             required=False,
@@ -73,7 +67,6 @@ class ClaimView(ClaimViewMixin, SmartFormView):
 
         config = {
             Channel.CONFIG_SEND_URL: url,
-            Channel.CONFIG_VERIFY_SSL: data.get("verify_ssl", False),
             Channel.CONFIG_USE_NATIONAL: data.get("use_national", False),
             Channel.CONFIG_USERNAME: data.get("username", None),
             Channel.CONFIG_PASSWORD: data.get("password", None),
