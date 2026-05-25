@@ -1,3 +1,10 @@
+v26.1.119 (2026-05-25)
+-------------------------
+ * Remove KN insecure HTTP requests config
+ * Simplify Infobip and SignalWire claim forms
+ * Bump idna from 3.13 to 3.15
+ * Drop unused channel types
+
 v26.1.118 (2026-05-18)
 -------------------------
  * Cleanup of types
