@@ -1,3 +1,4 @@
+import gc
 import itertools
 import logging
 import os
@@ -1512,6 +1513,8 @@ class Export(TembaUUIDMixin, models.Model):
             self.save(update_fields=("status", "num_records", "path", "modified_on"))
 
             ExportFinishedNotificationType.create(self)
+        finally:
+            gc.collect()
 
     @classmethod
     def get_unfinished(cls, org, export_type: str):
