@@ -5,7 +5,6 @@ from django.urls import reverse
 
 from temba.channels.models import Channel
 from temba.channels.types.plivo.type import PlivoType
-from temba.orgs.models import Org
 
 HTTP_TIMEOUT = 10
 
@@ -25,7 +24,6 @@ class Command(BaseCommand):
             default=",".join(DEFAULT_TYPES),
             help="Comma-separated channel type codes to check (default: PL,VP).",
         )
-        parser.add_argument("--org", type=int, help="Restrict to a single org id.")
         parser.add_argument("--channel", help="Restrict to a single channel uuid.")
         parser.add_argument("--fix", action="store_true", help="Update mismatched webhooks via the provider API.")
         parser.add_argument("--verbose", action="store_true", help="Also log channels that are already correct.")
@@ -42,11 +40,6 @@ class Command(BaseCommand):
             org__is_active=True,
             org__is_suspended=False,
         ).select_related("org")
-
-        if options["org"]:
-            if not Org.objects.filter(id=options["org"]).exists():
-                raise CommandError(f"No such org with id {options['org']}")
-            qs = qs.filter(org_id=options["org"])
 
         if options["channel"]:
             qs = qs.filter(uuid=options["channel"])

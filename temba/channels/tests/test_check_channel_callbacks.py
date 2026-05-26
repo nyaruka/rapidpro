@@ -201,19 +201,6 @@ class CheckChannelCallbacksTest(TembaTest):
         self.assertIn("Invalid auth token", out)
         self.assertIn("errors=1", out)
 
-    def test_filter_by_org(self):
-        # other org has a plivo channel that should be excluded
-        self.create_channel("PL", "Other", "+12025550111", org=self.org2, config=dict(PLIVO_CONFIG))
-
-        with patch("requests.get") as g:
-            g.return_value = _mock_response(200, {"message_url": self.plivo_expected})
-            with patch("requests.post") as p:
-                p.return_value = _mock_response(200, {"status": 0, "webhook": self.viber_expected})
-
-                out = run("--org", str(self.org.id))
-
-        self.assertIn("Checking 2 channel(s)", out)  # only this org's PL + VP, not org2's
-
     def test_filter_by_channel(self):
         with patch("requests.get") as g:
             g.return_value = _mock_response(200, {"message_url": self.plivo_expected})
@@ -244,10 +231,6 @@ class CheckChannelCallbacksTest(TembaTest):
     def test_unknown_channel_type_errors(self):
         with self.assertRaises(CommandError):
             run("--channel-type", "NONESUCH")
-
-    def test_unknown_org_errors(self):
-        with self.assertRaises(CommandError):
-            run("--org", "999999")
 
     def test_missing_plivo_config_reported_as_error(self):
         self.plivo.config = {}
