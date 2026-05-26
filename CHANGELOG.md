@@ -1,3 +1,7 @@
+v26.1.120 (2026-05-26)
+-------------------------
+ * Run gc.collect() after each export
+
 v26.1.119 (2026-05-25)
 -------------------------
  * Remove KN insecure HTTP requests config
