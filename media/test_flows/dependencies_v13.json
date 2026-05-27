@@ -168,6 +168,14 @@
             },
             "type": "split_by_groups"
           },
+          "25fc63ef-fadd-48f0-926d-44a0302110c3": {
+            "config": {},
+            "position": {
+              "left": 300,
+              "top": 920
+            },
+            "type": "split_by_intent"
+          },
           "26914a1f-3242-4f1d-95f0-c879f1a1f781": {
             "position": {
               "left": 51,
@@ -495,7 +503,7 @@
               "uuid": "627b3081-4dce-4867-aa64-43985bfce98e"
             },
             {
-              "destination_uuid": null,
+              "destination_uuid": "25fc63ef-fadd-48f0-926d-44a0302110c3",
               "uuid": "880080f2-0ec8-4c28-9505-c6f85fed72e4"
             },
             {
@@ -570,6 +578,75 @@
             "type": "switch"
           },
           "uuid": "bf69a5bf-7e2a-4a4a-965d-e67b8ee8086b"
+        },
+        {
+          "actions": [
+            {
+              "classifier": {
+                "name": "Feelings",
+                "uuid": "891a1c5d-1140-4fd0-bd0d-a919ea25abb6"
+              },
+              "input": "@input.text",
+              "result_name": "_Result Classification",
+              "type": "call_classifier",
+              "uuid": "7ebd7be9-18d4-4d06-b69e-63d11d7bb72e"
+            }
+          ],
+          "exits": [
+            {
+              "uuid": "89a4604e-d8bc-4836-8810-84ef86d7998c"
+            },
+            {
+              "uuid": "4936d570-f4b4-407c-842f-59cf0b7bd54b"
+            },
+            {
+              "uuid": "509b4d09-c262-4fcb-a20d-ad2d431d1229"
+            }
+          ],
+          "router": {
+            "cases": [
+              {
+                "arguments": [
+                  "None",
+                  ".9"
+                ],
+                "category_uuid": "0a1fb250-2a5f-4995-81eb-0be34ee76f6d",
+                "type": "has_top_intent",
+                "uuid": "f7889a15-9d27-47e4-8132-011fd3e56473"
+              },
+              {
+                "arguments": [
+                  "Success",
+                  "Skipped"
+                ],
+                "category_uuid": "d1c69a12-68d9-435a-80be-f1409b57c62f",
+                "type": "has_category",
+                "uuid": "08cb55c0-9a89-41fb-a1d7-52f1aa65f5b9"
+              }
+            ],
+            "categories": [
+              {
+                "exit_uuid": "89a4604e-d8bc-4836-8810-84ef86d7998c",
+                "name": "None",
+                "uuid": "0a1fb250-2a5f-4995-81eb-0be34ee76f6d"
+              },
+              {
+                "exit_uuid": "509b4d09-c262-4fcb-a20d-ad2d431d1229",
+                "name": "Failure",
+                "uuid": "f113da14-35e1-4cd4-a0dc-c259f5e6f2e5"
+              },
+              {
+                "exit_uuid": "4936d570-f4b4-407c-842f-59cf0b7bd54b",
+                "name": "Other",
+                "uuid": "d1c69a12-68d9-435a-80be-f1409b57c62f"
+              }
+            ],
+            "default_category_uuid": "f113da14-35e1-4cd4-a0dc-c259f5e6f2e5",
+            "operand": "@results._result_classification",
+            "result_name": "Result",
+            "type": "switch"
+          },
+          "uuid": "25fc63ef-fadd-48f0-926d-44a0302110c3"
         },
         {
           "actions": [
