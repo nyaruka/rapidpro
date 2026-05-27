@@ -1,3 +1,9 @@
+v26.1.124 (2026-05-27)
+-------------------------
+ * Update dev MAILROOM_URL default to use new internal listener port 8091
+ * Update mailroom version used in CI tests to 26.1.126
+ * Bump Flow.CURRENT_SPEC_VERSION to 14.4.1
+
 v26.1.123 (2026-05-27)
 -------------------------
  * Add Pending and Reversed statuses to AirtimeTransfer
