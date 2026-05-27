@@ -7,9 +7,16 @@ from temba.utils.models import TembaUUIDMixin
 
 
 class AirtimeTransfer(TembaUUIDMixin, models.Model):
+    STATUS_PENDING = "P"
     STATUS_SUCCESS = "S"
     STATUS_FAILED = "F"
-    STATUS_CHOICES = ((STATUS_SUCCESS, "Success"), (STATUS_FAILED, "Failed"))
+    STATUS_REVERSED = "R"
+    STATUS_CHOICES = (
+        (STATUS_PENDING, "Pending"),
+        (STATUS_SUCCESS, "Success"),
+        (STATUS_FAILED, "Failed"),
+        (STATUS_REVERSED, "Reversed"),
+    )
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="airtime_transfers")
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
