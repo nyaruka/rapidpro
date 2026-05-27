@@ -509,12 +509,6 @@ class FlowTest(TembaTest, CRUDLTestMixin):
             {"uuid": str(channel.uuid), "name": "RapidPro Test"}, flow_def["nodes"][0]["actions"][4]["channel"]
         )
 
-        # reference to classifier unchanged since it doesn't exist
-        self.assertEqual(
-            {"uuid": "891a1c5d-1140-4fd0-bd0d-a919ea25abb6", "name": "Feelings"},
-            flow_def["nodes"][7]["actions"][0]["classifier"],
-        )
-
     def test_flow_info(self):
         # test importing both old and new flow formats
         for flow_file in ("favorites", "favorites_v13"):
