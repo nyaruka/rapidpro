@@ -22,7 +22,7 @@ INTERNAL_IPS = ("127.0.0.1",)
 # -----------------------------------------------------------------------------------
 # Mailroom - localhost for dev, no auth token
 # -----------------------------------------------------------------------------------
-MAILROOM_URL = os.environ.get("MAILROOM_URL", "http://localhost:8090")
+MAILROOM_URL = os.environ.get("MAILROOM_URL", "http://localhost:8091")
 MAILROOM_AUTH_TOKEN = os.environ.get("MAILROOM_AUTH_TOKEN")
 
 # -----------------------------------------------------------------------------------
