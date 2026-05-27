@@ -1,3 +1,7 @@
+v26.1.123 (2026-05-27)
+-------------------------
+ * Add Pending and Reversed statuses to AirtimeTransfer
+
 v26.1.122 (2026-05-27)
 -------------------------
  * Update @nyaruka/temba-components to 0.158.3
