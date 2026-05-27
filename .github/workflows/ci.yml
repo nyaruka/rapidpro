@@ -9,7 +9,7 @@ jobs:
 
     env:
       node-version: '20'
-      mailroom-version: '26.1.109'
+      mailroom-version: '26.1.126'
 
     services:
       valkey:
