@@ -668,7 +668,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
             .filter(Q(contacts__in=[self]) | Q(groups__in=self.groups.all()))
             .exclude(exclude_groups__in=self.groups.all())
             .distinct()
-            .select_related("schedule")
+            .select_related("schedule", "flow")
         )
 
     def _get_campaigns(self):
@@ -817,6 +817,17 @@ class Contact(LegacyUUIDMixin, SmartModel):
         has_more_past = len(past_window) > past_limit
         past_page = past_window[:past_limit]
 
+        # the next-page cursor is a bare timestamp and the next page filters strictly before it, so
+        # if the page boundary splits a group of events sharing the same timestamp, the un-shown
+        # siblings would be dropped. campaign-event times derived from anchor + offset (and snapped
+        # to delivery_hour) can collide, so extend the page to cover the whole tied group at the
+        # boundary - then the strict `< cursor` next page can't skip anything
+        if has_more_past:
+            boundary = past_page[-1][0]
+            while len(past_page) < len(past_window) and past_window[len(past_page)][0] == boundary:
+                past_page.append(past_window[len(past_page)])
+            has_more_past = len(past_window) > len(past_page)
+
         # future page: events strictly after the future cursor (defaults to no cursor = from soonest)
         if after is not None:
             after_dt = iso8601.parse_date(after)
@@ -826,6 +837,14 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
         has_more_future = len(future_window) > future_limit
         future_page = future_window[:future_limit]
+
+        # same tie-break guard as the past page: the next-page cursor filters strictly after a bare
+        # timestamp, so extend the page to cover any tied group straddling the boundary
+        if has_more_future:
+            boundary = future_page[-1][0]
+            while len(future_page) < len(future_window) and future_window[len(future_page)][0] == boundary:
+                future_page.append(future_window[len(future_page)])
+            has_more_future = len(future_window) > len(future_page)
 
         return {
             "now": now.isoformat(),

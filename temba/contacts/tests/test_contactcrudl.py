@@ -1289,6 +1289,120 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(12, response.json()["future_count"])
         self.assertIsNone(response.json()["next_after"])
 
+    def test_events_pagination_mixed_past(self):
+        """The past-page cursor pages correctly through a mix of campaign events and sent broadcasts."""
+        contact = self.create_contact("Joe", phone="+1234567890")
+        group = self.create_group("Members", contacts=[contact])
+        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+
+        # contact joined 100 days ago - campaign offsets below all land in the past
+        joined = self.create_field("joined", "Joined On", value_type=ContactField.TYPE_DATETIME)
+        joined_at = timezone.now() - timedelta(days=100)
+        self.set_contact_field(contact, "joined", joined_at.isoformat())
+
+        # four past campaign message events at distinct offsets (-90, -80, -70, -60 days)
+        campaign = Campaign.create(self.org, self.admin, "Reminders", group)
+        for days in (10, 20, 30, 40):
+            CampaignEvent.create_message_event(
+                self.org,
+                self.admin,
+                campaign,
+                joined,
+                days,
+                unit="D",
+                translations={"eng": {"text": f"Campaign +{days}d"}},
+                base_language="eng",
+            )
+
+        # four sent broadcasts interleaved in time with the campaign events. created_on is
+        # immutable (DB trigger), so we set it at insert time on a fresh outgoing msg and then
+        # attach it to the broadcast (a non-created_on field update, which the trigger allows)
+        for i in range(4):
+            bcast = self.create_broadcast(self.admin, {"eng": {"text": f"Bcast {i}"}}, contacts=[contact])
+            bcast.msgs.all().delete()  # drop the auto-created now-dated msg
+            msg = self.create_outgoing_msg(
+                contact,
+                f"Bcast {i}",
+                created_on=joined_at + timedelta(days=15 + i * 10),  # -85, -75, -65, -55 days
+            )
+            msg.broadcast = bcast
+            msg.save(update_fields=("broadcast",))
+
+        # eight past events total, five per page -> first page has five, cursor set
+        response = self.requestView(events_url, self.admin)
+        first = response.json()["past"]
+        self.assertEqual(5, len(first))
+        next_before = response.json()["next_before"]
+        self.assertIsNotNone(next_before)
+
+        # second page returns the remaining three, no further cursor
+        response = self.requestView(events_url + f"?before={quote(next_before)}", self.admin)
+        second = response.json()["past"]
+        self.assertEqual(3, len(second))
+        self.assertIsNone(response.json()["next_before"])
+
+        # across both pages we see all eight events with no duplicates and no drops
+        scheduled = [e["scheduled"] for e in first] + [e["scheduled"] for e in second]
+        self.assertEqual(8, len(scheduled))
+        self.assertEqual(8, len(set(scheduled)))
+        # and they remain in strict newest-first order across the boundary
+        self.assertEqual(scheduled, sorted(scheduled, reverse=True))
+
+    def test_events_pagination_tied_timestamps(self):
+        """Past events sharing an exact timestamp are never split across a page boundary."""
+        contact = self.create_contact("Joe", phone="+1234567890")
+        group = self.create_group("Members", contacts=[contact])
+        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+
+        joined = self.create_field("joined", "Joined On", value_type=ContactField.TYPE_DATETIME)
+        joined_at = timezone.now() - timedelta(days=100)
+        self.set_contact_field(contact, "joined", joined_at.isoformat())
+
+        # campaign with three events at the SAME offset -> three events at one identical timestamp,
+        # plus four more at distinct earlier offsets. The three tied events straddle the past_limit=5
+        # boundary, which would drop un-shown siblings without the tie-break guard.
+        campaign = Campaign.create(self.org, self.admin, "Reminders", group)
+        for i in range(3):
+            CampaignEvent.create_message_event(
+                self.org,
+                self.admin,
+                campaign,
+                joined,
+                50,  # all +50 days -> identical time
+                unit="D",
+                translations={"eng": {"text": f"Tied {i}"}},
+                base_language="eng",
+            )
+        for days in (10, 20, 30, 40):
+            CampaignEvent.create_message_event(
+                self.org,
+                self.admin,
+                campaign,
+                joined,
+                days,
+                unit="D",
+                translations={"eng": {"text": f"Distinct +{days}d"}},
+                base_language="eng",
+            )
+
+        # walk every past page, collecting all events
+        seen = []
+        before = None
+        for _ in range(10):  # generous cap to avoid an infinite loop on regression
+            url = events_url + (f"?before={quote(before)}" if before else "")
+            data = self.requestView(url, self.admin).json()
+            seen.extend(data["past"])
+            before = data["next_before"]
+            if not before:
+                break
+
+        scheduled = [e["scheduled"] for e in seen]
+        # all seven events present, none dropped, none duplicated
+        self.assertEqual(7, len(scheduled))
+        self.assertEqual(7, len(set(scheduled)) + 2)  # 3 tied share one timestamp -> 5 distinct
+        # the three tied events all survive
+        self.assertEqual(3, sum(1 for e in seen if e["message"].startswith("Tied")))
+
     def test_events_repeating_projection(self):
         """A repeating scheduled broadcast expands into timeline entries within the one-year horizon."""
         contact = self.create_contact("Joe", phone="+1234567890")
@@ -1317,11 +1431,14 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             self.assertEqual("scheduled_broadcast", entry["type"])
             self.assertEqual("Weekly check-in", entry["message"])
 
-        # those occurrences are sorted oldest-first; the first matches the schedule's next_fire
-        # and successive entries are one week apart
+        # those occurrences are sorted oldest-first; the first matches the schedule's next_fire.
+        # because the schedule starts in the future, update_schedule sets next_fire to the raw
+        # start_time (not snapped to a Monday) and calculate_next_fire only snaps subsequent fires
+        # onto Mondays - so the first interval isn't necessarily 7 days, but every interval after
+        # the second occurrence is
         fires = [iso8601.parse_date(e["scheduled"]) for e in response.json()["future"]]
         self.assertEqual(bcast.schedule.next_fire.astimezone(tzone.utc), fires[0])
-        for earlier, later in zip(fires, fires[1:]):
+        for earlier, later in zip(fires[1:], fires[2:]):
             self.assertEqual(timedelta(days=7), later - earlier)
 
     def test_events_horizon_drops_distant_future(self):
