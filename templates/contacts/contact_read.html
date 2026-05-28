@@ -99,8 +99,11 @@
 
     function handleTabChanged() {
       var tab = document.querySelector("temba-tabs").index;
+      // keep the tab in the fetched url (not just the displayed one) so that navigating
+      // away and back re-fetches this page with ?tab= set and restores the active tab
+      // rather than defaulting to the first (Chat) tab
       window.history.replaceState({
-        url: "{% url 'contacts.contact_read' object.uuid %}",
+        url: "{% url 'contacts.contact_read' object.uuid %}?tab=" + tab,
         show: window.location.pathname + "?tab=" + tab
       }, "", "?tab=" + tab);
     }
