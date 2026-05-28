@@ -1288,6 +1288,66 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(9, scheduled.hour)
         self.assertEqual(0, scheduled.minute)
 
+    def test_events_inactive_and_missing_anchor(self):
+        """Inactive campaign events and events whose anchor field the contact lacks are omitted."""
+        contact = self.create_contact("Joe", phone="+1234567890")
+        group = self.create_group("Members", contacts=[contact])
+        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+
+        joined = self.create_field("joined", "Joined On", value_type=ContactField.TYPE_DATETIME)
+        # a second datetime field that the contact has NO value for
+        renewed = self.create_field("renewed", "Renewed On", value_type=ContactField.TYPE_DATETIME)
+        self.set_contact_field(contact, "joined", (timezone.now() - timedelta(days=5)).isoformat())
+
+        campaign = Campaign.create(self.org, self.admin, "Reminders", group)
+
+        # an active event anchored on a field the contact HAS -> appears
+        visible = CampaignEvent.create_message_event(
+            self.org,
+            self.admin,
+            campaign,
+            joined,
+            20,
+            unit="D",
+            translations={"eng": {"text": "Visible"}},
+            base_language="eng",
+        )
+
+        # an active event anchored on a field the contact does NOT have -> omitted (line 710)
+        CampaignEvent.create_message_event(
+            self.org,
+            self.admin,
+            campaign,
+            renewed,
+            20,
+            unit="D",
+            translations={"eng": {"text": "No anchor"}},
+            base_language="eng",
+        )
+
+        # an inactive event on a field the contact has -> omitted (line 703)
+        inactive = CampaignEvent.create_message_event(
+            self.org,
+            self.admin,
+            campaign,
+            joined,
+            25,
+            unit="D",
+            translations={"eng": {"text": "Inactive"}},
+            base_language="eng",
+        )
+        inactive.is_active = False
+        inactive.save(update_fields=("is_active",))
+
+        response = self.requestView(events_url, self.admin)
+        future = response.json()["future"]
+
+        # only the single visible event survives
+        self.assertEqual(1, len(future))
+        self.assertEqual(1, response.json()["future_count"])
+        self.assertEqual(reverse("campaigns.campaignevent_read", args=[campaign.uuid, visible.uuid]), future[0]["url"])
+        self.assertEqual("Visible", future[0]["message"])
+
     def test_events_pagination(self):
         contact = self.create_contact("Joe", phone="+1234567890")
         events_url = reverse("contacts.contact_events", args=[contact.uuid])
@@ -1398,22 +1458,12 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         joined_at = timezone.now() - timedelta(days=100)
         self.set_contact_field(contact, "joined", joined_at.isoformat())
 
-        # campaign with three events at the SAME offset -> three events at one identical timestamp,
-        # plus four more at distinct earlier offsets. The three tied events straddle the past_limit=5
-        # boundary, which would drop un-shown siblings without the tie-break guard.
+        # campaign with four newer events at distinct offsets, plus three events at one identical
+        # (older) offset. Newest-first, the page boundary (past_limit=5) falls inside the tied group:
+        # positions 5/6/7 are the three tied siblings, so without the tie-break guard the next-page
+        # `< cursor` filter would drop the un-shown siblings. This exercises the tie-break while loop.
         campaign = Campaign.create(self.org, self.admin, "Reminders", group)
-        for i in range(3):
-            CampaignEvent.create_message_event(
-                self.org,
-                self.admin,
-                campaign,
-                joined,
-                50,  # all +50 days -> identical time
-                unit="D",
-                translations={"eng": {"text": f"Tied {i}"}},
-                base_language="eng",
-            )
-        for days in (10, 20, 30, 40):
+        for days in (40, 50, 60, 70):  # distinct, all NEWER than the +30d tied group
             CampaignEvent.create_message_event(
                 self.org,
                 self.admin,
@@ -1422,6 +1472,17 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                 days,
                 unit="D",
                 translations={"eng": {"text": f"Distinct +{days}d"}},
+                base_language="eng",
+            )
+        for i in range(3):
+            CampaignEvent.create_message_event(
+                self.org,
+                self.admin,
+                campaign,
+                joined,
+                30,  # all +30 days -> identical time, older than the distinct ones above
+                unit="D",
+                translations={"eng": {"text": f"Tied {i}"}},
                 base_language="eng",
             )
 
@@ -1443,6 +1504,82 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(5, len(set(scheduled)))
         # the three tied events all survive
         self.assertEqual(3, sum(1 for e in seen if e["message"].startswith("Tied")))
+
+    def test_events_pagination_tied_sent_broadcasts(self):
+        """Sent broadcasts tied at the page boundary beyond the capped load are recovered via the supplemental query."""
+        contact = self.create_contact("Joe", phone="+1234567890")
+        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+
+        base = timezone.now() - timedelta(days=30)
+
+        # eight sent broadcasts ALL sharing the exact same created_on. the past page loads only
+        # past_limit + 1 (=6) of them, so two tied siblings are left unloaded. the page boundary lands
+        # on this shared timestamp, and the supplemental tied-broadcast query must recover the two that
+        # the capped load missed - otherwise the strict `< cursor` next page would silently drop them.
+        for i in range(8):
+            bcast = self.create_broadcast(self.admin, {"eng": {"text": f"Tied {i}"}}, contacts=[contact])
+            bcast.msgs.all().delete()  # drop the auto-created now-dated msg
+            msg = self.create_outgoing_msg(contact, f"Tied {i}", created_on=base)
+            msg.broadcast = bcast
+            msg.save(update_fields=("broadcast",))
+
+        # walk every past page, collecting all events
+        seen = []
+        before = None
+        for _ in range(20):  # generous cap to avoid an infinite loop on regression
+            url = events_url + (f"?before={quote(before)}" if before else "")
+            data = self.requestView(url, self.admin).json()
+            seen.extend(data["past"])
+            before = data["next_before"]
+            if not before:
+                break
+
+        # all eight tied broadcasts survive paging, none dropped, none duplicated
+        messages = [e["message"] for e in seen]
+        self.assertEqual(8, len(messages))
+        self.assertEqual(set(f"Tied {i}" for i in range(8)), set(messages))
+
+    def test_events_pagination_tied_future(self):
+        """Upcoming events tied at the future page boundary are never split across the page boundary."""
+        contact = self.create_contact("Joe", phone="+1234567890")
+        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+
+        # nine distinct upcoming scheduled broadcasts (days 1..9) plus a tied group of three sharing
+        # one later start_time. soonest-first, the future_limit=10 boundary falls inside the tied group
+        # (positions 10/11/12), so the tie-break while loop must extend the page to cover the whole group.
+        for i in range(9):
+            self.create_broadcast(
+                self.admin,
+                {"eng": {"text": f"Distinct {i}"}},
+                contacts=[contact],
+                schedule=Schedule.create(self.org, timezone.now() + timedelta(days=i + 1), Schedule.REPEAT_NEVER),
+            )
+        tied_start = timezone.now() + timedelta(days=20)
+        for i in range(3):
+            self.create_broadcast(
+                self.admin,
+                {"eng": {"text": f"Tied {i}"}},
+                contacts=[contact],
+                schedule=Schedule.create(self.org, tied_start, Schedule.REPEAT_NEVER),
+            )
+
+        # walk every future page, collecting all events
+        seen = []
+        after = None
+        for _ in range(20):  # generous cap to avoid an infinite loop on regression
+            url = events_url + (f"?after={quote(after)}" if after else "")
+            data = self.requestView(url, self.admin).json()
+            seen.extend(data["future"])
+            after = data["next_after"]
+            if not after:
+                break
+
+        messages = [e["message"] for e in seen]
+        # all twelve upcoming events present, none dropped, none duplicated
+        self.assertEqual(12, len(messages))
+        self.assertEqual(12, len(set(messages)))
+        # the three tied events all survive
+        self.assertEqual(3, sum(1 for m in messages if m.startswith("Tied")))
 
     def test_events_malformed_cursor(self):
         """A garbage before/after cursor is treated as absent and returns a normal 200, not a 500."""
