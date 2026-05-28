@@ -1248,6 +1248,46 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(3, response.json()["future_count"])
         self.assertEqual(1, len(response.json()["past"]))  # campaign event dropped, sent broadcast remains
 
+    def test_events_delivery_hour_snapping(self):
+        """A campaign event with a delivery_hour snaps its projected time to that hour in the org timezone."""
+        contact = self.create_contact("Joe", phone="+1234567890")
+        group = self.create_group("Members", contacts=[contact])
+        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+
+        joined = self.create_field("joined", "Joined On", value_type=ContactField.TYPE_DATETIME)
+        # joined a few days ago at an arbitrary time-of-day so we can confirm the projected time isn't
+        # just anchor + offset; the +20 day offset below still lands comfortably in the future
+        joined_at = timezone.now().replace(hour=3, minute=37, second=12, microsecond=0) - timedelta(days=5)
+        self.set_contact_field(contact, "joined", joined_at.isoformat())
+
+        # +20 day event with delivery_hour=9 (UNIT_DAYS) -> projected time snaps to 09:00 org-local
+        campaign = Campaign.create(self.org, self.admin, "Reminders", group)
+        CampaignEvent.create_message_event(
+            self.org,
+            self.admin,
+            campaign,
+            joined,
+            20,
+            unit="D",
+            delivery_hour=9,
+            translations={"eng": {"text": "Morning reminder"}},
+            base_language="eng",
+        )
+
+        response = self.requestView(events_url, self.admin)
+        future = response.json()["future"]
+        self.assertEqual(1, len(future))
+
+        scheduled = iso8601.parse_date(future[0]["scheduled"]).astimezone(self.org.timezone)
+        expected = (
+            (joined_at + timedelta(days=20))
+            .astimezone(self.org.timezone)
+            .replace(hour=9, minute=0, second=0, microsecond=0)
+        )
+        self.assertEqual(expected, scheduled)
+        self.assertEqual(9, scheduled.hour)
+        self.assertEqual(0, scheduled.minute)
+
     def test_events_pagination(self):
         contact = self.create_contact("Joe", phone="+1234567890")
         events_url = reverse("contacts.contact_events", args=[contact.uuid])
@@ -1399,9 +1439,27 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         scheduled = [e["scheduled"] for e in seen]
         # all seven events present, none dropped, none duplicated
         self.assertEqual(7, len(scheduled))
-        self.assertEqual(7, len(set(scheduled)) + 2)  # 3 tied share one timestamp -> 5 distinct
+        # the 3 tied events share one timestamp, the other 4 are distinct -> 5 distinct timestamps
+        self.assertEqual(5, len(set(scheduled)))
         # the three tied events all survive
         self.assertEqual(3, sum(1 for e in seen if e["message"].startswith("Tied")))
+
+    def test_events_malformed_cursor(self):
+        """A garbage before/after cursor is treated as absent and returns a normal 200, not a 500."""
+        contact = self.create_contact("Joe", phone="+1234567890")
+        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+
+        # baseline response with no cursor (drop `now`, which is recomputed fresh per request)
+        expected = self.requestView(events_url, self.admin).json()
+        del expected["now"]
+
+        for param in ("before", "after"):
+            response = self.requestView(events_url + f"?{param}=garbage", self.admin)
+            self.assertEqual(200, response.status_code)
+            # an unparseable cursor falls back to the default (no cursor), matching the baseline
+            actual = response.json()
+            del actual["now"]
+            self.assertEqual(expected, actual)
 
     def test_events_repeating_projection(self):
         """A repeating scheduled broadcast expands into timeline entries within the one-year horizon."""

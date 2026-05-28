@@ -800,12 +800,22 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
         future_full.sort(key=lambda e: e[0])
 
-        # past page: events strictly before the past cursor (defaults to now)
-        past_cutoff = iso8601.parse_date(before) if before else now
+        # past page: events strictly before the past cursor (defaults to now). a malformed cursor
+        # (e.g. a hand-crafted query param) is treated as absent rather than raising
+        past_cutoff = now
+        if before:
+            try:
+                past_cutoff = iso8601.parse_date(before)
+            except iso8601.ParseError:
+                pass
         past_window = [(w, e) for (w, e) in past_full if w < past_cutoff]
 
+        # sent broadcasts are loaded capped (past_limit + 1) so we can tell if there are more; the
+        # tie-break below tops this up if a tied group lands on the page boundary
+        sent_msg_ids = set()
         sent = self.msgs.filter(broadcast__isnull=False, created_on__lt=past_cutoff).order_by("-created_on")
         for msg in sent[: past_limit + 1]:
+            sent_msg_ids.add(msg.id)
             past_window.append(
                 (
                     msg.created_on,
@@ -826,11 +836,29 @@ class Contact(LegacyUUIDMixin, SmartModel):
             boundary = past_page[-1][0]
             while len(past_page) < len(past_window) and past_window[len(past_page)][0] == boundary:
                 past_page.append(past_window[len(past_page)])
-            has_more_past = len(past_window) > len(past_page)
 
-        # future page: events strictly after the future cursor (defaults to no cursor = from soonest)
+            # sent broadcasts were only loaded capped, so the in-memory window may not hold every
+            # broadcast tied at the boundary timestamp - fetch any not already included and append
+            # them so the strict `< boundary` next-page cursor can't skip a tied sibling
+            for msg in self.msgs.filter(broadcast__isnull=False, created_on=boundary).exclude(id__in=sent_msg_ids):
+                past_page.append(
+                    (
+                        msg.created_on,
+                        {"type": "sent_broadcast", "scheduled": msg.created_on.isoformat(), "message": msg.text},
+                    )
+                )
+
+            has_more_past = len(past_window) > len(past_page) or sent.filter(created_on__lt=boundary).exists()
+
+        # future page: events strictly after the future cursor (defaults to no cursor = from soonest).
+        # a malformed cursor is treated as absent rather than raising
+        after_dt = None
         if after is not None:
-            after_dt = iso8601.parse_date(after)
+            try:
+                after_dt = iso8601.parse_date(after)
+            except iso8601.ParseError:
+                pass
+        if after_dt is not None:
             future_window = [(w, e) for (w, e) in future_full if w > after_dt]
         else:
             future_window = future_full
