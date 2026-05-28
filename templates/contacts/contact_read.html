@@ -40,11 +40,11 @@
         </temba-contact-fields>
       </div>
     </temba-tab>
-    <temba-tab icon="campaign" name="{{ _("Next Up") |escapejs }}" hideEmpty hidden>
+    <temba-tab icon="campaign" name="{{ _("Up Next") |escapejs }}">
       <div style="border-top-right-radius: var(--curvature)"
            class="flex flex-grow flex-col py-4 px-1 overflow-y-auto">
-        <temba-contact-pending contact="{{ object.uuid }}" -temba-selection="handlePendingClicked">
-        </temba-contact-pending>
+        <temba-contact-events contact="{{ object.uuid }}" -temba-selection="handleEventClicked">
+        </temba-contact-events>
       </div>
     </temba-tab>
     <temba-tab icon="notes" name="{{ _("Notepad") }}" activity>
@@ -85,10 +85,10 @@
     function handleContactRefreshed(evt) {
       var contact = evt.detail.data;
 
-      // if our contact refreshes, refresh our pendingEvents
-      var pending = document.querySelector("temba-contact-pending");
-      if (pending) {
-        pending.refresh();
+      // if our contact refreshes, refresh the events timeline
+      var events = document.querySelector("temba-contact-events");
+      if (events) {
+        events.refresh();
       }
 
       var menu = document.querySelector("temba-menu");
@@ -109,14 +109,14 @@
       spaGet("/contact/?search=" + encodeURIComponent(evt.detail.key) + "+%3D+" + encodeURIComponent("\"" + evt.detail.value + "\""))
     }
 
-    function handlePendingClicked(evt) {
-      var pending = evt.detail;
+    function handleEventClicked(evt) {
+      var event = evt.detail;
 
-      if (pending.type == "campaign_event") {
-        spaGet("/campaign/read/" + pending.campaign.uuid + "/");
-      } else if (pending.type == "scheduled_broadcast") {
+      if (event.url) {
+        spaGet(event.url);
+      } else if (event.type == "scheduled_broadcast" || event.type == "sent_broadcast") {
         spaGet("{% url 'msgs.broadcast_scheduled' %}");
-      } else {
+      } else if (event.type == "scheduled_trigger") {
         spaGet("{% url 'triggers.trigger_folder' 'schedule' %}");
       }
     }

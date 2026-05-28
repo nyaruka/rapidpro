@@ -19,6 +19,7 @@ from django.core.validators import validate_email
 from django.db import models, transaction
 from django.db.models import Count, F, Max, Q, Sum, Value
 from django.db.models.functions import Concat, Lower
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -670,61 +671,178 @@ class Contact(LegacyUUIDMixin, SmartModel):
             .select_related("schedule")
         )
 
-    def get_scheduled(self) -> list:
+    def _get_campaigns(self):
         """
-        Gets this contact's upcoming activity
+        Returns the active campaigns this contact is a member of (via group membership).
+        """
+        from temba.campaigns.models import Campaign
+
+        return list(
+            Campaign.objects.filter(org=self.org, is_archived=False, group__in=self.groups.all())
+            .prefetch_related("events", "events__flow", "events__relative_to")
+            .distinct()
+        )
+
+    def _get_campaign_events(self, campaigns) -> list:
+        """
+        Computes the times of all campaign events for the given campaigns (which should be the ones
+        this contact is currently a member of).
+
+        Each event's time is derived from the contact's anchor date field plus the event offset, so the
+        result is the campaign's prospective timeline relative to this contact - not a record of what
+        actually fired (a contact may have joined a campaign mid-way through). Returns a list of
+        (datetime, event-dict) tuples.
         """
         from temba.campaigns.models import CampaignEvent
 
-        def scope_to_event_id(scope: str) -> int:
-            # scope is "<eventid>:<fire_version>"
-            return int(scope.split(":")[0])
+        field_values = {}  # cache anchor field values by field id
+        results = []
+        for campaign in campaigns:
+            for event in campaign.events.all():
+                if not event.is_active:
+                    continue
 
-        fires = self.fires.filter(fire_type=ContactFire.TYPE_CAMPAIGN_EVENT)
-        event_ids = {scope_to_event_id(f.scope) for f in fires}
-        events = CampaignEvent.objects.filter(
-            campaign__org=self.org, campaign__is_archived=False, id__in=event_ids, is_active=True
-        )
-        events_by_id = {e.id: e for e in events}
+                field = event.relative_to
+                if field.id not in field_values:
+                    field_values[field.id] = self.get_field_value(field)
+                anchor = field_values[field.id]
+                if anchor is None:  # contact has no value for this event's anchor field
+                    continue
 
-        merged = []
-        for fire in fires:
-            event = events_by_id.get(scope_to_event_id(fire.scope))
-            if event and fire.scope == f"{event.id}:{event.fire_version}":
+                when = anchor + event.get_offset()
+                if event.delivery_hour >= 0 and event.unit in (CampaignEvent.UNIT_DAYS, CampaignEvent.UNIT_WEEKS):
+                    when = when.astimezone(self.org.timezone).replace(
+                        hour=event.delivery_hour, minute=0, second=0, microsecond=0
+                    )
+
                 obj = {
                     "type": "campaign_event",
-                    "scheduled": fire.fire_on.isoformat(),
-                    "repeat_period": None,
-                    "campaign": event.campaign.as_export_ref(),
+                    "scheduled": when.isoformat(),
+                    "campaign": {
+                        **campaign.as_export_ref(),
+                        "url": reverse("campaigns.campaign_read", args=[campaign.uuid]),
+                    },
+                    "url": reverse("campaigns.campaignevent_read", args=[campaign.uuid, event.uuid]),
                 }
                 if event.event_type == CampaignEvent.TYPE_FLOW:
-                    obj["flow"] = event.flow.as_export_ref()
+                    obj["flow"] = {
+                        **event.flow.as_export_ref(),
+                        "url": reverse("flows.flow_editor", args=[event.flow.uuid]),
+                    }
                 else:
                     obj["message"] = event.get_message(contact=self)["text"]
 
-                merged.append(obj)
+                results.append((when, obj))
 
+        return results
+
+    def get_events(self, *, before: str = None, after: str = None, past_limit: int = 5, future_limit: int = 10) -> dict:
+        """
+        Gets this contact's event timeline - a merged, time-ordered view of campaign events and
+        broadcasts, both upcoming and past.
+
+        By default we return up to `future_limit` upcoming events plus the most recent `past_limit`
+        past events. Passing the returned `next_before` cursor pages further back through past events
+        with no limit; passing `next_after` pages further forward through upcoming events. The
+        returned `future_count` is the total number of upcoming events (uncapped) so callers can
+        display an accurate badge.
+        """
+        now = timezone.now()
+        # upcoming events are capped at a year out across the board - projected
+        # repeating schedules stop at the horizon, and one-off events beyond
+        # the horizon are simply dropped
+        horizon = now + timedelta(days=365)
+        campaigns = self._get_campaigns()
+
+        # build the canonical future and past pools - we always compute both so that
+        # future_count is accurate regardless of which page is being requested
+        future_full = []
+        past_full = []
+
+        for when, event in self._get_campaign_events(campaigns):
+            if when < now:
+                past_full.append((when, event))
+            elif when <= horizon:
+                future_full.append((when, event))
+
+        # repeating schedules expand into multiple timeline entries within the
+        # one-year horizon so the user sees the cadence directly rather than a
+        # "Weekly" caption on a single dot
         for broadcast in self.get_scheduled_broadcasts():
-            merged.append(
-                {
-                    "type": "scheduled_broadcast",
-                    "scheduled": broadcast.schedule.next_fire.isoformat(),
-                    "repeat_period": broadcast.schedule.repeat_period,
-                    "message": broadcast.get_translation()["text"],
-                }
-            )
-
+            text = broadcast.get_translation()["text"]
+            for fire_time in broadcast.schedule.project_fires(horizon):
+                future_full.append(
+                    (
+                        fire_time,
+                        {
+                            "type": "scheduled_broadcast",
+                            "scheduled": fire_time.isoformat(),
+                            "message": text,
+                        },
+                    )
+                )
         for trigger in self.get_scheduled_triggers():
-            merged.append(
-                {
-                    "type": "scheduled_trigger",
-                    "scheduled": trigger.schedule.next_fire.isoformat(),
-                    "repeat_period": trigger.schedule.repeat_period,
-                    "flow": trigger.flow.as_export_ref(),
-                }
+            flow_ref = {
+                **trigger.flow.as_export_ref(),
+                "url": reverse("flows.flow_editor", args=[trigger.flow.uuid]),
+            }
+            for fire_time in trigger.schedule.project_fires(horizon):
+                future_full.append(
+                    (
+                        fire_time,
+                        {
+                            "type": "scheduled_trigger",
+                            "scheduled": fire_time.isoformat(),
+                            "flow": flow_ref,
+                        },
+                    )
+                )
+
+        future_full.sort(key=lambda e: e[0])
+
+        # past page: events strictly before the past cursor (defaults to now)
+        past_cutoff = iso8601.parse_date(before) if before else now
+        past_window = [(w, e) for (w, e) in past_full if w < past_cutoff]
+
+        sent = self.msgs.filter(broadcast__isnull=False, created_on__lt=past_cutoff).order_by("-created_on")
+        for msg in sent[: past_limit + 1]:
+            past_window.append(
+                (
+                    msg.created_on,
+                    {"type": "sent_broadcast", "scheduled": msg.created_on.isoformat(), "message": msg.text},
+                )
             )
 
-        return sorted(merged, key=lambda k: k["scheduled"])
+        past_window.sort(key=lambda e: e[0], reverse=True)
+        has_more_past = len(past_window) > past_limit
+        past_page = past_window[:past_limit]
+
+        # future page: events strictly after the future cursor (defaults to no cursor = from soonest)
+        if after is not None:
+            after_dt = iso8601.parse_date(after)
+            future_window = [(w, e) for (w, e) in future_full if w > after_dt]
+        else:
+            future_window = future_full
+
+        has_more_future = len(future_window) > future_limit
+        future_page = future_window[:future_limit]
+
+        return {
+            "now": now.isoformat(),
+            "campaigns": [
+                {
+                    "uuid": str(c.uuid),
+                    "name": c.name,
+                    "url": reverse("campaigns.campaign_read", args=[c.uuid]),
+                }
+                for c in campaigns
+            ],
+            "future_count": len(future_full),
+            "future": [event for _, event in future_page],
+            "past": [event for _, event in past_page],
+            "next_before": past_page[-1][0].isoformat() if has_more_past and past_page else None,
+            "next_after": future_page[-1][0].isoformat() if has_more_future and future_page else None,
+        }
 
     def get_field_serialized(self, field) -> str:
         """

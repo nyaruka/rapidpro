@@ -1,5 +1,8 @@
 from datetime import datetime, timedelta, timezone as tzone
 from unittest.mock import call, patch
+from urllib.parse import quote
+
+import iso8601
 
 from django.conf import settings
 from django.urls import reverse
@@ -7,7 +10,7 @@ from django.utils import timezone
 
 from temba import mailroom
 from temba.campaigns.models import Campaign, CampaignEvent
-from temba.contacts.models import Contact, ContactExport, ContactField, ContactFire
+from temba.contacts.models import Contact, ContactExport, ContactField
 from temba.locations.models import AdminBoundary
 from temba.mailroom.client.types import Exclusions
 from temba.msgs.models import Media
@@ -1083,66 +1086,51 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             export.config,
         )
 
-    def test_scheduled(self):
+    def test_events(self):
         contact1 = self.create_contact("Joe", phone="+1234567890")
         contact2 = self.create_contact("Frank", phone="+1204567802")
         farmers = self.create_group("Farmers", contacts=[contact1, contact2])
 
-        schedule_url = reverse("contacts.contact_scheduled", args=[contact1.uuid])
+        events_url = reverse("contacts.contact_events", args=[contact1.uuid])
 
-        self.assertRequestDisallowed(schedule_url, [None, self.agent, self.admin2])
-        response = self.assertReadFetch(schedule_url, [self.editor, self.admin])
-        self.assertEqual({"results": []}, response.json())
+        self.assertRequestDisallowed(events_url, [None, self.agent, self.admin2])
+        response = self.assertReadFetch(events_url, [self.editor, self.admin])
+        self.assertEqual([], response.json()["campaigns"])
+        self.assertEqual([], response.json()["future"])
+        self.assertEqual([], response.json()["past"])
+        self.assertEqual(0, response.json()["future_count"])
+        self.assertIsNone(response.json()["next_before"])
+        self.assertIsNone(response.json()["next_after"])
 
-        # create a campaign and event fires for this contact
+        # create a campaign with a past and a future event, computed from the contact's join date
         campaign = Campaign.create(self.org, self.admin, "Reminders", farmers)
         joined = self.create_field("joined", "Joined On", value_type=ContactField.TYPE_DATETIME)
-        event2_flow = self.create_flow("Reminder Flow")
-        event1 = CampaignEvent.create_message_event(
+        flow = self.create_flow("Reminder Flow")
+        msg_event = CampaignEvent.create_message_event(
             self.org,
             self.admin,
             campaign,
             joined,
-            2,
+            3,
             unit="D",
             translations={"eng": {"text": "Hi"}},
             base_language="eng",
         )
-        event2 = CampaignEvent.create_flow_event(self.org, self.admin, campaign, joined, 2, unit="D", flow=event2_flow)
-        # old fire version should not be displayed
-        ContactFire.objects.create(
-            org=self.org,
-            contact=contact1,
-            fire_type=ContactFire.TYPE_CAMPAIGN_EVENT,
-            scope=f"{event1.id}:{event1.fire_version}",  # old version
-            fire_on=timezone.now() + timedelta(days=2),
-        )
-        # update event
-        event1.fire_version += 1
-        event1.save()
-        fire1 = ContactFire.objects.create(
-            org=self.org,
-            contact=contact1,
-            fire_type=ContactFire.TYPE_CAMPAIGN_EVENT,
-            scope=f"{event1.id}:{event1.fire_version}",  # latest version
-            fire_on=timezone.now() + timedelta(days=2),
-        )
-        fire2 = ContactFire.objects.create(
-            org=self.org,
-            contact=contact1,
-            fire_type=ContactFire.TYPE_CAMPAIGN_EVENT,
-            scope=f"{event2.id}:{event2.fire_version}",
-            fire_on=timezone.now() + timedelta(days=5),
-        )
+        flow_event = CampaignEvent.create_flow_event(self.org, self.admin, campaign, joined, 20, unit="D", flow=flow)
 
-        # create scheduled and regular broadcasts which send to both groups
-        bcast1 = self.create_broadcast(
+        # contact joined 10 days ago, so the +3 day event is past and the +20 day event is upcoming
+        self.set_contact_field(contact1, "joined", (timezone.now() - timedelta(days=10)).isoformat())
+        joined_on = contact1.get_field_value(joined)
+
+        # create a scheduled broadcast and an already-sent broadcast
+        bcast = self.create_broadcast(
             self.admin,
             {"eng": {"text": "Hi again"}},
             contacts=[contact1, contact2],
-            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=3), Schedule.REPEAT_DAILY),
+            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=3), Schedule.REPEAT_NEVER),
         )
         self.create_broadcast(self.admin, {"eng": {"text": "Bye"}}, contacts=[contact1, contact2])  # not scheduled
+        sent_msg = contact1.msgs.get(broadcast__isnull=False)
 
         # create scheduled trigger which this contact is explicitly added to
         trigger1_flow = self.create_flow("Favorites 1")
@@ -1151,7 +1139,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             self.admin,
             trigger_type=Trigger.TYPE_SCHEDULE,
             flow=trigger1_flow,
-            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=4), Schedule.REPEAT_WEEKLY),
+            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=4), Schedule.REPEAT_NEVER),
         )
         trigger1.contacts.add(contact1, contact2)
 
@@ -1162,7 +1150,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             self.admin,
             trigger_type=Trigger.TYPE_SCHEDULE,
             flow=trigger2_flow,
-            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=6), Schedule.REPEAT_MONTHLY),
+            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=6), Schedule.REPEAT_NEVER),
         )
         trigger2.groups.add(farmers)
 
@@ -1172,57 +1160,192 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             self.admin,
             trigger_type=Trigger.TYPE_SCHEDULE,
             flow=self.create_flow("Favorites 3"),
-            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=4), Schedule.REPEAT_WEEKLY),
+            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=4), Schedule.REPEAT_NEVER),
         )
         trigger3.contacts.add(contact1, contact2)
         trigger3.exclude_groups.add(farmers)
 
-        response = self.requestView(schedule_url, self.admin)
+        response = self.requestView(events_url, self.admin)
         self.assertEqual(
-            {
-                "results": [
-                    {
-                        "type": "campaign_event",
-                        "scheduled": fire1.fire_on.isoformat(),
-                        "repeat_period": None,
-                        "campaign": {"uuid": str(campaign.uuid), "name": "Reminders"},
-                        "message": "Hi",
+            [
+                {
+                    "type": "scheduled_broadcast",
+                    "scheduled": bcast.schedule.next_fire.astimezone(tzone.utc).isoformat(),
+                    "message": "Hi again",
+                },
+                {
+                    "type": "scheduled_trigger",
+                    "scheduled": trigger1.schedule.next_fire.astimezone(tzone.utc).isoformat(),
+                    "flow": {
+                        "uuid": str(trigger1_flow.uuid),
+                        "name": "Favorites 1",
+                        "url": reverse("flows.flow_editor", args=[trigger1_flow.uuid]),
                     },
-                    {
-                        "type": "scheduled_broadcast",
-                        "scheduled": bcast1.schedule.next_fire.astimezone(tzone.utc).isoformat(),
-                        "repeat_period": "D",
-                        "message": "Hi again",
+                },
+                {
+                    "type": "scheduled_trigger",
+                    "scheduled": trigger2.schedule.next_fire.astimezone(tzone.utc).isoformat(),
+                    "flow": {
+                        "uuid": str(trigger2_flow.uuid),
+                        "name": "Favorites 2",
+                        "url": reverse("flows.flow_editor", args=[trigger2_flow.uuid]),
                     },
-                    {
-                        "type": "scheduled_trigger",
-                        "scheduled": trigger1.schedule.next_fire.astimezone(tzone.utc).isoformat(),
-                        "repeat_period": "W",
-                        "flow": {"uuid": str(trigger1_flow.uuid), "name": "Favorites 1"},
+                },
+                {
+                    "type": "campaign_event",
+                    "scheduled": (joined_on + timedelta(days=20)).isoformat(),
+                    "campaign": {
+                        "uuid": str(campaign.uuid),
+                        "name": "Reminders",
+                        "url": reverse("campaigns.campaign_read", args=[campaign.uuid]),
                     },
-                    {
-                        "type": "campaign_event",
-                        "scheduled": fire2.fire_on.isoformat(),
-                        "repeat_period": None,
-                        "campaign": {"uuid": str(campaign.uuid), "name": "Reminders"},
-                        "flow": {"uuid": str(event2_flow.uuid), "name": "Reminder Flow"},
+                    "url": reverse("campaigns.campaignevent_read", args=[campaign.uuid, flow_event.uuid]),
+                    "flow": {
+                        "uuid": str(flow.uuid),
+                        "name": "Reminder Flow",
+                        "url": reverse("flows.flow_editor", args=[flow.uuid]),
                     },
-                    {
-                        "type": "scheduled_trigger",
-                        "scheduled": trigger2.schedule.next_fire.astimezone(tzone.utc).isoformat(),
-                        "repeat_period": "M",
-                        "flow": {"uuid": str(trigger2_flow.uuid), "name": "Favorites 2"},
-                    },
-                ]
-            },
-            response.json(),
+                },
+            ],
+            response.json()["future"],
         )
+        self.assertEqual(
+            [
+                {"type": "sent_broadcast", "scheduled": sent_msg.created_on.isoformat(), "message": "Bye"},
+                {
+                    "type": "campaign_event",
+                    "scheduled": (joined_on + timedelta(days=3)).isoformat(),
+                    "campaign": {
+                        "uuid": str(campaign.uuid),
+                        "name": "Reminders",
+                        "url": reverse("campaigns.campaign_read", args=[campaign.uuid]),
+                    },
+                    "url": reverse("campaigns.campaignevent_read", args=[campaign.uuid, msg_event.uuid]),
+                    "message": "Hi",
+                },
+            ],
+            response.json()["past"],
+        )
+        self.assertEqual(
+            [
+                {
+                    "uuid": str(campaign.uuid),
+                    "name": "Reminders",
+                    "url": reverse("campaigns.campaign_read", args=[campaign.uuid]),
+                },
+            ],
+            response.json()["campaigns"],
+        )
+        self.assertEqual(4, response.json()["future_count"])
+        self.assertIsNone(response.json()["next_before"])
+        self.assertIsNone(response.json()["next_after"])
 
-        # fires for archived campaigns shouldn't appear
+        # events for archived campaigns shouldn't appear
         campaign.archive(self.admin)
 
-        response = self.requestView(schedule_url, self.admin)
-        self.assertEqual(3, len(response.json()["results"]))
+        response = self.requestView(events_url, self.admin)
+        self.assertEqual(3, len(response.json()["future"]))  # campaign event dropped
+        self.assertEqual(3, response.json()["future_count"])
+        self.assertEqual(1, len(response.json()["past"]))  # campaign event dropped, sent broadcast remains
+
+    def test_events_pagination(self):
+        contact = self.create_contact("Joe", phone="+1234567890")
+        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+
+        # send the contact more past broadcasts than fit on a single page
+        for i in range(7):
+            self.create_broadcast(self.admin, {"eng": {"text": f"Bcast {i}"}}, contacts=[contact])
+
+        response = self.requestView(events_url, self.admin)
+        self.assertEqual([], response.json()["future"])
+        self.assertEqual(0, response.json()["future_count"])
+        self.assertEqual(5, len(response.json()["past"]))
+        next_before = response.json()["next_before"]
+        self.assertIsNotNone(next_before)
+
+        # paging back with the cursor returns the remaining older events
+        response = self.requestView(events_url + f"?before={quote(next_before)}", self.admin)
+        self.assertEqual([], response.json()["future"])
+        self.assertEqual(2, len(response.json()["past"]))
+        self.assertIsNone(response.json()["next_before"])
+
+        # and now stack up enough upcoming scheduled broadcasts to test forward paging
+        for i in range(12):
+            self.create_broadcast(
+                self.admin,
+                {"eng": {"text": f"Upcoming {i}"}},
+                contacts=[contact],
+                schedule=Schedule.create(self.org, timezone.now() + timedelta(days=i + 1), Schedule.REPEAT_NEVER),
+            )
+
+        response = self.requestView(events_url, self.admin)
+        self.assertEqual(10, len(response.json()["future"]))
+        self.assertEqual(12, response.json()["future_count"])
+        next_after = response.json()["next_after"]
+        self.assertIsNotNone(next_after)
+
+        response = self.requestView(events_url + f"?after={quote(next_after)}", self.admin)
+        self.assertEqual(2, len(response.json()["future"]))
+        self.assertEqual(12, response.json()["future_count"])
+        self.assertIsNone(response.json()["next_after"])
+
+    def test_events_repeating_projection(self):
+        """A repeating scheduled broadcast expands into timeline entries within the one-year horizon."""
+        contact = self.create_contact("Joe", phone="+1234567890")
+        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+
+        bcast = self.create_broadcast(
+            self.admin,
+            {"eng": {"text": "Weekly check-in"}},
+            contacts=[contact],
+            schedule=Schedule.create(
+                self.org,
+                timezone.now() + timedelta(days=2),
+                Schedule.REPEAT_WEEKLY,
+                repeat_days_of_week="M",
+            ),
+        )
+
+        response = self.requestView(events_url, self.admin)
+
+        # the weekly broadcast is projected forward through the one-year window -
+        # 52 or 53 occurrences depending on calendar alignment, ten visible per page
+        self.assertIn(response.json()["future_count"], (52, 53))
+        self.assertEqual(10, len(response.json()["future"]))
+        self.assertIsNotNone(response.json()["next_after"])
+        for entry in response.json()["future"]:
+            self.assertEqual("scheduled_broadcast", entry["type"])
+            self.assertEqual("Weekly check-in", entry["message"])
+
+        # those occurrences are sorted oldest-first; the first matches the schedule's next_fire
+        # and successive entries are one week apart
+        fires = [iso8601.parse_date(e["scheduled"]) for e in response.json()["future"]]
+        self.assertEqual(bcast.schedule.next_fire.astimezone(tzone.utc), fires[0])
+        for earlier, later in zip(fires, fires[1:]):
+            self.assertEqual(timedelta(days=7), later - earlier)
+
+    def test_events_horizon_drops_distant_future(self):
+        """A one-off scheduled event more than a year out is dropped from the timeline."""
+        contact = self.create_contact("Joe", phone="+1234567890")
+        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+
+        # one within the window, one well outside it
+        self.create_broadcast(
+            self.admin,
+            {"eng": {"text": "Soon"}},
+            contacts=[contact],
+            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=30), Schedule.REPEAT_NEVER),
+        )
+        self.create_broadcast(
+            self.admin,
+            {"eng": {"text": "Way out"}},
+            contacts=[contact],
+            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=400), Schedule.REPEAT_NEVER),
+        )
+
+        response = self.requestView(events_url, self.admin)
+        self.assertEqual(1, response.json()["future_count"])
+        self.assertEqual(["Soon"], [e["message"] for e in response.json()["future"]])
 
     @mock_mailroom
     def test_open_ticket(self, mr_mocks):
