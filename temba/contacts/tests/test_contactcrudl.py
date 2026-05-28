@@ -1539,6 +1539,104 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(8, len(messages))
         self.assertEqual(set(f"Tied {i}" for i in range(8)), set(messages))
 
+    def test_events_excludes_paused_schedules(self):
+        """Scheduled broadcasts and triggers whose schedule is paused are excluded from the timeline."""
+        contact = self.create_contact("Joe", phone="+1234567890")
+        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+
+        # a non-paused scheduled broadcast (future fire) - should appear in future
+        self.create_broadcast(
+            self.admin,
+            {"eng": {"text": "Active bcast"}},
+            contacts=[contact],
+            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=3), Schedule.REPEAT_NEVER),
+        )
+
+        # a paused scheduled broadcast (future fire) - should be excluded
+        paused_bcast = self.create_broadcast(
+            self.admin,
+            {"eng": {"text": "Paused bcast"}},
+            contacts=[contact],
+            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=4), Schedule.REPEAT_NEVER),
+        )
+        paused_bcast.schedule.is_paused = True
+        paused_bcast.schedule.save()
+
+        # a paused scheduled trigger - should be excluded
+        paused_trigger = Trigger.create(
+            self.org,
+            self.admin,
+            trigger_type=Trigger.TYPE_SCHEDULE,
+            flow=self.create_flow("Paused Flow"),
+            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=5), Schedule.REPEAT_NEVER),
+        )
+        paused_trigger.contacts.add(contact)
+        paused_trigger.schedule.is_paused = True
+        paused_trigger.schedule.save()
+
+        future = self.requestView(events_url, self.admin).json()["future"]
+        messages = [e.get("message") for e in future if e["type"] == "scheduled_broadcast"]
+        self.assertEqual(["Active bcast"], messages)  # non-paused broadcast present
+        self.assertNotIn("Paused bcast", messages)  # paused broadcast excluded
+        self.assertEqual([], [e for e in future if e["type"] == "scheduled_trigger"])  # paused trigger excluded
+
+    def test_events_more_past_not_dropped_with_tied_sent_broadcasts(self):
+        """Older past events aren't dropped when a full page of tied sent broadcasts straddles the boundary."""
+        contact = self.create_contact("Joe", phone="+1234567890")
+        group = self.create_group("Members", contacts=[contact])
+        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+
+        tied_at = timezone.now() - timedelta(days=30)
+
+        # eight sent broadcasts ALL sharing one created_on (T = now - 30d). With past_limit=5 the first
+        # page loads only past_limit + 1 (=6) of them; the in-memory tie-break extends to all 6 loaded
+        # (the cap), then the supplemental DB query appends the other 2 tied siblings -> past_page holds 8.
+        for i in range(8):
+            bcast = self.create_broadcast(self.admin, {"eng": {"text": f"Tied {i}"}}, contacts=[contact])
+            bcast.msgs.all().delete()  # drop the auto-created now-dated msg
+            msg = self.create_outgoing_msg(contact, f"Tied {i}", created_on=tied_at)
+            msg.broadcast = bcast
+            msg.save(update_fields=("broadcast",))
+
+        # two OLDER past campaign message events at distinct times strictly older than T. The contact
+        # joined 100 days ago, so the +10d / +40d offsets project to now - 90d and now - 60d.
+        joined = self.create_field("joined", "Joined On", value_type=ContactField.TYPE_DATETIME)
+        joined_at = timezone.now() - timedelta(days=100)
+        self.set_contact_field(contact, "joined", joined_at.isoformat())
+        campaign = Campaign.create(self.org, self.admin, "Reminders", group)
+        for days in (10, 40):  # -> now - 90d and now - 60d, both older than the tied broadcasts at T
+            CampaignEvent.create_message_event(
+                self.org,
+                self.admin,
+                campaign,
+                joined,
+                days,
+                unit="D",
+                translations={"eng": {"text": f"Campaign +{days}d"}},
+                base_language="eng",
+            )
+
+        # the old code computed has_more_past as len(past_window)=8 > len(past_page)=8 -> False, so the
+        # first page's cursor was None and the 2 older campaign events were silently dropped. the fix
+        # compares against the in-memory window end (6) instead, so paging continues to the older events.
+        seen = []
+        before = None
+        for _ in range(20):  # generous cap to avoid an infinite loop on regression
+            url = events_url + (f"?before={quote(before)}" if before else "")
+            data = self.requestView(url, self.admin).json()
+            seen.extend(data["past"])
+            before = data["next_before"]
+            if not before:
+                break
+
+        messages = [e["message"] for e in seen]
+        # all 10 events surface across paging: 8 tied broadcasts + 2 older campaign events, no drops/dupes
+        self.assertEqual(10, len(messages))
+        self.assertEqual(set(messages), set([f"Tied {i}" for i in range(8)] + ["Campaign +10d", "Campaign +40d"]))
+        # the 2 older campaign events specifically must survive (the false-negative the fix addresses)
+        self.assertIn("Campaign +10d", messages)
+        self.assertIn("Campaign +40d", messages)
+
     def test_events_pagination_tied_future(self):
         """Upcoming events tied at the future page boundary are never split across the page boundary."""
         contact = self.create_contact("Joe", phone="+1234567890")

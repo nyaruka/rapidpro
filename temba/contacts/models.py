@@ -651,7 +651,9 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
     def get_scheduled_broadcasts(self):
         return (
-            self.org.broadcasts.filter(schedule__next_fire__gte=timezone.now(), is_active=True)
+            self.org.broadcasts.filter(
+                schedule__next_fire__gte=timezone.now(), schedule__is_paused=False, is_active=True
+            )
             .exclude(schedule=None)
             .filter(Q(contacts__in=[self]) | Q(groups__in=self.groups.all()))
             .distinct()
@@ -663,7 +665,10 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
         return (
             self.org.triggers.filter(
-                trigger_type=Trigger.TYPE_SCHEDULE, schedule__next_fire__gte=timezone.now(), is_archived=False
+                trigger_type=Trigger.TYPE_SCHEDULE,
+                schedule__next_fire__gte=timezone.now(),
+                schedule__is_paused=False,
+                is_archived=False,
             )
             .filter(Q(contacts__in=[self]) | Q(groups__in=self.groups.all()))
             .exclude(exclude_groups__in=self.groups.all())
@@ -801,11 +806,12 @@ class Contact(LegacyUUIDMixin, SmartModel):
         future_full.sort(key=lambda e: e[0])
 
         # past page: events strictly before the past cursor (defaults to now). a malformed cursor
-        # (e.g. a hand-crafted query param) is treated as absent rather than raising
+        # (e.g. a hand-crafted query param) is treated as absent rather than raising, and the cursor
+        # is clamped to now so a future-dated cursor can't pull the entire (uncapped) past history
         past_cutoff = now
         if before:
             try:
-                past_cutoff = iso8601.parse_date(before)
+                past_cutoff = min(iso8601.parse_date(before), now)
             except iso8601.ParseError:
                 pass
         past_window = [(w, e) for (w, e) in past_full if w < past_cutoff]
@@ -836,6 +842,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
             boundary = past_page[-1][0]
             while len(past_page) < len(past_window) and past_window[len(past_page)][0] == boundary:
                 past_page.append(past_window[len(past_page)])
+            in_mem_end = len(past_page)  # entries beyond this come from the DB top-up below, not past_window
 
             # sent broadcasts were only loaded capped, so the in-memory window may not hold every
             # broadcast tied at the boundary timestamp - fetch any not already included and append
@@ -848,7 +855,9 @@ class Contact(LegacyUUIDMixin, SmartModel):
                     )
                 )
 
-            has_more_past = len(past_window) > len(past_page) or sent.filter(created_on__lt=boundary).exists()
+            # compare against the in-memory window end (not len(past_page)) - the DB top-up can push
+            # past_page past len(past_window) while older entries still remain to show on the next page
+            has_more_past = len(past_window) > in_mem_end or sent.filter(created_on__lt=boundary).exists()
 
         # future page: events strictly after the future cursor (defaults to no cursor = from soonest).
         # a malformed cursor is treated as absent rather than raising

@@ -137,6 +137,9 @@ class Schedule(models.Model):
         if self.repeat_period == Schedule.REPEAT_NEVER:
             return fires
 
+        # the safety cap guards against a pathological schedule that never advances past the horizon;
+        # if it's ever hit we silently return the truncated list rather than erroring (no real schedule
+        # repeats often enough to produce this many fires within a one-year window)
         safety_cap = 10_000
         for _i in range(safety_cap - 1):
             next_fire = self.calculate_next_fire(fires[-1])

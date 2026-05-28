@@ -114,8 +114,10 @@
 
       if (event.url) {
         spaGet(event.url);
-      } else if (event.type == "scheduled_broadcast" || event.type == "sent_broadcast") {
+      } else if (event.type == "scheduled_broadcast") {
         spaGet("{% url 'msgs.broadcast_scheduled' %}");
+      } else if (event.type == "sent_broadcast") {
+        spaGet("{% url 'msgs.broadcast_list' %}");
       } else if (event.type == "scheduled_trigger") {
         spaGet("{% url 'triggers.trigger_folder' 'schedule' %}");
       }
