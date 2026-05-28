@@ -1086,15 +1086,15 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             export.config,
         )
 
-    def test_events(self):
+    def test_timeline(self):
         contact1 = self.create_contact("Joe", phone="+1234567890")
         contact2 = self.create_contact("Frank", phone="+1204567802")
         farmers = self.create_group("Farmers", contacts=[contact1, contact2])
 
-        events_url = reverse("contacts.contact_events", args=[contact1.uuid])
+        timeline_url = reverse("contacts.contact_timeline", args=[contact1.uuid])
 
-        self.assertRequestDisallowed(events_url, [None, self.agent, self.admin2])
-        response = self.assertReadFetch(events_url, [self.editor, self.admin])
+        self.assertRequestDisallowed(timeline_url, [None, self.agent, self.admin2])
+        response = self.assertReadFetch(timeline_url, [self.editor, self.admin])
         self.assertEqual([], response.json()["campaigns"])
         self.assertEqual([], response.json()["future"])
         self.assertEqual([], response.json()["past"])
@@ -1165,7 +1165,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         trigger3.contacts.add(contact1, contact2)
         trigger3.exclude_groups.add(farmers)
 
-        response = self.requestView(events_url, self.admin)
+        response = self.requestView(timeline_url, self.admin)
         self.assertEqual(
             [
                 {
@@ -1243,16 +1243,16 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # events for archived campaigns shouldn't appear
         campaign.archive(self.admin)
 
-        response = self.requestView(events_url, self.admin)
+        response = self.requestView(timeline_url, self.admin)
         self.assertEqual(3, len(response.json()["future"]))  # campaign event dropped
         self.assertEqual(3, response.json()["future_count"])
         self.assertEqual(1, len(response.json()["past"]))  # campaign event dropped, sent broadcast remains
 
-    def test_events_delivery_hour_snapping(self):
+    def test_timeline_delivery_hour_snapping(self):
         """A campaign event with a delivery_hour snaps its projected time to that hour in the org timezone."""
         contact = self.create_contact("Joe", phone="+1234567890")
         group = self.create_group("Members", contacts=[contact])
-        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+        timeline_url = reverse("contacts.contact_timeline", args=[contact.uuid])
 
         joined = self.create_field("joined", "Joined On", value_type=ContactField.TYPE_DATETIME)
         # joined a few days ago at an arbitrary time-of-day so we can confirm the projected time isn't
@@ -1274,7 +1274,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             base_language="eng",
         )
 
-        response = self.requestView(events_url, self.admin)
+        response = self.requestView(timeline_url, self.admin)
         future = response.json()["future"]
         self.assertEqual(1, len(future))
 
@@ -1288,11 +1288,11 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(9, scheduled.hour)
         self.assertEqual(0, scheduled.minute)
 
-    def test_events_inactive_and_missing_anchor(self):
+    def test_timeline_inactive_and_missing_anchor(self):
         """Inactive campaign events and events whose anchor field the contact lacks are omitted."""
         contact = self.create_contact("Joe", phone="+1234567890")
         group = self.create_group("Members", contacts=[contact])
-        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+        timeline_url = reverse("contacts.contact_timeline", args=[contact.uuid])
 
         joined = self.create_field("joined", "Joined On", value_type=ContactField.TYPE_DATETIME)
         # a second datetime field that the contact has NO value for
@@ -1339,7 +1339,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         inactive.is_active = False
         inactive.save(update_fields=("is_active",))
 
-        response = self.requestView(events_url, self.admin)
+        response = self.requestView(timeline_url, self.admin)
         future = response.json()["future"]
 
         # only the single visible event survives
@@ -1348,15 +1348,15 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(reverse("campaigns.campaignevent_read", args=[campaign.uuid, visible.uuid]), future[0]["url"])
         self.assertEqual("Visible", future[0]["message"])
 
-    def test_events_pagination(self):
+    def test_timeline_pagination(self):
         contact = self.create_contact("Joe", phone="+1234567890")
-        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+        timeline_url = reverse("contacts.contact_timeline", args=[contact.uuid])
 
         # send the contact more past broadcasts than fit on a single page
         for i in range(7):
             self.create_broadcast(self.admin, {"eng": {"text": f"Bcast {i}"}}, contacts=[contact])
 
-        response = self.requestView(events_url, self.admin)
+        response = self.requestView(timeline_url, self.admin)
         self.assertEqual([], response.json()["future"])
         self.assertEqual(0, response.json()["future_count"])
         self.assertEqual(5, len(response.json()["past"]))
@@ -1364,7 +1364,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertIsNotNone(next_before)
 
         # paging back with the cursor returns the remaining older events
-        response = self.requestView(events_url + f"?before={quote(next_before)}", self.admin)
+        response = self.requestView(timeline_url + f"?before={quote(next_before)}", self.admin)
         self.assertEqual([], response.json()["future"])
         self.assertEqual(2, len(response.json()["past"]))
         self.assertIsNone(response.json()["next_before"])
@@ -1378,22 +1378,22 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                 schedule=Schedule.create(self.org, timezone.now() + timedelta(days=i + 1), Schedule.REPEAT_NEVER),
             )
 
-        response = self.requestView(events_url, self.admin)
+        response = self.requestView(timeline_url, self.admin)
         self.assertEqual(10, len(response.json()["future"]))
         self.assertEqual(12, response.json()["future_count"])
         next_after = response.json()["next_after"]
         self.assertIsNotNone(next_after)
 
-        response = self.requestView(events_url + f"?after={quote(next_after)}", self.admin)
+        response = self.requestView(timeline_url + f"?after={quote(next_after)}", self.admin)
         self.assertEqual(2, len(response.json()["future"]))
         self.assertEqual(12, response.json()["future_count"])
         self.assertIsNone(response.json()["next_after"])
 
-    def test_events_pagination_mixed_past(self):
+    def test_timeline_pagination_mixed_past(self):
         """The past-page cursor pages correctly through a mix of campaign events and sent broadcasts."""
         contact = self.create_contact("Joe", phone="+1234567890")
         group = self.create_group("Members", contacts=[contact])
-        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+        timeline_url = reverse("contacts.contact_timeline", args=[contact.uuid])
 
         # contact joined 100 days ago - campaign offsets below all land in the past
         joined = self.create_field("joined", "Joined On", value_type=ContactField.TYPE_DATETIME)
@@ -1429,14 +1429,14 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             msg.save(update_fields=("broadcast",))
 
         # eight past events total, five per page -> first page has five, cursor set
-        response = self.requestView(events_url, self.admin)
+        response = self.requestView(timeline_url, self.admin)
         first = response.json()["past"]
         self.assertEqual(5, len(first))
         next_before = response.json()["next_before"]
         self.assertIsNotNone(next_before)
 
         # second page returns the remaining three, no further cursor
-        response = self.requestView(events_url + f"?before={quote(next_before)}", self.admin)
+        response = self.requestView(timeline_url + f"?before={quote(next_before)}", self.admin)
         second = response.json()["past"]
         self.assertEqual(3, len(second))
         self.assertIsNone(response.json()["next_before"])
@@ -1448,11 +1448,11 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # and they remain in strict newest-first order across the boundary
         self.assertEqual(scheduled, sorted(scheduled, reverse=True))
 
-    def test_events_pagination_tied_timestamps(self):
+    def test_timeline_pagination_tied_timestamps(self):
         """Past events sharing an exact timestamp are never split across a page boundary."""
         contact = self.create_contact("Joe", phone="+1234567890")
         group = self.create_group("Members", contacts=[contact])
-        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+        timeline_url = reverse("contacts.contact_timeline", args=[contact.uuid])
 
         joined = self.create_field("joined", "Joined On", value_type=ContactField.TYPE_DATETIME)
         joined_at = timezone.now() - timedelta(days=100)
@@ -1490,7 +1490,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         seen = []
         before = None
         for _ in range(10):  # generous cap to avoid an infinite loop on regression
-            url = events_url + (f"?before={quote(before)}" if before else "")
+            url = timeline_url + (f"?before={quote(before)}" if before else "")
             data = self.requestView(url, self.admin).json()
             seen.extend(data["past"])
             before = data["next_before"]
@@ -1505,10 +1505,10 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # the three tied events all survive
         self.assertEqual(3, sum(1 for e in seen if e["message"].startswith("Tied")))
 
-    def test_events_pagination_tied_sent_broadcasts(self):
+    def test_timeline_pagination_tied_sent_broadcasts(self):
         """Sent broadcasts tied at the page boundary beyond the capped load are recovered via the supplemental query."""
         contact = self.create_contact("Joe", phone="+1234567890")
-        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+        timeline_url = reverse("contacts.contact_timeline", args=[contact.uuid])
 
         base = timezone.now() - timedelta(days=30)
 
@@ -1527,7 +1527,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         seen = []
         before = None
         for _ in range(20):  # generous cap to avoid an infinite loop on regression
-            url = events_url + (f"?before={quote(before)}" if before else "")
+            url = timeline_url + (f"?before={quote(before)}" if before else "")
             data = self.requestView(url, self.admin).json()
             seen.extend(data["past"])
             before = data["next_before"]
@@ -1539,10 +1539,10 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(8, len(messages))
         self.assertEqual(set(f"Tied {i}" for i in range(8)), set(messages))
 
-    def test_events_excludes_paused_schedules(self):
+    def test_timeline_excludes_paused_schedules(self):
         """Scheduled broadcasts and triggers whose schedule is paused are excluded from the timeline."""
         contact = self.create_contact("Joe", phone="+1234567890")
-        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+        timeline_url = reverse("contacts.contact_timeline", args=[contact.uuid])
 
         # a non-paused scheduled broadcast (future fire) - should appear in future
         self.create_broadcast(
@@ -1574,17 +1574,17 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         paused_trigger.schedule.is_paused = True
         paused_trigger.schedule.save()
 
-        future = self.requestView(events_url, self.admin).json()["future"]
+        future = self.requestView(timeline_url, self.admin).json()["future"]
         messages = [e.get("message") for e in future if e["type"] == "scheduled_broadcast"]
         self.assertEqual(["Active bcast"], messages)  # non-paused broadcast present
         self.assertNotIn("Paused bcast", messages)  # paused broadcast excluded
         self.assertEqual([], [e for e in future if e["type"] == "scheduled_trigger"])  # paused trigger excluded
 
-    def test_events_more_past_not_dropped_with_tied_sent_broadcasts(self):
+    def test_timeline_more_past_not_dropped_with_tied_sent_broadcasts(self):
         """Older past events aren't dropped when a full page of tied sent broadcasts straddles the boundary."""
         contact = self.create_contact("Joe", phone="+1234567890")
         group = self.create_group("Members", contacts=[contact])
-        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+        timeline_url = reverse("contacts.contact_timeline", args=[contact.uuid])
 
         tied_at = timezone.now() - timedelta(days=30)
 
@@ -1622,7 +1622,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         seen = []
         before = None
         for _ in range(20):  # generous cap to avoid an infinite loop on regression
-            url = events_url + (f"?before={quote(before)}" if before else "")
+            url = timeline_url + (f"?before={quote(before)}" if before else "")
             data = self.requestView(url, self.admin).json()
             seen.extend(data["past"])
             before = data["next_before"]
@@ -1637,10 +1637,10 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertIn("Campaign +10d", messages)
         self.assertIn("Campaign +40d", messages)
 
-    def test_events_pagination_tied_future(self):
+    def test_timeline_pagination_tied_future(self):
         """Upcoming events tied at the future page boundary are never split across the page boundary."""
         contact = self.create_contact("Joe", phone="+1234567890")
-        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+        timeline_url = reverse("contacts.contact_timeline", args=[contact.uuid])
 
         # nine distinct upcoming scheduled broadcasts (days 1..9) plus a tied group of three sharing
         # one later start_time. soonest-first, the future_limit=10 boundary falls inside the tied group
@@ -1665,7 +1665,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         seen = []
         after = None
         for _ in range(20):  # generous cap to avoid an infinite loop on regression
-            url = events_url + (f"?after={quote(after)}" if after else "")
+            url = timeline_url + (f"?after={quote(after)}" if after else "")
             data = self.requestView(url, self.admin).json()
             seen.extend(data["future"])
             after = data["next_after"]
@@ -1679,27 +1679,27 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # the three tied events all survive
         self.assertEqual(3, sum(1 for m in messages if m.startswith("Tied")))
 
-    def test_events_malformed_cursor(self):
+    def test_timeline_malformed_cursor(self):
         """A garbage before/after cursor is treated as absent and returns a normal 200, not a 500."""
         contact = self.create_contact("Joe", phone="+1234567890")
-        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+        timeline_url = reverse("contacts.contact_timeline", args=[contact.uuid])
 
         # baseline response with no cursor (drop `now`, which is recomputed fresh per request)
-        expected = self.requestView(events_url, self.admin).json()
+        expected = self.requestView(timeline_url, self.admin).json()
         del expected["now"]
 
         for param in ("before", "after"):
-            response = self.requestView(events_url + f"?{param}=garbage", self.admin)
+            response = self.requestView(timeline_url + f"?{param}=garbage", self.admin)
             self.assertEqual(200, response.status_code)
             # an unparseable cursor falls back to the default (no cursor), matching the baseline
             actual = response.json()
             del actual["now"]
             self.assertEqual(expected, actual)
 
-    def test_events_repeating_projection(self):
+    def test_timeline_repeating_projection(self):
         """A repeating scheduled broadcast expands into timeline entries within the one-year horizon."""
         contact = self.create_contact("Joe", phone="+1234567890")
-        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+        timeline_url = reverse("contacts.contact_timeline", args=[contact.uuid])
 
         bcast = self.create_broadcast(
             self.admin,
@@ -1713,7 +1713,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             ),
         )
 
-        response = self.requestView(events_url, self.admin)
+        response = self.requestView(timeline_url, self.admin)
 
         # the weekly broadcast is projected forward through the one-year window -
         # 52 or 53 occurrences depending on calendar alignment, ten visible per page
@@ -1734,10 +1734,10 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         for earlier, later in zip(fires[1:], fires[2:]):
             self.assertEqual(timedelta(days=7), later - earlier)
 
-    def test_events_horizon_drops_distant_future(self):
+    def test_timeline_horizon_drops_distant_future(self):
         """A one-off scheduled event more than a year out is dropped from the timeline."""
         contact = self.create_contact("Joe", phone="+1234567890")
-        events_url = reverse("contacts.contact_events", args=[contact.uuid])
+        timeline_url = reverse("contacts.contact_timeline", args=[contact.uuid])
 
         # one within the window, one well outside it
         self.create_broadcast(
@@ -1753,7 +1753,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             schedule=Schedule.create(self.org, timezone.now() + timedelta(days=400), Schedule.REPEAT_NEVER),
         )
 
-        response = self.requestView(events_url, self.admin)
+        response = self.requestView(timeline_url, self.admin)
         self.assertEqual(1, response.json()["future_count"])
         self.assertEqual(["Soon"], [e["message"] for e in response.json()["future"]])
 

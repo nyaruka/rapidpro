@@ -741,9 +741,11 @@ class Contact(LegacyUUIDMixin, SmartModel):
 
         return results
 
-    def get_events(self, *, before: str = None, after: str = None, past_limit: int = 5, future_limit: int = 10) -> dict:
+    def get_timeline(
+        self, *, before: str = None, after: str = None, past_limit: int = 5, future_limit: int = 10
+    ) -> dict:
         """
-        Gets this contact's event timeline - a merged, time-ordered view of campaign events and
+        Gets this contact's timeline - a merged, time-ordered view of campaign events and
         broadcasts, both upcoming and past.
 
         By default we return up to `future_limit` upcoming events plus the most recent `past_limit`

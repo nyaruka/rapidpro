@@ -43,7 +43,7 @@
     <temba-tab icon="campaign" name="{{ _("Up Next") |escapejs }}">
       <div style="border-top-right-radius: var(--curvature)"
            class="flex flex-grow flex-col py-4 px-1 overflow-y-auto">
-        <temba-contact-events contact="{{ object.uuid }}" -temba-selection="handleEventClicked">
+        <temba-contact-events contact="{{ object.uuid }}" -temba-selection="handleTimelineClicked">
         </temba-contact-events>
       </div>
     </temba-tab>
@@ -85,10 +85,10 @@
     function handleContactRefreshed(evt) {
       var contact = evt.detail.data;
 
-      // if our contact refreshes, refresh the events timeline
-      var events = document.querySelector("temba-contact-events");
-      if (events) {
-        events.refresh();
+      // if our contact refreshes, refresh the timeline
+      var timeline = document.querySelector("temba-contact-events");
+      if (timeline) {
+        timeline.refresh();
       }
 
       var menu = document.querySelector("temba-menu");
@@ -109,7 +109,7 @@
       spaGet("/contact/?search=" + encodeURIComponent(evt.detail.key) + "+%3D+" + encodeURIComponent("\"" + evt.detail.value + "\""))
     }
 
-    function handleEventClicked(evt) {
+    function handleTimelineClicked(evt) {
       var event = evt.detail;
 
       if (event.url) {
