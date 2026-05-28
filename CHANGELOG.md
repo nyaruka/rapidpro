@@ -1,3 +1,8 @@
+v26.1.125 (2026-05-28)
+-------------------------
+ * Expand AirtimeTransfer status choices
+ * Update @nyaruka/temba-components to 0.159.0
+
 v26.1.124 (2026-05-27)
 -------------------------
  * Update dev MAILROOM_URL default to use new internal listener port 8091
