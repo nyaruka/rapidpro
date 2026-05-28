@@ -1,3 +1,11 @@
+v26.1.126 (2026-05-28)
+-------------------------
+ * Update @nyaruka/temba-components to 0.159.1
+ * Remove classifiers app
+ * Make components dev URL configurable via COMPONENTS_DEV_URL setting
+ * Hide PO translation export/import menu items in flow editor
+ * Add new cookie-gated message list backed by internal messages API
+
 v26.1.125 (2026-05-28)
 -------------------------
  * Expand AirtimeTransfer status choices
