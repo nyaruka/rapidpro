@@ -94,8 +94,9 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     def _use_new_list(self) -> bool:
         # The folder for a message list is either one of the built-in MsgFolder enum values (Inbox / Handled / …) or
         # a user-defined Label (the filter view binds it in derive_folder); both render through the same new-list
-        # template when the viewer is in preview mode.
-        return self.request.preview and isinstance(self.derive_folder(), (MsgFolder, Label))
+        # template when the viewer is in preview mode. `getattr` defaults to False so a view called via RequestFactory
+        # (or if PreviewMiddleware is ever reordered out) doesn't AttributeError.
+        return getattr(self.request, "preview", False) and isinstance(self.derive_folder(), (MsgFolder, Label))
 
     def get_template_names(self):
         if self._use_new_list():

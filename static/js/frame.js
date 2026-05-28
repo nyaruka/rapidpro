@@ -518,9 +518,18 @@ function loadFromState(state) {
     // guard so we don't .then on undefined.
     const pending = spaRequest(target, { ignoreEvents: false, ignoreHistory: true });
     if (pending) {
-      // swallow rejections so an unexpected throw downstream (e.g. inside
-      // hideLoading) doesn't surface as an unhandled-rejection warning
-      return pending.then(function () { currentSpaUrl = target; }).catch(function () {});
+      // Skip the cache write if the request was aborted (a fast back→back
+      // aborts the first fetch — but fetchAjax resolves with undefined
+      // rather than rejecting, so this .then still fires for the aborted
+      // target and would otherwise leave currentSpaUrl pointing at the
+      // intermediate URL). Compare to location.href, which popstate has
+      // already updated to the latest state.url, so the in-flight target
+      // only matches when it is still the current truth.
+      return pending.then(function () {
+        if (location.href === target) {
+          currentSpaUrl = target;
+        }
+      }).catch(function () {});
     }
   }
 }

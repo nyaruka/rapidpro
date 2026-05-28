@@ -128,14 +128,5 @@
         }
       });
     });
-
-    // refresh the left sidebar menu counts - defined locally since the page
-    // chrome's content menu (which normally provides this) is suppressed here
-    function refreshMenu() {
-      var menu = document.querySelector("temba-menu");
-      if (menu) {
-        menu.refresh();
-      }
-    }
   </script>
 {% endblock extra-script %}

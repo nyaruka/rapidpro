@@ -201,9 +201,20 @@ class EndpointsTest(APITestMixin, TembaTest):
         response = self.assertGet(endpoint_url + "?search=bob", [self.admin], results=[msg2])
         self.assertEqual(1, response.json()["count"])
 
+        # search is rejected with 413 if it exceeds the legacy 1000-char cap (matches BaseListView.search_max_length)
+        self.login(self.admin)
+        response = self.client.get(endpoint_url + "?search=" + "x" * 1001)
+        self.assertEqual(413, response.status_code)
+
+        # search is restricted to the last 90 days; unfiltered listing below still includes the backdated message
+        ancient = self.create_incoming_msg(contact1, "ancient", created_on=timezone.now() - timedelta(days=120))
+        self.assertGet(endpoint_url + f"?search={ancient.text}", [self.admin], results=[])
+
         # unfiltered listings still omit count — cursor pagination skips COUNT(*) when there is no search
-        # ordering is `-created_on, -id`: old_msg is backdated 30 days so it sorts last
-        response = self.assertGet(endpoint_url, [self.admin], results=[anon_msg, live_msg, msg2, msg1, old_msg])
+        # ordering is `-created_on, -id`: old_msg is backdated 30 days, ancient 120 days, so they sort last
+        response = self.assertGet(
+            endpoint_url, [self.admin], results=[anon_msg, live_msg, msg2, msg1, old_msg, ancient]
+        )
         self.assertNotIn("count", response.json())
 
         # honor `?page_size=` so the list UI can request a page sized to its viewport

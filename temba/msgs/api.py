@@ -1,4 +1,8 @@
+from datetime import timedelta
+
 from django.db.models import Q
+from django.http import HttpResponse
+from django.utils import timezone
 
 from temba.api.internal.serializers import ModelAsJsonSerializer
 from temba.api.internal.views import BaseEndpoint
@@ -34,9 +38,11 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
                 return SentOnCursorPagination.ordering
             return CreatedOnCursorPagination.ordering
 
-    model = Msg
-    serializer_class = ModelAsJsonSerializer
-    pagination_class = Pagination
+    # Match BaseListView's caps so the legacy and new lists impose the same bounds: a search query is capped at 1000
+    # chars (rejected with 413) and is restricted to messages from the last 90 days so an unbounded `text__icontains`
+    # scan (compounded by the SearchCountMixin COUNT(*)) can't be triggered by a session-authenticated client.
+    SEARCH_MAX_LENGTH = 1_000
+    SEARCH_WINDOW = timedelta(days=90)
 
     FOLDERS = {
         "inbox": MsgFolder.INBOX,
@@ -46,6 +52,16 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
         "sent": MsgFolder.SENT,
         "failed": MsgFolder.FAILED,
     }
+
+    model = Msg
+    serializer_class = ModelAsJsonSerializer
+    pagination_class = Pagination
+
+    def get(self, request, *args, **kwargs):
+        search = request.query_params.get("search") or ""
+        if len(search) > self.SEARCH_MAX_LENGTH:
+            return HttpResponse("Search query too long", status=413)
+        return super().get(request, *args, **kwargs)
 
     def derive_queryset(self):
         # `label` takes precedence — the filter view passes a label UUID rather than a folder name, and the visible
@@ -76,6 +92,9 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
     def filter_queryset(self, queryset):
         search = self.request.query_params.get("search")
         if search:
-            queryset = queryset.filter(Q(text__icontains=search) | Q(contact__name__icontains=search))
+            queryset = queryset.filter(
+                Q(created_on__gte=timezone.now() - self.SEARCH_WINDOW)
+                & (Q(text__icontains=search) | Q(contact__name__icontains=search))
+            )
 
         return queryset
