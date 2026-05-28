@@ -164,7 +164,7 @@
     <body class="bg-gradient" id="pageBody">
       {% if COMPONENTS_DEV_MODE %}
         <script type="module">
-          import '/out-tsc/temba-modules.js';
+          import '{{ COMPONENTS_DEV_URL }}/out-tsc/temba-modules.js';
         </script>
       {% else %}
         {% compress js %}
