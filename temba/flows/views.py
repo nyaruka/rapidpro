@@ -806,17 +806,6 @@ class FlowCRUDL(SmartCRUDL):
             if self.has_org_perm("orgs.org_export"):
                 menu.add_link(_("Export Definition"), f"{reverse('orgs.org_export')}?flow={obj.id}")
 
-            # limit PO export/import to non-archived flows since mailroom doesn't know about archived flows
-            if not obj.is_archived:
-                menu.add_modax(
-                    _("Export Translation"),
-                    "export-translation",
-                    reverse("flows.flow_export_translation", args=[obj.id]),
-                )
-
-                if self.has_org_perm("flows.flow_update"):
-                    menu.add_link(_("Import Translation"), reverse("flows.flow_import_translation", args=[obj.id]))
-
     class ChangeLanguage(OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.Form):
             language = forms.CharField(required=True)
