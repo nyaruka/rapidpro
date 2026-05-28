@@ -23,7 +23,6 @@ from django.utils.translation import gettext_lazy as _
 from temba import mailroom
 from temba.ai.models import LLM
 from temba.channels.models import Channel
-from temba.classifiers.models import Classifier
 from temba.contacts.models import Contact, ContactField, ContactGroup
 from temba.globals.models import Global
 from temba.msgs.models import Label, OptIn
@@ -166,7 +165,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
     # dependencies on other assets
     channel_dependencies = models.ManyToManyField(Channel, related_name="dependent_flows")
-    classifier_dependencies = models.ManyToManyField(Classifier, related_name="dependent_flows")
     field_dependencies = models.ManyToManyField(ContactField, related_name="dependent_flows")
     flow_dependencies = models.ManyToManyField("Flow", related_name="dependent_flows")
     global_dependencies = models.ManyToManyField(Global, related_name="dependent_flows")
@@ -504,7 +502,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         # or name (this is an import from other workspace)
         dep_types = {
             "channel": self.org.channels.filter(is_active=True),
-            "classifier": self.org.classifiers.filter(is_active=True),
             "flow": self.org.flows.filter(is_active=True),
             "llm": self.org.llms.filter(is_active=True),
             "template": self.org.templates.all(),
@@ -841,7 +838,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         # find all the dependencies in the database
         dep_objs = {
             "channel": self.org.channels.filter(is_active=True, uuid__in=identifiers["channel"]),
-            "classifier": self.org.classifiers.filter(is_active=True, uuid__in=identifiers["classifier"]),
             "field": self.org.fields.filter(is_active=True, is_proxy=False, key__in=identifiers["field"]),
             "flow": self.org.flows.filter(is_active=True, uuid__in=identifiers["flow"]),
             "global": self.org.globals.filter(is_active=True, key__in=identifiers["global"]),
@@ -959,7 +955,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             trigger.release(user)
 
         self.channel_dependencies.clear()
-        self.classifier_dependencies.clear()
         self.field_dependencies.clear()
         self.flow_dependencies.clear()
         self.global_dependencies.clear()

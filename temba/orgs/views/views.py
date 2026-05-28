@@ -532,22 +532,6 @@ class OrgCRUDL(SmartCRUDL):
                     if len(items):
                         menu.append(self.create_menu_item(name=_("Channels"), items=items, inline=True))
 
-                if self.has_org_perm("classifiers.classifier_read"):
-                    items = []
-                    classifiers = org.classifiers.filter(is_active=True).order_by(Lower("name"))
-                    for classifier in classifiers:
-                        items.append(
-                            self.create_menu_item(
-                                menu_id=classifier.uuid,
-                                name=classifier.name,
-                                href=reverse("classifiers.classifier_read", args=[classifier.uuid]),
-                                icon=classifier.get_type().get_icon(),
-                            )
-                        )
-
-                    if len(items):
-                        menu.append(self.create_menu_item(name=_("Classifiers"), items=items, inline=True))
-
                 if self.has_org_perm("archives.archive_message"):
                     items = [
                         self.create_menu_item(

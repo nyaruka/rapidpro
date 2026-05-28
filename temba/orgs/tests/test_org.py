@@ -14,8 +14,6 @@ from temba.api.models import Resthook, WebHookEvent
 from temba.archives.models import Archive
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.channels.models import SyncEvent
-from temba.classifiers.models import Classifier
-from temba.classifiers.types.wit import WitType
 from temba.contacts.models import ContactExport, ContactField, ContactFire, ContactImport, ContactImportBatch
 from temba.flows.models import FlowLabel, FlowRun, FlowSession, FlowStart, FlowStartCount, ResultsExport
 from temba.globals.models import Global
@@ -560,9 +558,6 @@ class OrgDeleteTest(TembaTest):
 
         global1 = add(Global.get_or_create(org, user, "org_name", "Org Name", "Acme Ltd"))
         flow1.global_dependencies.add(global1)
-
-        classifier1 = add(Classifier.create(org, user, WitType.slug, "Booker", {}, sync=False))
-        flow1.classifier_dependencies.add(classifier1)
 
         llm1 = add(LLM.create(org, user, OpenAIType(), "gpt-4o", "GPT-4", {}))
         flow1.llm_dependencies.add(llm1)

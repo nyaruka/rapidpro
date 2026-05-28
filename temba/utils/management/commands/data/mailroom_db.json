@@ -32,58 +32,6 @@
                     "team": "Partners"
                 }
             ],
-            "classifiers": [
-                {
-                    "uuid": "097e026c-ae79-4740-af67-656dbedf0263",
-                    "classifier_type": "luis",
-                    "name": "LUIS",
-                    "config": {
-                        "app_id": "12345",
-                        "version": "0.1",
-                        "endpoint_url": "https://foo.com",
-                        "primary_key": "sesame"
-                    },
-                    "intents": [
-                        {
-                            "name": "book_flight",
-                            "external_id": "10406609-9749-47d4-bd2b-f3b778d5a491"
-                        },
-                        {
-                            "name": "book_car",
-                            "external_id": "65eae80b-c0fb-4054-9d64-10de08e59a62"
-                        }
-                    ]
-                },
-                {
-                    "uuid": "ff2a817c-040a-4eb2-8404-7d92e8b79dd0",
-                    "classifier_type": "wit",
-                    "name": "Wit.ai",
-                    "config": {
-                        "app_id": "67890",
-                        "access_token": "sesame"
-                    },
-                    "intents": [
-                        {
-                            "name": "register",
-                            "external_id": "register"
-                        }
-                    ]
-                },
-                {
-                    "uuid": "859b436d-3005-4e43-9ad5-3de5f26ede4c",
-                    "classifier_type": "bothub",
-                    "name": "BotHub",
-                    "config": {
-                        "access_token": "access_token"
-                    },
-                    "intents": [
-                        {
-                            "name": "intent",
-                            "external_id": "intent"
-                        }
-                    ]
-                }
-            ],
             "channels": [
                 {
                     "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
@@ -520,7 +468,6 @@
                     "config": {}
                 }
             ],
-            "classifiers": [],
             "contacts": [
                 {
                     "uuid": "f6d20b72-f7d8-44dc-87f2-aae046dbff95",

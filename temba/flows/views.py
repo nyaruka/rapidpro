@@ -754,8 +754,6 @@ class FlowCRUDL(SmartCRUDL):
                 features.append("whatsapp")
             if org.get_integrations(IntegrationType.Category.AIRTIME):
                 features.append("airtime")
-            if org.classifiers.filter(is_active=True).exists():
-                features.append("classifier")
             if org.get_resthooks():
                 features.append("resthook")
             if org.root_location_id:
