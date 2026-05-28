@@ -43,8 +43,8 @@
     <temba-tab icon="campaign" name="{{ _("Up Next") |escapejs }}">
       <div style="border-top-right-radius: var(--curvature)"
            class="flex flex-grow flex-col py-4 px-1 overflow-y-auto">
-        <temba-contact-events contact="{{ object.uuid }}" -temba-selection="handleTimelineClicked">
-        </temba-contact-events>
+        <temba-contact-timeline contact="{{ object.uuid }}" -temba-selection="handleTimelineClicked">
+        </temba-contact-timeline>
       </div>
     </temba-tab>
     <temba-tab icon="notes" name="{{ _("Notepad") }}" activity>
@@ -86,7 +86,7 @@
       var contact = evt.detail.data;
 
       // if our contact refreshes, refresh the timeline
-      var timeline = document.querySelector("temba-contact-events");
+      var timeline = document.querySelector("temba-contact-timeline");
       if (timeline) {
         timeline.refresh();
       }
