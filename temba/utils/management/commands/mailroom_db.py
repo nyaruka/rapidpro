@@ -14,7 +14,6 @@ from django.utils import timezone
 from temba.ai.models import LLM
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.channels.models import Channel
-from temba.classifiers.models import Classifier
 from temba.contacts.models import Contact, ContactField, ContactGroup, ContactURN
 from temba.flows.models import Flow
 from temba.globals.models import Global
@@ -190,7 +189,6 @@ class Command(BaseCommand):
         self.create_group_contacts(spec, org, superuser)
         self.create_campaigns(spec, org, superuser)
         self.create_templates(spec, org, superuser)
-        self.create_classifiers(spec, org, superuser)
         self.create_topics(spec, org, superuser)
         self.create_teams(spec, org, superuser)
         self.create_llms(spec, org, superuser)
@@ -214,28 +212,6 @@ class Command(BaseCommand):
                 created_by=user,
                 modified_by=user,
             )
-
-        self._log(self.style.SUCCESS("OK") + "\n")
-
-    def create_classifiers(self, spec, org, user):
-        self._log(f"Creating {len(spec['classifiers'])} classifiers... ")
-
-        for c in spec["classifiers"]:
-            classifier = Classifier.objects.create(
-                org=org,
-                name=c["name"],
-                config=c["config"],
-                classifier_type=c["classifier_type"],
-                uuid=c["uuid"],
-                created_by=user,
-                modified_by=user,
-            )
-
-            # add the intents
-            for intent in c["intents"]:
-                classifier.intents.create(
-                    name=intent["name"], external_id=intent["external_id"], created_on=timezone.now()
-                )
 
         self._log(self.style.SUCCESS("OK") + "\n")
 

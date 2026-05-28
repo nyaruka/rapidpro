@@ -1165,10 +1165,6 @@ class Org(SmartModel):
         for glob in self.globals.all():
             glob.delete()
 
-        for classifier in self.classifiers.all():
-            classifier.release(user)
-            classifier.delete()
-
         for llm in self.llms.all():
             llm.delete()
 

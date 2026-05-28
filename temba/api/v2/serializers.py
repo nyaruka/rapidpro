@@ -12,7 +12,6 @@ from temba import mailroom
 from temba.archives.models import Archive
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.channels.models import Channel, ChannelEvent
-from temba.classifiers.models import Classifier
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactNote, ContactURN
 from temba.flows.models import Flow, FlowRun, FlowStart
 from temba.globals.models import Global
@@ -539,22 +538,6 @@ class ChannelReadSerializer(ReadSerializer):
     class Meta:
         model = Channel
         fields = ("uuid", "name", "address", "type", "country", "device", "last_seen", "created_on")
-
-
-class ClassifierReadSerializer(ReadSerializer):
-    type = serializers.SerializerMethodField()
-    intents = serializers.SerializerMethodField()
-    created_on = serializers.DateTimeField(default_timezone=tzone.utc)
-
-    def get_type(self, obj):
-        return obj.classifier_type
-
-    def get_intents(self, obj):
-        return [i.name for i in obj.intents.filter(is_active=True).order_by("name")]
-
-    class Meta:
-        model = Classifier
-        fields = ("uuid", "name", "type", "intents", "created_on")
 
 
 class ContactReadSerializer(ReadSerializer):
