@@ -76,6 +76,18 @@ class MiddlewareTest(TembaTest):
         with override_brand(redirect="/redirect"):
             self.assertRedirect(self.client.get(reverse("public.public_index")), "/redirect")
 
+    def test_preview(self):
+        index_url = reverse("public.public_index")
+
+        # ?preview=1 opts in and sets the year-long cookie
+        response = self.client.get(index_url + "?preview=1")
+        self.assertEqual("1", response.cookies["temba-preview"].value)
+        self.assertEqual(365 * 24 * 60 * 60, response.cookies["temba-preview"]["max-age"])
+
+        # ?preview=0 opts out and clears the cookie
+        response = self.client.get(index_url + "?preview=0")
+        self.assertEqual("", response.cookies["temba-preview"].value)
+
     def test_language(self):
         def assert_text(text: str):
             self.assertContains(self.client.get(settings.LOGIN_URL, follow=True), text)

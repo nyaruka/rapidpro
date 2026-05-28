@@ -340,6 +340,18 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContentMenu(label3_url, self.editor, ["Edit", "Delete", "-", "Export", "Usages"])
         self.assertContentMenu(label1_url, self.admin, ["Edit", "Delete", "-", "Export", "Usages"])
 
+        # in preview mode the filter view renders the new list and exposes a label-scoped endpoint and label-name subtitle
+        self.client.cookies["temba-preview"] = "1"
+        try:
+            preview_response = self.client.get(label1_url)
+            self.assertContains(preview_response, "temba-msg-list")
+            self.assertEqual(
+                f"/api/internal/messages.json?label={label1.uuid}", preview_response.context["new_list_endpoint"]
+            )
+            self.assertIn("label1", preview_response.context["new_list_subtitle"])
+        finally:
+            del self.client.cookies["temba-preview"]
+
     def test_export(self):
         export_url = reverse("msgs.msg_export")
 
