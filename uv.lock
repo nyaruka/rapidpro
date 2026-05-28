@@ -1794,7 +1794,7 @@ requires-dist = [
     { name = "requests-toolbelt", specifier = "~=1.0.0" },
     { name = "slack-sdk", specifier = "~=3.17.0" },
     { name = "smartmin", specifier = ">=5.2.4,<6.0.0" },
-    { name = "twilio", specifier = "~=9.3.7" },
+    { name = "twilio", specifier = ">=9.10.9,<10.0.0" },
     { name = "vonage", specifier = "~=3.17.4" },
     { name = "xlsxlite", specifier = "~=1.0.0" },
 ]
@@ -1830,7 +1830,7 @@ wheels = [
 
 [[package]]
 name = "twilio"
-version = "9.3.8"
+version = "9.10.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -1838,9 +1838,9 @@ dependencies = [
     { name = "pyjwt" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7e/dc/4b92a4c395337bb0ad1cdd3df037e69b405f68bc9d29d0df5cc0ef460e70/twilio-9.3.8.tar.gz", hash = "sha256:93a80639db711e58915cfdf772da6274b005ef86f5d2f6092433cb3d53a25303", size = 953259, upload-time = "2024-12-05T10:24:38.363Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/30/af/275130be4783c6e2b2122d3b278b63da0007611d1dc073d6414adcc6be03/twilio-9.10.9.tar.gz", hash = "sha256:eb74fc026c85a89372836414f57e262119efaa160b9419cf4d05b59056b8e89d", size = 1762839, upload-time = "2026-05-07T17:34:38.162Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ff/8d/88818751c44278bae52eefa6b166932aecff3692a6ddcca05df6501261e7/twilio-9.3.8-py2.py3-none-any.whl", hash = "sha256:fce1f629295285d583dbe1d615f114a77aab25a654ba569bb18d304d31e9ca3b", size = 1820013, upload-time = "2024-12-05T10:24:35.945Z" },
+    { url = "https://files.pythonhosted.org/packages/ed/6b/df08b499d01ba6b9f7f42f9dd51b82aab1eb26c93602f3b89179a520494f/twilio-9.10.9-py2.py3-none-any.whl", hash = "sha256:1c50bfb394b5dbc044bacab24b2e3b550bee0c08da51c4a1fa4816293303e66c", size = 2452983, upload-time = "2026-05-07T17:34:36.459Z" },
 ]
 
 [[package]]

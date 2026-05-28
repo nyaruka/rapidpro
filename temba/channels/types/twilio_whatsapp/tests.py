@@ -16,10 +16,17 @@ from .type import TwilioWhatsappType
 
 
 class TwilioWhatsappTypeTest(TembaTest):
+    def add_twilio_session(self):
+        session = self.client.session
+        session[TwilioWhatsappType.SESSION_ACCOUNT_SID] = "account-sid"
+        session[TwilioWhatsappType.SESSION_AUTH_TOKEN] = "account-token"
+        session.save()
+
+    @patch("temba.channels.types.twilio_whatsapp.views.ClaimView.get_whatsapp_senders", return_value=[])
     @patch("temba.channels.types.twilio_whatsapp.views.TwilioClient", MockTwilioClient)
     @patch("temba.channels.types.twilio.views.TwilioClient", MockTwilioClient)
     @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
-    def test_claim(self):
+    def test_claim(self, mock_senders):
         self.login(self.admin)
 
         claim_twilio = reverse("channels.types.twilio_whatsapp.claim")
@@ -37,10 +44,7 @@ class TwilioWhatsappTypeTest(TembaTest):
         self.assertEqual(response.request["PATH_INFO"], reverse("channels.types.twilio.connect"))
 
         # attach a Twilio account to the session
-        session = self.client.session
-        session[TwilioWhatsappType.SESSION_ACCOUNT_SID] = "account-sid"
-        session[TwilioWhatsappType.SESSION_AUTH_TOKEN] = "account-token"
-        session.save()
+        self.add_twilio_session()
 
         # hit the claim page, should now have a claim twilio link
         response = self.client.get(reverse("channels.channel_claim"))
@@ -137,6 +141,41 @@ class TwilioWhatsappTypeTest(TembaTest):
                 self.assertNotIn(TwilioWhatsappType.SESSION_ACCOUNT_SID, self.client.session)
                 self.assertNotIn(TwilioWhatsappType.SESSION_AUTH_TOKEN, self.client.session)
 
+        # a registered WhatsApp sender that isn't an incoming number on the account can also be claimed
+        self.add_twilio_session()
+
+        mock_senders.return_value = [
+            dict(e164="+14155550199", number="+1 415-555-0199", country="US", sid="XE1234567890"),
+        ]
+
+        with patch("temba.tests.twilio.MockTwilioClient.MockPhoneNumbers.stream") as mock_numbers:
+            # not an incoming number on the account
+            mock_numbers.return_value = iter([])
+
+            response = self.client.get(claim_twilio)
+            self.assertContains(response, "415-555-0199")
+
+            mock_numbers.return_value = iter([])
+            response = self.client.post(claim_twilio, dict(country="US", phone_number="+14155550199"))
+            self.assertRedirects(response, reverse("public.public_welcome") + "?success")
+
+            # the sender's SID is stored in the number_sid config
+            channel = Channel.objects.get(channel_type="TWA", org=self.org, address="+14155550199")
+            self.assertEqual("XE1234567890", channel.config[Channel.CONFIG_NUMBER_SID])
+            self.assertEqual(Channel.ROLE_SEND + Channel.ROLE_RECEIVE, channel.role)
+
+        # a number that is neither an incoming number nor a registered sender still can't be claimed
+        self.add_twilio_session()
+
+        mock_senders.return_value = []
+
+        with patch("temba.tests.twilio.MockTwilioClient.MockPhoneNumbers.stream") as mock_numbers:
+            mock_numbers.return_value = iter([])
+            response = self.client.post(claim_twilio, dict(country="US", phone_number="+14155550111"))
+            self.assertFormError(
+                response.context["form"], "phone_number", "Only existing Twilio WhatsApp number are supported"
+            )
+
         twilio_channel = self.org.channels.all().first()
         # make channel support both sms and voice to check we clear both applications
         twilio_channel.role = Channel.ROLE_SEND + Channel.ROLE_RECEIVE + Channel.ROLE_ANSWER + Channel.ROLE_CALL
@@ -147,6 +186,38 @@ class TwilioWhatsappTypeTest(TembaTest):
 
         self.client.post(reverse("channels.channel_delete", args=[twilio_channel.pk]))
         self.assertIsNotNone(self.org.channels.all().first())
+
+    @patch("temba.channels.types.twilio_whatsapp.views.TwilioClient", MockTwilioClient)
+    @patch("temba.channels.types.twilio.views.TwilioClient", MockTwilioClient)
+    @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
+    def test_claim_lists_only_online_senders(self):
+        self.login(self.admin)
+
+        claim_twilio = reverse("channels.types.twilio_whatsapp.claim")
+        self.org.channels.update(is_active=False)
+
+        self.add_twilio_session()
+
+        # senders API returns a mix of statuses
+        senders = [
+            MockTwilioClient.MockChannelsSender("whatsapp:+14155550199", status="ONLINE", sid="XEonline"),
+            MockTwilioClient.MockChannelsSender("whatsapp:+14155550100", status="CREATING", sid="XEpending"),
+            MockTwilioClient.MockChannelsSender("whatsapp:+14155550222", status="ONLINE", sid="XEonline2"),
+        ]
+
+        with (
+            patch("temba.tests.twilio.MockTwilioClient.MockPhoneNumbers.stream") as mock_numbers,
+            patch("temba.tests.twilio.MockTwilioClient.MockChannelsSenders.stream") as mock_senders,
+        ):
+            mock_numbers.return_value = iter([])
+            mock_senders.return_value = iter(senders)
+
+            response = self.client.get(claim_twilio)
+            # ONLINE senders are offered...
+            self.assertContains(response, "415-555-0199")
+            self.assertContains(response, "415-555-0222")
+            # ...but the non-ONLINE one is filtered out
+            self.assertNotContains(response, "415-555-0100")
 
     def test_get_error_ref_url(self):
         self.assertEqual(
