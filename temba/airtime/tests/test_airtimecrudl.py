@@ -12,7 +12,7 @@ class AirtimeCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.transfer1 = AirtimeTransfer.objects.create(
             org=self.org,
-            status=AirtimeTransfer.STATUS_SUCCESS,
+            status=AirtimeTransfer.STATUS_COMPLETED,
             contact=contact,
             recipient="tel:+250700000003",
             currency="RWF",
@@ -21,7 +21,7 @@ class AirtimeCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.transfer2 = AirtimeTransfer.objects.create(
             org=self.org,
-            status=AirtimeTransfer.STATUS_FAILED,
+            status=AirtimeTransfer.STATUS_REJECTED,
             sender="tel:+250700000002",
             contact=contact,
             recipient="tel:+250700000003",
@@ -33,7 +33,7 @@ class AirtimeCRUDLTest(TembaTest, CRUDLTestMixin):
         # and a transfer for a different org
         self.other_org_transfer = AirtimeTransfer.objects.create(
             org=self.org2,
-            status=AirtimeTransfer.STATUS_SUCCESS,
+            status=AirtimeTransfer.STATUS_COMPLETED,
             contact=self.create_contact("Frank", phone="+12065552021", org=self.org2),
             recipient="tel:+12065552021",
             currency="USD",
