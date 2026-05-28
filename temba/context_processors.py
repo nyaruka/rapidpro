@@ -5,6 +5,7 @@ def config(request):
     return {
         "COMPONENTS_DEV_MODE": getattr(settings, "COMPONENTS_DEV_MODE", False),
         "COMPONENTS_DEV_HOST": getattr(settings, "COMPONENTS_DEV_HOST", "localhost"),
+        "COMPONENTS_DEV_URL": getattr(settings, "COMPONENTS_DEV_URL", ""),
     }
 
 

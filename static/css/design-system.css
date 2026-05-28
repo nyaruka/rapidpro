@@ -16,8 +16,8 @@
 
      If JS isn't loaded, the CSS fallback color-mix definitions below
      still produce the same ramp from --primary-rgb. */
-  --primary:     #6293C9;
-  --primary-rgb: 98, 147, 201;
+  --primary:     #497FCE;
+  --primary-rgb: 73, 127, 206;
 
   /* accent ramp — derived from --primary-rgb via sRGB mixing.
      400 == primary; the ramp computes outward in both directions. */
@@ -36,9 +36,11 @@
   /* neutrals */
   --bg:            #F6F7F9;
   --surface:       #FFFFFF;
+  --surface-note:  #FFF9C2;
   --sunken:        #F1F3F5;
   --border:        #E6E8EC;
   --border-strong: #D2D6DC;
+  --border-note:   #EBDF6F;
   --text-1:        #1A1F26;   /* primary copy */
   --text-2:        #4D5664;   /* secondary */
   --text-3:        #7B8593;   /* tertiary, captions */
@@ -76,9 +78,10 @@
   --r-lg:   12px;
 
   /* density */
-  --row-h:  36px;
-  --pad:    10px;
-  --gap:    14px;
+  --row-h:   36px;
+  --input-h: 34px;
+  --pad:     10px;
+  --gap:     14px;
 
   /* shadows */
   --shadow-1: 0 1px 1px rgba(15, 22, 36, 0.04), 0 1px 2px rgba(15, 22, 36, 0.04);

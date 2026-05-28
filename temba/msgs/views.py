@@ -3,6 +3,7 @@ import os
 from datetime import timedelta
 from functools import cached_property
 from urllib.parse import quote_plus
+from uuid import UUID
 
 import magic
 from smartmin.views import SmartCreateView, SmartCRUDL, SmartDeleteView, SmartUpdateView
@@ -13,6 +14,7 @@ from django.db.models.functions.text import Lower
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import RedirectView
 
@@ -63,6 +65,71 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     folder = None
     paginate_by = 100
 
+    # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview, every
+    # MsgListView subclass with a folder/label renders msgs/msg_list_new.html instead of its legacy template.
+    NEW_LIST_TEMPLATE = "msgs/msg_list_new.html"
+
+    # Optional subtitle rendered under the title on the new-list view;
+    # subclasses may override to describe what the folder contains.
+    subtitle = ""
+
+    # Bulk-action key -> config consumed by temba-content-list (label,
+    # icon, optional labelsEndpoint / destructive flag).
+    BULK_ACTION_CONFIG = {
+        "label": {"label": _("Label"), "icon": "tag-01", "labelsEndpoint": "/api/v2/labels.json"},
+        "archive": {"label": _("Archive"), "icon": "archive"},
+        # `restore_messages` resolves to inbox-01 in temba-components — the
+        # generic `restore` icon is a play button (used for reactivating
+        # flows/triggers/campaigns) which reads strangely for messages.
+        "restore": {"label": _("Restore"), "icon": "restore_messages"},
+        "delete": {
+            "label": _("Delete"),
+            "icon": "delete",
+            "destructive": True,
+            "confirm": _("Delete selected messages? This cannot be undone."),
+        },
+        "resend": {"label": _("Resend"), "icon": "send"},
+    }
+
+    def _use_new_list(self) -> bool:
+        # The folder for a message list is either one of the built-in MsgFolder enum values (Inbox / Handled / …) or
+        # a user-defined Label (the filter view binds it in derive_folder); both render through the same new-list
+        # template when the viewer is in preview mode. `getattr` defaults to False so a view called via RequestFactory
+        # (or if PreviewMiddleware is ever reordered out) doesn't AttributeError.
+        return getattr(self.request, "preview", False) and isinstance(self.derive_folder(), (MsgFolder, Label))
+
+    def get_template_names(self):
+        if self._use_new_list():
+            return [self.NEW_LIST_TEMPLATE]
+        return super().get_template_names()
+
+    def get_paginate_by(self, queryset):
+        # The temba-msg-list component fetches and pages messages itself.
+        if self._use_new_list():
+            return None
+        return super().get_paginate_by(queryset)
+
+    def post(self, request, *args, **kwargs):
+        # The temba-msg-list label dropdown posts the label by uuid, but
+        # BulkActionMixin matches by id — translate the uuid here so both
+        # the new component and the legacy form post are accepted. A non-
+        # uuid value (the legacy form's integer id) is left alone. Only
+        # touch the label field on label/unlabel actions so an unrelated
+        # POST that happens to carry a `label` key isn't rewritten.
+        if request.POST.get("action") in ("label", "unlabel"):
+            label = request.POST.get("label")
+            if label:
+                try:
+                    UUID(label)
+                except ValueError:
+                    pass
+                else:
+                    obj = self.request.org.msgs_labels.filter(uuid=label).first()
+                    request.POST = request.POST.copy()
+                    request.POST["label"] = str(obj.id) if obj else ""
+
+        return super().post(request, *args, **kwargs)
+
     def pre_process(self, request, *args, **kwargs):
         if self.folder:
             self.queryset = self.folder.get_queryset(request.org)
@@ -72,6 +139,9 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     def derive_folder(self):
         return self.folder
 
+    def derive_subtitle(self):
+        return self.subtitle
+
     def derive_export_url(self):
         redirect = quote_plus(self.request.get_full_path())
         folder = self.derive_folder()
@@ -79,7 +149,7 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
         return "%s?l=%s&redirect=%s" % (reverse("msgs.msg_export"), label_id, redirect)
 
     def get_queryset(self, **kwargs):
-        qs = super().get_queryset(**kwargs)
+        qs = super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
 
         # if we are searching, limit to last 90, and enforce distinct since we'll be joining on multiple tables
         if self.search_fields and "search" in self.request.GET:
@@ -109,6 +179,28 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
             any(counts.values()) or Archive.objects.filter(org=org, archive_type=Archive.TYPE_MSG).exists()
         )
 
+        # New-list view context: the resolved messages-api endpoint
+        # (folder= for the built-in folders, label= for a user label),
+        # the subtitle, and the bulk-action configs the temba-msg-list
+        # expects (resolved + JSON-encoded here so the template stays
+        # inert).
+        if self._use_new_list():
+            if isinstance(folder, Label):
+                query = f"label={folder.uuid}"
+            else:
+                query = f"folder={folder.name.lower()}"
+            context["new_list_endpoint"] = f"{reverse('api.internal.messages')}.json?{query}"
+            subtitle = self.derive_subtitle()
+            context["new_list_subtitle"] = str(subtitle) if subtitle else ""
+            actions = []
+            for key in self.get_bulk_actions():
+                cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
+                cfg["key"] = key
+                # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
+                cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
+                actions.append(cfg)
+            context["new_list_bulk_actions"] = actions
+
         return context
 
     def get_bulk_action_labels(self):
@@ -117,7 +209,12 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     def build_context_menu(self, menu):
         if self.has_org_perm("msgs.broadcast_create"):
             menu.add_modax(
-                _("Send"), "send-message", reverse("msgs.broadcast_create"), title=_("New Broadcast"), as_button=True
+                _("Send"),
+                "send-message",
+                reverse("msgs.broadcast_create"),
+                title=_("New Broadcast"),
+                as_button=True,
+                primary=True,
             )
         if self.has_org_perm("msgs.label_create"):
             menu.add_modax(_("New Label"), "new-msg-label", reverse("msgs.label_create"), title=_("New Label"))
@@ -693,6 +790,7 @@ class MsgCRUDL(SmartCRUDL):
 
     class Inbox(MsgListView):
         title = _("Inbox")
+        subtitle = _("Incoming messages that weren't automatically handled by a flow.")
         folder = MsgFolder.INBOX
         search_fields = ("text__icontains", "contact__name__icontains")
         bulk_actions = ("archive", "label")
@@ -704,11 +802,11 @@ class MsgCRUDL(SmartCRUDL):
             return r"^%s/$" % (path)
 
         def get_queryset(self, **kwargs):
-            qs = super().get_queryset(**kwargs)
-            return qs.prefetch_related("labels").select_related("contact", "channel")
+            return super().get_queryset(**kwargs).prefetch_related("labels")
 
     class Flow(MsgListView):
         title = _("Handled")
+        subtitle = _("Incoming messages that were handled by a flow.")
         folder = MsgFolder.HANDLED
         search_fields = ("text__icontains", "contact__name__icontains")
         bulk_actions = ("archive", "label")
@@ -716,22 +814,22 @@ class MsgCRUDL(SmartCRUDL):
         menu_path = "/msg/handled"
 
         def get_queryset(self, **kwargs):
-            qs = super().get_queryset(**kwargs)
-            return qs.prefetch_related("labels").select_related("contact", "channel", "flow")
+            return super().get_queryset(**kwargs).prefetch_related("labels")
 
     class Archived(MsgListView):
         title = _("Archived")
+        subtitle = _("Incoming messages you've archived from your inbox.")
         folder = MsgFolder.ARCHIVED
         search_fields = ("text__icontains", "contact__name__icontains")
         bulk_actions = ("restore", "label", "delete")
         allow_export = True
 
         def get_queryset(self, **kwargs):
-            qs = super().get_queryset(**kwargs)
-            return qs.prefetch_related("labels").select_related("contact", "channel", "flow")
+            return super().get_queryset(**kwargs).prefetch_related("labels")
 
     class Outbox(MsgListView):
         title = _("Outbox")
+        subtitle = _("Outgoing messages queued to be sent.")
         folder = MsgFolder.OUTBOX
         bulk_actions = ()
         allow_export = True
@@ -741,40 +839,36 @@ class MsgCRUDL(SmartCRUDL):
             context["outbox_warning"] = MsgFolder.OUTBOX.get_count(self.request.org) >= Org.OUTBOX_WARNING_THRESHOLD
             return context
 
-        def get_queryset(self, **kwargs):
-            return super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
-
     class Sent(MsgListView):
         title = _("Sent")
+        subtitle = _("Outgoing messages that have been sent.")
         template_name = "msgs/msg_sent.html"
         folder = MsgFolder.SENT
         bulk_actions = ()
         allow_export = True
         default_order = ("-sent_on", "-id")
 
-        def get_queryset(self, **kwargs):
-            return super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
-
     class Failed(MsgListView):
         title = _("Failed")
+        subtitle = _("Outgoing messages that couldn't be delivered.")
         folder = MsgFolder.FAILED
         allow_export = True
 
         def get_bulk_actions(self):
             return () if self.request.org.is_suspended else ("resend",)
 
-        def get_queryset(self, **kwargs):
-            return super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
-
     class Filter(MsgListView):
         search_fields = ("text__icontains", "contact__name__icontains")
-        bulk_actions = ("label",)
+        bulk_actions = ("archive", "label")
 
         def derive_menu_path(self):
             return f"/msg/labels/{self.label.uuid}"
 
         def derive_title(self, *args, **kwargs):
             return self.label.name
+
+        def derive_subtitle(self):
+            return _("Messages tagged with the %(label)s label.") % {"label": self.label.name}
 
         def build_context_menu(self, menu):
             if self.has_org_perm("msgs.msg_update"):
@@ -812,11 +906,11 @@ class MsgCRUDL(SmartCRUDL):
             return self.label
 
         def get_queryset(self, **kwargs):
-            qs = super().get_queryset(**kwargs)
             return (
-                qs.filter(labels=self.label, visibility=Msg.VISIBILITY_VISIBLE)
+                super()
+                .get_queryset(**kwargs)
+                .filter(labels=self.label, visibility=Msg.VISIBILITY_VISIBLE)
                 .prefetch_related("labels")
-                .select_related("contact", "channel", "flow")
             )
 
 

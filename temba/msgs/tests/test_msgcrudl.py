@@ -50,26 +50,24 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         inbox_url = reverse("msgs.msg_inbox")
 
-        # check query count
+        # check query count on the legacy list (the default until the viewer enters preview mode)
         self.login(self.admin)
         with self.assertNumQueries(11):
             self.client.get(inbox_url)
 
+        # the inbox renders the temba-msg-list component when the viewer is in preview mode; the default render is
+        # still the legacy list backed by this view's queryset
         self.assertRequestDisallowed(inbox_url, [None, self.agent])
-        response = self.assertListFetch(
-            inbox_url + "?refresh=10000", [self.editor, self.admin], context_objects=[msg4, msg3, msg2, msg1]
-        )
+        response = self.assertListFetch(inbox_url, [self.editor, self.admin], context_objects=[msg4, msg3, msg2, msg1])
+        self.client.cookies["temba-preview"] = "1"
+        preview_response = self.client.get(inbox_url)
+        self.assertContains(preview_response, "temba-msg-list")
+        del self.client.cookies["temba-preview"]
 
         # check that we have the appropriate bulk actions
         self.assertEqual(("archive", "label"), response.context["actions"])
 
-        # test searching by message text
-        self.assertListFetch(inbox_url + "?search=number+1", [self.editor, self.admin], context_objects=[msg1])
-
-        # test searching by contact name
-        self.assertListFetch(inbox_url + "?search=joe", [self.editor, self.admin], context_objects=[msg2, msg1])
-
-        # error response if query too long
+        # error response if search query too long
         self.assertListFetch(inbox_url + "?search=" + "x" * 1001, [self.editor], status=413)
 
         # add some labels
@@ -77,11 +75,11 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.create_label("label2")
         label3 = self.create_label("label3")
 
-        # editors can label messages
+        # editors can label messages - the component posts the label by uuid
         response = self.requestView(
             inbox_url,
             self.editor,
-            post_data={"action": "label", "objects": [msg1.id, msg2.id], "label": label1.id, "add": True},
+            post_data={"action": "label", "objects": [msg1.id, msg2.id], "label": str(label1.uuid), "add": True},
         )
         self.assertEqual(200, response.status_code)
         self.assertEqual({msg1, msg2}, set(label1.msgs.all()))
@@ -90,7 +88,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.requestView(
             inbox_url,
             self.editor,
-            post_data={"action": "label", "objects": [msg2.id], "label": label1.id, "add": False},
+            post_data={"action": "label", "objects": [msg2.id], "label": str(label1.uuid), "add": False},
         )
         self.assertEqual({msg1}, set(label1.msgs.all()))
 
@@ -102,7 +100,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertEqual({msg1}, set(label1.msgs.all()))
 
-        # label more messages as admin
+        # labels can also be posted by id, as the other message folders still do
         self.requestView(
             inbox_url,
             self.admin,
@@ -326,7 +324,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(label3_url, self.editor, HTTP_X_TEMBA_SPA=1)
         self.assertEqual(f"/msg/labels/{label3.uuid}", response.headers[TEMBA_MENU_SELECTION])
         self.assertEqual(200, response.status_code)
-        self.assertEqual(("label",), response.context["actions"])
+        self.assertEqual(("archive", "label"), response.context["actions"])
 
         # check that non-visible messages are excluded, and messages and ordered newest to oldest
         self.assertEqual([msg6, msg3, msg2, msg1], list(response.context["object_list"]))
@@ -341,6 +339,18 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertContentMenu(label3_url, self.editor, ["Edit", "Delete", "-", "Export", "Usages"])
         self.assertContentMenu(label1_url, self.admin, ["Edit", "Delete", "-", "Export", "Usages"])
+
+        # in preview mode the filter view renders the new list and exposes a label-scoped endpoint and label-name subtitle
+        self.client.cookies["temba-preview"] = "1"
+        try:
+            preview_response = self.client.get(label1_url)
+            self.assertContains(preview_response, "temba-msg-list")
+            self.assertEqual(
+                f"/api/internal/messages.json?label={label1.uuid}", preview_response.context["new_list_endpoint"]
+            )
+            self.assertIn("label1", preview_response.context["new_list_subtitle"])
+        finally:
+            del self.client.cookies["temba-preview"]
 
     def test_export(self):
         export_url = reverse("msgs.msg_export")

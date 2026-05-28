@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.urls import reverse
 from django.utils import timezone
 
@@ -6,6 +8,7 @@ from temba.ai.types.anthropic.type import AnthropicType
 from temba.ai.types.openai.type import OpenAIType
 from temba.api.tests.mixins import APITestMixin
 from temba.contacts.models import ContactExport
+from temba.msgs.models import Msg
 from temba.notifications.types import ExportFinishedNotificationType
 from temba.templates.models import TemplateTranslation
 from temba.tests import TembaTest, matchers
@@ -61,6 +64,170 @@ class EndpointsTest(APITestMixin, TembaTest):
         # missing or invalid level, no results
         self.assertGet(endpoint_url + "?level=hood", [self.agent], results=[])
         self.assertGet(endpoint_url, [self.agent], results=[])
+
+    def test_messages(self):
+        endpoint_url = reverse("api.internal.messages") + ".json"
+
+        self.assertGetNotPermitted(endpoint_url, [None, self.agent])
+        self.assertPostNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        contact1 = self.create_contact("Ann", phone="+1234567001")
+        contact2 = self.create_contact("Bob", phone="+1234567002")
+        label = self.create_label("Spam")
+
+        # inbox messages (incoming, handled, visible, no flow)
+        msg1 = self.create_incoming_msg(contact1, "Hello there")
+        msg2 = self.create_incoming_msg(contact2, "Look at this", attachments=["image/jpeg:https://example.com/a.jpg"])
+        msg2.labels.add(label)
+
+        # a message in another folder shouldn't appear in the inbox
+        archived = self.create_incoming_msg(contact1, "Archived", visibility=Msg.VISIBILITY_ARCHIVED)
+
+        msg1_logs_url = reverse("channels.channel_logs_read", args=[self.channel.uuid, "msg", msg1.uuid])
+        msg2_logs_url = reverse("channels.channel_logs_read", args=[self.channel.uuid, "msg", msg2.uuid])
+
+        # admin has `channels.channel_logs` so as_json resolves logs_url to a real path
+        self.assertGet(
+            endpoint_url,
+            [self.admin],
+            results=[
+                {
+                    "id": msg2.id,
+                    "uuid": str(msg2.uuid),
+                    "type": "text",
+                    "contact": {"uuid": str(contact2.uuid), "name": "Bob"},
+                    "text": "Look at this",
+                    "attachments": [{"content_type": "image/jpeg", "url": "https://example.com/a.jpg"}],
+                    "labels": [{"uuid": str(label.uuid), "name": "Spam"}],
+                    "flow": None,
+                    "created_on": matchers.ISODatetime(),
+                    "logs_url": msg2_logs_url,
+                },
+                {
+                    "id": msg1.id,
+                    "uuid": str(msg1.uuid),
+                    "type": "text",
+                    "contact": {"uuid": str(contact1.uuid), "name": "Ann"},
+                    "text": "Hello there",
+                    "attachments": [],
+                    "labels": [],
+                    "flow": None,
+                    "created_on": matchers.ISODatetime(),
+                    "logs_url": msg1_logs_url,
+                },
+            ],
+        )
+
+        # editor lacks `channels.channel_logs` so logs_url is gated to None
+        self.assertGet(
+            endpoint_url,
+            [self.editor],
+            results=[
+                {
+                    "id": msg2.id,
+                    "uuid": str(msg2.uuid),
+                    "type": "text",
+                    "contact": {"uuid": str(contact2.uuid), "name": "Bob"},
+                    "text": "Look at this",
+                    "attachments": [{"content_type": "image/jpeg", "url": "https://example.com/a.jpg"}],
+                    "labels": [{"uuid": str(label.uuid), "name": "Spam"}],
+                    "flow": None,
+                    "created_on": matchers.ISODatetime(),
+                    "logs_url": None,
+                },
+                {
+                    "id": msg1.id,
+                    "uuid": str(msg1.uuid),
+                    "type": "text",
+                    "contact": {"uuid": str(contact1.uuid), "name": "Ann"},
+                    "text": "Hello there",
+                    "attachments": [],
+                    "labels": [],
+                    "flow": None,
+                    "created_on": matchers.ISODatetime(),
+                    "logs_url": None,
+                },
+            ],
+        )
+
+        # backdated past the channel-log retention window: logs_url is gated to None even for admin.
+        # `created_on` is passed at insert time because a DB trigger forbids changing it after the fact.
+        old_msg = self.create_incoming_msg(contact1, "Older", created_on=timezone.now() - timedelta(days=30))
+        response = self.assertGet(endpoint_url + f"?search={old_msg.text}", [self.admin], results=[old_msg])
+        self.assertIsNone(response.json()["results"][0]["logs_url"])
+
+        # inactive channel: logs_url is gated to None
+        live_msg = self.create_incoming_msg(contact1, "Liveone")
+        self.channel.is_active = False
+        self.channel.save(update_fields=("is_active",))
+        try:
+            response = self.assertGet(endpoint_url + f"?search={live_msg.text}", [self.admin], results=[live_msg])
+            self.assertIsNone(response.json()["results"][0]["logs_url"])
+        finally:
+            self.channel.is_active = True
+            self.channel.save(update_fields=("is_active",))
+
+        # anonymous org with an unnamed contact: as_json returns the masked ref (not the urn) for the contact name
+        anon_contact = self.create_contact("", phone="+1234567099")
+        anon_msg = self.create_incoming_msg(anon_contact, "Anonymous")
+        with self.anonymous(self.org):
+            response = self.assertGet(endpoint_url + f"?search={anon_msg.text}", [self.admin], results=[anon_msg])
+            masked_name = response.json()["results"][0]["contact"]["name"]
+            self.assertNotIn("1234567099", masked_name)
+            self.assertEqual(anon_contact.ref, masked_name)
+
+        # can select a different folder
+        self.assertGet(endpoint_url + "?folder=archived", [self.admin], results=[archived])
+
+        # an unknown folder returns nothing
+        self.assertGet(endpoint_url + "?folder=nope", [self.admin], results=[])
+
+        # ?folder=sent orders by sent_on rather than created_on
+        sent_old = self.create_outgoing_msg(contact1, "Old reply", sent_on=timezone.now() - timedelta(hours=2))
+        sent_new = self.create_outgoing_msg(contact1, "Newer reply", sent_on=timezone.now() - timedelta(minutes=5))
+        self.assertGet(endpoint_url + "?folder=sent", [self.admin], results=[sent_new, sent_old])
+
+        # ?label=<uuid> filters to that label's visible messages
+        self.assertGet(endpoint_url + f"?label={label.uuid}", [self.admin], results=[msg2])
+
+        # a label belonging to another org isn't visible
+        other_label = self.create_label("Other", org=self.org2)
+        self.assertGet(endpoint_url + f"?label={other_label.uuid}", [self.admin], results=[])
+
+        # an unknown label uuid returns nothing
+        self.assertGet(endpoint_url + f"?label={contact1.uuid}", [self.admin], results=[])
+
+        # can search by message text or contact name
+        response = self.assertGet(endpoint_url + "?search=hello", [self.admin], results=[msg1])
+        # searched responses also carry a total `count` of matches so the list UI can show "N results"
+        self.assertEqual(1, response.json()["count"])
+        response = self.assertGet(endpoint_url + "?search=bob", [self.admin], results=[msg2])
+        self.assertEqual(1, response.json()["count"])
+
+        # search is rejected with 413 if it exceeds the legacy 1000-char cap (matches BaseListView.search_max_length)
+        self.login(self.admin)
+        response = self.client.get(endpoint_url + "?search=" + "x" * 1001)
+        self.assertEqual(413, response.status_code)
+
+        # search is restricted to the last 90 days; unfiltered listing below still includes the backdated message
+        ancient = self.create_incoming_msg(contact1, "ancient", created_on=timezone.now() - timedelta(days=120))
+        self.assertGet(endpoint_url + f"?search={ancient.text}", [self.admin], results=[])
+
+        # unfiltered listings still omit count — cursor pagination skips COUNT(*) when there is no search
+        # ordering is `-created_on, -id`: old_msg is backdated 30 days, ancient 120 days, so they sort last
+        response = self.assertGet(
+            endpoint_url, [self.admin], results=[anon_msg, live_msg, msg2, msg1, old_msg, ancient]
+        )
+        self.assertNotIn("count", response.json())
+
+        # honor `?page_size=` so the list UI can request a page sized to its viewport
+        msg3 = self.create_incoming_msg(contact1, "Three")
+        msg4 = self.create_incoming_msg(contact1, "Four")
+        response = self.assertGet(endpoint_url + "?page_size=2", [self.admin], results=[msg4, msg3])
+        self.assertEqual(2, len(response.json()["results"]))
+        # there should be a `next` cursor since we capped at 2 of 4
+        self.assertIsNotNone(response.json()["next"])
 
     def test_notifications(self):
         endpoint_url = reverse("api.internal.notifications") + ".json"
