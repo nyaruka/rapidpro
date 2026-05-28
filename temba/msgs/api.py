@@ -22,8 +22,10 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
 
     class Pagination(SearchCountMixin, CreatedOnCursorPagination):
         """
-        The sent folder is ordered by sent date; all other folders by creation date. Searches additionally include a
-        `count` on the response via SearchCountMixin so the list UI can surface "N results".
+        The sent folder is ordered by sent date; all other folders by UUID, which (since msg.uuid is uuid7) is itself
+        time-ordered and already uniquely indexed — so we get the same newest-first semantics as `-created_on, -id`
+        without the composite sort. Searches additionally include a `count` on the response via SearchCountMixin so
+        the list UI can surface "N results".
         """
 
         # DRF's CursorPagination ignores `?page_size=` unless the subclass opts in. The list component sends
@@ -33,10 +35,12 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
         page_size_query_param = "page_size"
         max_page_size = 500
 
+        ordering = ("-uuid",)
+
         def get_ordering(self, request, queryset, view=None):
             if request.query_params.get("folder", "").lower() == "sent":
                 return SentOnCursorPagination.ordering
-            return CreatedOnCursorPagination.ordering
+            return self.ordering
 
     # Match BaseListView's caps so the legacy and new lists impose the same bounds: a search query is capped at 1000
     # chars (rejected with 413) and is restricted to messages from the last 90 days so an unbounded `text__icontains`

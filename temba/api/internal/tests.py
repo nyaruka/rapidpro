@@ -94,10 +94,11 @@ class EndpointsTest(APITestMixin, TembaTest):
             results=[
                 {
                     "id": msg2.id,
+                    "uuid": str(msg2.uuid),
                     "type": "text",
                     "contact": {"uuid": str(contact2.uuid), "name": "Bob"},
                     "text": "Look at this",
-                    "attachments": ["image/jpeg:https://example.com/a.jpg"],
+                    "attachments": [{"content_type": "image/jpeg", "url": "https://example.com/a.jpg"}],
                     "labels": [{"uuid": str(label.uuid), "name": "Spam"}],
                     "flow": None,
                     "created_on": matchers.ISODatetime(),
@@ -105,6 +106,7 @@ class EndpointsTest(APITestMixin, TembaTest):
                 },
                 {
                     "id": msg1.id,
+                    "uuid": str(msg1.uuid),
                     "type": "text",
                     "contact": {"uuid": str(contact1.uuid), "name": "Ann"},
                     "text": "Hello there",
@@ -124,10 +126,11 @@ class EndpointsTest(APITestMixin, TembaTest):
             results=[
                 {
                     "id": msg2.id,
+                    "uuid": str(msg2.uuid),
                     "type": "text",
                     "contact": {"uuid": str(contact2.uuid), "name": "Bob"},
                     "text": "Look at this",
-                    "attachments": ["image/jpeg:https://example.com/a.jpg"],
+                    "attachments": [{"content_type": "image/jpeg", "url": "https://example.com/a.jpg"}],
                     "labels": [{"uuid": str(label.uuid), "name": "Spam"}],
                     "flow": None,
                     "created_on": matchers.ISODatetime(),
@@ -135,6 +138,7 @@ class EndpointsTest(APITestMixin, TembaTest):
                 },
                 {
                     "id": msg1.id,
+                    "uuid": str(msg1.uuid),
                     "type": "text",
                     "contact": {"uuid": str(contact1.uuid), "name": "Ann"},
                     "text": "Hello there",

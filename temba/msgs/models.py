@@ -565,10 +565,11 @@ class Msg(models.Model):
         """
         return {
             "id": self.id,
+            "uuid": str(self.uuid),
             "type": self.TYPE_SLUGS.get(self.msg_type),
             "contact": {"uuid": str(self.contact.uuid), "name": self.contact.get_display(self.org)},
             "text": self.text,
-            "attachments": self.attachments,
+            "attachments": [a.as_json() for a in self.get_attachments()],
             "labels": [{"uuid": str(lb.uuid), "name": lb.name} for lb in self.labels.all()],
             "flow": {"uuid": str(self.flow.uuid), "name": self.flow.name} if self.flow else None,
             "created_on": self.created_on.isoformat() if self.created_on else None,

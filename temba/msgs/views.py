@@ -149,7 +149,7 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
         return "%s?l=%s&redirect=%s" % (reverse("msgs.msg_export"), label_id, redirect)
 
     def get_queryset(self, **kwargs):
-        qs = super().get_queryset(**kwargs)
+        qs = super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
 
         # if we are searching, limit to last 90, and enforce distinct since we'll be joining on multiple tables
         if self.search_fields and "search" in self.request.GET:
@@ -802,8 +802,7 @@ class MsgCRUDL(SmartCRUDL):
             return r"^%s/$" % (path)
 
         def get_queryset(self, **kwargs):
-            qs = super().get_queryset(**kwargs)
-            return qs.prefetch_related("labels").select_related("contact", "channel", "flow")
+            return super().get_queryset(**kwargs).prefetch_related("labels")
 
     class Flow(MsgListView):
         title = _("Handled")
@@ -815,8 +814,7 @@ class MsgCRUDL(SmartCRUDL):
         menu_path = "/msg/handled"
 
         def get_queryset(self, **kwargs):
-            qs = super().get_queryset(**kwargs)
-            return qs.prefetch_related("labels").select_related("contact", "channel", "flow")
+            return super().get_queryset(**kwargs).prefetch_related("labels")
 
     class Archived(MsgListView):
         title = _("Archived")
@@ -827,8 +825,7 @@ class MsgCRUDL(SmartCRUDL):
         allow_export = True
 
         def get_queryset(self, **kwargs):
-            qs = super().get_queryset(**kwargs)
-            return qs.prefetch_related("labels").select_related("contact", "channel", "flow")
+            return super().get_queryset(**kwargs).prefetch_related("labels")
 
     class Outbox(MsgListView):
         title = _("Outbox")
@@ -842,9 +839,6 @@ class MsgCRUDL(SmartCRUDL):
             context["outbox_warning"] = MsgFolder.OUTBOX.get_count(self.request.org) >= Org.OUTBOX_WARNING_THRESHOLD
             return context
 
-        def get_queryset(self, **kwargs):
-            return super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
-
     class Sent(MsgListView):
         title = _("Sent")
         subtitle = _("Outgoing messages that have been sent.")
@@ -854,9 +848,6 @@ class MsgCRUDL(SmartCRUDL):
         allow_export = True
         default_order = ("-sent_on", "-id")
 
-        def get_queryset(self, **kwargs):
-            return super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
-
     class Failed(MsgListView):
         title = _("Failed")
         subtitle = _("Outgoing messages that couldn't be delivered.")
@@ -865,9 +856,6 @@ class MsgCRUDL(SmartCRUDL):
 
         def get_bulk_actions(self):
             return () if self.request.org.is_suspended else ("resend",)
-
-        def get_queryset(self, **kwargs):
-            return super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
 
     class Filter(MsgListView):
         search_fields = ("text__icontains", "contact__name__icontains")
@@ -918,11 +906,11 @@ class MsgCRUDL(SmartCRUDL):
             return self.label
 
         def get_queryset(self, **kwargs):
-            qs = super().get_queryset(**kwargs)
             return (
-                qs.filter(labels=self.label, visibility=Msg.VISIBILITY_VISIBLE)
+                super()
+                .get_queryset(**kwargs)
+                .filter(labels=self.label, visibility=Msg.VISIBILITY_VISIBLE)
                 .prefetch_related("labels")
-                .select_related("contact", "channel", "flow")
             )
 
 
