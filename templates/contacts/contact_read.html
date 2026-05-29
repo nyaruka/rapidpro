@@ -40,9 +40,9 @@
         </temba-contact-fields>
       </div>
     </temba-tab>
-    <temba-tab icon="campaign" name="{{ _("Next Up") |escapejs }}">
+    <temba-tab icon="schedule" name="{{ _("Next Up") |escapejs }}">
       <div style="border-top-right-radius: var(--curvature); background: #fff"
-           class="flex flex-grow flex-col py-4 px-1 overflow-y-auto">
+           class="flex flex-grow flex-col py-8 px-4 overflow-y-auto">
         <temba-contact-timeline contact="{{ object.uuid }}" -temba-selection="handleTimelineClicked">
         </temba-contact-timeline>
       </div>
