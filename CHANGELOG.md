@@ -1,3 +1,8 @@
+v26.1.127 (2026-05-29)
+-------------------------
+ * Restore active contact tab on browser back by keeping ?tab in history url
+ * Replace contact scheduled view with full event timeline
+
 v26.1.126 (2026-05-28)
 -------------------------
  * Update @nyaruka/temba-components to 0.159.1
