@@ -241,11 +241,11 @@ class TwilioWhatsappTypeTest(TembaTest):
             response = self.client.get(claim_twilio)
             self.assertContains(response, "206-234-5678")
 
-            # and claiming a non-incoming number while the senders API is down fails cleanly
+            # and claiming a non-incoming number while the senders API is down fails with a retry-able error
             mock_numbers.return_value = iter([])
             response = self.client.post(claim_twilio, dict(country="US", phone_number="+14155550199"))
             self.assertFormError(
-                response.context["form"], "phone_number", "Only existing Twilio WhatsApp number are supported"
+                response.context["form"], "phone_number", "Unable to verify WhatsApp sender, please try again."
             )
 
     def test_get_error_ref_url(self):

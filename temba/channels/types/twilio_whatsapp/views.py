@@ -173,7 +173,7 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             try:
                 senders = self.get_whatsapp_senders()
             except TwilioRestException:
-                senders = []
+                raise Exception(_("Unable to verify WhatsApp sender, please try again."))
             sender = next((s for s in senders if s["e164"] == phone_number), None)
             if not sender:
                 raise Exception(_("Only existing Twilio WhatsApp number are supported"))
