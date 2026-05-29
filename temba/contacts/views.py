@@ -177,7 +177,7 @@ class ContactCRUDL(SmartCRUDL):
         "export",
         "interrupt",
         "delete",
-        "scheduled",
+        "timeline",
         "chat",
         "chat_search",
     )
@@ -345,15 +345,19 @@ class ContactCRUDL(SmartCRUDL):
             context["msg_logs_after"] = (timezone.now() - settings.RETENTION_PERIODS["channellog"]).isoformat()
             return context
 
-    class Scheduled(BaseReadView):
+    class Timeline(BaseReadView):
         """
-        Merged list of upcoming activity (campaign event fires and scheduled broadcasts)
+        Timeline of campaign events and broadcasts for a contact, both upcoming and past. Pass a
+        `before` cursor (returned as `next_before`) to page further back through past events; pass
+        an `after` cursor (returned as `next_after`) to page further forward through upcoming events.
         """
 
         permission = "contacts.contact_read"
 
         def render_to_response(self, context, **response_kwargs):
-            return JsonResponse({"results": self.object.get_scheduled()})
+            before = self.request.GET.get("before") or None
+            after = self.request.GET.get("after") or None
+            return JsonResponse(self.object.get_timeline(before=before, after=after))
 
     class Chat(BaseReadView):
         """

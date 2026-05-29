@@ -8,6 +8,7 @@
 #     - a valkey instance listening on localhost
 # -----------------------------------------------------------------------------------
 
+import os
 import warnings
 
 from .settings_common import *  # noqa
@@ -18,6 +19,9 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
 INTERNAL_IPS = ("127.0.0.1",)
+
+COMPONENTS_DEV_MODE = bool(os.environ.get("COMPONENTS_DEV_MODE"))
+COMPONENTS_DEV_URL = os.environ.get("COMPONENTS_DEV_URL", "")
 
 # -----------------------------------------------------------------------------------
 # Mailroom - localhost for dev, no auth token
