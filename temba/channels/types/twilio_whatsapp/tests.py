@@ -13,6 +13,7 @@ from temba.tests.requests import MockResponse
 from temba.tests.twilio import MockRequestValidator, MockTwilioClient
 
 from .type import TwilioWhatsappType
+from .views import ClaimView
 
 
 class TwilioWhatsappTypeTest(TembaTest):
@@ -198,24 +199,31 @@ class TwilioWhatsappTypeTest(TembaTest):
 
         self.add_twilio_session()
 
-        # senders API returns a mix of statuses
+        # senders API returns a mix of statuses, channels and formats
         senders = [
             MockTwilioClient.MockChannelsSender("whatsapp:+14155550199", status="ONLINE", sid="XEonline"),
             MockTwilioClient.MockChannelsSender("whatsapp:+14155550100", status="CREATING", sid="XEpending"),
             MockTwilioClient.MockChannelsSender("whatsapp:+14155550222", status="ONLINE", sid="XEonline2"),
+            # a non-WhatsApp sender_id is ignored
+            MockTwilioClient.MockChannelsSender("messenger:123456789", status="ONLINE", sid="XEmessenger"),
+            # an unparseable phone number is skipped
+            MockTwilioClient.MockChannelsSender("whatsapp:not-a-number", status="ONLINE", sid="XEbad"),
+            # already an incoming number on the account, so deduped out of the picker
+            MockTwilioClient.MockChannelsSender("whatsapp:+12062345678", status="ONLINE", sid="XEdup"),
         ]
 
         with (
             patch("temba.tests.twilio.MockTwilioClient.MockPhoneNumbers.stream") as mock_numbers,
             patch("temba.tests.twilio.MockTwilioClient.MockChannelsSenders.stream") as mock_senders,
         ):
-            mock_numbers.return_value = iter([])
+            mock_numbers.return_value = iter([MockTwilioClient.MockPhoneNumber("+12062345678")])
             mock_senders.return_value = iter(senders)
 
             response = self.client.get(claim_twilio)
-            # ONLINE senders are offered...
+            # ONLINE senders and the incoming number are offered...
             self.assertContains(response, "415-555-0199")
             self.assertContains(response, "415-555-0222")
+            self.assertContains(response, "206-234-5678")
             # ...but the non-ONLINE one is filtered out
             self.assertNotContains(response, "415-555-0100")
 
@@ -247,6 +255,14 @@ class TwilioWhatsappTypeTest(TembaTest):
             self.assertFormError(
                 response.context["form"], "phone_number", "Unable to verify WhatsApp sender, please try again."
             )
+
+    def test_no_twilio_client(self):
+        # without Twilio credentials in the session there's no client, so both lookups return empty
+        view = ClaimView(TwilioWhatsappType())
+        view.get_twilio_client = lambda: None
+
+        self.assertEqual([], view.get_whatsapp_senders())
+        self.assertEqual([], view.get_existing_numbers(self.org))
 
     def test_get_error_ref_url(self):
         self.assertEqual(
