@@ -219,6 +219,35 @@ class TwilioWhatsappTypeTest(TembaTest):
             # ...but the non-ONLINE one is filtered out
             self.assertNotContains(response, "415-555-0100")
 
+    @patch("temba.channels.types.twilio_whatsapp.views.TwilioClient", MockTwilioClient)
+    @patch("temba.channels.types.twilio.views.TwilioClient", MockTwilioClient)
+    @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
+    def test_claim_senders_api_failure(self):
+        self.login(self.admin)
+
+        claim_twilio = reverse("channels.types.twilio_whatsapp.claim")
+        self.org.channels.update(is_active=False)
+
+        self.add_twilio_session()
+
+        error = TwilioRestException(500, "http://twilio", msg="Service unavailable", code=20500)
+
+        with (
+            patch("temba.tests.twilio.MockTwilioClient.MockPhoneNumbers.stream") as mock_numbers,
+            patch("temba.tests.twilio.MockTwilioClient.MockChannelsSenders.stream", side_effect=error),
+        ):
+            # a failing senders API must not hide the account's incoming numbers
+            mock_numbers.return_value = iter([MockTwilioClient.MockPhoneNumber("+12062345678")])
+            response = self.client.get(claim_twilio)
+            self.assertContains(response, "206-234-5678")
+
+            # and claiming a non-incoming number while the senders API is down fails cleanly
+            mock_numbers.return_value = iter([])
+            response = self.client.post(claim_twilio, dict(country="US", phone_number="+14155550199"))
+            self.assertFormError(
+                response.context["form"], "phone_number", "Only existing Twilio WhatsApp number are supported"
+            )
+
     def test_get_error_ref_url(self):
         self.assertEqual(
             "https://www.twilio.com/docs/api/errors/30006", TwilioWhatsappType().get_error_ref_url(None, "30006")

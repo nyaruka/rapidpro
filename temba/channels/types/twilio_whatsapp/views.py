@@ -62,7 +62,10 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
                 continue
 
             # sender_id looks like "whatsapp:+1234567890"
-            phone = (sender.sender_id or "").split(":", 1)[-1]
+            sender_id = sender.sender_id or ""
+            if not sender_id.startswith("whatsapp:"):
+                continue
+            phone = sender_id.split(":", 1)[-1]
             try:
                 parsed = phonenumbers.parse(phone, None)
             except phonenumbers.NumberParseException:
@@ -120,12 +123,12 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
 
     def get_existing_numbers(self, org):
         client = self.get_twilio_client()
-        if client:
-            twilio_account_numbers = client.api.incoming_phone_numbers.stream(page_size=1000)
+        if not client:
+            return []
 
         numbers = []
         seen = set()
-        for number in twilio_account_numbers:
+        for number in client.api.incoming_phone_numbers.stream(page_size=1000):
             parsed = phonenumbers.parse(number.phone_number, None)
             seen.add(phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164))
             numbers.append(
@@ -167,7 +170,11 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             number_sid = twilio_phone.sid
         else:
             # not an incoming number on the account, see if it's a registered WhatsApp sender
-            sender = next((s for s in self.get_whatsapp_senders() if s["e164"] == phone_number), None)
+            try:
+                senders = self.get_whatsapp_senders()
+            except TwilioRestException:
+                senders = []
+            sender = next((s for s in senders if s["e164"] == phone_number), None)
             if not sender:
                 raise Exception(_("Only existing Twilio WhatsApp number are supported"))
             number_sid = sender["sid"]
