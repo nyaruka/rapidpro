@@ -30,6 +30,17 @@ class AirtimeCRUDLTest(TembaTest, CRUDLTestMixin):
             actual_amount="0",
         )
 
+        # a legacy transfer with the now-removed "F" (Failed) status and no currency/amount
+        self.transfer3 = AirtimeTransfer.objects.create(
+            org=self.org,
+            status="F",
+            contact=contact,
+            recipient="tel:+250700000003",
+            currency=None,
+            desired_amount="1100",
+            actual_amount="0",
+        )
+
         # and a transfer for a different org
         self.other_org_transfer = AirtimeTransfer.objects.create(
             org=self.org2,
@@ -46,10 +57,14 @@ class AirtimeCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(list_url, [None, self.agent])
         response = self.assertListFetch(
-            list_url, [self.editor, self.admin], context_objects=[self.transfer2, self.transfer1]
+            list_url, [self.editor, self.admin], context_objects=[self.transfer3, self.transfer2, self.transfer1]
         )
         self.assertContains(response, "Ben Haggerty")
         self.assertContains(response, "+250 700 000 003")
+        self.assertContains(response, "Completed")
+        self.assertContains(response, "Rejected")
+        self.assertContains(response, "Failed")  # legacy "F" status rendered gracefully
+        self.assertContains(response, "--")  # unset currency/amount
 
         with self.anonymous(self.org):
             response = self.requestView(list_url, self.admin)
