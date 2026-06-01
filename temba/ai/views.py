@@ -1,4 +1,5 @@
 import json
+import logging
 
 from smartmin.views import SmartCRUDL
 
@@ -17,6 +18,8 @@ from temba.utils.views.mixins import ContextMenuMixin, PostOnlyMixin, SpaMixin
 from temba.utils.views.wizard import SmartWizardView
 
 from .models import LLM
+
+logger = logging.getLogger(__name__)
 
 
 class BaseConnectWizard(OrgPermsMixin, SmartWizardView):
@@ -141,7 +144,21 @@ class LLMCRUDL(SmartCRUDL):
             try:
                 items = self.object.translate(data["source"], data["target"], data["items"])
             except mailroom.AIServiceException as e:
+                logger.error(
+                    "LLM translate service error (llm=%s org=%s %s->%s): %s",
+                    self.object.uuid,
+                    self.object.org_id,
+                    data["source"],
+                    data["target"],
+                    e.error,
+                    exc_info=True,
+                )
                 return JsonResponse({"error": str(e)}, status=400)
+            except Exception:
+                logger.error(
+                    "LLM translate failed (llm=%s org=%s)", self.object.uuid, self.object.org_id, exc_info=True
+                )
+                raise
 
             return JsonResponse({"items": items})
 
