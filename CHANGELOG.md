@@ -1,3 +1,7 @@
+v26.1.128 (2026-06-01)
+-------------------------
+ * Refresh airtime transfers list page
+
 v26.1.127 (2026-05-29)
 -------------------------
  * Restore active contact tab on browser back by keeping ?tab in history url
