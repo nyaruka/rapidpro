@@ -45,7 +45,7 @@ class AirtimeCRUDL(SmartCRUDL):
         field_config = {"created_on": {"label": "Time"}}
 
         def get_status(self, obj):
-            return obj.status_display
+            return obj.get_status_display()
 
         def get_sender(self, obj):
             return URN.format(obj.sender, international=True) if obj.sender else "--"

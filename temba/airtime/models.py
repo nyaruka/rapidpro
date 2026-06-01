@@ -39,8 +39,3 @@ class AirtimeTransfer(TembaUUIDMixin, models.Model):
     actual_amount = models.DecimalField(max_digits=10, decimal_places=2)
 
     created_on = models.DateTimeField(default=timezone.now)
-
-    @property
-    def status_display(self) -> str:
-        # "F" (Failed) was remapped to Rejected in migration 0041, but render any stragglers gracefully
-        return "Failed" if self.status == "F" else self.get_status_display()

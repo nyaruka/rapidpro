@@ -27,7 +27,7 @@
               --
             {% endif %}
           </td>
-          <td class="whitespace-nowrap">{{ object.status_display }}</td>
+          <td class="whitespace-nowrap">{{ object.get_status_display }}</td>
           <td class="whitespace-nowrap">{{ object.created_on|timedate }}</td>
         </tr>
       {% empty %}
