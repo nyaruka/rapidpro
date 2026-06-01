@@ -14,6 +14,12 @@ COURIER_URL = os.environ.get("COURIER_URL", "http://localhost:8080")
 DEFAULT_ORG = "1"
 DEFAULT_URN = "tel:+250788123123"
 
+# Host courier uses to reach our send callback, and the port it listens on. Defaults let everything run on
+# localhost; when courier runs in another container, set CALLBACK_HOST to a name it can resolve (e.g. the
+# container running this command) so MT replies are delivered back here.
+DEFAULT_CALLBACK_HOST = os.environ.get("MSG_CONSOLE_CALLBACK_HOST") or None
+DEFAULT_PORT = int(os.environ.get("MSG_CONSOLE_PORT", "49999"))
+
 
 class Command(BaseCommand):  # pragma: no cover
     def add_arguments(self, parser):
@@ -28,6 +34,24 @@ class Command(BaseCommand):  # pragma: no cover
 
         parser.add_argument(
             "--urn", type=str, action="store", dest="urn", default=DEFAULT_URN, help="The URN to send messages from"
+        )
+
+        parser.add_argument(
+            "--callback-host",
+            type=str,
+            action="store",
+            dest="callback_host",
+            default=DEFAULT_CALLBACK_HOST,
+            help="Host courier uses to reach this console's send callback (default: this host's hostname)",
+        )
+
+        parser.add_argument(
+            "--port",
+            type=int,
+            action="store",
+            dest="port",
+            default=DEFAULT_PORT,
+            help="Port for this console's send callback server to listen on",
         )
 
     def handle(self, *args, **options):
@@ -45,7 +69,15 @@ class Command(BaseCommand):  # pragma: no cover
             raise CommandError(f"Unable to connect to courier at {COURIER_URL}")
 
         try:
-            self.messenger = Messenger.create(org, user, COURIER_URL, callback=self.response_callback, scheme=scheme)
+            self.messenger = Messenger.create(
+                org,
+                user,
+                COURIER_URL,
+                callback=self.response_callback,
+                scheme=scheme,
+                port=options["port"],
+                callback_host=options["callback_host"],
+            )
             self.stdout.write(f"✅ Messenger started at️ {Fore.CYAN}{self.messenger.server.base_url}{Fore.RESET}")
         except Exception as e:
             raise CommandError(f"Unable to start messenger: {str(e)}")

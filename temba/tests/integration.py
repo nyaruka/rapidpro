@@ -1,4 +1,5 @@
 import json
+import socket
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 
@@ -18,6 +19,11 @@ class Messenger:
 
     mailroom -db="postgres://temba:temba@localhost:5432/temba?sslmode=disable" -valkey=valkey://localhost:6379/15
     courier -db="postgres://temba:temba@localhost:5432/temba?sslmode=disable" -valkey=valkey://localhost:6379/15 -spool-dir="."
+
+    Outgoing (MT) replies are delivered by courier POSTing to the channel's send URL, so that URL must be reachable
+    from wherever courier runs. When courier runs in a different container/host than this server, pass `callback_host`
+    as a name courier can resolve (e.g. the container name); it defaults to this host's hostname rather than
+    "localhost" so cross-container delivery works out of the box.
     """
 
     CHANNEL_NAME = "Testing"
@@ -31,8 +37,19 @@ class Messenger:
         self.callback = callback
 
     @classmethod
-    def create(cls, org, user, courier_url, callback, country="EC", scheme="tel", address="123456", port=49999):
-        server = cls.Server(port)
+    def create(
+        cls,
+        org,
+        user,
+        courier_url,
+        callback,
+        country="EC",
+        scheme="tel",
+        address="123456",
+        port=49999,
+        callback_host=None,
+    ):
+        server = cls.Server(port, callback_host or socket.gethostname())
 
         config = {
             Channel.CONFIG_SEND_URL: f"{server.base_url}/send",
@@ -84,9 +101,11 @@ class Messenger:
             self.channel.release(user=self.channel.created_by)
 
     class Server(HTTPServer):
-        def __init__(self, port):
-            HTTPServer.__init__(self, ("localhost", port), Messenger.Handler)
-            self.base_url = f"http://localhost:{port}"
+        def __init__(self, port, host):
+            # Bind on all interfaces (not just loopback) so courier can reach the send callback even when it runs
+            # in a different container; advertise `host` in base_url so the channel's send URL resolves from there.
+            HTTPServer.__init__(self, ("0.0.0.0", port), Messenger.Handler)
+            self.base_url = f"http://{host}:{port}"
             self.thread = Thread(target=self.serve_forever)
             self.thread.setDaemon(True)
             self.thread.start()
