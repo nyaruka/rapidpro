@@ -145,13 +145,8 @@ class LLMCRUDL(SmartCRUDL):
                 items = self.object.translate(data["source"], data["target"], data["items"])
             except mailroom.AIServiceException as e:
                 logger.error(
-                    "LLM translate service error (llm=%s org=%s %s->%s code=%s): %s",
-                    self.object.uuid,
-                    self.object.org_id,
-                    data["source"],
-                    data["target"],
-                    e.code,
-                    e.error,
+                    f"LLM translate service error (llm={self.object.uuid} org={self.object.org_id} "
+                    f"{data['source']}->{data['target']} code={e.code}): {e.error}"
                 )
                 return JsonResponse({"error": str(e)}, status=400)
 

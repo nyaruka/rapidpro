@@ -96,16 +96,19 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertEqual(response.json(), {"items": translated})
 
-        # LLM service failure (bad credentials, rate limit, etc.) returns 400 to the client
+        # LLM service failure (bad credentials, rate limit, etc.) returns 400 to the client and is logged for Sentry
         mr_mocks.exception(AIServiceException("rate limit exceeded", "unknown", "", ""))
 
-        response = self.client.post(
-            translate_url,
-            {"source": "eng", "target": "spa", "items": {"a1:text": ["Hello"]}},
-            content_type="application/json",
-        )
+        with self.assertLogs("temba.ai.views", level="ERROR") as logs:
+            response = self.client.post(
+                translate_url,
+                {"source": "eng", "target": "spa", "items": {"a1:text": ["Hello"]}},
+                content_type="application/json",
+            )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {"error": "rate limit exceeded"})
+        self.assertIn("LLM translate service error", logs.output[0])
+        self.assertIn("rate limit exceeded", logs.output[0])
 
     def test_delete(self):
         list_url = reverse("ai.llm_list")
