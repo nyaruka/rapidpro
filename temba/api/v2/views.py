@@ -1910,6 +1910,11 @@ class GroupsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint):
         if name := params.get("name"):
             queryset = queryset.filter(name__iexact=name)
 
+        # restrict to static (manual) groups (optional) — used by the contact list's group dropdown, which can only
+        # add/remove members on manual groups (smart groups are maintained by their query)
+        if str_to_bool(params.get("manual_only")):
+            queryset = queryset.filter(group_type=ContactGroup.TYPE_MANUAL)
+
         return queryset.filter(is_active=True).exclude(status=ContactGroup.STATUS_INITIALIZING)
 
     def prepare_for_serialization(self, object_list, using: str):

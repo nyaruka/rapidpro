@@ -960,6 +960,41 @@ class Contact(LegacyUUIDMixin, SmartModel):
         else:
             return str(value)
 
+    def as_json(self, context=None) -> dict:
+        """
+        Internal API shape, consumed by the temba-contact-list component. `context` is the DRF serializer context
+        (with `org` and the featured `contact_fields`), used to serialize the URN (anon-masked per org) and the field
+        columns the list renders.
+        """
+        from temba.api.v2.fields import serialize_urn
+
+        org = context.get("org") if context else self.org
+        fields = context.get("contact_fields", ()) if context else ()
+        statuses = {
+            self.STATUS_ACTIVE: "active",
+            self.STATUS_BLOCKED: "blocked",
+            self.STATUS_STOPPED: "stopped",
+            self.STATUS_ARCHIVED: "archived",
+        }
+        urn = self.get_urn()
+        # `prefetched_groups` is attached in bulk by the list endpoint to avoid an N+1; `groups` lets the component
+        # pre-check the group dropdown against each row's current membership.
+        groups = self.prefetched_groups if hasattr(self, "prefetched_groups") else self.get_groups()
+
+        return {
+            "uuid": str(self.uuid),
+            "name": self.name,
+            "status": statuses.get(self.status),
+            # Pre-formatted primary URN for display (the component shows `urn` verbatim); anon orgs are masked by
+            # get_display.
+            "urn": urn.get_display(org=org, international=True) if urn else "",
+            "urns": [serialize_urn(org, u) for u in self.get_urns()],
+            "fields": {f.key: self.get_field_serialized(f) for f in fields},
+            "groups": [{"uuid": str(g.uuid), "name": g.name} for g in groups],
+            "last_seen_on": self.last_seen_on.isoformat() if self.last_seen_on else None,
+            "created_on": self.created_on.isoformat() if self.created_on else None,
+        }
+
     def update(self, name: str, language: str) -> list[modifiers.Modifier]:
         """
         Updates attributes of this contact
