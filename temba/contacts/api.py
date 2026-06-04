@@ -2,6 +2,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from django.db.models import Prefetch, prefetch_related_objects
+from django.http import HttpResponse
 
 from temba import mailroom
 from temba.api.internal.serializers import ModelAsJsonSerializer
@@ -54,7 +55,7 @@ class ContactsEndpoint(ListAPIMixin, BaseEndpoint):
     def get(self, request, *args, **kwargs):
         search = request.query_params.get("search") or ""
         if len(search) > SEARCH_MAX_LENGTH:
-            return Response({"results": [], "count": 0, "error": "Search query too long"}, status=413)
+            return HttpResponse("Search query too long", status=413)
         # Don't allow pagination past the 200th page (mirrors ContactListView.pre_process / the ES offset guard).
         if self._page() > MAX_PAGE:
             return Response({"results": [], "count": 0, "next": None, "previous": None})
@@ -63,21 +64,33 @@ class ContactsEndpoint(ListAPIMixin, BaseEndpoint):
     def _page(self) -> int:
         try:
             return max(1, int(self.request.query_params.get("page", 1)))
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             return 1
 
     def _page_size(self) -> int:
+        # Mirror DRF PageNumberPagination.get_page_size (which uses _positive_int(strict=True)): non-positive or
+        # non-integer values fall back to the default rather than being clamped, and the value is capped at the max.
+        # The search/sort path derives the mailroom offset from this, so it must match the page size DRF slices with
+        # or SearchSliceQuerySet's offset guard trips with an IndexError (HTTP 500).
         try:
             size = int(self.request.query_params.get("page_size", DEFAULT_PAGE_SIZE))
-        except TypeError, ValueError:
+        except (TypeError, ValueError):
             return DEFAULT_PAGE_SIZE
-        return max(1, min(size, MAX_PAGE_SIZE))
+        if size <= 0:
+            return DEFAULT_PAGE_SIZE
+        return min(size, MAX_PAGE_SIZE)
 
     def derive_group(self):
         org = self.request.org
         group_uuid = self.request.query_params.get("group")
         if group_uuid:
-            return org.groups.filter(uuid=group_uuid, is_active=True).first()
+            # Mirror GroupsEndpoint.filter_queryset: skip still-evaluating smart groups so we never page over a group
+            # whose membership isn't yet populated.
+            return (
+                org.groups.filter(uuid=group_uuid, is_active=True)
+                .exclude(status=ContactGroup.STATUS_INITIALIZING)
+                .first()
+            )
 
         group_type = self.FOLDERS.get(self.request.query_params.get("folder", "active").lower())
         if not group_type:

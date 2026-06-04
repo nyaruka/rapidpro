@@ -537,7 +537,7 @@ class ContactCRUDL(SmartCRUDL):
         def _get_uuid_param(self, name: str) -> UUID:
             try:
                 return UUID(self.request.GET.get(name))
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 return None
 
     class ChatSearch(BaseReadView):
@@ -617,7 +617,11 @@ class ContactCRUDL(SmartCRUDL):
         menu_path = "/contact/active"
 
         def get_bulk_actions(self):
-            actions = ("label", "block", "archive") if self.has_org_perm("contacts.contact_update") else ()
+            if self.has_org_perm("contacts.contact_update"):
+                # "label" (the group dropdown) is a preview-list-only action — the legacy table has no UI for it.
+                actions = ("label", "block", "archive") if self._use_new_list() else ("block", "archive")
+            else:
+                actions = ()
             if self.has_org_perm("msgs.broadcast_create"):
                 actions += ("send",)
             if self.has_org_perm("flows.flow_start"):

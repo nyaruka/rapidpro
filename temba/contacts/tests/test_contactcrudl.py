@@ -326,8 +326,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         del self.client.cookies["temba-preview"]
 
-        # the content menu still surfaces Create Smart Group when the active search is saveable as a group — the
-        # component folds its committed search into the content-menu endpoint so build_context_menu sees it
+        # back on the legacy (non-preview) list, the content menu still surfaces Create Smart Group when the search is
+        # saveable as a group — build_context_menu reads the search straight off the request query string here
         self.assertContentMenu(
             list_url + "?search=age+%3E+30",
             self.admin,
