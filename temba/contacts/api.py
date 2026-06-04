@@ -64,7 +64,7 @@ class ContactsEndpoint(ListAPIMixin, BaseEndpoint):
     def _page(self) -> int:
         try:
             return max(1, int(self.request.query_params.get("page", 1)))
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return 1
 
     def _page_size(self) -> int:
@@ -74,7 +74,7 @@ class ContactsEndpoint(ListAPIMixin, BaseEndpoint):
         # or SearchSliceQuerySet's offset guard trips with an IndexError (HTTP 500).
         try:
             size = int(self.request.query_params.get("page_size", DEFAULT_PAGE_SIZE))
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return DEFAULT_PAGE_SIZE
         if size <= 0:
             return DEFAULT_PAGE_SIZE

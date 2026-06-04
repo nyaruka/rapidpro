@@ -537,7 +537,7 @@ class ContactCRUDL(SmartCRUDL):
         def _get_uuid_param(self, name: str) -> UUID:
             try:
                 return UUID(self.request.GET.get(name))
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 return None
 
     class ChatSearch(BaseReadView):
