@@ -1,3 +1,10 @@
+v26.1.129 (2026-06-04)
+-------------------------
+ * Update @nyaruka/temba-components to 0.159.3
+ * Use full name instead of first name in user chat ref
+ * Bump aiohttp from 3.13.5 to 3.14.0
+ * Fix two-way messaging in msg_console across containers
+
 v26.1.128 (2026-06-01)
 -------------------------
  * Refresh airtime transfers list page
