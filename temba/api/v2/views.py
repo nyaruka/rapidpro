@@ -1811,6 +1811,9 @@ class GroupsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint):
      * **system** - whether this is a system group that can't be edited (bool).
      * **count** - the number of contacts in the group (int).
 
+    You can also pass `manual_only=1` to restrict the results to static (manual) groups — i.e. those whose members can
+    be added or removed directly (smart and system groups are excluded).
+
     Example:
 
         GET /api/v2/groups.json

@@ -332,6 +332,10 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.client.post(group_url, {"action": "unlabel", "objects": str(frank.uuid)})
         self.assertNotIn(frank, group.contacts.all())
 
+        # a malformed contact uuid in `objects` is ignored rather than raising (no 500 on hostile/garbage input)
+        response = self.client.post(list_url, {"action": "archive", "objects": "not-a-uuid"})
+        self.assertEqual(200, response.status_code)
+
         del self.client.cookies["temba-preview"]
 
         # back on the legacy (non-preview) list, the content menu still surfaces Create Smart Group when the search is

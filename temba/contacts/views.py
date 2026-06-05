@@ -145,7 +145,15 @@ class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
             data = request.POST.copy()
             uuids = data.getlist("objects")
             if uuids:
-                ids = Contact.objects.filter(org=request.org, uuid__in=uuids).values_list("id", flat=True)
+                # Only keep well-formed UUIDs — `uuid__in` runs each value through UUIDField.get_prep_value, so a single
+                # malformed value (a hostile post, or a stale id-based form post) would otherwise raise ValueError (500).
+                valid = []
+                for u in uuids:
+                    try:
+                        valid.append(UUID(u))
+                    except ValueError:
+                        pass
+                ids = Contact.objects.filter(org=request.org, uuid__in=valid).values_list("id", flat=True)
                 data.setlist("objects", [str(i) for i in ids])
             label = data.get("label")
             if label:
