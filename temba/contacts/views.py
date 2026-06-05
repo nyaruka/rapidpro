@@ -617,11 +617,9 @@ class ContactCRUDL(SmartCRUDL):
         menu_path = "/contact/active"
 
         def get_bulk_actions(self):
-            if self.has_org_perm("contacts.contact_update"):
-                # "label" (the group dropdown) is a preview-list-only action — the legacy table has no UI for it.
-                actions = ("label", "block", "archive") if self._use_new_list() else ("block", "archive")
-            else:
-                actions = ()
+            # "label" (the group dropdown) is a preview-list-only action — the legacy table has no UI for it.
+            update = ("label", "block", "archive") if self._use_new_list() else ("block", "archive")
+            actions = update if self.has_org_perm("contacts.contact_update") else ()
             if self.has_org_perm("msgs.broadcast_create"):
                 actions += ("send",)
             if self.has_org_perm("flows.flow_start"):

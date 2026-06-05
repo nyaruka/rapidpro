@@ -316,6 +316,27 @@ class EndpointsTest(APITestMixin, TembaTest):
         response = self.client.get(endpoint_url + "?search=" + ("x" * 10001))
         self.assertEqual(413, response.status_code)
 
+        # paging past the 200th page short-circuits to an empty, list-shaped response (ES deep-paging guard)
+        response = self.client.get(endpoint_url + "?page=201")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual([], response.json()["results"])
+        self.assertEqual(0, response.json()["count"])
+
+        # a non-integer page is handled cleanly: the page-guard falls back to page 1, then DRF 404s the unknown page
+        # (rather than the guard itself raising a ValueError)
+        self.login(self.admin)
+        self.assertEqual(404, self.client.get(endpoint_url + "?page=abc").status_code)
+
+        # a non-integer page_size falls back to the default page size (matching DRF's pagination)
+        mr_mocks.contact_search("", contacts=[joe, frank])
+        self.assertGet(endpoint_url + "?sort=-field:gender&page_size=abc", [self.admin], results=[joe, frank])
+        self.assertEqual(50, mr_mocks.calls["contact_search"][-1].kwargs["limit"])
+
+        # ...as does a non-positive page_size
+        mr_mocks.contact_search("", contacts=[joe, frank])
+        self.assertGet(endpoint_url + "?sort=-field:gender&page_size=0", [self.admin], results=[joe, frank])
+        self.assertEqual(50, mr_mocks.calls["contact_search"][-1].kwargs["limit"])
+
     def test_notifications(self):
         endpoint_url = reverse("api.internal.notifications") + ".json"
 

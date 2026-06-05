@@ -324,6 +324,14 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         )
         self.assertNotIn(frank, newsletter.contacts.all())
 
+        # a label posted as a numeric id (a legacy form post rather than the component) is passed through untranslated
+        self.client.post(list_url, {"action": "label", "objects": str(frank.uuid), "label": str(newsletter.id)})
+        self.assertIn(frank, newsletter.contacts.all())
+
+        # on a group page, an "unlabel" with no group falls back to the current group ("Remove from group")
+        self.client.post(group_url, {"action": "unlabel", "objects": str(frank.uuid)})
+        self.assertNotIn(frank, group.contacts.all())
+
         del self.client.cookies["temba-preview"]
 
         # back on the legacy (non-preview) list, the content menu still surfaces Create Smart Group when the search is
