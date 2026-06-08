@@ -49,6 +49,25 @@ function showPreview(evt, ele) {
   dialog.open = true;
 }
 
+function showParams(evt, ele) {
+  evt.stopPropagation();
+  evt.preventDefault();
+
+  var source = document.getElementById(ele.dataset.params);
+
+  var dialog = document.querySelector('#shared-dialog');
+  dialog.header = 'Parameters';
+  dialog.width = 'medium';
+  dialog.buttons = [{ type: 'secondary', name: 'Ok', closes: true }];
+
+  var pre = document.createElement('pre');
+  pre.style =
+    'font-size:12px;margin:0;padding:1rem;white-space:pre-wrap;word-break:break-word;';
+  pre.textContent = source ? source.textContent : '';
+  dialog.body = pre;
+  dialog.open = true;
+}
+
 function getModax(id) {
   var modax = document.querySelector(id);
   if (!modax) {

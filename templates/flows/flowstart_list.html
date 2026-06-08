@@ -44,18 +44,37 @@
                 {% trans "A deleted flow" %}
               {% endif %}
               {% if obj.start_type == "M" %}
-                {% blocktrans trimmed with user=obj.created_by.email %}
-                  was started by {{ user }}
-                {% endblocktrans %}
+                {% if obj.params %}
+                  {% blocktrans trimmed with user=obj.created_by.email id=obj.id %}
+                    was started by <span class="linked" onclick="showParams(event, this)" data-params="start-params-{{ id }}">{{ user }}</span>
+                  {% endblocktrans %}
+                {% else %}
+                  {% blocktrans trimmed with user=obj.created_by.email %}
+                    was started by {{ user }}
+                  {% endblocktrans %}
+                {% endif %}
               {% elif obj.start_type == "Z" %}
-                {% trans "was started by Zapier" %}
+                {% if obj.params %}
+                  {% blocktrans trimmed with id=obj.id %}
+                    was started by <span class="linked" onclick="showParams(event, this)" data-params="start-params-{{ id }}">Zapier</span>
+                  {% endblocktrans %}
+                {% else %}
+                  {% trans "was started by Zapier" %}
+                {% endif %}
               {% else %}
-                {% trans "was started by an API call" %}
+                {% if obj.params %}
+                  {% blocktrans trimmed with id=obj.id %}
+                    was started by an <span class="linked" onclick="showParams(event, this)" data-params="start-params-{{ id }}">API call</span>
+                  {% endblocktrans %}
+                {% else %}
+                  {% trans "was started by an API call" %}
+                {% endif %}
               {% endif %}
               <div style="padding-top: 10px; max-height: 150px; overflow-y: auto;" class="flex flex-wrap">
                 {% include "includes/recipients.html" with groups=obj.groups.all contacts=obj.contacts.all query=obj.query %}
                 {% include "includes/exclusions.html" with exclusions=obj.exclusions %}
               </div>
+              {% include "includes/start_params.html" with params=obj.params id=obj.id %}
             </td>
             <td style="text-align: right; {% if obj.is_starting %}border:none;{% endif %}">
               <div class="flex flex-col">

@@ -17,9 +17,16 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
         group = self.create_group("Testers", contacts=[contact])
         start1 = self.create_flowstart(flow1, self.admin, contacts=[contact])
         start2 = self.create_flowstart(
-            flow1, self.admin, query="name ~ Bob", typ="A", exclude=Exclusions(started_previously=True)
+            flow1,
+            self.admin,
+            query="name ~ Bob",
+            typ="A",
+            exclude=Exclusions(started_previously=True),
+            params={"first_name": "Ryan", "last_name": "Lewis"},
         )
-        start3 = self.create_flowstart(flow2, self.admin, groups=[group], typ="Z", exclude=Exclusions(in_a_flow=True))
+        start3 = self.create_flowstart(
+            flow2, self.admin, groups=[group], typ="Z", exclude=Exclusions(in_a_flow=True), params={"event": "signup"}
+        )
 
         flow2.release(self.admin)
 
@@ -36,9 +43,15 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertNotContains(response, "Test Flow 2")
         self.assertContains(response, "A deleted flow")
         self.assertContains(response, "was started by admin@textit.com")
-        self.assertContains(response, "was started by an API call")
-        self.assertContains(response, "was started by Zapier")
+        self.assertContains(response, "API call")
+        self.assertContains(response, "Zapier")
         self.assertContains(response, "Not in a flow")
+
+        # starts with params link their source word to a modal showing the params
+        self.assertContains(response, ">API call</span>")
+        self.assertContains(response, ">Zapier</span>")
+        self.assertContains(response, "&quot;first_name&quot;: &quot;Ryan&quot;")
+        self.assertContains(response, "&quot;event&quot;: &quot;signup&quot;")
 
         response = self.assertListFetch(list_url + "?type=manual", [self.admin], context_objects=[start1])
         self.assertTrue(response.context["filtered"])
