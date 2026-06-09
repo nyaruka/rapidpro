@@ -27,6 +27,8 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
         start3 = self.create_flowstart(
             flow2, self.admin, groups=[group], typ="Z", exclude=Exclusions(in_a_flow=True), params={"event": "signup"}
         )
+        # a non-manual start without params so the plain-text (no-link) branch is covered too
+        start4 = self.create_flowstart(flow1, self.admin, contacts=[contact], typ="A")
 
         flow2.release(self.admin)
 
@@ -37,21 +39,26 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
         self.create_flowstart(other_org_flow, self.admin2)
 
         self.assertRequestDisallowed(list_url, [None, self.agent])
-        response = self.assertListFetch(list_url, [self.editor, self.admin], context_objects=[start3, start2, start1])
+        response = self.assertListFetch(
+            list_url, [self.editor, self.admin], context_objects=[start4, start3, start2, start1]
+        )
 
         self.assertContains(response, "Test Flow 1")
         self.assertNotContains(response, "Test Flow 2")
         self.assertContains(response, "A deleted flow")
         self.assertContains(response, "was started by admin@textit.com")
-        self.assertContains(response, "API call")
-        self.assertContains(response, "Zapier")
         self.assertContains(response, "Not in a flow")
 
         # starts with params link their source word to a modal showing the params
+        self.assertContains(response, 'was started by an <span class="linked"')
         self.assertContains(response, ">API call</span>")
+        self.assertContains(response, 'was started by <span class="linked"')
         self.assertContains(response, ">Zapier</span>")
         self.assertContains(response, "&quot;first_name&quot;: &quot;Ryan&quot;")
         self.assertContains(response, "&quot;event&quot;: &quot;signup&quot;")
+
+        # starts without params render the source as plain text with no link
+        self.assertContains(response, "was started by an API call")
 
         response = self.assertListFetch(list_url + "?type=manual", [self.admin], context_objects=[start1])
         self.assertTrue(response.context["filtered"])
