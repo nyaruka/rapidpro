@@ -1684,7 +1684,7 @@ class FlowLabelCRUDL(SmartCRUDL):
 
 class FlowStartCRUDL(SmartCRUDL):
     model = FlowStart
-    actions = ("list", "interrupt", "status")
+    actions = ("list", "read", "interrupt", "status")
 
     class List(SpaMixin, BaseListView):
         title = _("Flow Starts")
@@ -1714,6 +1714,20 @@ class FlowStartCRUDL(SmartCRUDL):
             context["filtered"] = filtered
 
             FlowStartCount.bulk_annotate(context["object_list"])
+
+            return context
+
+    class Read(BaseReadView):
+        template_name = "flows/flowstart_read.html"
+
+        def derive_queryset(self, **kwargs):
+            qs = super().derive_queryset(**kwargs)
+            return qs.select_related("flow", "created_by").prefetch_related("contacts", "groups")
+
+        def get_context_data(self, *args, **kwargs):
+            context = super().get_context_data(*args, **kwargs)
+
+            FlowStartCount.bulk_annotate([self.object])
 
             return context
 

@@ -523,6 +523,7 @@ GROUP_PERMISSIONS = {
         "flows.flowrun_list",
         "flows.flowstart_create",
         "flows.flowstart_list",
+        "flows.flowstart_read",
         "flows.flowstart_update",
         "globals.global.*",
         "ivr.call_list",
