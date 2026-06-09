@@ -49,8 +49,8 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # the start type is shown in its own column rather than as prose
         self.assertNotContains(response, "was started by")
-        self.assertContains(response, "Zapier")
-        self.assertContains(response, "API")
+        self.assertContains(response, "<td>Zapier</td>")
+        self.assertContains(response, "<td>API</td>")
 
         # each row links to its details modal and the details aren't rendered inline
         self.assertContains(response, "showStart(event, this)")
