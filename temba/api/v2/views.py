@@ -1811,6 +1811,9 @@ class GroupsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint):
      * **system** - whether this is a system group that can't be edited (bool).
      * **count** - the number of contacts in the group (int).
 
+    You can also pass `manual_only=1` to restrict the results to static (manual) groups — i.e. those whose members can
+    be added or removed directly (smart and system groups are excluded).
+
     Example:
 
         GET /api/v2/groups.json
@@ -1909,6 +1912,11 @@ class GroupsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint):
         # filter by name (optional)
         if name := params.get("name"):
             queryset = queryset.filter(name__iexact=name)
+
+        # restrict to static (manual) groups (optional) — used by the contact list's group dropdown, which can only
+        # add/remove members on manual groups (smart groups are maintained by their query)
+        if str_to_bool(params.get("manual_only")):
+            queryset = queryset.filter(group_type=ContactGroup.TYPE_MANUAL)
 
         return queryset.filter(is_active=True).exclude(status=ContactGroup.STATUS_INITIALIZING)
 

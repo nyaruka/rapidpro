@@ -263,6 +263,90 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(Contact.STATUS_ARCHIVED, joe.status)
 
     @mock_mailroom
+    def test_preview_list(self, mr_mocks):
+        joe = self.create_contact("Joe", phone="123")
+        frank = self.create_contact("Frank", phone="124")
+        group = self.create_group("Crew", contacts=[joe, frank])
+
+        list_url = reverse("contacts.contact_list")
+        group_url = reverse("contacts.contact_group", args=[group.uuid])
+
+        self.login(self.admin)
+
+        # default render is still the legacy table
+        response = self.client.get(list_url)
+        self.assertNotContains(response, "temba-contact-list")
+
+        # entering preview mode swaps in the temba-contact-list component, pointed at the internal contacts api
+        self.client.cookies["temba-preview"] = "1"
+
+        response = self.client.get(list_url)
+        self.assertContains(response, "temba-contact-list")
+        self.assertEqual(
+            f"{reverse('api.internal.contacts')}.json?folder=active", response.context["new_list_endpoint"]
+        )
+
+        # send / start-flow are clientOnly (they open a modal); the group dropdown carries a labelsEndpoint of the
+        # workspace's static groups; the rest post to the action endpoint
+        actions = {a["key"]: a for a in response.context["new_list_bulk_actions"]}
+        self.assertEqual(["label", "block", "archive", "send", "start-flow"], list(actions.keys()))
+        self.assertTrue(actions["send"]["clientOnly"])
+        self.assertTrue(actions["start-flow"]["clientOnly"])
+        self.assertNotIn("clientOnly", actions["archive"])
+        self.assertEqual("/api/v2/groups.json?manual_only=1", actions["label"]["labelsEndpoint"])
+
+        # a user group is selected by uuid rather than a status folder
+        response = self.client.get(group_url)
+        self.assertEqual(
+            f"{reverse('api.internal.contacts')}.json?group={group.uuid}", response.context["new_list_endpoint"]
+        )
+        # a manual group has no subtitle
+        self.assertEqual("", response.context["new_list_subtitle"])
+
+        # a smart (dynamic) group surfaces its query as the list subtitle
+        smart = self.create_group("Females", query="gender = F")
+        response = self.client.get(reverse("contacts.contact_group", args=[smart.uuid]))
+        self.assertEqual(smart.query, response.context["new_list_subtitle"])
+
+        # the component posts contact uuids in `objects`; the view translates them to ids so the bulk action applies
+        self.client.post(list_url, {"action": "archive", "objects": str(joe.uuid)})
+        joe.refresh_from_db()
+        self.assertEqual(Contact.STATUS_ARCHIVED, joe.status)
+
+        # the group dropdown adds the selection to a static group (group posted by uuid; omitting `add` means add)
+        newsletter = self.create_group("Newsletter", contacts=[])
+        self.client.post(list_url, {"action": "label", "objects": str(frank.uuid), "label": str(newsletter.uuid)})
+        self.assertIn(frank, newsletter.contacts.all())
+
+        # ...and removes them when add=false (BulkActionMixin maps that to unlabel)
+        self.client.post(
+            list_url, {"action": "label", "objects": str(frank.uuid), "label": str(newsletter.uuid), "add": "false"}
+        )
+        self.assertNotIn(frank, newsletter.contacts.all())
+
+        # a label posted as a numeric id (a legacy form post rather than the component) is passed through untranslated
+        self.client.post(list_url, {"action": "label", "objects": str(frank.uuid), "label": str(newsletter.id)})
+        self.assertIn(frank, newsletter.contacts.all())
+
+        # on a group page, an "unlabel" with no group falls back to the current group ("Remove from group")
+        self.client.post(group_url, {"action": "unlabel", "objects": str(frank.uuid)})
+        self.assertNotIn(frank, group.contacts.all())
+
+        # a malformed contact uuid in `objects` is ignored rather than raising (no 500 on hostile/garbage input)
+        response = self.client.post(list_url, {"action": "archive", "objects": "not-a-uuid"})
+        self.assertEqual(200, response.status_code)
+
+        del self.client.cookies["temba-preview"]
+
+        # back on the legacy (non-preview) list, the content menu still surfaces Create Smart Group when the search is
+        # saveable as a group — build_context_menu reads the search straight off the request query string here
+        self.assertContentMenu(
+            list_url + "?search=age+%3E+30",
+            self.admin,
+            ["Create Smart Group", "New Contact", "New Group", "Export"],
+        )
+
+    @mock_mailroom
     def test_blocked(self, mr_mocks):
         joe = self.create_contact("Joe", urns=["twitter:joe"])
         frank = self.create_contact("Frank", urns=["twitter:frank"])
@@ -417,7 +501,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.assertReadFetch(group1_url, [self.editor, self.admin])
 
         self.assertEqual([frank, joe], list(response.context["object_list"]))
-        self.assertEqual(["block", "unlabel", "send", "start-flow"], list(response.context["actions"]))
+        self.assertEqual(["unlabel", "block", "send", "start-flow"], list(response.context["actions"]))
         self.assertEqual(
             [f.name for f in response.context["contact_fields"]], ["Home", "Age", "Last Seen On", "Created On"]
         )

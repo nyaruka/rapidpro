@@ -24,8 +24,9 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
         """
         The sent folder is ordered by sent date; all other folders by UUID, which (since msg.uuid is uuid7) is itself
         time-ordered and already uniquely indexed — so we get the same newest-first semantics as `-created_on, -id`
-        without the composite sort. Searches additionally include a `count` on the response via SearchCountMixin so
-        the list UI can surface "N results".
+        without the composite sort. The response always carries a `count` so the list UI can show "N of Total": a
+        search count via SearchCountMixin, otherwise the folder/label's cheap pre-calculated count (see
+        `get_total_count`) — never a COUNT(*) on the messages table.
         """
 
         # DRF's CursorPagination ignores `?page_size=` unless the subclass opts in. The list component sends
@@ -41,6 +42,14 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
             if request.query_params.get("folder", "").lower() == "sent":
                 return SentOnCursorPagination.ordering
             return self.ordering
+
+        def paginate_queryset(self, queryset, request, view=None):
+            page = super().paginate_queryset(queryset, request, view)
+            # SearchCountMixin sets _search_count on a search; otherwise fall back to the folder/label's cheap
+            # pre-calculated count so the list always has a total to show.
+            if getattr(self, "_search_count", None) is None and view is not None:
+                self._search_count = view.get_total_count()
+            return page
 
     # Match BaseListView's caps so the legacy and new lists impose the same bounds: a search query is capped at 1000
     # chars (rejected with 413) and is restricted to messages from the last 90 days so an unbounded `text__icontains`
@@ -66,6 +75,20 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
         if len(search) > self.SEARCH_MAX_LENGTH:
             return HttpResponse("Search query too long", status=413)
         return super().get(request, *args, **kwargs)
+
+    def get_total_count(self) -> int:
+        # Cheap pre-calculated total for the active folder/label (squashed count tables) — used as the list's total
+        # when there's no search, avoiding a COUNT(*) on the messages table.
+        org = self.request.org
+        label_uuid = self.request.query_params.get("label")
+        if label_uuid:
+            label = org.msgs_labels.filter(uuid=label_uuid).first()
+            return label.get_visible_count() if label else 0
+
+        folder = self.FOLDERS.get(self.request.query_params.get("folder", "inbox").lower())
+        if not folder:
+            return 0
+        return MsgFolder.get_counts(org).get(folder, 0)
 
     def derive_queryset(self):
         # `label` takes precedence — the filter view passes a label UUID rather than a folder name, and the visible
