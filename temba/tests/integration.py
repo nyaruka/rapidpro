@@ -1,6 +1,6 @@
 import json
 import socket
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
 
 import requests
@@ -100,11 +100,19 @@ class Messenger:
         if release_channel:
             self.channel.release(user=self.channel.created_by)
 
-    class Server(HTTPServer):
+    class Server(ThreadingHTTPServer):
+        # Courier sends MT replies from a pool of concurrent workers (its foreman defaults to 32 senders), so this
+        # server must handle requests concurrently. A single-threaded HTTPServer processes one send at a time and
+        # only backlogs a handful of pending connections, causing courier sends to be refused -> retried with
+        # backoff or eventually failed, which shows up as replies arriving delayed or not at all. ThreadingHTTPServer
+        # services each send on its own thread; daemon_threads lets those threads die on shutdown.
+        daemon_threads = True
+        request_queue_size = 64
+
         def __init__(self, port, host):
             # Bind on all interfaces (not just loopback) so courier can reach the send callback even when it runs
             # in a different container; advertise `host` in base_url so the channel's send URL resolves from there.
-            HTTPServer.__init__(self, ("0.0.0.0", port), Messenger.Handler)
+            ThreadingHTTPServer.__init__(self, ("0.0.0.0", port), Messenger.Handler)
             self.base_url = f"http://{host}:{port}"
             self.thread = Thread(target=self.serve_forever)
             self.thread.setDaemon(True)
