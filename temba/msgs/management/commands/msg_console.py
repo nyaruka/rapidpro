@@ -190,7 +190,7 @@ class Command(BaseCommand):  # pragma: no cover
 
     def typing_line(self) -> str:
         dots = TYPING_FRAMES[self.frame % len(TYPING_FRAMES)]
-        return f"📠 {Fore.GREEN}{self.messenger.channel.address}{Fore.RESET}> {Fore.YELLOW}typing{dots}{Fore.RESET}"
+        return f"📠 {Fore.GREEN}{self.messenger.channel.address}{Fore.RESET}> {Fore.YELLOW}{dots}{Fore.RESET}"
 
     def show_typing_line(self):
         """
