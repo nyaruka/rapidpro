@@ -925,6 +925,20 @@ class MailroomClientTest(TembaTest):
         )
 
     @patch("requests.post")
+    def test_msg_typing(self, mock_post):
+        ann = self.create_contact("Ann", urns=["tel:+12340000001"])
+        mock_post.return_value = MockJsonResponse(200, {})
+        response = self.client.msg_typing(self.org, ann)
+
+        self.assertEqual({}, response)
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mi/msg/typing",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={"org_id": self.org.id, "contact_id": ann.id},
+        )
+
+    @patch("requests.post")
     def test_org_deindex(self, mock_post):
         mock_post.return_value = MockJsonResponse(200, {})
         response = self.client.org_deindex(self.org)
