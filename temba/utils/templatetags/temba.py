@@ -90,6 +90,14 @@ def to_json(value):
 
 
 @register.filter
+def pretty_json(value):
+    """
+    Pretty-prints a value as indented JSON for display, e.g. flow start params.
+    """
+    return json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False)
+
+
+@register.filter
 def day(date):
     return _date_component(date, "date")
 
