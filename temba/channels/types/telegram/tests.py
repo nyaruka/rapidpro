@@ -55,14 +55,17 @@ class TelegramTypeTest(TembaTest):
         ]
         mock_post.return_value = MockResponse(200, '{"ok": true, "result": "SUCCESS"}')
 
-        response = self.client.post(url, {"auth_token": "184875172:BAEKbsOKAL23CXufXG4ksNV7Dq7e_1qi3j8"})
+        response = self.client.post(
+            url, {"auth_token": "184875172:BAEKbsOKAL23CXufXG4ksNV7Dq7e_1qi3j8"}, HTTP_HOST="tunnel.example.com"
+        )
         channel = Channel.objects.get(address="rapidbot")
         self.assertEqual(channel.channel_type, "TG")
         self.assertEqual(
             channel.config,
             {
                 "auth_token": "184875172:BAEKbsOKAL23CXufXG4ksNV7Dq7e_1qi3j8",
-                "callback_domain": channel.callback_domain,
+                # callback domain comes from the host the claim page was accessed on, not the brand domain
+                "callback_domain": "tunnel.example.com",
             },
         )
 

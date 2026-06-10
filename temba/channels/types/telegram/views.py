@@ -43,7 +43,9 @@ class ClaimView(ClaimViewMixin, SmartFormView):
 
         channel_config = {
             Channel.CONFIG_AUTH_TOKEN: auth_token,
-            Channel.CONFIG_CALLBACK_DOMAIN: org.get_brand_domain(),
+            # use the host the claim page was served on (e.g. a dev tunnel) rather than the brand domain, so the
+            # webhook we register with Telegram points back at a host that can actually reach this instance
+            Channel.CONFIG_CALLBACK_DOMAIN: self.request.get_host(),
         }
 
         self.object = Channel.create(
