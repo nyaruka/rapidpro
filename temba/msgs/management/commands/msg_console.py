@@ -105,6 +105,7 @@ class Command(BaseCommand):  # pragma: no cover
         self.buffer = []
         self.last_typing = 0  # last time we sent a typing indicator
         self.typing_until = 0  # when the typing indicator we're showing expires
+        self.typing_shown = False  # whether the line above the prompt is currently the typing line
         self.frame = 0
         self.reading = False
         self.term_lock = threading.Lock()  # the input loop, callback server and animator all draw
@@ -146,7 +147,11 @@ class Command(BaseCommand):  # pragma: no cover
                 if ch in ("\n", "\r"):
                     with self.term_lock:
                         self.reading = False
-                        print("\033[0K")  # erase any typing indicator to the right of the input
+                        if self.typing_shown:
+                            # remove the typing line so it doesn't strand in the history - if still
+                            # active it redraws above the next prompt
+                            self.remove_typing_line()
+                        print()
                     return "".join(self.buffer)
                 elif ch == "\x04":  # Ctrl+D quits like Ctrl+C
                     raise KeyboardInterrupt()
@@ -178,44 +183,75 @@ class Command(BaseCommand):  # pragma: no cover
 
     def redraw_prompt(self):
         """
-        Redraws the prompt line: the prompt, the current input and an animated typing indicator if one
-        is active. Callers must hold the terminal lock.
+        Redraws the prompt line with the current input. Callers must hold the terminal lock.
         """
         print("\033[2K\033[1G", end="")
         print(self.prompt + "".join(self.buffer), end="", flush=True)
 
-        if time.time() < self.typing_until:
-            dots = TYPING_FRAMES[self.frame % len(TYPING_FRAMES)]
-            # draw the indicator after the input, then move the cursor back to the input
-            print(f"  {Fore.YELLOW}typing{dots}{Fore.RESET}\033[{8 + len(dots)}D", end="", flush=True)
+    def typing_line(self) -> str:
+        dots = TYPING_FRAMES[self.frame % len(TYPING_FRAMES)]
+        return f"📠 {Fore.GREEN}{self.messenger.channel.address}{Fore.RESET}> {Fore.YELLOW}typing{dots}{Fore.RESET}"
+
+    def show_typing_line(self):
+        """
+        Inserts the typing line above the prompt, pushing the prompt down. Callers must hold the
+        terminal lock.
+        """
+        print("\033[2K\033[1G", end="")
+        print(self.typing_line())
+        self.typing_shown = True
+        self.redraw_prompt()
+
+    def remove_typing_line(self):
+        """
+        Removes the typing line above the prompt, pulling the prompt back up. Callers must hold the
+        terminal lock.
+        """
+        print("\033[2K\033[1G\033[1A", end="")
+        self.typing_shown = False
+        self.redraw_prompt()
 
     def animate_typing(self):
         """
-        Advances the typing indicator animation and clears it when it expires.
+        Shows, advances and expires the typing line above the prompt.
         """
         while True:
             time.sleep(0.3)
             with self.term_lock:
                 if not self.typing_until:
                     continue
-                self.frame += 1
                 if time.time() >= self.typing_until:
                     self.typing_until = 0
-                if self.reading:
-                    self.redraw_prompt()
+                if not self.reading:
+                    continue
+
+                if not self.typing_until:
+                    if self.typing_shown:
+                        self.remove_typing_line()
+                elif self.typing_shown:
+                    # redraw the typing line in place, preserving the cursor on the prompt line
+                    self.frame += 1
+                    print(f"\0337\033[1A\033[2K\033[1G{self.typing_line()}\0338", end="", flush=True)
+                else:
+                    self.show_typing_line()
 
     def response_callback(self, data):
         with self.term_lock:
-            print("\033[2K\033[1G", end="")  # erase current line and move cursor to start of line
             if data.get("type") == "typing":
                 self.typing_until = time.time() + TYPING_DISPLAY
+                if self.reading and not self.typing_shown:
+                    self.show_typing_line()
             else:
-                # a message takes the place of any typing indicator
                 self.typing_until = 0
+                print("\033[2K\033[1G", end="")  # erase current line and move cursor to start of line
+                if self.typing_shown:
+                    # the message takes the typing line's place
+                    print("\033[1A\033[2K\033[1G", end="")
+                    self.typing_shown = False
                 print(f"📠 {Fore.GREEN}{self.messenger.channel.address}{Fore.RESET}> {data['text']}")
-            # reprint the prompt along with anything the user has typed so far
-            if self.reading:
-                self.redraw_prompt()
+                # reprint the prompt along with anything the user has typed so far
+                if self.reading:
+                    self.redraw_prompt()
 
     def get_org(self, id_or_name):
         """
