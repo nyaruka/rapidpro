@@ -3,6 +3,7 @@ from unittest.mock import call, patch
 from urllib.parse import quote
 
 import iso8601
+from django_valkey import get_valkey_connection
 
 from django.conf import settings
 from django.urls import reverse
@@ -693,6 +694,18 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(404, response.status_code)
 
     @mock_mailroom
+    def test_chat_typing(self, mr_mocks):
+        contact = self.create_contact("Joe Blow", urns=["tel:+250781111111"])
+        chat_url = reverse("contacts.contact_chat", args=[contact.uuid])
+
+        self.login(self.editor)
+
+        response = self.client.post(chat_url, {"typing": True}, content_type="application/json")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({}, response.json())
+        self.assertEqual(call(self.org, contact), mr_mocks.calls["msg_typing"][-1])
+
+    @mock_mailroom
     def test_chat_reply_non_own_permission(self, mr_mocks):
         contact = self.create_contact("Joe Blow", urns=["tel:+250781111111"])
         ticket = self.create_ticket(contact)
@@ -805,7 +818,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # providing a after value fetches newer history
         response = self.client.get(chat_url + "?after=019a9299-1fa0-7124-82dc-716e856f293e")  # 2025-11-17T16:15
         self.assertEqual(200, response.status_code)
-        self.assertEqual({"events": [], "next": None}, response.json())
+        self.assertEqual({"events": [], "next": None, "typing": False}, response.json())
 
         # if there are less than a page of events, next is empty
         mock_get_by_contact.return_value = mock_events(
@@ -821,6 +834,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                     {"uuid": matchers.UUIDString(version=7), "type": "test", "created_on": "2025-11-17T16:00:00+00:00"},
                 ],
                 "next": None,
+                "typing": False,
             },
             response.json(),
         )
@@ -833,10 +847,18 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(chat_url + "?after=019a9299-1fa0-7124-82dc-716e856f293e")  # 2025-11-17T16:15
         self.assertEqual(200, response.status_code)
         self.assertEqual(
-            {"events": matchers.List(length=50), "next": matchers.UUIDString(version=7)},
+            {"events": matchers.List(length=50), "next": matchers.UUIDString(version=7), "typing": False},
             response.json(),
         )
         self.assertEqual(response.json()["events"][0]["uuid"], response.json()["next"])
+
+        # if courier has flagged the contact as currently typing, that's included in poll responses
+        mock_get_by_contact.return_value = []
+        get_valkey_connection().set(f"typing:{contact.uuid}", "1", ex=10)
+
+        response = self.client.get(chat_url + "?after=019a9299-1fa0-7124-82dc-716e856f293e")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"events": [], "next": None, "typing": True}, response.json())
 
     @mock_mailroom
     def test_chat_search(self, mr_mocks):

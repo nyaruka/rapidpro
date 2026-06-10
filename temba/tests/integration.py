@@ -56,6 +56,7 @@ class Messenger:
             ExternalType.CONFIG_SEND_METHOD: "POST",
             ExternalType.CONFIG_CONTENT_TYPE: "application/json",
             ExternalType.CONFIG_SEND_BODY: '{"text": "{{text}}"}',
+            ExternalType.CONFIG_SEND_TYPING_URL: f"{server.base_url}/typing",
         }
 
         channel = org.channels.filter(channel_type=ExternalType.code, name=cls.CHANNEL_NAME, is_active=True).first()
@@ -90,6 +91,16 @@ class Messenger:
 
         payload = response.json()
         return Msg.objects.get(uuid=payload["data"][0]["msg_uuid"])
+
+    def typing(self, sender):
+        """
+        Simulates the contact typing on their device.
+        """
+        webhook = f"{self.courier_url}/c/ex/{str(self.channel.uuid)}/typing"
+        response = requests.post(webhook, data={"from": sender})
+
+        if response.status_code != 200:
+            raise ValueError(f"courier returned non-200 response: {response.content}")
 
     def handle_outgoing(self, data):
         return self.callback(data) or "OK"

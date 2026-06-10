@@ -33,6 +33,7 @@ class ExternalType(ChannelType):
     CONFIG_SEND_BODY = "body"
     CONFIG_MT_RESPONSE_CHECK = "mt_response_check"
     CONFIG_CONTENT_TYPE = "content_type"
+    CONFIG_SEND_TYPING_URL = "send_typing_url"
 
     CONFIG_DEFAULT_SEND_BODY = (
         "uuid={{uuid}}&text={{text}}&to={{to}}&to_no_plus={{to_no_plus}}&from={{from}}&from_no_plus={{from_no_plus}}"

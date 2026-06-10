@@ -478,6 +478,10 @@ class TestClient(MailroomClient):
         }
 
     @_client_method
+    def msg_typing(self, org, contact):
+        return {}
+
+    @_client_method
     def org_deindex(self, org):
         return {}
 

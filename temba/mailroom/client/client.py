@@ -367,6 +367,9 @@ class MailroomClient:
             },
         )
 
+    def msg_typing(self, org, contact):
+        return self._request("msg/typing", {"org_id": org.id, "contact_id": contact.id})
+
     def org_deindex(self, org):
         return self._request("org/deindex", {"org_id": org.id})
 

@@ -508,12 +508,24 @@ class ContactCRUDL(SmartCRUDL):
                 # after value means UI is polling for new events
                 events = contact.get_history(request.user, after=after, ticket=ticket, limit=self.page_size + 1)
                 page, more = events[: self.page_size], events[self.page_size :]
-                return JsonResponse({"events": list(reversed(page)), "next": page[-1]["uuid"] if more else None})
+                return JsonResponse(
+                    {
+                        "events": list(reversed(page)),
+                        "next": page[-1]["uuid"] if more else None,
+                        "typing": contact.is_typing(),
+                    }
+                )
             else:
                 return JsonResponse({"error": "must specify before or after parameter"}, status=400)
 
         def post(self, request, *args, **kwargs):
             payload = json.loads(request.body)
+
+            # an indication that the user is typing rather than an actual message to send
+            if payload.get("typing"):
+                mailroom.get_client().msg_typing(request.org, self.get_object())
+                return JsonResponse({})
+
             text = payload.get("text", "")
             attachments = []
             ticket = None

@@ -10,6 +10,7 @@ from uuid import UUID
 import iso8601
 import phonenumbers
 import regex
+from django_valkey import get_valkey_connection
 from openpyxl import load_workbook
 from smartmin.models import SmartModel
 
@@ -648,6 +649,13 @@ class Contact(LegacyUUIDMixin, SmartModel):
         from temba.mailroom.events import Event
 
         return Event.get_by_contact(self, user, before=before, after=after, ticket=ticket, limit=limit)
+
+    def is_typing(self) -> bool:
+        """
+        Returns whether this contact is currently typing - a transient marker set by courier when a channel
+        reports the contact is typing.
+        """
+        return bool(get_valkey_connection().exists(f"typing:{self.uuid}"))
 
     def get_scheduled_broadcasts(self):
         return (

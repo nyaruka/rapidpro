@@ -831,6 +831,7 @@ class ChannelLog:
 
     LOG_TYPE_UNKNOWN = "unknown"
     LOG_TYPE_MSG_SEND = "msg_send"
+    LOG_TYPE_EVENT_SEND = "event_send"
     LOG_TYPE_MSG_STATUS = "msg_status"
     LOG_TYPE_MSG_RECEIVE = "msg_receive"
     LOG_TYPE_EVENT_RECEIVE = "event_receive"
@@ -847,6 +848,7 @@ class ChannelLog:
     LOG_TYPE_DISPLAY = {
         LOG_TYPE_UNKNOWN: _("Other Event"),
         LOG_TYPE_MSG_SEND: _("Message Send"),
+        LOG_TYPE_EVENT_SEND: _("Event Send"),
         LOG_TYPE_MSG_STATUS: _("Message Status"),
         LOG_TYPE_MSG_RECEIVE: _("Message Receive"),
         LOG_TYPE_EVENT_RECEIVE: _("Event Receive"),

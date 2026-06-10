@@ -84,13 +84,17 @@ class Command(BaseCommand):  # pragma: no cover
 
         self.stdout.write(
             f"\nSending messages to {Fore.CYAN}{org.name}{Fore.RESET} as {Fore.CYAN}{scheme}:{path}{Fore.RESET}. "
-            "Use Ctrl+C to quit."
+            f"Type {Fore.CYAN}/typing{Fore.RESET} to send a typing indicator. Use Ctrl+C to quit."
         )
 
         try:
             while True:
                 line = input(self.prompt)
                 if not line:
+                    continue
+
+                if line == "/typing":
+                    self.messenger.typing(path)
                     continue
 
                 self.messenger.incoming(path, line)
@@ -101,7 +105,10 @@ class Command(BaseCommand):  # pragma: no cover
 
     def response_callback(self, data):
         print("\033[2K\033[1G", end="")  # erase current line and move cursor to start of line
-        print(f"📠 {Fore.GREEN}{self.messenger.channel.address}{Fore.RESET}> {data['text']}")
+        if data.get("type") == "typing":
+            print(f"📠 {Fore.GREEN}{self.messenger.channel.address}{Fore.RESET}> {Fore.YELLOW}is typing…{Fore.RESET}")
+        else:
+            print(f"📠 {Fore.GREEN}{self.messenger.channel.address}{Fore.RESET}> {data['text']}")
         print(self.prompt, end="", flush=True)
 
     def get_org(self, id_or_name):
