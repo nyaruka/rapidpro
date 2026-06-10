@@ -1,3 +1,8 @@
+v26.1.130 (2026-06-10)
+-------------------------
+ * Redesign flow starts list as single-line rows with a details modal
+ * Add preview-mode contact list backed by internal contacts API
+
 v26.1.129 (2026-06-04)
 -------------------------
  * Update @nyaruka/temba-components to 0.159.3
