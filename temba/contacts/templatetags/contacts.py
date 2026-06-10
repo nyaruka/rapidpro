@@ -61,6 +61,10 @@ def format_urn(urn, org):
     if org and org.is_anon:
         return ContactURN.ANON_MASK_HTML
 
+    # urn can be a ContactURN instance or a raw URN string (e.g. FlowStart.urns)
+    if isinstance(urn, str):
+        return URN.format(urn, international=True)
+
     return urn.get_display(org=org, international=True)
 
 
