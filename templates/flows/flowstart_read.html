@@ -65,22 +65,20 @@
       {% endif %}
     </div>
     <div class="start-section">
-      <div class="start-label">{% trans "Started" %}</div>
+      <div class="start-label">{% trans "Started by" %}</div>
       <div>
         {% if object.start_type == "M" %}
-          {% blocktrans trimmed with user=object.created_by.email when=object.created_on|timedate %}
-            by {{ user }} on {{ when }}
-          {% endblocktrans %}
+          {{ object.created_by.email }}
         {% elif object.start_type == "Z" %}
-          {% blocktrans trimmed with when=object.created_on|timedate %}
-            by Zapier on {{ when }}
-          {% endblocktrans %}
+          {% trans "Zapier" %}
         {% else %}
-          {% blocktrans trimmed with when=object.created_on|timedate %}
-            by an API call on {{ when }}
-          {% endblocktrans %}
+          {% trans "An API call" %}
         {% endif %}
       </div>
+    </div>
+    <div class="start-section">
+      <div class="start-label">{% trans "Started" %}</div>
+      <div>{{ object.created_on|timedate }}</div>
     </div>
     {% if object.groups.all or object.contacts.all or object.urns or object.query %}
       <div class="start-section">

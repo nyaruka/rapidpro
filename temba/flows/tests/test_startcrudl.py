@@ -93,12 +93,12 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
         # a manual start shows who started it and its recipients
         response = self.assertReadFetch(read1_url, [self.editor, self.admin], context_object=start1)
         self.assertContains(response, "Test Flow 1")
-        self.assertContains(response, "by admin@textit.com on")
+        self.assertContains(response, "admin@textit.com")
         self.assertContains(response, "Bob")
 
         # an API start shows its query, exclusions and params
         response = self.assertReadFetch(read2_url, [self.admin], context_object=start2)
-        self.assertContains(response, "by an API call on")
+        self.assertContains(response, "An API call")
         self.assertContains(response, "name ~ Bob")
         self.assertContains(response, "No recent runs")
         self.assertContains(response, "&quot;first_name&quot;: &quot;Ryan&quot;")
@@ -106,10 +106,16 @@ class FlowStartCRUDLTest(TembaTest, CRUDLTestMixin):
         # a Zapier start against a deleted flow still renders its group, exclusions and params
         response = self.assertReadFetch(read3_url, [self.admin], context_object=start3)
         self.assertContains(response, "A deleted flow")
-        self.assertContains(response, "by Zapier on")
+        self.assertContains(response, "Zapier")
         self.assertContains(response, "Testers")
         self.assertContains(response, "Not in a flow")
         self.assertContains(response, "&quot;event&quot;: &quot;signup&quot;")
+
+        # a start against raw URNs (e.g. from the API) renders its URN recipients
+        start4 = self.create_flowstart(flow1, self.admin, typ="A", urns=["tel:+15156686221"])
+        read4_url = reverse("flows.flowstart_read", args=[start4.uuid])
+        response = self.assertReadFetch(read4_url, [self.admin], context_object=start4)
+        self.assertContains(response, "+1 515-668-6221")
 
         # starts from other orgs aren't accessible
         other_flow = self.create_flow("Other Flow", org=self.org2)
