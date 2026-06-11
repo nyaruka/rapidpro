@@ -1,3 +1,7 @@
+v26.1.133 (2026-06-11)
+-------------------------
+ * Include debug_token response in WhatsApp connect failure logs
+
 v26.1.132 (2026-06-11)
 -------------------------
  * Merge pull request #6663 from nyaruka/whatsapp-connect-logging
