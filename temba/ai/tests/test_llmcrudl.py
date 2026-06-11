@@ -7,6 +7,7 @@ from temba.ai.models import LLM
 from temba.ai.types.anthropic.type import AnthropicType
 from temba.ai.types.openai.type import OpenAIType
 from temba.mailroom.client.exceptions import AIServiceException
+from temba.orgs.models import Org
 from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
@@ -35,6 +36,18 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("settings/ai", response.headers[TEMBA_MENU_SELECTION])
         self.assertContentMenu(list_url, self.admin, ["New Anthropic", "New Google", "New OpenAI", "New Azure OpenAI"])
         self.assertContentMenu(list_url, self.editor, [])
+
+        # orgs with the agents feature have AI as a top-level section and the list selects its Models item
+        self.org.features = [Org.FEATURE_AGENTS]
+        self.org.save(update_fields=("features",))
+
+        response = self.assertListFetch(
+            list_url, [self.editor, self.admin], context_objects=[self.anthropic, self.openai]
+        )
+        self.assertEqual("/ai/models", response.headers[TEMBA_MENU_SELECTION])
+
+        self.org.features = []
+        self.org.save(update_fields=("features",))
 
         with override_settings(ORG_LIMIT_DEFAULTS={"llms": 2}):
             response = self.assertListFetch(list_url, [self.editor, self.admin], context_object_count=2)

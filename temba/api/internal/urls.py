@@ -6,6 +6,7 @@ from temba.contacts.api import ContactsEndpoint
 from temba.msgs.api import MessagesEndpoint
 
 from .views import (
+    KnowledgeBasesEndpoint,
     LLMsEndpoint,
     LocationsEndpoint,
     NotificationsEndpoint,
@@ -17,6 +18,7 @@ from .views import (
 urlpatterns = [
     # ========== endpoints A-Z ===========
     re_path(r"^contacts$", ContactsEndpoint.as_view(), name="api.internal.contacts"),
+    re_path(r"^knowledge_bases$", KnowledgeBasesEndpoint.as_view(), name="api.internal.knowledge_bases"),
     re_path(r"^llms$", LLMsEndpoint.as_view(), name="api.internal.llms"),
     re_path(r"^locations$", LocationsEndpoint.as_view(), name="api.internal.locations"),
     re_path(r"^messages$", MessagesEndpoint.as_view(), name="api.internal.messages"),

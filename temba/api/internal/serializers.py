@@ -2,7 +2,7 @@ from datetime import timezone as tzone
 
 from rest_framework import serializers
 
-from temba.ai.models import LLM
+from temba.ai.models import LLM, KnowledgeBase
 from temba.locations.models import AdminBoundary
 from temba.orgs.models import Org
 from temba.templates.models import Template, TemplateTranslation
@@ -28,6 +28,33 @@ class LLMReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = LLM
         fields = ("uuid", "name", "type", "roles")
+
+
+class KnowledgeBaseReadSerializer(serializers.ModelSerializer):
+    TYPES = {
+        KnowledgeBase.TYPE_WEBSITE: "website",
+        KnowledgeBase.TYPE_DOCUMENTS: "documents",
+        KnowledgeBase.TYPE_FAQ: "faq",
+    }
+    STATUSES = {
+        KnowledgeBase.STATUS_PENDING: "pending",
+        KnowledgeBase.STATUS_PROCESSING: "processing",
+        KnowledgeBase.STATUS_COMPLETE: "complete",
+        KnowledgeBase.STATUS_FAILED: "failed",
+    }
+
+    type = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+
+    def get_type(self, obj):
+        return self.TYPES[obj.kb_type]
+
+    def get_status(self, obj):
+        return self.STATUSES[obj.status]
+
+    class Meta:
+        model = KnowledgeBase
+        fields = ("uuid", "name", "type", "status")
 
 
 class LocationReadSerializer(serializers.ModelSerializer):

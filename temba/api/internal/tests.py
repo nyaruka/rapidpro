@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from temba import mailroom
-from temba.ai.models import LLM
+from temba.ai.models import LLM, KnowledgeBase
 from temba.ai.types.anthropic.type import AnthropicType
 from temba.ai.types.openai.type import OpenAIType
 from temba.api.tests.mixins import APITestMixin
@@ -594,6 +594,30 @@ class EndpointsTest(APITestMixin, TembaTest):
                 },
             ],
             num_queries=NUM_BASE_QUERIES + 3,
+        )
+
+    def test_knowledge_bases(self):
+        endpoint_url = reverse("api.internal.knowledge_bases") + ".json"
+
+        kb1 = KnowledgeBase.create_website(self.org, self.admin, "Help Site", "https://help.acme.com/")
+        kb2 = KnowledgeBase.create_website(self.org, self.admin, "Docs", "https://docs.acme.com/")
+        kb2.status = KnowledgeBase.STATUS_COMPLETE
+        kb2.save(update_fields=("status",))
+        deleted = KnowledgeBase.create_website(self.org, self.admin, "Deleted", "https://old.acme.com/")
+        deleted.release(self.admin)
+        KnowledgeBase.create_website(self.org2, self.admin2, "Other Org", "https://other.com/")
+
+        self.assertGetNotPermitted(endpoint_url, [None])
+        self.assertPostNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        self.assertGet(
+            endpoint_url,
+            [self.admin],
+            results=[
+                {"uuid": str(kb2.uuid), "name": "Docs", "type": "website", "status": "complete"},
+                {"uuid": str(kb1.uuid), "name": "Help Site", "type": "website", "status": "pending"},
+            ],
         )
 
     def test_llms(self):

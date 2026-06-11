@@ -386,6 +386,7 @@ GROUP_PERMISSIONS = {
     "Dashboard": ("orgs.org_dashboard",),
     "Granters": ("orgs.org_grant",),
     "Administrators": (
+        "ai.knowledgebase.*",
         "ai.llm.*",
         "airtime.airtimetransfer_list",
         "airtime.airtimetransfer_read",
@@ -481,6 +482,7 @@ GROUP_PERMISSIONS = {
         "users.user_update",
     ),
     "Editors": (
+        "ai.knowledgebase.*",
         "ai.llm_list",
         "ai.llm_read",
         "ai.llm_translate",

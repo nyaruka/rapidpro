@@ -2,7 +2,7 @@ from django.conf.urls import include
 from django.urls import re_path
 
 from .models import LLM
-from .views import LLMCRUDL
+from .views import LLMCRUDL, AIMenu, KnowledgeBaseCRUDL
 
 # build up all the type specific urls
 type_urls = []
@@ -16,5 +16,7 @@ for llm_type in LLM.get_types():
 
 urlpatterns = [
     re_path(r"^", include(LLMCRUDL().as_urlpatterns())),
+    re_path(r"^", include(KnowledgeBaseCRUDL().as_urlpatterns())),
+    re_path(r"^ai/menu/$", AIMenu.as_view(), name="ai.ai_menu"),
     re_path(r"^ai/types/", include(type_urls)),
 ]

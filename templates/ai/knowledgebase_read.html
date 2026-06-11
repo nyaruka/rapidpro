@@ -1,0 +1,173 @@
+{% extends "smartmin/read.html" %}
+{% load smartmin temba i18n humanize %}
+
+{% block content %}
+  <div class="mb-6 p-4 rounded-lg border border-gray-200">
+    <div class="flex gap-8">
+      <div>
+        <div class="text-sm text-gray-500">{% trans "Type" %}</div>
+        <div>{{ object.get_kb_type_display }}</div>
+      </div>
+      {% if object.kb_type == "W" %}
+        <div>
+          <div class="text-sm text-gray-500">{% trans "URL" %}</div>
+          <div>
+            <a href="{{ object.url }}" target="_blank">{{ object.url }}</a>
+          </div>
+        </div>
+      {% endif %}
+      {% if object.kb_type != "F" %}
+        <div>
+          <div class="text-sm text-gray-500">{% trans "Status" %}</div>
+          <div>{{ object.get_status_display }}</div>
+        </div>
+      {% endif %}
+      {% if object.started_on %}
+        <div>
+          <div class="text-sm text-gray-500">{% trans "Started" %}</div>
+          <div>{{ object.started_on|date:"SHORT_DATETIME_FORMAT" }}</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  {% if object.kb_type == "W" %}
+    <div class="mb-6">
+      <div class="crawl-result text-lg mt-2">
+        {% if object.is_finished %}
+          <temba-icon name="check" class="text-success mr-2">
+          </temba-icon>
+        {% else %}
+          <temba-icon name="progress_spinner" class="mr-2" spin>
+          </temba-icon>
+        {% endif %}
+        {% blocktrans trimmed count count=object.num_pages %}
+          Crawled {{ count }} page
+        {% plural %}
+          Crawled {{ count }} pages
+        {% endblocktrans %}
+      </div>
+      <div class="crawl-result text-lg mt-2">
+        {% if object.is_finished %}
+          <temba-icon name="check" class="text-success mr-2">
+          </temba-icon>
+        {% else %}
+          <temba-icon name="progress_spinner" class="mr-2" spin>
+          </temba-icon>
+        {% endif %}
+        {% blocktrans trimmed count count=object.num_articles with num_chunks=object.num_chunks %}
+          Ingested {{ count }} article in {{ num_chunks }} searchable chunks
+        {% plural %}
+          Ingested {{ count }} articles in {{ num_chunks }} searchable chunks
+        {% endblocktrans %}
+      </div>
+      {% if object.status == "F" %}
+        <div class="crawl-result text-lg mt-2">
+          <temba-icon name="alert_warning" class="text-error mr-2">
+          </temba-icon>
+          {% blocktrans trimmed with error=object.error %}
+            Crawling failed: {{ error }}
+          {% endblocktrans %}
+        </div>
+      {% endif %}
+    </div>
+    <div class="text-lg mb-2">{% trans "Articles" %}</div>
+    <table class="list lined scrolled">
+      <thead>
+        <tr>
+          <th>{% trans "Title" %}</th>
+          <th>{% trans "Chunks" %}</th>
+          <th>{% trans "Fetched" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for article in articles %}
+          <tr>
+            <td>
+              <a href="{{ article.url }}" target="_blank">{{ article.title }}</a>
+            </td>
+            <td>{{ article.chunk_count }}</td>
+            <td>{{ article.created_on|date:"SHORT_DATETIME_FORMAT" }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="3" class="text-gray-500">
+              {% if object.is_finished %}
+                {% trans "No articles were found." %}
+              {% else %}
+                {% trans "No articles ingested yet." %}
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% elif object.kb_type == "D" %}
+    {% if object.status == "F" %}
+      <div class="crawl-result text-lg mb-4">
+        <temba-icon name="alert_warning" class="text-error mr-2">
+        </temba-icon>
+        {% blocktrans trimmed with error=object.error %}
+          Processing failed: {{ error }}
+        {% endblocktrans %}
+      </div>
+    {% endif %}
+    <div class="text-lg mb-2">{% trans "Documents" %}</div>
+    <table class="list lined scrolled">
+      <thead>
+        <tr>
+          <th>{% trans "Name" %}</th>
+          <th>{% trans "Chunks" %}</th>
+          <th>{% trans "Uploaded" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for article in articles %}
+          <tr>
+            <td>{{ article.title }}</td>
+            <td>
+              {% if article.content %}
+                {{ article.chunk_count }}
+              {% else %}
+                <temba-icon name="progress_spinner" spin>
+                </temba-icon>
+              {% endif %}
+            </td>
+            <td>{{ article.created_on|date:"SHORT_DATETIME_FORMAT" }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="3" class="text-gray-500">{% trans "No documents uploaded yet." %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="mb-4">
+      {% blocktrans trimmed %}
+        Questions and answers that agents using this knowledge base can answer from.
+      {% endblocktrans %}
+    </div>
+    <table class="list lined scrolled">
+      <tbody>
+        {% for article in articles %}
+          <tr>
+            <td style="min-width: 200px" class="font-medium">{{ article.title }}</td>
+            <td class="text-gray-600">{{ article.content|truncatechars:120 }}</td>
+          </tr>
+        {% empty %}
+          <tr class="empty_list">
+            <td colspan="99" class="text-center">{% trans "No entries yet" %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock content %}
+{% block extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    .crawl-result temba-icon {
+      display: inline-block;
+    }
+  </style>
+{% endblock extra-style %}

@@ -64,6 +64,46 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             choose_org=self.org,
         )
 
+        # orgs with the agents feature get a top-level AI section instead of the settings menu entry
+        self.org.features = [Org.FEATURE_AGENTS]
+        self.org.save(update_fields=("features",))
+
+        self.assertPageMenu(
+            menu_url,
+            self.admin,
+            [
+                ("Workspace", ["Account", "Sign Out"]),
+                "Messages",
+                "Contacts",
+                "Flows",
+                "Triggers",
+                "Campaigns",
+                "Tickets",
+                "AI",
+                ("Notifications", []),
+                "Settings",
+            ],
+            choose_org=self.org,
+        )
+        self.assertPageMenu(
+            f"{menu_url}settings/",
+            self.admin,
+            [
+                "Nyaruka",
+                "API Tokens",
+                "Resthooks",
+                "Incidents",
+                "Export",
+                "Import",
+                ("Channels", ["New Channel", "Test Channel"]),
+                ("Archives", ["Messages", "Flow Runs"]),
+            ],
+            choose_org=self.org,
+        )
+
+        self.org.features = []
+        self.org.save(update_fields=("features",))
+
         # agents should only see tickets and settings
         self.assertPageMenu(
             menu_url,

@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from django.db.models import Prefetch, Q
 
-from temba.ai.models import LLM
+from temba.ai.models import LLM, KnowledgeBase
 from temba.channels.models import Channel
 from temba.locations.models import AdminBoundary
 from temba.notifications.models import Notification
@@ -36,6 +36,19 @@ class BaseEndpoint(BaseAPIView):
 # ============================================================
 # Endpoints (A-Z)
 # ============================================================
+
+
+class KnowledgeBasesEndpoint(ListAPIMixin, BaseEndpoint):
+    """
+    Knowledge bases for the current user, used to populate the knowledge base picker in agent forms.
+    """
+
+    model = KnowledgeBase
+    serializer_class = serializers.KnowledgeBaseReadSerializer
+    pagination_class = NameCursorPagination
+
+    def get_queryset(self):
+        return super().get_queryset().filter(org=self.request.org, is_active=True)
 
 
 class LLMsEndpoint(ListAPIMixin, BaseEndpoint):

@@ -1,0 +1,47 @@
+{% extends "orgs/base/list.html" %}
+{% load smartmin temba i18n %}
+
+{% block pre-table %}
+  <div class="mb-4">
+    {% blocktrans trimmed %}
+      Knowledge bases hold content your AI agents can answer from - a crawled website, uploaded
+      documents, or an FAQ of predefined questions and answers. They are shared by all of your agents.
+    {% endblocktrans %}
+  </div>
+{% endblock pre-table %}
+{% block table %}
+  <table class="list lined selectable scrolled">
+    <tbody>
+      {% for obj in object_list %}
+        <tr>
+          <td style="min-width: 200px" class="font-medium">
+            <a href="{% url 'ai.knowledgebase_read' obj.uuid %}">{{ obj.name }}</a>
+          </td>
+          <td class="w-32">{{ obj.get_kb_type_display }}</td>
+          <td class="text-gray-600">{{ obj.url|default:""|truncatechars:60 }}</td>
+          <td class="w-32">
+            {% if obj.status == "F" %}
+              <temba-icon name="alert_warning" class="text-error mr-1">
+              </temba-icon>
+            {% elif not obj.is_finished %}
+              <temba-icon name="progress_spinner" class="mr-1" spin>
+              </temba-icon>
+            {% endif %}
+            {{ obj.get_status_display }}
+          </td>
+          <td class="w-32">
+            {% blocktrans trimmed count count=obj.num_articles %}
+              {{ count }} article
+            {% plural %}
+              {{ count }} articles
+            {% endblocktrans %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr class="empty_list">
+          <td colspan="99" class="text-center">{% trans "No knowledge bases yet" %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock table %}

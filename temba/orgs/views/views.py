@@ -450,7 +450,9 @@ class OrgCRUDL(SmartCRUDL):
                         self.create_menu_item(name=_("Incidents"), icon="incidents", href="notifications.incident_list")
                     )
 
-                menu.append(self.create_menu_item(menu_id="ai", name=_("AI"), icon="ai", href="ai.llm_list"))
+                # orgs with the agents feature get AI as a top-level section instead
+                if Org.FEATURE_AGENTS not in org.features:
+                    menu.append(self.create_menu_item(menu_id="ai", name=_("AI"), icon="ai", href="ai.llm_list"))
 
                 if Org.FEATURE_CHILD_ORGS in org.features and self.has_org_perm("orgs.org_list"):
                     menu.append(self.create_divider())
@@ -675,6 +677,18 @@ class OrgCRUDL(SmartCRUDL):
                     href="tickets.ticket_list",
                 ),
             ]
+
+            if org and Org.FEATURE_AGENTS in org.features:
+                menu.append(
+                    self.create_menu_item(
+                        menu_id="ai",
+                        name=_("AI"),
+                        icon="ai",
+                        endpoint="ai.ai_menu",
+                        href="ai.llm_list",
+                        perm="ai.llm_list",
+                    )
+                )
 
             if org:
                 unseen_bubble = None

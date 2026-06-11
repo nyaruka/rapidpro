@@ -3,6 +3,7 @@ import json
 from smartmin.views import SmartCRUDL
 
 from django import forms
+from django.db.models import Count
 from django.db.models.functions import Lower
 from django.http import JsonResponse
 from django.urls import reverse
@@ -10,13 +11,22 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from temba import mailroom
-from temba.orgs.views.base import BaseDependencyDeleteModal, BaseListView, BaseReadView, BaseUpdateModal
-from temba.orgs.views.mixins import OrgPermsMixin, UniqueNameMixin
+from temba.orgs.models import Org
+from temba.orgs.views.base import (
+    BaseCreateModal,
+    BaseDeleteModal,
+    BaseDependencyDeleteModal,
+    BaseListView,
+    BaseMenuView,
+    BaseReadView,
+    BaseUpdateModal,
+)
+from temba.orgs.views.mixins import OrgPermsMixin, RequireFeatureMixin, UniqueNameMixin
 from temba.utils.fields import InputWidget, SelectWidget
 from temba.utils.views.mixins import ContextMenuMixin, PostOnlyMixin, SpaMixin
 from temba.utils.views.wizard import SmartWizardView
 
-from .models import LLM
+from .models import LLM, KnowledgeBase
 
 
 class BaseConnectWizard(OrgPermsMixin, SmartWizardView):
@@ -95,8 +105,12 @@ class LLMCRUDL(SmartCRUDL):
 
     class List(SpaMixin, ContextMenuMixin, BaseListView):
         title = _("Artificial Intelligence")
-        menu_path = "settings/ai"
         default_order = (Lower("name"),)
+
+        def derive_menu_path(self):
+            if Org.FEATURE_AGENTS in self.request.org.features:
+                return "/ai/models"
+            return "settings/ai"
 
         def derive_queryset(self, **kwargs):
             return super().derive_queryset(**kwargs).filter(is_system=False)
@@ -149,3 +163,159 @@ class LLMCRUDL(SmartCRUDL):
         cancel_url = "@ai.llm_list"
         success_url = "@ai.llm_list"
         success_message = _("Your LLM model has been deleted.")
+
+
+class AIMenu(BaseMenuView):
+    """
+    The AI section menu, shown top-level to orgs with the agents feature: the LLM models list and the
+    knowledge bases that agents will answer from.
+    """
+
+    permission = "ai.llm_list"
+
+    def derive_menu(self):
+        org = self.request.org
+        menu = [
+            self.create_menu_item(
+                menu_id="models",
+                name=_("Models"),
+                icon="ai",
+                href="ai.llm_list",
+                count=org.llms.filter(is_active=True, is_system=False).count(),
+            )
+        ]
+
+        if Org.FEATURE_AGENTS in org.features and self.has_org_perm("ai.knowledgebase_list"):
+            menu.append(
+                self.create_menu_item(
+                    menu_id="knowledge",
+                    name=_("Knowledge"),
+                    icon="browser",
+                    href="ai.knowledgebase_list",
+                    count=org.knowledge_bases.filter(is_active=True).count(),
+                )
+            )
+
+        return menu
+
+
+class WebsiteKnowledgeBaseForm(UniqueNameMixin, forms.ModelForm):
+    def __init__(self, org, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.org = org
+        self.fields["url"].required = True
+
+    class Meta:
+        model = KnowledgeBase
+        fields = ("name", "url")
+        widgets = {"name": InputWidget(), "url": InputWidget()}
+        labels = {"url": _("URL")}
+        help_texts = {
+            "url": _(
+                "The address of the help site to crawl, e.g. https://help.example.com. Articles found there "
+                "will be ingested so that agents can answer questions from them."
+            )
+        }
+
+
+class NameOnlyKnowledgeBaseForm(UniqueNameMixin, forms.ModelForm):
+    def __init__(self, org, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.org = org
+
+    class Meta:
+        model = KnowledgeBase
+        fields = ("name",)
+        widgets = {"name": InputWidget()}
+
+
+class KnowledgeBaseCRUDL(SmartCRUDL):
+    model = KnowledgeBase
+    actions = ("list", "create", "read", "delete")
+
+    class List(RequireFeatureMixin, SpaMixin, ContextMenuMixin, BaseListView):
+        require_feature = Org.FEATURE_AGENTS
+        title = _("Knowledge")
+        menu_path = "/ai/knowledge"
+        default_order = (Lower("name"),)
+
+        def build_context_menu(self, menu):
+            if self.has_org_perm("ai.knowledgebase_create"):
+                menu.add_modax(
+                    _("New Website"),
+                    "new-website",
+                    reverse("ai.knowledgebase_create") + "?type=W",
+                    title=_("New Website Knowledge Base"),
+                    on_submit="refreshMenu()",
+                )
+                menu.add_modax(
+                    _("New Documents"),
+                    "new-documents",
+                    reverse("ai.knowledgebase_create") + "?type=D",
+                    title=_("New Documents Knowledge Base"),
+                    on_submit="refreshMenu()",
+                )
+                menu.add_modax(
+                    _("New FAQ"),
+                    "new-faq",
+                    reverse("ai.knowledgebase_create") + "?type=F",
+                    title=_("New FAQ Knowledge Base"),
+                    on_submit="refreshMenu()",
+                )
+
+    class Create(RequireFeatureMixin, BaseCreateModal):
+        require_feature = Org.FEATURE_AGENTS
+        title = _("New Knowledge Base")
+
+        def derive_kb_type(self) -> str:
+            kb_type = self.request.GET.get("type", KnowledgeBase.TYPE_WEBSITE)
+            return kb_type if kb_type in dict(KnowledgeBase.TYPE_CHOICES) else KnowledgeBase.TYPE_WEBSITE
+
+        def get_form_class(self):
+            if self.derive_kb_type() == KnowledgeBase.TYPE_WEBSITE:
+                return WebsiteKnowledgeBaseForm
+            return NameOnlyKnowledgeBaseForm
+
+        def save(self, obj):
+            # must set self.object as smartmin ignores the return value and passes self.object to post_save
+            org, user, kb_type = self.request.org, self.request.user, self.derive_kb_type()
+            if kb_type == KnowledgeBase.TYPE_WEBSITE:
+                self.object = KnowledgeBase.create_website(org, user, obj.name, obj.url)
+            elif kb_type == KnowledgeBase.TYPE_DOCUMENTS:
+                self.object = KnowledgeBase.create_documents(org, user, obj.name)
+            else:
+                self.object = KnowledgeBase.create_faq(org, user, obj.name)
+
+        def get_success_url(self):
+            return reverse("ai.knowledgebase_read", args=[self.object.uuid])
+
+    class Read(RequireFeatureMixin, SpaMixin, ContextMenuMixin, BaseReadView):
+        require_feature = Org.FEATURE_AGENTS
+        menu_path = "/ai/knowledge"
+
+        def derive_title(self):
+            return self.object.name
+
+        def build_context_menu(self, menu):
+            obj = self.get_object()  # self.object isn't set when the content menu is fetched
+            if self.has_org_perm("ai.knowledgebase_delete"):
+                menu.add_modax(
+                    _("Delete"),
+                    "delete",
+                    reverse("ai.knowledgebase_delete", args=[obj.uuid]),
+                    title=_("Delete Knowledge Base"),
+                )
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            order = "title" if self.object.kb_type == KnowledgeBase.TYPE_FAQ else "-created_on"
+            context["articles"] = self.object.articles.annotate(chunk_count=Count("chunks")).order_by(order)[:100]
+            return context
+
+    class Delete(RequireFeatureMixin, BaseDeleteModal):
+        require_feature = Org.FEATURE_AGENTS
+        cancel_url = "@ai.knowledgebase_list"
+        redirect_url = "@ai.knowledgebase_list"
+        success_message = _("Your knowledge base has been deleted.")
