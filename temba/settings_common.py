@@ -840,6 +840,12 @@ LLM_TYPES = {
 if TESTING:
     LLM_TYPES["temba.ai.types.openai_azure.type.OpenAIAzureType"] = {"models": {"gpt-35-turbo": 4_096}}
 
+AI_EMBEDDINGS = {
+    "api_key": "",
+    "model": "text-embedding-3-small",  # must output vectors with ArticleChunk.EMBEDDING_DIMENSIONS (1536) dimensions
+    "base_url": "",  # optional OpenAI-compatible endpoint (TEI, ollama)
+}
+
 
 # set of ISO-639-3 codes of languages to allow in addition to all ISO-639-1 languages
 NON_ISO6391_LANGUAGES = {"mul", "und"}
