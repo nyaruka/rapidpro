@@ -45,3 +45,11 @@
     </tbody>
   </table>
 {% endblock table %}
+{% block extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    td temba-icon {
+      display: inline-block;
+    }
+  </style>
+{% endblock extra-style %}
