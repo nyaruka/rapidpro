@@ -201,6 +201,7 @@ class KnowledgeBase(TembaModel):
         self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))
 
     def update_counters(self):
+        # num_pages isn't recomputed here as it tracks crawl progress rather than current content
         counts = self.articles.aggregate(num=Count("id"), chars=Sum(Length("content")))
         self.num_articles = counts["num"]
         self.num_chunks = self.chunks.count()
@@ -208,16 +209,18 @@ class KnowledgeBase(TembaModel):
         self.save(update_fields=("num_articles", "num_chunks", "content_chars"))
 
     def delete(self):
+        # articles are bulk deleted below which bypasses Article.delete, so capture their uploaded file
+        # paths to remove from storage once the rows are gone
+        file_paths = list(self.articles.exclude(file=None).exclude(file="").values_list("file", flat=True))
+
         delete_in_batches(self.chunks.all())
-
-        # articles are bulk deleted below which bypasses Article.delete, so remove uploaded files here
-        for article in self.articles.only("id", "file"):
-            if article.file:
-                article.file.delete(save=False)
-
         delete_in_batches(self.articles.all())
 
         super().delete()
+
+        storage = Article._meta.get_field("file").storage
+        for path in file_paths:
+            storage.delete(path)
 
     class Meta:
         constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_knowledgebase_names")]
@@ -245,8 +248,7 @@ class Article(models.Model):
         return self.knowledge_base.org
 
     def delete(self):
-        if self.file:
-            self.file.delete(save=False)
+        file = self.file
 
         with transaction.atomic():
             delete_in_batches(self.chunks.all())
@@ -254,6 +256,10 @@ class Article(models.Model):
             super().delete()
 
             self.knowledge_base.update_counters()
+
+        # only remove the file from storage once the deletion has committed
+        if file:
+            file.delete(save=False)
 
 
 class ArticleChunk(models.Model):
@@ -270,6 +276,8 @@ class ArticleChunk(models.Model):
 
     class Meta:
         indexes = [
+            # a single ANN index shared by all knowledge bases - queries filtered by knowledge base rely
+            # on pgvector >= 0.8 iterative scans (enforced by migration 0013) to return complete results
             HnswIndex(
                 name="articlechunk_embedding",
                 fields=["embedding"],
