@@ -1,3 +1,4 @@
+import logging
 from random import randint
 
 import requests
@@ -16,6 +17,8 @@ from temba.utils.text import truncate
 
 from ...models import Channel
 from ...views import ClaimViewMixin
+
+logger = logging.getLogger(__name__)
 
 
 class ClaimView(ClaimViewMixin, SmartFormView):
@@ -421,7 +424,8 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
                         raise Exception(
                             'Missing permission, we need all the following permissions "business_management", "whatsapp_business_management", "whatsapp_business_messaging"'
                         )
-            except Exception:
+            except Exception as e:
+                logger.error(f"WhatsApp Cloud connect failed: {e}", exc_info=True)
                 raise forms.ValidationError(_("Sorry account could not be connected. Please try again"), code="invalid")
 
             return self.cleaned_data
