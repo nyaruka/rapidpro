@@ -1,17 +1,22 @@
 from abc import ABCMeta
+from pathlib import Path
+
+from pgvector.django import HnswIndex, VectorField
 
 from django.conf import settings
 from django.contrib.postgres.indexes import OpClass
-from django.db import models
-from django.db.models import Q
-from django.db.models.functions import Lower
+from django.db import models, transaction
+from django.db.models import Count, Q, Sum
+from django.db.models.functions import Length, Lower
 from django.template import Engine
 from django.urls import re_path
+from django.utils import timezone
 
 from temba import mailroom
 from temba.orgs.models import DependencyMixin, Org
 from temba.utils.models import TembaModel, delete_in_batches
 from temba.utils.models.counts import BaseDailyCount
+from temba.utils.uuid import uuid4
 
 
 class LLMType(metaclass=ABCMeta):
@@ -132,6 +137,147 @@ class LLM(TembaModel, DependencyMixin):
 
     class Meta:
         constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_llm_names")]
+
+
+class KnowledgeBase(TembaModel):
+    """
+    A knowledge base of articles that can be searched semantically via their embedded chunks.
+    """
+
+    TYPE_WEBSITE = "W"
+    TYPE_DOCUMENTS = "D"
+    TYPE_FAQ = "F"
+    TYPE_CHOICES = ((TYPE_WEBSITE, "Website"), (TYPE_DOCUMENTS, "Documents"), (TYPE_FAQ, "FAQ"))
+
+    STATUS_PENDING = "P"
+    STATUS_PROCESSING = "O"
+    STATUS_COMPLETE = "C"
+    STATUS_FAILED = "F"
+    STATUS_CHOICES = (
+        (STATUS_PENDING, "Pending"),
+        (STATUS_PROCESSING, "Processing"),
+        (STATUS_COMPLETE, "Complete"),
+        (STATUS_FAILED, "Failed"),
+    )
+
+    MAX_PAGES = 1_000
+    MAX_CONTENT_CHARS = 5_000_000
+
+    org = models.ForeignKey(Org, related_name="knowledge_bases", on_delete=models.PROTECT)
+    kb_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_WEBSITE)
+    url = models.URLField(max_length=2048, null=True)
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    error = models.CharField(max_length=255, null=True)
+    crawl_state = models.JSONField(default=dict)
+    num_pages = models.IntegerField(default=0)
+    num_articles = models.IntegerField(default=0)
+    num_chunks = models.IntegerField(default=0)
+    content_chars = models.IntegerField(default=0)
+    started_on = models.DateTimeField(null=True)
+    finished_on = models.DateTimeField(null=True)
+
+    @classmethod
+    def create_website(cls, org, user, name: str, url: str):
+        return cls.objects.create(
+            org=org, name=name, kb_type=cls.TYPE_WEBSITE, url=url, created_by=user, modified_by=user
+        )
+
+    @classmethod
+    def create_documents(cls, org, user, name: str):
+        return cls.objects.create(org=org, name=name, kb_type=cls.TYPE_DOCUMENTS, created_by=user, modified_by=user)
+
+    @classmethod
+    def create_faq(cls, org, user, name: str):
+        return cls.objects.create(org=org, name=name, kb_type=cls.TYPE_FAQ, created_by=user, modified_by=user)
+
+    @property
+    def is_finished(self) -> bool:
+        return self.status in (self.STATUS_COMPLETE, self.STATUS_FAILED)
+
+    def release(self, user):
+        self.is_active = False
+        self.name = self._deleted_name()
+        self.modified_by = user
+        self.save(update_fields=("name", "is_active", "modified_by", "modified_on"))
+
+    def update_counters(self):
+        counts = self.articles.aggregate(num=Count("id"), chars=Sum(Length("content")))
+        self.num_articles = counts["num"]
+        self.num_chunks = self.chunks.count()
+        self.content_chars = counts["chars"] or 0
+        self.save(update_fields=("num_articles", "num_chunks", "content_chars"))
+
+    def delete(self):
+        delete_in_batches(self.chunks.all())
+
+        # articles are bulk deleted below which bypasses Article.delete, so remove uploaded files here
+        for article in self.articles.only("id", "file"):
+            if article.file:
+                article.file.delete(save=False)
+
+        delete_in_batches(self.articles.all())
+
+        super().delete()
+
+    class Meta:
+        constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_knowledgebase_names")]
+
+
+def get_document_path(instance, filename: str) -> str:
+    ext = Path(filename).suffix.lower()
+    return f"orgs/{instance.knowledge_base.org_id}/knowledge_bases/{instance.knowledge_base.uuid}/{uuid4()}{ext}"
+
+
+class Article(models.Model):
+    """
+    A unit of content in a knowledge base, e.g. a web page, document or FAQ entry.
+    """
+
+    knowledge_base = models.ForeignKey(KnowledgeBase, related_name="articles", on_delete=models.PROTECT)
+    url = models.URLField(max_length=2048, null=True)
+    file = models.FileField(upload_to=get_document_path, max_length=2048, null=True)
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    created_on = models.DateTimeField(default=timezone.now)
+
+    @property
+    def org(self):
+        return self.knowledge_base.org
+
+    def delete(self):
+        if self.file:
+            self.file.delete(save=False)
+
+        with transaction.atomic():
+            delete_in_batches(self.chunks.all())
+
+            super().delete()
+
+            self.knowledge_base.update_counters()
+
+
+class ArticleChunk(models.Model):
+    """
+    A chunk of article content with its embedding for semantic search.
+    """
+
+    EMBEDDING_DIMENSIONS = 1536  # the model configured by settings.AI_EMBEDDINGS must output vectors of this size
+
+    article = models.ForeignKey(Article, related_name="chunks", on_delete=models.PROTECT)
+    knowledge_base = models.ForeignKey(KnowledgeBase, related_name="chunks", on_delete=models.PROTECT)
+    text = models.TextField()
+    embedding = VectorField(dimensions=EMBEDDING_DIMENSIONS)
+
+    class Meta:
+        indexes = [
+            HnswIndex(
+                name="articlechunk_embedding",
+                fields=["embedding"],
+                m=16,
+                ef_construction=64,
+                opclasses=("vector_cosine_ops",),
+            )
+        ]
 
 
 class LLMCount(BaseDailyCount):
