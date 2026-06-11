@@ -7,6 +7,15 @@ from pgvector.django import VectorExtension
 from django.db import migrations
 
 
+def check_vector_version(apps, schema_editor):  # pragma: no cover
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute("SELECT extversion FROM pg_extension WHERE extname = 'vector'")
+        version = cursor.fetchone()[0]
+
+    if tuple(int(p) for p in version.split(".")[:2]) < (0, 8):
+        raise Exception(f"pgvector extension >= 0.8 is required (found {version})")
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("ai", "0012_deepseek_model"),
@@ -14,4 +23,5 @@ class Migration(migrations.Migration):
 
     operations = [
         VectorExtension(),
+        migrations.RunPython(check_vector_version, migrations.RunPython.noop),
     ]
