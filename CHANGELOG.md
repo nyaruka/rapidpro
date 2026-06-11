@@ -1,3 +1,8 @@
+v26.1.134 (2026-06-11)
+-------------------------
+ * Make Turn.io channel type available to all orgs
+ * Relax WhatsApp scope check to business_management across all claim steps
+
 v26.1.133 (2026-06-11)
 -------------------------
  * Include debug_token response in WhatsApp connect failure logs
