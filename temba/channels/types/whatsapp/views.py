@@ -21,6 +21,11 @@ from ...views import ClaimViewMixin
 
 logger = logging.getLogger(__name__)
 
+# WhatsApp Cloud only requires the business_management OAuth scope at the top level; the
+# whatsapp_business_management and whatsapp_business_messaging permissions are granted as
+# granular (per-WABA) scopes and so are not present in the token's top-level scopes list.
+REQUIRED_SCOPE = "business_management"
+
 
 class ClaimView(ClaimViewMixin, SmartFormView):
     class Form(ClaimViewMixin.Form):
@@ -56,10 +61,9 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             return HttpResponseRedirect(reverse("channels.types.whatsapp.connect"))
 
         response_json = response.json()
-        for perm in ["business_management", "whatsapp_business_management", "whatsapp_business_messaging"]:
-            if perm not in response_json["data"]["scopes"]:
-                self.remove_token_credentials_from_session()
-                return HttpResponseRedirect(reverse("channels.types.whatsapp.connect"))
+        if REQUIRED_SCOPE not in response_json["data"]["scopes"]:
+            self.remove_token_credentials_from_session()
+            return HttpResponseRedirect(reverse("channels.types.whatsapp.connect"))
 
         target_waba = self.request.GET.get("waba_id", None)
         if not target_waba:
@@ -209,10 +213,9 @@ class SelectWABA(ChannelTypeMixin, OrgPermsMixin, SmartTemplateView):
             return HttpResponseRedirect(reverse("channels.types.whatsapp.connect"))
 
         response_json = response.json()
-        for perm in ["business_management", "whatsapp_business_management", "whatsapp_business_messaging"]:
-            if perm not in response_json["data"]["scopes"]:
-                self.remove_token_credentials_from_session()
-                return HttpResponseRedirect(reverse("channels.types.whatsapp.connect"))
+        if REQUIRED_SCOPE not in response_json["data"]["scopes"]:
+            self.remove_token_credentials_from_session()
+            return HttpResponseRedirect(reverse("channels.types.whatsapp.connect"))
 
         return super().pre_process(request, *args, **kwargs)
 
@@ -423,11 +426,8 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
                 else:
                     raise Exception("Failed to debug user token")
 
-                for perm in ["business_management", "whatsapp_business_management", "whatsapp_business_messaging"]:
-                    if perm not in response_json.get("data", dict()).get("scopes", []):
-                        raise Exception(
-                            'Missing permission, we need all the following permissions "business_management", "whatsapp_business_management", "whatsapp_business_messaging"'
-                        )
+                if REQUIRED_SCOPE not in response_json.get("data", dict()).get("scopes", []):
+                    raise Exception(f'Missing permission, we need the "{REQUIRED_SCOPE}" permission')
             except Exception:
                 # redact app credentials which can appear in request URLs/tracebacks before logging
                 details = traceback.format_exc()

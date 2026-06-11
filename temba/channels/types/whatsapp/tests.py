@@ -59,21 +59,17 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
                     200,
                     {"data": {"scopes": [], "is_valid": False}},
                 ),
-                # missing permissions
+                # missing permissions (has whatsapp scopes but not business_management)
                 MockJsonResponse(
                     200,
-                    {"data": {"scopes": [], "is_valid": True}},
+                    {"data": {"scopes": ["whatsapp_business_messaging"], "is_valid": True}},
                 ),
-                # success
+                # success - only business_management is required at the top level
                 MockJsonResponse(
                     200,
                     {
                         "data": {
-                            "scopes": [
-                                "business_management",
-                                "whatsapp_business_management",
-                                "whatsapp_business_messaging",
-                            ],
+                            "scopes": ["business_management"],
                             "is_valid": True,
                         }
                     },
@@ -154,14 +150,13 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
 
         with patch("requests.get") as wa_cloud_get, patch("requests.post") as wa_cloud_post:
             wa_cloud_get.side_effect = [
-                # pre-process missing permissions
+                # pre-process missing permissions (no business_management scope)
                 MockResponse(
                     200,
                     json.dumps(
                         {
                             "data": {
                                 "scopes": [
-                                    "business_management",
                                     "whatsapp_business_messaging",
                                 ],
                                 "is_valid": True,
@@ -543,14 +538,13 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
 
         with patch("requests.get") as wa_cloud_get:
             wa_cloud_get.side_effect = [
-                # pre-process missing permissions
+                # pre-process missing permissions (no business_management scope)
                 MockResponse(
                     200,
                     json.dumps(
                         {
                             "data": {
                                 "scopes": [
-                                    "business_management",
                                     "whatsapp_business_messaging",
                                 ],
                                 "is_valid": True,
@@ -573,7 +567,8 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
 
         with patch("requests.get") as wa_cloud_get:
             wa_cloud_get.side_effect = [
-                # pre-process for get
+                # pre-process for get - only business_management at the top level, the whatsapp
+                # permissions are granted as granular (per-WABA) scopes below
                 MockResponse(
                     200,
                     json.dumps(
@@ -581,8 +576,6 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
                             "data": {
                                 "scopes": [
                                     "business_management",
-                                    "whatsapp_business_management",
-                                    "whatsapp_business_messaging",
                                 ],
                                 "is_valid": True,
                             }
