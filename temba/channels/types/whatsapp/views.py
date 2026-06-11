@@ -21,6 +21,9 @@ from ...views import ClaimViewMixin
 
 logger = logging.getLogger(__name__)
 
+# base URL for all WhatsApp Cloud Graph API calls - bump the version here in one place
+GRAPH_API_BASE = "https://graph.facebook.com/v22.0"
+
 # WhatsApp Cloud only requires the business_management OAuth scope at the top level; the
 # whatsapp_business_management and whatsapp_business_messaging permissions are granted as
 # granular (per-WABA) scopes and so are not present in the token's top-level scopes list.
@@ -52,7 +55,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         app_id = settings.FACEBOOK_APPLICATION_ID
         app_secret = settings.FACEBOOK_APPLICATION_SECRET
 
-        url = "https://graph.facebook.com/v22.0/debug_token"
+        url = f"{GRAPH_API_BASE}/debug_token"
         params = {"access_token": f"{app_id}|{app_secret}", "input_token": oauth_user_token}
 
         response = requests.get(url, params=params)
@@ -82,7 +85,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
 
         target_waba = self.request.GET.get("waba_id", None)
 
-        url = f"https://graph.facebook.com/v18.0/{target_waba}"
+        url = f"{GRAPH_API_BASE}/{target_waba}"
         params = {
             "access_token": oauth_user_token,
             "fields": "id,name,currency,message_template_namespace,owner_business_info,account_review_status,on_behalf_of_business_info,primary_funding_id,purchase_order_number,timezone_id",
@@ -95,7 +98,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             "on_behalf_of_business_info", target_waba_details.get("owner_business_info")
         ).get("id")
 
-        url = f"https://graph.facebook.com/v18.0/{target_waba}/phone_numbers"
+        url = f"{GRAPH_API_BASE}/{target_waba}/phone_numbers"
         params = {"access_token": oauth_user_token}
         response = requests.get(url, params=params)
         response_json = response.json()
@@ -159,7 +162,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         }
 
         # assign system user to WABA
-        url = f"https://graph.facebook.com/v22.0/{waba_id}/assigned_users"
+        url = f"{GRAPH_API_BASE}/{waba_id}/assigned_users"
         params = {"user": f"{settings.WHATSAPP_ADMIN_SYSTEM_USER_ID}", "tasks": ["MANAGE"]}
         headers = {"Authorization": f"Bearer {settings.WHATSAPP_ADMIN_SYSTEM_USER_TOKEN}"}
 
@@ -245,7 +248,7 @@ class SelectWABA(ChannelTypeMixin, OrgPermsMixin, SmartTemplateView):
         app_id = settings.FACEBOOK_APPLICATION_ID
         app_secret = settings.FACEBOOK_APPLICATION_SECRET
 
-        url = "https://graph.facebook.com/v18.0/debug_token"
+        url = f"{GRAPH_API_BASE}/debug_token"
         params = {"access_token": f"{app_id}|{app_secret}", "input_token": oauth_user_token}
 
         response = requests.get(url, params=params)
@@ -292,7 +295,7 @@ class RequestCode(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, Smar
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        phone_number_url = f"https://graph.facebook.com/v22.0/{self.object.address}"
+        phone_number_url = f"{GRAPH_API_BASE}/{self.object.address}"
         headers = {"Authorization": f"Bearer {settings.WHATSAPP_ADMIN_SYSTEM_USER_TOKEN}"}
         resp = requests.get(phone_number_url, headers=headers)
 
@@ -308,14 +311,14 @@ class RequestCode(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, Smar
 
         phone_number_id = channel.address
 
-        request_code_url = f"https://graph.facebook.com/v22.0/{phone_number_id}/request_code"
+        request_code_url = f"{GRAPH_API_BASE}/{phone_number_id}/request_code"
         params = {"code_method": "SMS", "language": "en_US"}
         headers = {"Authorization": f"Bearer {settings.WHATSAPP_ADMIN_SYSTEM_USER_TOKEN}"}
 
         resp = requests.post(request_code_url, params=params, headers=headers)
 
         if resp.status_code != 200:  # pragma: no cover
-            phone_number_url = f"https://graph.facebook.com/v22.0/{phone_number_id}"
+            phone_number_url = f"{GRAPH_API_BASE}/{phone_number_id}"
             resp = requests.get(phone_number_url, headers=headers)
 
             verified_status = False
@@ -360,7 +363,7 @@ class VerifyCode(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, Smart
         waba_id = channel.config.get("wa_waba_id")
         wa_pin = channel.config.get("wa_pin")
 
-        request_code_url = f"https://graph.facebook.com/v22.0/{phone_number_id}/verify_code"
+        request_code_url = f"{GRAPH_API_BASE}/{phone_number_id}/verify_code"
         params = {"code": f"{code}"}
         headers = {"Authorization": f"Bearer {settings.WHATSAPP_ADMIN_SYSTEM_USER_TOKEN}"}
 
@@ -370,7 +373,7 @@ class VerifyCode(ChannelTypeMixin, OrgObjPermsMixin, SmartModelActionView, Smart
             raise forms.ValidationError(_("Failed to verify phone number with code %s") % code)
 
         # register numbers
-        url = f"https://graph.facebook.com/v22.0/{channel.address}/register"
+        url = f"{GRAPH_API_BASE}/{channel.address}/register"
         data = {"messaging_product": "whatsapp", "pin": wa_pin}
 
         resp = requests.post(url, data=data, headers=headers)
@@ -408,13 +411,13 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
                         + self.org.get_brand_domain()
                         + reverse("channels.types.whatsapp.connect"),
                     }
-                    token_url = "https://graph.facebook.com/v22.0/oauth/access_token"
+                    token_url = f"{GRAPH_API_BASE}/oauth/access_token"
                     response = requests.post(token_url, json=token_request_data)
                     response_json = response.json()
                     if int(response.status_code / 100) == 2:
                         auth_token = response_json["access_token"]
 
-                url = "https://graph.facebook.com/v22.0/debug_token"
+                url = f"{GRAPH_API_BASE}/debug_token"
                 params = {"access_token": f"{app_id}|{app_secret}", "input_token": auth_token}
 
                 response = requests.get(url, params=params)
