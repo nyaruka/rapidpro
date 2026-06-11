@@ -390,6 +390,8 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
             app_id = settings.FACEBOOK_APPLICATION_ID
             app_secret = settings.FACEBOOK_APPLICATION_SECRET
 
+            debug_response = None
+
             try:
                 auth_token = self.cleaned_data.get("user_access_token", None)
 
@@ -414,6 +416,7 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
 
                 response = requests.get(url, params=params)
                 response_json = response.json()
+                debug_response = response_json
 
                 if response.status_code == 200:
                     self.cleaned_data["user_access_token"] = auth_token
@@ -428,6 +431,8 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
             except Exception:
                 # redact app credentials which can appear in request URLs/tracebacks before logging
                 details = traceback.format_exc()
+                if debug_response is not None:
+                    details += f"\ndebug_token response: {debug_response}"
                 for secret in (app_secret, app_id):
                     if secret:
                         details = details.replace(str(secret), "******")
