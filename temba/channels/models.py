@@ -94,8 +94,6 @@ class ChannelType(metaclass=ABCMeta):
     category = None
     beta_only = False
 
-    org_feature = None  # org feature required to use this channel type
-
     unique_addresses = False
 
     # the courier handling URL, will be wired automatically for use in templates, but wired to a null handler
@@ -133,8 +131,7 @@ class ChannelType(metaclass=ABCMeta):
         Determines whether this channel type is available to the given user considering the region and when not considering region, e.g. check timezone
         """
 
-        org_feature_visible = self.org_feature is None or self.org_feature in org.features
-        region_ignore_visible = org_feature_visible and ((not self.beta_only) or user.is_beta)
+        region_ignore_visible = (not self.beta_only) or user.is_beta
         region_aware_visible = True
 
         if self.available_timezones is not None:
@@ -424,16 +421,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
         from .types import TYPES
 
         return TYPES.values()
-
-    @classmethod
-    def get_org_features_choices(cls):
-        from .types import TYPES
-
-        features = []
-        for channel_type in TYPES.values():
-            if channel_type.org_feature:
-                features.append((channel_type.org_feature, f"Channel: {channel_type.name}"))
-        return tuple(features)
 
     @property
     def type(self) -> ChannelType:

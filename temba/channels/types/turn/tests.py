@@ -27,12 +27,6 @@ class TurnTypeTest(CRUDLTestMixin, TembaTest):
         self.login(self.admin)
 
         response = self.client.get(reverse("channels.channel_claim"))
-        self.assertNotContains(response, url)
-
-        self.org.features += ["channels:TRN"]
-        self.org.save()
-
-        response = self.client.get(reverse("channels.channel_claim"))
         self.assertContains(response, url)
 
         response = self.client.get(url)
