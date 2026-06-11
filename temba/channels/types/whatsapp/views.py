@@ -1,4 +1,5 @@
 import logging
+import traceback
 from random import randint
 
 import requests
@@ -386,11 +387,11 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
             super().__init__(*args, **kwargs)
 
         def clean(self):
+            app_id = settings.FACEBOOK_APPLICATION_ID
+            app_secret = settings.FACEBOOK_APPLICATION_SECRET
+
             try:
                 auth_token = self.cleaned_data.get("user_access_token", None)
-
-                app_id = settings.FACEBOOK_APPLICATION_ID
-                app_secret = settings.FACEBOOK_APPLICATION_SECRET
 
                 if settings.FACEBOOK_LOGIN_WHATSAPP_CONFIG_ID:
                     token_request_data = {
@@ -424,8 +425,13 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
                         raise Exception(
                             'Missing permission, we need all the following permissions "business_management", "whatsapp_business_management", "whatsapp_business_messaging"'
                         )
-            except Exception as e:
-                logger.error(f"WhatsApp Cloud connect failed: {e}", exc_info=True)
+            except Exception:
+                # redact app credentials which can appear in request URLs/tracebacks before logging
+                details = traceback.format_exc()
+                for secret in (app_secret, app_id):
+                    if secret:
+                        details = details.replace(str(secret), "******")
+                logger.error(f"WhatsApp Cloud connect failed:\n{details}")
                 raise forms.ValidationError(_("Sorry account could not be connected. Please try again"), code="invalid")
 
             return self.cleaned_data
