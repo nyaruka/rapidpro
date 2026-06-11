@@ -1,3 +1,9 @@
+v26.1.132 (2026-06-11)
+-------------------------
+ * Merge pull request #6663 from nyaruka/whatsapp-connect-logging
+ * Redact app credentials from WhatsApp connect failure logs
+ * Log underlying exception when WhatsApp Cloud connect fails
+
 v26.1.131 (2026-06-10)
 -------------------------
  * Fix flow start read modal for URN-only starts and split creator/date
