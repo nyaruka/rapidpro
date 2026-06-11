@@ -27,7 +27,25 @@ logger = logging.getLogger(__name__)
 REQUIRED_SCOPE = "business_management"
 
 
-class ClaimView(ClaimViewMixin, SmartFormView):
+def debug_token(oauth_user_token):
+    """Inspect the given user access token via the Graph API debug_token endpoint."""
+    app_id = settings.FACEBOOK_APPLICATION_ID
+    app_secret = settings.FACEBOOK_APPLICATION_SECRET
+
+    url = "https://graph.facebook.com/v22.0/debug_token"
+    params = {"access_token": f"{app_id}|{app_secret}", "input_token": oauth_user_token}
+    return requests.get(url, params=params)
+
+
+class SessionTokenMixin:
+    """Removes the cached OAuth user token from the session."""
+
+    def remove_token_credentials_from_session(self):
+        if self.channel_type.SESSION_USER_TOKEN in self.request.session:
+            del self.request.session[self.channel_type.SESSION_USER_TOKEN]
+
+
+class ClaimView(SessionTokenMixin, ClaimViewMixin, SmartFormView):
     class Form(ClaimViewMixin.Form):
         number = forms.CharField()
         verified_name = forms.CharField()
@@ -49,13 +67,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             self.remove_token_credentials_from_session()
             return HttpResponseRedirect(reverse("channels.types.whatsapp.connect"))
 
-        app_id = settings.FACEBOOK_APPLICATION_ID
-        app_secret = settings.FACEBOOK_APPLICATION_SECRET
-
-        url = "https://graph.facebook.com/v22.0/debug_token"
-        params = {"access_token": f"{app_id}|{app_secret}", "input_token": oauth_user_token}
-
-        response = requests.get(url, params=params)
+        response = debug_token(oauth_user_token)
         if response.status_code != 200:  # pragma: no cover
             self.remove_token_credentials_from_session()
             return HttpResponseRedirect(reverse("channels.types.whatsapp.connect"))
@@ -190,12 +202,8 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         self.remove_token_credentials_from_session()
         return super().form_valid(form)
 
-    def remove_token_credentials_from_session(self):
-        if self.channel_type.SESSION_USER_TOKEN in self.request.session:
-            del self.request.session[self.channel_type.SESSION_USER_TOKEN]
 
-
-class SelectWABA(ChannelTypeMixin, OrgPermsMixin, SmartTemplateView):
+class SelectWABA(SessionTokenMixin, ChannelTypeMixin, OrgPermsMixin, SmartTemplateView):
     permission = "channels.channel_claim"
     template_name = "channels/types/whatsapp/select_waba.html"
     title = _("Select the WABA to connect")
@@ -207,7 +215,7 @@ class SelectWABA(ChannelTypeMixin, OrgPermsMixin, SmartTemplateView):
             self.remove_token_credentials_from_session()
             return HttpResponseRedirect(reverse("channels.types.whatsapp.connect"))
 
-        response = self.retrieve_access_token_info(oauth_user_token)
+        response = debug_token(oauth_user_token)
         if response.status_code != 200:  # pragma: no cover
             self.remove_token_credentials_from_session()
             return HttpResponseRedirect(reverse("channels.types.whatsapp.connect"))
@@ -223,7 +231,7 @@ class SelectWABA(ChannelTypeMixin, OrgPermsMixin, SmartTemplateView):
         context = super().get_context_data(**kwargs)
 
         oauth_user_token = self.request.session.get(self.channel_type.SESSION_USER_TOKEN, None)
-        response = self.retrieve_access_token_info(oauth_user_token)
+        response = debug_token(oauth_user_token)
         waba_targets = []
         if response.status_code != 200:  # pragma: no cover
             context["waba_details"] = []
@@ -233,7 +241,11 @@ class SelectWABA(ChannelTypeMixin, OrgPermsMixin, SmartTemplateView):
 
             granular_scopes = response_json.get("data", dict()).get("granular_scopes", [])
             for scope_dict in granular_scopes:
-                if scope_dict["scope"] in ["whatsapp_business_management", "whatsapp_business_messaging"]:
+                if scope_dict["scope"] in [
+                    "whatsapp_business_management",
+                    "whatsapp_business_messaging",
+                    "business_management",
+                ]:
                     waba_targets.extend(scope_dict.get("target_ids", []))
 
         context["waba_ids"] = list(dict.fromkeys(waba_targets))
@@ -241,27 +253,12 @@ class SelectWABA(ChannelTypeMixin, OrgPermsMixin, SmartTemplateView):
         context["clear_session_token_url"] = reverse("channels.types.whatsapp.clear_session_token")
         return context
 
-    def retrieve_access_token_info(self, oauth_user_token):
-        app_id = settings.FACEBOOK_APPLICATION_ID
-        app_secret = settings.FACEBOOK_APPLICATION_SECRET
 
-        url = "https://graph.facebook.com/v18.0/debug_token"
-        params = {"access_token": f"{app_id}|{app_secret}", "input_token": oauth_user_token}
-
-        response = requests.get(url, params=params)
-        return response
-
-    def remove_token_credentials_from_session(self):
-        if self.channel_type.SESSION_USER_TOKEN in self.request.session:
-            del self.request.session[self.channel_type.SESSION_USER_TOKEN]
-
-
-class ClearSessionToken(ChannelTypeMixin, OrgPermsMixin, SmartTemplateView):
+class ClearSessionToken(SessionTokenMixin, ChannelTypeMixin, OrgPermsMixin, SmartTemplateView):
     permission = "channels.channel_claim"
 
     def pre_process(self, request, *args, **kwargs):
-        if self.channel_type.SESSION_USER_TOKEN in self.request.session:
-            del self.request.session[self.channel_type.SESSION_USER_TOKEN]
+        self.remove_token_credentials_from_session()
 
         return super().pre_process(request, *args, **kwargs)
 
@@ -414,10 +411,7 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
                     if int(response.status_code / 100) == 2:
                         auth_token = response_json["access_token"]
 
-                url = "https://graph.facebook.com/v22.0/debug_token"
-                params = {"access_token": f"{app_id}|{app_secret}", "input_token": auth_token}
-
-                response = requests.get(url, params=params)
+                response = debug_token(auth_token)
                 response_json = response.json()
                 debug_response = response_json
 

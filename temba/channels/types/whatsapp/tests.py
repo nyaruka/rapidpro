@@ -628,8 +628,8 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
 
             response = self.client.get(select_whatsapp_cloud_url, follow=True)
 
-            self.assertEqual(len(response.context["waba_ids"]), 2)
-            self.assertEqual(response.context["waba_ids"], ["111111111111111", "333333333333333"])
+            self.assertEqual(len(response.context["waba_ids"]), 3)
+            self.assertEqual(response.context["waba_ids"], ["2222222222222", "111111111111111", "333333333333333"])
 
     def test_clear_session_token(self):
         Channel.objects.all().delete()
