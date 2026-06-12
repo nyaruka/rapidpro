@@ -86,27 +86,25 @@
         </div>
       {% endif %}
     </div>
-    <div class="text-lg mb-2">{% trans "Articles" %}</div>
     <table class="list lined scrolled">
-      <thead>
-        <tr>
-          <th>{% trans "Title" %}</th>
-          <th>{% trans "Chunks" %}</th>
-          <th>{% trans "Fetched" %}</th>
-        </tr>
-      </thead>
       <tbody>
         {% for article in articles %}
           <tr>
-            <td>
+            <td class="w-full">
               <a href="{{ article.url }}" target="_blank">{{ article.title }}</a>
             </td>
-            <td>{{ article.chunk_count }}</td>
-            <td>{{ article.created_on|date:"SHORT_DATETIME_FORMAT" }}</td>
+            <td class="whitespace-nowrap">
+              {% blocktrans trimmed count count=article.chunk_count %}
+                {{ count }} chunk
+              {% plural %}
+                {{ count }} chunks
+              {% endblocktrans %}
+            </td>
+            <td class="whitespace-nowrap">{{ article.created_on|date:"SHORT_DATETIME_FORMAT" }}</td>
           </tr>
         {% empty %}
-          <tr>
-            <td colspan="3" class="text-gray-500">
+          <tr class="empty_list">
+            <td colspan="99" class="text-center">
               {% if object.is_finished %}
                 {% trans "No articles were found." %}
               {% else %}
@@ -127,32 +125,28 @@
         {% endblocktrans %}
       </div>
     {% endif %}
-    <div class="text-lg mb-2">{% trans "Documents" %}</div>
     <table class="list lined scrolled">
-      <thead>
-        <tr>
-          <th>{% trans "Name" %}</th>
-          <th>{% trans "Chunks" %}</th>
-          <th>{% trans "Uploaded" %}</th>
-        </tr>
-      </thead>
       <tbody>
         {% for article in articles %}
           <tr>
-            <td>{{ article.title }}</td>
-            <td>
+            <td class="w-full">{{ article.title }}</td>
+            <td class="whitespace-nowrap">
               {% if article.content %}
-                {{ article.chunk_count }}
+                {% blocktrans trimmed count count=article.chunk_count %}
+                  {{ count }} chunk
+                {% plural %}
+                  {{ count }} chunks
+                {% endblocktrans %}
               {% else %}
                 <temba-icon name="progress_spinner" spin>
                 </temba-icon>
               {% endif %}
             </td>
-            <td>{{ article.created_on|date:"SHORT_DATETIME_FORMAT" }}</td>
+            <td class="whitespace-nowrap">{{ article.created_on|date:"SHORT_DATETIME_FORMAT" }}</td>
           </tr>
         {% empty %}
-          <tr>
-            <td colspan="3" class="text-gray-500">{% trans "No documents uploaded yet." %}</td>
+          <tr class="empty_list">
+            <td colspan="99" class="text-center">{% trans "No documents uploaded yet." %}</td>
           </tr>
         {% endfor %}
       </tbody>
