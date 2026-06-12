@@ -702,6 +702,9 @@ class FlowCRUDL(SmartCRUDL):
                 for key in self.get_bulk_actions():
                     cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
                     cfg["key"] = key
+                    if key == "label":
+                        # the dropdown's "New Label…" row only renders for viewers who can create labels
+                        cfg["allowCreate"] = self.has_org_perm("flows.flowlabel_create")
                     # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
                     cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
                     actions.append(cfg)
@@ -1796,13 +1799,22 @@ class FlowLabelCRUDL(SmartCRUDL):
         def post_save(self, obj, *args, **kwargs):
             obj = super().post_save(obj, *args, **kwargs)
 
-            flow_ids = []
-            if self.form.cleaned_data["flows"]:  # pragma: needs cover
-                flow_ids = [int(f) for f in self.form.cleaned_data["flows"].split(",") if f.isdigit()]
+            # the legacy list seeds this field with ids, the new (preview mode) list component with uuids
+            if self.form.cleaned_data["flows"]:
+                ids, uuids = [], []
+                for val in self.form.cleaned_data["flows"].split(","):
+                    if val.isdigit():
+                        ids.append(val)
+                    else:
+                        try:
+                            uuids.append(UUID(val))
+                        except ValueError:
+                            pass
 
-            flows = obj.org.flows.filter(is_active=True, id__in=flow_ids)
-            if flows:  # pragma: needs cover
-                obj.toggle_label(flows, add=True)
+                flows = obj.org.flows.filter(is_active=True)
+                flows = flows.filter(uuid__in=uuids) if uuids else flows.filter(id__in=ids)
+                if flows:
+                    obj.toggle_label(flows, add=True)
 
             return obj
 

@@ -1,6 +1,5 @@
 from uuid import UUID
 
-from rest_framework import serializers
 from rest_framework.pagination import PageNumberPagination
 
 from django.db.models import Q, Sum, Value
@@ -115,16 +114,12 @@ class FlowsEndpoint(ListAPIMixin, BaseEndpoint):
 
 class FlowLabelsEndpoint(ListAPIMixin, BaseEndpoint):
     """
-    Flow labels for the current org, used by the flow list component's label dropdown.
+    Flow labels for the current org, used by the flow list component's label dropdown. Each item is serialized via
+    FlowLabel.as_json().
     """
 
-    class Serializer(serializers.ModelSerializer):
-        class Meta:
-            model = FlowLabel
-            fields = ("uuid", "name")
-
     model = FlowLabel
-    serializer_class = Serializer
+    serializer_class = ModelAsJsonSerializer
     pagination_class = NameCursorPagination
 
     def derive_queryset(self):

@@ -1859,6 +1859,12 @@ class FlowLabel(TembaModel):
     def get_flows(self):
         return self.flows.filter(is_active=True, is_archived=False)
 
+    def as_json(self, context=None) -> dict:
+        """
+        Internal API shape, consumed by the flow list component's label dropdown.
+        """
+        return {"uuid": str(self.uuid), "name": self.name}
+
     def toggle_label(self, flows, *, add: bool):
         changed = []
 

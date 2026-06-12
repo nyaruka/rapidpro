@@ -716,6 +716,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertTrue(actions["export-results"]["clientOnly"])
         self.assertNotIn("clientOnly", actions["archive"])
         self.assertEqual("/api/internal/flow_labels.json", actions["label"]["labelsEndpoint"])
+        # the label dropdown carries the create affordance for viewers who can create labels
+        self.assertTrue(actions["label"]["allowCreate"])
 
         # the archived view selects the archived folder
         response = self.client.get(reverse("flows.flow_archived"))

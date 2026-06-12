@@ -39,6 +39,14 @@
   {{ new_list_bulk_actions|json_script:"new-list-bulk-actions" }}
   <temba-modax header="{% trans "Export Results" %}" id="export-results">
   </temba-modax>
+  {% if org_perms.flows.flowlabel_create %}
+    <temba-modax header="{% trans "New Label" %}"
+                 endpoint="{% url 'flows.flowlabel_create' %}"
+                 -temba-loaded="handleCreateLabelModalLoaded"
+                 -temba-submitted="handleCreateLabelModalSubmitted"
+                 id="create-label-modal">
+    </temba-modax>
+  {% endif %}
 {% endblock content %}
 {% block extra-script %}
   {{ block.super }}
@@ -108,6 +116,17 @@
         }
       });
 
+      // The label dropdown's "New Label..." row — open the create modal
+      // seeded with the current selection (the modal's hidden flows field
+      // is filled in handleCreateLabelModalLoaded).
+      list.addEventListener("temba-label-create", function(event) {
+        window.pendingLabelIds = event.detail.ids || [];
+        var modal = document.getElementById("create-label-modal");
+        if (modal) {
+          modal.open = true;
+        }
+      });
+
       // See msgs/msg_list_new.html for the full rationale: stash the list's
       // restorable state (page, sort, search, cursor url) on the current
       // history entry so a navigation away and back lands on the same page.
@@ -126,10 +145,22 @@
       });
     });
 
-    // Content-menu "New Label" modax (build_context_menu) names this as its
-    // on_submit handler — refresh the sidebar menu (new label appears) and
-    // the list (labels column).
+    // Seed the create-label modal's hidden flows field with the selection
+    // stashed by the temba-label-create handler, so creating the label also
+    // applies it to the selected flows (mirrors the legacy list).
+    function handleCreateLabelModalLoaded(event) {
+      var field = event.detail.body.querySelector("#id_flows");
+      if (field) {
+        field.value = (window.pendingLabelIds || []).join();
+      }
+    }
+
+    // Shared by the dropdown's create modal and the content-menu "New Label"
+    // modax (build_context_menu names this as its on_submit handler) —
+    // refresh the sidebar menu (new label appears) and the list (labels
+    // column + cached dropdown lists).
     function handleCreateLabelModalSubmitted() {
+      window.pendingLabelIds = [];
       refreshMenu();
       var list = document.querySelector("#flow-list");
       if (list) {

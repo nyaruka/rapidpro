@@ -62,6 +62,11 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.client.cookies["temba-preview"] = "1"
         preview_response = self.client.get(inbox_url)
         self.assertContains(preview_response, "temba-msg-list")
+
+        # the label bulk action carries the create affordance for viewers who can create labels
+        preview_actions = {a["key"]: a for a in preview_response.context["new_list_bulk_actions"]}
+        self.assertTrue(preview_actions["label"]["allowCreate"])
+
         del self.client.cookies["temba-preview"]
 
         # check that we have the appropriate bulk actions

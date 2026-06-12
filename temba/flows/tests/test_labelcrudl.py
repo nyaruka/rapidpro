@@ -29,6 +29,27 @@ class FlowLabelCRUDLTest(TembaTest, CRUDLTestMixin):
         # try to create with a name that's already used
         self.assertCreateSubmit(create_url, self.admin, {"name": "Cool Flows"}, form_errors={"name": "Must be unique."})
 
+        flow1 = self.create_flow("Flow 1")
+        flow2 = self.create_flow("Flow 2")
+
+        # the legacy list seeds the flows field with ids...
+        self.assertCreateSubmit(
+            create_url,
+            self.admin,
+            {"name": "By Id", "flows": str(flow1.id)},
+            new_obj_query=FlowLabel.objects.filter(org=self.org, name="By Id"),
+        )
+        self.assertEqual({flow1}, set(FlowLabel.objects.get(name="By Id").flows.all()))
+
+        # ...the new (preview mode) list component with uuids — junk values are ignored
+        self.assertCreateSubmit(
+            create_url,
+            self.admin,
+            {"name": "By UUID", "flows": f"{flow2.uuid},junk"},
+            new_obj_query=FlowLabel.objects.filter(org=self.org, name="By UUID"),
+        )
+        self.assertEqual({flow2}, set(FlowLabel.objects.get(name="By UUID").flows.all()))
+
     def test_update(self):
         label = FlowLabel.create(self.org, self.admin, "Cool Flows")
         FlowLabel.create(self.org, self.admin, "Crazy Flows")
