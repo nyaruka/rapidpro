@@ -99,6 +99,9 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         TYPE_SURVEY: "flow_surveyor",
     }
 
+    # how many days of daily incoming-message counts make up the list view's activity sparkline
+    ACTIVITY_SERIES_DAYS = 14
+
     FINAL_LEGACY_VERSION = legacy.VERSIONS[-1]
     INITIAL_GOFLOW_VERSION = "13.0.0"  # initial version of flow spec to use new engine
     CURRENT_SPEC_VERSION = "14.4.1"  # current flow spec version
@@ -569,6 +572,68 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
             counts = self.counts.prefix("status:").scope_totals()
 
         return defaultdict(int, {scope[7:]: count for scope, count in counts.items()})
+
+    @classmethod
+    def prefetch_activity_series(cls, flows, *, using="default"):
+        """
+        Prefetches the counts required by get_activity_series
+        """
+
+        since = timezone.now().date() - timedelta(days=cls.ACTIVITY_SERIES_DAYS - 1)
+        FlowActivityCount.prefetch_by_scope(
+            flows, prefix="msgsin:date:", to_attr="_msgsin_by_date", using=using, scope_gte=f"msgsin:date:{since}"
+        )
+
+    def get_activity_series(self) -> list[int]:
+        """
+        Daily counts of incoming messages for the last ACTIVITY_SERIES_DAYS days (oldest first) — drives the list
+        view sparkline. Empty if there's been no engagement in the window.
+        """
+
+        today = timezone.now().date()
+        since = today - timedelta(days=self.ACTIVITY_SERIES_DAYS - 1)
+
+        if hasattr(self, "_msgsin_by_date"):
+            counts = self._msgsin_by_date
+        else:
+            counts = self.counts.prefix("msgsin:date:").filter(scope__gte=f"msgsin:date:{since}").scope_totals()
+
+        series = [
+            counts.get(f"msgsin:date:{today - timedelta(days=offset)}", 0)
+            for offset in range(self.ACTIVITY_SERIES_DAYS - 1, -1, -1)
+        ]
+        return series if any(series) else []
+
+    def as_json(self, context=None) -> dict:
+        """
+        Internal API shape, consumed by the temba-flow-list component. Runs/ongoing/completion come from the
+        per-status run counts (bulk-loaded by the list endpoint via prefetch_run_counts) and the activity sparkline
+        from the daily incoming-message counts (prefetch_activity_series).
+        """
+
+        type_names = {
+            Flow.TYPE_MESSAGE: "message",
+            Flow.TYPE_VOICE: "voice",
+            Flow.TYPE_BACKGROUND: "background",
+            Flow.TYPE_SURVEY: "survey",
+        }
+
+        counts = self.get_run_counts()
+        total = sum(counts.values())
+
+        return {
+            "uuid": str(self.uuid),
+            "name": self.name,
+            "type": type_names.get(self.flow_type),
+            "labels": [{"uuid": str(lb.uuid), "name": lb.name} for lb in self.labels.all()],
+            "has_issues": self.has_issues,
+            "runs": total,
+            "ongoing": counts[FlowRun.STATUS_ACTIVE] + counts[FlowRun.STATUS_WAITING],
+            "completion": (counts[FlowRun.STATUS_COMPLETED] / total) if total else 0,
+            "activity": self.get_activity_series(),
+            "created_on": self.created_on.isoformat(),
+            "saved_on": self.saved_on.isoformat() if self.saved_on else None,
+        }
 
     def get_recent_contacts(self, exit_uuid: str, dest_uuid: str) -> list[dict]:
         r = get_valkey_connection()
@@ -1321,14 +1386,11 @@ class FlowActivityCount(BaseScopedCount):
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="counts", db_index=False)  # indexed below
 
     @classmethod
-    def prefetch_by_scope(cls, flows, *, prefix: str, to_attr: str, using: str):
-        counts = (
-            cls.objects.using(using)
-            .filter(flow__in=flows)
-            .prefix(prefix)
-            .values_list("flow_id", "scope")
-            .annotate(total=Sum("count"))
-        )
+    def prefetch_by_scope(cls, flows, *, prefix: str, to_attr: str, using: str, scope_gte: str = None):
+        counts = cls.objects.using(using).filter(flow__in=flows).prefix(prefix)
+        if scope_gte:
+            counts = counts.filter(scope__gte=scope_gte)
+        counts = counts.values_list("flow_id", "scope").annotate(total=Sum("count"))
         by_flow = defaultdict(dict)
         for count in counts:
             by_flow[count[0]][count[1]] = count[2]
