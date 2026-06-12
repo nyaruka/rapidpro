@@ -14,7 +14,7 @@
     <tbody>
       {% for obj in object_list %}
         <tr onclick="goto(event, this)" href="{% url 'ai.knowledgebase_read' obj.uuid %}">
-          <td class="w-full font-medium">{{ obj.name }}</td>
+          <td class="w-full">{{ obj.name }}</td>
           <td class="whitespace-nowrap">{{ obj.get_kb_type_display }}</td>
           <td class="whitespace-nowrap">
             {% if obj.status == "F" %}
