@@ -591,11 +591,11 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         """
 
         today = timezone.now().date()
-        since = today - timedelta(days=self.ACTIVITY_SERIES_DAYS - 1)
 
         if hasattr(self, "_msgsin_by_date"):
             counts = self._msgsin_by_date
         else:
+            since = today - timedelta(days=self.ACTIVITY_SERIES_DAYS - 1)
             counts = self.counts.prefix("msgsin:date:").filter(scope__gte=f"msgsin:date:{since}").scope_totals()
 
         series = [

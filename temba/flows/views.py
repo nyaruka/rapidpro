@@ -639,7 +639,7 @@ class FlowCRUDL(SmartCRUDL):
             # them here so the new component and the legacy id-based form post are both accepted. The label dropdown
             # likewise posts the target label by uuid (action=label, add=true|false), which the form matches by id —
             # translate it too.
-            if self._use_new_list():
+            if self._use_new_list() and ("objects" in request.POST or "label" in request.POST):
                 data = request.POST.copy()
                 uuids = data.getlist("objects")
                 if uuids:
@@ -652,7 +652,9 @@ class FlowCRUDL(SmartCRUDL):
                             valid.append(UUID(u))
                         except ValueError:
                             pass
-                    ids = Flow.objects.filter(org=request.org, uuid__in=valid).values_list("id", flat=True)
+                    ids = Flow.objects.filter(org=request.org, is_active=True, uuid__in=valid).values_list(
+                        "id", flat=True
+                    )
                     data.setlist("objects", [str(i) for i in ids])
                 label = data.get("label")
                 if label:

@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from rest_framework import serializers
 from rest_framework.pagination import PageNumberPagination
 
@@ -57,7 +59,14 @@ class FlowsEndpoint(ListAPIMixin, BaseEndpoint):
 
         label_uuid = self.request.query_params.get("label")
         if label_uuid:
-            label = org.flow_labels.filter(uuid=label_uuid, is_active=True).first()
+            # Validate before the lookup — an unparseable value would otherwise raise in the database's UUID
+            # coercion (500). FlowLabel.objects rather than org.flow_labels for the same readonly-alias reason as
+            # the flows queryset above.
+            try:
+                UUID(label_uuid)
+            except ValueError:
+                return Flow.objects.none()
+            label = FlowLabel.objects.filter(org=org, uuid=label_uuid, is_active=True).first()
             if not label:
                 return Flow.objects.none()
             qs = base.filter(labels=label, is_archived=False)

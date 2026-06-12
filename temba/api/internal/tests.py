@@ -371,9 +371,10 @@ class EndpointsTest(APITestMixin, TembaTest):
         # archived flows live in their own folder, newest first
         self.assertGet(endpoint_url + "?folder=archived", [self.admin], results=[flow3])
 
-        # a label can be selected by uuid; an unknown label yields no flows
+        # a label can be selected by uuid; an unknown or malformed label yields no flows
         self.assertGet(endpoint_url + f"?label={label.uuid}", [self.admin], results=[flow1])
         self.assertGet(endpoint_url + f"?label={uuid4()}", [self.admin], results=[])
+        self.assertGet(endpoint_url + "?label=foo", [self.admin], results=[])
 
         # search filters by name
         self.assertGet(endpoint_url + "?search=ban", [self.admin], results=[flow2])
