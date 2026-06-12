@@ -743,6 +743,22 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertEqual(set(), set(flow2.labels.all()))
 
+        # a label posted as a numeric id (a legacy form post rather than the component) is passed through untranslated
+        self.client.post(list_url, {"action": "label", "objects": str(flow2.uuid), "label": str(label.id)})
+        self.assertEqual({label}, set(flow2.labels.all()))
+        label.toggle_label([flow2], add=False)
+
+        # a malformed flow uuid in `objects` is ignored rather than raising (no 500 on hostile/garbage input)
+        response = self.client.post(list_url, {"action": "archive", "objects": "not-a-uuid"})
+        self.assertEqual(200, response.status_code)
+        flow2.refresh_from_db()
+        self.assertFalse(flow2.is_archived)
+
+        # a malformed label uuid is likewise ignored rather than raising
+        response = self.client.post(list_url, {"action": "label", "objects": str(flow2.uuid), "label": "not-a-uuid"})
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(set(), set(flow2.labels.all()))
+
         # the export modal accepts the component's uuids as well as the legacy table's ids
         export_url = reverse("flows.flow_export_results")
         response = self.client.get(f"{export_url}?ids={flow2.uuid}")
