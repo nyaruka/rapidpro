@@ -615,7 +615,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertNotContains(response, flow1.name)
         self.assertContains(response, flow3.name)
 
-        self.assertEqual(("archive", "label", "export-results"), response.context["actions"])
+        self.assertEqual(("label", "export-results", "archive"), response.context["actions"])
 
         # but does appear in archived list
         response = self.client.get(reverse("flows.flow_archived"))
@@ -687,6 +687,90 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(reverse("flows.flow_filter", args=[label2.uuid]))
         self.assertEqual(f"/flow/labels/{label2.uuid}", response.headers.get(TEMBA_MENU_SELECTION))
+
+    def test_preview_list(self):
+        flow1 = self.create_flow("Flow 1")
+        flow2 = self.create_flow("Flow 2")
+        label = FlowLabel.create(self.org, self.admin, "Important")
+        label.toggle_label([flow2], add=True)
+
+        list_url = reverse("flows.flow_list")
+
+        self.login(self.admin)
+
+        # default render is still the legacy table
+        response = self.client.get(list_url)
+        self.assertNotContains(response, "temba-flow-list")
+
+        # entering preview mode swaps in the temba-flow-list component, pointed at the internal flows api
+        self.client.cookies["temba-preview"] = "1"
+
+        response = self.client.get(list_url)
+        self.assertContains(response, "temba-flow-list")
+        self.assertEqual(f"{reverse('api.internal.flows')}.json?folder=active", response.context["new_list_endpoint"])
+
+        # export-results is clientOnly (it opens the export modal); the label dropdown carries a labelsEndpoint of
+        # the workspace's flow labels; the rest post to the action endpoint
+        actions = {a["key"]: a for a in response.context["new_list_bulk_actions"]}
+        self.assertEqual(["label", "export-results", "archive"], list(actions.keys()))
+        self.assertTrue(actions["export-results"]["clientOnly"])
+        self.assertNotIn("clientOnly", actions["archive"])
+        self.assertEqual("/api/internal/flow_labels.json", actions["label"]["labelsEndpoint"])
+        # the label dropdown carries the create affordance for viewers who can create labels
+        self.assertTrue(actions["label"]["allowCreate"])
+
+        # the archived view selects the archived folder
+        response = self.client.get(reverse("flows.flow_archived"))
+        self.assertEqual(f"{reverse('api.internal.flows')}.json?folder=archived", response.context["new_list_endpoint"])
+        self.assertNotEqual("", response.context["new_list_subtitle"])
+
+        # a label filter view is selected by uuid rather than a folder
+        response = self.client.get(reverse("flows.flow_filter", args=[label.uuid]))
+        self.assertEqual(
+            f"{reverse('api.internal.flows')}.json?label={label.uuid}", response.context["new_list_endpoint"]
+        )
+
+        # the component posts flow uuids in `objects`; the view translates them to ids so the bulk action applies
+        self.client.post(list_url, {"action": "archive", "objects": str(flow1.uuid)})
+        flow1.refresh_from_db()
+        self.assertTrue(flow1.is_archived)
+
+        # the label dropdown adds the selection to a label (label posted by uuid; omitting `add` means add)
+        self.client.post(list_url, {"action": "label", "objects": str(flow2.uuid), "label": str(label.uuid)})
+        self.assertEqual({label}, set(flow2.labels.all()))
+
+        # ...and removes it when add=false
+        self.client.post(
+            list_url, {"action": "label", "objects": str(flow2.uuid), "label": str(label.uuid), "add": "false"}
+        )
+        self.assertEqual(set(), set(flow2.labels.all()))
+
+        # a label posted as a numeric id (a legacy form post rather than the component) is passed through untranslated
+        self.client.post(list_url, {"action": "label", "objects": str(flow2.uuid), "label": str(label.id)})
+        self.assertEqual({label}, set(flow2.labels.all()))
+        label.toggle_label([flow2], add=False)
+
+        # a malformed flow uuid in `objects` is ignored rather than raising (no 500 on hostile/garbage input)
+        response = self.client.post(list_url, {"action": "archive", "objects": "not-a-uuid"})
+        self.assertEqual(200, response.status_code)
+        flow2.refresh_from_db()
+        self.assertFalse(flow2.is_archived)
+
+        # a malformed label uuid is likewise ignored rather than raising
+        response = self.client.post(list_url, {"action": "label", "objects": str(flow2.uuid), "label": "not-a-uuid"})
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(set(), set(flow2.labels.all()))
+
+        # the export modal accepts the component's uuids as well as the legacy table's ids
+        export_url = reverse("flows.flow_export_results")
+        response = self.client.get(f"{export_url}?ids={flow2.uuid}")
+        self.assertEqual([flow2], list(response.context["form"].initial["flows"]))
+        response = self.client.get(f"{export_url}?ids={flow2.id}")
+        self.assertEqual([flow2], list(response.context["form"].initial["flows"]))
+
+        # ...and ignores values that are neither
+        response = self.client.get(f"{export_url}?ids=foo")
+        self.assertEqual([], list(response.context["form"].initial["flows"]))
 
     @mock_mailroom
     def test_get_definition(self, mr_mocks):

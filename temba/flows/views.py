@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
+from uuid import UUID
 
 import regex
 from django_valkey import get_valkey_connection
@@ -23,7 +24,7 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
-from django.utils.functional import cached_property
+from django.utils.functional import Promise, cached_property
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
@@ -588,6 +589,95 @@ class FlowCRUDL(SmartCRUDL):
         default_order = ("-saved_on",)
         search_fields = ("name__icontains",)
 
+        # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview,
+        # every flow list view renders the temba-flow-list component (flows/flow_list_new.html) instead of its legacy
+        # table; the component fetches/pages flows itself from the internal flows API.
+        NEW_LIST_TEMPLATE = "flows/flow_list_new.html"
+
+        # Optional subtitle rendered under the title on the new-list view.
+        subtitle = ""
+
+        # Bulk-action key -> config consumed by temba-flow-list (label, icon). `clientOnly` actions (export-results)
+        # open a modal seeded with the selected flows rather than POSTing to the action endpoint. `labelsEndpoint`
+        # turns the action into a dropdown of flow labels to add/remove the selection to/from — mirroring the message
+        # list's label dropdown.
+        BULK_ACTION_CONFIG = {
+            "label": {
+                "label": _("Label"),
+                "icon": "label",
+                "labelsEndpoint": "/api/internal/flow_labels.json",
+            },
+            "export-results": {"label": _("Export Results"), "icon": "export", "clientOnly": True},
+            "archive": {"label": _("Archive"), "icon": "archive"},
+            "restore": {"label": _("Restore"), "icon": "restore"},
+        }
+
+        def _use_new_list(self) -> bool:
+            # `getattr` defaults to False so a view called via RequestFactory (or if PreviewMiddleware is reordered
+            # out) doesn't AttributeError.
+            return getattr(self.request, "preview", False)
+
+        def get_template_names(self):
+            if self._use_new_list():
+                return [self.NEW_LIST_TEMPLATE]
+            return super().get_template_names()
+
+        def get_paginate_by(self, queryset):
+            # The temba-flow-list component fetches and pages flows itself.
+            if self._use_new_list():
+                return None
+            return super().get_paginate_by(queryset)
+
+        def derive_subtitle(self):
+            return self.subtitle
+
+        def derive_new_list_query(self) -> str:
+            return "folder=active"
+
+        def post(self, request, *args, **kwargs):
+            # The component posts flow uuids in `objects`, but BulkActionMixin matches by primary key — translate
+            # them here so the new component and the legacy id-based form post are both accepted. The label dropdown
+            # likewise posts the target label by uuid (action=label, add=true|false), which the form matches by id —
+            # translate it too.
+            if self._use_new_list() and ("objects" in request.POST or "label" in request.POST):
+                data = request.POST.copy()
+                uuids = data.getlist("objects")
+                if uuids:
+                    # Only keep well-formed UUIDs — `uuid__in` runs each value through UUIDField.get_prep_value, so a
+                    # single malformed value (a hostile post, or a stale id-based form post) would otherwise raise
+                    # ValueError (500).
+                    valid = []
+                    for u in uuids:
+                        try:
+                            valid.append(UUID(u))
+                        except ValueError:
+                            pass
+                    ids = Flow.objects.filter(org=request.org, is_active=True, uuid__in=valid).values_list(
+                        "id", flat=True
+                    )
+                    data.setlist("objects", [str(i) for i in ids])
+                label = data.get("label")
+                if label:
+                    try:
+                        UUID(label)
+                    except ValueError:
+                        pass  # already an id (legacy form post) — leave alone
+                    else:
+                        obj = request.org.flow_labels.filter(uuid=label).first()
+                        data["label"] = str(obj.id) if obj else ""
+                request.POST = data
+
+            return super().post(request, *args, **kwargs)
+
+        def get_queryset(self, **kwargs):
+            # In preview the temba-flow-list component fetches and pages flows from the internal flows API, so a GET
+            # page needs no object list. A POST (bulk action) still needs the real queryset, since BulkActionMixin
+            # validates the posted `objects` against it.
+            if self._use_new_list() and self.request.method == "GET":
+                return Flow.objects.none()
+
+            return super().get_queryset(**kwargs)
+
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
 
@@ -600,6 +690,25 @@ class FlowCRUDL(SmartCRUDL):
                 flow.num_runs_ongoing = counts[FlowRun.STATUS_ACTIVE] + counts[FlowRun.STATUS_WAITING]
                 flow.num_runs_total = total
                 flow.completion_pct = 100 * counts[FlowRun.STATUS_COMPLETED] // total if total else 0
+
+            # New-list view context: the resolved flows-api endpoint (folder= for active/archived, label= for the
+            # filter view), the subtitle, and the bulk-action configs the temba-flow-list expects (resolved +
+            # JSON-encoded here so the template stays inert).
+            if self._use_new_list():
+                context["new_list_endpoint"] = f"{reverse('api.internal.flows')}.json?{self.derive_new_list_query()}"
+                subtitle = self.derive_subtitle()
+                context["new_list_subtitle"] = str(subtitle) if subtitle else ""
+                actions = []
+                for key in self.get_bulk_actions():
+                    cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
+                    cfg["key"] = key
+                    if key == "label":
+                        # the dropdown's "New Label…" row only renders for viewers who can create labels
+                        cfg["allowCreate"] = self.has_org_perm("flows.flowlabel_create")
+                    # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
+                    cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
+                    actions.append(cfg)
+                context["new_list_bulk_actions"] = actions
 
             return context
 
@@ -650,13 +759,17 @@ class FlowCRUDL(SmartCRUDL):
         title = _("Archived")
         bulk_actions = ("restore",)
         default_order = ("-created_on",)
+        subtitle = _("These flows have been archived and can no longer be started.")
+
+        def derive_new_list_query(self) -> str:
+            return "folder=archived"
 
         def derive_queryset(self, *args, **kwargs):
             return super().derive_queryset(*args, **kwargs).filter(is_active=True, is_archived=True)
 
     class List(BaseList):
         title = _("Active")
-        bulk_actions = ("archive", "label", "export-results")
+        bulk_actions = ("label", "export-results", "archive")
         menu_path = "/flow/active"
 
         def derive_queryset(self, *args, **kwargs):
@@ -671,6 +784,9 @@ class FlowCRUDL(SmartCRUDL):
 
         def derive_menu_path(self):
             return f"/flow/labels/{self.label.uuid}"
+
+        def derive_new_list_query(self) -> str:
+            return f"label={self.label.uuid}"
 
         def build_context_menu(self, menu):
             if self.has_org_perm("flows.flow_update"):
@@ -1037,7 +1153,19 @@ class FlowCRUDL(SmartCRUDL):
 
             flow_ids = self.request.GET.get("ids")
             if flow_ids:
-                initial["flows"] = self.request.org.flows.filter(is_active=True, id__in=flow_ids.split(","))
+                # the legacy list passes ids, the new (preview mode) list component passes uuids
+                ids, uuids = [], []
+                for val in flow_ids.split(","):
+                    if val.isdigit():
+                        ids.append(val)
+                    else:
+                        try:
+                            uuids.append(UUID(val))
+                        except ValueError:
+                            pass
+
+                flows = self.request.org.flows.filter(is_active=True)
+                initial["flows"] = flows.filter(uuid__in=uuids) if uuids else flows.filter(id__in=ids)
 
             return initial
 
@@ -1671,13 +1799,22 @@ class FlowLabelCRUDL(SmartCRUDL):
         def post_save(self, obj, *args, **kwargs):
             obj = super().post_save(obj, *args, **kwargs)
 
-            flow_ids = []
-            if self.form.cleaned_data["flows"]:  # pragma: needs cover
-                flow_ids = [int(f) for f in self.form.cleaned_data["flows"].split(",") if f.isdigit()]
+            # the legacy list seeds this field with ids, the new (preview mode) list component with uuids
+            if self.form.cleaned_data["flows"]:
+                ids, uuids = [], []
+                for val in self.form.cleaned_data["flows"].split(","):
+                    if val.isdigit():
+                        ids.append(val)
+                    else:
+                        try:
+                            uuids.append(UUID(val))
+                        except ValueError:
+                            pass
 
-            flows = obj.org.flows.filter(is_active=True, id__in=flow_ids)
-            if flows:  # pragma: needs cover
-                obj.toggle_label(flows, add=True)
+                flows = obj.org.flows.filter(is_active=True)
+                flows = flows.filter(uuid__in=uuids) if uuids else flows.filter(id__in=ids)
+                if flows:
+                    obj.toggle_label(flows, add=True)
 
             return obj
 

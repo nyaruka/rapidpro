@@ -196,6 +196,9 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
             for key in self.get_bulk_actions():
                 cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
                 cfg["key"] = key
+                if key == "label":
+                    # the dropdown's "New Label…" row only renders for viewers who can create labels
+                    cfg["allowCreate"] = self.has_org_perm("msgs.label_create")
                 # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
                 cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
                 actions.append(cfg)
