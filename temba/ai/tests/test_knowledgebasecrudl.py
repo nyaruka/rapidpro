@@ -43,34 +43,42 @@ class KnowledgeBaseCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.assertListFetch(list_url, [self.editor, self.admin], context_objects=[self.kb2, self.kb1])
         self.assertEqual("/ai/knowledge", response.headers[TEMBA_MENU_SELECTION])
-        self.assertContentMenu(list_url, self.admin, ["New Website", "New Documents", "New FAQ"])
+        self.assertContentMenu(list_url, self.admin, ["New"])
 
     def test_create(self):
         create_url = reverse("ai.knowledgebase_create")
 
         self.assertRequestDisallowed(create_url, [None, self.agent])
-        self.assertCreateFetch(create_url, [self.editor, self.admin], form_fields=("name", "url"))
+        self.assertCreateFetch(create_url, [self.editor, self.admin], form_fields=("name", "kb_type", "url"))
 
         # try to create with empty fields
         self.assertCreateSubmit(
             create_url,
             self.admin,
             {},
-            form_errors={"name": "This field is required.", "url": "This field is required."},
+            form_errors={"name": "This field is required.", "kb_type": "This field is required."},
+        )
+
+        # URL is required for website knowledge bases
+        self.assertCreateSubmit(
+            create_url,
+            self.admin,
+            {"name": "Acme Support", "kb_type": "W"},
+            form_errors={"url": "This field is required."},
         )
 
         # try to use an existing name
         self.assertCreateSubmit(
             create_url,
             self.admin,
-            {"name": "acme help", "url": "https://support.acme.com/"},
+            {"name": "acme help", "kb_type": "W", "url": "https://support.acme.com/"},
             form_errors={"name": "Must be unique."},
         )
 
         response = self.assertCreateSubmit(
             create_url,
             self.admin,
-            {"name": "Acme Support", "url": "https://support.acme.com/"},
+            {"name": "Acme Support", "kb_type": "W", "url": "https://support.acme.com/"},
             new_obj_query=KnowledgeBase.objects.filter(
                 name="Acme Support",
                 url="https://support.acme.com/",
@@ -84,24 +92,21 @@ class KnowledgeBaseCRUDLTest(TembaTest, CRUDLTestMixin):
         kb = KnowledgeBase.objects.get(name="Acme Support")
         self.assertEqual(reverse("ai.knowledgebase_read", args=[kb.uuid]), response.url)
 
-        # documents and FAQ knowledge bases are created with just a name
-        self.assertCreateFetch(create_url + "?type=D", [self.admin], form_fields=("name",))
+        # documents and FAQ knowledge bases don't need a URL - even if one is provided it's ignored
         self.assertCreateSubmit(
-            create_url + "?type=D",
+            create_url,
             self.admin,
-            {"name": "Manuals"},
-            new_obj_query=KnowledgeBase.objects.filter(name="Manuals", kb_type=KnowledgeBase.TYPE_DOCUMENTS),
+            {"name": "Manuals", "kb_type": "D", "url": "https://support.acme.com/"},
+            new_obj_query=KnowledgeBase.objects.filter(name="Manuals", kb_type=KnowledgeBase.TYPE_DOCUMENTS, url=None),
         )
-        self.assertCreateFetch(create_url + "?type=F", [self.admin], form_fields=("name",))
         self.assertCreateSubmit(
-            create_url + "?type=F",
+            create_url,
             self.admin,
-            {"name": "Common Questions"},
-            new_obj_query=KnowledgeBase.objects.filter(name="Common Questions", kb_type=KnowledgeBase.TYPE_FAQ),
+            {"name": "Common Questions", "kb_type": "F"},
+            new_obj_query=KnowledgeBase.objects.filter(
+                name="Common Questions", kb_type=KnowledgeBase.TYPE_FAQ, url=None
+            ),
         )
-
-        # an unknown type falls back to website
-        self.assertCreateFetch(create_url + "?type=X", [self.admin], form_fields=("name", "url"))
 
     def test_read(self):
         read_url = reverse("ai.knowledgebase_read", args=[self.kb1.uuid])

@@ -199,36 +199,35 @@ class AIMenu(BaseMenuView):
         return menu
 
 
-class WebsiteKnowledgeBaseForm(UniqueNameMixin, forms.ModelForm):
+class KnowledgeBaseForm(UniqueNameMixin, forms.ModelForm):
     def __init__(self, org, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.org = org
-        self.fields["url"].required = True
+        self.fields["url"].required = False  # only required for website knowledge bases
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if cleaned_data.get("kb_type") == KnowledgeBase.TYPE_WEBSITE:
+            if not cleaned_data.get("url"):
+                self.add_error("url", _("This field is required."))
+        else:
+            cleaned_data["url"] = None
+
+        return cleaned_data
 
     class Meta:
         model = KnowledgeBase
-        fields = ("name", "url")
-        widgets = {"name": InputWidget(), "url": InputWidget()}
-        labels = {"url": _("URL")}
+        fields = ("name", "kb_type", "url")
+        widgets = {"name": InputWidget(), "kb_type": SelectWidget(), "url": InputWidget()}
+        labels = {"kb_type": _("Type"), "url": _("URL")}
         help_texts = {
             "url": _(
                 "The address of the help site to crawl, e.g. https://help.example.com. Articles found there "
                 "will be ingested so that agents can answer questions from them."
             )
         }
-
-
-class NameOnlyKnowledgeBaseForm(UniqueNameMixin, forms.ModelForm):
-    def __init__(self, org, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.org = org
-
-    class Meta:
-        model = KnowledgeBase
-        fields = ("name",)
-        widgets = {"name": InputWidget()}
 
 
 class KnowledgeBaseCRUDL(SmartCRUDL):
@@ -244,46 +243,25 @@ class KnowledgeBaseCRUDL(SmartCRUDL):
         def build_context_menu(self, menu):
             if self.has_org_perm("ai.knowledgebase_create"):
                 menu.add_modax(
-                    _("New Website"),
-                    "new-website",
-                    reverse("ai.knowledgebase_create") + "?type=W",
-                    title=_("New Website Knowledge Base"),
-                    on_submit="refreshMenu()",
-                )
-                menu.add_modax(
-                    _("New Documents"),
-                    "new-documents",
-                    reverse("ai.knowledgebase_create") + "?type=D",
-                    title=_("New Documents Knowledge Base"),
-                    on_submit="refreshMenu()",
-                )
-                menu.add_modax(
-                    _("New FAQ"),
-                    "new-faq",
-                    reverse("ai.knowledgebase_create") + "?type=F",
-                    title=_("New FAQ Knowledge Base"),
+                    _("New"),
+                    "new-knowledgebase",
+                    reverse("ai.knowledgebase_create"),
+                    title=_("New Knowledge Base"),
+                    as_button=True,
                     on_submit="refreshMenu()",
                 )
 
     class Create(RequireFeatureMixin, BaseCreateModal):
         require_feature = Org.FEATURE_AGENTS
+        form_class = KnowledgeBaseForm
         title = _("New Knowledge Base")
-
-        def derive_kb_type(self) -> str:
-            kb_type = self.request.GET.get("type", KnowledgeBase.TYPE_WEBSITE)
-            return kb_type if kb_type in dict(KnowledgeBase.TYPE_CHOICES) else KnowledgeBase.TYPE_WEBSITE
-
-        def get_form_class(self):
-            if self.derive_kb_type() == KnowledgeBase.TYPE_WEBSITE:
-                return WebsiteKnowledgeBaseForm
-            return NameOnlyKnowledgeBaseForm
 
         def save(self, obj):
             # must set self.object as smartmin ignores the return value and passes self.object to post_save
-            org, user, kb_type = self.request.org, self.request.user, self.derive_kb_type()
-            if kb_type == KnowledgeBase.TYPE_WEBSITE:
+            org, user = self.request.org, self.request.user
+            if obj.kb_type == KnowledgeBase.TYPE_WEBSITE:
                 self.object = KnowledgeBase.create_website(org, user, obj.name, obj.url)
-            elif kb_type == KnowledgeBase.TYPE_DOCUMENTS:
+            elif obj.kb_type == KnowledgeBase.TYPE_DOCUMENTS:
                 self.object = KnowledgeBase.create_documents(org, user, obj.name)
             else:
                 self.object = KnowledgeBase.create_faq(org, user, obj.name)

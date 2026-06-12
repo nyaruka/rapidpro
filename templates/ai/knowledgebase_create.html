@@ -1,0 +1,25 @@
+{% extends "includes/modax.html" %}
+{% load i18n smartmin %}
+
+{% block fields %}
+  {% render_field 'name' %}
+  {% render_field 'kb_type' %}
+  <div class="url-field{% if form.kb_type.value != 'W' %} hidden{% endif %}">{% render_field 'url' %}</div>
+{% endblock fields %}
+{% block modal-script %}
+  {{ block.super }}
+  <script type="text/javascript">
+    var modalBody = getModax("#new-knowledgebase").shadowRoot;
+    var typeSelect = modalBody.querySelector("temba-select[name='kb_type']");
+    var urlField = modalBody.querySelector(".url-field");
+
+    typeSelect.addEventListener("change", function(evt) {
+      var selected = evt.target.values[0];
+      if (selected.value === "W") {
+        urlField.classList.remove("hidden");
+      } else {
+        urlField.classList.add("hidden");
+      }
+    });
+  </script>
+{% endblock modal-script %}
