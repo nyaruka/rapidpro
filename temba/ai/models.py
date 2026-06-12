@@ -184,11 +184,22 @@ class KnowledgeBase(TembaModel):
 
     @classmethod
     def create_documents(cls, org, user, name: str):
-        return cls.objects.create(org=org, name=name, kb_type=cls.TYPE_DOCUMENTS, created_by=user, modified_by=user)
+        # starts out complete since there's nothing to process until documents are uploaded
+        return cls.objects.create(
+            org=org,
+            name=name,
+            kb_type=cls.TYPE_DOCUMENTS,
+            status=cls.STATUS_COMPLETE,
+            created_by=user,
+            modified_by=user,
+        )
 
     @classmethod
     def create_faq(cls, org, user, name: str):
-        return cls.objects.create(org=org, name=name, kb_type=cls.TYPE_FAQ, created_by=user, modified_by=user)
+        # starts out complete since FAQ entries are processed as they're added
+        return cls.objects.create(
+            org=org, name=name, kb_type=cls.TYPE_FAQ, status=cls.STATUS_COMPLETE, created_by=user, modified_by=user
+        )
 
     @property
     def is_finished(self) -> bool:

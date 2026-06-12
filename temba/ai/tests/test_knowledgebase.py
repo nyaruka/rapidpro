@@ -23,13 +23,16 @@ class KnowledgeBaseTest(TembaTest):
         self.assertIsNone(kb1.started_on)
         self.assertIsNone(kb1.finished_on)
 
+        # documents and FAQ knowledge bases start out complete since there's nothing to process yet
         self.assertEqual(KnowledgeBase.TYPE_DOCUMENTS, kb2.kb_type)
         self.assertIsNone(kb2.url)
+        self.assertEqual(KnowledgeBase.STATUS_COMPLETE, kb2.status)
         self.assertEqual(KnowledgeBase.TYPE_FAQ, kb3.kb_type)
         self.assertIsNone(kb3.url)
+        self.assertEqual(KnowledgeBase.STATUS_COMPLETE, kb3.status)
 
     def test_is_finished(self):
-        kb = KnowledgeBase.create_documents(self.org, self.admin, "Manuals")
+        kb = KnowledgeBase.create_website(self.org, self.admin, "Docs", "https://docs.example.com")
 
         self.assertFalse(kb.is_finished)
 

@@ -92,19 +92,22 @@ class KnowledgeBaseCRUDLTest(TembaTest, CRUDLTestMixin):
         kb = KnowledgeBase.objects.get(name="Acme Support")
         self.assertEqual(reverse("ai.knowledgebase_read", args=[kb.uuid]), response.url)
 
-        # documents and FAQ knowledge bases don't need a URL - even if one is provided it's ignored
+        # documents and FAQ knowledge bases don't need a URL - even if one is provided it's ignored - and
+        # start out complete since there's nothing to process yet
         self.assertCreateSubmit(
             create_url,
             self.admin,
             {"name": "Manuals", "kb_type": "D", "url": "https://support.acme.com/"},
-            new_obj_query=KnowledgeBase.objects.filter(name="Manuals", kb_type=KnowledgeBase.TYPE_DOCUMENTS, url=None),
+            new_obj_query=KnowledgeBase.objects.filter(
+                name="Manuals", kb_type=KnowledgeBase.TYPE_DOCUMENTS, url=None, status=KnowledgeBase.STATUS_COMPLETE
+            ),
         )
         self.assertCreateSubmit(
             create_url,
             self.admin,
             {"name": "Common Questions", "kb_type": "F"},
             new_obj_query=KnowledgeBase.objects.filter(
-                name="Common Questions", kb_type=KnowledgeBase.TYPE_FAQ, url=None
+                name="Common Questions", kb_type=KnowledgeBase.TYPE_FAQ, url=None, status=KnowledgeBase.STATUS_COMPLETE
             ),
         )
 
