@@ -13,13 +13,10 @@
   <table class="list lined selectable scrolled">
     <tbody>
       {% for obj in object_list %}
-        <tr>
-          <td style="min-width: 200px" class="font-medium">
-            <a href="{% url 'ai.knowledgebase_read' obj.uuid %}">{{ obj.name }}</a>
-          </td>
-          <td class="w-32">{{ obj.get_kb_type_display }}</td>
-          <td class="text-gray-600">{{ obj.url|default:""|truncatechars:60 }}</td>
-          <td class="w-32">
+        <tr onclick="goto(event, this)" href="{% url 'ai.knowledgebase_read' obj.uuid %}">
+          <td class="w-full font-medium">{{ obj.name }}</td>
+          <td class="whitespace-nowrap">{{ obj.get_kb_type_display }}</td>
+          <td class="whitespace-nowrap">
             {% if obj.status == "F" %}
               <temba-icon name="alert_warning" class="text-error mr-1">
               </temba-icon>
@@ -29,7 +26,7 @@
             {% endif %}
             {{ obj.get_status_display }}
           </td>
-          <td class="w-32">
+          <td class="whitespace-nowrap">
             {% blocktrans trimmed count count=obj.num_articles %}
               {{ count }} article
             {% plural %}
