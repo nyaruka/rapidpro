@@ -17,14 +17,16 @@
           <td class="w-full">{{ obj.name }}</td>
           <td class="whitespace-nowrap">{{ obj.get_kb_type_display }}</td>
           <td class="whitespace-nowrap">
-            {% if obj.status == "F" %}
-              <temba-icon name="alert_warning" class="text-error mr-1">
+            {% if obj.status == "C" %}
+              <temba-icon name="check" class="text-success">
               </temba-icon>
-            {% elif not obj.is_finished %}
-              <temba-icon name="progress_spinner" class="mr-1" spin>
+            {% elif obj.status == "F" %}
+              <temba-icon name="alert_warning" class="text-error">
+              </temba-icon>
+            {% else %}
+              <temba-icon name="progress_spinner" spin>
               </temba-icon>
             {% endif %}
-            {{ obj.get_status_display }}
           </td>
           <td class="whitespace-nowrap">
             {% blocktrans trimmed count count=obj.num_articles %}

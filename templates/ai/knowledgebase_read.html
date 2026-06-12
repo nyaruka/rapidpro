@@ -19,7 +19,18 @@
       {% if object.kb_type != "F" %}
         <div>
           <div class="text-sm text-gray-500">{% trans "Status" %}</div>
-          <div>{{ object.get_status_display }}</div>
+          <div class="status-icon">
+            {% if object.status == "C" %}
+              <temba-icon name="check" class="text-success">
+              </temba-icon>
+            {% elif object.status == "F" %}
+              <temba-icon name="alert_warning" class="text-error">
+              </temba-icon>
+            {% else %}
+              <temba-icon name="progress_spinner" spin>
+              </temba-icon>
+            {% endif %}
+          </div>
         </div>
       {% endif %}
       {% if object.started_on %}
@@ -166,7 +177,9 @@
 {% block extra-style %}
   {{ block.super }}
   <style type="text/css">
-    .crawl-result temba-icon {
+    .crawl-result temba-icon,
+    .status-icon temba-icon,
+    td temba-icon {
       display: inline-block;
     }
   </style>
