@@ -17,9 +17,21 @@
           <td class="w-full">{{ obj.name }}</td>
           <td class="whitespace-nowrap">{{ obj.get_kb_type_display }}</td>
           <td class="whitespace-nowrap">
+            {% blocktrans trimmed count count=obj.num_articles %}
+              {{ count }} article
+            {% plural %}
+              {{ count }} articles
+            {% endblocktrans %}
+          </td>
+          <td class="whitespace-nowrap">
             {% if obj.status == "C" %}
-              <temba-icon name="check" class="text-success">
-              </temba-icon>
+              {% if obj.num_articles %}
+                <temba-icon name="check" class="text-success">
+                </temba-icon>
+              {% else %}
+                <temba-icon name="slash-circle-01" class="text-gray-400">
+                </temba-icon>
+              {% endif %}
             {% elif obj.status == "F" %}
               <temba-icon name="alert_warning" class="text-error">
               </temba-icon>
@@ -27,13 +39,6 @@
               <temba-icon name="progress_spinner" spin>
               </temba-icon>
             {% endif %}
-          </td>
-          <td class="whitespace-nowrap">
-            {% blocktrans trimmed count count=obj.num_articles %}
-              {{ count }} article
-            {% plural %}
-              {{ count }} articles
-            {% endblocktrans %}
           </td>
         </tr>
       {% empty %}

@@ -21,8 +21,13 @@
           <div class="text-sm text-gray-500">{% trans "Status" %}</div>
           <div class="status-icon">
             {% if object.status == "C" %}
-              <temba-icon name="check" class="text-success">
-              </temba-icon>
+              {% if object.num_articles %}
+                <temba-icon name="check" class="text-success">
+                </temba-icon>
+              {% else %}
+                <temba-icon name="slash-circle-01" class="text-gray-400">
+                </temba-icon>
+              {% endif %}
             {% elif object.status == "F" %}
               <temba-icon name="alert_warning" class="text-error">
               </temba-icon>
