@@ -364,6 +364,9 @@ class EndpointsTest(APITestMixin, TembaTest):
         flow1.counts.create(scope=f"msgsin:date:{today - timedelta(days=1)}", count=3)
         flow1.counts.create(scope=f"msgsin:date:{today}", count=5)
 
+        # without the endpoint's bulk prefetch, the series reads the counts directly
+        self.assertEqual([3, 5], flow1.get_activity_series()[-2:])
+
         # default folder is `active`, most recently saved first
         self.assertGet(endpoint_url, [self.editor, self.admin], results=[flow2, flow1])
         self.assertGet(endpoint_url + "?folder=active", [self.admin], results=[flow2, flow1])

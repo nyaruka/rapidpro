@@ -766,6 +766,10 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(f"{export_url}?ids={flow2.id}")
         self.assertEqual([flow2], list(response.context["form"].initial["flows"]))
 
+        # ...and ignores values that are neither
+        response = self.client.get(f"{export_url}?ids=foo")
+        self.assertEqual([], list(response.context["form"].initial["flows"]))
+
     @mock_mailroom
     def test_get_definition(self, mr_mocks):
         flow = self.get_flow("color_v13")
