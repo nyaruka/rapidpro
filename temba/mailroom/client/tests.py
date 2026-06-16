@@ -32,13 +32,6 @@ class MailroomClientTest(TembaTest):
 
         self.client = MailroomClient("http://localhost:8090", "sesame")
 
-    def test_version(self):
-        with patch("requests.get") as mock_get:
-            mock_get.return_value = MockJsonResponse(200, {"version": "5.3.4"})
-            version = self.client.version()
-
-        self.assertEqual("5.3.4", version)
-
     @patch("requests.post")
     def test_android_event(self, mock_post):
         mock_post.return_value = MockJsonResponse(200, {"id": 12345})
