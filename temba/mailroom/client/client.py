@@ -46,9 +46,6 @@ class MailroomClient:
         if auth_token:
             self.headers["Authorization"] = "Token " + auth_token
 
-    def version(self):
-        return self._request("", post=False).get("version")
-
     def android_event(self, org, channel, phone: str, event_type: str, extra: dict, occurred_on):
         return self._request(
             "android/event",
