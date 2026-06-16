@@ -1,3 +1,8 @@
+v26.2.1 (2026-06-16)
+-------------------------
+ * Remove dead MailroomClient.version() method
+ * Bump pyjwt from 2.12.1 to 2.13.0
+
 v26.2.0 (2026-06-15)
 -------------------------
  * Standardize WhatsApp Graph API calls on v22.0 via a shared base URL constant
