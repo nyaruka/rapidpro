@@ -6,6 +6,7 @@ from temba.tests import TembaTest
 
 
 class EndpointsTest(APITestMixin, TembaTest):
+    @override_settings(WEBSOCKETS_AUTH_SECRET=None)
     def test_connect(self):
         endpoint_url = reverse("api.websockets.connect")
 
