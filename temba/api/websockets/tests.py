@@ -5,8 +5,11 @@ from django.urls import reverse
 from temba.api.checks import websockets_auth_secret
 from temba.api.tests.mixins import APITestMixin
 from temba.tests import TembaTest
+from temba.utils.uuid import uuid4
 
 SECRET = "topsecret"
+
+FORBIDDEN = {"error": {"code": 403, "message": "forbidden"}}
 
 
 @override_settings(WEBSOCKETS_AUTH_SECRET=SECRET)
@@ -15,6 +18,14 @@ class EndpointsTest(APITestMixin, TembaTest):
         headers = {"HTTP_X_WEBSOCKETS_SECRET": secret} if secret is not None else {}
         return (client or self.client).post(
             reverse("api.websockets.connect"), {}, content_type="application/json", **headers
+        )
+
+    def subscribe(self, channel: str):
+        return self.client.post(
+            reverse("api.websockets.subscribe"),
+            {"channel": channel},
+            content_type="application/json",
+            HTTP_X_WEBSOCKETS_SECRET=SECRET,
         )
 
     def test_connect(self):
@@ -83,6 +94,47 @@ class EndpointsTest(APITestMixin, TembaTest):
             },
             response.json(),
         )
+
+    def test_subscribe(self):
+        contact = self.create_contact("Ann", phone="+1234567001")
+        other_org_contact = self.create_contact("Bob", phone="+1234567002", org=self.org2)
+
+        # an unauthenticated request is told to disconnect
+        response = self.subscribe(f"chat:{contact.uuid}")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"disconnect": {"code": 4401, "reason": "unauthorized"}}, response.json())
+
+        self.login(self.admin)
+
+        # a contact in the user's current workspace is allowed
+        response = self.subscribe(f"chat:{contact.uuid}")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"result": {}}, response.json())
+
+        # a contact in another workspace is denied (not found when scoped to the current org)
+        self.assertEqual(FORBIDDEN, self.subscribe(f"chat:{other_org_contact.uuid}").json())
+
+        # a non-existent contact is denied
+        self.assertEqual(FORBIDDEN, self.subscribe(f"chat:{uuid4()}").json())
+
+        # a malformed contact uuid is denied (and doesn't error)
+        self.assertEqual(FORBIDDEN, self.subscribe("chat:not-a-uuid").json())
+
+        # an unrecognized namespace is denied (default deny)
+        self.assertEqual(FORBIDDEN, self.subscribe(f"secrets:{contact.uuid}").json())
+
+        # a released contact is denied
+        contact.is_active = False
+        contact.save(update_fields=("is_active",))
+        self.assertEqual(FORBIDDEN, self.subscribe(f"chat:{contact.uuid}").json())
+        contact.is_active = True
+        contact.save(update_fields=("is_active",))
+
+        # a user with no current workspace is denied
+        session = self.client.session
+        del session["org_id"]
+        session.save()
+        self.assertEqual(FORBIDDEN, self.subscribe(f"chat:{contact.uuid}").json())
 
     def test_secret(self):
         self.login(self.admin)

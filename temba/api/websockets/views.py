@@ -21,6 +21,8 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.crypto import constant_time_compare
 
+from temba.utils.uuid import is_uuid
+
 from ..support import APISessionAuthentication
 
 
@@ -82,3 +84,34 @@ class ConnectEndpoint(BaseEndpoint):
             channels.append(f"notifications:{request.org.uuid}:{user.uuid}")
 
         return Response({"result": {"user": str(user.uuid), "channels": channels}})
+
+
+class SubscribeEndpoint(BaseEndpoint):
+    """
+    Subscribe proxy called by the realtime messaging server when a browser asks to subscribe to a channel that needs
+    authorization (a namespace configured with a subscribe proxy on the realtime server). We resolve the user and their
+    current workspace from the forwarded session cookie and allow the subscription only if it's one we recognize and
+    the user has access to it in that workspace - everything else is denied.
+
+    The only client-subscribable channel for now is a contact's chat history, ``chat:<contact-uuid>``, allowed only
+    when the contact belongs to the user's current workspace. Access is always scoped to ``request.org``, so a channel
+    for a contact in another workspace simply isn't found and is denied.
+    """
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        if not user.is_authenticated:
+            return Response({"disconnect": {"code": 4401, "reason": "unauthorized"}})
+
+        if request.org and self.is_allowed(request, request.data.get("channel", "")):
+            return Response({"result": {}})
+
+        return Response({"error": {"code": 403, "message": "forbidden"}})
+
+    def is_allowed(self, request, channel: str) -> bool:
+        namespace, _, ref = channel.partition(":")
+
+        if namespace == "chat":  # chat history for a contact in the current workspace
+            return is_uuid(ref) and request.org.contacts.filter(uuid=ref, is_active=True).exists()
+
+        return False
