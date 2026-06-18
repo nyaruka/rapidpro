@@ -41,7 +41,7 @@ class HasWebSocketsSecret(BasePermission):
     """
 
     def has_permission(self, request, view):
-        secret = getattr(settings, "WEBSOCKETS_AUTH_SECRET", None)
+        secret = settings.WEBSOCKETS_AUTH_SECRET
         if not secret:
             return True
 

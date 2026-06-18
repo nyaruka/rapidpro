@@ -78,3 +78,11 @@ class EndpointsTest(APITestMixin, TembaTest):
         # a missing secret is rejected
         response = self.client.post(endpoint_url, {}, content_type="application/json")
         self.assertEqual(403, response.status_code)
+
+        # a correct secret doesn't bypass session auth - a browser with no session is still told to disconnect
+        self.client.logout()
+        response = self.client.post(
+            endpoint_url, {}, content_type="application/json", HTTP_X_WEBSOCKETS_SECRET="sesame"
+        )
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"disconnect": {"code": 4401, "reason": "unauthorized"}}, response.json())
