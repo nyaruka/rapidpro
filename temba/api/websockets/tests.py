@@ -1,25 +1,32 @@
+from django.core.exceptions import ImproperlyConfigured
 from django.test import override_settings
 from django.urls import reverse
 
+from temba.api.checks import websockets_auth_secret
 from temba.api.tests.mixins import APITestMixin
 from temba.tests import TembaTest
 
+SECRET = "topsecret"
 
+
+@override_settings(WEBSOCKETS_AUTH_SECRET=SECRET)
 class EndpointsTest(APITestMixin, TembaTest):
-    @override_settings(WEBSOCKETS_AUTH_SECRET=None)
+    def post(self, *, client=None, secret=SECRET):
+        headers = {"HTTP_X_WEBSOCKETS_SECRET": secret} if secret is not None else {}
+        return (client or self.client).post(
+            reverse("api.websockets.connect"), {}, content_type="application/json", **headers
+        )
+
     def test_connect(self):
         endpoint_url = reverse("api.websockets.connect")
 
-        def post(client=None):
-            return (client or self.client).post(endpoint_url, {}, content_type="application/json")
-
         # GET isn't supported - this endpoint only answers the realtime server's connect POST
         self.login(self.admin)
-        self.assertEqual(405, self.client.get(endpoint_url).status_code)
+        self.assertEqual(405, self.client.get(endpoint_url, HTTP_X_WEBSOCKETS_SECRET=SECRET).status_code)
 
         # an authenticated user gets subscribed to their own channel plus their current workspace's channel
         self.login(self.admin)
-        response = post()
+        response = self.post()
         self.assertEqual(200, response.status_code)
         self.assertEqual(
             {"result": {"user": str(self.admin.id), "channels": [f"user:{self.admin.id}", f"org:{self.org.id}"]}},
@@ -28,7 +35,7 @@ class EndpointsTest(APITestMixin, TembaTest):
 
         # the workspace channel is scoped to the current org - a user on a different workspace gets that org's channel
         self.login(self.admin2, choose_org=self.org2)
-        response = post()
+        response = self.post()
         self.assertEqual(
             {"result": {"user": str(self.admin2.id), "channels": [f"user:{self.admin2.id}", f"org:{self.org2.id}"]}},
             response.json(),
@@ -39,14 +46,14 @@ class EndpointsTest(APITestMixin, TembaTest):
         session = self.client.session
         del session["org_id"]
         session.save()
-        response = post()
+        response = self.post()
         self.assertEqual(
             {"result": {"user": str(self.admin.id), "channels": [f"user:{self.admin.id}"]}}, response.json()
         )
 
         # an unauthenticated request is told to disconnect
         self.client.logout()
-        response = post()
+        response = self.post()
         self.assertEqual(200, response.status_code)
         self.assertEqual({"disconnect": {"code": 4401, "reason": "unauthorized"}}, response.json())
 
@@ -56,34 +63,33 @@ class EndpointsTest(APITestMixin, TembaTest):
         session = csrf_client.session
         session["org_id"] = self.org.id
         session.save()
-        response = post(csrf_client)
+        response = self.post(client=csrf_client)
         self.assertEqual(200, response.status_code)
         self.assertEqual(str(self.admin.id), response.json()["result"]["user"])
 
-    @override_settings(WEBSOCKETS_AUTH_SECRET="sesame")
-    def test_connect_with_secret(self):
-        endpoint_url = reverse("api.websockets.connect")
+    def test_secret(self):
         self.login(self.admin)
 
-        # the correct shared secret is accepted
-        response = self.client.post(
-            endpoint_url, {}, content_type="application/json", HTTP_X_WEBSOCKETS_SECRET="sesame"
-        )
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(str(self.admin.id), response.json()["result"]["user"])
-
         # a wrong secret is rejected for the whole API, even for an authenticated user
-        response = self.client.post(endpoint_url, {}, content_type="application/json", HTTP_X_WEBSOCKETS_SECRET="open")
-        self.assertEqual(403, response.status_code)
+        self.assertEqual(403, self.post(secret="open").status_code)
 
         # a missing secret is rejected
-        response = self.client.post(endpoint_url, {}, content_type="application/json")
-        self.assertEqual(403, response.status_code)
+        self.assertEqual(403, self.post(secret=None).status_code)
 
         # a correct secret doesn't bypass session auth - a browser with no session is still told to disconnect
         self.client.logout()
-        response = self.client.post(
-            endpoint_url, {}, content_type="application/json", HTTP_X_WEBSOCKETS_SECRET="sesame"
-        )
+        response = self.post()
         self.assertEqual(200, response.status_code)
         self.assertEqual({"disconnect": {"code": 4401, "reason": "unauthorized"}}, response.json())
+
+    @override_settings(WEBSOCKETS_AUTH_SECRET=None)
+    def test_secret_required(self):
+        # the system check flags a deployment that hasn't configured the secret
+        errors = websockets_auth_secret(None)
+        self.assertEqual(1, len(errors))
+        self.assertEqual("WEBSOCKETS_AUTH_SECRET is not set.", errors[0].msg)
+
+        # and the API fails closed at request time for the bare wsgi path where system checks don't run
+        self.login(self.admin)
+        with self.assertRaises(ImproperlyConfigured):
+            self.post()
