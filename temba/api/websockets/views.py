@@ -63,13 +63,12 @@ class BaseEndpoint(APIView):
 class ConnectEndpoint(BaseEndpoint):
     """
     Connection proxy called by the realtime messaging server when a browser opens a WebSocket. The browser connects
-    with no auth token; the realtime server forwards the browser's session cookie to us and we resolve the user plus
-    their current workspace, returning the connection result - the user id and the server-side channels the connection
-    should be subscribed to.
+    with no auth token; the realtime server forwards the browser's session cookie to us and we resolve the user,
+    returning the connection result - the user identifier and the server-side channels to subscribe the connection to.
 
-    Channels use integer DB ids (not UUIDs) because the services that publish to them key off the same ids; the
-    ``user`` and ``org`` namespaces are configured on the realtime server. If there's no authenticated session we
-    return a disconnect instruction instead so the realtime server closes the connection.
+    For now the connection is subscribed to a single channel, ``notifications:<user-uuid>``; the ``notifications``
+    namespace is configured on the realtime server. If there's no authenticated session we return a disconnect
+    instruction instead so the realtime server closes the connection.
     """
 
     def post(self, request, *args, **kwargs):
@@ -77,8 +76,4 @@ class ConnectEndpoint(BaseEndpoint):
         if not user.is_authenticated:
             return Response({"disconnect": {"code": 4401, "reason": "unauthorized"}})
 
-        channels = [f"user:{user.id}"]
-        if request.org:
-            channels.append(f"org:{request.org.id}")
-
-        return Response({"result": {"user": str(user.id), "channels": channels}})
+        return Response({"result": {"user": str(user.uuid), "channels": [f"notifications:{user.uuid}"]}})

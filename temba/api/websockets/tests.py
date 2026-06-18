@@ -24,31 +24,21 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.login(self.admin)
         self.assertEqual(405, self.client.get(endpoint_url, HTTP_X_WEBSOCKETS_SECRET=SECRET).status_code)
 
-        # an authenticated user gets subscribed to their own channel plus their current workspace's channel
+        # an authenticated user is subscribed to their own notifications channel, keyed by user uuid
         self.login(self.admin)
         response = self.post()
         self.assertEqual(200, response.status_code)
         self.assertEqual(
-            {"result": {"user": str(self.admin.id), "channels": [f"user:{self.admin.id}", f"org:{self.org.id}"]}},
+            {"result": {"user": str(self.admin.uuid), "channels": [f"notifications:{self.admin.uuid}"]}},
             response.json(),
         )
 
-        # the workspace channel is scoped to the current org - a user on a different workspace gets that org's channel
-        self.login(self.admin2, choose_org=self.org2)
+        # the channel is per-user - a different user gets their own notifications channel (not workspace-scoped)
+        self.login(self.editor)
         response = self.post()
         self.assertEqual(
-            {"result": {"user": str(self.admin2.id), "channels": [f"user:{self.admin2.id}", f"org:{self.org2.id}"]}},
+            {"result": {"user": str(self.editor.uuid), "channels": [f"notifications:{self.editor.uuid}"]}},
             response.json(),
-        )
-
-        # with no current workspace, only the user channel is returned
-        self.login(self.admin)
-        session = self.client.session
-        del session["org_id"]
-        session.save()
-        response = self.post()
-        self.assertEqual(
-            {"result": {"user": str(self.admin.id), "channels": [f"user:{self.admin.id}"]}}, response.json()
         )
 
         # an unauthenticated request is told to disconnect
@@ -60,12 +50,9 @@ class EndpointsTest(APITestMixin, TembaTest):
         # because it's a server-to-server POST with no CSRF token, it still works when CSRF checks are enforced
         csrf_client = self.client_class(enforce_csrf_checks=True)
         csrf_client.login(username=self.admin.email, password=self.default_password)
-        session = csrf_client.session
-        session["org_id"] = self.org.id
-        session.save()
         response = self.post(client=csrf_client)
         self.assertEqual(200, response.status_code)
-        self.assertEqual(str(self.admin.id), response.json()["result"]["user"])
+        self.assertEqual(str(self.admin.uuid), response.json()["result"]["user"])
 
     def test_secret(self):
         self.login(self.admin)
