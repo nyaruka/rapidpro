@@ -852,6 +852,13 @@ MAILROOM_URL = None
 MAILROOM_AUTH_TOKEN = None
 
 # -----------------------------------------------------------------------------------
+# WebSockets (realtime messaging server)
+# -----------------------------------------------------------------------------------
+
+# optional shared secret which, when set, the websockets API requires in the X-Websockets-Secret header
+WEBSOCKETS_AUTH_SECRET = None
+
+# -----------------------------------------------------------------------------------
 # Data Model
 # -----------------------------------------------------------------------------------
 
