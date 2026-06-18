@@ -1,3 +1,8 @@
+v26.2.2 (2026-06-18)
+-------------------------
+ * Bump cryptography from 46.0.7 to 48.0.1
+ * Bump aiohttp from 3.14.0 to 3.14.1
+
 v26.2.1 (2026-06-16)
 -------------------------
  * Remove dead MailroomClient.version() method
