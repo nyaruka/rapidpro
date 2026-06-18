@@ -24,22 +24,41 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.login(self.admin)
         self.assertEqual(405, self.client.get(endpoint_url, HTTP_X_WEBSOCKETS_SECRET=SECRET).status_code)
 
-        # an authenticated user is subscribed to their own notifications channel, keyed by user uuid
+        # an authenticated user is subscribed to their notifications channel for their current workspace, scoped by
+        # both org uuid and user uuid
         self.login(self.admin)
         response = self.post()
         self.assertEqual(200, response.status_code)
         self.assertEqual(
-            {"result": {"user": str(self.admin.uuid), "channels": [f"notifications:{self.admin.uuid}"]}},
+            {
+                "result": {
+                    "user": str(self.admin.uuid),
+                    "channels": [f"notifications:{self.org.uuid}:{self.admin.uuid}"],
+                }
+            },
             response.json(),
         )
 
-        # the channel is per-user - a different user gets their own notifications channel (not workspace-scoped)
-        self.login(self.editor)
+        # the channel is scoped per (org, user) - a different user in a different workspace gets their own channel
+        self.login(self.admin2, choose_org=self.org2)
         response = self.post()
         self.assertEqual(
-            {"result": {"user": str(self.editor.uuid), "channels": [f"notifications:{self.editor.uuid}"]}},
+            {
+                "result": {
+                    "user": str(self.admin2.uuid),
+                    "channels": [f"notifications:{self.org2.uuid}:{self.admin2.uuid}"],
+                }
+            },
             response.json(),
         )
+
+        # a user with no current workspace gets no channels
+        self.login(self.admin)
+        session = self.client.session
+        del session["org_id"]
+        session.save()
+        response = self.post()
+        self.assertEqual({"result": {"user": str(self.admin.uuid), "channels": []}}, response.json())
 
         # an unauthenticated request is told to disconnect
         self.client.logout()
@@ -50,9 +69,20 @@ class EndpointsTest(APITestMixin, TembaTest):
         # because it's a server-to-server POST with no CSRF token, it still works when CSRF checks are enforced
         csrf_client = self.client_class(enforce_csrf_checks=True)
         csrf_client.login(username=self.admin.email, password=self.default_password)
+        session = csrf_client.session
+        session["org_id"] = self.org.id
+        session.save()
         response = self.post(client=csrf_client)
         self.assertEqual(200, response.status_code)
-        self.assertEqual(str(self.admin.uuid), response.json()["result"]["user"])
+        self.assertEqual(
+            {
+                "result": {
+                    "user": str(self.admin.uuid),
+                    "channels": [f"notifications:{self.org.uuid}:{self.admin.uuid}"],
+                }
+            },
+            response.json(),
+        )
 
     def test_secret(self):
         self.login(self.admin)

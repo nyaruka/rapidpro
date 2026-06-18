@@ -66,9 +66,10 @@ class ConnectEndpoint(BaseEndpoint):
     with no auth token; the realtime server forwards the browser's session cookie to us and we resolve the user,
     returning the connection result - the user identifier and the server-side channels to subscribe the connection to.
 
-    For now the connection is subscribed to a single channel, ``notifications:<user-uuid>``; the ``notifications``
-    namespace is configured on the realtime server. If there's no authenticated session we return a disconnect
-    instruction instead so the realtime server closes the connection.
+    Notifications are scoped to a user within a workspace, so the connection is subscribed to a single channel for the
+    user's current workspace, ``notifications:<org-uuid>:<user-uuid>``; the ``notifications`` namespace is configured
+    on the realtime server. A user with no current workspace gets no channels. If there's no authenticated session we
+    return a disconnect instruction instead so the realtime server closes the connection.
     """
 
     def post(self, request, *args, **kwargs):
@@ -76,4 +77,8 @@ class ConnectEndpoint(BaseEndpoint):
         if not user.is_authenticated:
             return Response({"disconnect": {"code": 4401, "reason": "unauthorized"}})
 
-        return Response({"result": {"user": str(user.uuid), "channels": [f"notifications:{user.uuid}"]}})
+        channels = []
+        if request.org:
+            channels.append(f"notifications:{request.org.uuid}:{user.uuid}")
+
+        return Response({"result": {"user": str(user.uuid), "channels": channels}})
