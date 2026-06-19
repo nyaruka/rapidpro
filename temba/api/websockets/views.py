@@ -2,6 +2,11 @@
 Endpoints called by the realtime messaging server that fronts browser WebSockets - server-to-server, never by
 browsers directly.
 
+These handle connection authentication and lifecycle: ``connect`` authenticates a new connection from the forwarded
+session cookie, and ``refresh`` periodically re-validates it. The connect result also attaches the user's identity to
+the connection's server-side ``meta``, so the proxies that authorize individual channel subscriptions (handled by
+another internal service) can act on that identity without re-reading the Django session.
+
 Unlike the rest of the internal API (``/api/internal/``), which is called by the editor running in the user's
 browser and so *must* be reachable from the public internet, every endpoint here is only ever called by the
 realtime messaging server from inside our own network. That means this API can be made truly internal: serve
@@ -19,11 +24,13 @@ from rest_framework.views import APIView
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 
-from temba.utils.uuid import is_uuid
-
 from ..support import APISessionAuthentication
+
+# how long (seconds) a connection stays valid before the realtime server must re-validate it via the refresh proxy
+CONNECTION_TTL = 5 * 60
 
 
 class WebSocketsSessionAuthentication(APISessionAuthentication):
@@ -61,17 +68,25 @@ class BaseEndpoint(APIView):
     permission_classes = (HasWebSocketsSecret,)
     renderer_classes = (JSONRenderer,)
 
+    def expire_at(self) -> int:
+        """Unix time at which the connection should next be re-validated by the refresh proxy."""
+        return int(timezone.now().timestamp()) + CONNECTION_TTL
+
 
 class ConnectEndpoint(BaseEndpoint):
     """
     Connection proxy called by the realtime messaging server when a browser opens a WebSocket. The browser connects
-    with no auth token; the realtime server forwards the browser's session cookie to us and we resolve the user,
-    returning the connection result - the user identifier and the server-side channels to subscribe the connection to.
+    with no auth token; the realtime server forwards the browser's session cookie and we resolve the user.
 
-    Notifications are scoped to a user within a workspace, so the connection is subscribed to a single channel for the
-    user's current workspace, ``notifications:<org-uuid>:<user-uuid>``; the ``notifications`` namespace is configured
-    on the realtime server. A user with no current workspace gets no channels. If there's no authenticated session we
-    return a disconnect instruction instead so the realtime server closes the connection.
+    The result carries:
+      * ``user`` - the user identifier (uuid);
+      * ``channels`` - the server-side channels to subscribe the connection to, a single
+        ``notifications:<org-uuid>:<user-uuid>`` for the user's current workspace (none if they have no current one);
+      * ``meta`` - the user's identity (uuids and ids) attached to the connection so the subscription-authorization
+        proxies can act on it without re-reading the session; ``meta`` is server-side only and never sent to the browser;
+      * ``expire_at`` - when the realtime server should next call the refresh proxy to re-validate the connection.
+
+    If there's no authenticated session we return a disconnect instruction so the realtime server closes the connection.
     """
 
     def post(self, request, *args, **kwargs):
@@ -79,39 +94,27 @@ class ConnectEndpoint(BaseEndpoint):
         if not user.is_authenticated:
             return Response({"disconnect": {"code": 4401, "reason": "unauthorized"}})
 
+        meta = {"user_id": user.id, "user_uuid": str(user.uuid)}
         channels = []
         if request.org:
+            meta["org_id"] = request.org.id
+            meta["org_uuid"] = str(request.org.uuid)
             channels.append(f"notifications:{request.org.uuid}:{user.uuid}")
 
-        return Response({"result": {"user": str(user.uuid), "channels": channels}})
+        return Response(
+            {"result": {"user": str(user.uuid), "channels": channels, "meta": meta, "expire_at": self.expire_at()}}
+        )
 
 
-class SubscribeEndpoint(BaseEndpoint):
+class RefreshEndpoint(BaseEndpoint):
     """
-    Subscribe proxy called by the realtime messaging server when a browser asks to subscribe to a channel that needs
-    authorization (a namespace configured with a subscribe proxy on the realtime server). We resolve the user and their
-    current workspace from the forwarded session cookie and allow the subscription only if it's one we recognize and
-    the user has access to it in that workspace - everything else is denied.
-
-    The only client-subscribable channel for now is a contact's chat history, ``chat:<contact-uuid>``, allowed only
-    when the contact belongs to the user's current workspace. Access is always scoped to ``request.org``, so a channel
-    for a contact in another workspace simply isn't found and is denied.
+    Refresh proxy called periodically by the realtime messaging server before a connection's ``expire_at``. We re-check
+    that the forwarded session is still valid (the user is still logged in) and either extend the connection with a new
+    ``expire_at`` or let it expire - this is how a logout or session expiry eventually tears down the WebSocket.
     """
 
     def post(self, request, *args, **kwargs):
-        user = request.user
-        if not user.is_authenticated:
-            return Response({"disconnect": {"code": 4401, "reason": "unauthorized"}})
+        if not request.user.is_authenticated:
+            return Response({"result": {"expired": True}})
 
-        if request.org and self.is_allowed(request, request.data.get("channel", "")):
-            return Response({"result": {}})
-
-        return Response({"error": {"code": 403, "message": "forbidden"}})
-
-    def is_allowed(self, request, channel: str) -> bool:
-        namespace, _, ref = channel.partition(":")
-
-        if namespace == "chat":  # chat history for a contact in the current workspace
-            return is_uuid(ref) and request.org.contacts.filter(uuid=ref, is_active=True).exists()
-
-        return False
+        return Response({"result": {"expire_at": self.expire_at()}})
