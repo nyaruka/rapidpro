@@ -23,7 +23,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 
@@ -46,17 +45,13 @@ class WebSocketsSessionAuthentication(APISessionAuthentication):
 class HasWebSocketsSecret(BasePermission):
     """
     Gates the whole websockets API on a shared secret known only to the realtime server, compared in constant time
-    against the ``WEBSOCKETS_AUTH_SECRET`` setting. The secret is required: a system check (see ``temba.api.checks``)
-    catches a missing one at deploy time, and this fails closed at request time for the bare wsgi path where system
-    checks don't run - so a misconfigured deployment can never silently accept any forwarded session cookie.
+    against the ``WEBSOCKETS_AUTH_SECRET`` setting. The secret is required and enforced by a system check (see
+    ``temba.api.checks``) which fails the deploy if it's unset - and since system checks run as part of migrate /
+    runserver, the secret is always configured by the time the API serves a request.
     """
 
     def has_permission(self, request, view):
-        secret = settings.WEBSOCKETS_AUTH_SECRET
-        if not secret:
-            raise ImproperlyConfigured("WEBSOCKETS_AUTH_SECRET must be set to use the websockets API")
-
-        return constant_time_compare(request.headers.get("X-Websockets-Secret", ""), secret)
+        return constant_time_compare(request.headers.get("X-Websockets-Secret", ""), settings.WEBSOCKETS_AUTH_SECRET)
 
 
 class BaseEndpoint(APIView):

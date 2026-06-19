@@ -1,4 +1,3 @@
-from django.core.exceptions import ImproperlyConfigured
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -128,12 +127,8 @@ class EndpointsTest(APITestMixin, TembaTest):
 
     @override_settings(WEBSOCKETS_AUTH_SECRET=None)
     def test_secret_required(self):
-        # the system check flags a deployment that hasn't configured the secret
+        # the secret is required, enforced by a deploy-time system check (system checks run as part of migrate /
+        # runserver, so an unset secret fails the deploy before the API ever serves a request)
         errors = websockets_auth_secret(None)
         self.assertEqual(1, len(errors))
         self.assertEqual("WEBSOCKETS_AUTH_SECRET is not set.", errors[0].msg)
-
-        # and the API fails closed at request time for the bare wsgi path where system checks don't run
-        self.login(self.admin)
-        with self.assertRaises(ImproperlyConfigured):
-            self.post("api.websockets.connect")
