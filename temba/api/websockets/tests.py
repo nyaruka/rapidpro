@@ -61,17 +61,14 @@ class EndpointsTest(APITestMixin, TembaTest):
             },
         )
 
-        # a user with no current workspace gets no channels and no org in their meta
+        # a user with no current workspace can't connect for now - they're told to disconnect
         self.login(self.admin)
         session = self.client.session
         del session["org_id"]
         session.save()
-        self.assertConnect(
-            self.post("api.websockets.connect"),
-            user=self.admin,
-            channels=[],
-            meta={"user_id": self.admin.id, "user_uuid": str(self.admin.uuid)},
-        )
+        response = self.post("api.websockets.connect")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"disconnect": {"code": 4401, "reason": "unauthorized"}}, response.json())
 
         # an unauthenticated request is told to disconnect
         self.client.logout()

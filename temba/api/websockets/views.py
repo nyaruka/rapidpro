@@ -73,28 +73,29 @@ class ConnectEndpoint(BaseEndpoint):
     Connection proxy called by the realtime messaging server when a browser opens a WebSocket. The browser connects
     with no auth token; the realtime server forwards the browser's session cookie and we resolve the user.
 
-    The result carries:
+    We currently require an authenticated user with a current workspace; if either is missing we return a disconnect
+    instruction so the realtime server closes the connection.
+
+    On success the result carries:
       * ``user`` - the user identifier (uuid);
-      * ``channels`` - the server-side channels to subscribe the connection to, a single
-        ``notifications:<org-uuid>:<user-uuid>`` for the user's current workspace (none if they have no current one);
+      * ``channels`` - the server-side channels to subscribe the connection to: a single
+        ``notifications:<org-uuid>:<user-uuid>`` for the user's current workspace;
       * ``meta`` - the user's identity (uuids and ids) attached to the connection so the subscription-authorization
         proxies can act on it without re-reading the session; ``meta`` is server-side only and never sent to the browser;
       * ``expire_at`` - when the realtime server should next call the refresh proxy to re-validate the connection.
-
-    If there's no authenticated session we return a disconnect instruction so the realtime server closes the connection.
     """
 
     def post(self, request, *args, **kwargs):
         user = request.user
-        if not user.is_authenticated:
+
+        # for now a connection requires an authenticated user with a current workspace. This could be reworked in
+        # future to also support anonymous connections - e.g. webchat - which have no Django user or workspace.
+        if not user.is_authenticated or not request.org:
             return Response({"disconnect": {"code": 4401, "reason": "unauthorized"}})
 
-        meta = {"user_id": user.id, "user_uuid": str(user.uuid)}
-        channels = []
-        if request.org:
-            meta["org_id"] = request.org.id
-            meta["org_uuid"] = str(request.org.uuid)
-            channels.append(f"notifications:{request.org.uuid}:{user.uuid}")
+        org = request.org
+        meta = {"user_id": user.id, "user_uuid": str(user.uuid), "org_id": org.id, "org_uuid": str(org.uuid)}
+        channels = [f"notifications:{org.uuid}:{user.uuid}"]
 
         return Response(
             {"result": {"user": str(user.uuid), "channels": channels, "meta": meta, "expire_at": self.expire_at()}}
