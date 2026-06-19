@@ -105,12 +105,14 @@ class ConnectEndpoint(BaseEndpoint):
 class RefreshEndpoint(BaseEndpoint):
     """
     Refresh proxy called periodically by the realtime messaging server before a connection's ``expire_at``. We re-check
-    that the forwarded session is still valid (the user is still logged in) and either extend the connection with a new
-    ``expire_at`` or let it expire - this is how a logout or session expiry eventually tears down the WebSocket.
+    that the connection is still valid - the user is still logged in and still has a current workspace, matching what
+    ``connect`` requires - and either extend it with a new ``expire_at`` or let it expire. This is how a logout, session
+    expiry, or losing access to the workspace eventually tears down the WebSocket.
     """
 
     def post(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
+        # mirror connect: a connection is only kept alive while it has an authenticated user with a current workspace
+        if not request.user.is_authenticated or not request.org:
             return Response({"result": {"expired": True}})
 
         return Response({"result": {"expire_at": self.expire_at()}})

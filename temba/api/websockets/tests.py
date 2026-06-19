@@ -95,11 +95,19 @@ class EndpointsTest(APITestMixin, TembaTest):
         )
 
     def test_refresh(self):
-        # a still-authenticated connection is extended with a new expiry
+        # a still-authenticated connection with a current workspace is extended with a new expiry
         self.login(self.admin)
         response = self.post("api.websockets.refresh")
         self.assertEqual(200, response.status_code)
         self.assertExpiry(response.json()["result"]["expire_at"])
+
+        # losing the current workspace expires the connection (matches connect requiring one)
+        session = self.client.session
+        del session["org_id"]
+        session.save()
+        response = self.post("api.websockets.refresh")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"result": {"expired": True}}, response.json())
 
         # a connection whose session is gone is told it has expired, which tears the connection down
         self.client.logout()
