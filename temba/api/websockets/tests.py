@@ -160,6 +160,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         assertForbidden(f"history:{contact.uuid}:{ticket2.uuid}")  # ticket belongs to a different contact, same org
         assertForbidden(f"history:{contact.uuid}:{other_ticket.uuid}")  # ticket in another workspace
         assertForbidden(f"history:{other.uuid}:{other_ticket.uuid}")  # both in another workspace
+        assertForbidden({"not": "a string"})  # non-string channel is a clean deny, not a 500
         assertForbidden("history:not-a-uuid")  # malformed contact uuid
         assertForbidden(f"history:{contact.uuid}:not-a-uuid")  # malformed ticket uuid
         assertForbidden(f"history:{contact.uuid}:{ticket.uuid}:extra")  # too many segments

@@ -163,8 +163,9 @@ class SubscriptionEndpoint(BaseEndpoint):
         """
         ``history:<contact-uuid>`` (a contact's history) or ``history:<contact-uuid>:<ticket-uuid>`` (a ticket's
         history). The contact must belong to the workspace and be active; for the ticket form the ticket must in turn
-        belong to that contact and workspace. Every segment is validated as a uuid before it reaches a query, since the
-        uuid columns are ``UUIDField`` and would raise on a malformed value.
+        belong to that contact - and so to the same workspace, since a ticket always shares its contact's org. Every
+        segment is validated as a uuid before it reaches a query, since the uuid columns are ``UUIDField`` and would
+        raise on a malformed value.
         """
         if not (1 <= len(parts) <= 2) or not all(is_uuid(p) for p in parts):
             return False
@@ -176,7 +177,7 @@ class SubscriptionEndpoint(BaseEndpoint):
         if len(parts) == 1:
             return True
 
-        return Ticket.objects.filter(uuid=parts[1], org=org, contact=contact).exists()
+        return Ticket.objects.filter(uuid=parts[1], contact=contact).exists()
 
     def index_subscription(self, channel: str, client: str):
         """
