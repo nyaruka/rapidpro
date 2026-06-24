@@ -804,39 +804,44 @@ class FlowCRUDL(SmartCRUDL):
             if self.has_org_perm("orgs.org_export"):
                 menu.add_link(_("Export Definition"), f"{reverse('orgs.org_export')}?flow={obj.id}")
 
-    class ChangeLanguage(OrgObjPermsMixin, SmartUpdateView):
-        class Form(forms.Form):
-            language = forms.CharField(required=True)
-
-            def __init__(self, org, instance, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-
-                self.org = org
-
-            def clean_language(self):
-                data = self.cleaned_data["language"]
-                if data and data not in self.org.flow_languages:
-                    raise ValidationError(_("Not a valid language."))
-
-                return data
+    class ChangeLanguage(BaseReadView):
+        """
+        Used by the editor to switch a flow's base language to a fully translated language. The current base language
+        text is moved into the flow's localization and the target language's translations are promoted to be the base.
+        """
 
         permission = "flows.flow_update"
-        form_class = Form
-        success_url = "uuid@flows.flow_editor"
 
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["org"] = self.request.org
-            return kwargs
+        @classmethod
+        def derive_url_pattern(cls, path, action):
+            return r"^%s/%s/(?P<uuid>[0-9a-f-]+)/$" % (path, action)
 
-        def form_valid(self, form):
-            flow_def = mailroom.get_client().flow_change_language(
-                self.object.get_definition(), form.cleaned_data["language"]
-            )
+        def post(self, request, *args, **kwargs):
+            flow = self.get_object()
 
-            self.object.save_revision(self.request.user, flow_def)
+            try:
+                language = json.loads(force_str(request.body)).get("language")
+            except Exception:
+                return JsonResponse({"status": "failure", "description": _("Invalid request.")}, status=400)
 
-            return HttpResponseRedirect(self.get_success_url())
+            if not language or language not in flow.org.flow_languages:
+                return JsonResponse({"status": "failure", "description": _("Not a valid language.")}, status=400)
+
+            if language == flow.base_language:
+                return JsonResponse(
+                    {"status": "failure", "description": _("Flow is already in this language.")}, status=400
+                )
+
+            try:
+                flow_def = mailroom.get_client().flow_change_language(flow.get_definition(), language)
+                revision, issues = flow.save_revision(request.user, flow_def)
+            except mailroom.RequestException:
+                logger.error("Mailroom request failed", exc_info=True)
+                return JsonResponse(
+                    {"status": "failure", "description": _("Unable to change the flow's language.")}, status=500
+                )
+
+            return JsonResponse({"status": "success", "revision": revision.as_json()})
 
     class ExportTranslation(ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.Form):
