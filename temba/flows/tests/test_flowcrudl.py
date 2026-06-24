@@ -12,12 +12,20 @@ from temba import mailroom
 from temba.api.models import Resthook
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import URN
-from temba.flows.models import Flow, FlowLabel, FlowRun, FlowStart, FlowUserConflictException, ResultsExport
+from temba.flows.models import (
+    Flow,
+    FlowLabel,
+    FlowRun,
+    FlowStart,
+    FlowUserConflictException,
+    FlowVersionConflictException,
+    ResultsExport,
+)
 from temba.mailroom.client.types import Exclusions
 from temba.orgs.integrations.dtone.type import DTOneType
 from temba.orgs.models import Export
 from temba.templates.models import TemplateTranslation
-from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
+from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom
 from temba.tests.base import get_contact_search, override_brand
 from temba.tests.requests import MockJsonResponse
 from temba.triggers.models import Trigger
@@ -1853,6 +1861,10 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
 
+        # this endpoint is POST-only - a GET is not allowed (rather than 500ing on a missing template)
+        response = self.client.get(change_url)
+        self.assertEqual(405, response.status_code)
+
         # a missing or empty language is rejected
         response = self.client.post(change_url, {"language": ""}, content_type="application/json")
         self.assertEqual(400, response.status_code)
@@ -1891,6 +1903,47 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             },
             response.json(),
         )
+
+        # a request body that isn't valid JSON is rejected
+        response = self.client.post(change_url, data="not json", content_type="application/json")
+        self.assertEqual(400, response.status_code)
+        self.assertEqual("Invalid request.", response.json()["description"])
+
+        # a version conflict whilst saving the new revision is converted to an error response
+        with patch("temba.flows.models.Flow.save_revision") as mock_save_revision:
+            mock_save_revision.side_effect = FlowVersionConflictException(13)
+            response = self.client.post(change_url, {"language": "ara"}, content_type="application/json")
+        self.assertEqual(400, response.status_code)
+        self.assertEqual(
+            {
+                "status": "failure",
+                "description": "Your flow has been upgraded to the latest version. "
+                "In order to continue editing, please refresh your browser.",
+                "detail": None,
+            },
+            response.json(),
+        )
+
+        # a user conflict whilst saving the new revision is converted to an error response
+        with patch("temba.flows.models.Flow.save_revision") as mock_save_revision:
+            mock_save_revision.side_effect = FlowUserConflictException("Jim", None)
+            response = self.client.post(change_url, {"language": "ara"}, content_type="application/json")
+        self.assertEqual(400, response.status_code)
+        self.assertEqual(
+            {
+                "status": "failure",
+                "description": "Jim is currently editing this Flow. "
+                "Your changes will not be saved until you refresh your browser.",
+                "detail": None,
+            },
+            response.json(),
+        )
+
+        # a failed request to mailroom is converted to an error response
+        mr_mocks.exception(mailroom.RequestException("", "", MockResponse(500, '{"error": "boom"}')))
+        response = self.client.post(change_url, {"language": "ara"}, content_type="application/json")
+        self.assertEqual(500, response.status_code)
+        self.assertEqual("Unable to change the flow's language.", response.json()["description"])
 
     def test_export_results(self):
         export_url = reverse("flows.flow_export_results")

@@ -810,7 +810,12 @@ class FlowCRUDL(SmartCRUDL):
         text is moved into the flow's localization and the target language's translations are promoted to be the base.
         """
 
-        permission = "flows.flow_update"
+        # matches the sibling editor endpoints (Revisions, Activity); editing the flow is enough to change its base
+        # language since an editor can already rewrite the whole definition via Revisions
+        permission = "flows.flow_editor"
+
+        # POST-only - a GET would otherwise try to render a non-existent template and 500
+        http_method_names = ["post"]
 
         @classmethod
         def derive_url_pattern(cls, path, action):
@@ -834,7 +839,7 @@ class FlowCRUDL(SmartCRUDL):
 
             try:
                 flow_def = mailroom.get_client().flow_change_language(flow.get_definition(), language)
-                revision, issues = flow.save_revision(request.user, flow_def)
+                revision, _issues = flow.save_revision(request.user, flow_def)
                 return JsonResponse({"status": "success", "revision": revision.as_json()})
 
             except mailroom.FlowValidationException as e:
@@ -860,6 +865,10 @@ class FlowCRUDL(SmartCRUDL):
                 return JsonResponse(
                     {"status": "failure", "description": _("Unable to change the flow's language.")}, status=500
                 )
+            except Exception:  # pragma: no cover
+                logger.error("Error changing flow base language", exc_info=True)
+                error = _("Your flow could not be saved. Please refresh your browser.")
+                detail = None
 
             return JsonResponse({"status": "failure", "description": error, "detail": detail}, status=400)
 
