@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import call
+from unittest.mock import call, patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -9,7 +9,7 @@ from temba.ai.models import LLM
 from temba.ai.types.anthropic.type import AnthropicType
 from temba.ai.types.openai.type import OpenAIType
 from temba.api.tests.mixins import APITestMixin
-from temba.contacts.models import ContactExport
+from temba.contacts.models import ContactExport, ContactGroup
 from temba.msgs.models import Msg
 from temba.notifications.types import ExportFinishedNotificationType
 from temba.templates.models import TemplateTranslation
@@ -249,6 +249,13 @@ class EndpointsTest(APITestMixin, TembaTest):
         # default folder is `active`, newest first (DB path, no mailroom needed)
         self.assertGet(endpoint_url, [self.editor, self.admin], results=[frank, joe])
         self.assertGet(endpoint_url + "?folder=active", [self.admin], results=[frank, joe])
+
+        # the unsearched DB path takes its total from the precomputed ContactGroupCount (via get_member_count) rather
+        # than a full COUNT(*) over the membership — this is what keeps the new list as fast as the legacy view on
+        # large groups. Patch get_member_count to a sentinel and confirm the response `count` reflects it.
+        with patch.object(ContactGroup, "get_member_count", return_value=12345) as mock_count:
+            self.assertGet(endpoint_url, [self.admin], raw=lambda data: data["count"] == 12345)
+            mock_count.assert_called()
 
         # other status folders
         self.assertGet(endpoint_url + "?folder=blocked", [self.admin], results=[bob])
