@@ -8,6 +8,7 @@ from temba import mailroom
 from temba.api.internal.serializers import ModelAsJsonSerializer
 from temba.api.internal.views import BaseEndpoint
 from temba.api.views import ListAPIMixin
+from temba.utils.models.base import patch_queryset_count
 from temba.utils.models.es import SearchSliceQuerySet
 
 from .models import Contact, ContactField, ContactGroup
@@ -136,7 +137,12 @@ class ContactsEndpoint(ListAPIMixin, BaseEndpoint):
 
             return SearchSliceQuerySet(Contact, results.contact_uuids, offset=offset, total=results.total)
 
-        return group.contacts.filter(org=org).order_by("-id")
+        # Patch .count() to read the precomputed ContactGroupCount squash (via get_member_count) instead of letting
+        # DRF's paginator run a full SELECT COUNT(*) over the group membership — that COUNT is what makes the new list
+        # far slower than the legacy view on large groups. Mirrors ContactListView.get_queryset.
+        qs = group.contacts.filter(org=org).order_by("-id")
+        patch_queryset_count(qs, group.get_member_count)
+        return qs
 
     def filter_queryset(self, queryset):
         # Filtering (group/search/sort) is fully resolved in get_queryset; bypass the default filter backends.
