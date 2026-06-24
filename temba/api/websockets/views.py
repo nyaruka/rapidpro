@@ -149,6 +149,9 @@ class SubscriptionEndpoint(BaseEndpoint):
         are namespaced (``<namespace>:<...>``); this dispatches on the namespace so adding a new channel type later is
         a one-method change. Callers must have already established an authenticated user with a current workspace.
         """
+        if not isinstance(channel, str):  # malformed payload (e.g. a non-string channel) is just a denial, not a 500
+            return False
+
         namespace, *parts = channel.split(":")
 
         if namespace == "history":
@@ -183,6 +186,9 @@ class SubscriptionEndpoint(BaseEndpoint):
         of who's currently subscribed. Centrifugo OSS has no unsubscribe/disconnect proxy, so the TTL plus periodic
         sub_refresh re-arming is the only reliable way to garbage-collect entries for connections that have gone away.
         """
+        if not isinstance(client, str) or not client:  # nothing useful to index without a connection id
+            return
+
         r = get_valkey_connection()
         now = int(timezone.now().timestamp())
         key = f"subs:{channel}"

@@ -268,6 +268,17 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertGreater(score1, score0)
         self.assertEqual([b"conn-1"], r.zrange(key, 0, -1))  # dead-conn was pruned
 
+        # a second connection to the same channel coexists - the set tracks every subscriber, not just the latest
+        with patch("django.utils.timezone.now", return_value=t1):
+            response = self.post("api.websockets.subscribe", {"channel": channel, "client": "conn-2"})
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({b"conn-1", b"conn-2"}, set(r.zrange(key, 0, -1)))
+
+        # an empty connection id isn't indexed (no blank member added)
+        response = self.post("api.websockets.subscribe", {"channel": channel, "client": ""})
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({b"conn-1", b"conn-2"}, set(r.zrange(key, 0, -1)))
+
     def test_secret(self):
         self.login(self.admin)
 
