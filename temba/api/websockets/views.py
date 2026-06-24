@@ -17,6 +17,7 @@ isn't the realtime server even if the path is ever reachable - but the secret is
 API off the public internet.
 """
 
+from django_valkey import get_valkey_connection
 from rest_framework.permissions import BasePermission
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
@@ -26,10 +27,22 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 
+from temba.tickets.models import Ticket
+from temba.utils.uuid import is_uuid
+
 from ..support import APISessionAuthentication
 
 # how long (seconds) a connection stays valid before the realtime server must re-validate it via the refresh proxy
 CONNECTION_TTL = 5 * 60
+
+# how long (seconds) a channel subscription stays authorized before the realtime server must re-check it via the
+# sub_refresh proxy. A short window keeps the subscription index reasonably fresh without re-checking too often.
+SUBSCRIPTION_WINDOW = 60
+
+# how long (seconds) an entry lives in the valkey subscription index. Comfortably larger than SUBSCRIPTION_WINDOW so an
+# entry survives until the next sub_refresh re-arms it; if refreshes stop (e.g. a dead connection that we never get an
+# unsubscribe for) the entry simply ages out, which is how the index garbage-collects itself.
+SUBSCRIPTION_TTL = 90
 
 
 class WebSocketsSessionAuthentication(APISessionAuthentication):
@@ -116,3 +129,111 @@ class RefreshEndpoint(BaseEndpoint):
             return Response({"result": {"expired": True}})
 
         return Response({"result": {"expire_at": self.expire_at()}})
+
+
+class SubscriptionEndpoint(BaseEndpoint):
+    """
+    Base for the channel-subscription proxies (``subscribe`` and ``sub_refresh``). Both authorize a single
+    client-requested channel against the live Django session - ``request.user`` and ``request.org`` - and, when
+    allowed, record the subscription in a valkey index. The authorization deliberately reads the *current* workspace
+    rather than anything carried on the connection, so access that has been revoked since connect stops working here.
+    """
+
+    def subscription_expire_at(self) -> int:
+        """Unix time at which the realtime server should next re-check this subscription via the sub_refresh proxy."""
+        return int(timezone.now().timestamp()) + SUBSCRIPTION_WINDOW
+
+    def is_allowed(self, request, channel: str) -> bool:
+        """
+        Default-deny authorization of a client-requested channel for the current user's current workspace. Channels
+        are namespaced (``<namespace>:<...>``); this dispatches on the namespace so adding a new channel type later is
+        a one-method change. Callers must have already established an authenticated user with a current workspace.
+        """
+        namespace, *parts = channel.split(":")
+
+        if namespace == "history":
+            return self._history_allowed(request.org, parts)
+
+        return False
+
+    def _history_allowed(self, org, parts: list) -> bool:
+        """
+        ``history:<contact-uuid>`` (a contact's history) or ``history:<contact-uuid>:<ticket-uuid>`` (a ticket's
+        history). The contact must belong to the workspace and be active; for the ticket form the ticket must in turn
+        belong to that contact and workspace. Every segment is validated as a uuid before it reaches a query, since the
+        uuid columns are ``UUIDField`` and would raise on a malformed value.
+        """
+        if not (1 <= len(parts) <= 2) or not all(is_uuid(p) for p in parts):
+            return False
+
+        contact = org.contacts.filter(uuid=parts[0], is_active=True).first()
+        if not contact:
+            return False
+
+        if len(parts) == 1:
+            return True
+
+        return Ticket.objects.filter(uuid=parts[1], org=org, contact=contact).exists()
+
+    def index_subscription(self, channel: str, client: str):
+        """
+        Record (or re-arm) a connection's subscription to a channel in the valkey index, so we can later answer
+        "what/who is subscribed to channel X". The index is a sorted set per channel (key ``subs:<channel>``) whose
+        members are connection ids scored by their expiry; the per-member score gives both lazy pruning and a fast read
+        of who's currently subscribed. Centrifugo OSS has no unsubscribe/disconnect proxy, so the TTL plus periodic
+        sub_refresh re-arming is the only reliable way to garbage-collect entries for connections that have gone away.
+        """
+        r = get_valkey_connection()
+        now = int(timezone.now().timestamp())
+        key = f"subs:{channel}"
+
+        pipe = r.pipeline()
+        pipe.zadd(key, {client: now + SUBSCRIPTION_TTL})
+        pipe.zremrangebyscore(key, 0, now)  # lazily drop members that have already expired
+        pipe.expire(key, SUBSCRIPTION_TTL)  # backstop so the key itself vanishes once nothing re-arms it
+        pipe.execute()
+
+
+class SubscribeEndpoint(SubscriptionEndpoint):
+    """
+    Subscribe proxy called by the realtime messaging server when a browser asks to subscribe to a channel. The request
+    body carries the connection's ``client`` id and the requested ``channel``; we authorize that channel against the
+    live session.
+
+    An unauthenticated request is told to disconnect (its connection should never have got this far). Otherwise, if the
+    user has a current workspace and may access the channel, we record the subscription and return an ``expire_at`` so
+    the realtime server schedules a sub_refresh; anything else is refused with a forbidden error, which Centrifugo
+    surfaces to the browser as a failed subscribe without tearing down the whole connection.
+    """
+
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"disconnect": {"code": 4401, "reason": "unauthorized"}})
+
+        channel = request.data.get("channel", "")
+        client = request.data.get("client", "")
+
+        if request.org and self.is_allowed(request, channel):
+            self.index_subscription(channel, client)
+            return Response({"result": {"expire_at": self.subscription_expire_at()}})
+
+        return Response({"error": {"code": 403, "message": "forbidden"}})
+
+
+class SubRefreshEndpoint(SubscriptionEndpoint):
+    """
+    Sub refresh proxy called periodically by the realtime messaging server before a subscription's ``expire_at``. We
+    re-run the same authorization as subscribe (access may have been revoked since), and either re-arm the index entry
+    and return a fresh ``expire_at`` or let the subscription expire. Only the ``result`` is acted on for refreshes, so
+    every not-allowed case - including a session that's gone - is reported as expired rather than as a disconnect.
+    """
+
+    def post(self, request, *args, **kwargs):
+        channel = request.data.get("channel", "")
+        client = request.data.get("client", "")
+
+        if request.user.is_authenticated and request.org and self.is_allowed(request, channel):
+            self.index_subscription(channel, client)
+            return Response({"result": {"expire_at": self.subscription_expire_at()}})
+
+        return Response({"result": {"expired": True}})
