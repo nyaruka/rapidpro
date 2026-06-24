@@ -1168,9 +1168,6 @@ class Org(SmartModel):
         for llm in self.llms.all():
             llm.delete()
 
-        for kb in self.knowledge_bases.all():
-            kb.delete()
-
         for flow in self.flows.all():
             flow.delete()
 

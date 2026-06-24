@@ -1,3 +1,24 @@
+v26.3.2 (2026-06-24)
+-------------------------
+ * Use precomputed group count in preview contact list endpoint
+ * Add connect and refresh endpoints for sockets
+
+v26.2.2 (2026-06-18)
+-------------------------
+ * Bump cryptography from 46.0.7 to 48.0.1
+ * Bump aiohttp from 3.14.0 to 3.14.1
+
+v26.2.1 (2026-06-16)
+-------------------------
+ * Remove dead MailroomClient.version() method
+ * Bump pyjwt from 2.12.1 to 2.13.0
+
+v26.2.0 (2026-06-15)
+-------------------------
+ * Standardize WhatsApp Graph API calls on v22.0 via a shared base URL constant
+ * Use a distinct retry-able error when the senders API fails during claim
+ * Support claiming Twilio WhatsApp senders that aren't incoming numbers
+
 v26.1.134 (2026-06-11)
 -------------------------
  * Make Turn.io channel type available to all orgs

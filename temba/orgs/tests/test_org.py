@@ -8,7 +8,7 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from temba.ai.models import LLM, Article, ArticleChunk, KnowledgeBase
+from temba.ai.models import LLM
 from temba.ai.types.openai.type import OpenAIType
 from temba.api.models import Resthook, WebHookEvent
 from temba.archives.models import Archive
@@ -473,7 +473,6 @@ class OrgDeleteTest(TembaTest):
         self._create_ticket_content(org, user, contacts, flows, add)
         self._create_export_content(org, user, flows, groups, fields, labels, add)
         self._create_archive_content(org, add)
-        self._create_ai_content(org, user, add)
 
         # suspend and flag org to generate incident and notifications
         org.suspend()
@@ -699,22 +698,6 @@ class OrgDeleteTest(TembaTest):
             )
         )
         ExportFinishedNotificationType.create(tickets)
-
-    def _create_ai_content(self, org, user, add):
-        kb = add(KnowledgeBase.create_website(org, user, "Docs", "https://docs.example.com"))
-        article = add(
-            Article.objects.create(
-                knowledge_base=kb, url="https://docs.example.com/start", title="Start", content="Getting started..."
-            )
-        )
-        add(
-            ArticleChunk.objects.create(
-                article=article,
-                knowledge_base=kb,
-                text="Getting started...",
-                embedding=[0.0] * ArticleChunk.EMBEDDING_DIMENSIONS,
-            )
-        )
 
     def _create_archive_content(self, org, add):
         daily = add(self.create_archive(Archive.TYPE_MSG, Archive.PERIOD_DAILY, timezone.now(), [{"id": 1}], org=org))

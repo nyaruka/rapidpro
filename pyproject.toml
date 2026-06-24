@@ -1,6 +1,6 @@
 [project]
 name = "temba"
-version = "26.1.134"
+version = "26.3.2"
 description = "Hosted service for visually building interactive messaging applications"
 authors = [
     {"name" = "Nyaruka", "email" = "code@nyaruka.com"}
@@ -24,7 +24,7 @@ dependencies = [
     "smartmin>=5.2.4,<6.0.0",
     "celery[redis] ~= 5.5.3",
     "boto3>=1.42.24,<2.0.0",
-    "cryptography~=46.0.7",
+    "cryptography~=48.0.1",
     "pyotp ~= 2.4.1",
     "geojson ~= 2.5.0",
     "markdown ~= 3.8.0",
@@ -47,12 +47,11 @@ dependencies = [
     "pillow ~= 12.2.0",
     "google-auth ~= 2.32.0",
     "google-genai>=1.10.0,<2.0.0",
-    "twilio ~= 9.3.7",
+    "twilio>=9.10.9,<10.0.0",
     "vonage ~= 3.17.4",
     "slack-sdk ~= 3.17.0",
     "openai>=1.66.3,<2.0.0",
     "anthropic>=0.54.0,<1.0.0",
-    "pgvector>=0.4.2",
     "fido2>=2.0.0,<3.0.0",
     "elasticsearch>=9.0.0,<10.0.0"
 ]
