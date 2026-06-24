@@ -852,6 +852,14 @@ MAILROOM_URL = None
 MAILROOM_AUTH_TOKEN = None
 
 # -----------------------------------------------------------------------------------
+# WebSockets (realtime messaging server)
+# -----------------------------------------------------------------------------------
+
+# shared secret the websockets API requires in the X-Websockets-Secret header; required (see temba.api.checks) and
+# left unset here so each deployment must configure it
+WEBSOCKETS_AUTH_SECRET = None
+
+# -----------------------------------------------------------------------------------
 # Data Model
 # -----------------------------------------------------------------------------------
 
