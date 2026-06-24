@@ -1879,6 +1879,19 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertIn("eng", flow_def["localization"])
         self.assertEqual("¿Cuál es tu color favorito?", flow_def["nodes"][0]["actions"][0]["text"])
 
+        # if mailroom rejects the resulting definition we return a failure response rather than a stack trace
+        mr_mocks.exception(mailroom.FlowValidationException("node isn't unique"))
+        response = self.client.post(change_url, {"language": "ara"}, content_type="application/json")
+        self.assertEqual(400, response.status_code)
+        self.assertEqual(
+            {
+                "status": "failure",
+                "description": "Your flow failed validation. Please refresh your browser.",
+                "detail": "node isn't unique",
+            },
+            response.json(),
+        )
+
     def test_export_results(self):
         export_url = reverse("flows.flow_export_results")
 

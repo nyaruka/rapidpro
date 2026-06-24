@@ -835,13 +835,33 @@ class FlowCRUDL(SmartCRUDL):
             try:
                 flow_def = mailroom.get_client().flow_change_language(flow.get_definition(), language)
                 revision, issues = flow.save_revision(request.user, flow_def)
+                return JsonResponse({"status": "success", "revision": revision.as_json()})
+
+            except mailroom.FlowValidationException as e:
+                error = _("Your flow failed validation. Please refresh your browser.")
+                detail = str(e)
+            except FlowVersionConflictException:
+                error = _(
+                    "Your flow has been upgraded to the latest version. "
+                    "In order to continue editing, please refresh your browser."
+                )
+                detail = None
+            except FlowUserConflictException as e:
+                error = (
+                    _(
+                        "%s is currently editing this Flow. "
+                        "Your changes will not be saved until you refresh your browser."
+                    )
+                    % e.other_user
+                )
+                detail = None
             except mailroom.RequestException:
                 logger.error("Mailroom request failed", exc_info=True)
                 return JsonResponse(
                     {"status": "failure", "description": _("Unable to change the flow's language.")}, status=500
                 )
 
-            return JsonResponse({"status": "success", "revision": revision.as_json()})
+            return JsonResponse({"status": "failure", "description": error, "detail": detail}, status=400)
 
     class ExportTranslation(ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.Form):
