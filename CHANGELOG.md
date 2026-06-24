@@ -1,3 +1,8 @@
+v26.3.2 (2026-06-24)
+-------------------------
+ * Use precomputed group count in preview contact list endpoint
+ * Add connect and refresh endpoints for sockets
+
 v26.2.2 (2026-06-18)
 -------------------------
  * Bump cryptography from 46.0.7 to 48.0.1
