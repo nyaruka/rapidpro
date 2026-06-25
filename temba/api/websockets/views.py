@@ -93,8 +93,9 @@ class ConnectEndpoint(BaseEndpoint):
 
     On success the result carries:
       * ``user`` - the user identifier (uuid);
-      * ``channels`` - the server-side channels to subscribe the connection to: a single
-        ``notifications:<org-uuid>:<user-uuid>`` for the user's current workspace;
+      * ``channels`` - empty: there are no server-side channels. The browser subscribes to everything it wants - its
+        own ``notifications:<org-uuid>:<user-uuid>`` channel and any contact/ticket ``history`` channels - through the
+        subscribe proxy, which authorizes each one against the live session;
       * ``meta`` - the user's identity (uuids and ids) attached to the connection so the subscription-authorization
         proxies can act on it without re-reading the session; ``meta`` is server-side only and never sent to the browser;
       * ``expire_at`` - when the realtime server should next call the refresh proxy to re-validate the connection.
@@ -110,10 +111,9 @@ class ConnectEndpoint(BaseEndpoint):
 
         org = request.org
         meta = {"user_id": user.id, "user_uuid": str(user.uuid), "org_id": org.id, "org_uuid": str(org.uuid)}
-        channels = [f"notifications:{org.uuid}:{user.uuid}"]
 
         return Response(
-            {"result": {"user": str(user.uuid), "channels": channels, "meta": meta, "expire_at": self.expire_at()}}
+            {"result": {"user": str(user.uuid), "channels": [], "meta": meta, "expire_at": self.expire_at()}}
         )
 
 
@@ -156,10 +156,21 @@ class SubscriptionEndpoint(BaseEndpoint):
 
         namespace, *parts = channel.split(":")
 
+        if namespace == "notifications":
+            return self._notifications_allowed(request, parts)
         if namespace == "history":
             return self._history_allowed(request, parts)
 
         return False
+
+    def _notifications_allowed(self, request, parts: list) -> bool:
+        """
+        ``notifications:<org-uuid>:<user-uuid>`` - a user's own notifications in their current workspace. There's
+        nothing to look up: a user may watch exactly the channel scoped to their current org and their own uuid, so we
+        just match the requested segments against the live session rather than touching the database. Any other shape -
+        a different user, a different workspace, or the wrong number of segments - simply fails the equality check.
+        """
+        return parts == [str(request.org.uuid), str(request.user.uuid)]
 
     def _history_allowed(self, request, parts: list) -> bool:
         """
