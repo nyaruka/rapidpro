@@ -1,3 +1,8 @@
+v26.3.4 (2026-06-25)
+-------------------------
+ * Authorize ticket history subscriptions by team topic access
+ * Add JSON endpoint for changing a flow's base language
+
 v26.3.3 (2026-06-25)
 -------------------------
  * Add subscribe and sub_refresh proxy endpoints to websockets API
