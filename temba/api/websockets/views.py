@@ -35,14 +35,16 @@ from ..support import APISessionAuthentication
 # how long (seconds) a connection stays valid before the realtime server must re-validate it via the refresh proxy
 CONNECTION_TTL = 5 * 60
 
-# how long (seconds) a channel subscription stays authorized before the realtime server must re-check it via the
-# sub_refresh proxy. A short window keeps the subscription index reasonably fresh without re-checking too often.
+# how far ahead (seconds) we set a subscription's expire_at, scheduling the realtime server to call sub_refresh before
+# it lapses so we can re-authorize.
 SUBSCRIPTION_WINDOW = 60
 
-# how long (seconds) an entry lives in the valkey subscription index. Comfortably larger than SUBSCRIPTION_WINDOW so an
-# entry survives until the next sub_refresh re-arms it; if refreshes stop (e.g. a dead connection that we never get an
-# unsubscribe for) the entry simply ages out, which is how the index garbage-collects itself.
-SUBSCRIPTION_TTL = 90
+# how long (seconds) a channel's presence key survives without a refresh. It must comfortably exceed SUBSCRIPTION_WINDOW
+# plus the realtime server's refresh delay: the server drives sub_refresh from the expire_at we return (one window),
+# but refresh requests can be delayed up to ~1 minute, so consecutive refreshes can be ~SUBSCRIPTION_WINDOW + 60s apart.
+# 150s (60s window + ~60s delay + buffer) keeps the key alive across that gap while still expiring within a couple of
+# minutes once the last subscriber stops refreshing (there's no unsubscribe callback, so this TTL is the only GC).
+SUBSCRIPTION_TTL = 150
 
 
 class WebSocketsSessionAuthentication(APISessionAuthentication):
@@ -179,33 +181,26 @@ class SubscriptionEndpoint(BaseEndpoint):
 
         return Ticket.objects.filter(uuid=parts[1], contact=contact).exists()
 
-    def index_subscription(self, channel: str, client: str):
+    def record_subscription(self, channel: str):
         """
-        Record (or re-arm) a connection's subscription to a channel in the valkey index, so we can later answer
-        "what/who is subscribed to channel X". The index is a sorted set per channel (key ``subs:<channel>``) whose
-        members are connection ids scored by their expiry; the per-member score gives both lazy pruning and a fast read
-        of who's currently subscribed. Centrifugo OSS has no unsubscribe/disconnect proxy, so the TTL plus periodic
-        sub_refresh re-arming is the only reliable way to garbage-collect entries for connections that have gone away.
-        """
-        if not isinstance(client, str) or not client:  # nothing useful to index without a connection id
-            return
+        Mark a channel as having at least one active subscriber by (re)setting a per-channel presence key in valkey
+        with a TTL. We track presence only - whether a channel has any subscribers, not who or how many - because the
+        consuming service (which publishes a channel's events) only needs to know whether anyone is watching before it
+        bothers publishing, so one key per channel is all we keep. Every subscribe and sub_refresh re-sets the key, so
+        it stays present while some subscriber keeps refreshing and expires once the last one stops. The realtime
+        server has no unsubscribe or disconnect callback, so this TTL is the only garbage collection.
 
+        The key name (``socket-subs:<channel>``) and the presence-via-``EXISTS`` semantics are a contract shared with
+        the consuming service that reads it - keep them in sync.
+        """
         r = get_valkey_connection()
-        now = int(timezone.now().timestamp())
-        key = f"subs:{channel}"
-
-        pipe = r.pipeline()
-        pipe.zadd(key, {client: now + SUBSCRIPTION_TTL})
-        pipe.zremrangebyscore(key, 0, now)  # lazily drop members that have already expired
-        pipe.expire(key, SUBSCRIPTION_TTL)  # backstop so the key itself vanishes once nothing re-arms it
-        pipe.execute()
+        r.set(f"socket-subs:{channel}", "1", ex=SUBSCRIPTION_TTL)
 
 
 class SubscribeEndpoint(SubscriptionEndpoint):
     """
     Subscribe proxy called by the realtime messaging server when a browser asks to subscribe to a channel. The request
-    body carries the connection's ``client`` id and the requested ``channel``; we authorize that channel against the
-    live session.
+    body carries the requested ``channel``, which we authorize against the live session.
 
     An unauthenticated request is told to disconnect (its connection should never have got this far). Otherwise, if the
     user has a current workspace and may access the channel, we record the subscription and return an ``expire_at`` so
@@ -218,10 +213,9 @@ class SubscribeEndpoint(SubscriptionEndpoint):
             return Response({"disconnect": {"code": 4401, "reason": "unauthorized"}})
 
         channel = request.data.get("channel", "")
-        client = request.data.get("client", "")
 
         if request.org and self.is_allowed(request, channel):
-            self.index_subscription(channel, client)
+            self.record_subscription(channel)
             return Response({"result": {"expire_at": self.subscription_expire_at()}})
 
         return Response({"error": {"code": 403, "message": "forbidden"}})
@@ -230,17 +224,16 @@ class SubscribeEndpoint(SubscriptionEndpoint):
 class SubRefreshEndpoint(SubscriptionEndpoint):
     """
     Sub refresh proxy called periodically by the realtime messaging server before a subscription's ``expire_at``. We
-    re-run the same authorization as subscribe (access may have been revoked since), and either re-arm the index entry
+    re-run the same authorization as subscribe (access may have been revoked since), and either re-arm the presence key
     and return a fresh ``expire_at`` or let the subscription expire. Only the ``result`` is acted on for refreshes, so
     every not-allowed case - including a session that's gone - is reported as expired rather than as a disconnect.
     """
 
     def post(self, request, *args, **kwargs):
         channel = request.data.get("channel", "")
-        client = request.data.get("client", "")
 
         if request.user.is_authenticated and request.org and self.is_allowed(request, channel):
-            self.index_subscription(channel, client)
+            self.record_subscription(channel)
             return Response({"result": {"expire_at": self.subscription_expire_at()}})
 
         return Response({"result": {"expired": True}})

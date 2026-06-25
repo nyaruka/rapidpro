@@ -1,6 +1,3 @@
-from datetime import datetime, timezone as tzone
-from unittest.mock import patch
-
 from django_valkey import get_valkey_connection
 
 from django.test import override_settings
@@ -9,7 +6,7 @@ from django.utils import timezone
 
 from temba.api.checks import websockets_auth_secret
 from temba.api.tests.mixins import APITestMixin
-from temba.api.websockets.views import SUBSCRIPTION_TTL, SUBSCRIPTION_WINDOW
+from temba.api.websockets.views import SUBSCRIPTION_TTL
 from temba.tests import TembaTest
 from temba.utils.uuid import uuid4
 
@@ -233,52 +230,35 @@ class EndpointsTest(APITestMixin, TembaTest):
     def test_subscription_index(self):
         contact = self.create_contact("Ann", phone="+1234", org=self.org)
         channel = f"history:{contact.uuid}"
-        key = f"subs:{channel}"
+        key = f"socket-subs:{channel}"
 
         r = get_valkey_connection()
         r.delete(key)
 
         self.login(self.admin)
 
-        # subscribe records the connection in the per-channel sorted set, scored by its expiry
-        t0 = datetime(2024, 1, 1, 12, 0, 0, tzinfo=tzone.utc)
-        with patch("django.utils.timezone.now", return_value=t0):
-            response = self.post("api.websockets.subscribe", {"channel": channel, "client": "conn-1"})
+        # a denied subscription records nothing
+        denied = f"history:{uuid4()}"
+        denied_key = f"socket-subs:{denied}"
+        r.delete(denied_key)
+        response = self.post("api.websockets.subscribe", {"channel": denied, "client": "conn-1"})
         self.assertEqual(200, response.status_code)
-        self.assertEqual(int(t0.timestamp()) + SUBSCRIPTION_WINDOW, response.json()["result"]["expire_at"])
-        self.assertEqual([b"conn-1"], r.zrange(key, 0, -1))
-        score0 = r.zscore(key, "conn-1")
-        self.assertEqual(int(t0.timestamp()) + SUBSCRIPTION_TTL, int(score0))
+        self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
+        self.assertEqual(0, r.exists(denied_key))
 
-        # the key has a TTL backstop so a channel nothing re-arms eventually vanishes
+        # subscribe sets a per-channel presence flag with a TTL backstop
+        response = self.post("api.websockets.subscribe", {"channel": channel, "client": "conn-1"})
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(b"1", r.get(key))
         self.assertGreater(r.ttl(key), 0)
         self.assertLessEqual(r.ttl(key), SUBSCRIPTION_TTL)
 
-        # an already-expired member from a dead connection
-        r.zadd(key, {"dead-conn": int(t0.timestamp()) - 1})
-
-        # sub_refresh later re-arms the entry with a later expiry and lazily prunes the dead one
-        t1 = datetime(2024, 1, 1, 12, 0, 30, tzinfo=tzone.utc)
-        with patch("django.utils.timezone.now", return_value=t1):
-            response = self.post("api.websockets.sub_refresh", {"channel": channel, "client": "conn-1"})
+        # sub_refresh re-arms the key's TTL - after it has aged, a refresh sets it back toward the full TTL
+        r.expire(key, 5)
+        self.assertLessEqual(r.ttl(key), 5)
+        response = self.post("api.websockets.sub_refresh", {"channel": channel, "client": "conn-1"})
         self.assertEqual(200, response.status_code)
-        self.assertEqual(int(t1.timestamp()) + SUBSCRIPTION_WINDOW, response.json()["result"]["expire_at"])
-
-        score1 = r.zscore(key, "conn-1")
-        self.assertEqual(int(t1.timestamp()) + SUBSCRIPTION_TTL, int(score1))
-        self.assertGreater(score1, score0)
-        self.assertEqual([b"conn-1"], r.zrange(key, 0, -1))  # dead-conn was pruned
-
-        # a second connection to the same channel coexists - the set tracks every subscriber, not just the latest
-        with patch("django.utils.timezone.now", return_value=t1):
-            response = self.post("api.websockets.subscribe", {"channel": channel, "client": "conn-2"})
-        self.assertEqual(200, response.status_code)
-        self.assertEqual({b"conn-1", b"conn-2"}, set(r.zrange(key, 0, -1)))
-
-        # an empty connection id isn't indexed (no blank member added)
-        response = self.post("api.websockets.subscribe", {"channel": channel, "client": ""})
-        self.assertEqual(200, response.status_code)
-        self.assertEqual({b"conn-1", b"conn-2"}, set(r.zrange(key, 0, -1)))
+        self.assertGreater(r.ttl(key), 5)
 
     def test_secret(self):
         self.login(self.admin)
