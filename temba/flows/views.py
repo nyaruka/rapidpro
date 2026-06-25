@@ -817,10 +817,6 @@ class FlowCRUDL(SmartCRUDL):
         # POST-only - a GET would otherwise try to render a non-existent template and 500
         http_method_names = ["post"]
 
-        @classmethod
-        def derive_url_pattern(cls, path, action):
-            return r"^%s/%s/(?P<uuid>[0-9a-f-]+)/$" % (path, action)
-
         def post(self, request, *args, **kwargs):
             flow = self.get_object()
 
