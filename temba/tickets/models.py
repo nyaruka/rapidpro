@@ -85,17 +85,32 @@ class Topic(TembaModel, DependencyMixin):
         return cls.create(org, user, definition["name"])
 
     @classmethod
+    def get_restriction(cls, org, user):
+        """
+        Returns the topics the given user is restricted to in the org, or None if they can access all of the org's
+        topics. Staff and members whose team grants all topics are unrestricted; a member on a topic-limited team is
+        restricted to that team's topics; a user with no membership in the org can access nothing. This is the single
+        source of truth for team topic access, shared by everything that scopes topics or tickets to a user.
+        """
+        if user.is_staff:
+            return None
+
+        membership = org.get_membership(user)
+        if not membership:
+            return cls.objects.none()
+
+        if membership.team and not membership.team.all_topics:
+            return membership.team.topics.all()
+
+        return None
+
+    @classmethod
     def get_accessible(cls, org, user):
         """
         Gets the topics accessible to the given user in the given org.
         """
-
-        if not user.is_staff:
-            membership = org.get_membership(user)
-            if membership.team and not membership.team.all_topics:
-                return membership.team.topics.all()
-
-        return org.topics.filter(is_active=True)
+        restricted = cls.get_restriction(org, user)
+        return org.topics.filter(is_active=True) if restricted is None else restricted
 
     def release(self, user):
         assert not (self.is_system and self.org.is_active), "can't release system topics"
@@ -256,20 +271,14 @@ class Ticket(models.Model):
         Gets the tickets in the org that the given user is allowed to view. This mirrors what the ticketing UI exposes:
         the union of the Mine and All folders. Staff and users whose team grants all topics can view every ticket;
         an agent on a topic-restricted team can view tickets in their team's topics plus any assigned to them (they can
-        always see their own tickets even in topics they otherwise lack access to). A non-staff user with no membership
-        in the org can view nothing - we fail closed rather than exposing the whole workspace.
+        always see their own tickets even in topics they otherwise lack access to). A user with no membership in the org
+        can view nothing - we fail closed rather than exposing the whole workspace.
         """
         qs = org.tickets.all()
 
-        if user.is_staff:
-            return qs
-
-        membership = org.get_membership(user)
-        if not membership:
-            return qs.none()
-
-        if membership.team and not membership.team.all_topics:
-            qs = qs.filter(Q(assignee=user) | Q(topic__in=membership.team.topics.all()))
+        restricted = Topic.get_restriction(org, user)
+        if restricted is not None:
+            qs = qs.filter(Q(assignee=user) | Q(topic__in=restricted))
 
         return qs
 
@@ -337,10 +346,10 @@ class TicketFolder(metaclass=ABCMeta):
     def get_queryset(self, org, user, *, ordered: bool):
         qs = org.tickets.all()
 
-        if self.restrict_topics and not user.is_staff:
-            membership = org.get_membership(user)
-            if membership.team and not membership.team.all_topics:
-                qs = qs.filter(topic__in=list(membership.team.topics.all()))
+        if self.restrict_topics:
+            restricted = Topic.get_restriction(org, user)
+            if restricted is not None:
+                qs = qs.filter(topic__in=restricted)
 
         if ordered:
             qs = qs.order_by("-last_activity_on", "-id")
