@@ -1,3 +1,7 @@
+v26.3.3 (2026-06-25)
+-------------------------
+ * Add subscribe and sub_refresh proxy endpoints to websockets API
+
 v26.3.2 (2026-06-24)
 -------------------------
  * Use precomputed group count in preview contact list endpoint
