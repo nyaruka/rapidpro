@@ -25,11 +25,12 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertIsInstance(expire_at, int)
         self.assertGreater(expire_at, int(timezone.now().timestamp()))
 
-    def assertConnect(self, response, *, user, channels, meta):
+    def assertConnect(self, response, *, user, meta):
         self.assertEqual(200, response.status_code)
         result = response.json()["result"]
         self.assertExpiry(result.pop("expire_at"))
-        self.assertEqual({"user": str(user.uuid), "channels": channels, "meta": meta}, result)
+        # connect attaches no server-side channels - the browser subscribes to what it wants itself
+        self.assertEqual({"user": str(user.uuid), "channels": [], "meta": meta}, result)
 
     def test_connect(self):
         endpoint_url = reverse("api.websockets.connect")
@@ -38,13 +39,12 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.login(self.admin)
         self.assertEqual(405, self.client.get(endpoint_url, HTTP_X_WEBSOCKETS_SECRET=SECRET).status_code)
 
-        # an authenticated user is subscribed to their notifications channel for their current workspace (scoped by
-        # both org uuid and user uuid), and their identity is attached to the connection meta
+        # an authenticated user gets no server-side channels (the browser subscribes to its own notifications and any
+        # history channels itself), but their identity is attached to the connection meta
         self.login(self.admin)
         self.assertConnect(
             self.post("api.websockets.connect"),
             user=self.admin,
-            channels=[f"notifications:{self.org.uuid}:{self.admin.uuid}"],
             meta={
                 "user_id": self.admin.id,
                 "user_uuid": str(self.admin.uuid),
@@ -53,12 +53,11 @@ class EndpointsTest(APITestMixin, TembaTest):
             },
         )
 
-        # scoped per (org, user) - a different user in a different workspace gets their own channel and meta
+        # meta is scoped per (org, user) - a different user in a different workspace gets their own identity
         self.login(self.admin2, choose_org=self.org2)
         self.assertConnect(
             self.post("api.websockets.connect"),
             user=self.admin2,
-            channels=[f"notifications:{self.org2.uuid}:{self.admin2.uuid}"],
             meta={
                 "user_id": self.admin2.id,
                 "user_uuid": str(self.admin2.uuid),
@@ -91,7 +90,6 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertConnect(
             self.post("api.websockets.connect", client=csrf_client),
             user=self.admin,
-            channels=[f"notifications:{self.org.uuid}:{self.admin.uuid}"],
             meta={
                 "user_id": self.admin.id,
                 "user_uuid": str(self.admin.uuid),
@@ -165,9 +163,6 @@ class EndpointsTest(APITestMixin, TembaTest):
         assertForbidden(f"history:{contact.uuid}:{ticket.uuid}:extra")  # too many segments
         assertForbidden("history")  # too few segments
         assertForbidden(f"presence:{contact.uuid}")  # unknown namespace
-        assertForbidden(
-            f"notifications:{self.org.uuid}:{self.admin.uuid}"
-        )  # server-side namespace, never via this proxy
 
         # an inactive contact is denied
         contact.is_active = False
@@ -187,6 +182,41 @@ class EndpointsTest(APITestMixin, TembaTest):
         response = subscribe(f"history:{contact.uuid}")
         self.assertEqual(200, response.status_code)
         self.assertEqual({"disconnect": {"code": 4401, "reason": "unauthorized"}}, response.json())
+
+    def test_subscribe_notifications(self):
+        def subscribe(channel, client="conn-1"):
+            return self.post("api.websockets.subscribe", {"channel": channel, "client": client})
+
+        def assertAllowed(channel):
+            response = subscribe(channel)
+            self.assertEqual(200, response.status_code)
+            self.assertExpiry(response.json()["result"]["expire_at"])
+
+        def assertForbidden(channel):
+            response = subscribe(channel)
+            self.assertEqual(200, response.status_code)
+            self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
+
+        self.login(self.admin)
+
+        # a user may watch their own notifications channel for their current workspace
+        assertAllowed(f"notifications:{self.org.uuid}:{self.admin.uuid}")
+
+        # but not another user's, even in the same workspace
+        assertForbidden(f"notifications:{self.org.uuid}:{self.editor.uuid}")
+
+        # nor their own notifications in a workspace that isn't their current one
+        assertForbidden(f"notifications:{self.org2.uuid}:{self.admin.uuid}")
+
+        # malformed: too few or too many segments
+        assertForbidden(f"notifications:{self.org.uuid}")
+        assertForbidden(f"notifications:{self.org.uuid}:{self.admin.uuid}:extra")
+
+        # a user with no current workspace is forbidden (request.org is None)
+        session = self.client.session
+        del session["org_id"]
+        session.save()
+        assertForbidden(f"notifications:{self.org.uuid}:{self.admin.uuid}")
 
     def test_subscribe_ticket_topic_access(self):
         # an agent restricted to a team's topics can only watch the history of tickets they're allowed to view - the
