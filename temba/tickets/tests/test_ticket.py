@@ -84,6 +84,9 @@ class TicketTest(TembaTest):
         # an agent on a topic-restricted team only sees tickets in their topics, plus any assigned to them
         self.assertEqual({sales_ticket, assigned_ticket}, set(Ticket.get_accessible(self.org, agent2)))
 
+        # a non-staff user with no membership in the org sees nothing (fails closed)
+        self.assertEqual(set(), set(Ticket.get_accessible(self.org, self.admin2)))
+
     @mock_mailroom
     def test_counts(self, mr_mocks):
         general = self.org.default_topic
