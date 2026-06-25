@@ -10,11 +10,13 @@ from temba.ai.types.anthropic.type import AnthropicType
 from temba.ai.types.openai.type import OpenAIType
 from temba.api.tests.mixins import APITestMixin
 from temba.contacts.models import ContactExport, ContactGroup
+from temba.flows.models import Flow, FlowLabel
 from temba.msgs.models import Msg
 from temba.notifications.types import ExportFinishedNotificationType
 from temba.templates.models import TemplateTranslation
 from temba.tests import TembaTest, matchers, mock_mailroom
 from temba.tickets.models import Shortcut, TicketExport
+from temba.utils.uuid import uuid4
 
 NUM_BASE_QUERIES = 3  # number of queries required for any request (internal API is session only)
 
@@ -343,6 +345,104 @@ class EndpointsTest(APITestMixin, TembaTest):
         mr_mocks.contact_search("", contacts=[joe, frank])
         self.assertGet(endpoint_url + "?sort=-field:gender&page_size=0", [self.admin], results=[joe, frank])
         self.assertEqual(50, mr_mocks.calls["contact_search"][-1].kwargs["limit"])
+
+    def test_flows(self):
+        endpoint_url = reverse("api.internal.flows") + ".json"
+
+        self.assertGetNotPermitted(endpoint_url, [None, self.agent])
+        self.assertPostNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        flow1 = self.create_flow("Apple")
+        flow2 = self.create_flow("Banana", flow_type=Flow.TYPE_VOICE)
+        flow3 = self.create_flow("Cherry")
+        flow3.archive(self.admin, interrupt_sessions=False)
+
+        label = FlowLabel.create(self.org, self.admin, "Important")
+        label.toggle_label([flow1], add=True)
+
+        # give flow1 some runs (3 completed, 1 waiting, 1 active, 1 expired) and flow2 some waiting runs
+        for scope, count in (("status:C", 3), ("status:W", 1), ("status:A", 1), ("status:X", 1)):
+            flow1.counts.create(scope=scope, count=count)
+        flow2.counts.create(scope="status:W", count=5)
+
+        # and some recent engagement for the sparkline
+        today = timezone.now().date()
+        flow1.counts.create(scope=f"msgsin:date:{today - timedelta(days=1)}", count=3)
+        flow1.counts.create(scope=f"msgsin:date:{today}", count=5)
+
+        # without the endpoint's bulk prefetch, the series reads the counts directly
+        self.assertEqual([3, 5], flow1.get_activity_series()[-2:])
+
+        # default folder is `active`, most recently saved first
+        self.assertGet(endpoint_url, [self.editor, self.admin], results=[flow2, flow1])
+        self.assertGet(endpoint_url + "?folder=active", [self.admin], results=[flow2, flow1])
+
+        # archived flows live in their own folder, newest first
+        self.assertGet(endpoint_url + "?folder=archived", [self.admin], results=[flow3])
+
+        # a label can be selected by uuid; an unknown or malformed label yields no flows
+        self.assertGet(endpoint_url + f"?label={label.uuid}", [self.admin], results=[flow1])
+        self.assertGet(endpoint_url + f"?label={uuid4()}", [self.admin], results=[])
+        self.assertGet(endpoint_url + "?label=foo", [self.admin], results=[])
+
+        # search filters by name
+        self.assertGet(endpoint_url + "?search=ban", [self.admin], results=[flow2])
+
+        # each row carries the columns the component renders
+        def check_shape(data):
+            first = [r for r in data["results"] if r["uuid"] == str(flow1.uuid)][0]
+            self.assertEqual("Apple", first["name"])
+            self.assertEqual("message", first["type"])
+            self.assertEqual([{"uuid": str(label.uuid), "name": "Important"}], first["labels"])
+            self.assertEqual(6, first["runs"])
+            self.assertEqual(2, first["ongoing"])
+            self.assertEqual(0.5, first["completion"])
+            self.assertEqual(Flow.ACTIVITY_SERIES_DAYS, len(first["activity"]))
+            self.assertEqual([3, 5], first["activity"][-2:])
+
+            second = [r for r in data["results"] if r["uuid"] == str(flow2.uuid)][0]
+            self.assertEqual("voice", second["type"])
+            # no engagement in the window means no sparkline
+            self.assertEqual([], second["activity"])
+            return True
+
+        self.assertGet(endpoint_url, [self.admin], raw=check_shape)
+
+        # sortable by name and by run counts (flow1 leads on total runs, flow2 on ongoing)
+        self.assertGet(endpoint_url + "?sort=name", [self.admin], results=[flow1, flow2])
+        self.assertGet(endpoint_url + "?sort=-name", [self.admin], results=[flow2, flow1])
+        self.assertGet(endpoint_url + "?sort=-runs", [self.admin], results=[flow1, flow2])
+        self.assertGet(endpoint_url + "?sort=runs", [self.admin], results=[flow2, flow1])
+        self.assertGet(endpoint_url + "?sort=-ongoing", [self.admin], results=[flow2, flow1])
+
+        # an unknown sort falls back to the folder's default ordering
+        self.assertGet(endpoint_url + "?sort=nope", [self.admin], results=[flow2, flow1])
+
+        # an over-long search query is rejected
+        self.login(self.admin)
+        response = self.client.get(endpoint_url + "?search=" + ("x" * 1001))
+        self.assertEqual(413, response.status_code)
+
+    def test_flow_labels(self):
+        endpoint_url = reverse("api.internal.flow_labels") + ".json"
+
+        self.assertGetNotPermitted(endpoint_url, [None, self.agent])
+        self.assertPostNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        label1 = FlowLabel.create(self.org, self.admin, "Important")
+        label2 = FlowLabel.create(self.org, self.admin, "Spam")
+        FlowLabel.create(self.org2, self.admin2, "Other Org")
+
+        self.assertGet(
+            endpoint_url,
+            [self.editor, self.admin],
+            results=[
+                {"uuid": str(label1.uuid), "name": "Important"},
+                {"uuid": str(label2.uuid), "name": "Spam"},
+            ],
+        )
 
     def test_notifications(self):
         endpoint_url = reverse("api.internal.notifications") + ".json"
