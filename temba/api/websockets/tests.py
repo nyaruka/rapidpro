@@ -214,6 +214,9 @@ class EndpointsTest(APITestMixin, TembaTest):
             self.assertEqual(200, response.status_code)
             self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
 
+        def sub_refresh(channel, *, client="conn-1"):
+            return self.post("api.websockets.sub_refresh", {"channel": channel, "client": client})
+
         self.login(self.agent)
 
         # the contact's own history is still allowed (not topic-scoped)
@@ -227,6 +230,17 @@ class EndpointsTest(APITestMixin, TembaTest):
 
         # a ticket in a topic outside the agent's team and not assigned to them is forbidden
         assertForbidden(f"history:{contact.uuid}:{support_ticket.uuid}")
+
+        # sub_refresh applies the same topic scoping: a foreign-topic ticket the agent can't view expires rather than
+        # being re-armed, so losing access (or never having had it) tears the subscription down on the next refresh
+        response = sub_refresh(f"history:{contact.uuid}:{support_ticket.uuid}")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"result": {"expired": True}}, response.json())
+
+        # while a ticket the agent can view is re-armed with a fresh expiry
+        response = sub_refresh(f"history:{contact.uuid}:{sales_ticket.uuid}")
+        self.assertEqual(200, response.status_code)
+        self.assertExpiry(response.json()["result"]["expire_at"])
 
         # an admin (no team restriction) can watch any of the workspace's tickets
         self.login(self.admin)

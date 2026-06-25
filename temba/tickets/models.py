@@ -256,14 +256,20 @@ class Ticket(models.Model):
         Gets the tickets in the org that the given user is allowed to view. This mirrors what the ticketing UI exposes:
         the union of the Mine and All folders. Staff and users whose team grants all topics can view every ticket;
         an agent on a topic-restricted team can view tickets in their team's topics plus any assigned to them (they can
-        always see their own tickets even in topics they otherwise lack access to).
+        always see their own tickets even in topics they otherwise lack access to). A non-staff user with no membership
+        in the org can view nothing - we fail closed rather than exposing the whole workspace.
         """
         qs = org.tickets.all()
 
-        if not user.is_staff:
-            membership = org.get_membership(user)
-            if membership and membership.team and not membership.team.all_topics:
-                qs = qs.filter(Q(assignee=user) | Q(topic__in=membership.team.topics.all()))
+        if user.is_staff:
+            return qs
+
+        membership = org.get_membership(user)
+        if not membership:
+            return qs.none()
+
+        if membership.team and not membership.team.all_topics:
+            qs = qs.filter(Q(assignee=user) | Q(topic__in=membership.team.topics.all()))
 
         return qs
 
