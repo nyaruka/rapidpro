@@ -1,9 +1,9 @@
 from datetime import datetime, timezone as tzone
 from zoneinfo import ZoneInfo
 
+from django.conf import settings
 from django.utils import timezone
 
-from temba import settings
 from temba.msgs.models import Broadcast, Media
 from temba.tests import TembaTest
 from temba.utils.compose import compose_deserialize_attachments

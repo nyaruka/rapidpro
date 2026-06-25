@@ -1,8 +1,7 @@
+from django.conf import settings
 from django.contrib.sitemaps.views import sitemap
 from django.urls import re_path
 from django.views.decorators.csrf import csrf_exempt
-
-from temba.settings import DEBUG
 
 from .sitemaps import PublicViewSitemap
 from .views import Android, DemoGenerateCoupon, DemoOrderStatus, Forgetme, IndexView, Style, Welcome, WelcomeRedirect
@@ -20,5 +19,5 @@ urlpatterns = [
     re_path(r"^demo/coupon/$", csrf_exempt(DemoGenerateCoupon.as_view()), {}, "demo.generate_coupon"),
 ]
 
-if DEBUG:  # pragma: needs cover
+if settings.DEBUG:  # pragma: needs cover
     urlpatterns.append(re_path(r"^style/$", Style.as_view(), {}, "public.public_style"))
