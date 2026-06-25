@@ -61,6 +61,29 @@ class TicketTest(TembaTest):
 
         self.assertEqual([call(self.org, self.admin, [ticket], via="ui")], mr_mocks.calls["ticket_reopen"])
 
+    def test_get_accessible(self):
+        sales = Topic.create(self.org, self.admin, "Sales")
+        support = Topic.create(self.org, self.admin, "Support")
+        sales_team = Team.create(self.org, self.admin, "Sales Team", topics=[sales])
+        agent2 = self.create_user("agent2@textit.com")
+        self.org.add_user(agent2, OrgRole.AGENT, team=sales_team)
+
+        contact = self.create_contact("Ann", urns=["twitter:annie"])
+        general_ticket = self.create_ticket(contact, topic=self.org.default_topic)
+        sales_ticket = self.create_ticket(contact, topic=sales)
+        support_ticket = self.create_ticket(contact, topic=support)
+        assigned_ticket = self.create_ticket(contact, topic=support, assignee=agent2)
+
+        all_tickets = {general_ticket, sales_ticket, support_ticket, assigned_ticket}
+
+        # staff, admins and agents on a team with all topics can view every ticket
+        self.assertEqual(all_tickets, set(Ticket.get_accessible(self.org, self.customer_support)))
+        self.assertEqual(all_tickets, set(Ticket.get_accessible(self.org, self.admin)))
+        self.assertEqual(all_tickets, set(Ticket.get_accessible(self.org, self.agent)))
+
+        # an agent on a topic-restricted team only sees tickets in their topics, plus any assigned to them
+        self.assertEqual({sales_ticket, assigned_ticket}, set(Ticket.get_accessible(self.org, agent2)))
+
     @mock_mailroom
     def test_counts(self, mr_mocks):
         general = self.org.default_topic

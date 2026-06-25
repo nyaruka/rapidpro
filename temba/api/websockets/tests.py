@@ -7,7 +7,9 @@ from django.utils import timezone
 from temba.api.checks import websockets_auth_secret
 from temba.api.tests.mixins import APITestMixin
 from temba.api.websockets.views import SUBSCRIPTION_TTL
+from temba.orgs.models import OrgRole
 from temba.tests import TembaTest
+from temba.tickets.models import Team, Topic
 from temba.utils.uuid import uuid4
 
 SECRET = "topsecret"
@@ -185,6 +187,52 @@ class EndpointsTest(APITestMixin, TembaTest):
         response = subscribe(f"history:{contact.uuid}")
         self.assertEqual(200, response.status_code)
         self.assertEqual({"disconnect": {"code": 4401, "reason": "unauthorized"}}, response.json())
+
+    def test_subscribe_ticket_topic_access(self):
+        # an agent restricted to a team's topics can only watch the history of tickets they're allowed to view - the
+        # same scoping the ticketing UI applies, not just "the ticket exists for this contact"
+        sales = Topic.create(self.org, self.admin, "Sales")
+        support = Topic.create(self.org, self.admin, "Support")
+        sales_team = Team.create(self.org, self.admin, "Sales Team", topics=[sales])
+        self.org.add_user(self.agent, OrgRole.AGENT, team=sales_team)
+
+        contact = self.create_contact("Ann", phone="+1234", org=self.org)
+        sales_ticket = self.create_ticket(contact, topic=sales)
+        support_ticket = self.create_ticket(contact, topic=support)
+        assigned_ticket = self.create_ticket(contact, topic=support, assignee=self.agent)
+
+        def subscribe(channel, *, client="conn-1"):
+            return self.post("api.websockets.subscribe", {"channel": channel, "client": client})
+
+        def assertAllowed(channel):
+            response = subscribe(channel)
+            self.assertEqual(200, response.status_code)
+            self.assertExpiry(response.json()["result"]["expire_at"])
+
+        def assertForbidden(channel):
+            response = subscribe(channel)
+            self.assertEqual(200, response.status_code)
+            self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
+
+        self.login(self.agent)
+
+        # the contact's own history is still allowed (not topic-scoped)
+        assertAllowed(f"history:{contact.uuid}")
+
+        # a ticket in the agent's team topic is allowed
+        assertAllowed(f"history:{contact.uuid}:{sales_ticket.uuid}")
+
+        # a ticket assigned to the agent is allowed even though its topic is outside their team
+        assertAllowed(f"history:{contact.uuid}:{assigned_ticket.uuid}")
+
+        # a ticket in a topic outside the agent's team and not assigned to them is forbidden
+        assertForbidden(f"history:{contact.uuid}:{support_ticket.uuid}")
+
+        # an admin (no team restriction) can watch any of the workspace's tickets
+        self.login(self.admin)
+        assertAllowed(f"history:{contact.uuid}:{sales_ticket.uuid}")
+        assertAllowed(f"history:{contact.uuid}:{support_ticket.uuid}")
+        assertAllowed(f"history:{contact.uuid}:{assigned_ticket.uuid}")
 
     def test_sub_refresh(self):
         contact = self.create_contact("Ann", phone="+1234", org=self.org)

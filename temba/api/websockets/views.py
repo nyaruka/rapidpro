@@ -157,21 +157,24 @@ class SubscriptionEndpoint(BaseEndpoint):
         namespace, *parts = channel.split(":")
 
         if namespace == "history":
-            return self._history_allowed(request.org, parts)
+            return self._history_allowed(request, parts)
 
         return False
 
-    def _history_allowed(self, org, parts: list) -> bool:
+    def _history_allowed(self, request, parts: list) -> bool:
         """
         ``history:<contact-uuid>`` (a contact's history) or ``history:<contact-uuid>:<ticket-uuid>`` (a ticket's
-        history). The contact must belong to the workspace and be active; for the ticket form the ticket must in turn
-        belong to that contact - and so to the same workspace, since a ticket always shares its contact's org. Every
-        segment is validated as a uuid before it reaches a query, since the uuid columns are ``UUIDField`` and would
-        raise on a malformed value.
+        history). The contact must belong to the workspace and be active. For the ticket form the ticket must in turn
+        belong to that contact - and so to the same workspace, since a ticket always shares its contact's org - and the
+        user must actually be allowed to view it: an agent on a topic-restricted team can only see tickets in their
+        team's topics (plus any assigned to them), exactly as the ticketing UI scopes them, so we authorize through
+        ``Ticket.get_accessible`` rather than just checking the ticket exists. Every segment is validated as a uuid
+        before it reaches a query, since the uuid columns are ``UUIDField`` and would raise on a malformed value.
         """
         if not (1 <= len(parts) <= 2) or not all(is_uuid(p) for p in parts):
             return False
 
+        org = request.org
         contact = org.contacts.filter(uuid=parts[0], is_active=True).first()
         if not contact:
             return False
@@ -179,7 +182,7 @@ class SubscriptionEndpoint(BaseEndpoint):
         if len(parts) == 1:
             return True
 
-        return Ticket.objects.filter(uuid=parts[1], contact=contact).exists()
+        return Ticket.get_accessible(org, request.user).filter(uuid=parts[1], contact=contact).exists()
 
     def record_subscription(self, channel: str):
         """

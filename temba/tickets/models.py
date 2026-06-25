@@ -251,6 +251,23 @@ class Ticket(models.Model):
         return resp.get("changed_uuids", [])
 
     @classmethod
+    def get_accessible(cls, org, user):
+        """
+        Gets the tickets in the org that the given user is allowed to view. This mirrors what the ticketing UI exposes:
+        the union of the Mine and All folders. Staff and users whose team grants all topics can view every ticket;
+        an agent on a topic-restricted team can view tickets in their team's topics plus any assigned to them (they can
+        always see their own tickets even in topics they otherwise lack access to).
+        """
+        qs = org.tickets.all()
+
+        if not user.is_staff:
+            membership = org.get_membership(user)
+            if membership and membership.team and not membership.team.all_topics:
+                qs = qs.filter(Q(assignee=user) | Q(topic__in=membership.team.topics.all()))
+
+        return qs
+
+    @classmethod
     def get_assignee_count(cls, org, user, topics, status: str) -> int:
         """
         Gets the count of tickets assigned to the given user across the given topics and status.
