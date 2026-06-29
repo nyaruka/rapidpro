@@ -149,6 +149,7 @@ class Mocks:
         self._contact_urns = []
         self._flow_change_language = []
         self._flow_inspect = []
+        self._flow_migrate = []
         self._flow_start_preview = []
         self._llm_translate = []
         self._msg_broadcast_preview = []
@@ -183,6 +184,15 @@ class Mocks:
 
     def contact_urns(self, urns: dict):
         self._contact_urns.append(urns)
+
+    def flow_migrate(self, definition: dict):
+        """
+        Queues the migrated definition that mailroom should return for the next flow_migrate call. Use this for
+        tests that load/import a below-current-spec definition - migration is goflow's job, so we only stub the
+        result rather than reaching a live mailroom.
+        """
+
+        self._flow_migrate.append(definition)
 
     def flow_change_language(self, definition: dict):
         """
@@ -427,6 +437,14 @@ class TestClient(MailroomClient):
                     results[i].contact_id = result
 
         return results
+
+    @_client_method
+    def flow_migrate(self, definition: dict, to_version=None):
+        # use a queued mock if the test set one (for below-current-spec definitions); otherwise fall through to
+        # the real client, whose TESTING fast-path returns already-current definitions without a live call
+        if self.mocks._flow_migrate:
+            return self.mocks._flow_migrate.pop(0)
+        return super().flow_migrate(definition, to_version=to_version)
 
     @_client_method
     def flow_change_language(self, definition: dict, language):

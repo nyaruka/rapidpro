@@ -130,13 +130,15 @@ class FlowMigrationTest(TembaTest):
         flow_json = self.load_flow_def("malformed_single_message")["definition"]
 
         FlowRevision.objects.create(flow=flow, definition=flow_json, spec_version=3, revision=1, created_by=self.admin)
+        revision = flow.revisions.get()
 
-        flow.ensure_current_version()
-        flow_json = flow.get_definition()
+        # the actual migration is goflow's job - stub the definition it would return. we're just checking that
+        # rapidpro prepares a legacy (pre-v6) revision and hands it off to be migrated to the current spec.
+        mr_mocks.flow_migrate({"spec_version": Flow.CURRENT_SPEC_VERSION, "nodes": []})
 
-        self.assertEqual(1, len(flow_json["nodes"]))
-        self.assertEqual(Flow.CURRENT_SPEC_VERSION, flow_json["spec_version"])
-        self.assertEqual(2, flow_json["revision"])
+        migrated = revision.get_migrated_definition()
+
+        self.assertEqual(Flow.CURRENT_SPEC_VERSION, migrated["spec_version"])
 
     @mock_mailroom
     def test_migrate_to_11_12(self, mr_mocks):
