@@ -699,7 +699,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     @mock_mailroom
     def test_get_definition(self, mr_mocks):
-        flow = self.get_flow("color_v13")
+        flow = self.get_flow("color")
 
         # if definition is outdated, metadata values are updated from db object
         flow.name = "Amazing Flow"
@@ -1467,7 +1467,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     @mock_mailroom
     def test_copy_view(self, mr_mocks):
-        flow = self.get_flow("color_v13")
+        flow = self.get_flow("color")
 
         self.login(self.admin)
 

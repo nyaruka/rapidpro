@@ -547,7 +547,7 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         to_node_url = reverse("msgs.broadcast_to_node")
 
         # give Joe a flow run that has stopped on a node
-        flow = self.get_flow("color_v13")
+        flow = self.get_flow("color")
         flow_nodes = flow.get_definition()["nodes"]
         color_prompt = flow_nodes[0]
         color_split = flow_nodes[4]

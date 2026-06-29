@@ -49,7 +49,7 @@ class ContactExportTest(TembaTest):
             last_seen_on=datetime(2020, 1, 1, 12, 0, 0, 0, tzinfo=tzone.utc),
         )
 
-        flow = self.get_flow("color_v13")
+        flow = self.get_flow("color")
         nodes = flow.get_definition()["nodes"]
         color_prompt = nodes[0]
         color_split = nodes[4]
