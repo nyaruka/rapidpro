@@ -8,7 +8,6 @@ from functools import wraps
 from unittest.mock import NonCallableMock, call, patch
 
 import requests
-from packaging.version import Version
 
 from django.conf import settings
 from django.db import connection
@@ -18,7 +17,7 @@ from temba import mailroom
 from temba.campaigns.models import CampaignEvent
 from temba.channels.models import ChannelEvent
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactURN
-from temba.flows.models import Flow, FlowRun, FlowSession, FlowStart
+from temba.flows.models import FlowRun, FlowSession, FlowStart
 from temba.locations.models import AdminBoundary
 from temba.mailroom.client.client import MailroomClient
 from temba.mailroom.modifiers import Modifier
@@ -36,10 +35,12 @@ event_units = {
     CampaignEvent.UNIT_WEEKS: "weeks",
 }
 
-# endpoints still allowed to reach a live mailroom during tests. these exercise goflow logic (flow migration and
-# dependency inspection) that isn't faithfully reimplemented in TestClient, so production-client callers -
-# undecorated tests using get_flow()/import_file() - still talk to a real mailroom for now. @mock_mailroom tests
-# don't reach here for these: TestClient's stubs intercept them above _request.
+# endpoints still allowed to reach a live mailroom during tests, both reached by undecorated import tests using
+# the production client:
+#  - flow/inspect needs real goflow dependency/issue analysis we don't reimplement here
+#  - flow/migrate is only reached for fixtures below the current spec (the legacy-migration tests); current-spec
+#    fixtures skip the call via the fast-path in MailroomClient.flow_migrate
+# @mock_mailroom tests don't reach here for these - TestClient's stubs intercept above _request.
 LIVE_TEST_ENDPOINTS = {"flow/migrate", "flow/inspect"}
 
 _real_mailroom_request = MailroomClient._request
@@ -449,19 +450,6 @@ class TestClient(MailroomClient):
             "counts": {},
             "locals": [],
         }
-
-    @_client_method
-    def flow_migrate(self, definition: dict, to_version=None):
-        # fast-path: if the definition is already at the target version, skip the HTTP call.
-        # for older fixtures we fall through to real mailroom since we'd need to actually migrate.
-        if not to_version:
-            to_version = Flow.CURRENT_SPEC_VERSION
-
-        current = definition.get("spec_version")
-        if current and Version(current) >= Version(to_version):
-            return definition
-
-        return super().flow_migrate(definition, to_version=to_version)
 
     @_client_method
     def flow_interrupt(self, org, flow):
