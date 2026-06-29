@@ -66,7 +66,7 @@ class ResultsExportTest(TembaTest):
     def test_export(self, mr_mocks):
         today = timezone.now().astimezone(self.org.timezone).date()
 
-        flow = self.get_flow("color_v13")
+        flow = self.get_flow("color")
         flow_nodes = flow.get_definition()["nodes"]
         color_prompt = flow_nodes[0]
         color_split = flow_nodes[4]
@@ -480,7 +480,7 @@ class ResultsExportTest(TembaTest):
         today = timezone.now().astimezone(self.org.timezone).date()
 
         with self.anonymous(self.org):
-            flow = self.get_flow("color_v13")
+            flow = self.get_flow("color")
             flow_nodes = flow.get_definition()["nodes"]
             color_prompt = flow_nodes[0]
             color_split = flow_nodes[4]
@@ -895,7 +895,7 @@ class ResultsExportTest(TembaTest):
     def test_remove_control_characters(self):
         today = timezone.now().astimezone(self.org.timezone).date()
 
-        flow = self.get_flow("color_v13")
+        flow = self.get_flow("color")
         flow_nodes = flow.get_definition()["nodes"]
         color_prompt = flow_nodes[0]
         color_split = flow_nodes[4]
@@ -944,7 +944,7 @@ class ResultsExportTest(TembaTest):
     def test_from_archives(self):
         today = timezone.now().astimezone(self.org.timezone).date()
 
-        flow = self.get_flow("color_v13")
+        flow = self.get_flow("color")
         flow_nodes = flow.get_definition()["nodes"]
         color_prompt = flow_nodes[0]
         color_split = flow_nodes[4]

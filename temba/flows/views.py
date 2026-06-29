@@ -920,39 +920,69 @@ class FlowCRUDL(SmartCRUDL):
             if self.has_org_perm("orgs.org_export"):
                 menu.add_link(_("Export Definition"), f"{reverse('orgs.org_export')}?flow={obj.id}")
 
-    class ChangeLanguage(OrgObjPermsMixin, SmartUpdateView):
-        class Form(forms.Form):
-            language = forms.CharField(required=True)
+    class ChangeLanguage(BaseReadView):
+        """
+        Used by the editor to switch a flow's base language to a fully translated language. The current base language
+        text is moved into the flow's localization and the target language's translations are promoted to be the base.
+        """
 
-            def __init__(self, org, instance, *args, **kwargs):
-                super().__init__(*args, **kwargs)
+        # matches the sibling editor endpoints (Revisions, Activity); editing the flow is enough to change its base
+        # language since an editor can already rewrite the whole definition via Revisions
+        permission = "flows.flow_editor"
 
-                self.org = org
+        # POST-only - a GET would otherwise try to render a non-existent template and 500
+        http_method_names = ["post"]
 
-            def clean_language(self):
-                data = self.cleaned_data["language"]
-                if data and data not in self.org.flow_languages:
-                    raise ValidationError(_("Not a valid language."))
+        def post(self, request, *args, **kwargs):
+            flow = self.get_object()
 
-                return data
+            try:
+                language = json.loads(force_str(request.body)).get("language")
+            except Exception:
+                return JsonResponse({"status": "failure", "description": _("Invalid request.")}, status=400)
 
-        permission = "flows.flow_update"
-        form_class = Form
-        success_url = "uuid@flows.flow_editor"
+            if not language or language not in flow.org.flow_languages:
+                return JsonResponse({"status": "failure", "description": _("Not a valid language.")}, status=400)
 
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["org"] = self.request.org
-            return kwargs
+            if language == flow.base_language:
+                return JsonResponse(
+                    {"status": "failure", "description": _("Flow is already in this language.")}, status=400
+                )
 
-        def form_valid(self, form):
-            flow_def = mailroom.get_client().flow_change_language(
-                self.object.get_definition(), form.cleaned_data["language"]
-            )
+            try:
+                flow_def = mailroom.get_client().flow_change_language(flow.get_definition(), language)
+                revision, _issues = flow.save_revision(request.user, flow_def)
+                return JsonResponse({"status": "success", "revision": revision.as_json()})
 
-            self.object.save_revision(self.request.user, flow_def)
+            except mailroom.FlowValidationException as e:
+                error = _("Your flow failed validation. Please refresh your browser.")
+                detail = str(e)
+            except FlowVersionConflictException:
+                error = _(
+                    "Your flow has been upgraded to the latest version. "
+                    "In order to continue editing, please refresh your browser."
+                )
+                detail = None
+            except FlowUserConflictException as e:
+                error = (
+                    _(
+                        "%s is currently editing this Flow. "
+                        "Your changes will not be saved until you refresh your browser."
+                    )
+                    % e.other_user
+                )
+                detail = None
+            except mailroom.RequestException:
+                logger.error("Mailroom request failed", exc_info=True)
+                return JsonResponse(
+                    {"status": "failure", "description": _("Unable to change the flow's language.")}, status=500
+                )
+            except Exception:  # pragma: no cover
+                logger.error("Error changing flow base language", exc_info=True)
+                error = _("Your flow could not be saved. Please refresh your browser.")
+                detail = None
 
-            return HttpResponseRedirect(self.get_success_url())
+            return JsonResponse({"status": "failure", "description": error, "detail": detail}, status=400)
 
     class ExportTranslation(ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.Form):

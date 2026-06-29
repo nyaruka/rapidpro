@@ -503,6 +503,19 @@ class MailroomClientTest(TembaTest):
         )
         self.assertEqual({"org_id": self.org.id, "flow": flow_def, "is_import": False}, json.loads(call[1]["data"]))
 
+    @patch("requests.post")
+    def test_flow_interrupt(self, mock_post):
+        flow = Flow.create(self.org, self.admin, "Flow")
+
+        mock_post.return_value = MockJsonResponse(200, {"sessions": 3})
+        self.client.flow_interrupt(self.org, flow)
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mi/flow/interrupt",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={"org_id": self.org.id, "flow_id": flow.id},
+        )
+
     def test_flow_migrate(self):
         flow_def = {"nodes": [{"val": Decimal("1.23")}]}
 

@@ -18,7 +18,7 @@ class FlowsEndpointTest(APITest):
         self.assertDeleteNotAllowed(endpoint_url)
 
         survey = self.get_flow("media_survey")
-        color = self.get_flow("color_v13")
+        color = self.get_flow("color")
         archived = self.get_flow("favorites")
         archived.archive(self.admin, interrupt_sessions=False)
 

@@ -102,7 +102,7 @@ Add the correct font weight in Edge and Safari.
 
 b,
 strong {
-  font-weight: 600;
+  font-weight: bolder;
 }
 
 /**
@@ -603,6 +603,13 @@ video {
   font-weight: 400;
 }
 
+/* override the preflight default (bolder) to the DS bold weight */
+
+b,
+strong {
+  font-weight: 600;
+}
+
 a {
   cursor: pointer;
   color: rgb(var(--primary-rgb));
@@ -706,18 +713,11 @@ a:hover {
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   }
 
-/* button-light, button-action — DS ghost-style, see consolidated block below. */
-
-.p-icon {
-  padding: 8px 12px;
-}
-
-/* button-tertiary, button-secondary — DS-aligned, see consolidated block below. */
-
 /* ─── Legacy CSS-based buttons ────────────────────────────────────────────
    These class-based buttons predate <temba-button>. They share the DS
    button chrome and only differ in surface/tint. Replace with
    <temba-button> when convenient. */
+
 .button-primary,
 .button-white,
 .button-light,
@@ -740,7 +740,9 @@ a:hover {
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
-  user-select: none;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
   outline: none;
   box-sizing: border-box;
   text-align: center;
@@ -749,6 +751,7 @@ a:hover {
 }
 
 /* solid accent — primary CTA */
+
 .button-primary {
   background: var(--accent-600);
   color: #fff;
@@ -756,12 +759,14 @@ a:hover {
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 1px 1px rgba(15, 22, 36, 0.1);
 }
+
 .button-primary:hover {
   background: var(--accent-700);
   text-decoration: none;
 }
 
 /* surface + border — secondary CTA */
+
 .button-white,
 .button-light,
 .button-action {
@@ -769,6 +774,7 @@ a:hover {
   border-color: var(--border-strong);
   color: var(--text-1);
 }
+
 .button-white:hover,
 .button-light:hover,
 .button-action:hover {
@@ -777,48 +783,59 @@ a:hover {
 }
 
 /* tertiary accent (legacy green) */
+
 .button-tertiary {
   background: rgb(var(--tertiary-rgb));
   color: #fff;
 }
+
 .button-tertiary:hover {
   background: color-mix(in srgb, rgb(var(--tertiary-rgb)) 88%, black);
   text-decoration: none;
 }
 
 /* secondary accent (legacy magenta) */
+
 .button-secondary {
   background: rgb(var(--secondary-rgb));
   color: #fff;
 }
+
 .button-secondary:hover {
   background: color-mix(in srgb, rgb(var(--secondary-rgb)) 88%, black);
   text-decoration: none;
 }
 
 /* destructive — red */
+
 .button-danger {
   background: var(--danger, rgb(var(--error-rgb)));
   color: #fff;
 }
+
 .button-danger:hover {
   background: color-mix(in srgb, var(--danger, rgb(var(--error-rgb))) 88%, black);
   text-decoration: none;
 }
 
 /* dark overlay — for use on light backgrounds where you need a muted button */
+
 .button-dark-alpha {
   background: rgba(0, 0, 0, 0.05);
   color: var(--text-2);
 }
+
 .button-dark-alpha:hover {
   background: rgba(0, 0, 0, 0.08);
   text-decoration: none;
 }
 
-/* button-danger, button-dark-alpha — DS-aligned, see consolidated block above. */
+.p-icon {
+  padding: 8px 12px;
+}
 
 /* compact dark-alpha button (chrome overlays on dark backgrounds) */
+
 .button-sm {
   display: inline-flex;
   align-items: center;
@@ -834,7 +851,9 @@ a:hover {
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
-  user-select: none;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
   outline: none;
   box-sizing: border-box;
   text-align: center;

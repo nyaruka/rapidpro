@@ -12,12 +12,20 @@ from temba import mailroom
 from temba.api.models import Resthook
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import URN
-from temba.flows.models import Flow, FlowLabel, FlowRun, FlowStart, FlowUserConflictException, ResultsExport
+from temba.flows.models import (
+    Flow,
+    FlowLabel,
+    FlowRun,
+    FlowStart,
+    FlowUserConflictException,
+    FlowVersionConflictException,
+    ResultsExport,
+)
 from temba.mailroom.client.types import Exclusions
 from temba.orgs.integrations.dtone.type import DTOneType
 from temba.orgs.models import Export
 from temba.templates.models import TemplateTranslation
-from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
+from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, matchers, mock_mailroom
 from temba.tests.base import get_contact_search, override_brand
 from temba.tests.requests import MockJsonResponse
 from temba.triggers.models import Trigger
@@ -556,7 +564,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         flow.refresh_from_db()
         self.assertEqual("New Name", flow.name)
 
-    def test_list_views(self):
+    @mock_mailroom
+    def test_list_views(self, mr_mocks):
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
 
@@ -774,7 +783,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     @mock_mailroom
     def test_get_definition(self, mr_mocks):
-        flow = self.get_flow("color_v13")
+        flow = self.get_flow("color")
 
         # if definition is outdated, metadata values are updated from db object
         flow.name = "Amazing Flow"
@@ -1542,7 +1551,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     @mock_mailroom
     def test_copy_view(self, mr_mocks):
-        flow = self.get_flow("color_v13")
+        flow = self.get_flow("color")
 
         self.login(self.admin)
 
@@ -1928,29 +1937,113 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         flow = self.get_flow("favorites_v13")
 
-        change_url = reverse("flows.flow_change_language", args=[flow.id])
+        change_url = reverse("flows.flow_change_language", args=[flow.uuid])
 
-        self.assertUpdateSubmit(
-            change_url,
-            self.admin,
-            {"language": ""},
-            form_errors={"language": "This field is required."},
-            object_unchanged=flow,
-        )
+        # agents don't have permission to change the language
+        self.login(self.agent)
+        response = self.client.post(change_url, {"language": "spa"}, content_type="application/json")
+        self.assertLoginRedirect(response)
 
-        self.assertUpdateSubmit(
-            change_url,
-            self.admin,
-            {"language": "fra"},
-            form_errors={"language": "Not a valid language."},
-            object_unchanged=flow,
-        )
+        self.login(self.admin)
 
-        self.assertUpdateSubmit(change_url, self.admin, {"language": "spa"}, success_status=302)
+        # this endpoint is POST-only - a GET is not allowed (rather than 500ing on a missing template)
+        response = self.client.get(change_url)
+        self.assertEqual(405, response.status_code)
 
+        # a missing or empty language is rejected
+        response = self.client.post(change_url, {"language": ""}, content_type="application/json")
+        self.assertEqual(400, response.status_code)
+        self.assertEqual("Not a valid language.", response.json()["description"])
+
+        # a language that isn't one of the org's flow languages is rejected
+        response = self.client.post(change_url, {"language": "fra"}, content_type="application/json")
+        self.assertEqual(400, response.status_code)
+        self.assertEqual("Not a valid language.", response.json()["description"])
+
+        # the flow's current base language is rejected
+        response = self.client.post(change_url, {"language": "eng"}, content_type="application/json")
+        self.assertEqual(400, response.status_code)
+        self.assertEqual("Flow is already in this language.", response.json()["description"])
+
+        # changing to a valid language switches the base language and saves a new revision. mailroom does the actual
+        # re-basing of the definition so we just mock the definition it returns.
+        changed_def = flow.get_definition()
+        changed_def["language"] = "spa"
+        changed_def["localization"]["eng"] = {}
+        changed_def["nodes"][0]["actions"][0]["text"] = "¿Cuál es tu color favorito?"
+        mr_mocks.flow_change_language(changed_def)
+
+        response = self.client.post(change_url, {"language": "spa"}, content_type="application/json")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("success", response.json()["status"])
+        self.assertEqual(flow.revisions.order_by("-revision").first().revision, response.json()["revision"]["revision"])
+
+        # the flow's current (base-language English) definition was sent to mailroom along with the target language
+        passed_def, passed_lang = mr_mocks.calls["flow_change_language"][-1].args
+        self.assertEqual("eng", passed_def["language"])
+        self.assertEqual("spa", passed_lang)
+
+        # the re-based definition mailroom returned is what we saved
         flow_def = flow.get_definition()
+        self.assertEqual("spa", flow_def["language"])
         self.assertIn("eng", flow_def["localization"])
         self.assertEqual("¿Cuál es tu color favorito?", flow_def["nodes"][0]["actions"][0]["text"])
+
+        # if mailroom rejects the resulting definition we return a failure response rather than a stack trace
+        mr_mocks.exception(mailroom.FlowValidationException("node isn't unique"))
+        response = self.client.post(change_url, {"language": "ara"}, content_type="application/json")
+        self.assertEqual(400, response.status_code)
+        self.assertEqual(
+            {
+                "status": "failure",
+                "description": "Your flow failed validation. Please refresh your browser.",
+                "detail": "node isn't unique",
+            },
+            response.json(),
+        )
+
+        # a request body that isn't valid JSON is rejected
+        response = self.client.post(change_url, data="not json", content_type="application/json")
+        self.assertEqual(400, response.status_code)
+        self.assertEqual("Invalid request.", response.json()["description"])
+
+        # a version conflict whilst saving the new revision is converted to an error response
+        mr_mocks.flow_change_language(flow.get_definition())
+        with patch("temba.flows.models.Flow.save_revision") as mock_save_revision:
+            mock_save_revision.side_effect = FlowVersionConflictException(13)
+            response = self.client.post(change_url, {"language": "ara"}, content_type="application/json")
+        self.assertEqual(400, response.status_code)
+        self.assertEqual(
+            {
+                "status": "failure",
+                "description": "Your flow has been upgraded to the latest version. "
+                "In order to continue editing, please refresh your browser.",
+                "detail": None,
+            },
+            response.json(),
+        )
+
+        # a user conflict whilst saving the new revision is converted to an error response
+        mr_mocks.flow_change_language(flow.get_definition())
+        with patch("temba.flows.models.Flow.save_revision") as mock_save_revision:
+            mock_save_revision.side_effect = FlowUserConflictException("Jim", None)
+            response = self.client.post(change_url, {"language": "ara"}, content_type="application/json")
+        self.assertEqual(400, response.status_code)
+        self.assertEqual(
+            {
+                "status": "failure",
+                "description": "Jim is currently editing this Flow. "
+                "Your changes will not be saved until you refresh your browser.",
+                "detail": None,
+            },
+            response.json(),
+        )
+
+        # a failed request to mailroom is converted to an error response
+        mr_mocks.exception(mailroom.RequestException("", "", MockResponse(500, '{"error": "boom"}')))
+        response = self.client.post(change_url, {"language": "ara"}, content_type="application/json")
+        self.assertEqual(500, response.status_code)
+        self.assertEqual("Unable to change the flow's language.", response.json()["description"])
 
     def test_export_results(self):
         export_url = reverse("flows.flow_export_results")

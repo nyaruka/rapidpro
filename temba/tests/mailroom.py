@@ -1,12 +1,13 @@
+import copy
 import functools
 import re
 from collections import defaultdict
 from dataclasses import asdict
 from decimal import Decimal
 from functools import wraps
-from unittest.mock import call, patch
+from unittest.mock import NonCallableMock, call, patch
 
-from packaging.version import Version
+import requests
 
 from django.conf import settings
 from django.db import connection
@@ -16,7 +17,7 @@ from temba import mailroom
 from temba.campaigns.models import CampaignEvent
 from temba.channels.models import ChannelEvent
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactURN
-from temba.flows.models import Flow, FlowRun, FlowSession, FlowStart
+from temba.flows.models import FlowRun, FlowSession, FlowStart
 from temba.locations.models import AdminBoundary
 from temba.mailroom.client.client import MailroomClient
 from temba.mailroom.modifiers import Modifier
@@ -25,7 +26,7 @@ from temba.schedules.models import Schedule
 from temba.tests.dates import parse_datetime
 from temba.tickets.models import Ticket
 from temba.utils import json
-from temba.utils.uuid import uuid7
+from temba.utils.uuid import is_uuid, uuid7
 
 event_units = {
     CampaignEvent.UNIT_MINUTES: "minutes",
@@ -33,6 +34,91 @@ event_units = {
     CampaignEvent.UNIT_DAYS: "days",
     CampaignEvent.UNIT_WEEKS: "weeks",
 }
+
+# endpoints still allowed to reach a live mailroom during tests, both reached by undecorated import tests using
+# the production client:
+#  - flow/inspect needs real goflow dependency/issue analysis we don't reimplement here
+#  - flow/migrate is only reached for fixtures below the current spec (the legacy-migration tests); current-spec
+#    fixtures skip the call via the fast-path in MailroomClient.flow_migrate
+# @mock_mailroom tests don't reach here for these - TestClient's stubs intercept above _request.
+LIVE_TEST_ENDPOINTS = {"flow/migrate", "flow/inspect"}
+
+_real_mailroom_request = MailroomClient._request
+
+
+def clone_flow_definition(definition: dict, dependency_mapping: dict) -> dict:
+    """
+    Python port of goflow's flow clone (flows/definition/migrations.Clone) for tests. It walks the definition and
+    remaps dependency UUIDs - in "uuid"/"*_uuid" properties, UUID-named keys, and UUID strings in arrays - using
+    the given mapping, so an imported flow references the objects resolved for the target org.
+
+    Unlike goflow it leaves the flow's own element UUIDs untouched rather than assigning fresh random ones: that
+    uniqueness step isn't needed in tests and stable UUIDs are much easier to assert against.
+    """
+
+    def remap(node):
+        if isinstance(node, dict):
+            for key in list(node.keys()):
+                value = node[key]
+                if (key == "uuid" or key.endswith("_uuid")) and isinstance(value, str):
+                    node[key] = dependency_mapping.get(value, value)
+                # test cheap O(1) membership before is_uuid()'s try/except, which runs on every key otherwise
+                elif key in dependency_mapping and is_uuid(key):
+                    node[dependency_mapping[key]] = node.pop(key)
+            for value in node.values():
+                remap(value)
+        elif isinstance(node, list):
+            for i, value in enumerate(node):
+                if isinstance(value, str) and is_uuid(value):
+                    node[i] = dependency_mapping.get(value, value)
+                elif isinstance(value, (dict, list)):
+                    remap(value)
+
+    clone = copy.deepcopy(definition)
+    remap(clone)
+    return clone
+
+
+class LiveMailroomError(BaseException):
+    """
+    Raised when a test reaches a live mailroom instead of mocking it. Deliberately subclasses BaseException, not
+    Exception, so that application code wrapping mailroom calls in `except Exception` (e.g. smartmin action
+    handlers) can't swallow it and mask the violation.
+    """
+
+
+def _guarded_mailroom_request(self, endpoint, payload=None, files=None, post=True, encode_json=False):
+    # a patched transport (e.g. patch("requests.post")) means no real network call happens - that's how the
+    # MailroomClient's own request-construction tests work, so let those through to the real _request. this only
+    # detects Mock-based patches; patch("requests.post", new=<plain callable>) would slip past, but that form
+    # isn't used against requests here.
+    transport = requests.post if post else requests.get
+    if isinstance(transport, NonCallableMock):
+        return _real_mailroom_request(self, endpoint, payload=payload, files=files, post=post, encode_json=encode_json)
+
+    # flow/clone is simple enough to reimplement in Python, so fake it for the production client used by
+    # undecorated import tests rather than reaching a live mailroom. unlike migrate/inspect it needs no goflow.
+    if endpoint == "flow/clone":
+        return clone_flow_definition(payload["flow"], payload["dependency_mapping"])
+
+    if endpoint not in LIVE_TEST_ENDPOINTS:
+        raise LiveMailroomError(
+            f"test reached live mailroom endpoint /mi/{endpoint}; decorate the test with @mock_mailroom "
+            f"(adding a TestClient fake if needed) or mock the call"
+        )
+    return _real_mailroom_request(self, endpoint, payload=payload, files=files, post=post, encode_json=encode_json)
+
+
+def install_mailroom_guard(test):
+    """
+    Makes any un-mocked call to a live mailroom fail loudly. Patches MailroomClient._request, which covers both
+    the production client and the TestClient used by @mock_mailroom (TestClient fakes most endpoints above this
+    layer, so only un-faked ones reach here).
+    """
+
+    patcher = patch.object(MailroomClient, "_request", _guarded_mailroom_request)
+    patcher.start()
+    test.addCleanup(patcher.stop)
 
 
 def mock_inspect_query(org, query: str, fields=None) -> mailroom.QueryMetadata:
@@ -61,6 +147,7 @@ class Mocks:
         self._contact_parse_query = {}
         self._contact_search = {}
         self._contact_urns = []
+        self._flow_change_language = []
         self._flow_inspect = []
         self._flow_start_preview = []
         self._llm_translate = []
@@ -96,6 +183,13 @@ class Mocks:
 
     def contact_urns(self, urns: dict):
         self._contact_urns.append(urns)
+
+    def flow_change_language(self, definition: dict):
+        """
+        Queues the re-based definition that mailroom should return for the next flow_change_language call.
+        """
+
+        self._flow_change_language.append(definition)
 
     def flow_inspect(self, *, dependencies=(), issues=(), results=(), parent_refs=(), counts=None, locals=None):
         self._flow_inspect.append(
@@ -335,9 +429,13 @@ class TestClient(MailroomClient):
         return results
 
     @_client_method
+    def flow_change_language(self, definition: dict, language):
+        assert self.mocks._flow_change_language, "missing flow_change_language mock"
+        return self.mocks._flow_change_language.pop(0)
+
+    @_client_method
     def flow_clone(self, definition: dict, dependency_mapping):
-        # we replace UUIDs in production to ensure uniqueness but for tests it's nicer to know the UUIDs
-        return definition
+        return clone_flow_definition(definition, dependency_mapping)
 
     @_client_method
     def flow_inspect(self, org, definition: dict, is_import=False):
@@ -352,19 +450,6 @@ class TestClient(MailroomClient):
             "counts": {},
             "locals": [],
         }
-
-    @_client_method
-    def flow_migrate(self, definition: dict, to_version=None):
-        # fast-path: if the definition is already at the target version, skip the HTTP call.
-        # for older fixtures we fall through to real mailroom since we'd need to actually migrate.
-        if not to_version:
-            to_version = Flow.CURRENT_SPEC_VERSION
-
-        current = definition.get("spec_version")
-        if current and Version(current) >= Version(to_version):
-            return definition
-
-        return super().flow_migrate(definition, to_version=to_version)
 
     @_client_method
     def flow_interrupt(self, org, flow):
