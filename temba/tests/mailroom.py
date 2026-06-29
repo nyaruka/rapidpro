@@ -4,8 +4,9 @@ from collections import defaultdict
 from dataclasses import asdict
 from decimal import Decimal
 from functools import wraps
-from unittest.mock import call, patch
+from unittest.mock import NonCallableMock, call, patch
 
+import requests
 from packaging.version import Version
 
 from django.conf import settings
@@ -33,6 +34,38 @@ event_units = {
     CampaignEvent.UNIT_DAYS: "days",
     CampaignEvent.UNIT_WEEKS: "weeks",
 }
+
+# endpoints still allowed to reach a live mailroom during tests. these exercise goflow logic (flow migration and
+# dependency inspection) that we don't reimplement in TestClient, so the tests that need them talk to a real
+# mailroom for now - everything else must be faked via @mock_mailroom or mocked at the transport.
+LIVE_TEST_ENDPOINTS = {"flow/migrate", "flow/inspect", "flow/clone"}
+
+_real_mailroom_request = MailroomClient._request
+
+
+def _guarded_mailroom_request(self, endpoint, payload=None, files=None, post=True, encode_json=False):
+    # a patched transport (e.g. patch("requests.post")) means no real network call happens - that's how the
+    # MailroomClient's own request-construction tests work, so allow it
+    transport = requests.post if post else requests.get
+    mocked = isinstance(transport, NonCallableMock)
+
+    assert endpoint in LIVE_TEST_ENDPOINTS or mocked, (
+        f"test reached live mailroom endpoint /mi/{endpoint}; decorate the test with @mock_mailroom "
+        f"(adding a TestClient fake if needed) or mock the call"
+    )
+    return _real_mailroom_request(self, endpoint, payload=payload, files=files, post=post, encode_json=encode_json)
+
+
+def install_mailroom_guard(test):
+    """
+    Makes any un-mocked call to a live mailroom fail loudly. Patches MailroomClient._request, which covers both
+    the production client and the TestClient used by @mock_mailroom (TestClient fakes most endpoints above this
+    layer, so only un-faked ones reach here).
+    """
+
+    patcher = patch.object(MailroomClient, "_request", _guarded_mailroom_request)
+    patcher.start()
+    test.addCleanup(patcher.stop)
 
 
 def mock_inspect_query(org, query: str, fields=None) -> mailroom.QueryMetadata:
@@ -159,23 +192,10 @@ def _client_method(func):
 
 
 class TestClient(MailroomClient):
-    # endpoints that TestClient intentionally proxies to a real mailroom rather than faking. flow/migrate is
-    # still real because fixtures below the current spec version need actually migrating (see flow_migrate).
-    ALLOWED_LIVE_ENDPOINTS = {"flow/migrate"}
-
     def __init__(self, mocks: Mocks):
         self.mocks = mocks
 
         super().__init__(settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN)
-
-    def _request(self, endpoint, *args, **kwargs):
-        # reaching the real HTTP client means an endpoint isn't faked above and the test is silently
-        # depending on a live mailroom - fail loudly instead so it gets a fake or an explicit mock
-        assert endpoint in self.ALLOWED_LIVE_ENDPOINTS, (
-            f"test reached un-mocked mailroom endpoint /mi/{endpoint} via the real client; "
-            f"add a fake to TestClient or mock the call"
-        )
-        return super()._request(endpoint, *args, **kwargs)
 
     @_client_method
     def android_event(self, org, channel, phone: str, event_type: str, extra: dict, occurred_on):
