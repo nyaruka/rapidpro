@@ -61,7 +61,8 @@ def clone_flow_definition(definition: dict, dependency_mapping: dict) -> dict:
                 value = node[key]
                 if (key == "uuid" or key.endswith("_uuid")) and isinstance(value, str):
                     node[key] = dependency_mapping.get(value, value)
-                elif is_uuid(key) and key in dependency_mapping:
+                # test cheap O(1) membership before is_uuid()'s try/except, which runs on every key otherwise
+                elif key in dependency_mapping and is_uuid(key):
                     node[dependency_mapping[key]] = node.pop(key)
             for value in node.values():
                 remap(value)
@@ -69,7 +70,7 @@ def clone_flow_definition(definition: dict, dependency_mapping: dict) -> dict:
             for i, value in enumerate(node):
                 if isinstance(value, str) and is_uuid(value):
                     node[i] = dependency_mapping.get(value, value)
-                else:
+                elif isinstance(value, (dict, list)):
                     remap(value)
 
     clone = copy.deepcopy(definition)
