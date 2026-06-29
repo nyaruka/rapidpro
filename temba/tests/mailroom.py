@@ -35,24 +35,35 @@ event_units = {
     CampaignEvent.UNIT_WEEKS: "weeks",
 }
 
-# endpoints still allowed to reach a live mailroom during tests. these exercise goflow logic (flow migration and
-# dependency inspection) that we don't reimplement in TestClient, so the tests that need them talk to a real
-# mailroom for now - everything else must be faked via @mock_mailroom or mocked at the transport.
+# endpoints still allowed to reach a live mailroom during tests. these exercise goflow logic (flow migration,
+# dependency inspection and cloning) that isn't faithfully reimplemented in TestClient, so production-client
+# callers - undecorated tests using get_flow()/import_file() - still talk to a real mailroom for now. @mock_mailroom
+# tests don't reach here for these: TestClient's stubs intercept them above _request.
 LIVE_TEST_ENDPOINTS = {"flow/migrate", "flow/inspect", "flow/clone"}
 
 _real_mailroom_request = MailroomClient._request
 
 
+class LiveMailroomError(BaseException):
+    """
+    Raised when a test reaches a live mailroom instead of mocking it. Deliberately subclasses BaseException, not
+    Exception, so that application code wrapping mailroom calls in `except Exception` (e.g. smartmin action
+    handlers) can't swallow it and mask the violation.
+    """
+
+
 def _guarded_mailroom_request(self, endpoint, payload=None, files=None, post=True, encode_json=False):
     # a patched transport (e.g. patch("requests.post")) means no real network call happens - that's how the
-    # MailroomClient's own request-construction tests work, so allow it
+    # MailroomClient's own request-construction tests work, so allow it. this only detects Mock-based patches;
+    # patch("requests.post", new=<plain callable>) would slip past, but that form isn't used against requests here.
     transport = requests.post if post else requests.get
     mocked = isinstance(transport, NonCallableMock)
 
-    assert endpoint in LIVE_TEST_ENDPOINTS or mocked, (
-        f"test reached live mailroom endpoint /mi/{endpoint}; decorate the test with @mock_mailroom "
-        f"(adding a TestClient fake if needed) or mock the call"
-    )
+    if not (endpoint in LIVE_TEST_ENDPOINTS or mocked):
+        raise LiveMailroomError(
+            f"test reached live mailroom endpoint /mi/{endpoint}; decorate the test with @mock_mailroom "
+            f"(adding a TestClient fake if needed) or mock the call"
+        )
     return _real_mailroom_request(self, endpoint, payload=payload, files=files, post=post, encode_json=encode_json)
 
 
