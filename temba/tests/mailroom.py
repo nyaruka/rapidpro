@@ -61,6 +61,7 @@ class Mocks:
         self._contact_parse_query = {}
         self._contact_search = {}
         self._contact_urns = []
+        self._flow_change_language = []
         self._flow_inspect = []
         self._flow_start_preview = []
         self._llm_translate = []
@@ -96,6 +97,13 @@ class Mocks:
 
     def contact_urns(self, urns: dict):
         self._contact_urns.append(urns)
+
+    def flow_change_language(self, definition: dict):
+        """
+        Queues the re-based definition that mailroom should return for the next flow_change_language call.
+        """
+
+        self._flow_change_language.append(definition)
 
     def flow_inspect(self, *, dependencies=(), issues=(), results=(), parent_refs=(), counts=None, locals=None):
         self._flow_inspect.append(
@@ -333,6 +341,11 @@ class TestClient(MailroomClient):
                     results[i].contact_id = result
 
         return results
+
+    @_client_method
+    def flow_change_language(self, definition: dict, language):
+        assert self.mocks._flow_change_language, "missing flow_change_language mock"
+        return self.mocks._flow_change_language.pop(0)
 
     @_client_method
     def flow_clone(self, definition: dict, dependency_mapping):

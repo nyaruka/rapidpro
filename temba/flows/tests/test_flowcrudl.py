@@ -1880,12 +1880,25 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(400, response.status_code)
         self.assertEqual("Flow is already in this language.", response.json()["description"])
 
-        # changing to a valid language switches the base language and saves a new revision
+        # changing to a valid language switches the base language and saves a new revision. mailroom does the actual
+        # re-basing of the definition so we just mock the definition it returns.
+        changed_def = flow.get_definition()
+        changed_def["language"] = "spa"
+        changed_def["localization"]["eng"] = {}
+        changed_def["nodes"][0]["actions"][0]["text"] = "¿Cuál es tu color favorito?"
+        mr_mocks.flow_change_language(changed_def)
+
         response = self.client.post(change_url, {"language": "spa"}, content_type="application/json")
         self.assertEqual(200, response.status_code)
         self.assertEqual("success", response.json()["status"])
         self.assertEqual(flow.revisions.order_by("-revision").first().revision, response.json()["revision"]["revision"])
 
+        # the flow's current (base-language English) definition was sent to mailroom along with the target language
+        passed_def, passed_lang = mr_mocks.calls["flow_change_language"][-1].args
+        self.assertEqual("eng", passed_def["language"])
+        self.assertEqual("spa", passed_lang)
+
+        # the re-based definition mailroom returned is what we saved
         flow_def = flow.get_definition()
         self.assertEqual("spa", flow_def["language"])
         self.assertIn("eng", flow_def["localization"])
@@ -1910,6 +1923,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("Invalid request.", response.json()["description"])
 
         # a version conflict whilst saving the new revision is converted to an error response
+        mr_mocks.flow_change_language(flow.get_definition())
         with patch("temba.flows.models.Flow.save_revision") as mock_save_revision:
             mock_save_revision.side_effect = FlowVersionConflictException(13)
             response = self.client.post(change_url, {"language": "ara"}, content_type="application/json")
@@ -1925,6 +1939,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         # a user conflict whilst saving the new revision is converted to an error response
+        mr_mocks.flow_change_language(flow.get_definition())
         with patch("temba.flows.models.Flow.save_revision") as mock_save_revision:
             mock_save_revision.side_effect = FlowUserConflictException("Jim", None)
             response = self.client.post(change_url, {"language": "ara"}, content_type="application/json")
