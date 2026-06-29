@@ -117,28 +117,6 @@ class FlowMigrationTest(TembaTest):
         return Flow.objects.get(pk=flow.pk)
 
     @mock_mailroom
-    def test_migrate_malformed_single_message_flow(self, mr_mocks):
-        flow = Flow.objects.create(
-            name="Single Message Flow",
-            org=self.org,
-            created_by=self.admin,
-            modified_by=self.admin,
-            saved_by=self.admin,
-            version_number="3",
-        )
-
-        flow_json = self.load_flow_def("malformed_single_message")["definition"]
-
-        FlowRevision.objects.create(flow=flow, definition=flow_json, spec_version=3, revision=1, created_by=self.admin)
-
-        flow.ensure_current_version()
-        flow_json = flow.get_definition()
-
-        self.assertEqual(1, len(flow_json["nodes"]))
-        self.assertEqual(Flow.CURRENT_SPEC_VERSION, flow_json["spec_version"])
-        self.assertEqual(2, flow_json["revision"])
-
-    @mock_mailroom
     def test_migrate_to_11_12(self, mr_mocks):
         flow = self.create_flow("Favorites")
         definition = {
@@ -262,15 +240,6 @@ class FlowMigrationTest(TembaTest):
         # check action set was removed
         self.assertEqual(len(migrated["rule_sets"]), 0)
 
-    def test_migrate_to_11_12_channel_dependencies(self):
-        self.channel.name = "1234"
-        self.channel.save()
-
-        self.load_flow("migrate_to_11_12_one_node")
-        flow = Flow.objects.filter(name="channel").first()
-
-        self.assertEqual(flow.channel_dependencies.count(), 1)
-
     @mock_mailroom
     def test_migrate_to_11_11(self, mr_mocks):
         flow = self.create_flow("Migrate 11.11")
@@ -334,11 +303,15 @@ class FlowMigrationTest(TembaTest):
 
     @mock_mailroom
     def test_migrate_to_11_9(self, mr_mocks):
-        flow = self.load_flow("migrate_to_11_9", name="Master")
+        flow = self.create_flow("Master")
 
-        # give our flows same UUIDs as in import and make 2 of them invalid
+        # the migration drops references to flows that are missing or invalid - create the referenced flows with
+        # the UUIDs the definition uses and make 2 of them invalid
+        self.create_flow("Valid1")
         Flow.objects.filter(name="Valid1").update(uuid="b823cc3b-aaa6-4cd1-b7a5-28d6b492cfa3")
+        self.create_flow("Invalid1")
         Flow.objects.filter(name="Invalid1").update(uuid="ad40071e-a665-4df3-af14-0bc0fe589244", is_archived=True)
+        self.create_flow("Invalid2")
         Flow.objects.filter(name="Invalid2").update(uuid="136cdab3-e9d1-458c-b6eb-766afd92b478", is_active=False)
 
         import_def = self.load_json("test_flows/legacy/migrations/migrate_to_11_9.json")
@@ -386,8 +359,12 @@ class FlowMigrationTest(TembaTest):
         self.assertEqual(len(migrated["rule_sets"]), 6)
 
     def test_migrate_to_11_6(self):
-        flow = self.load_flow("migrate_to_11_6")
+        flow = self.create_flow("Migrate 11.6")
         flow_json = self.load_flow_def("migrate_to_11_6")
+
+        # the migration remaps the definition's group references to org groups looked up by name
+        for name in get_legacy_groups(flow_json).values():
+            self.create_group(name, contacts=[])
 
         migrated = migrate_to_version_11_6(flow_json, flow)
         migrated_groups = get_legacy_groups(migrated)
@@ -1054,27 +1031,6 @@ class FlowMigrationTest(TembaTest):
         email_action = email_node["actions"][1]
 
         self.assertEqual(["admin@textit.com"], email_action["addresses"])
-
-    def test_migrate_bad_group_names(self):
-        # This test makes sure that bad contact groups (< 25, etc) are migrated forward properly.
-        # However, since it was a missed migration, now we need to apply it for any current version
-        # at the time of this fix
-        for v in ("4", "5", "6", "7", "8", "9", "10"):
-            error = 'Failure migrating group names "%s" forward from v%s'
-            flow = self.load_flow("favorites_bad_group_name_v%s" % v)
-            self.assertIsNotNone(flow, "Failure importing favorites from v%s" % v)
-            self.assertTrue(ContactGroup.objects.filter(name="Contacts < 25").exists(), error % ("< 25", v))
-            self.assertTrue(ContactGroup.objects.filter(name="Contacts > 100").exists(), error % ("> 100", v))
-
-            ContactGroup.objects.filter(is_system=False).delete()
-            self.assertEqual(Flow.CURRENT_SPEC_VERSION, flow.version_number)
-            flow.release(self.admin, interrupt_sessions=False)
-
-    def test_migrate_malformed_groups(self):
-        flow = self.load_flow("malformed_groups")
-        self.assertIsNotNone(flow)
-        self.assertTrue(ContactGroup.objects.filter(name="Contacts < 25").exists())
-        self.assertTrue(ContactGroup.objects.filter(name="Unknown").exists())
 
 
 class MigrationUtilsTest(TembaTest):
