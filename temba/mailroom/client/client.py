@@ -204,7 +204,7 @@ class MailroomClient:
         if not to_version:  # pragma: no cover
             to_version = Flow.CURRENT_SPEC_VERSION
 
-        # in tests fixtures are kept at the current spec (see the migrate_test_fixtures command), so skip the HTTP
+        # in tests fixtures are kept at the current spec (see the migrate_flows_to_current command), so skip the HTTP
         # round-trip when the definition is already at or beyond the target. in production we always defer to
         # mailroom, which may apply newer patch migrations within the same version that this client isn't aware of.
         if settings.TESTING:

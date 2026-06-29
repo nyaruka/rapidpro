@@ -5,20 +5,6 @@
     {
       "_ui": {
         "nodes": {
-          "b4eb7eb6-1bc6-46b9-a3cf-1683e7640242": {
-            "position": {
-              "left": 408,
-              "top": 0
-            },
-            "type": "execute_actions"
-          },
-          "43e04dfb-1395-45aa-896c-2391d9d91baf": {
-            "position": {
-              "left": 712,
-              "top": 190
-            },
-            "type": "execute_actions"
-          },
           "24622d39-2b9f-45a7-8c35-37a366e4bfc0": {
             "position": {
               "left": 408,
@@ -26,38 +12,10 @@
             },
             "type": "wait_for_response"
           },
-          "db59299d-cf7b-4957-a44d-4b7e7bea7008": {
+          "2547bdcf-93c5-4c7b-a162-cc2f2829597f": {
             "position": {
-              "left": 712,
-              "top": 393
-            },
-            "type": "wait_for_response"
-          },
-          "68b78622-8141-4d5c-b75c-28a432abc8d8": {
-            "position": {
-              "left": 240,
-              "top": 460
-            },
-            "type": "execute_actions"
-          },
-          "cbfb9358-61ac-446f-b4dd-5f1d4cc94578": {
-            "position": {
-              "left": 560,
-              "top": 620
-            },
-            "type": "execute_actions"
-          },
-          "de637449-e198-4b58-805f-a283fd0255d8": {
-            "position": {
-              "left": 200,
-              "top": 720
-            },
-            "type": "wait_for_response"
-          },
-          "5d503b2f-8cfb-4849-bb8d-347e9b564cb8": {
-            "position": {
-              "left": 140,
-              "top": 960
+              "left": 540,
+              "top": 2180
             },
             "type": "execute_actions"
           },
@@ -68,73 +26,17 @@
             },
             "type": "execute_actions"
           },
-          "dc43e149-0411-4081-939b-92bcc00ce5e0": {
+          "43e04dfb-1395-45aa-896c-2391d9d91baf": {
             "position": {
-              "left": 720,
-              "top": 1180
+              "left": 712,
+              "top": 190
             },
             "type": "execute_actions"
-          },
-          "c3247835-3d20-4701-b735-034afd8c0fa8": {
-            "position": {
-              "left": 260,
-              "top": 1380
-            },
-            "type": "wait_for_response"
-          },
-          "50bba0ac-23eb-48fa-b3fd-f9c5b4ecfe98": {
-            "position": {
-              "left": 140,
-              "top": 1620
-            },
-            "type": "execute_actions"
-          },
-          "72ef6843-692b-4528-94a7-c21809ce0402": {
-            "position": {
-              "left": 380,
-              "top": 1620
-            },
-            "type": "execute_actions"
-          },
-          "eccffb27-012e-4403-b560-7cf30527205f": {
-            "position": {
-              "left": 260,
-              "top": 1920
-            },
-            "type": "wait_for_response"
           },
           "459b1fb6-d4e9-4630-a635-5d35b2a5d685": {
             "position": {
               "left": 120,
               "top": 2080
-            },
-            "type": "execute_actions"
-          },
-          "2547bdcf-93c5-4c7b-a162-cc2f2829597f": {
-            "position": {
-              "left": 540,
-              "top": 2180
-            },
-            "type": "execute_actions"
-          },
-          "c840e826-7bc3-47cb-aca4-27665c9776bf": {
-            "position": {
-              "left": 240,
-              "top": 2300
-            },
-            "type": "wait_for_response"
-          },
-          "be4f2619-f996-4d51-bf5d-ab2903d1ece1": {
-            "position": {
-              "left": 120,
-              "top": 2520
-            },
-            "type": "execute_actions"
-          },
-          "8a17db02-5a2b-4459-8304-905f7cb55c47": {
-            "position": {
-              "left": 540,
-              "top": 2640
             },
             "type": "execute_actions"
           },
@@ -145,6 +47,13 @@
             },
             "type": "wait_for_response"
           },
+          "50bba0ac-23eb-48fa-b3fd-f9c5b4ecfe98": {
+            "position": {
+              "left": 140,
+              "top": 1620
+            },
+            "type": "execute_actions"
+          },
           "5b58e207-c30e-4c90-89c0-39b230915bd1": {
             "config": {},
             "position": {
@@ -153,6 +62,27 @@
             },
             "type": "split_by_webhook"
           },
+          "5d503b2f-8cfb-4849-bb8d-347e9b564cb8": {
+            "position": {
+              "left": 140,
+              "top": 960
+            },
+            "type": "execute_actions"
+          },
+          "68b78622-8141-4d5c-b75c-28a432abc8d8": {
+            "position": {
+              "left": 240,
+              "top": 460
+            },
+            "type": "execute_actions"
+          },
+          "72ef6843-692b-4528-94a7-c21809ce0402": {
+            "position": {
+              "left": 380,
+              "top": 1620
+            },
+            "type": "execute_actions"
+          },
           "77d54734-49db-4e99-959e-9d48529b7a79": {
             "position": {
               "left": 120,
@@ -160,10 +90,80 @@
             },
             "type": "execute_actions"
           },
+          "8a17db02-5a2b-4459-8304-905f7cb55c47": {
+            "position": {
+              "left": 540,
+              "top": 2640
+            },
+            "type": "execute_actions"
+          },
+          "b4eb7eb6-1bc6-46b9-a3cf-1683e7640242": {
+            "position": {
+              "left": 408,
+              "top": 0
+            },
+            "type": "execute_actions"
+          },
+          "be4f2619-f996-4d51-bf5d-ab2903d1ece1": {
+            "position": {
+              "left": 120,
+              "top": 2520
+            },
+            "type": "execute_actions"
+          },
+          "c3247835-3d20-4701-b735-034afd8c0fa8": {
+            "position": {
+              "left": 260,
+              "top": 1380
+            },
+            "type": "wait_for_response"
+          },
+          "c840e826-7bc3-47cb-aca4-27665c9776bf": {
+            "position": {
+              "left": 240,
+              "top": 2300
+            },
+            "type": "wait_for_response"
+          },
+          "cbfb9358-61ac-446f-b4dd-5f1d4cc94578": {
+            "position": {
+              "left": 560,
+              "top": 620
+            },
+            "type": "execute_actions"
+          },
           "cf79f484-a4ba-4be5-8511-e6fa04ecb825": {
             "position": {
               "left": 300,
               "top": 3480
+            },
+            "type": "wait_for_response"
+          },
+          "db59299d-cf7b-4957-a44d-4b7e7bea7008": {
+            "position": {
+              "left": 712,
+              "top": 393
+            },
+            "type": "wait_for_response"
+          },
+          "dc43e149-0411-4081-939b-92bcc00ce5e0": {
+            "position": {
+              "left": 720,
+              "top": 1180
+            },
+            "type": "execute_actions"
+          },
+          "de637449-e198-4b58-805f-a283fd0255d8": {
+            "position": {
+              "left": 200,
+              "top": 720
+            },
+            "type": "wait_for_response"
+          },
+          "eccffb27-012e-4403-b560-7cf30527205f": {
+            "position": {
+              "left": 260,
+              "top": 1920
             },
             "type": "wait_for_response"
           }
@@ -909,19 +909,12 @@
             "cases": [
               {
                 "arguments": [
-                  "Success"
+                  "200",
+                  "299"
                 ],
                 "category_uuid": "d0468060-1aeb-48bc-8d02-77823f94cac0",
-                "type": "has_only_text",
+                "type": "has_number_between",
                 "uuid": "1dc0c909-397b-4a57-bbbd-e30a2236f628"
-              },
-              {
-                "arguments": [
-                  "Failure"
-                ],
-                "category_uuid": "4150fd2f-bb57-4c9d-b8eb-78a775b282df",
-                "type": "has_only_text",
-                "uuid": "ae498999-97b9-4e8f-941e-cf72c16a7d46"
               }
             ],
             "categories": [
@@ -937,7 +930,7 @@
               }
             ],
             "default_category_uuid": "4150fd2f-bb57-4c9d-b8eb-78a775b282df",
-            "operand": "@results.coupon_webhook.category",
+            "operand": "@webhook.status",
             "type": "switch"
           },
           "uuid": "5b58e207-c30e-4c90-89c0-39b230915bd1"
@@ -946,7 +939,7 @@
           "actions": [
             {
               "quick_replies": [],
-              "text": "Thanks you so much for your time! Your coupon code is \"@webhook.coupon\", which you can use at any of our stores. Have a great day.",
+              "text": "Thanks you so much for your time! Your coupon code is \"@webhook.json.coupon\", which you can use at any of our stores. Have a great day.",
               "type": "send_msg",
               "uuid": "bfaf0e0a-df94-4c98-bccb-90b765b3f7d1"
             },
@@ -954,8 +947,8 @@
               "addresses": [
                 "{{EMAIL}}"
               ],
-              "subject": "New Survey Completion",
               "body": "A new survey was just completed by @contact (@(format_urn(urns.tel))).\n\nShop Again: @results.shop_again  \nRecommend: @results.recommend \nSuggestion: \"@results.suggestion\"\n\nSurvey completed by @results.age year old @results.gender.category_localized at @results.gender.created_on.",
+              "subject": "New Survey Completion",
               "type": "send_email",
               "uuid": "641284a1-ec29-4338-a038-6f910cea1e5d"
             }
@@ -995,10 +988,10 @@
           "uuid": "cf79f484-a4ba-4be5-8511-e6fa04ecb825"
         }
       ],
-      "spec_version": "13.1.0",
+      "revision": 2,
+      "spec_version": "14.4.1",
       "type": "messaging",
-      "uuid": "5ba7e03b-1dfd-446c-a6d0-c23ed83f6d8d",
-      "revision": 2
+      "uuid": "5ba7e03b-1dfd-446c-a6d0-c23ed83f6d8d"
     },
     {
       "_ui": {
@@ -1180,32 +1173,25 @@
           "uuid": "356cb78f-f7cf-4835-9665-80ae80b9e151"
         }
       ],
-      "spec_version": "13.1.0",
+      "revision": 1,
+      "spec_version": "14.4.1",
       "type": "messaging",
-      "uuid": "89382414-8096-435b-8e2b-184b1c6229f6",
-      "revision": 1
+      "uuid": "89382414-8096-435b-8e2b-184b1c6229f6"
     },
     {
       "_ui": {
         "nodes": {
-          "c3a4a6c4-55c9-4ef3-9688-63645ab18dd3": {
+          "33bdc0d1-f13a-48ca-b321-9382351025a4": {
             "position": {
-              "left": 409,
-              "top": 0
+              "left": 560,
+              "top": 800
             },
             "type": "execute_actions"
           },
-          "82d704bb-41f8-4943-a39d-466a6fed8a0f": {
+          "42691ba2-0e41-460f-8b5e-cc37698a3436": {
             "position": {
-              "left": 700,
-              "top": 120
-            },
-            "type": "execute_actions"
-          },
-          "72b0bc36-48c2-4f62-81fb-7ac9c6a937b4": {
-            "position": {
-              "left": 356,
-              "top": 198
+              "left": 340,
+              "top": 1440
             },
             "type": "wait_for_response"
           },
@@ -1216,16 +1202,6 @@
               "top": 360
             },
             "type": "split_by_webhook"
-          },
-          "904de34a-9857-45be-8c67-3516290d8b4f": {
-            "type": "split_by_expression",
-            "position": {
-              "left": 320,
-              "top": 580
-            },
-            "config": {
-              "cases": {}
-            }
           },
           "54ca1cdc-4f4c-4e28-9f7d-42b7c6c245c0": {
             "position": {
@@ -1241,26 +1217,19 @@
             },
             "type": "execute_actions"
           },
-          "33bdc0d1-f13a-48ca-b321-9382351025a4": {
-            "position": {
-              "left": 560,
-              "top": 800
-            },
-            "type": "execute_actions"
-          },
-          "42691ba2-0e41-460f-8b5e-cc37698a3436": {
-            "position": {
-              "left": 340,
-              "top": 1440
-            },
-            "type": "wait_for_response"
-          },
           "6ee924a7-9198-4541-9b68-ea850ca217bf": {
             "position": {
               "left": 340,
               "top": 1580
             },
             "type": "execute_actions"
+          },
+          "72b0bc36-48c2-4f62-81fb-7ac9c6a937b4": {
+            "position": {
+              "left": 356,
+              "top": 198
+            },
+            "type": "wait_for_response"
           },
           "764ab27e-4f0b-46bb-bdac-961a534f3983": {
             "position": {
@@ -1273,6 +1242,30 @@
             "position": {
               "left": 340,
               "top": 1120
+            },
+            "type": "execute_actions"
+          },
+          "82d704bb-41f8-4943-a39d-466a6fed8a0f": {
+            "position": {
+              "left": 700,
+              "top": 120
+            },
+            "type": "execute_actions"
+          },
+          "904de34a-9857-45be-8c67-3516290d8b4f": {
+            "config": {
+              "cases": {}
+            },
+            "position": {
+              "left": 320,
+              "top": 580
+            },
+            "type": "split_by_expression"
+          },
+          "c3a4a6c4-55c9-4ef3-9688-63645ab18dd3": {
+            "position": {
+              "left": 409,
+              "top": 0
             },
             "type": "execute_actions"
           }
@@ -1386,19 +1379,12 @@
             "cases": [
               {
                 "arguments": [
-                  "Success"
+                  "200",
+                  "299"
                 ],
                 "category_uuid": "5498efa9-2663-40c1-a1ec-2fe8b77728f2",
-                "type": "has_only_text",
+                "type": "has_number_between",
                 "uuid": "1f56bdc2-3228-4a6a-beb0-f2c516ccb3e0"
-              },
-              {
-                "arguments": [
-                  "Failure"
-                ],
-                "category_uuid": "16f1638a-4161-473a-bd67-bd8b2607a1c2",
-                "type": "has_only_text",
-                "uuid": "be95de1a-2136-412a-9c23-a577434b7709"
               }
             ],
             "categories": [
@@ -1414,17 +1400,58 @@
               }
             ],
             "default_category_uuid": "16f1638a-4161-473a-bd67-bd8b2607a1c2",
-            "operand": "@results.order_lookup.category",
+            "operand": "@webhook.status",
             "type": "switch"
           },
           "uuid": "525aee83-21a1-4b50-9f84-38c4077b6198"
         },
         {
-          "uuid": "904de34a-9857-45be-8c67-3516290d8b4f",
           "actions": [],
+          "exits": [
+            {
+              "destination_uuid": "54ca1cdc-4f4c-4e28-9f7d-42b7c6c245c0",
+              "uuid": "01d9c832-b7d7-40e3-badf-aa31e599ff60"
+            },
+            {
+              "destination_uuid": "63fd7844-5f60-453c-8d67-9f06ebe259a1",
+              "uuid": "b88b5c33-cb38-43e4-8365-69839c83b886"
+            },
+            {
+              "destination_uuid": "33bdc0d1-f13a-48ca-b321-9382351025a4",
+              "uuid": "3a335bc2-5653-435a-baaa-b5b0d93b6b8b"
+            },
+            {
+              "destination_uuid": "82d704bb-41f8-4943-a39d-466a6fed8a0f",
+              "uuid": "d03d2b0b-7850-4bed-ad1e-1cdc42142717"
+            }
+          ],
           "router": {
-            "type": "switch",
-            "default_category_uuid": "e0da0671-2f1f-4b79-a2bd-563359ebe9a0",
+            "cases": [
+              {
+                "arguments": [
+                  "Shipped"
+                ],
+                "category_uuid": "66cec890-822f-47cc-9861-0aace74d566f",
+                "type": "has_all_words",
+                "uuid": "b2174368-fc4e-4ed4-9720-66af4c19808c"
+              },
+              {
+                "arguments": [
+                  "Pending"
+                ],
+                "category_uuid": "67d29c41-f85c-468a-bd9a-059225b106d3",
+                "type": "has_all_words",
+                "uuid": "5b85df51-47c3-4aea-b20d-dab741e7a3c3"
+              },
+              {
+                "arguments": [
+                  "Cancelled"
+                ],
+                "category_uuid": "e495411f-b959-4839-9057-02b0ad437bad",
+                "type": "has_all_words",
+                "uuid": "94531a8c-e0e1-46bb-b2f1-733836aca873"
+              }
+            ],
             "categories": [
               {
                 "exit_uuid": "01d9c832-b7d7-40e3-badf-aa31e599ff60",
@@ -1447,59 +1474,18 @@
                 "uuid": "e0da0671-2f1f-4b79-a2bd-563359ebe9a0"
               }
             ],
-            "cases": [
-              {
-                "arguments": [
-                  "Shipped"
-                ],
-                "type": "has_all_words",
-                "uuid": "b2174368-fc4e-4ed4-9720-66af4c19808c",
-                "category_uuid": "66cec890-822f-47cc-9861-0aace74d566f"
-              },
-              {
-                "arguments": [
-                  "Pending"
-                ],
-                "type": "has_all_words",
-                "uuid": "5b85df51-47c3-4aea-b20d-dab741e7a3c3",
-                "category_uuid": "67d29c41-f85c-468a-bd9a-059225b106d3"
-              },
-              {
-                "arguments": [
-                  "Cancelled"
-                ],
-                "type": "has_all_words",
-                "uuid": "94531a8c-e0e1-46bb-b2f1-733836aca873",
-                "category_uuid": "e495411f-b959-4839-9057-02b0ad437bad"
-              }
-            ],
-            "operand": "@webhook.status",
-            "result_name": "Lookup"
+            "default_category_uuid": "e0da0671-2f1f-4b79-a2bd-563359ebe9a0",
+            "operand": "@webhook.json.status",
+            "result_name": "Lookup",
+            "type": "switch"
           },
-          "exits": [
-            {
-              "destination_uuid": "54ca1cdc-4f4c-4e28-9f7d-42b7c6c245c0",
-              "uuid": "01d9c832-b7d7-40e3-badf-aa31e599ff60"
-            },
-            {
-              "destination_uuid": "63fd7844-5f60-453c-8d67-9f06ebe259a1",
-              "uuid": "b88b5c33-cb38-43e4-8365-69839c83b886"
-            },
-            {
-              "destination_uuid": "33bdc0d1-f13a-48ca-b321-9382351025a4",
-              "uuid": "3a335bc2-5653-435a-baaa-b5b0d93b6b8b"
-            },
-            {
-              "destination_uuid": "82d704bb-41f8-4943-a39d-466a6fed8a0f",
-              "uuid": "d03d2b0b-7850-4bed-ad1e-1cdc42142717"
-            }
-          ]
+          "uuid": "904de34a-9857-45be-8c67-3516290d8b4f"
         },
         {
           "actions": [
             {
               "quick_replies": [],
-              "text": "Great news @webhook.name! We shipped your order for @webhook.description on @webhook.ship_date and we expect it will be delivered on @webhook.delivery_date. If you have any questions, just reply and our customer service department will be notified.",
+              "text": "Great news @webhook.json.name! We shipped your order for @webhook.json.description on @webhook.json.ship_date and we expect it will be delivered on @webhook.json.delivery_date. If you have any questions, just reply and our customer service department will be notified.",
               "type": "send_msg",
               "uuid": "da231610-575d-4738-8642-6eec23d0849a"
             }
@@ -1516,7 +1502,7 @@
           "actions": [
             {
               "quick_replies": [],
-              "text": "Hi @webhook.name.  Hope you are patient because we haven't shipped your order for @webhook.description yet.  We expect to ship it by @webhook.ship_date though. If you have any questions, just reply and our customer service department will be notified.",
+              "text": "Hi @webhook.json.name.  Hope you are patient because we haven't shipped your order for @webhook.json.description yet.  We expect to ship it by @webhook.json.ship_date though. If you have any questions, just reply and our customer service department will be notified.",
               "type": "send_msg",
               "uuid": "93b41e84-ab86-4ae0-b758-cef273a19841"
             }
@@ -1533,7 +1519,7 @@
           "actions": [
             {
               "quick_replies": [],
-              "text": "Uh oh @webhook.name!  Our record indicate that your order for @webhook.description was cancelled on @webhook.cancel_date. If you think this is in error, please reply with a comment and our orders department will get right on it!",
+              "text": "Uh oh @webhook.json.name!  Our record indicate that your order for @webhook.json.description was cancelled on @webhook.json.cancel_date. If you think this is in error, please reply with a comment and our orders department will get right on it!",
               "type": "send_msg",
               "uuid": "eb208a83-114b-4740-b9eb-28f89713e7c2"
             }
@@ -1547,36 +1533,36 @@
           "uuid": "33bdc0d1-f13a-48ca-b321-9382351025a4"
         },
         {
-          "uuid": "817cad14-3afd-416f-9188-5e6b7aa0d7e0",
           "actions": [
             {
-              "type": "set_run_result",
+              "category": "",
               "name": "Order Name",
-              "value": "@webhook.name",
-              "category": "",
-              "uuid": "18afe4cc-5b0c-442a-ba45-67c3f226bb0d"
+              "type": "set_run_result",
+              "uuid": "18afe4cc-5b0c-442a-ba45-67c3f226bb0d",
+              "value": "@webhook.json.name"
             },
             {
-              "type": "set_run_result",
+              "category": "",
               "name": "Order Number",
-              "value": "@webhook.order",
-              "category": "",
-              "uuid": "42a5f679-c34c-4f58-ac73-ee8ad5eec0f7"
+              "type": "set_run_result",
+              "uuid": "42a5f679-c34c-4f58-ac73-ee8ad5eec0f7",
+              "value": "@webhook.json.order"
             },
             {
-              "type": "set_run_result",
-              "name": "Order Description",
-              "value": "@webhook.description",
               "category": "",
-              "uuid": "c9b26017-2301-4790-b407-4fce18f22255"
+              "name": "Order Description",
+              "type": "set_run_result",
+              "uuid": "c9b26017-2301-4790-b407-4fce18f22255",
+              "value": "@webhook.json.description"
             }
           ],
           "exits": [
             {
-              "uuid": "cf0c1783-3825-49f2-927a-42af9aba392b",
-              "destination_uuid": "42691ba2-0e41-460f-8b5e-cc37698a3436"
+              "destination_uuid": "42691ba2-0e41-460f-8b5e-cc37698a3436",
+              "uuid": "cf0c1783-3825-49f2-927a-42af9aba392b"
             }
-          ]
+          ],
+          "uuid": "817cad14-3afd-416f-9188-5e6b7aa0d7e0"
         },
         {
           "actions": [],
@@ -1609,17 +1595,17 @@
           "actions": [
             {
               "attachments": [],
+              "quick_replies": [],
               "text": "Thanks @results.order_name, we'll be in touch ASAP about order # @results.order_number",
               "type": "send_msg",
-              "quick_replies": [],
               "uuid": "ce3b833f-c264-49d9-9573-a7335022f06b"
             },
             {
               "addresses": [
                 "{{EMAIL}}"
               ],
-              "subject": "Order Comment: @results.lookup: @results.order_number",
               "body": "Customer @results.order_name has a problem with their order @results.order_number for @results.order_description.  Please look into it ASAP and call them back with the status.\n \nCustomer Comment: \"@results.comment\"\nCustomer Name: @results.order_name\nCustomer Phone: @(format_urn(urns.tel)) ",
+              "subject": "Order Comment: @results.lookup: @results.order_number",
               "type": "send_email",
               "uuid": "dba6824f-03bc-4268-ad33-37238cfc0687"
             }
@@ -1659,10 +1645,10 @@
           "uuid": "764ab27e-4f0b-46bb-bdac-961a534f3983"
         }
       ],
-      "spec_version": "13.1.0",
+      "revision": 26,
+      "spec_version": "14.4.1",
       "type": "messaging",
-      "uuid": "0d55fdc1-f3ed-465f-a9bd-88908b0d592c",
-      "revision": 26
+      "uuid": "0d55fdc1-f3ed-465f-a9bd-88908b0d592c"
     }
   ],
   "campaigns": [],

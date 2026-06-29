@@ -1,8 +1,12 @@
 """
-Re-migrates flow test fixtures in media/test_flows/ to the current spec version.
+Re-migrates bundled flow exports to the current spec version.
 
-Used when bumping Flow.CURRENT_SPEC_VERSION so tests don't need to call mailroom's
-flow/migrate endpoint just to bring fixtures up to current spec.
+Covers:
+  - flow test fixtures in media/test_flows/
+  - the shipped sample flows in static/examples/sample_flows.json
+
+Used when bumping Flow.CURRENT_SPEC_VERSION so that imports of these exports don't need to call
+mailroom's flow/migrate endpoint just to bring the definitions up to the current spec.
 
 Skips fixtures used to test legacy migration behavior:
   - media/test_flows/legacy/migrations/*  (inputs to FlowMigrationTest)
@@ -22,6 +26,11 @@ from django.core.management.base import BaseCommand
 from temba.flows.models import Flow
 from temba.orgs.models import Org
 
+# explicit non-fixture exports to also migrate
+EXTRA_FILES = {
+    "static/examples/sample_flows.json",
+}
+
 SKIP = {
     "media/test_flows/legacy/color_v11.json",
     "media/test_flows/mixed_versions.json",
@@ -38,7 +47,7 @@ def _detect_indent(text: str) -> int:
 
 
 class Command(BaseCommand):
-    help = "Migrate flow test fixtures in media/test_flows/ to the current flow spec version"
+    help = "Migrate bundled flow exports (test fixtures and sample flows) to the current flow spec version"
 
     def handle(self, *args, **options):
         org = Org.objects.first()
@@ -48,7 +57,10 @@ class Command(BaseCommand):
 
         current = Version(Flow.CURRENT_SPEC_VERSION)
 
-        for path in sorted(pathlib.Path("media/test_flows").rglob("*.json")):
+        paths = list(pathlib.Path("media/test_flows").rglob("*.json"))
+        paths += [pathlib.Path(p) for p in EXTRA_FILES]
+
+        for path in sorted(set(paths)):
             rel = path.as_posix()
             if rel in SKIP or any(rel.startswith(d) for d in SKIP_DIRS):
                 continue
