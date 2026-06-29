@@ -35,6 +35,12 @@
   @apply font-normal;
 }
 
+/* override the preflight default (bolder) to the DS bold weight */
+b,
+strong {
+  font-weight: 600;
+}
+
 a {
   @apply text-primary cursor-pointer;
 
@@ -113,57 +119,141 @@ a {
   }
 }
 
-.button-light {
-  @apply button text-gray-600 bg-gray-100;
-
-  &:hover {
-    cursor: pointer;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  }
+/* ─── Legacy CSS-based buttons ────────────────────────────────────────────
+   These class-based buttons predate <temba-button>. They share the DS
+   button chrome and only differ in surface/tint. Replace with
+   <temba-button> when convenient. */
+.button-primary,
+.button-white,
+.button-light,
+.button-action,
+.button-tertiary,
+.button-secondary,
+.button-danger,
+.button-dark-alpha {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  font-size: 12.5px;
+  font-weight: var(--w-regular);
+  letter-spacing: -0.005em;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  box-sizing: border-box;
+  text-align: center;
+  text-decoration: none;
+  transition: background 120ms, border-color 120ms, color 120ms, box-shadow 120ms;
 }
 
+/* solid accent — primary CTA */
+.button-primary {
+  background: var(--accent-600);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 1px 1px rgba(15, 22, 36, 0.1);
+}
+.button-primary:hover {
+  background: var(--accent-700);
+  text-decoration: none;
+}
+
+/* surface + border — secondary CTA */
+.button-white,
+.button-light,
 .button-action {
-  @apply button-light p-icon mx-2 flex items-center;
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text-1);
+}
+.button-white:hover,
+.button-light:hover,
+.button-action:hover {
+  background: var(--sunken);
+  text-decoration: none;
+}
+
+/* tertiary accent (legacy green) */
+.button-tertiary {
+  background: rgb(var(--tertiary-rgb));
+  color: #fff;
+}
+.button-tertiary:hover {
+  background: color-mix(in srgb, rgb(var(--tertiary-rgb)) 88%, black);
+  text-decoration: none;
+}
+
+/* secondary accent (legacy magenta) */
+.button-secondary {
+  background: rgb(var(--secondary-rgb));
+  color: #fff;
+}
+.button-secondary:hover {
+  background: color-mix(in srgb, rgb(var(--secondary-rgb)) 88%, black);
+  text-decoration: none;
+}
+
+/* destructive — red */
+.button-danger {
+  background: var(--danger, rgb(var(--error-rgb)));
+  color: #fff;
+}
+.button-danger:hover {
+  background: color-mix(in srgb, var(--danger, rgb(var(--error-rgb))) 88%, black);
+  text-decoration: none;
+}
+
+/* dark overlay — for use on light backgrounds where you need a muted button */
+.button-dark-alpha {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-2);
+}
+.button-dark-alpha:hover {
+  background: rgba(0, 0, 0, 0.08);
+  text-decoration: none;
 }
 
 .p-icon {
   padding: 8px 12px;
 }
 
-.button-tertiary {
-  @apply button text-white bg-tertiary;
-}
-
-.button-secondary {
-  @apply button text-white bg-secondary;
-}
-
-.button-primary {
-  @apply button text-white;
-  background: var(--color-primary-dark) !important;
-}
-
-.button-white {
-  @apply button text-primary bg-white;
-}
-
-.button-danger {
-  @apply button text-white bg-error;
-}
-
-.button-dark-alpha {
-  @apply button text-white bg-dark-alpha-200;
-}
-
+/* compact dark-alpha button (chrome overlays on dark backgrounds) */
 .button-sm {
-  @apply button-dark-alpha text-sm px-4 py-1 tracking-wider shadow-none text-light-alpha-900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: var(--w-regular);
+  letter-spacing: -0.005em;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  box-sizing: border-box;
+  text-align: center;
+  text-decoration: none;
+  background: rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+  transition: background 120ms, color 120ms;
+}
 
-  &:hover {
-    @apply shadow;
-    transform: none;
-    cursor: pointer;
-    box-shadow: inset 0 0 20px 10px rgba(255, 255, 255, 0.2);
-  }
+.button-sm:hover {
+  background: rgba(0, 0, 0, 0.3);
+  text-decoration: none;
 }
 
 .lift {
