@@ -21,6 +21,7 @@ import re
 
 from packaging.version import Version
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from temba.flows.models import Flow
@@ -57,11 +58,14 @@ class Command(BaseCommand):
 
         current = Version(Flow.CURRENT_SPEC_VERSION)
 
-        paths = list(pathlib.Path("media/test_flows").rglob("*.json"))
-        paths += [pathlib.Path(p) for p in EXTRA_FILES]
+        # anchor to the repo root (parent of the temba package) so the command works from any CWD
+        root = pathlib.Path(settings.PROJECT_DIR).parent
+
+        paths = list((root / "media/test_flows").rglob("*.json"))
+        paths += [root / p for p in EXTRA_FILES]
 
         for path in sorted(set(paths)):
-            rel = path.as_posix()
+            rel = path.relative_to(root).as_posix()
             if rel in SKIP or any(rel.startswith(d) for d in SKIP_DIRS):
                 continue
 
