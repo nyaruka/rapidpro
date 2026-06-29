@@ -708,7 +708,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("Amazing Flow", flow.get_definition()["name"])
 
         # make a flow that looks like a legacy flow
-        flow = self.get_flow("legacy/color_v11")
+        flow = self.create_flow("Color Legacy")
         original_def = self.load_json("test_flows/legacy/color_v11.json")["flows"][0]
 
         flow.version_number = "11.12"
@@ -718,6 +718,9 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         revision.definition = original_def
         revision.spec_version = "11.12"
         revision.save(update_fields=("definition", "spec_version"))
+
+        # migrating the legacy revision is goflow's job - stub the migrated (current-spec) definition it returns
+        mr_mocks.flow_migrate(self.load_json("test_flows/color.json")["flows"][0])
 
         self.assertIn("metadata", flow.get_definition())
 

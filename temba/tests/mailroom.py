@@ -440,10 +440,12 @@ class TestClient(MailroomClient):
 
     @_client_method
     def flow_migrate(self, definition: dict, to_version=None):
-        # use a queued mock if the test set one (for below-current-spec definitions); otherwise fall through to
-        # the real client, whose TESTING fast-path returns already-current definitions without a live call
+        # use the test's stub if it set one (for below-current-spec definitions) - it's sticky since a single
+        # operation can migrate more than once (e.g. save_revision diffs against the prior revision). otherwise
+        # fall through to the real client, whose TESTING fast-path returns already-current definitions without a
+        # live call
         if self.mocks._flow_migrate:
-            return self.mocks._flow_migrate.pop(0)
+            return self.mocks._flow_migrate[-1]
         return super().flow_migrate(definition, to_version=to_version)
 
     @_client_method
