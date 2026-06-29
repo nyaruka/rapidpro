@@ -16,7 +16,7 @@ class RunsEndpointTest(APITest):
         self.assertPostNotAllowed(endpoint_url)
         self.assertDeleteNotAllowed(endpoint_url)
 
-        flow1 = self.get_flow("color_v13")
+        flow1 = self.get_flow("color")
         flow2 = flow1.clone(self.editor)
 
         flow1_nodes = flow1.get_definition()["nodes"]

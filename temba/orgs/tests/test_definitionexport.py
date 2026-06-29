@@ -231,7 +231,7 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
         # final call is after new flows and dependencies have been committed so mailroom can see them
         mr_mocks.flow_inspect(dependencies=[{"key": "age", "name": "", "type": "field", "missing": False}])
 
-        self.import_file("test_flows/color_v13.json")
+        self.import_file("test_flows/color.json")
 
         flow = Flow.objects.get()
 
