@@ -140,7 +140,7 @@ class FlowMigrationTest(TembaTest):
 
     @mock_mailroom
     def test_migrate_to_11_12(self, mr_mocks):
-        flow = self.load_flow("favorites")
+        flow = self.create_flow("Favorites")
         definition = {
             "entry": "79b4776b-a995-475d-ae06-1cab9af8a28e",
             "rule_sets": [],
@@ -233,7 +233,7 @@ class FlowMigrationTest(TembaTest):
         # removed the invalid reference
         self.assertEqual(len(migrated["action_sets"]), 2)
 
-        flow = self.load_flow("migrate_to_11_12")
+        flow = self.create_flow("Migrate 11.12")
         flow_json = self.load_flow_def("migrate_to_11_12")
         migrated = migrate_to_version_11_12(flow_json, flow)
 
@@ -242,7 +242,7 @@ class FlowMigrationTest(TembaTest):
 
     @mock_mailroom
     def test_migrate_to_11_12_with_one_node(self, mr_mocks):
-        flow = self.load_flow("migrate_to_11_12_one_node")
+        flow = self.create_flow("Migrate 11.12 One Node")
         flow_json = self.load_flow_def("migrate_to_11_12_one_node")
         migrated = migrate_to_version_11_12(flow_json, flow)
 
@@ -250,7 +250,7 @@ class FlowMigrationTest(TembaTest):
 
     @mock_mailroom
     def test_migrate_to_11_12_other_org_existing_flow(self, mr_mocks):
-        flow = self.load_flow("migrate_to_11_12_other_org", {"CHANNEL-UUID": str(self.channel.uuid)})
+        flow = self.create_flow("Migrate 11.12 Other Org")
         flow_json = self.load_flow_def("migrate_to_11_12_other_org", {"CHANNEL-UUID": str(self.channel.uuid)})
 
         # change ownership of the channel it's referencing
@@ -273,7 +273,7 @@ class FlowMigrationTest(TembaTest):
 
     @mock_mailroom
     def test_migrate_to_11_11(self, mr_mocks):
-        flow = self.load_flow("migrate_to_11_11")
+        flow = self.create_flow("Migrate 11.11")
         flow_json = self.load_flow_def("migrate_to_11_11")
 
         migrated = migrate_to_version_11_11(flow_json, flow)
@@ -656,7 +656,7 @@ class FlowMigrationTest(TembaTest):
         self.create_field("district", "District", ContactField.TYPE_DISTRICT)
         self.create_field("joined_on", "Joined On", ContactField.TYPE_DATETIME)
 
-        flow = self.load_flow("type_flow")
+        flow = self.create_flow("Type Flow")
         flow_def = self.load_flow_def("type_flow")
         migrated = migrate_to_version_11_0(flow_def, flow)
 
@@ -686,7 +686,7 @@ class FlowMigrationTest(TembaTest):
 
     @mock_mailroom
     def test_migrate_to_11_0_with_null_ruleset_label(self, mr_mocks):
-        flow = self.load_flow("migrate_to_11_0")
+        flow = self.create_flow("Migrate 11.0")
         definition = {
             "rule_sets": [
                 {
@@ -708,7 +708,7 @@ class FlowMigrationTest(TembaTest):
 
     @mock_mailroom
     def test_migrate_to_11_0_with_null_msg_text(self, mr_mocks):
-        flow = self.load_flow("migrate_to_11_0")
+        flow = self.create_flow("Migrate 11.0")
         definition = {
             "action_sets": [
                 {
@@ -726,7 +726,7 @@ class FlowMigrationTest(TembaTest):
 
     @mock_mailroom
     def test_migrate_to_11_0_with_broken_localization(self, mr_mocks):
-        flow = self.load_flow("migrate_to_11_0")
+        flow = self.create_flow("Migrate 11.0")
         flow_def = self.load_flow_def("migrate_to_11_0")
         migrated = migrate_to_version_11_0(flow_def, flow)
 
@@ -782,7 +782,7 @@ class FlowMigrationTest(TembaTest):
     @mock_mailroom
     def test_migrate_to_10(self, mr_mocks):
         # this is really just testing our rewriting of webhook rulesets
-        flow = self.load_flow("dual_webhook")
+        flow = self.create_flow("Dual Webhook")
         flow_def = self.load_flow_def("dual_webhook")
 
         # get our definition out
