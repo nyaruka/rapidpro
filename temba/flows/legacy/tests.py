@@ -363,7 +363,7 @@ class FlowMigrationTest(TembaTest):
         flow_json = self.load_flow_def("migrate_to_11_6")
 
         # the migration remaps the definition's group references to org groups looked up by name
-        for name in get_legacy_groups(flow_json).values():
+        for name in set(get_legacy_groups(flow_json).values()):
             self.create_group(name, contacts=[])
 
         migrated = migrate_to_version_11_6(flow_json, flow)

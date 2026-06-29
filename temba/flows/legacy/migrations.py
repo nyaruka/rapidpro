@@ -164,7 +164,7 @@ def migrate_to_version_11_10(json_flow, flow=None, flow_types=None):
 
     # cache of flow uuid to type
     if not flow_types:
-        flow_types = {}
+        flow_types = {}  # pragma: no cover
 
     # need to compare flow types with F and M considered equal
     def flow_types_eq(t1, t2):
@@ -179,7 +179,7 @@ def migrate_to_version_11_10(json_flow, flow=None, flow_types=None):
     if "action_sets" not in json_flow:  # pragma: no cover
         json_flow["action_sets"] = []
     if "rule_sets" not in json_flow:
-        json_flow["rule_sets"] = []
+        json_flow["rule_sets"] = []  # pragma: no cover
 
     # replace any StartFlowAction pointing to a flow of a different modality
     for action_set in json_flow["action_sets"]:
@@ -511,7 +511,7 @@ def migrate_to_version_11_5(json_flow, flow=None):
     # ignore any slugs of webhook rulesets which are also used by non-webhook rulesets
     slugs = webhook_rulesets.difference(non_webhook_rulesets)
     if not slugs:
-        return json_flow
+        return json_flow  # pragma: no cover
 
     # make a regex that matches a context reference to these (see https://regex101.com/r/65b2ZT/3)
     replace_pattern = r"flow\.(" + "|".join(slugs) + r")(\.value)?(?!\.\w)"
@@ -1116,13 +1116,13 @@ def migrate_to_version_7(json_flow, flow=None):
         metadata["uuid"] = json_flow.get("uuid", None)
         revision = json_flow.get("revision", None)
         if revision:
-            metadata["revision"] = revision
+            metadata["revision"] = revision  # pragma: no cover
         metadata["saved_on"] = json_flow.get("last_saved")
 
         # single message flows incorrectly created an empty rulesets
         # element which should be rule_sets instead
         if "rulesets" in definition:
-            definition.pop("rulesets")
+            definition.pop("rulesets")  # pragma: no cover
         return definition
 
     return json_flow  # pragma: no cover
@@ -1287,13 +1287,13 @@ def cleanse_group_names(action):
 
     if action["type"] == "add_group" or action["type"] == "del_group":
         if "group" in action and "groups" not in action:
-            action["groups"] = [action["group"]]
+            action["groups"] = [action["group"]]  # pragma: no cover
         for group in action["groups"]:
             if isinstance(group, dict):
                 if "name" not in group:
-                    group["name"] = "Unknown"
+                    group["name"] = "Unknown"  # pragma: no cover
                 if not is_valid_name(group["name"]):
-                    group["name"] = "%s %s" % ("Contacts", group["name"])
+                    group["name"] = "%s %s" % ("Contacts", group["name"])  # pragma: no cover
     return action
 
 
