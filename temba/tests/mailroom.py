@@ -1,3 +1,4 @@
+import copy
 import functools
 import re
 from collections import defaultdict
@@ -26,7 +27,7 @@ from temba.schedules.models import Schedule
 from temba.tests.dates import parse_datetime
 from temba.tickets.models import Ticket
 from temba.utils import json
-from temba.utils.uuid import uuid7
+from temba.utils.uuid import is_uuid, uuid7
 
 event_units = {
     CampaignEvent.UNIT_MINUTES: "minutes",
@@ -35,13 +36,46 @@ event_units = {
     CampaignEvent.UNIT_WEEKS: "weeks",
 }
 
-# endpoints still allowed to reach a live mailroom during tests. these exercise goflow logic (flow migration,
-# dependency inspection and cloning) that isn't faithfully reimplemented in TestClient, so production-client
-# callers - undecorated tests using get_flow()/import_file() - still talk to a real mailroom for now. @mock_mailroom
-# tests don't reach here for these: TestClient's stubs intercept them above _request.
-LIVE_TEST_ENDPOINTS = {"flow/migrate", "flow/inspect", "flow/clone"}
+# endpoints still allowed to reach a live mailroom during tests. these exercise goflow logic (flow migration and
+# dependency inspection) that isn't faithfully reimplemented in TestClient, so production-client callers -
+# undecorated tests using get_flow()/import_file() - still talk to a real mailroom for now. @mock_mailroom tests
+# don't reach here for these: TestClient's stubs intercept them above _request.
+LIVE_TEST_ENDPOINTS = {"flow/migrate", "flow/inspect"}
 
 _real_mailroom_request = MailroomClient._request
+
+
+def clone_flow_definition(definition: dict, dependency_mapping: dict) -> dict:
+    """
+    Python port of goflow's flow clone (flows/definition/migrations.Clone) for tests. It walks the definition and
+    remaps dependency UUIDs - in "uuid"/"*_uuid" properties, UUID-named keys, and UUID strings in arrays - using
+    the given mapping, so an imported flow references the objects resolved for the target org.
+
+    Unlike goflow it leaves the flow's own element UUIDs untouched rather than assigning fresh random ones: that
+    uniqueness step isn't needed in tests and stable UUIDs are much easier to assert against.
+    """
+
+    def remap(node):
+        if isinstance(node, dict):
+            for key in list(node.keys()):
+                value = node[key]
+                if (key == "uuid" or key.endswith("_uuid")) and isinstance(value, str):
+                    node[key] = dependency_mapping.get(value, value)
+                # test cheap O(1) membership before is_uuid()'s try/except, which runs on every key otherwise
+                elif key in dependency_mapping and is_uuid(key):
+                    node[dependency_mapping[key]] = node.pop(key)
+            for value in node.values():
+                remap(value)
+        elif isinstance(node, list):
+            for i, value in enumerate(node):
+                if isinstance(value, str) and is_uuid(value):
+                    node[i] = dependency_mapping.get(value, value)
+                elif isinstance(value, (dict, list)):
+                    remap(value)
+
+    clone = copy.deepcopy(definition)
+    remap(clone)
+    return clone
 
 
 class LiveMailroomError(BaseException):
@@ -54,12 +88,19 @@ class LiveMailroomError(BaseException):
 
 def _guarded_mailroom_request(self, endpoint, payload=None, files=None, post=True, encode_json=False):
     # a patched transport (e.g. patch("requests.post")) means no real network call happens - that's how the
-    # MailroomClient's own request-construction tests work, so allow it. this only detects Mock-based patches;
-    # patch("requests.post", new=<plain callable>) would slip past, but that form isn't used against requests here.
+    # MailroomClient's own request-construction tests work, so let those through to the real _request. this only
+    # detects Mock-based patches; patch("requests.post", new=<plain callable>) would slip past, but that form
+    # isn't used against requests here.
     transport = requests.post if post else requests.get
-    mocked = isinstance(transport, NonCallableMock)
+    if isinstance(transport, NonCallableMock):
+        return _real_mailroom_request(self, endpoint, payload=payload, files=files, post=post, encode_json=encode_json)
 
-    if not (endpoint in LIVE_TEST_ENDPOINTS or mocked):
+    # flow/clone is simple enough to reimplement in Python, so fake it for the production client used by
+    # undecorated import tests rather than reaching a live mailroom. unlike migrate/inspect it needs no goflow.
+    if endpoint == "flow/clone":
+        return clone_flow_definition(payload["flow"], payload["dependency_mapping"])
+
+    if endpoint not in LIVE_TEST_ENDPOINTS:
         raise LiveMailroomError(
             f"test reached live mailroom endpoint /mi/{endpoint}; decorate the test with @mock_mailroom "
             f"(adding a TestClient fake if needed) or mock the call"
@@ -393,8 +434,7 @@ class TestClient(MailroomClient):
 
     @_client_method
     def flow_clone(self, definition: dict, dependency_mapping):
-        # we replace UUIDs in production to ensure uniqueness but for tests it's nicer to know the UUIDs
-        return definition
+        return clone_flow_definition(definition, dependency_mapping)
 
     @_client_method
     def flow_inspect(self, org, definition: dict, is_import=False):
