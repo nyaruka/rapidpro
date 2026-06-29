@@ -61,6 +61,7 @@ class Mocks:
         self._contact_parse_query = {}
         self._contact_search = {}
         self._contact_urns = []
+        self._flow_change_language = []
         self._flow_inspect = []
         self._flow_start_preview = []
         self._llm_translate = []
@@ -96,6 +97,13 @@ class Mocks:
 
     def contact_urns(self, urns: dict):
         self._contact_urns.append(urns)
+
+    def flow_change_language(self, definition: dict):
+        """
+        Queues the re-based definition that mailroom should return for the next flow_change_language call.
+        """
+
+        self._flow_change_language.append(definition)
 
     def flow_inspect(self, *, dependencies=(), issues=(), results=(), parent_refs=(), counts=None, locals=None):
         self._flow_inspect.append(
@@ -151,10 +159,23 @@ def _client_method(func):
 
 
 class TestClient(MailroomClient):
+    # endpoints that TestClient intentionally proxies to a real mailroom rather than faking. flow/migrate is
+    # still real because fixtures below the current spec version need actually migrating (see flow_migrate).
+    ALLOWED_LIVE_ENDPOINTS = {"flow/migrate"}
+
     def __init__(self, mocks: Mocks):
         self.mocks = mocks
 
         super().__init__(settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN)
+
+    def _request(self, endpoint, *args, **kwargs):
+        # reaching the real HTTP client means an endpoint isn't faked above and the test is silently
+        # depending on a live mailroom - fail loudly instead so it gets a fake or an explicit mock
+        assert endpoint in self.ALLOWED_LIVE_ENDPOINTS, (
+            f"test reached un-mocked mailroom endpoint /mi/{endpoint} via the real client; "
+            f"add a fake to TestClient or mock the call"
+        )
+        return super()._request(endpoint, *args, **kwargs)
 
     @_client_method
     def android_event(self, org, channel, phone: str, event_type: str, extra: dict, occurred_on):
@@ -333,6 +354,11 @@ class TestClient(MailroomClient):
                     results[i].contact_id = result
 
         return results
+
+    @_client_method
+    def flow_change_language(self, definition: dict, language):
+        assert self.mocks._flow_change_language, "missing flow_change_language mock"
+        return self.mocks._flow_change_language.pop(0)
 
     @_client_method
     def flow_clone(self, definition: dict, dependency_mapping):
