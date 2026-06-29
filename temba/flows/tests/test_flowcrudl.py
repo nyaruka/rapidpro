@@ -564,7 +564,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         flow.refresh_from_db()
         self.assertEqual("New Name", flow.name)
 
-    def test_list_views(self):
+    @mock_mailroom
+    def test_list_views(self, mr_mocks):
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
 

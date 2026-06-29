@@ -44,6 +44,7 @@ from .mailroom import (
     create_broadcast,
     create_contact_locally,
     create_flowstart,
+    install_mailroom_guard,
     resolve_destination,
     update_field_locally,
 )
@@ -59,6 +60,9 @@ class TembaTest(SmartminTest):
 
     def setUp(self):
         super().setUp()
+
+        # fail loudly if a test reaches a live mailroom instead of mocking it
+        install_mailroom_guard(self)
 
         self.superuser = User.objects.create_user("super@user.com", self.default_password, is_superuser=True)
 
