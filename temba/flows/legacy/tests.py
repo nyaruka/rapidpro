@@ -117,6 +117,28 @@ class FlowMigrationTest(TembaTest):
         return Flow.objects.get(pk=flow.pk)
 
     @mock_mailroom
+    def test_migrate_malformed_single_message_flow(self, mr_mocks):
+        flow = Flow.objects.create(
+            name="Single Message Flow",
+            org=self.org,
+            created_by=self.admin,
+            modified_by=self.admin,
+            saved_by=self.admin,
+            version_number="3",
+        )
+
+        flow_json = self.load_flow_def("malformed_single_message")["definition"]
+
+        FlowRevision.objects.create(flow=flow, definition=flow_json, spec_version=3, revision=1, created_by=self.admin)
+
+        flow.ensure_current_version()
+        flow_json = flow.get_definition()
+
+        self.assertEqual(1, len(flow_json["nodes"]))
+        self.assertEqual(Flow.CURRENT_SPEC_VERSION, flow_json["spec_version"])
+        self.assertEqual(2, flow_json["revision"])
+
+    @mock_mailroom
     def test_migrate_to_11_12(self, mr_mocks):
         flow = self.create_flow("Favorites")
         definition = {
