@@ -35,12 +35,6 @@ event_units = {
     CampaignEvent.UNIT_WEEKS: "weeks",
 }
 
-# no endpoint is allowed to reach a live mailroom during tests. the two that undecorated tests reach via the
-# production client - flow/clone and flow/inspect - are faked below from the request payload; flow/migrate
-# either skips the call (current-spec definitions hit MailroomClient.flow_migrate's TESTING fast-path) or must
-# be stubbed with mr_mocks.flow_migrate. anything else reaching _request without a Mock transport raises.
-LIVE_TEST_ENDPOINTS = set()
-
 _real_mailroom_request = MailroomClient._request
 
 
@@ -220,12 +214,11 @@ def _guarded_mailroom_request(self, endpoint, payload=None, files=None, post=Tru
     if endpoint == "flow/inspect":
         return inspect_flow(payload["flow"])
 
-    if endpoint not in LIVE_TEST_ENDPOINTS:
-        raise LiveMailroomError(
-            f"test reached live mailroom endpoint /mi/{endpoint}; decorate the test with @mock_mailroom "
-            f"(adding a TestClient fake if needed) or mock the call"
-        )
-    return _real_mailroom_request(self, endpoint, payload=payload, files=files, post=post, encode_json=encode_json)
+    # any other endpoint reaching here is an un-mocked live mailroom call - fail loudly
+    raise LiveMailroomError(
+        f"test reached live mailroom endpoint /mi/{endpoint}; decorate the test with @mock_mailroom "
+        f"(adding a TestClient fake if needed) or mock the call"
+    )
 
 
 def install_mailroom_guard(test):
