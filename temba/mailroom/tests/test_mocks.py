@@ -2,7 +2,96 @@ import copy
 
 from django.test import SimpleTestCase
 
-from temba.tests.mailroom import clone_flow_definition
+from temba.tests.mailroom import clone_flow_definition, inspect_flow
+
+
+class InspectFlowTest(SimpleTestCase):
+    def test_inspect_flow(self):
+        definition = {
+            "uuid": "a0a00000-0000-0000-0000-000000000000",
+            "name": "Test",
+            "nodes": [
+                {
+                    "uuid": "n1n00000-0000-0000-0000-000000000000",
+                    "actions": [
+                        {
+                            "type": "add_contact_groups",
+                            "groups": [
+                                {"uuid": "b9b11111-1111-1111-1111-111111111111", "name": "Doctors"},
+                                {"uuid": "b9b11111-1111-1111-1111-111111111111", "name": "Doctors"},  # duplicate
+                            ],
+                        },
+                        {"type": "set_contact_field", "field": {"key": "gender", "name": "Gender"}},
+                        {"type": "enter_flow", "flow": {}},  # malformed ref with no uuid/key is ignored
+                        {"type": "set_run_result", "name": "Note", "category": "Approved"},
+                        {"type": "set_run_result", "name": "Bare"},  # no category
+                        {
+                            "type": "send_msg",
+                            "text": "you are @fields.age, @parent.fields.phone, @globals.org_name",
+                            "attachments": ["image:@fields.photo"],  # expression in a list
+                            "extra": {"note": "@fields.mood"},  # expression in a nested dict
+                        },
+                    ],
+                    "router": {"result_name": "Color", "categories": [{"name": "Red"}, {"name": "Other"}]},
+                },
+                {
+                    "uuid": "n2n00000-0000-0000-0000-000000000000",
+                    "router": {
+                        "operand": "@fields.region",
+                        "result_name": "Color",  # same key as node 1 - merges
+                        "categories": [{"name": "Blue"}, {"name": "Other"}],
+                        "cases": [
+                            {"type": "has_group", "arguments": ["c0c22222-2222-2222-2222-222222222222"]},  # no name
+                            {"type": "has_group", "arguments": ["c1c33333-3333-3333-3333-333333333333", "Testers"]},
+                            {"type": "has_any_word", "arguments": ["red"]},  # not a dependency
+                        ],
+                    },
+                },
+            ],
+        }
+        original = copy.deepcopy(definition)
+
+        info = inspect_flow(definition)
+
+        # dependencies: typed action/router refs plus field/global refs pulled from expressions, deduped
+        self.assertEqual(
+            [
+                ("group", "b9b11111-1111-1111-1111-111111111111", "Doctors"),
+                ("field", "gender", "Gender"),
+                ("field", "age", ""),
+                ("field", "phone", ""),  # parent.fields.phone still resolves to field key "phone"
+                ("global", "org_name", ""),
+                ("field", "photo", ""),
+                ("field", "mood", ""),
+                ("field", "region", ""),  # from the router operand, scanned before its cases
+                ("group", "c0c22222-2222-2222-2222-222222222222", ""),
+                ("group", "c1c33333-3333-3333-3333-333333333333", "Testers"),
+            ],
+            [(d["type"], d.get("uuid", d.get("key")), d["name"]) for d in info["dependencies"]],
+        )
+        self.assertTrue(all(d["missing"] is False for d in info["dependencies"]))
+
+        # results: save-result actions (in node order) then routers, merged by snakified key across nodes
+        self.assertEqual(
+            [
+                {"key": "note", "name": "Note", "categories": ["Approved"]},
+                {"key": "bare", "name": "Bare", "categories": []},
+                {"key": "color", "name": "Color", "categories": ["Red", "Other", "Blue"]},
+            ],
+            [{k: r[k] for k in ("key", "name", "categories")} for r in info["results"]],
+        )
+        # the Color result merges both nodes that save it
+        color = next(r for r in info["results"] if r["key"] == "color")
+        self.assertEqual(
+            ["n1n00000-0000-0000-0000-000000000000", "n2n00000-0000-0000-0000-000000000000"], color["node_uuids"]
+        )
+
+        # the rest of the analysis isn't reproduced
+        self.assertEqual([], info["issues"])
+        self.assertEqual([], info["parent_refs"])
+
+        # the input definition is not mutated
+        self.assertEqual(original, definition)
 
 
 class CloneFlowDefinitionTest(SimpleTestCase):

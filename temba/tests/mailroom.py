@@ -35,12 +35,11 @@ event_units = {
     CampaignEvent.UNIT_WEEKS: "weeks",
 }
 
-# endpoints still allowed to reach a live mailroom during tests. flow/inspect needs real goflow dependency/issue
-# analysis that we don't reimplement here, and is reached by undecorated import tests using the production client.
-# flow/migrate is NOT here: current-spec definitions skip the call via MailroomClient.flow_migrate's TESTING
-# fast-path, and tests that load/import a below-current-spec definition must stub it with mr_mocks.flow_migrate -
-# anything else reaching it raises (migration is goflow's job, not something we exercise here).
-LIVE_TEST_ENDPOINTS = {"flow/inspect"}
+# no endpoint is allowed to reach a live mailroom during tests. the two that undecorated tests reach via the
+# production client - flow/clone and flow/inspect - are faked below from the request payload; flow/migrate
+# either skips the call (current-spec definitions hit MailroomClient.flow_migrate's TESTING fast-path) or must
+# be stubbed with mr_mocks.flow_migrate. anything else reaching _request without a Mock transport raises.
+LIVE_TEST_ENDPOINTS = set()
 
 _real_mailroom_request = MailroomClient._request
 
@@ -78,6 +77,124 @@ def clone_flow_definition(definition: dict, dependency_mapping: dict) -> dict:
     return clone
 
 
+# maps the action property holding an asset reference to its goflow dependency type. "groups"/"labels" hold lists
+# of references, the rest hold a single reference object. mirrors the reference-typed fields on goflow's actions
+# (flows/actions/*.go); types not consumed by Flow.update_dependencies (e.g. classifier) are intentionally omitted.
+_INSPECT_ACTION_REFS = {
+    "groups": "group",
+    "labels": "label",
+    "field": "field",
+    "flow": "flow",
+    "channel": "channel",
+    "llm": "llm",
+    "optin": "optin",
+    "topic": "topic",
+    "template": "template",
+}
+
+# contact field and global references read out of expressions. goflow resolves a field key as the segment after a
+# "fields" lookup at any of its context paths (fields/contact.fields/parent.fields/child.fields/...), so the key
+# is always what follows "fields." regardless of prefix; "globals.x" is a global. see goflow inspect/templates.go.
+_INSPECT_EXPR_REFS = re.compile(r"\b(fields|globals)\.([a-zA-Z][a-zA-Z0-9_]*)")
+
+# matches goflow's utils.Snakify: collapse runs of non-(letter/digit/underscore) to "_", trim, lowercase.
+_INSPECT_SNAKE = re.compile(r"[^\w]+", re.UNICODE)
+
+
+def _snakify(text: str) -> str:
+    return _INSPECT_SNAKE.sub("_", text.strip()).lower()
+
+
+def inspect_flow(definition: dict) -> dict:
+    """
+    Pragmatic Python stand-in for goflow's flow inspection (flows/inspect), used to fake flow/inspect for the
+    production client during tests instead of reaching a live mailroom. It reproduces the two parts of the
+    analysis that rapidpro consumes or asserts on:
+
+      - dependencies: the typed asset references that goflow's actions/routers enumerate, plus the field/global
+        references in expressions (used by Flow.save_revision / Flow.import_definition to wire up dependencies)
+      - results: the result specs that save-result actions and routers produce (stored on the flow and exposed
+        via the API/editor)
+
+    It is deliberately not a full port: goflow's issue analysis, structural validation, counts and locals aren't
+    reproduced. A test that needs those uses @mock_mailroom and stubs mr_mocks.flow_inspect (or, for validation
+    errors, mr_mocks.exception). During tests mailroom inspects without session assets (flow_inspect omits org_id
+    when settings.TESTING), so every dependency is missing=False and no asset-availability issues fire - matching
+    the empty issues we return here.
+    """
+
+    deps = []
+    deps_seen = set()
+    results = []
+    results_by_key = {}
+
+    def add_dep(dep_type: str, *, uuid: str = None, key: str = None, name: str = ""):
+        identity = uuid if uuid is not None else key
+        if identity is None or (dep_type, identity) in deps_seen:
+            return
+        deps_seen.add((dep_type, identity))
+        ref = {"type": dep_type, "name": name or "", "missing": False}
+        ref["uuid" if uuid is not None else "key"] = identity
+        deps.append(ref)
+
+    def add_typed_ref(dep_type: str, ref):
+        if isinstance(ref, dict):
+            add_dep(dep_type, uuid=ref.get("uuid"), key=ref.get("key"), name=ref.get("name", ""))
+
+    def scan_expressions(value):
+        if isinstance(value, str):
+            for namespace, key in _INSPECT_EXPR_REFS.findall(value):
+                add_dep("field" if namespace == "fields" else "global", key=key.lower())
+        elif isinstance(value, list):
+            for item in value:
+                scan_expressions(item)
+        elif isinstance(value, dict):
+            for item in value.values():
+                scan_expressions(item)
+
+    def add_result(node_uuid: str, name: str, categories: list):
+        # merge by snakified key, accumulating categories and the nodes that save the result (as goflow does)
+        key = _snakify(name)
+        spec = results_by_key.get(key)
+        if spec is None:
+            spec = {"key": key, "name": name, "categories": list(categories), "node_uuids": [node_uuid]}
+            results_by_key[key] = spec
+            results.append(spec)
+        else:
+            for category in categories:
+                if category not in spec["categories"]:
+                    spec["categories"].append(category)
+            if node_uuid not in spec["node_uuids"]:
+                spec["node_uuids"].append(node_uuid)
+
+    for node in definition.get("nodes", []):
+        node_uuid = node.get("uuid")
+        for action in node.get("actions", []):
+            for prop, dep_type in _INSPECT_ACTION_REFS.items():
+                if prop in action:
+                    value = action[prop]
+                    refs = value if isinstance(value, list) else [value]
+                    for ref in refs:
+                        add_typed_ref(dep_type, ref)
+            if action.get("type") == "set_run_result":
+                category = action.get("category")
+                add_result(node_uuid, action["name"], [category] if category else [])
+            scan_expressions(action)
+
+        router = node.get("router")
+        if router:
+            scan_expressions(router.get("operand"))
+            # only a has_group router test produces a dependency: arguments are [group_uuid] or [group_uuid, name]
+            for case in router.get("cases", []):
+                if case.get("type") == "has_group" and case.get("arguments"):
+                    args = case["arguments"]
+                    add_dep("group", uuid=args[0], name=args[1] if len(args) > 1 else "")
+            if router.get("result_name"):
+                add_result(node_uuid, router["result_name"], [c["name"] for c in router.get("categories", [])])
+
+    return {"dependencies": deps, "issues": [], "results": results, "parent_refs": [], "counts": {}, "locals": []}
+
+
 class LiveMailroomError(BaseException):
     """
     Raised when a test reaches a live mailroom instead of mocking it. Deliberately subclasses BaseException, not
@@ -95,10 +212,13 @@ def _guarded_mailroom_request(self, endpoint, payload=None, files=None, post=Tru
     if isinstance(transport, NonCallableMock):
         return _real_mailroom_request(self, endpoint, payload=payload, files=files, post=post, encode_json=encode_json)
 
-    # flow/clone is simple enough to reimplement in Python, so fake it for the production client used by
-    # undecorated import tests rather than reaching a live mailroom. unlike migrate/inspect it needs no goflow.
+    # flow/clone and flow/inspect are reached by undecorated import/save tests via the production client; both are
+    # faked from the request payload (see clone_flow_definition / inspect_flow) rather than reaching a live
+    # mailroom. @mock_mailroom tests don't get here - TestClient overrides the high-level client methods.
     if endpoint == "flow/clone":
         return clone_flow_definition(payload["flow"], payload["dependency_mapping"])
+    if endpoint == "flow/inspect":
+        return inspect_flow(payload["flow"])
 
     if endpoint not in LIVE_TEST_ENDPOINTS:
         raise LiveMailroomError(
