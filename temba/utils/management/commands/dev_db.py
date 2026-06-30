@@ -1,6 +1,6 @@
 from zoneinfo import ZoneInfo
 
-from django.core.management import BaseCommand
+from django.core.management import BaseCommand, CommandError
 
 from temba.contacts.models import Contact, ContactField, ContactGroup
 from temba.orgs.models import Org
@@ -25,7 +25,7 @@ CONTACTS = (
 
 
 class Command(BaseCommand):
-    help = "Creates a minimal database for local development (one admin, one workspace, a few contacts)"
+    help = "Creates a minimal database for local development (one admin, one workspace, a few contacts). Requires a running mailroom as contact creation goes through it."
 
     def add_arguments(self, parser):
         parser.add_argument("--email", default=DEFAULT_EMAIL, help=f"admin email (default: {DEFAULT_EMAIL})")
@@ -34,9 +34,8 @@ class Command(BaseCommand):
         parser.add_argument("--timezone", default="America/Los_Angeles", help="workspace timezone")
 
     def handle(self, email, password, org, timezone, *args, **kwargs):
-        if User.objects.filter(email=email).exists():
-            self.stderr.write(self.style.ERROR(f"A user with email {email} already exists - nothing to do."))
-            return
+        if User.objects.filter(email__iexact=email).exists():
+            raise CommandError(f"A user with email {email} already exists - nothing to do.")
 
         self._log(f"Creating admin user {email}... ")
         admin = User.objects.create_user(email, password, is_superuser=True, is_staff=True, first_name="Admin")
