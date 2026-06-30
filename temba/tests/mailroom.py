@@ -35,13 +35,12 @@ event_units = {
     CampaignEvent.UNIT_WEEKS: "weeks",
 }
 
-# endpoints still allowed to reach a live mailroom during tests, both reached by undecorated import tests using
-# the production client:
-#  - flow/inspect needs real goflow dependency/issue analysis we don't reimplement here
-#  - flow/migrate is only reached for fixtures below the current spec (the legacy-migration tests); current-spec
-#    fixtures skip the call via the fast-path in MailroomClient.flow_migrate
-# @mock_mailroom tests don't reach here for these - TestClient's stubs intercept above _request.
-LIVE_TEST_ENDPOINTS = {"flow/migrate", "flow/inspect"}
+# endpoints still allowed to reach a live mailroom during tests. flow/inspect needs real goflow dependency/issue
+# analysis that we don't reimplement here, and is reached by undecorated import tests using the production client.
+# flow/migrate is NOT here: current-spec definitions skip the call via MailroomClient.flow_migrate's TESTING
+# fast-path, and tests that load/import a below-current-spec definition must stub it with mr_mocks.flow_migrate -
+# anything else reaching it raises (migration is goflow's job, not something we exercise here).
+LIVE_TEST_ENDPOINTS = {"flow/inspect"}
 
 _real_mailroom_request = MailroomClient._request
 
