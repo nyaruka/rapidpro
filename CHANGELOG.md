@@ -1,3 +1,10 @@
+v26.3.6 (2026-06-30)
+-------------------------
+ * Update @nyaruka/temba-components to 0.160.1
+ * Bump CLA Assistant action to v2.6.1 to fix Node 24 incompatibility
+ * Guard tests against reaching a live mailroom via the production client
+ * Use django.conf.settings instead of importing the settings module directly
+
 v26.3.5 (2026-06-25)
 -------------------------
  * Authorize notifications channel via the subscribe proxy
