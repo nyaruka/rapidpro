@@ -133,6 +133,10 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         old_modified_on = flow.modified_on
         old_saved_on = flow.saved_on
 
+        # migration is goflow's job - stub the migrated definition (this fixture is content-equivalent across the
+        # spec bump, so the only recorded change is the "spec" tag)
+        mr_mocks.flow_migrate(rev.definition)
+
         flow.ensure_current_version()
 
         # spec migration is itself a recorded change — a new revision is created with
