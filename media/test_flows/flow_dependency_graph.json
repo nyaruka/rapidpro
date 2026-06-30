@@ -98,7 +98,7 @@
       "expire_after_minutes": 10080,
       "language": "eng",
       "localization": {},
-      "name": "Legacy Parent",
+      "name": "Parent",
       "nodes": [
         {
           "actions": [

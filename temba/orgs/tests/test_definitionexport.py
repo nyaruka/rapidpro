@@ -184,21 +184,20 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(campaign.id, new_campaign.id)
         self.assertNotEqual(event.id, new_event.id)
 
-    def test_import_mixed_flow_versions(self):
-        self.import_file("test_flows/mixed_versions.json")
+    def test_import_flow_dependency_graph(self):
+        self.import_file("test_flows/flow_dependency_graph.json")
 
         group = ContactGroup.objects.get(name="Survey Audience")
-
         child = Flow.objects.get(name="New Child")
-        self.assertEqual(child.version_number, Flow.CURRENT_SPEC_VERSION)
+        parent = Flow.objects.get(name="Parent")
+
+        # dependencies are resolved across the imported flows
         self.assertEqual(set(child.flow_dependencies.all()), set())
         self.assertEqual(set(child.group_dependencies.all()), {group})
-
-        parent = Flow.objects.get(name="Legacy Parent")
-        self.assertEqual(parent.version_number, Flow.CURRENT_SPEC_VERSION)
         self.assertEqual(set(parent.flow_dependencies.all()), {child})
         self.assertEqual(set(parent.group_dependencies.all()), set())
 
+        # and the org's dependency graph links them both ways
         dep_graph = self.org.generate_dependency_graph()
         self.assertEqual(dep_graph[child], {parent})
         self.assertEqual(dep_graph[parent], {child})
