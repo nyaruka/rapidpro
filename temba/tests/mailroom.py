@@ -17,7 +17,7 @@ from temba import mailroom
 from temba.campaigns.models import CampaignEvent
 from temba.channels.models import ChannelEvent
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactURN
-from temba.flows.models import FlowRun, FlowSession, FlowStart
+from temba.flows.models import Flow, FlowRun, FlowSession, FlowStart
 from temba.locations.models import AdminBoundary
 from temba.mailroom.client.client import MailroomClient
 from temba.mailroom.modifiers import Modifier
@@ -148,7 +148,6 @@ class Mocks:
         self._contact_urns = []
         self._flow_change_language = []
         self._flow_inspect = []
-        self._flow_migrate = []
         self._flow_start_preview = []
         self._llm_translate = []
         self._msg_broadcast_preview = []
@@ -183,15 +182,6 @@ class Mocks:
 
     def contact_urns(self, urns: dict):
         self._contact_urns.append(urns)
-
-    def flow_migrate(self, definition: dict):
-        """
-        Queues the migrated definition that mailroom should return for the next flow_migrate call. Use this for
-        tests that load/import a below-current-spec definition - migration is goflow's job, so we only stub the
-        result rather than reaching a live mailroom.
-        """
-
-        self._flow_migrate.append(definition)
 
     def flow_change_language(self, definition: dict):
         """
@@ -439,16 +429,12 @@ class TestClient(MailroomClient):
 
     @_client_method
     def flow_migrate(self, definition: dict, to_version=None):
-        # use the test's stub if it set one (for below-current-spec definitions) - it's sticky since a single
-        # operation can migrate more than once (e.g. save_revision diffs against the prior revision). otherwise
-        # fall through to the real client, whose TESTING fast-path returns already-current definitions without a
-        # live call
-        if self.mocks._flow_migrate:
-            migrated = dict(self.mocks._flow_migrate[-1])
-            if to_version:
-                migrated["spec_version"] = to_version
-            return migrated
-        return super().flow_migrate(definition, to_version=to_version)
+        # migration is goflow's job and we don't reimplement it - just return the definition stamped with the
+        # requested spec version, so tests can verify that rapidpro requests and handles migration (not how the
+        # migration itself works) without a live mailroom call
+        migrated = dict(definition)
+        migrated["spec_version"] = to_version or Flow.CURRENT_SPEC_VERSION
+        return migrated
 
     @_client_method
     def flow_change_language(self, definition: dict, language):

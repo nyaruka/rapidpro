@@ -720,9 +720,6 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         revision.spec_version = "11.12"
         revision.save(update_fields=("definition", "spec_version"))
 
-        # migrating the legacy revision is goflow's job - stub the migrated (current-spec) definition it returns
-        mr_mocks.flow_migrate(self.load_json("test_flows/color.json")["flows"][0])
-
         self.assertIn("metadata", flow.get_definition())
 
         # if definition is outdated, metadata values are updated from db object
@@ -752,18 +749,15 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         revision.changes = {}
         revision.save(update_fields=("definition", "spec_version", "changes"))
 
-        # add a second, current-spec revision directly - creating one through migration is goflow's job. the
-        # revisions endpoint migrates legacy revisions for display, so stub the definition mailroom returns.
-        current_def = self.load_json("test_flows/color.json")["flows"][0]
+        # add a second, current-spec revision directly - creating one through migration is goflow's job
         FlowRevision.objects.create(
             flow=flow,
-            definition=current_def,
+            definition=self.load_json("test_flows/color.json")["flows"][0],
             spec_version=Flow.CURRENT_SPEC_VERSION,
             revision=2,
             changes={"tags": ["routing", "spec"]},
             created_by=self.admin,
         )
-        mr_mocks.flow_migrate(current_def)
 
         revisions = list(flow.revisions.all().order_by("-created_on"))
 

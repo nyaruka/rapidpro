@@ -132,10 +132,8 @@ class FlowMigrationTest(TembaTest):
         FlowRevision.objects.create(flow=flow, definition=flow_json, spec_version=3, revision=1, created_by=self.admin)
         revision = flow.revisions.get()
 
-        # the actual migration is goflow's job - stub the definition it would return. we're just checking that
-        # rapidpro prepares a legacy (pre-v6) revision and hands it off to be migrated to the current spec.
-        mr_mocks.flow_migrate({"spec_version": Flow.CURRENT_SPEC_VERSION, "nodes": []})
-
+        # we're just checking that rapidpro prepares a legacy (pre-v6) revision and hands it off to be migrated
+        # to the current spec - the migration itself is goflow's job
         migrated = revision.get_migrated_definition()
 
         self.assertEqual(Flow.CURRENT_SPEC_VERSION, migrated["spec_version"])
