@@ -1805,7 +1805,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual(404, response.status_code)
 
-    def test_write_protection(self):
+    @mock_mailroom
+    def test_write_protection(self, mr_mocks):
         flow = self.get_flow("favorites_v13")
         flow_json = flow.get_definition()
         flow_json_copy = flow_json.copy()
@@ -1828,16 +1829,19 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         with self.assertRaises(FlowUserConflictException):
             flow.save_revision(self.admin, flow_json_copy)
 
-        # make flow definition invalid by creating a duplicate node UUID
+        # make flow definition invalid by creating a duplicate node UUID - goflow rejects it on inspect, which we
+        # don't reimplement in tests, so stub the validation failure mailroom would return
         mode0_uuid = flow_json["nodes"][0]["uuid"]
         flow_json["nodes"][1]["uuid"] = mode0_uuid
 
+        mr_mocks.exception(mailroom.FlowValidationException(f"node UUID {mode0_uuid} isn't unique"))
         with self.assertRaises(mailroom.FlowValidationException) as cm:
             flow.save_revision(self.admin, flow_json)
 
         self.assertEqual(f"node UUID {mode0_uuid} isn't unique", str(cm.exception))
 
         # check view converts exception to error response
+        mr_mocks.exception(mailroom.FlowValidationException(f"node UUID {mode0_uuid} isn't unique"))
         response = self.client.post(
             reverse("flows.flow_revisions", args=[flow.uuid]), data=flow_json, content_type="application/json"
         )

@@ -9,7 +9,6 @@ jobs:
 
     env:
       node-version: '20'
-      mailroom-version: '26.1.126'
 
     services:
       valkey:
@@ -60,11 +59,6 @@ jobs:
           uv run python manage.py migrate
           uv run python manage.py migrate_dynamo --testing
           uv run python manage.py create_buckets --testing
-          # fetch, extract and start mailroom
-          wget https://github.com/${{ github.repository_owner }}/mailroom/releases/download/v${{ env.mailroom-version }}/mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz
-          tar -xvf mailroom_${{ env.mailroom-version }}_linux_amd64.tar.gz mailroom
-          # start mailroom with workers disabled so it serves the web API but doesn't pop any queued tasks
-          ./mailroom -db=postgres://temba:temba@postgres:5432/temba?sslmode=disable -workers-realtime=0 -workers-batch=0 -workers-throttled=0 -log-level=info > mailroom.log &
 
       - name: Run pre-test checks
         run: |
@@ -79,7 +73,3 @@ jobs:
 
       - name: Coverage report
         run: uv run coverage report -m --fail-under=100
-
-      - name: Mailroom log
-        if: failure()
-        run: cat mailroom.log
