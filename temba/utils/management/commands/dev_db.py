@@ -10,7 +10,6 @@ from django.utils import timezone
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactGroupCount, ContactURN
 from temba.orgs.models import Org
 from temba.users.models import User
-from temba.utils import uuid
 
 # by default every user (including the admins) gets this password
 USER_PASSWORD = "Qwerty123"
@@ -34,19 +33,13 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--orgs", type=int, dest="num_orgs", default=1, help="number of orgs to create")
         parser.add_argument("--contacts", type=int, dest="num_contacts", default=100, help="total contacts to create")
-        parser.add_argument("--seed", type=int, dest="seed", default=None, help="seed for deterministic UUIDs")
         parser.add_argument("--password", type=str, dest="password", default=USER_PASSWORD, help="admin password")
 
-    def handle(self, num_orgs, num_contacts, seed, password, *args, **kwargs):
+    def handle(self, num_orgs, num_contacts, password, *args, **kwargs):
         if Org.objects.exists():
             raise CommandError("Can't generate content in a non-empty database.")
 
-        # seed the UUID generator and our randomness so a given seed is reproducible
-        seed = seed if seed is not None else random.randrange(0, 65536)
-        self.random = random.Random(seed)
-        uuid.default_generator = uuid.seeded_generator(seed)
-
-        self._log(f"Generating {num_orgs} org(s) and {num_contacts} contact(s) (seed={seed})...\n")
+        self._log(f"Generating {num_orgs} org(s) and {num_contacts} contact(s)...\n")
 
         # fresh database so clear out the cache
         get_valkey_connection().flushdb()
@@ -86,12 +79,12 @@ class Command(BaseCommand):
             contacts = []
             for i in batch:
                 org = orgs[i % len(orgs)]
-                age = self.random.randint(16, 80)
-                gender = self.random.choice(("M", "F"))
+                age = random.randint(16, 80)
+                gender = random.choice(("M", "F"))
                 contacts.append(
                     Contact(
                         org=org,
-                        name=self.random.choice(NAMES),
+                        name=random.choice(NAMES),
                         language="eng",
                         status=Contact.STATUS_ACTIVE,
                         created_by=org.cache_admin,
