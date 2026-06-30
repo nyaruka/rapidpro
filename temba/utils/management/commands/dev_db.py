@@ -1,74 +1,138 @@
+import itertools
+import random
 from zoneinfo import ZoneInfo
 
+from django_valkey import get_valkey_connection
+
 from django.core.management import BaseCommand, CommandError
+from django.utils import timezone
 
-from temba.contacts.models import Contact, ContactField, ContactGroup
-from temba.orgs.models import Org
+from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactGroupCount, ContactURN
+from temba.orgs.models import Org, OrgRole
 from temba.users.models import User
+from temba.utils import uuid
 
-# default credentials for the admin user created by this command
-DEFAULT_EMAIL = "admin@temba.io"
-DEFAULT_PASSWORD = "Qwerty123"
+# by default every user (including the admins) gets this password
+USER_PASSWORD = "Qwerty123"
 
-# a few contact fields to make the workspace feel populated
+# contact fields created for each org, as (key, label, value_type)
 FIELDS = (
-    ("Age", ContactField.TYPE_NUMBER),
-    ("Gender", ContactField.TYPE_TEXT),
+    ("age", "Age", ContactField.TYPE_NUMBER),
+    ("gender", "Gender", ContactField.TYPE_TEXT),
 )
 
-# sample contacts created in the "Customers" group
-CONTACTS = (
-    ("Ann", "tel:+12065550101", {"age": "29", "gender": "F"}),
-    ("Bob", "tel:+12065550102", {"age": "41", "gender": "M"}),
-    ("Cat", "tel:+12065550103", {"age": "35", "gender": "F"}),
-)
+# pool of names randomly assigned to generated contacts
+NAMES = ("Ann", "Bob", "Cat", "Dan", "Eve", "Fay", "Gil", "Hal", "Ivy", "Jay")
 
 
 class Command(BaseCommand):
-    help = "Creates a minimal database for local development (one admin, one workspace, a few contacts). Requires a running mailroom as contact creation goes through it."
+    help = (
+        "Creates a simple database for local development: N orgs each with an admin, a couple of fields, a group, "
+        "and a share of M contacts spread across them. Requires an empty database (run migrate first)."
+    )
 
     def add_arguments(self, parser):
-        parser.add_argument("--email", default=DEFAULT_EMAIL, help=f"admin email (default: {DEFAULT_EMAIL})")
-        parser.add_argument("--password", default=DEFAULT_PASSWORD, help="admin password")
-        parser.add_argument("--org", default="Temba", help="workspace name (default: Temba)")
-        parser.add_argument("--timezone", default="America/Los_Angeles", help="workspace timezone")
+        parser.add_argument("--orgs", type=int, dest="num_orgs", default=1, help="number of orgs to create")
+        parser.add_argument("--contacts", type=int, dest="num_contacts", default=100, help="total contacts to create")
+        parser.add_argument("--seed", type=int, dest="seed", default=None, help="seed for deterministic UUIDs")
+        parser.add_argument("--password", type=str, dest="password", default=USER_PASSWORD, help="admin password")
 
-    def handle(self, email, password, org, timezone, *args, **kwargs):
-        if User.objects.filter(email__iexact=email).exists():
-            raise CommandError(f"A user with email {email} already exists - nothing to do.")
+    def handle(self, num_orgs, num_contacts, seed, password, *args, **kwargs):
+        if Org.objects.exists():
+            raise CommandError("Can't generate content in a non-empty database.")
 
-        self._log(f"Creating admin user {email}... ")
-        admin = User.objects.create_user(email, password, is_superuser=True, is_staff=True, first_name="Admin")
+        # seed the UUID generator and our randomness so a given seed is reproducible
+        seed = seed if seed is not None else random.randrange(0, 65536)
+        self.random = random.Random(seed)
+        uuid.default_generator = uuid.seeded_generator(seed)
+
+        self._log(f"Generating {num_orgs} org(s) and {num_contacts} contact(s) (seed={seed})...\n")
+
+        # fresh database so clear out the cache
+        get_valkey_connection().flushdb()
+
+        orgs = [self.create_org(i, password) for i in range(num_orgs)]
+        self.create_contacts(orgs, num_contacts)
+
+        admin = orgs[0].get_admins().first()
+        self._log("\n" + self.style.SUCCESS("Done!") + f" Log in as {admin.email} / {password}\n")
+
+    def create_org(self, index, password):
+        name = f"Org {index + 1}"
+        self._log(f"Creating {name}... ")
+
+        admin = User.objects.create_user(f"admin{index + 1}@temba.io", password, is_staff=True, first_name="Admin")
+        org = Org.objects.create(
+            name=name,
+            timezone=ZoneInfo("America/Los_Angeles"),
+            flow_languages=["eng"],
+            created_by=admin,
+            modified_by=admin,
+        )
+        org.initialize(sample_flows=False)
+        org.add_user(admin, OrgRole.ADMINISTRATOR)
+
+        # a couple of user fields and a manual group to make the workspace feel populated
+        org.cache_fields = {
+            key: ContactField.create(org, admin, label, value_type) for key, label, value_type in FIELDS
+        }
+        org.cache_group = ContactGroup.create_manual(org, admin, "Customers")
+        org.cache_admin = admin
+
         self._ok()
+        return org
 
-        self._log(f"Creating workspace {org}... ")
-        # Org.create adds the user as administrator, sets up system groups/fields, and imports sample flows
-        workspace = Org.create(admin, org, ZoneInfo(timezone))
+    def create_contacts(self, orgs, num_contacts):
+        self._log(f"Creating {num_contacts} contacts... ")
+
+        # spread contacts evenly across orgs, bulk inserting in batches to keep memory flat. Active-group
+        # membership and group counts are maintained by db triggers, so we only insert contacts, their URNs
+        # and manual group membership directly.
+        for batch in itertools.batched(range(num_contacts), 5000):
+            contacts = []
+            for i in batch:
+                org = orgs[i % len(orgs)]
+                age = self.random.randint(16, 80)
+                gender = self.random.choice(("M", "F"))
+                contacts.append(
+                    Contact(
+                        org=org,
+                        name=self.random.choice(NAMES),
+                        language="eng",
+                        status=Contact.STATUS_ACTIVE,
+                        created_by=org.cache_admin,
+                        modified_by=org.cache_admin,
+                        created_on=timezone.now(),
+                        modified_on=timezone.now(),
+                        fields={
+                            str(org.cache_fields["age"].uuid): {"text": str(age), "number": str(age)},
+                            str(org.cache_fields["gender"].uuid): {"text": gender},
+                        },
+                    )
+                )
+
+            Contact.objects.bulk_create(contacts)
+
+            urns, memberships = [], []
+            for contact, i in zip(contacts, batch):
+                tel = "+1206555%04d" % i
+                urns.append(
+                    ContactURN(
+                        org=contact.org,
+                        contact=contact,
+                        scheme=URN.TEL_SCHEME,
+                        path=tel,
+                        identity=URN.from_tel(tel),
+                        priority=50,
+                    )
+                )
+                memberships.append(ContactGroup.contacts.through(contact=contact, contactgroup=contact.org.cache_group))
+
+            ContactURN.objects.bulk_create(urns)
+            ContactGroup.contacts.through.objects.bulk_create(memberships)
+
+        ContactGroupCount.squash()
         self._ok()
-
-        self._log(f"Creating {len(FIELDS)} fields... ")
-        fields = {name.lower(): ContactField.create(workspace, admin, name, value_type) for name, value_type in FIELDS}
-        self._ok()
-
-        self._log("Creating Customers group... ")
-        group = ContactGroup.create_manual(workspace, admin, "Customers")
-        self._ok()
-
-        self._log(f"Creating {len(CONTACTS)} contacts... ")
-        for name, urn, values in CONTACTS:
-            Contact.create(
-                workspace,
-                admin,
-                name=name,
-                language="",
-                status=Contact.STATUS_ACTIVE,
-                urns=[urn],
-                fields={fields[key]: val for key, val in values.items()},
-                groups=[group],
-            )
-        self._ok()
-
-        self._log("\n" + self.style.SUCCESS("Done!") + f" Log in as {email} / {password}\n")
 
     def _log(self, text):
         self.stdout.write(text, ending="")
