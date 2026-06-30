@@ -12,7 +12,6 @@ Skips fixtures used to test legacy migration behavior:
   - media/test_flows/legacy/migrations/*  (inputs to FlowMigrationTest)
   - media/test_flows/legacy/invalid/*     (intentionally invalid)
   - media/test_flows/legacy/color_v11.json (tests legacy revision migration UI)
-  - media/test_flows/mixed_versions.json   (tests mixed-version import)
 """
 
 import json
@@ -34,7 +33,6 @@ EXTRA_FILES = {
 
 SKIP = {
     "media/test_flows/legacy/color_v11.json",
-    "media/test_flows/mixed_versions.json",
 }
 SKIP_DIRS = {
     "media/test_flows/legacy/migrations",

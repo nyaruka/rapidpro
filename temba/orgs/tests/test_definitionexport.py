@@ -76,7 +76,8 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(voice_flow.name, "IVR Flow")
         self.assertEqual(voice_flow.expires_after_minutes, 15)
 
-    def test_import(self):
+    @mock_mailroom
+    def test_import(self, mr_mocks):
         create_url = reverse("orgs.orgimport_create")
 
         self.login(self.admin)
@@ -95,7 +96,9 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
             response.context["form"], "file", "This file contains flows with a version that is too new."
         )
 
-        # try a file which can be migrated forwards
+        # a file which can be migrated forwards - migration itself is goflow's job, but the import consumes the
+        # migrated flow, so stub a real current-spec definition
+        mr_mocks.flow_migrate(self.load_json("test_flows/favorites.json")["flows"][0])
         response = self.client.post(
             create_url,
             {"file": open("%s/test_flows/legacy/migrations/favorites_v4.json" % settings.MEDIA_ROOT, "rb")},
@@ -181,21 +184,20 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(campaign.id, new_campaign.id)
         self.assertNotEqual(event.id, new_event.id)
 
-    def test_import_mixed_flow_versions(self):
-        self.import_file("test_flows/mixed_versions.json")
+    def test_import_flow_dependency_graph(self):
+        self.import_file("test_flows/flow_dependency_graph.json")
 
         group = ContactGroup.objects.get(name="Survey Audience")
-
         child = Flow.objects.get(name="New Child")
-        self.assertEqual(child.version_number, Flow.CURRENT_SPEC_VERSION)
+        parent = Flow.objects.get(name="Parent")
+
+        # dependencies are resolved across the imported flows
         self.assertEqual(set(child.flow_dependencies.all()), set())
         self.assertEqual(set(child.group_dependencies.all()), {group})
-
-        parent = Flow.objects.get(name="Legacy Parent")
-        self.assertEqual(parent.version_number, Flow.CURRENT_SPEC_VERSION)
         self.assertEqual(set(parent.flow_dependencies.all()), {child})
         self.assertEqual(set(parent.group_dependencies.all()), set())
 
+        # and the org's dependency graph links them both ways
         dep_graph = self.org.generate_dependency_graph()
         self.assertEqual(dep_graph[child], {parent})
         self.assertEqual(dep_graph[parent], {child})

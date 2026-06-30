@@ -17,7 +17,7 @@ from temba import mailroom
 from temba.campaigns.models import CampaignEvent
 from temba.channels.models import ChannelEvent
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactURN
-from temba.flows.models import FlowRun, FlowSession, FlowStart
+from temba.flows.models import Flow, FlowRun, FlowSession, FlowStart
 from temba.locations.models import AdminBoundary
 from temba.mailroom.client.client import MailroomClient
 from temba.mailroom.modifiers import Modifier
@@ -35,13 +35,12 @@ event_units = {
     CampaignEvent.UNIT_WEEKS: "weeks",
 }
 
-# endpoints still allowed to reach a live mailroom during tests, both reached by undecorated import tests using
-# the production client:
-#  - flow/inspect needs real goflow dependency/issue analysis we don't reimplement here
-#  - flow/migrate is only reached for fixtures below the current spec (the legacy-migration tests); current-spec
-#    fixtures skip the call via the fast-path in MailroomClient.flow_migrate
-# @mock_mailroom tests don't reach here for these - TestClient's stubs intercept above _request.
-LIVE_TEST_ENDPOINTS = {"flow/migrate", "flow/inspect"}
+# endpoints still allowed to reach a live mailroom during tests. flow/inspect needs real goflow dependency/issue
+# analysis that we don't reimplement here, and is reached by undecorated import tests using the production client.
+# flow/migrate is NOT here: current-spec definitions skip the call via MailroomClient.flow_migrate's TESTING
+# fast-path, and tests that load/import a below-current-spec definition must stub it with mr_mocks.flow_migrate -
+# anything else reaching it raises (migration is goflow's job, not something we exercise here).
+LIVE_TEST_ENDPOINTS = {"flow/inspect"}
 
 _real_mailroom_request = MailroomClient._request
 
@@ -149,6 +148,7 @@ class Mocks:
         self._contact_urns = []
         self._flow_change_language = []
         self._flow_inspect = []
+        self._flow_migrate = []
         self._flow_start_preview = []
         self._llm_translate = []
         self._msg_broadcast_preview = []
@@ -202,6 +202,14 @@ class Mocks:
                 "locals": locals if locals is not None else [],
             }
         )
+
+    def flow_migrate(self, definition: dict):
+        """
+        Stubs the migrated definition mailroom should return. Only needed for tests that consume the migrated
+        content (e.g. importing the flow); otherwise TestClient.flow_migrate just stamps the given definition.
+        """
+
+        self._flow_migrate.append(definition)
 
     def flow_start_preview(self, query, total):
         def mock(org):
@@ -454,6 +462,16 @@ class TestClient(MailroomClient):
     @_client_method
     def flow_interrupt(self, org, flow):
         pass
+
+    @_client_method
+    def flow_migrate(self, definition: dict, to_version=None):
+        # migration is goflow's job and we don't reimplement it. by default just stamp the given definition with
+        # the requested spec version - enough to verify that rapidpro requests/handles migration without caring
+        # how migration itself works. a test that actually consumes the migrated *content* (e.g. importing and
+        # saving the resulting flow) can stub a real current-spec definition via mr_mocks.flow_migrate.
+        migrated = dict(self.mocks._flow_migrate[-1] if self.mocks._flow_migrate else definition)
+        migrated["spec_version"] = to_version or Flow.CURRENT_SPEC_VERSION
+        return migrated
 
     @_client_method
     def flow_start(self, org, user, typ, flow, groups, contacts, urns, query, exclude, params):
