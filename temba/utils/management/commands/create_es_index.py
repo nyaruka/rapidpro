@@ -17,6 +17,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("index", choices=["messages", "contacts"], help="Index to create")
+        parser.add_argument("--name", help="Name of the index/template to create (defaults to the standard name)")
         parser.add_argument(
             "--shards", type=int, choices=range(1, 11), help="Override number of shards (1-10)", default=None
         )
@@ -25,7 +26,7 @@ class Command(BaseCommand):
         )
         parser.add_argument("--no-alias", action="store_true", help="Don't create the alias for the index")
 
-    def handle(self, index: str, shards: int, replicas: int, no_alias: bool, *args, **options):
+    def handle(self, index: str, name: str, shards: int, replicas: int, no_alias: bool, *args, **options):
         if not settings.ELASTIC_ENDPOINT_URL:
             raise CommandError("ELASTIC_ENDPOINT_URL must be configured")
 
@@ -40,7 +41,11 @@ class Command(BaseCommand):
             if replicas is not None:
                 schema["template"]["settings"]["index"]["number_of_replicas"] = replicas
 
-            self._create_template(client, MESSAGES_TEMPLATE_NAME, schema)
+            # the template name and its index patterns track the requested name, so an isolated
+            # stack's monthly indices (<name>-YYYY-MM) inherit this mapping
+            name = name or MESSAGES_TEMPLATE_NAME
+            schema["index_patterns"] = [f"{name}-*"]
+            self._create_template(client, name, schema)
 
         elif index == "contacts":
             with open(CONTACTS_INDEX_FILE, "r") as f:
@@ -51,7 +56,7 @@ class Command(BaseCommand):
             if replicas is not None:
                 schema["settings"]["index"]["number_of_replicas"] = replicas
 
-            self._create_index(client, CONTACTS_INDEX_NAME, schema)
+            self._create_index(client, name or CONTACTS_INDEX_NAME, schema)
 
     def _create_template(self, client, name: str, schema: dict):
         """Creates an index template using the Elasticsearch API."""
