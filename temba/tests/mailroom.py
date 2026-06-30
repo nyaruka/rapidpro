@@ -148,6 +148,7 @@ class Mocks:
         self._contact_urns = []
         self._flow_change_language = []
         self._flow_inspect = []
+        self._flow_migrate = []
         self._flow_start_preview = []
         self._llm_translate = []
         self._msg_broadcast_preview = []
@@ -182,6 +183,14 @@ class Mocks:
 
     def contact_urns(self, urns: dict):
         self._contact_urns.append(urns)
+
+    def flow_migrate(self, definition: dict):
+        """
+        Stubs the migrated definition mailroom should return. Only needed for tests that consume the migrated
+        content (e.g. importing the flow); otherwise TestClient.flow_migrate just stamps the given definition.
+        """
+
+        self._flow_migrate.append(definition)
 
     def flow_change_language(self, definition: dict):
         """
@@ -429,10 +438,11 @@ class TestClient(MailroomClient):
 
     @_client_method
     def flow_migrate(self, definition: dict, to_version=None):
-        # migration is goflow's job and we don't reimplement it - just return the definition stamped with the
-        # requested spec version, so tests can verify that rapidpro requests and handles migration (not how the
-        # migration itself works) without a live mailroom call
-        migrated = dict(definition)
+        # migration is goflow's job and we don't reimplement it. by default just stamp the given definition with
+        # the requested spec version - enough to verify that rapidpro requests/handles migration without caring
+        # how migration itself works. a test that actually consumes the migrated *content* (e.g. importing and
+        # saving the resulting flow) can stub a real current-spec definition via mr_mocks.flow_migrate.
+        migrated = dict(self.mocks._flow_migrate[-1] if self.mocks._flow_migrate else definition)
         migrated["spec_version"] = to_version or Flow.CURRENT_SPEC_VERSION
         return migrated
 

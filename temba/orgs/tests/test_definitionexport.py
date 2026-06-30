@@ -96,7 +96,9 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
             response.context["form"], "file", "This file contains flows with a version that is too new."
         )
 
-        # a file which can be migrated forwards - migration itself is goflow's job
+        # a file which can be migrated forwards - migration itself is goflow's job, but the import consumes the
+        # migrated flow, so stub a real current-spec definition
+        mr_mocks.flow_migrate(self.load_json("test_flows/favorites.json")["flows"][0])
         response = self.client.post(
             create_url,
             {"file": open("%s/test_flows/legacy/migrations/favorites_v4.json" % settings.MEDIA_ROOT, "rb")},
