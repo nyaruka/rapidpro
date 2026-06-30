@@ -76,7 +76,8 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(voice_flow.name, "IVR Flow")
         self.assertEqual(voice_flow.expires_after_minutes, 15)
 
-    def test_import(self):
+    @mock_mailroom
+    def test_import(self, mr_mocks):
         create_url = reverse("orgs.orgimport_create")
 
         self.login(self.admin)
@@ -95,7 +96,9 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
             response.context["form"], "file", "This file contains flows with a version that is too new."
         )
 
-        # try a file which can be migrated forwards
+        # try a file which can be migrated forwards - migration itself is goflow's job, so stub the migrated
+        # (current-spec) definition it returns
+        mr_mocks.flow_migrate(self.load_json("test_flows/favorites.json")["flows"][0])
         response = self.client.post(
             create_url,
             {"file": open("%s/test_flows/legacy/migrations/favorites_v4.json" % settings.MEDIA_ROOT, "rb")},

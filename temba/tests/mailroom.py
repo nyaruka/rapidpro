@@ -445,7 +445,10 @@ class TestClient(MailroomClient):
         # fall through to the real client, whose TESTING fast-path returns already-current definitions without a
         # live call
         if self.mocks._flow_migrate:
-            return self.mocks._flow_migrate[-1]
+            migrated = dict(self.mocks._flow_migrate[-1])
+            if to_version:
+                migrated["spec_version"] = to_version
+            return migrated
         return super().flow_migrate(definition, to_version=to_version)
 
     @_client_method

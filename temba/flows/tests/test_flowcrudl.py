@@ -15,6 +15,7 @@ from temba.contacts.models import URN
 from temba.flows.models import (
     Flow,
     FlowLabel,
+    FlowRevision,
     FlowRun,
     FlowStart,
     FlowUserConflictException,
@@ -739,23 +740,30 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     @mock_mailroom
     def test_revisions(self, mr_mocks):
-        flow = self.get_flow("legacy/color_v11")
+        flow = self.create_flow("Color")
 
         revisions_url = reverse("flows.flow_revisions", args=[flow.uuid])
 
+        # rewind the flow's revision to a legacy spec
         original_def = self.load_json("test_flows/legacy/color_v11.json")["flows"][0]
-
-        # rewind definition to legacy spec
         revision = flow.revisions.get()
         revision.definition = original_def
         revision.spec_version = "11.12"
-        revision.save(update_fields=("definition", "spec_version"))
+        revision.changes = {}
+        revision.save(update_fields=("definition", "spec_version", "changes"))
 
-        # create a new migrated revision (rename so the save isn't a no-op)
-        flow_def = revision.get_migrated_definition()
-        flow.name = "Color Renamed"
-        flow.save(update_fields=("name",))
-        flow.save_revision(self.admin, flow_def)
+        # add a second, current-spec revision directly - creating one through migration is goflow's job. the
+        # revisions endpoint migrates legacy revisions for display, so stub the definition mailroom returns.
+        current_def = self.load_json("test_flows/color.json")["flows"][0]
+        FlowRevision.objects.create(
+            flow=flow,
+            definition=current_def,
+            spec_version=Flow.CURRENT_SPEC_VERSION,
+            revision=2,
+            changes={"tags": ["routing", "spec"]},
+            created_by=self.admin,
+        )
+        mr_mocks.flow_migrate(current_def)
 
         revisions = list(flow.revisions.all().order_by("-created_on"))
 
