@@ -8,7 +8,7 @@ from django.core.management import BaseCommand, CommandError
 from django.utils import timezone
 
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactGroupCount, ContactURN
-from temba.orgs.models import Org, OrgRole
+from temba.orgs.models import Org
 from temba.users.models import User
 from temba.utils import uuid
 
@@ -62,15 +62,9 @@ class Command(BaseCommand):
         self._log(f"Creating {name}... ")
 
         admin = User.objects.create_user(f"admin{index + 1}@temba.io", password, is_staff=True, first_name="Admin")
-        org = Org.objects.create(
-            name=name,
-            timezone=ZoneInfo("America/Los_Angeles"),
-            flow_languages=["eng"],
-            created_by=admin,
-            modified_by=admin,
-        )
-        org.initialize(sample_flows=False)
-        org.add_user(admin, OrgRole.ADMINISTRATOR)
+
+        # Org.create adds the admin, sets up system groups/fields, and imports the sample flows
+        org = Org.create(admin, name, ZoneInfo("America/Los_Angeles"))
 
         # a couple of user fields and a manual group to make the workspace feel populated
         org.cache_fields = {
