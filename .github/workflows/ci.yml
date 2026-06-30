@@ -9,6 +9,7 @@ jobs:
 
     env:
       node-version: '20'
+      DJANGO_SETTINGS_MODULE: temba.settings_dev
 
     services:
       valkey:
@@ -55,7 +56,6 @@ jobs:
           corepack enable
           yarn install
           yarn global add less
-          cd temba && ln -s settings.py.dev settings.py && cd ..
           uv run python manage.py migrate
           uv run python manage.py migrate_dynamo --testing
           uv run python manage.py create_buckets --testing
