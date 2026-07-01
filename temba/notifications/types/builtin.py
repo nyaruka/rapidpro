@@ -119,61 +119,6 @@ class TicketActivityNotificationType(NotificationType):
         return "/ticket/mine/"
 
 
-class UserEmailNotificationType(NotificationType):
-    """
-    Notification that a user's email has been changed.
-    """
-
-    slug = "user:email"
-
-    @classmethod
-    def create(cls, org, user, prev_email: str):
-        Notification.create_all(
-            org,
-            cls.slug,
-            scope=str(user.id),
-            users=[user],
-            medium=Notification.MEDIUM_EMAIL,
-            email_address=prev_email,
-        )
-
-    def get_target_url(self, notification) -> str:
-        pass
-
-    def get_email_subject(self, notification) -> str:
-        return _("Your email has been changed")
-
-    def get_email_template(self, notification) -> str:
-        return "notifications/email/user_email"
-
-
-class UserPasswordNotificationType(NotificationType):
-    """
-    Notification that a user's password has been changed.
-    """
-
-    slug = "user:password"
-
-    @classmethod
-    def create(cls, org, user):
-        Notification.create_all(
-            org,
-            cls.slug,
-            scope=str(user.id),
-            users=[user],
-            medium=Notification.MEDIUM_EMAIL,
-        )
-
-    def get_target_url(self, notification) -> str:
-        pass
-
-    def get_email_subject(self, notification) -> str:
-        return _("Your password has been changed")
-
-    def get_email_template(self, notification) -> str:
-        return "notifications/email/user_password"
-
-
 class InvitationAcceptedNotificationType(NotificationType):
     """
     Notification that a user accepted an invitation to join the workspace.
