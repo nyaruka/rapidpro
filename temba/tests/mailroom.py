@@ -694,6 +694,10 @@ class TestClient(MailroomClient):
         }
 
     @_client_method
+    def notification_publish(self, org, notifications: list[dict]):
+        return {}
+
+    @_client_method
     def org_deindex(self, org):
         return {}
 

@@ -931,6 +931,20 @@ class MailroomClientTest(TembaTest):
         )
 
     @patch("requests.post")
+    def test_notification_publish(self, mock_post):
+        mock_post.return_value = MockJsonResponse(200, {})
+        notifications = [{"user_id": self.admin.id, "data": {"type": "export:finished"}}]
+        response = self.client.notification_publish(self.org, notifications)
+
+        self.assertEqual({}, response)
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mi/notification/publish",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={"org_id": self.org.id, "notifications": notifications},
+        )
+
+    @patch("requests.post")
     def test_org_deindex(self, mock_post):
         mock_post.return_value = MockJsonResponse(200, {})
         response = self.client.org_deindex(self.org)
