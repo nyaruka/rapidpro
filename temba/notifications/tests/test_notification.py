@@ -396,6 +396,16 @@ class NotificationTest(TembaTest):
 
         self.assertEqual(1, len(mr_mocks.calls["notification_publish"]))
 
+        # publishing is best-effort: a mailroom failure is logged, not raised, and the notification is still created
+        export2 = ContactExport.create(self.org, self.editor)
+        mr_mocks.exception(ConnectionError("mailroom unreachable"))
+
+        with self.assertLogs("temba.notifications.models", level="ERROR"):
+            with self.captureOnCommitCallbacks(execute=True):
+                ExportFinishedNotificationType.create(export2)
+
+        self.assertTrue(self.editor.notifications.filter(export=export2).exists())
+
     def test_channel_disconnected(self):
         self.org.add_user(self.editor, OrgRole.ADMINISTRATOR)  # upgrade editor to administrator
 
