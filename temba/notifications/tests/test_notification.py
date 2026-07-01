@@ -14,12 +14,7 @@ from temba.notifications.incidents.builtin import (
 )
 from temba.notifications.models import Notification
 from temba.notifications.tasks import send_notification_emails, trim_notifications
-from temba.notifications.types.builtin import (
-    ExportFinishedNotificationType,
-    InvitationAcceptedNotificationType,
-    UserEmailNotificationType,
-    UserPasswordNotificationType,
-)
+from temba.notifications.types.builtin import ExportFinishedNotificationType, InvitationAcceptedNotificationType
 from temba.orgs.models import Invitation, ItemCount, OrgRole
 from temba.tests import TembaTest, matchers
 from temba.tickets.models import TicketExport
@@ -344,48 +339,6 @@ class NotificationTest(TembaTest):
 
         recipients = set(mail.outbox[0].recipients()).union(mail.outbox[1].recipients())
         self.assertEqual({self.admin.email, self.editor.email}, recipients)
-
-    def test_user_email(self):
-        UserEmailNotificationType.create(self.org, self.editor, "prevaddr@trileet.com")
-
-        self.assert_notifications(
-            expected_json={
-                "type": "user:email",
-                "created_on": matchers.ISODatetime(),
-                "is_seen": True,
-            },
-            expected_target=None,
-            expected_users={self.editor},
-            email=True,
-        )
-
-        send_notification_emails()
-
-        self.assertEqual(1, len(mail.outbox))
-        self.assertEqual("[Nyaruka] Your email has been changed", mail.outbox[0].subject)
-        self.assertEqual(["prevaddr@trileet.com"], mail.outbox[0].recipients())  # previous address
-        self.assertIn("Your email has been changed to editor@textit.com", mail.outbox[0].body)  # new address
-
-    def test_user_password(self):
-        UserPasswordNotificationType.create(self.org, self.editor)
-
-        self.assert_notifications(
-            expected_json={
-                "type": "user:password",
-                "created_on": matchers.ISODatetime(),
-                "is_seen": True,
-            },
-            expected_target=None,
-            expected_users={self.editor},
-            email=True,
-        )
-
-        send_notification_emails()
-
-        self.assertEqual(1, len(mail.outbox))
-        self.assertEqual("[Nyaruka] Your password has been changed", mail.outbox[0].subject)
-        self.assertEqual(["editor@textit.com"], mail.outbox[0].recipients())
-        self.assertIn("Your password has been changed.", mail.outbox[0].body)
 
     def test_invitation_accepted(self):
         invitation = Invitation.create(self.org, self.admin, "bob@textit.com", OrgRole.ADMINISTRATOR)
