@@ -373,6 +373,13 @@ class MailroomClient:
             },
         )
 
+    def notification_publish(self, org, notifications: list[dict]):
+        """
+        Publishes already-created notifications to their users' realtime sockets. Each item is
+        {"user_id": int, "data": dict} where data is the notification's rendered JSON.
+        """
+        return self._request("notification/publish", {"org_id": org.id, "notifications": notifications})
+
     def org_deindex(self, org):
         return self._request("org/deindex", {"org_id": org.id})
 

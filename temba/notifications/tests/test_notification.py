@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from unittest.mock import call
 
 from django.core import mail
 from django.urls import reverse
@@ -17,6 +18,7 @@ from temba.notifications.tasks import send_notification_emails, trim_notificatio
 from temba.notifications.types.builtin import ExportFinishedNotificationType, InvitationAcceptedNotificationType
 from temba.orgs.models import Invitation, ItemCount, OrgRole
 from temba.tests import TembaTest, matchers
+from temba.tests.mailroom import mock_mailroom
 from temba.tickets.models import TicketExport
 
 
@@ -364,6 +366,35 @@ class NotificationTest(TembaTest):
         self.assertEqual("[Nyaruka] New user joined your workspace", mail.outbox[0].subject)
         self.assertEqual(["admin@textit.com"], mail.outbox[0].recipients())  # only the other admins
         self.assertIn("User bob@textit.com accepted an invitation to join your workspace.", mail.outbox[0].body)
+
+    @mock_mailroom
+    def test_realtime_publish(self, mr_mocks):
+        # UI notifications are published to mailroom for realtime delivery once the transaction commits
+        export = ContactExport.create(self.org, self.editor)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            ExportFinishedNotificationType.create(export)
+
+        notification = self.editor.notifications.get(export=export)
+        self.assertEqual(
+            [call(self.org, [{"user_id": self.editor.id, "data": notification.as_json()}])],
+            mr_mocks.calls["notification_publish"],
+        )
+
+        # email-only notifications are never published (no UI medium, nothing to deliver live)
+        invitation = Invitation.create(self.org, self.admin, "bob@textit.com", OrgRole.ADMINISTRATOR)
+        user = self.create_user("bob@textit.com")
+
+        with self.captureOnCommitCallbacks(execute=True):
+            InvitationAcceptedNotificationType.create(invitation, user)
+
+        self.assertEqual(1, len(mr_mocks.calls["notification_publish"]))
+
+        # a duplicate (already-unseen) notification isn't re-created, so nothing new is published
+        with self.captureOnCommitCallbacks(execute=True):
+            ExportFinishedNotificationType.create(export)
+
+        self.assertEqual(1, len(mr_mocks.calls["notification_publish"]))
 
     def test_channel_disconnected(self):
         self.org.add_user(self.editor, OrgRole.ADMINISTRATOR)  # upgrade editor to administrator

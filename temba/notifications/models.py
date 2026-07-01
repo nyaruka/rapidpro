@@ -2,7 +2,7 @@ import logging
 from abc import abstractmethod
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
@@ -198,13 +198,14 @@ class Notification(models.Model):
         medium: str = MEDIUM_UI,
         **kwargs,
     ):
+        created = []
         for user in users:
             # send email if notification type supports it and user's email is verified
             email_status = cls.EMAIL_STATUS_NONE
             if cls.MEDIUM_EMAIL in medium:
                 email_status = cls.EMAIL_STATUS_PENDING if user.is_verified() else cls.EMAIL_STATUS_UNVERIFIED
 
-            cls.objects.get_or_create(
+            notification, is_new = cls.objects.get_or_create(
                 org=org,
                 notification_type=notification_type,
                 scope=scope,
@@ -214,6 +215,30 @@ class Notification(models.Model):
                 email_status=email_status,
                 defaults=kwargs,
             )
+
+            # UI notifications are delivered live over the user's realtime socket; collect the newly created ones so
+            # they can be published once the surrounding transaction commits
+            if is_new and cls.MEDIUM_UI in medium:
+                created.append(notification)
+
+        if created:
+            transaction.on_commit(lambda: cls._publish(org, created))
+
+    @classmethod
+    def _publish(cls, org, notifications):
+        """
+        Best-effort realtime delivery of newly created UI notifications to their users' sockets, via mailroom - which
+        owns the socket addressing, subscriber-presence check and centrifugo publish, so those have one implementation
+        for both the notifications mailroom creates and the ones we create here. A failure must not fail the creating
+        operation: the notifications are already persisted and will still show on the next page load.
+        """
+        from temba.mailroom import get_client
+
+        items = [{"user_id": n.user_id, "data": n.as_json()} for n in notifications]
+        try:
+            get_client().notification_publish(org, items)
+        except Exception:
+            logger.exception("error publishing notifications to mailroom")
 
     def send_email(self):
         subject = self.type.get_email_subject(self)
