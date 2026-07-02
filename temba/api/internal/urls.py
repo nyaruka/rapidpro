@@ -3,6 +3,7 @@ from rest_framework.urlpatterns import format_suffix_patterns
 from django.urls import re_path
 
 from temba.contacts.api import ContactsEndpoint
+from temba.flows.api import FlowLabelsEndpoint, FlowsEndpoint
 from temba.msgs.api import MessagesEndpoint
 
 from .views import (
@@ -17,6 +18,8 @@ from .views import (
 urlpatterns = [
     # ========== endpoints A-Z ===========
     re_path(r"^contacts$", ContactsEndpoint.as_view(), name="api.internal.contacts"),
+    re_path(r"^flow_labels$", FlowLabelsEndpoint.as_view(), name="api.internal.flow_labels"),
+    re_path(r"^flows$", FlowsEndpoint.as_view(), name="api.internal.flows"),
     re_path(r"^llms$", LLMsEndpoint.as_view(), name="api.internal.llms"),
     re_path(r"^locations$", LocationsEndpoint.as_view(), name="api.internal.locations"),
     re_path(r"^messages$", MessagesEndpoint.as_view(), name="api.internal.messages"),
