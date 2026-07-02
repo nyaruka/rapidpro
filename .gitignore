@@ -1,55 +1,26 @@
 # General
-.DS_Store
 *~
-.envrc
-.devcontainer
-.direnv
-orca
-orca.yaml
-.commit
-.ruff_cache
+.DS_Store
 .vscode/
-.venv
-venv
-.coverage
-coverage.xml
-celerybeat-schedule.db
-celerybeat-schedule
+.devcontainer
 deploy
 fabfile.py
-node_modules
-screenshots
-sitestatic
-temba/settings.py
-temba/settings_local.py
-manage.sh
-rp.sh
 
 # AI
 .claude/
 CLAUDE.md
 CODEX.md
 AGENTS.md
-start.sh
 
-# Exclude media folder except files used for import testing
-media/apks
-media/avatars
-media/contacts
-media/csv_imports
-media/contact_imports
-media/org_imports
-media/flow
-media/messages
-media/orgs
-media/recordings
-media/test_orgs
-media/tmp
-media/attachments
-media/blog
-media/emails
-
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
-*.so
+.venv
+.ruff_cache
+.coverage
+
+# Project specific
+node_modules
+sitestatic
+celerybeat-schedule
+temba/settings.py
