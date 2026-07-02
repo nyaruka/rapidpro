@@ -34,7 +34,7 @@ class TurnType(ChannelType):
     unique_addresses = True
 
     courier_url = r"^trn/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
-    schemes = [URN.WHATSAPP_SCHEME]
+    schemes = [URN.WHATSAPP_SCHEME, URN.TEL_SCHEME]
     template_type = "whatsapp"
 
     claim_blurb = _(

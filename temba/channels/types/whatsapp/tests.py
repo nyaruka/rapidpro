@@ -742,7 +742,7 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateFetch(
             update_url,
             [self.editor, self.admin],
-            form_fields={"name": "WABA name"},
+            form_fields={"name": "WABA name", "allow_international": False},
         )
 
         self.assertUpdateSubmit(
@@ -760,13 +760,13 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateFetch(
             update_url,
             [self.editor],
-            form_fields={"name": "New WA Name"},
+            form_fields={"name": "New WA Name", "allow_international": False},
         )
 
         self.assertUpdateFetch(
             update_url,
             [self.admin],
-            form_fields={"name": "New WA Name", "is_enabled": True},
+            form_fields={"name": "New WA Name", "is_enabled": True, "allow_international": False},
         )
 
         self.assertUpdateSubmit(
@@ -783,6 +783,6 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateFetch(
             update_url,
             [self.customer_support],
-            form_fields=["name", "is_enabled"],
+            form_fields=["name", "is_enabled", "allow_international"],
             choose_org=self.org,
         )

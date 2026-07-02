@@ -28,7 +28,7 @@ class TwilioWhatsappType(ChannelType):
     unique_addresses = True
 
     courier_url = r"^twa/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive|status)$"
-    schemes = [URN.WHATSAPP_SCHEME]
+    schemes = [URN.WHATSAPP_SCHEME, URN.TEL_SCHEME]
     template_type = "twilio"
 
     redact_request_keys = (

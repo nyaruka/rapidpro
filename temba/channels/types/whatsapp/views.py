@@ -159,6 +159,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             "wa_business_id": business_id,
             "wa_message_template_namespace": message_template_namespace,
             "wa_pin": pin,
+            Channel.CONFIG_ALLOW_INTERNATIONAL: True,
         }
 
         # assign system user to WABA

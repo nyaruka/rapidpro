@@ -18,7 +18,7 @@ class KaleyraType(ChannelType):
     category = ChannelType.Category.SOCIAL_MEDIA
 
     courier_url = r"^kwa/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive|status)$"
-    schemes = [URN.WHATSAPP_SCHEME]
+    schemes = [URN.WHATSAPP_SCHEME, URN.TEL_SCHEME]
 
     claim_blurb = _(
         """Activate your own enterprise WhatsApp account in Kaleyra to communicate with your contacts. <a target="_blank" href="https://www.kaleyra.com/whatsapp/">Learn more about Kaleyra WhatsApp</a>"""

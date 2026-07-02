@@ -89,6 +89,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             CONFIG_FB_ACCESS_TOKEN: data["access_token"],
             CONFIG_FB_NAMESPACE: data["namespace"],
             CONFIG_FB_TEMPLATE_LIST_DOMAIN: "whatsapp.turn.io",
+            Channel.CONFIG_ALLOW_INTERNATIONAL: True,
         }
 
         self.object = Channel.create(
