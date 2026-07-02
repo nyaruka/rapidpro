@@ -697,7 +697,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(reverse("flows.flow_filter", args=[label2.uuid]))
         self.assertEqual(f"/flow/labels/{label2.uuid}", response.headers.get(TEMBA_MENU_SELECTION))
 
-    def test_preview_list(self):
+    @mock_mailroom
+    def test_preview_list(self, mr_mocks):
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
         label = FlowLabel.create(self.org, self.admin, "Important")
