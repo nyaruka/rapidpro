@@ -370,7 +370,7 @@ class EventTest(TembaTest):
             for item in items:
                 writer.put_item(item)
 
-        # by default we only include basic ticket event types
+        # by default we only include ticket lifecycle event types
         self.assert_get_by_contact(
             contact,
             self.admin,
@@ -386,13 +386,14 @@ class EventTest(TembaTest):
             ],
         )
 
-        # if we specify ticket 1 then we get only events for that ticket
+        # if we specify ticket 1 then we also get detail events for that ticket (but not for ticket 2)
         self.assert_get_by_contact(
             contact,
             self.admin,
             before=UUID("019a9dc5-b384-7b2d-a1e1-a315a2ebe926"),  # in the future
             ticket=UUID("01994f4f-45ba-7f25-a785-b52e19b16c6b"),
             expected=[
+                "019a9336-9228-7f2e-bb18-26c5f392fec5",  # ticket_opened for ticket 2
                 "019a9336-9228-7d59-b7c2-25c3d7091357",
                 "019a9336-9228-7b7d-b068-89df0c04df2f",  # ticket_closed for ticket 1
                 "019a9336-9228-79a0-9f72-232125ced67d",
@@ -413,7 +414,9 @@ class EventTest(TembaTest):
                 "019a9336-9229-71c1-a6f9-695b374c13a3",  # ticket_note_added for ticket 2
                 "019a9336-9228-7f2e-bb18-26c5f392fec5",  # ticket_opened for ticket 2
                 "019a9336-9228-7d59-b7c2-25c3d7091357",
+                "019a9336-9228-7b7d-b068-89df0c04df2f",  # ticket_closed for ticket 1
                 "019a9336-9228-79a0-9f72-232125ced67d",
+                "019a9336-9228-75c8-8824-0dd4f9484be9",  # ticket_opened for ticket 1
                 "019a9336-9228-73e8-b4f5-3a2b42593bb0",
                 "019a9336-9228-71f0-becb-a56435927677",
             ],

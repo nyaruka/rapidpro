@@ -45,8 +45,9 @@ class Event:
     TYPE_TICKET_REOPENED = "ticket_reopened"
     TYPE_TICKET_TOPIC_CHANGED = "ticket_topic_changed"
 
-    basic_ticket_types = {TYPE_TICKET_CLOSED, TYPE_TICKET_OPENED, TYPE_TICKET_REOPENED}
-    all_ticket_types = basic_ticket_types | {TYPE_TICKET_ASSIGNED, TYPE_TICKET_NOTE_ADDED, TYPE_TICKET_TOPIC_CHANGED}
+    # per-ticket detail events which are only shown on the read page of the ticket they belong to, as opposed to the
+    # lifecycle events (opened/closed/reopened) which are shown everywhere
+    ticket_detail_types = {TYPE_TICKET_ASSIGNED, TYPE_TICKET_NOTE_ADDED, TYPE_TICKET_TOPIC_CHANGED}
 
     @classmethod
     def _from_item(cls, contact, item: dict) -> dict:
@@ -134,14 +135,10 @@ class Event:
 
     @classmethod
     def _include_event(cls, event, ticket_uuid) -> bool:
-        if event["type"] in cls.all_ticket_types:
-            if ticket_uuid:
-                # if we have a ticket this is for the ticket UI, so we want *all* events for *only* that ticket
-                event_ticket_uuid = event.get("ticket_uuid", event.get("ticket", {}).get("uuid"))
-                return event_ticket_uuid == str(ticket_uuid)
-            else:
-                # if not then this for the contact read page so only show ticket opened/closed/reopened events
-                return event["type"] in cls.basic_ticket_types
+        if event["type"] in cls.ticket_detail_types:
+            # detail events are only included when fetching for the ticket they belong to
+            event_ticket_uuid = event.get("ticket_uuid", event.get("ticket", {}).get("uuid"))
+            return bool(ticket_uuid) and event_ticket_uuid == str(ticket_uuid)
 
         return True
 
