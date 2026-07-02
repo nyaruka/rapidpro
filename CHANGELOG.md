@@ -1,3 +1,9 @@
+v26.3.7 (2026-07-02)
+-------------------------
+ * Update @nyaruka/temba-components to 0.161.0
+ * Publish locally-created UI notifications to realtime sockets via mailroom
+ * Remove redundant user:email and user:password notification types
+
 v26.3.6 (2026-06-30)
 -------------------------
  * Update @nyaruka/temba-components to 0.160.1
