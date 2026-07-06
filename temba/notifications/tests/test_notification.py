@@ -380,7 +380,7 @@ class NotificationTest(TembaTest):
             [
                 call(
                     self.org,
-                    [{"user_uuid": str(self.editor.uuid), "user_id": self.editor.id, "data": notification.as_json()}],
+                    [{"user_uuid": str(self.editor.uuid), "data": notification.as_json()}],
                 )
             ],
             mr_mocks.calls["notification_publish"],
