@@ -229,12 +229,18 @@ class Notification(models.Model):
         """
         Best-effort realtime delivery of newly created UI notifications to their users' sockets, via mailroom - which
         owns the socket addressing, subscriber-presence check and centrifugo publish, so those have one implementation
-        for both the notifications mailroom creates and the ones we create here. A failure must not fail the creating
-        operation: the notifications are already persisted and will still show on the next page load.
+        for both the notifications mailroom creates and the ones we create here. Users are identified by UUID because
+        that's what socket addressing uses, and because the user may not belong to the workspace (e.g. staff). A
+        failure must not fail the creating operation: the notifications are already persisted and will still show on
+        the next page load.
         """
         from temba.mailroom import get_client
 
-        items = [{"user_id": n.user_id, "data": n.as_json()} for n in notifications]
+        items = [
+            # user_id is deprecated but still sent for mailroom versions that don't read user_uuid
+            {"user_uuid": str(n.user.uuid), "user_id": n.user_id, "data": n.as_json()}
+            for n in notifications
+        ]
         try:
             get_client().notification_publish(org, items)
         except Exception:
