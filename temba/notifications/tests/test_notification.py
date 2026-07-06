@@ -377,7 +377,12 @@ class NotificationTest(TembaTest):
 
         notification = self.editor.notifications.get(export=export)
         self.assertEqual(
-            [call(self.org, [{"user_id": self.editor.id, "data": notification.as_json()}])],
+            [
+                call(
+                    self.org,
+                    [{"user_uuid": str(self.editor.uuid), "user_id": self.editor.id, "data": notification.as_json()}],
+                )
+            ],
             mr_mocks.calls["notification_publish"],
         )
 
@@ -417,7 +422,7 @@ class NotificationTest(TembaTest):
         self.assertEqual(1, len(new_calls))  # one batched publish, not one per user
         org_arg, items = new_calls[0].args
         self.assertEqual(self.org, org_arg)
-        self.assertEqual({self.admin.id, self.editor.id}, {item["user_id"] for item in items})
+        self.assertEqual({str(self.admin.uuid), str(self.editor.uuid)}, {item["user_uuid"] for item in items})
 
     def test_channel_disconnected(self):
         self.org.add_user(self.editor, OrgRole.ADMINISTRATOR)  # upgrade editor to administrator
