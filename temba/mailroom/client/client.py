@@ -376,8 +376,7 @@ class MailroomClient:
     def notification_publish(self, org, notifications: list[dict]):
         """
         Publishes already-created notifications to their users' realtime sockets. Each item is
-        {"user_uuid": str, "user_id": int, "data": dict} where data is the notification's rendered JSON and
-        user_id is deprecated.
+        {"user_uuid": str, "data": dict} where data is the notification's rendered JSON.
         """
         return self._request("notification/publish", {"org_id": org.id, "notifications": notifications})
 

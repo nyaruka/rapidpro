@@ -236,11 +236,7 @@ class Notification(models.Model):
         """
         from temba.mailroom import get_client
 
-        items = [
-            # user_id is deprecated but still sent for mailroom versions that don't read user_uuid
-            {"user_uuid": str(n.user.uuid), "user_id": n.user_id, "data": n.as_json()}
-            for n in notifications
-        ]
+        items = [{"user_uuid": str(n.user.uuid), "data": n.as_json()} for n in notifications]
         try:
             get_client().notification_publish(org, items)
         except Exception:

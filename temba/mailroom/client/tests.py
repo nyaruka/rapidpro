@@ -933,9 +933,7 @@ class MailroomClientTest(TembaTest):
     @patch("requests.post")
     def test_notification_publish(self, mock_post):
         mock_post.return_value = MockJsonResponse(200, {})
-        notifications = [
-            {"user_uuid": str(self.admin.uuid), "user_id": self.admin.id, "data": {"type": "export:finished"}}
-        ]
+        notifications = [{"user_uuid": str(self.admin.uuid), "data": {"type": "export:finished"}}]
         response = self.client.notification_publish(self.org, notifications)
 
         self.assertEqual({}, response)
