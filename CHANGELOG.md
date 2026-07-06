@@ -1,3 +1,8 @@
+v26.3.9 (2026-07-06)
+-------------------------
+ * Include user UUID when publishing notifications to mailroom
+ * Include ticket lifecycle events from other tickets when fetching history for a ticket
+
 v26.3.8 (2026-07-02)
 -------------------------
  * Update @nyaruka/temba-components to 0.162.0
