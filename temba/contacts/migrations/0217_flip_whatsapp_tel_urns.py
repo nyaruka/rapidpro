@@ -1,4 +1,62 @@
-from django.db import connection as default_connection, migrations
+from django.db import migrations
+from django.db.models.functions import Now
+
+BATCH_SIZE = 1000
+
+
+def _flip_scheme(ContactURN, Contact, *, from_scheme, to_scheme, add_plus):
+    """
+    Flips one URN scheme to another in id-ordered batches, skipping any row whose target identity
+    already exists for the org (to avoid violating the (identity, org) uniqueness constraint). Contacts
+    with a flipped URN have their modified_on bumped so the search indexer picks up the change.
+
+    Batching uses an id cursor rather than re-querying the head of the filter because skipped collision
+    rows keep their original scheme and would otherwise be re-fetched forever.
+    """
+
+    def target(urn):
+        path = ("+" + urn.path) if add_plus else urn.path
+        return f"{to_scheme}:{path}"
+
+    num_flipped = 0
+    last_id = 0
+
+    while True:
+        batch = list(
+            ContactURN.objects.filter(scheme=from_scheme, id__gt=last_id)
+            .order_by("id")
+            .only("id", "org_id", "path", "contact_id")[:BATCH_SIZE]
+        )
+        if not batch:
+            break
+
+        last_id = batch[-1].id  # advance past every row we looked at, including any we skip
+
+        # find which target identities already exist so we can skip those rows
+        existing = set(
+            ContactURN.objects.filter(identity__in={target(u) for u in batch}).values_list("org_id", "identity")
+        )
+
+        to_update, contact_ids = [], set()
+        for u in batch:
+            identity = target(u)
+            if (u.org_id, identity) in existing:
+                continue  # collision - leave untouched
+
+            u.scheme = to_scheme
+            if add_plus:
+                u.path = "+" + u.path
+            u.identity = identity
+            to_update.append(u)
+            if u.contact_id:
+                contact_ids.add(u.contact_id)
+
+        if to_update:
+            ContactURN.objects.bulk_update(to_update, ["scheme", "path", "identity"])
+            Contact.objects.filter(id__in=contact_ids).update(modified_on=Now())
+            num_flipped += len(to_update)
+
+    print(f"Flipped {num_flipped} {from_scheme} URNs to {to_scheme}")
 
 
 def flip_whatsapp_tel_urns(apps, schema_editor):
@@ -9,63 +67,14 @@ def flip_whatsapp_tel_urns(apps, schema_editor):
 
     URNs whose target identity already exists for the org are left untouched to avoid violating the
     (identity, org) uniqueness constraint - they can't be safely deleted as they may be referenced by
-    messages/calls. Affected contacts have their modified_on bumped so the search indexer picks up the
-    change.
+    messages/calls.
     """
 
-    connection = schema_editor.connection if schema_editor is not None else default_connection
+    ContactURN = apps.get_model("contacts", "ContactURN")
+    Contact = apps.get_model("contacts", "Contact")
 
-    with connection.cursor() as cursor:
-        # whatsapp -> tel (add the leading + that tel URNs require), then reindex affected contacts
-        cursor.execute(
-            """
-            WITH flipped AS (
-                UPDATE contacts_contacturn u
-                   SET scheme = 'tel', path = '+' || u.path, identity = 'tel:+' || u.path
-                 WHERE u.scheme = 'whatsapp'
-                   AND NOT EXISTS (
-                       SELECT 1 FROM contacts_contacturn t
-                        WHERE t.org_id = u.org_id AND t.identity = 'tel:+' || u.path AND t.id <> u.id
-                   )
-                RETURNING u.contact_id
-            ), reindexed AS (
-                UPDATE contacts_contact c
-                   SET modified_on = clock_timestamp()
-                  FROM (SELECT DISTINCT contact_id FROM flipped WHERE contact_id IS NOT NULL) f
-                 WHERE c.id = f.contact_id
-                RETURNING c.id
-            )
-            SELECT (SELECT count(*) FROM flipped), (SELECT count(*) FROM reindexed)
-            """
-        )
-        wa_flipped, wa_reindexed = cursor.fetchone()
-
-        # bsuid -> whatsapp (path is unchanged), then reindex affected contacts
-        cursor.execute(
-            """
-            WITH flipped AS (
-                UPDATE contacts_contacturn u
-                   SET scheme = 'whatsapp', identity = 'whatsapp:' || u.path
-                 WHERE u.scheme = 'bsuid'
-                   AND NOT EXISTS (
-                       SELECT 1 FROM contacts_contacturn t
-                        WHERE t.org_id = u.org_id AND t.identity = 'whatsapp:' || u.path AND t.id <> u.id
-                   )
-                RETURNING u.contact_id
-            ), reindexed AS (
-                UPDATE contacts_contact c
-                   SET modified_on = clock_timestamp()
-                  FROM (SELECT DISTINCT contact_id FROM flipped WHERE contact_id IS NOT NULL) f
-                 WHERE c.id = f.contact_id
-                RETURNING c.id
-            )
-            SELECT (SELECT count(*) FROM flipped), (SELECT count(*) FROM reindexed)
-            """
-        )
-        bsuid_flipped, bsuid_reindexed = cursor.fetchone()
-
-    print(f"Flipped {wa_flipped} whatsapp URNs to tel (reindexed {wa_reindexed} contacts)")
-    print(f"Flipped {bsuid_flipped} bsuid URNs to whatsapp (reindexed {bsuid_reindexed} contacts)")
+    _flip_scheme(ContactURN, Contact, from_scheme="whatsapp", to_scheme="tel", add_plus=True)
+    _flip_scheme(ContactURN, Contact, from_scheme="bsuid", to_scheme="whatsapp", add_plus=False)
 
 
 def apply_manual():  # pragma: no cover
