@@ -97,6 +97,10 @@ class URN:
 
     FACEBOOK_PATH_REF_PREFIX = "ref:"
 
+    # a WhatsApp business-scoped user id: two-letter country code, dot, 1-128 alphanumerics (shared by
+    # the whatsapp and bsuid schemes, matching gocommon's whatsAppBSUIDRegex)
+    BSUID_PATH_REGEX = r"^[A-Z]{2}\.[a-zA-Z0-9]{1,128}$"
+
     def __init__(self):  # pragma: no cover
         raise ValueError("Class shouldn't be instantiated")
 
@@ -203,15 +207,13 @@ class URN:
         elif scheme in [cls.TELEGRAM_SCHEME, cls.INSTAGRAM_SCHEME]:
             return regex.match(r"^[0-9]+$", path, regex.V0)
 
-        # whatsapp holds either a phone number (all digits, legacy) or a business-scoped user id (CC.alphanumeric)
+        # whatsapp holds either a phone number (all digits, legacy) or a business-scoped user id
         elif scheme == cls.WHATSAPP_SCHEME:
-            return regex.match(r"^[0-9]+$", path, regex.V0) or regex.match(
-                r"^[A-Z]{2}\.[a-zA-Z0-9]{1,128}$", path, regex.V0
-            )
+            return regex.match(r"^[0-9]+$", path, regex.V0) or regex.match(cls.BSUID_PATH_REGEX, path, regex.V0)
 
-        # bsuid (WhatsApp business-scoped user id): two-letter country code, dot, 1-128 alphanumerics
+        # bsuid is a WhatsApp business-scoped user id
         elif scheme == cls.BSUID_SCHEME:
-            return regex.match(r"^[A-Z]{2}\.[a-zA-Z0-9]{1,128}$", path, regex.V0)
+            return regex.match(cls.BSUID_PATH_REGEX, path, regex.V0)
 
         # validate Viber URNS look right (this is a guess)
         elif scheme == cls.VIBER_SCHEME:  # pragma: needs cover

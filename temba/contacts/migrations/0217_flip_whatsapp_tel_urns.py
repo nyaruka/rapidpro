@@ -18,10 +18,6 @@ def _flip_scheme(ContactURN, Contact, *, from_scheme, to_scheme, add_plus, digit
     RW.abc123) which aren't all-digit and so are left alone on any re-run.
     """
 
-    def target(urn):
-        path = ("+" + urn.path) if add_plus else urn.path
-        return f"{to_scheme}:{path}"
-
     num_flipped = 0
     last_id = 0
 
@@ -36,21 +32,24 @@ def _flip_scheme(ContactURN, Contact, *, from_scheme, to_scheme, add_plus, digit
 
         last_id = batch[-1].id  # advance past every row we looked at, including any we skip
 
-        # find which target identities already exist so we can skip those rows
+        # compute each row's target path/identity once, then find which identities already exist to skip
+        flips = []
+        for u in batch:
+            new_path = ("+" + u.path) if add_plus else u.path
+            flips.append((u, new_path, f"{to_scheme}:{new_path}"))
+
         existing = set(
-            ContactURN.objects.filter(identity__in={target(u) for u in batch}).values_list("org_id", "identity")
+            ContactURN.objects.filter(identity__in={identity for _, _, identity in flips}).values_list(
+                "org_id", "identity"
+            )
         )
 
         to_update, contact_ids = [], set()
-        for u in batch:
-            identity = target(u)
+        for u, new_path, identity in flips:
             if (u.org_id, identity) in existing:
                 continue  # collision - leave untouched
 
-            u.scheme = to_scheme
-            if add_plus:
-                u.path = "+" + u.path
-            u.identity = identity
+            u.scheme, u.path, u.identity = to_scheme, new_path, identity
             to_update.append(u)
             if u.contact_id:
                 contact_ids.add(u.contact_id)
