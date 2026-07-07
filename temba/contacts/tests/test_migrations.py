@@ -1,3 +1,4 @@
+import importlib
 from datetime import datetime, timedelta, timezone as tzone
 
 from temba.channels.models import ChannelEvent
@@ -86,6 +87,13 @@ class FlipWhatsAppTelURNsTest(MigrationTest):
         # a contact with unrelated schemes that should never be touched
         self.contact5 = self.create_contact("Eve", urns=["tel:+250788000005", "facebook:123456789"])
 
+        # a contact whose whatsapp URN already holds a business-scoped id (not all digits) - the whatsapp
+        # -> tel flip must skip it, which also makes the migration safe to re-run
+        self.contact6 = self.create_contact("Fay", urns=["whatsapp:RW.ghi789"])
+
+        # a bsuid URN whose whatsapp target already exists (contact6) -> bsuid is left as-is (collision)
+        self.contact7 = self.create_contact("Gus", urns=["bsuid:RW.ghi789"])
+
         self.start = datetime.now(tzone.utc)
 
     def urns(self, contact) -> set:
@@ -135,6 +143,29 @@ class FlipWhatsAppTelURNsTest(MigrationTest):
         )
         self.assertLess(self.contact5.modified_on, self.start)
 
-        # no whatsapp-scheme phone URNs or bsuid URNs remain (other than the skipped collision)
-        self.assertEqual(0, ContactURN.objects.filter(scheme="bsuid").count())
+        # whatsapp URN with a non-digit (business-scoped) path is left untouched by the whatsapp -> tel flip
+        self.contact6.refresh_from_db()
+        self.assertEqual({("whatsapp", "RW.ghi789", "whatsapp:RW.ghi789")}, self.urns(self.contact6))
+        self.assertLess(self.contact6.modified_on, self.start)
+
+        # bsuid URN whose whatsapp target already exists (contact6) left as-is, so not reindexed
+        self.contact7.refresh_from_db()
+        self.assertEqual({("bsuid", "RW.ghi789", "bsuid:RW.ghi789")}, self.urns(self.contact7))
+        self.assertLess(self.contact7.modified_on, self.start)
+
+        # only the collided bsuid URN remains; the only whatsapp-scheme digit path is the collided one
+        self.assertEqual({"RW.ghi789"}, set(ContactURN.objects.filter(scheme="bsuid").values_list("path", flat=True)))
         self.assertEqual(1, ContactURN.objects.filter(scheme="whatsapp", path="250788000004").count())
+
+    def test_reapplying_is_safe(self):
+        # capture the post-migration state, then run the migration again - nothing should change
+        before = set(ContactURN.objects.values_list("id", "scheme", "path", "identity"))
+        self.contact1.refresh_from_db()
+        modified_before = self.contact1.modified_on
+
+        migration = importlib.import_module("temba.contacts.migrations.0217_flip_whatsapp_tel_urns")
+        migration.flip_whatsapp_tel_urns(self.apps, None)
+
+        self.assertEqual(before, set(ContactURN.objects.values_list("id", "scheme", "path", "identity")))
+        self.contact1.refresh_from_db()
+        self.assertEqual(modified_before, self.contact1.modified_on)  # not reindexed a second time

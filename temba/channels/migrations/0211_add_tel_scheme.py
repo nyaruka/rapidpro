@@ -1,7 +1,7 @@
 from django.db import migrations
 
 
-def add_tel_scheme(apps, schema_editor):  # pragma: no cover
+def add_tel_scheme(apps, schema_editor):
     Channel = apps.get_model("channels", "Channel")
 
     # channels which support the whatsapp scheme should now also support the tel scheme, and because they're

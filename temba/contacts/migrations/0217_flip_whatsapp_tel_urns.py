@@ -4,7 +4,7 @@ from django.db.models.functions import Now
 BATCH_SIZE = 1000
 
 
-def _flip_scheme(ContactURN, Contact, *, from_scheme, to_scheme, add_plus):
+def _flip_scheme(ContactURN, Contact, *, from_scheme, to_scheme, add_plus, digits_only=False):
     """
     Flips one URN scheme to another in id-ordered batches, skipping any row whose target identity
     already exists for the org (to avoid violating the (identity, org) uniqueness constraint). Contacts
@@ -12,6 +12,10 @@ def _flip_scheme(ContactURN, Contact, *, from_scheme, to_scheme, add_plus):
 
     Batching uses an id cursor rather than re-querying the head of the filter because skipped collision
     rows keep their original scheme and would otherwise be re-fetched forever.
+
+    When digits_only is set, only rows whose path is entirely digits are flipped. This keeps the whatsapp
+    -> tel flip safe to run more than once: after a run, whatsapp rows hold business-scoped ids (e.g.
+    RW.abc123) which aren't all-digit and so are left alone on any re-run.
     """
 
     def target(urn):
@@ -22,11 +26,11 @@ def _flip_scheme(ContactURN, Contact, *, from_scheme, to_scheme, add_plus):
     last_id = 0
 
     while True:
-        batch = list(
-            ContactURN.objects.filter(scheme=from_scheme, id__gt=last_id)
-            .order_by("id")
-            .only("id", "org_id", "path", "contact_id")[:BATCH_SIZE]
-        )
+        query = ContactURN.objects.filter(scheme=from_scheme, id__gt=last_id)
+        if digits_only:
+            query = query.filter(path__regex=r"^[0-9]+$")
+
+        batch = list(query.order_by("id").only("id", "org_id", "path", "contact_id")[:BATCH_SIZE])
         if not batch:
             break
 
@@ -68,12 +72,16 @@ def flip_whatsapp_tel_urns(apps, schema_editor):
     URNs whose target identity already exists for the org are left untouched to avoid violating the
     (identity, org) uniqueness constraint - they can't be safely deleted as they may be referenced by
     messages/calls.
+
+    Only all-digit whatsapp paths are flipped to tel, so the migration is safe to apply more than once:
+    after a run the whatsapp scheme holds business-scoped ids (CC.alphanumeric) which are skipped, and
+    there are no bsuid rows left to flip.
     """
 
     ContactURN = apps.get_model("contacts", "ContactURN")
     Contact = apps.get_model("contacts", "Contact")
 
-    _flip_scheme(ContactURN, Contact, from_scheme="whatsapp", to_scheme="tel", add_plus=True)
+    _flip_scheme(ContactURN, Contact, from_scheme="whatsapp", to_scheme="tel", add_plus=True, digits_only=True)
     _flip_scheme(ContactURN, Contact, from_scheme="bsuid", to_scheme="whatsapp", add_plus=False)
 
 
