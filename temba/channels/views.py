@@ -397,7 +397,9 @@ class UpdateChannelForm(forms.ModelForm):
 
         self.config_fields = []
 
-        if URN.TEL_SCHEME in self.instance.schemes:
+        # tel channels can be configured to send internationally, but not whatsapp channels - they carry the
+        # tel scheme too (post-flip) but have no country set for the international check to gate on
+        if URN.TEL_SCHEME in self.instance.schemes and URN.WHATSAPP_SCHEME not in self.instance.schemes:
             self.add_config_field(
                 Channel.CONFIG_ALLOW_INTERNATIONAL,
                 forms.BooleanField(required=False, help_text=_("Allow sending to and calling international numbers.")),
