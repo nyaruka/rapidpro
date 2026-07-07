@@ -95,12 +95,18 @@
       // Launch Facebook login
 
       {% if facebook_login_whatsapp_config_id %}
+      // Fall back to the full-page OAuth dialog only when the JS SDK popup is unavailable,
+      // so the embedded signup is never launched a second time after the popup has run.
+      if (typeof FB === 'undefined' || !FB.login) {
+        location.replace("https://www.facebook.com/v22.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + "{{connect_url}}" + "&config_id={{ facebook_login_whatsapp_config_id }}&response_type=code&override_default_response_type=true")
+        return;
+      }
       FB.login(function(response) {
         if (response.authResponse) {
           submitClaimForm(response.authResponse.code);
         } else {
-          console.log('User cancelled login or did not fully authorize, redirect to the dialog auth');
-          location.replace("https://www.facebook.com/v22.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + "{{connect_url}}" + "&config_id={{ facebook_login_whatsapp_config_id }}&response_type=code&override_default_response_type=true")
+          // User cancelled or did not fully authorize; leave the button so they can retry.
+          console.log('User cancelled login or did not fully authorize');
         }
       }, {
         config_id: '{{ facebook_login_whatsapp_config_id }}',
@@ -108,12 +114,18 @@
         override_default_response_type: true
       });
       {% else %}
+      // Fall back to the full-page OAuth dialog only when the JS SDK popup is unavailable,
+      // so the embedded signup is never launched a second time after the popup has run.
+      if (typeof FB === 'undefined' || !FB.login) {
+        location.replace("https://www.facebook.com/v22.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + "{{connect_url}}" + "&scope=business_management,whatsapp_business_management,whatsapp_business_messaging&response_type=token")
+        return;
+      }
       FB.login(function(response) {
         if (response.authResponse) {
           submitClaimForm(response.authResponse.accessToken);
         } else {
-          console.log('User cancelled login or did not fully authorize, redirect to the dialog auth');
-          location.replace("https://www.facebook.com/v22.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + "{{connect_url}}" + "&scope=business_management,whatsapp_business_management,whatsapp_business_messaging&response_type=token")
+          // User cancelled or did not fully authorize; leave the button so they can retry.
+          console.log('User cancelled login or did not fully authorize');
         }
       }, {
         scope: 'business_management,whatsapp_business_management,whatsapp_business_messaging',
