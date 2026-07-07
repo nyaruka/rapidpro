@@ -82,12 +82,12 @@ class URNTest(TembaTest):
         self.assertTrue(URN.validate("instagram:12345678901234567"))
 
     def test_whatsapp_urn(self):
-        # whatsapp now holds a business-scoped id: two-letter country code, dot, 1-128 alphanumerics
+        # whatsapp holds either a phone number (all digits, legacy) or a business-scoped id (CC.alphanumeric)
+        self.assertTrue(URN.validate("whatsapp:12065551212"))
         self.assertTrue(URN.validate("whatsapp:BR.1A2B3C4D5E6F7G8H9I0J"))
         self.assertTrue(URN.validate("whatsapp:US.abcDEF123"))
 
-        # digit-only phone paths and other malformed values are no longer valid
-        self.assertFalse(URN.validate("whatsapp:12065551212"))
+        # malformed values are still invalid
         self.assertFalse(URN.validate("whatsapp:+12065551212"))
         self.assertFalse(URN.validate("whatsapp:br.1A2B3C4D"))
         self.assertFalse(URN.validate("whatsapp:BR.abc-123"))

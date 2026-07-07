@@ -203,8 +203,14 @@ class URN:
         elif scheme in [cls.TELEGRAM_SCHEME, cls.INSTAGRAM_SCHEME]:
             return regex.match(r"^[0-9]+$", path, regex.V0)
 
-        # whatsapp and bsuid hold a WhatsApp business-scoped user id: two-letter country code, dot, 1-128 alphanumerics
-        elif scheme in [cls.WHATSAPP_SCHEME, cls.BSUID_SCHEME]:
+        # whatsapp holds either a phone number (all digits, legacy) or a business-scoped user id (CC.alphanumeric)
+        elif scheme == cls.WHATSAPP_SCHEME:
+            return regex.match(r"^[0-9]+$", path, regex.V0) or regex.match(
+                r"^[A-Z]{2}\.[a-zA-Z0-9]{1,128}$", path, regex.V0
+            )
+
+        # bsuid (WhatsApp business-scoped user id): two-letter country code, dot, 1-128 alphanumerics
+        elif scheme == cls.BSUID_SCHEME:
             return regex.match(r"^[A-Z]{2}\.[a-zA-Z0-9]{1,128}$", path, regex.V0)
 
         # validate Viber URNS look right (this is a guess)
