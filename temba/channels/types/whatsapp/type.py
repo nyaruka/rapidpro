@@ -36,7 +36,7 @@ class WhatsAppType(ChannelType):
     unique_addresses = True
 
     courier_url = r"^wac/receive"
-    schemes = [URN.WHATSAPP_SCHEME]
+    schemes = [URN.WHATSAPP_SCHEME, URN.TEL_SCHEME]
     async_activation = False
     template_type = "whatsapp"
 

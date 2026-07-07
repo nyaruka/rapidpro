@@ -23,7 +23,7 @@ class ZenviaWhatsAppType(ChannelType):
     category = ChannelType.Category.SOCIAL_MEDIA
 
     courier_url = r"^zvw/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive|status)$"
-    schemes = [URN.WHATSAPP_SCHEME]
+    schemes = [URN.WHATSAPP_SCHEME, URN.TEL_SCHEME]
 
     claim_blurb = _("If you have a %(link)s number, you can connect it to communicate with your WhatsApp contacts.") % {
         "link": '<a target="_blank" href="https://www.zenvia.com/">Zenvia WhatsApp</a>'

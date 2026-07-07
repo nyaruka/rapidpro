@@ -202,7 +202,7 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             role=role,
             config=config,
             uuid=channel_uuid,
-            schemes=[URN.WHATSAPP_SCHEME],
+            schemes=[URN.WHATSAPP_SCHEME, URN.TEL_SCHEME],
         )
 
         return channel

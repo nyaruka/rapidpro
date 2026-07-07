@@ -24,7 +24,7 @@ class Dialog360LegacyType(ChannelType):
     category = ChannelType.Category.SOCIAL_MEDIA
 
     courier_url = r"^d3/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
-    schemes = [URN.WHATSAPP_SCHEME]
+    schemes = [URN.WHATSAPP_SCHEME, URN.TEL_SCHEME]
     template_type = "whatsapp"
 
     claim_blurb = _("Activate your own enterprise WhatsApp account in %(link)s to communicate with your contacts. ") % {
