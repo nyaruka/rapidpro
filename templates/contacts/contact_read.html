@@ -10,8 +10,9 @@
   <temba-tabs -temba-context-changed="handleTabChanged"
               index="{{ request.GET.tab }}"
               collapses="true"
+              orderable
               class="flex-grow -mt-2">
-    <temba-tab icon="message" name="{{ _("Chat") |escapejs }}">
+    <temba-tab icon="message" name="{{ _("Chat") |escapejs }}" maxWidth="600" pinned>
       <temba-contact-chat contact="{{ object.uuid }}"
                           monitor="true"
                           avatar="{{ branding.logos.avatar }}"
@@ -21,13 +22,12 @@
                           -temba-interrupt="handleInterruptContact">
       </temba-contact-chat>
     </temba-tab>
-    <temba-tab icon="info" name="{{ _("Details") |escapejs }}">
-      <temba-contact-details contact="{{ object.uuid }}" class="py-4 px-1 overflow-y-auto">
+    <temba-tab icon="info" name="{{ _("Details") |escapejs }}" splitWidth="300">
+      <temba-contact-details contact="{{ object.uuid }}" class="pane-content overflow-y-auto">
       </temba-contact-details>
     </temba-tab>
-    <temba-tab icon="fields" name="{{ _("Fields") |escapejs }}">
-      <div style="border-top-right-radius: var(--curvature)"
-           class="flex flex-grow flex-col py-4 px-1 overflow-y-auto">
+    <temba-tab icon="fields" name="{{ _("Fields") |escapejs }}" splitWidth="300">
+      <div class="flex flex-grow flex-col pane-content overflow-y-auto">
         <temba-contact-fields timezone="{{ object.org.timezone }}"
                               contact="{{ object.uuid }}"
                               -temba-button-clicked="handleFieldSearch">
@@ -40,14 +40,13 @@
         </temba-contact-fields>
       </div>
     </temba-tab>
-    <temba-tab icon="schedule" name="{{ _("Next Up") |escapejs }}">
-      <div style="border-top-right-radius: var(--curvature); background: #fff"
-           class="flex flex-grow flex-col py-8 px-4 overflow-y-auto">
+    <temba-tab icon="schedule" name="{{ _("Next Up") |escapejs }}" splitWidth="300">
+      <div class="flex flex-grow flex-col pane-content overflow-y-auto">
         <temba-contact-timeline contact="{{ object.uuid }}" -temba-selection="handleTimelineClicked">
         </temba-contact-timeline>
       </div>
     </temba-tab>
-    <temba-tab icon="notes" name="{{ _("Notepad") }}" activity>
+    <temba-tab icon="notes" name="{{ _("Notepad") }}" activity splitWidth="300">
       <temba-contact-notepad contact="{{ object.uuid }}">
       </temba-contact-notepad>
     </temba-tab>
@@ -62,7 +61,31 @@
 
     .page-content {
       align-self: auto;
-      max-width: 1024px;
+    }
+
+    temba-tabs .pane-content {
+      padding: 0.75rem;
+    }
+
+    /* these widgets bring their own cards, they just need separation
+       from the tab strip */
+    temba-tabs temba-contact-chat,
+    temba-tabs temba-contact-notepad {
+      margin: 0.75rem 0 0;
+    }
+
+    /* the notepad's pane card takes on its note coloring, the widget's own
+       chrome is removed since the card provides it */
+    temba-tabs temba-tab.split[icon='notes'] {
+      --tab-card-bg: var(--surface-note);
+      --tab-card-border: var(--border-note);
+    }
+
+    temba-tabs temba-tab.split temba-contact-notepad {
+      margin: 0;
+      --border-note: transparent;
+      --shadow-2: none;
+      --r-sm: 0;
     }
   </style>
 {% endblock extra-style %}
