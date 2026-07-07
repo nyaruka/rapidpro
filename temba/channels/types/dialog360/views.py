@@ -36,7 +36,6 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         config = {
             Channel.CONFIG_BASE_URL: "https://waba-v2.360dialog.io",
             Channel.CONFIG_AUTH_TOKEN: data["api_key"],
-            Channel.CONFIG_ALLOW_INTERNATIONAL: True,
         }
 
         self.object = Channel.create(

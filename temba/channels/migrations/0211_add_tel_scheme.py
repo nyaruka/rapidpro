@@ -4,15 +4,13 @@ from django.db import migrations
 def add_tel_scheme(apps, schema_editor):
     Channel = apps.get_model("channels", "Channel")
 
-    # channels which support the whatsapp scheme should now also support the tel scheme, and because they're
-    # inherently used to reach international numbers we also enable sending to international numbers
+    # channels which support the whatsapp scheme should now also support the tel scheme
     channels = Channel.objects.filter(schemes__contains=["whatsapp"]).exclude(schemes__contains=["tel"])
 
     num_updated = 0
     for channel in channels:
         channel.schemes = [*channel.schemes, "tel"]
-        channel.config = {**channel.config, "allow_international": True}
-        channel.save(update_fields=["schemes", "config"])
+        channel.save(update_fields=["schemes"])
         num_updated += 1
 
     if num_updated:

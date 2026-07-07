@@ -70,7 +70,6 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         channel_type_name = ""
         if self.channel_type.code == "ZVW":
             channel_type_name = "WhatsApp"
-            config[Channel.CONFIG_ALLOW_INTERNATIONAL] = True
         if self.channel_type.code == "ZVS":
             channel_type_name = "SMS"
 

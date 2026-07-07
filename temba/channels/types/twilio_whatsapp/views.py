@@ -188,7 +188,6 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             Channel.CONFIG_ACCOUNT_SID: self.request.session.get(self.channel_type.SESSION_ACCOUNT_SID),
             Channel.CONFIG_AUTH_TOKEN: self.request.session.get(self.channel_type.SESSION_AUTH_TOKEN),
             Channel.CONFIG_CALLBACK_DOMAIN: callback_domain,
-            Channel.CONFIG_ALLOW_INTERNATIONAL: True,
         }
 
         role = Channel.ROLE_SEND + Channel.ROLE_RECEIVE

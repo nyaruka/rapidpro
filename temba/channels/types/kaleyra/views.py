@@ -33,7 +33,6 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         config = {
             CONFIG_ACCOUNT_SID: data["account_sid"],
             CONFIG_API_KEY: data["api_key"],
-            Channel.CONFIG_ALLOW_INTERNATIONAL: True,
         }
 
         self.object = Channel.create(
