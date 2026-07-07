@@ -134,12 +134,8 @@ class URN:
         """
         scheme, path, query, display = cls.to_parts(urn)
 
-        if scheme in [cls.TEL_SCHEME, cls.WHATSAPP_SCHEME] and formatted:
+        if scheme == cls.TEL_SCHEME and formatted:
             try:
-                # whatsapp scheme is E164 without a leading +, add it so parsing works
-                if scheme == cls.WHATSAPP_SCHEME:
-                    path = "+" + path
-
                 if path and path[0] == "+":
                     phone_format = phonenumbers.PhoneNumberFormat.NATIONAL
                     if international:
@@ -203,12 +199,12 @@ class URN:
                 except ValueError:
                     return False
 
-        # telegram, whatsapp and instagram use integer ids
-        elif scheme in [cls.TELEGRAM_SCHEME, cls.WHATSAPP_SCHEME, cls.INSTAGRAM_SCHEME]:
+        # telegram and instagram use integer ids
+        elif scheme in [cls.TELEGRAM_SCHEME, cls.INSTAGRAM_SCHEME]:
             return regex.match(r"^[0-9]+$", path, regex.V0)
 
-        # bsuid (WhatsApp business-scoped user id): two-letter country code, dot, 1-128 alphanumerics
-        elif scheme == cls.BSUID_SCHEME:
+        # whatsapp and bsuid hold a WhatsApp business-scoped user id: two-letter country code, dot, 1-128 alphanumerics
+        elif scheme in [cls.WHATSAPP_SCHEME, cls.BSUID_SCHEME]:
             return regex.match(r"^[A-Z]{2}\.[a-zA-Z0-9]{1,128}$", path, regex.V0)
 
         # validate Viber URNS look right (this is a guess)
@@ -253,8 +249,8 @@ class URN:
         elif scheme == cls.EMAIL_SCHEME:
             norm_path = norm_path.lower()
 
-        elif scheme == cls.BSUID_SCHEME:
-            # BSUIDs have format CC.ALPHANUMERIC - uppercase the country code
+        elif scheme in [cls.WHATSAPP_SCHEME, cls.BSUID_SCHEME]:
+            # whatsapp/bsuid have format CC.ALPHANUMERIC - uppercase the country code
             if len(norm_path) > 2 and norm_path[2] == ".":
                 norm_path = norm_path[:2].upper() + norm_path[2:]
 
