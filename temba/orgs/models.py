@@ -1210,6 +1210,16 @@ class Org(SmartModel):
     def __str__(self):
         return self.name
 
+    class Meta:
+        constraints = [
+            # suspended_on must be set if and only if org is suspended
+            models.CheckConstraint(
+                condition=Q(is_suspended=True, suspended_on__isnull=False)
+                | Q(is_suspended=False, suspended_on__isnull=True),
+                name="orgs_org_suspended_on_consistent",
+            )
+        ]
+
 
 class OrgMembership(models.Model):
     org = models.ForeignKey(Org, on_delete=models.CASCADE)

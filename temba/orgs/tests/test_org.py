@@ -304,8 +304,7 @@ class OrgTest(TembaTest):
         self.assertEqual(mr_mocks.calls["flow_start"], [])
 
         # unsuspend our org and start a flow
-        self.org.is_suspended = False
-        self.org.save(update_fields=("is_suspended",))
+        self.org.unsuspend()
 
         self.client.post(
             start_url,
