@@ -94,35 +94,42 @@
     function launchWhatsAppSignup() {
       // Launch Facebook login
 
+      // The only per-config differences are the fallback OAuth URL, the FB.login
+      // options, and which authResponse field carries the token/code.
       {% if facebook_login_whatsapp_config_id %}
-      FB.login(function(response) {
-        if (response.authResponse) {
-          submitClaimForm(response.authResponse.code);
-        } else {
-          console.log('User cancelled login or did not fully authorize, redirect to the dialog auth');
-          location.replace("https://www.facebook.com/v22.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + "{{connect_url}}" + "&config_id={{ facebook_login_whatsapp_config_id }}&response_type=code&override_default_response_type=true")
-        }
-      }, {
+      var fallbackUrl = "https://www.facebook.com/v22.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + "{{connect_url}}" + "&config_id={{ facebook_login_whatsapp_config_id }}&response_type=code&override_default_response_type=true";
+      var loginOptions = {
         config_id: '{{ facebook_login_whatsapp_config_id }}',
         response_type: 'code',
         override_default_response_type: true
-      });
+      };
+      var getToken = function(authResponse) { return authResponse.code; };
       {% else %}
-      FB.login(function(response) {
-        if (response.authResponse) {
-          submitClaimForm(response.authResponse.accessToken);
-        } else {
-          console.log('User cancelled login or did not fully authorize, redirect to the dialog auth');
-          location.replace("https://www.facebook.com/v22.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + "{{connect_url}}" + "&scope=business_management,whatsapp_business_management,whatsapp_business_messaging&response_type=token")
-        }
-      }, {
+      var fallbackUrl = "https://www.facebook.com/v22.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + "{{connect_url}}" + "&scope=business_management,whatsapp_business_management,whatsapp_business_messaging&response_type=token";
+      var loginOptions = {
         scope: 'business_management,whatsapp_business_management,whatsapp_business_messaging',
         extras: {
           feature: 'whatsapp_embedded_signup',
           setup: {}
         }
-      });
+      };
+      var getToken = function(authResponse) { return authResponse.accessToken; };
       {% endif %}
+
+      // Fall back to the full-page OAuth dialog only when the JS SDK popup is unavailable,
+      // so the embedded signup is never launched a second time after the popup has run.
+      if (typeof FB === 'undefined' || !FB.login) {
+        location.replace(fallbackUrl);
+        return;
+      }
+      FB.login(function(response) {
+        if (response.authResponse) {
+          submitClaimForm(getToken(response.authResponse));
+        } else {
+          // User cancelled or did not fully authorize; leave the button so they can retry.
+          console.log('User cancelled login or did not fully authorize');
+        }
+      }, loginOptions);
     }
   </script>
 {% endblock extra-script %}
