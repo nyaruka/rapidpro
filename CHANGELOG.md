@@ -1,3 +1,10 @@
+v26.3.10 (2026-07-08)
+-------------------------
+ * Backfill Org.suspended_on and add constraint that it's set iff org is suspended
+ * Add 'workspace suspended' as a call error reason
+ * Ensure WhatsApp Cloud embedded signup runs only once per attempt
+ * Stop sending deprecated user_id to mailroom's notification/publish endpoint
+
 v26.3.9 (2026-07-06)
 -------------------------
  * Include user UUID when publishing notifications to mailroom
