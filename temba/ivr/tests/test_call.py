@@ -31,3 +31,9 @@ class CallTest(TembaTest):
 
         self.assertEqual(timedelta(seconds=15), call.get_duration())  # from duration field
         self.assertEqual("Errored (No Answer)", call.status_display)
+
+        call.status = Call.STATUS_FAILED
+        call.error_reason = Call.ERROR_SUSPENDED
+        call.save(update_fields=("status", "error_reason"))
+
+        self.assertEqual("Failed (Workspace suspended)", call.status_display)

@@ -41,11 +41,13 @@ class Call(models.Model):
     ERROR_BUSY = "B"
     ERROR_NOANSWER = "N"
     ERROR_MACHINE = "M"
+    ERROR_SUSPENDED = "S"
     ERROR_CHOICES = (
         (ERROR_PROVIDER, _("Provider")),  # an API call to the IVR provider returned an error
         (ERROR_BUSY, _("Busy")),  # the contact couldn't be called because they're busy
         (ERROR_NOANSWER, _("No Answer")),  # the contact didn't answer the call
         (ERROR_MACHINE, _("Answering Machine")),  # the call went to an answering machine
+        (ERROR_SUSPENDED, _("Workspace suspended")),  # the call was never made because the workspace is suspended
     )
 
     RETRY_CHOICES = ((-1, _("Never")), (30, _("After 30 minutes")), (60, _("After 1 hour")), (1440, _("After 1 day")))
