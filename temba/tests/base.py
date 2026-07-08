@@ -967,6 +967,10 @@ class MigrationTest(TembaTest):
         # set up our temba test
         super().setUp()
 
+        # flush deferred constraint checks from the inserts above so that migrations can alter those tables
+        with connection.cursor() as cursor:
+            cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
         executor = MigrationExecutor(connection)
