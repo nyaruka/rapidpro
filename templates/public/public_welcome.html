@@ -69,7 +69,7 @@
 
           {% endblocktrans %}
           <div class="mt-6">
-            <a href="{% url 'flows.flow_list' %}" onclick="goto(event)" class="button-light lift inline-block">{% trans "Create a Flow" %}</a>
+            <a href="{% url 'flows.flow_list' %}" onclick="goto(event)" class="button-light lift">{% trans "Create a Flow" %}</a>
           </div>
         </div>
       </div>
@@ -102,7 +102,7 @@
           <div class="mt-6">
             <div href="{% url 'channels.channel_claim' %}"
                  onclick="goto(event)"
-                 class="button-primary lift inline-block">{% trans "Add Number" %}</div>
+                 class="button-primary lift">{% trans "Add Number" %}</div>
           </div>
         </div>
       </div>
@@ -141,16 +141,16 @@
           {% endblocktrans %}
         </div>
         <div class="mt-6">
-          <a href="{% url 'contacts.contactimport_create' %}" class="button-primary lift inline-block mr-1 mb-1">{% trans "Import Contacts" %}</a>
+          <a href="{% url 'contacts.contactimport_create' %}" class="button-primary lift mr-1 mb-1">{% trans "Import Contacts" %}</a>
           <temba-modax endpoint="{% url 'contacts.contact_create' %}"
                        header="{{ _("Create Contact") |escapejs }}"
                        class="inline-block mb-1">
-            <div class="button-light lift inline-block mr-1">{% trans "Create Contact" %}</div>
+            <div class="button-light lift mr-1">{% trans "Create Contact" %}</div>
           </temba-modax>
           <temba-modax endpoint="{% url 'contacts.contactgroup_create' %}"
                        header="{{ _("Create Group") |escapejs }}"
                        class="inline-block mb-1">
-            <div class="button-light lift inline-block mr-1 mb-1">{% trans "Create Group" %}</div>
+            <div class="button-light lift mr-1 mb-1">{% trans "Create Group" %}</div>
           </temba-modax>
         </div>
       </div>
@@ -217,7 +217,7 @@
         <div class="mt-6">
           {% block account-details %}
           {% endblock account-details %}
-          <a href="{% url 'api' %}" class="button-light lift inline-block">{% trans "API Documentation" %}</a>
+          <a href="{% url 'api' %}" class="button-light lift">{% trans "API Documentation" %}</a>
         </div>
       </div>
     </div>
