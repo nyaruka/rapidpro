@@ -85,10 +85,10 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@nyaruka/temba-components@0.162.0":
-  version "0.162.0"
-  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.162.0.tgz#ded0951673a4e2dffafe7bf2a01212ab75146e36"
-  integrity sha512-XIMVZgeSug3P+4fJnpvA1+QDiIhUAyBM4mlUuG/wgBoVBlTJivkU4ExAsE5f8Ty7RiBsMc+5Kz6YnxpoNpqbCA==
+"@nyaruka/temba-components@0.163.0":
+  version "0.163.0"
+  resolved "https://registry.yarnpkg.com/@nyaruka/temba-components/-/temba-components-0.163.0.tgz#442c45160a8330f5a72b05eda1e1b161d5a6cdd0"
+  integrity sha512-aOlQRiJ5J4mknC68BJjOs1uPYhnYUZb4NkTOuDRioxMXBX6n6uTGwebjNTfXY63MGWJmfGbr0xEcGV2B19Imcg==
   dependencies:
     "@jsplumb/browser-ui" "^6.2.10"
     "@lit/localize" "^0.12.2"
