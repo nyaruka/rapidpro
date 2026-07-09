@@ -1,3 +1,8 @@
+v26.3.11 (2026-07-09)
+-------------------------
+ * Update @nyaruka/temba-components to 0.163.0
+ * Drop redundant inline-block from CSS-based buttons
+
 v26.3.10 (2026-07-08)
 -------------------------
  * Backfill Org.suspended_on and add constraint that it's set iff org is suspended
