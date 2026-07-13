@@ -9,7 +9,8 @@ from temba.ai.models import LLM
 from temba.ai.types.anthropic.type import AnthropicType
 from temba.ai.types.openai.type import OpenAIType
 from temba.api.tests.mixins import APITestMixin
-from temba.contacts.models import ContactExport, ContactGroup
+from temba.campaigns.models import Campaign, CampaignEvent
+from temba.contacts.models import ContactExport, ContactField, ContactGroup
 from temba.flows.models import Flow, FlowLabel
 from temba.msgs.models import Msg
 from temba.notifications.types import ExportFinishedNotificationType
@@ -345,6 +346,86 @@ class EndpointsTest(APITestMixin, TembaTest):
         mr_mocks.contact_search("", contacts=[joe, frank])
         self.assertGet(endpoint_url + "?sort=-field:gender&page_size=0", [self.admin], results=[joe, frank])
         self.assertEqual(50, mr_mocks.calls["contact_search"][-1].kwargs["limit"])
+
+    def test_campaigns(self):
+        endpoint_url = reverse("api.internal.campaigns") + ".json"
+
+        self.assertGetNotPermitted(endpoint_url, [None, self.agent])
+        self.assertPostNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        registered = self.create_field("registered", "Registered", value_type=ContactField.TYPE_DATETIME)
+        flow = self.create_flow("Reminder Flow")
+
+        ann = self.create_contact("Ann", phone="+1234567111")
+        bob = self.create_contact("Bob", phone="+1234567222")
+        mothers = self.create_group("Mothers", contacts=[ann, bob])
+        farmers = self.create_group("Farmers", contacts=[])
+
+        campaign1 = Campaign.create(self.org, self.admin, "Welcomes", mothers)
+        for offset in (1, 2):
+            CampaignEvent.create_flow_event(
+                self.org, self.admin, campaign1, registered, offset=offset, unit="W", flow=flow, delivery_hour="13"
+            )
+        campaign2 = Campaign.create(self.org, self.admin, "Reminders", farmers)
+        CampaignEvent.create_flow_event(
+            self.org, self.admin, campaign2, registered, offset=1, unit="D", flow=flow, delivery_hour="9"
+        )
+        campaign3 = Campaign.create(self.org, self.admin, "Follow Ups", mothers)
+        campaign3.archive(self.admin)
+
+        # and a campaign in another org that should never appear
+        group2 = self.create_group("Others", contacts=[], org=self.org2)
+        Campaign.create(self.org2, self.org2.get_admins().first(), "Other Org", group2)
+
+        # the count getters compute directly when not bulk-prefetched by the endpoint
+        self.assertEqual(2, campaign1.get_event_count())
+        self.assertEqual(2, campaign1.get_contact_count())
+
+        # default folder is `active`, most recently modified first
+        self.assertGet(endpoint_url, [self.editor, self.admin], results=[campaign2, campaign1])
+        self.assertGet(endpoint_url + "?folder=active", [self.admin], results=[campaign2, campaign1])
+
+        # archived campaigns live in their own folder
+        self.assertGet(endpoint_url + "?folder=archived", [self.admin], results=[campaign3])
+
+        # search filters by campaign name or group name
+        self.assertGet(endpoint_url + "?search=wel", [self.admin], results=[campaign1])
+        self.assertGet(endpoint_url + "?search=farm", [self.admin], results=[campaign2])
+
+        # each row carries the columns the component renders
+        def check_shape(data):
+            first = [r for r in data["results"] if r["uuid"] == str(campaign1.uuid)][0]
+            self.assertEqual("Welcomes", first["name"])
+            self.assertEqual({"uuid": str(mothers.uuid), "name": "Mothers"}, first["group"])
+            self.assertEqual(2, first["events"])
+            self.assertEqual(2, first["contacts"])
+            self.assertEqual(campaign1.modified_on.isoformat(), first["modified_on"])
+
+            second = [r for r in data["results"] if r["uuid"] == str(campaign2.uuid)][0]
+            self.assertEqual(1, second["events"])
+            self.assertEqual(0, second["contacts"])
+            return True
+
+        self.assertGet(endpoint_url, [self.admin], raw=check_shape)
+
+        # sortable by name, event count, group-member count and modified on
+        self.assertGet(endpoint_url + "?sort=name", [self.admin], results=[campaign2, campaign1])
+        self.assertGet(endpoint_url + "?sort=-name", [self.admin], results=[campaign1, campaign2])
+        self.assertGet(endpoint_url + "?sort=events", [self.admin], results=[campaign2, campaign1])
+        self.assertGet(endpoint_url + "?sort=-events", [self.admin], results=[campaign1, campaign2])
+        self.assertGet(endpoint_url + "?sort=contacts", [self.admin], results=[campaign2, campaign1])
+        self.assertGet(endpoint_url + "?sort=-contacts", [self.admin], results=[campaign1, campaign2])
+        self.assertGet(endpoint_url + "?sort=modified_on", [self.admin], results=[campaign1, campaign2])
+        self.assertGet(endpoint_url + "?sort=-modified_on", [self.admin], results=[campaign2, campaign1])
+
+        # an unknown sort falls back to the default ordering
+        self.assertGet(endpoint_url + "?sort=nope", [self.admin], results=[campaign2, campaign1])
+
+        # an over-long search query is rejected
+        self.login(self.admin)
+        response = self.client.get(endpoint_url + "?search=" + ("x" * 1001))
+        self.assertEqual(413, response.status_code)
 
     def test_flows(self):
         endpoint_url = reverse("api.internal.flows") + ".json"

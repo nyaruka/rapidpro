@@ -1,10 +1,12 @@
+from uuid import UUID
+
 from smartmin.views import SmartCreateView, SmartCRUDL
 
 from django import forms
 from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
-from django.utils.functional import cached_property
+from django.utils.functional import Promise, cached_property
 from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
@@ -178,6 +180,97 @@ class CampaignCRUDL(SmartCRUDL):
         default_template = "campaigns/campaign_list.html"
         default_order = ("-modified_on",)
 
+        # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview,
+        # every campaign list view renders the temba-campaign-list component (campaigns/campaign_list_new.html)
+        # instead of its legacy table; the component fetches/pages campaigns itself from the internal campaigns API.
+        NEW_LIST_TEMPLATE = "campaigns/campaign_list_new.html"
+
+        # Optional subtitle rendered under the title on the new-list view.
+        subtitle = ""
+
+        # Bulk-action key -> config consumed by temba-campaign-list (label, icon).
+        BULK_ACTION_CONFIG = {
+            "archive": {"label": _("Archive"), "icon": "archive"},
+            "restore": {"label": _("Restore"), "icon": "restore"},
+        }
+
+        def _use_new_list(self) -> bool:
+            # `getattr` defaults to False so a view called via RequestFactory (or if PreviewMiddleware is reordered
+            # out) doesn't AttributeError.
+            return getattr(self.request, "preview", False)
+
+        def get_template_names(self):
+            if self._use_new_list():
+                return [self.NEW_LIST_TEMPLATE]
+            return super().get_template_names()
+
+        def get_paginate_by(self, queryset):
+            # The temba-campaign-list component fetches and pages campaigns itself.
+            if self._use_new_list():
+                return None
+            return super().get_paginate_by(queryset)
+
+        def derive_subtitle(self):
+            return self.subtitle
+
+        def derive_new_list_query(self) -> str:
+            return "folder=active"
+
+        def post(self, request, *args, **kwargs):
+            # The component posts campaign uuids in `objects`, but BulkActionMixin matches by primary key —
+            # translate them here so the new component and the legacy id-based form post are both accepted.
+            if self._use_new_list() and "objects" in request.POST:
+                data = request.POST.copy()
+                uuids = data.getlist("objects")
+                if uuids:
+                    # Only keep well-formed UUIDs — `uuid__in` runs each value through UUIDField.get_prep_value, so a
+                    # single malformed value (a hostile post, or a stale id-based form post) would otherwise raise
+                    # ValueError (500).
+                    valid = []
+                    for u in uuids:
+                        try:
+                            valid.append(UUID(u))
+                        except ValueError:
+                            pass
+                    ids = Campaign.objects.filter(org=request.org, is_active=True, uuid__in=valid).values_list(
+                        "id", flat=True
+                    )
+                    data.setlist("objects", [str(i) for i in ids])
+                request.POST = data
+
+            return super().post(request, *args, **kwargs)
+
+        def get_queryset(self, *args, **kwargs):
+            # In preview the temba-campaign-list component fetches and pages campaigns from the internal campaigns
+            # API, so a GET page needs no object list. A POST (bulk action) still needs the real queryset, since
+            # BulkActionMixin validates the posted `objects` against it.
+            if self._use_new_list() and self.request.method == "GET":
+                return Campaign.objects.none()
+
+            return super().get_queryset(*args, **kwargs)
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+
+            # New-list view context: the resolved campaigns-api endpoint, the subtitle, and the bulk-action configs
+            # the temba-campaign-list expects (resolved + JSON-encoded here so the template stays inert).
+            if self._use_new_list():
+                context["new_list_endpoint"] = (
+                    f"{reverse('api.internal.campaigns')}.json?{self.derive_new_list_query()}"
+                )
+                subtitle = self.derive_subtitle()
+                context["new_list_subtitle"] = str(subtitle) if subtitle else ""
+                actions = []
+                for key in self.get_bulk_actions():
+                    cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
+                    cfg["key"] = key
+                    # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
+                    cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
+                    actions.append(cfg)
+                context["new_list_bulk_actions"] = actions
+
+            return context
+
     class List(BaseList):
         title = _("Active")
         bulk_actions = ("archive",)
@@ -201,6 +294,10 @@ class CampaignCRUDL(SmartCRUDL):
         title = _("Archived")
         bulk_actions = ("restore",)
         menu_path = "/campaign/archived"
+        subtitle = _("These campaigns have been archived and their events are no longer fired.")
+
+        def derive_new_list_query(self) -> str:
+            return "folder=archived"
 
         def get_queryset(self, *args, **kwargs):
             return super().get_queryset(*args, **kwargs).filter(is_archived=True)
