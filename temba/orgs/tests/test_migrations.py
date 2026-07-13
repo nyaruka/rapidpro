@@ -73,3 +73,29 @@ class BackfillSuspendedOnTest(MigrationTest):
         assert_suspended_on(self.org4, datetime(2024, 11, 15, 0, 0, 0, 0, tzone.utc))  # clamped
         assert_suspended_on(self.org5, datetime(2025, 1, 1, 12, 0, 0, 0, tzone.utc))  # unchanged
         assert_suspended_on(self.org2, None)  # cleared
+
+
+class NormalizeTimezonesTest(MigrationTest):
+    app = "orgs"
+    migrate_from = "0184_org_orgs_org_suspended_on_consistent"
+    migrate_to = "0185_normalize_timezones"
+
+    def setUpBeforeMigration(self, apps):
+        # self.org keeps its canonical timezone (Africa/Kigali) and should be untouched
+        Org.objects.filter(id=self.org2.id).update(timezone="US/Pacific")
+        self.org3 = Org.objects.create(
+            name="GMT Org",
+            timezone="GMT",
+            flow_languages=["eng"],
+            created_by=self.admin,
+            modified_by=self.admin,
+        )
+
+    def test_migration(self):
+        self.org.refresh_from_db()
+        self.org2.refresh_from_db()
+        self.org3.refresh_from_db()
+
+        self.assertEqual("Africa/Kigali", str(self.org.timezone))
+        self.assertEqual("America/Los_Angeles", str(self.org2.timezone))
+        self.assertEqual("UTC", str(self.org3.timezone))

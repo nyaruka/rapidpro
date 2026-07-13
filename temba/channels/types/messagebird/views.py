@@ -1,5 +1,4 @@
 import phonenumbers
-import pytz
 from smartmin.views import SmartFormView
 
 from django import forms
@@ -7,6 +6,7 @@ from django.utils.translation import gettext_lazy as _
 
 from temba.utils import countries
 from temba.utils.fields import SelectWidget
+from temba.utils.timezones import country_timezones
 
 from ...models import Channel
 from ...views import ClaimViewMixin
@@ -57,7 +57,7 @@ def get_tz_for_countries(countries: dict) -> list:
     """Get a list of timezones for a list of countries"""
     timezones = set()
     for country in countries:
-        timezones.update(pytz.country_timezones[country])
+        timezones.update(country_timezones(country))
     """Add UTC as a timezone"""
     timezones.add("UTC")
     return sorted(timezones)
