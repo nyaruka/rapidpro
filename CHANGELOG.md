@@ -1,3 +1,10 @@
+v26.3.12 (2026-07-13)
+-------------------------
+ * Replace direct pytz usage with stdlib zoneinfo and tzdata
+ * Normalize legacy alias timezones to canonical IANA names
+ * Update django, smartmin and django-timezone-field
+ * Disable allauth rate limiting when testing
+
 v26.3.11 (2026-07-09)
 -------------------------
  * Update @nyaruka/temba-components to 0.163.0
