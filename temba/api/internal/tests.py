@@ -378,6 +378,10 @@ class EndpointsTest(APITestMixin, TembaTest):
         group2 = self.create_group("Others", contacts=[], org=self.org2)
         Campaign.create(self.org2, self.org2.get_admins().first(), "Other Org", group2)
 
+        # the count getters compute directly when not bulk-prefetched by the endpoint
+        self.assertEqual(2, campaign1.get_event_count())
+        self.assertEqual(2, campaign1.get_contact_count())
+
         # default folder is `active`, most recently modified first
         self.assertGet(endpoint_url, [self.editor, self.admin], results=[campaign2, campaign1])
         self.assertGet(endpoint_url + "?folder=active", [self.admin], results=[campaign2, campaign1])

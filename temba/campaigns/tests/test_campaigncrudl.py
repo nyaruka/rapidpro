@@ -227,6 +227,14 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         campaign2.refresh_from_db()
         self.assertFalse(campaign2.is_archived)
 
+        # a campaign belonging to another org can't be touched
+        other_org_group = self.create_group("Reporters", contacts=[], org=self.org2)
+        other_org_campaign = self.create_campaign(self.org2, "Other Org", other_org_group)
+        response = self.client.post(list_url, {"action": "archive", "objects": str(other_org_campaign.uuid)})
+        self.assertEqual(200, response.status_code)
+        other_org_campaign.refresh_from_db()
+        self.assertFalse(other_org_campaign.is_archived)
+
     def test_archived(self):
         archived_url = reverse("campaigns.campaign_archived")
 
