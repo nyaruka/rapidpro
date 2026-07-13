@@ -68,6 +68,7 @@ def timezone_to_country_code(tz) -> str:
 
 def country_timezones(country_code: str) -> list:
     """
-    Gets the timezone names for the given country code.
+    Gets the timezone names for the given country code - intentionally includes legacy aliases (e.g. US/Pacific)
+    which may still exist in old data.
     """
     return sorted(tz for tz, code in TIMEZONE_COUNTRY.items() if code == country_code)
