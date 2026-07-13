@@ -6,12 +6,12 @@ from smartmin.models import SmartModel
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
-from django.db.models import Sum
+from django.db.models import Count, Sum
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _, ngettext
 
 from temba import mailroom
-from temba.contacts.models import ContactField, ContactGroup
+from temba.contacts.models import ContactField, ContactGroup, ContactGroupCount
 from temba.flows.models import Flow
 from temba.orgs.models import Org
 from temba.utils import json, languages, on_transaction_commit
@@ -205,6 +205,60 @@ class Campaign(TembaModel):
 
         for event in events:
             setattr(event, "_fire_count", by_event[event.id])
+
+    @classmethod
+    def prefetch_list_counts(cls, campaigns, *, using="default"):
+        """
+        Prefetches the event and group-member counts required by as_json
+        """
+
+        event_counts = (
+            CampaignEvent.objects.using(using)
+            .filter(campaign__in=campaigns, is_active=True)
+            .values("campaign_id")
+            .annotate(total=Count("id"))
+        )
+        by_campaign = {c["campaign_id"]: c["total"] for c in event_counts}
+
+        group_counts = (
+            ContactGroupCount.objects.using(using)
+            .filter(group__in={c.group_id for c in campaigns})
+            .values("group_id")
+            .annotate(total=Sum("count"))
+        )
+        by_group = {c["group_id"]: c["total"] for c in group_counts}
+
+        for campaign in campaigns:
+            campaign._event_count = by_campaign.get(campaign.id, 0)
+            campaign._contact_count = by_group.get(campaign.group_id, 0)
+
+    def get_event_count(self) -> int:
+        if hasattr(self, "_event_count"):
+            return self._event_count
+
+        return self.get_events().count()
+
+    def get_contact_count(self) -> int:
+        if hasattr(self, "_contact_count"):
+            return self._contact_count
+
+        return self.group.get_member_count()
+
+    def as_json(self, context=None) -> dict:
+        """
+        Internal API shape, consumed by the temba-campaign-list component. Event and group-member counts are
+        bulk-loaded by the list endpoint via prefetch_list_counts.
+        """
+
+        return {
+            "uuid": str(self.uuid),
+            "name": self.name,
+            "group": {"uuid": str(self.group.uuid), "name": self.group.name},
+            "events": self.get_event_count(),
+            "contacts": self.get_contact_count(),
+            "created_on": self.created_on.isoformat(),
+            "modified_on": self.modified_on.isoformat(),
+        }
 
     def as_export_def(self):
         """

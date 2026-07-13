@@ -178,6 +178,55 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertListFetch(list_url, [self.editor, self.admin], context_objects=[campaign2, campaign1])
         self.assertContentMenu(list_url, self.admin, ["New Campaign"])
 
+    @mock_mailroom
+    def test_preview_list(self, mr_mocks):
+        group = self.create_group("Reporters", contacts=[])
+        campaign1 = self.create_campaign(self.org, "Welcomes", group)
+        campaign2 = self.create_campaign(self.org, "Follow Ups", group)
+
+        list_url = reverse("campaigns.campaign_list")
+        archived_url = reverse("campaigns.campaign_archived")
+
+        self.login(self.admin)
+
+        # default render is still the legacy table
+        response = self.client.get(list_url)
+        self.assertNotContains(response, "temba-campaign-list")
+
+        # entering preview mode swaps in the temba-campaign-list component, pointed at the internal campaigns api
+        self.client.cookies["temba-preview"] = "1"
+
+        response = self.client.get(list_url)
+        self.assertContains(response, "temba-campaign-list")
+        self.assertEqual(
+            f"{reverse('api.internal.campaigns')}.json?folder=active", response.context["new_list_endpoint"]
+        )
+        self.assertEqual(["archive"], [a["key"] for a in response.context["new_list_bulk_actions"]])
+
+        # the archived view selects the archived folder and offers restore instead
+        response = self.client.get(archived_url)
+        self.assertEqual(
+            f"{reverse('api.internal.campaigns')}.json?folder=archived", response.context["new_list_endpoint"]
+        )
+        self.assertNotEqual("", response.context["new_list_subtitle"])
+        self.assertEqual(["restore"], [a["key"] for a in response.context["new_list_bulk_actions"]])
+
+        # the component posts campaign uuids in `objects`; the view translates them to ids so the bulk action applies
+        self.client.post(list_url, {"action": "archive", "objects": str(campaign1.uuid)})
+        campaign1.refresh_from_db()
+        self.assertTrue(campaign1.is_archived)
+
+        # ...and restore works the same way from the archived view
+        self.client.post(archived_url, {"action": "restore", "objects": str(campaign1.uuid)})
+        campaign1.refresh_from_db()
+        self.assertFalse(campaign1.is_archived)
+
+        # a malformed uuid is dropped rather than erroring
+        response = self.client.post(list_url, {"action": "archive", "objects": "not-a-uuid"})
+        self.assertEqual(200, response.status_code)
+        campaign2.refresh_from_db()
+        self.assertFalse(campaign2.is_archived)
+
     def test_archived(self):
         archived_url = reverse("campaigns.campaign_archived")
 
