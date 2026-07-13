@@ -24,3 +24,4 @@ node_modules
 sitestatic
 celerybeat-schedule
 temba/settings.py
+/media/emails/
