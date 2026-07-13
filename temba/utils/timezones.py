@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 from timezone_field import TimeZoneFormField as BaseTimeZoneFormField
 
-# legacy timezone aliases which aren't in zone.tab but which older orgs may still use
+# legacy timezone aliases which aren't in zone.tab and are no longer offered as choices but may still exist in old data
 ALIAS_TIMEZONE_COUNTRY = {
     "America/Montreal": "CA",
     "Canada/Atlantic": "CA",
@@ -37,10 +37,12 @@ def _zone_tab_countries() -> dict:
     return zones
 
 
-TIMEZONE_COUNTRY = _zone_tab_countries() | ALIAS_TIMEZONE_COUNTRY
+_ZONE_TAB_COUNTRIES = _zone_tab_countries()
 
-# the timezones we offer as choices - the zone.tab zones plus the aliases, matching pytz.common_timezones
-COMMON_TIMEZONES = sorted(set(TIMEZONE_COUNTRY) - {"America/Montreal"})
+TIMEZONE_COUNTRY = _ZONE_TAB_COUNTRIES | ALIAS_TIMEZONE_COUNTRY
+
+# the timezones we offer as choices - the zone.tab zones plus UTC
+COMMON_TIMEZONES = sorted(set(_ZONE_TAB_COUNTRIES) | {"UTC"})
 
 PRETTY_TIMEZONE_CHOICES = []
 

@@ -11,6 +11,13 @@ class TimezonesTest(TembaTest):
         self.assertEqual(field.choices[0], ("Pacific/Midway", "(GMT-1100) Pacific/Midway"))
         self.assertEqual(field.coerce("Africa/Kigali"), ZoneInfo("Africa/Kigali"))
 
+        # canonical zone names and UTC are offered as choices, legacy aliases are not
+        tz_names = {c[0] for c in field.choices}
+        self.assertIn("America/Los_Angeles", tz_names)
+        self.assertIn("UTC", tz_names)
+        self.assertNotIn("US/Pacific", tz_names)
+        self.assertNotIn("GMT", tz_names)
+
     def test_timezone_country_code(self):
         self.assertEqual("RW", timezone_to_country_code(ZoneInfo("Africa/Kigali")))
         self.assertEqual("US", timezone_to_country_code(ZoneInfo("America/Chicago")))
