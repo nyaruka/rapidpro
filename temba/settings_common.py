@@ -968,3 +968,6 @@ ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1"]
+
+if TESTING:
+    ACCOUNT_RATE_LIMITS = False  # rate limit state in the cache would otherwise persist between test runs
