@@ -1744,6 +1744,7 @@ dependencies = [
     { name = "slack-sdk" },
     { name = "smartmin" },
     { name = "twilio" },
+    { name = "tzdata" },
     { name = "vonage" },
     { name = "xlsxlite" },
 ]
@@ -1802,6 +1803,7 @@ requires-dist = [
     { name = "slack-sdk", specifier = "~=3.17.0" },
     { name = "smartmin", specifier = ">=5.2.4,<6.0.0" },
     { name = "twilio", specifier = ">=9.10.9,<10.0.0" },
+    { name = "tzdata", specifier = ">=2025.2" },
     { name = "vonage", specifier = "~=3.17.4" },
     { name = "xlsxlite", specifier = "~=1.0.0" },
 ]

@@ -1,7 +1,7 @@
 from zoneinfo import ZoneInfo
 
 from temba.tests import TembaTest
-from temba.utils.timezones import TimeZoneFormField, timezone_to_country_code
+from temba.utils.timezones import TimeZoneFormField, country_timezones, timezone_to_country_code
 
 
 class TimezonesTest(TembaTest):
@@ -19,3 +19,9 @@ class TimezonesTest(TembaTest):
         # GMT and UTC give empty
         self.assertEqual("", timezone_to_country_code(ZoneInfo("GMT")))
         self.assertEqual("", timezone_to_country_code(ZoneInfo("UTC")))
+
+    def test_country_timezones(self):
+        self.assertEqual(["Africa/Kigali"], country_timezones("RW"))
+        self.assertIn("America/Chicago", country_timezones("US"))
+        self.assertIn("US/Pacific", country_timezones("US"))
+        self.assertEqual([], country_timezones("XX"))
