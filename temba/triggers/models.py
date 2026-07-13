@@ -381,6 +381,47 @@ class Trigger(SmartModel):
 
         return self.type.export_def(self)
 
+    def as_json(self, context=None) -> dict:
+        """
+        Internal API shape, consumed by the temba-trigger-list component. The type slug drives the row icon and
+        which of the per-type fields (keywords, schedule, referrer) the details cell renders; channel/groups/contacts
+        render as filter pills. Triggers have no uuid so rows key off the numeric id.
+        """
+
+        return {
+            "id": self.id,
+            "type": self.type.slug,
+            "flow": {"uuid": str(self.flow.uuid), "name": self.flow.name},
+            "channel": (
+                {"uuid": str(self.channel.uuid), "name": self.channel.name, "icon": self.channel.type.icon}
+                if self.channel
+                else None
+            ),
+            "groups": [{"uuid": str(g.uuid), "name": g.name} for g in self.groups.all()],
+            "exclude_groups": [{"uuid": str(g.uuid), "name": g.name} for g in self.exclude_groups.all()],
+            "contacts": [{"uuid": str(c.uuid), "name": c.name} for c in self.contacts.all()],
+            "keywords": self.keywords or [],
+            "match_type": self.match_type,
+            "referrer_id": self.referrer_id,
+            "schedule": (
+                {
+                    "repeat_period": self.schedule.repeat_period,
+                    "display": self.schedule.get_display(),
+                    # archiving pauses the schedule, so an archived trigger reads as not scheduled (as the
+                    # legacy list does) even when a stale next_fire is still set
+                    "next_fire": (
+                        self.schedule.next_fire.isoformat()
+                        if self.schedule.next_fire and not self.is_archived
+                        else None
+                    ),
+                }
+                if self.schedule
+                else None
+            ),
+            "priority": self.priority,
+            "created_on": self.created_on.isoformat(),
+        }
+
     @classmethod
     def get_type(cls, *, code: str = None, slug: str = None):
         from .types import TYPES_BY_CODE, TYPES_BY_SLUG

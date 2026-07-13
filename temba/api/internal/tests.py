@@ -13,9 +13,11 @@ from temba.contacts.models import ContactExport, ContactGroup
 from temba.flows.models import Flow, FlowLabel
 from temba.msgs.models import Msg
 from temba.notifications.types import ExportFinishedNotificationType
+from temba.schedules.models import Schedule
 from temba.templates.models import TemplateTranslation
 from temba.tests import TembaTest, matchers, mock_mailroom
 from temba.tickets.models import Shortcut, TicketExport
+from temba.triggers.models import Trigger
 from temba.utils.uuid import uuid4
 
 NUM_BASE_QUERIES = 3  # number of queries required for any request (internal API is session only)
@@ -702,6 +704,120 @@ class EndpointsTest(APITestMixin, TembaTest):
             ],
             num_queries=NUM_BASE_QUERIES + 3,
         )
+
+    def test_triggers(self):
+        endpoint_url = reverse("api.internal.triggers") + ".json"
+
+        self.assertGetNotPermitted(endpoint_url, [None, self.agent])
+        self.assertPostNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        flow1 = self.create_flow("Survey")
+        flow2 = self.create_flow("Support")
+        group1 = self.create_group("Farmers", contacts=[])
+        group2 = self.create_group("Staff", contacts=[])
+        contact1 = self.create_contact("Jim", phone="+250788987651")
+
+        trigger1 = Trigger.create(
+            self.org,
+            self.admin,
+            Trigger.TYPE_KEYWORD,
+            flow1,
+            keywords=["join", "start"],
+            match_type=Trigger.MATCH_FIRST_WORD,
+            groups=[group1],
+            exclude_groups=[group2],
+        )
+        trigger2 = Trigger.create(self.org, self.admin, Trigger.TYPE_CATCH_ALL, flow2)
+        trigger3 = Trigger.create(self.org, self.admin, Trigger.TYPE_MISSED_CALL, flow1, channel=self.channel)
+        trigger4 = Trigger.create(
+            self.org,
+            self.admin,
+            Trigger.TYPE_KEYWORD,
+            flow2,
+            keywords=["stop"],
+            match_type=Trigger.MATCH_ONLY_WORD,
+            is_archived=True,
+        )
+        schedule = Schedule.create(
+            self.org,
+            start_time=timezone.now() + timedelta(days=2),
+            repeat_period=Schedule.REPEAT_DAILY,
+        )
+        trigger5 = Trigger.create(
+            self.org, self.admin, Trigger.TYPE_SCHEDULE, flow1, schedule=schedule, contacts=(contact1,)
+        )
+
+        # and a trigger in another org that should never appear
+        other_org_flow = self.create_flow("Other", org=self.org2)
+        Trigger.create(
+            self.org2,
+            self.admin2,
+            Trigger.TYPE_KEYWORD,
+            other_org_flow,
+            keywords=["other"],
+            match_type=Trigger.MATCH_ONLY_WORD,
+        )
+
+        # default folder is `active` (an unknown folder gets the same), newest first
+        self.assertGet(endpoint_url, [self.editor, self.admin], results=[trigger5, trigger3, trigger2, trigger1])
+        self.assertGet(endpoint_url + "?folder=active", [self.admin], results=[trigger5, trigger3, trigger2, trigger1])
+        self.assertGet(endpoint_url + "?folder=nope", [self.admin], results=[trigger5, trigger3, trigger2, trigger1])
+
+        # archived triggers live in their own folder
+        self.assertGet(endpoint_url + "?folder=archived", [self.admin], results=[trigger4])
+
+        # a type folder uses the legacy folder view's ordering — keyword triggers ahead of catch-all
+        self.assertGet(endpoint_url + "?folder=messages", [self.admin], results=[trigger1, trigger2])
+        self.assertGet(endpoint_url + "?folder=schedule", [self.admin], results=[trigger5])
+
+        # search matches keywords, flow names and channel names
+        self.assertGet(endpoint_url + "?search=joi", [self.admin], results=[trigger1])
+        self.assertGet(endpoint_url + "?search=support", [self.admin], results=[trigger2])
+        self.assertGet(endpoint_url + "?search=test channel", [self.admin], results=[trigger3])
+
+        # each row carries the columns the component renders
+        def check_shape(data):
+            first = [r for r in data["results"] if r["id"] == trigger1.id][0]
+            self.assertEqual("keyword", first["type"])
+            self.assertEqual({"uuid": str(flow1.uuid), "name": "Survey"}, first["flow"])
+            self.assertIsNone(first["channel"])
+            self.assertEqual([{"uuid": str(group1.uuid), "name": "Farmers"}], first["groups"])
+            self.assertEqual([{"uuid": str(group2.uuid), "name": "Staff"}], first["exclude_groups"])
+            self.assertEqual([], first["contacts"])
+            self.assertEqual(["join", "start"], first["keywords"])
+            self.assertEqual("F", first["match_type"])
+            self.assertIsNone(first["schedule"])
+            self.assertEqual(matchers.ISODatetime(), first["created_on"])
+
+            missed_call = [r for r in data["results"] if r["id"] == trigger3.id][0]
+            self.assertEqual(
+                {"uuid": str(self.channel.uuid), "name": "Test Channel", "icon": "channel_a"},
+                missed_call["channel"],
+            )
+
+            scheduled = [r for r in data["results"] if r["id"] == trigger5.id][0]
+            self.assertEqual("schedule", scheduled["type"])
+            self.assertEqual(Schedule.REPEAT_DAILY, scheduled["schedule"]["repeat_period"])
+            self.assertEqual(matchers.ISODatetime(), scheduled["schedule"]["next_fire"])
+            self.assertEqual([{"uuid": str(contact1.uuid), "name": "Jim"}], scheduled["contacts"])
+            return True
+
+        self.assertGet(endpoint_url, [self.admin], raw=check_shape)
+
+        # sortable by created_on in both directions; an unknown sort falls back to the default ordering
+        self.assertGet(
+            endpoint_url + "?sort=created_on", [self.admin], results=[trigger1, trigger2, trigger3, trigger5]
+        )
+        self.assertGet(
+            endpoint_url + "?sort=-created_on", [self.admin], results=[trigger5, trigger3, trigger2, trigger1]
+        )
+        self.assertGet(endpoint_url + "?sort=nope", [self.admin], results=[trigger5, trigger3, trigger2, trigger1])
+
+        # an over-long search query is rejected
+        self.login(self.admin)
+        response = self.client.get(endpoint_url + "?search=" + ("x" * 1001))
+        self.assertEqual(413, response.status_code)
 
     def test_llms(self):
         endpoint_url = reverse("api.internal.llms") + ".json"

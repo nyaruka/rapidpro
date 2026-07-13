@@ -1,0 +1,175 @@
+{% extends "smartmin/list.html" %}
+{% load i18n %}
+
+{% comment %}
+  Generic new-list template used by every trigger list view (Active /
+  Archived / type Folder) when the viewer is in preview mode
+  (request.preview, set by PreviewMiddleware off the temba-preview
+  cookie). Endpoint, subtitle and bulk actions come from the view's
+  context_data so the template stays the same across all of them.
+{% endcomment %}
+{% block page-header %}
+  {# the temba-trigger-list renders its own header (title + content menu); #}
+  {# keep the csrf token and a hidden title for the SPA document.title hook #}
+  {% csrf_token %}
+  <div id="title-text" class="hide">{{ title }}</div>
+{% endblock page-header %}
+{% block extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    /* The list component fills its container edge to edge and brings
+       its own surface, so drop the SPA content padding (and the grey
+       page background it would otherwise reveal around the list). */
+    .spa-content {
+      padding: 0 !important;
+    }
+  </style>
+{% endblock extra-style %}
+{% block content %}
+  <temba-trigger-list id="trigger-list"
+                      fill-window
+                      history-state-key="triggers"
+                      list-title="{{ title }}"
+                      {% if new_list_subtitle %}subtitle="{{ new_list_subtitle }}"{% endif %}
+                      endpoint="{{ new_list_endpoint }}"
+                      action-endpoint="{{ request.path }}"
+                      content-menu-endpoint="{{ request.path }}?{{ request.GET.urlencode }}"
+                      empty-message="{% trans "No triggers" %}">
+  </temba-trigger-list>
+  {{ new_list_bulk_actions|json_script:"new-list-bulk-actions" }}
+  <temba-dialog header="{{ _("Delete All Triggers") |escapejs }}"
+                primaryButtonName="{{ _("Delete") |escapejs }}"
+                destructive="true"
+                class="hide"
+                id="delete-all-confirmation">
+    <div class="p-6">
+      {% blocktrans trimmed %}
+        Are you sure you want to delete all archived triggers? This cannot be undone.
+      {% endblocktrans %}
+      <br>
+      <br>
+      {% blocktrans trimmed %}
+        This operation can take a while to complete. Triggers may remain in this view during the process.
+      {% endblocktrans %}
+    </div>
+  </temba-dialog>
+{% endblock content %}
+{% block extra-script %}
+  {{ block.super }}
+  <script type="text/javascript">
+    onSpload(function() {
+      var list = document.querySelector("#trigger-list");
+      list.bulkActions = JSON.parse(document.getElementById("new-list-bulk-actions").textContent);
+
+      // clicking a row opens the trigger's update modal (triggers have
+      // no read page of their own)
+      {% if org_perms.triggers.trigger_update %}
+      list.addEventListener("temba-row-click", function(event) {
+        var trigger = event.detail.item;
+        if (trigger && trigger.id) {
+          showModax("{{ _("Update Trigger")|escapejs }}", "/trigger/update/" + trigger.id + "/", {
+            onSubmit: "handleTriggerUpdated()"
+          });
+        }
+      });
+      {% endif %}
+
+      // the embedded content menu fires temba-selection - dispatch it the
+      // same way the page chrome's content menu (spa_page_menu.html) does
+      list.addEventListener("temba-selection", function(event) {
+        var item = event.detail.item;
+        var click = event.detail.event;
+        if (item.type === "link") {
+          if (click) {
+            click.preventDefault();
+            click.stopPropagation();
+            if (click.metaKey && item.url) {
+              window.open(item.url, "_blank");
+              return;
+            }
+          }
+          spaGet(item.url);
+        } else if (item.type === "modax") {
+          showModax(item.title, item.url, {
+            disabled: item.disabled,
+            onSubmit: item.on_submit,
+            onRedirect: item.on_redirect,
+            id: item.modal_id,
+            originX: event.detail.originX,
+            originY: event.detail.originY
+          });
+        } else if (item.type === "url_post") {
+          posterize(item.url);
+        } else if (item.type === "js") {
+          if (window[item.id]) {
+            window[item.id]();
+          }
+        }
+        refreshMenu();
+      });
+
+      // Every action is POSTed to action-endpoint by the component, which
+      // then re-fetches the current page itself — we just refresh the
+      // sidebar menu counts after the round-trip completes.
+      list.addEventListener("temba-bulk-action", function(event) {
+        refreshMenu();
+      });
+
+      // See msgs/msg_list_new.html for the full rationale: stash the list's
+      // restorable state (page, sort, search, cursor url) on the current
+      // history entry so a navigation away and back lands on the same page.
+      list.addEventListener("temba-history-change", function(event) {
+        var current = history.state || {};
+        var next = Object.assign({}, current);
+        next[event.detail.key] = event.detail.state;
+        if (!next.url) {
+          next.url = location.href;
+        }
+        if (event.detail.replace) {
+          history.replaceState(next, "");
+        } else {
+          history.pushState(next, "");
+        }
+      });
+    });
+
+    // After the update modal submits — re-pull the current page (the
+    // trigger's row may have changed or moved) and the sidebar counts.
+    function handleTriggerUpdated() {
+      refreshMenu();
+      var list = document.querySelector("#trigger-list");
+      if (list) {
+        list.refresh();
+      }
+    }
+
+    // The Archived view's content menu names this as its Delete All js
+    // handler (dispatched by the temba-selection listener above).
+    function triggers_delete_all() {
+      var deleteAllConfirmation = document.querySelector("#delete-all-confirmation");
+
+      deleteAllConfirmation.classList.remove("hide");
+      deleteAllConfirmation.open = true;
+
+      deleteAllConfirmation.removeEventListener("temba-button-clicked", deleteAllArchivedTriggers);
+      deleteAllConfirmation.addEventListener("temba-button-clicked", deleteAllArchivedTriggers);
+    }
+
+    function deleteAllArchivedTriggers(event) {
+      var deleteAllConfirmation = document.querySelector("#delete-all-confirmation");
+
+      if (event.detail.button.attributes.destructive) {
+        var url = "{% url 'triggers.trigger_archived' %}";
+
+        const formData = new FormData();
+        formData.append("action", "delete");
+        formData.append("all", "true");
+        spaPost(url, {
+          postData: formData
+        });
+      }
+      deleteAllConfirmation.classList.add("hide");
+      deleteAllConfirmation.open = false;
+    }
+  </script>
+{% endblock extra-script %}
