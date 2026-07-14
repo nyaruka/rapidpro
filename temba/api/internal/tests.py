@@ -759,16 +759,49 @@ class EndpointsTest(APITestMixin, TembaTest):
             match_type=Trigger.MATCH_ONLY_WORD,
         )
 
+        trigger6 = Trigger.create(
+            self.org, self.admin, Trigger.TYPE_KEYWORD, flow1, keywords=["apply"], match_type=Trigger.MATCH_ONLY_WORD
+        )
+
+        # an archived scheduled trigger whose (paused) schedule still carries a stale next fire
+        schedule2 = Schedule.create(
+            self.org, start_time=timezone.now() + timedelta(days=3), repeat_period=Schedule.REPEAT_DAILY
+        )
+        schedule2.is_paused = True
+        schedule2.save(update_fields=("is_paused",))
+        trigger7 = Trigger.create(
+            self.org, self.admin, Trigger.TYPE_SCHEDULE, flow2, schedule=schedule2, is_archived=True
+        )
+
         # default folder is `active` (an unknown folder gets the same), newest first
-        self.assertGet(endpoint_url, [self.editor, self.admin], results=[trigger5, trigger3, trigger2, trigger1])
-        self.assertGet(endpoint_url + "?folder=active", [self.admin], results=[trigger5, trigger3, trigger2, trigger1])
-        self.assertGet(endpoint_url + "?folder=nope", [self.admin], results=[trigger5, trigger3, trigger2, trigger1])
+        self.assertGet(
+            endpoint_url, [self.editor, self.admin], results=[trigger6, trigger5, trigger3, trigger2, trigger1]
+        )
+        self.assertGet(
+            endpoint_url + "?folder=active",
+            [self.admin],
+            results=[trigger6, trigger5, trigger3, trigger2, trigger1],
+            num_queries=NUM_BASE_QUERIES + 5,  # count + triggers + 3 M2M prefetches
+        )
+        self.assertGet(
+            endpoint_url + "?folder=nope", [self.admin], results=[trigger6, trigger5, trigger3, trigger2, trigger1]
+        )
 
-        # archived triggers live in their own folder
-        self.assertGet(endpoint_url + "?folder=archived", [self.admin], results=[trigger4])
+        # archived triggers live in their own folder, and an archived trigger's paused schedule reads as
+        # not scheduled (no next fire) despite its stale next_fire value
+        self.assertGet(endpoint_url + "?folder=archived", [self.admin], results=[trigger7, trigger4])
 
-        # a type folder uses the legacy folder view's ordering — keyword triggers ahead of catch-all
-        self.assertGet(endpoint_url + "?folder=messages", [self.admin], results=[trigger1, trigger2])
+        def check_archived_schedule(data):
+            scheduled = [r for r in data["results"] if r["id"] == trigger7.id][0]
+            self.assertEqual(Schedule.REPEAT_DAILY, scheduled["schedule"]["repeat_period"])
+            self.assertIsNone(scheduled["schedule"]["next_fire"])
+            return True
+
+        self.assertGet(endpoint_url + "?folder=archived", [self.admin], raw=check_archived_schedule)
+
+        # a type folder uses the legacy folder view's ordering — keyword triggers ahead of catch-all, and
+        # keyword triggers ordered by their first keyword
+        self.assertGet(endpoint_url + "?folder=messages", [self.admin], results=[trigger6, trigger1, trigger2])
         self.assertGet(endpoint_url + "?folder=schedule", [self.admin], results=[trigger5])
 
         # search matches keywords, flow names and channel names
@@ -807,12 +840,14 @@ class EndpointsTest(APITestMixin, TembaTest):
 
         # sortable by created_on in both directions; an unknown sort falls back to the default ordering
         self.assertGet(
-            endpoint_url + "?sort=created_on", [self.admin], results=[trigger1, trigger2, trigger3, trigger5]
+            endpoint_url + "?sort=created_on", [self.admin], results=[trigger1, trigger2, trigger3, trigger5, trigger6]
         )
         self.assertGet(
-            endpoint_url + "?sort=-created_on", [self.admin], results=[trigger5, trigger3, trigger2, trigger1]
+            endpoint_url + "?sort=-created_on", [self.admin], results=[trigger6, trigger5, trigger3, trigger2, trigger1]
         )
-        self.assertGet(endpoint_url + "?sort=nope", [self.admin], results=[trigger5, trigger3, trigger2, trigger1])
+        self.assertGet(
+            endpoint_url + "?sort=nope", [self.admin], results=[trigger6, trigger5, trigger3, trigger2, trigger1]
+        )
 
         # an over-long search query is rejected
         self.login(self.admin)

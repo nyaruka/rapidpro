@@ -407,11 +407,11 @@ class Trigger(SmartModel):
                 {
                     "repeat_period": self.schedule.repeat_period,
                     "display": self.schedule.get_display(),
-                    # archiving pauses the schedule, so an archived trigger reads as not scheduled (as the
-                    # legacy list does) even when a stale next_fire is still set
+                    # a paused schedule (archiving pauses it, and it can be paused independently) can carry a
+                    # stale next_fire — null it so the trigger reads as not scheduled, as the legacy list does
                     "next_fire": (
                         self.schedule.next_fire.isoformat()
-                        if self.schedule.next_fire and not self.is_archived
+                        if self.schedule.next_fire and not self.schedule.is_paused and not self.is_archived
                         else None
                     ),
                 }

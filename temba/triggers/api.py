@@ -47,8 +47,10 @@ class TriggersEndpoint(ListAPIMixin, BaseEndpoint):
         org = self.request.org
         base = Trigger.objects.filter(org=org, is_active=True)
 
+        # `archived` is resolved before the type folders so a future Folder member with a colliding name can't
+        # silently change this query's shape
         folder_slug = (self.request.query_params.get("folder") or "active").lower()
-        folder = Folder.from_slug(folder_slug)
+        folder = Folder.from_slug(folder_slug) if folder_slug != "archived" else None
         if folder:
             # a type folder — non-archived triggers of those types, in the legacy folder view's ordering
             qs = base.filter(is_archived=False, trigger_type__in=folder.types)
