@@ -7,6 +7,7 @@ from smartmin.models import SmartModel
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Count, Sum
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _, ngettext
 
@@ -508,6 +509,44 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
                 return ngettext("%d week after", "%d weeks after", count) % count
         else:
             return _("on")
+
+    def as_json(self) -> dict:
+        """
+        Internal shape consumed by the temba-campaign-events component: the schedule definition (anchor field,
+        offset and delivery hour) rather than a computed time, plus the content and fire count.
+        """
+
+        definition = {
+            "uuid": str(self.uuid),
+            "type": "message" if self.event_type == self.TYPE_MESSAGE else "flow",
+            "status": "scheduling" if self.status == self.STATUS_SCHEDULING else "ready",
+            "offset": self.offset,
+            "unit": self.unit,
+            "offset_display": str(self.offset_display),
+            "relative_to": {
+                "key": self.relative_to.key,
+                "name": self.relative_to.name,
+                "system": self.relative_to.is_system,
+            },
+            "count": self.get_fire_count(),
+            "edit_url": reverse("campaigns.campaignevent_update", args=[self.uuid]),
+            "delete_url": reverse("campaigns.campaignevent_delete", args=[self.uuid]),
+            "fires_url": reverse("campaigns.campaignevent_fires", args=[self.uuid]),
+        }
+
+        # events on minute/hour offsets fire relative to the anchor time, so only day/week events carry an hour
+        if self.delivery_hour >= 0:
+            definition["delivery_hour_display"] = dict(self.get_hour_choices())[self.delivery_hour]
+
+        if self.event_type == self.TYPE_FLOW:
+            definition["flow"] = {
+                **self.flow.as_export_ref(),
+                "url": reverse("flows.flow_editor", args=[self.flow.uuid]),
+            }
+        else:
+            definition["message"] = self.get_message().get("text", "")
+
+        return definition
 
     def schedule_async(self):
         self.delete_fire_counts()  # new counts will be created with new fire version
