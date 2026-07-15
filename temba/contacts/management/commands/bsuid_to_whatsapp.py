@@ -58,19 +58,22 @@ class Command(BaseCommand):
         if not urns:
             return 0, 0, set()
 
+        # the whatsapp identity each bsuid would flip to, computed once and reused below
+        wa_identities = {u.id: URN.from_parts(URN.WHATSAPP_SCHEME, u.path) for u in urns}
+
         # existing (org_id, identity) -> (owning contact_id, URN id) for the whatsapp targets, to detect
         # collisions and, for same-contact collisions, find the surviving URN to move references onto
         existing = {
             (org_id, identity): (contact_id, urn_id)
             for org_id, identity, contact_id, urn_id in ContactURN.objects.filter(
                 org_id__in={u.org_id for u in urns},
-                identity__in={URN.from_parts(URN.WHATSAPP_SCHEME, u.path) for u in urns},
+                identity__in=set(wa_identities.values()),
             ).values_list("org_id", "identity", "contact_id", "id")
         }
 
         to_update, contact_ids, num_dropped = [], set(), 0
         for u in urns:
-            identity = URN.from_parts(URN.WHATSAPP_SCHEME, u.path)
+            identity = wa_identities[u.id]
 
             owner = existing.get((u.org_id, identity))
             if owner:

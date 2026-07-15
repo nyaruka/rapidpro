@@ -1255,7 +1255,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         for urn in self.urns.all():
             # delete the urn if it has no associated content.. which should be the case if it wasn't
             # stolen from another contact
-            if not urn.msgs.all() and not urn.channel_events.all() and not urn.calls.all():
+            if not urn.has_content():
                 urn.delete()
             else:
                 urn.contact = None
