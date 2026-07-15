@@ -11,7 +11,6 @@ from typing import Any
 from urllib.parse import urlparse
 
 import pycountry
-import pytz
 from django_valkey import get_valkey_connection
 from packaging.version import Version
 from smartmin.models import SmartModel
@@ -353,8 +352,8 @@ class Org(SmartModel):
         Creates a new workspace.
         """
 
-        mdy_tzs = pytz.country_timezones("US")
-        date_format = Org.DATE_FORMAT_MONTH_FIRST if str(tz) in mdy_tzs else cls.DATE_FORMAT_DAY_FIRST
+        is_us = timezone_to_country_code(tz) == "US"
+        date_format = Org.DATE_FORMAT_MONTH_FIRST if is_us else cls.DATE_FORMAT_DAY_FIRST
 
         # use default user language as default flow language too
         default_flow_language = languages.alpha2_to_alpha3(settings.DEFAULT_LANGUAGE)
