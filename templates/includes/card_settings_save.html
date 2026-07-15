@@ -45,6 +45,10 @@
     clearTimeout(saveCardSettingsTimeout);
     saveCardSettingsTimeout = setTimeout(function() {
       var layout = document.querySelector("temba-card-layout");
+      var token = document.querySelector("input[name=csrfmiddlewaretoken]");
+      if (!layout || !token) {
+        return;
+      }
       var present = layout.getIds();
       var collapsed = Array.from(layout.querySelectorAll("temba-card[collapsed]")).map(function(card) {
         return card.id;
@@ -59,7 +63,7 @@
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-CSRFToken": document.querySelector("input[name=csrfmiddlewaretoken]").value
+          "X-CSRFToken": token.value
         },
         body: JSON.stringify({
           contact_cards: {

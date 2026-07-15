@@ -17,6 +17,12 @@ class UserSettingsTest(TembaTest):
         response = self.client.post(settings_url, "notjson", content_type="application/json")
         self.assertEqual(400, response.status_code)
 
+        # and not absurdly large
+        response = self.client.post(
+            settings_url, {"blob": "x" * 200_000}, content_type="application/json"
+        )
+        self.assertEqual(400, response.status_code)
+
         response = self.client.post(settings_url, [1, 2], content_type="application/json")
         self.assertEqual(400, response.status_code)
 

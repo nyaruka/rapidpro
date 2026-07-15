@@ -51,6 +51,9 @@ class UserSettingsView(LoginRequiredMixin, View):
     """
 
     def post(self, request, *args, **kwargs):
+        if len(request.body) > 100_000:
+            return JsonResponse({"error": "request body too large"}, status=400)
+
         try:
             posted = json.loads(request.body)
         except ValueError:
