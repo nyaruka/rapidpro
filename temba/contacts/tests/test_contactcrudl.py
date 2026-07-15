@@ -595,6 +595,38 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(reverse("contacts.contact_read", args=["invalid-uuid"]))
         self.assertEqual(response.status_code, 404)
 
+    @mock_mailroom
+    def test_preview_read(self, mr_mocks):
+        joe = self.create_contact("Joe", phone="123")
+
+        read_url = reverse("contacts.contact_read", args=[joe.uuid])
+
+        self.login(self.admin)
+
+        # default render is still the tabbed layout
+        response = self.client.get(read_url)
+        self.assertContains(response, "temba-tabs")
+        self.assertNotContains(response, "temba-card-layout")
+
+        # entering preview mode swaps in the chat + card column layout
+        self.client.cookies["temba-preview"] = "1"
+
+        response = self.client.get(read_url)
+        self.assertContains(response, "temba-card-layout")
+        self.assertContains(response, "temba-page-header")
+        self.assertNotContains(response, "temba-tabs")
+
+        # card state defaults to empty
+        self.assertEqual("{}", response.context["card_settings"])
+
+        # saved card state is serialized for temba-card-layout, which applies order and collapse itself
+        self.admin.settings = {"contact_cards": {"order": ["card-fields"], "collapsed": ["card-nextup"]}}
+        self.admin.save(update_fields=("settings",))
+
+        response = self.client.get(read_url)
+        self.assertEqual('{"order": ["card-fields"], "collapsed": ["card-nextup"]}', response.context["card_settings"])
+        self.assertContains(response, 'id="card-nextup"')
+
     @patch("django.utils.timezone.now")
     @mock_mailroom
     def test_chat_sending(self, mr_mocks, mock_now):
