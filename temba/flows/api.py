@@ -1,26 +1,17 @@
 from uuid import UUID
 
-from rest_framework.pagination import PageNumberPagination
-
 from django.db.models import Q, Sum, Value
 from django.db.models.functions import Coalesce, Lower
-from django.http import HttpResponse
 
 from temba.api.internal.serializers import ModelAsJsonSerializer
 from temba.api.internal.views import BaseEndpoint
-from temba.api.support import NameCursorPagination
+from temba.api.support import ListPagination, NameCursorPagination, SearchLengthMixin
 from temba.api.views import ListAPIMixin
 
 from .models import Flow, FlowLabel, FlowRun
 
-# Match BaseListView: 50 rows per page with a cap that keeps an oversized client request from pulling 50k rows, and
-# the same 1000 char search cap (rejected with 413).
-DEFAULT_PAGE_SIZE = 50
-MAX_PAGE_SIZE = 500
-SEARCH_MAX_LENGTH = 1_000
 
-
-class FlowsEndpoint(ListAPIMixin, BaseEndpoint):
+class FlowsEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
     """
     Flows for the current org, used by the flow list component. A folder is selected with the `folder` query param
     (`active` (default) or `archived`) — alternatively pass `label=<uuid>` to filter by a flow label. An optional
@@ -28,26 +19,15 @@ class FlowsEndpoint(ListAPIMixin, BaseEndpoint):
     item is serialized via Flow.as_json() (name, type, labels, run counts, completion, activity sparkline).
     """
 
-    class Pagination(PageNumberPagination):
-        page_size = DEFAULT_PAGE_SIZE
-        page_size_query_param = "page_size"
-        max_page_size = MAX_PAGE_SIZE
-
     model = Flow
     serializer_class = ModelAsJsonSerializer
-    pagination_class = Pagination
+    pagination_class = ListPagination
 
     # the run statuses summed for each sortable count column ("status:" scopes on FlowActivityCount)
     SORT_STATUSES = {
         "runs": None,  # all statuses
         "ongoing": (FlowRun.STATUS_ACTIVE, FlowRun.STATUS_WAITING),
     }
-
-    def get(self, request, *args, **kwargs):
-        search = request.query_params.get("search") or ""
-        if len(search) > SEARCH_MAX_LENGTH:
-            return HttpResponse("Search query too long", status=413)
-        return super().get(request, *args, **kwargs)
 
     def derive_queryset(self):
         # Build from Flow.objects rather than the org.flows related manager — a related manager would seed each

@@ -1,18 +1,17 @@
 from datetime import timedelta
 
 from django.db.models import Q
-from django.http import HttpResponse
 from django.utils import timezone
 
 from temba.api.internal.serializers import ModelAsJsonSerializer
 from temba.api.internal.views import BaseEndpoint
-from temba.api.support import CreatedOnCursorPagination, SearchCountMixin, SentOnCursorPagination
+from temba.api.support import CreatedOnCursorPagination, SearchCountMixin, SearchLengthMixin, SentOnCursorPagination
 from temba.api.views import ListAPIMixin
 
 from .models import Msg, MsgFolder
 
 
-class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
+class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
     """
     Messages for the current org, used by the message list components. A folder is selected with the `folder` query
     param (one of `inbox`, `handled`, `archived`, `outbox`, `sent` or `failed`, defaulting to `inbox`) — alternatively
@@ -51,10 +50,8 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
                 self._search_count = view.get_total_count()
             return page
 
-    # Match BaseListView's caps so the legacy and new lists impose the same bounds: a search query is capped at 1000
-    # chars (rejected with 413) and is restricted to messages from the last 90 days so an unbounded `text__icontains`
-    # scan (compounded by the SearchCountMixin COUNT(*)) can't be triggered by a session-authenticated client.
-    SEARCH_MAX_LENGTH = 1_000
+    # A search is restricted to messages from the last 90 days so an unbounded `text__icontains` scan (compounded by
+    # the SearchCountMixin COUNT(*)) can't be triggered by a session-authenticated client.
     SEARCH_WINDOW = timedelta(days=90)
 
     FOLDERS = {
@@ -69,12 +66,6 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
     model = Msg
     serializer_class = ModelAsJsonSerializer
     pagination_class = Pagination
-
-    def get(self, request, *args, **kwargs):
-        search = request.query_params.get("search") or ""
-        if len(search) > self.SEARCH_MAX_LENGTH:
-            return HttpResponse("Search query too long", status=413)
-        return super().get(request, *args, **kwargs)
 
     def get_total_count(self) -> int:
         # Cheap pre-calculated total for the active folder/label (squashed count tables) — used as the list's total
