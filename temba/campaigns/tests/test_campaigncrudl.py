@@ -82,6 +82,134 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertContentMenu(read_url, self.admin, ["Activate", "Export", "-", "Delete"])
 
+    def test_preview_read(self):
+        group = self.create_group("Reporters", contacts=[])
+        campaign = self.create_campaign(self.org, "Welcomes", group)
+
+        read_url = reverse("campaigns.campaign_read", args=[campaign.uuid])
+
+        self.login(self.admin)
+
+        # default render is still the legacy table
+        response = self.client.get(read_url)
+        self.assertNotContains(response, "temba-campaign-events")
+        self.assertIn("events", response.context)
+
+        # entering preview mode swaps in the temba-campaign-events component which fetches the events itself
+        self.client.cookies["temba-preview"] = "1"
+
+        response = self.client.get(read_url)
+        self.assertContains(response, "temba-campaign-events")
+        self.assertContains(response, "Welcomes")
+        self.assertNotIn("events", response.context)
+
+    def test_events(self):
+        group = self.create_group("Reporters", contacts=[])
+        campaign = self.create_campaign(self.org, "Welcomes", group)
+        registered = self.org.fields.get(key="registered")
+        joined = self.create_field("joined", "Joined", value_type="D")
+
+        flow_event = campaign.events.get()
+        message_event = CampaignEvent.create_message_event(
+            self.org,
+            self.admin,
+            campaign,
+            registered,
+            offset=-3,
+            unit="D",
+            translations={"eng": {"text": "Hi @fields.registered"}},
+            base_language="eng",
+            delivery_hour=9,
+        )
+        joined_event = CampaignEvent.create_flow_event(
+            self.org, self.admin, campaign, joined, offset=0, unit="D", flow=flow_event.flow
+        )
+
+        events_url = reverse("campaigns.campaign_events", args=[campaign.uuid])
+
+        self.assertRequestDisallowed(events_url, [None, self.agent, self.admin2])
+
+        self.login(self.editor)
+
+        # like the preview read page it feeds, the endpoint only exists in preview mode
+        response = self.client.get(events_url)
+        self.assertEqual(404, response.status_code)
+
+        self.client.cookies["temba-preview"] = "1"
+        response = self.client.get(events_url)
+        self.assertEqual(200, response.status_code)
+
+        # events are sorted by field name then offset, and carry the schedule definition rather than a computed time
+        self.assertEqual(
+            {
+                "campaign": {"uuid": str(campaign.uuid), "name": "Welcomes"},
+                "events": [
+                    {
+                        "uuid": str(joined_event.uuid),
+                        "type": "flow",
+                        "status": "ready",
+                        "offset": 0,
+                        "unit": "D",
+                        "offset_display": "on",
+                        "relative_to": {"key": "joined", "name": "Joined", "system": False},
+                        "count": 0,
+                        "edit_url": f"/campaignevent/update/{joined_event.uuid}/",
+                        "delete_url": f"/campaignevent/delete/{joined_event.uuid}/",
+                        "fires_url": f"/campaignevent/fires/{joined_event.uuid}/",
+                        "flow": {
+                            "uuid": str(flow_event.flow.uuid),
+                            "name": "Welcomes Flow",
+                            "url": f"/flow/editor/{flow_event.flow.uuid}/",
+                        },
+                    },
+                    {
+                        "uuid": str(message_event.uuid),
+                        "type": "message",
+                        "status": "ready",
+                        "offset": -3,
+                        "unit": "D",
+                        "offset_display": "3 days before",
+                        "delivery_hour_display": "at 9:00 a.m.",
+                        "relative_to": {"key": "registered", "name": "Registered", "system": False},
+                        "count": 0,
+                        "edit_url": f"/campaignevent/update/{message_event.uuid}/",
+                        "delete_url": f"/campaignevent/delete/{message_event.uuid}/",
+                        "fires_url": f"/campaignevent/fires/{message_event.uuid}/",
+                        "message": "Hi @fields.registered",
+                    },
+                    {
+                        "uuid": str(flow_event.uuid),
+                        "type": "flow",
+                        "status": "ready",
+                        "offset": 1,
+                        "unit": "W",
+                        "offset_display": "1 week after",
+                        "delivery_hour_display": "at 1:00 p.m.",
+                        "relative_to": {"key": "registered", "name": "Registered", "system": False},
+                        "count": 0,
+                        "edit_url": f"/campaignevent/update/{flow_event.uuid}/",
+                        "delete_url": f"/campaignevent/delete/{flow_event.uuid}/",
+                        "fires_url": f"/campaignevent/fires/{flow_event.uuid}/",
+                        "flow": {
+                            "uuid": str(flow_event.flow.uuid),
+                            "name": "Welcomes Flow",
+                            "url": f"/flow/editor/{flow_event.flow.uuid}/",
+                        },
+                    },
+                ],
+                "can_edit": True,
+                "can_delete": True,
+            },
+            response.json(),
+        )
+
+        # archiving the campaign locks editing but deletion stays available
+        campaign.archive(self.admin)
+        response = self.client.get(events_url)
+        self.assertEqual(200, response.status_code)
+        self.assertFalse(response.json()["can_edit"])
+        self.assertTrue(response.json()["can_delete"])
+
     @mock_mailroom
     def test_update(self, mr_mocks):
         group1 = self.create_group("Reporters", contacts=[])
