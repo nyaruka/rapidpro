@@ -437,6 +437,14 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
             modified_by=user,
         )
 
+    _hour_displays = None  # lazily built {hour: display} cache for as_json
+
+    @classmethod
+    def get_hour_display(cls, hour: int) -> str:
+        if cls._hour_displays is None:
+            cls._hour_displays = dict(cls.get_hour_choices())
+        return cls._hour_displays[hour]
+
     @classmethod
     def get_hour_choices(cls):
         hours = [(-1, "during the same hour"), (0, "at Midnight")]
@@ -536,7 +544,7 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
 
         # events on minute/hour offsets fire relative to the anchor time, so only day/week events carry an hour
         if self.delivery_hour >= 0:
-            definition["delivery_hour_display"] = dict(self.get_hour_choices())[self.delivery_hour]
+            definition["delivery_hour_display"] = self.get_hour_display(self.delivery_hour)
 
         if self.event_type == self.TYPE_FLOW:
             definition["flow"] = {
@@ -544,7 +552,9 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
                 "url": reverse("flows.flow_editor", args=[self.flow.uuid]),
             }
         else:
-            definition["message"] = self.get_message().get("text", "")
+            # tolerate legacy rows with missing translations so one bad event can't block the whole schedule
+            translation = (self.translations or {}).get(self.base_language) or {}
+            definition["message"] = translation.get("text", "")
 
         return definition
 

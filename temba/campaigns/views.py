@@ -193,7 +193,8 @@ class CampaignCRUDL(SmartCRUDL):
                     # the campaign gives the event detail modal its context on any page
                     "campaign": {"uuid": str(self.object.uuid), "name": self.object.name},
                     "events": [e.as_json() for e in self.object.get_sorted_events()],
-                    # scheduling-state events additionally can't be edited, which the component derives per event.
+                    # there is no per-event edit flag: the component combines this campaign-level can_edit with
+                    # each event's status (scheduling-state events stay locked until mailroom finishes).
                     # deletion stays available on archived campaigns, matching the legacy event read page.
                     "can_edit": self.has_org_perm("campaigns.campaignevent_update") and not self.object.is_archived,
                     "can_delete": self.has_org_perm("campaigns.campaignevent_delete"),

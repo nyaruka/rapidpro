@@ -203,6 +203,13 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
             response.json(),
         )
 
+        # archiving the campaign locks editing but deletion stays available
+        campaign.archive(self.admin)
+        response = self.client.get(events_url)
+        self.assertEqual(200, response.status_code)
+        self.assertFalse(response.json()["can_edit"])
+        self.assertTrue(response.json()["can_delete"])
+
     @mock_mailroom
     def test_update(self, mr_mocks):
         group1 = self.create_group("Reporters", contacts=[])
