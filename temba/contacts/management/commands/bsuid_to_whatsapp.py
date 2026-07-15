@@ -1,5 +1,8 @@
+from collections import defaultdict
+
 from django.core.management.base import BaseCommand
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.db.models.functions import Now
 
 from temba.contacts.models import URN, Contact, ContactURN
@@ -10,7 +13,8 @@ BATCH_SIZE = 1000
 class Command(BaseCommand):
     help = (
         "Updates WhatsApp business-scoped user id URNs from the bsuid scheme to the whatsapp scheme, "
-        "keeping the path unchanged: bsuid:<CC.alphanumeric> -> whatsapp:<CC.alphanumeric>. "
+        "carrying the business-scoped id across (normalizing the country-code case): "
+        "bsuid:<CC.alphanumeric> -> whatsapp:<CC.alphanumeric>. "
         "Phone (tel/whatsapp) URNs are never touched - only the bsuid scheme is migrated. "
         "A bsuid URN whose whatsapp target already exists on the same contact is redundant and is dropped "
         "(its message/call/event references are moved onto the existing URN); one colliding with a different "
@@ -47,34 +51,46 @@ class Command(BaseCommand):
 
     def _flip(self, urns):
         """
-        Flips the given bsuid URNs to the whatsapp scheme, keeping the path unchanged. A URN whose target
-        whatsapp identity already exists for the org is a collision and can't be flipped without violating
-        the (identity, org) uniqueness constraint. When the colliding identity is held by the *same* contact
-        the bsuid URN is redundant, so its message/call/event references are moved onto the existing whatsapp
-        URN and the bsuid is deleted; when it's held by a different contact the bsuid is left untouched.
+        Flips the given bsuid URNs to the whatsapp scheme, carrying the business-scoped id across with its
+        country-code case normalized. A URN whose target whatsapp identity already exists for the org is a
+        collision and can't be flipped without violating the (identity, org) uniqueness constraint. When the
+        colliding identity is held by the *same* contact the bsuid URN is redundant, so its message/call/event
+        references are moved onto the existing whatsapp URN and the bsuid is deleted; when it's held by a
+        different contact the bsuid is left untouched.
 
         Returns (num_flipped, num_dropped, {contact_ids}).
         """
         if not urns:
             return 0, 0, set()
 
-        # the whatsapp identity each bsuid would flip to, computed once and reused below
-        wa_identities = {u.id: URN.from_parts(URN.WHATSAPP_SCHEME, u.path) for u in urns}
+        # the normalized whatsapp target (path, identity) each bsuid flips to, computed once and reused below;
+        # normalizing uppercases the country code so a legacy lowercase-CC bsuid still maps to (and collides
+        # with) the canonical whatsapp id, and the flipped URN passes URN.validate
+        wa_targets = {u.id: self._wa_target(u.path) for u in urns}
+
+        # look up the existing whatsapp targets scoped per-org (rather than org_id IN ... AND identity IN ...,
+        # which is a cross-product that could match another org's identical identity) so the lookup stays tight
+        identities_by_org = defaultdict(set)
+        for u in urns:
+            identities_by_org[u.org_id].add(wa_targets[u.id][1])
+
+        lookup = Q()
+        for org_id, identities in identities_by_org.items():
+            lookup |= Q(org_id=org_id, identity__in=identities)
 
         # existing (org_id, identity) -> (owning contact_id, URN id) for the whatsapp targets, to detect
         # collisions and, for same-contact collisions, find the surviving URN to move references onto
         existing = {
             (org_id, identity): (contact_id, urn_id)
-            for org_id, identity, contact_id, urn_id in ContactURN.objects.filter(
-                org_id__in={u.org_id for u in urns},
-                identity__in=set(wa_identities.values()),
-            ).values_list("org_id", "identity", "contact_id", "id")
+            for org_id, identity, contact_id, urn_id in ContactURN.objects.filter(lookup).values_list(
+                "org_id", "identity", "contact_id", "id"
+            )
         }
 
         # classify each bsuid first without touching the DB, so the whole batch can be applied atomically
         to_flip, to_drop, contact_ids = [], [], set()
         for u in urns:
-            identity = wa_identities[u.id]
+            path, identity = wa_targets[u.id]
 
             owner = existing.get((u.org_id, identity))
             if owner:
@@ -85,7 +101,7 @@ class Command(BaseCommand):
                     contact_ids.add(u.contact_id)
                 continue  # otherwise leave the colliding bsuid untouched
 
-            u.scheme, u.identity = URN.WHATSAPP_SCHEME, identity
+            u.scheme, u.path, u.identity = URN.WHATSAPP_SCHEME, path, identity
             to_flip.append(u)
             if u.contact_id:
                 contact_ids.add(u.contact_id)
@@ -101,7 +117,7 @@ class Command(BaseCommand):
                     u.reassign_content_to(kept_urn_id)
                     u.delete()
                 if to_flip:
-                    ContactURN.objects.bulk_update(to_flip, ["scheme", "identity"])
+                    ContactURN.objects.bulk_update(to_flip, ["scheme", "path", "identity"])
         except IntegrityError:
             # a concurrent writer inserted a colliding identity between our check and the update; the atomic
             # block rolled the whole batch back, so nothing changed here - the command is safe to re-run and
@@ -114,3 +130,12 @@ class Command(BaseCommand):
             return 0, 0, set()
 
         return len(to_flip), len(to_drop), contact_ids
+
+    @staticmethod
+    def _wa_target(bsuid_path: str) -> tuple:
+        """
+        The normalized (path, identity) a bsuid path flips to under the whatsapp scheme.
+        """
+        identity = URN.normalize(URN.from_parts(URN.WHATSAPP_SCHEME, bsuid_path))
+        _, path, _, _ = URN.to_parts(identity)
+        return path, identity

@@ -120,6 +120,33 @@ class BsuidToWhatsAppTest(TembaTest):
         self.assertGreater(contact.modified_on, start)
         self.assertIn("Migrated 0 bsuid URNs to whatsapp (1 redundant dropped)", out.getvalue())
 
+    def test_lowercase_country_code_is_normalized(self):
+        # a legacy bsuid whose country code is lowercase (created directly to bypass URN normalization); the
+        # command must normalize the path so the flipped whatsapp URN is canonical and passes URN.validate
+        contact = self.create_contact("Ann", urns=["tel:+250788000001"])
+        ContactURN.objects.create(
+            org=self.org, contact=contact, scheme="bsuid", path="rw.abc123", identity="bsuid:rw.abc123", priority=50
+        )
+
+        # a lowercase bsuid whose *normalized* whatsapp target already exists on another contact -> it must
+        # still be detected as a collision (proving the lookup normalizes too) and left untouched
+        collide = self.create_contact("Cat", urns=[])
+        ContactURN.objects.create(
+            org=self.org, contact=collide, scheme="bsuid", path="rw.zzz999", identity="bsuid:rw.zzz999", priority=50
+        )
+        self.create_contact("Bob", urns=["whatsapp:RW.zzz999"])
+
+        call_command("bsuid_to_whatsapp", stdout=StringIO())
+
+        # the lowercase bsuid flipped to a normalized (uppercase CC) whatsapp URN
+        self.assertEqual(
+            {("tel", "+250788000001", "tel:+250788000001"), ("whatsapp", "RW.abc123", "whatsapp:RW.abc123")},
+            self.urns(contact),
+        )
+
+        # the lowercase bsuid colliding with another contact's normalized whatsapp URN was left as-is
+        self.assertEqual({("bsuid", "rw.zzz999", "bsuid:rw.zzz999")}, self.urns(collide))
+
     @patch("temba.contacts.management.commands.bsuid_to_whatsapp.BATCH_SIZE", 2)
     def test_batches_and_skips_collisions_across_the_cursor(self):
         # an existing whatsapp URN that a later bsuid will collide with when it tries to flip
