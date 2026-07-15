@@ -63,6 +63,9 @@ class User(TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
     external_id = models.CharField(max_length=128, null=True)
     verification_token = models.CharField(max_length=64, null=True)
 
+    # generic bucket of UI state, e.g. card order on the contact read page
+    settings = models.JSONField(default=dict)
+
     objects = UserManager()
 
     def clean(self):

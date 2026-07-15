@@ -1,0 +1,73 @@
+{% comment %}
+  Shared persistence for the contact card column (contact read + ticket
+  pages). Card order and collapsed state live in User.settings under
+  "contact_cards" and are shared across pages. A page that shows only a
+  subset of the cards merges its relative order into the saved full order
+  so it never clobbers the position of cards it doesn't render.
+
+  Requires a {{ card_settings|json_script:"card-settings" }} element and a
+  temba-card-layout on the page; call initCardSettings(layout) on load.
+{% endcomment %}
+<script type="text/javascript">
+  var savedCardOrder = [];
+  var savedCardCollapsed = [];
+  var saveCardSettingsTimeout = null;
+
+  function initCardSettings(layout) {
+    var cardSettings = JSON.parse(document.getElementById("card-settings").textContent);
+    savedCardOrder = cardSettings.order || [];
+    savedCardCollapsed = cardSettings.collapsed || [];
+    if (savedCardOrder.length > 0) {
+      layout.order = savedCardOrder;
+    }
+
+    // persist card order and collapsed state as they change
+    layout.addEventListener("temba-order-changed", saveCardSettings);
+    layout.addEventListener("toggle", saveCardSettings);
+  }
+
+  // slot this page's cards into the full saved order without disturbing
+  // the position of cards this page doesn't show
+  function mergeCardOrder(existing, present) {
+    var result = [];
+    var queue = present.slice();
+    existing.forEach(function(id) {
+      if (present.indexOf(id) >= 0) {
+        result.push(queue.shift());
+      } else {
+        result.push(id);
+      }
+    });
+    return result.concat(queue);
+  }
+
+  function saveCardSettings() {
+    clearTimeout(saveCardSettingsTimeout);
+    saveCardSettingsTimeout = setTimeout(function() {
+      var layout = document.querySelector("temba-card-layout");
+      var present = layout.getIds();
+      var collapsed = Array.from(layout.querySelectorAll("temba-card[collapsed]")).map(function(card) {
+        return card.id;
+      });
+
+      savedCardOrder = mergeCardOrder(savedCardOrder, present);
+      savedCardCollapsed = savedCardCollapsed.filter(function(id) {
+        return present.indexOf(id) < 0;
+      }).concat(collapsed);
+
+      fetch("{% url 'users.user_settings' %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": document.querySelector("input[name=csrfmiddlewaretoken]").value
+        },
+        body: JSON.stringify({
+          contact_cards: {
+            order: savedCardOrder,
+            collapsed: savedCardCollapsed
+          }
+        })
+      });
+    }, 500);
+  }
+</script>

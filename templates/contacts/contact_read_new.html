@@ -1,0 +1,166 @@
+{% extends "smartmin/read.html" %}
+{% load i18n humanize smartmin sms contacts temba %}
+
+{% comment %}
+  Preview-mode contact read page (request.preview, set by PreviewMiddleware
+  off the temba-preview cookie). Chat is the main view with the other panels
+  as collapsible, drag-sortable cards in a right column. Card order and
+  collapsed state persist per user in User.settings under "contact_cards".
+{% endcomment %}
+{% block page-header %}
+  {# the page renders its own header (title + content menu); keep the csrf #}
+  {# token and a hidden title for the SPA document.title hook #}
+  {% csrf_token %}
+  <div id="title-text" class="hide">{{ title }}</div>
+{% endblock page-header %}
+{% block extra-style %}
+  {{ block.super }}
+  {% include "includes/card_page_style.html" %}
+  <style type="text/css">
+    .spa-content {
+      padding: 0 !important;
+    }
+
+    /* Same header treatment as the preview list pages — inset 12px with a
+       full-bleed rule under it — but on the pane's own background so the
+       chat and cards pop as surfaces. */
+    .read-page {
+      flex-grow: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* only the page's left gutter — longhand on purpose: the layout owns
+       every other inset (including the tab-mode right padding), and the
+       padding shorthand would clobber them from document scope */
+    temba-card-layout {
+      flex-grow: 1;
+      min-height: 0;
+      padding-left: 8px;
+    }
+  </style>
+{% endblock extra-style %}
+{% block content %}
+  <div class="read-page">
+    <div class="read-header">
+      <temba-page-header content-menu-endpoint="{{ request.path }}" -temba-selection="handleContentMenuSelected(event)">
+        <temba-contact-name-fetch slot="title"
+                                  contact="{{ object.uuid }}"
+                                  icon-size="16"
+                                  -temba-refreshed="handleContactRefreshed"
+                                  showLoading>
+        </temba-contact-name-fetch>
+      </temba-page-header>
+    </div>
+    <div class="header-rule"></div>
+    <temba-card-layout id="card-layout" main-name="{{ _("Chat") |escapejs }}" main-icon="message">
+      <temba-contact-chat slot="main"
+                          contact="{{ object.uuid }}"
+                          monitor="true"
+                          avatar="{{ branding.logos.avatar }}"
+                          {% if object.last_seen_on %}showSearch{% endif %}
+                          {% if org_perms.contacts.contact_interrupt %}showInterrupt{% endif %}
+                          {% if org_perms.channels.channel_logs or request.user.is_staff %}showMessageLogsAfter="{{ msg_logs_after }}"{% endif %}
+                          -temba-interrupt="handleInterruptContact">
+      </temba-contact-chat>
+      <temba-card id="card-details"
+                  label="{{ _("Details") |escapejs }}"
+                  icon="info"
+                  {% if "card-details" in card_settings.collapsed %}collapsed{% endif %}>
+        <temba-contact-details contact="{{ object.uuid }}">
+        </temba-contact-details>
+      </temba-card>
+      <temba-card id="card-fields"
+                  label="{{ _("Fields") |escapejs }}"
+                  icon="fields"
+                  {% if "card-fields" in card_settings.collapsed %}collapsed{% endif %}>
+        <temba-contact-fields timezone="{{ object.org.timezone }}"
+                              contact="{{ object.uuid }}"
+                              -temba-button-clicked="handleFieldSearch">
+          <div slot="empty" class="no-fields p-4 text-center">
+            <div class="text-xl mb-4">{% trans "No Fields" %}</div>
+            {% blocktrans trimmed %}
+              Nothing to see here yet. Create a new field to save data to your contacts.
+            {% endblocktrans %}
+          </div>
+        </temba-contact-fields>
+      </temba-card>
+      <temba-card id="card-nextup"
+                  label="{{ _("Next Up") |escapejs }}"
+                  icon="schedule"
+                  {% if "card-nextup" in card_settings.collapsed %}collapsed{% endif %}>
+        <temba-contact-timeline contact="{{ object.uuid }}" -temba-selection="handleTimelineClicked">
+        </temba-contact-timeline>
+      </temba-card>
+      <temba-card id="card-notepad"
+                  variant="note"
+                  label="{{ _("Notepad") |escapejs }}"
+                  icon="notes"
+                  activity
+                  bleed
+                  {% if "card-notepad" in card_settings.collapsed %}collapsed{% endif %}>
+        <temba-contact-notepad contact="{{ object.uuid }}" autogrow>
+        </temba-contact-notepad>
+      </temba-card>
+    </temba-card-layout>
+  </div>
+  {{ card_settings|json_script:"card-settings" }}
+{% endblock content %}
+{% block extra-script %}
+  {{ block.super }}
+  {% include "includes/card_settings_save.html" %}
+  {% include "includes/page_header_menu.html" %}
+  <script type="text/javascript">
+    onSpload(function() {
+      initCardSettings(document.querySelector("#card-layout"));
+    });
+
+    function handleInterruptContact(event) {
+      const options = {
+        onSubmit: "contactUpdated()"
+      }
+      showModax("{{_('Interrupt Contact')|escapejs}}", "/contact/interrupt/" + event.detail.contact.uuid + "/", options);
+    }
+
+    function contactUpdated(evt) {
+      const details = document.querySelector("temba-contact-details");
+      details.refresh();
+      const header = document.querySelector("temba-page-header");
+      header.refresh();
+    }
+
+    function handleContactRefreshed(evt) {
+      var contact = evt.detail.data;
+
+      // if our contact refreshes, refresh the timeline
+      var timeline = document.querySelector("temba-contact-timeline");
+      if (timeline) {
+        timeline.refresh();
+      }
+
+      var menu = document.querySelector("temba-menu");
+      if (menu) {
+        menu.refresh();
+      }
+    }
+
+    function handleFieldSearch(evt) {
+      spaGet("/contact/?search=" + encodeURIComponent(evt.detail.key) + "+%3D+" + encodeURIComponent("\"" + evt.detail.value + "\""))
+    }
+
+    function handleTimelineClicked(evt) {
+      var event = evt.detail;
+
+      if (event.url) {
+        spaGet(event.url);
+      } else if (event.type == "scheduled_broadcast") {
+        spaGet("{% url 'msgs.broadcast_scheduled' %}");
+      } else if (event.type == "sent_broadcast") {
+        spaGet("{% url 'msgs.broadcast_list' %}");
+      } else if (event.type == "scheduled_trigger") {
+        spaGet("{% url 'triggers.trigger_folder' 'schedule' %}");
+      }
+    }
+  </script>
+{% endblock extra-script %}

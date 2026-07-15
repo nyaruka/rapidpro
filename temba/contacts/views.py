@@ -434,6 +434,14 @@ class ContactCRUDL(SmartCRUDL):
         fields = ("name",)
         select_related = ("current_flow",)
 
+        NEW_READ_TEMPLATE = "contacts/contact_read_new.html"
+
+        def get_template_names(self):
+            if self.request.preview:
+                return [self.NEW_READ_TEMPLATE]
+
+            return super().get_template_names()
+
         def derive_menu_path(self):
             return f"/contact/{self.object.get_status_display().lower()}"
 
@@ -470,6 +478,7 @@ class ContactCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             context["msg_logs_after"] = (timezone.now() - settings.RETENTION_PERIODS["channellog"]).isoformat()
+            context["card_settings"] = self.request.user.settings.get("contact_cards", {})
             return context
 
     class Timeline(BaseReadView):

@@ -1,8 +1,13 @@
+import json
+
 from allauth.account.views import LoginView, SignupView
 
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
+from django.views import View
 
 from temba.orgs.models import Invitation
 
@@ -38,6 +43,26 @@ class TembaInviteMixin:
         if self.invite:
             context["invite"] = self.invite
         return context
+
+
+class UserSettingsView(LoginRequiredMixin, View):
+    """
+    Lets the current user update their own UI settings - posted top level keys are merged into the existing value.
+    """
+
+    def post(self, request, *args, **kwargs):
+        try:
+            posted = json.loads(request.body)
+        except ValueError:
+            posted = None
+
+        if not isinstance(posted, dict):
+            return JsonResponse({"error": "request body must be a JSON object"}, status=400)
+
+        request.user.settings = {**request.user.settings, **posted}
+        request.user.save(update_fields=("settings",))
+
+        return JsonResponse({"settings": request.user.settings})
 
 
 class TembaLoginView(TembaInviteMixin, LoginView):
