@@ -1,0 +1,3 @@
+# save exact versions in package.json (bun does not read save-exact from .npmrc)
+[install]
+exact = true

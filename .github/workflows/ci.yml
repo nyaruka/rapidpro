@@ -9,6 +9,7 @@ jobs:
 
     env:
       node-version: '20'
+      bun-version: '1.3.14'
       DJANGO_SETTINGS_MODULE: temba.settings_dev
 
     services:
@@ -49,13 +50,17 @@ jobs:
         with:
           node-version: ${{ env.node-version }}
 
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.bun-version }}
+
       - name: Initialize environment
         run: |
           uv venv
           uv sync --frozen
-          corepack enable
-          yarn install
-          yarn global add less
+          bun install --frozen-lockfile
+          npm install -g less
           uv run python manage.py migrate
           uv run python manage.py migrate_dynamo --testing
           uv run python manage.py create_buckets --testing
