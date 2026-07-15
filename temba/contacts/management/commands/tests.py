@@ -70,9 +70,7 @@ class BsuidToWhatsAppTest(TembaTest):
         self.assertIn("Migrated 3 bsuid URNs to whatsapp (0 redundant dropped)", out.getvalue())
 
         # only the collided bsuid remains
-        self.assertEqual(
-            {"RW.jkl012"}, set(ContactURN.objects.filter(scheme="bsuid").values_list("path", flat=True))
-        )
+        self.assertEqual({"RW.jkl012"}, set(ContactURN.objects.filter(scheme="bsuid").values_list("path", flat=True)))
 
     def test_reapplying_is_safe(self):
         contact = self.create_contact("Bob", urns=["whatsapp:250788000002", "bsuid:RW.def456"])
@@ -104,6 +102,8 @@ class BsuidToWhatsAppTest(TembaTest):
         msg.contact_urn = bsuid
         msg.save(update_fields=["contact_urn"])
 
+        start = datetime.now(tzone.utc)
+
         out = StringIO()
         call_command("bsuid_to_whatsapp", stdout=out)
 
@@ -115,6 +115,9 @@ class BsuidToWhatsAppTest(TembaTest):
         )
         msg.refresh_from_db()
         self.assertEqual(wa.id, msg.contact_urn_id)
+
+        # the drop path also reindexes the contact
+        self.assertGreater(contact.modified_on, start)
         self.assertIn("Migrated 0 bsuid URNs to whatsapp (1 redundant dropped)", out.getvalue())
 
     @patch("temba.contacts.management.commands.bsuid_to_whatsapp.BATCH_SIZE", 2)

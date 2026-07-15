@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models.functions import Now
 
 from temba.contacts.models import URN, Contact, ContactURN
@@ -71,7 +71,8 @@ class Command(BaseCommand):
             ).values_list("org_id", "identity", "contact_id", "id")
         }
 
-        to_update, contact_ids, num_dropped = [], set(), 0
+        # classify each bsuid first without touching the DB, so the whole batch can be applied atomically
+        to_flip, to_drop, contact_ids = [], [], set()
         for u in urns:
             identity = wa_identities[u.id]
 
@@ -79,26 +80,37 @@ class Command(BaseCommand):
             if owner:
                 owner_contact_id, kept_urn_id = owner
                 if owner_contact_id == u.contact_id:
-                    # the bsuid duplicates a whatsapp URN the same contact already has, so move its
-                    # references onto the survivor and drop it
-                    u.reassign_content_to(kept_urn_id)
-                    u.delete()
-                    num_dropped += 1
+                    # the bsuid duplicates a whatsapp URN the same contact already has - drop it below
+                    to_drop.append((u, kept_urn_id))
                     contact_ids.add(u.contact_id)
                 continue  # otherwise leave the colliding bsuid untouched
 
             u.scheme, u.identity = URN.WHATSAPP_SCHEME, identity
-            to_update.append(u)
+            to_flip.append(u)
             if u.contact_id:
                 contact_ids.add(u.contact_id)
 
-        if to_update:
-            try:
-                ContactURN.objects.bulk_update(to_update, ["scheme", "identity"])
-            except IntegrityError:
-                # a concurrent writer inserted a colliding identity between our check and the update; skip
-                # this batch - the command is safe to re-run and will retry it
-                self.stdout.write(f"skipped a batch of {len(to_update)} bsuid URNs due to a collision")
-                return 0, num_dropped, contact_ids
+        if not to_flip and not to_drop:
+            return 0, 0, contact_ids
 
-        return len(to_update), num_dropped, contact_ids
+        try:
+            # apply the batch atomically so an IntegrityError leaves nothing partially applied
+            with transaction.atomic():
+                for u, kept_urn_id in to_drop:
+                    # move the redundant bsuid's message/call/event references onto the survivor, then drop it
+                    u.reassign_content_to(kept_urn_id)
+                    u.delete()
+                if to_flip:
+                    ContactURN.objects.bulk_update(to_flip, ["scheme", "identity"])
+        except IntegrityError:
+            # a concurrent writer inserted a colliding identity between our check and the update; the atomic
+            # block rolled the whole batch back, so nothing changed here - the command is safe to re-run and
+            # will retry these rows
+            ids = [u.id for u in urns]
+            self.stdout.write(
+                f"skipped batch of {len(to_flip)} flips / {len(to_drop)} drops "
+                f"(bsuid ids {min(ids)}-{max(ids)}) due to a collision"
+            )
+            return 0, 0, set()
+
+        return len(to_flip), len(to_drop), contact_ids
