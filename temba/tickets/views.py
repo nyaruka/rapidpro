@@ -352,7 +352,6 @@ class TicketCRUDL(SmartCRUDL):
                         _("Add Note"),
                         "add-note",
                         f"{reverse('tickets.ticket_note', args=[ticket.uuid])}",
-                        on_submit="handleNoteAdded()",
                     )
 
                 if not ticket.contact.current_flow:

@@ -474,23 +474,11 @@
 
     function removeTicket(uuid) {
       var tickets = document.querySelector("temba-ticket-list");
-      var chat = document.querySelector("temba-contact-chat");
       tickets.removeItem(uuid);
-    }
-
-    function handleTicketAssigned() {
-      var chat = document.querySelector("temba-contact-chat");
-      chat.refresh();
-    }
-
-    function handleNoteAdded() {
-      var chat = document.querySelector("temba-contact-chat");
-      chat.refresh();
     }
 
     function handleTicketUpdated(event) {
       var tickets = document.querySelector("temba-ticket-list");
-      var chat = document.querySelector("temba-contact-chat");
 
       if (event.detail.ticket) {
         const ticket = event.detail.ticket;
@@ -527,7 +515,6 @@
           }
 
           tickets.refresh();
-          chat.refresh();
           refreshMenu();
 
           var contentMenu = document.querySelector("#default-content-menu");
