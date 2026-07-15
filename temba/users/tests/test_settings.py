@@ -18,9 +18,7 @@ class UserSettingsTest(TembaTest):
         self.assertEqual(400, response.status_code)
 
         # and not absurdly large
-        response = self.client.post(
-            settings_url, {"blob": "x" * 200_000}, content_type="application/json"
-        )
+        response = self.client.post(settings_url, {"blob": "x" * 200_000}, content_type="application/json")
         self.assertEqual(400, response.status_code)
 
         response = self.client.post(settings_url, [1, 2], content_type="application/json")
@@ -40,8 +38,8 @@ class UserSettingsTest(TembaTest):
         self.assertEqual({"contact_cards": {"order": ["card-fields"]}, "theme": "dark"}, self.admin.settings)
 
         # posting a key again replaces its value
-        self.client.post(settings_url, {"contact_cards": {"collapsed": ["card-nextup"]}}, content_type="application/json")
-        self.admin.refresh_from_db()
-        self.assertEqual(
-            {"contact_cards": {"collapsed": ["card-nextup"]}, "theme": "dark"}, self.admin.settings
+        self.client.post(
+            settings_url, {"contact_cards": {"collapsed": ["card-nextup"]}}, content_type="application/json"
         )
+        self.admin.refresh_from_db()
+        self.assertEqual({"contact_cards": {"collapsed": ["card-nextup"]}, "theme": "dark"}, self.admin.settings)

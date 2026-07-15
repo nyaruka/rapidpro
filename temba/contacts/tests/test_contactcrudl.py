@@ -624,9 +624,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.admin.save(update_fields=("settings",))
 
         response = self.client.get(read_url)
-        self.assertEqual(
-            {"order": ["card-fields"], "collapsed": ["card-nextup"]}, response.context["card_settings"]
-        )
+        self.assertEqual({"order": ["card-fields"], "collapsed": ["card-nextup"]}, response.context["card_settings"])
         self.assertContains(response, 'id="card-nextup"')
 
     @patch("django.utils.timezone.now")
