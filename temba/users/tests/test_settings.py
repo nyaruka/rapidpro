@@ -17,11 +17,15 @@ class UserSettingsTest(TembaTest):
         response = self.client.post(settings_url, "notjson", content_type="application/json")
         self.assertEqual(400, response.status_code)
 
+        response = self.client.post(settings_url, [1, 2], content_type="application/json")
+        self.assertEqual(400, response.status_code)
+
         # and not absurdly large
         response = self.client.post(settings_url, {"blob": "x" * 200_000}, content_type="application/json")
         self.assertEqual(400, response.status_code)
 
-        response = self.client.post(settings_url, [1, 2], content_type="application/json")
+        # only known settings keys are accepted
+        response = self.client.post(settings_url, {"theme": "dark"}, content_type="application/json")
         self.assertEqual(400, response.status_code)
 
         # posted keys are merged into existing settings
@@ -31,15 +35,17 @@ class UserSettingsTest(TembaTest):
         self.assertEqual(200, response.status_code)
         self.assertEqual({"contact_cards": {"order": ["card-fields"]}}, response.json()["settings"])
 
-        response = self.client.post(settings_url, {"theme": "dark"}, content_type="application/json")
-        self.assertEqual(200, response.status_code)
-
         self.admin.refresh_from_db()
-        self.assertEqual({"contact_cards": {"order": ["card-fields"]}, "theme": "dark"}, self.admin.settings)
+        self.assertEqual({"contact_cards": {"order": ["card-fields"]}}, self.admin.settings)
 
-        # posting a key again replaces its value
+        # posting a key again replaces its value, leaving other stored keys alone
+        self.admin.settings["other"] = {"kept": True}
+        self.admin.save(update_fields=("settings",))
+
         self.client.post(
             settings_url, {"contact_cards": {"collapsed": ["card-nextup"]}}, content_type="application/json"
         )
         self.admin.refresh_from_db()
-        self.assertEqual({"contact_cards": {"collapsed": ["card-nextup"]}, "theme": "dark"}, self.admin.settings)
+        self.assertEqual(
+            {"contact_cards": {"collapsed": ["card-nextup"]}, "other": {"kept": True}}, self.admin.settings
+        )

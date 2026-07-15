@@ -50,6 +50,9 @@ class UserSettingsView(LoginRequiredMixin, View):
     Lets the current user update their own UI settings - posted top level keys are merged into the existing value.
     """
 
+    # the settings keys the UI is allowed to write
+    ALLOWED_KEYS = {"contact_cards"}
+
     def post(self, request, *args, **kwargs):
         if len(request.body) > 100_000:
             return JsonResponse({"error": "request body too large"}, status=400)
@@ -61,6 +64,9 @@ class UserSettingsView(LoginRequiredMixin, View):
 
         if not isinstance(posted, dict):
             return JsonResponse({"error": "request body must be a JSON object"}, status=400)
+
+        if not set(posted) <= self.ALLOWED_KEYS:
+            return JsonResponse({"error": "unsupported settings keys"}, status=400)
 
         request.user.settings = {**request.user.settings, **posted}
         request.user.save(update_fields=("settings",))
