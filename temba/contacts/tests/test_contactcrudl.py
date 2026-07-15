@@ -617,14 +617,14 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertNotContains(response, "temba-tabs")
 
         # card state defaults to empty
-        self.assertEqual({}, response.context["card_settings"])
+        self.assertEqual("{}", response.context["card_settings"])
 
-        # saved card state is passed to the template and collapsed cards render as such
+        # saved card state is serialized for temba-card-layout, which applies order and collapse itself
         self.admin.settings = {"contact_cards": {"order": ["card-fields"], "collapsed": ["card-nextup"]}}
         self.admin.save(update_fields=("settings",))
 
         response = self.client.get(read_url)
-        self.assertEqual({"order": ["card-fields"], "collapsed": ["card-nextup"]}, response.context["card_settings"])
+        self.assertEqual('{"order": ["card-fields"], "collapsed": ["card-nextup"]}', response.context["card_settings"])
         self.assertContains(response, 'id="card-nextup"')
 
     @patch("django.utils.timezone.now")

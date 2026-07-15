@@ -5,16 +5,20 @@
   Preview-mode ticket page (request.preview, set by PreviewMiddleware off
   the temba-preview cookie). The chat pane uses the same chat + card layout
   as the contact read page, sharing card order / collapsed state via
-  User.settings "contact_cards" — this page shows a subset of the cards and
-  merges its order into the saved full order on save.
+  User.settings "contact_cards" — temba-card-layout loads and persists that
+  state itself via its settings/settings-endpoint attributes.
 {% endcomment %}
 {% block page-header %}
   {% csrf_token %}
 {% endblock page-header %}
 {% block extra-style %}
   {{ block.super }}
-  {% include "includes/card_page_style.html" %}
   <style type="text/css">
+    /* preview pages render without the frame footer */
+    .spa-footer {
+      display: none;
+    }
+
     .back-button {
       display: none;
       padding-right: 0.5em;
@@ -61,7 +65,7 @@
       margin-left: 0;
     }
 
-    .mobile .read-header .back-button {
+    .mobile temba-header-bar .back-button {
       display: block;
     }
 
@@ -103,7 +107,7 @@
 
     /* the list column's content (status filter, rows) runs to the column
        edge — its header strip contents align to that same edge */
-    .ticket-list .read-header {
+    .ticket-list temba-header-bar {
       padding-right: 0;
     }
 
@@ -201,7 +205,6 @@
 {% endblock extra-style %}
 {% block extra-script %}
   {{ block.super }}
-  {% include "includes/card_settings_save.html" %}
   {% include "includes/page_header_menu.html" %}
   <script type="text/javascript">
     // current state
@@ -591,8 +594,6 @@
       const width = store.get('ticket-list-width', '300');
       const resizer = document.querySelector('temba-resizer');
       resizer.currentWidth = width;
-
-      initCardSettings(document.querySelector("#card-layout"));
     });
   </script>
 {% endblock extra-script %}
@@ -603,7 +604,7 @@
         <div class="ticket-list flex flex-col">
           {# the list column's own header strip — same height and surface as the #}
           {# chat header beside it so the two read as one continuous control #}
-          <div class="read-header">
+          <temba-header-bar>
             <div class="flex items-center {% if folder == "all" %}hidden{% endif %}" id="title-row">
               <div class="flex-grow relative" id="folder-title">
                 <div id="title-text">{{ title }}</div>
@@ -626,8 +627,7 @@
                                searchOnFocus
                                clearable>
             </temba-user-select>
-          </div>
-          <div class="header-rule"></div>
+          </temba-header-bar>
           <div class="list-body flex flex-col flex-grow min-h-0">
             <temba-select style="z-index:2"
                           name="ticket-status"
@@ -664,7 +664,7 @@
         </div>
       </temba-resizer>
       <div class="chat-pane flex-grow flex-col flex">
-        <div class="read-header">
+        <temba-header-bar>
           <temba-page-header id="page-header"
                              content-menu-endpoint="{{ request.path }}"
                              -temba-selection="handleContentMenuSelected(event)">
@@ -678,8 +678,7 @@
               </temba-contact-name-fetch>
             </div>
           </temba-page-header>
-        </div>
-        <div class="header-rule"></div>
+        </temba-header-bar>
         <div class="empty">
           {% if has_tickets %}
             <h2>
@@ -718,6 +717,8 @@
                            main-name="{{ _("Chat") |escapejs }}"
                            main-icon="message"
                            main-min-width="480"
+                           settings-endpoint="{% url 'users.user_settings' %}"
+                           settings="{{ card_settings }}"
                            class="hidden">
           <temba-contact-chat slot="main"
                               agent="{{ request.user.email }}"
@@ -732,10 +733,7 @@
                               {% if not can_reply_non_own %}disableReply{% endif %}
                               avatar="{{ branding.logos.avatar }}">
           </temba-contact-chat>
-          <temba-card id="card-fields"
-                      label="{{ _("Fields") |escapejs }}"
-                      icon="fields"
-                      {% if "card-fields" in card_settings.collapsed %}collapsed{% endif %}>
+          <temba-card id="card-fields" label="{{ _("Fields") |escapejs }}" icon="fields">
             <temba-contact-fields timezone="{{ object.org.timezone }}"
                                   -temba-button-clicked="handleFieldSearch"
                                   role="{{ request.role.code }}">
@@ -749,8 +747,7 @@
                       label="{{ _("Notepad") |escapejs }}"
                       icon="notes"
                       activity
-                      bleed
-                      {% if "card-notepad" in card_settings.collapsed %}collapsed{% endif %}>
+                      bleed>
             <temba-contact-notepad autogrow>
             </temba-contact-notepad>
           </temba-card>
@@ -758,5 +755,4 @@
       </div>
     </div>
   </div>
-  {{ card_settings|json_script:"card-settings" }}
 {% endblock content %}

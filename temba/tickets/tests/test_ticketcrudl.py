@@ -49,7 +49,9 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "temba-card-layout")
         self.assertContains(response, "temba-page-header")
         self.assertNotContains(response, "temba-tabs")
-        self.assertEqual({"order": ["card-notepad", "card-fields"], "collapsed": []}, response.context["card_settings"])
+        self.assertEqual(
+            '{"order": ["card-notepad", "card-fields"], "collapsed": []}', response.context["card_settings"]
+        )
 
         del self.client.cookies["temba-preview"]
 

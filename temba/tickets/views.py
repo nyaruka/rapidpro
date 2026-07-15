@@ -27,6 +27,7 @@ from temba.orgs.views.base import (
 )
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, RequireFeatureMixin
 from temba.users.models import User
+from temba.utils import json
 from temba.utils.dates import datetime_to_timestamp, timestamp_to_datetime
 from temba.utils.db.functions import SplitPart
 from temba.utils.export import response_from_workbook
@@ -335,7 +336,8 @@ class TicketCRUDL(SmartCRUDL):
             context["status"] = "open" if status == Ticket.STATUS_OPEN else "closed"
             context["has_tickets"] = self.request.org.tickets.exists()
             context["msg_logs_after"] = (timezone.now() - settings.RETENTION_PERIODS["channellog"]).isoformat()
-            context["card_settings"] = self.request.user.settings.get("contact_cards", {})
+            # serialized for temba-card-layout's settings attribute
+            context["card_settings"] = json.dumps(self.request.user.settings.get("contact_cards", {}))
 
             if ticket:
                 context["nextUUID" if in_page else "uuid"] = str(ticket.uuid)

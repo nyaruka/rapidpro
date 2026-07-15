@@ -478,7 +478,8 @@ class ContactCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             context["msg_logs_after"] = (timezone.now() - settings.RETENTION_PERIODS["channellog"]).isoformat()
-            context["card_settings"] = self.request.user.settings.get("contact_cards", {})
+            # serialized for temba-card-layout's settings attribute
+            context["card_settings"] = json.dumps(self.request.user.settings.get("contact_cards", {}))
             return context
 
     class Timeline(BaseReadView):

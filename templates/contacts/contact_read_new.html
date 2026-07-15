@@ -15,8 +15,12 @@
 {% endblock page-header %}
 {% block extra-style %}
   {{ block.super }}
-  {% include "includes/card_page_style.html" %}
   <style type="text/css">
+    /* preview pages render without the frame footer */
+    .spa-footer {
+      display: none;
+    }
+
     .spa-content {
       padding: 0 !important;
     }
@@ -43,7 +47,7 @@
 {% endblock extra-style %}
 {% block content %}
   <div class="read-page">
-    <div class="read-header">
+    <temba-header-bar>
       <temba-page-header content-menu-endpoint="{{ request.path }}" -temba-selection="handleContentMenuSelected(event)">
         <temba-contact-name-fetch slot="title"
                                   contact="{{ object.uuid }}"
@@ -52,9 +56,12 @@
                                   showLoading>
         </temba-contact-name-fetch>
       </temba-page-header>
-    </div>
-    <div class="header-rule"></div>
-    <temba-card-layout id="card-layout" main-name="{{ _("Chat") |escapejs }}" main-icon="message">
+    </temba-header-bar>
+    <temba-card-layout id="card-layout"
+                       main-name="{{ _("Chat") |escapejs }}"
+                       main-icon="message"
+                       settings-endpoint="{% url 'users.user_settings' %}"
+                       settings="{{ card_settings }}">
       <temba-contact-chat slot="main"
                           contact="{{ object.uuid }}"
                           monitor="true"
@@ -64,17 +71,11 @@
                           {% if org_perms.channels.channel_logs or request.user.is_staff %}showMessageLogsAfter="{{ msg_logs_after }}"{% endif %}
                           -temba-interrupt="handleInterruptContact">
       </temba-contact-chat>
-      <temba-card id="card-details"
-                  label="{{ _("Details") |escapejs }}"
-                  icon="info"
-                  {% if "card-details" in card_settings.collapsed %}collapsed{% endif %}>
+      <temba-card id="card-details" label="{{ _("Details") |escapejs }}" icon="info">
         <temba-contact-details contact="{{ object.uuid }}">
         </temba-contact-details>
       </temba-card>
-      <temba-card id="card-fields"
-                  label="{{ _("Fields") |escapejs }}"
-                  icon="fields"
-                  {% if "card-fields" in card_settings.collapsed %}collapsed{% endif %}>
+      <temba-card id="card-fields" label="{{ _("Fields") |escapejs }}" icon="fields">
         <temba-contact-fields timezone="{{ object.org.timezone }}"
                               contact="{{ object.uuid }}"
                               -temba-button-clicked="handleFieldSearch">
@@ -86,10 +87,7 @@
           </div>
         </temba-contact-fields>
       </temba-card>
-      <temba-card id="card-nextup"
-                  label="{{ _("Next Up") |escapejs }}"
-                  icon="schedule"
-                  {% if "card-nextup" in card_settings.collapsed %}collapsed{% endif %}>
+      <temba-card id="card-nextup" label="{{ _("Next Up") |escapejs }}" icon="schedule">
         <temba-contact-timeline contact="{{ object.uuid }}" -temba-selection="handleTimelineClicked">
         </temba-contact-timeline>
       </temba-card>
@@ -98,24 +96,17 @@
                   label="{{ _("Notepad") |escapejs }}"
                   icon="notes"
                   activity
-                  bleed
-                  {% if "card-notepad" in card_settings.collapsed %}collapsed{% endif %}>
+                  bleed>
         <temba-contact-notepad contact="{{ object.uuid }}" autogrow>
         </temba-contact-notepad>
       </temba-card>
     </temba-card-layout>
   </div>
-  {{ card_settings|json_script:"card-settings" }}
 {% endblock content %}
 {% block extra-script %}
   {{ block.super }}
-  {% include "includes/card_settings_save.html" %}
   {% include "includes/page_header_menu.html" %}
   <script type="text/javascript">
-    onSpload(function() {
-      initCardSettings(document.querySelector("#card-layout"));
-    });
-
     function handleInterruptContact(event) {
       const options = {
         onSubmit: "contactUpdated()"
