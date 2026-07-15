@@ -1,23 +1,15 @@
-from rest_framework.pagination import PageNumberPagination
-
 from django.db.models import Q
-from django.http import HttpResponse
 
 from temba.api.internal.serializers import ModelAsJsonSerializer
 from temba.api.internal.views import BaseEndpoint
+from temba.api.support import ListPagination, SearchLengthMixin
 from temba.api.views import ListAPIMixin
 
 from .models import Trigger
 from .views import Folder
 
-# Match BaseListView: 50 rows per page with a cap that keeps an oversized client request from pulling 50k rows, and
-# the same 1000 char search cap (rejected with 413).
-DEFAULT_PAGE_SIZE = 50
-MAX_PAGE_SIZE = 500
-SEARCH_MAX_LENGTH = 1_000
 
-
-class TriggersEndpoint(ListAPIMixin, BaseEndpoint):
+class TriggersEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
     """
     Triggers for the current org, used by the trigger list component. A folder is selected with the `folder` query
     param — `active` (default), `archived`, or one of the type folder slugs (`messages`, `schedule`, `calls`, etc.).
@@ -25,20 +17,9 @@ class TriggersEndpoint(ListAPIMixin, BaseEndpoint):
     with `-` to reverse). Each item is serialized via Trigger.as_json().
     """
 
-    class Pagination(PageNumberPagination):
-        page_size = DEFAULT_PAGE_SIZE
-        page_size_query_param = "page_size"
-        max_page_size = MAX_PAGE_SIZE
-
     model = Trigger
     serializer_class = ModelAsJsonSerializer
-    pagination_class = Pagination
-
-    def get(self, request, *args, **kwargs):
-        search = request.query_params.get("search") or ""
-        if len(search) > SEARCH_MAX_LENGTH:
-            return HttpResponse("Search query too long", status=413)
-        return super().get(request, *args, **kwargs)
+    pagination_class = ListPagination
 
     def derive_queryset(self):
         # Build from Trigger.objects rather than the org.triggers related manager — a related manager would seed each
