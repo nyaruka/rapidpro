@@ -56,6 +56,7 @@ from temba.utils.fields import (
     TembaChoiceField,
 )
 from temba.utils.text import slugify_with
+from temba.utils.uuid import is_uuid
 from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, SpaMixin
 
 from .models import (
@@ -646,25 +647,15 @@ class FlowCRUDL(SmartCRUDL):
                     # Only keep well-formed UUIDs — `uuid__in` runs each value through UUIDField.get_prep_value, so a
                     # single malformed value (a hostile post, or a stale id-based form post) would otherwise raise
                     # ValueError (500).
-                    valid = []
-                    for u in uuids:
-                        try:
-                            valid.append(UUID(u))
-                        except ValueError:
-                            pass
+                    valid = [u for u in uuids if is_uuid(u)]
                     ids = Flow.objects.filter(org=request.org, is_active=True, uuid__in=valid).values_list(
                         "id", flat=True
                     )
                     data.setlist("objects", [str(i) for i in ids])
                 label = data.get("label")
-                if label:
-                    try:
-                        UUID(label)
-                    except ValueError:
-                        pass  # already an id (legacy form post) — leave alone
-                    else:
-                        obj = request.org.flow_labels.filter(uuid=label).first()
-                        data["label"] = str(obj.id) if obj else ""
+                if label and is_uuid(label):  # a non-uuid value (the legacy form's integer id) is left alone
+                    obj = request.org.flow_labels.filter(uuid=label).first()
+                    data["label"] = str(obj.id) if obj else ""
                 request.POST = data
 
             return super().post(request, *args, **kwargs)
