@@ -1574,6 +1574,35 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             ),
         )
 
+        # a submitted in_a_flow exclusion is ignored - the user has already confirmed interrupting
+        # the contact's current flow
+        contact_search = dict(
+            recipients=[{"id": str(contact.uuid), "name": contact.name, "type": "contact"}],
+            advanced=False,
+            exclusions={"in_a_flow": True, "non_active": True},
+        )
+        self.assertUpdateSubmit(
+            start_url,
+            self.admin,
+            {"flow": flow.id, "contact_search": json.dumps(contact_search)},
+        )
+
+        self.assertEqual(
+            mr_mocks.calls["flow_start"][-1],
+            call(
+                self.org,
+                self.admin,
+                typ="M",
+                flow=flow,
+                groups=[],
+                contacts=[contact],
+                urns=[],
+                query=None,
+                exclude=Exclusions(non_active=True),
+                params={},
+            ),
+        )
+
         # seeding with multiple contacts doesn't lock the recipients
         multi_url = f"{reverse('flows.flow_start', args=[])}?c={contact.uuid},{other.uuid}"
         response = self.assertUpdateFetch(multi_url, [self.admin], form_fields=["flow", "contact_search"])

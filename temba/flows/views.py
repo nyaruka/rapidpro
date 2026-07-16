@@ -1654,7 +1654,7 @@ class FlowCRUDL(SmartCRUDL):
         def derive_initial(self):
             org = self.request.org
             contacts = self.request.GET.get("c", "")
-            contacts = org.contacts.filter(uuid__in=contacts.split(","))
+            contacts = org.contacts.filter(uuid__in=contacts.split(","), is_active=True)
             recipients = []
             for contact in contacts:
                 urn = contact.get_urn()
@@ -1708,8 +1708,12 @@ class FlowCRUDL(SmartCRUDL):
             contact_search = form.cleaned_data["contact_search"]
             flow = form.cleaned_data["flow"]
 
+            exclusions = contact_search.get("exclusions", {})
+
             if self.contact:
                 groups, contacts, query = [], [self.contact], None
+                # user has already confirmed interrupting the contact's current flow
+                exclusions = {k: v for k, v in exclusions.items() if k != "in_a_flow"}
             else:
                 recipients = contact_search.get("recipients", [])
                 groups, contacts = ContactSearchWidget.parse_recipients(self.request.org, recipients)
@@ -1720,7 +1724,7 @@ class FlowCRUDL(SmartCRUDL):
                 groups=groups,
                 contacts=contacts,
                 query=query,
-                exclude=Exclusions(**contact_search.get("exclusions", {})),
+                exclude=Exclusions(**exclusions),
             )
             return super().form_valid(form)
 
