@@ -1591,7 +1591,7 @@ class FlowCRUDL(SmartCRUDL):
                 ),
             )
 
-            def __init__(self, org, flow, **kwargs):
+            def __init__(self, org, flow, contact, **kwargs):
                 super().__init__(**kwargs)
                 self.org = org
 
@@ -1600,6 +1600,14 @@ class FlowCRUDL(SmartCRUDL):
                     is_archived=False,
                     is_active=True,
                 ).order_by(Lower("name"))
+
+                if contact:
+                    # seeded from a single contact (e.g. their read page) so recipients can't be
+                    # changed, and if they're in a flow the user must confirm interrupting it
+                    search_attrs = self.fields["contact_search"].widget.attrs
+                    search_attrs["fixed"] = True
+                    if contact.current_flow:
+                        search_attrs["current_flow"] = contact.current_flow.name
 
                 if flow:
                     self.fields["flow"].widget = forms.HiddenInput(
@@ -1674,24 +1682,44 @@ class FlowCRUDL(SmartCRUDL):
             flow_id = self.request.GET.get("flow", None)
             return self.request.org.flows.filter(id=flow_id, is_active=True).first() if flow_id else None
 
+        @cached_property
+        def contact(self):
+            """
+            When seeded with a single contact (e.g. from their read page or a ticket) the start is
+            locked to that contact.
+            """
+            uuids = [u for u in self.request.GET.get("c", "").split(",") if u]
+            if len(uuids) == 1:
+                return (
+                    self.request.org.contacts.filter(uuid=uuids[0], is_active=True)
+                    .select_related("current_flow")
+                    .first()
+                )
+            return None
+
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
             kwargs["org"] = self.request.org
             kwargs["flow"] = self.flow
+            kwargs["contact"] = self.contact
             return kwargs
 
         def form_valid(self, form):
             contact_search = form.cleaned_data["contact_search"]
             flow = form.cleaned_data["flow"]
 
-            recipients = contact_search.get("recipients", [])
-            groups, contacts = ContactSearchWidget.parse_recipients(self.request.org, recipients)
+            if self.contact:
+                groups, contacts, query = [], [self.contact], None
+            else:
+                recipients = contact_search.get("recipients", [])
+                groups, contacts = ContactSearchWidget.parse_recipients(self.request.org, recipients)
+                query = contact_search["parsed_query"] if "parsed_query" in contact_search else None
 
             flow.start(
                 self.request.user,
                 groups=groups,
                 contacts=contacts,
-                query=contact_search["parsed_query"] if "parsed_query" in contact_search else None,
+                query=query,
                 exclude=Exclusions(**contact_search.get("exclusions", {})),
             )
             return super().form_valid(form)

@@ -365,15 +365,14 @@ class TicketCRUDL(SmartCRUDL):
                         f"{reverse('tickets.ticket_note', args=[ticket.uuid])}",
                     )
 
-                if not ticket.contact.current_flow:
-                    if self.has_org_perm("flows.flow_start"):
-                        menu.add_modax(
-                            _("Start Flow"),
-                            "start-flow",
-                            f"{reverse('flows.flow_start')}?c={ticket.contact.uuid}",
-                            disabled=True,
-                            on_submit="handleFlowStarted()",
-                        )
+                if self.has_org_perm("flows.flow_start"):
+                    menu.add_modax(
+                        _("Start Flow"),
+                        "start-flow",
+                        f"{reverse('flows.flow_start')}?c={ticket.contact.uuid}",
+                        disabled=True,
+                        on_submit="handleFlowStarted()",
+                    )
 
         def get_queryset(self, **kwargs):
             return super().get_queryset(**kwargs).none()
