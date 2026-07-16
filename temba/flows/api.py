@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from django.db.models import Q, Sum, Value
 from django.db.models.functions import Coalesce, Lower
 
@@ -7,6 +5,7 @@ from temba.api.internal.serializers import ModelAsJsonSerializer
 from temba.api.internal.views import BaseEndpoint
 from temba.api.support import ListPagination, NameCursorPagination, SearchLengthMixin
 from temba.api.views import ListAPIMixin
+from temba.utils.uuid import is_uuid
 
 from .models import Flow, FlowLabel, FlowRun
 
@@ -41,9 +40,7 @@ class FlowsEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
             # Validate before the lookup — an unparseable value would otherwise raise in the database's UUID
             # coercion (500). FlowLabel.objects rather than org.flow_labels for the same readonly-alias reason as
             # the flows queryset above.
-            try:
-                UUID(label_uuid)
-            except ValueError:
+            if not is_uuid(label_uuid):
                 return Flow.objects.none()
             label = FlowLabel.objects.filter(org=org, uuid=label_uuid, is_active=True).first()
             if not label:

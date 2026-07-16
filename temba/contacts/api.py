@@ -9,6 +9,7 @@ from temba.api.support import ListPagination, SearchLengthMixin
 from temba.api.views import ListAPIMixin
 from temba.utils.models.base import patch_queryset_count
 from temba.utils.models.es import SearchSliceQuerySet
+from temba.utils.uuid import is_uuid
 
 from .models import Contact, ContactField, ContactGroup
 
@@ -72,6 +73,10 @@ class ContactsEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
         org = self.request.org
         group_uuid = self.request.query_params.get("group")
         if group_uuid:
+            # Validate before the lookup — an unparseable value would otherwise raise in the database's UUID
+            # coercion (500). Mirrors FlowsEndpoint's label guard.
+            if not is_uuid(group_uuid):
+                return None
             # Mirror GroupsEndpoint.filter_queryset: skip still-evaluating smart groups so we never page over a group
             # whose membership isn't yet populated.
             return (

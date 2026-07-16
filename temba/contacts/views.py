@@ -41,6 +41,7 @@ from temba.utils import json, on_transaction_commit
 from temba.utils.fields import CheckboxWidget, InputWidget, SelectWidget, TembaChoiceField
 from temba.utils.models import patch_queryset_count
 from temba.utils.models.es import SearchSliceQuerySet
+from temba.utils.uuid import is_uuid
 from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, NonAtomicMixin, SpaMixin
 
 from .forms import ContactGroupForm, CreateContactForm, UpdateContactForm
@@ -147,21 +148,13 @@ class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
             if uuids:
                 # Only keep well-formed UUIDs — `uuid__in` runs each value through UUIDField.get_prep_value, so a single
                 # malformed value (a hostile post, or a stale id-based form post) would otherwise raise ValueError (500).
-                valid = []
-                for u in uuids:
-                    try:
-                        valid.append(UUID(u))
-                    except ValueError:
-                        pass
+                valid = [u for u in uuids if is_uuid(u)]
                 ids = Contact.objects.filter(org=request.org, uuid__in=valid).values_list("id", flat=True)
                 data.setlist("objects", [str(i) for i in ids])
             label = data.get("label")
             if label:
-                try:
-                    UUID(label)
-                except ValueError:
-                    pass  # already an id (legacy form post) — leave alone
-                else:
+                # a non-uuid value (the legacy form's integer id) is left alone
+                if is_uuid(label):
                     group = request.org.groups.filter(uuid=label).first()
                     data["label"] = str(group.id) if group else ""
             elif data.get("action") == "unlabel" and self.group is not None:

@@ -3,7 +3,6 @@ import os
 from datetime import timedelta
 from functools import cached_property
 from urllib.parse import quote_plus
-from uuid import UUID
 
 import magic
 from smartmin.views import SmartCreateView, SmartCRUDL, SmartDeleteView, SmartUpdateView
@@ -36,6 +35,7 @@ from temba.utils import json
 from temba.utils.compose import compose_deserialize, compose_serialize
 from temba.utils.fields import CompletionTextarea, ContactSearchWidget, InputWidget, SelectWidget
 from temba.utils.models import patch_queryset_count
+from temba.utils.uuid import is_uuid
 from temba.utils.views.mixins import (
     ContextMenuMixin,
     ModalFormMixin,
@@ -118,15 +118,10 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
         # POST that happens to carry a `label` key isn't rewritten.
         if request.POST.get("action") in ("label", "unlabel"):
             label = request.POST.get("label")
-            if label:
-                try:
-                    UUID(label)
-                except ValueError:
-                    pass
-                else:
-                    obj = self.request.org.msgs_labels.filter(uuid=label).first()
-                    request.POST = request.POST.copy()
-                    request.POST["label"] = str(obj.id) if obj else ""
+            if label and is_uuid(label):
+                obj = self.request.org.msgs_labels.filter(uuid=label).first()
+                request.POST = request.POST.copy()
+                request.POST["label"] = str(obj.id) if obj else ""
 
         return super().post(request, *args, **kwargs)
 
