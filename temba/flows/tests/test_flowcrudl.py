@@ -1579,6 +1579,12 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertUpdateFetch(multi_url, [self.admin], form_fields=["flow", "contact_search"])
         self.assertNotIn("fixed", response.context["form"].fields["contact_search"].widget.attrs)
 
+        # seeding with another org's contact doesn't lock the recipients
+        other_org_contact = self.create_contact("Hans", phone="+593979099333", org=self.org2)
+        other_org_url = f"{reverse('flows.flow_start', args=[])}?c={other_org_contact.uuid}"
+        response = self.assertUpdateFetch(other_org_url, [self.admin], form_fields=["flow", "contact_search"])
+        self.assertNotIn("fixed", response.context["form"].fields["contact_search"].widget.attrs)
+
     @mock_mailroom
     def test_start_background_flow(self, mr_mocks):
         flow = self.create_flow("Background", flow_type=Flow.TYPE_BACKGROUND)
