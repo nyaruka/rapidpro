@@ -1,4 +1,5 @@
 from datetime import timedelta
+from functools import cached_property
 
 from django.db.models import Q
 from django.utils import timezone
@@ -68,11 +69,13 @@ class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
     serializer_class = ModelAsJsonSerializer
     pagination_class = Pagination
 
-    def get_label(self):
+    @cached_property
+    def label(self):
         """
-        Gets the label referenced by the `label` query param, or None if it's malformed or not a label in the current
+        The label referenced by the `label` query param, or None if it's malformed or not a label in the current
         org. Validated before the lookup — an unparseable value would otherwise raise in the database's UUID
-        coercion (500). Mirrors FlowsEndpoint's label guard.
+        coercion (500). Mirrors FlowsEndpoint's label guard. Cached because it's read by both derive_queryset and
+        get_total_count on the same request.
         """
         label_uuid = self.request.query_params.get("label")
         if not label_uuid or not is_uuid(label_uuid):
@@ -84,8 +87,7 @@ class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
         # when there's no search, avoiding a COUNT(*) on the messages table.
         org = self.request.org
         if self.request.query_params.get("label"):
-            label = self.get_label()
-            return label.get_visible_count() if label else 0
+            return self.label.get_visible_count() if self.label else 0
 
         folder = self.FOLDERS.get(self.request.query_params.get("folder", "inbox").lower())
         if not folder:
@@ -98,7 +100,7 @@ class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
         # `org` and `channel` are select_related because Msg.as_json reads self.org (for contact display) and
         # self.channel.is_active/uuid (for the channel-log link gated on the channels.channel_logs perm).
         if self.request.query_params.get("label"):
-            label = self.get_label()
+            label = self.label
             if not label:
                 return Msg.objects.none()
             return (
