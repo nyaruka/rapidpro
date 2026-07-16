@@ -1,4 +1,5 @@
 from datetime import timedelta
+from uuid import UUID
 
 from django.db.models import Q
 from django.utils import timezone
@@ -67,13 +68,27 @@ class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
     serializer_class = ModelAsJsonSerializer
     pagination_class = Pagination
 
+    def get_label(self):
+        """
+        Gets the label referenced by the `label` query param, or None if it's malformed or not a label in the current
+        org. Validated before the lookup — an unparseable value would otherwise raise in the database's UUID
+        coercion (500). Mirrors FlowsEndpoint's label guard.
+        """
+        label_uuid = self.request.query_params.get("label")
+        if not label_uuid:
+            return None
+        try:
+            UUID(label_uuid)
+        except ValueError:
+            return None
+        return self.request.org.msgs_labels.filter(uuid=label_uuid).first()
+
     def get_total_count(self) -> int:
         # Cheap pre-calculated total for the active folder/label (squashed count tables) — used as the list's total
         # when there's no search, avoiding a COUNT(*) on the messages table.
         org = self.request.org
-        label_uuid = self.request.query_params.get("label")
-        if label_uuid:
-            label = org.msgs_labels.filter(uuid=label_uuid).first()
+        if self.request.query_params.get("label"):
+            label = self.get_label()
             return label.get_visible_count() if label else 0
 
         folder = self.FOLDERS.get(self.request.query_params.get("folder", "inbox").lower())
@@ -86,9 +101,8 @@ class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
         # messages for that label aren't a MsgFolder slice.
         # `org` and `channel` are select_related because Msg.as_json reads self.org (for contact display) and
         # self.channel.is_active/uuid (for the channel-log link gated on the channels.channel_logs perm).
-        label_uuid = self.request.query_params.get("label")
-        if label_uuid:
-            label = self.request.org.msgs_labels.filter(uuid=label_uuid).first()
+        if self.request.query_params.get("label"):
+            label = self.get_label()
             if not label:
                 return Msg.objects.none()
             return (

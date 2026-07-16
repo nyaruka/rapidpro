@@ -202,8 +202,9 @@ class EndpointsTest(APITestMixin, TembaTest):
         other_label = self.create_label("Other", org=self.org2)
         self.assertGet(endpoint_url + f"?label={other_label.uuid}", [self.admin], results=[])
 
-        # an unknown label uuid returns nothing
+        # an unknown or malformed label uuid returns nothing
         self.assertGet(endpoint_url + f"?label={contact1.uuid}", [self.admin], results=[])
+        self.assertGet(endpoint_url + "?label=foo", [self.admin], results=[])
 
         # can search by message text or contact name
         response = self.assertGet(endpoint_url + "?search=hello", [self.admin], results=[msg1])
@@ -269,9 +270,10 @@ class EndpointsTest(APITestMixin, TembaTest):
         # an unknown folder yields no contacts
         self.assertGet(endpoint_url + "?folder=nope", [self.admin], results=[])
 
-        # a specific group can be selected by uuid
+        # a specific group can be selected by uuid; a malformed group yields no contacts
         group = self.create_group("Crew", contacts=[joe])
         self.assertGet(endpoint_url + f"?group={group.uuid}", [self.admin], results=[joe])
+        self.assertGet(endpoint_url + "?group=foo", [self.admin], results=[])
 
         # each row carries its group memberships so the component can pre-check the group dropdown
         def check_groups(data):
