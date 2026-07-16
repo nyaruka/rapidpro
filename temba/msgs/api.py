@@ -1,5 +1,4 @@
 from datetime import timedelta
-from uuid import UUID
 
 from django.db.models import Q
 from django.utils import timezone
@@ -8,6 +7,7 @@ from temba.api.internal.serializers import ModelAsJsonSerializer
 from temba.api.internal.views import BaseEndpoint
 from temba.api.support import CreatedOnCursorPagination, SearchCountMixin, SearchLengthMixin, SentOnCursorPagination
 from temba.api.views import ListAPIMixin
+from temba.utils.uuid import is_uuid
 
 from .models import Msg, MsgFolder
 
@@ -75,11 +75,7 @@ class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
         coercion (500). Mirrors FlowsEndpoint's label guard.
         """
         label_uuid = self.request.query_params.get("label")
-        if not label_uuid:
-            return None
-        try:
-            UUID(label_uuid)
-        except ValueError:
+        if not label_uuid or not is_uuid(label_uuid):
             return None
         return self.request.org.msgs_labels.filter(uuid=label_uuid).first()
 
