@@ -1241,6 +1241,10 @@ class QueryExceptionTest(TembaTest):
                 QueryValidationException("cannot query on redacted URNs", "redacted_urns", {}),
                 "Can't query on URNs in an anonymous workspace.",
             ),
+            (
+                QueryValidationException("query is too complex", "too_complex", {}),
+                "This query is too complex. Please simplify it and try again.",
+            ),
             (QueryValidationException("no code here", "", {}), "no code here"),
         )
 
