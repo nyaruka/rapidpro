@@ -21,8 +21,10 @@
 
     .back-button {
       display: none;
-      padding-right: 0.5em;
-      margin-top: -1em;
+      /* the header bar grows slotted children to fill the strip — the
+         back button holds its own size */
+      flex: 0 0 auto;
+      margin-right: 0.25em;
     }
 
     .back-button:hover {
@@ -50,19 +52,35 @@
 
     .mobile .ticket-ui temba-resizer {
       min-width: 100vw;
-      padding: 0.75em;
       transition: margin-left 0.5s;
     }
 
     .mobile .ticket-ui temba-resizer .ticket-list {
       padding: 0;
-      padding-bottom: 0em;
+    }
+
+    /* the header strip runs flush across the top (over the band painted on
+       .ticket-ui) — the list body below carries the inset instead */
+    .mobile .list-body {
+      padding: 8px;
+    }
+
+    /* no chat column beside the list on mobile, so restore the strip's
+       right inset */
+    .mobile .ticket-list temba-header-bar {
+      padding-right: 8px;
     }
 
     .mobile .ticket-ui .chat-pane {
       padding-right: 0.75em;
       padding-left: 0.75em;
       margin-left: 0;
+    }
+
+    /* the pane already insets both sides — drop the extra right padding
+       the layout adds in tab view to keep clear of the card column edge */
+    .mobile .chat-pane temba-card-layout {
+      padding-right: 0;
     }
 
     .mobile temba-header-bar .back-button {
@@ -79,6 +97,10 @@
 
     .chat-pane .empty {
       position: absolute;
+      /* clear the header strip (52px + 1px rule) — as an absolutely
+         positioned flex child the empty state's static position is the
+         top of the pane, which would print it over the page header */
+      top: 53px;
       opacity: 0;
       padding: 3px 40px;
       pointer-events: none;
@@ -119,6 +141,8 @@
       /* the gap to the ticket list — the resizer's drag handle strip
          (sized to match) rides in this space */
       margin-left: 8px;
+      /* anchor the empty state's top offset to this pane */
+      position: relative;
     }
 
     temba-menu {
@@ -430,6 +454,16 @@
 
       } else {
         ticketUI.classList.remove('has-selection');
+
+        // on mobile the list shouldn't keep a focused ticket — clear the
+        // selection so the same ticket can be tapped again
+        if (window.isMobile && isMobile()) {
+          var tickets = document.querySelector("temba-ticket-list");
+          if (tickets) {
+            tickets.clearSelection();
+          }
+        }
+
         if (layout) {
           layout.classList.add("hidden");
         }
@@ -665,12 +699,13 @@
       </temba-resizer>
       <div class="chat-pane flex-grow flex-col flex">
         <temba-header-bar>
+          {# outside the page header so the hover ring isn't clipped by its title's text truncation #}
+          <temba-icon size="1.2" class="back-button" name="arrow_left" clickable onclick="handleContactChanged()">
+          </temba-icon>
           <temba-page-header id="page-header"
                              content-menu-endpoint="{{ request.path }}"
                              -temba-selection="handleContentMenuSelected(event)">
             <div slot="title" class="flex" style="align-items: center">
-              <temba-icon size="1.2" class="back-button" name="arrow_left" clickable onclick="handleContactChanged()">
-              </temba-icon>
               <temba-contact-name-fetch -temba-refreshed="handleContactRefreshed"
                                         icon-size="16"
                                         onclick="{% if org_perms.contacts.contact_read %}handleNameClicked(){% endif %}"
