@@ -1910,8 +1910,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         MockSessionWriter(contact, self.create_flow("Test")).wait().save()
         MockSessionWriter(other_org_contact, self.create_flow("Test", org=self.org2)).wait().save()
 
-        # start option should be gone
-        self.assertContentMenu(read_url, self.admin, ["Edit", "Open Ticket"])
+        # start option is still present even for a contact in a flow - the start modal handles
+        # confirming the interruption
+        self.assertContentMenu(read_url, self.admin, ["Edit", "Start Flow", "Open Ticket"])
 
         # can't interrupt if not logged in
         self.client.logout()
@@ -1996,7 +1997,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             object_unchanged=contact,
         )
 
-        # submit with flow...
+        # submit with flow... the start is locked to the seeded contact so the query is ignored
         contact_search = dict(query=f"uuid='{contact.uuid}'", advanced=True)
         self.assertUpdateSubmit(
             start_url, self.admin, {"flow": background_flow.id, "contact_search": json.dumps(contact_search)}
@@ -2011,9 +2012,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
                     typ="M",
                     flow=background_flow,
                     groups=[],
-                    contacts=[],
+                    contacts=[contact],
                     urns=[],
-                    query=f"uuid='{contact.uuid}'",
+                    query=None,
                     exclude=Exclusions(),
                     params={},
                 )

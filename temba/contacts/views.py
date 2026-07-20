@@ -455,7 +455,7 @@ class ContactCRUDL(SmartCRUDL):
                 )
 
             if obj.status == Contact.STATUS_ACTIVE:
-                if not obj.current_flow and self.has_org_perm("flows.flow_start"):
+                if self.has_org_perm("flows.flow_start"):
                     menu.add_modax(
                         _("Start Flow"),
                         "start-flow",
