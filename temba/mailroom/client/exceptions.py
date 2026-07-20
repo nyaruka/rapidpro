@@ -52,6 +52,7 @@ class QueryValidationException(Exception):
         "unknown_property": _("Can't resolve '%(property)s' to a field or URN scheme."),
         "unknown_property_type": _("Prefixes must be 'fields' or 'urns'."),
         "redacted_urns": _("Can't query on URNs in an anonymous workspace."),
+        "too_complex": _("This query is too complex. Please simplify it and try again."),
     }
 
     def __init__(self, error: str, code: str, extra: dict = None):
