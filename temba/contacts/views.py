@@ -12,7 +12,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 from django.db import transaction
 from django.db.models.functions import Upper
-from django.http import HttpResponse, HttpResponseNotFound, HttpResponseRedirect, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseNotFound, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -1075,11 +1075,10 @@ class ContactFieldForm(UniqueNameMixin, forms.ModelForm):
 
     class Meta:
         model = ContactField
-        fields = ("name", "value_type", "show_in_table", "agent_access")
+        fields = ("name", "value_type", "agent_access")
         labels = {
             "name": _("Name"),
             "value_type": _("Data Type"),
-            "show_in_table": _("Featured"),
             "agent_access": _("Agent Access"),
         }
         help_texts = {
@@ -1089,7 +1088,6 @@ class ContactFieldForm(UniqueNameMixin, forms.ModelForm):
         widgets = {
             "name": InputWidget(attrs={"widget_only": False}),
             "value_type": SelectWidget(attrs={"widget_only": False}),
-            "show_in_table": CheckboxWidget(attrs={"widget_only": True}),
             "agent_access": SelectWidget(attrs={"widget_only": False}),
         }
 
@@ -1113,7 +1111,7 @@ class FieldLookupMixin:
 
 class ContactFieldCRUDL(SmartCRUDL):
     model = ContactField
-    actions = ("list", "create", "update", "update_priority", "delete", "usages")
+    actions = ("list", "create", "update", "update_priority", "delete", "usages", "detail")
 
     class Create(BaseCreateModal):
         queryset = ContactField.user_fields
@@ -1127,7 +1125,6 @@ class ContactFieldCRUDL(SmartCRUDL):
                 self.request.user,
                 name=form.cleaned_data["name"],
                 value_type=form.cleaned_data["value_type"],
-                featured=form.cleaned_data["show_in_table"],
                 agent_access=form.cleaned_data["agent_access"],
             )
             return self.render_modal_response(form)
@@ -1137,14 +1134,6 @@ class ContactFieldCRUDL(SmartCRUDL):
         form_class = ContactFieldForm
         submit_button_name = _("Update")
         success_url = "hide"
-
-        def pre_save(self, obj):
-            obj = super().pre_save(obj)
-
-            # clear our priority if no longer featured
-            if not obj.show_in_table:
-                obj.priority = 0
-            return obj
 
         def form_valid(self, form):
             super().form_valid(form)
@@ -1158,9 +1147,21 @@ class ContactFieldCRUDL(SmartCRUDL):
         def post(self, request, *args, **kwargs):
             try:
                 post_data = json.loads(request.body)
+                featured = post_data.get("featured") if isinstance(post_data, dict) else None
+
                 with transaction.atomic():
-                    for key, priority in post_data.items():
-                        ContactField.user_fields.filter(key=key, org=self.request.org).update(priority=priority)
+                    if isinstance(featured, list):
+                        # the full ordered featured set: first is highest priority, and any featured field not
+                        # listed is un-featured
+                        org_fields = ContactField.user_fields.filter(org=self.request.org, is_active=True)
+                        for idx, key in enumerate(featured):
+                            org_fields.filter(key=key).update(show_in_table=True, priority=len(featured) - idx)
+                        org_fields.filter(show_in_table=True).exclude(key__in=featured).update(
+                            show_in_table=False, priority=0
+                        )
+                    else:
+                        for key, priority in post_data.items():
+                            ContactField.user_fields.filter(key=key, org=self.request.org).update(priority=priority)
 
                 return HttpResponse('{"status":"OK"}', status=200, content_type="application/json")
 
@@ -1174,6 +1175,16 @@ class ContactFieldCRUDL(SmartCRUDL):
     class List(SpaMixin, ContextMenuMixin, BaseListView):
         menu_path = "/contact/fields"
         title = _("Fields")
+
+        # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview,
+        # the list renders the temba-field-list component (contacts/contactfield_list_new.html) instead of the
+        # legacy field manager; the component fetches the fields itself from the API.
+        NEW_LIST_TEMPLATE = "contacts/contactfield_list_new.html"
+
+        def get_template_names(self):
+            if getattr(self.request, "preview", False):
+                return [self.NEW_LIST_TEMPLATE]
+            return super().get_template_names()
 
         def build_context_menu(self, menu):
             if self.has_org_perm("contacts.contactfield_create") and not self.is_limit_reached():
@@ -1189,6 +1200,66 @@ class ContactFieldCRUDL(SmartCRUDL):
     class Usages(FieldLookupMixin, BaseUsagesModal):
         permission = "contacts.contactfield_read"
         queryset = ContactField.user_fields
+
+    class Detail(FieldLookupMixin, OrgPermsMixin, SmartView, View):
+        """
+        A field's usages and permissions as JSON, consumed by the temba-field-list component's detail modal on
+        the preview list page — so like that page it only exists in preview mode.
+        """
+
+        permission = "contacts.contactfield_read"
+        USAGES_LIMIT = 25
+
+        def get(self, request, *args, **kwargs):
+            if not getattr(request, "preview", False):
+                raise Http404()
+
+            field = self.get_object()
+            dependents = field.get_dependents()
+            flows = dependents["flow"].order_by("name")
+            groups = dependents["group"].order_by("name")
+            events = dependents["campaign_event"].select_related("campaign", "relative_to").order_by("campaign__name")
+
+            return JsonResponse(
+                {
+                    "field": {
+                        "key": field.key,
+                        "name": field.name,
+                        "value_type": field.value_type,
+                        "featured": field.show_in_table,
+                        "agent_access": field.agent_access,
+                    },
+                    "usages": {
+                        "flows": [
+                            {"uuid": str(f.uuid), "name": f.name, "url": reverse("flows.flow_editor", args=[f.uuid])}
+                            for f in flows[: self.USAGES_LIMIT]
+                        ],
+                        "groups": [
+                            {"uuid": str(g.uuid), "name": g.name, "url": reverse("contacts.contact_group", args=[g.uuid])}
+                            for g in groups[: self.USAGES_LIMIT]
+                        ],
+                        "campaign_events": [
+                            {
+                                "id": e.id,
+                                "campaign": {
+                                    "uuid": str(e.campaign.uuid),
+                                    "name": e.campaign.name,
+                                    "url": reverse("campaigns.campaign_read", args=[e.campaign.uuid]),
+                                },
+                                "offset_display": f"{e.offset_display} {e.relative_to.name}",
+                            }
+                            for e in events[: self.USAGES_LIMIT]
+                        ],
+                    },
+                    "counts": {
+                        "flows": flows.count(),
+                        "groups": groups.count(),
+                        "campaign_events": events.count(),
+                    },
+                    "can_edit": self.has_org_perm("contacts.contactfield_update") and not field.is_system,
+                    "can_delete": self.has_org_perm("contacts.contactfield_delete") and not field.is_system,
+                }
+            )
 
 
 class ContactImportCRUDL(SmartCRUDL):
