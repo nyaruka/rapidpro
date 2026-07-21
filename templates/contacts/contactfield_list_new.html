@@ -1,0 +1,114 @@
+{% extends "smartmin/list.html" %}
+{% load i18n %}
+
+{% comment %}
+  New-style contact fields list rendered when the viewer is in preview
+  mode (request.preview, set by PreviewMiddleware off the temba-preview
+  cookie). The temba-field-list component renders the same page header
+  as the new list views (title + content menu), then the fields as two
+  cards — Featured (drag to order, drag out to un-feature) and Other
+  Fields (drag into Featured to feature); the component reads the
+  fields from the store and saves the featured set to the priority
+  endpoint. There is no field read page — clicking a row opens a detail
+  modal with the field's usages, and fields are edited / deleted
+  through modals from there.
+{% endcomment %}
+{% block page-header %}
+  {# the component renders its own header (title + content menu); #}
+  {# keep the csrf token and a hidden title for the SPA document.title hook #}
+  {% csrf_token %}
+  <div id="title-text" class="hide">{{ title }}</div>
+{% endblock page-header %}
+{% block extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    /* The component renders the same flush header bar as the new list
+       pages, so drop the SPA content padding the same way they do. */
+    .spa-content {
+      padding: 0 !important;
+    }
+  </style>
+{% endblock extra-style %}
+{% block content %}
+  <temba-field-list id="field-list"
+                    header-title="{{ title }}"
+                    content-menu-endpoint="{{ request.path }}?{{ request.GET.urlencode }}"
+                    priority-endpoint="{% url 'contacts.contactfield_update_priority' %}"
+                    detail-endpoint="/contactfield/detail/">
+  </temba-field-list>
+{% endblock content %}
+{% block extra-script %}
+  {{ block.super }}
+  <script type="text/javascript">
+    function handleFieldUpdated() {
+      document.querySelector("temba-store").refreshFields();
+      refreshMenu();
+    }
+
+    onSpload(function() {
+      var list = document.querySelector("#field-list");
+
+      list.addEventListener("temba-selection", function(event) {
+        var detail = event.detail;
+
+        // the embedded page header fires temba-selection with a content-menu
+        // item - dispatch it the same way the page chrome's content menu
+        // (spa_page_menu.html) does
+        if (detail.item && detail.item.type) {
+          var item = detail.item;
+          var click = detail.event;
+          if (item.type === "link") {
+            if (click) {
+              click.preventDefault();
+              click.stopPropagation();
+              if (click.metaKey && item.url) {
+                window.open(item.url, "_blank");
+                return;
+              }
+            }
+            spaGet(item.url);
+          } else if (item.type === "modax") {
+            showModax(item.title, item.url, {
+              disabled: item.disabled,
+              onSubmit: item.on_submit,
+              onRedirect: item.on_redirect,
+              id: item.modal_id,
+              originX: detail.originX,
+              originY: detail.originY
+            });
+          } else if (item.type === "url_post") {
+            posterize(item.url);
+          } else if (item.type === "js") {
+            if (window[item.id]) {
+              window[item.id]();
+            }
+          }
+          refreshMenu();
+          return;
+        }
+
+        // rows open the edit / delete modals from the detail popup
+        if (detail.action === "update") {
+          showModax("{% trans "Update Field" %}", "/contactfield/update/" + detail.key + "/", {
+            id: "field-update",
+            onSubmit: "handleFieldUpdated()"
+          });
+          return;
+        }
+        if (detail.action === "delete") {
+          showModax("{% trans "Delete Field" %}", "/contactfield/delete/" + detail.key + "/", {
+            id: "field-delete",
+            onSubmit: "handleFieldUpdated()"
+          });
+          return;
+        }
+
+        // a usage pill in the detail popup carries the flow / group /
+        // campaign url
+        if (detail.url) {
+          spaGet(detail.url);
+        }
+      });
+    });
+  </script>
+{% endblock extra-script %}
