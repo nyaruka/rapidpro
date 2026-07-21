@@ -664,8 +664,9 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
             f"{reverse('api.internal.broadcasts')}.json?folder=scheduled", response.context["new_list_endpoint"]
         )
         self.assertEqual("scheduled", response.context["new_list_mode"])
-        # editors can update scheduled broadcasts, so the detail dialog gets its edit/delete actions
-        self.assertContains(response, "can-edit can-delete")
+        # editors can update and delete scheduled broadcasts, so the detail dialog gets its edit/delete actions
+        self.assertContains(response, "can-edit")
+        self.assertContains(response, "can-delete")
 
     def test_scheduled_delete(self):
         self.login(self.editor)
