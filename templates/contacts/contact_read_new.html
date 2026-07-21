@@ -2,8 +2,9 @@
 {% load i18n humanize smartmin sms contacts temba %}
 
 {% comment %}
-  Preview-mode contact read page (request.preview, set by PreviewMiddleware
-  off the temba-preview cookie). Chat is the main view with the other panels
+  Default contact read page (rendered unless the viewer opts into legacy
+  mode via request.legacy, set by LegacyMiddleware off the temba-legacy
+  cookie). Chat is the main view with the other panels
   as collapsible, drag-sortable cards in a right column. Card order and
   collapsed state persist per user in User.settings under "contact_cards".
 {% endcomment %}

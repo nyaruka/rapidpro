@@ -101,6 +101,9 @@ class ContactFieldTest(TembaTest):
 
     @mock_mailroom
     def test_contact_field_list_sort_fields(self, mr_mocks):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         url = reverse("contacts.contact_list")
         self.login(self.admin)
 

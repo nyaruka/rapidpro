@@ -205,7 +205,7 @@ MIDDLEWARE = (
     "temba.middleware.LanguageMiddleware",
     "temba.middleware.TimezoneMiddleware",
     "temba.middleware.ToastMiddleware",
-    "temba.middleware.PreviewMiddleware",
+    "temba.middleware.LegacyMiddleware",
     "allauth.account.middleware.AccountMiddleware",
 )
 

@@ -135,6 +135,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
     @mock_mailroom
     def test_list(self, mr_mocks):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         list_url = reverse("contacts.contact_list")
 
         self.assertRequestDisallowed(list_url, [None, self.agent])
@@ -263,7 +266,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(Contact.STATUS_ARCHIVED, joe.status)
 
     @mock_mailroom
-    def test_preview_list(self, mr_mocks):
+    def test_new_list(self, mr_mocks):
         joe = self.create_contact("Joe", phone="123")
         frank = self.create_contact("Frank", phone="124")
         group = self.create_group("Crew", contacts=[joe, frank])
@@ -273,12 +276,13 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         self.login(self.admin)
 
-        # default render is still the legacy table
+        # legacy mode renders the legacy table
+        self.setLegacyUI()
         response = self.client.get(list_url)
         self.assertNotContains(response, "temba-contact-list")
 
-        # entering preview mode swaps in the temba-contact-list component, pointed at the internal contacts api
-        self.client.cookies["temba-preview"] = "1"
+        # by default we get the temba-contact-list component, pointed at the internal contacts api
+        self.setLegacyUI(False)
 
         response = self.client.get(list_url)
         self.assertContains(response, "temba-contact-list")
@@ -336,9 +340,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.post(list_url, {"action": "archive", "objects": "not-a-uuid"})
         self.assertEqual(200, response.status_code)
 
-        del self.client.cookies["temba-preview"]
+        self.setLegacyUI()
 
-        # back on the legacy (non-preview) list, the content menu still surfaces Create Smart Group when the search is
+        # back on the legacy list, the content menu still surfaces Create Smart Group when the search is
         # saveable as a group — build_context_menu reads the search straight off the request query string here
         self.assertContentMenu(
             list_url + "?search=age+%3E+30",
@@ -348,6 +352,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
     @mock_mailroom
     def test_blocked(self, mr_mocks):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         joe = self.create_contact("Joe", urns=["twitter:joe"])
         frank = self.create_contact("Frank", urns=["twitter:frank"])
         billy = self.create_contact("Billy", urns=["twitter:billy"])
@@ -384,6 +391,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
     @mock_mailroom
     def test_stopped(self, mr_mocks):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         joe = self.create_contact("Joe", urns=["twitter:joe"])
         frank = self.create_contact("Frank", urns=["twitter:frank"])
         billy = self.create_contact("Billy", urns=["twitter:billy"])
@@ -421,6 +431,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
     @patch("temba.contacts.models.Contact.BULK_RELEASE_IMMEDIATELY_LIMIT", 5)
     @mock_mailroom
     def test_archived(self, mr_mocks):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         joe = self.create_contact("Joe", urns=["twitter:joe"])
         frank = self.create_contact("Frank", urns=["twitter:frank"])
         billy = self.create_contact("Billy", urns=["twitter:billy"])
@@ -480,6 +493,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
     @mock_mailroom
     def test_group(self, mr_mocks):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         open_tickets = self.org.groups.get(name="Open Tickets")
         joe = self.create_contact("Joe", phone="123")
         frank = self.create_contact("Frank", phone="124")
@@ -545,6 +561,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
     @mock_mailroom
     def test_read(self, mr_mocks):
+        # opt into legacy mode to test the legacy read page
+        self.setLegacyUI()
+
         joe = self.create_contact("Joe", phone="123")
 
         read_url = reverse("contacts.contact_read", args=[joe.uuid])
@@ -596,20 +615,21 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(response.status_code, 404)
 
     @mock_mailroom
-    def test_preview_read(self, mr_mocks):
+    def test_new_read(self, mr_mocks):
         joe = self.create_contact("Joe", phone="123")
 
         read_url = reverse("contacts.contact_read", args=[joe.uuid])
 
         self.login(self.admin)
 
-        # default render is still the tabbed layout
+        # legacy mode renders the tabbed layout
+        self.setLegacyUI()
         response = self.client.get(read_url)
         self.assertContains(response, "temba-tabs")
         self.assertNotContains(response, "temba-card-layout")
 
-        # entering preview mode swaps in the chat + card column layout
-        self.client.cookies["temba-preview"] = "1"
+        # by default we get the chat + card column layout
+        self.setLegacyUI(False)
 
         response = self.client.get(read_url)
         self.assertContains(response, "temba-card-layout")

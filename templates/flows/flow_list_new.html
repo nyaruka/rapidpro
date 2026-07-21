@@ -3,8 +3,8 @@
 
 {% comment %}
   Generic new-list template used by every flow list view (Active /
-  Archived / label Filter) when the viewer is in preview mode
-  (request.preview, set by PreviewMiddleware off the temba-preview
+  Archived / label Filter) unless the viewer is in legacy mode
+  (request.legacy, set by LegacyMiddleware off the temba-legacy
   cookie). Endpoint, subtitle and bulk actions come from the view's
   context_data so the template stays the same across all of them.
 {% endcomment %}

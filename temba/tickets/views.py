@@ -279,7 +279,7 @@ class TicketCRUDL(SmartCRUDL):
         NEW_LIST_TEMPLATE = "tickets/ticket_list_new.html"
 
         def get_template_names(self):
-            if self.request.preview:
+            if not getattr(self.request, "legacy", False):
                 return [self.NEW_LIST_TEMPLATE]
 
             return super().get_template_names()

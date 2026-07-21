@@ -54,7 +54,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         return campaign
 
     @mock_mailroom
-    def test_update_preview_success_url(self, mr_mocks):
+    def test_update_success_url(self, mr_mocks):
         event = self.campaign1.events.order_by("id").first()
         registered = self.org.fields.get(key="registered")
         flow = self.org.flows.get(name="Welcomes Flow")
@@ -73,7 +73,8 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
 
-        # outside preview the edit modal continues to the event read page
+        # in legacy mode the edit modal continues to the event read page
+        self.setLegacyUI()
         response = self.client.post(update_url, data)
         self.assertRedirects(
             response,
@@ -81,8 +82,8 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             fetch_redirect_response=False,
         )
 
-        # in preview there is no event read page - it returns to the campaign
-        self.client.cookies["temba-preview"] = "1"
+        # by default there is no event read page - it returns to the campaign
+        self.setLegacyUI(False)
         response = self.client.post(update_url, data)
         self.assertRedirects(
             response, reverse("campaigns.campaign_read", args=[self.campaign1.uuid]), fetch_redirect_response=False
@@ -99,11 +100,12 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.editor)
 
-        # like the preview read page it feeds, the endpoint only exists in preview mode
+        # like the new read page it feeds, the endpoint doesn't exist in legacy mode
+        self.setLegacyUI()
         response = self.client.get(fires_url)
         self.assertEqual(404, response.status_code)
 
-        self.client.cookies["temba-preview"] = "1"
+        self.setLegacyUI(False)
         response = self.client.get(fires_url)
         self.assertEqual(200, response.status_code)
         self.assertEqual(

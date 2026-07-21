@@ -838,6 +838,9 @@ class AnonOrgTest(TembaTest):
         self.org.save()
 
     def test_contacts(self):
+        # opt into legacy mode as only the legacy lists render contacts server-side
+        self.setLegacyUI()
+
         # are there real phone numbers on the contact list page?
         contact = self.create_contact(None, phone="+250788123123")
         self.login(self.admin)

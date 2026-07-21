@@ -4,8 +4,8 @@
 {% comment %}
   New-list template shared by both broadcast list views — the sent list
   (msgs.broadcast_list) and the scheduled list (msgs.broadcast_scheduled)
-  — when the viewer is in preview mode (request.preview, set by
-  PreviewMiddleware off the temba-preview cookie). The endpoint and the
+  — unless the viewer is in legacy mode (request.legacy, set by
+  LegacyMiddleware off the temba-legacy cookie). The endpoint and the
   component's mode come from the view's context_data. In place of a
   broadcast read page, the component opens a floating detail dialog per
   row; on the scheduled list its Edit / Delete actions fire

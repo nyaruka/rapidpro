@@ -431,9 +431,9 @@ class TriggerCRUDL(SmartCRUDL):
         default_template = "triggers/trigger_list.html"
         search_fields = ("keywords__icontains", "flow__name__icontains", "channel__name__icontains")
 
-        # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview,
-        # every trigger list view renders the temba-trigger-list component (triggers/trigger_list_new.html) instead
-        # of its legacy table; the component fetches/pages triggers itself from the internal triggers API.
+        # By default every trigger list view renders the temba-trigger-list component
+        # (triggers/trigger_list_new.html); the component fetches/pages triggers itself from the internal triggers
+        # API. Viewers can opt back into the legacy table via legacy mode (LegacyMiddleware → request.legacy).
         NEW_LIST_TEMPLATE = "triggers/trigger_list_new.html"
 
         # Optional subtitle rendered under the title on the new-list view.
@@ -453,9 +453,9 @@ class TriggerCRUDL(SmartCRUDL):
         }
 
         def _use_new_list(self) -> bool:
-            # `getattr` defaults to False so a view called via RequestFactory (or if PreviewMiddleware is reordered
+            # `getattr` defaults to False so a view called via RequestFactory (or if LegacyMiddleware is reordered
             # out) doesn't AttributeError.
-            return getattr(self.request, "preview", False)
+            return not getattr(self.request, "legacy", False)
 
         def get_template_names(self):
             if self._use_new_list():
@@ -488,8 +488,8 @@ class TriggerCRUDL(SmartCRUDL):
             )
 
         def get_queryset(self, *args, **kwargs):
-            # In preview the temba-trigger-list component fetches and pages triggers from the internal triggers API,
-            # so a GET page needs no object list. A POST (bulk action) still needs the real queryset, since
+            # On the new list the temba-trigger-list component fetches and pages triggers from the internal triggers
+            # API, so a GET page needs no object list. A POST (bulk action) still needs the real queryset, since
             # BulkActionMixin validates the posted `objects` against it.
             if self._use_new_list() and self.request.method == "GET":
                 return Trigger.objects.none()

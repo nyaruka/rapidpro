@@ -2,9 +2,9 @@
 {% load i18n %}
 
 {% comment %}
-  Generic new-list template used by every MsgListView subclass when
-  the viewer is in preview mode (request.preview, set by
-  PreviewMiddleware off the temba-preview cookie). Endpoint, subtitle
+  Generic new-list template used by every MsgListView subclass unless
+  the viewer is in legacy mode (request.legacy, set by
+  LegacyMiddleware off the temba-legacy cookie). Endpoint, subtitle
   and bulk actions come from the view's context_data so the template
   stays the same across Inbox / Flow / Archived / Outbox / Sent /
   Failed and the per-label Filter view.

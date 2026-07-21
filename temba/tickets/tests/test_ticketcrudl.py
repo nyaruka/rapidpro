@@ -28,19 +28,20 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.support_only = Team.create(self.org, self.admin, "Support", topics=[self.support])
         self.org.add_user(self.agent3, OrgRole.AGENT, team=self.support_only)
 
-    def test_preview_list(self):
+    def test_new_list(self):
         list_url = reverse("tickets.ticket_list")
 
         self.login(self.admin)
 
-        # default render is still the tabbed layout
+        # legacy mode renders the tabbed layout
+        self.setLegacyUI()
+
         response = self.client.get(list_url)
         self.assertContains(response, "temba-tabs")
         self.assertNotContains(response, "temba-card-layout")
 
-        # entering preview mode swaps in the chat + card layout, sharing the
-        # contact card settings
-        self.client.cookies["temba-preview"] = "1"
+        # by default we get the chat + card layout, sharing the contact card settings
+        self.setLegacyUI(False)
 
         self.admin.settings = {"contact_cards": {"order": ["card-notepad", "card-fields"], "collapsed": []}}
         self.admin.save(update_fields=("settings",))
@@ -52,8 +53,6 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(
             '{"order": ["card-notepad", "card-fields"], "collapsed": []}', response.context["card_settings"]
         )
-
-        del self.client.cookies["temba-preview"]
 
     def test_list(self):
         list_url = reverse("tickets.ticket_list")

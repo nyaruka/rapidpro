@@ -134,7 +134,7 @@ class UserAuthTest(TembaTest):
 
         # should get signed up, logged in and redirected to inbox
         self.assertNotContains(response, "Sign Up Closed")
-        self.assertContains(response, "Your Message Hub")
+        self.assertContains(response, "temba-msg-list")
 
         # make sure we didn't honor the tampered email
         self.assertFalse(User.objects.filter(email="bobbyburgers@burgers.com").exists())

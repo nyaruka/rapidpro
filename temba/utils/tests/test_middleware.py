@@ -76,39 +76,39 @@ class MiddlewareTest(TembaTest):
         with override_brand(redirect="/redirect"):
             self.assertRedirect(self.client.get(reverse("public.public_index")), "/redirect")
 
-    def test_preview(self):
+    def test_legacy(self):
         index_url = reverse("public.public_index")
 
-        # an unauthenticated request can't toggle the cookie — blocks cross-origin <img src=".../?preview=1"> planting
-        response = self.client.get(index_url + "?preview=1")
-        self.assertNotIn("temba-preview", response.cookies)
-        self.assertFalse(response.wsgi_request.preview)
+        # an unauthenticated request can't toggle the cookie — blocks cross-origin <img src=".../?legacy=1"> planting
+        response = self.client.get(index_url + "?legacy=1")
+        self.assertNotIn("temba-legacy", response.cookies)
+        self.assertFalse(response.wsgi_request.legacy)
 
         self.login(self.admin)
 
-        # ?preview=1 opts in and sets the year-long hardened cookie, with request.preview set on the same request
-        response = self.client.get(index_url + "?preview=1")
-        cookie = response.cookies["temba-preview"]
+        # ?legacy=1 opts in and sets the year-long hardened cookie, with request.legacy set on the same request
+        response = self.client.get(index_url + "?legacy=1")
+        cookie = response.cookies["temba-legacy"]
         self.assertEqual("1", cookie.value)
         self.assertEqual(365 * 24 * 60 * 60, cookie["max-age"])
         self.assertEqual("Lax", cookie["samesite"])
         self.assertTrue(cookie["httponly"])
-        self.assertTrue(response.wsgi_request.preview)
+        self.assertTrue(response.wsgi_request.legacy)
 
         # subsequent request without the toggle reads the cookie back
         response = self.client.get(index_url)
-        self.assertTrue(response.wsgi_request.preview)
-        self.assertNotIn("temba-preview", response.cookies)
+        self.assertTrue(response.wsgi_request.legacy)
+        self.assertNotIn("temba-legacy", response.cookies)
 
         # unrecognized values don't toggle and fall back to the cookie
-        response = self.client.get(index_url + "?preview=on")
-        self.assertTrue(response.wsgi_request.preview)
-        self.assertNotIn("temba-preview", response.cookies)
+        response = self.client.get(index_url + "?legacy=on")
+        self.assertTrue(response.wsgi_request.legacy)
+        self.assertNotIn("temba-legacy", response.cookies)
 
-        # ?preview=0 opts out and clears the cookie
-        response = self.client.get(index_url + "?preview=0")
-        self.assertEqual("", response.cookies["temba-preview"].value)
-        self.assertFalse(response.wsgi_request.preview)
+        # ?legacy=0 opts out and clears the cookie
+        response = self.client.get(index_url + "?legacy=0")
+        self.assertEqual("", response.cookies["temba-legacy"].value)
+        self.assertFalse(response.wsgi_request.legacy)
 
     def test_language(self):
         def assert_text(text: str):

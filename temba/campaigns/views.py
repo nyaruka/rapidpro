@@ -112,16 +112,16 @@ class CampaignCRUDL(SmartCRUDL):
     class Read(SpaMixin, ContextMenuMixin, BaseReadView):
         menu_path = "/campaign/active"
 
-        # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview,
-        # the read view renders the temba-campaign-events component (campaigns/campaign_read_new.html) instead of
-        # the legacy table; the component fetches the event schedule itself from the campaign events endpoint.
+        # By default the read view renders the temba-campaign-events component (campaigns/campaign_read_new.html);
+        # the component fetches the event schedule itself from the campaign events endpoint. Viewers can opt back
+        # into the legacy table via legacy mode (LegacyMiddleware → request.legacy).
         NEW_READ_TEMPLATE = "campaigns/campaign_read_new.html"
 
         def derive_title(self):
             return self.object.name
 
         def get_template_names(self):
-            if getattr(self.request, "preview", False):
+            if not getattr(self.request, "legacy", False):
                 return [self.NEW_READ_TEMPLATE]
             return super().get_template_names()
 
@@ -168,22 +168,22 @@ class CampaignCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
 
-            # in preview the component fetches the events itself from the events endpoint
-            if not getattr(self.request, "preview", False):
+            # outside legacy mode the component fetches the events itself from the events endpoint
+            if getattr(self.request, "legacy", False):
                 context["events"] = self.object.get_sorted_events()
             return context
 
     class Events(BaseReadView):
         """
-        The event schedule of a campaign as JSON, consumed by the temba-campaign-events component on the preview
-        read page — so like that page it only exists in preview mode.
+        The event schedule of a campaign as JSON, consumed by the temba-campaign-events component on the new
+        read page — so like that page it doesn't exist in legacy mode.
         """
 
         permission = "campaigns.campaign_read"
 
         def get(self, request, *args, **kwargs):
-            # permission checks have already run in dispatch; hide the endpoint itself outside of preview
-            if not getattr(request, "preview", False):
+            # permission checks have already run in dispatch; hide the endpoint itself in legacy mode
+            if getattr(request, "legacy", False):
                 raise Http404()
             return super().get(request, *args, **kwargs)
 
@@ -222,9 +222,10 @@ class CampaignCRUDL(SmartCRUDL):
         default_template = "campaigns/campaign_list.html"
         default_order = ("-modified_on",)
 
-        # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview,
-        # every campaign list view renders the temba-campaign-list component (campaigns/campaign_list_new.html)
-        # instead of its legacy table; the component fetches/pages campaigns itself from the internal campaigns API.
+        # By default every campaign list view renders the temba-campaign-list component
+        # (campaigns/campaign_list_new.html); the component fetches/pages campaigns itself from the internal
+        # campaigns API. Viewers can opt back into the legacy table via legacy mode (LegacyMiddleware →
+        # request.legacy).
         NEW_LIST_TEMPLATE = "campaigns/campaign_list_new.html"
 
         # Optional subtitle rendered under the title on the new-list view.
@@ -237,9 +238,9 @@ class CampaignCRUDL(SmartCRUDL):
         }
 
         def _use_new_list(self) -> bool:
-            # `getattr` defaults to False so a view called via RequestFactory (or if PreviewMiddleware is reordered
+            # `getattr` defaults to False so a view called via RequestFactory (or if LegacyMiddleware is reordered
             # out) doesn't AttributeError.
-            return getattr(self.request, "preview", False)
+            return not getattr(self.request, "legacy", False)
 
         def get_template_names(self):
             if self._use_new_list():
@@ -283,8 +284,8 @@ class CampaignCRUDL(SmartCRUDL):
             return super().post(request, *args, **kwargs)
 
         def get_queryset(self, *args, **kwargs):
-            # In preview the temba-campaign-list component fetches and pages campaigns from the internal campaigns
-            # API, so a GET page needs no object list. A POST (bulk action) still needs the real queryset, since
+            # On the new list the temba-campaign-list component fetches and pages campaigns from the internal
+            # campaigns API, so a GET page needs no object list. A POST (bulk action) still needs the real queryset, since
             # BulkActionMixin validates the posted `objects` against it.
             if self._use_new_list() and self.request.method == "GET":
                 return Campaign.objects.none()
@@ -733,8 +734,8 @@ class CampaignEventCRUDL(SmartCRUDL):
 
     class Fires(BaseReadView):
         """
-        The most recent contacts an event fired for, consumed by the recent-contacts popup on the preview campaign
-        read page — so like that page it only exists in preview mode.
+        The most recent contacts an event fired for, consumed by the recent-contacts popup on the new campaign
+        read page — so like that page it doesn't exist in legacy mode.
         """
 
         permission = "campaigns.campaignevent_read"
@@ -744,8 +745,8 @@ class CampaignEventCRUDL(SmartCRUDL):
             return self.get_object().campaign.org
 
         def get(self, request, *args, **kwargs):
-            # permission checks have already run in dispatch; hide the endpoint itself outside of preview
-            if not getattr(request, "preview", False):
+            # permission checks have already run in dispatch; hide the endpoint itself in legacy mode
+            if getattr(request, "legacy", False):
                 raise Http404()
             return super().get(request, *args, **kwargs)
 
@@ -851,8 +852,8 @@ class CampaignEventCRUDL(SmartCRUDL):
             return obj
 
         def get_success_url(self):
-            # the preview read page has no event read page - the edit modal returns to the campaign
-            if getattr(self.request, "preview", False):
+            # the new read page has no event read page - the edit modal returns to the campaign
+            if not getattr(self.request, "legacy", False):
                 return reverse("campaigns.campaign_read", args=[self.object.campaign.uuid])
             return reverse("campaigns.campaignevent_read", args=[self.object.campaign.uuid, self.object.uuid])
 

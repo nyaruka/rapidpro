@@ -131,34 +131,34 @@ class LanguageMiddleware:
         return response
 
 
-class PreviewMiddleware:
+class LegacyMiddleware:
     """
-    Exposes a global `preview` flag for opting into features that aren't fully rolled out yet. `?preview=1` opts in
-    (sets a year-long `temba-preview` cookie); `?preview=0` opts out (clears it); anything else falls back to the
-    cookie. The current state is set on `request.preview` so views and templates can gate features off `if
-    request.preview`.
+    Exposes a global `legacy` flag for opting back into the old implementations of sections that have been rebuilt
+    as components. `?legacy=1` opts in (sets a year-long `temba-legacy` cookie); `?legacy=0` opts out (clears it);
+    anything else falls back to the cookie. The current state is set on `request.legacy` so views and templates can
+    gate features off `if request.legacy`.
 
     The write side (cookie set/clear) is gated on `request.user.is_authenticated` so a cross-origin
-    `<img src=".../?preview=1">` can't silently plant the cookie on an unauthenticated victim.
+    `<img src=".../?legacy=1">` can't silently plant the cookie on an unauthenticated victim.
     """
 
-    COOKIE = "temba-preview"
+    COOKIE = "temba-legacy"
 
     def __init__(self, get_response=None):
         self.get_response = get_response
 
     def __call__(self, request):
-        toggle = request.GET.get("preview")
+        toggle = request.GET.get("legacy")
         # Only evaluate request.user when the toggle is actually present — otherwise reading is_authenticated on
         # every request would force the lazy user to materialize before OrgMiddleware needs it (and break the
         # query-count baselines of every list view).
         authed = toggle in ("1", "0") and request.user.is_authenticated
         if toggle == "1" and authed:
-            request.preview = True
+            request.legacy = True
         elif toggle == "0" and authed:
-            request.preview = False
+            request.legacy = False
         else:
-            request.preview = request.COOKIES.get(self.COOKIE) == "1"
+            request.legacy = request.COOKIES.get(self.COOKIE) == "1"
 
         response = self.get_response(request)
 
