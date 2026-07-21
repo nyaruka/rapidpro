@@ -356,8 +356,24 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
             response.json()["usages"],
         )
 
+        # usages are capped but counts carry the full total
+        for i in range(26):
+            self.create_flow(f"Flow {i}").field_dependencies.add(self.gender)
+
+        response = self.client.get(reverse("contacts.contactfield_detail", args=[self.gender.key]))
+        self.assertEqual(25, len(response.json()["usages"]["flows"]))
+        self.assertEqual(26, response.json()["counts"]["flows"])
+
+        # system fields can't be edited or deleted
+        response = self.client.get(reverse("contacts.contactfield_detail", args=["created_on"]))
+        self.assertEqual(200, response.status_code)
+        self.assertFalse(response.json()["can_edit"])
+        self.assertFalse(response.json()["can_delete"])
+
     def test_update_priority(self):
         priority_url = reverse("contacts.contactfield_update_priority")
+
+        self.assertRequestDisallowed(priority_url, [None, self.agent])
 
         self.login(self.admin)
 
@@ -393,6 +409,11 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         # anything not listed is un-featured and zeroed
         self.assertFalse(self.age.show_in_table)
         self.assertEqual(0, self.age.priority)
+
+        # an empty featured list un-features everything
+        response = self.client.post(priority_url, {"featured": []}, content_type="application/json")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(0, ContactField.user_fields.filter(org=self.org, is_active=True, show_in_table=True).count())
 
         # bad input is a 400
         response = self.client.post(priority_url, "notjson", content_type="application/json")
